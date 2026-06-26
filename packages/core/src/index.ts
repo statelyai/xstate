@@ -29,6 +29,15 @@ export {
   type TypeSchema
 } from './schema.types.ts';
 export { createSystem, setup } from './setup.ts';
+export type {
+  AnySetupConfig,
+  SetupConfig,
+  SetupReturn,
+  SetupReturnFromConfig,
+  SetupSchemas,
+  SetupStateSchema,
+  SetupStateSchemas
+} from './setup.ts';
 export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export type {
   InspectionEvent,

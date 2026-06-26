@@ -3412,7 +3412,10 @@ describe('invoke', () => {
                 return Promise.resolve(42);
               }
             }),
-            onDone: (_: any, enq: any) => {
+            onDone: (
+              _args: unknown,
+              enq: (action: typeof handleSuccess) => void
+            ) => {
               enq(handleSuccess);
             }
           }

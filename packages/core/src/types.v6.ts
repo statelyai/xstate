@@ -19,6 +19,7 @@ import {
   IsNever,
   MetaObject,
   NonReducibleUnknown,
+  OutputFrom,
   SingleOrArray,
   SnapshotEvent,
   StateValue,
@@ -51,7 +52,11 @@ export type InferEvents<
   > extends infer O
     ? unknown extends O
       ? O & { type: K }
-      : Required<O> & { type: K }
+      : string extends keyof O
+        ? [O[string]] extends [never]
+          ? { type: K }
+          : Required<O> & { type: K }
+        : Required<O> & { type: K }
     : never;
 }>;
 
@@ -503,21 +508,28 @@ export type Next_InvokeConfig<
             TGuardMap,
             TDelayMap,
             TMeta,
-            TSystemRegistry
+            TSystemRegistry,
+            DoneActorEvent<OutputFrom<TActorMap[K]>>
           > & {
-            src:
-              | K
-              | TActorMap[K]
-              | ((
-                  args: InvokeSrcArgs<TContext, TEvent, TActorMap>
-                ) => K | TActorMap[K]);
             id?: ChildIdForLogic<TActorMap[K], TChildren>;
             input?:
               | ((
                   args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
                 ) => InputFrom<TActorMap[K]>)
               | InputFrom<TActorMap[K]>;
-          };
+          } & (
+              | {
+                  src: K;
+                }
+              | {
+                  src: TActorMap[K];
+                }
+              | {
+                  src: (
+                    args: InvokeSrcArgs<TContext, TEvent, TActorMap>
+                  ) => K | TActorMap[K];
+                }
+            );
         }[keyof TActorMap & string]
       | InlineInvokeConfig<
           TContext,
@@ -542,13 +554,16 @@ interface Next_InvokeConfigBase<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject,
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TDoneEvent extends EventObject = [keyof TActorMap & string] extends [never]
+    ? DoneActorEvent<any>
+    : DoneActorEvent<OutputFrom<TActorMap[keyof TActorMap & string]>>
 > {
   id?: string;
   registryKey?: keyof TSystemRegistry & string;
   onDone?: Next_TransitionConfigOrTarget<
     TContext,
-    DoneActorEvent<any>,
+    TDoneEvent,
     TEvent,
     TEmitted,
     TActionMap,

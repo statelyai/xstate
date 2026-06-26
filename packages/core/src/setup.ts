@@ -44,7 +44,7 @@ import {
   WithDefault
 } from './types.v6.ts';
 
-type SetupConfig<
+export type SetupConfig<
   TSchemas extends SetupSchemas,
   TStates extends Record<string, SetupStateSchema>,
   TActionMap extends Implementations['actions'],
@@ -59,6 +59,15 @@ type SetupConfig<
   guards?: TGuardMap;
   delays?: TDelayMap;
 };
+
+export type AnySetupConfig = SetupConfig<
+  SetupSchemas,
+  Record<string, SetupStateSchema>,
+  Implementations['actions'],
+  Implementations['actorSources'],
+  Implementations['guards'],
+  Implementations['delays']
+>;
 
 type SystemConfig<TSystemRegistry extends SystemRegistry> = {
   registry?: TSystemRegistry;
@@ -151,12 +160,12 @@ type ValidateRegistryKeys<
           }
         : unknown);
 
-type SetupStateSchemas = {
+export type SetupStateSchemas = {
   context?: StandardSchemaV1;
   input?: StandardSchemaV1;
 };
 
-type SetupSchemas = {
+export type SetupSchemas = {
   context?: StandardSchemaV1;
   events?: Record<string, StandardSchemaV1>;
   emitted?: Record<string, StandardSchemaV1>;
@@ -168,7 +177,7 @@ type SetupSchemas = {
 };
 
 /** State schema with optional schemas.input and nested states */
-interface SetupStateSchema {
+export interface SetupStateSchema {
   schemas?: SetupStateSchemas;
   states?: Record<string, SetupStateSchema>;
 }
@@ -1033,7 +1042,7 @@ type InitialTransitionWithInput<
 }[keyof TStateSchemas & string];
 
 /** Return type of setup() */
-interface SetupReturn<
+export interface SetupReturn<
   TStates extends Record<string, SetupStateSchema> = Record<
     string,
     SetupStateSchema
@@ -1261,6 +1270,53 @@ interface SetupReturn<
   states: TStates;
 }
 
+type SetupConfigSchemas<TConfig> = TConfig extends { schemas?: infer TSchemas }
+  ? TSchemas extends SetupSchemas
+    ? TSchemas
+    : {}
+  : {};
+
+type SetupConfigStates<TConfig> = TConfig extends { states?: infer TStates }
+  ? TStates extends Record<string, SetupStateSchema>
+    ? TStates
+    : Record<string, SetupStateSchema>
+  : Record<string, SetupStateSchema>;
+
+type SetupConfigActions<TConfig> = TConfig extends { actions?: infer TActions }
+  ? TActions extends Implementations['actions']
+    ? TActions
+    : {}
+  : {};
+
+type SetupConfigActorSources<TConfig> = TConfig extends {
+  actorSources?: infer TActorSources;
+}
+  ? TActorSources extends Implementations['actorSources']
+    ? TActorSources
+    : {}
+  : {};
+
+type SetupConfigGuards<TConfig> = TConfig extends { guards?: infer TGuards }
+  ? TGuards extends Implementations['guards']
+    ? TGuards
+    : {}
+  : {};
+
+type SetupConfigDelays<TConfig> = TConfig extends { delays?: infer TDelays }
+  ? TDelays extends Implementations['delays']
+    ? TDelays
+    : {}
+  : {};
+
+export type SetupReturnFromConfig<TConfig extends AnySetupConfig> = SetupReturn<
+  SetupConfigStates<TConfig>,
+  SetupConfigSchemas<TConfig>,
+  SetupConfigActions<TConfig>,
+  SetupConfigActorSources<TConfig>,
+  SetupConfigGuards<TConfig>,
+  SetupConfigDelays<TConfig>
+>;
+
 /**
  * Sets up a state machine with state input schemas and other configuration.
  *
@@ -1297,6 +1353,30 @@ interface SetupReturn<
  * });
  * ```
  */
+export function setup(): SetupReturn;
+export function setup<
+  const TSchemas extends SetupSchemas = {},
+  const TStates extends Record<string, SetupStateSchema> = Record<
+    string,
+    SetupStateSchema
+  >,
+  TActionMap extends Implementations['actions'] = {},
+  TActorMap extends Implementations['actorSources'] = {},
+  TGuardMap extends Implementations['guards'] = {},
+  TDelayMap extends Implementations['delays'] = {}
+>(
+  config: SetupConfig<
+    TSchemas,
+    TStates,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >
+): SetupReturn<TStates, TSchemas, TActionMap, TActorMap, TGuardMap, TDelayMap>;
+export function setup<const TConfig extends AnySetupConfig>(
+  config: TConfig
+): SetupReturnFromConfig<TConfig>;
 export function setup<
   const TSchemas extends SetupSchemas = {},
   const TStates extends Record<string, SetupStateSchema> = Record<
@@ -1327,8 +1407,33 @@ export function setup<
   } = config;
 
   return {
-    extend(extension) {
-      return setup(mergeSetupConfigs(config, extension));
+    extend<
+      const TExtendSchemas extends SetupSchemas = {},
+      const TExtendStates extends Record<string, SetupStateSchema> = {},
+      TExtendActionMap extends Implementations['actions'] = {},
+      TExtendActorMap extends Implementations['actorSources'] = {},
+      TExtendGuardMap extends Implementations['guards'] = {},
+      TExtendDelayMap extends Implementations['delays'] = {}
+    >(
+      extension: SetupConfig<
+        TExtendSchemas,
+        TExtendStates,
+        TExtendActionMap,
+        TExtendActorMap,
+        TExtendGuardMap,
+        TExtendDelayMap
+      >
+    ) {
+      return setup(mergeSetupConfigs(config, extension)) as SetupReturn<
+        MergeImplementationMaps<TStates, TExtendStates>,
+        MergeImplementationMaps<TSchemas, TExtendSchemas>,
+        MergeImplementationMaps<TActionMap, TExtendActionMap>,
+        MergeImplementationMaps<TActorMap, TExtendActorMap>,
+        MergeImplementationMaps<TGuardMap, TExtendGuardMap>,
+        MergeImplementationMaps<TDelayMap, TExtendDelayMap>,
+        | Extract<keyof TDelayMap, string>
+        | Extract<keyof TExtendDelayMap, string>
+      >;
     },
     createMachine(machineConfig) {
       const configSchemas = machineConfig.schemas;
@@ -1467,7 +1572,7 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
       };
     },
     setup(config) {
-      return setup(config) as any;
+      return (config ? setup(config) : setup()) as any;
     }
   };
 }

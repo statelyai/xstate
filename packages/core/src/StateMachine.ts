@@ -35,11 +35,16 @@ import type {
   AnyTransitionDefinition,
   Equals,
   EventDescriptor,
+  EmittedFrom,
   EventObject,
+  EventFromLogic,
   ExecutableActionObjectFromLogic,
   HistoryValue,
+  InputFrom,
+  IsAny,
   MachineContext,
   MetaObject,
+  OutputFrom,
   Snapshot,
   SnapshotFrom,
   StateValue,
@@ -60,6 +65,42 @@ import {
 } from './utils.ts';
 
 const STATE_IDENTIFIER = '#';
+
+type CompatibleProvidedActorSource<
+  TExpected extends AnyActorLogic,
+  TActual extends AnyActorLogic
+> =
+  IsAny<TActual> extends true
+    ? TActual
+    : [OutputFrom<TActual>] extends [OutputFrom<TExpected>]
+      ? [Omit<SnapshotFrom<TActual>, 'input'>] extends [
+          Omit<SnapshotFrom<TExpected>, 'input'>
+        ]
+        ? [InputFrom<TExpected>] extends [InputFrom<TActual>]
+          ? [EventFromLogic<TExpected>] extends [EventFromLogic<TActual>]
+            ? [EmittedFrom<TActual>] extends [EmittedFrom<TExpected>]
+              ? TActual
+              : never
+            : never
+          : never
+        : never
+      : never;
+
+type ProvidedActorSources<
+  TExpectedActorMap extends Implementations['actorSources'],
+  TProvidedActorMap extends Partial<
+    Record<keyof TExpectedActorMap & string, AnyActorLogic>
+  >
+> = {
+  [K in keyof TProvidedActorMap]: K extends keyof TExpectedActorMap
+    ? TProvidedActorMap[K] extends AnyActorLogic
+      ? CompatibleProvidedActorSource<
+          TExpectedActorMap[K],
+          TProvidedActorMap[K]
+        >
+      : never
+    : never;
+};
 
 export class StateMachine<
   TContext extends MachineContext,
@@ -207,9 +248,14 @@ export class StateMachine<
    *   `delays`) to recursively merge with the existing options.
    * @returns A new `StateMachine` instance with the provided implementations.
    */
-  public provide(implementations: {
+  public provide<
+    const TProvidedActorMap extends Partial<
+      Record<keyof TActorMap & string, AnyActorLogic>
+    > = {}
+  >(implementations: {
     actions?: Partial<TActionMap>;
-    actorSources?: Partial<TActorMap>;
+    actorSources?: TProvidedActorMap &
+      ProvidedActorSources<TActorMap, TProvidedActorMap>;
     guards?: Partial<TGuardMap>;
     delays?: Partial<TDelayMap>;
   }): StateMachine<

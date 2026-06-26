@@ -17,6 +17,8 @@ import {
   OutputFrom,
   StateMachine,
   SpecialExecutableAction,
+  type AnySetupConfig,
+  type SetupReturnFromConfig,
   type StandardSchemaV1,
   UnknownActorRef,
   createActor,
@@ -37,6 +39,7 @@ import type {
 } from '../src/types';
 import type { Next_StateNodeConfig } from '../src/types.v6';
 import z from 'zod';
+import * as z4 from 'zod/v4';
 
 function noop(_x: unknown) {
   return;
@@ -2393,7 +2396,6 @@ describe('invoke', () => {
         return { name: input.userId };
       }
     });
-
     const output: OutputFrom<typeof loadUser> = { name: 'David' };
     // @ts-expect-error
     const wrongOutput: OutputFrom<typeof loadUser> = { age: 42 };
@@ -2468,6 +2470,116 @@ describe('invoke', () => {
         input: { userId: 42 }
       }
     });
+  });
+
+  it('should preserve contextual typing when setup returns are decorated', () => {
+    const loadUser = createAsyncLogic({
+      schemas: {
+        input: types<{ userId: string }>(),
+        output: types<{ name: string }>()
+      },
+      run: async ({ input }) => {
+        return { name: input.userId };
+      }
+    });
+    const loadOrg = createAsyncLogic({
+      schemas: {
+        output: types<{ org: string }>()
+      },
+      run: async () => {
+        return { org: 'Stately' };
+      }
+    });
+
+    const decorateSetup = <const TConfig extends AnySetupConfig>(
+      config: TConfig
+    ): SetupReturnFromConfig<TConfig> & { extra: true } => {
+      const s = setup(config) as SetupReturnFromConfig<TConfig>;
+
+      return Object.assign(s, { extra: true as const });
+    };
+
+    const s = decorateSetup({
+      schemas: {
+        context: z.object({
+          prompt: z.string()
+        }),
+        events: {
+          SUBMIT: z.object({
+            value: z.string()
+          })
+        }
+      },
+      actorSources: {
+        loadUser,
+        loadOrg
+      }
+    });
+
+    s.createMachine({
+      context: {
+        prompt: ''
+      },
+      invoke: {
+        src: 'loadUser',
+        input: ({ context }) => ({
+          userId: context.prompt
+        }),
+        onDone: ({ event, output }) => {
+          const eventName: string = event.output.name;
+          const outputName: string = output.name;
+          // @ts-expect-error
+          const age: number = output.age;
+          // @ts-expect-error
+          const org: string = output.org;
+
+          noop(eventName);
+          noop(outputName);
+          noop(age);
+          noop(org);
+        }
+      },
+      on: {
+        SUBMIT: ({ context, event }) => {
+          const prompt: string = context.prompt;
+          const value: string = event.value;
+          // @ts-expect-error
+          event.missing;
+
+          noop(prompt);
+          noop(value);
+
+          return {
+            context: {
+              prompt: value
+            }
+          };
+        }
+      }
+    });
+
+    const extra: true = s.extra;
+    noop(extra);
+  });
+
+  it('should infer empty Zod v4 event schemas as type-only events', () => {
+    const machine = setup({
+      schemas: {
+        events: {
+          SEND: z4.object({}),
+          UPDATE: z4.object({
+            value: z4.string()
+          })
+        }
+      }
+    }).createMachine({});
+
+    const actor = createActor(machine);
+
+    actor.send({ type: 'SEND' });
+    actor.send({ type: 'UPDATE', value: 'ok' });
+    // @ts-expect-error
+    actor.send({ type: 'UPDATE' });
   });
 
   it('should infer callback logic input from source schemas', () => {
@@ -3048,9 +3160,56 @@ describe('actor implementations', () => {
       }
     }).provide({
       actorSources: {
-        // TODO: ideally this shouldn't error
-        // @ts-expect-error
         child: createAsyncLogic({ run: () => Promise.resolve('foo') })
+      }
+    });
+  });
+
+  it(`should reject the provided actor when its input is a sub type of the expected one`, () => {
+    const child = createAsyncLogic({
+      schemas: {
+        input: types<{ userId: string }>()
+      },
+      run: async () => {}
+    });
+
+    createMachine({
+      actorSources: {
+        child
+      }
+    }).provide({
+      actorSources: {
+        // @ts-expect-error
+        child: createAsyncLogic({
+          schemas: {
+            input: types<{ userId: 'fixed' }>()
+          },
+          run: async () => {}
+        })
+      }
+    });
+  });
+
+  it(`should accept the provided actor when its input is a super type of the expected one`, () => {
+    const child = createAsyncLogic({
+      schemas: {
+        input: types<{ userId: string }>()
+      },
+      run: async () => {}
+    });
+
+    createMachine({
+      actorSources: {
+        child
+      }
+    }).provide({
+      actorSources: {
+        child: createAsyncLogic({
+          schemas: {
+            input: types<{ userId: string | number }>()
+          },
+          run: async () => {}
+        })
       }
     });
   });
@@ -3380,8 +3539,6 @@ describe('actor implementations', () => {
       }
     }).provide({
       actorSources: {
-        // TODO: ideally this should be allowed since the provided actor is capable of handling all the event types that it might receive from the parent here
-        // @ts-expect-error
         child: createMachine({
           // types: {} as {
           //   events:
