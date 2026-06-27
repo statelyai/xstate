@@ -88,6 +88,7 @@
     "provide-actor-variance",
     "public-effect-introspection",
     "public-machine-schemas",
+    "public-setup-system-types",
     "quiet-internal-events",
     "quiet-zebras-invoke",
     "remove-interpret",
