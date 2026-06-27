@@ -1330,9 +1330,9 @@ describe('setup', () => {
               target: 'success',
               context: { message: 'Done' }
             }),
-            onError: () => ({
+            onError: ({ event }) => ({
               target: 'success',
-              context: { message: 'Error' }
+              context: { message: event.actorId }
             }),
             onSnapshot: () => ({
               target: 'success',

@@ -11,6 +11,7 @@ import {
   Compute,
   DoneActorEvent,
   DoNotInfer,
+  ErrorActorEvent,
   EventDescriptor,
   EventObject,
   ExtractEvent,
@@ -574,7 +575,7 @@ interface Next_InvokeConfigBase<
   >;
   onError?: Next_TransitionConfigOrTarget<
     TContext,
-    ErrorEvent,
+    ErrorActorEvent,
     TEvent,
     TEmitted,
     TActionMap,
