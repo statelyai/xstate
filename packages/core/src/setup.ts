@@ -47,6 +47,7 @@ import {
   Next_MachineConfig,
   Next_InvokeConfig,
   Next_StateNodeConfig,
+  Next_TransitionConfigOrTarget,
   WithDefault
 } from './types.v6.ts';
 
@@ -908,25 +909,21 @@ type StateTransitions<
   >;
 };
 
-type TransitionConfigExpressionEvent<TTransition> =
-  TTransition extends undefined
-    ? never
-    : TTransition extends (args: infer TArgs, ...rest: any[]) => any
-      ? TArgs extends { event: infer TExpressionEvent }
-        ? Cast<TExpressionEvent, EventObject>
-        : never
-      : TTransition extends { to?: infer TTo }
-        ? TransitionConfigExpressionEvent<TTo>
-        : never;
-
-type InvokeDoneEvent<TInvoke> =
-  TransitionConfigExpressionEvent<
-    TInvoke extends { onDone?: infer TOnDone } ? TOnDone : never
-  > extends infer TDoneEvent
-    ? [TDoneEvent] extends [never]
-      ? DoneActorEvent<any>
-      : Cast<TDoneEvent, EventObject>
-    : DoneActorEvent<any>;
+type InvokeDoneEvent<TInvoke> = TInvoke extends {
+  onDone?: Next_TransitionConfigOrTarget<
+    any,
+    infer TDoneEvent,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >;
+}
+  ? Cast<TDoneEvent, EventObject>
+  : DoneActorEvent<any>;
 
 type SetupInvokeConfig<
   TStateSchemas extends Record<string, SetupStateSchema>,

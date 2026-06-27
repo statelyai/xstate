@@ -1,5 +1,5 @@
 import z from 'zod';
-import { setup, createActor, createAsyncLogic, types } from '../src/index.ts';
+import { createActor, createAsyncLogic, setup, types } from '../src/index.ts';
 import type {
   StateContextFromStateValue,
   StateSchemaFrom
@@ -1227,7 +1227,7 @@ describe('setup', () => {
       },
       actorSources: {
         load: createAsyncLogic({
-          run: async () => undefined
+          run: async () => 'Done' as const
         })
       }
     });
@@ -1326,10 +1326,15 @@ describe('setup', () => {
           invoke: {
             src: 'load',
             timeout: 100,
-            onDone: () => ({
-              target: 'success',
-              context: { message: 'Done' }
-            }),
+            onDone: ({ event }) => {
+              event.output satisfies 'Done';
+              // @ts-expect-error - output should be inferred from actor logic
+              event.output satisfies number;
+              return {
+                target: 'success',
+                context: { message: event.output }
+              };
+            },
             onError: ({ event }) => ({
               target: 'success',
               context: { message: event.actorId }
