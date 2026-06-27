@@ -88,6 +88,10 @@ export type LogicFunction<
   enq: LogicEnqueue<TEmitted>
 ) => PromiseLike<TOutput>;
 
+type AsyncLogicFunctionOutput<
+  TLogicFunction extends (...args: any[]) => PromiseLike<any>
+> = Awaited<ReturnType<TLogicFunction>>;
+
 export interface LogicConfig<
   TOutput,
   TInput = NonReducibleUnknown,
@@ -239,23 +243,31 @@ export function createAsyncLogic<
   TEmitted
 > & { id?: string };
 export function createAsyncLogic<
-  TOutput,
   const TInputSchema extends StandardSchemaV1,
-  TEmitted extends EventObject = EventObject
->(
-  asyncLogic: LogicConfig<
-    TOutput,
+  TEmitted extends EventObject = EventObject,
+  TLogicFunction extends LogicFunction<
+    any,
     StandardSchemaV1.InferOutput<TInputSchema>,
-    TEmitted,
-    TInputSchema
+    TEmitted
+  > = LogicFunction<any, StandardSchemaV1.InferOutput<TInputSchema>, TEmitted>
+>(
+  asyncLogic: Omit<
+    LogicConfig<
+      never,
+      StandardSchemaV1.InferOutput<TInputSchema>,
+      TEmitted,
+      TInputSchema
+    >,
+    'run' | 'schemas'
   > & {
     schemas: {
       input: TInputSchema;
       output?: never;
     };
+    run: TLogicFunction;
   }
 ): AsyncActorLogic<
-  TOutput,
+  AsyncLogicFunctionOutput<TLogicFunction>,
   StandardSchemaV1.InferOutput<TInputSchema>,
   TEmitted
 > & { id?: string };
