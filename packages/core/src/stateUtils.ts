@@ -950,9 +950,40 @@ function computeExitSet(
         statesToExit.add(domain);
       }
 
-      for (const stateNode of stateNodeSet) {
-        if (isDescendant(stateNode, domain!)) {
-          statesToExit.add(stateNode);
+      const targetStates = getEffectiveTargetStates(t, historyValue);
+
+      // When the domain is a parallel state and the transition source is the
+      // domain itself (i.e. the transition is defined directly on the parallel
+      // state), only exit the regions that contain the transition's targets —
+      // unless any target IS the domain itself (e.g. a RESET to '#machineId'
+      // which must re-enter all regions from scratch). Sibling regions that
+      // are not targeted must not be exited so they can remain in their
+      // current sub-state rather than being reset to initial (issue #5214).
+      if (
+        domain?.type === 'parallel' &&
+        t.source === domain &&
+        targetStates.every((target) => target !== domain)
+      ) {
+        const affectedChildren = getChildren(domain).filter((child) =>
+          targetStates.some(
+            (target) => isDescendant(target, child) || target === child
+          )
+        );
+        for (const stateNode of stateNodeSet) {
+          if (
+            affectedChildren.some(
+              (child) =>
+                isDescendant(stateNode, child) || stateNode === child
+            )
+          ) {
+            statesToExit.add(stateNode);
+          }
+        }
+      } else {
+        for (const stateNode of stateNodeSet) {
+          if (isDescendant(stateNode, domain!)) {
+            statesToExit.add(stateNode);
+          }
         }
       }
     }
@@ -1289,7 +1320,12 @@ function computeEntrySet(
     const targetStates = getEffectiveTargetStates(t, historyValue);
     for (const s of targetStates) {
       const ancestors = getProperAncestors(s, domain);
-      if (domain?.type === 'parallel') {
+      // Only push the parallel domain into the ancestors list when the source
+      // of the transition is NOT the domain itself. When source === domain the
+      // transition is "scoped" to specific regions; pushing the domain would
+      // cause addAncestorStatesToEnter to reset all sibling parallel regions
+      // to their initial sub-states (see issue #5214).
+      if (domain?.type === 'parallel' && t.source !== domain) {
         ancestors.push(domain);
       }
       addAncestorStatesToEnter(
