@@ -69,15 +69,15 @@ export type AnySetupConfig = SetupConfig<
   Implementations['delays']
 >;
 
-type SystemConfig<TSystemRegistry extends SystemRegistry> = {
+export type SystemConfig<TSystemRegistry extends SystemRegistry> = {
   registry?: TSystemRegistry;
 };
 
-type SystemActorMap<TSystemRegistry extends SystemRegistry> = {
+export type SystemActorMap<TSystemRegistry extends SystemRegistry> = {
   [K in keyof TSystemRegistry & string]: ActorRefFromLogic<TSystemRegistry[K]>;
 };
 
-type SystemRuntime<TSystemRegistry extends SystemRegistry> = Omit<
+export type SystemRuntime<TSystemRegistry extends SystemRegistry> = Omit<
   AnyActorSystem,
   'get' | 'getAll'
 > & {

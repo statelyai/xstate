@@ -10,6 +10,7 @@ import {
   ActorRefFrom,
   ActorRefFromLogic,
   AnyActorLogic,
+  AnyStateMachine,
   BuiltInExecutableActionObject,
   CustomExecutableActionObject,
   ExecutableActionObject,
@@ -2466,10 +2467,64 @@ describe('invoke', () => {
     }).createMachine({
       // @ts-expect-error
       invoke: {
+        src: 'loadUserTypo',
+        input: { userId: '42' }
+      }
+    });
+
+    setup({
+      actorSources: { loadUser }
+    }).createMachine({
+      // @ts-expect-error
+      invoke: {
         src: 'loadUser',
         input: { userId: 42 }
       }
     });
+  });
+
+  it('should narrow transition function events by keyed event', () => {
+    setup({
+      schemas: {
+        events: {
+          REJECT: types<{ reason: string }>(),
+          APPROVE: types<{}>()
+        }
+      }
+    }).createMachine({
+      on: {
+        REJECT: ({ event }) => {
+          const reason: string = event.reason;
+          // @ts-expect-error
+          event.missing;
+          noop(reason);
+        },
+        APPROVE: ({ event }) => {
+          // @ts-expect-error
+          event.reason;
+        }
+      }
+    });
+  });
+
+  it('should allow eventless setup machines to be assigned to AnyStateMachine', () => {
+    const machine = setup({
+      schemas: {
+        context: types<{ value: string }>(),
+        input: types<{ value: string }>(),
+        output: types<{ value: string }>()
+      }
+    }).createMachine({
+      context: ({ input }) => ({ value: input.value }),
+      output: ({ context }) => ({ value: context.value }),
+      initial: 'done',
+      states: {
+        done: { type: 'final' }
+      }
+    });
+
+    const anyMachine: AnyStateMachine = machine;
+    noop(anyMachine);
   });
 
   it('should preserve contextual typing when setup returns are decorated', () => {
