@@ -6,8 +6,10 @@
   "access": "public",
   "baseBranch": "main",
   "ignore": ["@xstate/immer", "@xstate/inspect"],
+  "snapshot": {
+    "useCalculatedVersion": true
+  },
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
-    "onlyUpdatePeerDependentsWhenOutOfRange": true,
-    "useCalculatedVersionForSnapshots": true
+    "onlyUpdatePeerDependentsWhenOutOfRange": true
   }
 }
