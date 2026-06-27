@@ -40,3 +40,4 @@ api/
 .pnpm-lock.yaml
 
 .claude
+.scratch
