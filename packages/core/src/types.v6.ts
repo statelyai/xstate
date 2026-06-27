@@ -50,13 +50,17 @@ export type InferEvents<
   [K in keyof TEventSchemaMap & string]: StandardSchemaV1.InferOutput<
     TEventSchemaMap[K]
   > extends infer O
-    ? unknown extends O
-      ? O & { type: K }
-      : string extends keyof O
-        ? [O[string]] extends [never]
+    ? [O] extends [never]
+      ? never
+      : unknown extends O
+        ? O & { type: K }
+        : [O] extends [void]
           ? { type: K }
-          : Required<O> & { type: K }
-        : Required<O> & { type: K }
+          : string extends keyof O
+            ? [O[string]] extends [never]
+              ? { type: K }
+              : Required<O> & { type: K }
+            : Required<O> & { type: K }
     : never;
 }>;
 
