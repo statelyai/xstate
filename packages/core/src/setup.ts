@@ -911,19 +911,19 @@ type StateTransitions<
 
 type InvokeDoneEvent<TInvoke> = TInvoke extends {
   onDone?: Next_TransitionConfigOrTarget<
-    any,
+    infer _TContext,
     infer TDoneEvent,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any
+    infer _TEvent,
+    infer _TEmitted,
+    infer _TActionMap,
+    infer _TActorMap,
+    infer _TGuardMap,
+    infer _TDelayMap,
+    infer _TMeta
   >;
 }
   ? Cast<TDoneEvent, EventObject>
-  : DoneActorEvent<any>;
+  : DoneActorEvent;
 
 type SetupInvokeConfig<
   TStateSchemas extends Record<string, SetupStateSchema>,
