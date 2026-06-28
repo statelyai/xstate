@@ -4193,6 +4193,83 @@ describe('actions', () => {
 });
 
 describe('setup.extend', () => {
+  it('should infer action and guard params from setup schemas', () => {
+    setup({
+      schemas: {
+        actions: {
+          track: {
+            params: z.object({ key: z.string() })
+          }
+        },
+        guards: {
+          hasAccess: {
+            params: z.object({ role: z.string() })
+          }
+        }
+      }
+    }).createMachine({
+      initial: 'idle',
+      on: {
+        GO: ({ actions, guards }, enq) => {
+          actions.track({ key: 'abc' });
+          enq(actions.track, { key: 'abc' });
+          // @ts-expect-error action param key must be a string
+          actions.track({ key: 100 });
+
+          if (guards.hasAccess({ role: 'admin' })) {
+            return { target: '.done' };
+          }
+          guards.hasAccess({
+            // @ts-expect-error guard param role must be a string
+            role: 100
+          });
+        }
+      },
+      states: {
+        idle: {},
+        done: {}
+      }
+    });
+  });
+
+  it('should infer action and guard params from machine schemas', () => {
+    setup().createMachine({
+      schemas: {
+        actions: {
+          track: {
+            params: z.object({ key: z.string() })
+          }
+        },
+        guards: {
+          hasAccess: {
+            params: z.object({ role: z.string() })
+          }
+        }
+      },
+      initial: 'idle',
+      on: {
+        GO: ({ actions, guards }, enq) => {
+          actions.track({ key: 'abc' });
+          enq(actions.track, { key: 'abc' });
+          // @ts-expect-error action param key must be a string
+          enq(actions.track, { key: 100 });
+
+          if (guards.hasAccess({ role: 'admin' })) {
+            return { target: '.done' };
+          }
+          guards.hasAccess({
+            // @ts-expect-error guard param role must be a string
+            role: 100
+          });
+        }
+      },
+      states: {
+        idle: {},
+        done: {}
+      }
+    });
+  });
+
   it('extends action, guard, and delay maps', () => {
     const s = setup({
       actions: {

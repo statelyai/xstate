@@ -34,8 +34,12 @@ import {
 import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
 import {
+  ActionSchemas,
   DelayMapFromNames,
+  GuardSchemas,
   InferChildren,
+  InferActions,
+  InferGuards,
   Implementations,
   InferOutput,
   InferEvents,
@@ -168,6 +172,8 @@ export type SetupStateSchemas = {
 export type SetupSchemas = {
   context?: StandardSchemaV1;
   events?: Record<string, StandardSchemaV1>;
+  actions?: ActionSchemas;
+  guards?: GuardSchemas;
   emitted?: Record<string, StandardSchemaV1>;
   input?: StandardSchemaV1;
   output?: StandardSchemaV1;
@@ -200,9 +206,24 @@ type SetupSchemaMap<
     : never
   : never;
 
+type SetupActionSchemaMap<TSchemas> = 'actions' extends keyof TSchemas
+  ? TSchemas['actions'] extends ActionSchemas
+    ? TSchemas['actions']
+    : never
+  : never;
+
+type SetupGuardSchemaMap<TSchemas> = 'guards' extends keyof TSchemas
+  ? TSchemas['guards'] extends GuardSchemas
+    ? TSchemas['guards']
+    : never
+  : never;
+
 type SetupOrConfigSchema<
   TSchemas,
-  TKey extends Exclude<keyof SetupSchemas, 'events' | 'emitted'>,
+  TKey extends Exclude<
+    keyof SetupSchemas,
+    'events' | 'actions' | 'guards' | 'emitted' | 'children'
+  >,
   TConfigSchema extends StandardSchemaV1
 > = [SetupSchema<TSchemas, TKey>] extends [never]
   ? TConfigSchema
@@ -356,6 +377,24 @@ type SetupChildren<
 > = [SetupSchemaMap<TSchemas, 'children'>] extends [never]
   ? InferChildren<TChildrenSchemaMap>
   : InferChildren<SetupSchemaMap<TSchemas, 'children'>>;
+
+type SetupActions<TSchemas, TActionMap extends Implementations['actions']> = [
+  SetupActionSchemaMap<TSchemas>
+] extends [never]
+  ? TActionMap
+  : MergeImplementationMaps<
+      InferActions<SetupActionSchemaMap<TSchemas>>,
+      TActionMap
+    >;
+
+type SetupGuards<TSchemas, TGuardMap extends Implementations['guards']> = [
+  SetupGuardSchemaMap<TSchemas>
+] extends [never]
+  ? TGuardMap
+  : MergeImplementationMaps<
+      InferGuards<SetupGuardSchemaMap<TSchemas>>,
+      TGuardMap
+    >;
 
 type MergeChildren<
   TChildren extends Record<string, AnyActorRef | undefined>,
@@ -650,6 +689,7 @@ type SetupMachineConfig<
     TChildren,
     TDelays,
     TTag,
+    SetupOutput<TSchemas, TOutputSchema>,
     TEmitted,
     TMeta,
     TActionMap,
@@ -670,6 +710,7 @@ type StatesWithInput<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TDelays extends string,
   TTag extends string,
+  TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
@@ -687,6 +728,7 @@ type StatesWithInput<
     TChildren,
     TDelays,
     TTag,
+    TOutput,
     TEmitted,
     TMeta,
     TActionMap,
@@ -707,6 +749,7 @@ type StateNodeConfigWithNestedInput<
   TChildren extends Record<string, AnyActorRef | undefined>,
   TDelays extends string,
   TTag extends string,
+  TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
   TActionMap extends Implementations['actions'],
@@ -721,7 +764,7 @@ type StateNodeConfigWithNestedInput<
       TEvent,
       TDelays,
       TTag,
-      any,
+      TOutput,
       TEmitted,
       TMeta,
       TChildren,
@@ -790,6 +833,7 @@ type StateNodeConfigWithNestedInput<
         TChildren,
         TDelays,
         TTag,
+        TOutput,
         TEmitted,
         TMeta,
         TActionMap,
@@ -804,7 +848,7 @@ type StateNodeConfigWithNestedInput<
           TEvent,
           TDelays,
           TTag,
-          any,
+          TOutput,
           TEmitted,
           TMeta,
           TChildren,
@@ -1102,6 +1146,8 @@ export interface SetupReturn<
       string,
       StandardSchemaV1
     >,
+    const TActionSchemaMap extends ActionSchemas = {},
+    const TGuardSchemaMap extends GuardSchemas = {},
     _TEvent extends EventObject = EventObject,
     TActor extends ProvidedActor = ProvidedActor,
     TActionMap extends Implementations['actions'] = {},
@@ -1135,9 +1181,15 @@ export interface SetupReturn<
       TTag,
       SetupEmitted<TSchemas, TEmittedSchemaMap>,
       SetupMeta<TSchemas, TMetaSchema>,
-      MergeImplementationMaps<TSetupActionMap, TActionMap>,
+      MergeImplementationMaps<
+        SetupActions<TSchemas, TSetupActionMap>,
+        MergeImplementationMaps<InferActions<TActionSchemaMap>, TActionMap>
+      >,
       MergeImplementationMaps<TSetupActorMap, TActorMap>,
-      MergeImplementationMaps<TSetupGuardMap, TGuardMap>,
+      MergeImplementationMaps<
+        SetupGuards<TSchemas, TSetupGuardMap>,
+        MergeImplementationMaps<InferGuards<TGuardSchemaMap>, TGuardMap>
+      >,
       MergeImplementationMaps<TSetupDelayMap, TDelayMap>,
       TSystemRegistry,
       SetupContextRequired<TSchemas, TContextSchema>,
@@ -1166,9 +1218,15 @@ export interface SetupReturn<
       TTag,
       SetupEmitted<TSchemas, TEmittedSchemaMap>,
       SetupMeta<TSchemas, TMetaSchema>,
-      MergeImplementationMaps<TSetupActionMap, TActionMap>,
+      MergeImplementationMaps<
+        SetupActions<TSchemas, TSetupActionMap>,
+        MergeImplementationMaps<InferActions<TActionSchemaMap>, TActionMap>
+      >,
       MergeImplementationMaps<TSetupActorMap, TActorMap>,
-      MergeImplementationMaps<TSetupGuardMap, TGuardMap>,
+      MergeImplementationMaps<
+        SetupGuards<TSchemas, TSetupGuardMap>,
+        MergeImplementationMaps<InferGuards<TGuardSchemaMap>, TGuardMap>
+      >,
       MergeImplementationMaps<TSetupDelayMap, TDelayMap>,
       TSystemRegistry,
       SetupContextRequired<TSchemas, TContextSchema>,
@@ -1183,6 +1241,8 @@ export interface SetupReturn<
         events?: TEventSchemaMap;
         context?: TContextSchema;
         emitted?: TEmittedSchemaMap;
+        actions?: TActionSchemaMap;
+        guards?: TGuardSchemaMap;
         input?: TInputSchema;
         output?: TOutputSchema;
         meta?: TMetaSchema;
@@ -1227,9 +1287,15 @@ export interface SetupReturn<
       Cast<TConfig, StateSchema>,
       SetupStatesToStateSchema<TStates>
     >,
-    MergeImplementationMaps<TSetupActionMap, TActionMap>,
+    MergeImplementationMaps<
+      SetupActions<TSchemas, TSetupActionMap>,
+      MergeImplementationMaps<InferActions<TActionSchemaMap>, TActionMap>
+    >,
     MergeImplementationMaps<TSetupActorMap, TActorMap>,
-    MergeImplementationMaps<TSetupGuardMap, TGuardMap>,
+    MergeImplementationMaps<
+      SetupGuards<TSchemas, TSetupGuardMap>,
+      MergeImplementationMaps<InferGuards<TGuardSchemaMap>, TGuardMap>
+    >,
     DelayMapFromNames<
       TSetupDelays | TDelays,
       MergeImplementationMaps<TSetupDelayMap, TDelayMap>
@@ -1254,11 +1320,12 @@ export interface SetupReturn<
       >,
       string,
       SetupTags<TSchemas, StandardSchemaV1>,
+      SetupOutput<TSchemas, StandardSchemaV1>,
       SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
       SetupMeta<TSchemas, StandardSchemaV1>,
-      TSetupActionMap,
+      SetupActions<TSchemas, TSetupActionMap>,
       TSetupActorMap,
-      TSetupGuardMap,
+      SetupGuards<TSchemas, TSetupGuardMap>,
       TSetupDelayMap,
       TSystemRegistry
     >
@@ -1284,9 +1351,12 @@ type SetupConfigStates<TConfig> = TConfig extends { states?: infer TStates }
 
 type SetupConfigActions<TConfig> = TConfig extends { actions?: infer TActions }
   ? TActions extends Implementations['actions']
-    ? TActions
-    : {}
-  : {};
+    ? MergeImplementationMaps<
+        SetupActions<SetupConfigSchemas<TConfig>, {}>,
+        TActions
+      >
+    : SetupActions<SetupConfigSchemas<TConfig>, {}>
+  : SetupActions<SetupConfigSchemas<TConfig>, {}>;
 
 type SetupConfigActorSources<TConfig> = TConfig extends {
   actorSources?: infer TActorSources;
@@ -1298,9 +1368,12 @@ type SetupConfigActorSources<TConfig> = TConfig extends {
 
 type SetupConfigGuards<TConfig> = TConfig extends { guards?: infer TGuards }
   ? TGuards extends Implementations['guards']
-    ? TGuards
-    : {}
-  : {};
+    ? MergeImplementationMaps<
+        SetupGuards<SetupConfigSchemas<TConfig>, {}>,
+        TGuards
+      >
+    : SetupGuards<SetupConfigSchemas<TConfig>, {}>
+  : SetupGuards<SetupConfigSchemas<TConfig>, {}>;
 
 type SetupConfigDelays<TConfig> = TConfig extends { delays?: infer TDelays }
   ? TDelays extends Implementations['delays']

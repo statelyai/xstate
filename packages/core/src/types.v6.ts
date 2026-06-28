@@ -72,6 +72,28 @@ export type InferChildren<
         : never;
     };
 
+export type ActionSchemas = Record<string, { params: StandardSchemaV1 }>;
+
+export type GuardSchemas = Record<string, { params: StandardSchemaV1 }>;
+
+export type InferActions<TActionSchemaMap extends ActionSchemas> =
+  string extends keyof TActionSchemaMap
+    ? {}
+    : {
+        [K in keyof TActionSchemaMap & string]: (
+          params: StandardSchemaV1.InferOutput<TActionSchemaMap[K]['params']>
+        ) => void | { context?: any; children?: any };
+      };
+
+export type InferGuards<TGuardSchemaMap extends GuardSchemas> =
+  string extends keyof TGuardSchemaMap
+    ? {}
+    : {
+        [K in keyof TGuardSchemaMap & string]: (
+          params: StandardSchemaV1.InferOutput<TGuardSchemaMap[K]['params']>
+        ) => boolean;
+      };
+
 type OutputConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -160,6 +182,8 @@ type MachineSchemas<
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>
 > = {
   events?: TEventSchemaMap;
+  actions?: ActionSchemas;
+  guards?: GuardSchemas;
   context?: TContextSchema;
   emitted?: TEmittedSchemaMap;
   input?: TInputSchema;

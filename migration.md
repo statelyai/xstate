@@ -348,6 +348,8 @@ const m = createMachine({
 schemas: {
   context:  ZodSchema,
   events:   { [eventType: string]: ZodSchema },        // map, not union
+  actions:  { [actionType: string]: { params: ZodSchema } },
+  guards:   { [guardType: string]: { params: ZodSchema } },
   emitted:  { [eventType: string]: ZodSchema },
   input:    ZodSchema,                                  // machine input
   output:   ZodSchema,                                  // machine output
