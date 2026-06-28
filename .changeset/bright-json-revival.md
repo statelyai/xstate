@@ -2,7 +2,7 @@
 'xstate': minor
 ---
 
-Machine JSON revival now preserves more of the serialized machine definition, including delayed transitions, state timeouts, state tags, state output, invoke input, invoke completion transitions, invoke timeouts, and implementation maps passed to `createMachineFromConfig`.
+Machine JSON revival now preserves more of the serialized machine definition, including delayed transitions, state timeouts, state tags, state output, route configs, invoke input, invoke completion transitions, invoke timeouts, expression values, and implementation maps passed to `createMachineFromConfig`.
 
 ```ts
 const machine = createMachineFromConfig(
@@ -23,7 +23,7 @@ const machine = createMachineFromConfig(
     }
   },
   {
-    actors: { loadUser }
+    actorSources: { loadUser }
   }
 );
 ```

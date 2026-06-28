@@ -2,12 +2,12 @@
 'xstate': patch
 ---
 
-Serialize function implementations as portable code expressions.
+Serialize inline machine functions as code expressions.
 
-Functions in guards, actions, delays, and inline machine config now serialize as:
+Inline guards, actions, transitions, route functions, delays, and expression-capable machine config now serialize as:
 
 ```ts
-{ '@type': 'code', lang: 'ts', expr: '() => true' }
+{ '@code': '() => true', '@lang': 'ts' }
 ```
 
-Values that cannot be represented as code or JSON still serialize with explicit `$unserializable` markers.
+Nonportable values such as actor logic, runtime schemas, root implementation functions, class instances, symbols, and bigints are omitted from the serialized JSON instead of being marked.

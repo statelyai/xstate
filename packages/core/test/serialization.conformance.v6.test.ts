@@ -11,8 +11,8 @@
  * 2. Serializable structure (states, transitions, targets, serialized actions,
  *    guard refs, string actor srcs, delays, meta, context values) survives a
  *    JSON round-trip through `createMachineFromConfig`.
- * 3. Runtime functions appear as code expressions. Actor logic and schemas appear
- *    as `{ $unserializable }` markers — visible, not dropped.
+ * 3. Inline runtime functions appear as code expressions. Root implementation
+ *    maps, actor logic, and runtime schemas are omitted.
  * 4. A machine created from JSON round-trips losslessly (byte-stable).
  */
 import {
@@ -26,15 +26,15 @@ import {
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
 import { z } from 'zod';
 
-function findMarkers(json: unknown, path = '$'): string[] {
+function findCodeExpressions(json: unknown, path = '$'): string[] {
   if (json === null || typeof json !== 'object') {
     return [];
   }
-  if ('$unserializable' in (json as object)) {
+  if ('@code' in (json as object)) {
     return [path];
   }
   return Object.entries(json as Record<string, unknown>).flatMap(([k, v]) =>
-    findMarkers(v, `${path}.${k}`)
+    findCodeExpressions(v, `${path}.${k}`)
   );
 }
 
@@ -69,14 +69,24 @@ describe('serializability conformance', () => {
       }
     };
 
-    const machine = createMachineFromConfig(definition as any);
+    const implementations = {
+      actorSources: {
+        worker: createAsyncLogic({
+          run: async () => undefined
+        })
+      },
+      guards: {
+        canFinish: () => true
+      }
+    };
+    const machine = createMachineFromConfig(definition as any, implementations);
     const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
 
     expect(json).toEqual(definition);
-    expect(findMarkers(json)).toEqual([]);
+    expect(findCodeExpressions(json)).toEqual([]);
 
     // Revive and serialize again: byte-stable.
-    const revived = createMachineFromConfig(json);
+    const revived = createMachineFromConfig(json, implementations);
     expect(JSON.stringify(serializeMachine(revived))).toBe(
       JSON.stringify(serializeMachine(machine))
     );
@@ -108,7 +118,7 @@ describe('serializability conformance', () => {
     expect(() => JSON.stringify(serializeMachine(machine))).not.toThrow();
   });
 
-  it('setup/createMachine implementations serialize named functions to code directives', () => {
+  it('setup/createMachine root implementations are omitted', () => {
     function track() {}
     function isReady() {
       return true;
@@ -152,21 +162,29 @@ describe('serializability conformance', () => {
 
     const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
 
-    expect(json.actions.track).toEqual({
-      '@type': 'code',
-      lang: 'ts',
-      expr: track.toString()
-    });
-    expect(json.guards.isReady).toEqual({
-      '@type': 'code',
-      lang: 'ts',
-      expr: isReady.toString()
-    });
-    expect(json.delays.shortDelay).toEqual({
-      '@type': 'code',
-      lang: 'ts',
-      expr: shortDelay.toString()
-    });
+    expect(json.actions).toBeUndefined();
+    expect(json.guards).toBeUndefined();
+    expect(json.delays).toBeUndefined();
+    expect(json.states.idle).toMatchInlineSnapshot(`
+      {
+        "after": {
+          "shortDelay": {
+            "@code": "({ guards }) => {
+                    if (guards.isReady()) {
+                      return { target: "done" };
+                    }
+                  }",
+            "@lang": "ts",
+          },
+        },
+        "entry": {
+          "@code": "({ actions }, enq) => {
+                  enq(actions.track);
+                }",
+          "@lang": "ts",
+        },
+      }
+    `);
   });
 
   it('inline guards/actions serialize to code directives', () => {
@@ -195,19 +213,28 @@ describe('serializability conformance', () => {
 
     const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
 
-    expect(json.states.a.entry).toEqual({
-      '@type': 'code',
-      lang: 'ts',
-      expr: entry.toString()
-    });
-    expect(json.states.a.on.GO).toEqual({
-      '@type': 'code',
-      lang: 'ts',
-      expr: transition.toString()
-    });
+    expect(json.states.a).toMatchInlineSnapshot(`
+      {
+        "entry": {
+          "@code": "(_) => void 0",
+          "@lang": "ts",
+        },
+        "on": {
+          "GO": {
+            "@code": "(args, enq) => {
+            if (guard(args)) {
+              enq(entry);
+              return { target: "b" };
+            }
+          }",
+            "@lang": "ts",
+          },
+        },
+      }
+    `);
   });
 
-  it('actors and schemas surface as explicit $unserializable markers', () => {
+  it('actors and schemas are omitted instead of marked', () => {
     const worker = createAsyncLogic({
       run: async () => undefined
     });
@@ -237,19 +264,69 @@ describe('serializability conformance', () => {
     });
 
     const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
-    const markers = findMarkers(json);
 
-    expect(markers).toEqual(
-      expect.arrayContaining([
-        '$.states.a.invoke.src',
-        '$.actorSources.worker',
-        '$.schemas.context',
-        '$.schemas.events.GO'
-      ])
-    );
+    expect(findCodeExpressions(json)).toEqual([]);
+    expect(json.actorSources).toBeUndefined();
+    expect(json.schemas.context).toBeUndefined();
+    expect(json.schemas.events.GO).toBeUndefined();
+    expect(json.states.a.invoke).toBeUndefined();
     // Structure survives.
-    expect(Object.keys(json.states)).toEqual(['a', 'b']);
-    expect(json.context).toEqual({ ok: true });
+    expect(json).toMatchInlineSnapshot(`
+      {
+        "context": {
+          "ok": true,
+        },
+        "initial": "a",
+        "schemas": {
+          "events": {},
+        },
+        "states": {
+          "a": {
+            "on": {
+              "GO": {
+                "target": "b",
+              },
+            },
+          },
+          "b": {},
+        },
+      }
+    `);
+  });
+
+  it('drops nonportable values from objects and arrays', () => {
+    const machine = createMachine({
+      context: {
+        kept: 'value',
+        dropped: new Date(0),
+        list: ['a', new Date(0), 'b']
+      },
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    } as any);
+
+    const directJSON = serializeMachine(machine);
+    const json = JSON.parse(JSON.stringify(directJSON));
+
+    expect((directJSON as any).context.dropped).toBeUndefined();
+    expect((directJSON as any).context).not.toHaveProperty('dropped');
+    expect(json).toMatchInlineSnapshot(`
+      {
+        "context": {
+          "kept": "value",
+          "list": [
+            "a",
+            "b",
+          ],
+        },
+        "initial": "idle",
+        "states": {
+          "idle": {},
+        },
+      }
+    `);
   });
 
   it('serializable structure survives even when implementations do not', () => {
@@ -268,11 +345,30 @@ describe('serializability conformance', () => {
 
     const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
 
-    expect(json.initial).toBe('idle');
-    expect(json.internalEvents).toEqual(['tick']);
-    expect(json.states.idle.timeout).toBe('5s');
-    expect(json.states.idle.onTimeout).toEqual({ target: 'expired' });
-    expect(json.states.idle.on.NEXT).toEqual({ target: 'expired' });
+    expect(json).toMatchInlineSnapshot(`
+      {
+        "initial": "idle",
+        "internalEvents": [
+          "tick",
+        ],
+        "states": {
+          "expired": {
+            "type": "final",
+          },
+          "idle": {
+            "on": {
+              "NEXT": {
+                "target": "expired",
+              },
+            },
+            "onTimeout": {
+              "target": "expired",
+            },
+            "timeout": "5s",
+          },
+        },
+      }
+    `);
   });
 
   it('JSON-safe unknown data is preserved', () => {
@@ -294,14 +390,27 @@ describe('serializability conformance', () => {
 
     const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
 
-    expect(json.customData).toEqual({
-      label: 'Portable',
-      values: [1, true, null]
-    });
-    expect(json.states.idle['x-viz']).toEqual({
-      x: 10,
-      y: 20
-    });
+    expect(json).toMatchInlineSnapshot(`
+      {
+        "customData": {
+          "label": "Portable",
+          "values": [
+            1,
+            true,
+            null,
+          ],
+        },
+        "initial": "idle",
+        "states": {
+          "idle": {
+            "x-viz": {
+              "x": 10,
+              "y": 20,
+            },
+          },
+        },
+      }
+    `);
   });
 
   it('revived machines run: structure + provided implementations', () => {

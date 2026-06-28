@@ -1,36 +1,68 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
   "title": "XState v6 machine definition (MachineJSON)",
-  "description": "The JSON-serializable subset of an XState machine definition, as accepted by createMachineFromConfig and produced by machine.definition / JSON.stringify(machine). Functions appear as { \"@type\": \"code\", \"lang\": \"ts\", \"expr\": ... } code expressions. Actor logic, schemas, and other non-code runtime values appear as { \"$unserializable\": ... } markers; a definition is fully portable iff it contains no markers.",
+  "description": "The JSON-serializable XState machine definition accepted by createMachineFromConfig. Expressions use reserved @ keys: @exprLang on the machine and @expr/@code with optional @lang in value slots.",
   "$ref": "#/$defs/machine",
   "$defs": {
-    "unserializable": {
+    "jsonSchema": {
       "type": "object",
-      "description": "Marker for a value that exists at runtime but cannot be represented as data (inline function, actor logic, runtime schema). Reviving a definition containing markers requires re-providing these implementations.",
+      "additionalProperties": true
+    },
+    "eventPayloadSchema": {
+      "allOf": [
+        { "$ref": "#/$defs/jsonSchema" },
+        {
+          "not": {
+            "type": "object",
+            "properties": {
+              "properties": {
+                "type": "object",
+                "required": ["type"]
+              }
+            },
+            "required": ["properties"]
+          }
+        }
+      ]
+    },
+    "expression": {
+      "type": "object",
       "properties": {
-        "$unserializable": {
-          "type": "string",
-          "enum": ["function", "actor", "schema", "value"]
-        },
-        "id": { "type": "string" }
+        "@expr": { "type": "string" },
+        "@lang": { "type": "string" }
       },
-      "required": ["$unserializable"],
+      "required": ["@expr"],
       "additionalProperties": false
     },
-    "codeExpression": {
+    "code": {
       "type": "object",
-      "description": "Portable source expression for a function-valued machine config field.",
       "properties": {
-        "@type": { "const": "code" },
-        "lang": { "const": "ts" },
-        "expr": { "type": "string" }
+        "@code": { "type": "string" },
+        "@lang": { "type": "string" }
       },
-      "required": ["@type", "lang", "expr"],
+      "required": ["@code"],
+      "additionalProperties": false
+    },
+    "resolvable": {
+      "oneOf": [{ "$ref": "#/$defs/expression" }, { "$ref": "#/$defs/code" }]
+    },
+    "condition": {
+      "oneOf": [
+        { "$ref": "#/$defs/resolvable" },
+        { "$ref": "#/$defs/guardObject" }
+      ]
+    },
+    "guardObject": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "params": {}
+      },
+      "required": ["type"],
       "additionalProperties": false
     },
     "actionObject": {
       "type": "object",
-      "description": "A serialized action: a built-in (@xstate.raise, @xstate.cancel, @xstate.log, @xstate.emit, @xstate.assign), an SCXML executable-content op (scxml.*), or a custom { type, params } action resolved from the machine's named actions.",
       "properties": {
         "type": { "type": "string" }
       },
@@ -40,22 +72,12 @@
     "action": {
       "oneOf": [
         { "$ref": "#/$defs/actionObject" },
-        { "$ref": "#/$defs/codeExpression" },
-        { "$ref": "#/$defs/unserializable" }
+        { "$ref": "#/$defs/resolvable" }
       ]
     },
     "actionList": {
       "type": "array",
       "items": { "$ref": "#/$defs/action" }
-    },
-    "guardObject": {
-      "type": "object",
-      "properties": {
-        "type": { "type": "string" },
-        "params": { "type": "object" }
-      },
-      "required": ["type"],
-      "additionalProperties": true
     },
     "transitionObject": {
       "type": "object",
@@ -68,14 +90,7 @@
         },
         "actions": { "$ref": "#/$defs/actionList" },
         "context": { "type": "object" },
-        "guard": {
-          "oneOf": [
-            { "$ref": "#/$defs/guardObject" },
-            { "$ref": "#/$defs/codeExpression" },
-            { "$ref": "#/$defs/unserializable" }
-          ]
-        },
-        "to": { "$ref": "#/$defs/unserializable" },
+        "guard": { "$ref": "#/$defs/condition" },
         "input": {},
         "description": { "type": "string" },
         "reenter": { "type": "boolean" },
@@ -85,10 +100,8 @@
     },
     "transition": {
       "oneOf": [
-        { "type": "string" },
         { "$ref": "#/$defs/transitionObject" },
-        { "$ref": "#/$defs/codeExpression" },
-        { "$ref": "#/$defs/unserializable" }
+        { "$ref": "#/$defs/resolvable" }
       ]
     },
     "transitionOrArray": {
@@ -101,14 +114,37 @@
       "type": "object",
       "additionalProperties": { "$ref": "#/$defs/transitionOrArray" }
     },
+    "choiceBranch": {
+      "type": "object",
+      "properties": {
+        "when": { "$ref": "#/$defs/condition" },
+        "target": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "context": { "type": "object" },
+        "input": {},
+        "description": { "type": "string" },
+        "reenter": { "type": "boolean" },
+        "meta": { "type": "object" }
+      },
+      "required": ["target"],
+      "additionalProperties": false
+    },
+    "choice": {
+      "oneOf": [
+        { "type": "array", "items": { "$ref": "#/$defs/choiceBranch" } },
+        { "$ref": "#/$defs/resolvable" }
+      ]
+    },
     "invokeObject": {
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "registryKey": { "type": "string" },
-        "src": {
-          "oneOf": [{ "type": "string" }, { "$ref": "#/$defs/unserializable" }]
-        },
+        "src": { "type": "string" },
         "input": {},
         "onDone": { "$ref": "#/$defs/transitionOrArray" },
         "onError": { "$ref": "#/$defs/transitionOrArray" },
@@ -128,12 +164,8 @@
     "duration": {
       "oneOf": [
         { "type": "number" },
-        {
-          "type": "string",
-          "description": "'250ms', '5s'/'1.5s', or an ISO 8601 duration ('PT1M30S')"
-        },
-        { "$ref": "#/$defs/codeExpression" },
-        { "$ref": "#/$defs/unserializable" }
+        { "type": "string" },
+        { "$ref": "#/$defs/resolvable" }
       ]
     },
     "initial": {
@@ -150,14 +182,109 @@
         }
       ]
     },
-    "implementationMap": {
+    "actionDefinitions": {
       "type": "object",
-      "description": "Named implementations. Keys are the contract a revived machine must fulfill (e.g. via provide()); values are usually unserializable markers.",
+      "additionalProperties": {
+        "oneOf": [
+          { "$ref": "#/$defs/action" },
+          { "$ref": "#/$defs/actionList" }
+        ]
+      }
+    },
+    "guardDefinitions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "when": { "$ref": "#/$defs/condition" }
+        },
+        "required": ["when"],
+        "additionalProperties": false
+      }
+    },
+    "delayDefinitions": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "number" },
+          { "type": "string" },
+          {
+            "type": "object",
+            "properties": {
+              "duration": { "$ref": "#/$defs/duration" }
+            },
+            "required": ["duration"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "schemas": {
+      "type": "object",
+      "properties": {
+        "context": { "$ref": "#/$defs/jsonSchema" },
+        "events": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/eventPayloadSchema" }
+        },
+        "actions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "params": { "$ref": "#/$defs/jsonSchema" }
+            },
+            "required": ["params"],
+            "additionalProperties": false
+          }
+        },
+        "guards": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "params": { "$ref": "#/$defs/jsonSchema" }
+            },
+            "required": ["params"],
+            "additionalProperties": false
+          }
+        },
+        "actorSources": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "input": { "$ref": "#/$defs/jsonSchema" },
+              "output": { "$ref": "#/$defs/jsonSchema" },
+              "emitted": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/eventPayloadSchema"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "emitted": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/eventPayloadSchema" }
+        },
+        "input": { "$ref": "#/$defs/jsonSchema" },
+        "output": { "$ref": "#/$defs/jsonSchema" },
+        "meta": { "$ref": "#/$defs/jsonSchema" },
+        "tags": { "$ref": "#/$defs/jsonSchema" },
+        "children": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/jsonSchema" }
+        }
+      },
       "additionalProperties": true
     },
     "stateNode": {
       "type": "object",
       "properties": {
+        "@exprLang": { "type": "string" },
         "id": { "type": "string" },
         "key": { "type": "string" },
         "type": {
@@ -179,13 +306,7 @@
         "on": { "$ref": "#/$defs/transitionMap" },
         "after": { "$ref": "#/$defs/transitionMap" },
         "always": { "$ref": "#/$defs/transitionOrArray" },
-        "choice": {
-          "oneOf": [
-            { "$ref": "#/$defs/transition" },
-            { "$ref": "#/$defs/codeExpression" },
-            { "$ref": "#/$defs/unserializable" }
-          ]
-        },
+        "choice": { "$ref": "#/$defs/choice" },
         "route": {
           "oneOf": [
             {
@@ -199,8 +320,7 @@
               },
               "additionalProperties": false
             },
-            { "$ref": "#/$defs/codeExpression" },
-            { "$ref": "#/$defs/unserializable" }
+            { "$ref": "#/$defs/resolvable" }
           ]
         },
         "invoke": { "$ref": "#/$defs/invoke" },
@@ -230,24 +350,18 @@
             { "type": "array", "items": { "type": "string" } }
           ]
         },
-        "context": {
-          "oneOf": [
-            { "type": "object" },
-            { "$ref": "#/$defs/codeExpression" },
-            { "$ref": "#/$defs/unserializable" }
-          ]
-        },
+        "context": { "type": "object" },
         "_scxmlDonedata": { "type": "object" },
         "version": { "type": "string" },
         "internalEvents": {
           "type": "array",
           "items": { "type": "string" }
         },
-        "schemas": { "type": "object" },
-        "actions": { "$ref": "#/$defs/implementationMap" },
-        "guards": { "$ref": "#/$defs/implementationMap" },
-        "actorSources": { "$ref": "#/$defs/implementationMap" },
-        "delays": { "$ref": "#/$defs/implementationMap" }
+        "schemas": { "$ref": "#/$defs/schemas" },
+        "actions": { "$ref": "#/$defs/actionDefinitions" },
+        "guards": { "$ref": "#/$defs/guardDefinitions" },
+        "actorSources": { "type": "object" },
+        "delays": { "$ref": "#/$defs/delayDefinitions" }
       },
       "additionalProperties": true
     },

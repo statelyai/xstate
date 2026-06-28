@@ -18,8 +18,7 @@ export type {
 export {
   machineConfigToJSON,
   serializeMachine,
-  type CodeExpression,
-  type UnserializableMarker
+  type CodeExpression
 } from './serialize.ts';
 export { mapState } from './mapState.ts';
 export {

@@ -4,38 +4,23 @@
  * `machineConfigToJSON` converts a machine config into a JSON-safe structure
  * (the `MachineJSON` shape accepted by `createMachineFromConfig`). The boundary
  * between serializable structure and runtime implementations is explicit:
- * functions are represented as code expressions, while actor logic, runtime
- * schemas, and other non-code runtime values are replaced with an `{
- * "$unserializable": <kind> }` marker rather than silently dropped.
- *
- * A machine definition is fully portable iff its JSON contains no
- * `$unserializable` markers; reviving a definition that has markers requires
- * re-providing those implementations (e.g. via `machine.provide(...)` or the
- * `actions`/`guards`/`actorSources` maps on `createMachineFromConfig`
- * revival).
+ * functions are represented as `@code` source objects, while actor logic,
+ * runtime schemas, and other non-data runtime values are omitted.
  */
 
 import type { AnyStateMachine } from './types.ts';
 
-export interface UnserializableMarker {
-  $unserializable: 'function' | 'actor' | 'schema' | 'value';
-  /** Best-effort identifier (function name, actor logic id) for diagnostics. */
-  id?: string;
-}
-
 export interface CodeExpression {
-  '@type': 'code';
-  lang: 'ts';
-  expr: string;
+  '@code': string;
+  '@lang': 'ts';
 }
 
 /**
  * Returns the JSON-serializable definition of a machine.
  *
- * Inline functions are represented as `{ "@type": "code", lang: "ts", expr }`.
- * Actor logic and runtime schemas appear as `{ "$unserializable": ... }`
- * markers. A machine created via `createMachineFromConfig` returns its original
- * JSON config (lossless round-trip):
+ * Inline functions are represented as `{ "@code": string, "@lang": "ts" }`. A
+ * machine created via `createMachineFromConfig` returns its original JSON
+ * config (lossless round-trip):
  *
  * ```ts
  * import { serializeMachine, createMachineFromConfig } from 'xstate';
@@ -52,23 +37,11 @@ export function serializeMachine(
   return (machine as any)._json ?? machineConfigToJSON(machine.config as any);
 }
 
-function marker(
-  kind: UnserializableMarker['$unserializable'],
-  id?: string
-): UnserializableMarker {
-  const m: UnserializableMarker = { $unserializable: kind };
-  if (id) {
-    m.id = id;
-  }
-  return m;
-}
-
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 function codeExpression(fn: Function): CodeExpression {
   return {
-    '@type': 'code',
-    lang: 'ts',
-    expr: fn.toString()
+    '@code': fn.toString(),
+    '@lang': 'ts'
   };
 }
 
@@ -92,27 +65,30 @@ function valueToJSON(value: unknown): unknown {
   }
   if (value === null || typeof value !== 'object') {
     return typeof value === 'bigint' || typeof value === 'symbol'
-      ? marker('value')
+      ? undefined
       : value;
   }
   if (isActorLogic(value)) {
-    return marker('actor', value.id);
+    return undefined;
   }
   if (isRuntimeSchema(value)) {
-    return marker('schema');
+    return undefined;
   }
   if (Array.isArray(value)) {
-    return value.map(valueToJSON);
+    return value.map(valueToJSON).filter((item) => item !== undefined);
   }
   if (value.constructor !== Object && value.constructor !== undefined) {
     // Class instances (actor logic, schemas, dates, ...) are not portable.
-    return marker('value');
+    return undefined;
   }
   const result: Record<string, unknown> = {};
   for (const key of Object.keys(value)) {
     const v = (value as Record<string, unknown>)[key];
     if (v !== undefined) {
-      result[key] = valueToJSON(v);
+      const jsonValue = valueToJSON(v);
+      if (jsonValue !== undefined) {
+        result[key] = jsonValue;
+      }
     }
   }
   return result;
@@ -120,7 +96,10 @@ function valueToJSON(value: unknown): unknown {
 
 function invokeToJSON(invoke: unknown): unknown {
   if (Array.isArray(invoke)) {
-    return invoke.map(invokeToJSON);
+    const values = invoke
+      .map(invokeToJSON)
+      .filter((value) => value !== undefined);
+    return values.length ? values : undefined;
   }
   const def = invoke as Record<string, unknown>;
   const result: Record<string, unknown> = {};
@@ -131,35 +110,31 @@ function invokeToJSON(invoke: unknown): unknown {
     }
     result[key] =
       key === 'src' && typeof value !== 'string'
-        ? // Actor logic keeps its dedicated marker kind so revival knows the
-          // contract is an actor, not a plain function.
-          marker('actor', (value as { id?: string }).id)
+        ? (value as { id?: string }).id
         : valueToJSON(value);
+    if (result[key] === undefined) {
+      delete result[key];
+    }
   }
-  return result;
+  return result.src === undefined ? undefined : result;
 }
 
 function implementationsToJSON(
-  map: Record<string, unknown> | undefined,
-  kind: UnserializableMarker['$unserializable']
+  map: Record<string, unknown> | undefined
 ): Record<string, unknown> | undefined {
   if (!map) {
     return undefined;
   }
-  // Keys are preserved — they are the contract a revived machine must
-  // fulfill via provide() — while values become markers (or stay, for
-  // JSON-safe values like numeric delays).
   const result: Record<string, unknown> = {};
   for (const key of Object.keys(map)) {
     const value = map[key];
-    if (kind === 'schema') {
-      result[key] = marker('schema', key);
-    } else if (typeof value === 'function') {
-      result[key] = codeExpression(value);
-    } else if (kind === 'actor' && value && typeof value === 'object') {
-      result[key] = marker('actor', key);
+    if (typeof value === 'function') {
+      result[key] = undefined;
     } else {
       result[key] = valueToJSON(value);
+    }
+    if (result[key] === undefined) {
+      delete result[key];
     }
   }
   return result;
@@ -180,7 +155,10 @@ function stateNodeConfigToJSON(
     }
   }
   if (config.invoke !== undefined) {
-    result.invoke = invokeToJSON(config.invoke);
+    const invoke = invokeToJSON(config.invoke);
+    if (invoke !== undefined) {
+      result.invoke = invoke;
+    }
   }
   if (config.states) {
     const states: Record<string, unknown> = {};
@@ -197,7 +175,7 @@ function stateNodeConfigToJSON(
 
 /**
  * Converts a machine config (as passed to `createMachine`) to its JSON-safe
- * definition. See module docs for the `$unserializable` marker contract.
+ * definition.
  */
 export function machineConfigToJSON(
   config: Record<string, unknown>
@@ -213,22 +191,26 @@ export function machineConfigToJSON(
       const value = (config.schemas as Record<string, unknown>)[key];
       if (value && typeof value === 'object' && !('~standard' in value)) {
         // Map-form schemas (events/emitted): preserve event-type keys.
-        schemas[key] = implementationsToJSON(
-          value as Record<string, unknown>,
-          'schema'
-        );
+        schemas[key] = implementationsToJSON(value as Record<string, unknown>);
       } else {
-        schemas[key] = marker('schema', key);
+        schemas[key] = valueToJSON(value);
+      }
+      if (schemas[key] === undefined) {
+        delete schemas[key];
       }
     }
     result.schemas = schemas;
   }
   for (const key of ['actions', 'guards', 'actorSources', 'delays'] as const) {
     if (config[key]) {
-      result[key] = implementationsToJSON(
-        config[key] as Record<string, unknown>,
-        key === 'actorSources' ? 'actor' : 'function'
+      const value = implementationsToJSON(
+        config[key] as Record<string, unknown>
       );
+      if (value && Object.keys(value).length) {
+        result[key] = value;
+      } else {
+        delete result[key];
+      }
     }
   }
 

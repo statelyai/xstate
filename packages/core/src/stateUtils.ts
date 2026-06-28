@@ -460,12 +460,6 @@ export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
           return;
         }
 
-        if ('$unserializable' in routeConfig) {
-          throw new Error(
-            `State "${sn.id}" has a route that is not serializable. Re-provide the route function when reviving this machine.`
-          );
-        }
-
         const { guard: _guard, ...routeOptions } = routeConfig as any;
         const transition: AnyTransitionConfig = {
           ...routeOptions,
