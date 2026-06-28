@@ -26,6 +26,7 @@ let executingCustomAction: boolean = false;
 
 import type {
   ActorScope,
+  ActorTrigger,
   AnyActor,
   AnyActorLogic,
   EmittedFrom,
@@ -186,19 +187,7 @@ export class Actor<TLogic extends AnyActorLogic>
   /** The system to which this actor belongs. */
   public system: AnyActorSystem;
 
-  public trigger: {
-    [K in SendableEventFromLogic<TLogic>['type']]: {} extends Omit<
-      Extract<SendableEventFromLogic<TLogic>, { type: K }>,
-      'type'
-    >
-      ? () => void
-      : (
-          payload: Omit<
-            Extract<SendableEventFromLogic<TLogic>, { type: K }>,
-            'type'
-          >
-        ) => void;
-  };
+  public trigger: ActorTrigger<SendableEventFromLogic<TLogic>>;
 
   public src: string | AnyActorLogic;
 
