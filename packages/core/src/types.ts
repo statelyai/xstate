@@ -1645,6 +1645,17 @@ export interface ActorRef<
   ) => Subscription;
 }
 
+type EventPayload<
+  TEvent extends EventObject,
+  TType extends TEvent['type']
+> = HomomorphicOmit<ExtractEvent<TEvent, TType>, 'type'>;
+
+export type ActorTrigger<TEvent extends EventObject> = {
+  [K in TEvent['type']]: {} extends EventPayload<TEvent, K>
+    ? () => void
+    : (payload: EventPayload<TEvent, K>) => void;
+};
+
 /**
  * Runtime-only actor capabilities.
  *
@@ -1656,7 +1667,8 @@ export interface ActorRef<
 export interface ActorRuntime<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
-  _TEmitted extends EventObject = EventObject
+  _TEmitted extends EventObject = EventObject,
+  TSendEvent extends EventObject = TEvent
 > {
   /** The unique identifier for this actor relative to its parent. */
   id: string;
@@ -1678,7 +1690,7 @@ export interface ActorRuntime<
   /** @internal */
   _processingStatus: ProcessingStatus;
   src: string | AnyActorLogic;
-  trigger: any;
+  trigger: ActorTrigger<TSendEvent>;
   select<TSelected>(
     selector: (snapshot: TSnapshot) => TSelected,
     equalityFn?: (a: TSelected, b: TSelected) => boolean
@@ -1697,7 +1709,7 @@ export interface ActorInstance<
   TEvent extends EventObject,
   TEmitted extends EventObject = EventObject,
   TSendEvent extends EventObject = TEvent
-> extends ActorRuntime<TSnapshot, TEvent, TEmitted>,
+> extends ActorRuntime<TSnapshot, TEvent, TEmitted, TSendEvent>,
     ActorRef<TSnapshot, TEvent, TEmitted, TSendEvent> {}
 
 /**
@@ -1712,7 +1724,7 @@ export type ActorSelf<
   TEvent extends EventObject,
   TEmitted extends EventObject = EventObject,
   TSendEvent extends EventObject = TEvent
-> = ActorRuntime<TSnapshot, TEvent, TEmitted> &
+> = ActorRuntime<TSnapshot, TEvent, TEmitted, TSendEvent> &
   ActorRef<TSnapshot, TEvent, TEmitted, TSendEvent>;
 
 // TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic

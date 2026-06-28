@@ -3,13 +3,16 @@ import * as React from 'react';
 import {
   ActorRef,
   ActorRefFrom,
+  ActorFromLogic,
   AnyMachineSnapshot,
   createLogic,
   createAsyncLogic,
   createActor,
   StateFrom,
   LogicSnapshot,
-  createMachine
+  createMachine,
+  setup,
+  types
 } from 'xstate';
 import {
   shallowEqual,
@@ -387,6 +390,100 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     expect(countEl.textContent).toEqual('0');
     fireEvent.click(buttonEl);
     expect(countEl.textContent).toEqual('1');
+  });
+
+  it('can call trigger on a spawned actor passed to a child component', () => {
+    const todoMachine = setup({
+      schemas: {
+        context: types<{
+          label: string;
+          done: boolean;
+        }>(),
+        events: {
+          rename: types<{ value: string }>(),
+          toggle: types<{}>()
+        }
+      }
+    }).createMachine({
+      context: {
+        label: 'Draft',
+        done: false
+      },
+      on: {
+        rename: ({ context, event }) => ({
+          context: {
+            ...context,
+            label: event.value
+          }
+        }),
+        toggle: ({ context }) => ({
+          context: {
+            ...context,
+            done: !context.done
+          }
+        })
+      }
+    });
+
+    type TodoActor = ActorFromLogic<typeof todoMachine>;
+
+    const parentMachine = setup({
+      schemas: {
+        context: types<{
+          todo: TodoActor | undefined;
+        }>()
+      },
+      actorSources: {
+        todo: todoMachine
+      }
+    }).createMachine({
+      context: {
+        todo: undefined
+      },
+      entry: ({ actorSources }, enq) => ({
+        context: {
+          todo: enq.spawn(actorSources.todo)
+        }
+      })
+    });
+
+    function Parent() {
+      const [state] = useMachine(parentMachine);
+      const todo = state.context.todo;
+
+      if (!todo) {
+        return null;
+      }
+
+      return <TodoItem actor={todo} />;
+    }
+
+    function TodoItem({ actor }: { actor: TodoActor }) {
+      const todo = useSelector(actor, (state) => state.context);
+
+      return (
+        <>
+          <div data-testid="label">{todo.label}</div>
+          <div data-testid="done">{String(todo.done)}</div>
+          <button
+            data-testid="rename"
+            onClick={() => actor.trigger.rename({ value: 'Buy milk' })}
+          />
+          <button data-testid="toggle" onClick={() => actor.trigger.toggle()} />
+        </>
+      );
+    }
+
+    render(<Parent />);
+
+    expect(screen.getByTestId('label').textContent).toBe('Draft');
+    expect(screen.getByTestId('done').textContent).toBe('false');
+
+    fireEvent.click(screen.getByTestId('rename'));
+    expect(screen.getByTestId('label').textContent).toBe('Buy milk');
+
+    fireEvent.click(screen.getByTestId('toggle'));
+    expect(screen.getByTestId('done').textContent).toBe('true');
   });
 
   it('should immediately render snapshot of initially spawned custom actor', () => {
