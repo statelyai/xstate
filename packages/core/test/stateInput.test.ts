@@ -134,6 +134,212 @@ describe('setup', () => {
     });
   });
 
+  it('createStateConfig should type a top-level state input by path', () => {
+    const s = setup({
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({
+              userId: z.string()
+            })
+          }
+        }
+      }
+    });
+
+    const loading = s.createStateConfig('loading', {
+      entry: ({ input }) => {
+        input.userId satisfies string;
+      }
+    });
+
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {},
+        loading
+      }
+    });
+
+    expect(loading.entry).toEqual(expect.any(Function));
+  });
+
+  it('createStateConfig should type a nested state input by dotted path', () => {
+    const s = setup({
+      states: {
+        parent: {
+          schemas: {
+            input: z.object({ parentId: z.string() })
+          },
+          states: {
+            child: {
+              schemas: {
+                input: z.object({ childId: z.number() })
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // A nested state config authored standalone, addressed by dotted path.
+    const child = s.createStateConfig('parent.child', {
+      entry: ({ input }) => {
+        input.childId satisfies number;
+      }
+    });
+
+    // Round-trip: the standalone nested config nests back under its parent,
+    // and the parent's own input is typed too.
+    const parent = s.createStateConfig('parent', {
+      entry: ({ input }) => {
+        input.parentId satisfies string;
+      },
+      initial: {
+        target: 'child',
+        input: { childId: 42 }
+      },
+      states: {
+        child
+      }
+    });
+
+    s.createMachine({
+      initial: {
+        target: 'parent',
+        input: { parentId: 'p1' }
+      },
+      states: {
+        parent
+      }
+    });
+
+    expect(parent.states.child).toBe(child);
+  });
+
+  it('createStateConfig should reject invalid paths and mistyped input', () => {
+    const s = setup({
+      states: {
+        idle: {},
+        parent: {
+          states: {
+            child: {
+              schemas: {
+                input: z.object({ childId: z.number() })
+              }
+            }
+          }
+        }
+      }
+    });
+
+    s.createStateConfig(
+      // @ts-expect-error - unknown top-level state path
+      'missing',
+      {}
+    );
+
+    s.createStateConfig(
+      // @ts-expect-error - unknown nested state path
+      'parent.missing',
+      {}
+    );
+
+    s.createStateConfig('parent.child', {
+      entry: ({ input }) => {
+        // @ts-expect-error - childId is a number, not a string
+        input.childId satisfies string;
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  // The (path, config) overload validates bare on/always transition targets
+  // against the resolved state's SIBLINGS — the children of the path's parent,
+  // or the root states for a top-level path — because a bare target resolves
+  // relative to the PARENT. These tests guard that: a real sibling is accepted;
+  // a child or unknown target is rejected.
+  it('createStateConfig should validate (path, config) branch-state transition targets against siblings, not children', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          GO: types<{}>()
+        }
+      },
+      states: {
+        parent: {
+          states: {
+            child: {
+              states: {
+                gc1: {}
+              }
+            },
+            sibling: {}
+          }
+        }
+      }
+    });
+
+    // 'sibling' is a real sibling of 'child' (both children of 'parent'), so a
+    // bare target to it is valid.
+    s.createStateConfig('parent.child', {
+      on: {
+        GO: {
+          target: 'sibling'
+        }
+      }
+    });
+
+    // 'gc1' is a CHILD of 'child', not a sibling. A bare target should be
+    // rejected (it would require descendant syntax '.gc1').
+    s.createStateConfig('parent.child', {
+      on: {
+        // @ts-expect-error - 'gc1' is a child, not a sibling; needs '.gc1'
+        GO: {
+          target: 'gc1'
+        }
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  // KNOWN SOUNDNESS GAP: in a parallel state, targeting a sibling region
+  // (e.g. `target: 'r2'` from inside `r1`) type-checks but is a runtime no-op.
+  // There is no way to tell whether a state is parallel from the setup `states`
+  // schema alone, so sibling regions are indistinguishable from ordinary
+  // siblings. Tripwire: when `target: 'r2'` stops compiling, the gap is
+  // fixed — flip that line to a `@ts-expect-error`.
+  it('createStateConfig (path, config) currently accepts a sibling-region target in a parallel state (known limitation)', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          E: types<{}>()
+        }
+      },
+      states: {
+        p: {
+          states: {
+            r1: {},
+            r2: {}
+          }
+        }
+      }
+    });
+
+    s.createStateConfig('p.r1', {
+      on: {
+        E: {
+          target: 'r2' // known gap: should be rejected; flip to @ts-expect-error when it is
+        }
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
   it('should create typed machines from setup schemas', () => {
     const s = setup({
       schemas: {
