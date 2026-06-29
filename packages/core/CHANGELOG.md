@@ -1,5 +1,32 @@
 # xstate
 
+## 6.0.0-alpha.12
+
+### Patch Changes
+
+- 4d9ba1c: Spawning a child with `enq.spawn(...)` from a transition function now creates and starts the child actor exactly once for the committed transition.
+
+  ```ts
+  const machine = createMachine({
+    on: {
+      spawn: (_, enq) => {
+        enq.spawn(childMachine, { registryKey: 'child' });
+      }
+    }
+  });
+  ```
+
+- 6798cb1: `serializeMachine(...)` and `createMachineFromConfig(...)` now represent inline functions (guards, actions, transitions, delays, route functions) as `{ '@code': string, '@lang': 'ts' }`. Non-portable values such as actor logic, runtime schemas, class instances, symbols, and bigints are omitted from the serialized JSON.
+
+  ```ts
+  import { serializeMachine } from 'xstate';
+
+  serializeMachine(machine);
+  // inline functions → { '@code': '() => true', '@lang': 'ts' }
+  ```
+
+  Type-only refinements: `void` and `undefined` are accepted as type-only schemas, async logic output is inferred from an input-only schema, actions/guards can be typed via `schemas`, and `trigger` is correctly typed on spawned actors.
+
 ## 6.0.0-alpha.11
 
 ### Patch Changes
