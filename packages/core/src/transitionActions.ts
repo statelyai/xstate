@@ -115,7 +115,7 @@ export function createTransitionEnqueue(
       if (!createActors) {
         // TODO: replace this speculative placeholder with a typed inert actor ref.
         return {
-          id: options?.id ?? options?.registryKey ?? logic.id
+          id: options?.id ?? options?.registryKey ?? (logic as any).id
         } as AnyActor;
       }
       const actor = createActor(logic, {
