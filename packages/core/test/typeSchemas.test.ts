@@ -57,4 +57,62 @@ describe('type-only schemas (`types`)', () => {
     const actor = createActor(machine, { input: { start: 7 } }).start();
     expect(actor.getSnapshot().output).toEqual({ total: 7 });
   });
+
+  it('checks top-level final outputs against the machine output schema', () => {
+    createMachine({
+      schemas: {
+        output: types<{ status: 'ok' }>()
+      },
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: { status: 'ok' }
+        }
+      },
+      output: ({ event }) => event.output
+    });
+
+    createMachine({
+      schemas: {
+        output: types<{ status: 'ok' }>()
+      },
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: { status: 'ok' }
+        },
+        failed: {
+          type: 'final',
+          // @ts-expect-error
+          output: { status: 'error' }
+        }
+      },
+      output: ({ event }) => event.output
+    });
+
+    createMachine({
+      schemas: {
+        output: types<{ status: 'ok' }>()
+      },
+      initial: 'active',
+      states: {
+        active: {
+          initial: 'done',
+          states: {
+            done: {
+              type: 'final',
+              output: { nested: true }
+            }
+          }
+        },
+        done: {
+          type: 'final',
+          output: { status: 'ok' }
+        }
+      },
+      output: { status: 'ok' }
+    });
+  });
 });

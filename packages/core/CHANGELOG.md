@@ -1,5 +1,37 @@
 # xstate
 
+## 6.0.0-alpha.11
+
+### Patch Changes
+
+- 57e8d85: Machines that declare `schemas.output` now type-check top-level final state
+  `output` values against the machine output type.
+
+  ```ts
+  createMachine({
+    schemas: {
+      output: types<{ status: 'ok' }>()
+    },
+    initial: 'done',
+    states: {
+      done: {
+        type: 'final',
+        output: { status: 'ok' }
+      }
+    },
+    output: ({ event }) => event.output
+  });
+  ```
+
+## 6.0.0-alpha.10
+
+### Patch Changes
+
+- 86b43ea: Export setup system helper types used by public machine types.
+
+  This avoids inferred machine types referring to internal declaration paths when
+  `setup(...)` includes a typed system registry.
+
 ## 6.0.0-alpha.9
 
 ### Minor Changes

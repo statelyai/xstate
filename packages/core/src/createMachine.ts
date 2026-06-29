@@ -24,6 +24,7 @@ import {
   Next_MachineConfig,
   Next_StateNodeConfig,
   ValidateDelayReferences,
+  ValidateTopLevelFinalOutputs,
   WidenLiterals,
   WithDefault
 } from './types.v6.ts';
@@ -96,7 +97,7 @@ export function createMachine<
   const TEventSchemaMap extends Record<string, StandardSchemaV1>,
   TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
   TInputSchema extends StandardSchemaV1,
-  TOutputSchema extends StandardSchemaV1,
+  const TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   const TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
@@ -136,7 +137,11 @@ export function createMachine<
       TDelayMap
     > & {
       schemas: { context: TContextSchema; children?: TChildrenSchemaMap };
-    }
+    } & ValidateTopLevelFinalOutputs<
+      TSS,
+      InferOutput<TContextSchema, MachineContext>,
+      InferEvents<TEventSchemaMap>
+    >
 ): StateMachine<
   InferOutput<TContextSchema, MachineContext>,
   | InferEvents<TEventSchemaMap>
@@ -177,7 +182,7 @@ export function createMachine<
     StandardSchemaV1
   >,
   TInputSchema extends StandardSchemaV1 = StandardSchemaV1,
-  TOutputSchema extends StandardSchemaV1 = StandardSchemaV1,
+  const TOutputSchema extends StandardSchemaV1 = StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1 = StandardSchemaV1,
   TTagSchema extends StandardSchemaV1 = StandardSchemaV1,
   const TChildrenSchemaMap extends Record<string, StandardSchemaV1> = Record<
@@ -234,7 +239,11 @@ export function createMachine<
             input: InferOutput<TInputSchema, unknown>;
             self: any;
           }) => TContext);
-    }
+    } & ValidateTopLevelFinalOutputs<
+      TSS,
+      WidenLiterals<TContext>,
+      InferEvents<TEventSchemaMap>
+    >
 ): StateMachine<
   WidenLiterals<TContext>,
   | InferEvents<TEventSchemaMap>
@@ -288,7 +297,7 @@ export function createStateConfig<
   TEventSchema extends StandardSchemaV1,
   TEmittedSchema extends StandardSchemaV1,
   _TInputSchema extends StandardSchemaV1,
-  TOutputSchema extends StandardSchemaV1,
+  const TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   // TContext extends MachineContext,

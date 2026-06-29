@@ -17,6 +17,16 @@ const machine = createMachine({
       inc: z.object({ by: z.number() }),
       reset: z.object({})
     },
+    actions: {
+      track: {
+        params: z.object({ source: z.string() })
+      }
+    },
+    guards: {
+      canIncrement: {
+        params: z.object({ max: z.number() })
+      }
+    },
     input: z.object({ start: z.number() }),
     output: z.object({ total: z.number() }),
     emitted: { changed: z.object({ count: z.number() }) },
@@ -28,9 +38,15 @@ const machine = createMachine({
   states: {
     active: {
       on: {
-        inc: ({ context, event }) => ({
-          context: { count: context.count + event.by }
-        })
+        inc: ({ context, event, actions, guards }, enq) => {
+          enq(actions.track, { source: 'button' });
+
+          if (guards.canIncrement({ max: 10 })) {
+            return {
+              context: { count: context.count + event.by }
+            };
+          }
+        }
       }
     }
   }
@@ -42,7 +58,7 @@ const machine = createMachine({
 - `input` → typed `createActor(machine, { input })` and the `context` initializer argument.
 - `output` → typed `snapshot.output`.
 - `emitted` → typed `actor.on('changed', (ev) => ev.count)`.
+- `actions` → typed named action params in `actions.*(...)` and `enq(actions.*, params)`.
+- `guards` → typed named guard params in `guards.*(...)`.
 - `tags` → constrains `snapshot.hasTag(...)`.
 - `meta` → typed state `meta`.
-
-`actors`, `actions`, `guards`, and `delays` are top-level config keys (now inline functions), not `schemas` keys.

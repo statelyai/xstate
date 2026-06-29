@@ -50,13 +50,17 @@ export type InferEvents<
   [K in keyof TEventSchemaMap & string]: StandardSchemaV1.InferOutput<
     TEventSchemaMap[K]
   > extends infer O
-    ? unknown extends O
-      ? O & { type: K }
-      : string extends keyof O
-        ? [O[string]] extends [never]
+    ? [O] extends [never]
+      ? never
+      : unknown extends O
+        ? O & { type: K }
+        : [O] extends [void]
           ? { type: K }
-          : Required<O> & { type: K }
-        : Required<O> & { type: K }
+          : string extends keyof O
+            ? [O[string]] extends [never]
+              ? { type: K }
+              : Required<O> & { type: K }
+            : Required<O> & { type: K }
     : never;
 }>;
 
@@ -71,6 +75,59 @@ export type InferChildren<
         ? NormalizeActorRef<StandardSchemaV1.InferOutput<TChildrenSchemaMap[K]>>
         : never;
     };
+
+export type ActionSchemas = Record<string, { params: StandardSchemaV1 }>;
+
+export type GuardSchemas = Record<string, { params: StandardSchemaV1 }>;
+
+export type InferActions<TActionSchemaMap extends ActionSchemas> =
+  string extends keyof TActionSchemaMap
+    ? {}
+    : {
+        [K in keyof TActionSchemaMap & string]: (
+          params: StandardSchemaV1.InferOutput<TActionSchemaMap[K]['params']>
+        ) => void | { context?: any; children?: any };
+      };
+
+export type InferGuards<TGuardSchemaMap extends GuardSchemas> =
+  string extends keyof TGuardSchemaMap
+    ? {}
+    : {
+        [K in keyof TGuardSchemaMap & string]: (
+          params: StandardSchemaV1.InferOutput<TGuardSchemaMap[K]['params']>
+        ) => boolean;
+      };
+
+type OutputConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TOutput
+> = unknown extends TOutput
+  ? Mapper<TContext, TEvent, NonReducibleUnknown, TEvent> | NonReducibleUnknown
+  : Mapper<TContext, TEvent, TOutput, TEvent> | TOutput;
+
+export type ValidateTopLevelFinalOutputs<
+  TConfig,
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> = TConfig extends {
+  schemas: { output: infer TOutputSchema extends StandardSchemaV1 };
+  states: infer TStates;
+}
+  ? {
+      states?: {
+        [K in keyof TStates]: TStates[K] extends { type: 'final' }
+          ? TStates[K] & {
+              output?: OutputConfig<
+                TContext,
+                TEvent,
+                StandardSchemaV1.InferOutput<TOutputSchema>
+              >;
+            }
+          : TStates[K];
+      };
+    }
+  : {};
 
 type NormalizeActorRef<TActorRef> =
   TActorRef extends ActorRef<
@@ -129,6 +186,8 @@ type MachineSchemas<
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>
 > = {
   events?: TEventSchemaMap;
+  actions?: ActionSchemas;
+  guards?: GuardSchemas;
   context?: TContextSchema;
   emitted?: TEmittedSchemaMap;
   input?: TInputSchema;
@@ -191,7 +250,8 @@ export type Next_MachineConfig<
     DoNotInfer<TDelayMap>,
     Record<string, unknown> | undefined,
     Record<string, unknown>,
-    DoNotInfer<TSystemRegistry>
+    DoNotInfer<TSystemRegistry>,
+    DoNotInfer<InferOutput<TOutputSchema, unknown>>
   >,
   'output'
 > & {
@@ -228,11 +288,11 @@ export type Next_MachineConfig<
   output?:
     | Mapper<
         TContext,
-        DoneStateEvent,
-        InferOutput<TOutputSchema, unknown>,
+        DoneStateEvent<DoNotInfer<InferOutput<TOutputSchema, unknown>>>,
+        DoNotInfer<InferOutput<TOutputSchema, unknown>>,
         TEvent
       >
-    | InferOutput<TOutputSchema, unknown>;
+    | DoNotInfer<InferOutput<TOutputSchema, unknown>>;
   delays?: {
     [K in TDelays | number]?:
       | number
@@ -795,7 +855,8 @@ export type Next_StateNodeConfig<
   TDelayMap extends Implementations['delays'],
   TInput = Record<string, unknown> | undefined,
   TInputMap extends Record<string, unknown> = Record<string, unknown>,
-  TSystemRegistry extends SystemRegistry = SystemRegistry
+  TSystemRegistry extends SystemRegistry = SystemRegistry,
+  TChildOutput = unknown
 > =
   | Next_RegularStateNodeConfig<
       TContext,
@@ -812,7 +873,8 @@ export type Next_StateNodeConfig<
       TDelayMap,
       TInput,
       TInputMap,
-      TSystemRegistry
+      TSystemRegistry,
+      TChildOutput
     >
   | Next_ChoiceStateNodeConfig<
       TContext,
@@ -885,7 +947,7 @@ interface Next_RegularStateNodeConfig<
   TEvent extends EventObject,
   TDelays extends string,
   TTag extends string,
-  _TOutput,
+  TOutput,
   TEmitted extends EventObject,
   TMeta extends MetaObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
@@ -895,7 +957,8 @@ interface Next_RegularStateNodeConfig<
   TDelayMap extends Implementations['delays'],
   TInput = Record<string, unknown> | undefined,
   TInputMap extends Record<string, unknown> = Record<string, unknown>,
-  TSystemRegistry extends SystemRegistry = SystemRegistry
+  TSystemRegistry extends SystemRegistry = SystemRegistry,
+  TChildOutput = unknown
 > {
   contextSchema?: StandardSchemaV1;
   /** The initial state transition. */
@@ -946,7 +1009,8 @@ interface Next_RegularStateNodeConfig<
       TDelayMap,
       LookupInput<TInputMap, K>,
       TInputMap,
-      TSystemRegistry
+      TSystemRegistry,
+      TChildOutput
     >;
   };
   /**
@@ -1113,7 +1177,7 @@ interface Next_RegularStateNodeConfig<
    * The output data will be evaluated with the current `context` and placed on
    * the `.data` property of the event.
    */
-  output?: Mapper<TContext, TEvent, unknown, TEvent> | NonReducibleUnknown;
+  output?: OutputConfig<TContext, TEvent, TOutput>;
   /**
    * The unique ID of the state node, which can be referenced as a transition
    * target via the `#id` syntax.

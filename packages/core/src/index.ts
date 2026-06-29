@@ -18,8 +18,7 @@ export type {
 export {
   machineConfigToJSON,
   serializeMachine,
-  type CodeExpression,
-  type UnserializableMarker
+  type CodeExpression
 } from './serialize.ts';
 export { mapState } from './mapState.ts';
 export {
@@ -35,6 +34,9 @@ export type {
   SetupReturn,
   SetupReturnFromConfig,
   SetupSchemas,
+  SystemActorMap,
+  SystemConfig,
+  SystemRuntime,
   SetupStateSchema,
   SetupStateSchemas
 } from './setup.ts';
@@ -52,7 +54,7 @@ export { isMachineSnapshot, type MachineSnapshot } from './State.ts';
 export { StateMachine } from './StateMachine.ts';
 export { StateNode } from './StateNode.ts';
 export { getStateNodes } from './stateUtils.ts';
-export type { ActorSystem } from './system.ts';
+export type { ActorSystem, AnyActorSystem } from './system.ts';
 export { toPromise } from './toPromise.ts';
 export * from './types.ts';
 export type {

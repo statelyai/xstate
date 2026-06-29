@@ -356,7 +356,7 @@ function formatChoiceTransitions(
         `Choice state "${stateNode.id}" must resolve to a target.`
       );
     }
-    for (const key of ['actions', 'to', 'context'] as const) {
+    for (const key of ['actions', 'to'] as const) {
       if (result[key] !== undefined) {
         throw new Error(
           `Choice state "${stateNode.id}" cannot declare \`${key}\` on a choice.`

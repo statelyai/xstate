@@ -2,7 +2,7 @@
 'xstate': minor
 ---
 
-Add `choice` states — a state that immediately routes to a target via a resolver function, returning the first matching transition config.
+Add `choice` states: a state that immediately routes to a target via a resolver function or serializable branch array.
 
 ```ts
 const machine = createMachine({
@@ -11,10 +11,13 @@ const machine = createMachine({
   states: {
     routing: {
       type: 'choice',
-      choice: ({ context }) => {
-        if (context.userStatus === 'vip') return { target: 'vipFlow' };
-        return { target: 'standardFlow' };
-      }
+      choice: [
+        {
+          when: { '@expr': 'context.userStatus === "vip"' },
+          target: 'vipFlow'
+        },
+        { target: 'standardFlow' }
+      ]
     },
     vipFlow: {},
     standardFlow: {}
@@ -22,4 +25,4 @@ const machine = createMachine({
 });
 ```
 
-A choice state must declare a `choice` function and must resolve to a target, and may not declare `entry`/`exit`/`on`/`after`/`invoke` — these throw at construction.
+A choice state must declare `choice` and must resolve to a target. Choice branches may update context or provide target input, but may not declare actions or dynamic `to` functions.

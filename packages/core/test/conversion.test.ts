@@ -4,6 +4,10 @@ import { createMachineFromConfig } from '../src/createMachineFromConfig';
 import { initialTransition, transition } from '../src/transition';
 import { createMachine } from '../src';
 
+function toPortableJSON<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value));
+}
+
 describe('SCXML to XState conversion', () => {
   describe('toMachineJSON - basic state machine', () => {
     it('should convert a simple state machine with initial state', () => {
@@ -21,10 +25,32 @@ describe('SCXML to XState conversion', () => {
       const json = toMachineJSON(scxml);
 
       expect(json.initial).toBe('idle');
-      expect(json.states).toBeDefined();
-      expect(Object.keys(json.states!)).toEqual(['idle', 'running']);
-      expect(json.states!.idle.on).toBeDefined();
-      expect(json.states!.running.on).toBeDefined();
+      expect(toPortableJSON(json.states)).toMatchInlineSnapshot(`
+        {
+          "idle": {
+            "id": "idle",
+            "on": {
+              "START.*": {
+                "reenter": true,
+                "target": [
+                  "#running",
+                ],
+              },
+            },
+          },
+          "running": {
+            "id": "running",
+            "on": {
+              "STOP.*": {
+                "reenter": true,
+                "target": [
+                  "#idle",
+                ],
+              },
+            },
+          },
+        }
+      `);
     });
 
     it('should handle implicit initial state (first child)', () => {
@@ -52,7 +78,12 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.states!.done.type).toBe('final');
+      expect(toPortableJSON(json.states!.done)).toMatchInlineSnapshot(`
+        {
+          "id": "done",
+          "type": "final",
+        }
+      `);
     });
   });
 
@@ -75,11 +106,32 @@ describe('SCXML to XState conversion', () => {
       const json = toMachineJSON(scxml);
 
       expect(json.states!.parent.initial).toBe('child1');
-      expect(json.states!.parent.states).toBeDefined();
-      expect(Object.keys(json.states!.parent.states!)).toEqual([
-        'child1',
-        'child2'
-      ]);
+      expect(toPortableJSON(json.states!.parent.states)).toMatchInlineSnapshot(`
+        {
+          "child1": {
+            "id": "child1",
+            "on": {
+              "NEXT.*": {
+                "reenter": true,
+                "target": [
+                  "#child2",
+                ],
+              },
+            },
+          },
+          "child2": {
+            "id": "child2",
+            "on": {
+              "EXIT.*": {
+                "reenter": true,
+                "target": [
+                  "#outside",
+                ],
+              },
+            },
+          },
+        }
+      `);
     });
   });
 
@@ -106,9 +158,55 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.states!.parallel.type).toBe('parallel');
-      expect(json.states!.parallel.states!.region1).toBeDefined();
-      expect(json.states!.parallel.states!.region2).toBeDefined();
+      expect(toPortableJSON(json.states!.parallel)).toMatchInlineSnapshot(`
+        {
+          "id": "parallel",
+          "initial": "region1",
+          "states": {
+            "region1": {
+              "id": "region1",
+              "initial": "a",
+              "states": {
+                "a": {
+                  "id": "a",
+                  "on": {
+                    "TO_B.*": {
+                      "reenter": true,
+                      "target": [
+                        "#b",
+                      ],
+                    },
+                  },
+                },
+                "b": {
+                  "id": "b",
+                },
+              },
+            },
+            "region2": {
+              "id": "region2",
+              "initial": "x",
+              "states": {
+                "x": {
+                  "id": "x",
+                  "on": {
+                    "TO_Y.*": {
+                      "reenter": true,
+                      "target": [
+                        "#y",
+                      ],
+                    },
+                  },
+                },
+                "y": {
+                  "id": "y",
+                },
+              },
+            },
+          },
+          "type": "parallel",
+        }
+      `);
     });
   });
 
@@ -127,11 +225,17 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.context).toEqual({
-        count: 0,
-        name: 'test',
-        items: [1, 2, 3]
-      });
+      expect(toPortableJSON(json.context)).toMatchInlineSnapshot(`
+        {
+          "count": 0,
+          "items": [
+            1,
+            2,
+            3,
+          ],
+          "name": "test",
+        }
+      `);
     });
   });
 
@@ -149,9 +253,14 @@ describe('SCXML to XState conversion', () => {
       const json = toMachineJSON(scxml);
 
       // SCXML events get .* suffix for prefix matching
-      const transition = json.states!.a.on!['GO.*'];
-      expect(transition).toBeDefined();
-      expect((transition as any).target).toEqual(['#b']);
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "reenter": true,
+          "target": [
+            "#b",
+          ],
+        }
+      `);
     });
 
     it('should convert guarded transitions', () => {
@@ -168,10 +277,29 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transitions = json.states!.idle.on!['CHECK.*'];
-      expect(Array.isArray(transitions)).toBe(true);
-      expect((transitions as any[])[0].guard).toBeDefined();
-      expect((transitions as any[])[0].guard.type).toBe('scxml.cond');
+      expect(toPortableJSON(json.states!.idle.on!['CHECK.*']))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "guard": {
+              "params": {
+                "expr": "count > 3",
+              },
+              "type": "scxml.cond",
+            },
+            "reenter": true,
+            "target": [
+              "#high",
+            ],
+          },
+          {
+            "reenter": true,
+            "target": [
+              "#low",
+            ],
+          },
+        ]
+      `);
     });
 
     it('should convert In() guards', () => {
@@ -187,9 +315,20 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transition = json.states!.a.on!['GO.*'] as any;
-      expect(transition.guard.type).toBe('xstate.stateIn');
-      expect(transition.guard.params.stateId).toBe('#b');
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "guard": {
+            "params": {
+              "stateId": "#b",
+            },
+            "type": "xstate.stateIn",
+          },
+          "reenter": true,
+          "target": [
+            "#c",
+          ],
+        }
+      `);
     });
   });
 
@@ -208,10 +347,23 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transition = json.states!.a.on!['TRIGGER.*'] as any;
-      expect(transition.actions).toBeDefined();
-      expect(transition.actions[0].type).toBe('@xstate.raise');
-      expect(transition.actions[0].event.type).toBe('RAISED');
+      expect(toPortableJSON(json.states!.a.on!['TRIGGER.*']))
+        .toMatchInlineSnapshot(`
+        {
+          "actions": [
+            {
+              "event": {
+                "type": "RAISED",
+              },
+              "type": "@xstate.raise",
+            },
+          ],
+          "reenter": true,
+          "target": [
+            "#b",
+          ],
+        }
+      `);
     });
 
     it('should convert log actions', () => {
@@ -227,11 +379,22 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.states!.a.entry).toBeDefined();
-      expect(json.states!.a.entry![0].type).toBe('scxml.block');
-      expect((json.states!.a.entry![0] as any).actions[0].type).toBe(
-        '@xstate.log'
-      );
+      expect(toPortableJSON(json.states!.a.entry)).toMatchInlineSnapshot(`
+        [
+          {
+            "actions": [
+              {
+                "args": [
+                  "info",
+                  "'entered state a'",
+                ],
+                "type": "@xstate.log",
+              },
+            ],
+            "type": "scxml.block",
+          },
+        ]
+      `);
     });
 
     it('should convert cancel actions', () => {
@@ -247,9 +410,17 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transition = json.states!.a.on!['CANCEL.*'] as any;
-      expect(transition.actions[0].type).toBe('@xstate.cancel');
-      expect(transition.actions[0].id).toBe('delayed1');
+      expect(toPortableJSON(json.states!.a.on!['CANCEL.*']))
+        .toMatchInlineSnapshot(`
+          {
+            "actions": [
+              {
+                "id": "delayed1",
+                "type": "@xstate.cancel",
+              },
+            ],
+          }
+        `);
     });
   });
 
@@ -267,11 +438,21 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.states!.a.entry).toHaveLength(1);
-      expect(json.states!.a.entry![0].type).toBe('scxml.block');
-      expect((json.states!.a.entry![0] as any).actions[0].type).toBe(
-        '@xstate.log'
-      );
+      expect(toPortableJSON(json.states!.a.entry)).toMatchInlineSnapshot(`
+        [
+          {
+            "actions": [
+              {
+                "args": [
+                  "'entering a'",
+                ],
+                "type": "@xstate.log",
+              },
+            ],
+            "type": "scxml.block",
+          },
+        ]
+      `);
     });
 
     it('should convert onexit actions', () => {
@@ -287,11 +468,21 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.states!.a.exit).toHaveLength(1);
-      expect(json.states!.a.exit![0].type).toBe('scxml.block');
-      expect((json.states!.a.exit![0] as any).actions[0].type).toBe(
-        '@xstate.log'
-      );
+      expect(toPortableJSON(json.states!.a.exit)).toMatchInlineSnapshot(`
+        [
+          {
+            "actions": [
+              {
+                "args": [
+                  "'exiting a'",
+                ],
+                "type": "@xstate.log",
+              },
+            ],
+            "type": "scxml.block",
+          },
+        ]
+      `);
     });
   });
 
@@ -308,10 +499,16 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.states!.a.always).toBeDefined();
-      const always = json.states!.a.always as any[];
-      expect(always).toHaveLength(1);
-      expect(always[0].target).toEqual(['#b']);
+      expect(toPortableJSON(json.states!.a.always)).toMatchInlineSnapshot(`
+        [
+          {
+            "reenter": true,
+            "target": [
+              "#b",
+            ],
+          },
+        ]
+      `);
     });
   });
 
@@ -327,8 +524,15 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transition = json.states!.parent.on!['EXTERNAL.*'] as any;
-      expect(transition.reenter).toBe(true);
+      expect(toPortableJSON(json.states!.parent.on!['EXTERNAL.*']))
+        .toMatchInlineSnapshot(`
+        {
+          "reenter": true,
+          "target": [
+            "#parent",
+          ],
+        }
+      `);
     });
 
     it('should not mark internal transitions with reenter', () => {
@@ -342,8 +546,9 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transition = json.states!.parent.on!['INTERNAL.*'] as any;
-      expect(transition.reenter).toBeFalsy();
+      expect(
+        toPortableJSON(json.states!.parent.on!['INTERNAL.*'])
+      ).toMatchInlineSnapshot(`{}`);
     });
   });
 
@@ -361,9 +566,19 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transition = json.states!.a.on!['TRIGGER.*'] as any;
-      expect(transition.actions[0].type).toBe('@xstate.raise');
-      expect(transition.actions[0].event.type).toBe('INTERNAL_EVENT');
+      expect(toPortableJSON(json.states!.a.on!['TRIGGER.*']))
+        .toMatchInlineSnapshot(`
+          {
+            "actions": [
+              {
+                "event": {
+                  "type": "INTERNAL_EVENT",
+                },
+                "type": "@xstate.raise",
+              },
+            ],
+          }
+        `);
     });
 
     it('should convert send with delay', () => {
@@ -379,9 +594,20 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transition = json.states!.a.on!['TRIGGER.*'] as any;
-      expect(transition.actions[0].type).toBe('@xstate.raise');
-      expect(transition.actions[0].delay).toBe(500);
+      expect(toPortableJSON(json.states!.a.on!['TRIGGER.*']))
+        .toMatchInlineSnapshot(`
+          {
+            "actions": [
+              {
+                "delay": 500,
+                "event": {
+                  "type": "DELAYED",
+                },
+                "type": "@xstate.raise",
+              },
+            ],
+          }
+        `);
     });
   });
 
@@ -398,8 +624,22 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.states!.idle.on!['START.*']).toBeDefined();
-      expect(json.states!.idle.on!['RESUME.*']).toBeDefined();
+      expect(toPortableJSON(json.states!.idle.on)).toMatchInlineSnapshot(`
+        {
+          "RESUME.*": {
+            "reenter": true,
+            "target": [
+              "#active",
+            ],
+          },
+          "START.*": {
+            "reenter": true,
+            "target": [
+              "#active",
+            ],
+          },
+        }
+      `);
     });
   });
 
@@ -419,11 +659,15 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.states!.parent.states!.hist).toMatchObject({
-        type: 'history',
-        history: 'shallow',
-        target: '#child1'
-      });
+      expect(toPortableJSON(json.states!.parent.states!.hist))
+        .toMatchInlineSnapshot(`
+        {
+          "history": "shallow",
+          "id": "hist",
+          "target": "#child1",
+          "type": "history",
+        }
+      `);
     });
 
     it('should convert deep history states', () => {
@@ -438,10 +682,14 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.states!.parent.states!.deepHist).toMatchObject({
-        type: 'history',
-        history: 'deep'
-      });
+      expect(toPortableJSON(json.states!.parent.states!.deepHist))
+        .toMatchInlineSnapshot(`
+        {
+          "history": "deep",
+          "id": "deepHist",
+          "type": "history",
+        }
+      `);
     });
   });
 
@@ -459,8 +707,19 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transition = json.states!.a.on!['GO.*'] as any;
-      expect(transition.actions[0].delay).toBe(100);
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "actions": [
+            {
+              "delay": 100,
+              "event": {
+                "type": "DELAYED",
+              },
+              "type": "@xstate.raise",
+            },
+          ],
+        }
+      `);
     });
 
     it('should parse second delays', () => {
@@ -476,8 +735,19 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transition = json.states!.a.on!['GO.*'] as any;
-      expect(transition.actions[0].delay).toBe(2000);
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "actions": [
+            {
+              "delay": 2000,
+              "event": {
+                "type": "DELAYED",
+              },
+              "type": "@xstate.raise",
+            },
+          ],
+        }
+      `);
     });
 
     it('should parse decimal second delays', () => {
@@ -493,8 +763,19 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transition = json.states!.a.on!['GO.*'] as any;
-      expect(transition.actions[0].delay).toBe(1500);
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "actions": [
+            {
+              "delay": 1500,
+              "event": {
+                "type": "DELAYED",
+              },
+              "type": "@xstate.raise",
+            },
+          ],
+        }
+      `);
     });
 
     it('should parse ISO8601 delays', () => {
@@ -510,8 +791,19 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      const transition = json.states!.a.on!['GO.*'] as any;
-      expect(transition.actions[0].delay).toBe(1500);
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "actions": [
+            {
+              "delay": 1500,
+              "event": {
+                "type": "DELAYED",
+              },
+              "type": "@xstate.raise",
+            },
+          ],
+        }
+      `);
     });
   });
 
@@ -530,11 +822,24 @@ describe('SCXML to XState conversion', () => {
 
       // Dots are replaced with $
       expect(json.initial).toBe('state$one');
-      expect(json.states!['state$one']).toBeDefined();
-      expect(json.states!['state$two']).toBeDefined();
-
-      const transition = json.states!['state$one'].on!['GO.*'] as any;
-      expect(transition.target).toEqual(['#state$two']);
+      expect(toPortableJSON(json.states)).toMatchInlineSnapshot(`
+        {
+          "state$one": {
+            "id": "state$one",
+            "on": {
+              "GO.*": {
+                "reenter": true,
+                "target": [
+                  "#state$two",
+                ],
+              },
+            },
+          },
+          "state$two": {
+            "id": "state$two",
+          },
+        }
+      `);
     });
 
     it('should sanitize nested state IDs with dots (foo.bar.baz → foo$bar$baz)', () => {
@@ -549,8 +854,19 @@ describe('SCXML to XState conversion', () => {
       const json = toMachineJSON(scxml);
 
       expect(json.initial).toBe('foo$bar');
-      expect(json.states!['foo$bar'].id).toBe('foo$bar');
-      expect(json.states!['foo$bar'].states!['baz$qux'].id).toBe('baz$qux');
+      expect(toPortableJSON(json.states)).toMatchInlineSnapshot(`
+        {
+          "foo$bar": {
+            "id": "foo$bar",
+            "initial": "baz$qux",
+            "states": {
+              "baz$qux": {
+                "id": "baz$qux",
+              },
+            },
+          },
+        }
+      `);
     });
   });
 
@@ -659,50 +975,54 @@ describe('SCXML to XState conversion', () => {
 
       const machine = toMachine(scxml);
 
-      expect(machine.config.context).toEqual({ count: 42 });
+      const [snapshot] = initialTransition(machine);
+
+      expect(snapshot.context).toEqual({ count: 42 });
     });
   });
 });
 
 describe('createMachineFromConfig', () => {
   it('should create a machine from a JSON config', () => {
-    const machine = createMachineFromConfig({
-      context: { count: 42 },
-      initial: 'a',
-      states: {
-        a: {
-          entry: [{ type: '@xstate.assign', context: { count: 42 } }],
-          on: {
-            INC: {
-              actions: [{ type: '@xstate.assign', context: { count: 43 } }]
-            },
-            DEC: {
-              actions: [{ type: '@xstate.assign', context: { count: 41 } }]
-            },
-            NEXT: {
-              actions: [{ type: '@xstate.assign', context: { count: 0 } }],
-              target: 'b'
-            },
-            COND_NEXT: {
-              guard: { type: 'customGuard' },
-              target: 'c'
+    const machine = createMachineFromConfig(
+      {
+        context: { count: 42 },
+        initial: 'a',
+        states: {
+          a: {
+            entry: [{ type: '@xstate.assign', context: { count: 42 } }],
+            on: {
+              INC: {
+                actions: [{ type: '@xstate.assign', context: { count: 43 } }]
+              },
+              DEC: {
+                actions: [{ type: '@xstate.assign', context: { count: 41 } }]
+              },
+              NEXT: {
+                actions: [{ type: '@xstate.assign', context: { count: 0 } }],
+                target: 'b'
+              },
+              COND_NEXT: {
+                guard: { type: 'customGuard' },
+                target: 'c'
+              }
             }
-          }
-        },
-        b: {
-          on: {
-            BACK: { target: 'a' }
-          }
-        },
-        c: {}
+          },
+          b: {
+            on: {
+              BACK: { target: 'a' }
+            }
+          },
+          c: {}
+        }
+      },
+      {
+        guards: {
+          customGuard: () => true
+        }
       }
-    }).provide({
-      guards: {
-        customGuard: () => true
-      }
-    });
+    );
 
-    expect(machine.config.context).toEqual({ count: 42 });
     expect(machine.root.states.a).toBeDefined();
     expect(machine.root.states.b).toBeDefined();
     expect(machine.root.states.a.on!['INC']).toBeDefined();

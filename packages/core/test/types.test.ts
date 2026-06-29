@@ -10,6 +10,7 @@ import {
   ActorRefFrom,
   ActorRefFromLogic,
   AnyActorLogic,
+  AnyStateMachine,
   BuiltInExecutableActionObject,
   CustomExecutableActionObject,
   ExecutableActionObject,
@@ -2466,6 +2467,16 @@ describe('invoke', () => {
     }).createMachine({
       // @ts-expect-error
       invoke: {
+        src: 'loadUserTypo',
+        input: { userId: '42' }
+      }
+    });
+
+    setup({
+      actorSources: { loadUser }
+    }).createMachine({
+      // @ts-expect-error
+      invoke: {
         src: 'loadUser',
         input: { userId: 42 }
       }
@@ -2531,6 +2542,50 @@ describe('invoke', () => {
         input: { name: 42 }
       }
     });
+  });
+
+  it('should narrow transition function events by keyed event', () => {
+    setup({
+      schemas: {
+        events: {
+          REJECT: types<{ reason: string }>(),
+          APPROVE: types<{}>()
+        }
+      }
+    }).createMachine({
+      on: {
+        REJECT: ({ event }) => {
+          const reason: string = event.reason;
+          // @ts-expect-error
+          event.missing;
+          noop(reason);
+        },
+        APPROVE: ({ event }) => {
+          // @ts-expect-error
+          event.reason;
+        }
+      }
+    });
+  });
+
+  it('should allow eventless setup machines to be assigned to AnyStateMachine', () => {
+    const machine = setup({
+      schemas: {
+        context: types<{ value: string }>(),
+        input: types<{ value: string }>(),
+        output: types<{ value: string }>()
+      }
+    }).createMachine({
+      context: ({ input }) => ({ value: input.value }),
+      output: ({ context }) => ({ value: context.value }),
+      initial: 'done',
+      states: {
+        done: { type: 'final' }
+      }
+    });
+
+    const anyMachine: AnyStateMachine = machine;
+    noop(anyMachine);
   });
 
   it('should preserve contextual typing when setup returns are decorated', () => {
@@ -2641,6 +2696,61 @@ describe('invoke', () => {
     actor.send({ type: 'UPDATE', value: 'ok' });
     // @ts-expect-error
     actor.send({ type: 'UPDATE' });
+  });
+
+  it('should infer void and undefined event schemas as type-only events', () => {
+    const machine = setup({
+      schemas: {
+        events: {
+          SEND: types<void>(),
+          RESET: types<undefined>(),
+          UPDATE: types<{ value: string }>()
+        }
+      }
+    }).createMachine({});
+
+    const actor = createActor(machine).start();
+    const snapshot = actor.getSnapshot();
+
+    actor.send({ type: 'SEND' });
+    actor.send({ type: 'RESET' });
+    snapshot.can({ type: 'SEND' });
+    snapshot.can({ type: 'RESET' });
+
+    actor.send({ type: 'UPDATE', value: 'ok' });
+    snapshot.can({ type: 'UPDATE', value: 'ok' });
+    // @ts-expect-error
+    actor.send({ type: 'UPDATE' });
+    // @ts-expect-error
+    snapshot.can({ type: 'UPDATE' });
+
+    const emittedMachine = setup({
+      schemas: {
+        emitted: {
+          DONE: types<void>(),
+          CLEARED: types<undefined>(),
+          CHANGED: types<{ value: string }>()
+        }
+      }
+    }).createMachine({});
+
+    const emittedActor = createActor(emittedMachine);
+
+    emittedActor.on('DONE', (event) => {
+      event.type satisfies 'DONE';
+      // @ts-expect-error
+      event.value;
+    });
+    emittedActor.on('CLEARED', (event) => {
+      event.type satisfies 'CLEARED';
+      // @ts-expect-error
+      event.value;
+    });
+    emittedActor.on('CHANGED', (event) => {
+      event.value satisfies string;
+    });
+    // @ts-expect-error
+    emittedActor.on('UNKNOWN', () => {});
   });
 
   it('should infer callback logic input from source schemas', () => {
@@ -4199,6 +4309,83 @@ describe('actions', () => {
 });
 
 describe('setup.extend', () => {
+  it('should infer action and guard params from setup schemas', () => {
+    setup({
+      schemas: {
+        actions: {
+          track: {
+            params: z.object({ key: z.string() })
+          }
+        },
+        guards: {
+          hasAccess: {
+            params: z.object({ role: z.string() })
+          }
+        }
+      }
+    }).createMachine({
+      initial: 'idle',
+      on: {
+        GO: ({ actions, guards }, enq) => {
+          actions.track({ key: 'abc' });
+          enq(actions.track, { key: 'abc' });
+          // @ts-expect-error action param key must be a string
+          actions.track({ key: 100 });
+
+          if (guards.hasAccess({ role: 'admin' })) {
+            return { target: '.done' };
+          }
+          guards.hasAccess({
+            // @ts-expect-error guard param role must be a string
+            role: 100
+          });
+        }
+      },
+      states: {
+        idle: {},
+        done: {}
+      }
+    });
+  });
+
+  it('should infer action and guard params from machine schemas', () => {
+    setup().createMachine({
+      schemas: {
+        actions: {
+          track: {
+            params: z.object({ key: z.string() })
+          }
+        },
+        guards: {
+          hasAccess: {
+            params: z.object({ role: z.string() })
+          }
+        }
+      },
+      initial: 'idle',
+      on: {
+        GO: ({ actions, guards }, enq) => {
+          actions.track({ key: 'abc' });
+          enq(actions.track, { key: 'abc' });
+          // @ts-expect-error action param key must be a string
+          enq(actions.track, { key: 100 });
+
+          if (guards.hasAccess({ role: 'admin' })) {
+            return { target: '.done' };
+          }
+          guards.hasAccess({
+            // @ts-expect-error guard param role must be a string
+            role: 100
+          });
+        }
+      },
+      states: {
+        idle: {},
+        done: {}
+      }
+    });
+  });
+
   it('extends action, guard, and delay maps', () => {
     const s = setup({
       actions: {

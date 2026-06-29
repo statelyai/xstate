@@ -126,7 +126,7 @@ type BuiltInActionJSON =
 
 interface CustomActionJSON {
   type: string;
-  params?: Record<string, unknown>;
+  params?: unknown;
 }
 
 export type ActionJSON =
@@ -142,35 +142,63 @@ export type ActionJSON =
   | ScxmlIfJSON
   | ScxmlForeachJSON
   | ScxmlCancelJSON
-  | ScxmlBlockJSON;
+  | ScxmlBlockJSON
+  | ExpressionJSON
+  | CodeJSON;
 
 export interface GuardJSON {
   type: string;
-  params?: Record<string, unknown>;
+  params?: unknown;
+}
+
+interface ExpressionJSON {
+  '@expr': string;
+  '@lang'?: string;
+}
+
+interface CodeJSON {
+  '@code': string;
+  '@lang'?: string;
+}
+
+type ResolvableJSON = ExpressionJSON | CodeJSON;
+
+type ConditionJSON = GuardJSON | ResolvableJSON;
+
+interface ChoiceBranchJSON {
+  when?: ConditionJSON;
+  target: string | string[];
+  context?: MachineContext;
+  input?: unknown;
+  description?: string;
+  reenter?: boolean;
+  meta?: MetaObject;
 }
 
 export interface InvokeJSON {
   id?: string;
   registryKey?: string;
-  src: string | UnserializableMarker;
+  src: string;
   input?: unknown;
-  onDone?: TransitionJSON | TransitionJSON[];
-  onError?: TransitionJSON | TransitionJSON[];
-  onSnapshot?: TransitionJSON | TransitionJSON[];
-  timeout?: number | string;
-  onTimeout?: TransitionJSON | TransitionJSON[];
+  onDone?: TransitionConfigJSON | TransitionConfigJSON[];
+  onError?: TransitionConfigJSON | TransitionConfigJSON[];
+  onSnapshot?: TransitionConfigJSON | TransitionConfigJSON[];
+  timeout?: number | string | ResolvableJSON;
+  onTimeout?: TransitionConfigJSON | TransitionConfigJSON[];
 }
 
 export interface TransitionJSON {
   target?: string | string[];
   context?: MachineContext;
   actions?: ActionJSON[];
-  guard?: GuardJSON;
+  guard?: ConditionJSON;
   description?: string;
   reenter?: boolean;
   meta?: MetaObject;
   input?: unknown;
 }
+
+type TransitionConfigJSON = TransitionJSON | ResolvableJSON;
 
 export interface StateNodeJSON {
   id?: string;
@@ -178,31 +206,33 @@ export interface StateNodeJSON {
   type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history' | 'choice';
   initial?: string;
   states?: Record<string, StateNodeJSON>;
-  on?: Record<string, TransitionJSON | TransitionJSON[]>;
-  after?: Record<string, TransitionJSON | TransitionJSON[]>;
-  always?: TransitionJSON | TransitionJSON[];
-  choice?: TransitionJSON;
+  on?: Record<string, TransitionConfigJSON | TransitionConfigJSON[]>;
+  after?: Record<string, TransitionConfigJSON | TransitionConfigJSON[]>;
+  always?: TransitionConfigJSON | TransitionConfigJSON[];
+  choice?: ChoiceBranchJSON[] | ResolvableJSON;
   /**
    * JSON route config. Unlike the authoring API (a function), the JSON layer
    * allows an object form whose `guard` may be a named guard reference (string)
    * resolved against the machine's `guards` implementations.
    */
-  route?: {
-    description?: string;
-    reenter?: boolean;
-    meta?: MetaObject;
-    guard?: string;
-    input?: Record<string, unknown>;
-  };
+  route?:
+    | {
+        description?: string;
+        reenter?: boolean;
+        meta?: MetaObject;
+        guard?: string;
+        input?: Record<string, unknown>;
+      }
+    | ResolvableJSON;
   invoke?: InvokeJSON | InvokeJSON[];
-  entry?: ActionJSON[];
-  exit?: ActionJSON[];
+  entry?: ActionJSON | ActionJSON[];
+  exit?: ActionJSON | ActionJSON[];
   meta?: MetaObject;
   description?: string;
   tags?: string[];
   input?: unknown;
-  timeout?: number | string;
-  onTimeout?: TransitionJSON | TransitionJSON[];
+  timeout?: number | string | ResolvableJSON;
+  onTimeout?: TransitionConfigJSON | TransitionConfigJSON[];
   history?: 'shallow' | 'deep';
   target?: string;
   output?: unknown;
@@ -210,17 +240,39 @@ export interface StateNodeJSON {
   _scxmlDonedata?: ScxmlDonedataJSON;
 }
 export interface MachineJSON extends StateNodeJSON {
+  '@exprLang'?: string;
   version?: string;
-  actions?: Record<string, unknown>;
-  guards?: Record<string, unknown>;
+  actions?: Record<string, ActionJSON | ActionJSON[]>;
+  guards?: Record<string, { when: ConditionJSON }>;
   actorSources?: Record<string, unknown>;
-  delays?: Record<string, unknown>;
+  delays?: Record<
+    string,
+    number | string | { duration: number | string | ResolvableJSON }
+  >;
   schemas?: Record<string, unknown>;
 }
 
-interface UnserializableMarker {
-  $unserializable: 'function' | 'actor' | 'schema' | 'value';
-  id?: string;
+type EvaluatorSlot =
+  | 'context'
+  | 'guard'
+  | 'choice'
+  | 'action'
+  | 'actionParams'
+  | 'transition'
+  | 'input'
+  | 'output'
+  | 'delay'
+  | 'transitionContext'
+  | 'unknown';
+
+type EvaluatorKind = 'expr' | 'code';
+
+interface EvaluatorArgs {
+  source: string;
+  kind: EvaluatorKind;
+  slot: EvaluatorSlot;
+  scope: Record<string, unknown>;
+  path: string;
 }
 
 interface MachineImplementations {
@@ -228,76 +280,45 @@ interface MachineImplementations {
   guards?: Record<string, (...args: any[]) => boolean>;
   actorSources?: Record<string, AnyActorLogic>;
   delays?: Record<string, number | ((...args: any[]) => number)>;
+  evaluators?: Record<string, (args: EvaluatorArgs) => unknown>;
 }
 
 type ProvidedImplementations = Required<MachineImplementations>;
 
-function isUnserializableMarker(value: unknown): value is UnserializableMarker {
+function isExpression(value: unknown): value is ExpressionJSON {
   return (
     !!value &&
     typeof value === 'object' &&
-    '$unserializable' in value &&
-    typeof (value as any).$unserializable === 'string'
+    typeof (value as any)['@expr'] === 'string'
   );
 }
 
-function assertNoUnresolvedMarkers(value: unknown, path = '$'): void {
-  if (isUnserializableMarker(value)) {
-    if (value.$unserializable === 'actor' && path.endsWith('.src')) {
-      return;
-    }
-    throw new Error(`Unresolved ${value.$unserializable} at ${path}`);
-  }
-  if (!value || typeof value !== 'object') {
-    return;
-  }
-  if (Array.isArray(value)) {
-    value.forEach((item, index) =>
-      assertNoUnresolvedMarkers(item, `${path}[${index}]`)
-    );
-    return;
-  }
-  for (const key of Object.keys(value)) {
-    const child = (value as Record<string, unknown>)[key];
-    const isImplementationMarker =
-      path === '$' &&
-      (key === 'actions' ||
-        key === 'guards' ||
-        key === 'actorSources' ||
-        key === 'delays' ||
-        key === 'schemas');
-    if (isImplementationMarker) {
-      continue;
-    }
-    assertNoUnresolvedMarkers(child, `${path}.${key}`);
-  }
+function isCode(value: unknown): value is CodeJSON {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    typeof (value as any)['@code'] === 'string'
+  );
 }
 
-function assertRootImplementationMarkers(
-  json: MachineJSON,
-  implementations: MachineImplementations
-): void {
-  for (const kind of ['actions', 'guards', 'actorSources', 'delays'] as const) {
-    const map = json[kind];
-    if (!map) {
-      continue;
-    }
-    for (const key of Object.keys(map)) {
-      const value = map[key];
-      if (!isUnserializableMarker(value)) {
-        continue;
-      }
-      if (
-        !(implementations[kind] as Record<string, unknown> | undefined)?.[key]
-      ) {
-        throw new Error(`Missing ${kind}.${key}`);
-      }
-    }
-  }
+function isResolvable(value: unknown): value is ResolvableJSON {
+  return isExpression(value) || isCode(value);
+}
+
+function isBuiltInActionType(type: string): boolean {
+  return type.startsWith('@xstate.');
+}
+
+function isScxmlActionType(type: string): boolean {
+  return type.startsWith('scxml.');
+}
+
+function toPath(parent: string, key: string | number): string {
+  return typeof key === 'number' ? `${parent}[${key}]` : `${parent}.${key}`;
 }
 
 function extractSerializableDelays(
-  delays: Record<string, unknown> | undefined
+  delays: MachineJSON['delays'] | undefined
 ): Record<string, number> {
   const result: Record<string, number> = {};
   if (!delays) {
@@ -307,6 +328,12 @@ function extractSerializableDelays(
     const value = delays[key];
     if (typeof value === 'number') {
       result[key] = value;
+    } else if (
+      value &&
+      typeof value === 'object' &&
+      typeof value.duration === 'number'
+    ) {
+      result[key] = value.duration;
     }
   }
   return result;
@@ -323,8 +350,380 @@ function mergeImplementations(
     delays: {
       ...extractSerializableDelays(json.delays),
       ...(implementations.delays ?? {})
-    }
+    },
+    evaluators: implementations.evaluators ?? {}
   };
+}
+
+interface ExpressionResolver {
+  evaluateResolvable: (
+    value: ResolvableJSON,
+    slot: EvaluatorSlot,
+    scope: Record<string, unknown>,
+    path: string
+  ) => unknown;
+  resolveValue: (
+    value: unknown,
+    slot: EvaluatorSlot,
+    scope: Record<string, unknown>,
+    path: string
+  ) => unknown;
+  makeScope: (
+    x: any,
+    extra?: Record<string, unknown>
+  ) => Record<string, unknown>;
+  getDurationConfig: (value: unknown, path: string) => unknown;
+  assertResolvable: (value: unknown, path: string) => void;
+}
+
+function createExpressionResolver(
+  expressionLanguage: string | undefined,
+  implementations: ProvidedImplementations
+): ExpressionResolver {
+  function getEvaluator(value: ResolvableJSON, path: string) {
+    const lang = value['@lang'] ?? expressionLanguage;
+    if (!lang) {
+      throw new Error(`Missing @exprLang for expression at ${path}`);
+    }
+    const evaluator = implementations.evaluators[lang];
+    if (!evaluator) {
+      throw new Error(`Missing evaluator for @lang '${lang}' at ${path}`);
+    }
+    return evaluator;
+  }
+
+  function evaluateResolvable(
+    value: ResolvableJSON,
+    slot: EvaluatorSlot,
+    scope: Record<string, unknown>,
+    path: string
+  ) {
+    const kind = isExpression(value) ? 'expr' : 'code';
+    const source = isExpression(value) ? value['@expr'] : value['@code'];
+    return getEvaluator(
+      value,
+      path
+    )({
+      source,
+      kind,
+      slot,
+      scope,
+      path
+    });
+  }
+
+  function resolveValue(
+    value: unknown,
+    slot: EvaluatorSlot,
+    scope: Record<string, unknown>,
+    path: string
+  ): unknown {
+    if (isResolvable(value)) {
+      return evaluateResolvable(value, slot, scope, path);
+    }
+    if (Array.isArray(value)) {
+      return value.map((item, index) =>
+        resolveValue(item, slot, scope, toPath(path, index))
+      );
+    }
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(value)) {
+      result[key] = resolveValue(
+        (value as Record<string, unknown>)[key],
+        slot,
+        scope,
+        toPath(path, key)
+      );
+    }
+    return result;
+  }
+
+  function makeScope(x: any, extra?: Record<string, unknown>) {
+    return {
+      context: x.context,
+      event: x.event,
+      input: x.input,
+      self: x.self,
+      children: x.children,
+      params: x.params,
+      ...extra
+    };
+  }
+
+  function getDurationConfig(value: unknown, path: string) {
+    if (!isResolvable(value)) {
+      return value;
+    }
+    return (args: any) =>
+      delayToMs(
+        resolveValue(value, 'delay', makeScope(args), path) as string | number
+      );
+  }
+
+  function assertResolvable(value: unknown, path: string) {
+    if (isResolvable(value)) {
+      getEvaluator(value, path);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item, index) =>
+        assertResolvable(item, toPath(path, index))
+      );
+      return;
+    }
+    if (!value || typeof value !== 'object') {
+      return;
+    }
+    for (const key of Object.keys(value)) {
+      assertResolvable(
+        (value as Record<string, unknown>)[key],
+        toPath(path, key)
+      );
+    }
+  }
+
+  return {
+    evaluateResolvable,
+    resolveValue,
+    makeScope,
+    getDurationConfig,
+    assertResolvable
+  };
+}
+
+function toActionArray(
+  actions: ActionJSON | ActionJSON[] | undefined
+): ActionJSON[] {
+  return actions === undefined
+    ? []
+    : Array.isArray(actions)
+      ? actions
+      : [actions];
+}
+
+function validateChoiceConfig(choice: StateNodeJSON['choice'], path: string) {
+  if (!Array.isArray(choice)) {
+    return;
+  }
+  choice.forEach((branch, index) => {
+    if (branch.when === undefined && index !== choice.length - 1) {
+      throw new Error(
+        `Choice fallback branch at ${path}[${index}] must be last.`
+      );
+    }
+  });
+}
+
+function assertMachineJSON(
+  json: MachineJSON,
+  resolvedImplementations: ProvidedImplementations,
+  expressionResolver: ExpressionResolver
+) {
+  const { assertResolvable } = expressionResolver;
+
+  function assertCondition(condition: ConditionJSON | undefined, path: string) {
+    if (!condition) {
+      return;
+    }
+    if (isResolvable(condition)) {
+      assertResolvable(condition, path);
+      return;
+    }
+    assertResolvable(condition.params, `${path}.params`);
+    if (json.guards?.[condition.type]) {
+      assertCondition(
+        json.guards[condition.type].when,
+        `$.guards.${condition.type}.when`
+      );
+      return;
+    }
+    if (
+      !resolvedImplementations.guards[condition.type] &&
+      !['scxml.cond', 'xstate.stateIn', 'xstate.not'].includes(condition.type)
+    ) {
+      throw new Error(`Missing guard implementation "${condition.type}"`);
+    }
+  }
+
+  function assertAction(
+    action: ActionJSON,
+    path: string,
+    stack: string[] = []
+  ) {
+    if (isResolvable(action)) {
+      assertResolvable(action, path);
+      return;
+    }
+    if (!action || typeof action.type !== 'string') {
+      throw new Error(`Invalid action at ${path}`);
+    }
+    assertResolvable((action as CustomActionJSON).params, `${path}.params`);
+    if (isBuiltInActionType(action.type) || isScxmlActionType(action.type)) {
+      assertResolvable(action, path);
+      return;
+    }
+    const definition = json.actions?.[action.type];
+    if (definition) {
+      if (stack.includes(action.type)) {
+        throw new Error(
+          `Circular action reference: ${stack.concat(action.type).join(' -> ')}`
+        );
+      }
+      const definitions = Array.isArray(definition) ? definition : [definition];
+      definitions.forEach((item, index) =>
+        assertAction(
+          item,
+          `${path}.actions.${action.type}${definitions.length > 1 ? `[${index}]` : ''}`,
+          stack.concat(action.type)
+        )
+      );
+      return;
+    }
+    if (!resolvedImplementations.actions[action.type]) {
+      throw new Error(`Missing action implementation "${action.type}"`);
+    }
+  }
+
+  function assertActions(
+    actions: ActionJSON | ActionJSON[] | undefined,
+    path: string
+  ) {
+    toActionArray(actions).forEach((action, index) =>
+      assertAction(action, `${path}[${index}]`)
+    );
+  }
+
+  function assertTransition(
+    transition: TransitionConfigJSON | TransitionConfigJSON[] | undefined,
+    path: string
+  ) {
+    const transitions = Array.isArray(transition)
+      ? transition
+      : transition
+        ? [transition]
+        : [];
+    transitions.forEach((t, index) => {
+      const transitionPath = Array.isArray(transition)
+        ? `${path}[${index}]`
+        : path;
+      if (isResolvable(t)) {
+        assertResolvable(t, transitionPath);
+        return;
+      }
+      assertCondition(t.guard, `${transitionPath}.guard`);
+      assertActions(t.actions, `${transitionPath}.actions`);
+      assertResolvable(t.context, `${transitionPath}.context`);
+      assertResolvable(t.input, `${transitionPath}.input`);
+    });
+  }
+
+  function assertStateNode(node: StateNodeJSON, path: string) {
+    assertResolvable(node.context, `${path}.context`);
+    assertResolvable(node.input, `${path}.input`);
+    assertResolvable(node.output, `${path}.output`);
+    assertResolvable(node.timeout, `${path}.timeout`);
+    assertActions(node.entry, `${path}.entry`);
+    assertActions(node.exit, `${path}.exit`);
+    if (node.type === 'choice') {
+      if (!node.choice) {
+        throw new Error(`Choice state at ${path} must declare choice.`);
+      }
+      if (Array.isArray(node.choice)) {
+        validateChoiceConfig(node.choice, `${path}.choice`);
+        node.choice.forEach((branch, index) => {
+          assertCondition(branch.when, `${path}.choice[${index}].when`);
+          assertResolvable(branch.context, `${path}.choice[${index}].context`);
+          assertResolvable(branch.input, `${path}.choice[${index}].input`);
+        });
+      } else {
+        assertResolvable(node.choice, `${path}.choice`);
+      }
+    }
+    if (isResolvable(node.route)) {
+      assertResolvable(node.route, `${path}.route`);
+    }
+    if (node.invoke) {
+      const invokes = Array.isArray(node.invoke) ? node.invoke : [node.invoke];
+      invokes.forEach((invoke, index) => {
+        const invokePath = `${path}.invoke${Array.isArray(node.invoke) ? `[${index}]` : ''}`;
+        const extInv = invoke as InvokeJSON & {
+          _nestedMachineJSON?: MachineJSON;
+        };
+        if (
+          !extInv._nestedMachineJSON &&
+          !resolvedImplementations.actorSources[invoke.src]
+        ) {
+          throw new Error(`Missing actorSource implementation "${invoke.src}"`);
+        }
+        assertResolvable(invoke.input, `${invokePath}.input`);
+        assertResolvable(invoke.timeout, `${invokePath}.timeout`);
+        assertTransition(invoke.onDone, `${invokePath}.onDone`);
+        assertTransition(invoke.onError, `${invokePath}.onError`);
+        assertTransition(invoke.onSnapshot, `${invokePath}.onSnapshot`);
+        assertTransition(invoke.onTimeout, `${invokePath}.onTimeout`);
+      });
+    }
+    if (node.on) {
+      for (const descriptor of Object.keys(node.on)) {
+        assertTransition(node.on[descriptor], `${path}.on.${descriptor}`);
+      }
+    }
+    if (node.after) {
+      for (const delay of Object.keys(node.after)) {
+        if (
+          Number.isNaN(Number(delay)) &&
+          parseDelayToMilliseconds(delay) === undefined &&
+          !json.delays?.[delay] &&
+          !resolvedImplementations.delays[delay]
+        ) {
+          throw new Error(`Missing delay implementation "${delay}"`);
+        }
+        assertTransition(node.after[delay], `${path}.after.${delay}`);
+      }
+    }
+    assertTransition(node.always, `${path}.always`);
+    assertTransition(node.onTimeout, `${path}.onTimeout`);
+    if (node.states) {
+      for (const key of Object.keys(node.states)) {
+        assertStateNode(node.states[key], `${path}.states.${key}`);
+      }
+    }
+  }
+
+  if (json.actions) {
+    for (const key of Object.keys(json.actions)) {
+      const actions = Array.isArray(json.actions[key])
+        ? json.actions[key]
+        : [json.actions[key]];
+      actions.forEach((action, index) =>
+        assertAction(
+          action,
+          `$.actions.${key}${actions.length > 1 ? `[${index}]` : ''}`,
+          [key]
+        )
+      );
+    }
+  }
+  if (json.guards) {
+    for (const key of Object.keys(json.guards)) {
+      assertCondition(json.guards[key].when, `$.guards.${key}.when`);
+    }
+  }
+  if (json.delays) {
+    for (const key of Object.keys(json.delays)) {
+      const delay = json.delays[key];
+      assertResolvable(
+        delay && typeof delay === 'object' && 'duration' in delay
+          ? delay.duration
+          : delay,
+        `$.delays.${key}`
+      );
+    }
+  }
+  assertStateNode(json, '$');
 }
 
 let _scxmlSessionId = 'session_' + Math.random().toString(36).slice(2);
@@ -443,9 +842,100 @@ export function createMachineFromConfig(
   json: MachineJSON,
   implementations: MachineImplementations = {}
 ): AnyStateMachine {
-  assertRootImplementationMarkers(json, implementations);
-  assertNoUnresolvedMarkers(json);
   const resolvedImplementations = mergeImplementations(json, implementations);
+  const expressionResolver = createExpressionResolver(
+    json['@exprLang'],
+    resolvedImplementations
+  );
+  const { evaluateResolvable, resolveValue, makeScope, getDurationConfig } =
+    expressionResolver;
+
+  type ResolvedCondition = ((args: any) => boolean) | undefined;
+
+  function resolveCondition(
+    condition: ConditionJSON | undefined,
+    slot: 'guard' | 'choice',
+    path: string
+  ): ResolvedCondition {
+    if (!condition) {
+      return undefined;
+    }
+    if (isResolvable(condition)) {
+      return (args: any) =>
+        !!evaluateResolvable(condition, slot, makeScope(args), path);
+    }
+    return (args: any) => {
+      const params = resolveValue(
+        condition.params,
+        slot,
+        makeScope(args),
+        `${path}.params`
+      );
+      const declarativeGuard = json.guards?.[condition.type];
+      if (declarativeGuard) {
+        const guard = resolveCondition(
+          declarativeGuard.when,
+          'guard',
+          `$.guards.${condition.type}.when`
+        );
+        return !!guard?.({ ...args, params });
+      }
+      const guardImpl = args.guards?.[condition.type];
+      if (!guardImpl) {
+        throw new Error(
+          getMissingGuardMessage(condition.type, args.guards ?? {})
+        );
+      }
+      return guardImpl(args, params);
+    };
+  }
+
+  function makeChoiceConfig(choice: StateNodeJSON['choice'], path: string) {
+    if (!choice) {
+      return undefined;
+    }
+    if (isResolvable(choice)) {
+      return (args: any) =>
+        evaluateResolvable(choice, 'choice', makeScope(args), path);
+    }
+    validateChoiceConfig(choice, path);
+    return (args: any) => {
+      for (let index = 0; index < choice.length; index++) {
+        const branch = choice[index];
+        const guard = resolveCondition(
+          branch.when,
+          'choice',
+          `${path}[${index}].when`
+        );
+        if (!guard || guard(args)) {
+          return {
+            target: branch.target,
+            context: branch.context
+              ? resolveValue(
+                  branch.context,
+                  'transitionContext',
+                  makeScope(args),
+                  `${path}[${index}].context`
+                )
+              : undefined,
+            input:
+              branch.input !== undefined
+                ? resolveValue(
+                    branch.input,
+                    'input',
+                    makeScope(args),
+                    `${path}[${index}].input`
+                  )
+                : undefined,
+            description: branch.description,
+            reenter: branch.reenter,
+            meta: branch.meta
+          };
+        }
+      }
+      throw new Error(`Choice state at ${path} did not match any branch.`);
+    };
+  }
 
   // Pending transition actions: set by .to functions, consumed by entry functions.
   // This bridges SCXML's exit→transition→entry action ordering with XState's
@@ -474,33 +964,24 @@ export function createMachineFromConfig(
     }.`;
   }
 
-  function resolveGuardConfig(guard: GuardJSON | undefined) {
-    if (!guard) {
-      return undefined;
-    }
-    return (args: any) => {
-      const guardImpl = args.guards?.[guard.type];
-      if (!guardImpl) {
-        throw new Error(getMissingGuardMessage(guard.type, args.guards ?? {}));
-      }
-      return guardImpl(args, guard.params);
-    };
-  }
-
-  function resolveRouteConfig(route: StateNodeJSON['route']) {
+  function resolveRouteConfig(route: StateNodeJSON['route'], path: string) {
     if (!route || typeof route === 'function') {
       return route;
+    }
+    if (isResolvable(route)) {
+      return (args: any) =>
+        evaluateResolvable(route, 'transition', makeScope(args), path);
     }
     const { guard, ...routeConfig } = route;
     if (!guard) {
       return routeConfig;
     }
-    const resolvedGuard = resolveGuardConfig({ type: guard });
+    const resolvedGuard = resolveCondition({ type: guard }, 'guard', path);
     return (args: any) => (resolvedGuard!(args) ? routeConfig : undefined);
   }
 
   function iterNode(node: StateNodeJSON, nodeKey?: string) {
-    const originalEntryActions = node.entry;
+    const originalEntryActions = toActionArray(node.entry);
     const stateId = node.id || nodeKey;
 
     // Wrap entry to first execute any pending transition actions, then normal entry.
@@ -570,7 +1051,7 @@ export function createMachineFromConfig(
       }
 
       // Execute normal entry actions
-      if (originalEntryActions?.length) {
+      if (originalEntryActions.length) {
         const mergedX = context ? { ...x, context } : x;
         const result = executeActions(originalEntryActions, mergedX, enq);
         if (result.context) {
@@ -590,7 +1071,7 @@ export function createMachineFromConfig(
       description: node.description,
       tags: node.tags,
       input: node.input,
-      timeout: node.timeout,
+      timeout: getDurationConfig(node.timeout, `$.states.${nodeKey}.timeout`),
       states: node.states
         ? Object.entries(node.states).reduce(
             (acc, [key, value]) => {
@@ -639,8 +1120,8 @@ export function createMachineFromConfig(
           )
         : undefined,
       always: node.always ? getTransitionConfig(node.always) : undefined,
-      choice: node.choice ? getTransitionConfig(node.choice) : undefined,
-      route: resolveRouteConfig(node.route),
+      choice: makeChoiceConfig(node.choice, `$.states.${nodeKey}.choice`),
+      route: resolveRouteConfig(node.route, `$.states.${nodeKey}.route`),
       after: node.after
         ? Object.entries(node.after).reduce(
             (acc, [key, value]) => {
@@ -653,13 +1134,23 @@ export function createMachineFromConfig(
       onTimeout: node.onTimeout
         ? getTransitionConfig(node.onTimeout)
         : undefined,
-      entry: entryFn as any,
-      exit: node.exit ? (iterActions(node.exit) as any) : undefined,
+      entry: node.type === 'choice' ? undefined : (entryFn as any),
+      exit: node.exit
+        ? (iterActions(toActionArray(node.exit)) as any)
+        : undefined,
       invoke: node.invoke ? iterInvokeConfigs(node.invoke) : undefined,
       meta: node.meta,
       output: node._scxmlDonedata
         ? makeDonedataOutput(node._scxmlDonedata)
-        : node.output
+        : isResolvable(node.output)
+          ? ({ context, event, self }: any) =>
+              evaluateResolvable(
+                node.output as ResolvableJSON,
+                'output',
+                { context, event, self },
+                `$.states.${nodeKey}.output`
+              )
+          : node.output
     };
 
     return nodeConfig;
@@ -719,27 +1210,29 @@ export function createMachineFromConfig(
           extInv._nestedMachineJSON,
           resolvedImplementations
         );
-      } else if (isUnserializableMarker(inv.src)) {
-        src = inv.src.id
-          ? resolvedImplementations.actorSources[inv.src.id]
-          : undefined;
-        if (!src) {
-          throw new Error(`Missing actorSources.${inv.src.id ?? ''}`);
-        }
       } else {
-        src = inv.src;
+        src = resolvedImplementations.actorSources[inv.src] ?? inv.src;
       }
       return {
         src,
         id: inv.id,
         registryKey: inv.registryKey,
-        input: inv.input,
+        input:
+          inv.input !== undefined
+            ? (args: any) =>
+                resolveValue(
+                  inv.input,
+                  'input',
+                  makeScope(args),
+                  '$.invoke.input'
+                )
+            : undefined,
         onDone: inv.onDone ? getTransitionConfig(inv.onDone) : undefined,
         onError: inv.onError ? getTransitionConfig(inv.onError) : undefined,
         onSnapshot: inv.onSnapshot
           ? getTransitionConfig(inv.onSnapshot)
           : undefined,
-        timeout: inv.timeout,
+        timeout: getDurationConfig(inv.timeout, '$.invoke.timeout'),
         onTimeout: inv.onTimeout
           ? getTransitionConfig(inv.onTimeout)
           : undefined
@@ -782,33 +1275,92 @@ export function createMachineFromConfig(
     errored: boolean;
   }
 
+  function executeActionDefinition(
+    action: CustomActionJSON,
+    x: any,
+    enq: any,
+    params: unknown,
+    parentState: ExecState,
+    stack: string[]
+  ): { context: MachineContext | undefined; errored: boolean } {
+    const definition = json.actions?.[action.type];
+    if (!definition) {
+      enq(x.actions[action.type], params);
+      return { context: undefined, errored: parentState.errored };
+    }
+    if (stack.includes(action.type)) {
+      raiseErrorExecution(
+        parentState,
+        'action',
+        new Error(
+          `Circular action reference: ${stack.concat(action.type).join(' -> ')}`
+        )
+      );
+      return { context: undefined, errored: true };
+    }
+    const definitions = Array.isArray(definition) ? definition : [definition];
+    return executeActions(
+      definitions,
+      { ...x, params },
+      enq,
+      parentState,
+      stack.concat(action.type)
+    );
+  }
+
   /** Execute an array of SCXML action JSON descriptors with context and enqueue. */
   function executeActions(
     actions: ActionJSON[],
     x: any,
     enq: any,
-    parentState?: ExecState
+    parentState?: ExecState,
+    stack: string[] = []
   ): { context: MachineContext | undefined; errored: boolean } {
     const state: ExecState = parentState ?? { enq, errored: false };
     let context: MachineContext | undefined;
     for (const action of actions) {
       if (state.errored) break;
-      if (isBuiltInActionJSON(action)) {
+      if (isResolvable(action)) {
+        const result = evaluateResolvable(
+          action,
+          'action',
+          makeScope(x, { params: x.params, enq }),
+          '$.actions'
+        );
+        if (
+          result &&
+          typeof result === 'object' &&
+          'context' in result &&
+          (result as { context?: MachineContext }).context
+        ) {
+          context ??= {};
+          Object.assign(
+            context,
+            (result as { context: MachineContext }).context
+          );
+        }
+      } else if (isBuiltInActionJSON(action)) {
         switch (action.type) {
           case '@xstate.raise': {
             // Tag as external if it has a delay (from <send>, not <raise>).
             // Attach _scxmlSendId so _event.sendid can be read in expressions.
             const isExternal = action.delay !== undefined;
+            const resolvedEvent = resolveValue(
+              action.event,
+              'actionParams',
+              makeScope(x, { params: x.params }),
+              '$.actions.event'
+            ) as EventObject;
             const event =
               isExternal || action.id !== undefined
                 ? {
-                    ...action.event,
+                    ...resolvedEvent,
                     ...(isExternal ? { _scxmlExternal: true } : {}),
                     ...(action.id !== undefined
                       ? { _scxmlSendId: action.id }
                       : {})
                   }
-                : action.event;
+                : resolvedEvent;
             enq.raise(event, {
               id: action.id,
               delay: action.delay
@@ -822,11 +1374,26 @@ export function createMachineFromConfig(
             enq.log(...action.args);
             break;
           case '@xstate.emit':
-            enq.emit(action.event);
+            enq.emit(
+              resolveValue(
+                action.event,
+                'actionParams',
+                makeScope(x, { params: x.params }),
+                '$.actions.event'
+              )
+            );
             break;
           case '@xstate.assign':
             context ??= {};
-            Object.assign(context, action.context);
+            Object.assign(
+              context,
+              resolveValue(
+                action.context,
+                'transitionContext',
+                makeScope(x, { params: x.params }),
+                '$.actions.context'
+              )
+            );
             break;
           default:
             throw new Error(`Unknown built-in action: ${(action as any).type}`);
@@ -1110,7 +1677,24 @@ export function createMachineFromConfig(
           }
         }
       } else {
-        enq(x.actions[action.type], (action as CustomActionJSON).params);
+        const params = resolveValue(
+          (action as CustomActionJSON).params,
+          'actionParams',
+          makeScope(x, { params: x.params }),
+          '$.actions.params'
+        );
+        const result = executeActionDefinition(
+          action,
+          x,
+          enq,
+          params,
+          state,
+          stack
+        );
+        if (result.context) {
+          context ??= {};
+          Object.assign(context, result.context);
+        }
       }
     }
     return {
@@ -1126,7 +1710,7 @@ export function createMachineFromConfig(
   }
 
   function getTransitionConfig(
-    transition: TransitionJSON | TransitionJSON[]
+    transition: TransitionConfigJSON | TransitionConfigJSON[]
   ): any {
     const transitions = Array.isArray(transition) ? transition : [transition];
 
@@ -1134,31 +1718,78 @@ export function createMachineFromConfig(
     // a separate XState transition with its own guard and optional .to.
     // This ensures guards are evaluated by XState's evaluateCandidate (once,
     // with pre-exit context) and NOT re-evaluated in computeEntrySet.
-    return transitions.map((t) => {
+    return transitions.map((t, index) => {
+      if (isResolvable(t)) {
+        return (x: any, enq: any) =>
+          evaluateResolvable(
+            t,
+            'transition',
+            makeScope(x, { enq }),
+            `$.transition${transitions.length > 1 ? `[${index}]` : ''}`
+          );
+      }
       const target = Array.isArray(t.target) ? t.target[0] : t.target;
       const targetConfig = t.target;
-      const guard = resolveGuardConfig(t.guard);
+      const guard = resolveCondition(t.guard, 'guard', '$.transition.guard');
+      const resolveTransitionContext = (x: any) =>
+        t.context
+          ? (resolveValue(
+              t.context,
+              'transitionContext',
+              makeScope(x),
+              '$.transition.context'
+            ) as MachineContext)
+          : undefined;
+      const resolveTransitionInput = (x: any) =>
+        t.input !== undefined
+          ? resolveValue(t.input, 'input', makeScope(x), '$.transition.input')
+          : undefined;
 
       // No guard and no actions: simple static config
       if (!guard && !t.actions?.length) {
+        if (t.context) {
+          return {
+            to: (x: any) => ({
+              target: targetConfig,
+              context: resolveTransitionContext(x),
+              reenter: t.reenter
+            }),
+            description: t.description,
+            meta: t.meta,
+            input: t.input !== undefined ? resolveTransitionInput : undefined
+          };
+        }
         return {
           target: targetConfig,
           description: t.description,
           reenter: t.reenter,
           meta: t.meta,
-          input: t.input
+          input: t.input !== undefined ? resolveTransitionInput : undefined
         };
       }
 
       // Guard but no actions: static config with guard
       if (guard && !t.actions?.length) {
+        if (t.context) {
+          return {
+            guard,
+            to: (x: any) => ({
+              target: targetConfig,
+              context: resolveTransitionContext(x),
+              reenter: t.reenter
+            }),
+            description: t.description,
+            meta: t.meta,
+            input: t.input !== undefined ? resolveTransitionInput : undefined
+          };
+        }
         return {
           target: targetConfig,
           guard,
           description: t.description,
           reenter: t.reenter,
           meta: t.meta,
-          input: t.input
+          input: t.input !== undefined ? resolveTransitionInput : undefined
         };
       }
 
@@ -1171,8 +1802,9 @@ export function createMachineFromConfig(
           description: t.description,
           reenter: t.reenter,
           meta: t.meta,
-          input: t.input,
+          input: t.input !== undefined ? resolveTransitionInput : undefined,
           to: (x: any, enq: any) => {
+            const context = resolveTransitionContext(x);
             if (t.actions?.length) {
               // Track for parallel re-execution (dedup by reference)
               if (!allTransitionActions.includes(t.actions)) {
@@ -1183,10 +1815,10 @@ export function createMachineFromConfig(
               // Execute immediately (fallback for non-parallel case)
               const result = executeActions(t.actions, x, enq);
               if (result.context) {
-                return { context: result.context };
+                return { context: { ...context, ...result.context } };
               }
             }
-            return {};
+            return context ? { context } : {};
           }
         };
       }
@@ -1200,8 +1832,9 @@ export function createMachineFromConfig(
         description: t.description,
         reenter: t.reenter,
         meta: t.meta,
-        input: t.input,
+        input: t.input !== undefined ? resolveTransitionInput : undefined,
         to: (_x: any, _enq: any) => {
+          const context = resolveTransitionContext(_x);
           if (t.actions?.length) {
             const targetId = target.replace(/^#/, '');
             pendingTransitionActionsMap[targetId] = t.actions;
@@ -1212,6 +1845,7 @@ export function createMachineFromConfig(
           }
           return {
             target: targetConfig,
+            context,
             reenter: t.reenter
           };
         }
@@ -1219,8 +1853,36 @@ export function createMachineFromConfig(
     });
   }
 
+  if (json.delays) {
+    for (const key of Object.keys(json.delays)) {
+      const delay = json.delays[key];
+      if (typeof delay === 'number') {
+        resolvedImplementations.delays[key] = delay;
+      } else if (typeof delay === 'string') {
+        resolvedImplementations.delays[key] = delayToMs(delay);
+      } else if (delay && typeof delay === 'object') {
+        resolvedImplementations.delays[key] = (args: any) =>
+          delayToMs(
+            resolveValue(
+              delay.duration,
+              'delay',
+              makeScope(args),
+              `$.delays.${key}.duration`
+            ) as string | number
+          );
+      }
+    }
+  }
+
+  assertMachineJSON(json, resolvedImplementations, expressionResolver);
+
   const rootNodeConfig = iterNode(json);
-  const contextConfig = json.context ? { context: json.context } : {};
+  const contextConfig = json.context
+    ? {
+        context: (args: any) =>
+          resolveValue(json.context, 'context', args, '$.context')
+      }
+    : {};
 
   _scxmlMachineName = json.id || '';
   _scxmlSessionId = 'session_' + Math.random().toString(36).slice(2);
@@ -1296,5 +1958,5 @@ export function createMachineFromConfig(
 }
 
 function isBuiltInActionJSON(action: ActionJSON): action is BuiltInActionJSON {
-  return action.type.startsWith('@xstate.');
+  return !isResolvable(action) && action.type.startsWith('@xstate.');
 }

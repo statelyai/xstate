@@ -161,9 +161,6 @@ describe('route', () => {
       {
         id: 'flow',
         initial: 'amount',
-        guards: {
-          isReady: { $unserializable: 'function', id: 'isReady' }
-        },
         states: {
           amount: {
             id: 'amount',
