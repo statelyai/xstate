@@ -151,21 +151,21 @@ export interface GuardJSON {
   params?: unknown;
 }
 
-export interface ExpressionJSON {
+interface ExpressionJSON {
   '@expr': string;
   '@lang'?: string;
 }
 
-export interface CodeJSON {
+interface CodeJSON {
   '@code': string;
   '@lang'?: string;
 }
 
 type ResolvableJSON = ExpressionJSON | CodeJSON;
 
-export type ConditionJSON = GuardJSON | ResolvableJSON;
+type ConditionJSON = GuardJSON | ResolvableJSON;
 
-export interface ChoiceBranchJSON {
+interface ChoiceBranchJSON {
   when?: ConditionJSON;
   target: string | string[];
   context?: MachineContext;
@@ -198,7 +198,7 @@ export interface TransitionJSON {
   input?: unknown;
 }
 
-export type TransitionConfigJSON = TransitionJSON | ResolvableJSON;
+type TransitionConfigJSON = TransitionJSON | ResolvableJSON;
 
 export interface StateNodeJSON {
   id?: string;
