@@ -32,6 +32,12 @@ jobs:
         uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1.7.0
         with:
           version: pnpm run version
+        env:
+          # Use a PAT instead of the default github.token: the ephemeral App
+          # installation token makes @changesets/changelog-github's GraphQL call
+          # to api.github.com truncate (ERR_STREAM_PREMATURE_CLOSE), failing
+          # changelog generation in the Version job.
+          GITHUB_TOKEN: ${{ secrets.CHANGESETS_PAT }}
 
   publish:
     name: Publish
