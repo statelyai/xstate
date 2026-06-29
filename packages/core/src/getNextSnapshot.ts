@@ -1,4 +1,5 @@
 import { createActor } from './createActor.ts';
+import { createSystem } from './system.ts';
 import {
   ActorScope,
   AnyActorLogic,
@@ -14,6 +15,18 @@ export function createInertActorScope<T extends AnyActorLogic>(
   actorLogic: T
 ): AnyActorScope {
   const self = createActor(actorLogic as AnyActorLogic);
+  // The Actor constructor eagerly calls `getInitialSnapshot` during `_initState`,
+  // which can register child actors with `systemId` in `self.system`.
+  // Replace `self.system` with a fresh system so that child actors spawned by
+  // the *caller's* explicit `getInitialSnapshot` / `transition` call register
+  // into a clean system and do not collide with those from the eager
+  // construction call.  This is what makes `initialTransition(machine)` safe
+  // even when invoked actors carry a `systemId`.
+  const freshSystem = createSystem(self, {
+    clock: self.system._clock,
+    logger: self.system._logger
+  });
+  (self as any).system = freshSystem;
   const inertActorScope: ActorScope<
     SnapshotFrom<T>,
     EventFromLogic<T>,
@@ -26,7 +39,7 @@ export function createInertActorScope<T extends AnyActorLogic>(
     logger: () => {},
     sessionId: '',
     stopChild: () => {},
-    system: self.system,
+    system: freshSystem,
     emit: () => {},
     actionExecutor: () => {}
   };
