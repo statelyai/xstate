@@ -349,7 +349,9 @@ const machineSnapshotCan = function can(
       return true;
     }
 
-    const res = getTransitionResult(transition, this, event, emptyActorScope);
+    const res = getTransitionResult(transition, this, event, emptyActorScope, {
+      resolveActions: false
+    });
     if (
       res.targets?.length ||
       res.context ||

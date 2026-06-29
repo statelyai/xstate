@@ -851,7 +851,8 @@ function getEffectiveTargetStates(
     transition,
     snapshot,
     event,
-    actorScope
+    actorScope,
+    { resolveActions: false }
   );
   if (!targets) {
     return [];
@@ -900,7 +901,8 @@ function getTransitionDomain(
     transition,
     snapshot,
     event,
-    actorScope
+    actorScope,
+    { resolveActions: false }
   );
 
   if (
@@ -942,7 +944,8 @@ function computeExitSet(
       transition,
       snapshot,
       event,
-      actorScope
+      actorScope,
+      { resolveActions: false }
     );
 
     if (targets?.length) {
@@ -1325,7 +1328,13 @@ function microstep(
           actorScope
         );
 
-        const { targets, reenter } = getCurrentTransitionResult(transition);
+        const { targets, reenter } = getTransitionResult(
+          transition,
+          currentSnapshot,
+          event,
+          actorScope,
+          { resolveActions: false }
+        );
 
         for (const targetNode of targets ?? []) {
           if (
@@ -1365,7 +1374,13 @@ function microstep(
         ...currentSnapshot._stateInputs
       };
       for (const transition of filteredTransitions) {
-        const { targets, input } = getCurrentTransitionResult(transition);
+        const { targets, input } = getTransitionResult(
+          transition,
+          currentSnapshot,
+          event,
+          actorScope,
+          { resolveActions: false }
+        );
         if (input && targets) {
           for (const targetNode of targets) {
             stateInputMap[targetNode.id] = input;
@@ -1673,7 +1688,8 @@ export function getTransitionResult(
   },
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
-  actorScope: AnyActorScope
+  actorScope: AnyActorScope,
+  options?: { resolveActions?: boolean }
 ): {
   targets: Readonly<AnyStateNode[]> | undefined;
   context: MachineContext | undefined;
@@ -1688,7 +1704,9 @@ export function getTransitionResult(
     const enqueue = createTransitionEnqueue(
       actorScope,
       actions,
-      internalEvents
+      internalEvents,
+      false,
+      options?.resolveActions ?? true
     );
 
     const res = transition.to(

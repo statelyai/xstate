@@ -312,6 +312,44 @@ describe('transition function', () => {
     );
   });
 
+  it('enq.spawn creates and starts a child once from a transition function', () => {
+    let childConstructions = 0;
+    const childMachine = createMachine({
+      schemas: {
+        context: z.object({
+          n: z.number()
+        })
+      },
+      context: () => {
+        childConstructions++;
+        return { n: 0 };
+      },
+      on: {
+        ping: ({ context }) => ({
+          context: { n: context.n + 1 }
+        })
+      }
+    });
+
+    const parentMachine = createMachine({
+      on: {
+        SPAWN: (_, enq) => {
+          enq.spawn(childMachine, { registryKey: 'child' });
+        }
+      }
+    });
+
+    const actor = createActor(parentMachine).start();
+
+    expect(() => actor.send({ type: 'SPAWN' })).not.toThrow();
+    expect(childConstructions).toBe(1);
+
+    const child = actor.system.get('child')!;
+    child.send({ type: 'ping' });
+
+    expect(child.getSnapshot().context).toEqual({ n: 1 });
+  });
+
   it('built-in action effects expose public metadata fields', () => {
     const childMachine = createMachine({});
     const machine = createMachine({

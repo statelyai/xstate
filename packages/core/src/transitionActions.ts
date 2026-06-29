@@ -73,7 +73,8 @@ export function createTransitionEnqueue(
   actorScope: AnyActorScope,
   actions: any[],
   internalEvents: EventObject[],
-  actorSubscriptions = false
+  actorSubscriptions = false,
+  createActors = true
 ) {
   const props: Partial<EnqueueObject<any, any>> = {
     cancel: (id: string) => {
@@ -111,6 +112,12 @@ export function createTransitionEnqueue(
       }
     },
     spawn: (logic, options) => {
+      if (!createActors) {
+        // TODO: replace this speculative placeholder with a typed inert actor ref.
+        return {
+          id: options?.id ?? options?.registryKey ?? logic.id
+        } as AnyActor;
+      }
       const actor = createActor(logic, {
         ...options,
         parent: actorScope.self
