@@ -35,6 +35,26 @@
 
 - [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Export a new `isAtom(value)` helper that returns `true` when a value is an atom (i.e. has `get` and `subscribe` methods).
 
+## 4.2.1
+
+### Patch Changes
+
+- [#5563](https://github.com/statelyai/xstate/pull/5563) [`2911278`](https://github.com/statelyai/xstate/commit/2911278adc330ed3fd3fc4d376e4a0671cf84bac) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed inference for selector `context` parameters when using `createStoreLogic(...)` with an input function.
+
+  ```ts
+  const counterLogic = createStoreLogic({
+    context: (input: { initialCount: number }) => ({
+      count: input.initialCount
+    }),
+    selectors: {
+      count: (context) => context.count
+    },
+    on: {
+      inc: (context) => ({ count: context.count + 1 })
+    }
+  });
+  ```
+
 ## 4.2.0
 
 ### Minor Changes

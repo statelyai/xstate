@@ -614,7 +614,7 @@ export function createStoreLogic<
   TEmittedSchemaMap extends StandardSchemaMap | undefined = undefined,
   TSelectors extends StoreSelectorsConfig<
     ResolveStoreContext<TContext, TContextSchema>
-  > = {}
+  > = StoreSelectorsConfig<ResolveStoreContext<TContext, TContextSchema>>
 >(
   config: Omit<
     StoreConfig<

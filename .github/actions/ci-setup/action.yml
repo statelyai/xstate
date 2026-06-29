@@ -8,10 +8,14 @@ runs:
     - name: Install pnpm
       uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6.0.5
 
-    - name: Use Node.js 24.x
+    - name: Use Node.js
       uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
       with:
-        node-version: 24.x
+        # Pinned: Node 24.17.0 regressed node-fetch@2's gzip handling, making
+        # @changesets/changelog-github's GraphQL call fail with
+        # ERR_STREAM_PREMATURE_CLOSE. 24.16.0 is the last known-good 24.x.
+        # https://github.com/changesets/changesets/issues/2115
+        node-version: 24.16.0
         cache: 'pnpm'
         registry-url: 'https://registry.npmjs.org'
 

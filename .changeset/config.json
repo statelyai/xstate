@@ -5,9 +5,17 @@
   "linked": [],
   "access": "public",
   "baseBranch": "main",
-  "ignore": ["@xstate/example-*", "store-*", "local-store-*"],
+  "ignore": [
+    "@xstate/immer",
+    "@xstate/inspect",
+    "@xstate/example-*",
+    "store-*",
+    "local-store-*"
+  ],
+  "snapshot": {
+    "useCalculatedVersion": true
+  },
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
-    "onlyUpdatePeerDependentsWhenOutOfRange": true,
-    "useCalculatedVersionForSnapshots": true
+    "onlyUpdatePeerDependentsWhenOutOfRange": true
   }
 }
