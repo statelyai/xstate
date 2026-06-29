@@ -5,13 +5,7 @@
   "linked": [],
   "access": "public",
   "baseBranch": "main",
-  "ignore": [
-    "@xstate/immer",
-    "@xstate/inspect",
-    "@xstate/example-*",
-    "store-*",
-    "local-store-*"
-  ],
+  "ignore": ["@xstate/example-*", "store-*", "local-store-*"],
   "snapshot": {
     "useCalculatedVersion": true
   },
