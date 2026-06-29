@@ -253,6 +253,32 @@ describe('transition function', () => {
     );
   });
 
+  it('should not throw when invoked actors define a systemId', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: createMachine({}),
+            systemId: 'child'
+          }
+        }
+      }
+    });
+
+    const [state, actions] = initialTransition(machine);
+
+    expect(state.value).toBe('a');
+    expect(actions).toContainEqual(
+      expect.objectContaining({
+        type: 'xstate.spawnChild',
+        params: expect.objectContaining({
+          systemId: 'child'
+        })
+      })
+    );
+  });
+
   it('emit actions should be returned', async () => {
     const machine = createMachine({
       initial: 'a',
