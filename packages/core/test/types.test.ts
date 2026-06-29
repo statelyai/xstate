@@ -2483,6 +2483,67 @@ describe('invoke', () => {
     });
   });
 
+  it('should infer async logic output from run with input-only schemas', () => {
+    const logic = createAsyncLogic({
+      schemas: {
+        input: types<{ name: string }>()
+      },
+      run: async ({ input }) => {
+        const name: string = input.name;
+        // @ts-expect-error
+        const age: number = input.age;
+
+        noop(name);
+        noop(age);
+
+        return { message: input.name };
+      }
+    });
+
+    const output: OutputFrom<typeof logic> = { message: 'ok' };
+    const message: string = output.message;
+    // @ts-expect-error
+    const wrongOutput: OutputFrom<typeof logic> = { other: 'nope' };
+
+    noop(output);
+    noop(message);
+    noop(wrongOutput);
+
+    setup({
+      actorSources: { logic }
+    }).createMachine({
+      initial: 'Idle',
+      states: {
+        Idle: {
+          invoke: {
+            src: 'logic',
+            input: { name: 'David' },
+            onDone: ({ event, output }) => {
+              const eventMessage: string = event.output.message;
+              const outputMessage: string = output.message;
+              // @ts-expect-error
+              const missing: number = event.output.missing;
+
+              noop(eventMessage);
+              noop(outputMessage);
+              noop(missing);
+            }
+          }
+        }
+      }
+    });
+
+    setup({
+      actorSources: { logic }
+    }).createMachine({
+      // @ts-expect-error
+      invoke: {
+        src: 'logic',
+        input: { name: 42 }
+      }
+    });
+  });
+
   it('should narrow transition function events by keyed event', () => {
     setup({
       schemas: {
