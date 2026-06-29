@@ -837,6 +837,49 @@ describe('setup', () => {
     expect(receivedInputs).toEqual([{ url: '/api/users', method: 'GET' }]);
   });
 
+  it('function-syntax transition should compute input from event and context', () => {
+    const receivedInputs: unknown[] = [];
+    const s = setup({
+      schemas: {
+        events: {
+          FETCH: types<{ url: string }>()
+        }
+      },
+      states: {
+        idle: {},
+        fetching: {
+          schemas: {
+            input: z.object({ url: z.string(), token: z.string() })
+          }
+        }
+      }
+    });
+
+    const machine = s.createMachine({
+      initial: 'idle',
+      context: { authToken: 'abc-123' },
+      states: {
+        idle: {
+          on: {
+            FETCH: ({ context, event }) => ({
+              target: 'fetching',
+              input: { url: event.url, token: context.authToken }
+            })
+          }
+        },
+        fetching: {
+          entry: ({ input }) => {
+            receivedInputs.push(input);
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'FETCH', url: '/api/users' });
+    expect(receivedInputs).toEqual([{ url: '/api/users', token: 'abc-123' }]);
+  });
+
   it('initial transition should accept input', () => {
     const entryInputs: unknown[] = [];
 

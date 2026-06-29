@@ -555,6 +555,7 @@ export type TransitionConfigFunction<
   context?: Partial<_TCtx>;
   reenter?: boolean;
   meta?: TMeta;
+  input?: Record<string, unknown>;
 } | void;
 
 type TransitionFunctionArgs<
