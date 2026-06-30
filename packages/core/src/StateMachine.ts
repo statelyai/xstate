@@ -19,10 +19,13 @@ import {
   isInFinalState,
   isStateId,
   macrostep,
+  type Microstep,
   resolveStateValue,
   transitionNode
 } from './stateUtils.ts';
 import { resolveActionsWithContext } from './transitionActions.ts';
+import { listenerLogic } from './actors/listener.ts';
+import { subscriptionLogic } from './actors/subscription.ts';
 import { AnyActorSystem } from './system.ts';
 import type {
   ActorLogic,
@@ -40,8 +43,11 @@ import type {
   EmittedFrom,
   EventObject,
   EventFromLogic,
+  ExecutableActionObject,
   ExecutableActionObjectFromLogic,
   HistoryValue,
+  StartExecutableActionObject,
+  StopExecutableActionObject,
   InputFrom,
   IsAny,
   MachineContext,
@@ -61,10 +67,72 @@ import {
   MachineOptions
 } from './types.v6.ts';
 import {
+  isExecutableActionObject,
   matchesEventDescriptor,
   resolveReferencedActor,
   toStatePath
 } from './utils.ts';
+import { XSTATE_START, XSTATE_STOP } from './constants.ts';
+
+function isStartEffect(effect: unknown): effect is StartExecutableActionObject {
+  return isExecutableActionObject(effect) && effect.type === XSTATE_START;
+}
+
+function isStopEffect(effect: unknown): effect is StopExecutableActionObject {
+  return isExecutableActionObject(effect) && effect.type === XSTATE_STOP;
+}
+
+function isStopEffectFor(effect: unknown, actor: AnyActor): boolean {
+  return isStopEffect(effect) && effect.actor === actor;
+}
+
+function isAttachedActorStartFor(effect: unknown, actor: AnyActor): boolean {
+  return (
+    isStartEffect(effect) &&
+    (effect.logic === listenerLogic || effect.logic === subscriptionLogic) &&
+    typeof effect.input === 'object' &&
+    effect.input !== null &&
+    (effect.input as { actor?: AnyActor }).actor === actor
+  );
+}
+
+function reorderEffects(
+  effects: readonly ExecutableActionObject[]
+): ExecutableActionObject[] {
+  const orderedEffects: ExecutableActionObject[] = [];
+  const consumedIndexes = new Set<number>();
+
+  for (let i = 0; i < effects.length; i++) {
+    if (consumedIndexes.has(i)) {
+      continue;
+    }
+
+    const effect = effects[i];
+
+    if (isStartEffect(effect)) {
+      for (let j = i + 1; j < effects.length; j++) {
+        if (consumedIndexes.has(j)) {
+          continue;
+        }
+
+        const nextEffect = effects[j];
+
+        if (isStopEffectFor(nextEffect, effect.actor)) {
+          break;
+        }
+
+        if (isAttachedActorStartFor(nextEffect, effect.actor)) {
+          orderedEffects.push(nextEffect);
+          consumedIndexes.add(j);
+        }
+      }
+    }
+
+    orderedEffects.push(effect);
+  }
+
+  return orderedEffects;
+}
 
 const STATE_IDENTIFIER = '#';
 
@@ -356,6 +424,14 @@ export class StateMachine<
     >;
   }
 
+  /** Flattens and reorders the effects across the given microsteps. */
+  private collectEffects(
+    microsteps: readonly Microstep[]
+  ): ExecutableActionObjectFromLogic<this>[] {
+    const flat = microsteps.flatMap(([, actions]) => actions);
+    return reorderEffects(flat) as ExecutableActionObjectFromLogic<this>[];
+  }
+
   /**
    * Determines the next snapshot given the current `snapshot` and received
    * `event`. Calculates a full macrostep from all microsteps.
@@ -401,12 +477,9 @@ export class StateMachine<
       []
     );
 
-    return [
-      nextSnapshot,
-      microsteps.flatMap(
-        ([, actions]) => actions
-      ) as ExecutableActionObjectFromLogic<this>[]
-    ];
+    const effects = this.collectEffects(microsteps);
+
+    return [nextSnapshot, effects];
   }
 
   private _transitionFast(
@@ -702,19 +775,19 @@ export class StateMachine<
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
     const preInitialState = this._getPreInitialState(actorScope, initEvent);
-    let nextState: AnyMachineSnapshot;
-    let initialActions: readonly unknown[] = [];
-    let microsteps: Array<readonly [unknown, readonly unknown[]]> = [];
+    let initialStep: Microstep | undefined;
+    let microsteps: Microstep[] = [];
     let macroState: AnyMachineSnapshot;
 
     try {
-      [nextState, initialActions] = initialMicrostep(
+      initialStep = initialMicrostep(
         this.root,
         preInitialState,
         actorScope,
         initEvent,
         internalQueue
       );
+      const [nextState] = initialStep;
 
       ({ snapshot: macroState, microsteps } = macrostep(
         nextState,
@@ -735,16 +808,13 @@ export class StateMachine<
       );
       macroState = errorMacrostep.snapshot;
       microsteps = errorMacrostep.microsteps;
-      initialActions = [];
     }
 
-    return [
-      macroState as SnapshotFrom<this>,
-      [
-        ...initialActions,
-        ...microsteps.flatMap(([, actions]) => actions)
-      ] as ExecutableActionObjectFromLogic<this>[]
-    ];
+    const effects = this.collectEffects(
+      initialStep ? [initialStep, ...microsteps] : microsteps
+    );
+
+    return [macroState as SnapshotFrom<this>, effects];
   }
 
   public start(
