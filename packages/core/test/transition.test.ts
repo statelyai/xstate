@@ -826,6 +826,58 @@ describe('transition function', () => {
     expect(s1.value).toEqual('b');
     expect(actions.length).toEqual(1);
   });
+
+  it('fast-paths flat static target/context transitions', () => {
+    const machine = createMachine({
+      initial: 'a',
+      context: { count: 0 },
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              target: 'b',
+              context: { count: 1 }
+            }
+          }
+        },
+        b: {}
+      }
+    });
+    const getTransitionData = vi.spyOn(machine, 'getTransitionData');
+
+    const [init] = initialTransition(machine);
+    const [next, actions] = transition(machine, init, { type: 'NEXT' });
+
+    expect(next.value).toBe('b');
+    expect(next.context).toEqual({ count: 1 });
+    expect(actions).toEqual([]);
+    expect(getTransitionData).not.toHaveBeenCalled();
+  });
+
+  it('fast-paths flat static targetless context transitions', () => {
+    const machine = createMachine({
+      initial: 'a',
+      context: { count: 0 },
+      states: {
+        a: {
+          on: {
+            INC: {
+              context: { count: 1 }
+            }
+          }
+        }
+      }
+    });
+    const getTransitionData = vi.spyOn(machine, 'getTransitionData');
+
+    const [init] = initialTransition(machine);
+    const [next, actions] = transition(machine, init, { type: 'INC' });
+
+    expect(next.value).toBe('a');
+    expect(next.context).toEqual({ count: 1 });
+    expect(actions).toEqual([]);
+    expect(getTransitionData).not.toHaveBeenCalled();
+  });
 });
 
 describe('getNextTransitions', () => {

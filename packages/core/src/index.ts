@@ -6,6 +6,12 @@ export {
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys
 } from './createActor.ts';
 export { createMachine, createStateConfig } from './createMachine.ts';
+export {
+  createFSM,
+  type FSMActorLogic,
+  type FSMConfig,
+  type FSMSnapshot
+} from './fsm.ts';
 export { createMachineFromConfig } from './createMachineFromConfig.ts';
 export type {
   ActionJSON,

@@ -5,6 +5,7 @@ import { createInitEvent } from './eventUtils.ts';
 import { createSpawner } from './spawn.ts';
 import {
   createMachineSnapshot,
+  cloneMachineSnapshot,
   getPersistedSnapshot,
   MachineSnapshot
 } from './State.ts';
@@ -387,6 +388,11 @@ export class StateMachine<
     >,
     ExecutableActionObjectFromLogic<this>
   > {
+    const fastSnapshot = this._transitionFast(snapshot, event, actorScope);
+    if (fastSnapshot) {
+      return [fastSnapshot, []];
+    }
+
     const { snapshot: nextSnapshot, microsteps } = macrostep(
       snapshot,
       event,
@@ -400,6 +406,99 @@ export class StateMachine<
         ([, actions]) => actions
       ) as ExecutableActionObjectFromLogic<this>[]
     ];
+  }
+
+  private _transitionFast(
+    snapshot: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput,
+      TMeta,
+      TConfig
+    >,
+    event: TEvent,
+    actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
+  ):
+    | MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TMeta,
+        TConfig
+      >
+    | undefined {
+    if (
+      snapshot.status !== 'active' ||
+      typeof snapshot.value !== 'string' ||
+      this.root.always?.length
+    ) {
+      return undefined;
+    }
+
+    const sourceNode = this.root.states[snapshot.value];
+    if (
+      !sourceNode ||
+      sourceNode.type !== 'atomic' ||
+      sourceNode.exit ||
+      sourceNode.invoke.length ||
+      sourceNode.always?.length ||
+      sourceNode.after?.length
+    ) {
+      return undefined;
+    }
+
+    const transitions = sourceNode.transitions.get(event.type);
+    if (transitions?.length !== 1) {
+      return undefined;
+    }
+
+    const selected = transitions[0];
+    if (
+      selected.guard ||
+      selected.actions ||
+      selected.to ||
+      selected.reenter ||
+      selected.input ||
+      typeof selected.context === 'function' ||
+      (selected.target && selected.target.length !== 1)
+    ) {
+      return undefined;
+    }
+
+    const targetNode = selected.target?.[0] ?? sourceNode;
+    const stateChanged = targetNode !== sourceNode;
+    if (
+      targetNode.parent !== this.root ||
+      targetNode.type !== 'atomic' ||
+      (stateChanged &&
+        (targetNode.entry ||
+          targetNode.invoke.length ||
+          targetNode.always?.length ||
+          targetNode.after?.length))
+    ) {
+      return undefined;
+    }
+
+    const context =
+      selected.context !== undefined
+        ? ({ ...snapshot.context, ...selected.context } as TContext)
+        : snapshot.context;
+
+    const collectedMicrosteps =
+      ((actorScope.self as any)._collectedMicrosteps as any[]) || [];
+    collectedMicrosteps.push(selected);
+    (actorScope.self as any)._collectedMicrosteps = collectedMicrosteps;
+
+    return cloneMachineSnapshot(snapshot, {
+      ...(context !== snapshot.context ? { context } : {}),
+      ...(stateChanged ? { _nodes: [this.root, targetNode] } : {})
+    });
   }
 
   /**

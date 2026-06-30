@@ -50,6 +50,7 @@
     "test:store:watch": "vitest --project @xstate/store*",
     "bench:size": "node scripts/bundle-size.mjs",
     "bench:size:update": "node scripts/bundle-size.mjs --update",
+    "bench:core-runtime": "node scripts/bench-core-runtime.mjs",
     "bench:type-errors": "node scripts/type-error-quality.mjs",
     "changeset": "changeset",
     "release": "node ./scripts/release.js",
