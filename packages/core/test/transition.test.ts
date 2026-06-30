@@ -4,6 +4,7 @@ import {
   EventFrom,
   createAsyncLogic,
   createLogic,
+  createCallbackLogic,
   toPromise,
   transition,
   createActor,
@@ -16,7 +17,28 @@ import type {
 } from '../src/types';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
+import { listenerLogic } from '../src/actors/listener';
+import { subscriptionLogic } from '../src/actors/subscription';
 import { z } from 'zod';
+
+function describeEffects(effects: ExecutableActionObject[]): string[] {
+  return effects.filter(isBuiltInExecutableAction).flatMap((e) => {
+    switch (e.type) {
+      case '@xstate.stop':
+        return `stop(${e.actor.id})`;
+      case '@xstate.start':
+        if (e.logic === listenerLogic) {
+          return `listen(${(e.input as any).actor.id})`;
+        }
+        if (e.logic === subscriptionLogic) {
+          return `subscribe(${(e.input as any).actor.id})`;
+        }
+        return `start(${e.id})`;
+      default:
+        return [];
+    }
+  });
+}
 
 describe('transition function', () => {
   it('should capture actions', () => {
@@ -458,6 +480,190 @@ describe('transition function', () => {
     )!;
     expect(stopAction.type).toBe('@xstate.stop');
     expect(stopAction.actor).toBe(state.children.child);
+  });
+
+  const emittingLogic = createCallbackLogic(({ emit }) => {
+    emit({ type: 'someEvent' });
+  });
+
+  it('initialTransition: listener start effect comes before target actor start', () => {
+    const machine = createMachine({
+      entry: (_, enq) => {
+        const child = enq.spawn(emittingLogic, { id: 'child' });
+        enq.listen(child, 'someEvent', () => ({ type: 'HEARD' }));
+      }
+    });
+
+    const [, effects] = initialTransition(machine);
+
+    expect(describeEffects(effects)).toEqual(['listen(child)', 'start(child)']);
+  });
+
+  it('initialTransition: subscribeTo start effect comes before target actor start', () => {
+    const completingLogic = createLogic({
+      context: undefined,
+      run: () => ({
+        status: 'done',
+        output: { result: 'success' }
+      })
+    });
+
+    const machine = createMachine({
+      entry: (_, enq) => {
+        const child = enq.spawn(completingLogic, { id: 'child' });
+        enq.subscribeTo(child, {
+          done: (output) => ({ type: 'CHILD_DONE', output })
+        });
+      }
+    });
+
+    const [, effects] = initialTransition(machine);
+
+    expect(describeEffects(effects)).toEqual([
+      'subscribe(child)',
+      'start(child)'
+    ]);
+  });
+
+  it('transition: cross-phase spawns with listeners from exit and entry are reordered per-actor', () => {
+    const machine = createMachine({
+      initial: 'a',
+      context: {} as { spawnedOnExit: any },
+      states: {
+        a: {
+          on: {
+            GO: { target: 'b' }
+          },
+          exit: (_, enq) => {
+            const spawnedOnExit = enq.spawn(emittingLogic, {
+              id: 'exitChild'
+            });
+            enq.listen(spawnedOnExit, 'someEvent', () => ({ type: 'HEARD' }));
+            return { context: { spawnedOnExit } };
+          }
+        },
+        b: {
+          entry: ({ context }, enq) => {
+            const spawnedOnEntry = enq.spawn(emittingLogic, {
+              id: 'entryChild'
+            });
+            enq.listen(spawnedOnEntry, 'someEvent', () => ({ type: 'HEARD' }));
+            enq.listen(context.spawnedOnExit, 'someEvent', () => ({
+              type: 'HEARD'
+            }));
+          }
+        }
+      }
+    });
+
+    const [state] = initialTransition(machine);
+    const [, effects] = transition(machine, state, { type: 'GO' });
+
+    expect(describeEffects(effects)).toEqual([
+      'listen(exitChild)',
+      'listen(exitChild)',
+      'start(exitChild)',
+      'listen(entryChild)',
+      'start(entryChild)'
+    ]);
+  });
+
+  it('transition: listener is NOT reordered ahead of an actor that was stopped before the listener was added', () => {
+    const machine = createMachine({
+      initial: 'a',
+      context: {} as { spawnedChild: any },
+      states: {
+        a: {
+          on: {
+            GO: { target: 'b' }
+          },
+          exit: (_, enq) => {
+            const spawnedChild = enq.spawn(emittingLogic, { id: 'child' });
+            enq.stop(spawnedChild);
+            return { context: { spawnedChild } };
+          }
+        },
+        b: {
+          entry: ({ context }, enq) => {
+            enq.listen(context.spawnedChild, 'someEvent', () => ({
+              type: 'HEARD'
+            }));
+          }
+        }
+      }
+    });
+
+    const [state] = initialTransition(machine);
+    const [, effects] = transition(machine, state, { type: 'GO' });
+
+    expect(describeEffects(effects)).toEqual([
+      'start(child)',
+      'stop(child)',
+      'listen(child)'
+    ]);
+  });
+
+  it('transition: interleaved spawns and listeners in the same phase are reordered per-actor', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            GO: { target: 'b' }
+          }
+        },
+        b: {
+          entry: (_, enq) => {
+            const actorA = enq.spawn(emittingLogic, { id: 'actorA' });
+            const actorB = enq.spawn(emittingLogic, { id: 'actorB' });
+            enq.listen(actorB, 'someEvent', () => ({ type: 'HEARD_B' }));
+            enq.listen(actorA, 'someEvent', () => ({ type: 'HEARD_A' }));
+          }
+        }
+      }
+    });
+
+    const [state] = initialTransition(machine);
+    const [, effects] = transition(machine, state, { type: 'GO' });
+
+    expect(describeEffects(effects)).toEqual([
+      'listen(actorA)',
+      'start(actorA)',
+      'listen(actorB)',
+      'start(actorB)'
+    ]);
+  });
+
+  it('transition: listener on a pre-existing actor is a no-op (no actor start to reorder against)', () => {
+    const machine = createMachine({
+      initial: 'a',
+      context: {} as { existingChild: any },
+      states: {
+        a: {
+          entry: (_, enq) => {
+            const existingChild = enq.spawn(emittingLogic, {
+              id: 'existing'
+            });
+            return { context: { existingChild } };
+          },
+          on: {
+            GO: { target: 'b' }
+          }
+        },
+        b: {
+          entry: ({ context }, enq) => {
+            enq.listen(context.existingChild, 'someEvent', () => ({
+              type: 'HEARD'
+            }));
+          }
+        }
+      }
+    });
+
+    const [state] = initialTransition(machine);
+    const [, effects] = transition(machine, state, { type: 'GO' });
+
+    expect(describeEffects(effects)).toEqual(['listen(existing)']);
   });
 
   it('does not classify inherited object keys as built-in actions', () => {
