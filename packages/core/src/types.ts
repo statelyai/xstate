@@ -243,6 +243,34 @@ export type StateValue = string | StateValueMap;
 
 export type TransitionTarget = SingleOrArray<string>;
 
+export type TransitionContextPatch<TContext extends MachineContext> =
+  Partial<TContext> & {
+    call?: never;
+    apply?: never;
+    bind?: never;
+  };
+
+export type TransitionContextMapper<
+  TContext extends MachineContext,
+  TCurrentEvent extends EventObject,
+  TEvent extends EventObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actorSources'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext
+> = (
+  args: TransitionFunctionArgs<
+    _TCtx,
+    TCurrentEvent,
+    TEvent,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap
+  >
+) => TransitionContextPatch<_TCtx>;
+
 export interface TransitionConfig<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -258,7 +286,17 @@ export interface TransitionConfig<
   guard?: unknown;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
-  context?: Partial<TContext>;
+  context?:
+    | TransitionContextPatch<TContext>
+    | TransitionContextMapper<
+        TContext,
+        TExpressionEvent,
+        TEvent,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap
+      >;
   to?: TransitionConfigFunction<
     TContext,
     TExpressionEvent,
@@ -537,7 +575,7 @@ export type TransitionConfigFunction<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject,
-  _TCtx = [TContext] extends [never] ? any : TContext
+  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext
 > = (
   args: TransitionFunctionArgs<
     _TCtx,
@@ -552,7 +590,7 @@ export type TransitionConfigFunction<
 ) => {
   target?: string | string[];
   // target?: keyof TSS['states'];
-  context?: Partial<_TCtx>;
+  context?: TransitionContextPatch<_TCtx>;
   reenter?: boolean;
   meta?: TMeta;
 } | void;

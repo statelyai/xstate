@@ -915,7 +915,13 @@ type StateTransitionConfigOrTarget<
       TContext,
       TContextShape,
       TExpressionEvent,
-      TMeta
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry
     >
   | StateTransitionFunction<
       TStateSchemas,
@@ -938,14 +944,46 @@ type StateTransitionObjectConfig<
   TContext extends MachineContext,
   TContextShape,
   TExpressionEvent extends EventObject,
-  TMeta extends MetaObject
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actorSources'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry
 > =
-  | (StateTransitionResult<TStateSchemas, TContext, TContextShape, TMeta> & {
+  | (StateTransitionResult<
+      TStateSchemas,
+      TContext,
+      TContextShape,
+      TMeta,
+      TExpressionEvent,
+      TChildren,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry,
+      true
+    > & {
       description?: string;
     })
   | {
       target: SetupStateTarget<TStateSchemas>[];
-      context?: ContextPatch<TContextShape, TContextShape, TContext>;
+      context?: StateTransitionContext<
+        true,
+        TContext,
+        TContextShape,
+        TContextShape,
+        TContext,
+        TExpressionEvent,
+        TChildren,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry
+      >;
       description?: string;
       reenter?: boolean;
       meta?: TMeta;
@@ -958,6 +996,91 @@ type StateTransitionObjectConfig<
             } & OutputArg<TExpressionEvent>
           ) => Record<string, unknown>);
     };
+
+type StateTransitionContextMapper<
+  TContext extends MachineContext,
+  TContextShape,
+  TTargetContextShape,
+  TResolvedTargetContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actorSources'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry
+> = (
+  args: {
+    context: TContext;
+    event: TExpressionEvent;
+    self: AnyActorRef;
+    parent: AnyActorRef | undefined;
+    value: StateValue;
+    children: TChildren;
+    system: SystemRuntime<TSystemRegistry>;
+    actions: TActionMap;
+    actorSources: TActorMap;
+    guards: TGuardMap;
+    delays: TDelayMap;
+  } & OutputArg<TExpressionEvent>
+) => ContextPatch<TContextShape, TTargetContextShape, TResolvedTargetContext>;
+
+type StateTransitionContextOrMapper<
+  TContext extends MachineContext,
+  TContextShape,
+  TTargetContextShape,
+  TResolvedTargetContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actorSources'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry
+> =
+  | ContextPatch<TContextShape, TTargetContextShape, TResolvedTargetContext>
+  | StateTransitionContextMapper<
+      TContext,
+      TContextShape,
+      TTargetContextShape,
+      TResolvedTargetContext,
+      TExpressionEvent,
+      TChildren,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry
+    >;
+
+type StateTransitionContext<
+  TAllowMapper extends boolean,
+  TContext extends MachineContext,
+  TContextShape,
+  TTargetContextShape,
+  TResolvedTargetContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actorSources'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry
+> = TAllowMapper extends true
+  ? StateTransitionContextOrMapper<
+      TContext,
+      TContextShape,
+      TTargetContextShape,
+      TResolvedTargetContext,
+      TExpressionEvent,
+      TChildren,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry
+    >
+  : ContextPatch<TContextShape, TTargetContextShape, TResolvedTargetContext>;
 
 type StateTransitionFunction<
   TStateSchemas extends Record<string, SetupStateSchema>,
@@ -992,18 +1115,47 @@ type StateTransitionFunction<
   TStateSchemas,
   TContext,
   TContextShape,
-  TMeta
+  TMeta,
+  TExpressionEvent,
+  TChildren,
+  TActionMap,
+  TActorMap,
+  TGuardMap,
+  TDelayMap,
+  TSystemRegistry,
+  false
 > | void;
 
 type StateTransitionResult<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
   TContextShape,
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TExpressionEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actorSources'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry,
+  TAllowContextMapper extends boolean
 > =
   | {
       target?: never;
-      context?: ContextPatch<TContextShape, TContextShape, TContext>;
+      context?: StateTransitionContext<
+        TAllowContextMapper,
+        TContext,
+        TContextShape,
+        TContextShape,
+        TContext,
+        TExpressionEvent,
+        TChildren,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry
+      >;
       reenter?: boolean;
       meta?: TMeta;
     }
@@ -1024,17 +1176,35 @@ type StateTransitionResult<
         StateContextShape<TStateSchemas[K], TContextShape>
       ]
         ? {
-            context?: ContextPatch<
+            context?: StateTransitionContext<
+              TAllowContextMapper,
+              TContext,
               TContextShape,
               StateContextShape<TStateSchemas[K], TContextShape>,
-              StateContext<TStateSchemas[K], TContext>
+              StateContext<TStateSchemas[K], TContext>,
+              TExpressionEvent,
+              TChildren,
+              TActionMap,
+              TActorMap,
+              TGuardMap,
+              TDelayMap,
+              TSystemRegistry
             >;
           }
         : {
-            context: ContextPatch<
+            context: StateTransitionContext<
+              TAllowContextMapper,
+              TContext,
               TContextShape,
               StateContextShape<TStateSchemas[K], TContextShape>,
-              StateContext<TStateSchemas[K], TContext>
+              StateContext<TStateSchemas[K], TContext>,
+              TExpressionEvent,
+              TChildren,
+              TActionMap,
+              TActorMap,
+              TGuardMap,
+              TDelayMap,
+              TSystemRegistry
             >;
           });
     }[keyof TStateSchemas & string]
@@ -1043,7 +1213,20 @@ type StateTransitionResult<
         SetupStateTarget<TStateSchemas>,
         keyof TStateSchemas & string
       >;
-      context?: ContextPatch<TContextShape, TContextShape, TContext>;
+      context?: StateTransitionContext<
+        TAllowContextMapper,
+        TContext,
+        TContextShape,
+        TContextShape,
+        TContext,
+        TExpressionEvent,
+        TChildren,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry
+      >;
       reenter?: boolean;
       meta?: TMeta;
     };
@@ -1057,7 +1240,11 @@ type ContextPatch<
     Pick<
       TResolvedTargetContext,
       Extract<RequiredContextKeys<TCurrentContext, TTargetContext>, string>
-    >
+    > & {
+      call?: never;
+      apply?: never;
+      bind?: never;
+    }
 >;
 
 type RequiredContextKeys<TCurrentContext, TTargetContext> = {

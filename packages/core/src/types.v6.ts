@@ -24,6 +24,8 @@ import {
   SnapshotEvent,
   StateValue,
   TODO,
+  TransitionContextMapper,
+  TransitionContextPatch,
   TransitionConfigFunction,
   Values,
   AnyStateNode,
@@ -753,7 +755,7 @@ type Next_ChoiceArgs<
   TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  _TCtx = [TContext] extends [never] ? any : TContext
+  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext
 > = Parameters<
   TransitionConfigFunction<
     TContext,
@@ -826,7 +828,7 @@ type Next_ChoiceConfigFunction<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject,
-  _TCtx = [TContext] extends [never] ? any : TContext
+  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext
 > = (
   args: Next_ChoiceArgs<
     TContext,
@@ -1215,7 +1217,17 @@ export type Next_TransitionConfigOrTarget<
   | undefined
   | {
       target?: string | string[];
-      context?: Partial<TContext>;
+      context?:
+        | TransitionContextPatch<TContext>
+        | TransitionContextMapper<
+            TContext,
+            TExpressionEvent,
+            TEvent,
+            TActionMap,
+            TActorMap,
+            TGuardMap,
+            TDelayMap
+          >;
       description?: string;
       reenter?: boolean;
       meta?: TMeta;
@@ -1235,7 +1247,17 @@ export type Next_TransitionConfigOrTarget<
         TDelayMap,
         TMeta
       >;
-      context?: Partial<TContext>;
+      context?:
+        | TransitionContextPatch<TContext>
+        | TransitionContextMapper<
+            TContext,
+            TExpressionEvent,
+            TEvent,
+            TActionMap,
+            TActorMap,
+            TGuardMap,
+            TDelayMap
+          >;
       description?: string;
       reenter?: boolean;
       meta?: TMeta;

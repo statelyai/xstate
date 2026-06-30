@@ -1698,6 +1698,21 @@ export function getTransitionResult(
   internalEvents: EventObject[] | undefined;
   input: Record<string, unknown> | undefined;
 } {
+  const transitionArgs = {
+    context: snapshot.context,
+    event,
+    output: getEventOutput(event),
+    value: snapshot.value,
+    children: snapshot.children,
+    system: actorScope.system,
+    parent: actorScope.self._parent,
+    self: actorScope.self,
+    actions: snapshot.machine.implementations.actions,
+    actorSources: snapshot.machine.implementations.actorSources,
+    guards: snapshot.machine.implementations.guards,
+    delays: snapshot.machine.implementations.delays
+  };
+
   if (transition.to) {
     const actions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
@@ -1709,23 +1724,7 @@ export function getTransitionResult(
       options?.resolveActions ?? true
     );
 
-    const res = transition.to(
-      {
-        context: snapshot.context,
-        event,
-        output: getEventOutput(event),
-        value: snapshot.value,
-        children: snapshot.children,
-        system: actorScope.system,
-        parent: actorScope.self._parent,
-        self: actorScope.self,
-        actions: snapshot.machine.implementations.actions,
-        actorSources: snapshot.machine.implementations.actorSources,
-        guards: snapshot.machine.implementations.guards,
-        delays: snapshot.machine.implementations.delays
-      },
-      enqueue
-    );
+    const res = transition.to(transitionArgs, enqueue);
 
     const targets = res?.target
       ? resolveTarget(transition.source, toArray(res.target) as string[])
@@ -1759,10 +1758,14 @@ export function getTransitionResult(
           output: getEventOutput(event)
         })
       : transition.input;
+  const resolvedContext =
+    typeof transition.context === 'function'
+      ? transition.context(transitionArgs)
+      : transition.context;
 
   return {
     targets: transition.target as AnyStateNode[] | undefined,
-    context: transition.context,
+    context: resolvedContext,
     reenter: transition.reenter,
     actions: undefined,
     internalEvents: undefined,

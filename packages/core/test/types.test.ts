@@ -1195,6 +1195,93 @@ describe('events', () => {
     });
   });
 
+  it('should type context mappers on object transition configs', () => {
+    const worker = createAsyncLogic({
+      schemas: {
+        output: types<{ answer: number }>()
+      },
+      run: async () => ({ answer: 42 })
+    });
+
+    setup({
+      schemas: {
+        context: types<{ value: number; memory: number[] }>(),
+        events: {
+          GO: types<{ value: number }>()
+        }
+      },
+      actorSources: {
+        worker
+      }
+    }).createMachine({
+      context: { value: 0, memory: [] },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            GO: {
+              target: 'done',
+              context: ({ context, event }) => {
+                const value: number = event.value;
+                const memory: number[] = context.memory;
+                // @ts-expect-error
+                const invalid: string = event.value;
+
+                noop(value);
+                noop(memory);
+                noop(invalid);
+
+                return {
+                  value,
+                  memory: [...memory, value]
+                };
+              }
+            }
+          },
+          invoke: {
+            src: 'worker',
+            onDone: {
+              target: 'done',
+              context: ({ output }) => {
+                const answer: number = output.answer;
+                // @ts-expect-error
+                const invalid: string = output.answer;
+
+                noop(answer);
+                noop(invalid);
+
+                return { value: answer };
+              }
+            }
+          }
+        },
+        done: {}
+      }
+    });
+
+    setup({
+      schemas: {
+        context: types<{ value: number }>(),
+        events: {
+          GO: types<{ value: number }>()
+        }
+      }
+    }).createMachine({
+      context: { value: 0 },
+      initial: 'done',
+      on: {
+        // @ts-expect-error transition function results accept context patches, not context mappers
+        GO: () => ({
+          target: 'done',
+          context: ({ event }: any) => ({ value: event.value })
+        })
+      },
+      states: {
+        done: {}
+      }
+    });
+  });
+
   it('should provide contextual `event` type in transition actions when the matching event has a union `.type`', () => {
     createMachine({
       schemas: {

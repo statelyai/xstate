@@ -65,7 +65,7 @@ type FSMAction<
     input: Record<string, unknown> | undefined;
   },
   enq: ReturnType<typeof createTransitionEnqueue>
-) => void | { context?: Partial<TContext> };
+) => void | { context?: FSMContextPatch<TContext> };
 
 type FSMGuard<
   TContext extends MachineContext,
@@ -74,15 +74,41 @@ type FSMGuard<
   TInput
 > = (args: FSMArgs<TContext, TEvent, TState, TInput>) => boolean;
 
+type FSMContextPatch<TContext extends MachineContext> = Partial<TContext> & {
+  call?: never;
+  apply?: never;
+  bind?: never;
+};
+
+type FSMContextMapper<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TState extends string,
+  TInput
+> = (
+  args: FSMArgs<TContext, TEvent, TState, TInput>
+) => FSMContextPatch<TContext>;
+
 type FSMTarget<TContext extends MachineContext> = {
   target?: string;
-  context?: Partial<TContext>;
+  context?: FSMContextPatch<TContext>;
   input?:
     | Record<string, unknown>
     | ((args: {
         context: TContext;
         event: EventObject;
       }) => Record<string, unknown>);
+};
+
+type FSMObjectTarget<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TState extends string,
+  TInput
+> = Omit<FSMTarget<TContext>, 'context'> & {
+  context?:
+    | FSMContextPatch<TContext>
+    | FSMContextMapper<TContext, TEvent, TState, TInput>;
 };
 
 type FSMTransitionFunction<
@@ -101,8 +127,8 @@ type FSMTransition<
   TState extends string,
   TInput
 > =
-  | FSMTarget<TContext>
-  | (FSMTarget<TContext> & {
+  | FSMObjectTarget<TContext, TEvent, TState, TInput>
+  | (FSMObjectTarget<TContext, TEvent, TState, TInput> & {
       guard?: FSMGuard<TContext, TEvent, TState, TInput>;
       actions?:
         | FSMAction<TContext, TEvent, TState, TInput>
@@ -182,6 +208,21 @@ function resolveContext<TContext extends MachineContext, TInput>(
     : (context ?? ({} as TContext));
 }
 
+function resolveTransitionContext<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TState extends string,
+  TInput
+>(
+  context:
+    | FSMContextPatch<TContext>
+    | FSMContextMapper<TContext, TEvent, TState, TInput>
+    | undefined,
+  args: FSMArgs<TContext, TEvent, TState, TInput>
+): FSMContextPatch<TContext> | undefined {
+  return typeof context === 'function' ? context(args) : context;
+}
+
 function resolveInput(
   input: FSMTarget<any>['input'],
   context: MachineContext,
@@ -192,7 +233,7 @@ function resolveInput(
 
 function mergeContextPatch<TContext extends MachineContext>(
   context: TContext,
-  patch: Partial<TContext>
+  patch: FSMContextPatch<TContext>
 ): TContext {
   for (const key of Object.keys(patch) as Array<keyof TContext>) {
     if (
@@ -435,6 +476,16 @@ export function createFSM<
       const transition = Array.isArray(transitionsConfig)
         ? transitionsConfig[i]
         : transitionsConfig;
+      const args = {
+        context: snapshot.context,
+        event,
+        input: snapshot.input,
+        value: snapshot.value,
+        self: actorScope.self,
+        system: actorScope.system,
+        parent: actorScope.self._parent,
+        children: snapshot.children
+      };
 
       if (typeof transition === 'function') {
         const actions: AnyAction[] = [];
@@ -444,19 +495,7 @@ export function createFSM<
           internalQueue,
           true
         );
-        const result = transition(
-          {
-            context: snapshot.context,
-            event,
-            input: snapshot.input,
-            value: snapshot.value,
-            self: actorScope.self,
-            system: actorScope.system,
-            parent: actorScope.self._parent,
-            children: snapshot.children
-          },
-          enq
-        );
+        const result = transition(args, enq);
         if (!result) {
           if (actions.length) {
             return { actions };
@@ -474,23 +513,14 @@ export function createFSM<
       if (
         'guard' in transition &&
         transition.guard &&
-        !transition.guard({
-          context: snapshot.context,
-          event,
-          input: snapshot.input,
-          value: snapshot.value,
-          self: actorScope.self,
-          system: actorScope.system,
-          parent: actorScope.self._parent,
-          children: snapshot.children
-        })
+        !transition.guard(args)
       ) {
         continue;
       }
 
       return {
         target: transition.target,
-        context: transition.context,
+        context: resolveTransitionContext(transition.context, args),
         input: transition.input,
         actions:
           'actions' in transition && transition.actions
@@ -539,9 +569,22 @@ export function createFSM<
       } else {
         const hasContext = directTransition.context !== undefined;
         const hasInput = directTransition.input !== undefined;
+        const resolvedContext = resolveTransitionContext(
+          directTransition.context,
+          {
+            context: snapshot.context,
+            event,
+            input: snapshot.input,
+            value: snapshot.value,
+            self: actorScope.self,
+            system: actorScope.system,
+            parent: actorScope.self._parent,
+            children: snapshot.children
+          }
+        );
         const context =
-          hasContext && directTransition.context
-            ? mergeContextPatch(snapshot.context, directTransition.context)
+          hasContext && resolvedContext
+            ? mergeContextPatch(snapshot.context, resolvedContext)
             : snapshot.context;
         if (
           !stateChanged &&

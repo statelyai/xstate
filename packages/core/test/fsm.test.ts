@@ -53,6 +53,27 @@ describe('createFSM', () => {
     expect(actions).toHaveLength(1);
   });
 
+  it('resolves mapper context on object transitions', () => {
+    const fsm = createFSM({
+      initial: 'idle',
+      context: { count: 0 },
+      states: {
+        idle: {
+          on: {
+            inc: {
+              context: ({ context }) => ({ count: context.count + 1 })
+            }
+          }
+        }
+      }
+    });
+
+    const [init] = initialTransition(fsm);
+    const [next] = transition(fsm, init, { type: 'inc' });
+
+    expect(next.context.count).toBe(1);
+  });
+
   it('supports targetless function transitions that update context', () => {
     const fsm = createFSM({
       initial: 'idle',

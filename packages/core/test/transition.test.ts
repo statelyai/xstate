@@ -19,6 +19,78 @@ import { initialTransition } from '../src/transition';
 import { z } from 'zod';
 
 describe('transition function', () => {
+  it('resolves mapper context on object transitions', () => {
+    const machine = createMachine({
+      schemas: {
+        context: z.object({
+          value: z.number()
+        }),
+        events: {
+          GO: z.object({
+            value: z.number()
+          })
+        }
+      },
+      context: { value: 0 },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            GO: {
+              target: 'done',
+              context: ({ event }) => ({ value: event.value })
+            }
+          }
+        },
+        done: {
+          type: 'final',
+          output: ({ context }) => context.value
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'GO', value: 42 });
+
+    expect(actor.getSnapshot().context.value).toBe(42);
+  });
+
+  it('resolves mapper context on invoke onDone object transitions', async () => {
+    const machine = createMachine({
+      schemas: {
+        context: z.object({
+          value: z.number()
+        })
+      },
+      context: { value: 0 },
+      initial: 'pending',
+      states: {
+        pending: {
+          invoke: {
+            src: createAsyncLogic({
+              run: async () => 42
+            }),
+            onDone: {
+              target: 'done',
+              context: ({ output }) => ({ value: output })
+            }
+          }
+        },
+        done: {
+          type: 'final',
+          output: ({ context }) => context.value
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    await toPromise(actor);
+
+    expect(actor.getSnapshot().context.value).toBe(42);
+  });
+
   it('should capture actions', () => {
     const actionWithParams = vi.fn();
     const actionWithDynamicParams = vi.fn();
