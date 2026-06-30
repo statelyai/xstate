@@ -19,14 +19,15 @@ import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import { listenerLogic } from '../src/actors/listener';
 import { subscriptionLogic } from '../src/actors/subscription';
+import { XSTATE_START, XSTATE_STOP } from '../src/constants';
 import { z } from 'zod';
 
 function describeEffects(effects: ExecutableActionObject[]): string[] {
   return effects.filter(isBuiltInExecutableAction).flatMap((e) => {
     switch (e.type) {
-      case '@xstate.stop':
+      case XSTATE_STOP:
         return `stop(${e.actor.id})`;
-      case '@xstate.start':
+      case XSTATE_START:
         if (e.logic === listenerLogic) {
           return `listen(${(e.input as any).actor.id})`;
         }
