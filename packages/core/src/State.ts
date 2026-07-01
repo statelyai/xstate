@@ -24,7 +24,7 @@ import type {
   AnyStateNode
 } from './types.ts';
 import { matchesState } from './utils.ts';
-import { createEmptyActor } from './actors/index.ts';
+import { createActor } from './createActor.ts';
 
 export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
@@ -93,8 +93,23 @@ type MatchingStateValue<
 let emptyCanActor: AnyActor | undefined;
 let emptyCanActorScope: AnyActorScope | undefined;
 
-function getEmptyCanActor() {
-  return (emptyCanActor ??= createEmptyActor());
+function getEmptyCanActor(): AnyActor {
+  // A minimal inert actor used purely as the `self`/`parent` argument when
+  // dry-running transitions for `snapshot.can(...)`. Intentionally not built
+  // on `createLogic` so `can()` does not pull that machinery into bundles.
+  return (emptyCanActor ??= createActor({
+    transition: (snapshot: any) => [snapshot, []],
+    initialTransition: () => [
+      { status: 'active', output: undefined, error: undefined },
+      []
+    ],
+    getInitialSnapshot: () => ({
+      status: 'active',
+      output: undefined,
+      error: undefined
+    }),
+    getPersistedSnapshot: (snapshot: any) => snapshot
+  } as any) as AnyActor);
 }
 
 function getEmptyCanActorScope(): AnyActorScope {

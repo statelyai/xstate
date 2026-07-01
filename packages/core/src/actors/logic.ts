@@ -496,7 +496,8 @@ export function createLogic<
     getInitialSnapshot: (actorScope, input) =>
       logic.initialTransition(input, actorScope)[0],
     getPersistedSnapshot: (snapshot) => snapshot,
-    restoreSnapshot: (snapshot: any) => snapshot
+    restoreSnapshot: (snapshot: any) => snapshot,
+    executeEffects: executeLogicEffects
   };
 
   return logic;

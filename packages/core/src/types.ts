@@ -1093,6 +1093,7 @@ export type AnyMachineSnapshot = MachineSnapshot<
 export interface AnyStateMachine extends AnyActorLogic {
   id: string;
   root: AnyStateNode;
+  /** @internal */
   idMap: Map<string, AnyStateNode>;
   options?: { maxIterations?: number };
   states: StateNodesConfig<any, any>;
@@ -1102,6 +1103,7 @@ export interface AnyStateMachine extends AnyActorLogic {
   version?: string;
   provide(implementations: any): AnyStateMachine;
   resolveState(config: any): any;
+  /** @internal */
   _getPreInitialState(actorScope: AnyActorScope, initEvent: EventObject): any;
   getTransitionData(
     snapshot: any,
@@ -2244,6 +2246,17 @@ export interface ActorLogic<
     snapshot: TSnapshot,
     options?: unknown
   ) => Snapshot<unknown>;
+  /**
+   * Executes the non-action effects returned from `transition` (e.g. the
+   * effects produced by `createLogic`-based actors). Actor logic that never
+   * returns such effects can omit this.
+   *
+   * @internal
+   */
+  executeEffects?: (
+    effects: readonly unknown[],
+    actorScope: ActorScope<TSnapshot, TEvent, TSystem, TEmitted>
+  ) => void;
 }
 
 export interface AnyActorLogic {
@@ -2261,6 +2274,7 @@ export interface AnyActorLogic {
   restoreSnapshot?(persistedState: Snapshot<unknown>, actorScope: any): any;
   start?(snapshot: any, actorScope: any): void;
   getPersistedSnapshot(snapshot: any, options?: unknown): Snapshot<unknown>;
+  executeEffects?(effects: readonly unknown[], actorScope: any): void;
 }
 
 export type UnknownActorLogic = ActorLogic<

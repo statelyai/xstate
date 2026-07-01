@@ -10,6 +10,7 @@ import {
   Snapshot
 } from '../src';
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
+import { executeLogicEffects } from '../src/actors/logic';
 import { toMachineJSON } from '../src/scxml';
 import z from 'zod';
 
@@ -904,7 +905,10 @@ describe('error handling', () => {
         output: undefined,
         error: undefined
       }),
-      getPersistedSnapshot: (snapshot: any) => snapshot
+      getPersistedSnapshot: (snapshot: any) => snapshot,
+      // Logic that returns effect descriptors declares how to execute them;
+      // built-in logic creators (createLogic etc.) do this automatically.
+      executeEffects: executeLogicEffects
     };
 
     const actorRef = createActor(logic);

@@ -323,7 +323,7 @@ function validateStateNodeConfig(stateNode: AnyStateNode) {
   const config = stateNode.config as any;
 
   if (stateNode.type !== 'choice') {
-    if (config.choice !== undefined) {
+    if (isDevelopment && config.choice !== undefined) {
       throw new Error(
         `State "${stateNode.id}" has \`choice\`, but \`choice\` can only be used with \`type: 'choice'\`.`
       );
@@ -333,15 +333,19 @@ function validateStateNodeConfig(stateNode: AnyStateNode) {
 
   if (typeof config.choice !== 'function') {
     throw new Error(
-      `Choice state "${stateNode.id}" must declare a \`choice\` function.`
+      isDevelopment
+        ? `Choice state "${stateNode.id}" must declare a \`choice\` function.`
+        : `Missing \`choice\` function on "${stateNode.id}"`
     );
   }
 
-  for (const key of CHOICE_CONFIG_KEYS) {
-    if (config[key] !== undefined) {
-      throw new Error(
-        `Choice state "${stateNode.id}" cannot declare \`${key}\`.`
-      );
+  if (isDevelopment) {
+    for (const key of CHOICE_CONFIG_KEYS) {
+      if (config[key] !== undefined) {
+        throw new Error(
+          `Choice state "${stateNode.id}" cannot declare \`${key}\`.`
+        );
+      }
     }
   }
 }
@@ -353,14 +357,18 @@ function formatChoiceTransitions(
   const validateChoiceResult = (result: any): AnyTransitionConfig => {
     if (!result || result.target === undefined) {
       throw new Error(
-        `Choice state "${stateNode.id}" must resolve to a target.`
+        isDevelopment
+          ? `Choice state "${stateNode.id}" must resolve to a target.`
+          : `Choice "${stateNode.id}" has no target`
       );
     }
-    for (const key of ['actions', 'to'] as const) {
-      if (result[key] !== undefined) {
-        throw new Error(
-          `Choice state "${stateNode.id}" cannot declare \`${key}\` on a choice.`
-        );
+    if (isDevelopment) {
+      for (const key of ['actions', 'to'] as const) {
+        if (result[key] !== undefined) {
+          throw new Error(
+            `Choice state "${stateNode.id}" cannot declare \`${key}\` on a choice.`
+          );
+        }
       }
     }
     return result;
@@ -401,7 +409,9 @@ function formatTransitions<
     for (const descriptor of Object.keys(stateNode.config.on)) {
       if (descriptor === NULL_EVENT) {
         throw new Error(
-          'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
+          isDevelopment
+            ? 'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
+            : 'Null event transition key'
         );
       }
       const transitionsConfig = stateNode.config.on[descriptor];
@@ -577,7 +587,9 @@ function formatInitialTransition(
       : undefined;
   if (!resolvedTarget && targetString) {
     throw new Error(
-      `Initial state node "${targetString}" not found on parent state node #${stateNode.id}`
+      isDevelopment
+        ? `Initial state node "${targetString}" not found on parent state node #${stateNode.id}`
+        : `Initial state "${targetString}" not found on "#${stateNode.id}"`
     );
   }
   const transition: InitialTransitionDefinition = {

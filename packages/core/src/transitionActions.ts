@@ -24,7 +24,7 @@ import type {
   SpecialExecutableAction
 } from './types.ts';
 
-function mergeContextPatch(
+export function mergeContextPatch(
   context: MachineContext,
   patch: MachineContext
 ): MachineContext {
@@ -378,7 +378,7 @@ export function resolveActionsWithContext(
   return [intermediateSnapshot, executableActions];
 }
 
-function createEnqueueObject(
+export function createEnqueueObject(
   props: Partial<EnqueueObject<any, any>>,
   action: <T extends (...args: any[]) => any>(
     fn: T,

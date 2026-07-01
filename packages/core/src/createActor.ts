@@ -11,7 +11,6 @@ import {
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createRuntimeSystem } from './system.ts';
-import { executeLogicEffects } from './actors/logic.ts';
 
 // those are needed to make JSDoc `@link` work properly
 import type {
@@ -255,7 +254,9 @@ export class Actor<TLogic extends AnyActorLogic>
       stopChild: (child) => {
         if (child._parent !== this) {
           throw new Error(
-            `Cannot stop child actor ${child.id} of ${this.id} because it is not a child`
+            isDevelopment
+              ? `Cannot stop child actor ${child.id} of ${this.id} because it is not a child`
+              : `Cannot stop non-child actor ${child.id}`
           );
         }
         (child as Actor<AnyActorLogic>)._stop();
@@ -441,7 +442,7 @@ export class Actor<TLogic extends AnyActorLogic>
       );
       const logicEffects = executeExecutableEffects(effects, this._actorScope);
       this.update(nextSnapshot, errorEvent);
-      executeLogicEffects(logicEffects, this._actorScope);
+      this.logic.executeEffects?.(logicEffects, this._actorScope);
       return true;
     } catch {
       return false;
@@ -540,7 +541,7 @@ export class Actor<TLogic extends AnyActorLogic>
         this._initialEffects,
         this._actorScope
       );
-      executeLogicEffects(logicEffects, this._actorScope);
+      this.logic.executeEffects?.(logicEffects, this._actorScope);
       this._initialEffects = undefined;
       return true;
     } catch (err) {
@@ -857,7 +858,7 @@ export class Actor<TLogic extends AnyActorLogic>
       snapshot = nextSnapshot;
       const logicEffects = executeExecutableEffects(effects, this._actorScope);
       this.update(snapshot, event);
-      executeLogicEffects(logicEffects, this._actorScope);
+      this.logic.executeEffects?.(logicEffects, this._actorScope);
     } catch (err) {
       if (this._tryHandleExecutionError(err, snapshot)) {
         return;

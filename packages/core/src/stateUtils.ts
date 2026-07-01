@@ -34,7 +34,6 @@ import {
   AnyTransitionConfig,
   AnyActor,
   AnyActorScope,
-  EnqueueObject,
   DoneStateEvent
 } from './types.ts';
 import {
@@ -48,7 +47,9 @@ import {
 import { createActor } from './createActor.ts';
 import { builtInActions } from './actions.ts';
 import {
+  createEnqueueObject,
   createTransitionEnqueue,
+  mergeContextPatch,
   resolveActionsWithContext
 } from './transitionActions.ts';
 import { parseDurationToMilliseconds } from './delay.ts';
@@ -517,7 +518,9 @@ function resolveTarget(
         return targetStateNode;
       } catch (err: any) {
         throw new Error(
-          `Invalid transition definition for state node '${stateNode.id}':\n${err.message}`
+          isDevelopment
+            ? `Invalid transition definition for state node '${stateNode.id}':\n${err.message}`
+            : `Invalid transition for '${stateNode.id}': ${err.message}`
         );
       }
     } else {
@@ -585,15 +588,12 @@ function getStateNode(stateNode: AnyStateNode, stateKey: string): AnyStateNode {
   if (isStateId(stateKey)) {
     return stateNode.machine.getStateNodeById(stateKey);
   }
-  if (!stateNode.states) {
-    throw new Error(
-      `Unable to retrieve child state '${stateKey}' from '${stateNode.id}'; no child states exist.`
-    );
-  }
-  const result = stateNode.states[stateKey];
+  const result = stateNode.states?.[stateKey];
   if (!result) {
     throw new Error(
-      `Child state '${stateKey}' does not exist on '${stateNode.id}'`
+      isDevelopment && !stateNode.states
+        ? `Unable to retrieve child state '${stateKey}' from '${stateNode.id}'; no child states exist.`
+        : `Child state '${stateKey}' does not exist on '${stateNode.id}'`
     );
   }
   return result;
@@ -1001,13 +1001,6 @@ export function initialMicrostep(
   );
 }
 
-function mergeContextPatch(
-  context: MachineContext,
-  patch: MachineContext
-): MachineContext {
-  return { ...context, ...patch };
-}
-
 /** https://www.w3.org/TR/scxml/#microstepProcedure */
 function microstep(
   transitions: Array<AnyTransitionDefinition>,
@@ -1376,6 +1369,7 @@ function microstep(
       const stateInputMap: Record<string, Record<string, unknown>> = {
         ...currentSnapshot._stateInputs
       };
+      let stateInputsChanged = false;
       for (const transition of filteredTransitions) {
         const { targets, input } = getTransitionResult(
           transition,
@@ -1387,6 +1381,7 @@ function microstep(
         if (input && targets) {
           for (const targetNode of targets) {
             stateInputMap[targetNode.id] = input;
+            stateInputsChanged = true;
           }
         }
       }
@@ -1421,7 +1416,9 @@ function microstep(
 
           if (!logic) {
             throw new Error(
-              `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in machine '${currentSnapshot.machine.id}'`
+              isDevelopment
+                ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in machine '${currentSnapshot.machine.id}'`
+                : `Actor logic '${src}' not implemented`
             );
           }
 
@@ -1496,6 +1493,7 @@ function microstep(
           if (initialInput && stateNodeToEnter.initial?.target) {
             for (const targetNode of stateNodeToEnter.initial.target) {
               stateInputMap[targetNode.id] = initialInput;
+              stateInputsChanged = true;
             }
           }
         }
@@ -1594,10 +1592,7 @@ function microstep(
         });
       }
 
-      const inputChanged =
-        JSON.stringify(stateInputMap) !==
-        JSON.stringify(currentSnapshot._stateInputs || {});
-      if (inputChanged) {
+      if (stateInputsChanged) {
         nextState = cloneMachineSnapshot(nextState, {
           _stateInputs: stateInputMap
         });
@@ -1932,36 +1927,6 @@ export function resolveStateValue(
 ): StateValue {
   const allStateNodes = getAllStateNodes(getStateNodes(rootNode, stateValue));
   return getStateValue(rootNode, allStateNodes);
-}
-
-function createEnqueueObject(
-  props: Partial<EnqueueObject<any, any>>,
-  action: <T extends (...args: any[]) => any>(
-    fn: T,
-    ...args: Parameters<T>
-  ) => void
-): EnqueueObject<any, any> {
-  const enqueueFn = (
-    fn: (...args: any[]) => any,
-    ...args: Parameters<typeof fn>
-  ) => {
-    action(fn, ...args);
-  };
-
-  Object.assign(enqueueFn, {
-    cancel: () => {},
-    emit: () => {},
-    log: () => {},
-    raise: () => {},
-    spawn: () => ({}) as any,
-    sendTo: () => {},
-    stop: () => {},
-    listen: () => ({}) as any,
-    subscribeTo: () => ({}) as any,
-    ...props
-  });
-
-  return enqueueFn as any;
 }
 
 export function hasEffect(
