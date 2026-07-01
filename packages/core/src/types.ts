@@ -2851,14 +2851,16 @@ export type EnqueueObject<
    * @param mappers - Object with done/error/snapshot mappers, or a single
    *   snapshot mapper function
    */
-  subscribeTo: {
-    <TSnapshot extends Snapshot<unknown>, TOutput, TMappedEvent extends TEvent>(
-      actor: AnyActor,
-      mappers:
-        | SubscribeToMappers<TSnapshot, TOutput, TMappedEvent>
-        | ((snapshot: TSnapshot) => TMappedEvent)
-    ): AnyActor;
-  };
+  subscribeTo: <TActor extends AnyActor, TMappedEvent extends TEvent>(
+    actor: TActor,
+    mappers:
+      | SubscribeToMappers<
+          SnapshotFrom<TActor>,
+          OutputFrom<TActor>,
+          TMappedEvent
+        >
+      | ((snapshot: SnapshotFrom<TActor>) => TMappedEvent)
+  ) => AnyActor;
 };
 
 export type Action<

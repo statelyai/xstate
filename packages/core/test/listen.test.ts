@@ -3,7 +3,8 @@ import {
   createLogic,
   createMachine,
   createCallbackLogic,
-  createAsyncLogic
+  createAsyncLogic,
+  types
 } from '../src';
 import type { AnyActor } from '../src';
 
@@ -67,6 +68,101 @@ describe('enq.listen()', () => {
     expect(receivedEvents).toHaveLength(1);
     expect(receivedEvents[0].type).toBe('CHILD_EMITTED');
     expect(receivedEvents[0].payload).toBe(42);
+  });
+
+  it('listens to emitted events from a spawned actor during startup', () => {
+    const childLogic = createCallbackLogic(({ emit }) => {
+      emit({ type: 'childEvent' });
+    });
+
+    const receivedEvents: any[] = [];
+
+    const parentMachine = createMachine({
+      entry: (_, enq) => {
+        const childRef = enq.spawn(childLogic, { id: 'child' });
+        enq.listen(childRef, 'childEvent', () => ({ type: 'CHILD_EMITTED' }));
+      },
+      on: {
+        CHILD_EMITTED: ({ event }, enq) => {
+          enq(() => receivedEvents.push(event));
+        }
+      }
+    });
+
+    createActor(parentMachine).start();
+
+    expect(receivedEvents).toHaveLength(1);
+    expect(receivedEvents[0].type).toBe('CHILD_EMITTED');
+  });
+
+  it('listens to emitted events from an invoked actor during startup', () => {
+    const childLogic = createCallbackLogic(({ emit }) => {
+      emit({ type: 'childEvent' });
+    });
+
+    const receivedEvents: any[] = [];
+
+    const parentMachine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            id: 'child',
+            src: childLogic
+          },
+          entry: ({ children }, enq) => {
+            enq.listen(children.child!, 'childEvent', () => ({
+              type: 'CHILD_EMITTED'
+            }));
+          },
+          on: {
+            CHILD_EMITTED: ({ event }, enq) => {
+              enq(() => receivedEvents.push(event));
+            }
+          }
+        }
+      }
+    });
+
+    createActor(parentMachine).start();
+
+    expect(receivedEvents).toHaveLength(1);
+    expect(receivedEvents[0].type).toBe('CHILD_EMITTED');
+  });
+
+  it('listens to emitted events from an actor passed through input', () => {
+    const childLogic = createCallbackLogic(({ emit }) => {
+      emit({ type: 'childEvent' });
+    });
+
+    const childRef = createActor(childLogic);
+    const receivedEvents: any[] = [];
+
+    const parentMachine = createMachine({
+      schemas: {
+        context: types<{ childRef: AnyActor }>(),
+        input: types<{ childRef: AnyActor }>()
+      },
+      context: ({ input }) => ({
+        childRef: input.childRef
+      }),
+      entry: ({ context }, enq) => {
+        enq.listen(context.childRef, 'childEvent', () => ({
+          type: 'CHILD_EMITTED'
+        }));
+      },
+      on: {
+        CHILD_EMITTED: ({ event }, enq) => {
+          enq(() => receivedEvents.push(event));
+        }
+      }
+    });
+
+    createActor(parentMachine, { input: { childRef } }).start();
+    childRef.start();
+
+    expect(receivedEvents).toHaveLength(1);
+    expect(receivedEvents[0].type).toBe('CHILD_EMITTED');
   });
 
   it('supports wildcard event matching', async () => {
@@ -321,6 +417,119 @@ describe('enq.subscribeTo()', () => {
 
     // Should have received at least one snapshot event
     expect(snapshotChanges.length).toBeGreaterThan(0);
+  });
+
+  it('subscribes to done events from a spawned actor during startup', () => {
+    const childLogic = createLogic({
+      context: undefined,
+      run: () => {
+        return {
+          status: 'done',
+          output: { result: 'success' }
+        };
+      }
+    });
+
+    const receivedEvents: any[] = [];
+
+    const parentMachine = createMachine({
+      entry: (_, enq) => {
+        const childRef = enq.spawn(childLogic, { id: 'child' });
+        enq.subscribeTo(childRef, {
+          done: (output) => ({
+            type: 'CHILD_DONE',
+            output
+          })
+        });
+      },
+      on: {
+        CHILD_DONE: ({ event }, enq) => {
+          enq(() => receivedEvents.push(event));
+        }
+      }
+    });
+
+    createActor(parentMachine).start();
+
+    expect(receivedEvents).toEqual([
+      {
+        type: 'CHILD_DONE',
+        output: { result: 'success' }
+      }
+    ]);
+  });
+
+  it('subscribes to the initial active snapshot from a spawned actor during startup', () => {
+    const childLogic = createLogic({
+      context: { count: 0 },
+      run: ({ context, event }) => {
+        if (event.type === '@xstate.init') {
+          return;
+        }
+        return {
+          context: { count: context.count + 1 }
+        };
+      }
+    });
+
+    const snapshotChanges: any[] = [];
+
+    const parentMachine = createMachine({
+      entry: (_, enq) => {
+        const childRef = enq.spawn(childLogic, { id: 'child' });
+        enq.subscribeTo(childRef, (snapshot) => ({
+          type: 'CHILD_SNAPSHOT',
+          status: snapshot.status,
+          context: snapshot.context
+        }));
+      },
+      on: {
+        CHILD_SNAPSHOT: ({ event }, enq) => {
+          enq(() => snapshotChanges.push(event));
+        }
+      }
+    });
+
+    createActor(parentMachine).start();
+
+    // The subscription is started before the child actor, so it receives the
+    // child's initial active snapshot emitted during startup (count still 0).
+    expect(snapshotChanges).toEqual([
+      {
+        type: 'CHILD_SNAPSHOT',
+        status: 'active',
+        context: { count: 0 }
+      }
+    ]);
+  });
+
+  it('does not subscribe to a spawned actor stopped before subscribing', () => {
+    const childLogic = createLogic({
+      context: undefined,
+      run: () => {}
+    });
+
+    const snapshotChanges: any[] = [];
+
+    const parentMachine = createMachine({
+      entry: (_, enq) => {
+        const childRef = enq.spawn(childLogic, { id: 'child' });
+        enq.stop(childRef);
+        enq.subscribeTo(childRef, (snapshot) => ({
+          type: 'CHILD_SNAPSHOT',
+          status: snapshot.status
+        }));
+      },
+      on: {
+        CHILD_SNAPSHOT: ({ event }, enq) => {
+          enq(() => snapshotChanges.push(event));
+        }
+      }
+    });
+
+    createActor(parentMachine).start();
+
+    expect(snapshotChanges).toEqual([]);
   });
 
   it('stops subscribing when subscription is stopped', async () => {
