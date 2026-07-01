@@ -10,7 +10,6 @@ import type {
   AnyStateMachine,
   AnyTransitionConfig,
   AnyTransitionConfigFunction,
-  ErrorActorEvent,
   ErrorEvent,
   EventObject,
   InvokeConfig,
@@ -243,12 +242,6 @@ function isDoneEvent(event: EventObject): boolean {
 
 function isArray(value: any): value is readonly any[] {
   return Array.isArray(value);
-}
-
-export function isErrorActorEvent(
-  event: AnyEventObject
-): event is ErrorActorEvent {
-  return event.type.startsWith('xstate.error.actor');
 }
 
 export function isErrorEvent(event: AnyEventObject): event is ErrorEvent {

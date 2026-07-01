@@ -2677,6 +2677,55 @@ describe('invoke', () => {
     noop(anyMachine);
   });
 
+  it('should allow invoked eventless setup machines to be assigned to any logic types', () => {
+    const step = createAsyncLogic({
+      schemas: {
+        input: z.object({ value: z.string() }),
+        output: z.object({ value: z.string() })
+      },
+      run: async ({ input }) => input
+    });
+
+    const machine = setup({
+      schemas: {
+        context: z.object({ value: z.string() }),
+        input: z.object({ value: z.string() }),
+        output: z.object({ value: z.string() }),
+        events: {}
+      },
+      actorSources: {
+        step
+      }
+    }).createMachine({
+      context: ({ input }) => ({ value: input.value }),
+      output: ({ context }) => ({ value: context.value }),
+      initial: 'running',
+      states: {
+        running: {
+          invoke: {
+            src: 'step',
+            input: ({ context }) => context,
+            onDone: { target: 'done' }
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+
+    const anyLogic: AnyActorLogic = machine;
+    const anyMachine: AnyStateMachine = machine;
+
+    noop(anyLogic);
+    noop(anyMachine);
+
+    const actor = createActor(machine);
+
+    actor.send(
+      // @ts-expect-error empty events means no external events
+      { type: 'ANYTHING' }
+    );
+  });
+
   it('should preserve contextual typing when setup returns are decorated', () => {
     const loadUser = createAsyncLogic({
       schemas: {

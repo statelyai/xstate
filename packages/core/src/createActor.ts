@@ -681,11 +681,13 @@ export class Actor<TLogic extends AnyActorLogic>
       listeners = new Set();
       this.eventListeners.set(type, listeners);
     }
-    listeners.add(handler);
+    listeners.add(handler as (emittedEvent: EmittedFrom<TLogic>) => void);
 
     return {
       unsubscribe: () => {
-        listeners.delete(handler);
+        listeners.delete(
+          handler as (emittedEvent: EmittedFrom<TLogic>) => void
+        );
       }
     };
   }
@@ -849,7 +851,7 @@ export class Actor<TLogic extends AnyActorLogic>
       return;
     }
 
-    let snapshot: SnapshotFrom<TLogic>;
+    let snapshot = this._snapshot;
     try {
       const [nextSnapshot, effects] = nextState;
       snapshot = nextSnapshot;
@@ -857,7 +859,7 @@ export class Actor<TLogic extends AnyActorLogic>
       this.update(snapshot, event);
       executeLogicEffects(logicEffects, this._actorScope);
     } catch (err) {
-      if (this._tryHandleExecutionError(err, snapshot!)) {
+      if (this._tryHandleExecutionError(err, snapshot)) {
         return;
       }
       this._setErrorSnapshot(err);

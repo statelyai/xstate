@@ -1090,22 +1090,27 @@ export type AnyMachineSnapshot = MachineSnapshot<
   any
 >;
 
-export type AnyStateMachine = StateMachine<
-  any, // context
-  any, // event
-  any, // children
-  any, // state value
-  any, // tag
-  any, // input
-  any, // output
-  any, // emitted
-  any, // TMeta
-  any, // TStateSchema,
-  any, // TActionMap,
-  any, // TActorMap
-  any, // TGuardMap
-  any // TDelayMap
->;
+export interface AnyStateMachine extends AnyActorLogic {
+  id: string;
+  root: AnyStateNode;
+  idMap: Map<string, AnyStateNode>;
+  options?: { maxIterations?: number };
+  states: StateNodesConfig<any, any>;
+  events: Array<EventDescriptor<any>>;
+  implementations: Implementations;
+  config: any;
+  version?: string;
+  provide(implementations: any): AnyStateMachine;
+  resolveState(config: any): any;
+  _getPreInitialState(actorScope: AnyActorScope, initEvent: EventObject): any;
+  getTransitionData(
+    snapshot: any,
+    event: any,
+    actor: AnyActorRef
+  ): AnyTransitionDefinition[];
+  getStateNodeById(stateId: string): AnyStateNode;
+  getPersistedSnapshot(snapshot: any, options?: unknown): Snapshot<unknown>;
+}
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 
@@ -2241,13 +2246,22 @@ export interface ActorLogic<
   ) => Snapshot<unknown>;
 }
 
-export type AnyActorLogic = ActorLogic<
-  any, // snapshot
-  any, // event
-  any, // input
-  any, // system
-  any // emitted
->;
+export interface AnyActorLogic {
+  config?: unknown;
+  transition(
+    snapshot: any,
+    event: any,
+    actorScope: any
+  ): ActorLogicTransitionResult<any>;
+  initialTransition(
+    input: any,
+    actorScope: any
+  ): ActorLogicTransitionResult<any>;
+  getInitialSnapshot(actorScope: any, input: any): any;
+  restoreSnapshot?(persistedState: Snapshot<unknown>, actorScope: any): any;
+  start?(snapshot: any, actorScope: any): void;
+  getPersistedSnapshot(snapshot: any, options?: unknown): Snapshot<unknown>;
+}
 
 export type UnknownActorLogic = ActorLogic<
   any, // snapshot
@@ -2293,15 +2307,34 @@ export type EventFromLogic<TLogic extends AnyActorLogic> =
     : never;
 
 export type EmittedFrom<TLogic extends AnyActorLogic> =
-  TLogic extends ActorLogic<
-    infer _TSnapshot,
+  TLogic extends StateMachine<
+    infer _TContext,
     infer _TEvent,
+    infer _TChildren,
+    infer _TStateValue,
+    infer _TTag,
     infer _TInput,
-    infer _TSystem,
-    infer TEmitted
+    infer _TOutput,
+    infer TEmitted,
+    infer _TMeta,
+    infer _TStateSchema,
+    infer _TActionMap,
+    infer _TActorMap,
+    infer _TGuardMap,
+    infer _TDelayMap
   >
     ? TEmitted
-    : never;
+    : [TLogic] extends [AnyStateMachine]
+      ? AnyEventObject
+      : TLogic extends ActorLogic<
+            infer _TSnapshot,
+            infer _TEvent,
+            infer _TInput,
+            infer _TSystem,
+            infer TEmitted
+          >
+        ? TEmitted
+        : AnyEventObject;
 
 type ResolveEventType<T> = T extends infer R
   ? R extends StateMachine<

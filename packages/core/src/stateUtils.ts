@@ -42,7 +42,6 @@ import {
   normalizeTarget,
   toArray,
   toStatePath,
-  isErrorActorEvent,
   resolveReferencedActor,
   toTransitionConfigArray
 } from './utils.ts';

@@ -119,8 +119,9 @@ export function createDefaultLogicOptions(): TraversalOptions<any, any, any> {
 export function toDirectedGraph(
   stateMachine: AnyStateNode | AnyStateMachine
 ): DirectedGraphNode {
-  const stateNode =
-    stateMachine instanceof StateMachine ? stateMachine.root : stateMachine; // TODO: accept only machines
+  const stateNode = (
+    stateMachine instanceof StateMachine ? stateMachine.root : stateMachine
+  ) as AnyStateNode; // TODO: accept only machines
 
   const edges: DirectedGraphEdge[] = [...stateNode.transitions.values()]
     .flat()

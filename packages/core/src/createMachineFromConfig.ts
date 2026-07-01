@@ -2006,7 +2006,7 @@ export function createMachineFromConfig(
       ...resolvedImplementations.guards
     },
     delays: resolvedImplementations.delays
-  }) as AnyStateMachine;
+  });
 
   // Keep the original JSON so `serializeMachine(machine)`
   // round-trip losslessly.
