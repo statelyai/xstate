@@ -7,7 +7,7 @@ import {
   Actor,
   ActorRef,
   Snapshot,
-  StateFrom,
+  SnapshotFrom,
   createActor,
   createMachine
 } from 'xstate';
@@ -829,7 +829,7 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const persistedState = JSON.stringify(actorRef.getPersistedSnapshot());
     actorRef.stop();
 
-    let currentState: StateFrom<typeof testMachine>;
+    let currentState: SnapshotFrom<typeof testMachine>;
 
     const Test = () => {
       const [state, send] = useActor(testMachine, {

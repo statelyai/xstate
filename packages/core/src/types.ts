@@ -1223,10 +1223,142 @@ export type AnyHistoryValue = HistoryValue;
 export type StateFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = T extends AnyStateMachine
-  ? SnapshotFrom<T>
+  ? StateSnapshotFromMachine<T>
   : T extends (...args: any[]) => AnyStateMachine
-    ? SnapshotFrom<ReturnType<T>>
+    ? StateSnapshotFromMachine<ReturnType<T>>
     : never;
+
+type StateValueFromStateSchema<T extends StateSchema> = StateSchema extends T
+  ? StateValue
+  : ToStateValue<T> extends infer TStateValue
+    ? TStateValue extends StateValue
+      ? TStateValue
+      : StateValue
+    : StateValue;
+
+type MatchingStateValueForStateFrom<
+  TStateValue extends StateValue,
+  TTestStateValue extends StateValue
+> = TStateValue extends unknown
+  ? TTestStateValue extends string
+    ? TStateValue extends string
+      ? TTestStateValue extends TStateValue
+        ? TTestStateValue
+        : Extract<TStateValue, TTestStateValue>
+      : TStateValue extends StateValueMap
+        ? TStateValue & Record<TTestStateValue, StateValue | undefined>
+        : never
+    : TTestStateValue extends StateValueMap
+      ? TStateValue extends StateValueMap
+        ? MatchingStateValueMapForStateFrom<TStateValue, TTestStateValue>
+        : never
+      : never
+  : never;
+
+type MatchingStateValueMapForStateFrom<
+  TStateValue extends StateValueMap,
+  TTestStateValue extends StateValueMap
+> = false extends {
+  [K in keyof TTestStateValue & string]: K extends keyof TStateValue
+    ? IsNever<
+        MatchingStateValueForStateFrom<
+          NonNullable<TStateValue[K]>,
+          NonNullable<TTestStateValue[K]>
+        >
+      > extends true
+      ? false
+      : true
+    : false;
+}[keyof TTestStateValue & string]
+  ? never
+  : {
+      [K in keyof TStateValue]: K extends keyof TTestStateValue
+        ? MatchingStateValueForStateFrom<
+            NonNullable<TStateValue[K]>,
+            NonNullable<TTestStateValue[K]>
+          >
+        : TStateValue[K];
+    };
+
+type StateSnapshotFromStateValue<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TStateValue extends StateValue,
+  TTag extends string,
+  TOutput,
+  TMeta extends MetaObject,
+  TStateSchema extends StateSchema,
+  TAllStateValue extends StateValue = TStateValue
+> = TStateValue extends unknown
+  ? Omit<
+      MachineSnapshot<
+        StateContextFromStateValue<TStateSchema, TContext, TStateValue>,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TMeta,
+        TStateSchema
+      >,
+      'matches'
+    > & {
+      matches<const TTestStateValue extends string>(
+        partialStateValue: TTestStateValue,
+        ...args: string extends TTestStateValue ? [never] : []
+      ): this is StateSnapshotFromStateValue<
+        StateContextFromStateValue<TStateSchema, TContext, TTestStateValue>,
+        TEvent,
+        TChildren,
+        MatchingStateValueForStateFrom<TAllStateValue, TTestStateValue>,
+        TTag,
+        TOutput,
+        TMeta,
+        TStateSchema,
+        TAllStateValue
+      >;
+      matches<const TTestStateValue extends StateValueMap>(
+        partialStateValue: TTestStateValue,
+        ...args: string extends keyof TTestStateValue ? [never] : []
+      ): this is StateSnapshotFromStateValue<
+        StateContextFromStateValue<TStateSchema, TContext, TTestStateValue>,
+        TEvent,
+        TChildren,
+        MatchingStateValueForStateFrom<TAllStateValue, TTestStateValue>,
+        TTag,
+        TOutput,
+        TMeta,
+        TStateSchema,
+        TAllStateValue
+      >;
+      matches(partialStateValue: StateValue): boolean;
+    }
+  : never;
+
+type StateSnapshotFromMachine<T extends AnyStateMachine> =
+  SnapshotFrom<T> extends MachineSnapshot<
+    infer TContext,
+    infer TEvent,
+    infer TChildren,
+    infer _TStateValue,
+    infer TTag,
+    infer TOutput,
+    infer TMeta,
+    infer TStateSchema
+  >
+    ? StateSnapshotFromStateValue<
+        TContext,
+        TEvent,
+        TChildren,
+        StateValueFromStateSchema<TStateSchema>,
+        TTag,
+        TOutput,
+        TMeta,
+        TStateSchema,
+        StateValueFromStateSchema<TStateSchema>
+      >
+    : SnapshotFrom<T>;
 
 export interface DoneActorEvent<TOutput = unknown, TId extends string = string>
   extends EventObject {
@@ -2520,7 +2652,7 @@ type _GroupStateKeys<
     ? [never, never]
     : T extends { type: 'parallel' }
       ? [S, never]
-      : 'states' extends keyof T['states'][S]
+      : T['states'][S] extends { states: Record<string, StateSchema> }
         ? [S, never]
         : [never, S]
   : never;

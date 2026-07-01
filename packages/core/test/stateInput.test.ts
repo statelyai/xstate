@@ -1,6 +1,8 @@
 import z from 'zod';
 import { setup, createActor, types } from '../src/index.ts';
 import type {
+  IsAny,
+  StateFrom,
   StateContextFromStateValue,
   StateSchemaFrom
 } from '../src/types.ts';
@@ -1548,6 +1550,113 @@ describe('setup', () => {
       // @ts-expect-error - matched success context should not be nullable
       snapshot.context.user satisfies null;
     }
+    expect(true).toBe(true);
+  });
+
+  it('snapshot matches should allow chained checks for states sharing the same context', () => {
+    const sameContextMachine = setup({
+      states: {
+        Loading: {},
+        InvalidRoute: {},
+        Ready: {
+          schemas: {
+            context: types<{ data: 'value' }>()
+          }
+        }
+      }
+    }).createMachine({
+      initial: 'Loading',
+      states: {
+        Loading: {},
+        InvalidRoute: {},
+        Ready: {}
+      }
+    });
+
+    type SameContextSnapshot = StateFrom<typeof sameContextMachine>;
+    type SameContextValue = SameContextSnapshot['value'];
+    false satisfies IsAny<SameContextValue>;
+    'Ready' satisfies SameContextValue;
+    // @ts-expect-error - unknown states should not be part of this machine's state value
+    'Other' satisfies SameContextValue;
+
+    function chainedSameContext(snapshot: SameContextSnapshot) {
+      if (snapshot.matches('Loading') || snapshot.matches('InvalidRoute')) {
+        return true;
+      }
+
+      snapshot.value satisfies 'Ready';
+      type Data = typeof snapshot.context.data;
+      false satisfies IsAny<Data>;
+      snapshot.context.data satisfies 'value';
+
+      return snapshot.context.data;
+    }
+
+    chainedSameContext(
+      sameContextMachine.resolveState({
+        value: 'Ready',
+        context: { data: 'value' }
+      }) as SameContextSnapshot
+    );
+    expect(true).toBe(true);
+  });
+
+  it('snapshot matches should narrow context for nested state values', () => {
+    const nestedMachine = setup({
+      states: {
+        Flow: {
+          states: {
+            Loading: {},
+            InvalidRoute: {},
+            Ready: {
+              schemas: {
+                context: types<{ data: 'nested-value' }>()
+              }
+            }
+          }
+        }
+      }
+    }).createMachine({
+      initial: 'Flow',
+      states: {
+        Flow: {
+          initial: 'Loading',
+          states: {
+            Loading: {},
+            InvalidRoute: {},
+            Ready: {}
+          }
+        }
+      }
+    });
+
+    type NestedSnapshot = StateFrom<typeof nestedMachine>;
+    type NestedValue = NestedSnapshot['value'];
+    false satisfies IsAny<NestedValue>;
+    ({ Flow: 'Ready' }) satisfies NestedValue;
+    // @ts-expect-error - unknown nested states should not be part of this machine's state value
+    ({ Flow: 'Other' }) satisfies NestedValue;
+
+    function nestedReady(snapshot: NestedSnapshot) {
+      if (snapshot.matches({ Flow: 'Ready' })) {
+        snapshot.value satisfies { Flow: 'Ready' };
+        type Data = typeof snapshot.context.data;
+        false satisfies IsAny<Data>;
+        snapshot.context.data satisfies 'nested-value';
+
+        return snapshot.context.data;
+      }
+
+      return true;
+    }
+
+    nestedReady(
+      nestedMachine.resolveState({
+        value: { Flow: 'Ready' },
+        context: { data: 'nested-value' }
+      }) as NestedSnapshot
+    );
     expect(true).toBe(true);
   });
 
