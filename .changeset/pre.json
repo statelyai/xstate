@@ -112,6 +112,7 @@
     "store-is-atom",
     "swift-send-typing",
     "type-only-schemas",
+    "typed-invoke-targets",
     "typed-state-enq",
     "typed-target-only",
     "witty-choice-states"
