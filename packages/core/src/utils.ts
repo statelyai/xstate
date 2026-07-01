@@ -2,12 +2,14 @@ import isDevelopment from '#is-development';
 import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY, WILDCARD } from './constants.ts';
+import { isStateId } from './stateUtils.ts';
 import type {
-  AnyActorRef,
+  AnyActor,
   AnyEventObject,
   AnyMachineSnapshot,
   AnyStateMachine,
   AnyTransitionConfig,
+  AnyTransitionConfigFunction,
   ErrorActorEvent,
   EventObject,
   InvokeConfig,
@@ -15,6 +17,7 @@ import type {
   Mapper,
   NonReducibleUnknown,
   Observer,
+  OutputArg,
   SingleOrArray,
   StateLike,
   StateValue,
@@ -48,6 +51,18 @@ export function matchesState(
 
     return matchesState(parentStateValue[key]!, childStateValue[key]!);
   });
+}
+
+export function checkStateIn(
+  snapshot: AnyMachineSnapshot,
+  stateValue: StateValue
+) {
+  if (typeof stateValue === 'string' && isStateId(stateValue)) {
+    const target = snapshot.machine.getStateNodeById(stateValue);
+    return snapshot._nodes.some((sn) => sn === target);
+  }
+
+  return snapshot.matches(stateValue);
 }
 
 export function toStatePath(stateId: string | string[]): string[] {
@@ -164,10 +179,23 @@ export function resolveOutput<
     | NonReducibleUnknown,
   context: TContext,
   event: TExpressionEvent,
-  self: AnyActorRef
+  self: AnyActor
 ): unknown {
   if (typeof mapper === 'function') {
-    return mapper({ context, event, self });
+    const outputMapper = mapper as Mapper<
+      TContext,
+      TExpressionEvent,
+      unknown,
+      EventObject
+    >;
+    const args = {
+      context,
+      event,
+      output: getEventOutput(event),
+      self
+    } as unknown as Parameters<typeof outputMapper>[0];
+
+    return outputMapper(args);
   }
 
   if (
@@ -194,6 +222,24 @@ export function resolveOutput<
   return mapper;
 }
 
+export function getEventOutput<TEvent extends EventObject>(
+  event: TEvent
+): OutputArg<TEvent>['output'] {
+  if (isDoneEvent(event)) {
+    const doneEvent = event as unknown as EventObject & { output: unknown };
+    return doneEvent.output as OutputArg<TEvent>['output'];
+  }
+
+  return undefined as OutputArg<TEvent>['output'];
+}
+
+function isDoneEvent(event: EventObject): boolean {
+  return (
+    event.type.startsWith('xstate.done.actor.') ||
+    event.type.startsWith('xstate.done.state.')
+  );
+}
+
 function isArray(value: any): value is readonly any[] {
   return Array.isArray(value);
 }
@@ -205,7 +251,9 @@ export function isErrorActorEvent(
 }
 
 export function toTransitionConfigArray(
-  configLike: SingleOrArray<AnyTransitionConfig | TransitionConfigTarget>
+  configLike: SingleOrArray<
+    AnyTransitionConfig | TransitionConfigTarget | AnyTransitionConfigFunction
+  >
 ): Array<AnyTransitionConfig> {
   return toArrayStrict(configLike).map((transitionLike) => {
     if (
@@ -213,6 +261,10 @@ export function toTransitionConfigArray(
       typeof transitionLike === 'string'
     ) {
       return { target: transitionLike };
+    }
+
+    if (typeof transitionLike === 'function') {
+      return { to: transitionLike };
     }
 
     return transitionLike;
@@ -255,12 +307,12 @@ export function createInvokeId(stateNodeId: string, index: number): string {
 export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
   const match = src.match(/^xstate\.invoke\.(\d+)\.(.*)/)!;
   if (!match) {
-    return machine.implementations.actors[src];
+    return machine.implementations.actorSources[src];
   }
   const [, indexStr, nodeId] = match;
   const node = machine.getStateNodeById(nodeId);
   const invokeConfig = node.config.invoke!;
-  return (
+  const configSrc = (
     Array.isArray(invokeConfig)
       ? invokeConfig[indexStr as any]
       : (invokeConfig as InvokeConfig<
@@ -274,6 +326,10 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
           any // TMeta
         >)
   ).src;
+  // A referenced actor may itself be registered by name.
+  return typeof configSrc === 'string'
+    ? machine.implementations.actorSources[configSrc]
+    : configSrc;
 }
 
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {

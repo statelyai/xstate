@@ -1,5 +1,40 @@
 # @xstate/store
 
+## 4.3.0-alpha.1
+
+### Patch Changes
+
+- c3f7a9d: Actor logic now returns effects from both regular and initial transitions.
+
+  Hand-written actor logic should return `[snapshot, effects]` from `transition(...)` and provide `initialTransition(...)` for creating the initial `[snapshot, effects]` tuple. `getInitialSnapshot(...)` remains available for snapshot-only reads.
+
+  ```ts
+  const logic = {
+    transition: (snapshot, event) => [snapshot, []],
+    initialTransition: (input, _scope) => [
+      {
+        status: 'active',
+        output: undefined,
+        error: undefined,
+        input
+      },
+      []
+    ],
+    getInitialSnapshot: (scope, input) =>
+      logic.initialTransition(input, scope)[0]
+  };
+  ```
+
+  `transition(...)` and `initialTransition(...)` continue to return `[snapshot, actions]` for machine logic.
+
+  `fromStore(...)` effects now run after the actor snapshot is committed, so effect callbacks read the updated snapshot from `enqueue.getSnapshot()`.
+
+## 4.3.0-alpha.0
+
+### Minor Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Export a new `isAtom(value)` helper that returns `true` when a value is an atom (i.e. has `get` and `subscribe` methods).
+
 ## 4.2.1
 
 ### Patch Changes

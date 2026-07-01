@@ -1,48 +1,36 @@
+/**
+ * @internal
+ *
+ * SCXML conversion utilities. This module is NOT part of the public API: it is
+ * not re-exported from `index.ts` and there is no `xstate/scxml` entry point.
+ * It exists solely to support the SCXML/SCION conformance and conversion test
+ * suites (`test/scxml.test.ts`, `test/conversion.test.ts`). Do not import it
+ * from public-facing code, and do not rely on it externally — it may change or
+ * be removed without a breaking-change notice.
+ */
 import { Element as XMLElement, xml2js } from 'xml-js';
-import { assign } from './actions/assign.ts';
-import { cancel } from './actions/cancel.ts';
-import { log } from './actions/log.ts';
-import { raise } from './actions/raise.ts';
-import { sendTo } from './actions/send.ts';
 import { NULL_EVENT } from './constants.ts';
-import { not, stateIn } from './guards.ts';
 import {
-  ActionFunction,
-  MachineContext,
-  SpecialTargets,
-  createMachine,
-  enqueueActions
-} from './index.ts';
-import {
-  AnyStateMachine,
-  AnyStateNode,
-  AnyStateNodeConfig,
-  DelayExpr,
-  EventObject,
-  SendExpr
-} from './types.ts';
-import { mapValues } from './utils.ts';
+  ActionJSON,
+  CancelJSON,
+  GuardJSON,
+  InvokeJSON,
+  LogJSON,
+  MachineJSON,
+  RaiseJSON,
+  ScxmlCancelJSON,
+  ScxmlDonedataJSON,
+  ScxmlForeachJSON,
+  ScxmlRaiseJSON,
+  StateNodeJSON,
+  TransitionJSON,
+  createMachineFromConfig
+} from './createMachineFromConfig.ts';
+import { parseDelayToMilliseconds } from './delay.ts';
+import { AnyStateMachine, SpecialTargets } from './types.ts';
 
 export function sanitizeStateId(id: string) {
   return id.replace(/\./g, '$');
-}
-
-function appendWildcards(state: AnyStateNode) {
-  const newTransitions: typeof state.transitions = new Map();
-
-  for (const [descriptor, transitions] of state.transitions) {
-    if (descriptor !== '*' && !descriptor.endsWith('.*')) {
-      newTransitions.set(`${descriptor}.*`, transitions);
-    } else {
-      newTransitions.set(descriptor, transitions);
-    }
-  }
-
-  state.transitions = newTransitions;
-
-  for (const key of Object.keys(state.states)) {
-    appendWildcards(state.states[key]);
-  }
 }
 
 function getAttribute(
@@ -52,31 +40,20 @@ function getAttribute(
   return element.attributes ? element.attributes[attribute] : undefined;
 }
 
-function indexedRecord<T>(
-  items: T[],
-  identifierFn: (item: T) => string
-): Record<string, T> {
-  const record: Record<string, T> = {};
+function delayToMs(delay?: string | number): number | undefined {
+  if (!delay) {
+    return undefined;
+  }
 
-  items.forEach((item) => {
-    const key = identifierFn(item);
+  const parsedDelay = parseDelayToMilliseconds(delay);
+  if (parsedDelay !== undefined) {
+    return parsedDelay;
+  }
 
-    record[key] = item;
-  });
-
-  return record;
-}
-
-function executableContent(elements: XMLElement[]) {
-  const transition: any = {
-    actions: mapActions(elements)
-  };
-
-  return transition;
+  throw new Error(`Can't parse "${delay} delay."`);
 }
 
 function getTargets(targetAttr?: string | number): string[] | undefined {
-  // return targetAttr ? [`#${targetAttr}`] : undefined;
   return targetAttr
     ? `${targetAttr}`
         .split(/\s+/)
@@ -84,254 +61,177 @@ function getTargets(targetAttr?: string | number): string[] | undefined {
     : undefined;
 }
 
-function delayToMs(delay?: string | number): number | undefined {
-  if (!delay) {
-    return undefined;
-  }
+interface ScxmlIfBranch {
+  cond?: string;
+  actions: ActionJSON[];
+}
 
-  if (typeof delay === 'number') {
-    return delay;
-  }
+function parseIfElement(element: XMLElement): ActionJSON {
+  const branches: ScxmlIfBranch[] = [];
+  let currentCond: string | undefined = element.attributes?.cond as string;
+  let currentActions: ActionJSON[] = [];
 
-  const millisecondsMatch = delay.match(/(\d+)ms/);
-
-  if (millisecondsMatch) {
-    return parseInt(millisecondsMatch[1], 10);
-  }
-
-  const secondsMatch = delay.match(/(\d*)(\.?)(\d+)s/);
-
-  if (secondsMatch) {
-    const hasDecimal = !!secondsMatch[2];
-    if (!hasDecimal) {
-      return parseInt(secondsMatch[3], 10) * 1000;
+  if (element.elements) {
+    for (const child of element.elements) {
+      if (child.type === 'comment') continue;
+      if (child.name === 'elseif') {
+        branches.push({ cond: currentCond, actions: currentActions });
+        currentCond = child.attributes?.cond as string;
+        currentActions = [];
+      } else if (child.name === 'else') {
+        branches.push({ cond: currentCond, actions: currentActions });
+        currentCond = undefined; // else has no condition
+        currentActions = [];
+      } else {
+        currentActions.push(mapAction(child));
+      }
     }
-    const secondsPart = secondsMatch[1]
-      ? parseInt(secondsMatch[1], 10) * 1000
-      : 0;
-    const millisecondsPart = parseInt(
-      (secondsMatch[3] as any).padEnd(3, '0'),
-      10
-    );
-
-    if (millisecondsPart >= 1000) {
-      throw new Error(`Can't parse "${delay} delay."`);
-    }
-
-    return secondsPart + millisecondsPart;
   }
+  // Push the last branch
+  branches.push({ cond: currentCond, actions: currentActions });
 
-  throw new Error(`Can't parse "${delay} delay."`);
+  return {
+    type: 'scxml.if',
+    branches
+  } as any;
 }
 
-const evaluateExecutableContent = <
-  TContext extends object,
-  TEvent extends EventObject
->(
-  context: TContext,
-  event: TEvent,
-  _meta: any,
-  body: string,
-  ...extraArgs: any[]
-) => {
-  const scope = ['const _sessionid = "NOT_IMPLEMENTED";']
-    .filter(Boolean)
-    .join('\n');
-
-  const args = ['context', '_event'];
-
-  const fnBody = `
-${scope}
-with (context) {
-  ${body}
-}
-  `;
-
-  // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  const fn = new Function(...args, ...extraArgs, fnBody);
-
-  return fn(context, { name: event.type, data: event });
-};
-
-function createGuard<
-  TContext extends object,
-  TEvent extends EventObject = EventObject
->(guard: string) {
-  return ({
-    context,
-    event,
-    ...meta
-  }: {
-    context: TContext;
-    event: TEvent;
-  }) => {
-    return evaluateExecutableContent(
-      context,
-      event,
-      meta as any,
-      `return ${guard};`
-    );
-  };
-}
-
-function mapAction(
-  element: XMLElement
-): ActionFunction<any, any, any, any, any, any, any, any, any> {
+function mapAction(element: XMLElement): ActionJSON {
   switch (element.name) {
     case 'raise': {
-      return raise({
-        type: element.attributes!.event as string
-      });
+      const action: RaiseJSON = {
+        type: '@xstate.raise',
+        event: { type: element.attributes!.event as string }
+      };
+      return action;
     }
     case 'assign': {
-      return assign(({ context, event, ...meta }) => {
-        const fnBody = `
-
-${element.attributes!.location};
-
-return {'${element.attributes!.location}': ${element.attributes!.expr}};
-          `;
-
-        return evaluateExecutableContent(context, event, meta, fnBody);
-      });
+      // SCXML assign uses location and expr attributes
+      const location = element.attributes!.location as string;
+      const expr = element.attributes!.expr as string;
+      return {
+        type: 'scxml.assign' as const,
+        location,
+        expr
+      };
     }
-    case 'cancel':
+    case 'cancel': {
       if ('sendid' in element.attributes!) {
-        return cancel(element.attributes.sendid! as string);
+        const action: CancelJSON = {
+          type: '@xstate.cancel',
+          id: element.attributes.sendid as string
+        };
+        return action;
       }
-      return cancel(({ context, event, ...meta }) => {
-        const fnBody = `
-return ${element.attributes!.sendidexpr};
-          `;
-
-        return evaluateExecutableContent(context, event, meta, fnBody);
-      });
+      if ('sendidexpr' in element.attributes!) {
+        return {
+          type: 'scxml.cancel',
+          sendidexpr: element.attributes.sendidexpr as string
+        } as ScxmlCancelJSON;
+      }
+      return {
+        type: '@xstate.cancel',
+        id: ''
+      };
+    }
     case 'send': {
-      const { event, eventexpr, target, id } = element.attributes!;
+      const { event, eventexpr, target, targetexpr, id, delay, delayexpr } =
+        element.attributes!;
 
-      let convertedEvent:
-        | EventObject
-        | SendExpr<
-            MachineContext,
-            EventObject,
-            undefined,
-            EventObject,
-            EventObject
-          >;
-      let convertedDelay:
-        | number
-        | DelayExpr<MachineContext, EventObject, undefined, EventObject>
-        | undefined;
-
-      const params =
-        element.elements &&
-        element.elements.reduce((acc, child) => {
-          if (child.name === 'content') {
+      // Extract params from child elements
+      const params: Array<{ name: string; expr: string }> = [];
+      if (element.elements) {
+        for (const child of element.elements) {
+          if (child.name === 'param') {
+            params.push({
+              name: child.attributes!.name as string,
+              expr: child.attributes!.expr as string
+            });
+          } else if (child.name === 'content') {
             throw new Error(
               'Conversion of <content/> inside <send/> not implemented.'
             );
           }
-          return `${acc}${child.attributes!.name}:${child.attributes!.expr},\n`;
-        }, '');
-
-      if (event && !params) {
-        convertedEvent = { type: event as string };
-      } else {
-        convertedEvent = ({ context, event: _ev, ...meta }) => {
-          const fnBody = `
-return { type: ${event ? `"${event}"` : eventexpr}, ${params ? params : ''} }
-            `;
-
-          return evaluateExecutableContent(context, _ev, meta, fnBody);
-        };
-      }
-
-      if ('delay' in element.attributes!) {
-        convertedDelay = delayToMs(element.attributes.delay);
-      } else if (element.attributes!.delayexpr) {
-        convertedDelay = ({ context, event: _ev, ...meta }) => {
-          const fnBody = `
-return (${
-            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-            delayToMs
-          })(${element.attributes!.delayexpr});
-            `;
-
-          return evaluateExecutableContent(context, _ev, meta, fnBody);
-        };
-      }
-
-      if (target === SpecialTargets.Internal) {
-        return raise(convertedEvent);
-      }
-
-      return sendTo(
-        typeof target === 'string' ? target : ({ self }) => self,
-        convertedEvent,
-        {
-          delay: convertedDelay,
-          id: id as string | undefined
         }
-      );
+      }
+
+      const isInternal = target === SpecialTargets.Internal;
+      const isParentTarget = target === '#_parent';
+      // External events (non-internal) go to external queue via delay:0
+      // This ensures internal events are processed first within a macrostep.
+      // #_parent sends use undefined delay for immediate relay.
+      const resolvedDelay = delay
+        ? delayToMs(delay)
+        : isInternal || isParentTarget
+          ? undefined
+          : 0;
+
+      // Any send with a special target (except internal), params, or expressions
+      // uses ScxmlRaiseJSON. Target resolution happens at runtime in executeActions.
+      const hasNonInternalTarget =
+        typeof target === 'string' && target.length > 0 && !isInternal;
+      if (
+        hasNonInternalTarget ||
+        params.length ||
+        eventexpr ||
+        delayexpr ||
+        targetexpr
+      ) {
+        const action: ScxmlRaiseJSON = {
+          type: 'scxml.raise',
+          event: event as string | undefined,
+          eventexpr: eventexpr as string | undefined,
+          params: params.length ? params : undefined,
+          id: id as string | undefined,
+          delay: resolvedDelay,
+          delayexpr: delayexpr as string | undefined,
+          target: target as string | undefined,
+          targetexpr: targetexpr as string | undefined
+        };
+        return action;
+      }
+
+      // Simple send (no special target, no expressions)
+      const action: RaiseJSON = {
+        type: '@xstate.raise',
+        event: { type: (event as string) || 'unknown' },
+        id: id as string | undefined,
+        delay: resolvedDelay
+      };
+      return action;
     }
     case 'log': {
       const label = element.attributes!.label;
-
-      return log(
-        ({ context, event, ...meta }) => {
-          const fnBody = `
-return ${element.attributes!.expr};
-            `;
-
-          return evaluateExecutableContent(context, event, meta, fnBody);
-        },
-        label !== undefined ? String(label) : undefined
-      );
+      const expr = element.attributes!.expr;
+      const action: LogJSON = {
+        type: '@xstate.log',
+        args:
+          label !== undefined ? [String(label), String(expr)] : [String(expr)]
+      };
+      return action;
     }
     case 'if': {
-      const branches: Array<{
-        guard?: (...args: any) => any;
-        actions: any[];
-      }> = [];
-
-      let current: (typeof branches)[number] = {
-        guard: createGuard(element.attributes!.cond as string),
-        actions: []
+      return parseIfElement(element);
+    }
+    case 'foreach': {
+      const array = element.attributes!.array as string;
+      const item = element.attributes!.item as string;
+      const index = element.attributes?.index as string | undefined;
+      const actions = element.elements ? mapActions(element.elements) : [];
+      const foreach: ScxmlForeachJSON = {
+        type: 'scxml.foreach',
+        array,
+        item,
+        index,
+        actions
       };
-
-      for (const el of element.elements!) {
-        if (el.type === 'comment') {
-          continue;
-        }
-
-        switch (el.name) {
-          case 'elseif':
-            branches.push(current);
-            current = {
-              guard: createGuard(el.attributes!.cond as string),
-              actions: []
-            };
-            break;
-          case 'else':
-            branches.push(current);
-            current = { actions: [] };
-            break;
-          default:
-            current.actions.push(mapAction(el));
-            break;
-        }
-      }
-
-      branches.push(current);
-
-      return enqueueActions(({ enqueue, check }) => {
-        for (const branch of branches) {
-          if (!branch.guard || check(branch.guard)) {
-            branch.actions.forEach(enqueue);
-            break;
-          }
-        }
-      });
+      return foreach;
+    }
+    case 'script': {
+      // Get the script text content
+      const textElement = element.elements?.find((el) => el.type === 'text');
+      const code = (textElement?.text as string) || '';
+      return { type: 'scxml.script', code: code.trim() };
     }
     default:
       throw new Error(
@@ -340,11 +240,8 @@ return ${element.attributes!.expr};
   }
 }
 
-function mapActions(
-  elements: XMLElement[]
-): ActionFunction<any, any, any, any, any, any, any, any, any>[] {
-  const mapped: ActionFunction<any, any, any, any, any, any, any, any, any>[] =
-    [];
+function mapActions(elements: XMLElement[]): ActionJSON[] {
+  const mapped: ActionJSON[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {
@@ -357,216 +254,311 @@ function mapActions(
   return mapped;
 }
 
-type HistoryAttributeValue = 'shallow' | 'deep' | undefined;
-
-function toConfig(nodeJson: XMLElement, id: string): AnyStateNodeConfig {
-  const parallel = nodeJson.name === 'parallel';
-  let initial = parallel ? undefined : nodeJson.attributes!.initial;
-  const { elements } = nodeJson;
-
-  switch (nodeJson.name) {
-    case 'history': {
-      const history =
-        (getAttribute(nodeJson, 'type') as HistoryAttributeValue) || 'shallow';
-      if (!elements) {
-        return {
-          id,
-          history
-        };
-      }
-
-      const [transitionElement] = elements.filter(
-        (element) => element.name === 'transition'
-      );
-
-      const target = getAttribute(transitionElement, 'target');
-
+function createGuard(cond: string): GuardJSON {
+  // Handle In() predicate
+  if (cond.startsWith('In')) {
+    const inMatch = cond.trim().match(/^In\('(.*)'\)/);
+    if (inMatch) {
       return {
-        id,
-        history,
-        target: target ? `#${sanitizeStateId(target as string)}` : undefined
+        type: 'xstate.stateIn',
+        params: { stateId: `#${sanitizeStateId(inMatch[1])}` }
       };
     }
-    default:
-      break;
   }
 
-  if (nodeJson.elements) {
-    const stateElements = nodeJson.elements.filter(
-      (element) =>
-        element.name === 'state' ||
-        element.name === 'parallel' ||
-        element.name === 'final' ||
-        element.name === 'history'
-    );
+  // Handle !In() predicate
+  if (cond.startsWith('!In')) {
+    const notInMatch = cond.trim().match(/^!In\('(.*)'\)/);
+    if (notInMatch) {
+      return {
+        type: 'xstate.not',
+        params: {
+          guard: {
+            type: 'xstate.stateIn',
+            params: { stateId: `#${sanitizeStateId(notInMatch[1])}` }
+          }
+        }
+      };
+    }
+  }
 
-    const transitionElements = nodeJson.elements.filter(
+  // For other conditions, store the expression for runtime evaluation
+  return {
+    type: 'scxml.cond',
+    params: { expr: cond }
+  };
+}
+
+type HistoryAttributeValue = 'shallow' | 'deep' | undefined;
+
+function toStateNodeJSON(
+  nodeJson: XMLElement,
+  id: string,
+  parentId?: string
+): StateNodeJSON {
+  const parallel = nodeJson.name === 'parallel';
+  let initial = parallel ? undefined : (nodeJson.attributes?.initial as string);
+  const { elements } = nodeJson;
+
+  const stateId = parentId ? `${parentId}.${id}` : id;
+
+  // Handle history states
+  if (nodeJson.name === 'history') {
+    const history =
+      (getAttribute(nodeJson, 'type') as HistoryAttributeValue) || 'shallow';
+    if (!elements) {
+      return {
+        id: sanitizeStateId(id),
+        type: 'history',
+        history
+      };
+    }
+
+    const [transitionElement] = elements.filter(
       (element) => element.name === 'transition'
     );
 
-    const invokeElements = nodeJson.elements.filter(
-      (element) => element.name === 'invoke'
-    );
-
-    const onEntryElements = nodeJson.elements.filter(
-      (element) => element.name === 'onentry'
-    );
-
-    const onExitElements = nodeJson.elements.filter(
-      (element) => element.name === 'onexit'
-    );
-
-    const states: Record<string, any> = indexedRecord(stateElements, (item) =>
-      sanitizeStateId(`${item.attributes!.id}`)
-    );
-
-    const initialElement = !initial
-      ? nodeJson.elements.find((element) => element.name === 'initial')
-      : undefined;
-
-    if (initialElement && initialElement.elements!.length) {
-      initial = initialElement.elements!.find(
-        (element) => element.name === 'transition'
-      )!.attributes!.target as string;
-    } else if (!initial && !initialElement && stateElements.length) {
-      initial = stateElements[0].attributes!.id;
-    }
-
-    const always: any[] = [];
-    const on: Record<string, any> = [];
-
-    transitionElements.forEach((value) => {
-      const events = ((getAttribute(value, 'event') as string) || '').split(
-        /\s+/
-      );
-
-      return events.map((eventType) => {
-        const targets = getAttribute(value, 'target');
-        const internal = getAttribute(value, 'type') === 'internal';
-
-        let guardObject = {};
-
-        if (value.attributes?.cond) {
-          const guard = value.attributes.cond;
-          if ((guard as string).startsWith('In')) {
-            const inMatch = (guard as string).trim().match(/^In\('(.*)'\)/);
-
-            if (inMatch) {
-              guardObject = {
-                guard: stateIn(`#${inMatch[1]}`)
-              };
-            }
-          } else if ((guard as string).startsWith('!In')) {
-            const notInMatch = (guard as string).trim().match(/^!In\('(.*)'\)/);
-
-            if (notInMatch) {
-              guardObject = {
-                guard: not(stateIn(`#${notInMatch[1]}`))
-              };
-            }
-          } else {
-            guardObject = {
-              guard: createGuard(value.attributes.cond as string)
-            };
-          }
-        }
-
-        const transitionConfig = {
-          target: getTargets(targets),
-          ...(value.elements ? executableContent(value.elements) : undefined),
-          ...guardObject,
-          ...(!internal && { reenter: true })
-        };
-
-        if (eventType === NULL_EVENT) {
-          always.push(transitionConfig);
-        } else {
-          if (/^done\.state(\.|$)/.test(eventType)) {
-            eventType = `xstate.${eventType}`;
-          } else if (/^done\.invoke(\.|$)/.test(eventType)) {
-            eventType = eventType.replace(/^done\.invoke/, 'xstate.done.actor');
-          }
-          let existing = on[eventType];
-          if (!existing) {
-            existing = [];
-            on[eventType] = existing;
-          }
-          existing.push(transitionConfig);
-        }
-      });
-    });
-
-    const onEntry = onEntryElements
-      ? onEntryElements.flatMap((onEntryElement) =>
-          mapActions(onEntryElement.elements!)
-        )
-      : undefined;
-
-    const onExit = onExitElements
-      ? onExitElements.flatMap((onExitElement) =>
-          mapActions(onExitElement.elements!)
-        )
-      : undefined;
-
-    const invoke = invokeElements.map((element) => {
-      if (
-        !['scxml', 'http://www.w3.org/TR/scxml/'].includes(
-          element.attributes!.type as string
-        )
-      ) {
-        throw new Error(
-          'Currently only converting invoke elements of type SCXML is supported.'
-        );
-      }
-      const content = element.elements!.find(
-        (el) => el.name === 'content'
-      ) as XMLElement;
-
-      return {
-        ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: scxmlToMachine(content)
-      };
-    });
-
-    const resolvedInitial = initial && String(initial).split(' ');
-
-    if (resolvedInitial && resolvedInitial.length > 1) {
-      throw new Error(
-        `Multiple initial states are not supported ("${String(initial)}").`
-      );
-    }
+    const target = getAttribute(transitionElement, 'target');
 
     return {
       id: sanitizeStateId(id),
-      ...(resolvedInitial
-        ? {
-            initial: sanitizeStateId(resolvedInitial[0])
-          }
-        : undefined),
-      ...(parallel ? { type: 'parallel' } : undefined),
-      ...(nodeJson.name === 'final' ? { type: 'final' } : undefined),
-      ...(stateElements.length
-        ? {
-            states: mapValues(states, (state, key) => toConfig(state, key))
-          }
-        : undefined),
-      on,
-      ...(always.length ? { always } : undefined),
-      ...(onEntry ? { entry: onEntry } : undefined),
-      ...(onExit ? { exit: onExit } : undefined),
-      ...(invoke.length ? { invoke } : undefined)
+      type: 'history',
+      history,
+      target: target ? `#${sanitizeStateId(target as string)}` : undefined
     };
   }
 
-  return { id, ...(nodeJson.name === 'final' ? { type: 'final' } : undefined) };
+  if (!nodeJson.elements) {
+    return {
+      id: sanitizeStateId(id),
+      ...(nodeJson.name === 'final' ? { type: 'final' } : undefined)
+    };
+  }
+
+  // Parse <donedata> for final states
+  let donedataConfig: ScxmlDonedataJSON | undefined;
+  if (nodeJson.name === 'final') {
+    const donedataElement = nodeJson.elements.find(
+      (el) => el.name === 'donedata'
+    );
+    if (donedataElement?.elements) {
+      const params: Array<{ name: string; expr: string }> = [];
+      let contentExpr: string | undefined;
+      let contentText: string | undefined;
+      for (const child of donedataElement.elements) {
+        if (child.name === 'param') {
+          params.push({
+            name: child.attributes!.name as string,
+            expr: child.attributes!.expr as string
+          });
+        } else if (child.name === 'content') {
+          if (child.attributes?.expr) {
+            contentExpr = child.attributes.expr as string;
+          } else if (child.elements) {
+            const textEl = child.elements.find(
+              (el) => el.type === 'text' || el.type === 'cdata'
+            );
+            contentText = textEl
+              ? String(textEl.text ?? textEl.cdata ?? '').trim()
+              : '';
+          }
+        }
+      }
+      donedataConfig = { params, contentExpr, contentText };
+    }
+  }
+
+  const stateElements = nodeJson.elements.filter(
+    (element) =>
+      element.name === 'state' ||
+      element.name === 'parallel' ||
+      element.name === 'final' ||
+      element.name === 'history'
+  );
+
+  const transitionElements = nodeJson.elements.filter(
+    (element) => element.name === 'transition'
+  );
+
+  const invokeElements = nodeJson.elements.filter(
+    (element) => element.name === 'invoke'
+  );
+
+  const onEntryElements = nodeJson.elements.filter(
+    (element) => element.name === 'onentry'
+  );
+
+  const onExitElements = nodeJson.elements.filter(
+    (element) => element.name === 'onexit'
+  );
+
+  // Build states object
+  const states: Record<string, StateNodeJSON> = {};
+  for (const stateElement of stateElements) {
+    const childId = sanitizeStateId(`${stateElement.attributes!.id}`);
+    states[childId] = toStateNodeJSON(stateElement, childId, stateId);
+  }
+
+  // Determine initial state
+  const initialElement = !initial
+    ? nodeJson.elements.find((element) => element.name === 'initial')
+    : undefined;
+
+  if (initialElement && initialElement.elements?.length) {
+    initial = initialElement.elements.find(
+      (element) => element.name === 'transition'
+    )!.attributes!.target as string;
+  } else if (!initial && !initialElement && stateElements.length) {
+    initial = stateElements[0].attributes!.id as string;
+  }
+
+  // Build transitions
+  const always: TransitionJSON[] = [];
+  const on: Record<string, TransitionJSON | TransitionJSON[]> = {};
+
+  transitionElements.forEach((value) => {
+    const events = ((getAttribute(value, 'event') as string) || '').split(
+      /\s+/
+    );
+
+    events.forEach((eventType) => {
+      const targets = getAttribute(value, 'target');
+      const internal = getAttribute(value, 'type') === 'internal';
+
+      let guard: GuardJSON | undefined;
+      if (value.attributes?.cond) {
+        guard = createGuard(value.attributes.cond as string);
+      }
+
+      // Only set reenter:true for external transitions WITH a target
+      // Targetless transitions should not reenter (they just execute actions)
+      const hasTarget = targets !== undefined;
+      const transitionConfig: TransitionJSON = {
+        target: getTargets(targets),
+        ...(value.elements?.length
+          ? { actions: mapActions(value.elements) }
+          : undefined),
+        ...(guard ? { guard } : undefined),
+        ...(hasTarget && !internal && { reenter: true })
+      };
+
+      if (eventType === NULL_EVENT || eventType === '') {
+        always.push(transitionConfig);
+      } else {
+        let normalizedEventType = eventType;
+        if (/^done\.state(\.|$)/.test(eventType)) {
+          normalizedEventType = `xstate.${eventType}`;
+        } else if (/^done\.invoke(\.|$)/.test(eventType)) {
+          normalizedEventType = eventType.replace(
+            /^done\.invoke/,
+            'xstate.done.actor'
+          );
+        }
+
+        // Append wildcard for SCXML prefix matching
+        if (
+          normalizedEventType !== '*' &&
+          !normalizedEventType.endsWith('.*')
+        ) {
+          normalizedEventType = `${normalizedEventType}.*`;
+        }
+
+        const existing = on[normalizedEventType];
+        if (!existing) {
+          on[normalizedEventType] = transitionConfig;
+        } else if (Array.isArray(existing)) {
+          existing.push(transitionConfig);
+        } else {
+          on[normalizedEventType] = [existing, transitionConfig];
+        }
+      }
+    });
+  });
+
+  // Build entry/exit actions. Per SCXML, each <onentry>/<onexit> block is a
+  // separate executable-content block — errors in one block must not stop
+  // execution of subsequent blocks. Wrap each block in scxml.block so the
+  // runtime executes them with isolated error state.
+  const entry = onEntryElements.length
+    ? onEntryElements.map((onEntryElement) => ({
+        type: 'scxml.block' as const,
+        actions: mapActions(onEntryElement.elements || [])
+      }))
+    : undefined;
+
+  const exit = onExitElements.length
+    ? onExitElements.map((onExitElement) => ({
+        type: 'scxml.block' as const,
+        actions: mapActions(onExitElement.elements || [])
+      }))
+    : undefined;
+
+  // Build invokes
+  const invoke: InvokeJSON[] = invokeElements.map((element) => {
+    if (
+      !['scxml', 'http://www.w3.org/TR/scxml/'].includes(
+        element.attributes!.type as string
+      )
+    ) {
+      throw new Error(
+        'Currently only converting invoke elements of type SCXML is supported.'
+      );
+    }
+
+    const content = element.elements!.find(
+      (el) => el.name === 'content'
+    ) as XMLElement;
+
+    // Convert nested SCXML content to a machine JSON
+    const nestedScxml = content?.elements?.find(
+      (el) => el.name === 'scxml'
+    ) as XMLElement;
+
+    let _nestedMachineJSON: MachineJSON | undefined;
+    if (nestedScxml) {
+      // Create a wrapper that looks like xml2js output: { elements: [scxmlElement] }
+      const wrapper: XMLElement = { elements: [nestedScxml] };
+      _nestedMachineJSON = scxmlToMachineJSON(wrapper);
+    }
+
+    return {
+      ...(element.attributes!.id && { id: element.attributes!.id as string }),
+      src: 'scxml.nested',
+      _nestedMachineJSON
+    } as InvokeJSON & { _nestedMachineJSON?: MachineJSON };
+  });
+
+  const resolvedInitial = initial && String(initial).split(' ');
+
+  if (resolvedInitial && resolvedInitial.length > 1) {
+    throw new Error(
+      `Multiple initial states are not supported ("${String(initial)}").`
+    );
+  }
+
+  return {
+    id: sanitizeStateId(id),
+    ...(resolvedInitial
+      ? { initial: sanitizeStateId(resolvedInitial[0]) }
+      : undefined),
+    ...(parallel ? { type: 'parallel' } : undefined),
+    ...(nodeJson.name === 'final' ? { type: 'final' } : undefined),
+    ...(donedataConfig ? { _scxmlDonedata: donedataConfig } : undefined),
+    ...(Object.keys(states).length ? { states } : undefined),
+    ...(Object.keys(on).length ? { on } : undefined),
+    ...(always.length ? { always } : undefined),
+    ...(entry?.length ? { entry } : undefined),
+    ...(exit?.length ? { exit } : undefined),
+    ...(invoke.length ? { invoke } : undefined)
+  };
 }
 
-function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
+function scxmlToMachineJSON(scxmlJson: XMLElement): MachineJSON {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
 
-  const dataModelEl = machineElement.elements!.filter(
+  const dataModelEl = machineElement.elements?.filter(
     (element) => element.name === 'datamodel'
   )[0];
 
@@ -582,8 +574,24 @@ function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
               );
             }
 
-            if (expr === '_sessionid') {
-              acc[id!] = undefined;
+            if (expr === undefined) {
+              // Check for text content inside the <data> element
+              const textEl = element.elements?.find(
+                (el) => el.type === 'text' || el.type === 'cdata'
+              );
+              const textContent = textEl
+                ? String(textEl.text ?? textEl.cdata ?? '').trim()
+                : '';
+              if (textContent) {
+                acc[id!] = eval(`(${textContent})`);
+              } else {
+                acc[id!] = undefined;
+              }
+            } else if (expr === '_sessionid') {
+              acc[id!] = 'session_scxml';
+            } else if (expr === '_name') {
+              acc[id!] =
+                (machineElement.attributes?.name as string) || '(machine)';
             } else {
               acc[id!] = eval(`(${expr})`);
             }
@@ -594,17 +602,26 @@ function scxmlToMachine(scxmlJson: XMLElement): AnyStateMachine {
         )
     : undefined;
 
-  const machine = createMachine({
-    ...toConfig(machineElement, '(machine)'),
+  const machineId = (machineElement.attributes?.name as string) || '(machine)';
+  const stateNodeJSON = toStateNodeJSON(machineElement, machineId);
+
+  return {
+    ...stateNodeJSON,
     context
-  });
-
-  appendWildcards(machine.root);
-
-  return machine;
+  };
 }
 
-export function toMachine(xml: string): AnyStateMachine {
+/**
+ * Converts an SCXML string to a JSON representation that can be used with
+ * createMachineFromConfig.
+ */
+export function toMachineJSON(xml: string): MachineJSON {
   const json = xml2js(xml) as XMLElement;
-  return scxmlToMachine(json);
+  return scxmlToMachineJSON(json);
+}
+
+/** Converts an SCXML string to an XState machine. */
+export function toMachine(xml: string): AnyStateMachine {
+  const machineJSON = toMachineJSON(xml);
+  return createMachineFromConfig(machineJSON);
 }

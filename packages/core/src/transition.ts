@@ -13,7 +13,7 @@ import {
   EventFromLogic,
   InputFrom,
   SnapshotFrom,
-  ExecutableActionsFrom,
+  ExecutableActionObjectFromLogic,
   AnyTransitionDefinition,
   AnyMachineSnapshot
 } from './types';
@@ -28,17 +28,14 @@ export function transition<T extends AnyActorLogic>(
   logic: T,
   snapshot: SnapshotFrom<T>,
   event: EventFromLogic<T>
-): [nextSnapshot: SnapshotFrom<T>, actions: ExecutableActionsFrom<T>[]] {
-  const executableActions = [] as ExecutableActionsFrom<T>[];
-
+): [
+  nextSnapshot: SnapshotFrom<T>,
+  actions: ExecutableActionObjectFromLogic<T>[]
+] {
   const actorScope = createInertActorScope(logic);
-  actorScope.actionExecutor = (action) => {
-    executableActions.push(action as ExecutableActionsFrom<T>);
-  };
+  const [nextSnapshot, effects] = logic.transition(snapshot, event, actorScope);
 
-  const nextSnapshot = logic.transition(snapshot, event, actorScope);
-
-  return [nextSnapshot, executableActions];
+  return [nextSnapshot, effects as ExecutableActionObjectFromLogic<T>[]];
 }
 
 /**
@@ -53,20 +50,18 @@ export function initialTransition<T extends AnyActorLogic>(
   ...[input]: undefined extends InputFrom<T>
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
-): [SnapshotFrom<T>, ExecutableActionsFrom<T>[]] {
-  const executableActions = [] as ExecutableActionsFrom<T>[];
-
+): [SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]] {
   const actorScope = createInertActorScope(logic);
-  actorScope.actionExecutor = (action) => {
-    executableActions.push(action as ExecutableActionsFrom<T>);
-  };
 
-  const nextSnapshot = logic.getInitialSnapshot(
-    actorScope,
-    input
-  ) as SnapshotFrom<T>;
+  const [nextSnapshot, executableActions] = logic.initialTransition(
+    input,
+    actorScope
+  );
 
-  return [nextSnapshot, executableActions];
+  return [
+    nextSnapshot,
+    executableActions as ExecutableActionObjectFromLogic<T>[]
+  ];
 }
 
 /**
@@ -79,12 +74,14 @@ export function getMicrosteps<T extends AnyStateMachine>(
   machine: T,
   snapshot: SnapshotFrom<T>,
   event: EventFromLogic<T>
-): Array<[SnapshotFrom<T>, ExecutableActionsFrom<T>[]]> {
+): Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]> {
   const actorScope = createInertActorScope(machine);
 
   const { microsteps } = macrostep(snapshot, event, actorScope, []);
 
-  return microsteps as Array<[SnapshotFrom<T>, ExecutableActionsFrom<T>[]]>;
+  return microsteps as Array<
+    [SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]
+  >;
 }
 
 /**
@@ -99,16 +96,12 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
   ...[input]: undefined extends InputFrom<T>
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
-): Array<[SnapshotFrom<T>, ExecutableActionsFrom<T>[]]> {
+): Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]> {
   const actorScope = createInertActorScope(machine);
   const initEvent = createInitEvent(input);
   const internalQueue: AnyEventObject[] = [];
 
-  const preInitialSnapshot = machine._getPreInitialState(
-    actorScope,
-    initEvent,
-    internalQueue
-  );
+  const preInitialSnapshot = machine._getPreInitialState(actorScope, initEvent);
 
   const first = initialMicrostep(
     machine.root,
@@ -126,7 +119,7 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
   );
 
   return [first, ...microsteps] as Array<
-    [SnapshotFrom<T>, ExecutableActionsFrom<T>[]]
+    [SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]
   >;
 }
 
@@ -177,7 +170,7 @@ export function getNextTransitions(
       // Get all transitions for each event type
       // Include ALL transitions, even if the same event type appears in multiple state nodes
       // This is important for guarded transitions - all are "potential" regardless of guard evaluation
-      for (const [, transitions] of s.transitions) {
+      for (const [, transitions] of s.transitions.entries()) {
         potentialTransitions.push(...transitions);
       }
 

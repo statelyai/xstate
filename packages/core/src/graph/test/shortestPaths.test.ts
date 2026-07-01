@@ -1,39 +1,45 @@
-import { assign, createMachine } from '../../index.ts';
+import { z } from 'zod';
+import { createMachine } from '../../index.ts';
 import { joinPaths } from '../graph.ts';
 import { getShortestPaths } from '../shortestPaths.ts';
 
 describe('getShortestPaths', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {
     const m = createMachine({
-      types: {} as { context: { count: number } },
+      // types: {} as { context: { count: number } },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       initial: 'a',
       context: { count: 0 },
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
           on: {
-            NEXT: 'c'
+            NEXT: { target: 'c' }
           }
         },
         c: {
           on: {
-            NEXT: 'd'
+            NEXT: { target: 'd' }
           }
         },
         d: {
           // If we reach this state, this will cause an infinite loop
           // if the stop condition does not stop the algorithm
           on: {
-            NEXT: {
-              target: 'd',
-              actions: assign({
-                count: ({ context }) => context.count + 1
-              })
-            }
+            NEXT: ({ context }) => ({
+              context: {
+                count: context.count + 1
+              },
+              target: 'd'
+            })
           }
         }
       }
@@ -49,26 +55,31 @@ describe('getShortestPaths', () => {
 
   it('finds the shortest paths from a state to another state', () => {
     const m = createMachine({
-      types: {} as {
-        context: { count: number };
+      // types: {} as {
+      //   context: { count: number };
+      // },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
       },
       initial: 'a',
       context: { count: 0 },
       states: {
         a: {
           on: {
-            TO_Y: 'y',
-            TO_B: 'b'
+            TO_Y: { target: 'y' },
+            TO_B: { target: 'b' }
           }
         },
         b: {
           on: {
-            NEXT_B_TO_X: 'x'
+            NEXT_B_TO_X: { target: 'x' }
           }
         },
         x: {
           on: {
-            NEXT_X_TO_Y: 'y'
+            NEXT_X_TO_Y: { target: 'y' }
           }
         },
         y: {}
@@ -92,7 +103,7 @@ describe('getShortestPaths', () => {
     expect(paths).toHaveLength(1);
     expect(paths[0].steps.map((s) => s.event.type)).toMatchInlineSnapshot(`
       [
-        "xstate.init",
+        "@xstate.init",
         "TO_B",
         "NEXT_B_TO_X",
         "NEXT_X_TO_Y",
@@ -102,21 +113,25 @@ describe('getShortestPaths', () => {
 
   it('handles event cases', () => {
     const machine = createMachine({
-      types: {
-        events: {} as { type: 'todo.add'; todo: string },
-        context: {} as { todos: string[] }
+      schemas: {
+        context: z.object({
+          todos: z.array(z.string())
+        }),
+        events: {
+          'todo.add': z.object({
+            todo: z.string()
+          })
+        }
       },
       context: {
         todos: []
       },
       on: {
-        'todo.add': {
-          actions: assign({
-            todos: ({ context, event }) => {
-              return context.todos.concat(event.todo);
-            }
-          })
-        }
+        'todo.add': ({ context, event }) => ({
+          context: {
+            todos: context.todos.concat(event.todo)
+          }
+        })
       }
     });
 
@@ -149,7 +164,7 @@ describe('getShortestPaths', () => {
       states: {
         a: {
           after: {
-            1000: 'b'
+            1000: { target: 'b' }
           }
         },
         b: {}
@@ -159,8 +174,8 @@ describe('getShortestPaths', () => {
     const shortestPaths = getShortestPaths(machine);
 
     expect(shortestPaths.map((p) => p.steps.map((s) => s.event.type))).toEqual([
-      ['xstate.init'],
-      ['xstate.init', 'xstate.after.1000.(machine).a']
+      ['@xstate.init'],
+      ['@xstate.init', 'xstate.after.1000.(machine).a']
     ]);
   });
 });

@@ -1,13 +1,12 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
-
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
+import { z } from 'zod';
 interface Order {
   id: string;
   item: string;
   quantity: string;
 }
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#send-cloudevent-on-workflow-completion-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     context: {} as {
       orders: Order[];
@@ -22,9 +21,14 @@ export const workflow = setup({
       orders: Order[];
     }
   },
-  actors: {
-    provisionOrdersFunction: fromPromise(
-      async ({ input }: { input: { orders: Order[] } }) => {
+  actorSources: {
+    provisionOrdersFunction: createAsyncLogic({
+      schemas: {
+        input: z.custom<{
+          orders: Order[];
+        }>()
+      },
+      run: async ({ input }) => {
         const data = await Promise.all(
           input.orders.map(async (order) => {
             console.log('provisioning order', order);
@@ -36,12 +40,10 @@ export const workflow = setup({
             };
           })
         );
-
         return data;
       }
-    )
-  }
-}).createMachine({
+    })
+  },
   id: 'sendcloudeventonprovision',
   context: ({ input }) => ({
     orders: input.orders,
@@ -55,11 +57,17 @@ export const workflow = setup({
         input: ({ context }) => ({
           orders: context.orders
         }),
-        onDone: {
-          actions: assign({
-            provisionedOrders: ({ event }) => event.output
-          }),
-          target: 'End'
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'End',
+            context: {
+              ...context,
+              provisionedOrders: (({ event }) => event.output)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },
@@ -71,7 +79,6 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     orders: [
@@ -88,11 +95,9 @@ const actor = createActor(workflow, {
     ]
   }
 });
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();

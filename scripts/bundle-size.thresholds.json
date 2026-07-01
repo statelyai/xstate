@@ -1,0 +1,11 @@
+{
+  "minimal-machine": {
+    "maxGzipBytes": 15458
+  },
+  "machine-and-actors": {
+    "maxGzipBytes": 16561
+  },
+  "kitchen-sink": {
+    "maxGzipBytes": 23667
+  }
+}

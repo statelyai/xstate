@@ -5,12 +5,17 @@
 
 <script lang="ts">
 import { defineComponent, shallowRef } from 'vue';
-import { fromTransition } from 'xstate';
+import { createLogic } from 'xstate';
 import { useActorRef, useSelector } from '../src/index.ts';
 
 export default defineComponent({
   setup() {
-    const actorRef1 = useActorRef(fromTransition((s) => s, 'foo'));
+    const actorRef1 = useActorRef(
+      createLogic({
+        context: 'foo',
+        run: () => undefined
+      })
+    );
 
     const actorRefRef = shallowRef<typeof actorRef1 | undefined>(undefined);
     const value = useSelector(actorRefRef, (state) => state?.context);

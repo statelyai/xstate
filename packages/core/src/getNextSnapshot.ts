@@ -20,7 +20,7 @@ export function createInertActorScope<T extends AnyActorLogic>(
     any,
     EmittedFrom<T>
   > = {
-    self,
+    self: self as any,
     defer: () => {},
     id: '',
     logger: () => {},
@@ -42,7 +42,7 @@ export function getInitialSnapshot<T extends AnyActorLogic>(
     : [input: InputFrom<T>]
 ): SnapshotFrom<T> {
   const actorScope = createInertActorScope(actorLogic);
-  return actorLogic.getInitialSnapshot(actorScope, input);
+  return actorLogic.initialTransition(input, actorScope)[0];
 }
 
 /**
@@ -85,5 +85,12 @@ export function getNextSnapshot<T extends AnyActorLogic>(
 ): SnapshotFrom<T> {
   const inertActorScope = createInertActorScope(actorLogic);
   (inertActorScope.self as any)._snapshot = snapshot;
-  return actorLogic.transition(snapshot, event, inertActorScope);
+  const transitionResult = actorLogic.transition(
+    snapshot,
+    event,
+    inertActorScope
+  );
+  return Array.isArray(transitionResult)
+    ? transitionResult[0]
+    : transitionResult;
 }

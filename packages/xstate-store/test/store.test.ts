@@ -234,7 +234,7 @@ it('inspection with @statelyai/inspect typechecks correctly', () => {
     autoStart: false
   });
 
-  store.inspect(inspector.inspect);
+  store.inspect(inspector.inspect as any);
 });
 
 it('emitted events can be subscribed to', () => {
@@ -1025,11 +1025,10 @@ it('the emit type is not overridden by the payload', () => {
     },
     context,
     on: {
-      openDrawer: (context, event: { drawer: Drawer }, enqueue) => {
+      openDrawer: (_, event: { drawer: Drawer }, enqueue) => {
         enqueue.emit.drawerOpened(event);
 
         return {
-          ...context,
           drawer: event.drawer
         };
       }

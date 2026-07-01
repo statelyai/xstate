@@ -6,7 +6,9 @@ on:
       - main
       - next
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions: {} # each job should define its own permission explicitly
 

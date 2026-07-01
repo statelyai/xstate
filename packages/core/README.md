@@ -119,7 +119,7 @@ npm install xstate
 ```
 
 ```ts
-import { createMachine, createActor, assign } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 
 // State machine
 const toggleMachine = createMachine({
@@ -135,7 +135,9 @@ const toggleMachine = createMachine({
       }
     },
     active: {
-      entry: assign({ count: ({ context }) => context.count + 1 }),
+      entry: ({ context }) => ({
+        context: { count: context.count + 1 }
+      }),
       on: {
         TOGGLE: { target: 'inactive' }
       }
@@ -181,14 +183,13 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 
 ## Packages
 
-| Package                                                                                       | Description                                                                  |
-| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| 🤖 `xstate`                                                                                   | Core finite state machine and statecharts library + interpreter              |
-| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)     | React hooks and utilities for using XState in React applications             |
-| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)         | Vue composition functions and utilities for using XState in Vue applications |
-| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte)   | Svelte utilities for using XState in Svelte applications                     |
-| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)     | Solid hooks and utilities for using XState in Solid applications             |
-| [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) | Inspection utilities for XState                                              |
+| Package                                                                                     | Description                                                                  |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 🤖 `xstate`                                                                                 | Core finite state machine and statecharts library + interpreter              |
+| [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)   | React hooks and utilities for using XState in React applications             |
+| [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)       | Vue composition functions and utilities for using XState in Vue applications |
+| [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) | Svelte utilities for using XState in Svelte applications                     |
+| [🥏 `@xstate/solid`](https://github.com/statelyai/xstate/tree/main/packages/xstate-solid)   | Solid hooks and utilities for using XState in Solid applications             |
 
 ## Finite State Machines
 
@@ -366,10 +367,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_BOLD: 'off' }
+          on: { TOGGLE_BOLD: { target: 'off' } }
         },
         off: {
-          on: { TOGGLE_BOLD: 'on' }
+          on: { TOGGLE_BOLD: { target: 'on' } }
         }
       }
     },
@@ -377,10 +378,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_UNDERLINE: 'off' }
+          on: { TOGGLE_UNDERLINE: { target: 'off' } }
         },
         off: {
-          on: { TOGGLE_UNDERLINE: 'on' }
+          on: { TOGGLE_UNDERLINE: { target: 'on' } }
         }
       }
     },
@@ -388,10 +389,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_ITALICS: 'off' }
+          on: { TOGGLE_ITALICS: { target: 'off' } }
         },
         off: {
-          on: { TOGGLE_ITALICS: 'on' }
+          on: { TOGGLE_ITALICS: { target: 'on' } }
         }
       }
     },
@@ -400,20 +401,20 @@ const wordMachine = createMachine({
       states: {
         none: {
           on: {
-            BULLETS: 'bullets',
-            NUMBERS: 'numbers'
+            BULLETS: { target: 'bullets' },
+            NUMBERS: { target: 'numbers' }
           }
         },
         bullets: {
           on: {
-            NONE: 'none',
-            NUMBERS: 'numbers'
+            NONE: { target: 'none' },
+            NUMBERS: { target: 'numbers' }
           }
         },
         numbers: {
           on: {
-            BULLETS: 'bullets',
-            NONE: 'none'
+            BULLETS: { target: 'bullets' },
+            NONE: { target: 'none' }
           }
         }
       }
@@ -494,10 +495,10 @@ const paymentMachine = createMachine({
         },
         hist: { type: 'history' }
       },
-      on: { NEXT: 'review' }
+      on: { NEXT: { target: 'review' } }
     },
     review: {
-      on: { PREVIOUS: 'method.hist' }
+      on: { PREVIOUS: { target: 'method.hist' } }
     }
   }
 });

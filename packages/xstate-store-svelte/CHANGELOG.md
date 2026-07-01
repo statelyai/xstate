@@ -1,5 +1,12 @@
 # @xstate/store-svelte
 
+## 2.0.1-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [[`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925)]:
+  - @xstate/store@4.3.0-alpha.0
+
 ## 2.0.0
 
 ### Major Changes

@@ -1,4 +1,4 @@
-import { assign, setup } from 'xstate';
+import { createMachine } from 'xstate';
 
 interface TempContext {
   celsius: number | undefined;
@@ -17,7 +17,7 @@ interface changeF {
 
 const isOnlyWhiteSpace = (string: string) => string.trim().length === 0;
 
-export const tempMachine = setup({
+export const tempMachine = createMachine({
   types: {
     context: {} as TempContext,
     events: {} as changeC | changeF
@@ -28,24 +28,45 @@ export const tempMachine = setup({
     }
   },
   actions: {
-    onChangeC: assign({
-      celsius: ({ event }) =>
-        isOnlyWhiteSpace(event.value) ? undefined : +event.value,
-      fahrenheit: ({ event }) =>
-        isOnlyWhiteSpace(event.value)
-          ? undefined
-          : Math.round(+event.value * (9 / 5) + 32)
+    onChangeC: ({ context, event, self, parent, children }) => ({
+      context: {
+        ...context,
+        celsius: ({ event }) =>
+          isOnlyWhiteSpace(event.value)
+            ? undefined
+            : +event.value({ context, event, self, parent, children }),
+        fahrenheit: ({ event }) =>
+          isOnlyWhiteSpace(event.value)
+            ? undefined
+            : Math.round(+event.value * (9 / 5) + 32)({
+                context,
+                event,
+                self,
+                parent,
+                children
+              })
+      }
     }),
-    onChangeF: assign({
-      fahrenheit: ({ event }) =>
-        isOnlyWhiteSpace(event.value) ? undefined : +event.value,
-      celsius: ({ event }) =>
-        isOnlyWhiteSpace(event.value)
-          ? undefined
-          : Math.round((+event.value - 32) * (5 / 9))
+    onChangeF: ({ context, event, self, parent, children }) => ({
+      context: {
+        ...context,
+        fahrenheit: ({ event }) =>
+          isOnlyWhiteSpace(event.value)
+            ? undefined
+            : +event.value({ context, event, self, parent, children }),
+        celsius: ({ event }) =>
+          isOnlyWhiteSpace(event.value)
+            ? undefined
+            : Math.round((+event.value - 32) * (5 / 9))({
+                context,
+                event,
+                self,
+                parent,
+                children
+              })
+      }
     })
-  }
-}).createMachine({
+  },
   id: 'tempConverter',
   initial: 'ready',
   context: {
@@ -55,19 +76,19 @@ export const tempMachine = setup({
   states: {
     ready: {
       on: {
-        changeC: {
-          target: 'ready',
-          guard: 'valueIsNumber',
-          actions: {
-            type: 'onChangeC'
+        changeC: ({ context, event, guards, actions }, enq) => {
+          if (!guards['valueIsNumber']({ context, event })) {
+            return;
           }
+          enq((actionArgs) => actions['onChangeC'](actionArgs as any));
+          return { target: 'ready' };
         },
-        changeF: {
-          target: 'ready',
-          guard: 'valueIsNumber',
-          actions: {
-            type: 'onChangeF'
+        changeF: ({ context, event, guards, actions }, enq) => {
+          if (!guards['valueIsNumber']({ context, event })) {
+            return;
           }
+          enq((actionArgs) => actions['onChangeF'](actionArgs as any));
+          return { target: 'ready' };
         }
       }
     }

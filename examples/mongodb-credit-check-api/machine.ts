@@ -1,4 +1,4 @@
-import { fromPromise, assign, setup } from "xstate";
+import { createMachine, createAsyncLogic } from "xstate";
 import {
   checkBureauService,
   checkReportsTable,
@@ -10,8 +10,8 @@ import {
   verifyCredentials,
 } from "./services/machineLogicService";
 import CreditProfile from "./models/creditProfile";
-
-export const creditCheckMachine = setup({
+import { z } from "zod";
+export const creditCheckMachine = createMachine({
   types: {
     events: {} as {
       type: "Submit";
@@ -21,32 +21,54 @@ export const creditCheckMachine = setup({
     },
     context: {} as CreditProfile,
   },
-
-  actors: {
-    checkBureau: fromPromise(
-      async ({ input }: { input: { ssn: string; bureauName: string } }) =>
-        await checkBureauService(input),
-    ),
-    checkReportsTable: fromPromise(
-      async ({ input }: { input: { ssn: string; bureauName: string } }) =>
-        await checkReportsTable(input),
-    ),
-    verifyCredentials: fromPromise(
-      async ({ input }: { input: userCredential }) =>
-        await verifyCredentials(input),
-    ),
-    determineMiddleScore: fromPromise(
-      async ({ input }: { input: number[] }) =>
-        await determineMiddleScore(input),
-    ),
-    generateInterestRates: fromPromise(
-      async ({ input }: { input: number }) => await generateInterestRate(input),
-    ),
+  actorSources: {
+    checkBureau: createAsyncLogic({
+      schemas: {
+        input: z.custom<{
+          ssn: string;
+          bureauName: string;
+        }>(),
+      },
+      run: async ({ input }) => await checkBureauService(input),
+    }),
+    checkReportsTable: createAsyncLogic({
+      schemas: {
+        input: z.custom<{
+          ssn: string;
+          bureauName: string;
+        }>(),
+      },
+      run: async ({ input }) => await checkReportsTable(input),
+    }),
+    verifyCredentials: createAsyncLogic({
+      schemas: {
+        input: z.custom<userCredential>(),
+      },
+      run: async ({ input }) => await verifyCredentials(input),
+    }),
+    determineMiddleScore: createAsyncLogic({
+      schemas: {
+        input: z.custom<number[]>(),
+      },
+      run: async ({ input }) => await determineMiddleScore(input),
+    }),
+    generateInterestRates: createAsyncLogic({
+      schemas: {
+        input: z.custom<number>(),
+      },
+      run: async ({ input }) => await generateInterestRate(input),
+    }),
   },
   actions: {
     saveReport: (
-      { context }: { context: CreditProfile },
-      params: { bureauName: string },
+      {
+        context,
+      }: {
+        context: CreditProfile;
+      },
+      params: {
+        bureauName: string;
+      },
     ) => {
       console.log("saving report to the database...");
       saveCreditReport({
@@ -94,8 +116,6 @@ export const creditCheckMachine = setup({
       return context.GavperianScore > 0;
     },
   },
-}).createMachine({
-  /** @xstate-layout N4IgpgJg5mDOIC5QFsCuAbALgSwA7rAGEAnSbTQgCzAGMBrAOhtInKtsYFEA7TMY7NygACAJLcAZgHtiyAIY4p3AMQBlVACNk5ANoAGALqJQuKbHLYlxkAA9EAZgAcAVgYB2ACwAmAIyO3zgA0IACeiD5ueu4AbM7RXs4AvonBaFh4BCRkFNT0TCxsuYwAavzYEiGCIlkQYLzYcuiwyhBKYAyCAG5SdO1pOPhEBTkc+dnseaUCFVXCNXU4jbAIXVI0Cpbc+gbb1qbmitzWdggAnB6u0Y72zqf2AcFhCAC0jgz20W5+AcmpGAOZYYTRjMcZFBhTcqVIRzFgLBpNZT8YgyBj4BTSWQMfoZIZg0ag1gjSZlGYw+b1JYrbjddaHba7JAgfYWKxMk56R6IPS-EA4wY1QoEoHg4FVQWYVQ0GRwFptBiwTAKPr-XES4FjIkasVCCVSmWwRkmMyso7sxBeDz+BgeU7OG56DwePTOZwuLkIa7RBiOFynPT2QNuaL2U6OXn8wH4vKEoV5HVQPXS0jNVrcdqK5XY1UCkXC6OMBNJg06HxGJksw7HRDOHyuV1uG5W+zeU5XD3PW7vRweOsfU5tl1eU4RnNRrXg2PEwtFcXDfUphgJzgAR1Q2AA4nJOoIl7OhAAxGScGzYRVVABKYFMxEwcvTHRpPXaYDXm+3ggAIgAhACCNEwGQjWZE0q3NBAAlOd5-ViV1HS8LxfQ9HxELeFDLRuAdh1ONxR3SXMC01OMZw4OdsgXOA91IoRV3XLcd24Kj6CqI9iBPM8cCEK8bzvNN2lWXoGFfOiP24H9-0A4hS3LY0Dk2asIK7UM9Fg5x4NQ5CnSieIMNuU5sNwlI+THPEJ3zMz433RN52TSjlzfejdwTVj2PPLjrxkO9kVRdFMExZAhIc0TxIAoDDD2UD5PAyDoJU101O8DTQnCN17HeNxdKwgdDL+fDx2IojpyYugyKJCjYGKqpaPfBiGAPMBMBoShLw829734p9BOEmrBHqxrKAksKZJAuS2VAE4fCtKDPjdHwUMiBJJs0vQvAYe1nC8Nw3EcaIZuiDw8IBUyCqnbUrOLRd7JE2q+qalqeKRYgUWINF0AxGQAu6xzuFugbQqk8KK0isbbHCW0ohbewfCh2s5r0O1NNdNaPltHtHEtbxDrVPMYxxkjmN1GyDUqoR6IAVW4TYSagFzTzcqBuM89rH26QSoG3CnNhCyTgMrKLxsQAJvUiOJfT0Rw9BW3bkO2nx3hbW5+y8PRIhy4y8uOorTtFc6icuqzycppRqdpjj7qZviWefBh2c6TmlG5oCywi0azQFxThZdK4JYlqXomQu40uuC47mifSVZVrGCIskE8epi67INjmjcY5zjzpziGdarynp8t6-I+m3k65v9-t54G3dBj33C9sXfa8aXkoQZXgzWntFbDluXSj-Ktbjos9cT6ioENqnfvNtrLYE9pbftn6GqawaAeGvmQYmjxYgYBJlLiHxznOf2m78AcGD37bPDbXs5pHIzI01jVtdGAfyNsiqE1H43x-ch7vJe3z-KLnbFOv0l7l1dgpSam99LoTdNEAMG03AB1tO4VWalHCnD8PYS0Pd76Tn7rrF+xN37blwGUOQqcrKm3pozSe8pp6ANIQIchwJQGA1kqaBS20oiug3v4eG4tQwem2q4S0-hMG+nQc4NWd91R4MIs-Mqr9qb0UYQ0Chw8qGZxobxOhnUZ4kLIdwFhZdnZA3AdFCWa1nC8MiP6a4pwPR3DcO4K0XxrgSLtNIkysjzIFQUeQcqyiDFMPUQTGm6czbfyZr-V670sS21UcwoorCV4VwgXFNaXgnBOhmr2QMyE6zOPiNECI-oAjeGhjgnxuN5EEMUUQpOnREmMS-lnB6U89FMCKPRAACoYlJLsOHgTrI6U+bg2x8LsYIpu-oPA2jDG4pwvpPFVLjo-Syw8E5v0ac0uqC9mpRLajE-+hcmocF6f0subCRpDPdiMuZpSri2IEQ4mZtYGADjEe45ZUjVmEXWYwT8DV+DaEpkIcQfAUyYAvMqAA8rgQ4FUgWQtBVUAAstgCAEACAUWZvQ6ezwNAQAAFboGQGA25VcsGfAYGHXaiE9BzSuIfJ4O1XCSycbA-wO1oh-JjoVDUyKQWCCqBC-gcBoVwoRZsCqrSYV8FTLo1mKoNbVNjoRIVsgRXgt4OKxU8qwDwsRXs-ql5lTLFWHSTYDJrmr0rice4e9aURBcC2HCGMPS+mcY2DwgYslSIQjcZIRluBSFqPAJkMi8aDLAu7Z4bYOxZLmdkvsYdBz2j5SdaNZjKUnGeFaDskCfQ9lTQOOBGbb7eLWXHHgkLZjiH8hsEGdrOFpRDIhFCQQj5dniEkStqrq2EUhGSaocJKRNBjfzKuJTvX2hgpNHw8CPAehuM450torQR0DLaTNfdambMHhG9hsaq4dvlk4JNYdbj+o9NY70ojFkeN+f2o6aqBU6wPYQ-Ww9qrfUnWvBww5z3oxbFe-SNxkLK20ghX1ekDK7ofvgz99Tv1hN-aJE2ETqHZ3-fahwW1gOXrtOBrtTw+zOPQRlOsVoULroQ3I-l-jJRKKuj1Fp+zxRSGQIMPguGIEZTeIy-1UyVI+GQjcdlK04hQwQjtH4L7sb-KQ2ErZ1N0M3Q44czAfHhnQ2mh8Tw-hrEZQRkfXsrh7gJUwQkBu9HfFFSY4E1j30TV3UPHIbABAIA6buV8Vays-C0Y7vYZC1i0pzRcMODKXx9p9tyq+wdjG6kBJY40uePmqX2CiMGRwfgfaSwbnEZCYcg4K1DuHVWdmalJeQylhpw8P6hJKoeLDWicM5pPQ67aMRct1wK7EFlFoAyrRUl8RsKs4ghiq+qmrKnD1BKAWPTTiYuM8bABliaXwoh3AbH58Zm1kLXDSkOFCLYVJhydNN99T9kvMfq2ExrrmDltM8ht8I18bROAypLe4+0LgB3Fm3L4A57R1hB1dgF8d5vEMW5-ZbB4PNebewgCIKEt6Mty5aDuiEA4EZuC2H1wYMEoQh8p5r1kv1Dwe8EtRyPAxpUtDBiWWV9ohabmHb1rjxE-K8QOpT+65uU+2Q1mn5DMNsQzhPbTHWp0Oty1vRKm6We+uQo6KIto71OiwVDSpCno5ZoF+T1TMPdmtMIKtggvGZcAZR54IOysZP8PsZ6kMCuvlLMkbzhL-PZtG+hzswxT2pfI7msgip-gQ4vMcdDN3j6eek8N6VOrqHycqMD60hHnnIAh6vafBIAYXTqSQkfAMUEH3c8kQdPXvdEMauBVqsFUAxVQoNUamVyPEJxFpXEDBekMpOg9Bdj5PY-WrsDXF9W3v+WQ81ainVkKJWt+lUoJF9e59QAxVinFtkO+zO72HMH7qB9NxcFEJNo+A3+oT-y2f2qm+6pb1K41crzV04uOF3sw54ZH+XSf135-tdL8g1q9cF7NBU1879m9F8n8ZUGADVYAekUQdxahvNrc8MEBQxXdO1do+8PUT8rRh9fVACMor9g0gA */
   context: {
     SSN: "",
     FirstName: "",
@@ -121,35 +141,54 @@ export const creditCheckMachine = setup({
             },
           },
         },
-
         "Verifying Credentials": {
           invoke: {
             input: ({ event }) => event,
             src: "verifyCredentials",
-            onDone: {
-              target: "CheckingCreditScores",
-              actions: assign({
-                SSN: ({ event }) => event.output.SSN,
-                FirstName: ({ event }) => event.output.firstName,
-                LastName: ({ event }) => event.output.lastName,
-              }),
+            onDone: ({ context, event, guards, actions }, enq) => {
+              return {
+                target: "CheckingCreditScores",
+                context: {
+                  ...context,
+                  SSN: (({ event }) => event.output.SSN)({
+                    context: context,
+                    event: event,
+                  }),
+                  FirstName: (({ event }) => event.output.firstName)({
+                    context: context,
+                    event: event,
+                  }),
+                  LastName: (({ event }) => event.output.lastName)({
+                    context: context,
+                    event: event,
+                  }),
+                },
+              };
             },
             onError: [
-              {
-                target: "Entering Information",
-                actions: assign({
-                  ErrorMessage: ({
-                    event,
-                  }: {
-                    context: any;
-                    event: { error: any };
-                  }) => "Failed to verify credentials. Details: " + event.error,
-                }),
+              ({ context, event, guards, actions }, enq) => {
+                return {
+                  target: "Entering Information",
+                  context: {
+                    ...context,
+                    ErrorMessage: (({
+                      event,
+                    }: {
+                      context: any;
+                      event: {
+                        error: any;
+                      };
+                    }) =>
+                      "Failed to verify credentials. Details: " + event.error)({
+                      context: context,
+                      event: event,
+                    }),
+                  },
+                };
               },
             ],
           },
         },
-
         CheckingCreditScores: {
           description:
             "Kick off a series of requests to the 3 American Credit Bureaus and await their results",
@@ -166,13 +205,23 @@ export const creditCheckMachine = setup({
                     src: "checkReportsTable",
                     id: "equiGavinDBActor",
                     onDone: [
-                      {
-                        actions: assign({
-                          EquiGavinScore: ({ event }) =>
-                            event.output?.creditScore ?? 0,
-                        }),
-                        target: "FetchingComplete",
-                        guard: "equiGavinReportFound",
+                      ({ context, event, guards, actions }, enq) => {
+                        if (
+                          !guards["equiGavinReportFound"]({ context, event })
+                        ) {
+                          return;
+                        }
+                        return {
+                          target: "FetchingComplete",
+                          context: {
+                            ...context,
+                            EquiGavinScore: (({ event }) =>
+                              event.output?.creditScore ?? 0)({
+                              context: context,
+                              event: event,
+                            }),
+                          },
+                        };
                       },
                       {
                         target: "FetchingReport",
@@ -187,14 +236,11 @@ export const creditCheckMachine = setup({
                 },
                 FetchingComplete: {
                   type: "final",
-                  entry: [
-                    {
-                      type: "saveReport",
-                      params: {
-                        bureauName: "EquiGavin",
-                      },
-                    },
-                  ],
+                  entry: (args, enq) => {
+                    enq(args.actions["saveReport"], {
+                      bureauName: "EquiGavin",
+                    });
+                  },
                 },
                 FetchingReport: {
                   invoke: {
@@ -205,11 +251,17 @@ export const creditCheckMachine = setup({
                     src: "checkBureau",
                     id: "equiGavinFetchActor",
                     onDone: [
-                      {
-                        actions: assign({
-                          EquiGavinScore: ({ event }) => event.output ?? 0,
-                        }),
-                        target: "FetchingComplete",
+                      ({ context, event, guards, actions }, enq) => {
+                        return {
+                          target: "FetchingComplete",
+                          context: {
+                            ...context,
+                            EquiGavinScore: (({ event }) => event.output ?? 0)({
+                              context: context,
+                              event: event,
+                            }),
+                          },
+                        };
                       },
                     ],
                     onError: [
@@ -236,13 +288,23 @@ export const creditCheckMachine = setup({
                     src: "checkReportsTable",
                     id: "gavUnionDBActor",
                     onDone: [
-                      {
-                        actions: assign({
-                          GavUnionScore: ({ event }) =>
-                            event.output?.creditScore ?? 0,
-                        }),
-                        target: "FetchingComplete",
-                        guard: "gavUnionReportFound",
+                      ({ context, event, guards, actions }, enq) => {
+                        if (
+                          !guards["gavUnionReportFound"]({ context, event })
+                        ) {
+                          return;
+                        }
+                        return {
+                          target: "FetchingComplete",
+                          context: {
+                            ...context,
+                            GavUnionScore: (({ event }) =>
+                              event.output?.creditScore ?? 0)({
+                              context: context,
+                              event: event,
+                            }),
+                          },
+                        };
                       },
                       {
                         target: "FetchingReport",
@@ -257,14 +319,11 @@ export const creditCheckMachine = setup({
                 },
                 FetchingComplete: {
                   type: "final",
-                  entry: [
-                    {
-                      type: "saveReport",
-                      params: {
-                        bureauName: "GavUnion",
-                      },
-                    },
-                  ],
+                  entry: (args, enq) => {
+                    enq(args.actions["saveReport"], {
+                      bureauName: "GavUnion",
+                    });
+                  },
                 },
                 FetchingReport: {
                   invoke: {
@@ -275,11 +334,17 @@ export const creditCheckMachine = setup({
                     src: "checkBureau",
                     id: "gavUnionFetchActor",
                     onDone: [
-                      {
-                        actions: assign({
-                          GavUnionScore: ({ event }) => event.output ?? 0,
-                        }),
-                        target: "FetchingComplete",
+                      ({ context, event, guards, actions }, enq) => {
+                        return {
+                          target: "FetchingComplete",
+                          context: {
+                            ...context,
+                            GavUnionScore: (({ event }) => event.output ?? 0)({
+                              context: context,
+                              event: event,
+                            }),
+                          },
+                        };
                       },
                     ],
                     onError: [
@@ -306,13 +371,23 @@ export const creditCheckMachine = setup({
                     src: "checkReportsTable",
                     id: "gavperianCheckActor",
                     onDone: [
-                      {
-                        actions: assign({
-                          GavperianScore: ({ event }) =>
-                            event.output?.creditScore ?? 0,
-                        }),
-                        target: "FetchingComplete",
-                        guard: "gavperianReportFound",
+                      ({ context, event, guards, actions }, enq) => {
+                        if (
+                          !guards["gavperianReportFound"]({ context, event })
+                        ) {
+                          return;
+                        }
+                        return {
+                          target: "FetchingComplete",
+                          context: {
+                            ...context,
+                            GavperianScore: (({ event }) =>
+                              event.output?.creditScore ?? 0)({
+                              context: context,
+                              event: event,
+                            }),
+                          },
+                        };
                       },
                       {
                         target: "FetchingReport",
@@ -327,14 +402,11 @@ export const creditCheckMachine = setup({
                 },
                 FetchingComplete: {
                   type: "final",
-                  entry: [
-                    {
-                      type: "saveReport",
-                      params: {
-                        bureauName: "Gavperian",
-                      },
-                    },
-                  ],
+                  entry: (args, enq) => {
+                    enq(args.actions["saveReport"], {
+                      bureauName: "Gavperian",
+                    });
+                  },
                 },
                 FetchingReport: {
                   invoke: {
@@ -345,11 +417,17 @@ export const creditCheckMachine = setup({
                     src: "checkBureau",
                     id: "checkGavPerianActor",
                     onDone: [
-                      {
-                        actions: assign({
-                          GavperianScore: ({ event }) => event.output ?? 0,
-                        }),
-                        target: "FetchingComplete",
+                      ({ context, event, guards, actions }, enq) => {
+                        return {
+                          target: "FetchingComplete",
+                          context: {
+                            ...context,
+                            GavperianScore: (({ event }) => event.output ?? 0)({
+                              context: context,
+                              event: event,
+                            }),
+                          },
+                        };
                       },
                     ],
                     onError: [
@@ -367,21 +445,30 @@ export const creditCheckMachine = setup({
           },
           type: "parallel",
           onDone: [
-            {
-              target: "DeterminingInterestRateOptions",
-              guard: "allSucceeded",
-              reenter: true,
+            ({ context, event, guards, actions }, enq) => {
+              if (!guards["allSucceeded"]({ context, event })) {
+                return;
+              }
+              return {
+                target: "DeterminingInterestRateOptions",
+                reenter: true,
+              };
             },
-            {
-              target: "Entering Information",
-              actions: assign({
-                ErrorMessage: ({ context }) =>
-                  "Failed to retrieve credit scores.",
-              }),
+            ({ context, event, guards, actions }, enq) => {
+              return {
+                target: "Entering Information",
+                context: {
+                  ...context,
+                  ErrorMessage: (({ context }) =>
+                    "Failed to retrieve credit scores.")({
+                    context: context,
+                    event: event,
+                  }),
+                },
+              };
             },
           ],
         },
-
         DeterminingInterestRateOptions: {
           description:
             "After retrieving results, determine the middle score to be used in home loan interest rate decision",
@@ -395,16 +482,20 @@ export const creditCheckMachine = setup({
                 src: "determineMiddleScore",
                 id: "scoreDeterminationActor",
                 onDone: [
-                  {
-                    actions: [
-                      assign({
-                        MiddleScore: ({ event }) => event.output,
-                      }),
-                      {
-                        type: "saveCreditProfile",
+                  ({ context, event, guards, actions }, enq) => {
+                    enq((actionArgs) =>
+                      actions["saveCreditProfile"](actionArgs as any),
+                    );
+                    return {
+                      target: "FetchingRates",
+                      context: {
+                        ...context,
+                        MiddleScore: (({ event }) => event.output)({
+                          context: context,
+                          event: event,
+                        }),
                       },
-                    ],
-                    target: "FetchingRates",
+                    };
                   },
                 ],
               },
@@ -414,24 +505,30 @@ export const creditCheckMachine = setup({
                 input: ({ context: { MiddleScore } }) => MiddleScore,
                 src: "generateInterestRates",
                 onDone: [
-                  {
-                    actions: assign({
-                      InterestRateOptions: ({ event }) => [event.output],
-                    }),
-                    target: "RatesProvided",
+                  ({ context, event, guards, actions }, enq) => {
+                    return {
+                      target: "RatesProvided",
+                      context: {
+                        ...context,
+                        InterestRateOptions: (({ event }) => [event.output])({
+                          context: context,
+                          event: event,
+                        }),
+                      },
+                    };
                   },
                 ],
               },
             },
             RatesProvided: {
-              entry: [
-                {
-                  type: "emailUser",
-                },
-                {
-                  type: "emailSalesTeam",
-                },
-              ],
+              entry: (args, enq) => {
+                enq((actionArgs) =>
+                  args.actions["emailUser"](actionArgs as any),
+                );
+                enq((actionArgs) =>
+                  args.actions["emailSalesTeam"](actionArgs as any),
+                );
+              },
               type: "final",
             },
           },

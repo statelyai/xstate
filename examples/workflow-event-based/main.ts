@@ -1,31 +1,32 @@
-import { fromPromise, createActor, setup } from 'xstate';
-
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#Event-Based-Transitions-Example
-export const workflow = setup({
+export const workflow = createMachine({
   delays: {
     visaDecisionTimeout: 1000
   },
-  actors: {
-    handleApprovedVisaWorkflowID: fromPromise(async () => {
-      console.log('handleApprovedVisaWorkflowID workflow started');
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('handleApprovedVisaWorkflowID workflow completed');
+  actorSources: {
+    handleApprovedVisaWorkflowID: createAsyncLogic({
+      run: async () => {
+        console.log('handleApprovedVisaWorkflowID workflow started');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('handleApprovedVisaWorkflowID workflow completed');
+      }
     }),
-    handleRejectedVisaWorkflowID: fromPromise(async () => {
-      console.log('handleRejectedVisaWorkflowID workflow started');
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('handleRejectedVisaWorkflowID workflow completed');
+    handleRejectedVisaWorkflowID: createAsyncLogic({
+      run: async () => {
+        console.log('handleRejectedVisaWorkflowID workflow started');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('handleRejectedVisaWorkflowID workflow completed');
+      }
     }),
-    handleNoVisaDecisionWorkflowId: fromPromise(async () => {
-      console.log('handleNoVisaDecisionWorkflowId workflow started');
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('handleNoVisaDecisionWorkflowId workflow completed');
+    handleNoVisaDecisionWorkflowId: createAsyncLogic({
+      run: async () => {
+        console.log('handleNoVisaDecisionWorkflowId workflow started');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('handleNoVisaDecisionWorkflowId workflow completed');
+      }
     })
-  }
-}).createMachine({
+  },
   id: 'eventbasedswitchstate',
   initial: 'CheckVisaStatus',
   states: {
@@ -61,17 +62,13 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow);
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 actor.send({
   type: 'visaApprovedEvent'
 });

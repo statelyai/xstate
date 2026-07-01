@@ -2,11 +2,12 @@ import { InspectionEvent } from './inspection.ts';
 import {
   AnyEventObject,
   ActorSystemInfo,
-  AnyActorRef,
+  AnyActor,
   Observer,
   HomomorphicOmit,
   EventObject,
-  Subscription
+  Subscription,
+  TimersRestoreStrategy
 } from './types.ts';
 import { toObserver } from './utils.ts';
 
@@ -15,8 +16,8 @@ interface ScheduledEvent {
   event: EventObject;
   startedAt: number; // timestamp
   delay: number;
-  source: AnyActorRef;
-  target: AnyActorRef;
+  source: AnyActor;
+  target: AnyActor;
 }
 
 export interface Clock {
@@ -26,34 +27,37 @@ export interface Clock {
 
 interface Scheduler {
   schedule(
-    source: AnyActorRef,
-    target: AnyActorRef,
+    source: AnyActor,
+    target: AnyActor,
     event: EventObject,
     delay: number,
     id: string | undefined
   ): void;
-  cancel(source: AnyActorRef, id: string): void;
-  cancelAll(actorRef: AnyActorRef): void;
+  cancel(source: AnyActor, id: string): void;
+  cancelAll(actor: AnyActor): void;
 }
 
 type ScheduledEventId = string & { __scheduledEventId: never };
 
-function createScheduledEventId(
-  actorRef: AnyActorRef,
-  id: string
-): ScheduledEventId {
-  return `${actorRef.sessionId}.${id}` as ScheduledEventId;
+function createScheduledEventId(actor: AnyActor, id: string): ScheduledEventId {
+  return `${actor.sessionId}.${id}` as ScheduledEventId;
 }
 
 export interface ActorSystem<T extends ActorSystemInfo> {
   /** @internal */
+  children: Map<string, AnyActor>;
+  /** @internal */
+  reverseKeyedActors: WeakMap<AnyActor, keyof T['actors']>;
+  /** @internal */
+  keyedActors: Map<keyof T['actors'], AnyActor | undefined>;
+  /** @internal */
   _bookId: () => string;
   /** @internal */
-  _register: (sessionId: string, actorRef: AnyActorRef) => string;
+  _register: (sessionId: string, actor: AnyActor) => string;
   /** @internal */
-  _unregister: (actorRef: AnyActorRef) => void;
+  _unregister: (actor: AnyActor) => void;
   /** @internal */
-  _set: <K extends keyof T['actors']>(key: K, actorRef: T['actors'][K]) => void;
+  _set: <K extends keyof T['actors']>(key: K, actor: AnyActor) => void;
   get: <K extends keyof T['actors']>(key: K) => T['actors'][K] | undefined;
   getAll: () => Partial<T['actors']>;
 
@@ -68,8 +72,8 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   ) => void;
   /** @internal */
   _relay: (
-    source: AnyActorRef | undefined,
-    target: AnyActorRef,
+    source: AnyActor | undefined,
+    target: AnyActor,
     event: AnyEventObject
   ) => void;
   scheduler: Scheduler;
@@ -83,25 +87,55 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   start: () => void;
   _clock: Clock;
   _logger: (...args: any[]) => void;
+  /**
+   * How rehydrated actors in this system restore persisted timers.
+   *
+   * @internal
+   */
+  _timerStrategy?: TimersRestoreStrategy;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
 
-let idCounter = 0;
-export function createSystem<T extends ActorSystemInfo>(
-  rootActor: AnyActorRef,
+export function createRuntimeSystem<T extends ActorSystemInfo>(
+  rootActor: AnyActor,
   options: {
     clock: Clock;
     logger: (...args: any[]) => void;
     snapshot?: unknown;
+    timers?: TimersRestoreStrategy;
   }
 ): ActorSystem<T> {
-  const children = new Map<string, AnyActorRef>();
-  const keyedActors = new Map<keyof T['actors'], AnyActorRef | undefined>();
-  const reverseKeyedActors = new WeakMap<AnyActorRef, keyof T['actors']>();
+  let idCounter = 0;
+  const children = new Map<string, AnyActor>();
+  const keyedActors = new Map<keyof T['actors'], AnyActor | undefined>();
+  const reverseKeyedActors = new WeakMap<AnyActor, keyof T['actors']>();
   const inspectionObservers = new Set<Observer<InspectionEvent>>();
   const timerMap: { [id: ScheduledEventId]: number } = {};
   const { clock, logger } = options;
+
+  // Records a send on the *sender's* transition for the `sent[]` inspection
+  // facet. Captures the send when it is initiated (including delayed sends that
+  // may never deliver), keyed to the source actor's in-flight transition.
+  const recordSent = (
+    source: AnyActor | undefined,
+    target: AnyActor,
+    event: AnyEventObject,
+    delay?: number,
+    id?: string
+  ) => {
+    if (!inspectionObservers.size || !source) {
+      return;
+    }
+    const collected = ((source as any)._collectedSent ??= []);
+    collected.push({
+      targetRef: target,
+      targetId: target.id,
+      event,
+      delay,
+      id
+    });
+  };
 
   const scheduler: Scheduler = {
     schedule: (
@@ -111,6 +145,7 @@ export function createSystem<T extends ActorSystemInfo>(
       delay,
       id = Math.random().toString(36).slice(2)
     ) => {
+      recordSent(source, target, event, delay, id);
       const scheduledEvent: ScheduledEvent = {
         source,
         target,
@@ -126,7 +161,9 @@ export function createSystem<T extends ActorSystemInfo>(
         delete timerMap[scheduledEventId];
         delete system._snapshot._scheduledEvents[scheduledEventId];
 
-        system._relay(source, target, event);
+        // The send was already recorded at schedule time on the sender's
+        // transition, so deliver without re-recording.
+        deliver(source, target, event);
       }, delay);
 
       timerMap[scheduledEventId] = timeout;
@@ -142,25 +179,48 @@ export function createSystem<T extends ActorSystemInfo>(
         clock.clearTimeout(timeout);
       }
     },
-    cancelAll: (actorRef) => {
+    cancelAll: (actor) => {
       for (const scheduledEventId in system._snapshot._scheduledEvents) {
         const scheduledEvent =
           system._snapshot._scheduledEvents[
             scheduledEventId as ScheduledEventId
           ];
-        if (scheduledEvent.source === actorRef) {
-          scheduler.cancel(actorRef, scheduledEvent.id);
+        if (scheduledEvent.source === actor) {
+          scheduler.cancel(actor, scheduledEvent.id);
         }
       }
     }
   };
+  // Delivers an event to the target actor. Used by both `_relay` (which also
+  // records the send) and the scheduler's timer (which already recorded it).
+  const deliver = (
+    source: AnyActor | undefined,
+    target: AnyActor,
+    event: AnyEventObject
+  ) => {
+    const targetMachine = (target as any).logic;
+    const isInternalEvent =
+      typeof targetMachine?.isInternalEventType === 'function' &&
+      targetMachine.isInternalEventType(event.type);
+
+    if (isInternalEvent && source !== target) {
+      throw new Error(
+        `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
+      );
+    }
+
+    // remember the last source for unified transition inspect event
+    (target as any)._lastSourceRef = source;
+    target._send(event);
+  };
+
   const sendInspectionEvent = (event: InspectionEvent) => {
     if (!inspectionObservers.size) {
       return;
     }
     const resolvedInspectionEvent: InspectionEvent = {
       ...event,
-      rootId: rootActor.sessionId
+      rootId: rootActor.sessionId!
     };
     inspectionObservers.forEach((observer) =>
       observer.next?.(resolvedInspectionEvent)
@@ -168,40 +228,43 @@ export function createSystem<T extends ActorSystemInfo>(
   };
 
   const system: ActorSystem<T> = {
+    children,
+    reverseKeyedActors,
+    keyedActors,
     _snapshot: {
       _scheduledEvents:
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {}
     },
     _bookId: () => `x:${idCounter++}`,
-    _register: (sessionId, actorRef) => {
-      children.set(sessionId, actorRef);
+    _register: (sessionId, actor) => {
+      children.set(sessionId, actor);
       return sessionId;
     },
-    _unregister: (actorRef) => {
-      children.delete(actorRef.sessionId);
-      const systemId = reverseKeyedActors.get(actorRef);
+    _unregister: (actor) => {
+      children.delete(actor.sessionId!);
+      const registryKey = reverseKeyedActors.get(actor);
 
-      if (systemId !== undefined) {
-        keyedActors.delete(systemId);
-        reverseKeyedActors.delete(actorRef);
+      if (registryKey !== undefined) {
+        keyedActors.delete(registryKey);
+        reverseKeyedActors.delete(actor);
       }
     },
-    get: (systemId) => {
-      return keyedActors.get(systemId) as T['actors'][any] | undefined;
+    get: (registryKey) => {
+      return keyedActors.get(registryKey) as T['actors'][any] | undefined;
     },
     getAll: () => {
       return Object.fromEntries(keyedActors.entries()) as Partial<T['actors']>;
     },
-    _set: (systemId, actorRef) => {
-      const existing = keyedActors.get(systemId);
-      if (existing && existing !== actorRef) {
+    _set: (registryKey, actor) => {
+      const existing = keyedActors.get(registryKey);
+      if (existing && existing !== actor) {
         throw new Error(
-          `Actor with system ID '${systemId as string}' already exists.`
+          `Actor with registry key '${registryKey as string}' already exists.`
         );
       }
 
-      keyedActors.set(systemId, actorRef);
-      reverseKeyedActors.set(actorRef, systemId);
+      keyedActors.set(registryKey, actor);
+      reverseKeyedActors.set(actor, registryKey);
     },
     inspect: (observerOrFn) => {
       const observer = toObserver(observerOrFn);
@@ -215,14 +278,8 @@ export function createSystem<T extends ActorSystemInfo>(
     },
     _sendInspectionEvent: sendInspectionEvent as any,
     _relay: (source, target, event) => {
-      system._sendInspectionEvent({
-        type: '@xstate.event',
-        sourceRef: source,
-        actorRef: target,
-        event
-      });
-
-      target._send(event);
+      recordSent(source, target, event);
+      deliver(source, target, event);
     },
     scheduler,
     getSnapshot: () => {
@@ -240,7 +297,8 @@ export function createSystem<T extends ActorSystemInfo>(
       }
     },
     _clock: clock,
-    _logger: logger
+    _logger: logger,
+    _timerStrategy: options.timers
   };
 
   return system;

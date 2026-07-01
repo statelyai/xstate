@@ -1,22 +1,40 @@
+import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
-  ResolvedStateMachineTypes,
-  TODO,
   AnyActorRef,
   EventObject,
   AnyEventObject,
   Cast,
-  InternalMachineImplementations,
-  MachineConfig,
   MachineContext,
-  MachineTypes,
-  NonReducibleUnknown,
-  ParameterizedObject,
   ProvidedActor,
   StateValue,
   ToChildren,
-  MetaObject
+  MetaObject,
+  StateSchema,
+  DoNotInfer,
+  RoutableStateId,
+  Compute
 } from './types.ts';
+import {
+  Implementations,
+  DelayMapFromNames,
+  InferChildren,
+  InferOutput,
+  InferEvents,
+  Next_MachineConfig,
+  Next_StateNodeConfig,
+  ValidateDelayReferences,
+  ValidateTopLevelFinalOutputs,
+  WidenLiterals,
+  WithDefault
+} from './types.v6.ts';
+
+type MergeChildren<
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TActor extends ProvidedActor
+> = [keyof TChildren] extends [never]
+  ? Compute<ToChildren<TActor>>
+  : Compute<TChildren>;
 
 type TestValue =
   | string
@@ -73,84 +91,190 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
  * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })`
  *   to provide machine implementations instead.
  */
+// Overload 1: With schemas.context — context type inferred from schema
 export function createMachine<
-  TContext extends MachineContext,
-  TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
+  TContextSchema extends StandardSchemaV1,
+  const TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
+  TInputSchema extends StandardSchemaV1,
+  const TOutputSchema extends StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1,
+  TTagSchema extends StandardSchemaV1,
+  const TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
+  _TEvent extends EventObject,
   TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TTag extends string,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actorSources'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TDelays extends string,
+  TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
   TInput,
-  TOutput extends NonReducibleUnknown,
-  TEmitted extends EventObject,
-  TMeta extends MetaObject,
-  // it's important to have at least one default type parameter here
-  // it allows us to benefit from contextual type instantiation as it makes us to pass the hasInferenceCandidatesOrDefault check in the compiler
-  // we should be able to remove this when we start inferring TConfig, with it we'll always have an inference candidate
-  _ = any
+  const TSS extends StateSchema
 >(
-  config: {
-    types?: MachineTypes<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
+  config: TSS &
+    ValidateDelayReferences<TSS> &
+    Next_MachineConfig<
+      TContextSchema,
+      TEventSchemaMap,
+      TEmittedSchemaMap,
+      TInputSchema,
+      TOutputSchema,
+      TMetaSchema,
+      TTagSchema,
+      TChildrenSchemaMap,
+      InferOutput<TContextSchema, MachineContext>,
+      InferEvents<TEventSchemaMap>,
+      Cast<
+        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+        Record<string, AnyActorRef | undefined>
+      >,
+      TDelays,
       TTag,
-      TInput,
-      TOutput,
-      TEmitted,
-      TMeta
-    >;
-    schemas?: unknown;
-  } & MachineConfig<
-    TContext,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta
-  >,
-  implementations?: InternalMachineImplementations<
-    ResolvedStateMachineTypes<
-      TContext,
-      TEvent,
-      TActor,
-      TAction,
-      TGuard,
-      TDelay,
-      TTag,
-      TEmitted
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap
+    > & {
+      schemas: { context: TContextSchema; children?: TChildrenSchemaMap };
+    } & ValidateTopLevelFinalOutputs<
+      TSS,
+      InferOutput<TContextSchema, MachineContext>,
+      InferEvents<TEventSchemaMap>
     >
-  >
 ): StateMachine<
-  TContext,
-  TEvent,
-  Cast<ToChildren<TActor>, Record<string, AnyActorRef | undefined>>,
-  TActor,
-  TAction,
-  TGuard,
-  TDelay,
+  InferOutput<TContextSchema, MachineContext>,
+  | InferEvents<TEventSchemaMap>
+  | ([RoutableStateId<TSS>] extends [never]
+      ? never
+      : {
+          type: 'xstate.route';
+          to: RoutableStateId<TSS>;
+        }),
+  Cast<
+    MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+    Record<string, AnyActorRef | undefined>
+  >,
   StateValue,
   TTag & string,
   TInput,
-  TOutput,
-  TEmitted,
-  TMeta, // TMeta
-  TODO // TStateSchema
-> {
+  InferOutput<TOutputSchema, unknown>,
+  WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
+  InferOutput<TMetaSchema, MetaObject>, // TMeta
+  TSS, // TStateSchema
+  TActionMap,
+  TActorMap,
+  TGuardMap,
+  DelayMapFromNames<TDelays, TDelayMap>
+> & {
+  states: TSS;
+};
+
+// Overload 2: Without schemas.context — context type inferred from config.context
+export function createMachine<
+  TContext extends MachineContext = never,
+  const TEventSchemaMap extends Record<string, StandardSchemaV1> = Record<
+    string,
+    StandardSchemaV1
+  >,
+  TEmittedSchemaMap extends Record<string, StandardSchemaV1> = Record<
+    string,
+    StandardSchemaV1
+  >,
+  TInputSchema extends StandardSchemaV1 = StandardSchemaV1,
+  const TOutputSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TTagSchema extends StandardSchemaV1 = StandardSchemaV1,
+  const TChildrenSchemaMap extends Record<string, StandardSchemaV1> = Record<
+    string,
+    StandardSchemaV1
+  >,
+  _TEvent extends EventObject = EventObject,
+  TActor extends ProvidedActor = ProvidedActor,
+  TActionMap extends Implementations['actions'] = Implementations['actions'],
+  TActorMap extends
+    Implementations['actorSources'] = Implementations['actorSources'],
+  TGuardMap extends Implementations['guards'] = Implementations['guards'],
+  TDelayMap extends Implementations['delays'] = Implementations['delays'],
+  TDelays extends string = string,
+  TTag extends StandardSchemaV1.InferOutput<TTagSchema> &
+    string = StandardSchemaV1.InferOutput<TTagSchema> & string,
+  TInput = unknown,
+  const TSS extends StateSchema = StateSchema
+>(
+  config: TSS &
+    ValidateDelayReferences<TSS> &
+    Next_MachineConfig<
+      StandardSchemaV1,
+      TEventSchemaMap,
+      TEmittedSchemaMap,
+      TInputSchema,
+      TOutputSchema,
+      TMetaSchema,
+      TTagSchema,
+      TChildrenSchemaMap,
+      WidenLiterals<TContext>,
+      InferEvents<TEventSchemaMap>,
+      Cast<
+        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+        Record<string, AnyActorRef | undefined>
+      >,
+      TDelays,
+      TTag,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      false
+    > & {
+      schemas?: { context?: never };
+      // TContext inference site: the `const` state-schema inference above
+      // suppresses literal widening, so context is widened explicitly via
+      // WidenLiterals before being consumed by handlers and the snapshot.
+      context?:
+        | TContext
+        | ((_: {
+            spawn: any;
+            actorSources: TActorMap;
+            input: InferOutput<TInputSchema, unknown>;
+            self: any;
+          }) => TContext);
+    } & ValidateTopLevelFinalOutputs<
+      TSS,
+      WidenLiterals<TContext>,
+      InferEvents<TEventSchemaMap>
+    >
+): StateMachine<
+  WidenLiterals<TContext>,
+  | InferEvents<TEventSchemaMap>
+  | ([RoutableStateId<TSS>] extends [never]
+      ? never
+      : {
+          type: 'xstate.route';
+          to: RoutableStateId<TSS>;
+        }),
+  Cast<
+    MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+    Record<string, AnyActorRef | undefined>
+  >,
+  StateValue,
+  TTag & string,
+  TInput,
+  InferOutput<TOutputSchema, unknown>,
+  WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
+  InferOutput<TMetaSchema, MetaObject>, // TMeta
+  TSS, // TStateSchema
+  TActionMap,
+  TActorMap,
+  TGuardMap,
+  DelayMapFromNames<TDelays, TDelayMap>
+> & {
+  states: TSS;
+};
+
+// Implementation
+export function createMachine(config: any): any {
   return new StateMachine<
-    any,
-    any,
-    any,
-    any,
     any,
     any,
     any,
@@ -160,6 +284,49 @@ export function createMachine<
     any,
     any, // TEmitted
     any, // TMeta
-    any // TStateSchema
-  >(config as any, implementations as any);
+    any, // TStateSchema
+    any,
+    any,
+    any,
+    any
+  >(config) as any;
+}
+
+export function createStateConfig<
+  TContextSchema extends StandardSchemaV1,
+  TEventSchema extends StandardSchemaV1,
+  TEmittedSchema extends StandardSchemaV1,
+  _TInputSchema extends StandardSchemaV1,
+  const TOutputSchema extends StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1,
+  TTagSchema extends StandardSchemaV1,
+  // TContext extends MachineContext,
+  _TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
+  _TActor extends ProvidedActor,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actorSources'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TDelays extends string,
+  _TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
+  _TInput,
+  const TSS extends StateSchema
+>(
+  config: TSS &
+    Next_StateNodeConfig<
+      InferOutput<TContextSchema, MachineContext>,
+      DoNotInfer<StandardSchemaV1.InferOutput<TEventSchema> & EventObject>,
+      DoNotInfer<TDelays>,
+      DoNotInfer<StandardSchemaV1.InferOutput<TTagSchema> & string>,
+      DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
+      DoNotInfer<StandardSchemaV1.InferOutput<TEmittedSchema> & EventObject>,
+      DoNotInfer<InferOutput<TMetaSchema, MetaObject>>,
+      DoNotInfer<Record<string, AnyActorRef | undefined>>,
+      DoNotInfer<TActionMap>,
+      DoNotInfer<TActorMap>,
+      DoNotInfer<TGuardMap>,
+      DoNotInfer<TDelayMap>
+    >
+): typeof config {
+  return config;
 }

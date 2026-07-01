@@ -1,27 +1,26 @@
 import {
+  createLogic,
   createMachine,
-  fromTransition,
-  getNextSnapshot,
-  getInitialSnapshot
+  transition,
+  initialTransition
 } from '../src';
 
-describe('getNextSnapshot', () => {
-  it('should calculate the next snapshot for transition logic', () => {
-    const logic = fromTransition(
-      (state, event) => {
+describe('transition', () => {
+  it('should calculate the next snapshot for custom logic', () => {
+    const logic = createLogic({
+      context: { count: 0 },
+      run: ({ context, event }) => {
         if (event.type === 'next') {
-          return { count: state.count + 1 };
-        } else {
-          return state;
+          return { context: { count: context.count + 1 } };
         }
-      },
-      { count: 0 }
-    );
+        return;
+      }
+    });
 
-    const init = getInitialSnapshot(logic, undefined);
-    const s1 = getNextSnapshot(logic, init, { type: 'next' });
+    const [init] = initialTransition(logic, undefined);
+    const [s1] = transition(logic, init, { type: 'next' });
     expect(s1.context.count).toEqual(1);
-    const s2 = getNextSnapshot(logic, s1, { type: 'next' });
+    const [s2] = transition(logic, s1, { type: 'next' });
     expect(s2.context.count).toEqual(2);
   });
   it('should calculate the next snapshot for machine logic', () => {
@@ -30,24 +29,24 @@ describe('getNextSnapshot', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
           on: {
-            NEXT: 'c'
+            NEXT: { target: 'c' }
           }
         },
         c: {}
       }
     });
 
-    const init = getInitialSnapshot(machine, undefined);
-    const s1 = getNextSnapshot(machine, init, { type: 'NEXT' });
+    const [init] = initialTransition(machine, undefined);
+    const [s1] = transition(machine, init, { type: 'NEXT' });
 
     expect(s1.value).toEqual('b');
 
-    const s2 = getNextSnapshot(machine, s1, { type: 'NEXT' });
+    const [s2] = transition(machine, s1, { type: 'NEXT' });
 
     expect(s2.value).toEqual('c');
   });
@@ -59,9 +58,9 @@ describe('getNextSnapshot', () => {
       states: {
         a: {
           on: {
-            event: {
-              target: 'b',
-              actions: fn
+            event: (_, enq) => {
+              enq(fn);
+              return { target: 'b' };
             }
           }
         },
@@ -69,8 +68,8 @@ describe('getNextSnapshot', () => {
       }
     });
 
-    const init = getInitialSnapshot(machine, undefined);
-    const nextSnapshot = getNextSnapshot(machine, init, { type: 'event' });
+    const [init] = initialTransition(machine, undefined);
+    const [nextSnapshot] = transition(machine, init, { type: 'event' });
 
     expect(fn).not.toHaveBeenCalled();
     expect(nextSnapshot.value).toEqual('b');

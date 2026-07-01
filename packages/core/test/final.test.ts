@@ -1,10 +1,5 @@
-import {
-  createMachine,
-  createActor,
-  assign,
-  AnyActorRef,
-  sendParent
-} from '../src/index.ts';
+import { z } from 'zod';
+import { createMachine, createActor } from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 
 describe('final states', () => {
@@ -49,7 +44,7 @@ describe('final states', () => {
               initial: 'a',
               states: {
                 a: {
-                  on: { NEXT_1: 'b' }
+                  on: { NEXT_1: { target: 'b' } }
                 },
                 b: {
                   type: 'final'
@@ -60,7 +55,7 @@ describe('final states', () => {
               initial: 'a',
               states: {
                 a: {
-                  on: { NEXT_2: 'b' }
+                  on: { NEXT_2: { target: 'b' } }
                 },
                 b: {
                   type: 'final'
@@ -68,11 +63,13 @@ describe('final states', () => {
               }
             }
           },
-          onDone: {
-            target: 'bar',
-            actions: ({ event }) => {
+          onDone: ({ event }, enq) => {
+            enq(() => {
               onDoneSpy(event.type);
-            }
+            });
+            return {
+              target: 'bar'
+            };
           }
         },
         bar: {}
@@ -99,21 +96,23 @@ describe('final states', () => {
       states: {
         foo: {
           initial: 'bar',
-          onDone: { actions: () => actual.push('fooAction') },
+          onDone: (_, enq) => {
+            enq(() => actual.push('fooAction'));
+          },
           states: {
             bar: {
               initial: 'baz',
-              onDone: 'barFinal',
+              onDone: { target: 'barFinal' },
               states: {
                 baz: {
                   type: 'final',
-                  entry: () => actual.push('bazAction')
+                  entry: (_, enq) => enq(() => actual.push('bazAction'))
                 }
               }
             },
             barFinal: {
               type: 'final',
-              entry: () => actual.push('barAction')
+              entry: (_, enq) => enq(() => actual.push('barAction'))
             }
           }
         }
@@ -128,12 +127,12 @@ describe('final states', () => {
   it('should call output expressions on nested final nodes', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
-    interface Ctx {
-      revealedSecret?: string;
-    }
-
     const machine = createMachine({
-      types: {} as { context: Ctx },
+      schemas: {
+        context: z.object({
+          revealedSecret: z.string().optional()
+        })
+      },
       initial: 'secret',
       context: {
         revealedSecret: undefined
@@ -144,7 +143,7 @@ describe('final states', () => {
           states: {
             wait: {
               on: {
-                REQUEST_SECRET: 'reveal'
+                REQUEST_SECRET: { target: 'reveal' }
               }
             },
             reveal: {
@@ -154,13 +153,13 @@ describe('final states', () => {
               })
             }
           },
-          onDone: {
-            target: 'success',
-            actions: assign({
-              revealedSecret: ({ event }) => {
-                return (event.output as any).secret;
+          onDone: ({ event }) => {
+            return {
+              target: 'success',
+              context: {
+                revealedSecret: (event.output as any).secret
               }
-            })
+            };
           }
         },
         success: {
@@ -188,11 +187,16 @@ describe('final states', () => {
   it("should only call data expression once when entering root's final state", () => {
     const spy = vi.fn();
     const machine = createMachine({
+      schemas: {
+        events: {
+          FINISH: z.object({ value: z.number() })
+        }
+      },
       initial: 'start',
       states: {
         start: {
           on: {
-            FINISH: 'end'
+            FINISH: { target: 'end' }
           }
         },
         end: {
@@ -209,10 +213,10 @@ describe('final states', () => {
 
   it('output mapper should receive self', () => {
     const machine = createMachine({
-      types: {
-        output: {} as {
-          selfRef: AnyActorRef;
-        }
+      schemas: {
+        output: z.object({
+          selfRef: z.any()
+        })
       },
       initial: 'done',
       states: {
@@ -230,6 +234,11 @@ describe('final states', () => {
   it('state output should be able to use context updated by the entry action of the reached final state', () => {
     const spy = vi.fn();
     const machine = createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
@@ -240,22 +249,20 @@ describe('final states', () => {
           states: {
             a1: {
               on: {
-                NEXT: 'a2'
+                NEXT: { target: 'a2' }
               }
             },
             a2: {
               type: 'final',
-              entry: assign({
-                count: 1
+              entry: () => ({
+                context: {
+                  count: 1
+                }
               }),
               output: ({ context }) => context.count
             }
           },
-          onDone: {
-            actions: ({ event }) => {
-              spy(event.output);
-            }
-          }
+          onDone: ({ event }, enq) => enq(spy, event.output)
         }
       }
     });
@@ -280,7 +287,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_one_alpha: 'finish'
+                        finish_one_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -293,7 +300,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_two_alpha: 'finish'
+                        finish_two_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -311,7 +318,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_three_beta: 'finish'
+                        finish_three_beta: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -324,7 +331,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_four_beta: 'finish'
+                        finish_four_beta: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -335,7 +342,7 @@ describe('final states', () => {
               }
             }
           },
-          onDone: 'done'
+          onDone: { target: 'done' }
         },
         done: {
           type: 'final'
@@ -376,7 +383,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_one_alpha: 'finish'
+                        finish_one_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -389,7 +396,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_two_alpha: 'finish'
+                        finish_two_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -404,7 +411,7 @@ describe('final states', () => {
               states: {
                 three: {
                   on: {
-                    finish_beta: 'finish'
+                    finish_beta: { target: 'finish' }
                   }
                 },
                 finish: {
@@ -413,7 +420,7 @@ describe('final states', () => {
               }
             }
           },
-          onDone: 'done'
+          onDone: { target: 'done' }
         },
         done: {
           type: 'final'
@@ -454,7 +461,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_one_alpha: 'finish'
+                        finish_one_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -467,7 +474,7 @@ describe('final states', () => {
                   states: {
                     start: {
                       on: {
-                        finish_two_alpha: 'finish'
+                        finish_two_alpha: { target: 'finish' }
                       }
                     },
                     finish: {
@@ -482,7 +489,7 @@ describe('final states', () => {
               states: {
                 three: {
                   on: {
-                    finish_beta: 'finish'
+                    finish_beta: { target: 'finish' }
                   }
                 },
                 finish: {
@@ -491,7 +498,7 @@ describe('final states', () => {
               }
             }
           },
-          onDone: 'done'
+          onDone: { target: 'done' }
         },
         done: {
           type: 'final'
@@ -523,7 +530,7 @@ describe('final states', () => {
       states: {
         a: {
           type: 'parallel',
-          onDone: 'b',
+          onDone: { target: 'b' },
           states: {
             a1: {
               type: 'parallel',
@@ -555,7 +562,7 @@ describe('final states', () => {
       states: {
         a: {
           type: 'parallel',
-          onDone: 'b',
+          onDone: { target: 'b' },
           states: {
             a1: {
               type: 'parallel',
@@ -600,7 +607,9 @@ describe('final states', () => {
       [
         [
           {
-            "output": undefined,
+            "output": {
+              "a": undefined,
+            },
             "type": "xstate.done.state.(machine)",
           },
         ],
@@ -633,7 +642,9 @@ describe('final states', () => {
       [
         [
           {
-            "output": undefined,
+            "output": {
+              "a": undefined,
+            },
             "type": "xstate.done.state.(machine)",
           },
         ],
@@ -671,7 +682,11 @@ describe('final states', () => {
       [
         [
           {
-            "output": undefined,
+            "output": {
+              "a": {
+                "b": undefined,
+              },
+            },
             "type": "xstate.done.state.(machine)",
           },
         ],
@@ -701,11 +716,7 @@ describe('final states', () => {
               }
             }
           },
-          onDone: {
-            actions: ({ event }) => {
-              spy(event);
-            }
-          }
+          onDone: ({ event }, enq) => enq(spy, event)
         }
       }
     });
@@ -715,7 +726,11 @@ describe('final states', () => {
       [
         [
           {
-            "output": undefined,
+            "output": {
+              "b": {
+                "c": undefined,
+              },
+            },
             "type": "xstate.done.state.(machine).a",
           },
         ],
@@ -738,19 +753,13 @@ describe('final states', () => {
                   type: 'final'
                 }
               },
-              onDone: {
-                actions: spy
-              }
+              onDone: (_, enq) => enq(spy)
             }
           },
-          onDone: {
-            actions: spy
-          }
+          onDone: (_, enq) => enq(spy)
         }
       },
-      onDone: {
-        actions: spy
-      }
+      onDone: (_, enq) => enq(spy)
     });
     createActor(machine).start();
 
@@ -758,7 +767,6 @@ describe('final states', () => {
   });
 
   it('machine should not complete when a parallel child of a compound state completes', () => {
-    const spy = vi.fn();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -820,9 +828,7 @@ describe('final states', () => {
               type: 'final'
             }
           },
-          onDone: {
-            actions: spy
-          }
+          onDone: (_, enq) => enq(spy)
         }
       }
     });
@@ -838,7 +844,7 @@ describe('final states', () => {
       states: {
         a: {
           on: {
-            EV: 'b'
+            EV: { target: 'b' }
           }
         },
         b: {
@@ -875,7 +881,7 @@ describe('final states', () => {
           states: {
             child_a1: {
               on: {
-                EV2: 'child_a2'
+                EV2: { target: 'child_a2' }
               }
             },
             child_a2: {
@@ -888,7 +894,7 @@ describe('final states', () => {
           states: {
             child_b1: {
               on: {
-                EV1: 'child_b2'
+                EV1: { target: 'child_b2' }
               }
             },
             child_b2: {
@@ -931,7 +937,7 @@ describe('final states', () => {
           states: {
             child_a1: {
               on: {
-                EV2: 'child_a2'
+                EV2: { target: 'child_a2' }
               }
             },
             child_a2: {
@@ -944,7 +950,7 @@ describe('final states', () => {
           states: {
             child_b1: {
               on: {
-                EV1: 'child_b2'
+                EV1: { target: 'child_b2' }
               }
             },
             child_b2: {
@@ -986,7 +992,7 @@ describe('final states', () => {
           states: {
             child_a1: {
               on: {
-                EV: 'child_a2'
+                EV: { target: 'child_a2' }
               }
             },
             child_a2: {
@@ -999,7 +1005,7 @@ describe('final states', () => {
           states: {
             child_b1: {
               on: {
-                EV: 'child_b2'
+                EV: { target: 'child_b2' }
               }
             },
             child_b2: {
@@ -1120,16 +1126,17 @@ describe('final states', () => {
 
     const child = createMachine({
       initial: 'start',
-      exit: spy,
+      exit: (_, enq) => enq(spy),
       states: {
         start: {
           on: {
-            CANCEL: 'canceled'
+            CANCEL: { target: 'canceled' }
           }
         },
         canceled: {
           type: 'final',
-          entry: sendParent({ type: 'CHILD_CANCELED' })
+          entry: ({ parent }, enq) =>
+            enq.sendTo(parent, { type: 'CHILD_CANCELED' })
         }
       }
     });
@@ -1140,10 +1147,10 @@ describe('final states', () => {
           invoke: {
             id: 'child',
             src: child,
-            onDone: 'completed'
+            onDone: { target: 'completed' }
           },
           on: {
-            CHILD_CANCELED: 'canceled'
+            CHILD_CANCELED: { target: 'canceled' }
           }
         },
         canceled: {},
@@ -1166,12 +1173,13 @@ describe('final states', () => {
       states: {
         start: {
           on: {
-            CANCEL: 'canceled'
+            CANCEL: { target: 'canceled' }
           }
         },
         canceled: {
           type: 'final',
-          entry: sendParent({ type: 'CHILD_CANCELED' })
+          entry: ({ parent }, enq) =>
+            enq.sendTo(parent, { type: 'CHILD_CANCELED' })
         }
       }
     });
@@ -1182,10 +1190,10 @@ describe('final states', () => {
           invoke: {
             id: 'child',
             src: child,
-            onDone: 'completed'
+            onDone: { target: 'completed' }
           },
           on: {
-            CHILD_CANCELED: 'canceled'
+            CHILD_CANCELED: { target: 'canceled' }
           }
         },
         canceled: {},
@@ -1209,14 +1217,17 @@ describe('final states', () => {
       states: {
         start: {
           on: {
-            CANCEL: 'canceled'
+            CANCEL: { target: 'canceled' }
           }
         },
         canceled: {
           type: 'final'
         }
       },
-      exit: sendParent({ type: 'CHILD_CANCELED' })
+      // exit: sendParent({ type: 'CHILD_CANCELED' })
+      exit: ({ parent }) => {
+        parent?.send({ type: 'CHILD_CANCELED' });
+      }
     });
     const parent = createMachine({
       initial: 'start',
@@ -1225,10 +1236,10 @@ describe('final states', () => {
           invoke: {
             id: 'child',
             src: child,
-            onDone: 'completed'
+            onDone: { target: 'completed' }
           },
           on: {
-            CHILD_CANCELED: 'canceled'
+            CHILD_CANCELED: { target: 'canceled' }
           }
         },
         canceled: {},
@@ -1249,10 +1260,13 @@ describe('final states', () => {
   it('should be possible to complete with a null output (directly on root)', () => {
     const machine = createMachine({
       initial: 'start',
+      schemas: {
+        output: z.null()
+      },
       states: {
         start: {
           on: {
-            NEXT: 'end'
+            NEXT: { target: 'end' }
           }
         },
         end: {
@@ -1274,7 +1288,7 @@ describe('final states', () => {
       states: {
         start: {
           on: {
-            NEXT: 'end'
+            NEXT: { target: 'end' }
           }
         },
         end: {

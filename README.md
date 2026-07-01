@@ -134,7 +134,7 @@ npm install xstate
 ```
 
 ```ts
-import { createMachine, createActor, assign } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 
 // State machine
 const toggleMachine = createMachine({
@@ -150,7 +150,9 @@ const toggleMachine = createMachine({
       }
     },
     active: {
-      entry: assign({ count: ({ context }) => context.count + 1 }),
+      entry: ({ context }) => ({
+        context: { count: context.count + 1 }
+      }),
       on: {
         TOGGLE: { target: 'inactive' }
       }

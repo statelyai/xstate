@@ -1,6 +1,6 @@
 {
   "name": "@xstate/solid",
-  "version": "2.0.0",
+  "version": "3.0.0-alpha.0",
   "description": "XState tools for SolidJS",
   "keywords": [
     "state",
@@ -54,6 +54,7 @@
     "@solidjs/testing-library": "^0.8.10",
     "solid-js": "^1.9.7",
     "vite-plugin-solid": "^2.11.6",
-    "xstate": "workspace:^"
+    "xstate": "workspace:^",
+    "zod": "^3.25.51"
   }
 }

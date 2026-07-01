@@ -14,7 +14,8 @@ Please read [our code of conduct](https://github.com/statelyai/xstate/blob/main/
 
 ## Environment
 
-- Ensure you have the latest version of Node and Yarn.
+- Ensure you have a recent version of Node.
+- Run `corepack enable` once so the pnpm version pinned in `packageManager` is used automatically.
 - Run `pnpm i` to install all needed dev dependencies.
 
 ## Making changes

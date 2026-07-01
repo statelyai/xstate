@@ -3,7 +3,6 @@ import {
   getMicrosteps,
   getInitialMicrosteps
 } from '../src/index.ts';
-import { raise } from '../src/actions/raise';
 import { createInertActorScope } from '../src/getNextSnapshot.ts';
 
 describe('machine.microstep()', () => {
@@ -13,22 +12,23 @@ describe('machine.microstep()', () => {
       states: {
         start: {
           on: {
-            GO: 'a'
+            GO: { target: 'a' }
           }
         },
         a: {
-          entry: raise({ type: 'NEXT' }),
+          // entry: raise({ type: 'NEXT' }),
+          entry: (_, enq) => enq.raise({ type: 'NEXT' }),
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
-          always: 'c'
+          always: { target: 'c' }
         },
         c: {
-          entry: raise({ type: 'NEXT' }),
+          entry: (_, enq) => enq.raise({ type: 'NEXT' }),
           on: {
-            NEXT: 'd'
+            NEXT: { target: 'd' }
           }
         },
         d: {}
@@ -51,11 +51,11 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: 'second'
+            TRIGGER: { target: 'second' }
           }
         },
         second: {
-          always: 'third'
+          always: { target: 'third' }
         },
         third: {}
       }
@@ -77,15 +77,19 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: {
-              target: 'second',
-              actions: raise({ type: 'RAISED' })
+            // TRIGGER: {
+            //   target: 'second',
+            //   actions: raise({ type: 'RAISED' })
+            // }
+            TRIGGER: (_, enq) => {
+              enq.raise({ type: 'RAISED' });
+              return { target: 'second' };
             }
           }
         },
         second: {
           on: {
-            RAISED: 'third'
+            RAISED: { target: 'third' }
           }
         },
         third: {}
@@ -108,7 +112,7 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: 'second'
+            TRIGGER: { target: 'second' }
           }
         },
         second: {}
@@ -131,9 +135,14 @@ describe('machine.microstep()', () => {
       states: {
         first: {
           on: {
-            TRIGGER: {
-              target: 'second',
-              actions: [raise({ type: 'FOO' }), raise({ type: 'BAR' })]
+            // TRIGGER: {
+            //   target: 'second',
+            //   actions: [raise({ type: 'FOO' }), raise({ type: 'BAR' })]
+            // }
+            TRIGGER: (_, enq) => {
+              enq.raise({ type: 'FOO' });
+              enq.raise({ type: 'BAR' });
+              return { target: 'second' };
             }
           }
         },
@@ -152,7 +161,7 @@ describe('machine.microstep()', () => {
           }
         },
         fourth: {
-          always: 'fifth'
+          always: { target: 'fifth' }
         },
         fifth: {}
       }
@@ -181,21 +190,21 @@ describe('getMicrosteps', () => {
       states: {
         a: {
           on: {
-            GO: {
-              target: 'b',
-              actions: () => {}
+            GO: (_: any, enq: any) => {
+              enq(() => {});
+              return { target: 'b' };
             }
           }
         },
         b: {
           entry: () => {},
-          always: {
-            target: 'c',
-            actions: () => {}
+          always: (_: any, enq: any) => {
+            enq(() => {});
+            return { target: 'c' };
           }
         },
         c: {}
-      }
+      } as any
     });
 
     const actorScope = createInertActorScope(machine);
@@ -220,22 +229,23 @@ describe('getMicrosteps', () => {
       states: {
         a: {
           on: {
-            GO: {
-              target: 'b',
-              actions: [() => {}, raise({ type: 'NEXT' })]
+            GO: (_: any, enq: any) => {
+              enq.raise({ type: 'NEXT' });
+              enq(() => {});
+              return { target: 'b' };
             }
           }
         },
         b: {
           on: {
-            NEXT: {
-              target: 'c',
-              actions: () => {}
+            NEXT: (_: any, enq: any) => {
+              enq(() => {});
+              return { target: 'c' };
             }
           }
         },
         c: {}
-      }
+      } as any
     });
 
     const actorScope = createInertActorScope(machine);
@@ -273,15 +283,15 @@ describe('getInitialMicrosteps', () => {
       states: {
         a: {
           entry: () => {},
-          always: {
-            target: 'b',
-            actions: () => {}
+          always: (_: any, enq: any) => {
+            enq(() => {});
+            return { target: 'b' };
           }
         },
         b: {
           entry: () => {}
         }
-      }
+      } as any
     });
 
     const microsteps = getInitialMicrosteps(machine);
@@ -318,9 +328,9 @@ describe('getInitialMicrosteps', () => {
 
   it('should pass input to context function', () => {
     const machine = createMachine({
-      context: ({ input }: { input: { value: number } }) => ({
+      context: (({ input }: { input: { value: number } }) => ({
         count: input.value
-      }),
+      })) as any,
       initial: 'a',
       states: {
         a: {}

@@ -16,7 +16,7 @@
 import { defineComponent, PropType } from 'vue';
 import { useMachine } from '../src/index.ts';
 import { createMachine, assign, AnyState } from 'xstate';
-import { fromPromise } from 'xstate/actors';
+import { createAsyncLogic } from 'xstate/actors';
 
 const context = {
   data: undefined
@@ -60,8 +60,8 @@ export default defineComponent({
 
     const { snapshot, send, actorRef } = useMachine(
       fetchMachine.provide({
-        actors: {
-          fetchData: fromPromise(onFetch)
+        actorSources: {
+          fetchData: createAsyncLogic({ run: onFetch })
         }
       }),
       {

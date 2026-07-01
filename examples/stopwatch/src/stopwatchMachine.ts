@@ -1,15 +1,14 @@
-import { assign, fromCallback, setup } from 'xstate';
+import { createMachine, createCallbackLogic } from 'xstate';
 
-export const stopwatchMachine = setup({
-  actors: {
-    ticks: fromCallback(({ sendBack }) => {
+export const stopwatchMachine = createMachine({
+  actorSources: {
+    ticks: createCallbackLogic(({ sendBack }) => {
       const interval = setInterval(() => {
         sendBack({ type: 'TICK' });
       }, 10);
       return () => clearInterval(interval);
     })
-  }
-}).createMachine({
+  },
   id: 'stopwatch',
   initial: 'stopped',
   context: {
@@ -26,21 +25,24 @@ export const stopwatchMachine = setup({
         src: 'ticks'
       },
       on: {
-        TICK: {
-          actions: assign({
-            elapsed: ({ context }) => context.elapsed + 1
-          })
+        TICK: ({ context, event, guards, actions }, enq) => {
+          return {
+            context: {
+              ...context,
+              elapsed: (({ context }) => context.elapsed + 1)({
+                context: context,
+                event: event
+              })
+            }
+          };
         },
         stop: 'stopped'
       }
     }
   },
   on: {
-    reset: {
-      actions: assign({
-        elapsed: 0
-      }),
-      target: '.stopped'
+    reset: ({ context, event, guards, actions }, enq) => {
+      return { target: '.stopped', context: { ...context, elapsed: 0 } };
     }
   }
 });

@@ -1,21 +1,20 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
-
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
+import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#solving-math-problems-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     context: {} as {
       results: string[] | undefined;
     }
   },
-  actors: {
-    batchMathFunction: fromPromise(
-      async ({
-        input
-      }: {
-        input: {
+  actorSources: {
+    batchMathFunction: createAsyncLogic({
+      schemas: {
+        input: z.custom<{
           problems: string[];
-        };
-      }) => {
+        }>()
+      },
+      run: async ({ input }) => {
         return await Promise.all(
           input.problems.map(async (problem) => {
             console.log('solving', problem);
@@ -27,9 +26,8 @@ export const workflow = setup({
           })
         );
       }
-    )
-  }
-}).createMachine({
+    })
+  },
   id: 'math-problem',
   initial: 'Solve',
   context: {
@@ -42,11 +40,17 @@ export const workflow = setup({
         input: ({ event }) => ({
           problems: event.input.expressions
         }),
-        onDone: {
-          target: 'Solved',
-          actions: assign({
-            results: ({ event }) => event.output.map((r) => r.result)
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'Solved',
+            context: {
+              ...context,
+              results: (({ event }) => event.output.map((r) => r.result))({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },
@@ -58,17 +62,14 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     expressions: ['2+2', '4-1', '10x3', '20/2']
   }
 });
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();

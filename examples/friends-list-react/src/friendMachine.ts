@@ -1,6 +1,5 @@
-import { assign, fromPromise, setup } from 'xstate';
-
-export const friendMachine = setup({
+import { createMachine, createAsyncLogic } from 'xstate';
+export const friendMachine = createMachine({
   types: {
     context: {} as {
       prevName: string;
@@ -25,16 +24,16 @@ export const friendMachine = setup({
     },
     tags: {} as 'read' | 'form' | 'saving'
   },
-  actors: {
-    saveUser: fromPromise(async () => {
-      // Simulate network request
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return true;
+  actorSources: {
+    saveUser: createAsyncLogic({
+      run: async () => {
+        // Simulate network request
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return true;
+      }
     })
-  }
-}).createMachine({
+  },
   id: 'friend',
-
   initial: 'reading',
   context: ({ input }) => ({
     prevName: input.name,
@@ -50,8 +49,16 @@ export const friendMachine = setup({
     editing: {
       tags: 'form',
       on: {
-        SET_NAME: {
-          actions: assign({ name: ({ event }) => event.value })
+        SET_NAME: ({ context, event, guards, actions }, enq) => {
+          return {
+            context: {
+              ...context,
+              name: (({ event }) => event.value)({
+                context: context,
+                event: event
+              })
+            }
+          };
         },
         SAVE: {
           target: 'saving'
@@ -62,17 +69,33 @@ export const friendMachine = setup({
       tags: ['form', 'saving'],
       invoke: {
         src: 'saveUser',
-        onDone: {
-          target: 'reading',
-          actions: assign({ prevName: ({ context }) => context.name })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'reading',
+            context: {
+              ...context,
+              prevName: (({ context }) => context.name)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     }
   },
   on: {
-    CANCEL: {
-      actions: assign({ name: ({ context }) => context.prevName }),
-      target: '.reading'
+    CANCEL: ({ context, event, guards, actions }, enq) => {
+      return {
+        target: '.reading',
+        context: {
+          ...context,
+          name: (({ context }) => context.prevName)({
+            context: context,
+            event: event
+          })
+        }
+      };
     }
   }
 });

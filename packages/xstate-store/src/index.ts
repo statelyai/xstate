@@ -5,7 +5,8 @@ export {
   createAtom,
   createAtomConfig,
   createAsyncAtom,
-  createReducerAtom
+  createReducerAtom,
+  isAtom
 } from './atom.ts';
 export type { AsyncAtomOptions, AsyncAtomState } from './atom.ts';
 export type { StandardSchemaV1 } from './schema.ts';

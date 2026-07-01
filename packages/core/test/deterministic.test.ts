@@ -1,9 +1,9 @@
 import {
-  fromCallback,
   createActor,
   transition,
   createMachine,
-  getInitialSnapshot
+  initialTransition,
+  createCallbackLogic
 } from '../src/index.ts';
 
 describe('deterministic machine', () => {
@@ -12,32 +12,32 @@ describe('deterministic machine', () => {
     states: {
       green: {
         on: {
-          TIMER: 'yellow',
-          POWER_OUTAGE: 'red'
+          TIMER: { target: 'yellow' },
+          POWER_OUTAGE: { target: 'red' }
         }
       },
       yellow: {
         on: {
-          TIMER: 'red',
-          POWER_OUTAGE: 'red'
+          TIMER: { target: 'red' },
+          POWER_OUTAGE: { target: 'red' }
         }
       },
       red: {
         on: {
-          TIMER: 'green',
-          POWER_OUTAGE: 'red'
+          TIMER: { target: 'green' },
+          POWER_OUTAGE: { target: 'red' }
         },
         initial: 'walk',
         states: {
           walk: {
             on: {
-              PED_COUNTDOWN: 'wait',
+              PED_COUNTDOWN: { target: 'wait' },
               TIMER: undefined // forbidden event
             }
           },
           wait: {
             on: {
-              PED_COUNTDOWN: 'stop',
+              PED_COUNTDOWN: { target: 'stop' },
               TIMER: undefined // forbidden event
             }
           },
@@ -52,8 +52,8 @@ describe('deterministic machine', () => {
     states: {
       a: {
         on: {
-          T: 'b.b1',
-          F: 'c'
+          T: { target: 'b.b1' },
+          F: { target: 'c' }
         }
       },
       b: {
@@ -84,7 +84,7 @@ describe('deterministic machine', () => {
         initial: 'a',
         states: {
           a: {
-            on: { NEXT: 'b' }
+            on: { NEXT: { target: 'b' } }
           },
           b: {}
         }
@@ -106,7 +106,7 @@ describe('deterministic machine', () => {
       expect(() =>
         transition(
           lightMachine,
-          testMachine.resolveState({ value: 'red' }),
+          testMachine.resolveState({ value: 'red' }) as any,
           undefined as any
         )
       ).toThrow();
@@ -139,14 +139,14 @@ describe('deterministic machine', () => {
     });
 
     it('should use the machine.initialState when an undefined state is given', () => {
-      const init = getInitialSnapshot(lightMachine, undefined);
+      const [init] = initialTransition(lightMachine, undefined);
       expect(
         transition(lightMachine, init, { type: 'TIMER' })[0].value
       ).toEqual('yellow');
     });
 
     it('should use the machine.initialState when an undefined state is given (unhandled event)', () => {
-      const init = getInitialSnapshot(lightMachine, undefined);
+      const [init] = initialTransition(lightMachine, undefined);
       expect(
         transition(lightMachine, init, { type: 'TIMER' })[0].value
       ).toEqual('yellow');
@@ -202,7 +202,7 @@ describe('deterministic machine', () => {
             initial: 'b',
             states: {
               b: {
-                on: { NEXT: 'c' }
+                on: { NEXT: { target: 'c' } }
               },
               c: {}
             }
@@ -237,7 +237,7 @@ describe('deterministic machine', () => {
     });
 
     it('should return the same state if no transition occurs', () => {
-      const init = getInitialSnapshot(lightMachine, undefined);
+      const [init] = initialTransition(lightMachine, undefined);
       const [initialState] = transition(lightMachine, init, {
         type: 'NOTHING'
       });
@@ -251,29 +251,30 @@ describe('deterministic machine', () => {
   });
 
   describe('state key names', () => {
+    const activity = createCallbackLogic(() => () => {});
     const machine = createMachine(
       {
         initial: 'test',
         states: {
           test: {
-            invoke: [{ src: 'activity' }],
-            entry: ['onEntry'],
+            invoke: { src: activity },
+            entry: () => {},
             on: {
-              NEXT: 'test'
+              NEXT: { target: 'test' }
             },
-            exit: ['onExit']
+            exit: () => {}
           }
         }
-      },
-      {
-        actors: {
-          activity: fromCallback(() => () => {})
-        }
       }
+      // {
+      //   actorSources: {
+      //     activity: createCallbackLogic(() => () => {})
+      //   }
+      // }
     );
 
     it('should work with substate nodes that have the same key', () => {
-      const init = getInitialSnapshot(machine, undefined);
+      const [init] = initialTransition(machine, undefined);
       expect(transition(machine, init, { type: 'NEXT' })[0].value).toEqual(
         'test'
       );
