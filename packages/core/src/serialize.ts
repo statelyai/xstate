@@ -34,7 +34,7 @@ export interface CodeExpression {
 export function serializeMachine(
   machine: AnyStateMachine
 ): Record<string, unknown> {
-  return (machine as any)._json ?? machineConfigToJSON(machine.config as any);
+  return (machine as any)._json ?? machineConfigToJSON(machine.config);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
