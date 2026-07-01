@@ -11,6 +11,7 @@ import type {
   MachineContext,
   StateConfig,
   StateValue,
+  StateValueMap,
   AnyActorRef,
   Snapshot,
   MetaObject,
@@ -44,10 +45,12 @@ type MatchingObjectStateValue<
     [K in keyof TTestStateValue]: K extends keyof TStateValue
       ? NonNullable<TStateValue[K]> extends StateValue
         ? NonNullable<TTestStateValue[K]> extends StateValue
-          ? MatchingStateValue<
-              NonNullable<TStateValue[K]>,
-              NonNullable<TTestStateValue[K]>
-            > extends never
+          ? [
+              MatchingStateValue<
+                NonNullable<TStateValue[K]>,
+                NonNullable<TTestStateValue[K]>
+              >
+            ] extends [never]
             ? false
             : true
           : false
@@ -55,7 +58,14 @@ type MatchingObjectStateValue<
       : false;
   }>
     ? never
-    : TStateValue;
+    : {
+        [K in keyof TStateValue]: K extends keyof TTestStateValue
+          ? MatchingStateValue<
+              NonNullable<TStateValue[K]>,
+              NonNullable<TTestStateValue[K]>
+            >
+          : TStateValue[K];
+      };
 
 type MatchingStateValue<
   TStateValue extends StateValue,
@@ -64,30 +74,21 @@ type MatchingStateValue<
   ? TStateValue
   : string extends TTestStateValue
     ? TStateValue
-    : TTestStateValue extends string
-      ? TStateValue extends TTestStateValue
-        ? TStateValue
-        : TStateValue extends Record<string, unknown>
-          ? TTestStateValue extends keyof TStateValue
-            ? TStateValue
+    : TStateValue extends unknown
+      ? TTestStateValue extends string
+        ? TStateValue extends string
+          ? TTestStateValue extends TStateValue
+            ? TTestStateValue
+            : Extract<TStateValue, TTestStateValue>
+          : TStateValue extends Record<string, unknown>
+            ? TStateValue & Record<TTestStateValue, StateValue | undefined>
+            : never
+        : TTestStateValue extends Record<string, unknown>
+          ? TStateValue extends Record<string, unknown>
+            ? MatchingObjectStateValue<TStateValue, TTestStateValue>
             : never
           : never
-      : TTestStateValue extends Record<string, unknown>
-        ? TStateValue extends Record<string, unknown>
-          ? MatchingObjectStateValue<TStateValue, TTestStateValue>
-          : never
-        : never;
-
-type NarrowStateValue<TStateValue extends StateValue> =
-  StateValue extends TStateValue
-    ? never
-    : string extends TStateValue
-      ? never
-      : TStateValue extends Record<string, unknown>
-        ? string extends keyof TStateValue
-          ? never
-          : TStateValue
-        : TStateValue;
+      : never;
 
 let emptyCanActor: AnyActor | undefined;
 let emptyCanActorScope: AnyActorScope | undefined;
@@ -171,8 +172,22 @@ interface MachineSnapshotBase<
    *
    * @param partialStateValue
    */
-  matches<const TTestStateValue extends StateValue>(
-    partialStateValue: TTestStateValue & NarrowStateValue<TTestStateValue>
+  matches<const TTestStateValue extends string>(
+    partialStateValue: TTestStateValue,
+    ...args: string extends TTestStateValue ? [never] : []
+  ): this is MachineSnapshot<
+    StateContextFromStateValue<TStateSchema, TContext, TTestStateValue>,
+    TEvent,
+    TChildren,
+    MatchingStateValue<TStateValue, TTestStateValue>,
+    TTag,
+    _TOutput,
+    TMeta,
+    TStateSchema
+  >;
+  matches<const TTestStateValue extends StateValueMap>(
+    partialStateValue: TTestStateValue,
+    ...args: string extends keyof TTestStateValue ? [never] : []
   ): this is MachineSnapshot<
     StateContextFromStateValue<TStateSchema, TContext, TTestStateValue>,
     TEvent,

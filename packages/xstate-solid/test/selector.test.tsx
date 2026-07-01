@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from '@solidjs/testing-library';
 import {
   ActorRefFrom,
   AnyMachineSnapshot,
-  StateFrom,
+  SnapshotFrom,
   createMachine
 } from 'xstate';
 import { useActorRef, useMachine, fromActorRef } from '../src/index.ts';
@@ -36,8 +36,8 @@ describe('usage of selectors with reactive service state', () => {
       const service = useActorRef(machine);
       const serviceState = from(service);
 
-      const selector = (state: StateFrom<typeof machine> | undefined) =>
-        (state as any)?.context.count;
+      const selector = (state: SnapshotFrom<typeof machine> | undefined) =>
+        state?.context.count;
       rerenders++;
 
       return (

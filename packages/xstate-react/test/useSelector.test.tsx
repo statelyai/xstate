@@ -8,7 +8,7 @@ import {
   createLogic,
   createAsyncLogic,
   createActor,
-  StateFrom,
+  SnapshotFrom,
   LogicSnapshot,
   createMachine,
   setup,
@@ -362,7 +362,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         childActor: spawn(childMachine)
       })
     });
-    const selector = (state: StateFrom<typeof childMachine>) =>
+    const selector = (state: SnapshotFrom<typeof childMachine>) =>
       state.context.count;
 
     const App = () => {
