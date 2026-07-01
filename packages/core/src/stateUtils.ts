@@ -1418,7 +1418,7 @@ function microstep(
             throw new Error(
               isDevelopment
                 ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in machine '${currentSnapshot.machine.id}'`
-                : `Actor logic '${src}' not implemented`
+                : `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented`
             );
           }
 
