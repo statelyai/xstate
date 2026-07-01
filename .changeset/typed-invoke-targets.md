@@ -5,6 +5,9 @@
 Setup-bound invoke transition callbacks now validate target state context requirements for `onDone`, `onError`, `onSnapshot`, and `onTimeout`. `onDone` also infers output from the invoked actor logic.
 
 ```ts
+import { createAsyncLogic, setup } from 'xstate';
+import { z } from 'zod';
+
 const machine = setup({
   actorSources: {
     loadUser: createAsyncLogic({
@@ -12,6 +15,7 @@ const machine = setup({
     })
   },
   states: {
+    loading: {},
     success: {
       schemas: {
         context: z.object({
