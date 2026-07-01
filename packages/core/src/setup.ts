@@ -24,12 +24,17 @@ import {
   Cast,
   Compute,
   EnqueueObject,
+  DoneActorEvent,
+  DoneStateEvent,
+  ErrorActorEvent,
   SystemRegistry,
   RegistryKeyForLogic,
   ActorOptions,
   Observer,
   Subscription,
-  OutputArg
+  OutputArg,
+  SnapshotEvent,
+  SingleOrArray
 } from './types.ts';
 import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
@@ -44,7 +49,9 @@ import {
   InferOutput,
   InferEvents,
   Next_MachineConfig,
+  Next_InvokeConfig,
   Next_StateNodeConfig,
+  Next_TransitionConfigOrTarget,
   WithDefault
 } from './types.v6.ts';
 
@@ -577,6 +584,10 @@ type WithNestedStates<TConfig, TNestedStates> = TConfig extends {
   ? TConfig
   : Omit<TConfig, 'states'> & { states?: TNestedStates };
 
+type DistributiveOmit<T, K extends keyof any> = T extends any
+  ? Omit<T, K>
+  : never;
+
 /**
  * Converts SetupStateSchema to StateSchema with input types included. This
  * allows getInputs() to be strongly typed.
@@ -716,6 +727,7 @@ type SetupMachineConfig<
   | 'initial'
   | 'on'
   | 'always'
+  | 'invoke'
   | 'actions'
   | 'actorSources'
   | 'guards'
@@ -769,6 +781,22 @@ type SetupMachineConfig<
     TGuardMap,
     TDelayMap,
     TSystemRegistry
+  >;
+  invoke?: SingleOrArray<
+    SetupInvokeConfig<
+      TStateSchemas,
+      TContext,
+      SetupContextShape<TSchemas, TContextSchema, TContext>,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry
+    >
   >;
   states?: StatesWithInput<
     TStateSchemas,
@@ -866,7 +894,7 @@ type StateNodeConfigWithNestedInput<
       Record<string, unknown>,
       TSystemRegistry
     >,
-    'on' | 'always' | 'initial'
+    'on' | 'always' | 'initial' | 'invoke' | 'onDone'
   > & {
     initial?: TStateSchema['states'] extends Record<string, SetupStateSchema>
       ?
@@ -902,6 +930,37 @@ type StateNodeConfigWithNestedInput<
       StateContext<TStateSchema, TContext>,
       StateContextShape<TStateSchema, TContextShape>,
       TEvent,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry
+    >;
+    invoke?: SingleOrArray<
+      SetupInvokeConfig<
+        TSiblingStateSchemas,
+        StateContext<TStateSchema, TContext>,
+        StateContextShape<TStateSchema, TContextShape>,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry
+      >
+    >;
+    onDone?: StateTransitionConfigOrTarget<
+      TSiblingStateSchemas,
+      StateContext<TStateSchema, TContext>,
+      StateContextShape<TStateSchema, TContextShape>,
+      DoneStateEvent,
       TEvent,
       TEmitted,
       TChildren,
@@ -983,6 +1042,117 @@ type StateTransitions<
     TSystemRegistry
   >;
 };
+
+type InvokeDoneEvent<TInvoke> = TInvoke extends {
+  onDone?: Next_TransitionConfigOrTarget<
+    infer _TContext,
+    infer TDoneEvent,
+    infer _TEvent,
+    infer _TEmitted,
+    infer _TActionMap,
+    infer _TActorMap,
+    infer _TGuardMap,
+    infer _TDelayMap,
+    infer _TMeta
+  >;
+}
+  ? Cast<TDoneEvent, EventObject>
+  : DoneActorEvent;
+
+type SetupInvokeConfig<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext,
+  TContextShape,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TMeta extends MetaObject,
+  TActionMap extends Implementations['actions'],
+  TActorMap extends Implementations['actorSources'],
+  TGuardMap extends Implementations['guards'],
+  TDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry
+> =
+  Next_InvokeConfig<
+    TContext,
+    TEvent,
+    TEmitted,
+    TChildren,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta,
+    TSystemRegistry
+  > extends infer TInvoke
+    ? TInvoke extends any
+      ? DistributiveOmit<
+          TInvoke,
+          'onDone' | 'onError' | 'onSnapshot' | 'onTimeout'
+        > & {
+          onDone?: StateTransitionConfigOrTarget<
+            TStateSchemas,
+            TContext,
+            TContextShape,
+            InvokeDoneEvent<TInvoke>,
+            TEvent,
+            TEmitted,
+            TChildren,
+            TMeta,
+            TActionMap,
+            TActorMap,
+            TGuardMap,
+            TDelayMap,
+            TSystemRegistry
+          >;
+          onError?: StateTransitionConfigOrTarget<
+            TStateSchemas,
+            TContext,
+            TContextShape,
+            ErrorActorEvent,
+            TEvent,
+            TEmitted,
+            TChildren,
+            TMeta,
+            TActionMap,
+            TActorMap,
+            TGuardMap,
+            TDelayMap,
+            TSystemRegistry
+          >;
+          onSnapshot?: StateTransitionConfigOrTarget<
+            TStateSchemas,
+            TContext,
+            TContextShape,
+            SnapshotEvent<any>,
+            TEvent,
+            TEmitted,
+            TChildren,
+            TMeta,
+            TActionMap,
+            TActorMap,
+            TGuardMap,
+            TDelayMap,
+            TSystemRegistry
+          >;
+          onTimeout?: StateTransitionConfigOrTarget<
+            TStateSchemas,
+            TContext,
+            TContextShape,
+            TEvent,
+            TEvent,
+            TEmitted,
+            TChildren,
+            TMeta,
+            TActionMap,
+            TActorMap,
+            TGuardMap,
+            TDelayMap,
+            TSystemRegistry
+          >;
+        }
+      : never
+    : never;
 
 type StateTransitionConfigOrTarget<
   TStateSchemas extends Record<string, SetupStateSchema>,
