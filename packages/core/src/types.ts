@@ -1376,6 +1376,16 @@ export interface ErrorActorEvent<
   actorId: TId;
 }
 
+export interface ErrorPlatformEvent<
+  TErrorData = unknown,
+  TKind extends string = string
+> extends EventObject {
+  type: `xstate.error.${TKind}`;
+  error: TErrorData;
+}
+
+export type ErrorEvent = ErrorActorEvent | ErrorPlatformEvent;
+
 export interface SnapshotEvent<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>
 > extends EventObject {
@@ -2467,6 +2477,7 @@ export type StateSchema = {
   entry?: unknown;
   exit?: unknown;
   onDone?: unknown;
+  onError?: unknown;
   after?: unknown;
   always?: unknown;
   choice?: unknown;

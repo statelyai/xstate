@@ -7,6 +7,7 @@ import {
   type SubscriptionMappers
 } from './actors/subscription.ts';
 import { createActor } from './createActor.ts';
+import { createErrorPlatformEvent } from './eventUtils.ts';
 import { cloneMachineSnapshot } from './State.ts';
 import { getEventOutput } from './utils.ts';
 import type {
@@ -126,16 +127,23 @@ export function createTransitionEnqueue(
       return actor;
     },
     sendTo: (actor, event, options) => {
-      if (actor) {
-        pushBuiltInAction(
-          actions,
-          builtInActions['@xstate.sendTo'],
-          actorScope,
-          actor,
-          event,
-          options
+      if (!actor) {
+        internalEvents.push(
+          createErrorPlatformEvent('communication', {
+            message: 'Unable to send event to an undefined actor',
+            event
+          })
         );
+        return;
       }
+      pushBuiltInAction(
+        actions,
+        builtInActions['@xstate.sendTo'],
+        actorScope,
+        actor,
+        event,
+        options
+      );
     },
     stop: (actor) => {
       if (actor) {

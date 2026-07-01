@@ -13,6 +13,7 @@ import {
   DoNotInfer,
   ErrorActorEvent,
   EventDescriptor,
+  ErrorEvent,
   EventObject,
   ExtractEvent,
   InitialContext,
@@ -937,6 +938,7 @@ interface Next_ChoiceStateNodeConfig<
   entry?: never;
   exit?: never;
   onDone?: never;
+  onError?: never;
   after?: never;
   timeout?: never;
   onTimeout?: never;
@@ -1093,6 +1095,21 @@ interface Next_RegularStateNodeConfig<
   onDone?: Next_TransitionConfigOrTarget<
     TContext,
     DoneStateEvent,
+    TEvent,
+    TEmitted,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TMeta
+  >;
+  /**
+   * The transition to take when an `xstate.error.*` event is raised while this
+   * state node or one of its descendants is active.
+   */
+  onError?: Next_TransitionConfigOrTarget<
+    TContext,
+    ErrorEvent,
     TEvent,
     TEmitted,
     TActionMap,

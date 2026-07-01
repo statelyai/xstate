@@ -304,6 +304,7 @@
           "additionalProperties": { "$ref": "#/$defs/stateNode" }
         },
         "on": { "$ref": "#/$defs/transitionMap" },
+        "onError": { "$ref": "#/$defs/transitionOrArray" },
         "after": { "$ref": "#/$defs/transitionMap" },
         "always": { "$ref": "#/$defs/transitionOrArray" },
         "choice": { "$ref": "#/$defs/choice" },

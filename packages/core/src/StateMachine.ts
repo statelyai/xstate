@@ -1,6 +1,6 @@
 import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
-import { createInitEvent } from './eventUtils.ts';
+import { createErrorPlatformEvent, createInitEvent } from './eventUtils.ts';
 
 import { createSpawner } from './spawn.ts';
 import {
@@ -33,6 +33,7 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
+  AnyMachineSnapshot,
   AnyTransitionDefinition,
   Equals,
   EventDescriptor,
@@ -701,20 +702,41 @@ export class StateMachine<
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
     const preInitialState = this._getPreInitialState(actorScope, initEvent);
-    const [nextState, initialActions] = initialMicrostep(
-      this.root,
-      preInitialState,
-      actorScope,
-      initEvent,
-      internalQueue
-    );
+    let nextState: AnyMachineSnapshot;
+    let initialActions: readonly unknown[] = [];
+    let microsteps: Array<readonly [unknown, readonly unknown[]]> = [];
+    let macroState: AnyMachineSnapshot;
 
-    const { snapshot: macroState, microsteps } = macrostep(
-      nextState,
-      initEvent as AnyEventObject,
-      actorScope,
-      internalQueue
-    );
+    try {
+      [nextState, initialActions] = initialMicrostep(
+        this.root,
+        preInitialState,
+        actorScope,
+        initEvent,
+        internalQueue
+      );
+
+      ({ snapshot: macroState, microsteps } = macrostep(
+        nextState,
+        initEvent as AnyEventObject,
+        actorScope,
+        internalQueue
+      ));
+    } catch (err) {
+      if (!this.root.config.onError) {
+        throw err;
+      }
+      const errorEvent = createErrorPlatformEvent('execution', err);
+      const errorMacrostep = macrostep(
+        preInitialState,
+        errorEvent,
+        actorScope,
+        []
+      );
+      macroState = errorMacrostep.snapshot;
+      microsteps = errorMacrostep.microsteps;
+      initialActions = [];
+    }
 
     return [
       macroState as SnapshotFrom<this>,

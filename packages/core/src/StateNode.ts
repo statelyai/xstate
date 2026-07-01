@@ -422,6 +422,15 @@ function formatTransitions<
       )
     );
   }
+  if (stateNode.config.onError) {
+    const descriptor = 'xstate.error.*';
+    transitions.set(
+      descriptor,
+      mapTransitionConfigs(stateNode.config.onError, (transition) =>
+        formatTransition(stateNode, descriptor, transition)
+      )
+    );
+  }
   const createCancelInvokeTimeoutTransition = (
     descriptor: string,
     timeoutEventType: string

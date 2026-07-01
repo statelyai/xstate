@@ -30,6 +30,12 @@ describe('SCXML to XState conversion', () => {
           "idle": {
             "id": "idle",
             "on": {
+              "START": {
+                "reenter": true,
+                "target": [
+                  "#running",
+                ],
+              },
               "START.*": {
                 "reenter": true,
                 "target": [
@@ -41,6 +47,12 @@ describe('SCXML to XState conversion', () => {
           "running": {
             "id": "running",
             "on": {
+              "STOP": {
+                "reenter": true,
+                "target": [
+                  "#idle",
+                ],
+              },
               "STOP.*": {
                 "reenter": true,
                 "target": [
@@ -111,6 +123,12 @@ describe('SCXML to XState conversion', () => {
           "child1": {
             "id": "child1",
             "on": {
+              "NEXT": {
+                "reenter": true,
+                "target": [
+                  "#child2",
+                ],
+              },
               "NEXT.*": {
                 "reenter": true,
                 "target": [
@@ -122,6 +140,12 @@ describe('SCXML to XState conversion', () => {
           "child2": {
             "id": "child2",
             "on": {
+              "EXIT": {
+                "reenter": true,
+                "target": [
+                  "#outside",
+                ],
+              },
               "EXIT.*": {
                 "reenter": true,
                 "target": [
@@ -170,6 +194,12 @@ describe('SCXML to XState conversion', () => {
                 "a": {
                   "id": "a",
                   "on": {
+                    "TO_B": {
+                      "reenter": true,
+                      "target": [
+                        "#b",
+                      ],
+                    },
                     "TO_B.*": {
                       "reenter": true,
                       "target": [
@@ -190,6 +220,12 @@ describe('SCXML to XState conversion', () => {
                 "x": {
                   "id": "x",
                   "on": {
+                    "TO_Y": {
+                      "reenter": true,
+                      "target": [
+                        "#y",
+                      ],
+                    },
                     "TO_Y.*": {
                       "reenter": true,
                       "target": [
@@ -571,10 +607,9 @@ describe('SCXML to XState conversion', () => {
           {
             "actions": [
               {
-                "event": {
-                  "type": "INTERNAL_EVENT",
-                },
-                "type": "@xstate.raise",
+                "event": "INTERNAL_EVENT",
+                "target": "#_internal",
+                "type": "scxml.raise",
               },
             ],
           }
@@ -600,10 +635,8 @@ describe('SCXML to XState conversion', () => {
             "actions": [
               {
                 "delay": 500,
-                "event": {
-                  "type": "DELAYED",
-                },
-                "type": "@xstate.raise",
+                "event": "DELAYED",
+                "type": "scxml.raise",
               },
             ],
           }
@@ -626,7 +659,19 @@ describe('SCXML to XState conversion', () => {
 
       expect(toPortableJSON(json.states!.idle.on)).toMatchInlineSnapshot(`
         {
+          "RESUME": {
+            "reenter": true,
+            "target": [
+              "#active",
+            ],
+          },
           "RESUME.*": {
+            "reenter": true,
+            "target": [
+              "#active",
+            ],
+          },
+          "START": {
             "reenter": true,
             "target": [
               "#active",
@@ -712,10 +757,8 @@ describe('SCXML to XState conversion', () => {
           "actions": [
             {
               "delay": 100,
-              "event": {
-                "type": "DELAYED",
-              },
-              "type": "@xstate.raise",
+              "event": "DELAYED",
+              "type": "scxml.raise",
             },
           ],
         }
@@ -740,10 +783,8 @@ describe('SCXML to XState conversion', () => {
           "actions": [
             {
               "delay": 2000,
-              "event": {
-                "type": "DELAYED",
-              },
-              "type": "@xstate.raise",
+              "event": "DELAYED",
+              "type": "scxml.raise",
             },
           ],
         }
@@ -768,10 +809,8 @@ describe('SCXML to XState conversion', () => {
           "actions": [
             {
               "delay": 1500,
-              "event": {
-                "type": "DELAYED",
-              },
-              "type": "@xstate.raise",
+              "event": "DELAYED",
+              "type": "scxml.raise",
             },
           ],
         }
@@ -796,10 +835,8 @@ describe('SCXML to XState conversion', () => {
           "actions": [
             {
               "delay": 1500,
-              "event": {
-                "type": "DELAYED",
-              },
-              "type": "@xstate.raise",
+              "event": "DELAYED",
+              "type": "scxml.raise",
             },
           ],
         }
@@ -827,6 +864,12 @@ describe('SCXML to XState conversion', () => {
           "state$one": {
             "id": "state$one",
             "on": {
+              "GO": {
+                "reenter": true,
+                "target": [
+                  "#state$two",
+                ],
+              },
               "GO.*": {
                 "reenter": true,
                 "target": [

@@ -1,5 +1,10 @@
 import { XSTATE_INIT } from './constants.ts';
-import { DoneActorEvent, DoneStateEvent, ErrorActorEvent } from './types.ts';
+import {
+  DoneActorEvent,
+  DoneStateEvent,
+  ErrorActorEvent,
+  ErrorPlatformEvent
+} from './types.ts';
 
 /**
  * Returns an event that represents an implicit event that is sent after the
@@ -74,6 +79,13 @@ export function createErrorActorEvent(
   error?: unknown
 ): ErrorActorEvent {
   return { type: `xstate.error.actor.${id}`, error, actorId: id };
+}
+
+export function createErrorPlatformEvent(
+  kind: string,
+  error?: unknown
+): ErrorPlatformEvent {
+  return { type: `xstate.error.${kind}`, error };
 }
 
 export function createInitEvent(input: unknown) {

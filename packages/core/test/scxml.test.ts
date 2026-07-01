@@ -199,7 +199,7 @@ const testGroups: Record<string, string[]> = {
     'test286.txml',
     'test287.txml',
     'test294.txml',
-    // 'test298.txml', // error.execution when evaluating donedata
+    // 'test298.txml', // TODO: evaluate <donedata> before done.state so error.execution wins
     // 'test302.txml', // <script> with src attribute not supported
     // 'test303-1.txml', // <script> src timing
     // 'test303-2.txml', // <script> src timing
@@ -222,7 +222,7 @@ const testGroups: Record<string, string[]> = {
     // 'test326.txml', // _ioprocessors immutability
     // 'test329.txml', // system variables can't be modified
     'test330.txml',
-    // 'test331.txml', // requires error.execution platform events
+    'test331.txml',
     // 'test332.txml', // idlocation not implemented
     'test333.txml',
     'test335.txml',
@@ -231,7 +231,7 @@ const testGroups: Record<string, string[]> = {
     'test338.txml',
     'test339.txml',
     'test342.txml',
-    // 'test343.txml', // error.execution when evaluating donedata
+    // 'test343.txml', // TODO: evaluate <donedata> before done.state so error.execution wins
     'test344.txml',
     // 'test346.txml', // system variables can't be modified, we don't keep them in datamodel, so it might be hard to run this test
     'test347.txml',
@@ -252,7 +252,7 @@ const testGroups: Record<string, string[]> = {
     // 'test388.txml', // deep initial states are not supported
     'test396.txml',
     'test399.txml',
-    // 'test401.txml', // assign to undeclared datamodel location should raise error.execution; we permit any context property
+    'test401.txml',
     'test402.txml',
     'test403a.txml',
     'test403b.txml',
@@ -287,7 +287,7 @@ const testGroups: Record<string, string[]> = {
     // 'test487.txml', // this has a syntax error on purpose, so it's not included
     // 'test488.txml', // donedata <param expr> error must precede done.state event; XState evaluates output during done dispatch
     'test495.txml',
-    // 'test496.txml', // error.communication not implemented yet
+    'test496.txml',
     // 'test500.txml', // _ioprocessors not yet available for expressions
     // 'test501.txml', // _ioprocessors not yet available for expressions
     'test503.txml',
@@ -299,11 +299,11 @@ const testGroups: Record<string, string[]> = {
     // 'test518.txml', // Basic HTTP Event I/O processor not implemented
     // 'test519.txml', // Basic HTTP Event I/O processor not implemented
     // 'test520.txml', // Basic HTTP Event I/O processor not implemented
-    // 'test521.txml', // error.communication not implemented yet
+    'test521.txml',
     // 'test522.txml', // Basic HTTP Event I/O processor not implemented
     'test525.txml',
     'test527.txml',
-    // 'test528.txml', // <donedata> + error.execution
+    // 'test528.txml', // TODO: evaluate <donedata> before done.state so error.execution wins
     'test529.txml',
     // 'test530.txml', // <content expr="..."> dynamic invoke content not implemented
     // 'test531.txml', // Basic HTTP Event I/O processor not implemented

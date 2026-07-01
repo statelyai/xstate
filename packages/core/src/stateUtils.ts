@@ -13,7 +13,11 @@ import {
   STATE_IDENTIFIER,
   XSTATE_STOP
 } from './constants.ts';
-import { getEventOutput, matchesEventDescriptor } from './utils.ts';
+import {
+  getEventOutput,
+  isErrorEvent,
+  matchesEventDescriptor
+} from './utils.ts';
 import {
   AnyEventObject,
   AnyMachineSnapshot,
@@ -1820,7 +1824,7 @@ export function macrostep(
   // Determine the next state based on the next microstep
   if (nextEvent.type !== XSTATE_INIT) {
     const currentEvent = nextEvent;
-    const isErr = isErrorActorEvent(currentEvent);
+    const isErr = isErrorEvent(currentEvent);
 
     const transitions = nextSnapshot.machine.getTransitionData(
       nextSnapshot as any,

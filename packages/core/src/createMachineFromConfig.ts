@@ -21,6 +21,16 @@ function delayToMs(delay: string | number): number {
   return typeof delay === 'string' ? parseFloat(delay) || 0 : delay;
 }
 
+function normalizeScxmlEventType(eventType: string): string {
+  return /^error(\.|$)/.test(eventType) ? `xstate.${eventType}` : eventType;
+}
+
+function toScxmlEventName(eventType: string): string {
+  return eventType.startsWith('xstate.error.')
+    ? eventType.slice('xstate.'.length)
+    : eventType;
+}
+
 export interface RaiseJSON {
   type: '@xstate.raise';
   event: EventObject;
@@ -207,6 +217,7 @@ export interface StateNodeJSON {
   initial?: string;
   states?: Record<string, StateNodeJSON>;
   on?: Record<string, TransitionConfigJSON | TransitionConfigJSON[]>;
+  onError?: TransitionConfigJSON | TransitionConfigJSON[];
   after?: Record<string, TransitionConfigJSON | TransitionConfigJSON[]>;
   always?: TransitionConfigJSON | TransitionConfigJSON[];
   choice?: ChoiceBranchJSON[] | ResolvableJSON;
@@ -685,6 +696,7 @@ function assertMachineJSON(
       }
     }
     assertTransition(node.always, `${path}.always`);
+    assertTransition(node.onError, `${path}.onError`);
     assertTransition(node.onTimeout, `${path}.onTimeout`);
     if (node.states) {
       for (const key of Object.keys(node.states)) {
@@ -726,7 +738,7 @@ function assertMachineJSON(
   assertStateNode(json, '$');
 }
 
-let _scxmlSessionId = 'session_' + Math.random().toString(36).slice(2);
+let _scxmlSessionId = 'session_scxml';
 let _scxmlMachineName = '';
 
 /** Evaluates an SCXML expression with context variables available via `with`. */
@@ -767,7 +779,7 @@ with (context) {
     }
     return false;
   };
-  const SCXML_ORIGIN = '#_scxml_session';
+  const SCXML_ORIGIN = `#_scxml_${_scxmlSessionId}`;
   const SCXML_ORIGIN_TYPE = 'http://www.w3.org/TR/scxml/#SCXMLEventProcessor';
   const isExternal = event && (event as any)._scxmlExternal;
   const isInitEvent = event && event.type === '@xstate.init';
@@ -785,7 +797,9 @@ with (context) {
   const scxmlEvent =
     event && !isInitEvent
       ? {
-          name: event.type,
+          name:
+            ((event as any)._scxmlEventName as string | undefined) ??
+            toScxmlEventName(event.type),
           type: explicitType || (isExternal ? 'external' : 'internal'),
           sendid: (event as any)._scxmlSendId as string | undefined,
           origin: isExternal ? SCXML_ORIGIN : undefined,
@@ -998,8 +1012,10 @@ export function createMachineFromConfig(
       while (pendingPlatformErrors.length) {
         const err = pendingPlatformErrors.shift()!;
         enq.raise({
-          type: 'error.execution',
+          type: 'xstate.error.execution',
+          error: err,
           _scxmlEventType: 'platform',
+          _scxmlEventName: 'error.execution',
           _scxmlEventData: err
         } as AnyEventObject);
       }
@@ -1120,6 +1136,7 @@ export function createMachineFromConfig(
           )
         : undefined,
       always: node.always ? getTransitionConfig(node.always) : undefined,
+      onError: node.onError ? getTransitionConfig(node.onError) : undefined,
       choice: makeChoiceConfig(node.choice, `$.states.${nodeKey}.choice`),
       route: resolveRouteConfig(node.route, `$.states.${nodeKey}.route`),
       after: node.after
@@ -1257,8 +1274,16 @@ export function createMachineFromConfig(
           ? err
           : 'unknown error';
     state.enq.raise({
-      type: 'error.execution',
+      type: 'xstate.error.execution',
+      error: {
+        tagname,
+        message,
+        line: NaN,
+        column: NaN,
+        reason: message
+      },
       _scxmlEventType: 'platform',
+      _scxmlEventName: 'error.execution',
       _scxmlEventData: {
         tagname,
         message,
@@ -1443,8 +1468,12 @@ export function createMachineFromConfig(
                 x.self
               ) as string)
             : scxmlAction.event || 'unknown';
+          eventType = normalizeScxmlEventType(eventType);
 
-          eventData = { type: eventType };
+          eventData = {
+            type: eventType,
+            _scxmlEventName: toScxmlEventName(eventType)
+          };
           if (scxmlAction.params) {
             for (const param of scxmlAction.params) {
               eventData[param.name] = evaluateExpr(
@@ -1524,25 +1553,53 @@ export function createMachineFromConfig(
           const childRef = x.children?.[childId];
           if (childRef) {
             enq.sendTo(childRef, eventData as AnyEventObject);
+          } else if (
+            childId.startsWith('scxml_') &&
+            childId !== `scxml_${_scxmlSessionId}`
+          ) {
+            const message = `Unable to dispatch event to target: ${target}`;
+            enq.raise({
+              type: 'xstate.error.communication',
+              error: {
+                tagname: 'send',
+                message,
+                line: NaN,
+                column: NaN,
+                reason: message
+              },
+              _scxmlEventType: 'platform',
+              _scxmlEventName: 'error.communication',
+              _scxmlEventData: {
+                tagname: 'send',
+                message,
+                line: NaN,
+                column: NaN,
+                reason: message
+              }
+            } as AnyEventObject);
           } else {
-            // Not a known child (e.g. #_scxml_sessionid) → self-raise
-            if (delay !== undefined) {
-              (eventData as any)._scxmlExternal = true;
-            }
-            enq.raise(eventData as AnyEventObject, {
+            // This SCXML session id uses the external event queue.
+            (eventData as any)._scxmlExternal = true;
+            enq.sendTo(x.self, eventData as AnyEventObject, {
               id: scxmlAction.id,
               delay
             });
           }
         } else {
-          // Self-send or no special target: raise as external event
-          if (delay !== undefined) {
+          // #_internal uses the internal queue; self-send/no target use the
+          // external event queue.
+          if (isInternalTarget) {
+            enq.raise(eventData as AnyEventObject, {
+              id: scxmlAction.id,
+              delay
+            });
+          } else {
             (eventData as any)._scxmlExternal = true;
+            enq.sendTo(x.self, eventData as AnyEventObject, {
+              id: scxmlAction.id,
+              delay
+            });
           }
-          enq.raise(eventData as AnyEventObject, {
-            id: scxmlAction.id,
-            delay
-          });
         }
       } else if (action.type === 'scxml.cancel') {
         const scxmlAction = action as ScxmlCancelJSON;
@@ -1885,7 +1942,7 @@ export function createMachineFromConfig(
     : {};
 
   _scxmlMachineName = json.id || '';
-  _scxmlSessionId = 'session_' + Math.random().toString(36).slice(2);
+  _scxmlSessionId = 'session_scxml';
 
   const machine = createMachine({
     ...rootNodeConfig,

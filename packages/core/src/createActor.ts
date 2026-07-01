@@ -5,6 +5,7 @@ import { XSTATE_STOP } from './constants.ts';
 import {
   createDoneActorEvent,
   createErrorActorEvent,
+  createErrorPlatformEvent,
   createInitEvent
 } from './eventUtils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
@@ -411,6 +412,42 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
+  private _tryHandleExecutionError(
+    err: unknown,
+    snapshot: SnapshotFrom<TLogic> = this._snapshot
+  ): boolean {
+    if ((snapshot as any)?.status !== 'active' || !(snapshot as any)?._nodes) {
+      return false;
+    }
+    if (
+      !(snapshot as any)._nodes.some(
+        (stateNode: { config: { onError?: unknown } }) =>
+          stateNode.config.onError
+      )
+    ) {
+      return false;
+    }
+
+    const errorEvent = createErrorPlatformEvent(
+      'execution',
+      err
+    ) as EventFromLogic<TLogic>;
+
+    try {
+      const [nextSnapshot, effects] = this.logic.transition(
+        snapshot,
+        errorEvent,
+        this._actorScope
+      );
+      const logicEffects = executeExecutableEffects(effects, this._actorScope);
+      this.update(nextSnapshot, errorEvent);
+      executeLogicEffects(logicEffects, this._actorScope);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   private _next(snapshot: SnapshotFrom<TLogic>) {
     for (const observer of this.observers) {
       try {
@@ -437,6 +474,9 @@ export class Actor<TLogic extends AnyActorLogic>
         // no "builtin deferred" should actually throw an error since they are either safe
         // or the control flow is passed through the mailbox and errors should be caught by the `_process` used by the mailbox
         this._deferred.length = 0;
+        if (this._tryHandleExecutionError(err, snapshot)) {
+          return;
+        }
         this._setErrorSnapshot(err, snapshot);
         break;
       }
@@ -506,6 +546,9 @@ export class Actor<TLogic extends AnyActorLogic>
     } catch (err) {
       this._initialEffects = undefined;
       this._deferred.length = 0;
+      if (this._tryHandleExecutionError(err)) {
+        return (this._snapshot as any).status === 'active';
+      }
       this._setErrorSnapshot(err);
       this._error(err);
       return false;
@@ -798,17 +841,25 @@ export class Actor<TLogic extends AnyActorLogic>
     if (caughtError) {
       const { err } = caughtError;
 
+      if (this._tryHandleExecutionError(err)) {
+        return;
+      }
       this._setErrorSnapshot(err);
       this._error(err);
       return;
     }
 
+    let snapshot: SnapshotFrom<TLogic>;
     try {
-      const [snapshot, effects] = nextState;
+      const [nextSnapshot, effects] = nextState;
+      snapshot = nextSnapshot;
       const logicEffects = executeExecutableEffects(effects, this._actorScope);
       this.update(snapshot, event);
       executeLogicEffects(logicEffects, this._actorScope);
     } catch (err) {
+      if (this._tryHandleExecutionError(err, snapshot!)) {
+        return;
+      }
       this._setErrorSnapshot(err);
       this._error(err);
       return;

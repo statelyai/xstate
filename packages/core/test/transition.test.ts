@@ -362,7 +362,7 @@ describe('transition function', () => {
     );
   });
 
-  it('enq.sendTo with an undefined actor is a no-op in a transition function', () => {
+  it('enq.sendTo with an undefined actor does not return a sendTo action from a transition function', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -377,11 +377,12 @@ describe('transition function', () => {
     });
 
     const [state] = initialTransition(machine);
-    const [, actions] = transition(machine, state, { type: 'NEXT' });
+    const [nextState, actions] = transition(machine, state, { type: 'NEXT' });
 
     expect(actions.some((a) => (a as any).type === '@xstate.sendTo')).toBe(
       false
     );
+    expect(nextState.status).toBe('active');
   });
 
   it('enq.spawn creates and starts a child once from a transition function', () => {

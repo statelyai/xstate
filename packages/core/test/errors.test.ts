@@ -9,6 +9,8 @@ import {
   ActorLogic,
   Snapshot
 } from '../src';
+import { createMachineFromConfig } from '../src/createMachineFromConfig';
+import { toMachineJSON } from '../src/scxml';
 import z from 'zod';
 
 // mocked reportUnhandledError due to unknown issue with vitest and global error
@@ -25,6 +27,13 @@ vi.mock('../src/reportUnhandledError.ts', () => {
 });
 
 const cleanups: (() => void)[] = [];
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error
+    ? error.message
+    : typeof error === 'object' && error && 'message' in error
+      ? String(error.message)
+      : String(error);
+
 function installGlobalOnErrorHandler(handler: (ev: ErrorEvent) => void) {
   window.addEventListener('error', handler);
   cleanups.push(() => window.removeEventListener('error', handler));
@@ -994,5 +1003,246 @@ describe('error handling', () => {
 
     expect(event.foo).toBe('bar');
     expect(actor.getSnapshot().status).toEqual('active');
+  });
+
+  it('state onError catches errors thrown by initial entry actions', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      onError: ({ event }) => {
+        errorSpy(getErrorMessage(event.error));
+        return {
+          target: '.failed'
+        };
+      },
+      states: {
+        active: {
+          entry: () => {
+            throw new Error('initial entry failed');
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('initial entry failed');
+  });
+
+  it('state onError catches errors thrown by transition actions', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            NEXT: (_, enq) => {
+              enq(() => {
+                throw new Error('transition action failed');
+              });
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy(getErrorMessage(event.error));
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('transition action failed');
+  });
+
+  it('state onError catches errors thrown by transition functions', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            NEXT: () => {
+              throw new Error('transition function failed');
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy(getErrorMessage(event.error));
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        done: {},
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('transition function failed');
+  });
+
+  it('state onError catches errors thrown by target entry actions', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            NEXT: {
+              target: 'loading'
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy(getErrorMessage(event.error));
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        loading: {
+          entry: () => {
+            throw new Error('target entry failed');
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('target entry failed');
+  });
+
+  it('state onError catches invoked actor errors', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            src: createCallbackLogic(() => {
+              throw new Error('invoked actor failed');
+            })
+          },
+          onError: ({ event }) => {
+            errorSpy(getErrorMessage(event.error));
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('invoked actor failed');
+  });
+
+  it('state onError catches SCXML error.communication from failed sends', () => {
+    const errorSpy = vi.fn();
+    const json = toMachineJSON(`
+      <scxml xmlns="http://www.w3.org/2005/07/scxml" initial="active" version="1.0" datamodel="ecmascript">
+        <state id="active">
+          <onentry>
+            <send event="PING" target="#_scxml_missing"/>
+          </onentry>
+        </state>
+        <state id="failed"/>
+      </scxml>
+    `);
+
+    json.states!.active.onError = {
+      target: '#failed',
+      actions: [
+        {
+          type: 'captureError',
+          params: { '@expr': 'event', '@lang': 'test' }
+        }
+      ]
+    };
+
+    const machine = createMachineFromConfig(json, {
+      actions: {
+        captureError: (event) => {
+          errorSpy({
+            type: event.type,
+            message: getErrorMessage(event.error)
+          });
+        }
+      },
+      evaluators: {
+        test: ({ source, scope }) => {
+          if (source === 'event') {
+            return scope.event;
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith({
+      type: 'xstate.error.communication',
+      message: 'Unable to dispatch event to target: #_scxml_missing'
+    });
+  });
+
+  it('state onError catches communication errors from undefined send targets', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            NEXT: (_, enq) => {
+              enq.sendTo(undefined, { type: 'PING' });
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy({
+              type: event.type,
+              message: getErrorMessage(event.error)
+            });
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith({
+      type: 'xstate.error.communication',
+      message: 'Unable to send event to an undefined actor'
+    });
   });
 });

@@ -11,6 +11,7 @@ import type {
   AnyTransitionConfig,
   AnyTransitionConfigFunction,
   ErrorActorEvent,
+  ErrorEvent,
   EventObject,
   InvokeConfig,
   MachineContext,
@@ -248,6 +249,10 @@ export function isErrorActorEvent(
   event: AnyEventObject
 ): event is ErrorActorEvent {
   return event.type.startsWith('xstate.error.actor');
+}
+
+export function isErrorEvent(event: AnyEventObject): event is ErrorEvent {
+  return event.type.startsWith('xstate.error.');
 }
 
 export function toTransitionConfigArray(

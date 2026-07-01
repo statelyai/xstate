@@ -61,6 +61,10 @@ function getTargets(targetAttr?: string | number): string[] | undefined {
     : undefined;
 }
 
+function normalizeScxmlEventType(eventType: string): string {
+  return /^error(\.|$)/.test(eventType) ? `xstate.${eventType}` : eventType;
+}
+
 interface ScxmlIfBranch {
   cond?: string;
   actions: ActionJSON[];
@@ -101,7 +105,9 @@ function mapAction(element: XMLElement): ActionJSON {
     case 'raise': {
       const action: RaiseJSON = {
         type: '@xstate.raise',
-        event: { type: element.attributes!.event as string }
+        event: {
+          type: normalizeScxmlEventType(element.attributes!.event as string)
+        }
       };
       return action;
     }
@@ -156,15 +162,7 @@ function mapAction(element: XMLElement): ActionJSON {
       }
 
       const isInternal = target === SpecialTargets.Internal;
-      const isParentTarget = target === '#_parent';
-      // External events (non-internal) go to external queue via delay:0
-      // This ensures internal events are processed first within a macrostep.
-      // #_parent sends use undefined delay for immediate relay.
-      const resolvedDelay = delay
-        ? delayToMs(delay)
-        : isInternal || isParentTarget
-          ? undefined
-          : 0;
+      const resolvedDelay = delay ? delayToMs(delay) : undefined;
 
       // Any send with a special target (except internal), params, or expressions
       // uses ScxmlRaiseJSON. Target resolution happens at runtime in executeActions.
@@ -179,7 +177,10 @@ function mapAction(element: XMLElement): ActionJSON {
       ) {
         const action: ScxmlRaiseJSON = {
           type: 'scxml.raise',
-          event: event as string | undefined,
+          event:
+            typeof event === 'string'
+              ? normalizeScxmlEventType(event)
+              : undefined,
           eventexpr: eventexpr as string | undefined,
           params: params.length ? params : undefined,
           id: id as string | undefined,
@@ -192,11 +193,15 @@ function mapAction(element: XMLElement): ActionJSON {
       }
 
       // Simple send (no special target, no expressions)
-      const action: RaiseJSON = {
-        type: '@xstate.raise',
-        event: { type: (event as string) || 'unknown' },
+      const action: ScxmlRaiseJSON = {
+        type: 'scxml.raise',
+        event: event as string | undefined,
+        eventexpr: undefined,
+        params: undefined,
         id: id as string | undefined,
-        delay: resolvedDelay
+        delay: resolvedDelay,
+        target: target as string | undefined,
+        targetexpr: undefined
       };
       return action;
     }
@@ -446,7 +451,9 @@ function toStateNodeJSON(
         always.push(transitionConfig);
       } else {
         let normalizedEventType = eventType;
-        if (/^done\.state(\.|$)/.test(eventType)) {
+        if (/^error(\.|$)/.test(eventType)) {
+          normalizedEventType = `xstate.${eventType}`;
+        } else if (/^done\.state(\.|$)/.test(eventType)) {
           normalizedEventType = `xstate.${eventType}`;
         } else if (/^done\.invoke(\.|$)/.test(eventType)) {
           normalizedEventType = eventType.replace(
@@ -455,21 +462,20 @@ function toStateNodeJSON(
           );
         }
 
-        // Append wildcard for SCXML prefix matching
-        if (
-          normalizedEventType !== '*' &&
-          !normalizedEventType.endsWith('.*')
-        ) {
-          normalizedEventType = `${normalizedEventType}.*`;
-        }
+        const eventDescriptors =
+          normalizedEventType === '*' || normalizedEventType.endsWith('.*')
+            ? [normalizedEventType]
+            : [normalizedEventType, `${normalizedEventType}.*`];
 
-        const existing = on[normalizedEventType];
-        if (!existing) {
-          on[normalizedEventType] = transitionConfig;
-        } else if (Array.isArray(existing)) {
-          existing.push(transitionConfig);
-        } else {
-          on[normalizedEventType] = [existing, transitionConfig];
+        for (const eventDescriptor of eventDescriptors) {
+          const existing = on[eventDescriptor];
+          if (!existing) {
+            on[eventDescriptor] = transitionConfig;
+          } else if (Array.isArray(existing)) {
+            existing.push(transitionConfig);
+          } else {
+            on[eventDescriptor] = [existing, transitionConfig];
+          }
         }
       }
     });
