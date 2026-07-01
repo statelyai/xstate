@@ -226,7 +226,7 @@ donutStore.send({ type: 'changeFlavor', flavor: 'strawberry' });
 - Deploy to Stately Sky
 - Generate & modify machines with Stately AI
 
-<a href="stately.ai/registry/new?ref=github" title="Stately Studio">
+<a href="https://stately.ai/registry/new?ref=github" title="Stately Studio">
   <img src="https://github.com/statelyai/xstate/assets/1093738/74ed9cbc-b824-4ed7-a16d-f104947af8a7" alt="XState Viz" width="800" />
 </a>
 
