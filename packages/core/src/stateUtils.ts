@@ -1729,15 +1729,16 @@ export function getTransitionResult(
     const targets = res?.target
       ? resolveTarget(transition.source, toArray(res.target) as string[])
       : undefined;
-    // Resolve input for .to transitions
+
     const resolvedInput =
-      typeof transition.input === 'function'
+      res?.input ??
+      (typeof transition.input === 'function'
         ? transition.input({
             context: snapshot.context,
             event,
             output: getEventOutput(event)
           })
-        : transition.input;
+        : transition.input);
 
     return {
       targets: targets,
