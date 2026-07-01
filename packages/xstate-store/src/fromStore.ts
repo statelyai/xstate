@@ -306,6 +306,18 @@ export function fromStore(config: {
         )
       ];
     },
+    executeEffects: (effects, actorScope) => {
+      for (const effect of effects as Array<
+        | { type: 'effect'; exec: () => void }
+        | { type: 'emit'; event: EventObject }
+      >) {
+        if (effect.type === 'emit') {
+          actorScope.emit(effect.event);
+        } else {
+          effect.exec();
+        }
+      }
+    },
     initialTransition,
     getInitialSnapshot: (actorScope, input: unknown) =>
       initialTransition(input, actorScope)[0],

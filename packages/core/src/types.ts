@@ -2250,8 +2250,6 @@ export interface ActorLogic<
    * Executes the non-action effects returned from `transition` (e.g. the
    * effects produced by `createLogic`-based actors). Actor logic that never
    * returns such effects can omit this.
-   *
-   * @internal
    */
   executeEffects?: (
     effects: readonly unknown[],
