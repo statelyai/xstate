@@ -254,6 +254,96 @@ type SetupStateTarget<TStateSchemas extends Record<string, SetupStateSchema>> =
       ? string
       : SetupStateKeys<TStateSchemas> | `.${string}` | `#${string}`;
 
+/**
+ * The sibling state schemas of a dotted path: the children of the path's
+ * parent. A bare transition target resolves relative to the parent, so the
+ * valid targets for a path's config are its siblings. For a dotless (top-level)
+ * path the siblings are the root states.
+ */
+type ResolveStateSiblings<
+  TStates extends Record<string, SetupStateSchema>,
+  TPath extends string
+> = TPath extends `${infer Head}.${infer Rest}`
+  ? Head extends keyof TStates
+    ? TStates[Head]['states'] extends Record<string, SetupStateSchema>
+      ? ResolveStateSiblings<TStates[Head]['states'], Rest>
+      : never
+    : never
+  : TStates; // dotless path: siblings are the current level's states
+
+/**
+ * Resolves a dotted state path (e.g. `'parent.child'`) into the leaf
+ * `SetupStateSchema` it addresses, or `never` if any segment is missing.
+ */
+type ResolveStatePath<
+  TStates extends Record<string, SetupStateSchema>,
+  TPath extends string
+> = TPath extends `${infer Head}.${infer Rest}`
+  ? Head extends keyof TStates
+    ? TStates[Head]['states'] extends Record<string, SetupStateSchema>
+      ? ResolveStatePath<TStates[Head]['states'], Rest>
+      : never
+    : never
+  : TPath extends keyof TStates
+    ? TStates[TPath]
+    : never;
+
+/** Union of every addressable dotted path into a setup states tree */
+type StatePathsInner<TStates extends Record<string, SetupStateSchema>> = {
+  [K in SetupStateKeys<TStates>]:
+    | K
+    | (TStates[K]['states'] extends Record<string, SetupStateSchema>
+        ? `${K}.${StatePathsInner<TStates[K]['states']>}`
+        : never);
+}[SetupStateKeys<TStates>];
+
+type StatePaths<TStates extends Record<string, SetupStateSchema>> =
+  string extends SetupStateKeys<TStates>
+    ? string
+    : [SetupStateKeys<TStates>] extends [never]
+      ? string
+      : StatePathsInner<TStates>;
+
+/**
+ * Shared body of both `createStateConfig` overloads: the
+ * `StateNodeConfigWithNestedInput` instantiation whose only varying parts are
+ * the leading sibling-schemas and state-schema arguments.
+ */
+type SetupStateNodeConfig<
+  TStates extends Record<string, SetupStateSchema>,
+  TStateSchema extends SetupStateSchema,
+  TSchemas extends SetupSchemas,
+  TSetupActionMap extends Implementations['actions'],
+  TSetupActorMap extends Implementations['actorSources'],
+  TSetupGuardMap extends Implementations['guards'],
+  TSetupDelayMap extends Implementations['delays'],
+  TSystemRegistry extends SystemRegistry
+> = StateNodeConfigWithNestedInput<
+  TStates,
+  TStateSchema,
+  SetupContext<TSchemas, StandardSchemaV1>,
+  SetupContextShape<
+    TSchemas,
+    StandardSchemaV1,
+    SetupContext<TSchemas, StandardSchemaV1>
+  >,
+  SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+  Cast<
+    SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+    Record<string, AnyActorRef | undefined>
+  >,
+  string,
+  SetupTags<TSchemas, StandardSchemaV1>,
+  SetupOutput<TSchemas, StandardSchemaV1>,
+  SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+  SetupMeta<TSchemas, StandardSchemaV1>,
+  SetupActions<TSchemas, TSetupActionMap>,
+  TSetupActorMap,
+  SetupGuards<TSchemas, TSetupGuardMap>,
+  TSetupDelayMap,
+  TSystemRegistry
+>;
+
 type InvalidSetupStateKeys<
   TConfig,
   TStateSchemas extends Record<string, SetupStateSchema>
@@ -1489,30 +1579,37 @@ export interface SetupReturn<
     >
   >;
 
+  /**
+   * Creates a state node config bound to a specific setup-declared state,
+   * addressed by a dotted path (e.g. `'loading'` or `'parent.child'`). The
+   * addressed state's own `input` schema is typed inside `entry`/`exit` args.
+   */
+  createStateConfig<
+    const TPath extends StatePaths<TStates>,
+    const TConfig extends SetupStateNodeConfig<
+      ResolveStateSiblings<TStates, TPath>,
+      ResolveStatePath<TStates, TPath>,
+      TSchemas,
+      TSetupActionMap,
+      TSetupActorMap,
+      TSetupGuardMap,
+      TSetupDelayMap,
+      TSystemRegistry
+    >
+  >(
+    path: TPath,
+    config: TConfig
+  ): TConfig;
+
   /** Creates a state node config with the setup configuration */
   createStateConfig<
-    const TConfig extends StateNodeConfigWithNestedInput<
+    const TConfig extends SetupStateNodeConfig<
       TStates,
       SetupStateSchema,
-      SetupContext<TSchemas, StandardSchemaV1>,
-      SetupContextShape<
-        TSchemas,
-        StandardSchemaV1,
-        SetupContext<TSchemas, StandardSchemaV1>
-      >,
-      SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
-      Cast<
-        SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
-        Record<string, AnyActorRef | undefined>
-      >,
-      string,
-      SetupTags<TSchemas, StandardSchemaV1>,
-      SetupOutput<TSchemas, StandardSchemaV1>,
-      SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
-      SetupMeta<TSchemas, StandardSchemaV1>,
-      SetupActions<TSchemas, TSetupActionMap>,
+      TSchemas,
+      TSetupActionMap,
       TSetupActorMap,
-      SetupGuards<TSchemas, TSetupGuardMap>,
+      TSetupGuardMap,
       TSetupDelayMap,
       TSystemRegistry
     >
@@ -1717,8 +1814,8 @@ export function setup<
         ...(mergedDelays ? { delays: mergedDelays } : undefined)
       } as any);
     },
-    createStateConfig(stateConfig) {
-      return stateConfig;
+    createStateConfig(...args: unknown[]) {
+      return args.length > 1 ? args[1] : args[0];
     },
     states
   };
