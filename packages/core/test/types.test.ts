@@ -4550,9 +4550,54 @@ describe('choice state types', () => {
       states: {
         routing: {
           type: 'choice',
-          choice: ({ context }) => ({
-            target: context.isVip ? 'vip' : 'standard'
-          })
+          choice: ({ context }) => {
+            const isVip: boolean = context.isVip;
+
+            // @ts-expect-error
+            const invalid: string = context.isVip;
+
+            noop(isVip);
+            noop(invalid);
+
+            return {
+              target: context.isVip ? 'vip' : 'standard'
+            };
+          }
+        },
+        vip: {},
+        standard: {}
+      }
+    });
+  });
+
+  it('should infer context for no-event setup choice states', () => {
+    setup({
+      schemas: {
+        context: z.object({
+          isVip: z.boolean()
+        })
+      }
+    }).createMachine({
+      context: {
+        isVip: false
+      },
+      initial: 'routing',
+      states: {
+        routing: {
+          type: 'choice',
+          choice: ({ context }) => {
+            const isVip: boolean = context.isVip;
+
+            // @ts-expect-error
+            const invalid: string = context.isVip;
+
+            noop(isVip);
+            noop(invalid);
+
+            return {
+              target: context.isVip ? 'vip' : 'standard'
+            };
+          }
         },
         vip: {},
         standard: {}
@@ -4756,6 +4801,101 @@ describe('input', () => {
     const machine = createMachine({});
 
     createActor(machine);
+  });
+
+  it('should create actors from provided no-event setup machines', () => {
+    const child = createMachine({});
+    const machine = setup({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        }),
+        input: z.object({
+          count: z.number()
+        }),
+        output: z.object({
+          count: z.number()
+        })
+      },
+      actorSources: {
+        child
+      }
+    }).createMachine({
+      context: ({ input }) => ({
+        count: input.count
+      }),
+      initial: 'active',
+      states: {
+        active: {}
+      }
+    });
+
+    const provided = machine.provide({
+      actorSources: {
+        child
+      }
+    });
+
+    const anyLogic: AnyActorLogic = provided;
+    const anyMachine: AnyStateMachine = provided;
+
+    noop(anyLogic);
+    noop(anyMachine);
+
+    createActor(provided, {
+      input: { count: 1 }
+    });
+  });
+
+  it('should infer context for no-event always transitions', () => {
+    setup({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      }
+    }).createMachine({
+      context: {
+        count: 0
+      },
+      initial: 'active',
+      states: {
+        active: {
+          always: ({ context }) => {
+            const count: number = context.count;
+
+            // @ts-expect-error
+            const invalid: string = context.count;
+
+            noop(count);
+            noop(invalid);
+
+            return {
+              target: context.count > 0 ? 'done' : 'idle'
+            };
+          }
+        },
+        idle: {},
+        done: {}
+      }
+    });
+  });
+
+  it('should reject invalid declared events', () => {
+    const machine = createMachine({
+      schemas: {
+        events: {
+          PING: z.object({
+            value: z.string()
+          })
+        }
+      }
+    });
+
+    createActor(machine).send({ type: 'PING', value: 'ok' });
+
+    // @ts-expect-error
+    createActor(machine).send({ type: 'PONG' });
   });
 });
 
