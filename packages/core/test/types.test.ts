@@ -16,7 +16,9 @@ import {
   ExecutableActionObject,
   InputFrom,
   OutputFrom,
+  type SnapshotFrom,
   StateMachine,
+  type StateValue,
   SpecialExecutableAction,
   type AnySetupConfig,
   type SetupReturnFromConfig,
@@ -5840,6 +5842,51 @@ describe('createActor', () => {
 });
 
 describe('snapshot methods', () => {
+  it('should allow repeated matches checks with negative narrowing', () => {
+    const machine = setup({
+      schemas: { context: types<{ id: string }>() }
+    }).createMachine({
+      context: { id: '' },
+      initial: 'loading',
+      states: { loading: {}, loaded: {}, failed: {} }
+    });
+
+    type Snap = SnapshotFrom<typeof machine>;
+
+    const a = (s: Snap) => s.matches('loaded');
+    const b = (s: Snap) => [s.matches('loaded'), s.matches('failed')];
+    const c = (s: Snap) => s.matches('loaded') || s.matches('failed');
+    const d = (s: Snap) => !s.matches('loaded') && !s.matches('failed');
+    const e = (s: Snap, value: StateValue) =>
+      s.matches(value) || s.matches('failed');
+
+    void [a, b, c, d, e];
+  });
+
+  it('should allow repeated matches checks with nested state values', () => {
+    const machine = createMachine({
+      initial: 'red',
+      states: {
+        red: {
+          initial: 'walk',
+          states: {
+            walk: {},
+            wait: {}
+          }
+        },
+        green: {}
+      }
+    });
+
+    type Snap = SnapshotFrom<typeof machine>;
+
+    const parent = (s: Snap) => s.matches('red') || s.matches('green');
+    const children = (s: Snap) =>
+      s.matches({ red: 'walk' }) || s.matches({ red: 'wait' });
+
+    void [parent, children];
+  });
+
   it('should type infer actor union snapshot methods', () => {
     const typeOne = createMachine({
       schemas: {

@@ -34,6 +34,61 @@ export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   );
 }
 
+type Values<T> = T[keyof T];
+
+type MatchingObjectStateValue<
+  TStateValue extends Record<string, unknown>,
+  TTestStateValue extends Record<string, unknown>
+> =
+  false extends Values<{
+    [K in keyof TTestStateValue]: K extends keyof TStateValue
+      ? NonNullable<TStateValue[K]> extends StateValue
+        ? NonNullable<TTestStateValue[K]> extends StateValue
+          ? MatchingStateValue<
+              NonNullable<TStateValue[K]>,
+              NonNullable<TTestStateValue[K]>
+            > extends never
+            ? false
+            : true
+          : false
+        : false
+      : false;
+  }>
+    ? never
+    : TStateValue;
+
+type MatchingStateValue<
+  TStateValue extends StateValue,
+  TTestStateValue extends StateValue
+> = StateValue extends TTestStateValue
+  ? TStateValue
+  : string extends TTestStateValue
+    ? TStateValue
+    : TTestStateValue extends string
+      ? TStateValue extends TTestStateValue
+        ? TStateValue
+        : TStateValue extends Record<string, unknown>
+          ? TTestStateValue extends keyof TStateValue
+            ? TStateValue
+            : never
+          : never
+      : TTestStateValue extends Record<string, unknown>
+        ? TStateValue extends Record<string, unknown>
+          ? MatchingObjectStateValue<TStateValue, TTestStateValue>
+          : never
+        : never;
+
+type NarrowStateValue<TStateValue extends StateValue> =
+  StateValue extends TStateValue
+    ? never
+    : string extends TStateValue
+      ? never
+      : TStateValue extends Record<string, unknown>
+        ? string extends keyof TStateValue
+          ? never
+          : TStateValue
+        : TStateValue;
+
 let emptyCanActor: AnyActor | undefined;
 let emptyCanActorScope: AnyActorScope | undefined;
 
@@ -117,17 +172,18 @@ interface MachineSnapshotBase<
    * @param partialStateValue
    */
   matches<const TTestStateValue extends StateValue>(
-    partialStateValue: TTestStateValue
+    partialStateValue: TTestStateValue & NarrowStateValue<TTestStateValue>
   ): this is MachineSnapshot<
     StateContextFromStateValue<TStateSchema, TContext, TTestStateValue>,
     TEvent,
     TChildren,
-    TStateValue,
+    MatchingStateValue<TStateValue, TTestStateValue>,
     TTag,
     _TOutput,
     TMeta,
     TStateSchema
   >;
+  matches(partialStateValue: StateValue): boolean;
 
   /**
    * Whether the current state nodes has a state node with the specified `tag`.
