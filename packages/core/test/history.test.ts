@@ -295,6 +295,58 @@ describe('history states', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
+  it('should enter the parallel default configuration when a deep history state without a default target is targeted and its parent parallel state was never visited yet', () => {
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: {
+          on: { GO: 'on.hist' }
+        },
+        on: {
+          type: 'parallel',
+          states: {
+            regA: { initial: 'a1', states: { a1: {}, a2: {} } },
+            regB: { initial: 'b1', states: { b1: {}, b2: {} } },
+            hist: { type: 'history', history: 'deep' }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'GO' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: { regA: 'a1', regB: 'b1' }
+    });
+  });
+
+  it('should enter the parallel default configuration when a shallow history state without a default target is targeted and its parent parallel state was never visited yet', () => {
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: {
+          on: { GO: 'on.hist' }
+        },
+        on: {
+          type: 'parallel',
+          states: {
+            regA: { initial: 'a1', states: { a1: {}, a2: {} } },
+            regB: { initial: 'b1', states: { b1: {}, b2: {} } },
+            hist: { type: 'history', history: 'shallow' }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'GO' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: { regA: 'a1', regB: 'b1' }
+    });
+  });
+
   it('should not execute actions of the initial transition when a history state with a default target is targeted and its parent state was never visited yet', () => {
     const spy = vi.fn();
     const machine = createMachine({
