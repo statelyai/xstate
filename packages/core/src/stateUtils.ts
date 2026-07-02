@@ -512,6 +512,9 @@ function resolveHistoryDefaultTransition<
     stateNode.config.target
   );
   if (!normalizedTarget) {
+    if (stateNode.parent!.type === 'parallel') {
+      return { target: [stateNode.parent!] };
+    }
     return stateNode.parent!.initial;
   }
   return {
