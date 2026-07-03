@@ -282,19 +282,19 @@ function createStartEffect(actor: AnyActor): StartExecutableActionObject {
 }
 
 /**
- * Derive and append the deferred `@xstate.start` effects for every spawn effect
- * in the flat array: each `@xstate.spawn` effect defers a symmetric start to
- * the end, with attached (listener/subscription) starts before child starts,
- * each group in spawn-authored order. Attached starts must run before their
- * target actor starts so synchronously-emitted startup events are captured. The
- * original effects keep their authored positions. NOT idempotent — applying it
- * twice would duplicate the start effects. When there is nothing to append, the
- * input array is returned as-is, so callers must treat the result as
- * read-only.
+ * Derive the deferred `@xstate.start` effects for every spawn effect in the
+ * flat array: each `@xstate.spawn` effect defers a symmetric start, with
+ * attached (listener/subscription) starts before child starts, each group in
+ * spawn-authored order. Attached starts must run before their target actor
+ * starts so synchronously-emitted startup events are captured. This only
+ * derives the starts and is side-effect-free; each collection boundary appends
+ * them once at the end of its effects array (`[...effects,
+ * ...deriveDeferredStarts(effects)]`), so the original effects keep their
+ * authored positions. Returns an empty array when there are no spawns.
  */
-export function appendDeferredStarts(
-  effects: ExecutableActionObject[]
-): ExecutableActionObject[] {
+export function deriveDeferredStarts(
+  effects: ReadonlyArray<ExecutableActionObject>
+): StartExecutableActionObject[] {
   const attachedStarts: StartExecutableActionObject[] = [];
   const childStarts: StartExecutableActionObject[] = [];
 
@@ -313,11 +313,7 @@ export function appendDeferredStarts(
     }
   }
 
-  if (!attachedStarts.length && !childStarts.length) {
-    return effects;
-  }
-
-  return [...effects, ...attachedStarts, ...childStarts];
+  return [...attachedStarts, ...childStarts];
 }
 
 export function isBuiltInExecutableAction(

@@ -23,7 +23,7 @@ import {
   transitionNode
 } from './stateUtils.ts';
 import {
-  appendDeferredStarts,
+  deriveDeferredStarts,
   resolveActionsWithContext
 } from './transitionActions.ts';
 import { AnyActorSystem } from './system.ts';
@@ -410,9 +410,8 @@ export class StateMachine<
 
   /**
    * Flatten the effects collected across microsteps (plus any initial-entry
-   * effects) and append the deferred `@xstate.start` effects. This is the one
-   * `appendDeferredStarts` application for this collection boundary — appending
-   * is NOT idempotent, so callers must not apply it again.
+   * effects) and append the deferred `@xstate.start` effects derived from
+   * them.
    */
   private _collectEffects(
     microsteps: ReadonlyArray<
@@ -420,10 +419,14 @@ export class StateMachine<
     >,
     initialActions: ReadonlyArray<ExecutableActionObject> = []
   ): ExecutableActionObjectFromLogic<this>[] {
-    return appendDeferredStarts([
+    const effects = [
       ...initialActions,
       ...microsteps.flatMap(([, actions]) => actions)
-    ]) as ExecutableActionObjectFromLogic<this>[];
+    ];
+    return [
+      ...effects,
+      ...deriveDeferredStarts(effects)
+    ] as ExecutableActionObjectFromLogic<this>[];
   }
 
   private _transitionFast(

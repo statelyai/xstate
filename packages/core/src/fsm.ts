@@ -1,7 +1,7 @@
 import { XSTATE_INIT, XSTATE_STOP } from './constants.ts';
 import { builtInActions } from './actions.ts';
 import {
-  appendDeferredStarts,
+  deriveDeferredStarts,
   createTransitionEnqueue,
   resolveActionsWithContext
 } from './transitionActions.ts';
@@ -535,8 +535,7 @@ export function createFSM<
   // Core macrostep: produces the flat effects array WITHOUT the derived
   // `@xstate.start` effects appended. The public `transition` appends them once
   // per macrostep; `initialTransition` drains raised events through this core so
-  // it can append exactly once over the whole combined array (appending is NOT
-  // idempotent).
+  // the derived starts are appended once over the whole combined array.
   const transitionCore = (
     snapshot: FSMSnapshot<TContext, string, TInput>,
     event: TEvent,
@@ -746,7 +745,7 @@ export function createFSM<
 
   const transition = ((...args: Parameters<typeof transitionCore>) => {
     const [nextSnapshot, actions] = transitionCore(...args);
-    return [nextSnapshot, appendDeferredStarts(actions)];
+    return [nextSnapshot, [...actions, ...deriveDeferredStarts(actions)]];
   }) as FSMActorLogic<TContext, TEvent, string, TInput>['transition'];
 
   const logic: FSMActorLogic<TContext, TEvent, string, TInput> = {
@@ -773,8 +772,8 @@ export function createFSM<
       if (!actions.length) {
         actions = [];
       }
-      // Append once over the whole combined array; drains use transitionCore
-      // so starts are never appended twice.
+      // Drains use transitionCore so the derived starts are appended once over
+      // the whole combined array.
       while (internalQueue.length) {
         const [raisedSnapshot, raisedActions] = transitionCore(
           nextSnapshot,
@@ -784,7 +783,7 @@ export function createFSM<
         nextSnapshot = raisedSnapshot;
         actions.push(...raisedActions);
       }
-      return [nextSnapshot, appendDeferredStarts(actions)];
+      return [nextSnapshot, [...actions, ...deriveDeferredStarts(actions)]];
     },
     getInitialSnapshot: (actorScope, input) =>
       logic.initialTransition(input, actorScope)[0],
