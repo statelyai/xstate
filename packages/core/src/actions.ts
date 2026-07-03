@@ -2,11 +2,9 @@ import isDevelopment from '#is-development';
 import { AnyActor, AnyActorScope, EventObject } from './types';
 
 export const builtInActions = {
-  // Creation and registration of a spawned actor are pure and happen eagerly at
-  // authoring time; this record is a no-op introspection/ordering marker. A
-  // symmetric deferred `@xstate.start` effect is derived from each spawn effect
-  // and appended at the end of the effects array (see `appendDeferredStarts`);
-  // that derived effect performs the actual start.
+  // No-op marker: creating and registering a spawned actor are eager and pure.
+  // The actual start is a deferred `@xstate.start` effect derived from each
+  // spawn effect and appended at collection (see `appendDeferredStarts`).
   ['@xstate.spawn']: (_actor: AnyActor) => {},
   ['@xstate.start']: (actor: AnyActor) => {
     actor.start();

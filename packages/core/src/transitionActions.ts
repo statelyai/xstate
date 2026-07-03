@@ -63,16 +63,12 @@ function unregisterChild(actor: AnyActor) {
   );
 }
 
-export function pushSpawn(actions: any[], actor: AnyActor) {
-  pushBuiltInAction(actions, builtInActions['@xstate.spawn'], actor);
-}
-
 function pushSpawnedChild(
   actions: any[],
   actor: AnyActor,
   id: string | undefined
 ) {
-  pushSpawn(actions, actor);
+  pushBuiltInAction(actions, builtInActions['@xstate.spawn'], actor);
   actions.push(registerSpawnedChild(actor, id ?? actor.id));
 }
 
@@ -176,7 +172,11 @@ export function createTransitionEnqueue(
           input,
           parent: actorScope.self
         });
-        pushSpawn(actions, listenerActor);
+        pushBuiltInAction(
+          actions,
+          builtInActions['@xstate.spawn'],
+          listenerActor
+        );
         return listenerActor;
       },
       subscribeTo: (actor: any, mappers: any) => {
@@ -191,7 +191,11 @@ export function createTransitionEnqueue(
           input,
           parent: actorScope.self
         });
-        pushSpawn(actions, subscriptionActor);
+        pushBuiltInAction(
+          actions,
+          builtInActions['@xstate.spawn'],
+          subscriptionActor
+        );
         return subscriptionActor;
       }
     });
