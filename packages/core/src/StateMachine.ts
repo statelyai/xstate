@@ -408,11 +408,6 @@ export class StateMachine<
     return [nextSnapshot, this._collectEffects(microsteps)];
   }
 
-  /**
-   * Flatten the effects collected across microsteps (plus any initial-entry
-   * effects) and append the deferred `@xstate.start` effects derived from
-   * them.
-   */
   private _collectEffects(
     microsteps: ReadonlyArray<
       readonly [unknown, ReadonlyArray<ExecutableActionObject>]

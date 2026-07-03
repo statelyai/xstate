@@ -532,10 +532,6 @@ export function createFSM<
     return undefined;
   };
 
-  // Core macrostep: produces the flat effects array WITHOUT the derived
-  // `@xstate.start` effects appended. The public `transition` appends them once
-  // per macrostep; `initialTransition` drains raised events through this core so
-  // the derived starts are appended once over the whole combined array.
   const transitionCore = (
     snapshot: FSMSnapshot<TContext, string, TInput>,
     event: TEvent,
@@ -772,8 +768,6 @@ export function createFSM<
       if (!actions.length) {
         actions = [];
       }
-      // Drains use transitionCore so the derived starts are appended once over
-      // the whole combined array.
       while (internalQueue.length) {
         const [raisedSnapshot, raisedActions] = transitionCore(
           nextSnapshot,

@@ -736,7 +736,6 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     if (this._processingStatus === ProcessingStatus.Stopped) {
-      // A stopped actor cannot be restarted
       return this;
     }
 

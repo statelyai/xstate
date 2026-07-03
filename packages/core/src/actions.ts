@@ -2,10 +2,8 @@ import isDevelopment from '#is-development';
 import { AnyActor, AnyActorScope, EventObject } from './types';
 
 export const builtInActions = {
-  // No-op marker: creating and registering a spawned actor are eager and pure.
-  // The actual start is a deferred `@xstate.start` effect derived from each
-  // spawn effect and appended at collection (see `deriveDeferredStarts` in
-  // transitionActions.ts).
+  // No-op: creation/registration are eager and pure; the start is a separate
+  // deferred `@xstate.start` effect (see `deriveDeferredStarts`).
   ['@xstate.spawn']: (_actor: AnyActor) => {},
   ['@xstate.start']: (actor: AnyActor) => {
     actor.start();

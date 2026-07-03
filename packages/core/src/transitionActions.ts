@@ -262,12 +262,6 @@ function getBuiltInActionFields(
   }
 }
 
-/**
- * Build the resolved deferred `@xstate.start` effect for a spawned actor. This
- * is the effect the collection boundary appends for every `@xstate.spawn`
- * effect; its shape matches exactly what `resolveActionsWithContext` used to
- * produce for an authored `@xstate.start` action record.
- */
 function createStartEffect(actor: AnyActor): StartExecutableActionObject {
   const action = builtInActions['@xstate.start'];
   const args: Parameters<(typeof builtInActions)['@xstate.start']> = [actor];
@@ -282,15 +276,9 @@ function createStartEffect(actor: AnyActor): StartExecutableActionObject {
 }
 
 /**
- * Derive the deferred `@xstate.start` effects for every spawn effect in the
- * flat array: each `@xstate.spawn` effect defers a symmetric start, with
- * attached (listener/subscription) starts before child starts, each group in
- * spawn-authored order. Attached starts must run before their target actor
- * starts so synchronously-emitted startup events are captured. This only
- * derives the starts and is side-effect-free; each collection boundary appends
- * them once at the end of its effects array (`[...effects,
- * ...deriveDeferredStarts(effects)]`), so the original effects keep their
- * authored positions. Returns an empty array when there are no spawns.
+ * Attached (listener/subscription) starts are ordered before child starts so
+ * that a listener/subscription captures events emitted synchronously as its
+ * target actor starts.
  */
 export function deriveDeferredStarts(
   effects: ReadonlyArray<ExecutableActionObject>
@@ -299,7 +287,7 @@ export function deriveDeferredStarts(
   const childStarts: StartExecutableActionObject[] = [];
 
   for (const effect of effects) {
-    // A real `@xstate.spawn` effect carries an `actor` ref, unlike a
+    // `'actor' in effect` distinguishes a real spawn effect from a
     // user-emitted `{ type: '@xstate.spawn' }` event.
     if (effect.type !== XSTATE_SPAWN || !('actor' in effect)) {
       continue;
