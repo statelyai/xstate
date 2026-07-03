@@ -23,12 +23,9 @@ import {
   transitionNode
 } from './stateUtils.ts';
 import {
-  createStartEffect,
+  appendDeferredStarts,
   resolveActionsWithContext
 } from './transitionActions.ts';
-import { listenerLogic } from './actors/listener.ts';
-import { subscriptionLogic } from './actors/subscription.ts';
-import { XSTATE_SPAWN } from './constants.ts';
 import { AnyActorSystem } from './system.ts';
 import type {
   ActorLogic,
@@ -56,8 +53,6 @@ import type {
   OutputFrom,
   Snapshot,
   SnapshotFrom,
-  SpawnExecutableActionObject,
-  StartExecutableActionObject,
   StateValue,
   StateSchema,
   SnapshotStatus,
@@ -76,39 +71,6 @@ import {
 } from './utils.ts';
 
 const STATE_IDENTIFIER = '#';
-
-/**
- * Derive and append the deferred `@xstate.start` effects for every spawn effect
- * in the flat array: each `@xstate.spawn` effect defers a symmetric start to
- * the end, with attached (listener/subscription) starts before child starts,
- * each group in spawn-authored order. Attached starts must run before their
- * target actor starts so synchronously-emitted startup events are captured. The
- * original effects keep their authored positions. NOT idempotent — applying it
- * twice would duplicate the start effects.
- */
-function appendDeferredStarts(
-  effects: ExecutableActionObject[]
-): ExecutableActionObject[] {
-  const attachedStarts: StartExecutableActionObject[] = [];
-  const childStarts: StartExecutableActionObject[] = [];
-
-  for (const effect of effects) {
-    // A real `@xstate.spawn` effect carries an `actor` ref, unlike a
-    // user-emitted `{ type: '@xstate.spawn' }` event.
-    if (effect.type !== XSTATE_SPAWN || !('actor' in effect)) {
-      continue;
-    }
-    const { actor, logic } = effect as SpawnExecutableActionObject;
-    const start = createStartEffect(actor);
-    if (logic === listenerLogic || logic === subscriptionLogic) {
-      attachedStarts.push(start);
-    } else {
-      childStarts.push(start);
-    }
-  }
-
-  return [...effects, ...attachedStarts, ...childStarts];
-}
 
 type CompatibleProvidedActorSource<
   TExpected extends AnyActorLogic,

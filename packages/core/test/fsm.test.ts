@@ -1,4 +1,10 @@
-import { createActor, createFSM, initialTransition, transition } from '../src';
+import {
+  createActor,
+  createCallbackLogic,
+  createFSM,
+  initialTransition,
+  transition
+} from '../src';
 
 describe('createFSM', () => {
   it('transitions through a direct flat event table', () => {
@@ -222,5 +228,105 @@ describe('createFSM', () => {
     actor.send({ type: 'inc' });
 
     expect(actor.getSnapshot().context.count).toBe(1);
+  });
+});
+
+describe('createFSM spawning', () => {
+  it('starts a child spawned via enq.spawn() in entry', () => {
+    let started = false;
+    const child = createCallbackLogic(() => {
+      started = true;
+    });
+    const fsm = createFSM({
+      initial: 'a',
+      states: {
+        a: {
+          entry: (_, enq) => {
+            enq.spawn(child, { id: 'child' });
+          }
+        }
+      }
+    });
+    const actor = createActor(fsm);
+    actor.start();
+
+    expect(Object.keys(actor.getSnapshot().children)).toContain('child');
+    expect(started).toBe(true);
+  });
+
+  it('attaches a listener before its target starts so startup emits are captured', () => {
+    const child = createCallbackLogic(({ emit }) => {
+      // Emitted synchronously during the target's own start.
+      emit({ type: 'childEvent' });
+    });
+
+    const receivedEvents: any[] = [];
+
+    const fsm = createFSM({
+      initial: 'a',
+      states: {
+        a: {
+          entry: (_, enq) => {
+            const childRef = enq.spawn(child, { id: 'child' });
+            enq.listen(childRef, 'childEvent', () => ({
+              type: 'CHILD_EMITTED'
+            }));
+          },
+          on: {
+            CHILD_EMITTED: ({ event }, enq) => {
+              enq(() => receivedEvents.push(event));
+            }
+          }
+        }
+      }
+    });
+
+    createActor(fsm).start();
+
+    expect(receivedEvents).toHaveLength(1);
+    expect(receivedEvents[0].type).toBe('CHILD_EMITTED');
+  });
+
+  it('does not double-start a child spawned from a raise-drained transition', () => {
+    let startCount = 0;
+    const child = createCallbackLogic(() => {
+      startCount++;
+    });
+    const fsm = createFSM({
+      initial: 'a',
+      states: {
+        a: {
+          entry: (_, enq) => {
+            enq.raise({ type: 'GO' });
+          },
+          on: {
+            GO: { target: 'b' }
+          }
+        },
+        b: {
+          entry: (_, enq) => {
+            enq.spawn(child, { id: 'child' });
+          }
+        }
+      }
+    });
+
+    // Pure effects: the derived start must appear exactly once even though
+    // `initialTransition` drains the raised `GO` through the transition core.
+    const [, effects] = initialTransition(fsm);
+    const childSpawns = effects.filter(
+      (e) => e.type === '@xstate.spawn' && (e as any).id === 'child'
+    );
+    const childStarts = effects.filter(
+      (e) => e.type === '@xstate.start' && (e as any).id === 'child'
+    );
+    expect(childSpawns).toHaveLength(1);
+    expect(childStarts).toHaveLength(1);
+
+    // Behavioral: the child logic runs exactly once on start.
+    const actor = createActor(fsm);
+    actor.start();
+    expect(Object.keys(actor.getSnapshot().children)).toContain('child');
+    expect(startCount).toBe(1);
   });
 });

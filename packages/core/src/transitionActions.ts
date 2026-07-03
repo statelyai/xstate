@@ -6,7 +6,7 @@ import {
   type SubscriptionInput,
   type SubscriptionMappers
 } from './actors/subscription.ts';
-import { XSTATE_START } from './constants.ts';
+import { XSTATE_SPAWN, XSTATE_START } from './constants.ts';
 import { createActor } from './createActor.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
 import { cloneMachineSnapshot } from './State.ts';
@@ -22,6 +22,7 @@ import type {
   EventObject,
   ExecutableActionObject,
   MachineContext,
+  SpawnExecutableActionObject,
   SpecialExecutableAction,
   StartExecutableActionObject
 } from './types.ts';
@@ -267,9 +268,7 @@ function getBuiltInActionFields(
  * effect; its shape matches exactly what `resolveActionsWithContext` used to
  * produce for an authored `@xstate.start` action record.
  */
-export function createStartEffect(
-  actor: AnyActor
-): StartExecutableActionObject {
+function createStartEffect(actor: AnyActor): StartExecutableActionObject {
   const action = builtInActions['@xstate.start'];
   const args: Parameters<(typeof builtInActions)['@xstate.start']> = [actor];
   return {
@@ -280,6 +279,45 @@ export function createStartEffect(
     actor,
     id: actor.id
   };
+}
+
+/**
+ * Derive and append the deferred `@xstate.start` effects for every spawn effect
+ * in the flat array: each `@xstate.spawn` effect defers a symmetric start to
+ * the end, with attached (listener/subscription) starts before child starts,
+ * each group in spawn-authored order. Attached starts must run before their
+ * target actor starts so synchronously-emitted startup events are captured. The
+ * original effects keep their authored positions. NOT idempotent — applying it
+ * twice would duplicate the start effects. When there is nothing to append, the
+ * input array is returned as-is, so callers must treat the result as
+ * read-only.
+ */
+export function appendDeferredStarts(
+  effects: ExecutableActionObject[]
+): ExecutableActionObject[] {
+  const attachedStarts: StartExecutableActionObject[] = [];
+  const childStarts: StartExecutableActionObject[] = [];
+
+  for (const effect of effects) {
+    // A real `@xstate.spawn` effect carries an `actor` ref, unlike a
+    // user-emitted `{ type: '@xstate.spawn' }` event.
+    if (effect.type !== XSTATE_SPAWN || !('actor' in effect)) {
+      continue;
+    }
+    const { actor, logic } = effect as SpawnExecutableActionObject;
+    const start = createStartEffect(actor);
+    if (logic === listenerLogic || logic === subscriptionLogic) {
+      attachedStarts.push(start);
+    } else {
+      childStarts.push(start);
+    }
+  }
+
+  if (!attachedStarts.length && !childStarts.length) {
+    return effects;
+  }
+
+  return [...effects, ...attachedStarts, ...childStarts];
 }
 
 export function isBuiltInExecutableAction(

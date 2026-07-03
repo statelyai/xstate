@@ -1,12 +1,12 @@
 import { XSTATE_INIT, XSTATE_STOP } from './constants.ts';
 import { builtInActions } from './actions.ts';
 import {
+  appendDeferredStarts,
   createTransitionEnqueue,
   resolveActionsWithContext
 } from './transitionActions.ts';
 import type {
   ActorLogic,
-  ActorLogicTransitionResult,
   ActorScope,
   AnyAction,
   AnyActorScope,
@@ -532,7 +532,12 @@ export function createFSM<
     return undefined;
   };
 
-  const transition = ((
+  // Core macrostep: produces the flat effects array WITHOUT the derived
+  // `@xstate.start` effects appended. The public `transition` appends them once
+  // per macrostep; `initialTransition` drains raised events through this core so
+  // it can append exactly once over the whole combined array (appending is NOT
+  // idempotent).
+  const transitionCore = (
     snapshot: FSMSnapshot<TContext, string, TInput>,
     event: TEvent,
     actorScope: ActorScope<
@@ -541,7 +546,7 @@ export function createFSM<
       any,
       EventObject
     >
-  ): ActorLogicTransitionResult<FSMSnapshot<TContext, string, TInput>> => {
+  ): [FSMSnapshot<TContext, string, TInput>, ExecutableActionObject[]] => {
     if (snapshot.status !== 'active') {
       return [snapshot, []];
     }
@@ -736,7 +741,12 @@ export function createFSM<
       }
     }
 
-    return [nextSnapshot, executableActions as any];
+    return [nextSnapshot, executableActions];
+  };
+
+  const transition = ((...args: Parameters<typeof transitionCore>) => {
+    const [nextSnapshot, actions] = transitionCore(...args);
+    return [nextSnapshot, appendDeferredStarts(actions)];
   }) as FSMActorLogic<TContext, TEvent, string, TInput>['transition'];
 
   const logic: FSMActorLogic<TContext, TEvent, string, TInput> = {
@@ -763,16 +773,18 @@ export function createFSM<
       if (!actions.length) {
         actions = [];
       }
+      // Append once over the whole combined array; drains use transitionCore
+      // so starts are never appended twice.
       while (internalQueue.length) {
-        const [raisedSnapshot, raisedActions] = transition(
+        const [raisedSnapshot, raisedActions] = transitionCore(
           nextSnapshot,
           internalQueue.shift()! as TEvent,
           actorScope
         );
         nextSnapshot = raisedSnapshot;
-        actions.push(...(raisedActions as ExecutableActionObject[]));
+        actions.push(...raisedActions);
       }
-      return [nextSnapshot, actions as any];
+      return [nextSnapshot, appendDeferredStarts(actions)];
     },
     getInitialSnapshot: (actorScope, input) =>
       logic.initialTransition(input, actorScope)[0],
