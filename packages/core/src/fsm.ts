@@ -744,8 +744,8 @@ export function createFSM<
   };
 
   const transition = ((...args: Parameters<typeof transitionCore>) => {
-    const [nextSnapshot, actions] = transitionCore(...args);
-    return [nextSnapshot, [...actions, ...deriveDeferredStarts(actions)]];
+    const [nextSnapshot, effects] = transitionCore(...args);
+    return [nextSnapshot, [...effects, ...deriveDeferredStarts(effects)]];
   }) as FSMActorLogic<TContext, TEvent, string, TInput>['transition'];
 
   const logic: FSMActorLogic<TContext, TEvent, string, TInput> = {
