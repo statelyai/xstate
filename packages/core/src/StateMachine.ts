@@ -22,10 +22,13 @@ import {
   resolveStateValue,
   transitionNode
 } from './stateUtils.ts';
-import { resolveActionsWithContext } from './transitionActions.ts';
+import {
+  createStartEffect,
+  resolveActionsWithContext
+} from './transitionActions.ts';
 import { listenerLogic } from './actors/listener.ts';
 import { subscriptionLogic } from './actors/subscription.ts';
-import { XSTATE_START } from './constants.ts';
+import { XSTATE_SPAWN } from './constants.ts';
 import { AnyActorSystem } from './system.ts';
 import type {
   ActorLogic,
@@ -53,6 +56,7 @@ import type {
   OutputFrom,
   Snapshot,
   SnapshotFrom,
+  SpawnExecutableActionObject,
   StartExecutableActionObject,
   StateValue,
   StateSchema,
@@ -74,46 +78,36 @@ import {
 const STATE_IDENTIFIER = '#';
 
 /**
- * A real `@xstate.start` effect carries an `actor` ref (unlike a user-emitted
- * `{ type: '@xstate.start' }` event, which must never be reordered as a
- * start).
+ * Derive and append the deferred `@xstate.start` effects for every spawn effect
+ * in the flat array: each `@xstate.spawn` effect defers a symmetric start to
+ * the end, with attached (listener/subscription) starts before child starts,
+ * each group in spawn-authored order. Attached starts must run before their
+ * target actor starts so synchronously-emitted startup events are captured. The
+ * original effects keep their authored positions. NOT idempotent — applying it
+ * twice would duplicate the start effects.
  */
-function isStartEffect(
-  effect: ExecutableActionObject
-): effect is StartExecutableActionObject {
-  return effect.type === XSTATE_START && 'actor' in effect;
-}
-
-/**
- * Stably partition a flat effects array into `[...nonStarts, ...attachedStarts,
- * ...childStarts]`, preserving authored order within each group. Attached
- * starts are listener/subscription actors; they must run before their target
- * actor starts so synchronously-emitted startup events are captured. Non-start
- * effects (including `@xstate.stop` and user-emitted events) keep their
- * authored positions.
- */
-function partitionEffects(
+function appendDeferredStarts(
   effects: ExecutableActionObject[]
 ): ExecutableActionObject[] {
-  const nonStarts: ExecutableActionObject[] = [];
-  const attachedStarts: ExecutableActionObject[] = [];
-  const childStarts: ExecutableActionObject[] = [];
+  const attachedStarts: StartExecutableActionObject[] = [];
+  const childStarts: StartExecutableActionObject[] = [];
 
   for (const effect of effects) {
-    if (!isStartEffect(effect)) {
-      nonStarts.push(effect);
+    // A real `@xstate.spawn` effect carries an `actor` ref, unlike a
+    // user-emitted `{ type: '@xstate.spawn' }` event.
+    if (effect.type !== XSTATE_SPAWN || !('actor' in effect)) {
       continue;
     }
-    // `logic` lives on the Actor class, not the public `AnyActor` interface.
-    const logic = (effect.actor as { logic?: unknown }).logic;
+    const { actor, logic } = effect as SpawnExecutableActionObject;
+    const start = createStartEffect(actor);
     if (logic === listenerLogic || logic === subscriptionLogic) {
-      attachedStarts.push(effect);
+      attachedStarts.push(start);
     } else {
-      childStarts.push(effect);
+      childStarts.push(start);
     }
   }
 
-  return [...nonStarts, ...attachedStarts, ...childStarts];
+  return [...effects, ...attachedStarts, ...childStarts];
 }
 
 type CompatibleProvidedActorSource<
@@ -451,7 +445,7 @@ export class StateMachine<
 
     return [
       nextSnapshot,
-      partitionEffects(
+      appendDeferredStarts(
         microsteps.flatMap(([, actions]) => actions)
       ) as ExecutableActionObjectFromLogic<this>[]
     ];
@@ -788,7 +782,7 @@ export class StateMachine<
 
     return [
       macroState as SnapshotFrom<this>,
-      partitionEffects([
+      appendDeferredStarts([
         ...initialActions,
         ...microsteps.flatMap(([, actions]) => actions)
       ] as ExecutableActionObject[]) as ExecutableActionObjectFromLogic<this>[]

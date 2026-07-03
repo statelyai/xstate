@@ -6,6 +6,7 @@ import {
   type SubscriptionInput,
   type SubscriptionMappers
 } from './actors/subscription.ts';
+import { XSTATE_START } from './constants.ts';
 import { createActor } from './createActor.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
 import { cloneMachineSnapshot } from './State.ts';
@@ -21,7 +22,8 @@ import type {
   EventObject,
   ExecutableActionObject,
   MachineContext,
-  SpecialExecutableAction
+  SpecialExecutableAction,
+  StartExecutableActionObject
 } from './types.ts';
 
 export function mergeContextPatch(
@@ -61,9 +63,8 @@ function unregisterChild(actor: AnyActor) {
   );
 }
 
-export function pushSpawnAndStart(actions: any[], actor: AnyActor) {
+export function pushSpawn(actions: any[], actor: AnyActor) {
   pushBuiltInAction(actions, builtInActions['@xstate.spawn'], actor);
-  pushBuiltInAction(actions, builtInActions['@xstate.start'], actor);
 }
 
 function pushSpawnedChild(
@@ -71,7 +72,7 @@ function pushSpawnedChild(
   actor: AnyActor,
   id: string | undefined
 ) {
-  pushSpawnAndStart(actions, actor);
+  pushSpawn(actions, actor);
   actions.push(registerSpawnedChild(actor, id ?? actor.id));
 }
 
@@ -175,7 +176,7 @@ export function createTransitionEnqueue(
           input,
           parent: actorScope.self
         });
-        pushSpawnAndStart(actions, listenerActor);
+        pushSpawn(actions, listenerActor);
         return listenerActor;
       },
       subscribeTo: (actor: any, mappers: any) => {
@@ -190,7 +191,7 @@ export function createTransitionEnqueue(
           input,
           parent: actorScope.self
         });
-        pushSpawnAndStart(actions, subscriptionActor);
+        pushSpawn(actions, subscriptionActor);
         return subscriptionActor;
       }
     });
@@ -216,15 +217,6 @@ function getBuiltInActionFields(
         logic: (actor as any).logic,
         src: actor.src,
         input: (actor as any).options?.input
-      };
-    }
-    case builtInActions['@xstate.start']: {
-      const [actor] = args as Parameters<
-        (typeof builtInActions)['@xstate.start']
-      >;
-      return {
-        actor,
-        id: actor.id
       };
     }
     case builtInActions['@xstate.raise']: {
@@ -263,6 +255,27 @@ function getBuiltInActionFields(
     default:
       return undefined;
   }
+}
+
+/**
+ * Build the resolved deferred `@xstate.start` effect for a spawned actor. This
+ * is the effect the collection boundary appends for every `@xstate.spawn`
+ * effect; its shape matches exactly what `resolveActionsWithContext` used to
+ * produce for an authored `@xstate.start` action record.
+ */
+export function createStartEffect(
+  actor: AnyActor
+): StartExecutableActionObject {
+  const action = builtInActions['@xstate.start'];
+  const args: Parameters<(typeof builtInActions)['@xstate.start']> = [actor];
+  return {
+    type: XSTATE_START,
+    params: { action, args },
+    args,
+    exec: action.bind(null, actor),
+    actor,
+    id: actor.id
+  };
 }
 
 export function isBuiltInExecutableAction(

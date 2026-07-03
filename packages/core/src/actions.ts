@@ -3,9 +3,10 @@ import { AnyActor, AnyActorScope, EventObject } from './types';
 
 export const builtInActions = {
   // Creation and registration of a spawned actor are pure and happen eagerly at
-  // authoring time; this record is a no-op introspection/ordering marker. The
-  // symmetric deferred `@xstate.start` effect (appended at the end of the
-  // effects array) performs the actual start.
+  // authoring time; this record is a no-op introspection/ordering marker. A
+  // symmetric deferred `@xstate.start` effect is derived from each spawn effect
+  // and appended at the end of the effects array (see `appendDeferredStarts`);
+  // that derived effect performs the actual start.
   ['@xstate.spawn']: (_actor: AnyActor) => {},
   ['@xstate.start']: (actor: AnyActor) => {
     actor.start();

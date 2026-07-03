@@ -49,7 +49,7 @@ import {
   createEnqueueObject,
   createTransitionEnqueue,
   mergeContextPatch,
-  pushSpawnAndStart,
+  pushSpawn,
   resolveActionsWithContext
 } from './transitionActions.ts';
 import { parseDurationToMilliseconds } from './delay.ts';
@@ -1439,7 +1439,7 @@ function microstep(
             syncSnapshot: !!invokeDef.onSnapshot
           });
 
-          pushSpawnAndStart(actions, actor);
+          pushSpawn(actions, actor);
 
           if (invokeDef.id) {
             children[invokeDef.id] = actor;
