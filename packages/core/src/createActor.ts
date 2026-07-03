@@ -444,6 +444,7 @@ export class Actor<TLogic extends AnyActorLogic>
         errorEvent,
         this._actorScope
       );
+      this._snapshot = nextSnapshot;
       const logicEffects = executeExecutableEffects(effects, this._actorScope);
       this.update(nextSnapshot, errorEvent);
       this.logic.executeEffects?.(logicEffects, this._actorScope);
@@ -860,6 +861,7 @@ export class Actor<TLogic extends AnyActorLogic>
     try {
       const [nextSnapshot, effects] = nextState;
       snapshot = nextSnapshot;
+      this._snapshot = snapshot;
       const logicEffects = executeExecutableEffects(effects, this._actorScope);
       this.update(snapshot, event);
       this.logic.executeEffects?.(logicEffects, this._actorScope);

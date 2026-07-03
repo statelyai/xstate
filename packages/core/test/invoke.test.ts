@@ -25,6 +25,42 @@ import z from 'zod';
 const user = { name: 'David' };
 
 describe('invoke', () => {
+  it('starts invoked actors after committing the parent snapshot', () => {
+    let observedParentValue: StateValue | undefined;
+    const child = createCallbackLogic(
+      ({
+        input
+      }: {
+        input: { parent: { getSnapshot: () => { value: StateValue } } };
+      }) => {
+        observedParentValue = input.parent.getSnapshot().value;
+      }
+    );
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            START: {
+              target: 'active'
+            }
+          }
+        },
+        active: {
+          invoke: {
+            src: child,
+            input: ({ self }) => ({ parent: self })
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'START' });
+
+    expect(observedParentValue).toBe('active');
+  });
+
   it('should not provide output directly for arbitrary output events', () => {
     let receivedOutput: unknown = 'unset';
     const machine = createMachine({
