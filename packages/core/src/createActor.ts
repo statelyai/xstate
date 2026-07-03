@@ -735,6 +735,11 @@ export class Actor<TLogic extends AnyActorLogic>
       return this;
     }
 
+    if (this._processingStatus === ProcessingStatus.Stopped) {
+      // A stopped actor cannot be restarted
+      return this;
+    }
+
     if (this._syncSnapshot) {
       this.subscribe({
         next: (snapshot: Snapshot<unknown>) => {

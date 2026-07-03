@@ -2754,14 +2754,22 @@ export interface CustomExecutableActionObject<
   type: TType;
 }
 
-export interface StartExecutableActionObject
+export interface SpawnExecutableActionObject
   extends BaseExecutableActionObject {
-  type: '@xstate.start';
+  type: '@xstate.spawn';
   actor: AnyActor;
   id: string;
   logic: AnyActorLogic;
   src: string | AnyActorLogic;
   input: unknown;
+  args: Parameters<(typeof builtInActions)['@xstate.spawn']>;
+}
+
+export interface StartExecutableActionObject
+  extends BaseExecutableActionObject {
+  type: '@xstate.start';
+  actor: AnyActor;
+  id: string;
   args: Parameters<(typeof builtInActions)['@xstate.start']>;
 }
 
@@ -2798,6 +2806,7 @@ export interface StopExecutableActionObject extends BaseExecutableActionObject {
 }
 
 export type BuiltInExecutableActionObject = Values<{
+  '@xstate.spawn': SpawnExecutableActionObject;
   '@xstate.start': StartExecutableActionObject;
   '@xstate.raise': RaiseExecutableActionObject;
   '@xstate.sendTo': SendToExecutableActionObject;

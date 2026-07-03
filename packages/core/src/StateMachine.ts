@@ -23,6 +23,9 @@ import {
   transitionNode
 } from './stateUtils.ts';
 import { resolveActionsWithContext } from './transitionActions.ts';
+import { listenerLogic } from './actors/listener.ts';
+import { subscriptionLogic } from './actors/subscription.ts';
+import { XSTATE_START } from './constants.ts';
 import { AnyActorSystem } from './system.ts';
 import type {
   ActorLogic,
@@ -67,6 +70,44 @@ import {
 } from './utils.ts';
 
 const STATE_IDENTIFIER = '#';
+
+/**
+ * A real `@xstate.start` effect carries an `actor` ref (unlike a user-emitted
+ * `{ type: '@xstate.start' }` event, which must never be reordered as a
+ * start).
+ */
+function isStartEffect(effect: any): boolean {
+  return effect?.type === XSTATE_START && 'actor' in effect;
+}
+
+/**
+ * Stably partition a flat effects array into `[...nonStarts, ...attachedStarts,
+ * ...childStarts]`, preserving authored order within each group. Attached
+ * starts are listener/subscription actors; they must run before their target
+ * actor starts so synchronously-emitted startup events are captured. Non-start
+ * effects (including `@xstate.stop` and user-emitted events) keep their
+ * authored positions.
+ */
+function partitionEffects<T>(effects: T[]): T[] {
+  const nonStarts: T[] = [];
+  const attachedStarts: T[] = [];
+  const childStarts: T[] = [];
+
+  for (const effect of effects) {
+    if (!isStartEffect(effect)) {
+      nonStarts.push(effect);
+      continue;
+    }
+    const logic = (effect as any).actor.logic;
+    if (logic === listenerLogic || logic === subscriptionLogic) {
+      attachedStarts.push(effect);
+    } else {
+      childStarts.push(effect);
+    }
+  }
+
+  return [...nonStarts, ...attachedStarts, ...childStarts];
+}
 
 type CompatibleProvidedActorSource<
   TExpected extends AnyActorLogic,
@@ -403,8 +444,8 @@ export class StateMachine<
 
     return [
       nextSnapshot,
-      microsteps.flatMap(
-        ([, actions]) => actions
+      partitionEffects(
+        microsteps.flatMap(([, actions]) => actions)
       ) as ExecutableActionObjectFromLogic<this>[]
     ];
   }
@@ -740,10 +781,10 @@ export class StateMachine<
 
     return [
       macroState as SnapshotFrom<this>,
-      [
+      partitionEffects([
         ...initialActions,
         ...microsteps.flatMap(([, actions]) => actions)
-      ] as ExecutableActionObjectFromLogic<this>[]
+      ]) as ExecutableActionObjectFromLogic<this>[]
     ];
   }
 

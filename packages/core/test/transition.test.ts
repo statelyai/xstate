@@ -23,73 +23,57 @@ import { XSTATE_SPAWN, XSTATE_START, XSTATE_STOP } from '../src/constants';
 import { z } from 'zod';
 
 function describeEffects(effects: ExecutableActionObject[]): string[] {
-  // Effect types produced by the spawn/start split model. `@xstate.spawn`
-  // effects are not (yet) recognized by `isBuiltInExecutableAction`, so filter
-  // by explicit type membership instead of relying on it.
-  // TODO(green): revert to isBuiltInExecutableAction once it recognizes
-  // `@xstate.spawn` effects (then this Set goes away).
-  const builtInEffectTypes = new Set<string>([
-    XSTATE_SPAWN,
-    XSTATE_START,
-    XSTATE_STOP
-  ]);
-
   // Classify each spawned actor exactly once, from its authored-position
   // `@xstate.spawn` effect (which carries `logic`/`input`; listener and
   // subscription actors carry their target actor ref in `input.actor`). Slim
   // `@xstate.start` effects then reuse the label via their `actor` ref.
   const labelByActor = new Map<any, string>();
   for (const e of effects) {
-    // TODO(green): remove cast once `@xstate.spawn` effect type exists
-    const eAny = e as any;
-    if (eAny.type !== XSTATE_SPAWN) {
+    if (!isBuiltInExecutableAction(e) || e.type !== XSTATE_SPAWN) {
       continue;
     }
+    const input = e.input as { actor: { id: string } };
     const label =
-      eAny.logic === listenerLogic
-        ? `listen(${eAny.input.actor.id})`
-        : eAny.logic === subscriptionLogic
-          ? `subscribe(${eAny.input.actor.id})`
-          : `spawn(${eAny.id})`;
-    labelByActor.set(eAny.actor, label);
+      e.logic === listenerLogic
+        ? `listen(${input.actor.id})`
+        : e.logic === subscriptionLogic
+          ? `subscribe(${input.actor.id})`
+          : `spawn(${e.id})`;
+    labelByActor.set(e.actor, label);
   }
 
-  return effects
-    .filter((e) => builtInEffectTypes.has(e.type))
-    .flatMap((e) => {
-      // TODO(green): remove cast once `@xstate.spawn`/slim start effects exist
-      const eAny = e as any;
-      switch (eAny.type) {
-        case XSTATE_STOP:
-          return `stop(${eAny.actor.id})`;
-        case XSTATE_SPAWN:
-          return labelByActor.get(eAny.actor)!;
-        case XSTATE_START: {
-          // A user-emitted `{ type: '@xstate.start' }` event has no `actor`
-          // property; skip it instead of crashing.
-          if (!eAny.actor) {
-            return [];
-          }
-          const label = labelByActor.get(eAny.actor);
-          if (label) {
-            return label.startsWith('spawn(')
-              ? `start(${eAny.id})`
-              : `start:${label}`;
-          }
-          // No spawn record in this effects array; classify attached actors by
-          // logic identity (target id unknown), else a plain child start.
-          if (eAny.actor.logic === listenerLogic) {
-            return `start:listen(${eAny.actor.id})`;
-          }
-          if (eAny.actor.logic === subscriptionLogic) {
-            return `start:subscribe(${eAny.actor.id})`;
-          }
-          return `start(${eAny.id})`;
-        }
-        default:
+  return effects.filter(isBuiltInExecutableAction).flatMap((e) => {
+    switch (e.type) {
+      case XSTATE_STOP:
+        return `stop(${e.actor.id})`;
+      case XSTATE_SPAWN:
+        return labelByActor.get(e.actor)!;
+      case XSTATE_START: {
+        // A user-emitted `{ type: '@xstate.start' }` event has no `actor`
+        // property; skip it instead of crashing.
+        if (!e.actor) {
           return [];
+        }
+        const label = labelByActor.get(e.actor);
+        if (label) {
+          return label.startsWith('spawn(')
+            ? `start(${e.id})`
+            : `start:${label}`;
+        }
+        // No spawn record in this effects array; classify attached actors by
+        // logic identity (target id unknown), else a plain child start.
+        if ((e.actor as any).logic === listenerLogic) {
+          return `start:listen(${e.actor.id})`;
+        }
+        if ((e.actor as any).logic === subscriptionLogic) {
+          return `start:subscribe(${e.actor.id})`;
+        }
+        return `start(${e.id})`;
       }
-    });
+      default:
+        return [];
+    }
+  });
 }
 
 describe('transition function', () => {
@@ -531,10 +515,14 @@ describe('transition function', () => {
     const [state, initialActions] = initialTransition(machine);
 
     // Full metadata now lives on the authored-position `@xstate.spawn` effect.
-    // TODO(green): remove casts once `@xstate.spawn` effect type exists
     const invokeSpawn = initialActions.find(
-      (action) => (action as any).type === XSTATE_SPAWN
-    ) as any;
+      (
+        action
+      ): action is Extract<
+        SpecialExecutableAction,
+        { type: '@xstate.spawn' }
+      > => isBuiltInExecutableAction(action) && action.type === '@xstate.spawn'
+    )!;
 
     expect(invokeSpawn).toBeDefined();
     expect(invokeSpawn.actor).toBe(invokeSpawn.args[0]);
@@ -559,12 +547,17 @@ describe('transition function', () => {
 
     const [, actions] = transition(machine, state, { type: 'NEXT' });
 
-    // TODO(green): remove casts once `@xstate.spawn` effect type exists
     const spawnedSpawn = actions.find(
-      (action) =>
-        (action as any).type === XSTATE_SPAWN &&
-        (action as any).id === 'spawned'
-    ) as any;
+      (
+        action
+      ): action is Extract<
+        SpecialExecutableAction,
+        { type: '@xstate.spawn' }
+      > =>
+        isBuiltInExecutableAction(action) &&
+        action.type === '@xstate.spawn' &&
+        action.id === 'spawned'
+    )!;
     expect(spawnedSpawn).toBeDefined();
     expect(spawnedSpawn.id).toBe('spawned');
     expect(spawnedSpawn.actor).toBe(spawnedSpawn.args[0]);
@@ -898,10 +891,10 @@ describe('transition function', () => {
 
     const [, effects] = initialTransition(machine);
 
-    // TODO(green): remove casts once `@xstate.spawn` effect type exists
     const spawnEffects = effects.filter(
-      (e) => (e as any).type === XSTATE_SPAWN
-    ) as any[];
+      (e): e is Extract<SpecialExecutableAction, { type: '@xstate.spawn' }> =>
+        isBuiltInExecutableAction(e) && e.type === '@xstate.spawn'
+    );
     const childSpawn = spawnEffects.find((e) => e.logic === childLogic)!;
     const listenerSpawn = spawnEffects.find((e) => e.logic === listenerLogic)!;
 

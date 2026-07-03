@@ -61,12 +61,17 @@ function unregisterChild(actor: AnyActor) {
   );
 }
 
-function pushStartedChild(
+export function pushSpawnAndStart(actions: any[], actor: AnyActor) {
+  pushBuiltInAction(actions, builtInActions['@xstate.spawn'], actor);
+  pushBuiltInAction(actions, builtInActions['@xstate.start'], actor);
+}
+
+function pushSpawnedChild(
   actions: any[],
   actor: AnyActor,
   id: string | undefined
 ) {
-  pushBuiltInAction(actions, builtInActions['@xstate.start'], actor);
+  pushSpawnAndStart(actions, actor);
   actions.push(registerSpawnedChild(actor, id ?? actor.id));
 }
 
@@ -123,7 +128,7 @@ export function createTransitionEnqueue(
         ...options,
         parent: actorScope.self
       });
-      pushStartedChild(actions, actor, options?.id);
+      pushSpawnedChild(actions, actor, options?.id);
       return actor;
     },
     sendTo: (actor, event, options) => {
@@ -170,11 +175,7 @@ export function createTransitionEnqueue(
           input,
           parent: actorScope.self
         });
-        pushBuiltInAction(
-          actions,
-          builtInActions['@xstate.start'],
-          listenerActor
-        );
+        pushSpawnAndStart(actions, listenerActor);
         return listenerActor;
       },
       subscribeTo: (actor: any, mappers: any) => {
@@ -189,11 +190,7 @@ export function createTransitionEnqueue(
           input,
           parent: actorScope.self
         });
-        pushBuiltInAction(
-          actions,
-          builtInActions['@xstate.start'],
-          subscriptionActor
-        );
+        pushSpawnAndStart(actions, subscriptionActor);
         return subscriptionActor;
       }
     });
@@ -209,9 +206,9 @@ function getBuiltInActionFields(
   args: unknown[]
 ): Partial<SpecialExecutableAction> | undefined {
   switch (action) {
-    case builtInActions['@xstate.start']: {
+    case builtInActions['@xstate.spawn']: {
       const [actor] = args as Parameters<
-        (typeof builtInActions)['@xstate.start']
+        (typeof builtInActions)['@xstate.spawn']
       >;
       return {
         actor,
@@ -219,6 +216,15 @@ function getBuiltInActionFields(
         logic: (actor as any).logic,
         src: actor.src,
         input: (actor as any).options?.input
+      };
+    }
+    case builtInActions['@xstate.start']: {
+      const [actor] = args as Parameters<
+        (typeof builtInActions)['@xstate.start']
+      >;
+      return {
+        actor,
+        id: actor.id
       };
     }
     case builtInActions['@xstate.raise']: {

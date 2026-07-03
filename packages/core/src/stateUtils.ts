@@ -45,11 +45,11 @@ import {
   toTransitionConfigArray
 } from './utils.ts';
 import { createActor } from './createActor.ts';
-import { builtInActions } from './actions.ts';
 import {
   createEnqueueObject,
   createTransitionEnqueue,
   mergeContextPatch,
+  pushSpawnAndStart,
   resolveActionsWithContext
 } from './transitionActions.ts';
 import { parseDurationToMilliseconds } from './delay.ts';
@@ -1439,10 +1439,7 @@ function microstep(
             syncSnapshot: !!invokeDef.onSnapshot
           });
 
-          actions.push({
-            action: builtInActions['@xstate.start'],
-            args: [actor]
-          });
+          pushSpawnAndStart(actions, actor);
 
           if (invokeDef.id) {
             children[invokeDef.id] = actor;
