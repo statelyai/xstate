@@ -357,6 +357,10 @@ export class Actor<TLogic extends AnyActorLogic>
         this._snapshot = this.logic.restoreSnapshot
           ? this.logic.restoreSnapshot(persistedState, this._actorScope)
           : persistedState;
+      } else if ((options as any)?._inert) {
+        // Inert actors (createInertActorScope) only anchor a scope for pure
+        // transition functions; computing an initial snapshot here would run
+        // init-time side effects (context factories, entry) a second time.
       } else {
         const [snapshot, effects] = this.logic.initialTransition(
           this.options?.input,

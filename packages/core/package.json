@@ -3,6 +3,9 @@
   "version": "6.0.0-alpha.15",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
+  "bin": {
+    "xstate": "./bin/xstate.js"
+  },
   "module": "dist/xstate.esm.js",
   "umd:main": "dist/xstate.umd.min.js",
   "exports": {
@@ -68,7 +71,8 @@
     "invoke",
     "guards",
     "dev",
-    "graph"
+    "graph",
+    "bin"
   ],
   "keywords": [
     "statechart",
