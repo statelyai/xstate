@@ -4,7 +4,8 @@ import {
   createActor,
   createMachine,
   createObservableLogic,
-  createAsyncLogic
+  createAsyncLogic,
+  createCallbackLogic
 } from '../src';
 import { z } from 'zod';
 
@@ -143,5 +144,28 @@ describe('spawnChild action', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not start a child that is spawned and stopped in the same entry', () => {
+    const started = vi.fn();
+
+    const machine = createMachine({
+      entry: (_, enq) => {
+        const child = enq.spawn(
+          createCallbackLogic(() => {
+            started();
+          }),
+          { id: 'child' }
+        );
+        enq.stop(child);
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // The appended start effect no-ops at runtime because the child was already
+    // stopped in the same transition, so its callback logic never runs.
+    expect(started).not.toHaveBeenCalled();
+    expect(actor.getSnapshot().children.child).toBeUndefined();
   });
 });

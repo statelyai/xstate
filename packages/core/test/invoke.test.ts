@@ -3008,79 +3008,73 @@ describe('invoke', () => {
       await promise;
     });
 
-    it.todo(
-      'should not invoke an actor if it gets stopped immediately by transitioning away in immediate microstep',
-      () => {
-        // Since an actor will be canceled when the state machine leaves the invoking state
-        // it does not make sense to start an actor in a state that will be exited immediately
-        let actorStarted = false;
+    it('should not invoke an actor if it gets stopped immediately by transitioning away in immediate microstep', () => {
+      // Since an actor will be canceled when the state machine leaves the invoking state
+      // it does not make sense to start an actor in a state that will be exited immediately
+      let actorStarted = false;
 
-        const transientMachine = createMachine({
-          id: 'transient',
-          initial: 'active',
-          states: {
-            active: {
-              invoke: {
-                id: 'doNotInvoke',
-                src: createCallbackLogic(() => {
-                  actorStarted = true;
-                })
-              },
-              always: { target: 'inactive' }
+      const transientMachine = createMachine({
+        id: 'transient',
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'doNotInvoke',
+              src: createCallbackLogic(() => {
+                actorStarted = true;
+              })
             },
-            inactive: {}
-          }
-        });
+            always: { target: 'inactive' }
+          },
+          inactive: {}
+        }
+      });
 
-        const service = createActor(transientMachine);
+      const service = createActor(transientMachine);
 
-        service.start();
+      service.start();
 
-        expect(actorStarted).toBe(false);
-      }
-    );
+      expect(actorStarted).toBe(false);
+    });
 
     // tslint:disable-next-line: max-line-length
-    it.todo(
-      'should not invoke an actor if it gets stopped immediately by transitioning away in subsequent microstep',
-      () => {
-        // Since an actor will be canceled when the state machine leaves the invoking state
-        // it does not make sense to start an actor in a state that will be exited immediately
-        let actorStarted = false;
+    it('should not invoke an actor if it gets stopped immediately by transitioning away in subsequent microstep', () => {
+      // Since an actor will be canceled when the state machine leaves the invoking state
+      // it does not make sense to start an actor in a state that will be exited immediately
+      let actorStarted = false;
 
-        const transientMachine = createMachine({
-          initial: 'withNonLeafInvoke',
-          states: {
-            withNonLeafInvoke: {
-              invoke: {
-                id: 'doNotInvoke',
-                src: createCallbackLogic(() => {
-                  actorStarted = true;
-                })
-              },
-              initial: 'first',
-              states: {
-                first: {
-                  always: { target: 'second' }
-                },
-                second: {
-                  always: { target: '#inactive' }
-                }
-              }
+      const transientMachine = createMachine({
+        initial: 'withNonLeafInvoke',
+        states: {
+          withNonLeafInvoke: {
+            invoke: {
+              id: 'doNotInvoke',
+              src: createCallbackLogic(() => {
+                actorStarted = true;
+              })
             },
-            inactive: {
-              id: 'inactive'
+            initial: 'first',
+            states: {
+              first: {
+                always: { target: 'second' }
+              },
+              second: {
+                always: { target: '#inactive' }
+              }
             }
+          },
+          inactive: {
+            id: 'inactive'
           }
-        });
+        }
+      });
 
-        const service = createActor(transientMachine);
+      const service = createActor(transientMachine);
 
-        service.start();
+      service.start();
 
-        expect(actorStarted).toBe(false);
-      }
-    );
+      expect(actorStarted).toBe(false);
+    });
 
     it('should invoke a service if other service gets stopped in subsequent microstep (#1180)', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();

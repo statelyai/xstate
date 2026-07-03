@@ -2090,4 +2090,22 @@ describe('actors', () => {
     createActor(machine).start();
     expect(actors).toEqual({});
   });
+  it('does not restart the root actor after it has been stopped', () => {
+    const entry = vi.fn();
+    const machine = createMachine({
+      entry: (_, enq) => enq(entry)
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(entry).toHaveBeenCalledTimes(1);
+
+    actor.stop();
+    actor.start();
+
+    // A stopped actor cannot be (re)started; start() is a no-op.
+    expect(actor.getSnapshot().status).toBe('stopped');
+    expect(entry).toHaveBeenCalledTimes(1);
+  });
 });

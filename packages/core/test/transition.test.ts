@@ -19,26 +19,63 @@ import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
 import { listenerLogic } from '../src/actors/listener';
 import { subscriptionLogic } from '../src/actors/subscription';
-import { XSTATE_START, XSTATE_STOP } from '../src/constants';
+import { XSTATE_SPAWN, XSTATE_START, XSTATE_STOP } from '../src/constants';
 import { z } from 'zod';
 
 function describeEffects(effects: ExecutableActionObject[]): string[] {
-  return effects.filter(isBuiltInExecutableAction).flatMap((e) => {
-    switch (e.type) {
-      case XSTATE_STOP:
-        return `stop(${e.actor.id})`;
-      case XSTATE_START:
-        if (e.logic === listenerLogic) {
-          return `listen(${(e.input as any).actor.id})`;
-        }
-        if (e.logic === subscriptionLogic) {
-          return `subscribe(${(e.input as any).actor.id})`;
-        }
-        return `start(${e.id})`;
-      default:
-        return [];
+  // Effect types produced by the spawn/start split model. `@xstate.spawn`
+  // effects are not (yet) recognized by `isBuiltInExecutableAction`, so filter
+  // by explicit type membership instead of relying on it.
+  const builtInEffectTypes = new Set<string>([
+    XSTATE_SPAWN,
+    XSTATE_START,
+    XSTATE_STOP
+  ]);
+
+  // First pass: collect a map from each spawned/attached actor ref to the id of
+  // the actor it targets (listener/subscription actors carry their target in
+  // `input.actor`). Slim `@xstate.start` effects no longer carry `input`, so we
+  // recover the target id from the matching `@xstate.spawn` effect that appears
+  // earlier in the same effects array.
+  const targetIdByActor = new Map<any, string>();
+  for (const e of effects) {
+    // TODO(green): remove cast once `@xstate.spawn` effect type exists
+    const eAny = e as any;
+    if (eAny.type === XSTATE_SPAWN && eAny.input?.actor) {
+      targetIdByActor.set(eAny.actor, eAny.input.actor.id);
     }
-  });
+  }
+
+  return effects
+    .filter((e) => builtInEffectTypes.has(e.type))
+    .flatMap((e) => {
+      // TODO(green): remove cast once `@xstate.spawn`/slim start effects exist
+      const eAny = e as any;
+      switch (eAny.type) {
+        case XSTATE_STOP:
+          return `stop(${eAny.actor.id})`;
+        case XSTATE_SPAWN:
+          if (eAny.logic === listenerLogic) {
+            return `listen(${eAny.input.actor.id})`;
+          }
+          if (eAny.logic === subscriptionLogic) {
+            return `subscribe(${eAny.input.actor.id})`;
+          }
+          return `spawn(${eAny.id})`;
+        case XSTATE_START: {
+          const actorLogic = eAny.actor.logic;
+          if (actorLogic === listenerLogic) {
+            return `start:listen(${targetIdByActor.get(eAny.actor)})`;
+          }
+          if (actorLogic === subscriptionLogic) {
+            return `start:subscribe(${targetIdByActor.get(eAny.actor)})`;
+          }
+          return `start(${eAny.id})`;
+        }
+        default:
+          return [];
+      }
+    });
 }
 
 describe('transition function', () => {
@@ -478,6 +515,21 @@ describe('transition function', () => {
     });
 
     const [state, initialActions] = initialTransition(machine);
+
+    // Full metadata now lives on the authored-position `@xstate.spawn` effect.
+    // TODO(green): remove casts once `@xstate.spawn` effect type exists
+    const invokeSpawn = initialActions.find(
+      (action) => (action as any).type === '@xstate.spawn'
+    ) as any;
+
+    expect(invokeSpawn.type).toBe('@xstate.spawn');
+    expect(invokeSpawn.actor).toBe(invokeSpawn.args[0]);
+    expect(invokeSpawn.id).toBe('child');
+    expect(invokeSpawn.logic).toBe(childMachine);
+    expect(invokeSpawn.src).toBe(invokeSpawn.actor.src);
+    expect(invokeSpawn.input).toEqual({ kind: 'invoke' });
+
+    // The deferred `@xstate.start` effect is slimmed to `{ actor, id }`.
     const invokeStart = initialActions.find(
       (
         action
@@ -490,11 +542,21 @@ describe('transition function', () => {
     expect(invokeStart.type).toBe('@xstate.start');
     expect(invokeStart.actor).toBe(invokeStart.args[0]);
     expect(invokeStart.id).toBe('child');
-    expect(invokeStart.logic).toBe(childMachine);
-    expect(invokeStart.src).toBe(invokeStart.actor.src);
-    expect(invokeStart.input).toEqual({ kind: 'invoke' });
 
     const [, actions] = transition(machine, state, { type: 'NEXT' });
+
+    // TODO(green): remove casts once `@xstate.spawn` effect type exists
+    const spawnedSpawn = actions.find(
+      (action) =>
+        (action as any).type === '@xstate.spawn' &&
+        (action as any).id === 'spawned'
+    ) as any;
+    expect(spawnedSpawn.type).toBe('@xstate.spawn');
+    expect(spawnedSpawn.id).toBe('spawned');
+    expect(spawnedSpawn.actor).toBe(spawnedSpawn.args[0]);
+    expect(spawnedSpawn.logic).toBe(childMachine);
+    expect(spawnedSpawn.src).toBe(childMachine);
+    expect(spawnedSpawn.input).toEqual({ kind: 'spawn' });
 
     const spawnedStart = actions.find(
       (
@@ -510,9 +572,6 @@ describe('transition function', () => {
     expect(spawnedStart.type).toBe('@xstate.start');
     expect(spawnedStart.id).toBe('spawned');
     expect(spawnedStart.actor).toBe(spawnedStart.args[0]);
-    expect(spawnedStart.logic).toBe(childMachine);
-    expect(spawnedStart.src).toBe(childMachine);
-    expect(spawnedStart.input).toEqual({ kind: 'spawn' });
 
     expect(
       actions.find((action) => action.type === '@xstate.raise')
@@ -560,7 +619,7 @@ describe('transition function', () => {
     emit({ type: 'someEvent' });
   });
 
-  it('initialTransition: listener start effect comes before target actor start', () => {
+  it('initialTransition: defers listener/child starts to the end of the effects', () => {
     const machine = createMachine({
       entry: (_, enq) => {
         const child = enq.spawn(emittingLogic, { id: 'child' });
@@ -570,10 +629,15 @@ describe('transition function', () => {
 
     const [, effects] = initialTransition(machine);
 
-    expect(describeEffects(effects)).toEqual(['listen(child)', 'start(child)']);
+    expect(describeEffects(effects)).toEqual([
+      'spawn(child)',
+      'listen(child)',
+      'start:listen(child)',
+      'start(child)'
+    ]);
   });
 
-  it('initialTransition: subscribeTo start effect comes before target actor start', () => {
+  it('initialTransition: defers subscription/child starts to the end of the effects', () => {
     const completingLogic = createLogic({
       context: undefined,
       run: () => ({
@@ -594,12 +658,14 @@ describe('transition function', () => {
     const [, effects] = initialTransition(machine);
 
     expect(describeEffects(effects)).toEqual([
+      'spawn(child)',
       'subscribe(child)',
+      'start:subscribe(child)',
       'start(child)'
     ]);
   });
 
-  it('transition: cross-phase spawns with listeners from exit and entry are reordered per-actor', () => {
+  it('transition: cross-phase spawns with listeners from exit and entry defer starts to the end of the effects', () => {
     const machine = createMachine({
       initial: 'a',
       context: {} as { spawnedOnExit: any },
@@ -634,15 +700,23 @@ describe('transition function', () => {
     const [, effects] = transition(machine, state, { type: 'GO' });
 
     expect(describeEffects(effects)).toEqual([
+      // authored-position records across both microsteps
+      'spawn(exitChild)',
       'listen(exitChild)',
-      'listen(exitChild)',
-      'start(exitChild)',
+      'spawn(entryChild)',
       'listen(entryChild)',
+      'listen(exitChild)',
+      // appended attached-actor starts (authored order)
+      'start:listen(exitChild)',
+      'start:listen(entryChild)',
+      'start:listen(exitChild)',
+      // appended child starts (authored order)
+      'start(exitChild)',
       'start(entryChild)'
     ]);
   });
 
-  it('transition: listener is NOT reordered ahead of an actor that was stopped before the listener was added', () => {
+  it('transition: a same-transition spawn+stop keeps its appended start (which no-ops at runtime)', () => {
     const machine = createMachine({
       initial: 'a',
       context: {} as { spawnedChild: any },
@@ -671,13 +745,16 @@ describe('transition function', () => {
     const [, effects] = transition(machine, state, { type: 'GO' });
 
     expect(describeEffects(effects)).toEqual([
-      'start(child)',
+      'spawn(child)',
       'stop(child)',
-      'listen(child)'
+      'listen(child)',
+      'start:listen(child)',
+      // still present; no-ops at runtime because the child was already stopped
+      'start(child)'
     ]);
   });
 
-  it('transition: interleaved spawns and listeners in the same phase are reordered per-actor', () => {
+  it('transition: interleaved spawns and listeners in the same phase defer starts to the end (attached before child, each in authored order)', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -701,14 +778,20 @@ describe('transition function', () => {
     const [, effects] = transition(machine, state, { type: 'GO' });
 
     expect(describeEffects(effects)).toEqual([
-      'listen(actorA)',
-      'start(actorA)',
+      'spawn(actorA)',
+      'spawn(actorB)',
       'listen(actorB)',
+      'listen(actorA)',
+      // attached starts keep authored order (B then A)
+      'start:listen(actorB)',
+      'start:listen(actorA)',
+      // child starts keep authored order (A then B)
+      'start(actorA)',
       'start(actorB)'
     ]);
   });
 
-  it('transition: listener on a pre-existing actor is a no-op (no actor start to reorder against)', () => {
+  it('transition: listening to a pre-existing actor spawns+starts only the listener actor (no new target start)', () => {
     const machine = createMachine({
       initial: 'a',
       context: {} as { existingChild: any },
@@ -737,7 +820,135 @@ describe('transition function', () => {
     const [state] = initialTransition(machine);
     const [, effects] = transition(machine, state, { type: 'GO' });
 
-    expect(describeEffects(effects)).toEqual(['listen(existing)']);
+    expect(describeEffects(effects)).toEqual([
+      'listen(existing)',
+      'start:listen(existing)'
+    ]);
+  });
+
+  it('initialTransition: spawn+listen+subscribeTo on the same child defers starts to the end', () => {
+    const completingLogic = createLogic({
+      context: undefined,
+      run: () => ({
+        status: 'done',
+        output: { result: 'success' }
+      })
+    });
+
+    const machine = createMachine({
+      entry: (_, enq) => {
+        const child = enq.spawn(completingLogic, { id: 'child' });
+        enq.listen(child, 'someEvent', () => ({ type: 'HEARD' }));
+        enq.subscribeTo(child, {
+          done: (output) => ({ type: 'CHILD_DONE', output })
+        });
+      }
+    });
+
+    const [, effects] = initialTransition(machine);
+
+    expect(describeEffects(effects)).toEqual([
+      'spawn(child)',
+      'listen(child)',
+      'subscribe(child)',
+      // attached-actor starts first, in authored order
+      'start:listen(child)',
+      'start:subscribe(child)',
+      // child start last
+      'start(child)'
+    ]);
+  });
+
+  it('initialTransition: invoke start is deferred to the end, after entry actions', () => {
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: emittingLogic
+      },
+      entry: ({ children }, enq) => {
+        enq.listen(children.child!, 'someEvent', () => ({ type: 'HEARD' }));
+      }
+    });
+
+    const [, effects] = initialTransition(machine);
+
+    expect(describeEffects(effects)).toEqual([
+      'spawn(child)',
+      'listen(child)',
+      'start:listen(child)',
+      'start(child)'
+    ]);
+  });
+
+  it('initialTransition: effects can be executed by a manual executor loop with listener starting before child', () => {
+    const childLogic = createCallbackLogic(() => {});
+
+    const machine = createMachine({
+      entry: (_, enq) => {
+        const child = enq.spawn(childLogic, { id: 'child' });
+        enq.listen(child, 'someEvent', () => ({ type: 'HEARD' }));
+      }
+    });
+
+    const [, effects] = initialTransition(machine);
+
+    // TODO(green): remove casts once `@xstate.spawn` effect type exists
+    const spawnEffects = effects.filter(
+      (e) => (e as any).type === XSTATE_SPAWN
+    ) as any[];
+    const childSpawn = spawnEffects.find((e) => e.logic === childLogic)!;
+    const listenerSpawn = spawnEffects.find((e) => e.logic === listenerLogic)!;
+
+    const childRef = childSpawn.actor;
+    const listenerRef = listenerSpawn.actor;
+
+    const childStart = vi.spyOn(childRef as any, 'start');
+    const listenerStart = vi.spyOn(listenerRef as any, 'start');
+
+    for (const effect of effects) {
+      effect.exec?.();
+    }
+
+    expect(listenerStart).toHaveBeenCalled();
+    expect(childStart).toHaveBeenCalled();
+    expect(listenerStart.mock.invocationCallOrder[0]).toBeLessThan(
+      childStart.mock.invocationCallOrder[0]
+    );
+    expect(childRef.getSnapshot().status).toBe('active');
+  });
+
+  it('initialTransition: an emitted @xstate.start event stays at its authored position, before appended real starts', () => {
+    const machine = createMachine({
+      schemas: {
+        emitted: {
+          '@xstate.start': z.object({})
+        }
+      },
+      entry: (_, enq) => {
+        enq.spawn(emittingLogic, { id: 'child' });
+        enq.emit({ type: '@xstate.start' });
+      }
+    });
+
+    const [, effects] = initialTransition(machine);
+
+    const shape = effects.map((e) => ({
+      type: e.type,
+      hasActor: 'actor' in e
+    }));
+
+    // The emitted user event has no `actor` property; the real start effect does.
+    const emittedIdx = shape.findIndex(
+      (e) => e.type === '@xstate.start' && !e.hasActor
+    );
+    const realStartIdx = shape.findIndex(
+      (e) => e.type === '@xstate.start' && e.hasActor
+    );
+
+    expect(emittedIdx).toBeGreaterThanOrEqual(0);
+    expect(realStartIdx).toBeGreaterThanOrEqual(0);
+    // the emitted event must not be misclassified/reordered as a real start
+    expect(emittedIdx).toBeLessThan(realStartIdx);
   });
 
   it('does not classify inherited object keys as built-in actions', () => {
