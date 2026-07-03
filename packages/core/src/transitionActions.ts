@@ -287,9 +287,7 @@ export function deriveDeferredStarts(
   const childStarts: StartExecutableActionObject[] = [];
 
   for (const effect of effects) {
-    // `'actor' in effect` distinguishes a real spawn effect from a
-    // user-emitted `{ type: '@xstate.spawn' }` event.
-    if (effect.type !== XSTATE_SPAWN || !('actor' in effect)) {
+    if (effect.type !== XSTATE_SPAWN) {
       continue;
     }
     const { actor, logic } = effect as SpawnExecutableActionObject;

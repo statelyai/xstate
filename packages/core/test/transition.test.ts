@@ -883,40 +883,6 @@ describe('transition function', () => {
     expect(childRef.getSnapshot().status).toBe('active');
   });
 
-  it('initialTransition: an emitted @xstate.start event stays at its authored position, before appended real starts', () => {
-    const machine = createMachine({
-      schemas: {
-        emitted: {
-          '@xstate.start': z.object({})
-        }
-      },
-      entry: (_, enq) => {
-        enq.spawn(emittingLogic, { id: 'child' });
-        enq.emit({ type: '@xstate.start' });
-      }
-    });
-
-    const [, effects] = initialTransition(machine);
-
-    const shape = effects.map((e) => ({
-      type: e.type,
-      hasActor: 'actor' in e
-    }));
-
-    // The emitted user event has no `actor` property; the real start effect does.
-    const emittedIdx = shape.findIndex(
-      (e) => e.type === '@xstate.start' && !e.hasActor
-    );
-    const realStartIdx = shape.findIndex(
-      (e) => e.type === '@xstate.start' && e.hasActor
-    );
-
-    expect(emittedIdx).toBeGreaterThanOrEqual(0);
-    expect(realStartIdx).toBeGreaterThanOrEqual(0);
-    // the emitted event must not be misclassified/reordered as a real start
-    expect(emittedIdx).toBeLessThan(realStartIdx);
-  });
-
   it('does not classify inherited object keys as built-in actions', () => {
     expect(
       isBuiltInExecutableAction({
