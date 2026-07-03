@@ -22,6 +22,13 @@ import { subscriptionLogic } from '../src/actors/subscription';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_STOP } from '../src/constants';
 import { z } from 'zod';
 
+const isEffect =
+  <T extends SpecialExecutableAction['type']>(type: T) =>
+  (
+    e: ExecutableActionObject
+  ): e is Extract<SpecialExecutableAction, { type: T }> =>
+    isBuiltInExecutableAction(e) && e.type === type;
+
 function describeEffects(effects: ExecutableActionObject[]): string[] {
   // Classify each spawned actor exactly once, from its authored-position
   // `@xstate.spawn` effect (which carries `logic`/`input`; listener and
@@ -62,6 +69,8 @@ function describeEffects(effects: ExecutableActionObject[]): string[] {
         }
         // No spawn record in this effects array; classify attached actors by
         // logic identity (target id unknown), else a plain child start.
+        // These casts are permanent: `logic` lives on the Actor class, not the
+        // public `AnyActor` interface carried by the effect.
         if ((e.actor as any).logic === listenerLogic) {
           return `start:listen(${e.actor.id})`;
         }
@@ -515,14 +524,7 @@ describe('transition function', () => {
     const [state, initialActions] = initialTransition(machine);
 
     // Full metadata now lives on the authored-position `@xstate.spawn` effect.
-    const invokeSpawn = initialActions.find(
-      (
-        action
-      ): action is Extract<
-        SpecialExecutableAction,
-        { type: '@xstate.spawn' }
-      > => isBuiltInExecutableAction(action) && action.type === '@xstate.spawn'
-    )!;
+    const invokeSpawn = initialActions.find(isEffect(XSTATE_SPAWN))!;
 
     expect(invokeSpawn).toBeDefined();
     expect(invokeSpawn.actor).toBe(invokeSpawn.args[0]);
@@ -532,14 +534,7 @@ describe('transition function', () => {
     expect(invokeSpawn.input).toEqual({ kind: 'invoke' });
 
     // The deferred `@xstate.start` effect is slimmed to `{ actor, id }`.
-    const invokeStart = initialActions.find(
-      (
-        action
-      ): action is Extract<
-        SpecialExecutableAction,
-        { type: '@xstate.start' }
-      > => isBuiltInExecutableAction(action) && action.type === '@xstate.start'
-    )!;
+    const invokeStart = initialActions.find(isEffect(XSTATE_START))!;
 
     expect(invokeStart.type).toBe('@xstate.start');
     expect(invokeStart.actor).toBe(invokeStart.args[0]);
@@ -547,17 +542,9 @@ describe('transition function', () => {
 
     const [, actions] = transition(machine, state, { type: 'NEXT' });
 
-    const spawnedSpawn = actions.find(
-      (
-        action
-      ): action is Extract<
-        SpecialExecutableAction,
-        { type: '@xstate.spawn' }
-      > =>
-        isBuiltInExecutableAction(action) &&
-        action.type === '@xstate.spawn' &&
-        action.id === 'spawned'
-    )!;
+    const spawnedSpawn = actions
+      .filter(isEffect(XSTATE_SPAWN))
+      .find((action) => action.id === 'spawned')!;
     expect(spawnedSpawn).toBeDefined();
     expect(spawnedSpawn.id).toBe('spawned');
     expect(spawnedSpawn.actor).toBe(spawnedSpawn.args[0]);
@@ -565,17 +552,9 @@ describe('transition function', () => {
     expect(spawnedSpawn.src).toBe(childMachine);
     expect(spawnedSpawn.input).toEqual({ kind: 'spawn' });
 
-    const spawnedStart = actions.find(
-      (
-        action
-      ): action is Extract<
-        SpecialExecutableAction,
-        { type: '@xstate.start' }
-      > =>
-        isBuiltInExecutableAction(action) &&
-        action.type === '@xstate.start' &&
-        action.id === 'spawned'
-    )!;
+    const spawnedStart = actions
+      .filter(isEffect(XSTATE_START))
+      .find((action) => action.id === 'spawned')!;
     expect(spawnedStart.type).toBe('@xstate.start');
     expect(spawnedStart.id).toBe('spawned');
     expect(spawnedStart.actor).toBe(spawnedStart.args[0]);
@@ -589,14 +568,7 @@ describe('transition function', () => {
       delay: 10
     });
 
-    const sendAction = actions.find(
-      (
-        action
-      ): action is Extract<
-        SpecialExecutableAction,
-        { type: '@xstate.sendTo' }
-      > => isBuiltInExecutableAction(action) && action.type === '@xstate.sendTo'
-    )!;
+    const sendAction = actions.find(isEffect('@xstate.sendTo'))!;
     expect(sendAction).toMatchObject({
       type: '@xstate.sendTo',
       event: { type: 'ping' },
@@ -612,12 +584,7 @@ describe('transition function', () => {
       id: 'raise-id'
     });
 
-    const stopAction = actions.find(
-      (
-        action
-      ): action is Extract<SpecialExecutableAction, { type: '@xstate.stop' }> =>
-        isBuiltInExecutableAction(action) && action.type === '@xstate.stop'
-    )!;
+    const stopAction = actions.find(isEffect(XSTATE_STOP))!;
     expect(stopAction.type).toBe('@xstate.stop');
     expect(stopAction.actor).toBe(state.children.child);
   });
@@ -891,10 +858,7 @@ describe('transition function', () => {
 
     const [, effects] = initialTransition(machine);
 
-    const spawnEffects = effects.filter(
-      (e): e is Extract<SpecialExecutableAction, { type: '@xstate.spawn' }> =>
-        isBuiltInExecutableAction(e) && e.type === '@xstate.spawn'
-    );
+    const spawnEffects = effects.filter(isEffect(XSTATE_SPAWN));
     const childSpawn = spawnEffects.find((e) => e.logic === childLogic)!;
     const listenerSpawn = spawnEffects.find((e) => e.logic === listenerLogic)!;
 

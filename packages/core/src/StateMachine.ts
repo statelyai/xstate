@@ -43,6 +43,7 @@ import type {
   EmittedFrom,
   EventObject,
   EventFromLogic,
+  ExecutableActionObject,
   ExecutableActionObjectFromLogic,
   HistoryValue,
   InputFrom,
@@ -52,6 +53,7 @@ import type {
   OutputFrom,
   Snapshot,
   SnapshotFrom,
+  StartExecutableActionObject,
   StateValue,
   StateSchema,
   SnapshotStatus,
@@ -76,8 +78,10 @@ const STATE_IDENTIFIER = '#';
  * `{ type: '@xstate.start' }` event, which must never be reordered as a
  * start).
  */
-function isStartEffect(effect: any): boolean {
-  return effect?.type === XSTATE_START && 'actor' in effect;
+function isStartEffect(
+  effect: ExecutableActionObject
+): effect is StartExecutableActionObject {
+  return effect.type === XSTATE_START && 'actor' in effect;
 }
 
 /**
@@ -88,17 +92,20 @@ function isStartEffect(effect: any): boolean {
  * effects (including `@xstate.stop` and user-emitted events) keep their
  * authored positions.
  */
-function partitionEffects<T>(effects: T[]): T[] {
-  const nonStarts: T[] = [];
-  const attachedStarts: T[] = [];
-  const childStarts: T[] = [];
+function partitionEffects(
+  effects: ExecutableActionObject[]
+): ExecutableActionObject[] {
+  const nonStarts: ExecutableActionObject[] = [];
+  const attachedStarts: ExecutableActionObject[] = [];
+  const childStarts: ExecutableActionObject[] = [];
 
   for (const effect of effects) {
     if (!isStartEffect(effect)) {
       nonStarts.push(effect);
       continue;
     }
-    const logic = (effect as any).actor.logic;
+    // `logic` lives on the Actor class, not the public `AnyActor` interface.
+    const logic = (effect.actor as { logic?: unknown }).logic;
     if (logic === listenerLogic || logic === subscriptionLogic) {
       attachedStarts.push(effect);
     } else {
@@ -784,7 +791,7 @@ export class StateMachine<
       partitionEffects([
         ...initialActions,
         ...microsteps.flatMap(([, actions]) => actions)
-      ]) as ExecutableActionObjectFromLogic<this>[]
+      ] as ExecutableActionObject[]) as ExecutableActionObjectFromLogic<this>[]
     ];
   }
 

@@ -168,4 +168,41 @@ describe('spawnChild action', () => {
     expect(started).not.toHaveBeenCalled();
     expect(actor.getSnapshot().children.child).toBeUndefined();
   });
+
+  it('does not start a child that is spawned in one microstep and stopped in a later microstep of the same macrostep', () => {
+    const started = vi.fn();
+
+    const machine = createMachine({
+      context: {} as { child: any },
+      initial: 'a',
+      states: {
+        a: {
+          entry: (_, enq) => {
+            const child = enq.spawn(
+              createCallbackLogic(() => {
+                started();
+              }),
+              { id: 'child' }
+            );
+            return { context: { child } };
+          },
+          always: { target: 'b' }
+        },
+        b: {
+          entry: ({ context }, enq) => {
+            enq.stop(context.child);
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // All starts are deferred to the end of the macrostep's effects, while
+    // stops execute at their authored positions — so the child is stopped
+    // before its deferred start runs, and that start is a no-op.
+    expect(started).not.toHaveBeenCalled();
+    expect(actor.getSnapshot().value).toBe('b');
+    expect(actor.getSnapshot().children.child).toBeUndefined();
+  });
 });
