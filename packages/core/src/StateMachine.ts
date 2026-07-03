@@ -15,6 +15,8 @@ import {
   getAllStateNodes,
   getStateNodeByPath,
   getStateNodes,
+  getTransitionResult,
+  hasEffect,
   initialMicrostep,
   isInFinalState,
   isStateId,
@@ -71,6 +73,48 @@ import {
 } from './utils.ts';
 
 const STATE_IDENTIFIER = '#';
+
+let emptyCanActor: AnyActor | undefined;
+let emptyCanActorScope: AnyActorScope | undefined;
+
+function getEmptyCanActor(): AnyActor {
+  // A minimal inert actor used purely as the `self`/`parent` argument when
+  // dry-running transitions for `snapshot.can(...)`. Intentionally not built
+  // on `createLogic` so `can()` does not pull that machinery into bundles.
+  return (emptyCanActor ??= createActor({
+    transition: (snapshot: any) => [snapshot, []],
+    initialTransition: () => [
+      { status: 'active', output: undefined, error: undefined },
+      []
+    ],
+    getInitialSnapshot: () => ({
+      status: 'active',
+      output: undefined,
+      error: undefined
+    }),
+    getPersistedSnapshot: (snapshot: any) => snapshot
+  } as any) as AnyActor);
+}
+
+function getEmptyCanActorScope(): AnyActorScope {
+  if (emptyCanActorScope) {
+    return emptyCanActorScope;
+  }
+
+  const actor = getEmptyCanActor();
+  emptyCanActorScope = {
+    self: actor,
+    logger: () => {},
+    id: '',
+    sessionId: '',
+    defer: () => {},
+    system: actor.system,
+    stopChild: () => {},
+    emit: () => {},
+    actionExecutor: () => {}
+  };
+  return emptyCanActorScope;
+}
 
 type CompatibleProvidedActorSource<
   TExpected extends AnyActorLogic,
@@ -233,18 +277,6 @@ export class StateMachine<
 
     this.states = this.root.states; // TODO: remove!
     this.events = this.root.events;
-
-    if (
-      isDevelopment &&
-      !('output' in this.root) &&
-      Object.values(this.states).some(
-        (state) => state.type === 'final' && 'output' in state
-      )
-    ) {
-      console.warn(
-        'Missing `machine.output` declaration (top-level final state with output detected)'
-      );
-    }
   }
 
   /**
@@ -405,7 +437,19 @@ export class StateMachine<
       []
     );
 
-    return [nextSnapshot, this._collectEffects(microsteps)];
+    return [
+      nextSnapshot as MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TMeta,
+        TConfig
+      >,
+      this._collectEffects(microsteps)
+    ];
   }
 
   private _collectEffects(
@@ -586,6 +630,79 @@ export class StateMachine<
     }
 
     return false;
+  }
+
+  /**
+   * Determines whether sending the `event` to the given snapshot would select a
+   * non-forbidden transition. Backs `snapshot.can(...)`; lives here so that
+   * non-machine bundles don't pay for the transition-resolution machinery.
+   *
+   * @internal
+   */
+  public _canTransition(snapshot: AnyMachineSnapshot, event: TEvent): boolean {
+    const emptyActor = getEmptyCanActor();
+    const emptyActorScope = getEmptyCanActorScope();
+    const transitionData = this.getTransitionData(
+      snapshot as any,
+      event,
+      emptyActor
+    );
+
+    if (!transitionData?.length) {
+      return false;
+    }
+
+    // Check that at least one transition is not forbidden
+    for (const transition of transitionData) {
+      if (transition.target !== undefined) {
+        return true;
+      }
+
+      const res = getTransitionResult(
+        transition,
+        snapshot,
+        event,
+        emptyActorScope,
+        { resolveActions: false }
+      );
+      if (
+        res.targets?.length ||
+        res.context ||
+        hasEffect(transition, snapshot.context, event, snapshot, emptyActor)
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Returns the error event that the actor should transition with to recover
+   * from an execution error, if any active state node declares `onError`.
+   *
+   * @internal
+   */
+  public getExecutionErrorEvent(
+    snapshot: MachineSnapshot<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TOutput,
+      TMeta,
+      TConfig
+    >,
+    error: unknown
+  ): TEvent | undefined {
+    if (
+      (snapshot as any)?.status !== 'active' ||
+      !snapshot._nodes?.some((stateNode) => stateNode.config.onError)
+    ) {
+      return undefined;
+    }
+    return createErrorPlatformEvent('execution', error) as unknown as TEvent;
   }
 
   /**

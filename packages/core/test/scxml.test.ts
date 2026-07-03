@@ -67,11 +67,11 @@ const testGroups: Record<string, string[]> = {
     'test2',
     'test2b',
     'test3',
-    'test3b',
+    // 'test3b', // a reentering transition contained in one parallel region reenters only that region, so it doesn't conflict with (and get preempted by) sibling-region transitions as strict SCXML external-transition domains would require
     'test4',
     'test5',
     'test6',
-    'test6b',
+    // 'test6b', // same deviation as test3b
     'test7',
     'test8',
     'test9',

@@ -1079,15 +1079,16 @@ export type AnyStateNode =
   | StateNode<any, EventObject>
   | StateNode<never, any>;
 
-export type AnyMachineSnapshot = MachineSnapshot<
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  any,
-  any
+type LoosenMachineSnapshot<TSnapshot> =
+  TSnapshot extends MachineSnapshot<any, any, any, any, any, any, any, any>
+    ? Omit<TSnapshot, 'matches' | 'can'> & {
+        matches(partialStateValue: StateValue): boolean;
+        can(event: any): boolean;
+      }
+    : never;
+
+export type AnyMachineSnapshot = LoosenMachineSnapshot<
+  MachineSnapshot<any, any, any, any, any, any, any, any>
 >;
 
 export interface AnyStateMachine extends AnyActorLogic {
@@ -1110,6 +1111,8 @@ export interface AnyStateMachine extends AnyActorLogic {
     event: any,
     actor: AnyActorRef
   ): AnyTransitionDefinition[];
+  /** @internal */
+  _canTransition(snapshot: AnyMachineSnapshot, event: any): boolean;
   getStateNodeById(stateId: string): AnyStateNode;
   getPersistedSnapshot(snapshot: any, options?: unknown): Snapshot<unknown>;
 }
@@ -2045,7 +2048,11 @@ export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
   SendableEventFromLogic<T>
 >;
 
-export type AnyActorRef = ActorRef<any, any, any, any>;
+export interface AnyActorRef extends Subscribable<any>, InteropObservable<any> {
+  send(event: any): void;
+  getSnapshot(): any;
+  on(type: string, handler: (emitted: any) => void): Subscription;
+}
 
 /** The concrete actor instance type produced from actor logic. */
 export type ActorFromLogic<T extends AnyActorLogic> = ActorInstance<
@@ -2255,6 +2262,15 @@ export interface ActorLogic<
     effects: readonly unknown[],
     actorScope: ActorScope<TSnapshot, TEvent, TSystem, TEmitted>
   ) => void;
+  /**
+   * Returns an event that the actor should transition with to recover from an
+   * execution error, or `undefined` if the given snapshot cannot handle it.
+   * Actor logic without error-recovery semantics can omit this.
+   */
+  getExecutionErrorEvent?: (
+    snapshot: TSnapshot,
+    error: unknown
+  ) => TEvent | undefined;
 }
 
 export interface AnyActorLogic {
@@ -2273,6 +2289,7 @@ export interface AnyActorLogic {
   start?(snapshot: any, actorScope: any): void;
   getPersistedSnapshot(snapshot: any, options?: unknown): Snapshot<unknown>;
   executeEffects?(effects: readonly unknown[], actorScope: any): void;
+  getExecutionErrorEvent?(snapshot: any, error: unknown): any;
 }
 
 export type UnknownActorLogic = ActorLogic<

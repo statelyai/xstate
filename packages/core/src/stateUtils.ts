@@ -826,6 +826,11 @@ function removeConflictingTransitions(
       if (hasIntersection(getExitSet(t1), getExitSet(t2))) {
         if (isDescendant(t1.source, t2.source)) {
           transitionsToRemove.add(t2);
+        } else if (t2.source.type === 'final' && t1.source.type !== 'final') {
+          // A transition sourced in a final state yields to a conflicting
+          // transition from a live state, so a done region doesn't keep
+          // consuming events its siblings can still handle.
+          transitionsToRemove.add(t2);
         } else {
           t1Preempted = true;
           break;
@@ -887,6 +892,30 @@ function getEffectiveTargetStates(
   return [...targetSet];
 }
 
+/**
+ * Narrows a parallel domain to the single child region that contains every
+ * effective target, so that a transition confined to one region does not exit
+ * (and reset) its sibling regions.
+ */
+function narrowParallelDomain(
+  domain: AnyStateNode,
+  targetStates: Array<AnyStateNode>
+): AnyStateNode {
+  let narrowed = domain;
+  while (narrowed.type === 'parallel') {
+    const region = getChildren(narrowed).find((child) =>
+      targetStates.every(
+        (target) => target === child || isDescendant(target, child)
+      )
+    );
+    if (!region) {
+      break;
+    }
+    narrowed = region;
+  }
+  return narrowed;
+}
+
 function getTransitionDomain(
   transition: AnyTransitionDefinition,
   snapshot: AnyMachineSnapshot,
@@ -909,20 +938,27 @@ function getTransitionDomain(
   );
 
   if (
-    !reenter &&
     targetStates.every(
       (target) =>
         target === transition.source || isDescendant(target, transition.source)
     )
   ) {
-    return transition.source;
+    // Targets are contained within the source. A reentering transition
+    // exits and reenters the source itself; otherwise the domain narrows
+    // past parallel nodes so sibling regions are left untouched.
+    return reenter
+      ? transition.source
+      : narrowParallelDomain(transition.source, targetStates);
   }
 
   const [head, ...tail] = targetStates.concat(transition.source);
   // Find the least common ancestor (LCA) of the source and effective targets.
   for (const ancestor of getProperAncestors(head, undefined)) {
     if (tail.every((sn) => isDescendant(sn, ancestor))) {
-      return ancestor;
+      // A cross-region transition (source in one parallel region, targets in
+      // another) only exits the region containing its targets; the source
+      // region and other sibling regions stay put unless it reenters.
+      return reenter ? ancestor : narrowParallelDomain(ancestor, targetStates);
     }
   }
 
@@ -931,7 +967,7 @@ function getTransitionDomain(
     return;
   }
 
-  return transition.source.machine.root;
+  return narrowParallelDomain(transition.source.machine.root, targetStates);
 }
 
 function computeExitSet(
@@ -943,7 +979,7 @@ function computeExitSet(
 ): Array<AnyStateNode> {
   const statesToExit = new Set<AnyStateNode>();
   for (const transition of transitions) {
-    const { targets } = getTransitionResult(
+    const { targets, reenter } = getTransitionResult(
       transition,
       snapshot,
       event,
@@ -959,7 +995,7 @@ function computeExitSet(
         actorScope
       );
 
-      if (transition.reenter && transition.source === domain) {
+      if (reenter && transition.source === domain) {
         statesToExit.add(domain);
       }
 
@@ -1193,27 +1229,36 @@ function microstep(
     const enterStates = () => {
       const getMachineOutput = (rootCompletionNode: AnyStateNode) => {
         const rootNode = nextState.machine.root;
-        if (rootNode.output === undefined) {
-          return;
-        }
 
         let completionOutput: unknown;
         if (
           rootCompletionNode.output !== undefined &&
           rootCompletionNode.parent
         ) {
-          completionOutput = resolveOutput(
-            rootCompletionNode.output,
-            nextState.context,
-            event,
-            actorScope.self
-          );
+          const rootDoneEvent = internalQueue.find(
+            (e) => e.type === `xstate.done.state.${rootNode.id}`
+          ) as DoneStateEvent | undefined;
+          completionOutput =
+            rootDoneEvent && rootCompletionNode.parent === rootNode
+              ? rootDoneEvent.output
+              : resolveOutput(
+                  rootCompletionNode.output,
+                  nextState.context,
+                  event,
+                  actorScope.self
+                );
         } else if (rootCompletionNode.type === 'parallel') {
           const parallelDoneType = `xstate.done.state.${rootCompletionNode.id}`;
           const parallelDoneEvent = internalQueue.find(
             (e) => e.type === parallelDoneType
           ) as DoneStateEvent | undefined;
           completionOutput = parallelDoneEvent?.output;
+        }
+
+        if (rootNode.output === undefined) {
+          return rootCompletionNode.parent === rootNode
+            ? completionOutput
+            : undefined;
         }
 
         return resolveOutput(
@@ -1359,6 +1404,12 @@ function microstep(
             ancestors,
             !transition.source.parent && reenter ? undefined : domain
           );
+        }
+        if (reenter && domain === transition.source) {
+          // A reentering transition whose domain is its own source exits and
+          // reenters the source, so the source must be entered explicitly —
+          // it has no ancestor inside the domain to add it.
+          statesToEnter.add(transition.source);
         }
       }
 

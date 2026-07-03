@@ -9,7 +9,6 @@ import {
 import { XSTATE_SPAWN, XSTATE_START } from './constants.ts';
 import { createActor } from './createActor.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
-import { cloneMachineSnapshot } from './State.ts';
 import { getEventOutput } from './utils.ts';
 import type {
   Action,
@@ -373,7 +372,11 @@ export function resolveActionsWithContext(
       const res = specialAction(actionArgs as any, emptyEnqueueObject);
 
       if (res && ('context' in res || 'children' in res)) {
-        intermediateSnapshot = cloneMachineSnapshot(intermediateSnapshot, {
+        // Special-action patches never change `_nodes`, so a shallow clone is
+        // equivalent to `cloneMachineSnapshot` — and keeps this module (and
+        // non-machine logic like `createFSM`) independent of State.ts.
+        intermediateSnapshot = {
+          ...intermediateSnapshot,
           ...(res.context !== undefined
             ? {
                 context: mergeContextPatch(
@@ -383,7 +386,7 @@ export function resolveActionsWithContext(
               }
             : {}),
           ...('children' in res ? { children: res.children } : {})
-        });
+        };
       }
       continue;
     }

@@ -1,11 +1,10 @@
 import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE } from './createActor.ts';
-import { getStateValue, getTransitionResult, hasEffect } from './stateUtils.ts';
+import { getStateValue } from './stateUtils.ts';
 import type {
-  AnyActorScope,
-  AnyActor,
   AnyMachineSnapshot,
   AnyStateMachine,
+  AnyActor,
   EventObject,
   HistoryValue,
   MachineContext,
@@ -24,7 +23,6 @@ import type {
   AnyStateNode
 } from './types.ts';
 import { matchesState } from './utils.ts';
-import { createActor } from './createActor.ts';
 
 export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
@@ -89,48 +87,6 @@ type MatchingStateValue<
             : never
           : never
       : never;
-
-let emptyCanActor: AnyActor | undefined;
-let emptyCanActorScope: AnyActorScope | undefined;
-
-function getEmptyCanActor(): AnyActor {
-  // A minimal inert actor used purely as the `self`/`parent` argument when
-  // dry-running transitions for `snapshot.can(...)`. Intentionally not built
-  // on `createLogic` so `can()` does not pull that machinery into bundles.
-  return (emptyCanActor ??= createActor({
-    transition: (snapshot: any) => [snapshot, []],
-    initialTransition: () => [
-      { status: 'active', output: undefined, error: undefined },
-      []
-    ],
-    getInitialSnapshot: () => ({
-      status: 'active',
-      output: undefined,
-      error: undefined
-    }),
-    getPersistedSnapshot: (snapshot: any) => snapshot
-  } as any) as AnyActor);
-}
-
-function getEmptyCanActorScope(): AnyActorScope {
-  if (emptyCanActorScope) {
-    return emptyCanActorScope;
-  }
-
-  const actor = getEmptyCanActor();
-  emptyCanActorScope = {
-    self: actor,
-    logger: () => {},
-    id: '',
-    sessionId: '',
-    defer: () => {},
-    system: actor.system,
-    stopChild: () => {},
-    emit: () => {},
-    actionExecutor: () => {}
-  };
-  return emptyCanActorScope;
-}
 
 interface MachineSnapshotBase<
   TContext extends MachineContext,
@@ -417,37 +373,9 @@ const machineSnapshotCan = function can(
     );
   }
 
-  const emptyActor = getEmptyCanActor();
-  const emptyActorScope = getEmptyCanActorScope();
-  const transitionData = this.machine.getTransitionData(
-    this,
-    event,
-    emptyActor
-  );
-
-  if (!transitionData?.length) {
-    return false;
-  }
-
-  // Check that at least one transition is not forbidden
-  for (const transition of transitionData) {
-    if (transition.target !== undefined) {
-      return true;
-    }
-
-    const res = getTransitionResult(transition, this, event, emptyActorScope, {
-      resolveActions: false
-    });
-    if (
-      res.targets?.length ||
-      res.context ||
-      hasEffect(transition, this.context, event, this, emptyActor)
-    ) {
-      return true;
-    }
-  }
-
-  return false;
+  // The dry-run logic lives on the machine so that non-machine bundles
+  // (e.g. `createFSM`) don't pay for the transition-resolution machinery.
+  return this.machine?._canTransition(this, event) ?? false;
 };
 
 const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
@@ -571,7 +499,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       value: undefined
     },
     snapshot.machine
-  ) as TState;
+  ) as unknown as TState;
 }
 
 function serializeHistoryValue(
