@@ -56,11 +56,6 @@ function describeEffects(effects: ExecutableActionObject[]): string[] {
       case XSTATE_SPAWN:
         return labelByActor.get(e.actor)!;
       case XSTATE_START: {
-        // A user-emitted `{ type: '@xstate.start' }` event has no `actor`
-        // property; skip it instead of crashing.
-        if (!e.actor) {
-          return [];
-        }
         const label = labelByActor.get(e.actor);
         if (label) {
           return label.startsWith('spawn(')
