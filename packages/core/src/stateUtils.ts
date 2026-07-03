@@ -826,10 +826,7 @@ function removeConflictingTransitions(
       if (hasIntersection(getExitSet(t1), getExitSet(t2))) {
         if (isDescendant(t1.source, t2.source)) {
           transitionsToRemove.add(t2);
-        } else if (
-          t2.source.type === 'final' &&
-          t1.source.type !== 'final'
-        ) {
+        } else if (t2.source.type === 'final' && t1.source.type !== 'final') {
           // A transition sourced in a final state yields to a conflicting
           // transition from a live state, so a done region doesn't keep
           // consuming events its siblings can still handle.
@@ -897,8 +894,8 @@ function getEffectiveTargetStates(
 
 /**
  * Narrows a parallel domain to the single child region that contains every
- * effective target, so that a transition confined to one region does not
- * exit (and reset) its sibling regions.
+ * effective target, so that a transition confined to one region does not exit
+ * (and reset) its sibling regions.
  */
 function narrowParallelDomain(
   domain: AnyStateNode,
@@ -1232,27 +1229,36 @@ function microstep(
     const enterStates = () => {
       const getMachineOutput = (rootCompletionNode: AnyStateNode) => {
         const rootNode = nextState.machine.root;
-        if (rootNode.output === undefined) {
-          return;
-        }
 
         let completionOutput: unknown;
         if (
           rootCompletionNode.output !== undefined &&
           rootCompletionNode.parent
         ) {
-          completionOutput = resolveOutput(
-            rootCompletionNode.output,
-            nextState.context,
-            event,
-            actorScope.self
-          );
+          const rootDoneEvent = internalQueue.find(
+            (e) => e.type === `xstate.done.state.${rootNode.id}`
+          ) as DoneStateEvent | undefined;
+          completionOutput =
+            rootDoneEvent && rootCompletionNode.parent === rootNode
+              ? rootDoneEvent.output
+              : resolveOutput(
+                  rootCompletionNode.output,
+                  nextState.context,
+                  event,
+                  actorScope.self
+                );
         } else if (rootCompletionNode.type === 'parallel') {
           const parallelDoneType = `xstate.done.state.${rootCompletionNode.id}`;
           const parallelDoneEvent = internalQueue.find(
             (e) => e.type === parallelDoneType
           ) as DoneStateEvent | undefined;
           completionOutput = parallelDoneEvent?.output;
+        }
+
+        if (rootNode.output === undefined) {
+          return rootCompletionNode.parent === rootNode
+            ? completionOutput
+            : undefined;
         }
 
         return resolveOutput(

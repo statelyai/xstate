@@ -1,4 +1,4 @@
-import { createActor, createMachine, types, isTypeSchema } from '../src';
+import { createActor, createMachine, setup, types, isTypeSchema } from '../src';
 
 describe('type-only schemas (`types`)', () => {
   it('infers context and events without a runtime schema library', () => {
@@ -70,7 +70,10 @@ describe('type-only schemas (`types`)', () => {
           output: { status: 'ok' }
         }
       },
-      output: ({ event }) => event.output
+      output: ({ output }) => {
+        const status: 'ok' = output.status;
+        return { status };
+      }
     });
 
     createMachine({
@@ -89,7 +92,7 @@ describe('type-only schemas (`types`)', () => {
           output: { status: 'error' }
         }
       },
-      output: ({ event }) => event.output
+      output: ({ output }) => output
     });
 
     createMachine({
@@ -113,6 +116,96 @@ describe('type-only schemas (`types`)', () => {
         }
       },
       output: { status: 'ok' }
+    });
+  });
+
+  it('checks top-level final outputs without a root output mapper', () => {
+    createMachine({
+      schemas: {
+        output: types<{ status: 'ok' }>()
+      },
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: { status: 'ok' }
+        }
+      }
+    });
+
+    createMachine({
+      schemas: {
+        output: types<{ status: 'ok' }>()
+      },
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          // @ts-expect-error
+          output: { status: 'error' }
+        }
+      }
+    });
+  });
+
+  it('keeps top-level final outputs constrained to machine output with a root mapper', () => {
+    createMachine({
+      schemas: {
+        output: types<{ status: 'ok' }>()
+      },
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: { status: 'ok' }
+        }
+      },
+      output: ({ output }) => output
+    });
+
+    createMachine({
+      schemas: {
+        output: types<{ status: 'ok' }>()
+      },
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          // @ts-expect-error
+          output: { status: 'error' }
+        }
+      },
+      output: ({ output }) => output
+    });
+  });
+
+  it('checks setup top-level final outputs against the machine output schema', () => {
+    const s = setup({
+      schemas: {
+        output: types<{ status: 'ok' }>()
+      }
+    });
+
+    s.createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: { status: 'ok' }
+        }
+      }
+    });
+
+    s.createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          // @ts-expect-error
+          output: { status: 'error' }
+        }
+      },
+      output: ({ output }) => output
     });
   });
 });

@@ -367,6 +367,39 @@ schemas: {
 > (use `internalEvents` for inbound-event restriction, or validate at your
 > boundary).
 
+### Machine output
+
+`snapshot.output` is set when a machine completes. You can define output on the
+root machine, on top-level final states, or both:
+
+```ts
+createMachine({
+  schemas: {
+    output: z.object({ status: z.literal('ok') })
+  },
+  initial: 'working',
+  states: {
+    working: {
+      on: { done: { target: 'success' } }
+    },
+    success: {
+      type: 'final',
+      output: { status: 'ok' }
+    }
+  }
+});
+```
+
+If a top-level final state has `output` and the root machine does not, the final
+state output becomes `snapshot.output`. If both are present, the final state
+output is resolved first and passed to the root `output` mapper as `output`.
+The root mapper result becomes `snapshot.output`.
+
+For a parallel root, all regions must complete before the machine is done.
+Because there is no single reached top-level final state, define root `output`
+to produce machine output. The root mapper receives the aggregate region output
+as `output`.
+
 ### Machine input
 
 In v5, machine input was typed via `types: {} as { input: ... }`. In v6 it moves to `schemas.input`:

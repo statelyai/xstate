@@ -5,7 +5,6 @@ import { XSTATE_STOP } from './constants.ts';
 import {
   createDoneActorEvent,
   createErrorActorEvent,
-  createErrorPlatformEvent,
   createInitEvent
 } from './eventUtils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
@@ -72,6 +71,14 @@ const defaultOptions = {
   } as Clock,
   logger: console.log.bind(console)
 };
+
+function safeCall<T>(fn: ((arg: T) => void) | undefined, arg?: T) {
+  try {
+    fn?.(arg as T);
+  } catch (err) {
+    reportUnhandledError(err);
+  }
+}
 
 function isExecutableActionObject(
   effect: unknown
@@ -262,28 +269,14 @@ export class Actor<TLogic extends AnyActorLogic>
         (child as Actor<AnyActorLogic>)._stop();
       },
       emit: (emittedEvent) => {
-        const listeners = this.eventListeners.get(emittedEvent.type);
-        const wildcardListener = this.eventListeners.get('*');
-        if (!listeners && !wildcardListener) {
-          return;
-        }
-        if (listeners) {
-          for (const handler of listeners) {
-            try {
-              handler(emittedEvent);
-            } catch (err) {
-              reportUnhandledError(err);
+        for (const listeners of [
+          this.eventListeners.get(emittedEvent.type),
+          this.eventListeners.get('*')
+        ]) {
+          if (listeners) {
+            for (const handler of listeners) {
+              safeCall(handler, emittedEvent);
             }
-          }
-        }
-        if (!wildcardListener) {
-          return;
-        }
-        for (const handler of wildcardListener) {
-          try {
-            handler(emittedEvent);
-          } catch (err) {
-            reportUnhandledError(err);
           }
         }
       },
@@ -329,13 +322,9 @@ export class Actor<TLogic extends AnyActorLogic>
       }
     });
 
-    // unified '@xstate.transition' event replaces '@xstate.actor'
-
-    const resolvedRegistryKey = registryKey;
-
-    if (resolvedRegistryKey) {
-      this.registryKey = resolvedRegistryKey;
-      this.system._set(resolvedRegistryKey, this);
+    if (registryKey) {
+      this.registryKey = registryKey;
+      this.system._set(registryKey, this);
     }
 
     // prepare to collect initial microsteps during initialTransition
@@ -383,7 +372,7 @@ export class Actor<TLogic extends AnyActorLogic>
       this._deferred.length = 0;
     }
 
-    if (resolvedRegistryKey && (this._snapshot as any).status !== 'active') {
+    if (registryKey && (this._snapshot as any).status !== 'active') {
       this.system._unregister(this);
     }
 
@@ -417,26 +406,26 @@ export class Actor<TLogic extends AnyActorLogic>
     };
   }
 
+  /** Recover via the logic's error event if possible; otherwise error out. */
+  private _recoverOrError(err: unknown, snapshot?: SnapshotFrom<TLogic>) {
+    if (!this._tryHandleExecutionError(err, snapshot)) {
+      this._setErrorSnapshot(err);
+      this._error(err);
+    }
+  }
+
   private _tryHandleExecutionError(
     err: unknown,
     snapshot: SnapshotFrom<TLogic> = this._snapshot
   ): boolean {
-    if ((snapshot as any)?.status !== 'active' || !(snapshot as any)?._nodes) {
+    // Machine logic can recover from execution errors via `onError`
+    // transitions; the logic decides (so the actor stays logic-agnostic).
+    const errorEvent = this.logic.getExecutionErrorEvent?.(snapshot, err) as
+      | EventFromLogic<TLogic>
+      | undefined;
+    if (!errorEvent) {
       return false;
     }
-    if (
-      !(snapshot as any)._nodes.some(
-        (stateNode: { config: { onError?: unknown } }) =>
-          stateNode.config.onError
-      )
-    ) {
-      return false;
-    }
-
-    const errorEvent = createErrorPlatformEvent(
-      'execution',
-      err
-    ) as EventFromLogic<TLogic>;
 
     try {
       const [nextSnapshot, effects] = this.logic.transition(
@@ -456,11 +445,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
   private _next(snapshot: SnapshotFrom<TLogic>) {
     for (const observer of this.observers) {
-      try {
-        observer.next?.(snapshot);
-      } catch (err) {
-        reportUnhandledError(err);
-      }
+      safeCall(observer.next, snapshot);
     }
   }
 
@@ -552,12 +537,8 @@ export class Actor<TLogic extends AnyActorLogic>
     } catch (err) {
       this._initialEffects = undefined;
       this._deferred.length = 0;
-      if (this._tryHandleExecutionError(err)) {
-        return (this._snapshot as any).status === 'active';
-      }
-      this._setErrorSnapshot(err);
-      this._error(err);
-      return false;
+      this._recoverOrError(err);
+      return (this._snapshot as any).status === 'active';
     } finally {
       this._forceDeferredActions = false;
     }
@@ -646,22 +627,14 @@ export class Actor<TLogic extends AnyActorLogic>
     } else {
       switch ((this._snapshot as any).status) {
         case 'done':
-          try {
-            observer.complete?.();
-          } catch (err) {
-            reportUnhandledError(err);
-          }
+          safeCall(observer.complete);
           break;
         case 'error': {
           const err = (this._snapshot as any).error;
           if (!observer.error) {
             reportUnhandledError(err);
           } else {
-            try {
-              observer.error(err);
-            } catch (err) {
-              reportUnhandledError(err);
-            }
+            safeCall(observer.error, err);
           }
           break;
         }
@@ -847,13 +820,7 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     if (caughtError) {
-      const { err } = caughtError;
-
-      if (this._tryHandleExecutionError(err)) {
-        return;
-      }
-      this._setErrorSnapshot(err);
-      this._error(err);
+      this._recoverOrError(caughtError.err);
       return;
     }
 
@@ -866,11 +833,7 @@ export class Actor<TLogic extends AnyActorLogic>
       this.update(snapshot, event);
       this.logic.executeEffects?.(logicEffects, this._actorScope);
     } catch (err) {
-      if (this._tryHandleExecutionError(err, snapshot)) {
-        return;
-      }
-      this._setErrorSnapshot(err);
-      this._error(err);
+      this._recoverOrError(err, snapshot);
       return;
     }
 
@@ -905,11 +868,7 @@ export class Actor<TLogic extends AnyActorLogic>
   }
   private _complete(): void {
     for (const observer of this.observers) {
-      try {
-        observer.complete?.();
-      } catch (err) {
-        reportUnhandledError(err);
-      }
+      safeCall(observer.complete);
     }
     this.observers.clear();
     this.eventListeners.clear();
@@ -921,25 +880,20 @@ export class Actor<TLogic extends AnyActorLogic>
       if (!this._parent) {
         reportUnhandledError(err);
       }
-      this.eventListeners.clear();
     } else {
       let reportError = false;
 
       for (const observer of this.observers) {
         const errorListener = observer.error;
         reportError ||= !errorListener;
-        try {
-          errorListener?.(err);
-        } catch (err2) {
-          reportUnhandledError(err2);
-        }
+        safeCall(errorListener, err);
       }
       this.observers.clear();
-      this.eventListeners.clear();
       if (reportError) {
         reportUnhandledError(err);
       }
     }
+    this.eventListeners.clear();
 
     if (this._parent) {
       this.system._relay(

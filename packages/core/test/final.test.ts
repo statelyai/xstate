@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { createMachine, createActor } from '../src/index.ts';
+import {
+  createMachine,
+  createActor,
+  initialTransition,
+  transition
+} from '../src/index.ts';
 import { trackEntries } from './utils.ts';
 
 describe('final states', () => {
@@ -209,6 +214,223 @@ describe('final states', () => {
     const service = createActor(machine).start();
     service.send({ type: 'FINISH', value: 1 });
     expect(spy).toBeCalledTimes(1);
+  });
+
+  it('should use top-level final state output as machine output without root output', () => {
+    const machine = createMachine({
+      schemas: {
+        events: {
+          FINISH: z.object({ value: z.number() })
+        }
+      },
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            FINISH: { target: 'end' }
+          }
+        },
+        end: {
+          type: 'final',
+          output: ({ event }) => event.value * 2
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FINISH', value: 21 });
+
+    expect(actorRef.getSnapshot().output).toBe(42);
+  });
+
+  it('should pass top-level final state output to root output mapper', () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            FINISH: { target: 'end' }
+          }
+        },
+        end: {
+          type: 'final',
+          output: 'final output'
+        }
+      },
+      output: ({ output }) => `root: ${output}`
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FINISH' });
+
+    expect(actorRef.getSnapshot().output).toBe('root: final output');
+  });
+
+  it('should keep root output-only behavior unchanged', () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            FINISH: { target: 'end' }
+          }
+        },
+        end: {
+          type: 'final'
+        }
+      },
+      output: 'root output'
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FINISH' });
+
+    expect(actorRef.getSnapshot().output).toBe('root output');
+  });
+
+  it('should leave machine output undefined without final or root output', () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            FINISH: { target: 'end' }
+          }
+        },
+        end: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FINISH' });
+
+    expect(actorRef.getSnapshot().output).toBeUndefined();
+  });
+
+  it('should use the reached top-level final state output', () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            PASS: { target: 'passed' },
+            FAIL: { target: 'failed' }
+          }
+        },
+        passed: {
+          type: 'final',
+          output: { status: 'passed' }
+        },
+        failed: {
+          type: 'final',
+          output: { status: 'failed' }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FAIL' });
+
+    expect(actorRef.getSnapshot().output).toEqual({ status: 'failed' });
+  });
+
+  it('should populate top-level final state output through pure transition', () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            FINISH: { target: 'end' }
+          }
+        },
+        end: {
+          type: 'final',
+          output: 'done'
+        }
+      }
+    });
+
+    const [initialSnapshot] = initialTransition(machine, undefined);
+    const [nextSnapshot] = transition(machine, initialSnapshot, {
+      type: 'FINISH'
+    });
+
+    expect(nextSnapshot.output).toBe('done');
+  });
+
+  it('should populate top-level final state output through pure initialTransition', () => {
+    const machine = createMachine({
+      initial: 'end',
+      states: {
+        end: {
+          type: 'final',
+          output: 'done'
+        }
+      }
+    });
+
+    const [initialSnapshot] = initialTransition(machine, undefined);
+
+    expect(initialSnapshot.output).toBe('done');
+  });
+
+  it('should persist and restore top-level final state output', () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            FINISH: { target: 'end' }
+          }
+        },
+        end: {
+          type: 'final',
+          output: 'persisted output'
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FINISH' });
+    const persistedSnapshot = actorRef.getPersistedSnapshot();
+
+    expect(persistedSnapshot.output).toBe('persisted output');
+
+    const restoredActorRef = createActor(machine, {
+      snapshot: persistedSnapshot
+    }).start();
+
+    expect(restoredActorRef.getSnapshot().output).toBe('persisted output');
+  });
+
+  it('should resolve top-level final state output once on completion', () => {
+    const finalOutput = vi.fn(() => 'final output');
+
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            FINISH: { target: 'end' }
+          }
+        },
+        end: {
+          type: 'final',
+          output: finalOutput
+        }
+      },
+      output: ({ output }) => output
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'FINISH' });
+    actorRef.getSnapshot();
+    actorRef.getSnapshot();
+
+    expect(finalOutput).toHaveBeenCalledTimes(1);
+    expect(actorRef.getSnapshot().output).toBe('final output');
   });
 
   it('output mapper should receive self', () => {
@@ -812,6 +1034,46 @@ describe('final states', () => {
     expect(spy).toBeCalledTimes(1);
   });
 
+  it('should require root output to produce output for a parallel root', () => {
+    const withoutRootOutput = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          type: 'final',
+          output: 'a output'
+        },
+        b: {
+          type: 'final',
+          output: 'b output'
+        }
+      }
+    });
+
+    expect(
+      createActor(withoutRootOutput).start().getSnapshot().output
+    ).toBeUndefined();
+
+    const withRootOutput = createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          type: 'final',
+          output: 'a output'
+        },
+        b: {
+          type: 'final',
+          output: 'b output'
+        }
+      },
+      output: ({ output }) => output
+    });
+
+    expect(createActor(withRootOutput).start().getSnapshot().output).toEqual({
+      a: 'a output',
+      b: 'b output'
+    });
+  });
+
   it('onDone of a parallel state should only be called once when multiple parallel regions complete at once', () => {
     const spy = vi.fn();
 
@@ -1296,7 +1558,7 @@ describe('final states', () => {
           output: null
         }
       },
-      output: ({ event }) => event.output
+      output: ({ output }) => output
     });
 
     const actorRef = createActor(machine).start();

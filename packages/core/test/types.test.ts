@@ -10,6 +10,8 @@ import {
   ActorRefFrom,
   ActorRefFromLogic,
   AnyActorLogic,
+  AnyActorRef,
+  AnyMachineSnapshot,
   AnyStateMachine,
   BuiltInExecutableActionObject,
   CustomExecutableActionObject,
@@ -2719,6 +2721,13 @@ describe('invoke', () => {
     noop(anyMachine);
 
     const actor = createActor(machine);
+    const anyActorRef: AnyActorRef = actor;
+    const anySnapshot: AnyMachineSnapshot = actor.getSnapshot();
+
+    toPromise(actor);
+
+    noop(anyActorRef);
+    noop(anySnapshot);
 
     actor.send(
       // @ts-expect-error empty events means no external events

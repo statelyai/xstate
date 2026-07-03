@@ -44,6 +44,19 @@ const PROFILES = {
     actor.send({ type: 'toggle' });
     console.log(actor.getSnapshot().value);
   `,
+  'minimal-fsm': `
+    import { createFSM, createActor } from 'xstate';
+    const machine = createFSM({
+      initial: 'inactive',
+      states: {
+        inactive: { on: { toggle: { target: 'active' } } },
+        active: { on: { toggle: { target: 'inactive' } } }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'toggle' });
+    console.log(actor.getSnapshot().value);
+  `,
   'machine-and-actors': `
     import { createMachine, createActor, createAsyncLogic } from 'xstate';
     const fetchUser = createAsyncLogic({
@@ -94,7 +107,10 @@ const whyPlugin = {
     build.onLoad({ filter: /packages\/core\/src\/.*\.ts$/ }, async (args) => {
       const { readFile } = await import('node:fs/promises');
       let src = await readFile(args.path, 'utf8');
-      src = src.replace(/import isDevelopment from ['"]#is-development['"];?/, '');
+      src = src.replace(
+        /import isDevelopment from ['"]#is-development['"];?/,
+        ''
+      );
       src = src.replace(/\bisDevelopment\b/g, 'false');
       return { contents: src, loader: 'ts' };
     });
