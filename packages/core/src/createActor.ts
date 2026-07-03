@@ -36,6 +36,7 @@ import type {
   Snapshot,
   SnapshotFrom,
   AnyTransitionDefinition,
+  ExecutableActionObject,
   Readable
 } from './types.ts';
 import {
@@ -49,7 +50,7 @@ import {
   Subscription,
   TimersRestoreStrategy
 } from './types.ts';
-import { isExecutableActionObject, toObserver } from './utils.ts';
+import { toObserver } from './utils.ts';
 
 export const $$ACTOR_TYPE = 1;
 
@@ -71,6 +72,17 @@ const defaultOptions = {
   } as Clock,
   logger: console.log.bind(console)
 };
+
+function isExecutableActionObject(
+  effect: unknown
+): effect is ExecutableActionObject {
+  return (
+    typeof effect === 'object' &&
+    effect !== null &&
+    'args' in effect &&
+    'exec' in effect
+  );
+}
 
 function executeExecutableEffects(
   effects: readonly unknown[] | undefined,

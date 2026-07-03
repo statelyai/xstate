@@ -12,7 +12,6 @@ import type {
   AnyTransitionConfigFunction,
   ErrorEvent,
   EventObject,
-  ExecutableActionObject,
   InvokeConfig,
   MachineContext,
   Mapper,
@@ -24,17 +23,6 @@ import type {
   StateValue,
   TransitionConfigTarget
 } from './types.ts';
-
-export function isExecutableActionObject(
-  effect: unknown
-): effect is ExecutableActionObject {
-  return (
-    typeof effect === 'object' &&
-    effect !== null &&
-    'args' in effect &&
-    'exec' in effect
-  );
-}
 
 export function matchesState(
   parentStateId: StateValue,

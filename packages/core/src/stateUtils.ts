@@ -974,7 +974,7 @@ function computeExitSet(
   return [...statesToExit];
 }
 
-export type Microstep = readonly [AnyMachineSnapshot, ExecutableActionObject[]];
+type Microstep = readonly [AnyMachineSnapshot, ExecutableActionObject[]];
 
 export function initialMicrostep(
   root: AnyStateNode,
