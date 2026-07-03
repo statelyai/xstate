@@ -26,24 +26,32 @@ function describeEffects(effects: ExecutableActionObject[]): string[] {
   // Effect types produced by the spawn/start split model. `@xstate.spawn`
   // effects are not (yet) recognized by `isBuiltInExecutableAction`, so filter
   // by explicit type membership instead of relying on it.
+  // TODO(green): revert to isBuiltInExecutableAction once it recognizes
+  // `@xstate.spawn` effects (then this Set goes away).
   const builtInEffectTypes = new Set<string>([
     XSTATE_SPAWN,
     XSTATE_START,
     XSTATE_STOP
   ]);
 
-  // First pass: collect a map from each spawned/attached actor ref to the id of
-  // the actor it targets (listener/subscription actors carry their target in
-  // `input.actor`). Slim `@xstate.start` effects no longer carry `input`, so we
-  // recover the target id from the matching `@xstate.spawn` effect that appears
-  // earlier in the same effects array.
-  const targetIdByActor = new Map<any, string>();
+  // Classify each spawned actor exactly once, from its authored-position
+  // `@xstate.spawn` effect (which carries `logic`/`input`; listener and
+  // subscription actors carry their target actor ref in `input.actor`). Slim
+  // `@xstate.start` effects then reuse the label via their `actor` ref.
+  const labelByActor = new Map<any, string>();
   for (const e of effects) {
     // TODO(green): remove cast once `@xstate.spawn` effect type exists
     const eAny = e as any;
-    if (eAny.type === XSTATE_SPAWN && eAny.input?.actor) {
-      targetIdByActor.set(eAny.actor, eAny.input.actor.id);
+    if (eAny.type !== XSTATE_SPAWN) {
+      continue;
     }
+    const label =
+      eAny.logic === listenerLogic
+        ? `listen(${eAny.input.actor.id})`
+        : eAny.logic === subscriptionLogic
+          ? `subscribe(${eAny.input.actor.id})`
+          : `spawn(${eAny.id})`;
+    labelByActor.set(eAny.actor, label);
   }
 
   return effects
@@ -55,20 +63,26 @@ function describeEffects(effects: ExecutableActionObject[]): string[] {
         case XSTATE_STOP:
           return `stop(${eAny.actor.id})`;
         case XSTATE_SPAWN:
-          if (eAny.logic === listenerLogic) {
-            return `listen(${eAny.input.actor.id})`;
-          }
-          if (eAny.logic === subscriptionLogic) {
-            return `subscribe(${eAny.input.actor.id})`;
-          }
-          return `spawn(${eAny.id})`;
+          return labelByActor.get(eAny.actor)!;
         case XSTATE_START: {
-          const actorLogic = eAny.actor.logic;
-          if (actorLogic === listenerLogic) {
-            return `start:listen(${targetIdByActor.get(eAny.actor)})`;
+          // A user-emitted `{ type: '@xstate.start' }` event has no `actor`
+          // property; skip it instead of crashing.
+          if (!eAny.actor) {
+            return [];
           }
-          if (actorLogic === subscriptionLogic) {
-            return `start:subscribe(${targetIdByActor.get(eAny.actor)})`;
+          const label = labelByActor.get(eAny.actor);
+          if (label) {
+            return label.startsWith('spawn(')
+              ? `start(${eAny.id})`
+              : `start:${label}`;
+          }
+          // No spawn record in this effects array; classify attached actors by
+          // logic identity (target id unknown), else a plain child start.
+          if (eAny.actor.logic === listenerLogic) {
+            return `start:listen(${eAny.actor.id})`;
+          }
+          if (eAny.actor.logic === subscriptionLogic) {
+            return `start:subscribe(${eAny.actor.id})`;
           }
           return `start(${eAny.id})`;
         }
@@ -519,10 +533,10 @@ describe('transition function', () => {
     // Full metadata now lives on the authored-position `@xstate.spawn` effect.
     // TODO(green): remove casts once `@xstate.spawn` effect type exists
     const invokeSpawn = initialActions.find(
-      (action) => (action as any).type === '@xstate.spawn'
+      (action) => (action as any).type === XSTATE_SPAWN
     ) as any;
 
-    expect(invokeSpawn.type).toBe('@xstate.spawn');
+    expect(invokeSpawn).toBeDefined();
     expect(invokeSpawn.actor).toBe(invokeSpawn.args[0]);
     expect(invokeSpawn.id).toBe('child');
     expect(invokeSpawn.logic).toBe(childMachine);
@@ -548,10 +562,10 @@ describe('transition function', () => {
     // TODO(green): remove casts once `@xstate.spawn` effect type exists
     const spawnedSpawn = actions.find(
       (action) =>
-        (action as any).type === '@xstate.spawn' &&
+        (action as any).type === XSTATE_SPAWN &&
         (action as any).id === 'spawned'
     ) as any;
-    expect(spawnedSpawn.type).toBe('@xstate.spawn');
+    expect(spawnedSpawn).toBeDefined();
     expect(spawnedSpawn.id).toBe('spawned');
     expect(spawnedSpawn.actor).toBe(spawnedSpawn.args[0]);
     expect(spawnedSpawn.logic).toBe(childMachine);
@@ -619,6 +633,14 @@ describe('transition function', () => {
     emit({ type: 'someEvent' });
   });
 
+  const completingLogic = createLogic({
+    context: undefined,
+    run: () => ({
+      status: 'done',
+      output: { result: 'success' }
+    })
+  });
+
   it('initialTransition: defers listener/child starts to the end of the effects', () => {
     const machine = createMachine({
       entry: (_, enq) => {
@@ -638,14 +660,6 @@ describe('transition function', () => {
   });
 
   it('initialTransition: defers subscription/child starts to the end of the effects', () => {
-    const completingLogic = createLogic({
-      context: undefined,
-      run: () => ({
-        status: 'done',
-        output: { result: 'success' }
-      })
-    });
-
     const machine = createMachine({
       entry: (_, enq) => {
         const child = enq.spawn(completingLogic, { id: 'child' });
@@ -827,14 +841,6 @@ describe('transition function', () => {
   });
 
   it('initialTransition: spawn+listen+subscribeTo on the same child defers starts to the end', () => {
-    const completingLogic = createLogic({
-      context: undefined,
-      run: () => ({
-        status: 'done',
-        output: { result: 'success' }
-      })
-    });
-
     const machine = createMachine({
       entry: (_, enq) => {
         const child = enq.spawn(completingLogic, { id: 'child' });
@@ -902,6 +908,9 @@ describe('transition function', () => {
     const childRef = childSpawn.actor;
     const listenerRef = listenerSpawn.actor;
 
+    // These `as any` casts are permanent: `start()` is not part of the public
+    // ActorRef interface (it lives on the Actor class), so spying on it
+    // requires widening the ref type.
     const childStart = vi.spyOn(childRef as any, 'start');
     const listenerStart = vi.spyOn(listenerRef as any, 'start');
 

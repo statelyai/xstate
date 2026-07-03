@@ -2092,8 +2092,14 @@ describe('actors', () => {
   });
   it('does not restart the root actor after it has been stopped', () => {
     const entry = vi.fn();
+    const pingAction = vi.fn();
     const machine = createMachine({
-      entry: (_, enq) => enq(entry)
+      entry: (_, enq) => enq(entry),
+      on: {
+        PING: (_, enq) => {
+          enq(pingAction);
+        }
+      }
     });
 
     const actor = createActor(machine).start();
@@ -2103,9 +2109,12 @@ describe('actors', () => {
 
     actor.stop();
     actor.start();
+    actor.send({ type: 'PING' });
 
-    // A stopped actor cannot be (re)started; start() is a no-op.
+    // A stopped actor cannot be (re)started; start() must be a no-op, so the
+    // subsequent event must not be processed (an unguarded restart would
+    // resurrect the mailbox and accept it).
     expect(actor.getSnapshot().status).toBe('stopped');
-    expect(entry).toHaveBeenCalledTimes(1);
+    expect(pingAction).not.toHaveBeenCalled();
   });
 });
