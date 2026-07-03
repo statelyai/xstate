@@ -405,12 +405,25 @@ export class StateMachine<
       []
     );
 
-    return [
-      nextSnapshot,
-      appendDeferredStarts(
-        microsteps.flatMap(([, actions]) => actions)
-      ) as ExecutableActionObjectFromLogic<this>[]
-    ];
+    return [nextSnapshot, this._collectEffects(microsteps)];
+  }
+
+  /**
+   * Flatten the effects collected across microsteps (plus any initial-entry
+   * effects) and append the deferred `@xstate.start` effects. This is the one
+   * `appendDeferredStarts` application for this collection boundary — appending
+   * is NOT idempotent, so callers must not apply it again.
+   */
+  private _collectEffects(
+    microsteps: ReadonlyArray<
+      readonly [unknown, ReadonlyArray<ExecutableActionObject>]
+    >,
+    initialActions: ReadonlyArray<ExecutableActionObject> = []
+  ): ExecutableActionObjectFromLogic<this>[] {
+    return appendDeferredStarts([
+      ...initialActions,
+      ...microsteps.flatMap(([, actions]) => actions)
+    ]) as ExecutableActionObjectFromLogic<this>[];
   }
 
   private _transitionFast(
@@ -707,8 +720,10 @@ export class StateMachine<
     const internalQueue: AnyEventObject[] = [];
     const preInitialState = this._getPreInitialState(actorScope, initEvent);
     let nextState: AnyMachineSnapshot;
-    let initialActions: readonly unknown[] = [];
-    let microsteps: Array<readonly [unknown, readonly unknown[]]> = [];
+    let initialActions: ReadonlyArray<ExecutableActionObject> = [];
+    let microsteps: ReadonlyArray<
+      readonly [unknown, ReadonlyArray<ExecutableActionObject>]
+    > = [];
     let macroState: AnyMachineSnapshot;
 
     try {
@@ -744,10 +759,7 @@ export class StateMachine<
 
     return [
       macroState as SnapshotFrom<this>,
-      appendDeferredStarts([
-        ...initialActions,
-        ...microsteps.flatMap(([, actions]) => actions)
-      ] as ExecutableActionObject[]) as ExecutableActionObjectFromLogic<this>[]
+      this._collectEffects(microsteps, initialActions)
     ];
   }
 
