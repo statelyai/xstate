@@ -1,5 +1,50 @@
 # xstate
 
+## 6.0.0-alpha.16
+
+### Minor Changes
+
+- e410f24: Add state-level `onError` transitions for handling `xstate.error.*` events.
+
+  State `onError` catches actor, execution, and communication errors while the state is active. The caught error is available on `event.error`.
+
+  ```ts
+  const machine = createMachine({
+    initial: 'active',
+    states: {
+      active: {
+        onError: ({ event }) => ({
+          target: 'failed',
+          context: {
+            message:
+              event.error instanceof Error
+                ? event.error.message
+                : String(event.error)
+          }
+        })
+      },
+      failed: {}
+    }
+  });
+  ```
+
+### Patch Changes
+
+- f6edec7: Allow machines with no external events to be used anywhere `AnyActorLogic` or `AnyStateMachine` is expected.
+
+  ```ts
+  const machine = setup({
+    schemas: {
+      events: {}
+    }
+  }).createMachine({});
+
+  const logic: AnyActorLogic = machine;
+  const anyMachine: AnyStateMachine = machine;
+  ```
+
+  Machines with empty event schemas still reject external events sent to their actors.
+
 ## 6.0.0-alpha.15
 
 ### Patch Changes
