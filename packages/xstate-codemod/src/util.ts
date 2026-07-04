@@ -11,7 +11,7 @@ import {
  * Handles both `createMachine(...)` and `setup(...).createMachine(...)` by
  * returning the trailing property/identifier name (e.g. `createMachine`).
  */
-export function getCallName(call: CallExpression): string | undefined {
+function getCallName(call: CallExpression): string | undefined {
   const expr = call.getExpression();
   if (Node.isIdentifier(expr)) {
     return expr.getText();
@@ -52,7 +52,7 @@ export function findMachineConfigObjects(
 }
 
 /** Returns the `xstate` import declaration, if present. */
-export function getXStateImport(sourceFile: SourceFile) {
+function getXStateImport(sourceFile: SourceFile) {
   return sourceFile
     .getImportDeclarations()
     .find((imp) => imp.getModuleSpecifierValue() === 'xstate');
