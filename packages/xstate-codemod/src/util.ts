@@ -11,7 +11,7 @@ import {
  * Handles both `createMachine(...)` and `setup(...).createMachine(...)` by
  * returning the trailing property/identifier name (e.g. `createMachine`).
  */
-export function getCallName(call: CallExpression): string | undefined {
+function getCallName(call: CallExpression): string | undefined {
   const expr = call.getExpression();
   if (Node.isIdentifier(expr)) {
     return expr.getText();
@@ -28,8 +28,8 @@ export function getCallName(call: CallExpression): string | undefined {
  * `setup(...).createMachine(...)` form).
  *
  * This is a best-effort match by call-expression name, not by resolving the
- * actual import — that is sufficient for a migration codemod and avoids
- * fragile type resolution.
+ * actual import — that is sufficient for a migration codemod and avoids fragile
+ * type resolution.
  */
 export function findMachineConfigObjects(
   sourceFile: SourceFile,
@@ -52,7 +52,7 @@ export function findMachineConfigObjects(
 }
 
 /** Returns the `xstate` import declaration, if present. */
-export function getXStateImport(sourceFile: SourceFile) {
+function getXStateImport(sourceFile: SourceFile) {
   return sourceFile
     .getImportDeclarations()
     .find((imp) => imp.getModuleSpecifierValue() === 'xstate');
