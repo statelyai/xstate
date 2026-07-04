@@ -1,5 +1,82 @@
 # xstate
 
+## 6.0.0-alpha.17
+
+### Minor Changes
+
+- d000747: Add `@xstate/codemod` and the `xstate migrate` command for migrating v5 sources to v6:
+
+  ```sh
+  npx xstate migrate "src/**/*.ts"
+  # or preview without writing:
+  npx xstate migrate "src/**/*.ts" --dry
+  ```
+
+  Automated transforms:
+  - renames `interpret` → `createActor`, `Interpreter` → `Actor`, `fromCallback`/`fromObservable`/`fromEventObservable` → `createCallbackLogic`/`createObservableLogic`/`createEventObservableLogic`
+  - wraps string transition targets into object form (`on: { EVT: 'a' }` → `on: { EVT: { target: 'a' } }`), including `after`, `always`, and invoke `onDone`/`onError`
+  - converts `types: {} as {...}` to `schemas` with `types<T>()`, including inline event unions to the `schemas.events` map
+
+  Usages that need structural rewrites (`assign`, `raise`, `sendTo`, `enqueueActions`, `fromPromise`, guard combinators, …) are detected and reported with file:line and a v6 replacement hint instead of being transformed.
+
+### Patch Changes
+
+- 4a74afb: Invoked actors now observe the latest parent snapshot when they start synchronously during a transition.
+- aa9e5af: Populate `snapshot.output` from a reached top-level final state's `output` when no root machine `output` is defined.
+
+  ```ts
+  const machine = createMachine({
+    initial: 'working',
+    states: {
+      working: {
+        on: { done: { target: 'success' } }
+      },
+      success: {
+        type: 'final',
+        output: { status: 'ok' }
+      }
+    }
+  });
+  ```
+
+  When both a top-level final state and the root machine define `output`, the final state output is passed to the root output mapper as `output`.
+
+- d000747: Pure transition functions (`initialTransition`, `transition`, and the deprecated `getInitialSnapshot`/`getNextSnapshot`) no longer run the logic's initialization twice. Previously the internal inert actor scope eagerly computed an initial snapshot, so init-time side effects such as `context` factories executed once extra with `undefined` input.
+- d000747: Parallel-state transitions no longer disturb sibling regions:
+  - A transition targeting a state inside one region no longer exits and resets sibling regions (#5214). Its domain narrows to the region that contains all of its targets:
+
+    ```ts
+    const machine = createMachine({
+      id: 'p',
+      type: 'parallel',
+      on: {
+        ARCHIVE: { target: '#p.phase.archive' }
+      },
+      states: {
+        phase: { initial: 'inquiry', states: { inquiry: {}, archive: {} } },
+        mode: { initial: 'new', states: { new: {}, edit: {} } }
+      }
+    });
+    // sending ARCHIVE now leaves `mode` in its current state
+    ```
+
+  - A cross-region transition (source in one region, target in another) now only exits the region containing its targets. The source region and other sibling regions stay in their current states:
+
+    ```ts
+    // from Operation.Waiting:
+    on: {
+      TOGGLE_MODE: {
+        target: '#Demo';
+      } // in the Mode region
+    }
+    // sending TOGGLE_MODE enters Mode.Demo without exiting Operation
+    ```
+
+    Use `reenter: true` to opt into exiting the full transition domain.
+
+  - A `reenter: true` transition contained within one region exits and reenters only that region — sibling regions no longer re-run their entry actions (#5162).
+  - A transition sourced in a `final` state now yields to a conflicting transition from a live sibling region instead of preempting it, so a done region no longer swallows events its siblings can still handle (#4793).
+
 ## 6.0.0-alpha.16
 
 ### Minor Changes
