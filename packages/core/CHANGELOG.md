@@ -1,5 +1,77 @@
 # xstate
 
+## 6.0.0-alpha.18
+
+### Major Changes
+
+- 95a7aca: `extend(...)` now merges `actions` and `guards` schema maps instead of replacing the base setup schemas. Previously, only `events`, `emitted`, and `children` were merged.
+
+  ```ts
+  import { setup, types } from 'xstate';
+
+  const machine = setup({
+    schemas: {
+      actions: {
+        track: { params: types<{ key: string }>() }
+      },
+      guards: {
+        hasAccess: { params: types<{ role: string }>() }
+      }
+    }
+  })
+    .extend({
+      schemas: {
+        actions: {
+          notify: { params: types<{ message: string }>() }
+        },
+        guards: {
+          canReset: { params: types<{ reason: string }>() }
+        }
+      }
+    })
+    .createMachine({
+      // Both base and extended actions/guards are available
+      entry: ({ actions }, enq) => {
+        enq(actions.track({ key: 'init' }));
+        enq(actions.notify({ message: 'started' }));
+      },
+      on: {
+        RESET: ({ guards }) => {
+          if (
+            guards.hasAccess({ role: 'admin' }) &&
+            guards.canReset({ reason: 'manual' })
+          ) {
+            return { target: '.idle' };
+          }
+        }
+      }
+    });
+  ```
+
+### Minor Changes
+
+- b3ef4e7: `setup(...)` now exposes the schemas defined in its configuration, making them accessible for external use.
+
+  ```ts
+  import { setup, types } from 'xstate';
+
+  const s = setup({
+    schemas: {
+      context: types<{ count: number }>(),
+      events: {
+        inc: types<{ by: number }>()
+      },
+      emitted: {
+        changed: types<{ value: number }>()
+      }
+    }
+  });
+
+  s.schemas.context;
+  s.schemas.events.inc;
+  s.schemas.emitted.changed;
+  ```
+
 ## 6.0.0-alpha.17
 
 ### Minor Changes
