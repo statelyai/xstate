@@ -1789,6 +1789,9 @@ export interface SetupReturn<
 
   /** State input schemas from setup config */
   states: TStates;
+
+  /** Schemas from setup config */
+  schemas: TSchemas;
 }
 
 type SetupConfigSchemas<TConfig> = TConfig extends { schemas?: infer TSchemas }
@@ -1987,7 +1990,8 @@ export function setup<
     createStateConfig(...args: unknown[]) {
       return args.length > 1 ? args[1] : args[0];
     },
-    states
+    states,
+    schemas: schemas ?? ({} as TSchemas)
   };
 }
 
