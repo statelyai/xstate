@@ -2127,6 +2127,8 @@ function mergeSchemas(
     ...left,
     ...right,
     events: mergeMaps(left?.events, right?.events),
+    actions: mergeMaps(left?.actions, right?.actions),
+    guards: mergeMaps(left?.guards, right?.guards),
     emitted: mergeMaps(left?.emitted, right?.emitted),
     children: mergeMaps(left?.children, right?.children)
   };
