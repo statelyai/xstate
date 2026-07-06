@@ -758,6 +758,64 @@ it('should expose non-context schemas on machine', () => {
   machine.schemas?.events?.inc satisfies StandardSchemaV1 | undefined;
 });
 
+it('should expose schemas on setup return', () => {
+  const s = setup({
+    schemas: {
+      context: z.object({
+        count: z.number()
+      }),
+      events: {
+        inc: z.object({
+          by: z.number()
+        })
+      },
+      actions: {
+        track: {
+          params: z.object({
+            key: z.string()
+          })
+        }
+      },
+      guards: {
+        hasAccess: {
+          params: z.object({
+            role: z.string()
+          })
+        }
+      },
+      emitted: {
+        changed: z.object({
+          value: z.number()
+        })
+      },
+      input: z.object({
+        start: z.number()
+      }),
+      output: z.object({
+        total: z.number()
+      }),
+      meta: z.object({
+        label: z.string()
+      }),
+      tags: z.literal('active'),
+      children: {
+        child: z.custom<AnyActorRef>()
+      }
+    }
+  });
+
+  s.schemas.context satisfies StandardSchemaV1;
+  s.schemas.events.inc satisfies StandardSchemaV1;
+  s.schemas.actions.track.params satisfies StandardSchemaV1;
+  s.schemas.guards.hasAccess.params satisfies StandardSchemaV1;
+  s.schemas.emitted.changed satisfies StandardSchemaV1;
+  s.schemas.input satisfies StandardSchemaV1;
+  s.schemas.output satisfies StandardSchemaV1;
+  s.schemas.meta satisfies StandardSchemaV1;
+  s.schemas.tags satisfies StandardSchemaV1;
+  s.schemas.children.child satisfies StandardSchemaV1;
+});
+
 describe('states', () => {
   it('should accept a state handling subset of events as part of the whole config handling superset of those events', () => {
     const italicState = {
