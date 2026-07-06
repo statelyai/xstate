@@ -122,6 +122,7 @@
     "store-fromstore-effects",
     "store-is-atom",
     "swift-send-typing",
+    "timeout-receives-input",
     "type-only-schemas",
     "typed-invoke-targets",
     "typed-state-enq",
