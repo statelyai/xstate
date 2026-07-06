@@ -1,4 +1,5 @@
-import { createActor, createMachine } from '../src';
+import z from 'zod';
+import { createActor, createMachine, setup } from '../src';
 import { createAsyncLogic, TimeoutError } from '../src/actors/promise.ts';
 
 afterEach(() => {
@@ -219,6 +220,173 @@ describe('state-level timeout', () => {
         }
       })
     ).toThrow(/onTimeout/);
+  });
+
+  it('passes state input to entry, exit, on, timeout, onTimeout, and after', () => {
+    vi.useFakeTimers();
+
+    const entrySpy = vi.fn();
+    const exitSpy = vi.fn();
+    const timeoutSpy = vi.fn();
+    const onTimeoutSpy = vi.fn();
+    const onPingSpy = vi.fn();
+    const afterSpy = vi.fn();
+    const machine = setup({
+      schemas: {
+        events: {
+          activate: z.object({
+            duration: z.number()
+          }),
+          ping: z.object({})
+        }
+      },
+      states: {
+        idle: {},
+        active: {
+          schemas: {
+            input: z.object({
+              duration: z.number()
+            })
+          }
+        }
+      }
+    }).createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            activate: ({ event }) => ({
+              target: 'active',
+              input: {
+                duration: event.duration
+              }
+            })
+          }
+        },
+        active: {
+          entry: ({ input }, enq) => {
+            enq(entrySpy, input.duration);
+          },
+          exit: ({ input }, enq) => {
+            enq(exitSpy, input.duration);
+          },
+          timeout: ({ input }) => {
+            timeoutSpy(input.duration);
+
+            return input.duration;
+          },
+          onTimeout: ({ input }, enq) => {
+            enq(onTimeoutSpy, input.duration);
+
+            return {
+              target: 'idle'
+            };
+          },
+          on: {
+            ping: ({ input }, enq) => {
+              onPingSpy(input.duration);
+            }
+          },
+          after: {
+            1000: ({ input }) => {
+              afterSpy(input.duration);
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'activate', duration: 500 });
+
+    expect(actor.getSnapshot().value).toBe('active');
+    expect(entrySpy).toHaveBeenCalledWith(500);
+    // timeout resolves eagerly on entry; onTimeout waits for the delay
+    expect(timeoutSpy).toHaveBeenCalledWith(500);
+    expect(onTimeoutSpy).not.toHaveBeenCalled();
+
+    // on handler receives state input
+    actor.send({ type: 'ping' });
+    expect(onPingSpy).toHaveBeenCalledWith(500);
+
+    vi.advanceTimersByTime(500);
+    expect(actor.getSnapshot().value).toBe('idle');
+    expect(onTimeoutSpy).toHaveBeenCalledWith(500);
+    expect(exitSpy).toHaveBeenCalledWith(500);
+    // after fires after timeout since timeout (500ms) < after (1000ms)
+    expect(afterSpy).not.toHaveBeenCalled();
+
+    // re-enter active with longer duration so after fires first
+    actor.send({ type: 'activate', duration: 2000 });
+    expect(actor.getSnapshot().value).toBe('active');
+
+    vi.advanceTimersByTime(1000);
+    expect(afterSpy).toHaveBeenCalledWith(2000);
+  });
+
+  it('passes the correct state input to nested states', () => {
+    const parentSpy = vi.fn();
+    const childSpy = vi.fn();
+
+    const machine = setup({
+      schemas: {
+        events: {
+          ping: z.object({})
+        }
+      },
+      states: {
+        parent: {
+          schemas: {
+            input: z.object({
+              label: z.literal('parent')
+            })
+          },
+          states: {
+            child: {
+              schemas: {
+                input: z.object({
+                  label: z.literal('child')
+                })
+              }
+            }
+          }
+        }
+      }
+    }).createMachine({
+      initial: {
+        target: 'parent',
+        input: { label: 'parent' }
+      },
+      states: {
+        parent: {
+          initial: {
+            target: 'child',
+            input: { label: 'child' }
+          },
+          on: {
+            ping: ({ input }) => {
+              parentSpy(input.label);
+            }
+          },
+          states: {
+            child: {
+              on: {
+                ping: ({ input }) => {
+                  childSpy(input.label);
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'ping' });
+
+    expect(childSpy).toHaveBeenCalledWith('child');
+    expect(parentSpy).toHaveBeenCalledWith('parent');
   });
 });
 

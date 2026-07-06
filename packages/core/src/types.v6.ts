@@ -769,6 +769,7 @@ type Next_ChoiceArgs<
     TGuardMap,
     TDelayMap,
     MetaObject,
+    undefined, // TInput
     _TCtx
   >
 >[0];
@@ -1047,7 +1048,8 @@ interface Next_RegularStateNodeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TMeta
+      TMeta,
+      TInput
     >;
   };
   /**
@@ -1135,7 +1137,8 @@ interface Next_RegularStateNodeConfig<
           TActorMap,
           TGuardMap,
           TDelayMap,
-          TMeta
+          TMeta,
+          TInput
         >;
   };
 
@@ -1155,6 +1158,7 @@ interface Next_RegularStateNodeConfig<
         context: TContext;
         event: TEvent;
         stateNode: AnyStateNode;
+        input: TInput;
       }) => number);
   /** Transition taken when `timeout` expires. Required when `timeout` is set. */
   onTimeout?: Next_TransitionConfigOrTarget<
@@ -1166,7 +1170,8 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    TInput
   >;
 
   /**
@@ -1230,7 +1235,8 @@ export type Next_TransitionConfigOrTarget<
   TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TInput = undefined
 > =
   | undefined
   | {
@@ -1263,7 +1269,8 @@ export type Next_TransitionConfigOrTarget<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TMeta
+        TMeta,
+        TInput
       >;
       context?:
         | TransitionContextPatch<TContext>
@@ -1292,7 +1299,8 @@ export type Next_TransitionConfigOrTarget<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TMeta
+      TMeta,
+      TInput
     >;
 
 export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;
@@ -1320,16 +1328,12 @@ type DelayNamesFromConfig<TConfig> = TConfig extends {
   ? Extract<keyof TDelays, string>
   : string;
 
+// Checks only `after` keys (and nested `states`): a bad `after` key is accepted
+// structurally, so it needs validation here. A bad `timeout` string is already
+// rejected by the `timeout?:` field type, so it needs no branch.
 type InvalidDelayReferences<TConfig, TDelays extends string> =
   | (TConfig extends { after: infer TAfter }
       ? Exclude<Extract<keyof TAfter, string>, TDelays>
-      : never)
-  | (TConfig extends { timeout: infer TTimeout }
-      ? TTimeout extends string
-        ? TTimeout extends TDelays
-          ? never
-          : TTimeout
-        : never
       : never)
   | (TConfig extends { states: infer TStates }
       ? TStates extends Record<string, unknown>
