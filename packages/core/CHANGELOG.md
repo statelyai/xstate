@@ -1205,6 +1205,62 @@
   - Machine serialization (`machine.toJSON()`) and the internal listener/subscription actor logic are significantly smaller.
   - Long diagnostic error messages are now development-only; production builds throw the same errors with shorter messages.
 
+## 5.32.4
+
+### Patch Changes
+
+- [#5589](https://github.com/statelyai/xstate/pull/5589) [`e913eeb`](https://github.com/statelyai/xstate/commit/e913eebb655b55440b2971f791fbf079a0e5d7ad) Thanks [@spokodev](https://github.com/spokodev)! - Fixed a bug where targeting a history state that is a direct child of a `parallel` state would silently do nothing when that parallel state had not been visited yet and the history state had no default target. The machine now enters the parallel state's initial configuration, matching the behavior of history states inside compound states.
+
+  ```ts
+  const machine = createMachine({
+    initial: 'off',
+    states: {
+      off: { on: { GO: 'on.hist' } },
+      on: {
+        type: 'parallel',
+        states: {
+          regA: { initial: 'a1', states: { a1: {}, a2: {} } },
+          regB: { initial: 'b1', states: { b1: {}, b2: {} } },
+          hist: { type: 'history', history: 'deep' }
+        }
+      }
+    }
+  });
+
+  const actor = createActor(machine).start();
+  actor.send({ type: 'GO' });
+  actor.getSnapshot().value; // { on: { regA: 'a1', regB: 'b1' } }
+  ```
+
+## 5.32.3
+
+### Patch Changes
+
+- [#5575](https://github.com/statelyai/xstate/pull/5575) [`830db8b`](https://github.com/statelyai/xstate/commit/830db8b6b4ac81331bdcae44aa7ec522fa959960) Thanks [@JSap0914](https://github.com/JSap0914)! - Fixed `initialTransition` (and `transition`) throwing `"Actor with system ID '...' already exists"` when the machine contains an `invoke` with a `systemId`.
+
+  **Root cause:** `createInertActorScope` used `createActor(logic)` internally, which eagerly ran `getInitialSnapshot` during construction and registered any `systemId`-carrying child actors in the system. When the caller then ran `getInitialSnapshot` (or `transition`) via the returned scope, the same system was reused, causing the duplicate-registration error.
+
+  **Fix:** After creating the internal actor, `createInertActorScope` now replaces the actor's system reference with a freshly-created system. Child actors spawned by the subsequent caller-driven `getInitialSnapshot` / `transition` invocation therefore register into a clean system with no pre-existing entries.
+
+  ```ts
+  const machine = createMachine({
+    initial: 'idle',
+    states: {
+      idle: {
+        invoke: {
+          src: fromPromise(async () => 42),
+          systemId: 'myActor' // previously caused: "Actor with system ID 'myActor' already exists"
+        }
+      }
+    }
+  });
+
+  // Now works correctly — returns [snapshot, actions] without throwing
+  const [snapshot, actions] = initialTransition(machine);
+  ```
+
+- [#5585](https://github.com/statelyai/xstate/pull/5585) [`a551a2b`](https://github.com/statelyai/xstate/commit/a551a2b81fbbe05f8ffc5b3cdaea503d01ce477e) Thanks [@RubenFricke](https://github.com/RubenFricke)! - Add missing https:// protocol to the Stately Studio link in the README
+
 ## 5.32.2
 
 ### Patch Changes

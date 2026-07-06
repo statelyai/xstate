@@ -538,6 +538,14 @@ function resolveHistoryDefaultTransition(
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(stateNode.config.target);
   if (!normalizedTarget) {
+    if (stateNode.parent!.type === 'parallel') {
+      return {
+        target: [stateNode.parent!],
+        source: stateNode,
+        reenter: false,
+        eventType: '' as any
+      };
+    }
     return stateNode.parent!.initial as AnyTransitionDefinition;
   }
   return {
