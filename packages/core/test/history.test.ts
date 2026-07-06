@@ -303,7 +303,7 @@ describe('history states', () => {
       initial: 'off',
       states: {
         off: {
-          on: { GO: 'on.hist' }
+          on: { GO: { target: 'on.hist' } }
         },
         on: {
           type: 'parallel',
@@ -329,7 +329,7 @@ describe('history states', () => {
       initial: 'off',
       states: {
         off: {
-          on: { GO: 'on.hist' }
+          on: { GO: { target: 'on.hist' } }
         },
         on: {
           type: 'parallel',
