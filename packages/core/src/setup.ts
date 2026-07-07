@@ -854,7 +854,8 @@ type StatesWithInput<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TSystemRegistry
+    TSystemRegistry,
+    K
   >;
 };
 
@@ -875,7 +876,8 @@ type StateNodeConfigWithNestedInput<
   TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TSelfKey extends string = never
 > = WithNestedStates<
   Omit<
     Next_StateNodeConfig<
@@ -932,7 +934,8 @@ type StateNodeConfigWithNestedInput<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      StateInput<TStateSchema>
+      StateInput<TStateSchema>,
+      TSelfKey
     >;
     always?: StateTransitionConfigOrTarget<
       TSiblingStateSchemas,
@@ -948,7 +951,8 @@ type StateNodeConfigWithNestedInput<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      StateInput<TStateSchema>
+      StateInput<TStateSchema>,
+      TSelfKey
     >;
     invoke?: SingleOrArray<
       SetupInvokeConfig<
@@ -963,7 +967,8 @@ type StateNodeConfigWithNestedInput<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TSystemRegistry
+        TSystemRegistry,
+        TSelfKey
       >
     >;
     onDone?: StateTransitionConfigOrTarget<
@@ -980,7 +985,8 @@ type StateNodeConfigWithNestedInput<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      StateInput<TStateSchema>
+      StateInput<TStateSchema>,
+      TSelfKey
     >;
     onError?: StateTransitionConfigOrTarget<
       TSiblingStateSchemas,
@@ -996,7 +1002,8 @@ type StateNodeConfigWithNestedInput<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      StateInput<TStateSchema>
+      StateInput<TStateSchema>,
+      TSelfKey
     >;
     onTimeout?: StateTransitionConfigOrTarget<
       TSiblingStateSchemas,
@@ -1012,7 +1019,8 @@ type StateNodeConfigWithNestedInput<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      StateInput<TStateSchema>
+      StateInput<TStateSchema>,
+      TSelfKey
     >;
     after?: {
       [K in NoInfer<TDelays> | number]?: StateTransitionConfigOrTarget<
@@ -1029,7 +1037,8 @@ type StateNodeConfigWithNestedInput<
         TGuardMap,
         TDelayMap,
         TSystemRegistry,
-        StateInput<TStateSchema>
+        StateInput<TStateSchema>,
+        TSelfKey
       >;
     };
   },
@@ -1086,7 +1095,8 @@ type StateTransitions<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TSystemRegistry extends SystemRegistry,
-  TInput = undefined
+  TInput = undefined,
+  TSelfKey extends string = never
 > = {
   [K in EventDescriptor<TEvent>]?: StateTransitionConfigOrTarget<
     TStateSchemas,
@@ -1102,7 +1112,8 @@ type StateTransitions<
     TGuardMap,
     TDelayMap,
     TSystemRegistry,
-    TInput
+    TInput,
+    TSelfKey
   >;
 };
 
@@ -1134,7 +1145,8 @@ type SetupInvokeConfig<
   TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TSelfKey extends string = never
 > =
   Next_InvokeConfig<
     TContext,
@@ -1166,7 +1178,9 @@ type SetupInvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TSystemRegistry
+            TSystemRegistry,
+            undefined,
+            TSelfKey
           >;
           onError?: StateTransitionConfigOrTarget<
             TStateSchemas,
@@ -1181,7 +1195,9 @@ type SetupInvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TSystemRegistry
+            TSystemRegistry,
+            undefined,
+            TSelfKey
           >;
           onSnapshot?: StateTransitionConfigOrTarget<
             TStateSchemas,
@@ -1196,7 +1212,9 @@ type SetupInvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TSystemRegistry
+            TSystemRegistry,
+            undefined,
+            TSelfKey
           >;
           onTimeout?: StateTransitionConfigOrTarget<
             TStateSchemas,
@@ -1211,7 +1229,9 @@ type SetupInvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TSystemRegistry
+            TSystemRegistry,
+            undefined,
+            TSelfKey
           >;
         }
       : never
@@ -1231,7 +1251,8 @@ type StateTransitionConfigOrTarget<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TSystemRegistry extends SystemRegistry,
-  TInput = undefined
+  TInput = undefined,
+  TSelfKey extends string = never
 > =
   | undefined
   | StateTransitionObjectConfig<
@@ -1245,7 +1266,8 @@ type StateTransitionConfigOrTarget<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TSystemRegistry
+      TSystemRegistry,
+      TSelfKey
     >
   | StateTransitionFunction<
       TStateSchemas,
@@ -1261,7 +1283,8 @@ type StateTransitionConfigOrTarget<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      TInput
+      TInput,
+      TSelfKey
     >;
 
 type StateTransitionObjectConfig<
@@ -1275,7 +1298,8 @@ type StateTransitionObjectConfig<
   TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TSelfKey extends string = never
 > =
   | (StateTransitionResult<
       TStateSchemas,
@@ -1289,7 +1313,8 @@ type StateTransitionObjectConfig<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      true
+      true,
+      TSelfKey
     > & {
       description?: string;
     })
@@ -1421,7 +1446,8 @@ type StateTransitionFunction<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TSystemRegistry extends SystemRegistry,
-  TInput = undefined
+  TInput = undefined,
+  TSelfKey extends string = never
 > = (
   args: {
     context: TContext;
@@ -1450,8 +1476,45 @@ type StateTransitionFunction<
   TGuardMap,
   TDelayMap,
   TSystemRegistry,
-  false
+  false,
+  TSelfKey
 > | void;
+
+/** The `input` value (or input-computing function) accepted by a transition. */
+type TransitionInputValue<
+  TSchema extends SetupStateSchema,
+  TContext extends MachineContext
+> =
+  | StateInput<TSchema>
+  | ((
+      args: {
+        context: TContext;
+        event: EventObject;
+      } & OutputArg<EventObject>
+    ) => StateInput<TSchema>);
+
+/**
+ * The `input`/`reenter` requirement for a single transition target.
+ *
+ * - No input schema → `input` is always optional.
+ * - A cross-target with an input schema → `input` is always required.
+ * - A self-target with an input schema → `input` is only applied (and therefore
+ *   required) when the state is re-entered. Without `reenter: true` the target
+ *   is not re-entered, so `input` is dropped at runtime (see the runtime
+ *   backstop) and is relaxed to optional here to avoid forcing the user to
+ *   write a value the runtime ignores.
+ */
+type TransitionInputRequirement<
+  TSchema extends SetupStateSchema,
+  TContext extends MachineContext,
+  TIsSelf extends boolean
+> = [StateInput<TSchema>] extends [undefined]
+  ? { reenter?: boolean; input?: TransitionInputValue<TSchema, TContext> }
+  : TIsSelf extends true
+    ?
+        | { reenter?: false; input?: TransitionInputValue<TSchema, TContext> }
+        | { reenter: boolean; input: TransitionInputValue<TSchema, TContext> }
+    : { reenter?: boolean; input: TransitionInputValue<TSchema, TContext> };
 
 type StateTransitionResult<
   TStateSchemas extends Record<string, SetupStateSchema>,
@@ -1465,7 +1528,8 @@ type StateTransitionResult<
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
   TSystemRegistry extends SystemRegistry,
-  TAllowContextMapper extends boolean
+  TAllowContextMapper extends boolean,
+  TSelfKey extends string = never
 > =
   | {
       target?: never;
@@ -1489,29 +1553,12 @@ type StateTransitionResult<
   | {
       [K in keyof TStateSchemas & string]: {
         target: K;
-        reenter?: boolean;
         meta?: TMeta;
-      } & ([StateInput<TStateSchemas[K]>] extends [undefined]
-        ? {
-            input?:
-              | StateInput<TStateSchemas[K]>
-              | ((
-                  args: {
-                    context: TContext;
-                    event: EventObject;
-                  } & OutputArg<EventObject>
-                ) => StateInput<TStateSchemas[K]>);
-          }
-        : {
-            input:
-              | StateInput<TStateSchemas[K]>
-              | ((
-                  args: {
-                    context: TContext;
-                    event: EventObject;
-                  } & OutputArg<EventObject>
-                ) => StateInput<TStateSchemas[K]>);
-          }) &
+      } & TransitionInputRequirement<
+        TStateSchemas[K],
+        TContext,
+        K extends TSelfKey ? true : false
+      > &
         ([TContextShape] extends [
           StateContextShape<TStateSchemas[K], TContextShape>
         ]

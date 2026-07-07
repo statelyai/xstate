@@ -2695,6 +2695,110 @@ describe('required input on transitions', () => {
     expect(true).toBe(true);
   });
 
+  // A self-transition WITHOUT `reenter: true` does not re-enter its target, so
+  // any provided input is dropped at runtime (see the backstop tests below).
+  // Requiring `input` there would force the user to write the very thing the
+  // runtime ignores, so it is relaxed to optional — but only for the self key,
+  // and only when not re-entering. Cross-target transitions and re-entering
+  // self-transitions still require input.
+  it('self-transition without `reenter` relaxes input; cross-transition still requires it', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          PING: z.object({}),
+          GO: z.object({})
+        }
+      },
+      states: {
+        active: {
+          schemas: {
+            input: z.object({ count: z.number() })
+          }
+        },
+        other: {
+          schemas: {
+            input: z.object({ id: z.string() })
+          }
+        }
+      }
+    });
+
+    s.createMachine({
+      initial: { target: 'active', input: { count: 1 } },
+      states: {
+        active: {
+          on: {
+            // POSITIVE: self-target without `reenter` — `input` may be omitted.
+            PING: {
+              target: 'active'
+            },
+            // NEGATIVE: `other` is a DIFFERENT input-schema sibling, so `input`
+            // is still required even though the source relaxes its own self key.
+            // @ts-expect-error - target `other` declares schemas.input, so input is required
+            GO: {
+              target: 'other'
+            }
+          }
+        },
+        other: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('self-transition with `reenter: true` still requires input', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          PING: z.object({})
+        }
+      },
+      states: {
+        active: {
+          schemas: {
+            input: z.object({ count: z.number() })
+          }
+        }
+      }
+    });
+
+    // NEGATIVE: `reenter: true` re-enters `active`, so its input IS applied and
+    // therefore required — the relaxation must not leak into the re-enter case.
+    s.createMachine({
+      initial: { target: 'active', input: { count: 1 } },
+      states: {
+        active: {
+          on: {
+            // @ts-expect-error - reenter:true re-enters `active`, so input is required
+            PING: {
+              target: 'active',
+              reenter: true
+            }
+          }
+        }
+      }
+    });
+
+    // POSITIVE TWIN: identical except it supplies `input` — must compile clean.
+    s.createMachine({
+      initial: { target: 'active', input: { count: 1 } },
+      states: {
+        active: {
+          on: {
+            PING: {
+              target: 'active',
+              reenter: true,
+              input: { count: 2 }
+            }
+          }
+        }
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
   // --- Runtime backstop (Change D) ---
   // Input on a transition whose target is NOT actually being (re)entered — the
   // classic case being a self-transition without `reenter: true` — would be
