@@ -580,6 +580,10 @@ export function getPersistedSnapshot<
     historyValue: serializeHistoryValue(jsonValues.historyValue)
   };
 
+  if (_stateInputs && Object.keys(_stateInputs).length > 0) {
+    persisted.stateInputs = _stateInputs;
+  }
+
   if (machine.version !== undefined) {
     persisted.version = machine.version;
   }

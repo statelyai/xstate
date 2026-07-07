@@ -1066,7 +1066,8 @@ export class StateMachine<
         children,
         _nodes: nodes,
         value: snapshotData.value,
-        historyValue: revivedHistoryValue
+        historyValue: revivedHistoryValue,
+        _stateInputs: snapshotData.stateInputs ?? {}
       },
       this
     ) as MachineSnapshot<
