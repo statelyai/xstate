@@ -1480,7 +1480,6 @@ type StateTransitionFunction<
   TSelfKey
 > | void;
 
-/** The `input` value (or input-computing function) accepted by a transition. */
 type TransitionInputValue<
   TSchema extends SetupStateSchema,
   TContext extends MachineContext
@@ -1494,15 +1493,9 @@ type TransitionInputValue<
     ) => StateInput<TSchema>);
 
 /**
- * The `input`/`reenter` requirement for a single transition target.
- *
- * - No input schema → `input` is always optional.
- * - A cross-target with an input schema → `input` is always required.
- * - A self-target with an input schema → `input` is only applied (and therefore
- *   required) when the state is re-entered. Without `reenter: true` the target
- *   is not re-entered, so `input` is dropped at runtime (see the runtime
- *   backstop) and is relaxed to optional here to avoid forcing the user to
- *   write a value the runtime ignores.
+ * A self-target without `reenter: true` relaxes `input` to optional: the
+ * runtime drops it anyway (see the runtime backstop), so requiring it would
+ * force the user to write a value that gets ignored.
  */
 type TransitionInputRequirement<
   TSchema extends SetupStateSchema,

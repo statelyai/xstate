@@ -2001,9 +2001,6 @@ describe('setup', () => {
 });
 
 describe('required input on transitions', () => {
-  // Restore console.warn (and any other) spies after every test so a spy
-  // installed by a runtime test can't leak into a later test if an assertion
-  // throws before that test's manual restore runs.
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -2028,7 +2025,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: omitting `input` on a transition to an input-schema sibling errors.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2044,7 +2040,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: identical except it supplies a valid `input` — must compile clean.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2080,7 +2075,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: `userId` must be a string, not a number.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2097,7 +2091,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: correct input shape — must compile clean.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2133,7 +2126,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: function-syntax return omitting `input` errors.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2149,7 +2141,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: function-syntax return supplying valid `input` — must compile clean.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2180,7 +2171,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: eventless `always` transition omitting `input` errors.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2194,7 +2184,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: `always` supplying valid `input` — must compile clean.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2223,7 +2212,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: delayed `after` transition omitting `input` errors.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2239,7 +2227,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: `after` supplying valid `input` — must compile clean.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2270,7 +2257,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: `onTimeout` transition omitting `input` errors.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2285,7 +2271,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: `onTimeout` supplying valid `input` — must compile clean.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2319,7 +2304,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: `onDone` transition omitting `input` errors.
     s.createMachine({
       initial: 'work',
       states: {
@@ -2337,7 +2321,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: `onDone` supplying valid `input` — must compile clean.
     s.createMachine({
       initial: 'work',
       states: {
@@ -2370,7 +2353,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: `onError` transition omitting `input` errors.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2384,7 +2366,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: `onError` supplying valid `input` — must compile clean.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2412,7 +2393,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: object-form `initial` omitting `input` errors.
     s.createMachine({
       // @ts-expect-error - initial target `loading` requires input
       initial: {
@@ -2423,7 +2403,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: object-form `initial` supplying valid `input` — must compile clean.
     s.createMachine({
       initial: {
         target: 'loading',
@@ -2454,9 +2433,8 @@ describe('required input on transitions', () => {
       }
     });
 
-    // Guard: a bare sibling target to `loading` IS enforced here — proving that
-    // `createStateConfig` applies the required-input rule, so the out-of-scope
-    // positives below are non-vacuous.
+    // Guard: a bare sibling target IS enforced here, proving the optional cases
+    // below are non-vacuous.
     s.createStateConfig({
       on: {
         // @ts-expect-error - bare sibling target `loading` requires input
@@ -2466,7 +2444,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // `#id` target: type system can't correlate to a schema, so input stays optional.
     s.createStateConfig({
       on: {
         GO: {
@@ -2475,7 +2452,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // `.child` relative target: input stays optional.
     s.createStateConfig({
       on: {
         GO: {
@@ -2484,8 +2460,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // array/parallel target: bypasses the per-target union, so input stays optional
-    // (documented escape hatch).
     s.createStateConfig({
       on: {
         GO: {
@@ -2494,7 +2468,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // no-schema sibling target: `idle` declares no input schema, so input stays optional.
     s.createStateConfig({
       on: {
         GO: {
@@ -2503,7 +2476,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // no-target transition: pure context/effect transition, unaffected.
     s.createStateConfig({
       on: {
         GO: {}
@@ -2537,7 +2509,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: even an empty-object input schema requires `input`.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2554,7 +2525,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: an all-optional input schema still requires `input`.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2571,7 +2541,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWINS: supplying `input` (even `{}`) compiles clean.
     s.createMachine({
       initial: 'idle',
       states: {
@@ -2624,7 +2593,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: invoke `onDone` targeting an input-schema sibling omits `input`.
     s.createMachine({
       initial: 'loading',
       states: {
@@ -2641,7 +2609,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: invoke `onDone` supplying valid `input` — must compile clean.
     s.createMachine({
       initial: 'loading',
       states: {
@@ -2658,7 +2625,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: invoke `onError` targeting an input-schema sibling omits `input`.
     s.createMachine({
       initial: 'loading',
       states: {
@@ -2675,7 +2641,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: invoke `onError` supplying valid `input` — must compile clean.
     s.createMachine({
       initial: 'loading',
       states: {
@@ -2695,12 +2660,6 @@ describe('required input on transitions', () => {
     expect(true).toBe(true);
   });
 
-  // A self-transition WITHOUT `reenter: true` does not re-enter its target, so
-  // any provided input is dropped at runtime (see the backstop tests below).
-  // Requiring `input` there would force the user to write the very thing the
-  // runtime ignores, so it is relaxed to optional — but only for the self key,
-  // and only when not re-entering. Cross-target transitions and re-entering
-  // self-transitions still require input.
   it('self-transition without `reenter` relaxes input; cross-transition still requires it', () => {
     const s = setup({
       schemas: {
@@ -2728,12 +2687,9 @@ describe('required input on transitions', () => {
       states: {
         active: {
           on: {
-            // POSITIVE: self-target without `reenter` — `input` may be omitted.
             PING: {
               target: 'active'
             },
-            // NEGATIVE: `other` is a DIFFERENT input-schema sibling, so `input`
-            // is still required even though the source relaxes its own self key.
             // @ts-expect-error - target `other` declares schemas.input, so input is required
             GO: {
               target: 'other'
@@ -2763,8 +2719,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // NEGATIVE: `reenter: true` re-enters `active`, so its input IS applied and
-    // therefore required — the relaxation must not leak into the re-enter case.
     s.createMachine({
       initial: { target: 'active', input: { count: 1 } },
       states: {
@@ -2780,7 +2734,6 @@ describe('required input on transitions', () => {
       }
     });
 
-    // POSITIVE TWIN: identical except it supplies `input` — must compile clean.
     s.createMachine({
       initial: { target: 'active', input: { count: 1 } },
       states: {
@@ -2799,11 +2752,8 @@ describe('required input on transitions', () => {
     expect(true).toBe(true);
   });
 
-  // --- Runtime backstop (Change D) ---
-  // Input on a transition whose target is NOT actually being (re)entered — the
-  // classic case being a self-transition without `reenter: true` — would be
-  // silently stored but never consumed. Detect that: emit a dev warning and do
-  // NOT store the ignored input. These are real machine-execution tests.
+  // Runtime backstop: input on a transition that doesn't (re)enter its target
+  // is dropped (not stored) and warns in dev.
 
   it('self-transition without `reenter` ignores provided input and warns', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -2830,7 +2780,6 @@ describe('required input on transitions', () => {
             entryInputs.push(input);
           },
           on: {
-            // Self-transition WITHOUT reenter, carrying a DISTINCT input value.
             PING: {
               target: 'active',
               input: { count: 2 }
@@ -2842,7 +2791,6 @@ describe('required input on transitions', () => {
 
     const actor = createActor(machine).start();
 
-    // Baseline: initial input applied, entry fired exactly once.
     expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
       count: 1
     });
@@ -2850,19 +2798,14 @@ describe('required input on transitions', () => {
 
     actor.send({ type: 'PING' });
 
-    // The provided { count: 2 } is ignored: a warning fires naming the state
-    // and telling the user how to fix it...
     expect(warnSpy).toHaveBeenCalledTimes(1);
     expect(warnSpy.mock.calls[0][0]).toContain('(machine).active');
     expect(warnSpy.mock.calls[0][0]).toContain('reenter: true');
 
-    // ...the stored input is UNCHANGED (still the original { count: 1 }),
-    // proving the ignored { count: 2 } was never stored...
     expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
       count: 1
     });
 
-    // ...and entry did not re-fire (no reenter).
     expect(entryInputs).toEqual([{ count: 1 }]);
 
     warnSpy.mockRestore();
@@ -2893,7 +2836,6 @@ describe('required input on transitions', () => {
             entryInputs.push(input);
           },
           on: {
-            // Self-transition WITH reenter: the state IS re-entered.
             PING: {
               target: 'active',
               reenter: true,
@@ -2909,13 +2851,10 @@ describe('required input on transitions', () => {
 
     actor.send({ type: 'PING' });
 
-    // The guard does not over-suppress: no warning fires...
     expect(warnSpy).not.toHaveBeenCalled();
 
-    // ...entry re-fired and saw the NEW input...
     expect(entryInputs).toEqual([{ count: 1 }, { count: 2 }]);
 
-    // ...and the stored input is updated to the new value.
     expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
       count: 2
     });
@@ -2960,13 +2899,10 @@ describe('required input on transitions', () => {
     const actor = createActor(machine).start();
     actor.send({ type: 'LOAD' });
 
-    // The common case is unaffected: no warning...
     expect(warnSpy).not.toHaveBeenCalled();
 
-    // ...entry saw the input...
     expect(entryInputs).toEqual([{ userId: 'user-1' }]);
 
-    // ...and it was stored.
     expect(actor.getSnapshot().getInputs()['(machine).loading']).toEqual({
       userId: 'user-1'
     });
@@ -2974,15 +2910,9 @@ describe('required input on transitions', () => {
     warnSpy.mockRestore();
   });
 
-  // Runtime backstop (Change D) at the COMPOUND seam. The parent is itself a
-  // compound state WITH an input schema, and the self-transition targets the
-  // parent. Distinct input values (`pv: 1` vs `pv: 2`) make this non-vacuous:
-  // whether the provided `{ pv: 2 }` is applied hinges solely on whether the
-  // parent is actually re-entered. Without `reenter` the parent stays active
-  // (not in the entry set), so its input is dropped and the dev warning fires;
-  // with `reenter: true` the parent is re-entered, so its input is applied and
-  // no warning fires. (The compound child re-enters via the default-entry path
-  // in both cases — a separate code path — and never triggers the warning.)
+  // Compound seam: a self-transition targeting the compound parent applies its
+  // input only when the parent is actually re-entered. The compound child
+  // re-enters via the default-entry path either way, which never warns.
   it('compound self-transition applies parent input only when the parent is re-entered', () => {
     const s = setup({
       states: {
@@ -2997,9 +2927,7 @@ describe('required input on transitions', () => {
       }
     });
 
-    // --- Case A: self-transition to the compound parent WITHOUT `reenter`. ---
-    // The parent stays active (not re-entered), so the provided `{ pv: 2 }` is
-    // ignored, the original `{ pv: 1 }` is retained, and the warning fires.
+    // Case A: self-transition to the compound parent WITHOUT `reenter`.
     {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const parentEntries: unknown[] = [];
@@ -3017,7 +2945,6 @@ describe('required input on transitions', () => {
               parentEntries.push(input);
             },
             on: {
-              // Compound self-transition WITHOUT reenter, carrying a DISTINCT input.
               PING: {
                 target: 'parent',
                 input: { pv: 2 }
@@ -3036,8 +2963,6 @@ describe('required input on transitions', () => {
 
       const actor = createActor(machine).start();
 
-      // Baseline: the parent's own initial input `{ pv: 1 }` reached its entry
-      // and was stored.
       expect(parentEntries).toEqual([{ pv: 1 }]);
       expect(childEntries).toEqual(['child']);
       expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
@@ -3046,30 +2971,22 @@ describe('required input on transitions', () => {
 
       actor.send({ type: 'PING' });
 
-      // The parent is NOT re-entered → the provided `{ pv: 2 }` is ignored: the
-      // warning fires once, naming the state and how to fix it...
       expect(warnSpy).toHaveBeenCalledTimes(1);
-      expect(warnSpy.mock.calls[0][0]).toContain('ignored');
+      expect(warnSpy.mock.calls[0][0]).toContain('Ignored');
       expect(warnSpy.mock.calls[0][0]).toContain('(machine).parent');
       expect(warnSpy.mock.calls[0][0]).toContain('reenter: true');
 
-      // ...the parent's entry did NOT re-fire and its stored input stays the
-      // original `{ pv: 1 }`, proving the ignored `{ pv: 2 }` was never stored...
       expect(parentEntries).toEqual([{ pv: 1 }]);
       expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
         pv: 1
       });
 
-      // ...while the compound child still re-entered via the default-entry path
-      // (a separate code path that never triggers the warning).
       expect(childEntries).toEqual(['child', 'child']);
 
       warnSpy.mockRestore();
     }
 
-    // --- Case B: self-transition to the compound parent WITH `reenter: true`. ---
-    // The parent IS re-entered, so the provided `{ pv: 2 }` is applied (entry
-    // re-fires) and stored; no warning fires.
+    // Case B: self-transition to the compound parent WITH `reenter: true`.
     {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const parentEntries: unknown[] = [];
@@ -3087,7 +3004,6 @@ describe('required input on transitions', () => {
               parentEntries.push(input);
             },
             on: {
-              // Compound self-transition WITH reenter, carrying a DISTINCT input.
               PING: {
                 target: 'parent',
                 reenter: true,
@@ -3114,18 +3030,14 @@ describe('required input on transitions', () => {
 
       actor.send({ type: 'PING' });
 
-      // The parent IS re-entered → no warning fires...
       expect(warnSpy).not.toHaveBeenCalled();
 
-      // ...its entry re-fires and sees the NEW input `{ pv: 2 }`...
       expect(parentEntries).toEqual([{ pv: 1 }, { pv: 2 }]);
 
-      // ...the stored input is updated to `{ pv: 2 }`...
       expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
         pv: 2
       });
 
-      // ...and the child re-entered again as well.
       expect(childEntries).toEqual(['child', 'child']);
 
       warnSpy.mockRestore();

@@ -1446,20 +1446,15 @@ function microstep(
         );
         if (input && targets) {
           for (const targetNode of targets) {
-            // Only store the input for targets that are actually being
-            // (re)entered — i.e. present in the computed entry set. Otherwise the
-            // input would be stored but never consumed, since the target's entry
-            // actions never fire (e.g. a self-transition without `reenter: true`,
-            // or a transition whose target is a history node).
+            // Only store input for a target that's actually being (re)entered;
+            // otherwise the input would never be consumed (its entry actions
+            // never fire).
             if (statesToEnter.has(targetNode)) {
               stateInputMap[targetNode.id] = input;
               stateInputsChanged = true;
             } else if (isDevelopment) {
               console.warn(
-                `Input provided on a transition to state "${targetNode.id}" is ignored ` +
-                  `because "${targetNode.id}" is not being (re)entered by this transition ` +
-                  `(for example, a self-transition without \`reenter: true\`). Add ` +
-                  `\`reenter: true\` to re-enter the state and apply the input.`
+                `Ignored \`input\` for state "${targetNode.id}" because it is not being (re)entered. Add \`reenter: true\` to re-enter and apply it.`
               );
             }
           }
