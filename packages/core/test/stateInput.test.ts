@@ -1999,3 +1999,692 @@ describe('setup', () => {
     expect(true).toBe(true);
   });
 });
+
+describe('required input on transitions', () => {
+  // Each negative (@ts-expect-error) case is paired with a positive twin identical
+  // except for `input`; the twin compiling clean proves the error is caused
+  // specifically by the missing input, not something unrelated.
+  it('`on` transition to an input-schema sibling requires input', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    // NEGATIVE: omitting `input` on a transition to an input-schema sibling errors.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - target `loading` declares schemas.input, so input is required
+            LOAD: {
+              target: 'loading'
+            }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    // POSITIVE TWIN: identical except it supplies a valid `input` — must compile clean.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            LOAD: {
+              target: 'loading',
+              input: { userId: 'user-1' }
+            }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('`on` transition rejects a wrong-shaped input', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    // NEGATIVE: `userId` must be a string, not a number.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - loading input requires userId: string, not number
+            LOAD: {
+              target: 'loading',
+              input: { userId: 123 }
+            }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    // POSITIVE TWIN: correct input shape — must compile clean.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            LOAD: {
+              target: 'loading',
+              input: { userId: 'user-1' }
+            }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('function-syntax transition return requires input', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    // NEGATIVE: function-syntax return omitting `input` errors.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - returned transition to `loading` requires input
+            LOAD: () => ({
+              target: 'loading'
+            })
+          }
+        },
+        loading: {}
+      }
+    });
+
+    // POSITIVE TWIN: function-syntax return supplying valid `input` — must compile clean.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            LOAD: () => ({
+              target: 'loading',
+              input: { userId: 'user-1' }
+            })
+          }
+        },
+        loading: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('`always` transition requires input', () => {
+    const s = setup({
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    // NEGATIVE: eventless `always` transition omitting `input` errors.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          // @ts-expect-error - always target `loading` requires input
+          always: {
+            target: 'loading'
+          }
+        },
+        loading: {}
+      }
+    });
+
+    // POSITIVE TWIN: `always` supplying valid `input` — must compile clean.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          always: {
+            target: 'loading',
+            input: { userId: 'user-1' }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('`after` delayed transition requires input', () => {
+    const s = setup({
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    // NEGATIVE: delayed `after` transition omitting `input` errors.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          after: {
+            // @ts-expect-error - after target `loading` requires input
+            1000: {
+              target: 'loading'
+            }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    // POSITIVE TWIN: `after` supplying valid `input` — must compile clean.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          after: {
+            1000: {
+              target: 'loading',
+              input: { userId: 'user-1' }
+            }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('state-level `onTimeout` transition requires input', () => {
+    const s = setup({
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    // NEGATIVE: `onTimeout` transition omitting `input` errors.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          timeout: 1000,
+          // @ts-expect-error - onTimeout target `loading` requires input
+          onTimeout: {
+            target: 'loading'
+          }
+        },
+        loading: {}
+      }
+    });
+
+    // POSITIVE TWIN: `onTimeout` supplying valid `input` — must compile clean.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          timeout: 1000,
+          onTimeout: {
+            target: 'loading',
+            input: { userId: 'user-1' }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('state-level `onDone` transition requires input', () => {
+    const s = setup({
+      states: {
+        work: {
+          states: {
+            step: {}
+          }
+        },
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    // NEGATIVE: `onDone` transition omitting `input` errors.
+    s.createMachine({
+      initial: 'work',
+      states: {
+        work: {
+          initial: 'step',
+          states: {
+            step: { type: 'final' }
+          },
+          // @ts-expect-error - onDone target `loading` requires input
+          onDone: {
+            target: 'loading'
+          }
+        },
+        loading: {}
+      }
+    });
+
+    // POSITIVE TWIN: `onDone` supplying valid `input` — must compile clean.
+    s.createMachine({
+      initial: 'work',
+      states: {
+        work: {
+          initial: 'step',
+          states: {
+            step: { type: 'final' }
+          },
+          onDone: {
+            target: 'loading',
+            input: { userId: 'user-1' }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('state-level `onError` transition requires input', () => {
+    const s = setup({
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    // NEGATIVE: `onError` transition omitting `input` errors.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          // @ts-expect-error - onError target `loading` requires input
+          onError: {
+            target: 'loading'
+          }
+        },
+        loading: {}
+      }
+    });
+
+    // POSITIVE TWIN: `onError` supplying valid `input` — must compile clean.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          onError: {
+            target: 'loading',
+            input: { userId: 'user-1' }
+          }
+        },
+        loading: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('object-form `initial` to an input-schema target requires input', () => {
+    const s = setup({
+      states: {
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    // NEGATIVE: object-form `initial` omitting `input` errors.
+    s.createMachine({
+      // @ts-expect-error - initial target `loading` requires input
+      initial: {
+        target: 'loading'
+      },
+      states: {
+        loading: {}
+      }
+    });
+
+    // POSITIVE TWIN: object-form `initial` supplying valid `input` — must compile clean.
+    s.createMachine({
+      initial: {
+        target: 'loading',
+        input: { userId: 'user-1' }
+      },
+      states: {
+        loading: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('out-of-scope and no-schema targets keep input optional', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          GO: z.object({})
+        }
+      },
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    // Guard: a bare sibling target to `loading` IS enforced here — proving that
+    // `createStateConfig` applies the required-input rule, so the out-of-scope
+    // positives below are non-vacuous.
+    s.createStateConfig({
+      on: {
+        // @ts-expect-error - bare sibling target `loading` requires input
+        GO: {
+          target: 'loading'
+        }
+      }
+    });
+
+    // `#id` target: type system can't correlate to a schema, so input stays optional.
+    s.createStateConfig({
+      on: {
+        GO: {
+          target: '#loading'
+        }
+      }
+    });
+
+    // `.child` relative target: input stays optional.
+    s.createStateConfig({
+      on: {
+        GO: {
+          target: '.child'
+        }
+      }
+    });
+
+    // array/parallel target: bypasses the per-target union, so input stays optional
+    // (documented escape hatch).
+    s.createStateConfig({
+      on: {
+        GO: {
+          target: ['loading']
+        }
+      }
+    });
+
+    // no-schema sibling target: `idle` declares no input schema, so input stays optional.
+    s.createStateConfig({
+      on: {
+        GO: {
+          target: 'idle'
+        }
+      }
+    });
+
+    // no-target transition: pure context/effect transition, unaffected.
+    s.createStateConfig({
+      on: {
+        GO: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('all-optional / empty input schemas still require input', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          LOAD: z.object({})
+        }
+      },
+      states: {
+        idle: {},
+        // empty schema -> output is `{}` (not `undefined`)
+        empty: {
+          schemas: {
+            input: z.object({})
+          }
+        },
+        // all-optional schema -> output is `{ userId?: string }` (not `undefined`)
+        allOptional: {
+          schemas: {
+            input: z.object({ userId: z.string().optional() })
+          }
+        }
+      }
+    });
+
+    // NEGATIVE: even an empty-object input schema requires `input`.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - empty-object input schema still requires input
+            LOAD: {
+              target: 'empty'
+            }
+          }
+        },
+        empty: {},
+        allOptional: {}
+      }
+    });
+
+    // NEGATIVE: an all-optional input schema still requires `input`.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - all-optional input schema still requires input
+            LOAD: {
+              target: 'allOptional'
+            }
+          }
+        },
+        empty: {},
+        allOptional: {}
+      }
+    });
+
+    // POSITIVE TWINS: supplying `input` (even `{}`) compiles clean.
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            LOAD: {
+              target: 'empty',
+              input: {}
+            }
+          }
+        },
+        empty: {},
+        allOptional: {}
+      }
+    });
+
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            LOAD: {
+              target: 'allOptional',
+              input: {}
+            }
+          }
+        },
+        empty: {},
+        allOptional: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('invoke `onDone`/`onError` transition to an input-schema sibling requires input', () => {
+    const s = setup({
+      states: {
+        loading: {},
+        loaded: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      },
+      actorSources: {
+        load: createAsyncLogic({
+          run: async () => 'Done' as const
+        })
+      }
+    });
+
+    // NEGATIVE: invoke `onDone` targeting an input-schema sibling omits `input`.
+    s.createMachine({
+      initial: 'loading',
+      states: {
+        loading: {
+          // @ts-expect-error - onDone target `loaded` requires input
+          invoke: {
+            src: 'load',
+            onDone: {
+              target: 'loaded'
+            }
+          }
+        },
+        loaded: {}
+      }
+    });
+
+    // POSITIVE TWIN: invoke `onDone` supplying valid `input` — must compile clean.
+    s.createMachine({
+      initial: 'loading',
+      states: {
+        loading: {
+          invoke: {
+            src: 'load',
+            onDone: {
+              target: 'loaded',
+              input: { userId: 'user-1' }
+            }
+          }
+        },
+        loaded: {}
+      }
+    });
+
+    // NEGATIVE: invoke `onError` targeting an input-schema sibling omits `input`.
+    s.createMachine({
+      initial: 'loading',
+      states: {
+        loading: {
+          // @ts-expect-error - onError target `loaded` requires input
+          invoke: {
+            src: 'load',
+            onError: {
+              target: 'loaded'
+            }
+          }
+        },
+        loaded: {}
+      }
+    });
+
+    // POSITIVE TWIN: invoke `onError` supplying valid `input` — must compile clean.
+    s.createMachine({
+      initial: 'loading',
+      states: {
+        loading: {
+          invoke: {
+            src: 'load',
+            onError: {
+              target: 'loaded',
+              input: { userId: 'user-1' }
+            }
+          }
+        },
+        loaded: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+});
