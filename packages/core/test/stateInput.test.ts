@@ -2660,7 +2660,7 @@ describe('required input on transitions', () => {
     expect(true).toBe(true);
   });
 
-  it('self-transition without `reenter` relaxes input; cross-transition still requires it', () => {
+  it('self-transition to an input-schema target requires input (uniform rule)', () => {
     const s = setup({
       schemas: {
         events: {
@@ -2687,12 +2687,33 @@ describe('required input on transitions', () => {
       states: {
         active: {
           on: {
+            // @ts-expect-error - self-target `active` declares schemas.input, so input is required
             PING: {
               target: 'active'
             },
             // @ts-expect-error - target `other` declares schemas.input, so input is required
             GO: {
               target: 'other'
+            }
+          }
+        },
+        other: {}
+      }
+    });
+
+    // Supplying input satisfies the requirement for both self and cross targets.
+    s.createMachine({
+      initial: { target: 'active', input: { count: 1 } },
+      states: {
+        active: {
+          on: {
+            PING: {
+              target: 'active',
+              input: { count: 2 }
+            },
+            GO: {
+              target: 'other',
+              input: { id: 'x' }
             }
           }
         },
