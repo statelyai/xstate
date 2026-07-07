@@ -1646,6 +1646,13 @@ type RequiredContextKeys<TCurrentContext, TTargetContext> = {
     : K;
 }[keyof TTargetContext];
 
+/** A function that computes an initial target's `input` from the event. */
+type InitialInputFn<
+  TSchema extends SetupStateSchema,
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> = (args: { context: TContext; event: TEvent }) => StateInput<TSchema>;
+
 /** Initial transition with typed input based on target state */
 type InitialTransitionWithInput<
   TStateSchemas extends Record<string, SetupStateSchema>,
@@ -1658,18 +1665,12 @@ type InitialTransitionWithInput<
     ? {
         input?:
           | StateInput<TStateSchemas[K]>
-          | ((args: {
-              context: TContext;
-              event: TEvent;
-            }) => StateInput<TStateSchemas[K]>);
+          | InitialInputFn<TStateSchemas[K], TContext, TEvent>;
       }
     : {
         input:
           | StateInput<TStateSchemas[K]>
-          | ((args: {
-              context: TContext;
-              event: TEvent;
-            }) => StateInput<TStateSchemas[K]>);
+          | InitialInputFn<TStateSchemas[K], TContext, TEvent>;
       });
 }[keyof TStateSchemas & string];
 
