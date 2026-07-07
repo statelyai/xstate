@@ -1480,34 +1480,45 @@ type StateTransitionFunction<
   TSelfKey
 > | void;
 
-type TransitionInputValue<
+/** A function that computes a transition target's `input` from the event. */
+type TransitionInputFn<
   TSchema extends SetupStateSchema,
   TContext extends MachineContext
-> =
-  | StateInput<TSchema>
-  | ((
-      args: {
-        context: TContext;
-        event: EventObject;
-      } & OutputArg<EventObject>
-    ) => StateInput<TSchema>);
+> = (
+  args: { context: TContext; event: EventObject } & OutputArg<EventObject>
+) => StateInput<TSchema>;
 
 /**
- * A self-target without `reenter: true` relaxes `input` to optional: the
- * runtime drops it anyway (see the runtime backstop), so requiring it would
- * force the user to write a value that gets ignored.
+ * The `input`/`reenter` requirement for one transition target:
+ *
+ * - No input schema → `input` optional
+ * - Cross-target → `input` required
+ * - Self-target → `input` required only when re-entering (`reenter: true`);
+ *   without reenter it is relaxed to optional (the runtime drops it anyway).
  */
 type TransitionInputRequirement<
   TSchema extends SetupStateSchema,
   TContext extends MachineContext,
   TIsSelf extends boolean
 > = [StateInput<TSchema>] extends [undefined]
-  ? { reenter?: boolean; input?: TransitionInputValue<TSchema, TContext> }
+  ? {
+      reenter?: boolean;
+      input?: StateInput<TSchema> | TransitionInputFn<TSchema, TContext>;
+    }
   : TIsSelf extends true
     ?
-        | { reenter?: false; input?: TransitionInputValue<TSchema, TContext> }
-        | { reenter: boolean; input: TransitionInputValue<TSchema, TContext> }
-    : { reenter?: boolean; input: TransitionInputValue<TSchema, TContext> };
+        | {
+            reenter?: false;
+            input?: StateInput<TSchema> | TransitionInputFn<TSchema, TContext>;
+          }
+        | {
+            reenter: boolean;
+            input: StateInput<TSchema> | TransitionInputFn<TSchema, TContext>;
+          }
+    : {
+        reenter?: boolean;
+        input: StateInput<TSchema> | TransitionInputFn<TSchema, TContext>;
+      };
 
 type StateTransitionResult<
   TStateSchemas extends Record<string, SetupStateSchema>,
