@@ -2001,6 +2001,13 @@ describe('setup', () => {
 });
 
 describe('required input on transitions', () => {
+  // Restore console.warn (and any other) spies after every test so a spy
+  // installed by a runtime test can't leak into a later test if an assertion
+  // throws before that test's manual restore runs.
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   // Each negative (@ts-expect-error) case is paired with a positive twin identical
   // except for `input`; the twin compiling clean proves the error is caused
   // specifically by the missing input, not something unrelated.
@@ -2686,5 +2693,338 @@ describe('required input on transitions', () => {
     });
 
     expect(true).toBe(true);
+  });
+
+  // --- Runtime backstop (Change D) ---
+  // Input on a transition whose target is NOT actually being (re)entered — the
+  // classic case being a self-transition without `reenter: true` — would be
+  // silently stored but never consumed. Detect that: emit a dev warning and do
+  // NOT store the ignored input. These are real machine-execution tests.
+
+  it('self-transition without `reenter` ignores provided input and warns', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const s = setup({
+      states: {
+        active: {
+          schemas: {
+            input: z.object({ count: z.number() })
+          }
+        }
+      }
+    });
+
+    const entryInputs: unknown[] = [];
+    const machine = s.createMachine({
+      initial: {
+        target: 'active',
+        input: { count: 1 }
+      },
+      states: {
+        active: {
+          entry: ({ input }) => {
+            entryInputs.push(input);
+          },
+          on: {
+            // Self-transition WITHOUT reenter, carrying a DISTINCT input value.
+            PING: {
+              target: 'active',
+              input: { count: 2 }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // Baseline: initial input applied, entry fired exactly once.
+    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+      count: 1
+    });
+    expect(entryInputs).toEqual([{ count: 1 }]);
+
+    actor.send({ type: 'PING' });
+
+    // The provided { count: 2 } is ignored: a warning fires naming the state
+    // and telling the user how to fix it...
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy.mock.calls[0][0]).toContain('(machine).active');
+    expect(warnSpy.mock.calls[0][0]).toContain('reenter: true');
+
+    // ...the stored input is UNCHANGED (still the original { count: 1 }),
+    // proving the ignored { count: 2 } was never stored...
+    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+      count: 1
+    });
+
+    // ...and entry did not re-fire (no reenter).
+    expect(entryInputs).toEqual([{ count: 1 }]);
+
+    warnSpy.mockRestore();
+  });
+
+  it('self-transition with `reenter: true` applies the new input and does not warn', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const s = setup({
+      states: {
+        active: {
+          schemas: {
+            input: z.object({ count: z.number() })
+          }
+        }
+      }
+    });
+
+    const entryInputs: unknown[] = [];
+    const machine = s.createMachine({
+      initial: {
+        target: 'active',
+        input: { count: 1 }
+      },
+      states: {
+        active: {
+          entry: ({ input }) => {
+            entryInputs.push(input);
+          },
+          on: {
+            // Self-transition WITH reenter: the state IS re-entered.
+            PING: {
+              target: 'active',
+              reenter: true,
+              input: { count: 2 }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    expect(entryInputs).toEqual([{ count: 1 }]);
+
+    actor.send({ type: 'PING' });
+
+    // The guard does not over-suppress: no warning fires...
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    // ...entry re-fired and saw the NEW input...
+    expect(entryInputs).toEqual([{ count: 1 }, { count: 2 }]);
+
+    // ...and the stored input is updated to the new value.
+    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+      count: 2
+    });
+
+    warnSpy.mockRestore();
+  });
+
+  it('normal transition to a different target applies input and does not warn', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const s = setup({
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    const entryInputs: unknown[] = [];
+    const machine = s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            LOAD: {
+              target: 'loading',
+              input: { userId: 'user-1' }
+            }
+          }
+        },
+        loading: {
+          entry: ({ input }) => {
+            entryInputs.push(input);
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'LOAD' });
+
+    // The common case is unaffected: no warning...
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    // ...entry saw the input...
+    expect(entryInputs).toEqual([{ userId: 'user-1' }]);
+
+    // ...and it was stored.
+    expect(actor.getSnapshot().getInputs()['(machine).loading']).toEqual({
+      userId: 'user-1'
+    });
+
+    warnSpy.mockRestore();
+  });
+
+  // Runtime backstop (Change D) at the COMPOUND seam. The parent is itself a
+  // compound state WITH an input schema, and the self-transition targets the
+  // parent. Distinct input values (`pv: 1` vs `pv: 2`) make this non-vacuous:
+  // whether the provided `{ pv: 2 }` is applied hinges solely on whether the
+  // parent is actually re-entered. Without `reenter` the parent stays active
+  // (not in the entry set), so its input is dropped and the dev warning fires;
+  // with `reenter: true` the parent is re-entered, so its input is applied and
+  // no warning fires. (The compound child re-enters via the default-entry path
+  // in both cases — a separate code path — and never triggers the warning.)
+  it('compound self-transition applies parent input only when the parent is re-entered', () => {
+    const s = setup({
+      states: {
+        parent: {
+          schemas: {
+            input: z.object({ pv: z.number() })
+          },
+          states: {
+            child: {}
+          }
+        }
+      }
+    });
+
+    // --- Case A: self-transition to the compound parent WITHOUT `reenter`. ---
+    // The parent stays active (not re-entered), so the provided `{ pv: 2 }` is
+    // ignored, the original `{ pv: 1 }` is retained, and the warning fires.
+    {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const parentEntries: unknown[] = [];
+      const childEntries: string[] = [];
+
+      const machine = s.createMachine({
+        initial: {
+          target: 'parent',
+          input: { pv: 1 }
+        },
+        states: {
+          parent: {
+            initial: 'child',
+            entry: ({ input }) => {
+              parentEntries.push(input);
+            },
+            on: {
+              // Compound self-transition WITHOUT reenter, carrying a DISTINCT input.
+              PING: {
+                target: 'parent',
+                input: { pv: 2 }
+              }
+            },
+            states: {
+              child: {
+                entry: () => {
+                  childEntries.push('child');
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const actor = createActor(machine).start();
+
+      // Baseline: the parent's own initial input `{ pv: 1 }` reached its entry
+      // and was stored.
+      expect(parentEntries).toEqual([{ pv: 1 }]);
+      expect(childEntries).toEqual(['child']);
+      expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
+        pv: 1
+      });
+
+      actor.send({ type: 'PING' });
+
+      // The parent is NOT re-entered → the provided `{ pv: 2 }` is ignored: the
+      // warning fires once, naming the state and how to fix it...
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0][0]).toContain('ignored');
+      expect(warnSpy.mock.calls[0][0]).toContain('(machine).parent');
+      expect(warnSpy.mock.calls[0][0]).toContain('reenter: true');
+
+      // ...the parent's entry did NOT re-fire and its stored input stays the
+      // original `{ pv: 1 }`, proving the ignored `{ pv: 2 }` was never stored...
+      expect(parentEntries).toEqual([{ pv: 1 }]);
+      expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
+        pv: 1
+      });
+
+      // ...while the compound child still re-entered via the default-entry path
+      // (a separate code path that never triggers the warning).
+      expect(childEntries).toEqual(['child', 'child']);
+
+      warnSpy.mockRestore();
+    }
+
+    // --- Case B: self-transition to the compound parent WITH `reenter: true`. ---
+    // The parent IS re-entered, so the provided `{ pv: 2 }` is applied (entry
+    // re-fires) and stored; no warning fires.
+    {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const parentEntries: unknown[] = [];
+      const childEntries: string[] = [];
+
+      const machine = s.createMachine({
+        initial: {
+          target: 'parent',
+          input: { pv: 1 }
+        },
+        states: {
+          parent: {
+            initial: 'child',
+            entry: ({ input }) => {
+              parentEntries.push(input);
+            },
+            on: {
+              // Compound self-transition WITH reenter, carrying a DISTINCT input.
+              PING: {
+                target: 'parent',
+                reenter: true,
+                input: { pv: 2 }
+              }
+            },
+            states: {
+              child: {
+                entry: () => {
+                  childEntries.push('child');
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const actor = createActor(machine).start();
+      expect(parentEntries).toEqual([{ pv: 1 }]);
+      expect(childEntries).toEqual(['child']);
+      expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
+        pv: 1
+      });
+
+      actor.send({ type: 'PING' });
+
+      // The parent IS re-entered → no warning fires...
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      // ...its entry re-fires and sees the NEW input `{ pv: 2 }`...
+      expect(parentEntries).toEqual([{ pv: 1 }, { pv: 2 }]);
+
+      // ...the stored input is updated to `{ pv: 2 }`...
+      expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
+        pv: 2
+      });
+
+      // ...and the child re-entered again as well.
+      expect(childEntries).toEqual(['child', 'child']);
+
+      warnSpy.mockRestore();
+    }
   });
 });
