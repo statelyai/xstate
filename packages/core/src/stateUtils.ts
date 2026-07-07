@@ -1452,10 +1452,6 @@ function microstep(
             if (statesToEnter.has(targetNode)) {
               stateInputMap[targetNode.id] = input;
               stateInputsChanged = true;
-            } else if (isDevelopment) {
-              console.warn(
-                `Ignored \`input\` for state "${targetNode.id}" because it is not being (re)entered. Add \`reenter: true\` to re-enter and apply it.`
-              );
             }
           }
         }

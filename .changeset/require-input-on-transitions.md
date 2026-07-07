@@ -27,6 +27,6 @@ const machine = setup({
 
 This is a breaking type change: machines that transition to an input-declaring sibling without providing `input` will no longer type-check — add the required `input`.
 
-A self-transition without `reenter: true` does not re-enter its target, so `input` stays **optional** there — the state keeps its current input and providing a new value has no effect (at runtime it is ignored and a development-only warning is logged, since previously it was stored but never applied). Add `reenter: true` to actually re-enter the state and apply the new input; re-entering self-transitions require `input` just like transitions to other input-schema states.
+A self-transition without `reenter: true` does not re-enter its target, so `input` stays **optional** there — the state keeps its current input and providing a new value has no effect (at runtime the new value is ignored). Add `reenter: true` to actually re-enter the state and apply the new input; re-entering self-transitions require `input` just like transitions to other input-schema states.
 
 Enforcement applies to direct sibling-key targets. Targets via `#id`, relative `.child`, or arrays (`{ target: [...] }`) are not correlated to a schema at the type level, so `input` stays optional there. Input schemas with no required fields still require an explicit `input` (e.g. `input: {}`).

@@ -2752,10 +2752,10 @@ describe('required input on transitions', () => {
     expect(true).toBe(true);
   });
 
-  // Runtime backstop: input on a transition that doesn't (re)enter its target
-  // is dropped (not stored) and warns in dev.
+  // Runtime backstop: input on a transition that doesn't (re)enter its
+  // target is silently dropped (not stored).
 
-  it('self-transition without `reenter` ignores provided input and warns', () => {
+  it('self-transition without `reenter` ignores provided input', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const s = setup({
@@ -2798,9 +2798,7 @@ describe('required input on transitions', () => {
 
     actor.send({ type: 'PING' });
 
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy.mock.calls[0][0]).toContain('(machine).active');
-    expect(warnSpy.mock.calls[0][0]).toContain('reenter: true');
+    expect(warnSpy).not.toHaveBeenCalled();
 
     expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
       count: 1
@@ -2971,10 +2969,7 @@ describe('required input on transitions', () => {
 
       actor.send({ type: 'PING' });
 
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-      expect(warnSpy.mock.calls[0][0]).toContain('Ignored');
-      expect(warnSpy.mock.calls[0][0]).toContain('(machine).parent');
-      expect(warnSpy.mock.calls[0][0]).toContain('reenter: true');
+      expect(warnSpy).not.toHaveBeenCalled();
 
       expect(parentEntries).toEqual([{ pv: 1 }]);
       expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
