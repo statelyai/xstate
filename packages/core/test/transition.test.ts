@@ -905,6 +905,24 @@ describe('transition function', () => {
     expect(effects.filter(isEffect(XSTATE_START))).toHaveLength(0);
   });
 
+  it('does not classify user-created reserved action shapes as built-in actions', () => {
+    const actor = createActor(createMachine({}));
+
+    expect(
+      isBuiltInExecutableAction({
+        type: XSTATE_SPAWN,
+        params: undefined,
+        args: [actor],
+        exec: undefined,
+        actor,
+        id: actor.id,
+        logic: actor.logic,
+        src: actor.src,
+        input: undefined
+      } as any)
+    ).toBe(false);
+  });
+
   it('emit actions should be returned', async () => {
     const machine = createMachine({
       // types: {
