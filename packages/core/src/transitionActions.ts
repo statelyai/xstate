@@ -6,6 +6,7 @@ import {
   type SubscriptionInput,
   type SubscriptionMappers
 } from './actors/subscription.ts';
+import { XSTATE_SPAWN, XSTATE_START } from './constants.ts';
 import { createActor } from './createActor.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
 import { getEventOutput } from './utils.ts';
@@ -20,7 +21,8 @@ import type {
   EventObject,
   ExecutableActionObject,
   MachineContext,
-  SpecialExecutableAction
+  SpecialExecutableAction,
+  StartExecutableActionObject
 } from './types.ts';
 
 export function mergeContextPatch(
@@ -60,12 +62,12 @@ function unregisterChild(actor: AnyActor) {
   );
 }
 
-function pushStartedChild(
+function pushSpawnedChild(
   actions: any[],
   actor: AnyActor,
   id: string | undefined
 ) {
-  pushBuiltInAction(actions, builtInActions['@xstate.start'], actor);
+  pushBuiltInAction(actions, builtInActions['@xstate.spawn'], actor);
   actions.push(registerSpawnedChild(actor, id ?? actor.id));
 }
 
@@ -122,7 +124,7 @@ export function createTransitionEnqueue(
         ...options,
         parent: actorScope.self
       });
-      pushStartedChild(actions, actor, options?.id);
+      pushSpawnedChild(actions, actor, options?.id);
       return actor;
     },
     sendTo: (actor, event, options) => {
@@ -171,7 +173,7 @@ export function createTransitionEnqueue(
         });
         pushBuiltInAction(
           actions,
-          builtInActions['@xstate.start'],
+          builtInActions['@xstate.spawn'],
           listenerActor
         );
         return listenerActor;
@@ -190,7 +192,7 @@ export function createTransitionEnqueue(
         });
         pushBuiltInAction(
           actions,
-          builtInActions['@xstate.start'],
+          builtInActions['@xstate.spawn'],
           subscriptionActor
         );
         return subscriptionActor;
@@ -208,9 +210,9 @@ function getBuiltInActionFields(
   args: unknown[]
 ): Partial<SpecialExecutableAction> | undefined {
   switch (action) {
-    case builtInActions['@xstate.start']: {
+    case builtInActions['@xstate.spawn']: {
       const [actor] = args as Parameters<
-        (typeof builtInActions)['@xstate.start']
+        (typeof builtInActions)['@xstate.spawn']
       >;
       return {
         actor,
@@ -258,10 +260,72 @@ function getBuiltInActionFields(
   }
 }
 
+function createStartEffect(actor: AnyActor): StartExecutableActionObject {
+  const action = builtInActions['@xstate.start'];
+  const args: Parameters<(typeof builtInActions)['@xstate.start']> = [actor];
+  return {
+    type: XSTATE_START,
+    params: { action, args },
+    args,
+    exec: action.bind(null, actor),
+    actor,
+    id: actor.id
+  };
+}
+
+/**
+ * Attached (listener/subscription) starts are ordered before child starts so
+ * that a listener/subscription captures events emitted synchronously as its
+ * target actor starts.
+ */
+export function deriveDeferredStarts(
+  effects: ReadonlyArray<ExecutableActionObject>
+): StartExecutableActionObject[] {
+  const attachedStarts: StartExecutableActionObject[] = [];
+  const childStarts: StartExecutableActionObject[] = [];
+
+  for (const effect of effects) {
+    if (!isBuiltInExecutableAction(effect) || effect.type !== XSTATE_SPAWN) {
+      continue;
+    }
+    const { actor, logic } = effect;
+    const start = createStartEffect(actor);
+    if (logic === listenerLogic || logic === subscriptionLogic) {
+      attachedStarts.push(start);
+    } else {
+      childStarts.push(start);
+    }
+  }
+
+  return [...attachedStarts, ...childStarts];
+}
+
 export function isBuiltInExecutableAction(
   action: ExecutableActionObject
 ): action is SpecialExecutableAction {
-  return Object.prototype.hasOwnProperty.call(builtInActions, action.type);
+  if (!Object.prototype.hasOwnProperty.call(builtInActions, action.type)) {
+    return false;
+  }
+
+  switch (action.type) {
+    case '@xstate.spawn':
+      return (
+        'actor' in action &&
+        'logic' in action &&
+        'src' in action &&
+        'input' in action
+      );
+    case '@xstate.start':
+    case '@xstate.stop':
+      return 'actor' in action;
+    case '@xstate.raise':
+    case '@xstate.sendTo':
+      return 'event' in action;
+    case '@xstate.cancel':
+      return 'id' in action;
+    default:
+      return false;
+  }
 }
 
 export function resolveActionsWithContext(

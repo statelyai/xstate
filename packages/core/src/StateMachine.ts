@@ -24,7 +24,10 @@ import {
   resolveStateValue,
   transitionNode
 } from './stateUtils.ts';
-import { resolveActionsWithContext } from './transitionActions.ts';
+import {
+  deriveDeferredStarts,
+  resolveActionsWithContext
+} from './transitionActions.ts';
 import { AnyActorSystem } from './system.ts';
 import type {
   ActorLogic,
@@ -42,6 +45,7 @@ import type {
   EmittedFrom,
   EventObject,
   EventFromLogic,
+  ExecutableActionObject,
   ExecutableActionObjectFromLogic,
   HistoryValue,
   InputFrom,
@@ -444,10 +448,24 @@ export class StateMachine<
         TMeta,
         TConfig
       >,
-      microsteps.flatMap(
-        ([, actions]) => actions
-      ) as ExecutableActionObjectFromLogic<this>[]
+      this._collectEffects(microsteps)
     ];
+  }
+
+  private _collectEffects(
+    microsteps: ReadonlyArray<
+      readonly [unknown, ReadonlyArray<ExecutableActionObject>]
+    >,
+    initialActions: ReadonlyArray<ExecutableActionObject> = []
+  ): ExecutableActionObjectFromLogic<this>[] {
+    const effects = [
+      ...initialActions,
+      ...microsteps.flatMap(([, actions]) => actions)
+    ];
+    return [
+      ...effects,
+      ...deriveDeferredStarts(effects)
+    ] as ExecutableActionObjectFromLogic<this>[];
   }
 
   private _transitionFast(
@@ -817,8 +835,10 @@ export class StateMachine<
     const internalQueue: AnyEventObject[] = [];
     const preInitialState = this._getPreInitialState(actorScope, initEvent);
     let nextState: AnyMachineSnapshot;
-    let initialActions: readonly unknown[] = [];
-    let microsteps: Array<readonly [unknown, readonly unknown[]]> = [];
+    let initialActions: ReadonlyArray<ExecutableActionObject> = [];
+    let microsteps: ReadonlyArray<
+      readonly [unknown, ReadonlyArray<ExecutableActionObject>]
+    > = [];
     let macroState: AnyMachineSnapshot;
 
     try {
@@ -854,10 +874,7 @@ export class StateMachine<
 
     return [
       macroState as SnapshotFrom<this>,
-      [
-        ...initialActions,
-        ...microsteps.flatMap(([, actions]) => actions)
-      ] as ExecutableActionObjectFromLogic<this>[]
+      this._collectEffects(microsteps, initialActions)
     ];
   }
 

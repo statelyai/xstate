@@ -1,12 +1,12 @@
 import { XSTATE_INIT, XSTATE_STOP } from './constants.ts';
 import { builtInActions } from './actions.ts';
 import {
+  deriveDeferredStarts,
   createTransitionEnqueue,
   resolveActionsWithContext
 } from './transitionActions.ts';
 import type {
   ActorLogic,
-  ActorLogicTransitionResult,
   ActorScope,
   AnyAction,
   AnyActorScope,
@@ -532,7 +532,7 @@ export function createFSM<
     return undefined;
   };
 
-  const transition = ((
+  const transitionCore = (
     snapshot: FSMSnapshot<TContext, string, TInput>,
     event: TEvent,
     actorScope: ActorScope<
@@ -541,7 +541,7 @@ export function createFSM<
       any,
       EventObject
     >
-  ): ActorLogicTransitionResult<FSMSnapshot<TContext, string, TInput>> => {
+  ): [FSMSnapshot<TContext, string, TInput>, ExecutableActionObject[]] => {
     if (snapshot.status !== 'active') {
       return [snapshot, []];
     }
@@ -736,7 +736,12 @@ export function createFSM<
       }
     }
 
-    return [nextSnapshot, executableActions as any];
+    return [nextSnapshot, executableActions];
+  };
+
+  const transition = ((...args: Parameters<typeof transitionCore>) => {
+    const [nextSnapshot, effects] = transitionCore(...args);
+    return [nextSnapshot, [...effects, ...deriveDeferredStarts(effects)]];
   }) as FSMActorLogic<TContext, TEvent, string, TInput>['transition'];
 
   const logic: FSMActorLogic<TContext, TEvent, string, TInput> = {
@@ -764,15 +769,15 @@ export function createFSM<
         actions = [];
       }
       while (internalQueue.length) {
-        const [raisedSnapshot, raisedActions] = transition(
+        const [raisedSnapshot, raisedActions] = transitionCore(
           nextSnapshot,
           internalQueue.shift()! as TEvent,
           actorScope
         );
         nextSnapshot = raisedSnapshot;
-        actions.push(...(raisedActions as ExecutableActionObject[]));
+        actions.push(...raisedActions);
       }
-      return [nextSnapshot, actions as any];
+      return [nextSnapshot, [...actions, ...deriveDeferredStarts(actions)]];
     },
     getInitialSnapshot: (actorScope, input) =>
       logic.initialTransition(input, actorScope)[0],

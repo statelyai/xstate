@@ -1506,7 +1506,7 @@ function microstep(
           });
 
           actions.push({
-            action: builtInActions['@xstate.start'],
+            action: builtInActions['@xstate.spawn'],
             args: [actor]
           });
 

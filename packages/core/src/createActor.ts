@@ -713,6 +713,10 @@ export class Actor<TLogic extends AnyActorLogic>
       return this;
     }
 
+    if (this._processingStatus === ProcessingStatus.Stopped) {
+      return this;
+    }
+
     if (this._syncSnapshot) {
       this.subscribe({
         next: (snapshot: Snapshot<unknown>) => {

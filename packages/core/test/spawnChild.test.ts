@@ -4,7 +4,8 @@ import {
   createActor,
   createMachine,
   createObservableLogic,
-  createAsyncLogic
+  createAsyncLogic,
+  createCallbackLogic
 } from '../src';
 import { z } from 'zod';
 
@@ -143,5 +144,65 @@ describe('spawnChild action', () => {
     createActor(machine).start();
 
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not start a child that is spawned and stopped in the same entry', () => {
+    const started = vi.fn();
+
+    const machine = createMachine({
+      entry: (_, enq) => {
+        const child = enq.spawn(
+          createCallbackLogic(() => {
+            started();
+          }),
+          { id: 'child' }
+        );
+        enq.stop(child);
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // The appended start effect no-ops at runtime because the child was already
+    // stopped in the same transition, so its callback logic never runs.
+    expect(started).not.toHaveBeenCalled();
+    expect(actor.getSnapshot().children.child).toBeUndefined();
+  });
+
+  it('does not start a child that is spawned in one microstep and stopped in a later microstep of the same macrostep', () => {
+    const started = vi.fn();
+
+    const machine = createMachine({
+      context: {} as { child: any },
+      initial: 'a',
+      states: {
+        a: {
+          entry: (_, enq) => {
+            const child = enq.spawn(
+              createCallbackLogic(() => {
+                started();
+              }),
+              { id: 'child' }
+            );
+            return { context: { child } };
+          },
+          always: { target: 'b' }
+        },
+        b: {
+          entry: ({ context }, enq) => {
+            enq.stop(context.child);
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // All starts are deferred to the end of the macrostep's effects, while
+    // stops execute at their authored positions — so the child is stopped
+    // before its deferred start runs, and that start is a no-op.
+    expect(started).not.toHaveBeenCalled();
+    expect(actor.getSnapshot().value).toBe('b');
+    expect(actor.getSnapshot().children.child).toBeUndefined();
   });
 });

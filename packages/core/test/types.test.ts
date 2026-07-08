@@ -69,12 +69,16 @@ describe('SpecialExecutableAction', () => {
   it('narrows built-in executable action fields by type', () => {
     const consume = (action: SpecialExecutableAction) => {
       switch (action.type) {
-        case '@xstate.start':
+        case '@xstate.spawn':
           noop(action.actor);
           noop(action.id);
           noop(action.logic);
           noop(action.src);
           noop(action.input);
+          break;
+        case '@xstate.start':
+          noop(action.actor);
+          noop(action.id);
           break;
         case '@xstate.raise':
           noop(action.event);
@@ -122,11 +126,24 @@ describe('SpecialExecutableAction', () => {
     const [, actions] = initialTransition(machine);
     const action = actions[0];
 
-    if (isBuiltInExecutableAction(action) && action.type === '@xstate.start') {
+    if (isBuiltInExecutableAction(action) && action.type === '@xstate.spawn') {
       noop(action.actor);
       noop(action.id);
       noop(action.logic);
       noop(action.src);
+      noop(action.input);
+      // @ts-expect-error spawn actions do not expose raise/send event payloads
+      noop(action.event);
+    }
+
+    if (isBuiltInExecutableAction(action) && action.type === '@xstate.start') {
+      noop(action.actor);
+      noop(action.id);
+      // @ts-expect-error start actions no longer expose logic
+      noop(action.logic);
+      // @ts-expect-error start actions no longer expose src
+      noop(action.src);
+      // @ts-expect-error start actions no longer expose input
       noop(action.input);
       // @ts-expect-error start actions do not expose raise/send event payloads
       noop(action.event);

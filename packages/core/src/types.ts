@@ -2774,14 +2774,22 @@ export interface CustomExecutableActionObject<
   type: TType;
 }
 
-export interface StartExecutableActionObject
+export interface SpawnExecutableActionObject
   extends BaseExecutableActionObject {
-  type: '@xstate.start';
+  type: '@xstate.spawn';
   actor: AnyActor;
   id: string;
   logic: AnyActorLogic;
   src: string | AnyActorLogic;
   input: unknown;
+  args: Parameters<(typeof builtInActions)['@xstate.spawn']>;
+}
+
+export interface StartExecutableActionObject
+  extends BaseExecutableActionObject {
+  type: '@xstate.start';
+  actor: AnyActor;
+  id: string;
   args: Parameters<(typeof builtInActions)['@xstate.start']>;
 }
 
@@ -2818,6 +2826,7 @@ export interface StopExecutableActionObject extends BaseExecutableActionObject {
 }
 
 export type BuiltInExecutableActionObject = Values<{
+  '@xstate.spawn': SpawnExecutableActionObject;
   '@xstate.start': StartExecutableActionObject;
   '@xstate.raise': RaiseExecutableActionObject;
   '@xstate.sendTo': SendToExecutableActionObject;
@@ -2927,14 +2936,16 @@ export type EnqueueObject<
    * @param mappers - Object with done/error/snapshot mappers, or a single
    *   snapshot mapper function
    */
-  subscribeTo: {
-    <TSnapshot extends Snapshot<unknown>, TOutput, TMappedEvent extends TEvent>(
-      actor: AnyActor,
-      mappers:
-        | SubscribeToMappers<TSnapshot, TOutput, TMappedEvent>
-        | ((snapshot: TSnapshot) => TMappedEvent)
-    ): AnyActor;
-  };
+  subscribeTo: <TActor extends AnyActor, TMappedEvent extends TEvent>(
+    actor: TActor,
+    mappers:
+      | SubscribeToMappers<
+          SnapshotFrom<TActor>,
+          OutputFrom<TActor>,
+          TMappedEvent
+        >
+      | ((snapshot: SnapshotFrom<TActor>) => TMappedEvent)
+  ) => AnyActor;
 };
 
 export type Action<

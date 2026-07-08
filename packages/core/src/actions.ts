@@ -2,6 +2,9 @@ import isDevelopment from '#is-development';
 import { AnyActor, AnyActorScope, EventObject } from './types';
 
 export const builtInActions = {
+  // No-op: creation/registration are eager and pure; the start is a separate
+  // deferred `@xstate.start` effect (see `deriveDeferredStarts`).
+  ['@xstate.spawn']: (_actor: AnyActor) => {},
   ['@xstate.start']: (actor: AnyActor) => {
     actor.start();
   },
