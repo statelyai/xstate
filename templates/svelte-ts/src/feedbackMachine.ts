@@ -1,6 +1,6 @@
-import { assign, setup } from 'xstate';
+import { createMachine } from 'xstate';
 
-export const feedbackMachine = setup({
+export const feedbackMachine = createMachine({
   types: {
     context: {} as { feedback: string },
     events: {} as
@@ -23,8 +23,7 @@ export const feedbackMachine = setup({
   },
   guards: {
     feedbackValid: ({ context }) => context.feedback.length > 0
-  }
-}).createMachine({
+  },
   id: 'feedback',
   initial: 'prompt',
   context: {
@@ -39,26 +38,31 @@ export const feedbackMachine = setup({
     },
     form: {
       on: {
-        'feedback.update': {
-          actions: assign({
-            feedback: ({ event }) => event.value
-          })
+        'feedback.update': ({ context, event, guards, actions }, enq) => {
+          return {
+            context: {
+              ...context,
+              feedback: (({ event }) => event.value)({
+                context: context,
+                event: event
+              })
+            }
+          };
         },
         back: { target: 'prompt' },
-        submit: {
-          guard: 'feedbackValid',
-          target: 'thanks'
+        submit: ({ context, event, guards, actions }, enq) => {
+          if (!guards['feedbackValid']({ context, event })) {
+            return;
+          }
+          return { target: 'thanks' };
         }
       }
     },
     thanks: {},
     closed: {
       on: {
-        restart: {
-          target: 'prompt',
-          actions: assign({
-            feedback: ''
-          })
+        restart: ({ context, event, guards, actions }, enq) => {
+          return { target: 'prompt', context: { ...context, feedback: '' } };
         }
       }
     }

@@ -10,13 +10,8 @@
         "src/index.ts",
         "src/actions.ts",
         "src/actors/index.ts",
-        "src/guards.ts",
-        "src/dev/index.ts",
         "src/graph/index.ts"
       ]
-    },
-    "packages/xstate-inspect": {
-      "entry": ["src/index.ts", "src/server.ts"]
     },
     "packages/xstate-store": {
       "entry": ["src/index.ts"]
@@ -31,6 +26,7 @@
     // file acts as a type test
     "packages/xstate-svelte/test/interpreterAsReadable.svelte",
     "docs/**",
+    "examples/**",
     // copy-pasted implementation from alien-signals
     "packages/xstate-store/src/alien.ts",
     "scripts/**"
@@ -40,7 +36,6 @@
     // package.json#exports aren't added as entry points, because `dist/` is .gitignored
     "react",
     "xstate",
-    "@types/ws",
     // peer dependencies that may be needed but not directly imported
     "@angular/compiler-cli",
     "@sveltejs/vite-plugin-svelte",

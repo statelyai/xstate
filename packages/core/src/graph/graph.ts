@@ -2,11 +2,13 @@ import {
   EventObject,
   AnyStateMachine,
   StateMachine,
+  StateNode,
   AnyActorLogic,
   EventFromLogic,
   Snapshot,
   __unsafe_getAllOwnEventDescriptors,
-  InputFrom
+  InputFrom,
+  SnapshotFrom
 } from '../index.ts';
 import type {
   SerializedEvent,
@@ -25,12 +27,12 @@ import { createMockActorScope } from './actorScope.ts';
  *
  * @param stateNode State node to recursively get child state nodes from
  */
-export function getStateNodes(
-  stateNode: AnyStateNode | AnyStateMachine
-): AnyStateNode[] {
+export function getStateNodes(stateNode: {
+  states: Record<string, AnyStateNode | StateNode<never, EventObject>>;
+}): AnyStateNode[] {
   const { states } = stateNode;
   const nodes = Object.keys(states).reduce((accNodes, stateKey) => {
-    const childStateNode = states[stateKey];
+    const childStateNode = states[stateKey] as AnyStateNode;
     const childStateNodes = getStateNodes(childStateNode);
 
     accNodes.push(childStateNode, ...childStateNodes);
@@ -69,18 +71,18 @@ function serializeEvent<TEvent extends EventObject>(
 export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<
-    ReturnType<TMachine['transition']>,
+    SnapshotFrom<TMachine>,
     EventFromLogic<TMachine>,
     InputFrom<TMachine>
   >
 ): TraversalOptions<
-  ReturnType<TMachine['transition']>,
+  SnapshotFrom<TMachine>,
   EventFromLogic<TMachine>,
   InputFrom<TMachine>
 > {
   const { events: getEvents, ...otherOptions } = options ?? {};
   const traversalOptions: TraversalOptions<
-    ReturnType<TMachine['transition']>,
+    SnapshotFrom<TMachine>,
     EventFromLogic<TMachine>,
     InputFrom<TMachine>
   > = {
@@ -100,7 +102,7 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
     fromState: machine.getInitialSnapshot(
       createMockActorScope(),
       options?.input
-    ) as ReturnType<TMachine['transition']>,
+    ) as SnapshotFrom<TMachine>,
     ...otherOptions
   };
 
@@ -117,8 +119,9 @@ export function createDefaultLogicOptions(): TraversalOptions<any, any, any> {
 export function toDirectedGraph(
   stateMachine: AnyStateNode | AnyStateMachine
 ): DirectedGraphNode {
-  const stateNode =
-    stateMachine instanceof StateMachine ? stateMachine.root : stateMachine; // TODO: accept only machines
+  const stateNode = (
+    stateMachine instanceof StateMachine ? stateMachine.root : stateMachine
+  ) as AnyStateNode; // TODO: accept only machines
 
   const edges: DirectedGraphEdge[] = [...stateNode.transitions.values()]
     .flat()
@@ -167,16 +170,16 @@ function isMachineLogic(logic: AnyActorLogic): logic is AnyStateMachine {
 export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
   logic: TLogic,
   traversalOptions?: TraversalOptions<
-    ReturnType<TLogic['transition']>,
+    SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     InputFrom<TLogic>
   >,
   defaultOptions?: TraversalOptions<
-    ReturnType<TLogic['transition']>,
+    SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     InputFrom<TLogic>
   >
-): TraversalConfig<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>> {
+): TraversalConfig<SnapshotFrom<TLogic>, EventFromLogic<TLogic>> {
   const resolvedDefaultOptions =
     defaultOptions ??
     (isMachineLogic(logic)
@@ -184,7 +187,7 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
           logic,
           traversalOptions as any
         ) as TraversalOptions<
-          ReturnType<TLogic['transition']>,
+          SnapshotFrom<TLogic>,
           EventFromLogic<TLogic>,
           InputFrom<TLogic>
         >)
@@ -194,7 +197,7 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
     resolvedDefaultOptions?.serializeState ??
     ((state) => JSON.stringify(state));
   const traversalConfig: TraversalConfig<
-    ReturnType<TLogic['transition']>,
+    SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>
   > = {
     serializeState,

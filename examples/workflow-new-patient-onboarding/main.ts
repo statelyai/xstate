@@ -1,6 +1,5 @@
-import { assign, createMachine, fromPromise, createActor } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import { retry, handleWhen, ConstantBackoff } from 'cockatiel';
-
 const retryPolicy = retry(
   handleWhen((err) => (err as any).type === 'ServiceNotAvailable'),
   {
@@ -8,11 +7,9 @@ const retryPolicy = retry(
     backoff: new ConstantBackoff(3000)
   }
 );
-
 retryPolicy.onRetry((data) => {
   console.log('Retrying...', data);
 });
-
 async function delay(ms: number, errorProbability: number): Promise<void> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -24,123 +21,124 @@ async function delay(ms: number, errorProbability: number): Promise<void> {
     }, ms);
   });
 }
-
 // https://github.com/serverlessworkflow/specification/blob/main/examples/README.md#New-Patient-Onboarding
-export const workflow = createMachine(
-  {
-    id: 'patientonboarding',
-    types: {} as {
-      events: { type: 'NewPatientEvent'; name: string; condition: string };
-      context: {
-        patient: {
-          name: string;
-          condition: string;
-        } | null;
-      };
-    },
-    initial: 'Idle',
+export const workflow = createMachine({
+  id: 'patientonboarding',
+  types: {} as {
+    events: {
+      type: 'NewPatientEvent';
+      name: string;
+      condition: string;
+    };
     context: {
-      patient: null
-    },
-    states: {
-      Idle: {
-        on: {
-          NewPatientEvent: {
+      patient: {
+        name: string;
+        condition: string;
+      } | null;
+    };
+  },
+  initial: 'Idle',
+  context: {
+    patient: null
+  },
+  states: {
+    Idle: {
+      on: {
+        NewPatientEvent: ({ context, event, guards, actions }, enq) => {
+          return {
             target: 'Onboard',
-            actions: assign({
-              patient: ({ event }) => ({
+            context: {
+              ...context,
+              patient: (({ event }) => ({
                 name: event.name,
                 condition: event.condition
-              })
-            })
-          }
+              }))({ context: context, event: event })
+            }
+          };
         }
-      },
-      Onboard: {
-        initial: 'StorePatient',
-        states: {
-          StorePatient: {
-            invoke: {
-              src: 'StoreNewPatientInfo',
-              input: ({ context }) => context.patient,
-              onDone: {
-                target: 'AssignDoctor'
-              },
-              onError: {
-                target: '#End'
-              }
+      }
+    },
+    Onboard: {
+      initial: 'StorePatient',
+      states: {
+        StorePatient: {
+          invoke: {
+            src: 'StoreNewPatientInfo',
+            input: ({ context }) => context.patient,
+            onDone: {
+              target: 'AssignDoctor'
+            },
+            onError: {
+              target: '#End'
             }
-          },
-          AssignDoctor: {
-            invoke: {
-              src: 'AssignDoctor',
-              onDone: {
-                target: 'ScheduleAppt'
-              },
-              onError: {
-                target: '#End'
-              }
-            }
-          },
-          ScheduleAppt: {
-            invoke: {
-              src: 'ScheduleAppt',
-              onDone: {
-                target: 'Done'
-              },
-              onError: {
-                target: '#End'
-              }
-            }
-          },
-          Done: {
-            type: 'final'
           }
         },
-        onDone: {
-          target: 'End',
-          actions: assign({
-            patient: null
-          })
+        AssignDoctor: {
+          invoke: {
+            src: 'AssignDoctor',
+            onDone: {
+              target: 'ScheduleAppt'
+            },
+            onError: {
+              target: '#End'
+            }
+          }
+        },
+        ScheduleAppt: {
+          invoke: {
+            src: 'ScheduleAppt',
+            onDone: {
+              target: 'Done'
+            },
+            onError: {
+              target: '#End'
+            }
+          }
+        },
+        Done: {
+          type: 'final'
         }
       },
-      End: {
-        id: 'End',
-        type: 'final'
+      onDone: ({ context, event, guards, actions }, enq) => {
+        return { target: 'End', context: { ...context, patient: null } };
       }
+    },
+    End: {
+      id: 'End',
+      type: 'final'
     }
   },
-  {
-    actors: {
-      StoreNewPatientInfo: fromPromise(async ({ input }) => {
+  actorSources: {
+    StoreNewPatientInfo: createAsyncLogic({
+      run: async ({ input }) => {
         console.log('Starting StoreNewPatientInfo', input);
         await retryPolicy.execute(() => delay(1000, 0.5));
         console.log('Completed StoreNewPatientInfo');
-      }),
-      AssignDoctor: fromPromise(async () => {
+      }
+    }),
+    AssignDoctor: createAsyncLogic({
+      run: async () => {
         console.log('Starting AssignDoctor');
         await retryPolicy.execute(() => delay(1000, 0.5));
         console.log('Completed AssignDoctor');
-      }),
-      ScheduleAppt: fromPromise(async () => {
+      }
+    }),
+    ScheduleAppt: createAsyncLogic({
+      run: async () => {
         console.log('Starting ScheduleAppt');
         await retryPolicy.execute(() => delay(1000, 0.5));
         console.log('Completed ScheduleAppt');
-      })
-    }
+      }
+    })
   }
-);
-
+});
 const actor = createActor(workflow);
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 actor.send({
   type: 'NewPatientEvent',
   name: 'John Doe',

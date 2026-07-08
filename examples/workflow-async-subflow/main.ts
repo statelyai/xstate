@@ -1,27 +1,30 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 import readline from 'readline';
-
+import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#async-subflow-invocation-example
-
 const rl = readline.createInterface({
   input: process.stdin,
   // @ts-ignore
   output: process.stdout
 });
-
 const prompt = (question: string) =>
   new Promise<string>((resolve) => rl.question(question, resolve));
-
-const onboardingWorkflow = setup({
-  actors: {
-    prompt: fromPromise(async ({ input }: { input: { question: string } }) => {
-      const response = await prompt(input.question);
-      return {
-        response
-      };
+const onboardingWorkflow = createMachine({
+  actorSources: {
+    prompt: createAsyncLogic({
+      schemas: {
+        input: z.custom<{
+          question: string;
+        }>()
+      },
+      run: async ({ input }) => {
+        const response = await prompt(input.question);
+        return {
+          response
+        };
+      }
     })
-  }
-}).createMachine({
+  },
   id: 'onboarding',
   initial: 'Welcome',
   context: {
@@ -34,11 +37,17 @@ const onboardingWorkflow = setup({
         input: {
           question: 'What is your name?'
         },
-        onDone: {
-          target: 'Personalize',
-          actions: assign({
-            name: ({ event }) => event.output.response
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'Personalize',
+            context: {
+              ...context,
+              name: (({ event }) => event.output.response)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },
@@ -56,12 +65,10 @@ const onboardingWorkflow = setup({
     }
   }
 });
-
-export const workflow = setup({
-  actors: {
+export const workflow = createMachine({
+  actorSources: {
     onboarding: onboardingWorkflow
-  }
-}).createMachine({
+  },
   id: 'async-function-invocation',
   initial: 'Onboard',
   states: {
@@ -76,14 +83,11 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow);
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
     rl.close();
   }
 });
-
 actor.start();

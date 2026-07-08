@@ -2,12 +2,12 @@ import { fireEvent, render } from '@testing-library/vue';
 import UseSelector from './UseSelector.vue';
 import useSelectorActorChange from './UseSelectorActorChange.vue';
 import useSelectorCustomFn from './UseSelectorCustomFn.vue';
-import UseSelectorWithTransitionLogic from './UseSelectorWithTransitionLogic.vue';
+import UseSelectorWithCustomLogic from './UseSelectorWithCustomLogic.vue';
 import useSelectorMaybe from './UseSelectorMaybe.vue';
 
 describe('useSelector', () => {
   it('actor should provide snapshot value immediately', () => {
-    const { getByTestId } = render(UseSelectorWithTransitionLogic);
+    const { getByTestId } = render(UseSelectorWithCustomLogic);
 
     expect(getByTestId('selected').textContent).toEqual('42');
   });

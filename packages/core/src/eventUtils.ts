@@ -1,5 +1,10 @@
 import { XSTATE_INIT } from './constants.ts';
-import { DoneActorEvent, DoneStateEvent, ErrorActorEvent } from './types.ts';
+import {
+  DoneActorEvent,
+  DoneStateEvent,
+  ErrorActorEvent,
+  ErrorPlatformEvent
+} from './types.ts';
 
 /**
  * Returns an event that represents an implicit event that is sent after the
@@ -10,6 +15,26 @@ import { DoneActorEvent, DoneStateEvent, ErrorActorEvent } from './types.ts';
  */
 export function createAfterEvent(delayRef: number | string, id: string) {
   return { type: `xstate.after.${delayRef}.${id}` } as const;
+}
+
+/**
+ * Returns an event that represents an implicit state-level timeout. Fired when
+ * a state's `timeout` duration elapses without the state being exited.
+ *
+ * @param id The state node ID where this timeout is configured
+ */
+export function createTimeoutEvent(id: string) {
+  return { type: `xstate.timeout.${id}` } as const;
+}
+
+/**
+ * Returns an event that represents an implicit invoke-level timeout. Fired when
+ * an invoked actor has not completed within its `timeout` duration.
+ *
+ * @param invokeId The invoked actor's ID
+ */
+export function createInvokeTimeoutEvent(invokeId: string) {
+  return { type: `xstate.timeout.actor.${invokeId}` } as const;
 }
 
 /**
@@ -54,6 +79,13 @@ export function createErrorActorEvent(
   error?: unknown
 ): ErrorActorEvent {
   return { type: `xstate.error.actor.${id}`, error, actorId: id };
+}
+
+export function createErrorPlatformEvent(
+  kind: string,
+  error?: unknown
+): ErrorPlatformEvent {
+  return { type: `xstate.error.${kind}`, error };
 }
 
 export function createInitEvent(input: unknown) {

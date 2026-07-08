@@ -1,14 +1,12 @@
-import { createActor, fromPromise, setup } from 'xstate';
-
+import { createMachine, createActor, createAsyncLogic } from 'xstate';
 interface Applicant {
   fname: string;
   lname: string;
   age: number;
   email: string;
 }
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#applicant-request-decision-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {} as {
     context: {
       applicant: Applicant;
@@ -17,26 +15,26 @@ export const workflow = setup({
       applicant: Applicant;
     };
   },
-  actors: {
-    startApplicationWorkflowId: fromPromise(async () => {
-      console.log('startApplicationWorkflowId workflow started');
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('startApplicationWorkflowId workflow completed');
+  actorSources: {
+    startApplicationWorkflowId: createAsyncLogic({
+      run: async () => {
+        console.log('startApplicationWorkflowId workflow started');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('startApplicationWorkflowId workflow completed');
+      }
     }),
-    sendRejectionEmailFunction: fromPromise(async () => {
-      console.log('sendRejectionEmailFunction workflow started');
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('sendRejectionEmailFunction workflow completed');
+    sendRejectionEmailFunction: createAsyncLogic({
+      run: async () => {
+        console.log('sendRejectionEmailFunction workflow started');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log('sendRejectionEmailFunction workflow completed');
+      }
     })
   },
   guards: {
     isOver18: ({ context }) => context.applicant.age >= 18
-  }
-}).createMachine({
+  },
   id: 'applicantrequest',
-
   initial: 'CheckApplication',
   context: ({ input }) => ({
     applicant: input.applicant
@@ -45,10 +43,11 @@ export const workflow = setup({
     CheckApplication: {
       on: {
         Submit: [
-          {
-            target: 'StartApplication',
-            guard: 'isOver18',
-            reenter: false
+          ({ context, event, guards, actions }, enq) => {
+            if (!guards['isOver18']({ context, event })) {
+              return;
+            }
+            return { target: 'StartApplication', reenter: false };
           },
           {
             target: 'RejectApplication',
@@ -78,7 +77,6 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     applicant: {
@@ -89,15 +87,12 @@ const actor = createActor(workflow, {
     }
   }
 });
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 process.stdin.on('data', (data) => {
   const eventType = data.toString().trim();
   actor.send({ type: eventType });

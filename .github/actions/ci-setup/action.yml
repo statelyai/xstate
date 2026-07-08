@@ -3,6 +3,8 @@ description: ''
 runs:
   using: 'composite'
   steps:
+    # No `version` input on purpose: action-setup reads the pnpm version from the
+    # root `packageManager` field, keeping CI and local on the same pinned version.
     - name: Install pnpm
       uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6.0.5
 

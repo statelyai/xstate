@@ -1,5 +1,4 @@
 import { createActor } from './createActor.ts';
-import { createSystem } from './system.ts';
 import {
   ActorScope,
   AnyActorLogic,
@@ -14,32 +13,22 @@ import {
 export function createInertActorScope<T extends AnyActorLogic>(
   actorLogic: T
 ): AnyActorScope {
-  const self = createActor(actorLogic as AnyActorLogic);
-  // The Actor constructor eagerly calls `getInitialSnapshot` during `_initState`,
-  // which can register child actors with `systemId` in `self.system`.
-  // Replace `self.system` with a fresh system so that child actors spawned by
-  // the *caller's* explicit `getInitialSnapshot` / `transition` call register
-  // into a clean system and do not collide with those from the eager
-  // construction call.  This is what makes `initialTransition(machine)` safe
-  // even when invoked actors carry a `systemId`.
-  const freshSystem = createSystem(self, {
-    clock: self.system._clock,
-    logger: self.system._logger
-  });
-  (self as any).system = freshSystem;
+  const self = createActor(actorLogic as AnyActorLogic, {
+    _inert: true
+  } as any);
   const inertActorScope: ActorScope<
     SnapshotFrom<T>,
     EventFromLogic<T>,
     any,
     EmittedFrom<T>
   > = {
-    self,
+    self: self as any,
     defer: () => {},
     id: '',
     logger: () => {},
     sessionId: '',
     stopChild: () => {},
-    system: freshSystem,
+    system: self.system,
     emit: () => {},
     actionExecutor: () => {}
   };
@@ -55,7 +44,7 @@ export function getInitialSnapshot<T extends AnyActorLogic>(
     : [input: InputFrom<T>]
 ): SnapshotFrom<T> {
   const actorScope = createInertActorScope(actorLogic);
-  return actorLogic.getInitialSnapshot(actorScope, input);
+  return actorLogic.initialTransition(input, actorScope)[0];
 }
 
 /**
@@ -98,5 +87,12 @@ export function getNextSnapshot<T extends AnyActorLogic>(
 ): SnapshotFrom<T> {
   const inertActorScope = createInertActorScope(actorLogic);
   (inertActorScope.self as any)._snapshot = snapshot;
-  return actorLogic.transition(snapshot, event, inertActorScope);
+  const transitionResult = actorLogic.transition(
+    snapshot,
+    event,
+    inertActorScope
+  );
+  return Array.isArray(transitionResult)
+    ? transitionResult[0]
+    : transitionResult;
 }

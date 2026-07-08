@@ -1,7 +1,7 @@
-import { assign, fromPromise, setup } from 'xstate';
+import { createMachine, createAsyncLogic } from 'xstate';
 import { getGreeting } from '.';
-
-export const fetchMachine = setup({
+import { z } from 'zod';
+export const fetchMachine = createMachine({
   types: {
     context: {} as {
       name: string;
@@ -10,12 +10,16 @@ export const fetchMachine = setup({
       } | null;
     }
   },
-  actors: {
-    fetchUser: fromPromise(({ input }: { input: { name: string } }) =>
-      getGreeting(input.name)
-    )
-  }
-}).createMachine({
+  actorSources: {
+    fetchUser: createAsyncLogic({
+      schemas: {
+        input: z.custom<{
+          name: string;
+        }>()
+      },
+      run: ({ input }) => getGreeting(input.name)
+    })
+  },
   initial: 'idle',
   context: {
     name: 'World',
@@ -31,11 +35,17 @@ export const fetchMachine = setup({
       invoke: {
         src: 'fetchUser',
         input: ({ context }) => ({ name: context.name }),
-        onDone: {
-          target: 'success',
-          actions: assign({
-            data: ({ event }) => event.output
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'success',
+            context: {
+              ...context,
+              data: (({ event }) => event.output)({
+                context: context,
+                event: event
+              })
+            }
+          };
         },
         onError: 'failure'
       }

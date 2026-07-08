@@ -1,10 +1,10 @@
-import { createActor, mapState, setup } from '../src/index.ts';
+import { createActor, mapState, setup, types } from '../src/index.ts';
 
 describe('mapState', () => {
   it('should map context from root state', () => {
     const machine = setup({
-      types: {
-        context: {} as { count: number }
+      schemas: {
+        context: types<{ count: number }>()
       }
     }).createMachine({
       context: { count: 42 },
@@ -25,8 +25,8 @@ describe('mapState', () => {
 
   it('should map context from nested states', () => {
     const machine = setup({
-      types: {
-        context: {} as { value: string }
+      schemas: {
+        context: types<{ value: string }>()
       }
     }).createMachine({
       context: { value: 'test' },
@@ -71,8 +71,8 @@ describe('mapState', () => {
 
   it('should only call mappers for active states', () => {
     const machine = setup({
-      types: {
-        context: {} as { x: number }
+      schemas: {
+        context: types<{ x: number }>()
       }
     }).createMachine({
       context: { x: 1 },
@@ -105,8 +105,8 @@ describe('mapState', () => {
 
   it('should work with parallel states', () => {
     const machine = setup({
-      types: {
-        context: {} as { val: number }
+      schemas: {
+        context: types<{ val: number }>()
       }
     }).createMachine({
       context: { val: 100 },
@@ -164,8 +164,8 @@ describe('mapState', () => {
 
   it('should handle states without mappers', () => {
     const machine = setup({
-      types: {
-        context: {} as { n: number }
+      schemas: {
+        context: types<{ n: number }>()
       }
     }).createMachine({
       context: { n: 5 },
@@ -208,7 +208,7 @@ describe('mapState', () => {
       initial: 'active',
       states: {
         active: {
-          on: { DONE: 'finished' }
+          on: { DONE: { target: 'finished' } }
         },
         finished: {
           type: 'final'
@@ -275,8 +275,8 @@ describe('mapState', () => {
   describe('type safety', () => {
     it('should accept valid state keys', () => {
       const machine = setup({
-        types: {
-          context: {} as { foo: string }
+        schemas: {
+          context: types<{ foo: string }>()
         }
       }).createMachine({
         context: { foo: 'bar' },
@@ -309,8 +309,8 @@ describe('mapState', () => {
 
     it('should error on invalid state keys', () => {
       const machine = setup({
-        types: {
-          context: {} as { foo: string }
+        schemas: {
+          context: types<{ foo: string }>()
         }
       }).createMachine({
         context: { foo: 'bar' },
@@ -339,8 +339,8 @@ describe('mapState', () => {
 
     it('should error on invalid nested state keys', () => {
       const machine = setup({
-        types: {
-          context: {} as { val: number }
+        schemas: {
+          context: types<{ val: number }>()
         }
       }).createMachine({
         context: { val: 0 },
@@ -379,8 +379,8 @@ describe('mapState', () => {
 
     it('should infer snapshot type in map function', () => {
       const machine = setup({
-        types: {
-          context: {} as { count: number; name: string }
+        schemas: {
+          context: types<{ count: number; name: string }>()
         }
       }).createMachine({
         context: { count: 0, name: 'test' },
@@ -404,8 +404,8 @@ describe('mapState', () => {
 
     it('should enforce consistent TResult type across all map functions', () => {
       const machine = setup({
-        types: {
-          context: {} as { count: number }
+        schemas: {
+          context: types<{ count: number }>()
         }
       }).createMachine({
         context: { count: 0 },
@@ -440,8 +440,8 @@ describe('mapState', () => {
 
     it('should error when nested map returns wrong type', () => {
       const machine = setup({
-        types: {
-          context: {} as { count: number }
+        schemas: {
+          context: types<{ count: number }>()
         }
       }).createMachine({
         context: { count: 0 },
@@ -466,8 +466,8 @@ describe('mapState', () => {
 
     it('should error when deeply nested map returns wrong type', () => {
       const machine = setup({
-        types: {
-          context: {} as { val: string }
+        schemas: {
+          context: types<{ val: string }>()
         }
       }).createMachine({
         context: { val: 'test' },

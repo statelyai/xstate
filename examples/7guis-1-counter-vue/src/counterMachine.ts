@@ -1,11 +1,10 @@
-import { setup, assign } from 'xstate';
+import { createMachine } from 'xstate';
 
-export const counterMachine = setup({
+export const counterMachine = createMachine({
   types: {
     context: {} as { count: number },
     events: {} as { type: 'increase' }
-  }
-}).createMachine({
+  },
   context: {
     count: 0
   },
@@ -14,11 +13,17 @@ export const counterMachine = setup({
   states: {
     ready: {
       on: {
-        increase: {
-          target: 'ready',
-          actions: assign({
-            count: ({ context }) => context.count + 1
-          })
+        increase: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'ready',
+            context: {
+              ...context,
+              count: (({ context }) => context.count + 1)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     }

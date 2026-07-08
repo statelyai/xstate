@@ -1,0 +1,1088 @@
+import { describe, it, expect } from 'vitest';
+import { toMachine, toMachineJSON } from '../src/scxml';
+import { createMachineFromConfig } from '../src/createMachineFromConfig';
+import { initialTransition, transition } from '../src/transition';
+import { createMachine } from '../src';
+
+function toPortableJSON<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value));
+}
+
+describe('SCXML to XState conversion', () => {
+  describe('toMachineJSON - basic state machine', () => {
+    it('should convert a simple state machine with initial state', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="idle">
+          <state id="idle">
+            <transition event="START" target="running"/>
+          </state>
+          <state id="running">
+            <transition event="STOP" target="idle"/>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(json.initial).toBe('idle');
+      expect(toPortableJSON(json.states)).toMatchInlineSnapshot(`
+        {
+          "idle": {
+            "id": "idle",
+            "on": {
+              "START": {
+                "reenter": true,
+                "target": [
+                  "#running",
+                ],
+              },
+              "START.*": {
+                "reenter": true,
+                "target": [
+                  "#running",
+                ],
+              },
+            },
+          },
+          "running": {
+            "id": "running",
+            "on": {
+              "STOP": {
+                "reenter": true,
+                "target": [
+                  "#idle",
+                ],
+              },
+              "STOP.*": {
+                "reenter": true,
+                "target": [
+                  "#idle",
+                ],
+              },
+            },
+          },
+        }
+      `);
+    });
+
+    it('should handle implicit initial state (first child)', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0">
+          <state id="first"/>
+          <state id="second"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(json.initial).toBe('first');
+    });
+
+    it('should handle final states', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="active">
+          <state id="active">
+            <transition event="FINISH" target="done"/>
+          </state>
+          <final id="done"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.done)).toMatchInlineSnapshot(`
+        {
+          "id": "done",
+          "type": "final",
+        }
+      `);
+    });
+  });
+
+  describe('toMachineJSON - nested states', () => {
+    it('should convert nested compound states', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parent">
+          <state id="parent" initial="child1">
+            <state id="child1">
+              <transition event="NEXT" target="child2"/>
+            </state>
+            <state id="child2">
+              <transition event="EXIT" target="outside"/>
+            </state>
+          </state>
+          <state id="outside"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(json.states!.parent.initial).toBe('child1');
+      expect(toPortableJSON(json.states!.parent.states)).toMatchInlineSnapshot(`
+        {
+          "child1": {
+            "id": "child1",
+            "on": {
+              "NEXT": {
+                "reenter": true,
+                "target": [
+                  "#child2",
+                ],
+              },
+              "NEXT.*": {
+                "reenter": true,
+                "target": [
+                  "#child2",
+                ],
+              },
+            },
+          },
+          "child2": {
+            "id": "child2",
+            "on": {
+              "EXIT": {
+                "reenter": true,
+                "target": [
+                  "#outside",
+                ],
+              },
+              "EXIT.*": {
+                "reenter": true,
+                "target": [
+                  "#outside",
+                ],
+              },
+            },
+          },
+        }
+      `);
+    });
+  });
+
+  describe('toMachineJSON - parallel states', () => {
+    it('should convert parallel states', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parallel">
+          <parallel id="parallel">
+            <state id="region1" initial="a">
+              <state id="a">
+                <transition event="TO_B" target="b"/>
+              </state>
+              <state id="b"/>
+            </state>
+            <state id="region2" initial="x">
+              <state id="x">
+                <transition event="TO_Y" target="y"/>
+              </state>
+              <state id="y"/>
+            </state>
+          </parallel>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.parallel)).toMatchInlineSnapshot(`
+        {
+          "id": "parallel",
+          "initial": "region1",
+          "states": {
+            "region1": {
+              "id": "region1",
+              "initial": "a",
+              "states": {
+                "a": {
+                  "id": "a",
+                  "on": {
+                    "TO_B": {
+                      "reenter": true,
+                      "target": [
+                        "#b",
+                      ],
+                    },
+                    "TO_B.*": {
+                      "reenter": true,
+                      "target": [
+                        "#b",
+                      ],
+                    },
+                  },
+                },
+                "b": {
+                  "id": "b",
+                },
+              },
+            },
+            "region2": {
+              "id": "region2",
+              "initial": "x",
+              "states": {
+                "x": {
+                  "id": "x",
+                  "on": {
+                    "TO_Y": {
+                      "reenter": true,
+                      "target": [
+                        "#y",
+                      ],
+                    },
+                    "TO_Y.*": {
+                      "reenter": true,
+                      "target": [
+                        "#y",
+                      ],
+                    },
+                  },
+                },
+                "y": {
+                  "id": "y",
+                },
+              },
+            },
+          },
+          "type": "parallel",
+        }
+      `);
+    });
+  });
+
+  describe('toMachineJSON - datamodel (context)', () => {
+    it('should convert datamodel to context', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="idle">
+          <datamodel>
+            <data id="count" expr="0"/>
+            <data id="name" expr="'test'"/>
+            <data id="items" expr="[1, 2, 3]"/>
+          </datamodel>
+          <state id="idle"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.context)).toMatchInlineSnapshot(`
+        {
+          "count": 0,
+          "items": [
+            1,
+            2,
+            3,
+          ],
+          "name": "test",
+        }
+      `);
+    });
+  });
+
+  describe('toMachineJSON - transitions', () => {
+    it('should convert transitions with targets', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="GO" target="b"/>
+          </state>
+          <state id="b"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      // SCXML events get .* suffix for prefix matching
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "reenter": true,
+          "target": [
+            "#b",
+          ],
+        }
+      `);
+    });
+
+    it('should convert guarded transitions', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="idle">
+          <state id="idle">
+            <transition event="CHECK" cond="count > 3" target="high"/>
+            <transition event="CHECK" target="low"/>
+          </state>
+          <state id="high"/>
+          <state id="low"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.idle.on!['CHECK.*']))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "guard": {
+              "params": {
+                "expr": "count > 3",
+              },
+              "type": "scxml.cond",
+            },
+            "reenter": true,
+            "target": [
+              "#high",
+            ],
+          },
+          {
+            "reenter": true,
+            "target": [
+              "#low",
+            ],
+          },
+        ]
+      `);
+    });
+
+    it('should convert In() guards', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="GO" cond="In('b')" target="c"/>
+          </state>
+          <state id="b"/>
+          <state id="c"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "guard": {
+            "params": {
+              "stateId": "#b",
+            },
+            "type": "xstate.stateIn",
+          },
+          "reenter": true,
+          "target": [
+            "#c",
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('toMachineJSON - actions', () => {
+    it('should convert raise actions', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="TRIGGER" target="b">
+              <raise event="RAISED"/>
+            </transition>
+          </state>
+          <state id="b"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.on!['TRIGGER.*']))
+        .toMatchInlineSnapshot(`
+        {
+          "actions": [
+            {
+              "event": {
+                "type": "RAISED",
+              },
+              "type": "@xstate.raise",
+            },
+          ],
+          "reenter": true,
+          "target": [
+            "#b",
+          ],
+        }
+      `);
+    });
+
+    it('should convert log actions', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <onentry>
+              <log expr="'entered state a'" label="info"/>
+            </onentry>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.entry)).toMatchInlineSnapshot(`
+        [
+          {
+            "actions": [
+              {
+                "args": [
+                  "info",
+                  "'entered state a'",
+                ],
+                "type": "@xstate.log",
+              },
+            ],
+            "type": "scxml.block",
+          },
+        ]
+      `);
+    });
+
+    it('should convert cancel actions', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="CANCEL">
+              <cancel sendid="delayed1"/>
+            </transition>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.on!['CANCEL.*']))
+        .toMatchInlineSnapshot(`
+          {
+            "actions": [
+              {
+                "id": "delayed1",
+                "type": "@xstate.cancel",
+              },
+            ],
+          }
+        `);
+    });
+  });
+
+  describe('toMachineJSON - entry and exit actions', () => {
+    it('should convert onentry actions', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <onentry>
+              <log expr="'entering a'"/>
+            </onentry>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.entry)).toMatchInlineSnapshot(`
+        [
+          {
+            "actions": [
+              {
+                "args": [
+                  "'entering a'",
+                ],
+                "type": "@xstate.log",
+              },
+            ],
+            "type": "scxml.block",
+          },
+        ]
+      `);
+    });
+
+    it('should convert onexit actions', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <onexit>
+              <log expr="'exiting a'"/>
+            </onexit>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.exit)).toMatchInlineSnapshot(`
+        [
+          {
+            "actions": [
+              {
+                "args": [
+                  "'exiting a'",
+                ],
+                "type": "@xstate.log",
+              },
+            ],
+            "type": "scxml.block",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('toMachineJSON - eventless transitions (always)', () => {
+    it('should convert eventless transitions to always', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition target="b"/>
+          </state>
+          <state id="b"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.always)).toMatchInlineSnapshot(`
+        [
+          {
+            "reenter": true,
+            "target": [
+              "#b",
+            ],
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('toMachineJSON - internal vs external transitions', () => {
+    it('should mark external transitions with reenter: true', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parent">
+          <state id="parent">
+            <transition event="EXTERNAL" type="external" target="parent"/>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.parent.on!['EXTERNAL.*']))
+        .toMatchInlineSnapshot(`
+        {
+          "reenter": true,
+          "target": [
+            "#parent",
+          ],
+        }
+      `);
+    });
+
+    it('should not mark internal transitions with reenter', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parent">
+          <state id="parent">
+            <transition event="INTERNAL" type="internal"/>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(
+        toPortableJSON(json.states!.parent.on!['INTERNAL.*'])
+      ).toMatchInlineSnapshot(`{}`);
+    });
+  });
+
+  describe('toMachineJSON - send actions', () => {
+    it('should convert send with target="#_internal" as raise', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="TRIGGER">
+              <send event="INTERNAL_EVENT" target="#_internal"/>
+            </transition>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.on!['TRIGGER.*']))
+        .toMatchInlineSnapshot(`
+          {
+            "actions": [
+              {
+                "event": "INTERNAL_EVENT",
+                "target": "#_internal",
+                "type": "scxml.raise",
+              },
+            ],
+          }
+        `);
+    });
+
+    it('should convert send with delay', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="TRIGGER">
+              <send event="DELAYED" delay="500ms"/>
+            </transition>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.on!['TRIGGER.*']))
+        .toMatchInlineSnapshot(`
+          {
+            "actions": [
+              {
+                "delay": 500,
+                "event": "DELAYED",
+                "type": "scxml.raise",
+              },
+            ],
+          }
+        `);
+    });
+  });
+
+  describe('toMachineJSON - multiple events per transition', () => {
+    it('should handle multiple events on a single transition', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="idle">
+          <state id="idle">
+            <transition event="START RESUME" target="active"/>
+          </state>
+          <state id="active"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.idle.on)).toMatchInlineSnapshot(`
+        {
+          "RESUME": {
+            "reenter": true,
+            "target": [
+              "#active",
+            ],
+          },
+          "RESUME.*": {
+            "reenter": true,
+            "target": [
+              "#active",
+            ],
+          },
+          "START": {
+            "reenter": true,
+            "target": [
+              "#active",
+            ],
+          },
+          "START.*": {
+            "reenter": true,
+            "target": [
+              "#active",
+            ],
+          },
+        }
+      `);
+    });
+  });
+
+  describe('toMachineJSON - history states', () => {
+    it('should convert shallow history states', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parent">
+          <state id="parent" initial="child1">
+            <history id="hist" type="shallow">
+              <transition target="child1"/>
+            </history>
+            <state id="child1"/>
+            <state id="child2"/>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.parent.states!.hist))
+        .toMatchInlineSnapshot(`
+        {
+          "history": "shallow",
+          "id": "hist",
+          "target": "#child1",
+          "type": "history",
+        }
+      `);
+    });
+
+    it('should convert deep history states', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parent">
+          <state id="parent" initial="child1">
+            <history id="deepHist" type="deep"/>
+            <state id="child1"/>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.parent.states!.deepHist))
+        .toMatchInlineSnapshot(`
+        {
+          "history": "deep",
+          "id": "deepHist",
+          "type": "history",
+        }
+      `);
+    });
+  });
+
+  describe('toMachineJSON - delay parsing', () => {
+    it('should parse millisecond delays', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="GO">
+              <send event="DELAYED" delay="100ms"/>
+            </transition>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "actions": [
+            {
+              "delay": 100,
+              "event": "DELAYED",
+              "type": "scxml.raise",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should parse second delays', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="GO">
+              <send event="DELAYED" delay="2s"/>
+            </transition>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "actions": [
+            {
+              "delay": 2000,
+              "event": "DELAYED",
+              "type": "scxml.raise",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should parse decimal second delays', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="GO">
+              <send event="DELAYED" delay="1.5s"/>
+            </transition>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "actions": [
+            {
+              "delay": 1500,
+              "event": "DELAYED",
+              "type": "scxml.raise",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should parse ISO8601 delays', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="GO">
+              <send event="DELAYED" delay="PT1.5S"/>
+            </transition>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+        {
+          "actions": [
+            {
+              "delay": 1500,
+              "event": "DELAYED",
+              "type": "scxml.raise",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('toMachineJSON - state ID sanitization', () => {
+    it('should sanitize state IDs with dots', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="state.one">
+          <state id="state.one">
+            <transition event="GO" target="state.two"/>
+          </state>
+          <state id="state.two"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      // Dots are replaced with $
+      expect(json.initial).toBe('state$one');
+      expect(toPortableJSON(json.states)).toMatchInlineSnapshot(`
+        {
+          "state$one": {
+            "id": "state$one",
+            "on": {
+              "GO": {
+                "reenter": true,
+                "target": [
+                  "#state$two",
+                ],
+              },
+              "GO.*": {
+                "reenter": true,
+                "target": [
+                  "#state$two",
+                ],
+              },
+            },
+          },
+          "state$two": {
+            "id": "state$two",
+          },
+        }
+      `);
+    });
+
+    it('should sanitize nested state IDs with dots (foo.bar.baz → foo$bar$baz)', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="foo.bar">
+          <state id="foo.bar" initial="baz.qux">
+            <state id="baz.qux"/>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(json.initial).toBe('foo$bar');
+      expect(toPortableJSON(json.states)).toMatchInlineSnapshot(`
+        {
+          "foo$bar": {
+            "id": "foo$bar",
+            "initial": "baz$qux",
+            "states": {
+              "baz$qux": {
+                "id": "baz$qux",
+              },
+            },
+          },
+        }
+      `);
+    });
+  });
+
+  describe('toMachineJSON - state IDs', () => {
+    it('should set id on root state', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" name="myMachine" initial="idle">
+          <state id="idle"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(json.id).toBe('myMachine');
+    });
+
+    it('should set id on child states', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
+          <state id="a">
+            <transition event="GO" target="b"/>
+          </state>
+          <state id="b"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(json.states!.a.id).toBe('a');
+      expect(json.states!.b.id).toBe('b');
+    });
+
+    it('should set id on nested states (using direct id, not path)', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parent">
+          <state id="parent" initial="child">
+            <state id="child"/>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(json.states!.parent.id).toBe('parent');
+      expect(json.states!.parent.states!.child.id).toBe('child');
+    });
+
+    it('should set id on history states', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parent">
+          <state id="parent" initial="child1">
+            <history id="hist"/>
+            <state id="child1"/>
+          </state>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(json.states!.parent.states!.hist.id).toBe('hist');
+    });
+
+    it('should set id on final states', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="active">
+          <state id="active">
+            <transition event="DONE" target="complete"/>
+          </state>
+          <final id="complete"/>
+        </scxml>
+      `;
+
+      const json = toMachineJSON(scxml);
+
+      expect(json.states!.complete.id).toBe('complete');
+    });
+  });
+
+  describe('toMachine - creates machine from SCXML', () => {
+    it('should create a machine with correct structure', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="idle">
+          <state id="idle">
+            <transition event="START" target="running"/>
+          </state>
+          <state id="running"/>
+        </scxml>
+      `;
+
+      const machine = toMachine(scxml);
+
+      expect(machine.root).toBeDefined();
+      expect(machine.root.states.idle).toBeDefined();
+      expect(machine.root.states.running).toBeDefined();
+    });
+
+    it('should create a machine with context from datamodel', () => {
+      const scxml = `
+        <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="idle">
+          <datamodel>
+            <data id="count" expr="42"/>
+          </datamodel>
+          <state id="idle"/>
+        </scxml>
+      `;
+
+      const machine = toMachine(scxml);
+
+      const [snapshot] = initialTransition(machine);
+
+      expect(snapshot.context).toEqual({ count: 42 });
+    });
+  });
+});
+
+describe('createMachineFromConfig', () => {
+  it('should create a machine from a JSON config', () => {
+    const machine = createMachineFromConfig(
+      {
+        context: { count: 42 },
+        initial: 'a',
+        states: {
+          a: {
+            entry: [{ type: '@xstate.assign', context: { count: 42 } }],
+            on: {
+              INC: {
+                actions: [{ type: '@xstate.assign', context: { count: 43 } }]
+              },
+              DEC: {
+                actions: [{ type: '@xstate.assign', context: { count: 41 } }]
+              },
+              NEXT: {
+                actions: [{ type: '@xstate.assign', context: { count: 0 } }],
+                target: 'b'
+              },
+              COND_NEXT: {
+                guard: { type: 'customGuard' },
+                target: 'c'
+              }
+            }
+          },
+          b: {
+            on: {
+              BACK: { target: 'a' }
+            }
+          },
+          c: {}
+        }
+      },
+      {
+        guards: {
+          customGuard: () => true
+        }
+      }
+    );
+
+    expect(machine.root.states.a).toBeDefined();
+    expect(machine.root.states.b).toBeDefined();
+    expect(machine.root.states.a.on!['INC']).toBeDefined();
+    expect(machine.root.states.a.on!['DEC']).toBeDefined();
+    expect(machine.root.states.a.on!['NEXT']).toBeDefined();
+
+    const [initialState] = initialTransition(machine);
+    expect(initialState.value).toEqual('a');
+    expect(initialState.context).toEqual({ count: 42 });
+    const [nextState] = transition(machine, initialState, { type: 'NEXT' });
+    expect(nextState.value).toEqual('b');
+    expect(nextState.context).toEqual({ count: 0 });
+    const [nextState2] = transition(machine, nextState, { type: 'BACK' });
+    expect(nextState2.value).toEqual('a');
+    expect(nextState2.context).toEqual({ count: 42 });
+    const [nextState3] = transition(machine, nextState2, { type: 'COND_NEXT' });
+    expect(nextState3.value).toEqual('c');
+    expect(nextState3.context).toEqual({ count: 42 });
+  });
+});

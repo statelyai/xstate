@@ -4,9 +4,6 @@
 
   const service = createActor(
     createMachine({
-      types: {
-        context: {} as { count: number }
-      },
       context: {
         count: 0
       }

@@ -1,11 +1,10 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
-
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
+import { z } from 'zod';
 interface Job {
   name: string;
 }
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#monitor-job-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     context: {} as {
       job: Job;
@@ -16,30 +15,44 @@ export const workflow = setup({
       job: Job;
     }
   },
-  actors: {
-    submitJob: fromPromise(async ({ input }: { input: { name: string } }) => {
-      console.log('Starting submitJob', input);
-      return { jobuid: '123' };
+  actorSources: {
+    submitJob: createAsyncLogic({
+      schemas: {
+        input: z.custom<{
+          name: string;
+        }>()
+      },
+      run: async ({ input }) => {
+        console.log('Starting submitJob', input);
+        return { jobuid: '123' };
+      }
     }),
-    checkJobStatus: fromPromise(
-      async ({ input }: { input: { name: string } }) => {
+    checkJobStatus: createAsyncLogic({
+      schemas: {
+        input: z.custom<{
+          name: string;
+        }>()
+      },
+      run: async ({ input }) => {
         console.log('Starting checkJobStatus', input);
         return { jobStatus: 'SUCCEEDED' as const };
       }
-    ),
-    reportJobSucceeded: fromPromise(({ input }) => {
-      console.log('Starting reportJobSucceeded', input);
-      return Promise.resolve();
     }),
-    reportJobFailed: fromPromise(({ input }) => {
-      console.log('Starting reportJobFailed', input);
-      return Promise.resolve();
+    reportJobSucceeded: createAsyncLogic({
+      run: ({ input }) => {
+        console.log('Starting reportJobSucceeded', input);
+        return Promise.resolve();
+      }
+    }),
+    reportJobFailed: createAsyncLogic({
+      run: ({ input }) => {
+        console.log('Starting reportJobFailed', input);
+        return Promise.resolve();
+      }
     })
-  }
-}).createMachine({
+  },
   id: 'jobmonitoring',
   initial: 'SubmitJob',
-
   context: ({ input }) => ({
     job: input.job,
     jobuid: undefined,
@@ -52,11 +65,17 @@ export const workflow = setup({
         input: ({ context }) => ({
           name: context.job.name
         }),
-        onDone: {
-          target: 'WaitForCompletion',
-          actions: assign({
-            jobuid: ({ event }) => event.output.jobuid
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'WaitForCompletion',
+            context: {
+              ...context,
+              jobuid: (({ event }) => event.output.jobuid)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },
@@ -71,23 +90,43 @@ export const workflow = setup({
         input: ({ context }) => ({
           name: context.jobuid
         }),
-        onDone: {
-          target: 'DetermineCompletion',
-          actions: assign({
-            jobStatus: ({ event }) => event.output.jobStatus
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'DetermineCompletion',
+            context: {
+              ...context,
+              jobStatus: (({ event }) => event.output.jobStatus)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },
     DetermineCompletion: {
       always: [
-        {
-          guard: ({ context }) => context.jobStatus === 'SUCCEEDED',
-          target: 'JobSucceeded'
+        ({ context, event, guards, actions }, enq) => {
+          if (
+            !(({ context }) => context.jobStatus === 'SUCCEEDED')({
+              context,
+              event
+            })
+          ) {
+            return;
+          }
+          return { target: 'JobSucceeded' };
         },
-        {
-          guard: ({ context }) => context.jobStatus === 'FAILED',
-          target: 'JobFailed'
+        ({ context, event, guards, actions }, enq) => {
+          if (
+            !(({ context }) => context.jobStatus === 'FAILED')({
+              context,
+              event
+            })
+          ) {
+            return;
+          }
+          return { target: 'JobFailed' };
         },
         {
           target: 'WaitForCompletion'
@@ -111,7 +150,6 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow, {
   input: {
     job: {
@@ -119,11 +157,9 @@ const actor = createActor(workflow, {
     }
   }
 });
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();

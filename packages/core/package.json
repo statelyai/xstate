@@ -1,8 +1,11 @@
 {
   "name": "xstate",
-  "version": "5.32.4",
+  "version": "6.0.0-alpha.20",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
+  "bin": {
+    "xstate": "./bin/xstate.js"
+  },
   "module": "dist/xstate.esm.js",
   "umd:main": "dist/xstate.umd.min.js",
   "exports": {
@@ -19,48 +22,6 @@
       "module": "./dist/xstate.esm.js",
       "import": "./dist/xstate.cjs.mjs",
       "default": "./dist/xstate.cjs.js"
-    },
-    "./guards": {
-      "types": {
-        "import": "./dist/xstate-guards.cjs.mjs",
-        "default": "./dist/xstate-guards.cjs.js"
-      },
-      "development": {
-        "module": "./dist/xstate-guards.development.esm.js",
-        "import": "./dist/xstate-guards.development.cjs.mjs",
-        "default": "./dist/xstate-guards.development.cjs.js"
-      },
-      "module": "./dist/xstate-guards.esm.js",
-      "import": "./dist/xstate-guards.cjs.mjs",
-      "default": "./dist/xstate-guards.cjs.js"
-    },
-    "./actions": {
-      "types": {
-        "import": "./dist/xstate-actions.cjs.mjs",
-        "default": "./dist/xstate-actions.cjs.js"
-      },
-      "development": {
-        "module": "./dist/xstate-actions.development.esm.js",
-        "import": "./dist/xstate-actions.development.cjs.mjs",
-        "default": "./dist/xstate-actions.development.cjs.js"
-      },
-      "module": "./dist/xstate-actions.esm.js",
-      "import": "./dist/xstate-actions.cjs.mjs",
-      "default": "./dist/xstate-actions.cjs.js"
-    },
-    "./dev": {
-      "types": {
-        "import": "./dist/xstate-dev.cjs.mjs",
-        "default": "./dist/xstate-dev.cjs.js"
-      },
-      "development": {
-        "module": "./dist/xstate-dev.development.esm.js",
-        "import": "./dist/xstate-dev.development.cjs.mjs",
-        "default": "./dist/xstate-dev.development.cjs.js"
-      },
-      "module": "./dist/xstate-dev.esm.js",
-      "import": "./dist/xstate-dev.cjs.mjs",
-      "default": "./dist/xstate-dev.cjs.js"
     },
     "./graph": {
       "types": {
@@ -110,7 +71,8 @@
     "invoke",
     "guards",
     "dev",
-    "graph"
+    "graph",
+    "bin"
   ],
   "keywords": [
     "statechart",
@@ -138,16 +100,14 @@
     "ajv": "^8.12.0",
     "pkg-up": "^3.1.0",
     "rxjs": "^7.8.1",
-    "xml-js": "^1.6.11"
+    "xml-js": "^1.6.11",
+    "zod": "^3.25.51"
   },
   "preconstruct": {
     "umdName": "XState",
     "entrypoints": [
       "./index.ts",
-      "./actions.ts",
       "./actors/index.ts",
-      "./guards.ts",
-      "./dev/index.ts",
       "./graph/index.ts"
     ]
   }

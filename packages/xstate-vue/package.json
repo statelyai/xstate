@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "5.0.0",
+  "version": "6.0.0-alpha.1",
   "description": "XState tools for Vue",
   "keywords": [
     "state",

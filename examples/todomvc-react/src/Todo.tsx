@@ -1,11 +1,11 @@
 import React, { useRef } from 'react';
 import { useActorRef, useSelector } from '@xstate/react';
 import cn from 'classnames';
-import { assign, setup } from 'xstate';
+import { createMachine } from 'xstate';
 import { TodosContext } from './App';
 import { TodoItem } from './todosMachine';
 
-export const todoMachine = setup({
+export const todoMachine = createMachine({
   types: {
     context: {} as {
       initialTitle: string;
@@ -32,8 +32,7 @@ export const todoMachine = setup({
   actions: {
     focusInput: () => {},
     onCommit: () => {}
-  }
-}).createMachine({
+  },
   id: 'todo',
   initial: 'reading',
   context: ({ input }) => ({
@@ -47,27 +46,45 @@ export const todoMachine = setup({
       }
     },
     editing: {
-      entry: [
-        assign({
-          initialTitle: ({ context }) => context.title
-        }),
-        { type: 'focusInput' }
-      ],
+      entry: (args, enq) => {
+        enq((actionArgs) => args.actions['focusInput'](actionArgs as any));
+        return {
+          context: {
+            ...args.context,
+            initialTitle: (({ context }) => context.title)({
+              context: args.context,
+              event: args.event
+            })
+          }
+        };
+      },
       on: {
-        blur: {
-          target: 'reading',
-          actions: 'onCommit'
+        blur: ({ context, event, guards, actions }, enq) => {
+          enq((actionArgs) => actions['onCommit'](actionArgs as any));
+          return { target: 'reading' };
         },
-        cancel: {
-          target: 'reading',
-          actions: assign({
-            title: ({ context }) => context.initialTitle
-          })
+        cancel: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'reading',
+            context: {
+              ...context,
+              title: (({ context }) => context.initialTitle)({
+                context: context,
+                event: event
+              })
+            }
+          };
         },
-        change: {
-          actions: assign({
-            title: ({ event }) => event.value
-          })
+        change: ({ context, event, guards, actions }, enq) => {
+          return {
+            context: {
+              ...context,
+              title: (({ event }) => event.value)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     }

@@ -1,4 +1,4 @@
-import { createMachine, assign, type ActorLogicFrom } from 'xstate';
+import { createMachine, createAsyncLogic } from 'xstate';
 
 const context = {
   data: undefined as string | undefined
@@ -6,29 +6,26 @@ const context = {
 
 export const fetchMachine = createMachine({
   id: 'fetch',
-  types: {} as {
-    context: typeof context;
-    actors: {
-      src: 'fetchData';
-      logic: ActorLogicFrom<Promise<string>>;
-    };
+  actorSources: {
+    fetchData: createAsyncLogic({ run: () => Promise.resolve('') })
   },
   initial: 'idle',
   context,
   states: {
     idle: {
-      on: { FETCH: 'loading' }
+      on: { FETCH: { target: 'loading' } }
     },
     loading: {
       invoke: {
         id: 'fetchData',
-        src: 'fetchData',
-        onDone: {
-          target: 'success',
-          actions: assign({
-            data: ({ event }) => event.output
-          }),
-          guard: ({ event }) => !!event.output.length
+        src: ({ actorSources }) => actorSources.fetchData,
+        onDone: ({ event }) => {
+          if (event.output.length > 0) {
+            return {
+              target: 'success',
+              context: { data: event.output }
+            };
+          }
         }
       }
     },

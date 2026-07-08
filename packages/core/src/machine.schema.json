@@ -1,338 +1,371 @@
 {
-  "type": "object",
   "$schema": "http://json-schema.org/draft-07/schema",
+  "title": "XState v6 machine definition (MachineJSON)",
+  "description": "The JSON-serializable XState machine definition accepted by createMachineFromConfig. Expressions use reserved @ keys: @exprLang on the machine and @expr/@code with optional @lang in value slots.",
+  "$ref": "#/$defs/machine",
   "$defs": {
+    "jsonSchema": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "eventPayloadSchema": {
+      "allOf": [
+        { "$ref": "#/$defs/jsonSchema" },
+        {
+          "not": {
+            "type": "object",
+            "properties": {
+              "properties": {
+                "type": "object",
+                "required": ["type"]
+              }
+            },
+            "required": ["properties"]
+          }
+        }
+      ]
+    },
+    "expression": {
+      "type": "object",
+      "properties": {
+        "@expr": { "type": "string" },
+        "@lang": { "type": "string" }
+      },
+      "required": ["@expr"],
+      "additionalProperties": false
+    },
+    "code": {
+      "type": "object",
+      "properties": {
+        "@code": { "type": "string" },
+        "@lang": { "type": "string" }
+      },
+      "required": ["@code"],
+      "additionalProperties": false
+    },
+    "resolvable": {
+      "oneOf": [{ "$ref": "#/$defs/expression" }, { "$ref": "#/$defs/code" }]
+    },
+    "condition": {
+      "oneOf": [
+        { "$ref": "#/$defs/resolvable" },
+        { "$ref": "#/$defs/guardObject" }
+      ]
+    },
+    "guardObject": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "params": {}
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
     "actionObject": {
       "type": "object",
       "properties": {
-        "type": {
-          "type": "string",
-          "description": "The action type"
-        }
+        "type": { "type": "string" }
       },
-      "additionalProperties": true,
-      "required": ["type"]
+      "required": ["type"],
+      "additionalProperties": true
     },
-    "baseStateNode": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "key": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string",
-          "enum": ["atomic", "compound", "parallel", "final", "history"]
-        },
-        "order": {
-          "$ref": "#/$defs/order"
-        },
-        "description": {
-          "type": "string",
-          "description": "The description of the state node, in Markdown"
-        }
-      },
-      "required": ["id", "key", "type"]
-    },
-    "compoundStateNode": {
-      "allOf": [
-        { "$ref": "#/$defs/baseStateNode" },
-        {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "pattern": "compound"
-            },
-            "entry": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "exit": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "initial": {
-              "$ref": "#/$defs/initialTransitionObject"
-            },
-            "invoke": {
-              "$ref": "#/$defs/invokeArray"
-            },
-            "on": {
-              "$ref": "#/$defs/transitionsObject"
-            },
-            "states": {
-              "$ref": "#/$defs/statesObject"
-            }
-          },
-          "required": ["states"]
-        }
+    "action": {
+      "oneOf": [
+        { "$ref": "#/$defs/actionObject" },
+        { "$ref": "#/$defs/resolvable" }
       ]
     },
-    "parallelStateNode": {
-      "allOf": [
-        { "$ref": "#/$defs/baseStateNode" },
-        {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "pattern": "parallel"
-            },
-            "entry": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "exit": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "invoke": {
-              "$ref": "#/$defs/invokeArray"
-            },
-            "on": {
-              "$ref": "#/$defs/transitionsObject"
-            },
-            "states": {
-              "$ref": "#/$defs/statesObject"
-            }
-          },
-          "required": ["states"]
-        }
-      ]
-    },
-    "atomicStateNode": {
-      "allOf": [
-        { "$ref": "#/$defs/baseStateNode" },
-        {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "pattern": "atomic"
-            },
-            "entry": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "exit": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/actionObject"
-              }
-            },
-            "invoke": {
-              "$ref": "#/$defs/invokeArray"
-            },
-            "on": {
-              "$ref": "#/$defs/transitionsObject"
-            }
-          },
-          "required": ["on"]
-        }
-      ]
-    },
-    "historyStateNode": {
-      "allOf": [
-        { "$ref": "#/$defs/baseStateNode" },
-        {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "pattern": "history"
-            },
-            "history": {
-              "type": "string",
-              "enum": ["shallow", "deep"]
-            }
-          },
-          "required": ["history"]
-        }
-      ]
-    },
-    "finalStateNode": {
-      "allOf": [
-        { "$ref": "#/$defs/baseStateNode" },
-        {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "pattern": "final"
-            },
-            "data": {
-              "type": "object"
-            }
-          }
-        }
-      ]
-    },
-    "statesObject": {
-      "type": "object",
-      "patternProperties": {
-        "^.*$": {
-          "oneOf": [
-            { "$ref": "#/$defs/atomicStateNode" },
-            { "$ref": "#/$defs/compoundStateNode" },
-            { "$ref": "#/$defs/parallelStateNode" },
-            { "$ref": "#/$defs/historyStateNode" },
-            { "$ref": "#/$defs/finalStateNode" }
-          ]
-        }
-      }
-    },
-    "initialTransitionObject": {
-      "type": "object",
-      "properties": {
-        "actions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/actionObject"
-          }
-        },
-        "source": {
-          "type": "string"
-        },
-        "target": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1
-        }
-      },
-      "required": ["actions", "source", "target"]
-    },
-    "transitionsObject": {
-      "type": "object",
-      "patternProperties": {
-        "^.*$": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/transitionObject"
-          }
-        }
-      }
+    "actionList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/action" }
     },
     "transitionObject": {
       "type": "object",
       "properties": {
-        "actions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/actionObject"
-          }
-        },
-        "cond": {
-          "type": "object"
-        },
-        "eventType": {
-          "type": "string"
-        },
-        "source": {
-          "type": "string"
-        },
         "target": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "actions": { "$ref": "#/$defs/actionList" },
+        "context": { "type": "object" },
+        "guard": { "$ref": "#/$defs/condition" },
+        "input": {},
+        "description": { "type": "string" },
+        "reenter": { "type": "boolean" },
+        "meta": { "type": "object" }
       },
-      "required": ["actions", "eventType", "source", "target"]
+      "additionalProperties": false
+    },
+    "transition": {
+      "oneOf": [
+        { "$ref": "#/$defs/transitionObject" },
+        { "$ref": "#/$defs/resolvable" }
+      ]
+    },
+    "transitionOrArray": {
+      "oneOf": [
+        { "$ref": "#/$defs/transition" },
+        { "type": "array", "items": { "$ref": "#/$defs/transition" } }
+      ]
+    },
+    "transitionMap": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/transitionOrArray" }
+    },
+    "choiceBranch": {
+      "type": "object",
+      "properties": {
+        "when": { "$ref": "#/$defs/condition" },
+        "target": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "context": { "type": "object" },
+        "input": {},
+        "description": { "type": "string" },
+        "reenter": { "type": "boolean" },
+        "meta": { "type": "object" }
+      },
+      "required": ["target"],
+      "additionalProperties": false
+    },
+    "choice": {
+      "oneOf": [
+        { "type": "array", "items": { "$ref": "#/$defs/choiceBranch" } },
+        { "$ref": "#/$defs/resolvable" }
+      ]
     },
     "invokeObject": {
       "type": "object",
       "properties": {
-        "type": {
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
-        "src": {
-          "type": "string"
-        }
+        "id": { "type": "string" },
+        "registryKey": { "type": "string" },
+        "src": { "type": "string" },
+        "input": {},
+        "onDone": { "$ref": "#/$defs/transitionOrArray" },
+        "onError": { "$ref": "#/$defs/transitionOrArray" },
+        "onSnapshot": { "$ref": "#/$defs/transitionOrArray" },
+        "onTimeout": { "$ref": "#/$defs/transitionOrArray" },
+        "timeout": { "$ref": "#/$defs/duration" }
       },
-      "required": ["type", "id", "src"],
+      "required": ["src"],
       "additionalProperties": false
     },
-    "invokeArray": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/invokeObject"
-      }
+    "invoke": {
+      "oneOf": [
+        { "$ref": "#/$defs/invokeObject" },
+        { "type": "array", "items": { "$ref": "#/$defs/invokeObject" } }
+      ]
     },
-    "functionObject": {
-      "type": "object",
-      "properties": {
-        "$function": {
-          "type": "string"
-        }
-      }
-    },
-    "order": {
-      "type": "integer"
-    }
-  },
-  "properties": {
-    "id": {
-      "title": "ID",
-      "type": "string"
+    "duration": {
+      "oneOf": [
+        { "type": "number" },
+        { "type": "string" },
+        { "$ref": "#/$defs/resolvable" }
+      ]
     },
     "initial": {
-      "$ref": "#/$defs/initialTransitionObject"
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": {
+            "target": { "type": "string" },
+            "input": {}
+          },
+          "required": ["target"],
+          "additionalProperties": false
+        }
+      ]
     },
-    "key": {
-      "type": "string"
-    },
-    "type": {
-      "type": "string",
-      "enum": ["compound", "parallel"]
-    },
-    "context": {
-      "type": "object"
-    },
-    "states": {
-      "$ref": "#/$defs/statesObject"
-    },
-    "on": {
-      "$ref": "#/$defs/transitionsObject"
-    },
-    "transitions": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/transitionObject"
+    "actionDefinitions": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "$ref": "#/$defs/action" },
+          { "$ref": "#/$defs/actionList" }
+        ]
       }
     },
-    "entry": {
-      "type": "array"
+    "guardDefinitions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "when": { "$ref": "#/$defs/condition" }
+        },
+        "required": ["when"],
+        "additionalProperties": false
+      }
     },
-    "exit": {
-      "type": "array"
+    "delayDefinitions": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "number" },
+          { "type": "string" },
+          {
+            "type": "object",
+            "properties": {
+              "duration": { "$ref": "#/$defs/duration" }
+            },
+            "required": ["duration"],
+            "additionalProperties": false
+          }
+        ]
+      }
     },
-    "order": {
-      "$ref": "#/$defs/order"
+    "schemas": {
+      "type": "object",
+      "properties": {
+        "context": { "$ref": "#/$defs/jsonSchema" },
+        "events": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/eventPayloadSchema" }
+        },
+        "actions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "params": { "$ref": "#/$defs/jsonSchema" }
+            },
+            "required": ["params"],
+            "additionalProperties": false
+          }
+        },
+        "guards": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "params": { "$ref": "#/$defs/jsonSchema" }
+            },
+            "required": ["params"],
+            "additionalProperties": false
+          }
+        },
+        "actorSources": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "input": { "$ref": "#/$defs/jsonSchema" },
+              "output": { "$ref": "#/$defs/jsonSchema" },
+              "emitted": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/eventPayloadSchema"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "emitted": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/eventPayloadSchema" }
+        },
+        "input": { "$ref": "#/$defs/jsonSchema" },
+        "output": { "$ref": "#/$defs/jsonSchema" },
+        "meta": { "$ref": "#/$defs/jsonSchema" },
+        "tags": { "$ref": "#/$defs/jsonSchema" },
+        "children": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/jsonSchema" }
+        }
+      },
+      "additionalProperties": true
     },
-    "invoke": {
-      "$ref": "#/$defs/invokeArray"
+    "stateNode": {
+      "type": "object",
+      "properties": {
+        "@exprLang": { "type": "string" },
+        "id": { "type": "string" },
+        "key": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "atomic",
+            "compound",
+            "parallel",
+            "final",
+            "history",
+            "choice"
+          ]
+        },
+        "initial": { "$ref": "#/$defs/initial" },
+        "states": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/stateNode" }
+        },
+        "on": { "$ref": "#/$defs/transitionMap" },
+        "onError": { "$ref": "#/$defs/transitionOrArray" },
+        "after": { "$ref": "#/$defs/transitionMap" },
+        "always": { "$ref": "#/$defs/transitionOrArray" },
+        "choice": { "$ref": "#/$defs/choice" },
+        "route": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "description": { "type": "string" },
+                "reenter": { "type": "boolean" },
+                "meta": { "type": "object" },
+                "guard": { "type": "string" },
+                "input": { "type": "object" }
+              },
+              "additionalProperties": false
+            },
+            { "$ref": "#/$defs/resolvable" }
+          ]
+        },
+        "invoke": { "$ref": "#/$defs/invoke" },
+        "entry": {
+          "oneOf": [
+            { "$ref": "#/$defs/actionList" },
+            { "$ref": "#/$defs/action" }
+          ]
+        },
+        "exit": {
+          "oneOf": [
+            { "$ref": "#/$defs/actionList" },
+            { "$ref": "#/$defs/action" }
+          ]
+        },
+        "timeout": { "$ref": "#/$defs/duration" },
+        "onTimeout": { "$ref": "#/$defs/transitionOrArray" },
+        "meta": { "type": "object" },
+        "description": { "type": "string" },
+        "history": { "type": "string", "enum": ["shallow", "deep"] },
+        "target": { "type": "string" },
+        "output": {},
+        "input": {},
+        "tags": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "context": { "type": "object" },
+        "_scxmlDonedata": { "type": "object" },
+        "version": { "type": "string" },
+        "internalEvents": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "schemas": { "$ref": "#/$defs/schemas" },
+        "actions": { "$ref": "#/$defs/actionDefinitions" },
+        "guards": { "$ref": "#/$defs/guardDefinitions" },
+        "actorSources": { "type": "object" },
+        "delays": { "$ref": "#/$defs/delayDefinitions" }
+      },
+      "additionalProperties": true
     },
-    "version": {
-      "type": "string"
-    }
-  },
-  "required": ["id", "key", "type", "states"]
+    "machine": { "$ref": "#/$defs/stateNode" }
+  }
 }

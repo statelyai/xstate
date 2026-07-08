@@ -1,26 +1,28 @@
-import { fromPromise, createActor, setup } from 'xstate';
-
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#parallel-execution-example
-export const workflow = setup({
-  actors: {
-    shortDelay: fromPromise(async () => {
-      await new Promise<void>((resolve) =>
-        setTimeout(() => {
-          console.log('Resolved shortDelay');
-          resolve();
-        }, 1000)
-      );
+export const workflow = createMachine({
+  actorSources: {
+    shortDelay: createAsyncLogic({
+      run: async () => {
+        await new Promise<void>((resolve) =>
+          setTimeout(() => {
+            console.log('Resolved shortDelay');
+            resolve();
+          }, 1000)
+        );
+      }
     }),
-    longDelay: fromPromise(async () => {
-      await new Promise<void>((resolve) =>
-        setTimeout(() => {
-          console.log('Resolved longDelay');
-          resolve();
-        }, 3000)
-      );
+    longDelay: createAsyncLogic({
+      run: async () => {
+        await new Promise<void>((resolve) =>
+          setTimeout(() => {
+            console.log('Resolved longDelay');
+            resolve();
+          }, 3000)
+        );
+      }
     })
-  }
-}).createMachine({
+  },
   id: 'parallel-execution',
   initial: 'ParallelExec',
   states: {
@@ -63,13 +65,10 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow);
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();

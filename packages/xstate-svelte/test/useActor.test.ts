@@ -6,7 +6,7 @@ import { fetchMachine } from './fetchMachine.ts';
 
 const actorRef = createActor(
   fetchMachine.provide({
-    actors: {
+    actorSources: {
       fetchData: createMachine({
         initial: 'done',
         states: {

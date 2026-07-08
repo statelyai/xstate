@@ -1,23 +1,31 @@
-import { assign, fromPromise, createActor, setup } from 'xstate';
-
+import { createMachine, createAsyncLogic, createActor } from 'xstate';
+import { z } from 'zod';
 // https://github.com/serverlessworkflow/specification/tree/main/examples#event-based-greeting-example
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
-    events: {} as { type: 'greet'; greet: { name: string } }
+    events: {} as {
+      type: 'greet';
+      greet: {
+        name: string;
+      };
+    }
   },
-  actors: {
-    greetingFunction: fromPromise(
-      async ({ input }: { input: { name: string } }) => {
+  actorSources: {
+    greetingFunction: createAsyncLogic({
+      schemas: {
+        input: z.custom<{
+          name: string;
+        }>()
+      },
+      run: async ({ input }) => {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         return {
           greeting: `Hello, ${input.name}!`
         };
       }
-    )
-  }
-}).createMachine({
+    })
+  },
   id: 'event-greeting',
-
   initial: 'Waiting',
   states: {
     Waiting: {
@@ -31,11 +39,17 @@ export const workflow = setup({
         input: ({ event }) => ({
           name: event.greet.name
         }),
-        onDone: {
-          target: 'Greeted',
-          actions: assign({
-            greeting: ({ event }) => event.output.greeting
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'Greeted',
+            context: {
+              ...context,
+              greeting: (({ event }) => event.output.greeting)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },
@@ -47,17 +61,13 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow);
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();
-
 actor.send({
   type: 'greet',
   greet: { name: 'Jenny' }

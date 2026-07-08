@@ -1,30 +1,43 @@
-import { setup, assign, assertEvent, fromPromise } from 'xstate';
+import { createMachine, assertEvent, createAsyncLogic } from 'xstate';
 import { createActorContext } from '@xstate/react';
 import { TODAY, TOMORROW, sleep } from '../utils';
-
-export const flightBookerMachine = setup({
+export const flightBookerMachine = createMachine({
   types: {
     context: {} as FlightData,
     events: {} as
-      | { type: 'BOOK_DEPART' }
-      | { type: 'BOOK_RETURN' }
-      | { type: 'CHANGE_TRIP_TYPE' }
-      | { type: 'CHANGE_DEPART_DATE'; value: string }
-      | { type: 'CHANGE_RETURN_DATE'; value: string }
+      | {
+          type: 'BOOK_DEPART';
+        }
+      | {
+          type: 'BOOK_RETURN';
+        }
+      | {
+          type: 'CHANGE_TRIP_TYPE';
+        }
+      | {
+          type: 'CHANGE_DEPART_DATE';
+          value: string;
+        }
+      | {
+          type: 'CHANGE_RETURN_DATE';
+          value: string;
+        }
   },
   actions: {
-    setDepartDate: assign(({ event }) => {
+    setDepartDate: ({ context, event }) => {
       assertEvent(event, 'CHANGE_DEPART_DATE');
-      return { departDate: event.value };
-    }),
-    setReturnDate: assign(({ event }) => {
+      return { context: { ...context, departDate: event.value } };
+    },
+    setReturnDate: ({ context, event }) => {
       assertEvent(event, 'CHANGE_RETURN_DATE');
-      return { returnDate: event.value };
-    })
+      return { context: { ...context, returnDate: event.value } };
+    }
   },
-  actors: {
-    Booker: fromPromise(() => {
-      return sleep(2000);
+  actorSources: {
+    Booker: createAsyncLogic({
+      run: () => {
+        return sleep(2000);
+      }
     })
   },
   guards: {
@@ -34,8 +47,7 @@ export const flightBookerMachine = setup({
     'isValidReturnDate?': ({ context: { departDate, returnDate } }) => {
       return departDate >= TODAY && returnDate > departDate;
     }
-  }
-}).createMachine({
+  },
   id: 'flightBookerMachine',
   context: {
     departDate: TODAY,
@@ -46,10 +58,8 @@ export const flightBookerMachine = setup({
     scheduling: {
       initial: 'oneWay',
       on: {
-        CHANGE_DEPART_DATE: {
-          actions: {
-            type: 'setDepartDate'
-          }
+        CHANGE_DEPART_DATE: ({ context, event, guards, actions }, enq) => {
+          enq((actionArgs) => actions['setDepartDate'](actionArgs as any));
         }
       },
       states: {
@@ -58,11 +68,11 @@ export const flightBookerMachine = setup({
             CHANGE_TRIP_TYPE: {
               target: 'roundTrip'
             },
-            BOOK_DEPART: {
-              target: '#flightBookerMachine.booking',
-              guard: {
-                type: 'isValidDepartDate?'
+            BOOK_DEPART: ({ context, event, guards, actions }, enq) => {
+              if (!guards['isValidDepartDate?']({ context, event })) {
+                return;
               }
+              return { target: '#flightBookerMachine.booking' };
             }
           }
         },
@@ -71,16 +81,14 @@ export const flightBookerMachine = setup({
             CHANGE_TRIP_TYPE: {
               target: 'oneWay'
             },
-            CHANGE_RETURN_DATE: {
-              actions: {
-                type: 'setReturnDate'
-              }
+            CHANGE_RETURN_DATE: ({ context, event, guards, actions }, enq) => {
+              enq((actionArgs) => actions['setReturnDate'](actionArgs as any));
             },
-            BOOK_RETURN: {
-              target: '#flightBookerMachine.booking',
-              guard: {
-                type: 'isValidReturnDate?'
+            BOOK_RETURN: ({ context, event, guards, actions }, enq) => {
+              if (!guards['isValidReturnDate?']({ context, event })) {
+                return;
               }
+              return { target: '#flightBookerMachine.booking' };
             }
           }
         }
@@ -102,5 +110,4 @@ export const flightBookerMachine = setup({
     }
   }
 });
-
 export default createActorContext(flightBookerMachine);

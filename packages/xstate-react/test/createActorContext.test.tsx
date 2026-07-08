@@ -1,12 +1,12 @@
 import {
   createMachine,
-  assign,
-  fromPromise,
+  createAsyncLogic,
   Snapshot,
   InspectionEvent
 } from 'xstate';
 import { fireEvent, screen, render, waitFor } from '@testing-library/react';
 import { useSelector, createActorContext, shallowEqual } from '../src';
+import { z } from 'zod';
 
 describe('createActorContext', () => {
   it('should work with useSelector', () => {
@@ -42,7 +42,7 @@ describe('createActorContext', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {}
@@ -86,13 +86,15 @@ describe('createActorContext', () => {
   });
 
   it('should work with useSelector and a custom comparator', async () => {
-    interface MachineContext {
-      obj: {
-        counter: number;
-      };
-      arr: string[];
-    }
     const someMachine = createMachine({
+      schemas: {
+        context: z.object({
+          obj: z.object({
+            counter: z.number()
+          }),
+          arr: z.array(z.string())
+        })
+      },
       context: {
         obj: {
           counter: 0
@@ -100,18 +102,25 @@ describe('createActorContext', () => {
         arr: [] as string[]
       },
       on: {
-        INC: {
-          actions: assign(({ context }) => ({
+        // INC: {
+        //   actions: assign(({ context }) => ({
+        //     obj: {
+        //       counter: context.obj.counter + 1
+        //     }
+        //   }))
+        // },
+        INC: ({ context }) => ({
+          context: {
             obj: {
               counter: context.obj.counter + 1
             }
-          }))
-        },
-        PUSH: {
-          actions: assign(({ context }) => ({
+          }
+        }),
+        PUSH: ({ context }) => ({
+          context: {
             arr: [...context.arr, Math.random().toString(36).slice(2)]
-          }))
-        }
+          }
+        })
       }
     });
 
@@ -196,6 +205,11 @@ describe('createActorContext', () => {
   it('should work with a provided machine', () => {
     const createSomeMachine = (context: { count: number }) =>
       createMachine({
+        schemas: {
+          context: z.object({
+            count: z.number()
+          })
+        },
         context
       });
 
@@ -252,9 +266,15 @@ describe('createActorContext', () => {
   it('should be able to pass interpreter options to the provider', () => {
     const someMachine = createMachine({
       initial: 'a',
+      actions: {
+        testAction: () => {}
+      },
       states: {
         a: {
-          entry: ['testAction']
+          // entry: ['testAction']
+          entry: ({ actions }, enq) => {
+            enq(actions.testAction);
+          }
         }
       }
     });
@@ -268,11 +288,13 @@ describe('createActorContext', () => {
     const App = () => {
       return (
         <SomeContext.Provider
-          logic={someMachine.provide({
-            actions: {
-              testAction: stubFn
-            }
-          })}
+          logic={
+            someMachine.provide({
+              actions: {
+                testAction: stubFn
+              }
+            }) as any
+          }
         >
           <Component />
         </SomeContext.Provider>
@@ -286,7 +308,7 @@ describe('createActorContext', () => {
 
   it('should work with other types of logic', async () => {
     const PromiseContext = createActorContext(
-      fromPromise(() => Promise.resolve(42))
+      createAsyncLogic({ run: () => Promise.resolve(42) })
     );
 
     const Component = () => {
@@ -312,11 +334,21 @@ describe('createActorContext', () => {
 
   it("should preserve machine's identity when swapping options using in-render `.provide`", () => {
     const someMachine = createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: { count: 0 },
       on: {
-        inc: {
-          actions: assign({ count: ({ context }) => context.count + 1 })
-        }
+        // inc: {
+        //   actions: assign({ count: ({ context }) => context.count + 1 })
+        // }
+        inc: ({ context }) => ({
+          context: {
+            count: context.count + 1
+          }
+        })
       }
     });
     const stubFn = vi.fn();
@@ -338,11 +370,13 @@ describe('createActorContext', () => {
     const App = () => {
       return (
         <SomeContext.Provider
-          logic={someMachine.provide({
-            actions: {
-              testAction: stubFn
-            }
-          })}
+          logic={
+            someMachine.provide({
+              actions: {
+                testAction: stubFn
+              }
+            }) as any
+          }
         >
           <Component />
         </SomeContext.Provider>
@@ -367,7 +401,7 @@ describe('createActorContext', () => {
       states: {
         a: {
           on: {
-            next: 'b'
+            next: { target: 'b' }
           }
         },
         b: {}
@@ -426,10 +460,16 @@ describe('createActorContext', () => {
   it('input can be passed to the provider', () => {
     const SomeContext = createActorContext(
       createMachine({
-        types: {} as {
-          context: { doubled: number };
+        // types: {} as {
+        //   context: { doubled: number };
+        // },
+        schemas: {
+          context: z.object({
+            doubled: z.number()
+          }),
+          input: z.number()
         },
-        context: ({ input }: { input: number }) => ({
+        context: ({ input }) => ({
           doubled: input * 2
         })
       })
@@ -458,9 +498,15 @@ describe('createActorContext', () => {
     const events: InspectionEvent[] = [];
     const SomeContext = createActorContext(
       createMachine({
-        types: {
-          context: {} as { count: number },
-          input: {} as number
+        // types: {
+        //   context: {} as { count: number },
+        //   input: {} as number
+        // },
+        schemas: {
+          context: z.object({
+            count: z.number()
+          }),
+          input: z.number()
         },
         context: ({ input }) => ({ count: input })
       }),

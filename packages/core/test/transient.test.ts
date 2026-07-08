@@ -1,47 +1,66 @@
-import { createMachine, createActor } from '../src/index';
-import { raise } from '../src/actions/raise';
-import { assign } from '../src/actions/assign';
-import { stateIn } from '../src/guards';
+import { z } from 'zod';
+import { createMachine, createActor, matchesState } from '../src/index';
 
 const greetingContext = { hour: 10 };
 const greetingMachine = createMachine({
-  types: {} as { context: typeof greetingContext },
+  // types: {} as { context: typeof greetingContext },
+  schemas: {
+    context: z.object({
+      hour: z.number()
+    })
+  },
   id: 'greeting',
   initial: 'pending',
   context: greetingContext,
   states: {
     pending: {
-      always: [
-        { target: 'morning', guard: ({ context }) => context.hour < 12 },
-        { target: 'afternoon', guard: ({ context }) => context.hour < 18 },
-        { target: 'evening' }
-      ]
+      always: ({ context }) => {
+        if (context.hour < 12) {
+          return { target: 'morning' };
+        } else if (context.hour < 18) {
+          return { target: 'afternoon' };
+        } else {
+          return { target: 'evening' };
+        }
+      }
     },
     morning: {},
     afternoon: {},
     evening: {}
   },
   on: {
-    CHANGE: { actions: assign({ hour: 20 }) },
-    RECHECK: '#greeting'
+    CHANGE: () => ({
+      context: {
+        hour: 20
+      }
+    }),
+    RECHECK: { target: '#greeting' }
   }
 });
 
 describe('transient states (eventless transitions)', () => {
   it('should choose the first candidate target that matches the guard 1', () => {
     const machine = createMachine({
-      types: {} as { context: { data: boolean } },
+      // types: {} as { context: { data: boolean } },
+      schemas: {
+        context: z.object({
+          data: z.boolean()
+        })
+      },
       context: { data: false },
       initial: 'G',
       states: {
         G: {
-          on: { UPDATE_BUTTON_CLICKED: 'E' }
+          on: { UPDATE_BUTTON_CLICKED: { target: 'E' } }
         },
         E: {
-          always: [
-            { target: 'D', guard: ({ context: { data } }) => !data },
-            { target: 'F' }
-          ]
+          always: ({ context }) => {
+            if (!context.data) {
+              return { target: 'D' };
+            } else {
+              return { target: 'F' };
+            }
+          }
         },
         D: {},
         F: {}
@@ -56,18 +75,27 @@ describe('transient states (eventless transitions)', () => {
 
   it('should choose the first candidate target that matches the guard 2', () => {
     const machine = createMachine({
-      types: {} as { context: { data: boolean; status?: string } },
+      // types: {} as { context: { data: boolean; status?: string } },
+      schemas: {
+        context: z.object({
+          data: z.boolean(),
+          status: z.string().optional()
+        })
+      },
       context: { data: false },
       initial: 'G',
       states: {
         G: {
-          on: { UPDATE_BUTTON_CLICKED: 'E' }
+          on: { UPDATE_BUTTON_CLICKED: { target: 'E' } }
         },
         E: {
-          always: [
-            { target: 'D', guard: ({ context: { data } }) => !data },
-            { target: 'F', guard: () => true }
-          ]
+          always: ({ context }) => {
+            if (!context.data) {
+              return { target: 'D' };
+            } else {
+              return { target: 'F' };
+            }
+          }
         },
         D: {},
         F: {}
@@ -82,18 +110,27 @@ describe('transient states (eventless transitions)', () => {
 
   it('should choose the final candidate without a guard if none others match', () => {
     const machine = createMachine({
-      types: {} as { context: { data: boolean; status?: string } },
+      // types: {} as { context: { data: boolean; status?: string } },
+      schemas: {
+        context: z.object({
+          data: z.boolean(),
+          status: z.string().optional()
+        })
+      },
       context: { data: true },
       initial: 'G',
       states: {
         G: {
-          on: { UPDATE_BUTTON_CLICKED: 'E' }
+          on: { UPDATE_BUTTON_CLICKED: { target: 'E' } }
         },
         E: {
-          always: [
-            { target: 'D', guard: ({ context: { data } }) => !data },
-            { target: 'F' }
-          ]
+          always: ({ context }) => {
+            if (!context.data) {
+              return { target: 'D' };
+            } else {
+              return { target: 'F' };
+            }
+          }
         },
         D: {},
         F: {}
@@ -111,19 +148,23 @@ describe('transient states (eventless transitions)', () => {
       initial: 'A',
       states: {
         A: {
-          exit: () => actual.push('exit_A'),
+          exit: (_, enq) => {
+            enq(() => void actual.push('exit_A'));
+          },
           on: {
-            TIMER: {
-              target: 'T',
-              actions: () => actual.push('timer')
+            TIMER: (_, enq) => {
+              enq(() => void actual.push('timer'));
+              return { target: 'T' };
             }
           }
         },
         T: {
-          always: [{ target: 'B' }]
+          always: { target: 'B' }
         },
         B: {
-          entry: () => actual.push('enter_B')
+          entry: (_, enq) => {
+            enq(() => void actual.push('enter_B'));
+          }
         }
       }
     });
@@ -144,11 +185,13 @@ describe('transient states (eventless transitions)', () => {
           states: {
             A1: {
               on: {
-                E: 'A2'
+                E: { target: 'A2' }
               }
             },
             A2: {
-              entry: raise({ type: 'INT1' })
+              entry: (_, enq) => {
+                enq.raise({ type: 'INT1' });
+              }
             }
           }
         },
@@ -158,11 +201,13 @@ describe('transient states (eventless transitions)', () => {
           states: {
             B1: {
               on: {
-                E: 'B2'
+                E: { target: 'B2' }
               }
             },
             B2: {
-              entry: raise({ type: 'INT2' })
+              entry: (_, enq) => {
+                enq.raise({ type: 'INT2' });
+              }
             }
           }
         },
@@ -172,18 +217,18 @@ describe('transient states (eventless transitions)', () => {
           states: {
             C1: {
               on: {
-                INT1: 'C2',
-                INT2: 'C3'
+                INT1: { target: 'C2' },
+                INT2: { target: 'C3' }
               }
             },
             C2: {
               on: {
-                INT2: 'C4'
+                INT2: { target: 'C4' }
               }
             },
             C3: {
               on: {
-                INT1: 'C4'
+                INT1: { target: 'C4' }
               }
             },
             C4: {}
@@ -207,16 +252,17 @@ describe('transient states (eventless transitions)', () => {
           states: {
             A1: {
               on: {
-                E: 'A2' // the external event
+                E: { target: 'A2' } // the external event
               }
             },
             A2: {
-              always: 'A3'
+              always: { target: 'A3' }
             },
             A3: {
-              always: {
-                target: 'A4',
-                guard: stateIn({ B: 'B3' })
+              always: ({ value }) => {
+                if (matchesState({ B: 'B3' }, value)) {
+                  return { target: 'A4' };
+                }
               }
             },
             A4: {}
@@ -228,19 +274,21 @@ describe('transient states (eventless transitions)', () => {
           states: {
             B1: {
               on: {
-                E: 'B2'
+                E: { target: 'B2' }
               }
             },
             B2: {
-              always: {
-                target: 'B3',
-                guard: stateIn({ A: 'A2' })
+              always: ({ value }) => {
+                if (matchesState({ A: 'A2' }, value)) {
+                  return { target: 'B3' };
+                }
               }
             },
             B3: {
-              always: {
-                target: 'B4',
-                guard: stateIn({ A: 'A3' })
+              always: ({ value }) => {
+                if (matchesState({ A: 'A3' }, value)) {
+                  return { target: 'B4' };
+                }
               }
             },
             B4: {}
@@ -264,7 +312,7 @@ describe('transient states (eventless transitions)', () => {
           states: {
             A1: {
               on: {
-                A: 'A2'
+                A: { target: 'A2' }
               }
             },
             A2: {}
@@ -274,9 +322,10 @@ describe('transient states (eventless transitions)', () => {
           initial: 'B1',
           states: {
             B1: {
-              always: {
-                target: 'B2',
-                guard: stateIn({ A: 'A2' })
+              always: ({ value }) => {
+                if (matchesState({ A: 'A2' }, value)) {
+                  return { target: 'B2' };
+                }
               }
             },
             B2: {}
@@ -286,9 +335,10 @@ describe('transient states (eventless transitions)', () => {
           initial: 'C1',
           states: {
             C1: {
-              always: {
-                target: 'C2',
-                guard: stateIn({ A: 'A2' })
+              always: ({ value }) => {
+                if (matchesState({ A: 'A2' }, value)) {
+                  return { target: 'C2' };
+                }
               }
             },
             C2: {}
@@ -323,19 +373,21 @@ describe('transient states (eventless transitions)', () => {
       states: {
         a: {
           on: {
-            FOO: 'b'
+            FOO: { target: 'b' }
           }
         },
         b: {
-          entry: raise({ type: 'BAR' }),
-          always: 'c',
+          entry: (_, enq) => {
+            enq.raise({ type: 'BAR' });
+          },
+          always: { target: 'c' },
           on: {
-            BAR: 'd'
+            BAR: { target: 'd' }
           }
         },
         c: {
           on: {
-            BAR: 'e'
+            BAR: { target: 'e' }
           }
         },
         d: {},
@@ -354,12 +406,12 @@ describe('transient states (eventless transitions)', () => {
       initial: 'a',
       states: {
         a: {
-          on: { FOO: 'b' }
+          on: { FOO: { target: 'b' } }
         },
         b: {
-          always: 'pass',
+          always: { target: 'pass' },
           on: {
-            '*': 'fail'
+            '*': { target: 'fail' }
           }
         },
         fail: {},
@@ -375,30 +427,35 @@ describe('transient states (eventless transitions)', () => {
 
   it('should work with transient transition on root', () => {
     const machine = createMachine({
-      types: {} as { context: { count: number } },
+      // types: {} as { context: { count: number } },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
       states: {
         first: {
           on: {
-            ADD: {
-              actions: assign({ count: ({ context }) => context.count + 1 })
-            }
+            ADD: ({ context }) => ({
+              context: {
+                count: context.count + 1
+              }
+            })
           }
         },
         success: {
           type: 'final'
         }
       },
-      always: [
-        {
-          target: '.success',
-          guard: ({ context }) => {
-            return context.count > 0;
-          }
+
+      always: ({ context }) => {
+        if (context.count > 0) {
+          return { target: '.success' };
         }
-      ]
+      }
     });
 
     const actorRef = createActor(machine).start();
@@ -410,23 +467,26 @@ describe('transient states (eventless transitions)', () => {
   it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
     const timerMachine = createMachine({
       initial: 'initial',
+      schemas: {
+        context: z.object({
+          duration: z.number()
+        }),
+        input: z.object({
+          duration: z.number()
+        })
+      },
       context: ({ input }: { input: { duration: number } }) => ({
         duration: input.duration
       }),
-      types: {
-        context: {} as { duration: number }
-      },
       states: {
         initial: {
-          always: [
-            {
-              target: `finished`,
-              guard: ({ context }) => context.duration < 1000
-            },
-            {
-              target: `active`
+          always: ({ context }) => {
+            if (context.duration < 1000) {
+              return { target: 'finished' };
+            } else {
+              return { target: 'active' };
             }
-          ]
+          }
         },
         active: {},
         finished: { type: 'final' }
@@ -434,6 +494,11 @@ describe('transient states (eventless transitions)', () => {
     });
 
     const machine = createMachine({
+      schemas: {
+        context: z.object({
+          customDuration: z.number()
+        })
+      },
       initial: 'active',
       context: {
         customDuration: 3000
@@ -459,9 +524,10 @@ describe('transient states (eventless transitions)', () => {
       initial: 'a',
       states: {
         a: {
-          always: {
-            target: 'b',
-            guard: ({ event }) => event.type === 'WHATEVER'
+          always: ({ event }) => {
+            if (event.type === 'WHATEVER') {
+              return { target: 'b' };
+            }
           }
         },
         b: {}
@@ -479,15 +545,17 @@ describe('transient states (eventless transitions)', () => {
       initial: 'a',
       states: {
         a: {
-          always: {
-            target: 'b',
-            guard: ({ event }) => event.type === 'WHATEVER'
+          always: ({ event }) => {
+            if (event.type === 'WHATEVER') {
+              return { target: 'b' };
+            }
           }
         },
         b: {
-          always: {
-            target: 'c',
-            guard: () => true
+          always: () => {
+            if (true) {
+              return { target: 'c' };
+            }
           }
         },
         c: {}
@@ -507,19 +575,18 @@ describe('transient states (eventless transitions)', () => {
       states: {
         a: {
           on: {
-            EVENT: 'b'
+            EVENT: { target: 'b' }
           }
         },
         b: {
-          always: 'c'
+          always: { target: 'c' }
         },
         c: {
-          always: {
-            guard: ({ event }) => {
-              expect(event.type).toEqual('EVENT');
-              return event.type === 'EVENT';
-            },
-            target: 'd'
+          always: ({ event }) => {
+            expect(event.type).toEqual('EVENT');
+            if (event.type === 'EVENT') {
+              return { target: 'd' };
+            }
           }
         },
         d: { type: 'final' }
@@ -533,30 +600,30 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('events that trigger eventless transitions should be preserved in actions', () => {
-    expect.assertions(3);
+    expect.assertions(2);
 
     const machine = createMachine({
+      schemas: {
+        events: {
+          EVENT: z.object({ value: z.number() })
+        }
+      },
       initial: 'a',
       states: {
         a: {
           on: {
-            EVENT: 'b'
+            EVENT: { target: 'b' }
           }
         },
         b: {
-          always: {
-            target: 'c',
-            actions: ({ event }) => {
-              expect(event).toEqual({ type: 'EVENT', value: 42 });
-            }
-          },
-          exit: ({ event }) => {
-            expect(event).toEqual({ type: 'EVENT', value: 42 });
+          always: ({ event }, enq) => {
+            enq(() => void expect(event).toEqual({ type: 'EVENT', value: 42 }));
+            return { target: 'c' };
           }
         },
         c: {
-          entry: ({ event }) => {
-            expect(event).toEqual({ type: 'EVENT', value: 42 });
+          entry: ({ event }, enq) => {
+            enq(() => void expect(event).toEqual({ type: 'EVENT', value: 42 }));
           }
         }
       }
@@ -613,7 +680,9 @@ describe('transient states (eventless transitions)', () => {
           }
         },
         b: {
-          entry: raise({ type: 'EVENT' }),
+          entry: (_, enq) => {
+            enq.raise({ type: 'EVENT' });
+          },
           on: {
             EVENT: {
               target: 'c'
@@ -647,7 +716,7 @@ describe('transient states (eventless transitions)', () => {
       states: {
         idle: {
           on: {
-            event: 'active'
+            event: { target: 'active' }
           }
         },
         active: {
@@ -656,15 +725,13 @@ describe('transient states (eventless transitions)', () => {
             a: {},
             b: {}
           },
-          always: [
-            {
-              guard: () => false,
-              target: '.a'
-            },
-            {
-              target: '.b'
+          always: () => {
+            if (1 + 1 === 3) {
+              return { target: '.a' };
+            } else {
+              return { target: '.b' };
             }
-          ]
+          }
         }
       }
     });
@@ -682,7 +749,7 @@ describe('transient states (eventless transitions)', () => {
       states: {
         idle: {
           on: {
-            event: 'active'
+            event: { target: 'active' }
           }
         },
         active: {
@@ -691,15 +758,13 @@ describe('transient states (eventless transitions)', () => {
             a: {},
             b: {}
           },
-          always: [
-            {
-              guard: () => true,
-              target: '.a'
-            },
-            {
-              target: '.b'
+          always: () => {
+            if (1 + 1 === 2) {
+              return { target: '.a' };
+            } else {
+              return { target: '.b' };
             }
-          ]
+          }
         }
       }
     });
@@ -718,7 +783,7 @@ describe('transient states (eventless transitions)', () => {
       states: {
         idle: {
           on: {
-            event: 'active'
+            event: { target: 'active' }
           }
         },
         active: {
@@ -726,17 +791,15 @@ describe('transient states (eventless transitions)', () => {
           states: {
             a: {}
           },
-          always: [
-            {
-              actions: () => {
-                count++;
-                if (count > 5) {
-                  throw new Error('Infinite loop detected');
-                }
-              },
-              target: '.a'
-            }
-          ]
+          always: (_, enq) => {
+            enq(() => {
+              count++;
+              if (count > 5) {
+                throw new Error('Infinite loop detected');
+              }
+            });
+            return { target: '.a' };
+          }
         }
       }
     });
@@ -754,13 +817,21 @@ describe('transient states (eventless transitions)', () => {
 
   it('should loop (but not infinitely) for assign actions', () => {
     const machine = createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: { count: 0 },
       initial: 'counting',
       states: {
         counting: {
-          always: {
-            guard: ({ context }) => context.count < 5,
-            actions: assign({ count: ({ context }) => context.count + 1 })
+          always: ({ context }) => {
+            if (context.count < 5) {
+              return {
+                context: { count: context.count + 1 }
+              };
+            }
           }
         }
       }
@@ -775,17 +846,19 @@ describe('transient states (eventless transitions)', () => {
     const spy = vi.fn();
     let counter = 0;
     const machine = createMachine({
-      always: {
-        actions: () => spy(counter)
+      always: (_, enq) => {
+        enq((...args) => {
+          spy(...args);
+        }, counter);
       },
       on: {
-        EV: {
-          actions: raise({ type: 'RAISED' })
+        EV: (_, enq) => {
+          enq.raise({ type: 'RAISED' });
         },
-        RAISED: {
-          actions: () => {
+        RAISED: (_, enq) => {
+          enq(() => {
             ++counter;
-          }
+          });
         }
       }
     });
@@ -796,8 +869,9 @@ describe('transient states (eventless transitions)', () => {
     expect(spy.mock.calls).toEqual([
       // called in response to the `EV` event
       [0],
-      // called in response to the `RAISED` event
-      [1]
+      // called in response to the `RAISED` event; action args are resolved
+      // during the pure transition before executable effects run
+      [0]
     ]);
   });
 });

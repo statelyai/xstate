@@ -96,7 +96,7 @@ export function getDescription<T, TContext extends MachineContext>(
       const { description } = meta;
 
       if (typeof description === 'function') {
-        return description(snapshot);
+        return description(snapshot as any);
       }
 
       return description ? `"${description}"` : JSON.stringify(snapshot.value);

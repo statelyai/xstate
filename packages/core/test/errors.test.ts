@@ -1,15 +1,18 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
-  AnyEventObject,
-  assign,
   createActor,
+  createLogic,
   createMachine,
-  emit,
-  fromCallback,
-  fromPromise,
-  fromTransition,
-  setup
+  createCallbackLogic,
+  createAsyncLogic,
+  AnyEventObject,
+  ActorLogic,
+  Snapshot
 } from '../src';
+import { createMachineFromConfig } from '../src/createMachineFromConfig';
+import { executeLogicEffects } from '../src/actors/logic';
+import { toMachineJSON } from '../src/scxml';
+import z from 'zod';
 
 // mocked reportUnhandledError due to unknown issue with vitest and global error
 // handlers not catching thrown errors
@@ -25,6 +28,13 @@ vi.mock('../src/reportUnhandledError.ts', () => {
 });
 
 const cleanups: (() => void)[] = [];
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error
+    ? error.message
+    : typeof error === 'object' && error && 'message' in error
+      ? String(error.message)
+      : String(error);
+
 function installGlobalOnErrorHandler(handler: (ev: ErrorEvent) => void) {
   window.addEventListener('error', handler);
   cleanups.push(() => window.removeEventListener('error', handler));
@@ -42,12 +52,17 @@ describe('error handling', () => {
     const machine = createMachine({
       id: 'machine',
       initial: 'initial',
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
       states: {
         initial: {
-          on: { activate: 'active' }
+          on: { activate: { target: 'active' } }
         },
         active: {}
       }
@@ -82,17 +97,22 @@ describe('error handling', () => {
     const machine = createMachine({
       id: 'machine',
       initial: 'initial',
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
       states: {
         initial: {
-          on: { activate: 'active' }
+          on: { activate: { target: 'active' } }
         },
         active: {
           on: {
-            do: {
-              actions: spy
+            do: (_, enq) => {
+              enq(spy);
             }
           }
         }
@@ -131,12 +151,17 @@ describe('error handling', () => {
     const machine = createMachine({
       id: 'machine',
       initial: 'initial',
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
       states: {
         initial: {
-          on: { activate: 'active' }
+          on: { activate: { target: 'active' } }
         },
         active: {}
       }
@@ -178,10 +203,10 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('unhandled_sync_error_in_actor_start');
             }),
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -208,14 +233,15 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromPromise(() =>
-              Promise.reject(
-                new Error(
-                  'unhandled_rejection_in_promise_actor_without_error_listener'
+            src: createAsyncLogic({
+              run: () =>
+                Promise.reject(
+                  new Error(
+                    'unhandled_rejection_in_promise_actor_without_error_listener'
+                  )
                 )
-              )
-            ),
-            onDone: 'success'
+            }),
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -245,14 +271,15 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromPromise(() =>
-              Promise.reject(
-                new Error(
-                  'unhandled_rejection_in_promise_actor_with_parent_listener'
+            src: createAsyncLogic({
+              run: () =>
+                Promise.reject(
+                  new Error(
+                    'unhandled_rejection_in_promise_actor_with_parent_listener'
+                  )
                 )
-              )
-            ),
-            onDone: 'success'
+            }),
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -286,14 +313,15 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromPromise(() =>
-              Promise.reject(
-                new Error(
-                  'unhandled_rejection_in_promise_actor_with_grandparent_listener'
+            src: createAsyncLogic({
+              run: () =>
+                Promise.reject(
+                  new Error(
+                    'unhandled_rejection_in_promise_actor_with_grandparent_listener'
+                  )
                 )
-              )
-            ),
-            onDone: 'success'
+            }),
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -308,7 +336,7 @@ describe('error handling', () => {
         pending: {
           invoke: {
             src: child,
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -341,10 +369,10 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
-            onError: 'failed'
+            onError: { target: 'failed' }
           }
         },
         failed: {
@@ -373,10 +401,10 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
-            onError: 'failed'
+            onError: { target: 'failed' }
           }
         },
         failed: {
@@ -409,10 +437,10 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
-            onError: 'failed'
+            onError: { target: 'failed' }
           }
         },
         failed: {
@@ -449,7 +477,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             })
           }
@@ -489,10 +517,10 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
-            onError: 'failed'
+            onError: { target: 'failed' }
           }
         },
         failed: {
@@ -518,12 +546,12 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error(
                 'unhandled_sync_error_in_actor_start_with_root_error_listener'
               );
             }),
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -556,12 +584,12 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error(
                 'unhandled_sync_error_in_actor_start_with_root_error_listener'
               );
             }),
-            onDone: 'success'
+            onDone: { target: 'success' }
           }
         },
         success: {
@@ -599,16 +627,16 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             }),
-            onError: 'failed'
+            onError: { target: 'failed' }
           }
         },
         failed: {
           on: {
-            do: {
-              actions: spy
+            do: (_, enq) => {
+              enq(spy);
             }
           }
         }
@@ -631,7 +659,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('unhandled_sync_error_in_actor_start');
             })
           }
@@ -660,7 +688,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error('handled_sync_error_in_actor_start');
             })
           }
@@ -692,7 +720,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error(
                 'error_thrown_when_not_every_observer_comes_with_an_error_listener'
               );
@@ -726,7 +754,7 @@ describe('error handling', () => {
       states: {
         pending: {
           invoke: {
-            src: fromCallback(() => {
+            src: createCallbackLogic(() => {
               throw new Error(
                 'error_thrown_when_not_every_observer_comes_with_an_error_listener'
               );
@@ -792,44 +820,13 @@ describe('error handling', () => {
     `);
   });
 
-  it('error thrown when resolving initial builtin entry action should error the actor immediately', () => {
-    const machine = createMachine({
-      entry: assign(() => {
-        throw new Error('error_thrown_when_resolving_initial_entry_action');
-      })
-    });
-
-    const errorSpy = vi.fn();
-
-    const actorRef = createActor(machine);
-
-    const snapshot = actorRef.getSnapshot();
-    expect(snapshot.status).toBe('error');
-    expect(snapshot.error).toMatchInlineSnapshot(
-      `[Error: error_thrown_when_resolving_initial_entry_action]`
-    );
-
-    actorRef.subscribe({
-      error: errorSpy
-    });
-    actorRef.start();
-
-    expect(errorSpy.mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          [Error: error_thrown_when_resolving_initial_entry_action],
-        ],
-      ]
-    `);
-  });
-
   it('error thrown by a custom entry action when transitioning should error the actor', () => {
     const machine = createMachine({
       initial: 'a',
       states: {
         a: {
           on: {
-            NEXT: 'b'
+            NEXT: { target: 'b' }
           }
         },
         b: {
@@ -869,12 +866,12 @@ describe('error handling', () => {
     const spy = vi.fn();
 
     const machine = createMachine({
-      entry: [
-        () => {
+      entry: (_, enq) => {
+        enq(() => {
           throw new Error('error_thrown_in_initial_entry_action');
-        },
-        spy
-      ]
+        });
+        enq(spy);
+      }
     });
 
     const actorRef = createActor(machine);
@@ -884,27 +881,69 @@ describe('error handling', () => {
     expect(spy).toHaveBeenCalledTimes(0);
   });
 
-  it('should error the parent on errored initial state of a child', async () => {
-    const immediateFailure = fromTransition((_) => undefined, undefined);
-    immediateFailure.getInitialSnapshot = () => ({
-      status: 'error',
-      output: undefined,
-      error: 'immediate error!',
-      context: undefined
-    });
+  it('error thrown by an initial logic effect should error the actor', () => {
+    const errorSpy = vi.fn();
+    const logic: ActorLogic<Snapshot<undefined>, AnyEventObject> = {
+      transition: (snapshot: any) => [snapshot, []],
+      initialTransition: () => [
+        {
+          status: 'active',
+          output: undefined,
+          error: undefined
+        },
+        [
+          {
+            type: 'effect',
+            exec: () => {
+              throw new Error('error_thrown_in_initial_logic_effect');
+            }
+          }
+        ]
+      ],
+      getInitialSnapshot: () => ({
+        status: 'active',
+        output: undefined,
+        error: undefined
+      }),
+      getPersistedSnapshot: (snapshot: any) => snapshot,
+      // Logic that returns effect descriptors declares how to execute them;
+      // built-in logic creators (createLogic etc.) do this automatically.
+      executeEffects: executeLogicEffects
+    };
 
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'failure'
-        }
-      },
-      {
-        actors: {
-          failure: immediateFailure
-        }
-      }
+    const actorRef = createActor(logic);
+    actorRef.subscribe({ error: errorSpy });
+    actorRef.start();
+
+    const snapshot = actorRef.getSnapshot();
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toMatchInlineSnapshot(
+      `[Error: error_thrown_in_initial_logic_effect]`
     );
+    expect(errorSpy).toHaveBeenCalledWith(snapshot.error);
+  });
+
+  it('should error the parent on errored initial state of a child', async () => {
+    const immediateFailure = createLogic({
+      context: undefined,
+      run: () => undefined
+    });
+    immediateFailure.initialTransition = () => [
+      {
+        status: 'error',
+        output: undefined,
+        error: 'immediate error!',
+        context: undefined,
+        input: undefined
+      },
+      []
+    ];
+
+    const machine = createMachine({
+      invoke: {
+        src: immediateFailure
+      }
+    });
 
     const actorRef = createActor(machine);
     actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
@@ -916,49 +955,31 @@ describe('error handling', () => {
     expect(snapshot.error).toBe('immediate error!');
   });
 
-  it('should error when a guard throws when transitioning', () => {
-    const spy = vi.fn();
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            NEXT: {
-              guard: () => {
-                throw new Error('error_thrown_in_guard_when_transitioning');
-              },
-              target: 'b'
-            }
-          }
-        },
-        b: {}
-      }
-    });
-
-    const actorRef = createActor(machine);
-    actorRef.subscribe({
-      error: spy
-    });
-    actorRef.start();
-    actorRef.send({ type: 'NEXT' });
-
-    const snapshot = actorRef.getSnapshot();
-    expect(snapshot.status).toBe('error');
-    expect(snapshot.error).toMatchInlineSnapshot(`
-      [Error: Unable to evaluate guard in transition for event 'NEXT' in state node '(machine).a':
-      error_thrown_in_guard_when_transitioning]
-    `);
-  });
-
   it('actor continues to work normally after emit callback errors', async () => {
-    const machine = setup({
-      types: {
-        emitted: {} as { type: 'emitted'; foo: string }
-      }
-    }).createMachine({
+    // const machine = setup({
+    //   types: {
+    //     emitted: {} as { type: 'emitted'; foo: string }
+    //   }
+    // }).
+
+    const machine = createMachine({
+      schemas: {
+        emitted: {
+          emitted: z.object({
+            type: z.literal('emitted'),
+            foo: z.string()
+          })
+        }
+      },
       on: {
-        someEvent: {
-          actions: emit({ type: 'emitted', foo: 'bar' })
+        // someEvent: {
+        //   actions: emit({ type: 'emitted', foo: 'bar' })
+        // }
+        someEvent: (_, enq) => {
+          enq.emit({
+            type: 'emitted',
+            foo: 'bar'
+          });
         }
       }
     });
@@ -986,5 +1007,246 @@ describe('error handling', () => {
 
     expect(event.foo).toBe('bar');
     expect(actor.getSnapshot().status).toEqual('active');
+  });
+
+  it('state onError catches errors thrown by initial entry actions', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      onError: ({ event }) => {
+        errorSpy(getErrorMessage(event.error));
+        return {
+          target: '.failed'
+        };
+      },
+      states: {
+        active: {
+          entry: () => {
+            throw new Error('initial entry failed');
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('initial entry failed');
+  });
+
+  it('state onError catches errors thrown by transition actions', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            NEXT: (_, enq) => {
+              enq(() => {
+                throw new Error('transition action failed');
+              });
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy(getErrorMessage(event.error));
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('transition action failed');
+  });
+
+  it('state onError catches errors thrown by transition functions', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            NEXT: () => {
+              throw new Error('transition function failed');
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy(getErrorMessage(event.error));
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        done: {},
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('transition function failed');
+  });
+
+  it('state onError catches errors thrown by target entry actions', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            NEXT: {
+              target: 'loading'
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy(getErrorMessage(event.error));
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        loading: {
+          entry: () => {
+            throw new Error('target entry failed');
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('target entry failed');
+  });
+
+  it('state onError catches invoked actor errors', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            src: createCallbackLogic(() => {
+              throw new Error('invoked actor failed');
+            })
+          },
+          onError: ({ event }) => {
+            errorSpy(getErrorMessage(event.error));
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('invoked actor failed');
+  });
+
+  it('state onError catches SCXML error.communication from failed sends', () => {
+    const errorSpy = vi.fn();
+    const json = toMachineJSON(`
+      <scxml xmlns="http://www.w3.org/2005/07/scxml" initial="active" version="1.0" datamodel="ecmascript">
+        <state id="active">
+          <onentry>
+            <send event="PING" target="#_scxml_missing"/>
+          </onentry>
+        </state>
+        <state id="failed"/>
+      </scxml>
+    `);
+
+    json.states!.active.onError = {
+      target: '#failed',
+      actions: [
+        {
+          type: 'captureError',
+          params: { '@expr': 'event', '@lang': 'test' }
+        }
+      ]
+    };
+
+    const machine = createMachineFromConfig(json, {
+      actions: {
+        captureError: (event) => {
+          errorSpy({
+            type: event.type,
+            message: getErrorMessage(event.error)
+          });
+        }
+      },
+      evaluators: {
+        test: ({ source, scope }) => {
+          if (source === 'event') {
+            return scope.event;
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith({
+      type: 'xstate.error.communication',
+      message: 'Unable to dispatch event to target: #_scxml_missing'
+    });
+  });
+
+  it('state onError catches communication errors from undefined send targets', () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            NEXT: (_, enq) => {
+              enq.sendTo(undefined, { type: 'PING' });
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy({
+              type: event.type,
+              message: getErrorMessage(event.error)
+            });
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith({
+      type: 'xstate.error.communication',
+      message: 'Unable to send event to an undefined actor'
+    });
   });
 });

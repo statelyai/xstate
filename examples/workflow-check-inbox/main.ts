@@ -1,5 +1,10 @@
-import { assign, fromCallback, fromPromise, createActor, setup } from 'xstate';
-
+import {
+  createMachine,
+  createCallbackLogic,
+  createAsyncLogic,
+  createActor
+} from 'xstate';
+import { z } from 'zod';
 async function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -7,45 +12,53 @@ async function delay(ms: number): Promise<void> {
     }, ms);
   });
 }
-
 interface Message {
   subject: string;
   priority: 'high' | 'low';
 }
-
 // https://github.com/serverlessworkflow/specification/tree/main/examples#check-inbox-periodically
-export const workflow = setup({
+export const workflow = createMachine({
   types: {
     context: {} as {
       messages: Message[];
     }
   },
-  actors: {
-    schedule: fromCallback<any, { interval: number }>(({ input, sendBack }) => {
+  actorSources: {
+    schedule: createCallbackLogic<
+      any,
+      {
+        interval: number;
+      }
+    >(({ input, sendBack }) => {
       const i = setInterval(() => {
         sendBack({ type: 'reminder' });
       }, input.interval);
-
       return () => {
         clearInterval(i);
       };
     }),
-    checkInboxFunction: fromPromise(async () => {
-      await delay(1000);
-
-      return [
-        {
-          subject: 'Hello',
-          priority: 'high'
-        },
-        {
-          subject: 'Hi',
-          priority: 'low'
-        }
-      ] satisfies Message[];
+    checkInboxFunction: createAsyncLogic({
+      run: async () => {
+        await delay(1000);
+        return [
+          {
+            subject: 'Hello',
+            priority: 'high'
+          },
+          {
+            subject: 'Hi',
+            priority: 'low'
+          }
+        ] satisfies Message[];
+      }
     }),
-    sendTextsFunction: fromPromise(
-      async ({ input }: { input: { messages: Message[] } }) => {
+    sendTextsFunction: createAsyncLogic({
+      schemas: {
+        input: z.custom<{
+          messages: Message[];
+        }>()
+      },
+      run: async ({ input }) => {
         await Promise.all(
           input.messages.map(async (message) => {
             console.log('sending text', message.subject);
@@ -57,14 +70,12 @@ export const workflow = setup({
             console.log('text sent', message.subject);
           })
         );
-
         return {
           status: 'success'
         };
       }
-    )
-  }
-}).createMachine({
+    })
+  },
   id: 'checkInbox',
   initial: 'Idle',
   context: {
@@ -85,11 +96,17 @@ export const workflow = setup({
     CheckInbox: {
       invoke: {
         src: 'checkInboxFunction',
-        onDone: {
-          target: 'SendTextForHighPriority',
-          actions: assign({
-            messages: ({ event }) => event.output
-          })
+        onDone: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'SendTextForHighPriority',
+            context: {
+              ...context,
+              messages: (({ event }) => event.output)({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       }
     },
@@ -106,13 +123,10 @@ export const workflow = setup({
     }
   }
 });
-
 const actor = createActor(workflow);
-
 actor.subscribe({
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
   }
 });
-
 actor.start();

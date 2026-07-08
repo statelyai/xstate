@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@xstate/example-mongodb-credit-check-api",
   "version": "1.0.0",
   "description": "",
@@ -14,7 +15,7 @@
     "body-parser": "^1.20.4",
     "express": "^4.22.1",
     "mongodb": "^6.21.0",
-    "xstate": "^5.28.0",
+    "xstate": "workspace:*",
     "zod": "^3.25.76"
   },
   "devDependencies": {
