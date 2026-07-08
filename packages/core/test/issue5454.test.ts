@@ -47,7 +47,7 @@ describe('initialTransition / transition with invoke registryKey (issue #5454)',
 
     const [snapshot, actions] = initialTransition(machine);
     expect(snapshot.value).toBe('idle');
-    expect(actions).toHaveLength(1); // the spawnChild action for the invoke
+    expect(actions).toHaveLength(2); // spawn + deferred start for the invoke
   });
 
   it('is idempotent: repeated calls do not throw', () => {
