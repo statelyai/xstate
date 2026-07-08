@@ -1457,7 +1457,6 @@ type StateTransitionFunction<
   false
 > | void;
 
-/** A function that computes a transition target's `input` from the event. */
 type TransitionInputFn<
   TSchema extends SetupStateSchema,
   TContext extends MachineContext
@@ -1465,16 +1464,6 @@ type TransitionInputFn<
   args: { context: TContext; event: EventObject } & OutputArg<EventObject>
 ) => StateInput<TSchema>;
 
-/**
- * The `input` requirement for one transition target:
- *
- * - No input schema → `input` optional
- * - Has input schema → `input` required
- *
- * The requirement is uniform across self- and cross-transitions. A self-
- * transition without `reenter` still requires `input`, but the runtime drops it
- * because the target is not re-entered.
- */
 type TransitionInputRequirement<
   TSchema extends SetupStateSchema,
   TContext extends MachineContext
@@ -1609,7 +1598,6 @@ type RequiredContextKeys<TCurrentContext, TTargetContext> = {
     : K;
 }[keyof TTargetContext];
 
-/** A function that computes an initial target's `input` from the event. */
 type InitialInputFn<
   TSchema extends SetupStateSchema,
   TContext extends MachineContext,

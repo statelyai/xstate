@@ -169,6 +169,11 @@ describe('setup', () => {
 
   it('createStateConfig should type a nested state input by dotted path', () => {
     const s = setup({
+      schemas: {
+        events: {
+          next: z.object({})
+        }
+      },
       states: {
         parent: {
           schemas: {
@@ -1415,48 +1420,6 @@ describe('setup', () => {
     inputs['(machine).active'] satisfies { sessionId: string };
 
     expect(true).toBe(true);
-  });
-
-  it('input should persist across self-transitions', () => {
-    const s = setup({
-      states: {
-        active: {
-          schemas: {
-            input: z.object({ count: z.number() })
-          }
-        }
-      }
-    });
-
-    const machine = s.createMachine({
-      initial: {
-        target: 'active',
-        input: { count: 1 }
-      },
-      states: {
-        active: {
-          on: {
-            // Self-transition without reenter
-            PING: {}
-          }
-        }
-      }
-    });
-
-    const actor = createActor(machine).start();
-
-    // Input should be set initially
-    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
-      count: 1
-    });
-
-    // Send event that triggers self-transition
-    actor.send({ type: 'PING' });
-
-    // Input should still be there
-    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
-      count: 1
-    });
   });
 
   it('invoke transitions should require context for incompatible targets', () => {
@@ -2776,14 +2739,22 @@ describe('required input on transitions', () => {
   // Runtime backstop: input on a transition that doesn't (re)enter its
   // target is silently dropped (not stored).
 
-  it('self-transition without `reenter` ignores provided input', () => {
+  it('self-transition input: kept on internal transitions, replaced on reenter', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const s = setup({
+      schemas: {
+        context: z.object({ count: z.number() }),
+        events: {
+          SET_MULTIPLIER_NO_REENTER: z.object({}),
+          SET_MULTIPLIER_REENTER: z.object({}),
+          MULTIPLY: z.object({})
+        }
+      },
       states: {
         active: {
           schemas: {
-            input: z.object({ count: z.number() })
+            input: z.object({ multiplier: z.number() })
           }
         }
       }
@@ -2791,9 +2762,10 @@ describe('required input on transitions', () => {
 
     const entryInputs: unknown[] = [];
     const machine = s.createMachine({
+      context: { count: 1 },
       initial: {
         target: 'active',
-        input: { count: 1 }
+        input: { multiplier: 3 }
       },
       states: {
         active: {
@@ -2801,82 +2773,64 @@ describe('required input on transitions', () => {
             entryInputs.push(input);
           },
           on: {
-            PING: {
+            // Internal self-transition (no reenter): stays in `active`, so
+            // this input is silently dropped and the resolved input stays 3.
+            SET_MULTIPLIER_NO_REENTER: {
               target: 'active',
-              input: { count: 2 }
-            }
-          }
-        }
-      }
-    });
-
-    const actor = createActor(machine).start();
-
-    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
-      count: 1
-    });
-    expect(entryInputs).toEqual([{ count: 1 }]);
-
-    actor.send({ type: 'PING' });
-
-    expect(warnSpy).not.toHaveBeenCalled();
-
-    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
-      count: 1
-    });
-
-    expect(entryInputs).toEqual([{ count: 1 }]);
-
-    warnSpy.mockRestore();
-  });
-
-  it('self-transition with `reenter: true` applies the new input and does not warn', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    const s = setup({
-      states: {
-        active: {
-          schemas: {
-            input: z.object({ count: z.number() })
-          }
-        }
-      }
-    });
-
-    const entryInputs: unknown[] = [];
-    const machine = s.createMachine({
-      initial: {
-        target: 'active',
-        input: { count: 1 }
-      },
-      states: {
-        active: {
-          entry: ({ input }) => {
-            entryInputs.push(input);
-          },
-          on: {
-            PING: {
+              input: { multiplier: 99 }
+            },
+            // Reentering self-transition: exits and re-enters `active`, so
+            // input is re-resolved to this value.
+            SET_MULTIPLIER_REENTER: {
               target: 'active',
               reenter: true,
-              input: { count: 2 }
-            }
+              input: { multiplier: 10 }
+            },
+            // Multiplies count by whatever input is currently resolved,
+            // making the running count a witness of the active multiplier.
+            MULTIPLY: ({ context, input }) => ({
+              context: { count: context.count * input.multiplier }
+            })
           }
         }
       }
     });
 
     const actor = createActor(machine).start();
-    expect(entryInputs).toEqual([{ count: 1 }]);
 
-    actor.send({ type: 'PING' });
-
-    expect(warnSpy).not.toHaveBeenCalled();
-
-    expect(entryInputs).toEqual([{ count: 1 }, { count: 2 }]);
-
+    // Initial entry resolves input to the value from the initial transition.
     expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
-      count: 2
+      multiplier: 3
     });
+    expect(entryInputs).toEqual([{ multiplier: 3 }]);
+
+    // count 1 * 3 = 3 confirms the handler sees the initial multiplier of 3.
+    actor.send({ type: 'MULTIPLY' });
+    expect(actor.getSnapshot().context.count).toBe(3); // 1 * 3
+
+    // Internal self-transition: no exit/entry, input untouched, nothing warned.
+    actor.send({ type: 'SET_MULTIPLIER_NO_REENTER' });
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(entryInputs).toEqual([{ multiplier: 3 }]);
+    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+      multiplier: 3
+    });
+
+    // count 3 * 3 = 9, not 3 * 99: the dropped input of 99 never took effect.
+    actor.send({ type: 'MULTIPLY' });
+    expect(actor.getSnapshot().context.count).toBe(9); // 3 * 3
+
+    // Reentering self-transition: re-runs entry and re-resolves input to 10.
+    actor.send({ type: 'SET_MULTIPLIER_REENTER' });
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(entryInputs).toEqual([{ multiplier: 3 }, { multiplier: 10 }]);
+    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+      multiplier: 10
+    });
+
+    // count 9 * 10 = 90 confirms the handler now sees the re-resolved input of 10.
+    actor.send({ type: 'MULTIPLY' });
+    expect(actor.getSnapshot().context.count).toBe(90); // 9 * 10
 
     warnSpy.mockRestore();
   });
