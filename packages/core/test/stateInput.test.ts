@@ -1971,11 +1971,12 @@ describe('required input on transitions', () => {
   // Each negative (@ts-expect-error) case is paired with a positive twin identical
   // except for `input`; the twin compiling clean proves the error is caused
   // specifically by the missing input, not something unrelated.
-  it('`on` transition to an input-schema sibling requires input', () => {
+  it('`on` transitions (object and function syntax) require a correctly-shaped input', () => {
     const s = setup({
       schemas: {
         events: {
-          LOAD: z.object({})
+          LOAD: z.object({}),
+          LOAD_FN: z.object({})
         }
       },
       states: {
@@ -1996,45 +1997,14 @@ describe('required input on transitions', () => {
             // @ts-expect-error - target `loading` declares schemas.input, so input is required
             LOAD: {
               target: 'loading'
-            }
+            },
+            // @ts-expect-error - returned transition to `loading` requires input
+            LOAD_FN: () => ({
+              target: 'loading'
+            })
           }
         },
         loading: {}
-      }
-    });
-
-    s.createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          on: {
-            LOAD: {
-              target: 'loading',
-              input: { userId: 'user-1' }
-            }
-          }
-        },
-        loading: {}
-      }
-    });
-
-    expect(true).toBe(true);
-  });
-
-  it('`on` transition rejects a wrong-shaped input', () => {
-    const s = setup({
-      schemas: {
-        events: {
-          LOAD: z.object({})
-        }
-      },
-      states: {
-        idle: {},
-        loading: {
-          schemas: {
-            input: z.object({ userId: z.string() })
-          }
-        }
       }
     });
 
@@ -2062,54 +2032,8 @@ describe('required input on transitions', () => {
             LOAD: {
               target: 'loading',
               input: { userId: 'user-1' }
-            }
-          }
-        },
-        loading: {}
-      }
-    });
-
-    expect(true).toBe(true);
-  });
-
-  it('function-syntax transition return requires input', () => {
-    const s = setup({
-      schemas: {
-        events: {
-          LOAD: z.object({})
-        }
-      },
-      states: {
-        idle: {},
-        loading: {
-          schemas: {
-            input: z.object({ userId: z.string() })
-          }
-        }
-      }
-    });
-
-    s.createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          on: {
-            // @ts-expect-error - returned transition to `loading` requires input
-            LOAD: () => ({
-              target: 'loading'
-            })
-          }
-        },
-        loading: {}
-      }
-    });
-
-    s.createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          on: {
-            LOAD: () => ({
+            },
+            LOAD_FN: () => ({
               target: 'loading',
               input: { userId: 'user-1' }
             })
@@ -2122,10 +2046,16 @@ describe('required input on transitions', () => {
     expect(true).toBe(true);
   });
 
-  it('`always` transition requires input', () => {
+  it('state-level `always`/`after`/`onTimeout`/`onDone`/`onError` transitions require input', () => {
     const s = setup({
       states: {
         idle: {},
+        pending: {},
+        work: {
+          states: {
+            step: {}
+          }
+        },
         loading: {
           schemas: {
             input: z.object({ userId: z.string() })
@@ -2143,133 +2073,23 @@ describe('required input on transitions', () => {
             target: 'loading'
           }
         },
-        loading: {}
-      }
-    });
-
-    s.createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          always: {
-            target: 'loading',
-            input: { userId: 'user-1' }
-          }
-        },
-        loading: {}
-      }
-    });
-
-    expect(true).toBe(true);
-  });
-
-  it('`after` delayed transition requires input', () => {
-    const s = setup({
-      states: {
-        idle: {},
-        loading: {
-          schemas: {
-            input: z.object({ userId: z.string() })
-          }
-        }
-      }
-    });
-
-    s.createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
+        pending: {
           after: {
             // @ts-expect-error - after target `loading` requires input
             1000: {
               target: 'loading'
             }
-          }
-        },
-        loading: {}
-      }
-    });
-
-    s.createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          after: {
-            1000: {
-              target: 'loading',
-              input: { userId: 'user-1' }
-            }
-          }
-        },
-        loading: {}
-      }
-    });
-
-    expect(true).toBe(true);
-  });
-
-  it('state-level `onTimeout` transition requires input', () => {
-    const s = setup({
-      states: {
-        idle: {},
-        loading: {
-          schemas: {
-            input: z.object({ userId: z.string() })
-          }
-        }
-      }
-    });
-
-    s.createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
+          },
           timeout: 1000,
           // @ts-expect-error - onTimeout target `loading` requires input
           onTimeout: {
             target: 'loading'
+          },
+          // @ts-expect-error - onError target `loading` requires input
+          onError: {
+            target: 'loading'
           }
         },
-        loading: {}
-      }
-    });
-
-    s.createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          timeout: 1000,
-          onTimeout: {
-            target: 'loading',
-            input: { userId: 'user-1' }
-          }
-        },
-        loading: {}
-      }
-    });
-
-    expect(true).toBe(true);
-  });
-
-  it('state-level `onDone` transition requires input', () => {
-    const s = setup({
-      states: {
-        work: {
-          states: {
-            step: {}
-          }
-        },
-        loading: {
-          schemas: {
-            input: z.object({ userId: z.string() })
-          }
-        }
-      }
-    });
-
-    s.createMachine({
-      initial: 'work',
-      states: {
         work: {
           initial: 'step',
           states: {
@@ -2285,55 +2105,37 @@ describe('required input on transitions', () => {
     });
 
     s.createMachine({
-      initial: 'work',
+      initial: 'idle',
       states: {
+        idle: {
+          always: {
+            target: 'loading',
+            input: { userId: 'user-1' }
+          }
+        },
+        pending: {
+          after: {
+            1000: {
+              target: 'loading',
+              input: { userId: 'user-1' }
+            }
+          },
+          timeout: 1000,
+          onTimeout: {
+            target: 'loading',
+            input: { userId: 'user-1' }
+          },
+          onError: {
+            target: 'loading',
+            input: { userId: 'user-1' }
+          }
+        },
         work: {
           initial: 'step',
           states: {
             step: { type: 'final' }
           },
           onDone: {
-            target: 'loading',
-            input: { userId: 'user-1' }
-          }
-        },
-        loading: {}
-      }
-    });
-
-    expect(true).toBe(true);
-  });
-
-  it('state-level `onError` transition requires input', () => {
-    const s = setup({
-      states: {
-        idle: {},
-        loading: {
-          schemas: {
-            input: z.object({ userId: z.string() })
-          }
-        }
-      }
-    });
-
-    s.createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          // @ts-expect-error - onError target `loading` requires input
-          onError: {
-            target: 'loading'
-          }
-        },
-        loading: {}
-      }
-    });
-
-    s.createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          onError: {
             target: 'loading',
             input: { userId: 'user-1' }
           }
@@ -2623,11 +2425,12 @@ describe('required input on transitions', () => {
     expect(true).toBe(true);
   });
 
-  it('self-transition to an input-schema target requires input (uniform rule)', () => {
+  it('self-transition to an input-schema target requires input (uniform rule, with or without reenter)', () => {
     const s = setup({
       schemas: {
         events: {
           PING: z.object({}),
+          PING_REENTER: z.object({}),
           GO: z.object({})
         }
       },
@@ -2654,6 +2457,11 @@ describe('required input on transitions', () => {
             PING: {
               target: 'active'
             },
+            // @ts-expect-error - reenter:true re-enters `active`, so input is required
+            PING_REENTER: {
+              target: 'active',
+              reenter: true
+            },
             // @ts-expect-error - target `other` declares schemas.input, so input is required
             GO: {
               target: 'other'
@@ -2664,7 +2472,7 @@ describe('required input on transitions', () => {
       }
     });
 
-    // Supplying input satisfies the requirement for both self and cross targets.
+    // Supplying input satisfies the requirement for self, reentering, and cross targets.
     s.createMachine({
       initial: { target: 'active', input: { count: 1 } },
       states: {
@@ -2674,6 +2482,11 @@ describe('required input on transitions', () => {
               target: 'active',
               input: { count: 2 }
             },
+            PING_REENTER: {
+              target: 'active',
+              reenter: true,
+              input: { count: 2 }
+            },
             GO: {
               target: 'other',
               input: { id: 'x' }
@@ -2681,55 +2494,6 @@ describe('required input on transitions', () => {
           }
         },
         other: {}
-      }
-    });
-
-    expect(true).toBe(true);
-  });
-
-  it('self-transition with `reenter: true` still requires input', () => {
-    const s = setup({
-      schemas: {
-        events: {
-          PING: z.object({})
-        }
-      },
-      states: {
-        active: {
-          schemas: {
-            input: z.object({ count: z.number() })
-          }
-        }
-      }
-    });
-
-    s.createMachine({
-      initial: { target: 'active', input: { count: 1 } },
-      states: {
-        active: {
-          on: {
-            // @ts-expect-error - reenter:true re-enters `active`, so input is required
-            PING: {
-              target: 'active',
-              reenter: true
-            }
-          }
-        }
-      }
-    });
-
-    s.createMachine({
-      initial: { target: 'active', input: { count: 1 } },
-      states: {
-        active: {
-          on: {
-            PING: {
-              target: 'active',
-              reenter: true,
-              input: { count: 2 }
-            }
-          }
-        }
       }
     });
 
