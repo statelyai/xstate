@@ -889,6 +889,22 @@ describe('transition function', () => {
     ).toBe(false);
   });
 
+  it('does not classify emitted reserved event names as built-in actions', () => {
+    const machine = createMachine({
+      entry: (_, enq) => {
+        enq.emit({ type: '@xstate.spawn' } as any);
+      }
+    });
+
+    const [, effects] = initialTransition(machine);
+    const emittedEffect = effects.find(
+      (effect) => effect.type === XSTATE_SPAWN
+    )!;
+
+    expect(isBuiltInExecutableAction(emittedEffect)).toBe(false);
+    expect(effects.filter(isEffect(XSTATE_START))).toHaveLength(0);
+  });
+
   it('emit actions should be returned', async () => {
     const machine = createMachine({
       // types: {

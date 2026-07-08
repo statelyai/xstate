@@ -21,7 +21,6 @@ import type {
   EventObject,
   ExecutableActionObject,
   MachineContext,
-  SpawnExecutableActionObject,
   SpecialExecutableAction,
   StartExecutableActionObject
 } from './types.ts';
@@ -286,10 +285,10 @@ export function deriveDeferredStarts(
   const childStarts: StartExecutableActionObject[] = [];
 
   for (const effect of effects) {
-    if (effect.type !== XSTATE_SPAWN) {
+    if (!isBuiltInExecutableAction(effect) || effect.type !== XSTATE_SPAWN) {
       continue;
     }
-    const { actor, logic } = effect as SpawnExecutableActionObject;
+    const { actor, logic } = effect;
     const start = createStartEffect(actor);
     if (logic === listenerLogic || logic === subscriptionLogic) {
       attachedStarts.push(start);
@@ -304,7 +303,29 @@ export function deriveDeferredStarts(
 export function isBuiltInExecutableAction(
   action: ExecutableActionObject
 ): action is SpecialExecutableAction {
-  return Object.prototype.hasOwnProperty.call(builtInActions, action.type);
+  if (!Object.prototype.hasOwnProperty.call(builtInActions, action.type)) {
+    return false;
+  }
+
+  switch (action.type) {
+    case '@xstate.spawn':
+      return (
+        'actor' in action &&
+        'logic' in action &&
+        'src' in action &&
+        'input' in action
+      );
+    case '@xstate.start':
+    case '@xstate.stop':
+      return 'actor' in action;
+    case '@xstate.raise':
+    case '@xstate.sendTo':
+      return 'event' in action;
+    case '@xstate.cancel':
+      return 'id' in action;
+    default:
+      return false;
+  }
 }
 
 export function resolveActionsWithContext(
