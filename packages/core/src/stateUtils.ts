@@ -1445,14 +1445,10 @@ function microstep(
           { resolveActions: false }
         );
         if (input && targets) {
-          for (const targetNode of targets) {
-            // Only store input for a target that's actually being (re)entered;
-            // otherwise the input would never be consumed (its entry actions
-            // never fire).
-            if (statesToEnter.has(targetNode)) {
-              stateInputMap[targetNode.id] = input;
-              stateInputsChanged = true;
-            }
+          const enteredTargets = targets.filter((t) => statesToEnter.has(t));
+          for (const targetNode of enteredTargets) {
+            stateInputMap[targetNode.id] = input;
+            stateInputsChanged = true;
           }
         }
       }
