@@ -79,6 +79,7 @@ function resolveDelay(
     context: MachineContext;
     event: EventObject;
     stateNode: AnyStateNode;
+    input?: Record<string, unknown>;
   }
 ) {
   if (typeof delay === 'function') {
@@ -91,6 +92,10 @@ function resolveDelay(
   }
 
   return configuredDelay;
+}
+
+function getStateInput(snapshot: AnyMachineSnapshot, stateNodeId: string) {
+  return snapshot._stateInputs?.[stateNodeId];
 }
 
 export function isAtomicStateNode(stateNode: AnyStateNode) {
@@ -272,6 +277,7 @@ function scheduleDelayedEvent(
     context: MachineContext;
     event: EventObject;
     delays: Record<string, any>;
+    input?: Record<string, unknown>;
   }) => any
 ) {
   const eventType = event.type;
@@ -382,7 +388,8 @@ export function getDelayedTransitions(
       resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
         context: x.context,
         event: x.event,
-        stateNode
+        stateNode,
+        input: x.input
       })
     );
     for (const transition of toTransitionConfigArray(transitions as any)) {
@@ -538,6 +545,14 @@ function resolveHistoryDefaultTransition(
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(stateNode.config.target);
   if (!normalizedTarget) {
+    if (stateNode.parent!.type === 'parallel') {
+      return {
+        target: [stateNode.parent!],
+        source: stateNode,
+        reenter: false,
+        eventType: '' as any
+      };
+    }
     return stateNode.parent!.initial as AnyTransitionDefinition;
   }
   return {
@@ -1157,7 +1172,7 @@ function microstep(
       }
 
       for (const exitStateNode of statesToExit) {
-        const stateInput = currentSnapshot._stateInputs?.[exitStateNode.id];
+        const stateInput = getStateInput(currentSnapshot, exitStateNode.id);
 
         const [exitActions, nextContext, internalEvents] = exitStateNode.exit
           ? getStateActionsAndContext(
@@ -1677,7 +1692,7 @@ function microstep(
 
       nextStateNodesToExit.forEach((stateNode) => {
         if (stateNode.exit) {
-          const stateInput = nextState._stateInputs?.[stateNode.id];
+          const stateInput = getStateInput(nextState, stateNode.id);
           const [exitActions, , nextInternalEvents] = getStateActionsAndContext(
             stateNode.exit,
             nextState.context,
@@ -1759,7 +1774,8 @@ export function getTransitionResult(
     actions: snapshot.machine.implementations.actions,
     actorSources: snapshot.machine.implementations.actorSources,
     guards: snapshot.machine.implementations.guards,
-    delays: snapshot.machine.implementations.delays
+    delays: snapshot.machine.implementations.delays,
+    input: getStateInput(snapshot, transition.source.id)
   };
 
   if (transition.to) {
@@ -1994,7 +2010,8 @@ export function hasEffect(
       event,
       snapshot,
       self,
-      snapshot.machine.implementations
+      snapshot.machine.implementations,
+      transition.source.id
     );
   }
 
@@ -2007,7 +2024,8 @@ function transitionToHasEffect(
   event: EventObject,
   snapshot: AnyMachineSnapshot,
   self: AnyActor,
-  implementations: AnyMachineSnapshot['machine']['implementations']
+  implementations: AnyMachineSnapshot['machine']['implementations'],
+  sourceId: string
 ) {
   let hasEffect = false;
   let res;
@@ -2032,7 +2050,8 @@ function transitionToHasEffect(
         actions: implementations.actions,
         actorSources: implementations.actorSources,
         guards: implementations.guards,
-        delays: implementations.delays
+        delays: implementations.delays,
+        input: getStateInput(snapshot, sourceId)
       },
       createEnqueueObject(
         {
@@ -2153,7 +2172,8 @@ export function evaluateCandidate(
       event,
       snapshot,
       self,
-      stateNode.machine.implementations
+      stateNode.machine.implementations,
+      candidate.source.id
     );
   }
 

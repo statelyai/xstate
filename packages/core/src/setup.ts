@@ -923,7 +923,8 @@ type StateNodeConfigWithNestedInput<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TSystemRegistry
+      TSystemRegistry,
+      StateInput<TStateSchema>
     >;
     always?: StateTransitionConfigOrTarget<
       TSiblingStateSchemas,
@@ -938,7 +939,8 @@ type StateNodeConfigWithNestedInput<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TSystemRegistry
+      TSystemRegistry,
+      StateInput<TStateSchema>
     >;
     invoke?: SingleOrArray<
       SetupInvokeConfig<
@@ -969,7 +971,8 @@ type StateNodeConfigWithNestedInput<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TSystemRegistry
+      TSystemRegistry,
+      StateInput<TStateSchema>
     >;
   },
   TStateSchema['states'] extends Record<string, SetupStateSchema>
@@ -1024,7 +1027,8 @@ type StateTransitions<
   TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TInput = undefined
 > = {
   [K in EventDescriptor<TEvent>]?: StateTransitionConfigOrTarget<
     TStateSchemas,
@@ -1039,7 +1043,8 @@ type StateTransitions<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TSystemRegistry
+    TSystemRegistry,
+    TInput
   >;
 };
 
@@ -1167,7 +1172,8 @@ type StateTransitionConfigOrTarget<
   TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TInput = undefined
 > =
   | undefined
   | StateTransitionObjectConfig<
@@ -1196,7 +1202,8 @@ type StateTransitionConfigOrTarget<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TSystemRegistry
+      TSystemRegistry,
+      TInput
     >;
 
 type StateTransitionObjectConfig<
@@ -1355,7 +1362,8 @@ type StateTransitionFunction<
   TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TInput = undefined
 > = (
   args: {
     context: TContext;
@@ -1369,6 +1377,7 @@ type StateTransitionFunction<
     actorSources: TActorMap;
     guards: TGuardMap;
     delays: TDelayMap;
+    input: TInput;
   } & OutputArg<TExpressionEvent>,
   enq: EnqueueObject<TEvent, TEmitted, TSystemRegistry>
 ) => StateTransitionResult<
@@ -1789,6 +1798,9 @@ export interface SetupReturn<
 
   /** State input schemas from setup config */
   states: TStates;
+
+  /** Schemas from setup config */
+  schemas: TSchemas;
 }
 
 type SetupConfigSchemas<TConfig> = TConfig extends { schemas?: infer TSchemas }
@@ -1987,7 +1999,8 @@ export function setup<
     createStateConfig(...args: unknown[]) {
       return args.length > 1 ? args[1] : args[0];
     },
-    states
+    states,
+    schemas: schemas ?? ({} as TSchemas)
   };
 }
 
@@ -2123,6 +2136,8 @@ function mergeSchemas(
     ...left,
     ...right,
     events: mergeMaps(left?.events, right?.events),
+    actions: mergeMaps(left?.actions, right?.actions),
+    guards: mergeMaps(left?.guards, right?.guards),
     emitted: mergeMaps(left?.emitted, right?.emitted),
     children: mergeMaps(left?.children, right?.children)
   };
