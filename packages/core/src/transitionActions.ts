@@ -25,6 +25,13 @@ import type {
   StartExecutableActionObject
 } from './types.ts';
 
+const builtInExecutableAction = Symbol('xstate.builtInExecutableAction');
+
+function brandBuiltInExecutableAction<T extends object>(action: T): T {
+  Object.defineProperty(action, builtInExecutableAction, { value: true });
+  return action;
+}
+
 export function mergeContextPatch(
   context: MachineContext,
   patch: MachineContext
@@ -263,14 +270,14 @@ function getBuiltInActionFields(
 function createStartEffect(actor: AnyActor): StartExecutableActionObject {
   const action = builtInActions['@xstate.start'];
   const args: Parameters<(typeof builtInActions)['@xstate.start']> = [actor];
-  return {
+  return brandBuiltInExecutableAction({
     type: XSTATE_START,
     params: { action, args },
     args,
     exec: action.bind(null, actor),
     actor,
     id: actor.id
-  };
+  });
 }
 
 /**
@@ -303,29 +310,7 @@ export function deriveDeferredStarts(
 export function isBuiltInExecutableAction(
   action: ExecutableActionObject
 ): action is SpecialExecutableAction {
-  if (!Object.prototype.hasOwnProperty.call(builtInActions, action.type)) {
-    return false;
-  }
-
-  switch (action.type) {
-    case '@xstate.spawn':
-      return (
-        'actor' in action &&
-        'logic' in action &&
-        'src' in action &&
-        'input' in action
-      );
-    case '@xstate.start':
-    case '@xstate.stop':
-      return 'actor' in action;
-    case '@xstate.raise':
-    case '@xstate.sendTo':
-      return 'event' in action;
-    case '@xstate.cancel':
-      return 'id' in action;
-    default:
-      return false;
-  }
+  return (action as any)[builtInExecutableAction] === true;
 }
 
 export function resolveActionsWithContext(
@@ -421,7 +406,7 @@ export function resolveActionsWithContext(
           ? getBuiltInActionFields(action.action, action.args)
           : undefined;
 
-      executableActions.push({
+      const executableAction = {
         type:
           typeof action === 'object'
             ? 'action' in action && typeof action.action === 'function'
@@ -437,7 +422,13 @@ export function resolveActionsWithContext(
             ? () => actorScope.defer(() => actorScope.emit(action))
             : undefined),
         ...builtInFields
-      });
+      };
+
+      executableActions.push(
+        builtInFields
+          ? brandBuiltInExecutableAction(executableAction)
+          : executableAction
+      );
       continue;
     }
   }
