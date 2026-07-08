@@ -16,8 +16,8 @@ const EVENT_LIKE_KEYS = new Set(['on', 'after']);
 const DIRECT_TRANSITION_KEYS = new Set(['onDone', 'onError', 'always']);
 
 /**
- * Wraps a bare string transition value into `{ target: '<str>' }`. Returns true
- * if a change was made.
+ * Wraps a bare string transition value into `{ target: '<str>' }`.
+ * Returns true if a change was made.
  */
 function wrapValue(node: Node): boolean {
   if (Node.isStringLiteral(node)) {

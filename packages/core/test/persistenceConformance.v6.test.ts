@@ -3,10 +3,9 @@
  *
  * Six+ open v5 issues are believed fixed by the v6 persistence rewrite (pending
  * timers as `_pendingEffects` + `timers` restore strategy, snapshot versioning
- *
- * - `migrate`, children registered on `snapshot.children`, `getInitialSnapshot`
- *   single-init). Each `describe` proves or disproves one issue via the
- *   canonical JSON round-trip:
+ * + `migrate`, children registered on `snapshot.children`, `getInitialSnapshot`
+ * single-init). Each `describe` proves or disproves one issue via the canonical
+ * JSON round-trip:
  *
  * Const persisted = actor.getPersistedSnapshot(); const json =
  * JSON.parse(JSON.stringify(persisted)); // MUST go through JSON const restored

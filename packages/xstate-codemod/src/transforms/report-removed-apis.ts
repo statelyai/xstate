@@ -2,7 +2,7 @@ import { SourceFile, SyntaxKind } from 'ts-morph';
 import type { Transform, TransformResult } from '../types.ts';
 
 /**
- * V5 `'xstate'` exports that require structural rewrites in v6 and are too
+ * v5 `'xstate'` exports that require structural rewrites in v6 and are too
  * risky to automate. Value is a one-line hint for the v6 replacement.
  */
 const REMOVED_APIS: Record<string, string> = {
@@ -17,13 +17,11 @@ const REMOVED_APIS: Record<string, string> = {
   spawnChild: 'use `enq.spawn(...)` inside an action',
   stop: 'use `enq.stop(...)` inside an action',
   stopChild: 'use `enq.stop(...)` inside an action',
-  enqueueActions:
-    'action functions now receive an `enq` enqueue object directly',
+  enqueueActions: 'action functions now receive an `enq` enqueue object directly',
   and: 'inline the guard as `(...) => a(...) && b(...)`',
   or: 'inline the guard as `(...) => a(...) || b(...)`',
   not: 'inline the guard as `(...) => !a(...)`',
-  stateIn:
-    'use `self.getSnapshot().matches(...)` or `checkStateIn(snapshot, "#id")`',
+  stateIn: 'use `self.getSnapshot().matches(...)` or `checkStateIn(snapshot, "#id")`',
   fromPromise: 'use `createAsyncLogic(...)`',
   fromTransition: 'use `createLogic({ context, run })`'
 };

@@ -67,7 +67,7 @@ setup({}).createMachine({
     expect(output).toContain("on: { EVT: { target: 'b' } }");
   });
 
-  it("does not touch a plain object not passed to createMachine (mustn't-touch case)", () => {
+  it('does not touch a plain object not passed to createMachine (mustn\'t-touch case)', () => {
     const input = `const config = {
   states: { a: { on: { EVT: 'b' } } }
 };

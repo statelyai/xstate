@@ -26,9 +26,7 @@ Parallel-state transitions no longer disturb sibling regions:
   ```ts
   // from Operation.Waiting:
   on: {
-    TOGGLE_MODE: {
-      target: '#Demo';
-    } // in the Mode region
+    TOGGLE_MODE: { target: '#Demo' } // in the Mode region
   }
   // sending TOGGLE_MODE enters Mode.Demo without exiting Operation
   ```

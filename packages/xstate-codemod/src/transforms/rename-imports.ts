@@ -47,7 +47,9 @@ export const renameImports: Transform = {
           // Not aliased: rename the binding and every reference to it.
           const nameNode = spec.getNameNode();
           const refs = Node.isIdentifier(nameNode)
-            ? nameNode.findReferencesAsNodes().filter((n) => n !== nameNode)
+            ? nameNode
+                .findReferencesAsNodes()
+                .filter((n) => n !== nameNode)
             : [];
           for (const ref of refs) {
             if (ref.getKind() === SyntaxKind.Identifier) {

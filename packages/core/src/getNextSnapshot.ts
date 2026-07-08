@@ -13,12 +13,9 @@ import {
 export function createInertActorScope<T extends AnyActorLogic>(
   actorLogic: T
 ): AnyActorScope {
-  const self = createActor(
-    actorLogic as AnyActorLogic,
-    {
-      _inert: true
-    } as any
-  );
+  const self = createActor(actorLogic as AnyActorLogic, {
+    _inert: true
+  } as any);
   const inertActorScope: ActorScope<
     SnapshotFrom<T>,
     EventFromLogic<T>,

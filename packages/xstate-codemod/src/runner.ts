@@ -1,9 +1,6 @@
 import { Project, SourceFile } from 'ts-morph';
 import type { Transform } from './types.ts';
-import {
-  transforms as allTransforms,
-  transformsByName
-} from './transforms/index.ts';
+import { transforms as allTransforms, transformsByName } from './transforms/index.ts';
 
 export interface FileTransformReport {
   filePath: string;
@@ -74,9 +71,9 @@ export function applyToSourceFile(
 /**
  * Runs the selected transforms over the given files.
  *
- * @param filePaths Absolute or cwd-relative file paths to process
- * @param transforms The transforms to apply
- * @param options.write When true, saves modified files to disk
+ * @param filePaths absolute or cwd-relative file paths to process
+ * @param transforms the transforms to apply
+ * @param options.write when true, saves modified files to disk
  */
 export function run(
   filePaths: string[],

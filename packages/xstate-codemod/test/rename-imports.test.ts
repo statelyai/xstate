@@ -21,9 +21,10 @@ createActor(other).start();`)
 let a: Interpreter;`;
     const { output, changed } = applyTransform(renameImports, input);
     expect(changed).toBe(true);
-    expect(output).toContain(
-      `import { Interpreter } from 'xstate';`.replace('Interpreter', 'Actor')
-    );
+    expect(output).toContain(`import { Interpreter } from 'xstate';`.replace(
+      'Interpreter',
+      'Actor'
+    ));
     expect(output).toContain('let a: Actor;');
   });
 
@@ -52,7 +53,7 @@ const a = run(machine);`;
     expect(output).toContain('const a = run(machine);');
   });
 
-  it("does not touch non-xstate imports (mustn't-touch case)", () => {
+  it('does not touch non-xstate imports (mustn\'t-touch case)', () => {
     const input = `import { interpret } from 'some-other-lib';
 const x = interpret(thing);`;
     const { output, changed } = applyTransform(renameImports, input);

@@ -42,9 +42,7 @@ createMachine({
     const { output, changed, notes } = applyTransform(typesToSchemas, input);
     expect(changed).toBe(true);
     expect(output).toContain('context: types<{ a: number }>()');
-    expect(output).toContain(
-      'TODO(xstate-codemod): migrate events to schemas.events map'
-    );
+    expect(output).toContain('TODO(xstate-codemod): migrate events to schemas.events map');
     expect(notes.some((n) => n.includes("could not migrate 'events'"))).toBe(
       true
     );
@@ -60,7 +58,7 @@ createMachine({
     expect(notes.some((n) => n.includes("left 'types' unchanged"))).toBe(true);
   });
 
-  it("does not touch a `types` property outside createMachine/setup (mustn't-touch case)", () => {
+  it('does not touch a `types` property outside createMachine/setup (mustn\'t-touch case)', () => {
     const input = `const x = {
   types: {} as { context: { a: number } }
 };`;
