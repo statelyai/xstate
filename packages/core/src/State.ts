@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { getFanOutPersistedProps } from './actors/fanout.ts';
 import { $$ACTOR_TYPE } from './createActor.ts';
 import { getStateValue } from './stateUtils.ts';
 import type {
@@ -569,7 +570,8 @@ export function getPersistedSnapshot<
       snapshot: child.getPersistedSnapshot(options),
       src: child.src,
       registryKey: child.registryKey,
-      syncSnapshot: child._syncSnapshot
+      syncSnapshot: child._syncSnapshot,
+      ...getFanOutPersistedProps(child)
     };
   }
 

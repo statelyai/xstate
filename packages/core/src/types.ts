@@ -381,6 +381,17 @@ export interface InvokeDefinition<
   input?:
     | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>
     | NonReducibleUnknown;
+  items?:
+    | Mapper<TContext, TEvent, readonly unknown[], TEvent>
+    | readonly unknown[];
+  join?: 'all' | 'allSettled' | 'race' | 'any';
+  concurrency?: number;
+  key?: (args: {
+    context: TContext;
+    event: TEvent;
+    item: unknown;
+    index: number;
+  }) => string;
   /**
    * The transition to take upon the invoked child machine reaching its final
    * top-level state.

@@ -496,7 +496,44 @@ type InlineInvokeConfig<
               args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
             ) => unknown)
           | NonReducibleUnknown;
-      };
+      } & UntypedFanOutInvokeFields<TContext, TEvent, TEmitted, TChildren>;
+
+type FanOutJoin = 'all' | 'allSettled' | 'race' | 'any';
+
+type FanOutInvokeInputArgs<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TItem
+> = InvokeInputArgs<TContext, TEvent, TEmitted, TChildren> & {
+  item: TItem;
+  index: number;
+};
+
+/**
+ * Fan-out fields for invokes whose actor logic is not registered (inline logic
+ * or a permissive actor map). The item type cannot be correlated with a child
+ * input type, so `item` is `unknown`. Kept flat (all-optional) so a plain
+ * single invoke's `input` mapper still receives its normal contextual args.
+ */
+type UntypedFanOutInvokeFields<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>
+> = {
+  items?:
+    | readonly unknown[]
+    | ((
+        args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+      ) => readonly unknown[]);
+  key?: (
+    args: FanOutInvokeInputArgs<TContext, TEvent, TEmitted, TChildren, unknown>
+  ) => string;
+  join?: FanOutJoin;
+  concurrency?: number;
+};
 
 /**
  * Invoke config. A union of:
@@ -559,7 +596,7 @@ export type Next_InvokeConfig<
               args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
             ) => unknown)
           | NonReducibleUnknown;
-      }
+      } & UntypedFanOutInvokeFields<TContext, TEvent, TEmitted, TChildren>
   :
       | {
           [K in keyof TActorMap & string]: Next_InvokeConfigBase<
@@ -576,11 +613,34 @@ export type Next_InvokeConfig<
             DoneActorEvent<OutputFrom<TActorMap[K]>>
           > & {
             id?: ChildIdForLogic<TActorMap[K], TChildren>;
+            // `input` always sees the plain invoke args (never `item`/`index`),
+            // whether this is a single invoke or a fan-out. For a fan-out each
+            // `items` element IS the child input, so an `input` mapper is not
+            // needed to produce per-item inputs.
             input?:
               | ((
                   args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
                 ) => InputFrom<TActorMap[K]>)
               | InputFrom<TActorMap[K]>;
+            // Fan-out: one child per item; each item IS a child input, so
+            // `items` is typed as the actor's input type and `key` sees that
+            // same item type.
+            items?:
+              | readonly InputFrom<TActorMap[K]>[]
+              | ((
+                  args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+                ) => readonly InputFrom<TActorMap[K]>[]);
+            key?: (
+              args: FanOutInvokeInputArgs<
+                TContext,
+                TEvent,
+                TEmitted,
+                TChildren,
+                InputFrom<TActorMap[K]>
+              >
+            ) => string;
+            join?: FanOutJoin;
+            concurrency?: number;
           } & (
               | {
                   src: K;

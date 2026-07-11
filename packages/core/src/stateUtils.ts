@@ -18,6 +18,7 @@ import {
   isErrorEvent,
   matchesEventDescriptor
 } from './utils.ts';
+import { createFanOutLogic, resolveFanOutItems } from './actors/fanout.ts';
 import {
   AnyEventObject,
   AnyMachineSnapshot,
@@ -1488,17 +1489,26 @@ function microstep(
             );
           }
 
-          const input =
-            typeof invokeDef.input === 'function'
-              ? invokeDef.input({
-                  self: actorScope.self,
-                  context: nextState.context,
-                  event,
-                  output: getEventOutput(event)
-                })
-              : invokeDef.input;
+          const inputArgs = {
+            self: actorScope.self,
+            context: nextState.context,
+            event,
+            output: getEventOutput(event)
+          };
+          let input;
+          let actorLogic = logic;
 
-          const actor = createActor(logic, {
+          if (invokeDef.items !== undefined) {
+            input = resolveFanOutItems(invokeDef, inputArgs);
+            actorLogic = createFanOutLogic(logic, invokeDef);
+          } else {
+            input =
+              typeof invokeDef.input === 'function'
+                ? invokeDef.input(inputArgs)
+                : invokeDef.input;
+          }
+
+          const actor = createActor(actorLogic, {
             ...invokeDef,
             input,
             parent: actorScope.self,

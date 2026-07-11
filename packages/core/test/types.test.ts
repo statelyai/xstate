@@ -1361,6 +1361,108 @@ describe('events', () => {
     });
   });
 
+  it('should type fan-out invoke `items`, `key` and `join`', () => {
+    const worker = createAsyncLogic({
+      schemas: {
+        input: types<{ id: string }>(),
+        output: types<number>()
+      },
+      run: async () => 1
+    });
+
+    createMachine({
+      actorSources: { worker },
+      initial: 'pending',
+      states: {
+        pending: {
+          invoke: {
+            src: 'worker',
+            // items are the child inputs (`InputFrom<worker>`)
+            items: [{ id: 'a' }, { id: 'b' }],
+            key: ({ item, index }) => {
+              // item is strongly typed as the actor's input
+              item.id satisfies string;
+              index satisfies number;
+              // @ts-expect-error `item` is `{ id: string }`, not a number
+              item.id satisfies number;
+              return item.id;
+            },
+            join: 'any',
+            concurrency: 2
+          }
+        }
+      }
+    });
+
+    // items function form: element type is inferred as the actor input
+    createMachine({
+      actorSources: { worker },
+      initial: 'pending',
+      states: {
+        pending: {
+          invoke: {
+            src: 'worker',
+            items: () => [{ id: 'a' }],
+            key: ({ item }) => item.id
+          }
+        }
+      }
+    });
+  });
+
+  it('should error when fan-out `items` do not match the actor input type', () => {
+    const worker = createAsyncLogic({
+      schemas: {
+        input: types<{ id: string }>(),
+        output: types<number>()
+      },
+      run: async () => 1
+    });
+
+    createMachine({
+      actorSources: { worker },
+      initial: 'pending',
+      // @ts-expect-error items must be assignable to `InputFrom<worker>`
+      states: {
+        pending: {
+          invoke: {
+            src: 'worker',
+            items: [{ id: 1 }, { id: 2 }]
+          }
+        }
+      }
+    });
+  });
+
+  it('should not add `item`/`index` to a non-fan-out invoke `input` mapper', () => {
+    const worker = createAsyncLogic({
+      schemas: {
+        input: types<{ id: string }>(),
+        output: types<number>()
+      },
+      run: async () => 1
+    });
+
+    createMachine({
+      actorSources: { worker },
+      initial: 'pending',
+      states: {
+        pending: {
+          invoke: {
+            src: 'worker',
+            input: (args) => {
+              // @ts-expect-error a plain invoke's args have no `item`
+              args.item;
+              // @ts-expect-error a plain invoke's args have no `index`
+              args.index;
+              return { id: 'a' };
+            }
+          }
+        }
+      }
+    });
+  });
+
   it('should provide contextual `event` type in transition actions when the matching event has a union `.type`', () => {
     createMachine({
       schemas: {

@@ -1,4 +1,5 @@
 import isDevelopment from '#is-development';
+import { restoreFanOutLogic, type FanOutOptions } from './actors/fanout.ts';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createErrorPlatformEvent, createInitEvent } from './eventUtils.ts';
 
@@ -1001,6 +1002,7 @@ export class StateMachine<
         snapshot: Snapshot<unknown>;
         syncSnapshot?: boolean;
         registryKey?: string;
+        fanout?: FanOutOptions;
       }
     > = snapshotData.children;
 
@@ -1009,12 +1011,14 @@ export class StateMachine<
       const childState = actorData.snapshot;
       const src = actorData.src;
 
-      const logic =
+      let logic =
         typeof src === 'string' ? resolveReferencedActor(this, src) : src;
 
       if (!logic) {
         continue;
       }
+
+      logic = restoreFanOutLogic(logic, actorData);
 
       const actor = createActor(logic, {
         id: actorId,
