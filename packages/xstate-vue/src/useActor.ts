@@ -1,5 +1,11 @@
 import isDevelopment from '#is-development';
-import { Ref } from 'vue';
+import {
+  effectScope,
+  getCurrentScope,
+  onScopeDispose,
+  Ref,
+  shallowRef
+} from 'vue';
 import {
   Actor,
   ActorOptions,
@@ -11,7 +17,6 @@ import {
   type RequiredActorOptionsKeys
 } from 'xstate';
 import { useActorRef } from './useActorRef.ts';
-import { useSelector } from './useSelector.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   actorLogic: TLogic,
@@ -42,16 +47,26 @@ export function useActor(
     );
   }
 
-  function listener(nextSnapshot: Snapshot<unknown>) {
-    snapshot.value = nextSnapshot;
+  const scope = effectScope();
+
+  const result = scope.run(() => {
+    const snapshot = shallowRef();
+
+    function listener(nextSnapshot: Snapshot<unknown>) {
+      snapshot.value = nextSnapshot;
+    }
+
+    const actorRef = useActorRef(actorLogic, options, listener);
+    snapshot.value = actorRef.getSnapshot();
+    return { snapshot, actorRef, send: actorRef.send };
+  });
+
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      scope.stop();
+    });
   }
 
-  const actorRef = useActorRef(actorLogic, options, listener);
-  const snapshot = useSelector(actorRef, (s) => s);
-
-  return {
-    snapshot,
-    send: actorRef.send,
-    actorRef: actorRef
-  };
+  if (!result) throw new Error('useActor: effectScope did not run correctly');
+  return result;
 }

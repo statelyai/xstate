@@ -8,7 +8,7 @@
 import { useActorRef } from '../src/index.ts';
 import { createMachine } from 'xstate';
 
-import { defineComponent, ref } from 'vue';
+import { defineComponent, nextTick, ref } from 'vue';
 const machine = createMachine({
   initial: 'inactive',
   states: {
@@ -28,7 +28,9 @@ const machine = createMachine({
 export default defineComponent({
   setup() {
     const actor = useActorRef(machine, {}, (nextState) => {
-      state.value = nextState.value;
+      nextTick(() => {
+        state.value = nextState.value;
+      });
     });
     const state = ref(actor.getSnapshot().value);
 
