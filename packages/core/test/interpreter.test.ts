@@ -1188,6 +1188,38 @@ describe('interpreter', () => {
       return promise;
     });
 
+    it('should not throw when sending an unserializable event to a stopped actor', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const testMachine = createMachine({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            on: {
+              TRIGGER: 'active'
+            }
+          },
+          active: {}
+        }
+      });
+
+      const service = createActor(testMachine).start();
+
+      service.stop();
+
+      // event with a circular reference cannot be JSON.stringify'd
+      const circular: any = { type: 'TRIGGER' };
+      circular.self = circular;
+
+      expect(() => {
+        service.send(circular);
+      }).not.toThrow();
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+
+      warnSpy.mockRestore();
+    });
+
     it('stopping a not-started interpreter should not crash', () => {
       const service = createActor(
         createMachine({
