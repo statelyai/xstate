@@ -656,17 +656,17 @@ describe('setup', () => {
     });
 
     s.createMachine({
-      // @ts-expect-error - initial should be a setup-defined state key
       initial: 'missing',
       states: {
         idle: {},
-        loading: {}
+        loading: {},
+        missing: {}
       }
     });
 
     s.createMachine({
       initial: {
-        // @ts-expect-error - initial target should be a setup-defined state key
+        // @ts-expect-error - initial transition input requires a setup-defined target
         target: 'missing'
       },
       states: {
@@ -680,7 +680,6 @@ describe('setup', () => {
       states: {
         idle: {},
         loading: {},
-        // @ts-expect-error - states should be setup-defined state keys
         missing: {}
       }
     });
@@ -719,7 +718,7 @@ describe('setup', () => {
     });
   });
 
-  it('should not treat nested setup states as top-level keys', () => {
+  it('should allow top-level machine states outside the setup state tree', () => {
     const s = setup({
       schemas: {
         events: {
@@ -741,11 +740,11 @@ describe('setup', () => {
       initial: 'foo',
       states: {
         foo: {
-          // @ts-expect-error - nested initial should be a setup-defined child key
           initial: 'asdf',
           states: {
             bar: {},
-            baz: {}
+            baz: {},
+            asdf: {}
           }
         },
         rootSibling: {}
@@ -772,7 +771,6 @@ describe('setup', () => {
     });
 
     s.createMachine({
-      // @ts-expect-error - nested state key should not be a top-level initial
       initial: 'bar',
       states: {
         foo: {
@@ -782,6 +780,7 @@ describe('setup', () => {
             baz: {}
           }
         },
+        bar: {},
         rootSibling: {}
       }
     });
@@ -794,11 +793,9 @@ describe('setup', () => {
           states: {
             bar: {},
             baz: {},
-            // @ts-expect-error - nested state should be setup-defined child key
             qux: {}
           }
         },
-        // @ts-expect-error - nested state key should not be a top-level state
         bar: {},
         rootSibling: {}
       }
@@ -1698,6 +1695,93 @@ describe('setup', () => {
       // @ts-expect-error - matched success context should not be nullable
       snapshot.context.user satisfies null;
     }
+    expect(true).toBe(true);
+  });
+
+  it('state schemas should allow undeclared sibling states', () => {
+    setup({
+      states: {
+        done: {
+          schemas: {
+            context: z.object({ result: z.string() })
+          }
+        }
+      }
+    }).createMachine({
+      schemas: {
+        context: z.object({ result: z.string().nullable() })
+      },
+      initial: 'planning',
+      context: { result: null },
+      states: {
+        planning: {
+          entry: ({ context }) => {
+            context.result satisfies string | null;
+          },
+          on: {
+            FINISH: {
+              target: 'done',
+              context: { result: 'complete' }
+            }
+          }
+        },
+        done: {
+          entry: ({ context }) => {
+            context.result satisfies string;
+            // @ts-expect-error - the declared state schema should still narrow
+            context.result satisfies null;
+          },
+          on: {
+            RESET: {
+              target: 'planning',
+              context: { result: null }
+            }
+          }
+        }
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('transition context should satisfy the target state context', () => {
+    const s = setup({
+      states: {
+        deciding: {},
+        guessed: {
+          schemas: {
+            context: z.object({ guess: z.string() })
+          }
+        }
+      }
+    });
+
+    s.createMachine({
+      schemas: {
+        context: z.object({ guess: z.string().nullable() })
+      },
+      initial: 'deciding',
+      context: { guess: null },
+      states: {
+        deciding: {},
+        guessed: {
+          entry: ({ context }) => {
+            context.guess satisfies string;
+          },
+          on: {
+            PLAY_AGAIN: {
+              target: 'deciding',
+              context: { guess: null }
+            },
+            PLAY_AGAIN_FUNCTION: () => ({
+              target: 'deciding',
+              context: { guess: null }
+            })
+          }
+        }
+      }
+    });
+
     expect(true).toBe(true);
   });
 

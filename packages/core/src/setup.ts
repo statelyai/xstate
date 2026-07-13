@@ -261,6 +261,13 @@ type SetupStateTarget<TStateSchemas extends Record<string, SetupStateSchema>> =
       ? string
       : SetupStateKeys<TStateSchemas> | `.${string}` | `#${string}`;
 
+type StateSchemasWithKeys<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TStateKeys extends string
+> = TStateSchemas & {
+  [K in Exclude<TStateKeys, keyof TStateSchemas>]: {};
+};
+
 /**
  * The sibling state schemas of a dotted path: the children of the path's
  * parent. A bare transition target resolves relative to the parent, so the
@@ -350,55 +357,6 @@ type SetupStateNodeConfig<
   TSetupDelayMap,
   TSystemRegistry
 >;
-
-type InvalidSetupStateKeys<
-  TConfig,
-  TStateSchemas extends Record<string, SetupStateSchema>
-> =
-  string extends SetupStateKeys<TStateSchemas>
-    ? never
-    : [SetupStateKeys<TStateSchemas>] extends [never]
-      ? never
-      : TConfig extends { states: infer TStates }
-        ? Exclude<keyof TStates & string, SetupStateKeys<TStateSchemas>>
-        : never;
-
-type ValidateSetupStateKeys<
-  TConfig,
-  TStateSchemas extends Record<string, SetupStateSchema>
-> = [InvalidSetupStateKeys<TConfig, TStateSchemas>] extends [never]
-  ? unknown
-  : {
-      states: {
-        [K in InvalidSetupStateKeys<TConfig, TStateSchemas>]: never;
-      };
-    };
-
-type ValidateNestedSetupStateKeys<
-  TConfig,
-  TStateSchemas extends Record<string, SetupStateSchema>
-> = TConfig extends { states: infer TConfigStates }
-  ? TConfigStates extends Record<string, unknown>
-    ? {
-        states: {
-          [K in keyof TConfigStates &
-            keyof TStateSchemas &
-            string]: TStateSchemas[K] extends {
-            states: infer TChildStateSchemas;
-          }
-            ? TChildStateSchemas extends Record<string, SetupStateSchema>
-              ? TConfigStates[K] &
-                  ValidateSetupStateKeys<TConfigStates[K], TChildStateSchemas> &
-                  ValidateNestedSetupStateKeys<
-                    TConfigStates[K],
-                    TChildStateSchemas
-                  >
-              : TConfigStates[K]
-            : TConfigStates[K];
-        };
-      }
-    : unknown
-  : unknown;
 
 type SetupContext<TSchemas, TContextSchema extends StandardSchemaV1> = [
   SetupSchema<TSchemas, 'context'>
@@ -565,18 +523,31 @@ type StateContext<
   TFallbackContext extends MachineContext
 > = TStateSchema['schemas'] extends { context: infer TContextSchema }
   ? TContextSchema extends StandardSchemaV1
-    ? StandardSchemaV1.InferOutput<TContextSchema> & MachineContext
-    : TFallbackContext
-  : TFallbackContext;
+    ? StandardSchemaV1.InferOutput<TContextSchema> &
+        MachineContext &
+        RootContextMarker<TFallbackContext>
+    : RootContext<TFallbackContext>
+  : RootContext<TFallbackContext>;
+
+declare const rootContext: unique symbol;
+
+type RootContextMarker<TContext> = {
+  readonly [rootContext]?: RootContext<TContext>;
+};
+
+type RootContext<TContext> = typeof rootContext extends keyof TContext
+  ? TContext[typeof rootContext]
+  : TContext;
 
 type StateContextShape<
   TStateSchema extends SetupStateSchema,
   TFallbackContext
 > = TStateSchema['schemas'] extends { context: infer TContextSchema }
   ? TContextSchema extends StandardSchemaV1
-    ? StandardSchemaV1.InferOutput<TContextSchema>
-    : TFallbackContext
-  : TFallbackContext;
+    ? StandardSchemaV1.InferOutput<TContextSchema> &
+        RootContextMarker<TFallbackContext>
+    : RootContext<TFallbackContext>
+  : RootContext<TFallbackContext>;
 
 type WithNestedStates<TConfig, TNestedStates> = TConfig extends {
   type: 'choice';
@@ -675,6 +646,7 @@ type MergeStateSchema<
 /** Machine config with typed state input */
 type SetupMachineConfig<
   TStateSchemas extends Record<string, SetupStateSchema>,
+  TStateKeys extends string,
   TSchemas extends SetupSchemas,
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
@@ -750,7 +722,7 @@ type SetupMachineConfig<
         }) => number);
   };
   initial?:
-    | SetupStateKey<TStateSchemas>
+    | TStateKeys
     | InitialTransitionWithInput<TStateSchemas, TContext, TEvent>
     | undefined;
   on?: StateTransitions<
@@ -814,7 +786,8 @@ type SetupMachineConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TSystemRegistry
+    TSystemRegistry,
+    TStateKeys
   >;
 };
 
@@ -835,11 +808,12 @@ type StatesWithInput<
   TActorMap extends Implementations['actorSources'],
   TGuardMap extends Implementations['guards'],
   TDelayMap extends Implementations['delays'],
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TStateKeys extends string = SetupStateKey<TStateSchemas>
 > = {
-  [K in keyof TStateSchemas & string]?: StateNodeConfigWithNestedInput<
-    TRootStateSchemas,
-    TStateSchemas[K],
+  [K in TStateKeys]?: StateNodeConfigWithNestedInput<
+    StateSchemasWithKeys<TRootStateSchemas, TStateKeys>,
+    K extends keyof TStateSchemas ? TStateSchemas[K] : {},
     TContext,
     TContextShape,
     TEvent,
@@ -899,6 +873,7 @@ type StateNodeConfigWithNestedInput<
     initial?: TStateSchema['states'] extends Record<string, SetupStateSchema>
       ?
           | SetupStateKey<TStateSchema['states']>
+          | (string & {})
           | InitialTransitionWithInput<
               TStateSchema['states'],
               StateContext<TStateSchema, TContext>,
@@ -1616,8 +1591,10 @@ export interface SetupReturn<
       TTagSchema
     >,
     TInput = unknown,
+    const TStateKeys extends string = SetupStateKey<TStates>,
     TConfig extends SetupMachineConfig<
       TStates,
+      TStateKeys,
       TSchemas,
       TContextSchema,
       TEventSchemaMap,
@@ -1655,6 +1632,7 @@ export interface SetupReturn<
       TGuardMap
     > = SetupMachineConfig<
       TStates,
+      TStateKeys,
       TSchemas,
       TContextSchema,
       TEventSchemaMap,
@@ -1709,9 +1687,8 @@ export interface SetupReturn<
       actorSources?: TActorMap;
       guards?: TGuardMap;
       delays?: TDelayMap;
+      states?: Record<TStateKeys, unknown>;
     } & TConfig &
-      ValidateSetupStateKeys<TConfig, TStates> &
-      ValidateNestedSetupStateKeys<TConfig, TStates> &
       ValidateSetupDelayReferences<TConfig, TSetupDelays> &
       ValidateRegistryKeys<
         TConfig,
