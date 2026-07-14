@@ -179,7 +179,8 @@ export function resolveOutput<
     | NonReducibleUnknown,
   context: TContext,
   event: TExpressionEvent,
-  self: AnyActor
+  self: AnyActor,
+  input?: Record<string, unknown>
 ): unknown {
   if (typeof mapper === 'function') {
     const outputMapper = mapper as Mapper<
@@ -192,7 +193,8 @@ export function resolveOutput<
       context,
       event,
       output: getEventOutput(event),
-      self
+      self,
+      input
     } as unknown as Parameters<typeof outputMapper>[0];
 
     return outputMapper(args);

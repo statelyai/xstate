@@ -102,13 +102,27 @@ export type InferGuards<TGuardSchemaMap extends GuardSchemas> =
         ) => boolean;
       };
 
+type OutputMapper<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TResult,
+  TInput = Record<string, unknown> | undefined
+> = (
+  args: Parameters<Mapper<TContext, TEvent, TResult, TEvent>>[0] & {
+    input: TInput;
+  }
+) => TResult;
+
 type OutputConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TOutput
+  TOutput,
+  TInput = Record<string, unknown> | undefined
 > = unknown extends TOutput
-  ? Mapper<TContext, TEvent, NonReducibleUnknown, TEvent> | NonReducibleUnknown
-  : Mapper<TContext, TEvent, TOutput, TEvent> | TOutput;
+  ?
+      | OutputMapper<TContext, TEvent, NonReducibleUnknown, TInput>
+      | NonReducibleUnknown
+  : OutputMapper<TContext, TEvent, TOutput, TInput> | TOutput;
 
 export type ValidateTopLevelFinalOutputs<
   TConfig,
@@ -1202,7 +1216,7 @@ interface Next_RegularStateNodeConfig<
    * The output data will be evaluated with the current `context` and placed on
    * the `.data` property of the event.
    */
-  output?: OutputConfig<TContext, TEvent, TOutput>;
+  output?: OutputConfig<TContext, TEvent, TOutput, TInput>;
   /**
    * The unique ID of the state node, which can be referenced as a transition
    * target via the `#id` syntax.

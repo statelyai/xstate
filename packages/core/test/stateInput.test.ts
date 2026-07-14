@@ -1003,6 +1003,48 @@ describe('setup', () => {
     expect(exitInputs).toEqual([{ userId: 'user-456' }]);
   });
 
+  it('final output should receive input', () => {
+    const receivedInputs: unknown[] = [];
+
+    const s = setup({
+      states: {
+        idle: {},
+        done: {
+          schemas: {
+            input: z.object({
+              userId: z.string()
+            })
+          }
+        }
+      }
+    });
+
+    const machine = s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            LOAD: {
+              target: 'done',
+              input: { userId: 'user-123' }
+            }
+          }
+        },
+        done: {
+          type: 'final',
+          output: ({ input }) => {
+            receivedInputs.push(input);
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'LOAD' });
+
+    expect(receivedInputs).toEqual([{ userId: 'user-123' }]);
+  });
+
   it('transition should pass input to target state', () => {
     const receivedInputs: unknown[] = [];
 
