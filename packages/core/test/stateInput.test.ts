@@ -1030,7 +1030,9 @@ describe('setup', () => {
         done: {
           type: 'final',
           output: ({ input }) => {
+            input.userId satisfies string;
             receivedInputs.push(input);
+            return input;
           }
         }
       }
@@ -1040,6 +1042,74 @@ describe('setup', () => {
     actor.send({ type: 'LOAD' });
 
     expect(receivedInputs).toEqual([{ userId: 'user-123' }]);
+    expect(actor.getSnapshot().output).toEqual({ userId: 'user-123' });
+  });
+
+  it('parallel final outputs should receive their nested state inputs', () => {
+    const s = setup({
+      states: {
+        a: {
+          states: {
+            done: {
+              schemas: {
+                input: z.object({ value: z.literal('a') })
+              }
+            }
+          }
+        },
+        b: {
+          states: {
+            done: {
+              schemas: {
+                input: z.object({ value: z.literal('b') })
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const machine = s.createMachine({
+      type: 'parallel',
+      states: {
+        a: {
+          initial: {
+            target: 'done',
+            input: { value: 'a' }
+          },
+          states: {
+            done: {
+              type: 'final',
+              output: ({ input }) => {
+                input.value satisfies 'a';
+                return input.value;
+              }
+            }
+          }
+        },
+        b: {
+          initial: {
+            target: 'done',
+            input: { value: 'b' }
+          },
+          states: {
+            done: {
+              type: 'final',
+              output: ({ input }) => {
+                input.value satisfies 'b';
+                return input.value;
+              }
+            }
+          }
+        }
+      },
+      output: ({ output }) => output
+    });
+
+    const snapshot = createActor(machine).start().getSnapshot();
+
+    expect(snapshot.status).toBe('done');
+    expect(snapshot.output).toEqual({ a: 'a', b: 'b' });
   });
 
   it('transition should pass input to target state', () => {
