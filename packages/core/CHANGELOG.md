@@ -1,5 +1,11 @@
 # xstate
 
+## 5.32.5
+
+### Patch Changes
+
+- [#5603](https://github.com/statelyai/xstate/pull/5603) [`345e04c`](https://github.com/statelyai/xstate/commit/345e04ce66963c2a5a2a879bb4928a1b179de7f6) Thanks [@xianjianlf2](https://github.com/xianjianlf2)! - Sending an event to a stopped actor no longer throws when the event contains unserializable data (e.g. circular references). Previously, the development-only warning that an event was sent to a stopped actor used `JSON.stringify` on the event, which could throw and mask the intended warning. The warning is now emitted safely regardless of the event's contents.
+
 ## 5.32.4
 
 ### Patch Changes
