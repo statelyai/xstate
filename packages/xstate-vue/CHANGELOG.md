@@ -1,5 +1,14 @@
 # @xstate/vue
 
+## 5.0.1
+
+### Patch Changes
+
+- [#5607](https://github.com/statelyai/xstate/pull/5607) [`b669e95`](https://github.com/statelyai/xstate/commit/b669e9502c5627ff0fc98db4434e103f41e3e4d5) Thanks [@xianjianlf2](https://github.com/xianjianlf2)! - Fixed the test configuration so that the package's tests are correctly discovered and run. The `include` glob in `vitest.config.mts` pointed to a non-existent file, which meant no tests were executed and coverage was reported as 0%.
+
+- Updated dependencies [[`345e04c`](https://github.com/statelyai/xstate/commit/345e04ce66963c2a5a2a879bb4928a1b179de7f6)]:
+  - xstate@5.32.5
+
 ## 5.0.0
 
 ### Patch Changes
