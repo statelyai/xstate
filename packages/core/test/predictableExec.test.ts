@@ -569,7 +569,8 @@ describe('predictableExec', () => {
   });
 
   // https://github.com/statelyai/xstate/issues/3617
-  it('should deliver events sent from the exit actions to a service invoked in the same state', async () => {
+  it('should deliver events sent from the exit actions to a service invoked in the same state', () => {
+    const received = vi.fn();
     const machine = createMachine({
       initial: 'active',
       states: {
@@ -577,11 +578,7 @@ describe('predictableExec', () => {
           invoke: {
             id: 'my-service',
             src: createCallbackLogic(({ receive }) => {
-              receive((event) => {
-                if (event.type === 'MY_EVENT') {
-                  // Event received successfully
-                }
-              });
+              receive(received);
             })
           },
           exit: ({ children }, enq) => {
@@ -597,12 +594,8 @@ describe('predictableExec', () => {
 
     const actor = createActor(machine).start();
 
-    // Wait a bit to ensure the event is processed
-    await new Promise((resolve) => setTimeout(resolve, 10));
-
     actor.send({ type: 'TOGGLE' });
 
-    // Wait a bit more to ensure the exit action completes
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(received).toHaveBeenCalledWith({ type: 'MY_EVENT' });
   });
 });

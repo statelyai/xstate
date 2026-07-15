@@ -268,18 +268,7 @@ export class Actor<TLogic extends AnyActorLogic>
         }
         (child as Actor<AnyActorLogic>)._stop();
       },
-      emit: (emittedEvent) => {
-        for (const listeners of [
-          this.eventListeners.get(emittedEvent.type),
-          this.eventListeners.get('*')
-        ]) {
-          if (listeners) {
-            for (const handler of listeners) {
-              safeCall(handler, emittedEvent);
-            }
-          }
-        }
-      },
+      emit: (emittedEvent) => this._emit(emittedEvent),
       actionExecutor: (action) => {
         const exec = () => {
           // Record every executed action for the '@xstate.transition' inspection
@@ -848,6 +837,20 @@ export class Actor<TLogic extends AnyActorLogic>
   }
 
   /** @internal */
+  public _emit(event: EmittedFrom<TLogic>): void {
+    for (const listeners of [
+      this.eventListeners.get(event.type),
+      this.eventListeners.get('*')
+    ]) {
+      if (listeners) {
+        for (const handler of listeners) {
+          safeCall(handler, event);
+        }
+      }
+    }
+  }
+
+  /** @internal */
   public _stop(): this {
     if (this._processingStatus === ProcessingStatus.Stopped) {
       return this;
@@ -855,6 +858,7 @@ export class Actor<TLogic extends AnyActorLogic>
     this.mailbox.clear();
     if (this._processingStatus === ProcessingStatus.NotStarted) {
       this._processingStatus = ProcessingStatus.Stopped;
+      this.system._unregister(this);
       return this;
     }
     this.mailbox.enqueue({ type: XSTATE_STOP } as any);

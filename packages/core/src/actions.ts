@@ -1,9 +1,13 @@
 import isDevelopment from '#is-development';
 import { AnyActor, AnyActorScope, EventObject } from './types';
 
+type EffectActor = AnyActor & {
+  _stop: () => AnyActor;
+};
+
 export const builtInActions = {
-  // No-op: creation/registration are eager and pure; the start is a separate
-  // deferred `@xstate.start` effect (see `deriveDeferredStarts`).
+  // Actor refs are created while resolving the next snapshot. Starting is a
+  // separate deferred effect so the returned list remains execution-complete.
   ['@xstate.spawn']: (_actor: AnyActor) => {},
   ['@xstate.start']: (actor: AnyActor) => {
     actor.start();
@@ -44,15 +48,13 @@ export const builtInActions = {
         options?.id
       );
     } else {
-      actorScope.defer(() => {
-        actorScope.system._relay(actorScope.self, actor, event);
-      });
+      actorScope.system._relay(actorScope.self, actor, event);
     }
   },
   ['@xstate.cancel']: (actorScope: AnyActorScope, sendId: string) => {
     actorScope.system.scheduler.cancel(actorScope.self, sendId);
   },
-  ['@xstate.stop']: (actorScope: AnyActorScope, actor: AnyActor) => {
-    actorScope.stopChild(actor);
+  ['@xstate.stop']: (_actorScope: AnyActorScope, actor: AnyActor) => {
+    (actor as EffectActor)._stop();
   }
 };

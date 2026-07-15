@@ -1139,6 +1139,20 @@ function microstep(
     };
 
     let nextState = currentSnapshot;
+    const getInvokeStopActions = (
+      stateNode: AnyStateNode,
+      children: AnyMachineSnapshot['children']
+    ): AnyAction[] => {
+      const actions: AnyAction[] = [];
+      const enqueue = createTransitionEnqueue(actorScope, actions, []);
+      for (const invokeDef of stateNode.invoke) {
+        const child = children[invokeDef.id];
+        if (child) {
+          enqueue.stop(child);
+        }
+      }
+      return actions;
+    };
     const exitStates = () => {
       const statesToExit = computeExitSet(
         filteredTransitions,
@@ -1181,7 +1195,7 @@ function microstep(
               currentSnapshot.children,
               stateInput
             )
-          : [[]];
+          : [[], undefined, undefined];
         if (internalEvents?.length) {
           internalQueue.push(...internalEvents);
         }
@@ -1198,12 +1212,20 @@ function microstep(
         );
         nextState = resolvedState;
         executableActions.push(...resolvedActions);
-        for (const def of exitStateNode.invoke) {
-          const childActor = nextState.children[def.id];
-          if (childActor && !childActor._isExternal) {
-            actorScope.stopChild(childActor);
-          }
-          delete nextState.children[def.id];
+
+        const invokeStopActions = getInvokeStopActions(
+          exitStateNode,
+          nextState.children
+        );
+        if (invokeStopActions.length) {
+          const [stoppedState, stopEffects] = resolveActionsWithContext(
+            nextState,
+            event,
+            actorScope,
+            invokeStopActions
+          );
+          nextState = stoppedState;
+          executableActions.push(...stopEffects);
         }
 
         mutStateNodeSet.delete(exitStateNode);
@@ -1454,7 +1476,7 @@ function microstep(
       }
 
       const completedNodes = new Set<AnyStateNode>();
-      const children = { ...currentSnapshot.children };
+      const children = { ...nextState.children };
       for (const stateNodeToEnter of [...statesToEnter].sort(
         (a, b) => a.order - b.order
       )) {
@@ -1709,6 +1731,7 @@ function microstep(
           }
         }
       });
+
       const [resolvedState, resolvedActions] = resolveActionsWithContext(
         nextState,
         event,
@@ -1717,6 +1740,14 @@ function microstep(
       );
       nextState = resolvedState;
       executableActions.push(...resolvedActions);
+
+      const [stoppedState, stopEffects] = stopChildren(
+        nextState,
+        event,
+        actorScope
+      );
+      nextState = stoppedState;
+      executableActions.push(...stopEffects);
     }
 
     if (
@@ -1870,13 +1901,15 @@ export function macrostep(
 
   // Handle stop event
   if (event.type === XSTATE_STOP) {
-    nextSnapshot = cloneMachineSnapshot(
-      stopChildren(nextSnapshot, actorScope),
-      {
-        status: 'stopped'
-      }
+    const [stoppedChildrenSnapshot, stopEffects] = stopChildren(
+      nextSnapshot,
+      event,
+      actorScope
     );
-    addMicrostep([nextSnapshot, []], []);
+    nextSnapshot = cloneMachineSnapshot(stoppedChildrenSnapshot, {
+      status: 'stopped'
+    });
+    addMicrostep([nextSnapshot, stopEffects], []);
     return {
       snapshot: nextSnapshot,
       microsteps
@@ -1974,10 +2007,6 @@ export function macrostep(
     nextSnapshot = step[0];
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
     addMicrostep(step, enabledTransitions);
-  }
-
-  if (nextSnapshot.status !== 'active' && nextSnapshot.children) {
-    stopChildren(nextSnapshot, actorScope);
   }
 
   return {
@@ -2082,22 +2111,23 @@ function transitionToHasEffect(
 
 function stopChildren(
   snapshot: AnyMachineSnapshot,
+  event: AnyEventObject,
   actorScope: AnyActorScope
-): AnyMachineSnapshot {
+): [AnyMachineSnapshot, ExecutableActionObject[]] {
   let children: AnyActor[];
   if (
     !snapshot.children ||
     (children = Object.values(snapshot.children).filter(Boolean) as AnyActor[])
       .length === 0
   ) {
-    return snapshot;
+    return [snapshot, []];
   }
+  const actions: AnyAction[] = [];
+  const enqueue = createTransitionEnqueue(actorScope, actions, []);
   for (const child of children) {
-    actorScope.stopChild(child);
+    enqueue.stop(child);
   }
-  return cloneMachineSnapshot(snapshot, {
-    children: {}
-  });
+  return resolveActionsWithContext(snapshot, event, actorScope, actions);
 }
 
 function selectEventlessTransitions(

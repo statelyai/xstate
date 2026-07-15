@@ -83,6 +83,7 @@ export interface ActorSystem<T extends ActorSystemInfo> {
   /** @internal */
   _snapshot: {
     _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;
+    _nextActorId: number;
   };
   start: () => void;
   _clock: Clock;
@@ -106,7 +107,6 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     timers?: TimersRestoreStrategy;
   }
 ): ActorSystem<T> {
-  let idCounter = 0;
   const children = new Map<string, AnyActor>();
   const keyedActors = new Map<keyof T['actors'], AnyActor | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActor, keyof T['actors']>();
@@ -233,9 +233,10 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     keyedActors,
     _snapshot: {
       _scheduledEvents:
-        (options?.snapshot && (options.snapshot as any).scheduler) ?? {}
+        (options?.snapshot && (options.snapshot as any).scheduler) ?? {},
+      _nextActorId: 0
     },
-    _bookId: () => `x:${idCounter++}`,
+    _bookId: () => `x:${system._snapshot._nextActorId++}`,
     _register: (sessionId, actor) => {
       children.set(sessionId, actor);
       return sessionId;
@@ -245,7 +246,9 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
       const registryKey = reverseKeyedActors.get(actor);
 
       if (registryKey !== undefined) {
-        keyedActors.delete(registryKey);
+        if (keyedActors.get(registryKey) === actor) {
+          keyedActors.delete(registryKey);
+        }
         reverseKeyedActors.delete(actor);
       }
     },

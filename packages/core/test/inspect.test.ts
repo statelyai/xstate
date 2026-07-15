@@ -3,6 +3,7 @@ import {
   createActor,
   createMachine,
   createAsyncLogic,
+  createCallbackLogic,
   waitFor,
   InspectionEvent,
   isMachineSnapshot
@@ -162,6 +163,104 @@ describe('inspect', () => {
     expect(parentEvents[parentEvents.length - 1].snapshot.value).toBe(
       'success'
     );
+  });
+
+  it('preserves the source of events delivered through snapshot actor refs', () => {
+    const childMachine = createMachine({
+      on: {
+        PING: {}
+      }
+    });
+    const parentMachine = createMachine({
+      invoke: { id: 'child', src: childMachine },
+      on: {
+        SEND: ({ children }, enq) =>
+          enq.sendTo(children.child, { type: 'PING' })
+      }
+    });
+    const events: InspectionEvent[] = [];
+    const actor = createActor(parentMachine, {
+      inspect: (event) => events.push(event)
+    }).start();
+    const child = actor.getSnapshot().children.child;
+
+    actor.send({ type: 'SEND' });
+
+    const childTransition = events.find(
+      (event) =>
+        event.type === '@xstate.transition' && event.event.type === 'PING'
+    );
+    if (childTransition?.type !== '@xstate.transition') {
+      throw new Error('Child transition was not inspected.');
+    }
+    expect(childTransition?.actorRef).toBe(child);
+    expect(childTransition?.sourceRef).toBe(actor);
+    expect(childTransition?.targetRef).toBe(child);
+  });
+
+  it('uses the snapshot actor ref as the source of child errors', () => {
+    const childLogic = createCallbackLogic(() => {
+      throw new Error('child failed');
+    });
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: { id: 'child', src: childLogic },
+          onError: { target: 'failed' }
+        },
+        failed: {}
+      }
+    });
+    const events: InspectionEvent[] = [];
+    const actor = createActor(machine, {
+      inspect: (event) => events.push(event)
+    });
+    const child = actor.getSnapshot().children.child;
+
+    actor.start();
+
+    const errorTransition = events.find(
+      (event) =>
+        event.type === '@xstate.transition' &&
+        event.actorRef === actor &&
+        event.event.type.startsWith('xstate.error.actor.')
+    );
+    if (errorTransition?.type !== '@xstate.transition') {
+      throw new Error('Error transition was not inspected.');
+    }
+    expect(errorTransition?.sourceRef).toBe(child);
+  });
+
+  it('uses the snapshot parent ref as the source of nested child init', () => {
+    const parentLogic = createMachine({
+      invoke: {
+        id: 'child',
+        src: createCallbackLogic(() => {})
+      }
+    });
+    const machine = createMachine({
+      invoke: { id: 'parent', src: parentLogic }
+    });
+    const events: InspectionEvent[] = [];
+    const actor = createActor(machine, {
+      inspect: (event) => events.push(event)
+    });
+    const parent = actor.getSnapshot().children.parent;
+    const child = parent.getSnapshot().children.child;
+
+    actor.start();
+
+    const childInit = events.find(
+      (event) =>
+        event.type === '@xstate.transition' &&
+        event.actorRef === child &&
+        event.event.type === XSTATE_INIT
+    );
+    if (childInit?.type !== '@xstate.transition') {
+      throw new Error('Child init transition was not inspected.');
+    }
+    expect(childInit?.sourceRef).toBe(parent);
   });
 
   it('can inspect microsteps from always events', async () => {

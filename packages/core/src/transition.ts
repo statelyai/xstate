@@ -1,5 +1,9 @@
 import { createInitEvent } from './eventUtils';
-import { createInertActorScope } from './getNextSnapshot';
+import {
+  attachSnapshotActorRef,
+  createInertActorScope,
+  setInertActorScopeSnapshot
+} from './getNextSnapshot';
 import {
   getProperAncestors,
   initialMicrostep,
@@ -15,8 +19,42 @@ import {
   SnapshotFrom,
   ExecutableActionObjectFromLogic,
   AnyTransitionDefinition,
-  AnyMachineSnapshot
+  AnyMachineSnapshot,
+  AnyActor,
+  AnyActorScope,
+  ExecutableActionObject
 } from './types';
+import {
+  createSpawnEffect,
+  deriveDeferredStarts
+} from './transitionActions.ts';
+
+type MachineMicrostep = [AnyMachineSnapshot, ExecutableActionObject[]];
+
+function finalizeMicrosteps(
+  microsteps: MachineMicrostep[],
+  actorScope: AnyActorScope,
+  inputSnapshot?: AnyMachineSnapshot
+): MachineMicrostep[] {
+  if (!microsteps.length) {
+    return microsteps;
+  }
+  const effects = microsteps.flatMap(([, actions]) => actions);
+  const starts = deriveDeferredStarts(effects);
+  const result = microsteps.slice();
+  if (starts.length) {
+    const [snapshot, lastEffects] = result.at(-1)!;
+    result[result.length - 1] = [snapshot, [...lastEffects, ...starts]];
+  }
+  const finalSnapshot = result.at(-1)![0];
+  setInertActorScopeSnapshot(actorScope, finalSnapshot, false);
+  for (const [snapshot] of result) {
+    if (snapshot !== inputSnapshot) {
+      attachSnapshotActorRef(snapshot.machine, actorScope, snapshot);
+    }
+  }
+  return result;
+}
 
 /**
  * Given actor `logic`, a `snapshot`, and an `event`, returns a tuple of the
@@ -32,10 +70,17 @@ export function transition<T extends AnyActorLogic>(
   nextSnapshot: SnapshotFrom<T>,
   actions: ExecutableActionObjectFromLogic<T>[]
 ] {
-  const actorScope = createInertActorScope(logic);
+  const actorScope = createInertActorScope(logic, snapshot);
+  setInertActorScopeSnapshot(actorScope, snapshot, false);
   const [nextSnapshot, effects] = logic.transition(snapshot, event, actorScope);
 
-  return [nextSnapshot, effects as ExecutableActionObjectFromLogic<T>[]];
+  setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
+  return [
+    nextSnapshot === snapshot
+      ? nextSnapshot
+      : attachSnapshotActorRef(logic, actorScope, nextSnapshot),
+    effects as ExecutableActionObjectFromLogic<T>[]
+  ];
 }
 
 /**
@@ -58,8 +103,9 @@ export function initialTransition<T extends AnyActorLogic>(
     actorScope
   );
 
+  setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
   return [
-    nextSnapshot,
+    attachSnapshotActorRef(logic, actorScope, nextSnapshot),
     executableActions as ExecutableActionObjectFromLogic<T>[]
   ];
 }
@@ -75,13 +121,15 @@ export function getMicrosteps<T extends AnyStateMachine>(
   snapshot: SnapshotFrom<T>,
   event: EventFromLogic<T>
 ): Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]> {
-  const actorScope = createInertActorScope(machine);
+  const actorScope = createInertActorScope(machine, snapshot);
 
   const { microsteps } = macrostep(snapshot, event, actorScope, []);
 
-  return microsteps as Array<
-    [SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]
-  >;
+  return finalizeMicrosteps(
+    microsteps as MachineMicrostep[],
+    actorScope,
+    snapshot as AnyMachineSnapshot
+  ) as Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]>;
 }
 
 /**
@@ -102,6 +150,9 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
   const internalQueue: AnyEventObject[] = [];
 
   const preInitialSnapshot = machine._getPreInitialState(actorScope, initEvent);
+  const contextSpawnEffects = Object.values(preInitialSnapshot.children)
+    .filter(Boolean)
+    .map((actor) => createSpawnEffect(actor as AnyActor));
 
   const first = initialMicrostep(
     machine.root,
@@ -118,9 +169,13 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
     internalQueue
   );
 
-  return [first, ...microsteps] as Array<
-    [SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]
-  >;
+  return finalizeMicrosteps(
+    [
+      [first[0], [...contextSpawnEffects, ...first[1]]],
+      ...microsteps
+    ] as MachineMicrostep[],
+    actorScope
+  ) as Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]>;
 }
 
 /**

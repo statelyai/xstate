@@ -1,4 +1,4 @@
-import { ProcessingStatus, createActor } from './createActor.ts';
+import { createActor } from './createActor.ts';
 import {
   ActorFromLogic,
   AnyActorLogic,
@@ -84,12 +84,6 @@ export function createSpawner(
   return ((src, options) => {
     const actor = spawn(src, options) as TODO; // TODO: fix types
     spawnedChildren[actor.id] = actor;
-    actorScope.defer(() => {
-      if (actor._processingStatus === ProcessingStatus.Stopped) {
-        return;
-      }
-      actor.start();
-    });
     return actor;
   }) as Spawner;
 }

@@ -24,6 +24,8 @@ import type {
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
+const machineSnapshotActorRef = Symbol('xstate.machineSnapshotActorRef');
+
 export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
     !!value &&
@@ -31,6 +33,21 @@ export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
     'machine' in value &&
     'value' in value
   );
+}
+
+/** @internal */
+export function getMachineSnapshotActorRef(
+  snapshot: AnyMachineSnapshot
+): AnyActor | undefined {
+  return snapshot[machineSnapshotActorRef];
+}
+
+/** @internal */
+export function setMachineSnapshotActorRef(
+  snapshot: AnyMachineSnapshot,
+  actorRef: AnyActor
+): void {
+  snapshot[machineSnapshotActorRef] = actorRef;
 }
 
 type Values<T> = T[keyof T];
@@ -136,6 +153,8 @@ interface MachineSnapshotBase<
   children: TChildren;
   /** @internal */
   _stateInputs: Record<string, Record<string, unknown>>;
+  /** @internal */
+  [machineSnapshotActorRef]?: AnyActor;
 
   /**
    * Whether the current state value is a subset of the given partial state
@@ -382,6 +401,7 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     _nodes: nodes,
     _stateInputs,
+    [machineSnapshotActorRef]: _actorRef,
     tags,
     machine,
     getMeta,
@@ -429,7 +449,8 @@ export function createMachineSnapshot<
   TStateSchema extends StateSchema
 >(
   config: StateConfig<TContext, TEvent>,
-  machine: AnyStateMachine
+  machine: AnyStateMachine,
+  actorRef?: AnyActor
 ): MachineSnapshot<
   TContext,
   TEvent,
@@ -453,6 +474,7 @@ export function createMachineSnapshot<
     children: config.children as any,
     historyValue: config.historyValue || {},
     _stateInputs: config._stateInputs || {},
+    [machineSnapshotActorRef]: actorRef,
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
@@ -484,6 +506,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       children: configWithSnapshot.children as any,
       historyValue: configWithSnapshot.historyValue || {},
       _stateInputs: configWithSnapshot._stateInputs || {},
+      [machineSnapshotActorRef]: getMachineSnapshotActorRef(snapshot),
       matches: machineSnapshotMatches as never,
       hasTag: machineSnapshotHasTag,
       can: machineSnapshotCan,
@@ -498,7 +521,8 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       ...configWithSnapshot,
       value: undefined
     },
-    snapshot.machine
+    snapshot.machine,
+    getMachineSnapshotActorRef(snapshot)
   ) as unknown as TState;
 }
 

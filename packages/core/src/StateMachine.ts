@@ -4,6 +4,12 @@ import { createErrorPlatformEvent, createInitEvent } from './eventUtils.ts';
 
 import { createSpawner } from './spawn.ts';
 import {
+  attachSnapshotActorRef,
+  createInertActorScope,
+  isInertActorScope,
+  setInertActorScopeSnapshot
+} from './getNextSnapshot.ts';
+import {
   createMachineSnapshot,
   cloneMachineSnapshot,
   getPersistedSnapshot,
@@ -25,6 +31,7 @@ import {
   transitionNode
 } from './stateUtils.ts';
 import {
+  createSpawnEffect,
   deriveDeferredStarts,
   resolveActionsWithContext
 } from './transitionActions.ts';
@@ -411,7 +418,7 @@ export class StateMachine<
       TConfig
     >,
     event: TEvent,
-    actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
+    actorScope?: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
   ): ActorLogicTransitionResult<
     MachineSnapshot<
       TContext,
@@ -425,20 +432,48 @@ export class StateMachine<
     >,
     ExecutableActionObjectFromLogic<this>
   > {
-    const fastSnapshot = this._transitionFast(snapshot, event, actorScope);
+    const usesInertScope = !actorScope;
+    const resolvedActorScope = (actorScope ??
+      createInertActorScope(
+        this,
+        snapshot as SnapshotFrom<this>
+      )) as NonNullable<typeof actorScope>;
+    if (usesInertScope) {
+      setInertActorScopeSnapshot(resolvedActorScope, snapshot, false);
+    }
+    const fastSnapshot = this._transitionFast(
+      snapshot,
+      event,
+      resolvedActorScope
+    );
     if (fastSnapshot) {
-      return [fastSnapshot, []];
+      if (usesInertScope) {
+        setInertActorScopeSnapshot(resolvedActorScope, fastSnapshot, false);
+      }
+      const returnedSnapshot =
+        usesInertScope && fastSnapshot !== snapshot
+          ? attachSnapshotActorRef(this, resolvedActorScope, fastSnapshot)
+          : this._attachPureActorRef(fastSnapshot, resolvedActorScope);
+      return [returnedSnapshot, []];
     }
 
     const { snapshot: nextSnapshot, microsteps } = macrostep(
       snapshot,
       event,
-      actorScope,
+      resolvedActorScope,
       []
     );
 
+    if (usesInertScope) {
+      setInertActorScopeSnapshot(resolvedActorScope, nextSnapshot, false);
+    }
+    const returnedSnapshot = usesInertScope
+      ? nextSnapshot === snapshot
+        ? nextSnapshot
+        : attachSnapshotActorRef(this, resolvedActorScope, nextSnapshot)
+      : this._attachPureActorRef(nextSnapshot, resolvedActorScope);
     return [
-      nextSnapshot as MachineSnapshot<
+      returnedSnapshot as MachineSnapshot<
         TContext,
         TEvent,
         TChildren,
@@ -466,6 +501,16 @@ export class StateMachine<
       ...effects,
       ...deriveDeferredStarts(effects)
     ] as ExecutableActionObjectFromLogic<this>[];
+  }
+
+  private _attachPureActorRef<TSnapshot extends AnyMachineSnapshot>(
+    snapshot: TSnapshot,
+    actorScope: AnyActorScope
+  ): TSnapshot {
+    if (isInertActorScope(actorScope)) {
+      return snapshot;
+    }
+    return attachSnapshotActorRef(this, actorScope, snapshot);
   }
 
   private _transitionFast(
@@ -734,7 +779,8 @@ export class StateMachine<
         children: {},
         status: 'active'
       },
-      this
+      this,
+      actorScope.self
     );
 
     if (typeof context === 'function') {
@@ -772,7 +818,7 @@ export class StateMachine<
    * `ActorRef`.
    */
   public getInitialSnapshot(
-    actorScope: ActorScope<
+    actorScope?: ActorScope<
       MachineSnapshot<
         TContext,
         TEvent,
@@ -803,7 +849,7 @@ export class StateMachine<
 
   public initialTransition(
     input: TInput | undefined,
-    actorScope: ActorScope<
+    actorScope?: ActorScope<
       MachineSnapshot<
         TContext,
         TEvent,
@@ -831,9 +877,18 @@ export class StateMachine<
     >,
     ExecutableActionObjectFromLogic<this>
   > {
+    const usesInertScope = !actorScope;
+    const resolvedActorScope = (actorScope ??
+      createInertActorScope(this)) as NonNullable<typeof actorScope>;
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
-    const preInitialState = this._getPreInitialState(actorScope, initEvent);
+    const preInitialState = this._getPreInitialState(
+      resolvedActorScope,
+      initEvent
+    );
+    const contextSpawnEffects = Object.values(preInitialState.children)
+      .filter(Boolean)
+      .map((actor) => createSpawnEffect(actor as AnyActor));
     let nextState: AnyMachineSnapshot;
     let initialActions: ReadonlyArray<ExecutableActionObject> = [];
     let microsteps: ReadonlyArray<
@@ -845,7 +900,7 @@ export class StateMachine<
       [nextState, initialActions] = initialMicrostep(
         this.root,
         preInitialState,
-        actorScope,
+        resolvedActorScope,
         initEvent,
         internalQueue
       );
@@ -853,7 +908,7 @@ export class StateMachine<
       ({ snapshot: macroState, microsteps } = macrostep(
         nextState,
         initEvent as AnyEventObject,
-        actorScope,
+        resolvedActorScope,
         internalQueue
       ));
     } catch (err) {
@@ -864,7 +919,7 @@ export class StateMachine<
       const errorMacrostep = macrostep(
         preInitialState,
         errorEvent,
-        actorScope,
+        resolvedActorScope,
         []
       );
       macroState = errorMacrostep.snapshot;
@@ -872,9 +927,18 @@ export class StateMachine<
       initialActions = [];
     }
 
+    if (usesInertScope) {
+      setInertActorScopeSnapshot(resolvedActorScope, macroState, false);
+    }
+    const returnedSnapshot = usesInertScope
+      ? attachSnapshotActorRef(this, resolvedActorScope, macroState)
+      : this._attachPureActorRef(macroState, resolvedActorScope);
     return [
-      macroState as SnapshotFrom<this>,
-      this._collectEffects(microsteps, initialActions)
+      returnedSnapshot as SnapshotFrom<this>,
+      this._collectEffects(microsteps, [
+        ...contextSpawnEffects,
+        ...initialActions
+      ])
     ];
   }
 
@@ -1086,7 +1150,8 @@ export class StateMachine<
         historyValue: revivedHistoryValue,
         _stateInputs: snapshotData.stateInputs ?? {}
       },
-      this
+      this,
+      _actorScope.self
     ) as MachineSnapshot<
       TContext,
       TEvent,
@@ -1120,6 +1185,6 @@ export class StateMachine<
 
     reviveContext(restoredSnapshot.context);
 
-    return restoredSnapshot;
+    return this._attachPureActorRef(restoredSnapshot, _actorScope);
   }
 }

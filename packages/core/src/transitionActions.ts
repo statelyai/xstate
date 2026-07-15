@@ -22,10 +22,19 @@ import type {
   ExecutableActionObject,
   MachineContext,
   SpecialExecutableAction,
+  SpawnExecutableActionObject,
   StartExecutableActionObject
 } from './types.ts';
 
 const builtInExecutableAction = Symbol('xstate.builtInExecutableAction');
+
+type TransitionActionRecord = {
+  action: (...args: any[]) => any;
+  args: any[];
+  childUpdate?:
+    | { type: 'add'; actor: AnyActor; id: string }
+    | { type: 'remove'; actor: AnyActor };
+};
 
 function brandBuiltInExecutableAction<T extends object>(action: T): T {
   Object.defineProperty(action, builtInExecutableAction, { value: true });
@@ -40,33 +49,54 @@ export function mergeContextPatch(
 }
 
 function pushBuiltInAction(actions: any[], action: any, ...args: any[]) {
-  actions.push({ action, args } as AnyAction);
+  const actionRecord: TransitionActionRecord = { action, args };
+  actions.push(actionRecord as AnyAction);
+  return actionRecord;
 }
 
-function registerSpawnedChild(actor: AnyActor, id: string) {
-  return Object.assign(
-    function registerChild(args: { children: Record<string, AnyActor> }) {
-      return { children: { ...args.children, [id]: actor } };
-    },
-    { _special: true }
-  );
+function applyChildUpdate(
+  snapshot: AnyMachineSnapshot,
+  update: NonNullable<TransitionActionRecord['childUpdate']>,
+  actorScope: AnyActorScope
+): AnyMachineSnapshot {
+  if (update.type === 'add') {
+    return {
+      ...snapshot,
+      children: { ...snapshot.children, [update.id]: update.actor }
+    };
+  }
+
+  const children = { ...snapshot.children };
+  let owned = update.actor._parent === actorScope.self;
+  for (const key of Object.keys(children)) {
+    if (children[key] === update.actor) {
+      owned = true;
+      delete children[key];
+    }
+  }
+  if (!owned) {
+    throw new Error(
+      isDevelopment
+        ? `Cannot stop child actor ${update.actor.id} of ${actorScope.self.id} because it is not a child`
+        : `Cannot stop non-child actor ${update.actor.id}`
+    );
+  }
+  actorScope.system._unregister(update.actor);
+  return { ...snapshot, children };
 }
 
-function unregisterChild(actor: AnyActor) {
-  return Object.assign(
-    function removeChild(args: {
-      children: Record<string, AnyActor | undefined>;
-    }) {
-      const children = { ...args.children };
-      for (const key of Object.keys(children)) {
-        if (children[key] === actor) {
-          delete children[key];
-        }
-      }
-      return { children };
-    },
-    { _special: true }
-  );
+function getTransitionActionRecord(
+  action: AnyAction
+): TransitionActionRecord | undefined {
+  if (
+    typeof action === 'object' &&
+    action !== null &&
+    'action' in action &&
+    typeof action.action === 'function'
+  ) {
+    return action as TransitionActionRecord;
+  }
+  return undefined;
 }
 
 function pushSpawnedChild(
@@ -74,8 +104,12 @@ function pushSpawnedChild(
   actor: AnyActor,
   id: string | undefined
 ) {
-  pushBuiltInAction(actions, builtInActions['@xstate.spawn'], actor);
-  actions.push(registerSpawnedChild(actor, id ?? actor.id));
+  const action = pushBuiltInAction(
+    actions,
+    builtInActions['@xstate.spawn'],
+    actor
+  );
+  action.childUpdate = { type: 'add', actor, id: id ?? actor.id };
 }
 
 export function createTransitionEnqueue(
@@ -155,13 +189,13 @@ export function createTransitionEnqueue(
     },
     stop: (actor) => {
       if (actor) {
-        pushBuiltInAction(
+        const action = pushBuiltInAction(
           actions,
           builtInActions['@xstate.stop'],
           actorScope,
           actor
         );
-        actions.push(unregisterChild(actor));
+        action.childUpdate = { type: 'remove', actor };
       }
     }
   };
@@ -260,7 +294,7 @@ function getBuiltInActionFields(
       const [, actor] = args as Parameters<
         (typeof builtInActions)['@xstate.stop']
       >;
-      return { actor };
+      return { actor, id: actor.id };
     }
     default:
       return undefined;
@@ -277,6 +311,24 @@ function createStartEffect(actor: AnyActor): StartExecutableActionObject {
     exec: action.bind(null, actor),
     actor,
     id: actor.id
+  });
+}
+
+export function createSpawnEffect(
+  actor: AnyActor
+): SpawnExecutableActionObject {
+  const action = builtInActions['@xstate.spawn'];
+  const args: Parameters<(typeof builtInActions)['@xstate.spawn']> = [actor];
+  return brandBuiltInExecutableAction({
+    type: XSTATE_SPAWN,
+    params: { action, args },
+    args,
+    exec: action.bind(null, actor),
+    actor,
+    id: actor.id,
+    logic: (actor as any).logic,
+    src: actor.src,
+    input: (actor as any).options?.input
   });
 }
 
@@ -323,16 +375,6 @@ export function resolveActionsWithContext(
   const executableActions: ExecutableActionObject[] = [];
 
   for (const action of actions) {
-    const isInline = typeof action === 'function';
-
-    const resolvedAction = isInline
-      ? action
-      : typeof action === 'object' &&
-          'action' in action &&
-          typeof action.action === 'function'
-        ? action.action.bind(null, ...action.args)
-        : false;
-
     const actionArgs = {
       context: intermediateSnapshot.context,
       event,
@@ -345,11 +387,32 @@ export function resolveActionsWithContext(
       actorSources: currentSnapshot.machine.implementations.actorSources
     };
 
+    const isInline = typeof action === 'function';
+    const actionRecord = getTransitionActionRecord(action);
+
+    const resolvedAction = isInline
+      ? action
+      : actionRecord
+        ? actionRecord.action.bind(null, ...actionRecord.args)
+        : false;
+
     let actionParams = undefined;
 
     if (typeof action === 'object' && action !== null) {
-      const { type: _, ...emittedEventParams } = action as any;
+      const {
+        type: _,
+        childUpdate: _childUpdate,
+        ...emittedEventParams
+      } = action as any;
       actionParams = emittedEventParams;
+    }
+
+    if (actionRecord?.childUpdate) {
+      intermediateSnapshot = applyChildUpdate(
+        intermediateSnapshot,
+        actionRecord.childUpdate,
+        actorScope
+      );
     }
 
     if (resolvedAction && '_special' in resolvedAction) {
@@ -419,7 +482,7 @@ export function resolveActionsWithContext(
         exec:
           resolvedAction ||
           (typeof action === 'object' && action !== null
-            ? () => actorScope.defer(() => actorScope.emit(action))
+            ? () => actorScope.emit(action)
             : undefined),
         ...builtInFields
       };

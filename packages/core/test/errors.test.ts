@@ -1163,6 +1163,36 @@ describe('error handling', () => {
     expect(errorSpy).toHaveBeenCalledWith('invoked actor failed');
   });
 
+  it('state onError catches errors from invoked actor initialization', () => {
+    const errorSpy = vi.fn();
+    const childMachine = createMachine({
+      context: () => {
+        throw new Error('invoked actor initialization failed');
+      }
+    });
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: { src: childMachine },
+          onError: ({ event }) => {
+            errorSpy(getErrorMessage(event.error));
+            return { target: 'failed' };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith(
+      'invoked actor initialization failed'
+    );
+  });
+
   it('state onError catches SCXML error.communication from failed sends', () => {
     const errorSpy = vi.fn();
     const json = toMachineJSON(`

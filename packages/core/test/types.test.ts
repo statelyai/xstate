@@ -96,6 +96,7 @@ describe('SpecialExecutableAction', () => {
           break;
         case '@xstate.stop':
           noop(action.actor);
+          noop(action.id);
           break;
         default: {
           const _exhaustive: never = action;

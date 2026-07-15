@@ -74,6 +74,25 @@ describe('system', () => {
     expect(actor.system.get('receiver')).toBeDefined();
   });
 
+  it('projects nested registry keys before the root actor starts', () => {
+    const child = createMachine({
+      invoke: {
+        id: 'grandchild',
+        src: createMachine({}),
+        registryKey: 'grandchild'
+      }
+    });
+    const machine = createMachine({
+      invoke: { id: 'child', src: child }
+    });
+
+    const actor = createActor(machine);
+    const grandchild = actor.getSnapshot().children.child.getSnapshot()
+      .children.grandchild;
+
+    expect(actor.system.get('grandchild')).toBe(grandchild);
+  });
+
   it('createSystem should own the runtime actor system', () => {
     const child = createMachine({});
     const machine = createMachine({

@@ -2822,6 +2822,7 @@ export interface CancelExecutableActionObject
 export interface StopExecutableActionObject extends BaseExecutableActionObject {
   type: '@xstate.stop';
   actor: AnyActor;
+  id: string;
   args: Parameters<(typeof builtInActions)['@xstate.stop']>;
 }
 
