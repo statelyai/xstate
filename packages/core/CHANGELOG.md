@@ -1,5 +1,51 @@
 # xstate
 
+## 6.0.0-alpha.21
+
+### Minor Changes
+
+- cb2af9b: Allow `setup({ states })` to declare schemas for only the states that need them. Other machine states use the machine's root context type.
+
+  Transition context updates now use the root context as the fallback when the target state has no context schema, allowing narrowed states to transition back to wider states.
+
+  ```ts
+  const machine = setup({
+    states: {
+      complete: {
+        schemas: { context: z.object({ result: z.string() }) }
+      }
+    }
+  }).createMachine({
+    initial: 'planning',
+    states: {
+      planning: {},
+      complete: {}
+    }
+  });
+  ```
+
+### Patch Changes
+
+- d280d55: Final state `output` mappers now receive the state's `input`.
+
+  ```ts
+  LOAD: ({ event }) => ({
+    target: 'done',
+    input: { userId: event.userId }
+  })
+
+  // ...
+
+  done: {
+    type: 'final',
+    output: ({ input }) => ({
+      userId: input.userId
+    })
+  }
+  ```
+
+  Previously, `input` was unavailable in final `output` mappers. Now it is forwarded the same way as for `entry` / `exit` actions.
+
 ## 6.0.0-alpha.20
 
 ### Major Changes
