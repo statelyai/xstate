@@ -483,7 +483,9 @@ export function createEventObservableLogic<
         input: state.input!,
         system,
         self,
-        emit
+        emit: (event) => {
+          void emit(event);
+        }
       }).subscribe({
         next: (value) => {
           if (self._parent) {

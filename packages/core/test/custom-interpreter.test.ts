@@ -6,7 +6,6 @@ import {
   type ExecutableActionObject,
   createActor,
   createMachine,
-  executeEffect,
   executeEffects,
   getInitialMicrosteps,
   initialTransition,
@@ -54,10 +53,12 @@ class CustomInterpreter<TLogic extends AnyActorLogic> {
     };
   }
 
-  executeEffects(effects: Parameters<typeof executeEffects>[0]): void {
-    effects.forEach((effect) => {
-      void executeEffect(effect, this.runtime);
-    });
+  async executeEffects(
+    effects: Parameters<typeof executeEffects>[0]
+  ): Promise<void> {
+    for (const effect of effects) {
+      await effect.exec(this.runtime);
+    }
   }
 
   enqueue(event: EventFromLogic<TLogic>): void {
@@ -82,7 +83,7 @@ describe('custom interpreter runtime', () => {
     vi.useRealTimers();
   });
 
-  it('routes delayed raises back through a custom mailbox', () => {
+  it('routes delayed raises back through a custom mailbox', async () => {
     const machine = createMachine({
       initial: 'waiting',
       states: {
@@ -93,14 +94,16 @@ describe('custom interpreter runtime', () => {
     const interpreter = new CustomInterpreter<typeof machine>();
     let [state, effects] = machine.initialTransition(undefined);
     expect(
-      effects.every((effect: ExecutableActionObject) => !('exec' in effect))
+      effects.every(
+        (effect: ExecutableActionObject) => typeof effect.exec === 'function'
+      )
     ).toBe(true);
-    interpreter.executeEffects(effects);
+    await interpreter.executeEffects(effects);
 
     vi.advanceTimersByTime(10);
     while (interpreter.hasEvents()) {
       [state, effects] = machine.transition(state, interpreter.dequeue()!);
-      interpreter.executeEffects(effects);
+      await interpreter.executeEffects(effects);
     }
 
     expect(state.matches('done')).toBe(true);
@@ -118,15 +121,15 @@ describe('custom interpreter runtime', () => {
     expect(effect).toMatchObject({
       kind: 'action',
       action,
-      args: [{ value: 42 }]
+      args: [{ value: 42 }],
+      exec: expect.any(Function)
     });
-    expect(effect).not.toHaveProperty('exec');
 
-    await executeEffects(effects);
+    await effect.exec();
     expect(action).toHaveBeenCalledWith({ value: 42 });
   });
 
-  it('serializes reentrant sends in a caller-owned transition loop', () => {
+  it('serializes reentrant sends in a caller-owned transition loop', async () => {
     const machine = createMachine({
       initial: 'first',
       states: {
@@ -144,18 +147,18 @@ describe('custom interpreter runtime', () => {
     });
     const interpreter = new CustomInterpreter<typeof machine>();
     let [state, effects] = machine.initialTransition(undefined);
-    interpreter.executeEffects(effects);
+    await interpreter.executeEffects(effects);
     interpreter.enqueue({ type: 'START' });
 
     while (state.status === 'active' && interpreter.hasEvents()) {
       [state, effects] = machine.transition(state, interpreter.dequeue()!);
-      interpreter.executeEffects(effects);
+      await interpreter.executeEffects(effects);
     }
 
     expect(state.matches('done')).toBe(true);
   });
 
-  it('routes messages and completion between invoked actors and their parent', () => {
+  it('routes messages and completion between invoked actors and their parent', async () => {
     const child = createMachine({
       initial: 'waiting',
       states: {
@@ -182,18 +185,18 @@ describe('custom interpreter runtime', () => {
     });
     const interpreter = new CustomInterpreter<typeof machine>();
     let [state, effects] = machine.initialTransition(undefined);
-    interpreter.executeEffects(effects);
+    await interpreter.executeEffects(effects);
     interpreter.enqueue({ type: 'FINISH_CHILD' });
 
     while (state.status === 'active' && interpreter.hasEvents()) {
       [state, effects] = machine.transition(state, interpreter.dequeue()!);
-      interpreter.executeEffects(effects);
+      await interpreter.executeEffects(effects);
     }
 
     expect(state.matches('success')).toBe(true);
   });
 
-  it('delegates invoked actor lifecycle to the runtime', () => {
+  it('delegates invoked actor lifecycle to the runtime', async () => {
     const operations: string[] = [];
     const child = createMachine({});
     const machine = createMachine({
@@ -220,17 +223,17 @@ describe('custom interpreter runtime', () => {
       }
     });
     let [state, effects] = machine.initialTransition(undefined);
-    interpreter.executeEffects(effects);
+    await interpreter.executeEffects(effects);
     interpreter.enqueue({ type: 'EXIT' });
     while (interpreter.hasEvents()) {
       [state, effects] = machine.transition(state, interpreter.dequeue()!);
-      interpreter.executeEffects(effects);
+      await interpreter.executeEffects(effects);
     }
 
     expect(operations).toEqual(['spawn:child', 'start:child', 'stop:child']);
   });
 
-  it('delegates timer scheduling and cancellation to the runtime', () => {
+  it('delegates timer scheduling and cancellation to the runtime', async () => {
     const operations: Array<{ type: string; id: string | undefined }> = [];
     const machine = createMachine({
       initial: 'waiting',
@@ -252,18 +255,18 @@ describe('custom interpreter runtime', () => {
       }
     });
     let [state, effects] = machine.initialTransition(undefined);
-    interpreter.executeEffects(effects);
+    await interpreter.executeEffects(effects);
     interpreter.enqueue({ type: 'EXIT' });
     while (interpreter.hasEvents()) {
       [state, effects] = machine.transition(state, interpreter.dequeue()!);
-      interpreter.executeEffects(effects);
+      await interpreter.executeEffects(effects);
     }
 
     expect(operations.map(({ type }) => type)).toEqual(['schedule', 'cancel']);
     expect(operations[1].id).toBe(operations[0].id);
   });
 
-  it('routes attached listener events through the custom mailbox', () => {
+  it('routes attached listener events through the custom mailbox', async () => {
     const child = createCallbackLogic(({ emit }) => {
       emit({ type: 'READY' });
     });
@@ -285,16 +288,16 @@ describe('custom interpreter runtime', () => {
 
     const interpreter = new CustomInterpreter<typeof machine>();
     let [state, effects] = machine.initialTransition(undefined);
-    interpreter.executeEffects(effects);
+    await interpreter.executeEffects(effects);
     while (interpreter.hasEvents()) {
       [state, effects] = machine.transition(state, interpreter.dequeue()!);
-      interpreter.executeEffects(effects);
+      await interpreter.executeEffects(effects);
     }
 
     expect(state.matches('ready')).toBe(true);
   });
 
-  it('uses the same runtime lifecycle for explicitly spawned actors', () => {
+  it('uses the same runtime lifecycle for explicitly spawned actors', async () => {
     const operations: string[] = [];
     const child = createCallbackLogic(() => {});
     const machine = createMachine({
@@ -319,11 +322,11 @@ describe('custom interpreter runtime', () => {
       }
     });
     let [state, effects] = machine.initialTransition(undefined);
-    interpreter.executeEffects(effects);
+    await interpreter.executeEffects(effects);
     interpreter.enqueue({ type: 'STOP_CHILD' });
     while (interpreter.hasEvents()) {
       [state, effects] = machine.transition(state, interpreter.dequeue()!);
-      interpreter.executeEffects(effects);
+      await interpreter.executeEffects(effects);
     }
 
     expect(operations).toEqual(['spawn:child', 'start:child', 'stop:child']);
@@ -364,6 +367,26 @@ describe('custom interpreter runtime', () => {
     await executeEffects(effects, { sendEvent });
 
     expect(received).toEqual(['NOTICE']);
+  });
+
+  it('invokes runtime operations with the runtime as this', async () => {
+    const runtime: Partial<ActorSystemRuntime> & { received: string[] } = {
+      received: [],
+      sendEvent(_source, _target, event) {
+        this.received.push(event.type);
+      }
+    };
+    const machine = createMachine({
+      on: {
+        SEND: ({ self }, enq) => enq.sendTo(self, { type: 'NOTICE' })
+      }
+    });
+    const [initial] = machine.initialTransition(undefined);
+    const [, effects] = machine.transition(initial, { type: 'SEND' });
+
+    await effects[0].exec(runtime);
+
+    expect(runtime.received).toEqual(['NOTICE']);
   });
 
   it('awaits runtime effects sequentially', async () => {

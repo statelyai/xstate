@@ -5,7 +5,7 @@ import { AsyncActorLogic } from './actors/promise.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
-import { AnyActorSystem, Clock } from './system.ts';
+import type { ActorSystemRuntime, AnyActorSystem, Clock } from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
 import type { SimulatedClock } from './SimulatedClock.ts';
@@ -2765,6 +2765,9 @@ export type ToStateValue<T extends StateSchema> = T extends {
 export interface BaseExecutableActionObject {
   params: NonReducibleUnknown;
   args: unknown[];
+  exec(
+    runtime?: Partial<ActorSystemRuntime>
+  ): void | PromiseLike<void> | undefined;
 }
 
 export interface CustomExecutableActionObject<

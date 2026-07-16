@@ -91,7 +91,6 @@ export {
   getNextTransitions
 } from './transition.ts';
 export {
-  executeEffect,
   executeEffects,
   isBuiltInExecutableAction
 } from './transitionActions.ts';

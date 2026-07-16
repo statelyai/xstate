@@ -50,7 +50,6 @@ import {
   TimersRestoreStrategy
 } from './types.ts';
 import { toObserver } from './utils.ts';
-import { executeEffect } from './transitionActions.ts';
 
 export const $$ACTOR_TYPE = 1;
 
@@ -88,7 +87,9 @@ function isExecutableActionObject(
     typeof effect === 'object' &&
     effect !== null &&
     'args' in effect &&
-    'kind' in effect
+    'kind' in effect &&
+    'exec' in effect &&
+    typeof effect.exec === 'function'
   );
 }
 
@@ -285,7 +286,7 @@ export class Actor<TLogic extends AnyActorLogic>
           try {
             executingCustomAction = true;
 
-            void executeEffect(action);
+            void action.exec();
           } finally {
             executingCustomAction = saveExecutingCustomAction;
           }

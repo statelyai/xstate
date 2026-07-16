@@ -11,7 +11,6 @@ import {
   getInitialMicrosteps,
   getMicrosteps,
   getNextTransitions,
-  executeEffect,
   isBuiltInExecutableAction
 } from '../src';
 import type {
@@ -1021,7 +1020,7 @@ describe('transition function', () => {
         }
       });
       const [active, initialEffects] = initialTransition(machine);
-      initialEffects.forEach((effect) => void executeEffect(effect));
+      initialEffects.forEach((effect) => void effect.exec());
       const child = active.children.child;
 
       const [stopped, effects] = transition(machine, active, { type: 'STOP' });
@@ -1030,7 +1029,7 @@ describe('transition function', () => {
       expect(effects.filter(isEffect(XSTATE_STOP))).toEqual([
         expect.objectContaining({ actor: child, id: 'child' })
       ]);
-      effects.forEach((effect) => void executeEffect(effect));
+      effects.forEach((effect) => void effect.exec());
       expect(dispose).toHaveBeenCalledOnce();
     });
 
@@ -1076,7 +1075,7 @@ describe('transition function', () => {
 
       const [active, initialEffects] = initialTransition(machine);
       for (const effect of initialEffects) {
-        void executeEffect(effect);
+        void effect.exec();
       }
 
       const child = active.children.child;
@@ -1091,7 +1090,7 @@ describe('transition function', () => {
         'start(child)'
       ]);
       for (const effect of restartEffects) {
-        void executeEffect(effect);
+        void effect.exec();
       }
 
       expect(child.getSnapshot().status).toBe('stopped');
@@ -1112,12 +1111,10 @@ describe('transition function', () => {
         }
       });
       const [active, initialEffects] = initialTransition(machine);
-      initialEffects.forEach((effect) => void executeEffect(effect));
+      initialEffects.forEach((effect) => void effect.exec());
 
       const [, effects] = transition(machine, active, { type: 'SEND' });
-      effects.forEach(
-        (effect: ExecutableActionObject) => void executeEffect(effect)
-      );
+      effects.forEach((effect: ExecutableActionObject) => void effect.exec());
 
       expect(received).toHaveBeenCalledWith({ type: 'PING' });
     });
@@ -1134,7 +1131,7 @@ describe('transition function', () => {
         }
       });
       const [waiting, initialEffects] = initialTransition(machine);
-      initialEffects.forEach((effect) => void executeEffect(effect));
+      initialEffects.forEach((effect) => void effect.exec());
       const source = initialEffects.find(isEffect('@xstate.raise'))!.source;
 
       expect(
@@ -1142,9 +1139,7 @@ describe('transition function', () => {
       ).toHaveLength(1);
 
       const [, effects] = machine.transition(waiting, { type: 'CANCEL' });
-      effects.forEach(
-        (effect: ExecutableActionObject) => void executeEffect(effect)
-      );
+      effects.forEach((effect: ExecutableActionObject) => void effect.exec());
 
       expect(
         Object.keys(source.system.getSnapshot()._scheduledEvents)
@@ -1187,9 +1182,7 @@ describe('transition function', () => {
 
       const [a] = machine.initialTransition(undefined);
       const [, effects] = machine.transition(a, { type: 'NEXT' });
-      effects.forEach(
-        (effect: ExecutableActionObject) => void executeEffect(effect)
-      );
+      effects.forEach((effect: ExecutableActionObject) => void effect.exec());
 
       expect(effectSnapshot).toBe('b');
     });
@@ -1219,7 +1212,7 @@ describe('transition function', () => {
       const [, leftEffects] = machine.transition(a, { type: 'LEFT' });
       machine.transition(a, { type: 'RIGHT' });
       leftEffects.forEach(
-        (effect: ExecutableActionObject) => void executeEffect(effect)
+        (effect: ExecutableActionObject) => void effect.exec()
       );
 
       expect(effectSnapshot).toBe('left');
@@ -1355,7 +1348,7 @@ describe('transition function', () => {
       const childSnapshot = parent.getSnapshot().children.child.getSnapshot();
 
       const [, effects] = transition(child, childSnapshot, { type: 'CHECK' });
-      effects.forEach((effect) => void executeEffect(effect));
+      effects.forEach((effect) => void effect.exec());
 
       expect(seenParent).toBe(parent);
     });
@@ -1410,7 +1403,7 @@ describe('transition function', () => {
         'spawn(child)',
         'start(child)'
       ]);
-      effects.forEach((effect) => void executeEffect(effect));
+      effects.forEach((effect) => void effect.exec());
       expect(snapshot.children.child.getSnapshot().status).toBe('active');
       expect(started).toHaveBeenCalledOnce();
     });
@@ -1699,7 +1692,7 @@ describe('transition function', () => {
     const listenerStart = vi.spyOn(listenerRef as any, 'start');
 
     for (const effect of effects) {
-      void executeEffect(effect);
+      void effect.exec();
     }
 
     expect(listenerStart).toHaveBeenCalled();
@@ -1717,7 +1710,8 @@ describe('transition function', () => {
         type: 'toString',
         params: undefined,
         args: [],
-        action: undefined
+        action: undefined,
+        exec() {}
       })
     ).toBe(false);
   });
@@ -2040,7 +2034,7 @@ describe('transition function', () => {
       }
       switch (action.type) {
         case '@xstate.start': {
-          await executeEffect(action);
+          await action.exec();
           const startedActor = action.actor as ReturnType<typeof createActor>;
           const output = await toPromise(startedActor);
           postEvent(createDoneActorEvent(startedActor.id, output));

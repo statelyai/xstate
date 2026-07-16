@@ -17,13 +17,19 @@ import type {
   AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
+  CancelExecutableActionObject,
+  CustomExecutableActionObject,
+  EmitExecutableActionObject,
   EnqueueObject,
   EventObject,
   ExecutableActionObject,
   MachineContext,
+  RaiseExecutableActionObject,
+  SendToExecutableActionObject,
   SpecialExecutableAction,
   SpawnExecutableActionObject,
-  StartExecutableActionObject
+  StartExecutableActionObject,
+  StopExecutableActionObject
 } from './types.ts';
 
 type TransitionActionRecord = {
@@ -33,6 +39,108 @@ type TransitionActionRecord = {
     | { type: 'add'; actor: AnyActor; id: string }
     | { type: 'remove'; actor: AnyActor };
 };
+
+type EffectRuntime = Partial<ActorSystemRuntime>;
+
+function execCustomEffect(
+  this: CustomExecutableActionObject
+): void | PromiseLike<void> | undefined {
+  return this.action?.(...this.args);
+}
+
+function execEmitEffect(
+  this: EmitExecutableActionObject,
+  runtime?: EffectRuntime
+): void | PromiseLike<void> {
+  return runtime?.emitEvent
+    ? runtime.emitEvent(this.source, this.event)
+    : this.source.system.emitEvent(this.source, this.event);
+}
+
+function execSpawnEffect(
+  this: SpawnExecutableActionObject,
+  runtime?: EffectRuntime
+): void | PromiseLike<void> {
+  return runtime?.spawnActor
+    ? runtime.spawnActor(this.source, this.actor)
+    : this.actor.system.spawnActor(this.source, this.actor);
+}
+
+function execStartEffect(
+  this: StartExecutableActionObject,
+  runtime?: EffectRuntime
+): void | PromiseLike<void> {
+  return runtime?.startActor
+    ? runtime.startActor(this.actor)
+    : this.actor.system.startActor(this.actor);
+}
+
+function execStopEffect(
+  this: StopExecutableActionObject,
+  runtime?: EffectRuntime
+): void | PromiseLike<void> {
+  return runtime?.stopActor
+    ? runtime.stopActor(this.actor)
+    : this.source.system.stopActor(this.actor);
+}
+
+function execRaiseEffect(
+  this: RaiseExecutableActionObject,
+  runtime?: EffectRuntime
+): void | PromiseLike<void> {
+  return runtime?.scheduleEvent
+    ? runtime.scheduleEvent(
+        this.source,
+        this.source,
+        this.event,
+        this.delay ?? 0,
+        this.id
+      )
+    : this.source.system.scheduleEvent(
+        this.source,
+        this.source,
+        this.event,
+        this.delay ?? 0,
+        this.id
+      );
+}
+
+function execSendToEffect(
+  this: SendToExecutableActionObject,
+  runtime?: EffectRuntime
+): void | PromiseLike<void> {
+  assertSendToEvent(this.event);
+  if (this.delay !== undefined) {
+    return runtime?.scheduleEvent
+      ? runtime.scheduleEvent(
+          this.source,
+          this.target,
+          this.event,
+          this.delay,
+          this.id
+        )
+      : this.source.system.scheduleEvent(
+          this.source,
+          this.target,
+          this.event,
+          this.delay,
+          this.id
+        );
+  }
+  if (runtime?.sendEvent) {
+    return runtime.sendEvent(this.source, this.target, this.event);
+  }
+  return this.source.system._relay(this.source, this.target, this.event);
+}
+
+function execCancelEffect(
+  this: CancelExecutableActionObject,
+  runtime?: EffectRuntime
+): void | PromiseLike<void> {
+  return runtime?.cancelEvent
+    ? runtime.cancelEvent(this.source, this.id)
+    : this.source.system.cancelEvent(this.source, this.id);
+}
 
 export function mergeContextPatch(
   context: MachineContext,
@@ -253,6 +361,7 @@ function getBuiltInActionFields(
       >;
       return {
         kind: 'builtin',
+        exec: execSpawnEffect,
         source: actor._parent,
         actor,
         id: actor.id,
@@ -267,6 +376,7 @@ function getBuiltInActionFields(
       >;
       return {
         kind: 'builtin',
+        exec: execRaiseEffect,
         source: (
           args as Parameters<(typeof builtInActions)['@xstate.raise']>
         )[0].self,
@@ -281,6 +391,7 @@ function getBuiltInActionFields(
       >;
       return {
         kind: 'builtin',
+        exec: execSendToEffect,
         source: (
           args as Parameters<(typeof builtInActions)['@xstate.sendTo']>
         )[0].self,
@@ -296,6 +407,7 @@ function getBuiltInActionFields(
       >;
       return {
         kind: 'builtin',
+        exec: execCancelEffect,
         source: (
           args as Parameters<(typeof builtInActions)['@xstate.cancel']>
         )[0].self,
@@ -308,6 +420,7 @@ function getBuiltInActionFields(
       >;
       return {
         kind: 'builtin',
+        exec: execStopEffect,
         source: (args as Parameters<(typeof builtInActions)['@xstate.stop']>)[0]
           .self,
         actor,
@@ -323,6 +436,7 @@ function createStartEffect(actor: AnyActor): StartExecutableActionObject {
   const args: Parameters<(typeof builtInActions)['@xstate.start']> = [actor];
   return {
     kind: 'builtin',
+    exec: execStartEffect,
     type: XSTATE_START,
     source: actor._parent,
     params: undefined,
@@ -338,6 +452,7 @@ export function createSpawnEffect(
   const args: Parameters<(typeof builtInActions)['@xstate.spawn']> = [actor];
   return {
     kind: 'builtin',
+    exec: execSpawnEffect,
     type: XSTATE_SPAWN,
     source: actor._parent,
     params: undefined,
@@ -383,78 +498,13 @@ export function isBuiltInExecutableAction(
   return action.kind === 'builtin';
 }
 
-/** Executes one transition effect using an optional execution-time runtime. */
-export function executeEffect(
-  effect: ExecutableActionObject,
-  runtime?: Partial<ActorSystemRuntime>
-): void | PromiseLike<void> {
-  if (effect.kind === 'action') {
-    return effect.action?.(...effect.args);
-  }
-
-  if (effect.kind === 'emit') {
-    return (runtime?.emitEvent ?? effect.source.system.emitEvent)(
-      effect.source,
-      effect.event
-    );
-  }
-
-  switch (effect.type) {
-    case '@xstate.spawn':
-      return (runtime?.spawnActor ?? effect.actor.system.spawnActor)(
-        effect.source,
-        effect.actor
-      );
-    case '@xstate.start':
-      return (runtime?.startActor ?? effect.actor.system.startActor)(
-        effect.actor
-      );
-    case '@xstate.stop':
-      return (runtime?.stopActor ?? effect.source.system.stopActor)(
-        effect.actor
-      );
-    case '@xstate.raise':
-      return (runtime?.scheduleEvent ?? effect.source.system.scheduleEvent)(
-        effect.source,
-        effect.source,
-        effect.event,
-        effect.delay ?? 0,
-        effect.id
-      );
-    case '@xstate.sendTo':
-      assertSendToEvent(effect.event);
-      if (effect.delay !== undefined) {
-        return (runtime?.scheduleEvent ?? effect.source.system.scheduleEvent)(
-          effect.source,
-          effect.target,
-          effect.event,
-          effect.delay,
-          effect.id
-        );
-      }
-      if (runtime?.sendEvent) {
-        return runtime.sendEvent(effect.source, effect.target, effect.event);
-      }
-      return effect.source.system._relay(
-        effect.source,
-        effect.target,
-        effect.event
-      );
-    case '@xstate.cancel':
-      return (runtime?.cancelEvent ?? effect.source.system.cancelEvent)(
-        effect.source,
-        effect.id
-      );
-  }
-}
-
 /** Executes transition effects sequentially, awaiting each runtime operation. */
 export async function executeEffects(
   effects: readonly ExecutableActionObject[],
   runtime?: Partial<ActorSystemRuntime>
 ): Promise<void> {
   for (const effect of effects) {
-    await executeEffect(effect, runtime);
+    await effect.exec(runtime);
   }
 }
 
@@ -511,6 +561,7 @@ export function resolveActionsWithContext(
     if (resolvedAction && '_special' in resolvedAction) {
       executableActions.push({
         kind: 'action',
+        exec: execCustomEffect,
         type:
           typeof action === 'object'
             ? 'action' in action && typeof action.action === 'function'
@@ -587,6 +638,9 @@ export function resolveActionsWithContext(
             : {
                 action: actionRecord?.action ?? (isInline ? action : undefined)
               }),
+        ...(!builtInFields
+          ? { exec: isEmittedEvent ? execEmitEffect : execCustomEffect }
+          : {}),
         ...builtInFields
       };
 

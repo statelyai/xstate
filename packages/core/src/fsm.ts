@@ -355,7 +355,10 @@ function resolveSimpleEnqueuedActions(
       type: action.action.name || '(anonymous)',
       params: undefined,
       args: action.args,
-      action: action.action
+      action: action.action,
+      exec() {
+        return this.action?.(...this.args);
+      }
     });
   }
 

@@ -41,7 +41,9 @@ function commitTransition(
     currentSnapshot: AnyMachineSnapshot,
     parentKey: string
   ) => {
-    for (const [id, actor] of Object.entries(currentSnapshot.children)) {
+    for (const [id, actor] of Object.entries(currentSnapshot.children) as Array<
+      [string, AnyActor | undefined]
+    >) {
       if (!actor) {
         continue;
       }

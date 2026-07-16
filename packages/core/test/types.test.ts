@@ -172,6 +172,7 @@ describe('SpecialExecutableAction', () => {
       noop(customAction.type);
       noop(customAction.args);
       noop(customAction.action);
+      noop(customAction.exec);
     }
   });
 });
