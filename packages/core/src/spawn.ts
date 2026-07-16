@@ -1,4 +1,3 @@
-import { createActor } from './createActor.ts';
 import {
   ActorFromLogic,
   AnyActorLogic,
@@ -49,7 +48,7 @@ export function createSpawner(
         );
       }
 
-      const actor = createActor(logic, {
+      const actor = actorScope.system.createActorRef(logic, {
         id: options?.id,
         parent: actorScope.self,
         syncSnapshot: options?.syncSnapshot,
@@ -69,7 +68,7 @@ export function createSpawner(
 
       return actor;
     } else {
-      const actor = createActor(src, {
+      const actor = actorScope.system.createActorRef(src, {
         id: options?.id,
         parent: actorScope.self,
         syncSnapshot: options?.syncSnapshot,

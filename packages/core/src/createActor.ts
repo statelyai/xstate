@@ -50,6 +50,7 @@ import {
   TimersRestoreStrategy
 } from './types.ts';
 import { toObserver } from './utils.ts';
+import { executeEffect } from './transitionActions.ts';
 
 export const $$ACTOR_TYPE = 1;
 
@@ -223,7 +224,10 @@ export class Actor<TLogic extends AnyActorLogic>
         createRuntimeSystem(this, {
           clock,
           logger,
-          timers: resolvedOptions.timers
+          timers: resolvedOptions.timers,
+          runtime: resolvedOptions._runtime,
+          createActorRef: (childLogic, childOptions) =>
+            createActor(childLogic, childOptions as any)
         }));
 
     if (
@@ -268,7 +272,8 @@ export class Actor<TLogic extends AnyActorLogic>
         }
         (child as Actor<AnyActorLogic>)._stop();
       },
-      emit: (emittedEvent) => this._emit(emittedEvent),
+      emit: (emittedEvent) =>
+        this.system.emitEvent(this, emittedEvent as EventObject),
       actionExecutor: (action) => {
         const exec = () => {
           // Record every executed action for the '@xstate.transition' inspection
@@ -284,7 +289,7 @@ export class Actor<TLogic extends AnyActorLogic>
           try {
             executingCustomAction = true;
 
-            action.exec();
+            void executeEffect(action);
           } finally {
             executingCustomAction = saveExecutingCustomAction;
           }
@@ -781,7 +786,7 @@ export class Actor<TLogic extends AnyActorLogic>
         // Re-execute the pending effect with its remaining delay. Only
         // self-targeted raises exist today; other effect types are ignored.
         if (effect.type === '@xstate.raise') {
-          this.system.scheduler.schedule(
+          this.system.scheduleEvent(
             this,
             this,
             effect.event,
@@ -923,7 +928,7 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     // Cancel all delayed events
-    this.system.scheduler.cancelAll(this);
+    this.system.cancelAllEvents(this);
 
     // TODO: mailbox.reset
     this.mailbox.clear();

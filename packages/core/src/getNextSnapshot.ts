@@ -9,11 +9,13 @@ import {
   AnyActor,
   AnyActorLogic,
   AnyActorScope,
+  AnyEventObject,
   EmittedFrom,
   EventFromLogic,
   InputFrom,
   SnapshotFrom
 } from './types.ts';
+import { ActorSystemRuntime } from './system.ts';
 
 function collectSnapshotActors(
   children: Record<string, AnyActor | undefined>
@@ -27,7 +29,8 @@ function collectSnapshotActors(
  */
 function createSystemProjection(
   previousSelf: AnyActor,
-  children: Record<string, AnyActor | undefined>
+  children: Record<string, AnyActor | undefined>,
+  runtime?: Partial<ActorSystemRuntime>
 ): AnyActor['system'] {
   const baseSystem = previousSelf.system;
   const registeredActors = new Map<string, AnyActor>();
@@ -38,6 +41,7 @@ function createSystemProjection(
 
   const system: AnyActor['system'] = {
     ...baseSystem,
+    ...runtime,
     children: registeredActors,
     keyedActors,
     reverseKeyedActors,
@@ -75,6 +79,11 @@ function createSystemProjection(
     },
     get: (registryKey: any) => keyedActors.get(registryKey) as any,
     getAll: () => Object.fromEntries(keyedActors),
+    _relay: (
+      source: AnyActor | undefined,
+      target: AnyActor,
+      event: AnyEventObject
+    ) => system.sendEvent(source, target, event),
     // Pure transition resolution must not leak topology inspection events into
     // a live runtime system.
     _sendInspectionEvent: () => {}
@@ -141,7 +150,8 @@ export function attachSnapshotActorRef<T extends AnyActorLogic, TSnapshot>(
 export function createInertActorScope<T extends AnyActorLogic>(
   actorLogic: T,
   snapshot?: SnapshotFrom<T>,
-  sourceSelf?: AnyActor
+  sourceSelf?: AnyActor,
+  runtime?: Partial<ActorSystemRuntime>
 ): AnyActorScope {
   const previousSelf =
     sourceSelf ??
@@ -150,12 +160,17 @@ export function createInertActorScope<T extends AnyActorLogic>(
       : undefined);
   const system =
     previousSelf && isMachineSnapshot(snapshot)
-      ? createSystemProjection(previousSelf, (snapshot as any).children)
+      ? createSystemProjection(
+          previousSelf,
+          (snapshot as any).children,
+          runtime
+        )
       : undefined;
   const self = createActor(
     actorLogic as AnyActorLogic,
     {
       _inert: true,
+      ...(runtime ? { _runtime: runtime } : {}),
       ...(system ? { _systemRef: { current: system } } : {})
     } as any
   );
@@ -179,7 +194,7 @@ export function createInertActorScope<T extends AnyActorLogic>(
     sessionId: self.sessionId,
     stopChild: (child) => (child as any)._stop(),
     system: self.system,
-    emit: (event) => (self as any)._emit(event),
+    emit: (event) => self.system.emitEvent(self, event),
     actionExecutor: () => {}
   };
   return actorScope;

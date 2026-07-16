@@ -1080,7 +1080,7 @@ export class StateMachine<
         continue;
       }
 
-      const actor = createActor(logic, {
+      const actor = _actorScope.system.createActorRef(logic, {
         id: actorId,
         parent: _actorScope.self,
         syncSnapshot: actorData.syncSnapshot,

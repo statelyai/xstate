@@ -1,23 +1,21 @@
 import isDevelopment from '#is-development';
 import { AnyActor, AnyActorScope, EventObject } from './types';
 
-type EffectActor = AnyActor & {
-  _stop: () => AnyActor;
-};
-
 export const builtInActions = {
   // Actor refs are created while resolving the next snapshot. Starting is a
   // separate deferred effect so the returned list remains execution-complete.
-  ['@xstate.spawn']: (_actor: AnyActor) => {},
+  ['@xstate.spawn']: (actor: AnyActor) => {
+    return actor.system.spawnActor(actor._parent, actor);
+  },
   ['@xstate.start']: (actor: AnyActor) => {
-    actor.start();
+    return actor.system.startActor(actor);
   },
   ['@xstate.raise']: (
     actorScope: AnyActorScope,
     event: EventObject,
     options: { id?: string; delay?: number }
   ) => {
-    actorScope.system.scheduler.schedule(
+    return actorScope.system.scheduleEvent(
       actorScope.self,
       actorScope.self,
       event,
@@ -40,7 +38,7 @@ export const builtInActions = {
       );
     }
     if (options?.delay !== undefined) {
-      actorScope.system.scheduler.schedule(
+      return actorScope.system.scheduleEvent(
         actorScope.self,
         actor,
         event,
@@ -48,13 +46,13 @@ export const builtInActions = {
         options?.id
       );
     } else {
-      actorScope.system._relay(actorScope.self, actor, event);
+      return actorScope.system._relay(actorScope.self, actor, event);
     }
   },
   ['@xstate.cancel']: (actorScope: AnyActorScope, sendId: string) => {
-    actorScope.system.scheduler.cancel(actorScope.self, sendId);
+    return actorScope.system.cancelEvent(actorScope.self, sendId);
   },
-  ['@xstate.stop']: (_actorScope: AnyActorScope, actor: AnyActor) => {
-    (actor as EffectActor)._stop();
+  ['@xstate.stop']: (actorScope: AnyActorScope, actor: AnyActor) => {
+    return actorScope.system.stopActor(actor);
   }
 };

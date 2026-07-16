@@ -5,7 +5,7 @@ import { AsyncActorLogic } from './actors/promise.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
-import { AnyActorSystem, Clock } from './system.ts';
+import { ActorSystemRuntime, AnyActorSystem, Clock } from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
 import type { SimulatedClock } from './SimulatedClock.ts';
@@ -1624,6 +1624,8 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   syncSnapshot?: boolean;
   /** @internal */
   _systemRef?: { current?: AnyActorSystem };
+  /** @internal */
+  _runtime?: Partial<ActorSystemRuntime>;
   /** The custom `id` for referencing this service. */
   id?: string;
   /** @deprecated Use `inspect` instead. */
@@ -2124,7 +2126,7 @@ export interface ActorScope<
   sessionId: string;
   logger: (...args: any[]) => void;
   defer: (fn: () => void) => void;
-  emit: (event: TEmitted) => void;
+  emit: (event: TEmitted) => void | PromiseLike<void>;
   system: TSystem;
   stopChild: (child: AnyActor) => void;
   actionExecutor: ActionExecutor;
@@ -2765,7 +2767,7 @@ export type ToStateValue<T extends StateSchema> = T extends {
 export interface BaseExecutableActionObject {
   params: NonReducibleUnknown;
   args: unknown[];
-  exec: (() => void) | undefined;
+  exec: (() => void | PromiseLike<void>) | undefined;
 }
 
 export interface CustomExecutableActionObject<

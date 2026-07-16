@@ -44,7 +44,6 @@ import {
   resolveReferencedActor,
   toTransitionConfigArray
 } from './utils.ts';
-import { createActor } from './createActor.ts';
 import { builtInActions } from './actions.ts';
 import {
   createEnqueueObject,
@@ -1521,7 +1520,7 @@ function microstep(
                 })
               : invokeDef.input;
 
-          const actor = createActor(logic, {
+          const actor = actorScope.system.createActorRef(logic, {
             ...invokeDef,
             input,
             parent: actorScope.self,

@@ -7,7 +7,6 @@ import {
   type SubscriptionMappers
 } from './actors/subscription.ts';
 import { XSTATE_SPAWN, XSTATE_START } from './constants.ts';
-import { createActor } from './createActor.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
 import { getEventOutput } from './utils.ts';
 import type {
@@ -161,7 +160,7 @@ export function createTransitionEnqueue(
           id: options?.id ?? options?.registryKey ?? (logic as any).id
         } as AnyActor;
       }
-      const actor = createActor(logic, {
+      const actor = actorScope.system.createActorRef(logic, {
         ...options,
         parent: actorScope.self
       });
@@ -208,7 +207,7 @@ export function createTransitionEnqueue(
           eventType,
           mapper
         };
-        const listenerActor = createActor(listenerLogic, {
+        const listenerActor = actorScope.system.createActorRef(listenerLogic, {
           input,
           parent: actorScope.self
         });
@@ -227,10 +226,13 @@ export function createTransitionEnqueue(
           actor,
           mappers: normalizedMappers
         };
-        const subscriptionActor = createActor(subscriptionLogic, {
-          input,
-          parent: actorScope.self
-        });
+        const subscriptionActor = actorScope.system.createActorRef(
+          subscriptionLogic,
+          {
+            input,
+            parent: actorScope.self
+          }
+        );
         pushBuiltInAction(
           actions,
           builtInActions['@xstate.spawn'],
@@ -363,6 +365,22 @@ export function isBuiltInExecutableAction(
   action: ExecutableActionObject
 ): action is SpecialExecutableAction {
   return (action as any)[builtInExecutableAction] === true;
+}
+
+/** Executes one transition effect using its snapshot-bound runtime. */
+export function executeEffect(
+  effect: ExecutableActionObject
+): void | PromiseLike<void> {
+  return effect.exec?.();
+}
+
+/** Executes transition effects sequentially, awaiting each runtime operation. */
+export async function executeEffects(
+  effects: readonly ExecutableActionObject[]
+): Promise<void> {
+  for (const effect of effects) {
+    await executeEffect(effect);
+  }
 }
 
 export function resolveActionsWithContext(
