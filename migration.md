@@ -1069,9 +1069,23 @@ Machines without a `version` produce snapshots with no `version` key.
 
 ### Durable timers
 
-Pending `after` / delayed-raise timers are persisted on the snapshot (under
-`_pendingEffects`) with the remaining-delay info needed to resume them. A
-rehydrated actor re-arms its timers rather than losing them.
+<!-- logical timer snapshot and ActorSystemRuntime timer API from packages/core/src/types.ts and packages/core/src/system.ts -->
+
+Pending delayed deliveries are explicit in `snapshot.timers`. Each declaration
+contains its stable ID, delay, delivery type, event, and logical target; it contains no
+wall-clock timestamps or native timeout handles. Timer runtimes implement
+`scheduleTimer(source, id, delay)` / `cancelTimer(source, id)` and deliver
+`{ type: 'xstate.timer', id }` to the source when due. Consuming that input
+removes the declaration and emits the real delivery effect.
+
+Final and explicitly stopped snapshots contain no pending timers; their
+transitions emit ordered cancellation effects for any remaining declarations.
+Persisted delayed sends preserve `self`, parent, and active-child relationships
+without rebinding stopped actors by ID.
+
+A locally rehydrated actor restarts each timer with its declared delay. Durable
+hosts that need wall-clock restoration persist `scheduledAt` / `dueAt`
+separately from the machine snapshot.
 
 ---
 

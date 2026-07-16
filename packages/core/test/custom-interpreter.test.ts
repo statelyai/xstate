@@ -27,15 +27,16 @@ class CustomInterpreter<TLogic extends AnyActorLogic> {
         }
         target._send(event);
       },
-      scheduleEvent: (source, target, event, delay, id) => {
+      scheduleTimer: (source, id, delay) => {
         const timeout = setTimeout(() => {
-          void this.runtime.sendEvent?.(source, target, event);
+          void this.runtime.sendEvent?.(source, source, {
+            type: 'xstate.timer',
+            id
+          });
         }, delay);
-        if (id) {
-          this.timers.set(`${source.sessionId}.${id}`, timeout);
-        }
+        this.timers.set(`${source.sessionId}.${id}`, timeout);
       },
-      cancelEvent: (source, id) => {
+      cancelTimer: (source, id) => {
         clearTimeout(this.timers.get(`${source.sessionId}.${id}`));
       },
       // When this example delegates child execution back to `createActor`, the
@@ -196,6 +197,58 @@ describe('custom interpreter runtime', () => {
     expect(state.matches('success')).toBe(true);
   });
 
+  it('delivers delayed sends through the source timer input', async () => {
+    const child = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: { on: { PING: { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+    const machine = createMachine({
+      actorSources: { child },
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            id: 'child',
+            src: 'child',
+            onDone: { target: 'success' }
+          },
+          on: {
+            SEND: ({ children }, enq) => {
+              enq.sendTo(
+                children.child,
+                { type: 'PING' },
+                {
+                  id: 'ping',
+                  delay: 10
+                }
+              );
+            }
+          }
+        },
+        success: {}
+      }
+    });
+    const interpreter = new CustomInterpreter<typeof machine>();
+    let [state, effects] = machine.initialTransition(undefined);
+    await interpreter.executeEffects(effects);
+    interpreter.enqueue({ type: 'SEND' });
+
+    while (interpreter.hasEvents()) {
+      [state, effects] = machine.transition(state, interpreter.dequeue()!);
+      await interpreter.executeEffects(effects);
+    }
+    vi.advanceTimersByTime(10);
+    while (interpreter.hasEvents()) {
+      [state, effects] = machine.transition(state, interpreter.dequeue()!);
+      await interpreter.executeEffects(effects);
+    }
+
+    expect(state.matches('success')).toBe(true);
+  });
+
   it('delegates invoked actor lifecycle to the runtime', async () => {
     const operations: string[] = [];
     const child = createMachine({});
@@ -247,10 +300,10 @@ describe('custom interpreter runtime', () => {
       }
     });
     const interpreter = new CustomInterpreter<typeof machine>({
-      scheduleEvent: (_source, _target, _event, _delay, id) => {
+      scheduleTimer: (_source, id) => {
         operations.push({ type: 'schedule', id });
       },
-      cancelEvent: (_source, id) => {
+      cancelTimer: (_source, id) => {
         operations.push({ type: 'cancel', id });
       }
     });

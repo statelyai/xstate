@@ -1,11 +1,10 @@
 /**
  * Persistence conformance (v6).
  *
- * Six+ open v5 issues are believed fixed by the v6 persistence rewrite (pending
- * timers as `_pendingEffects` + `timers` restore strategy, snapshot versioning
- * + `migrate`, children registered on `snapshot.children`, `getInitialSnapshot`
- * single-init). Each `describe` proves or disproves one issue via the canonical
- * JSON round-trip:
+ * Six+ open v5 issues are believed fixed by the v6 persistence rewrite: logical
+ * snapshot timers, snapshot versioning + `migrate`, children registered on
+ * `snapshot.children`, and `getInitialSnapshot` single-init. Each `describe`
+ * proves or disproves one issue via the canonical JSON round-trip:
  *
  * Const persisted = actor.getPersistedSnapshot(); const json =
  * JSON.parse(JSON.stringify(persisted)); // MUST go through JSON const restored
@@ -192,7 +191,7 @@ describe('#5178 historyValue revival', () => {
   });
 });
 
-describe('#5331 timers restored', () => {
+describe('#5331 logical timers restored', () => {
   const createDelayMachine = () =>
     createMachine({
       initial: 'pending',
@@ -204,69 +203,31 @@ describe('#5331 timers restored', () => {
       }
     });
 
-  it('`timers: "resume"` fires after the remaining delay', () => {
+  it('persists timer intent and restarts its declared delay locally', () => {
     const clock = new SimulatedClock();
     const actor = createActor(createDelayMachine(), { clock }).start();
     const persisted: any = actor.getPersistedSnapshot();
     actor.stop();
 
-    // 200ms of the 500ms delay had elapsed
-    persisted._pendingEffects[0].elapsed = 200;
     const json = roundTrip(persisted);
+    const [timer] = Object.values(json.timers) as any[];
+    expect(timer).toMatchObject({
+      delay: 500,
+      target: 'self',
+      event: { type: expect.stringMatching(/^xstate\.after/) }
+    });
+    expect(timer).not.toHaveProperty('startedAt');
+    expect(timer).not.toHaveProperty('elapsed');
 
     const clock2 = new SimulatedClock();
     const restored = createActor(createDelayMachine(), {
       clock: clock2,
-      snapshot: json,
-      timers: 'resume'
-    }).start();
-
-    clock2.increment(299);
-    expect(restored.getSnapshot().value).toBe('pending');
-    clock2.increment(1); // 300ms = 500 - 200 remaining
-    expect(restored.getSnapshot().value).toBe('done');
-  });
-
-  it('`timers: "restart"` fires after the full delay again', () => {
-    const clock = new SimulatedClock();
-    const actor = createActor(createDelayMachine(), { clock }).start();
-    const persisted: any = actor.getPersistedSnapshot();
-    actor.stop();
-
-    persisted._pendingEffects[0].elapsed = 200;
-    const json = roundTrip(persisted);
-
-    const clock2 = new SimulatedClock();
-    const restored = createActor(createDelayMachine(), {
-      clock: clock2,
-      snapshot: json,
-      timers: 'restart'
+      snapshot: json
     }).start();
 
     clock2.increment(499);
     expect(restored.getSnapshot().value).toBe('pending');
     clock2.increment(1); // full 500ms again, ignoring elapsed
-    expect(restored.getSnapshot().value).toBe('done');
-  });
-
-  it('`timers: "absolute"` fires an already-expired timer immediately', () => {
-    const clock = new SimulatedClock();
-    const actor = createActor(createDelayMachine(), { clock }).start();
-    const persisted: any = actor.getPersistedSnapshot();
-    actor.stop();
-
-    // expiry (startedAt + delay) is in the past
-    persisted._pendingEffects[0].startedAt = Date.now() - 5000;
-    const json = roundTrip(persisted);
-
-    const clock2 = new SimulatedClock();
-    const restored = createActor(createDelayMachine(), {
-      clock: clock2,
-      snapshot: json,
-      timers: 'absolute'
-    }).start();
-
-    clock2.increment(0);
     expect(restored.getSnapshot().value).toBe('done');
   });
 });

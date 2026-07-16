@@ -88,21 +88,9 @@ function execRaiseEffect(
   this: RaiseExecutableActionObject,
   runtime?: EffectRuntime
 ): void | PromiseLike<void> {
-  return runtime?.scheduleEvent
-    ? runtime.scheduleEvent(
-        this.source,
-        this.source,
-        this.event,
-        this.delay ?? 0,
-        this.id
-      )
-    : this.source.system.scheduleEvent(
-        this.source,
-        this.source,
-        this.event,
-        this.delay ?? 0,
-        this.id
-      );
+  return runtime?.scheduleTimer
+    ? runtime.scheduleTimer(this.source, this.id!, this.delay ?? 0)
+    : this.source.system.scheduleTimer(this.source, this.id!, this.delay ?? 0);
 }
 
 function execSendToEffect(
@@ -111,21 +99,9 @@ function execSendToEffect(
 ): void | PromiseLike<void> {
   assertSendToEvent(this.event);
   if (this.delay !== undefined) {
-    return runtime?.scheduleEvent
-      ? runtime.scheduleEvent(
-          this.source,
-          this.target,
-          this.event,
-          this.delay,
-          this.id
-        )
-      : this.source.system.scheduleEvent(
-          this.source,
-          this.target,
-          this.event,
-          this.delay,
-          this.id
-        );
+    return runtime?.scheduleTimer
+      ? runtime.scheduleTimer(this.source, this.id!, this.delay)
+      : this.source.system.scheduleTimer(this.source, this.id!, this.delay);
   }
   if (runtime?.sendEvent) {
     return runtime.sendEvent(this.source, this.target, this.event);
@@ -137,9 +113,58 @@ function execCancelEffect(
   this: CancelExecutableActionObject,
   runtime?: EffectRuntime
 ): void | PromiseLike<void> {
-  return runtime?.cancelEvent
-    ? runtime.cancelEvent(this.source, this.id)
-    : this.source.system.cancelEvent(this.source, this.id);
+  return runtime?.cancelTimer
+    ? runtime.cancelTimer(this.source, this.id)
+    : this.source.system.cancelTimer(this.source, this.id);
+}
+
+function updateLogicalTimers(
+  snapshot: AnyMachineSnapshot,
+  effect: ExecutableActionObject,
+  actorScope: AnyActorScope
+): AnyMachineSnapshot {
+  if (!isBuiltInExecutableAction(effect)) {
+    return snapshot;
+  }
+
+  if (effect.type === '@xstate.cancel') {
+    if (!snapshot.timers?.[effect.id]) {
+      return snapshot;
+    }
+    const timers = { ...snapshot.timers };
+    delete timers[effect.id];
+    return { ...snapshot, timers };
+  }
+
+  if (
+    (effect.type !== '@xstate.raise' && effect.type !== '@xstate.sendTo') ||
+    effect.delay === undefined
+  ) {
+    return snapshot;
+  }
+
+  let nextTimerId = snapshot._nextTimerId ?? 0;
+  const id = effect.id ?? `xstate.timer.auto.${nextTimerId++}`;
+  effect.id = id;
+  const target =
+    effect.type === '@xstate.raise' || effect.target === actorScope.self
+      ? 'self'
+      : effect.target;
+
+  return {
+    ...snapshot,
+    timers: {
+      ...snapshot.timers,
+      [id]: {
+        id,
+        delay: effect.delay,
+        type: effect.type,
+        event: effect.event,
+        target
+      }
+    },
+    _nextTimerId: nextTimerId
+  };
 }
 
 export function mergeContextPatch(
@@ -465,6 +490,32 @@ export function createSpawnEffect(
   };
 }
 
+/** @internal Creates the immediate delivery produced by `xstate.timer`. */
+export function createTimerDeliveryEffect(
+  actorScope: AnyActorScope,
+  target: AnyActor,
+  event: EventObject
+): SendToExecutableActionObject {
+  const args: Parameters<(typeof builtInActions)['@xstate.sendTo']> = [
+    actorScope,
+    target,
+    event,
+    {}
+  ];
+  return {
+    kind: 'builtin',
+    exec: execSendToEffect,
+    type: '@xstate.sendTo',
+    source: actorScope.self,
+    target,
+    event,
+    id: undefined,
+    delay: undefined,
+    params: undefined,
+    args
+  };
+}
+
 /**
  * Attached (listener/subscription) starts are ordered before child starts so
  * that a listener/subscription captures events emitted synchronously as its
@@ -644,7 +695,13 @@ export function resolveActionsWithContext(
         ...builtInFields
       };
 
-      executableActions.push(executableAction as ExecutableActionObject);
+      const typedExecutableAction = executableAction as ExecutableActionObject;
+      intermediateSnapshot = updateLogicalTimers(
+        intermediateSnapshot,
+        typedExecutableAction,
+        actorScope
+      );
+      executableActions.push(typedExecutableAction);
       continue;
     }
   }

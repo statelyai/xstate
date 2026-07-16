@@ -4,17 +4,28 @@
 
 Persistence hardening: pending timers, snapshot versioning, and route guard safety.
 
-- **Pending timers are persisted and restored.** Delayed transitions/events (`after`, `enq.raise(..., { delay })`) targeting the actor itself are captured on the persisted snapshot as `_pendingEffects` — serialized action descriptors (`{ type: '@xstate.raise', event, id, delay }`) plus runtime progress (`startedAt`, `elapsed`) — including for rehydrated child actors — and re-executed with the remaining delay on `actor.start()`. The restore strategy is configurable via the `timers` actor option:
+- **Pending timers are explicit in machine snapshots.** Delayed transitions and sends are represented by deterministic declarations in `snapshot.timers`. Timer firing arrives at the source as `{ type: 'xstate.timer', id }`; consuming it removes the declaration and produces the real delivery effect. Scheduling and cancellation effects remain ordered with other transition effects.
+
+  Reaching a final state or explicitly stopping a machine emits ordered cancellation effects for every remaining timer and clears those declarations. Persisted delayed sends preserve `self`, parent, and active-child relationships without rebinding a stopped actor to a replacement that happens to share its ID.
 
   ```ts
-  const actor = createActor(machine, {
-    snapshot: persisted,
-    timers: 'resume' // default — a 5min timer persisted at 1min fires after 4 more minutes
-    // 'restart'     — timers start over with their full delay
-    // 'absolute'    — honor original wall-clock expiry; expired timers fire immediately
-    // (timer) => ms — custom strategy
-  });
+  const [snapshot, effects] = machine.initialTransition(input);
+
+  snapshot.timers;
+  // {
+  //   'xstate.after.300000.machine.pending': {
+  //     id: 'xstate.after.300000.machine.pending',
+  //     delay: 300000,
+  //     type: '@xstate.raise',
+  //     event: { type: 'xstate.after.300000.machine.pending' },
+  //     target: 'self'
+  //   }
+  // }
   ```
+
+  Snapshots contain no wall-clock timestamps or native timeout handles. The runtime owns that bookkeeping through `scheduleTimer(source, id, delay)` and `cancelTimer(source, id)`. A locally restored `createActor(...)` restarts each timer with its declared delay; durable runtimes can persist their timing data separately.
+
+  The previous `PendingEffect` type and `ActorOptions.timers` restore strategy are removed. Timing restoration policy now belongs to the runtime rather than the machine snapshot.
 
 - **Persisted snapshots are versioned.** `machine.version` is stamped onto persisted snapshots; restoring a snapshot whose version doesn't match throws unless the machine config provides a `migrate` function:
 

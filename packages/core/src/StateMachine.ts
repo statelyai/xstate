@@ -1,6 +1,7 @@
 import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createErrorPlatformEvent, createInitEvent } from './eventUtils.ts';
+import { XSTATE_TIMER } from './constants.ts';
 
 import { createSpawner } from './spawn.ts';
 import {
@@ -57,6 +58,7 @@ import type {
   HistoryValue,
   InputFrom,
   IsAny,
+  LogicalTimer,
   MachineContext,
   MetaObject,
   OutputFrom,
@@ -668,6 +670,9 @@ export class StateMachine<
   }
 
   public isInternalEventType(eventType: string): boolean {
+    if (eventType === XSTATE_TIMER) {
+      return true;
+    }
     for (const descriptor of this.internalEventDescriptors) {
       if (matchesEventDescriptor(eventType, descriptor)) {
         return true;
@@ -1098,6 +1103,34 @@ export class StateMachine<
       children[actorId] = actor;
     }
 
+    const timers: Record<string, LogicalTimer> = {};
+    const persistedTimers: Record<
+      string,
+      {
+        id: string;
+        delay: number;
+        type: '@xstate.raise' | '@xstate.sendTo';
+        event: EventObject;
+        target: string | { type: 'parent' };
+      }
+    > = snapshotData.timers ?? {};
+    for (const [id, timer] of Object.entries(persistedTimers)) {
+      const target =
+        typeof timer.target === 'string'
+          ? timer.target === 'self'
+            ? 'self'
+            : children[timer.target]
+          : resolvedActorScope.self._parent;
+      if (!target) {
+        const targetDescription =
+          typeof timer.target === 'string' ? timer.target : timer.target.type;
+        throw new Error(
+          `Unable to restore timer '${id}': target actor '${targetDescription}' is unavailable.`
+        );
+      }
+      timers[id] = { ...timer, target };
+    }
+
     const reviveHistoryValue = (
       historyValue: Record<
         string,
@@ -1148,6 +1181,7 @@ export class StateMachine<
       {
         ...persistedRest,
         children,
+        timers,
         _nodes: nodes,
         value: snapshotData.value,
         historyValue: revivedHistoryValue,

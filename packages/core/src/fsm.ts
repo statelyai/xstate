@@ -1,7 +1,8 @@
-import { XSTATE_INIT, XSTATE_STOP } from './constants.ts';
+import { XSTATE_INIT, XSTATE_STOP, XSTATE_TIMER } from './constants.ts';
 import { builtInActions } from './actions.ts';
 import {
   deriveDeferredStarts,
+  createTimerDeliveryEffect,
   createTransitionEnqueue,
   resolveActionsWithContext
 } from './transitionActions.ts';
@@ -14,6 +15,7 @@ import type {
   EventObject,
   ExecutableActionObject,
   MachineContext,
+  LogicalTimer,
   NonReducibleUnknown,
   Snapshot
 } from './types.ts';
@@ -27,6 +29,8 @@ export type FSMSnapshot<
   context: TContext;
   input: TInput | undefined;
   children: {};
+  timers: Record<string, LogicalTimer>;
+  _nextTimerId: number;
   _stateInput: Record<string, unknown> | undefined;
   machine: {
     id: string;
@@ -266,6 +270,8 @@ function createSnapshot<
     context,
     input,
     children: {},
+    timers: {},
+    _nextTimerId: 0,
     _stateInput: stateInput,
     machine
   };
@@ -289,6 +295,8 @@ function cloneSnapshot<
     context,
     input: snapshot.input,
     children: snapshot.children,
+    timers: snapshot.timers,
+    _nextTimerId: snapshot._nextTimerId,
     _stateInput: stateInput,
     machine: snapshot.machine
   } as FSMSnapshot<TContext, TState, TInput>;
@@ -309,6 +317,8 @@ function stopSnapshot<
     context: snapshot.context,
     input: undefined,
     children: snapshot.children,
+    timers: snapshot.timers,
+    _nextTimerId: snapshot._nextTimerId,
     _stateInput: snapshot._stateInput,
     machine: snapshot.machine
   } as FSMSnapshot<TContext, TState, TInput>;
@@ -548,7 +558,35 @@ export function createFSM<
       return [snapshot, []];
     }
     if (event.type === XSTATE_STOP) {
-      return [stopSnapshot(snapshot), emptyExecutableActions] as any;
+      const actions: AnyAction[] = [];
+      const enqueue = createTransitionEnqueue(actorScope, actions, []);
+      for (const id of Object.keys(snapshot.timers)) {
+        enqueue.cancel(id);
+      }
+      const [withoutTimers, cancelEffects] = resolveActionsWithContext(
+        snapshot as any,
+        event,
+        actorScope,
+        actions
+      );
+      return [stopSnapshot(withoutTimers as any), cancelEffects] as any;
+    }
+    if (event.type === XSTATE_TIMER) {
+      const timer = snapshot.timers[(event as any).id];
+      if (!timer) {
+        return [snapshot, emptyExecutableActions];
+      }
+      const timers = { ...snapshot.timers };
+      delete timers[timer.id];
+      const nextSnapshot = { ...snapshot, timers };
+      if (timer.type === '@xstate.raise') {
+        return transitionCore(nextSnapshot, timer.event as TEvent, actorScope);
+      }
+      const target = timer.target === 'self' ? actorScope.self : timer.target;
+      return [
+        nextSnapshot,
+        [createTimerDeliveryEffect(actorScope, target, timer.event)]
+      ];
     }
 
     const stateConfig = config.states[snapshot.value];

@@ -20,7 +20,8 @@ import type {
   StateContextFromStateValue,
   SnapshotStatus,
   PersistedHistoryValue,
-  AnyStateNode
+  AnyStateNode,
+  LogicalTimer
 } from './types.ts';
 import { matchesState } from './utils.ts';
 
@@ -151,8 +152,12 @@ interface MachineSnapshotBase<
   _nodes: Array<AnyStateNode>;
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
+  /** Pending logical timers owned by this machine snapshot. */
+  timers: Readonly<Record<string, LogicalTimer>>;
   /** @internal */
   _stateInputs: Record<string, Record<string, unknown>>;
+  /** @internal */
+  _nextTimerId: number;
   /** @internal */
   [machineSnapshotActorRef]?: AnyActor;
 
@@ -472,8 +477,10 @@ export function createMachineSnapshot<
       getStateValue(machine.root, config._nodes)) as never,
     tags: collectTags(config._nodes),
     children: config.children as any,
+    timers: config.timers ?? {},
     historyValue: config.historyValue || {},
     _stateInputs: config._stateInputs || {},
+    _nextTimerId: config._nextTimerId ?? 0,
     [machineSnapshotActorRef]: actorRef,
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
@@ -504,8 +511,10 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       value: snapshot.value,
       tags: snapshot.tags,
       children: configWithSnapshot.children as any,
+      timers: configWithSnapshot.timers ?? {},
       historyValue: configWithSnapshot.historyValue || {},
       _stateInputs: configWithSnapshot._stateInputs || {},
+      _nextTimerId: configWithSnapshot._nextTimerId ?? 0,
       [machineSnapshotActorRef]: getMachineSnapshotActorRef(snapshot),
       matches: machineSnapshotMatches as never,
       hasTag: machineSnapshotHasTag,
@@ -568,6 +577,7 @@ export function getPersistedSnapshot<
     tags,
     machine,
     children,
+    timers,
     context,
     can,
     hasTag,
@@ -579,6 +589,7 @@ export function getPersistedSnapshot<
   } = snapshot;
 
   const childrenJson: Record<string, unknown> = {};
+  const timersJson: Record<string, unknown> = {};
 
   for (const id in children) {
     const child = children[id] as any;
@@ -597,10 +608,41 @@ export function getPersistedSnapshot<
     };
   }
 
+  for (const id in timers) {
+    const timer = timers[id];
+    let target: string | { type: 'parent' };
+    if (timer.target === 'self') {
+      target = 'self';
+    } else {
+      const childId = Object.entries(children).find(
+        ([, child]) => child === timer.target
+      )?.[0];
+      if (childId) {
+        target = childId;
+      } else if (
+        timer.target === getMachineSnapshotActorRef(snapshot)?._parent
+      ) {
+        target = { type: 'parent' };
+      } else {
+        throw new Error(
+          `Unable to persist timer '${id}': target actor '${timer.target.id}' is no longer addressable from this snapshot.`
+        );
+      }
+    }
+    timersJson[id] = {
+      id: timer.id,
+      delay: timer.delay,
+      type: timer.type,
+      event: timer.event,
+      target
+    };
+  }
+
   const persisted: Record<string, unknown> = {
     ...jsonValues,
     context: persistContext(context) as any,
     children: childrenJson,
+    timers: timersJson,
     historyValue: serializeHistoryValue(jsonValues.historyValue)
   };
 

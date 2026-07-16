@@ -133,9 +133,7 @@ function commitTransition(
           effectId,
           type: 'schedule',
           sourceKey: getActorKey(effect.source),
-          targetKey: getActorKey(effect.source),
-          event: effect.event,
-          timerId: effect.id ?? effectId,
+          timerId: effect.id!,
           dueAt: now + (effect.delay ?? 0)
         });
         break;
@@ -144,10 +142,13 @@ function commitTransition(
           effectId,
           type: effect.delay === undefined ? 'send' : 'schedule',
           sourceKey: getActorKey(effect.source),
-          targetKey: getActorKey(effect.target),
-          event: effect.event,
-          timerId: effect.id ?? effectId,
-          ...(effect.delay === undefined ? {} : { dueAt: now + effect.delay })
+          timerId: effect.id,
+          ...(effect.delay === undefined
+            ? {
+                targetKey: getActorKey(effect.target),
+                event: effect.event
+              }
+            : { dueAt: now + effect.delay })
         });
         break;
       case '@xstate.cancel':
@@ -244,6 +245,16 @@ describe('durable interpreter adapter', () => {
     )!;
 
     expect(timer.dueAt).toBe(startedAt + fiveMinutes);
+    expect(timer).not.toHaveProperty('event');
+    expect(timer).not.toHaveProperty('targetKey');
+    expect(
+      (initialRecord.snapshot as any).timers[timer.timerId!]
+    ).toMatchObject({
+      delay: fiveMinutes,
+      type: '@xstate.raise',
+      target: 'self',
+      event: { type: expect.stringMatching(/^xstate\.after/) }
+    });
     expect(() => JSON.stringify(initialRecord)).not.toThrow();
 
     // Crash after the external runtime applied two effects but before the
@@ -267,6 +278,29 @@ describe('durable interpreter adapter', () => {
     const restoredSnapshot = machine.restoreSnapshot(
       persistedRecord.snapshot as Snapshot<unknown>
     );
+    const [timedOutSnapshot, timerEffects] = machine.transition(
+      restoredSnapshot,
+      {
+        type: 'xstate.timer',
+        id: timer.timerId!
+      } as any
+    );
+    const timerRecord = commitTransition(
+      machine,
+      timedOutSnapshot,
+      timerEffects,
+      'transition-timer',
+      timer.dueAt!,
+      persistedRecord.bindings
+    );
+
+    expect(timedOutSnapshot.value).toBe('timedOut');
+    expect(timedOutSnapshot.timers).toEqual({});
+    expect(timerRecord.outbox.map(({ type }) => type)).toEqual([
+      'cancel',
+      'stop'
+    ]);
+
     const [nextSnapshot, nextEffects] = machine.transition(restoredSnapshot, {
       type: 'PING'
     });

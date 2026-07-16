@@ -45,9 +45,7 @@ import {
   EventObject,
   InteropSubscribable,
   Observer,
-  PendingEffect,
-  Subscription,
-  TimersRestoreStrategy
+  Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
 
@@ -225,7 +223,6 @@ export class Actor<TLogic extends AnyActorLogic>
         createRuntimeSystem(this, {
           clock,
           logger,
-          timers: resolvedOptions.timers,
           createActorRef: (childLogic, childOptions) =>
             createActor(childLogic, childOptions as any)
         }));
@@ -320,18 +317,8 @@ export class Actor<TLogic extends AnyActorLogic>
 
     // prepare to collect initial microsteps during initialTransition
     this._collectedMicrosteps = [] as any;
-    let persistedState = options?.snapshot ?? options?.state;
-    if (
-      persistedState &&
-      typeof persistedState === 'object' &&
-      '_pendingEffects' in persistedState
-    ) {
-      // Pending effects are restored by this actor on `start()`; the logic
-      // only sees the rest of the persisted snapshot.
-      const { _pendingEffects, ...rest } = persistedState as any;
-      this._pendingEffects = _pendingEffects;
-      persistedState = rest;
-    }
+    const persistedState = options?.snapshot ?? options?.state;
+    this._restored = persistedState !== undefined;
     try {
       if (persistedState) {
         this._snapshot = this.logic.restoreSnapshot
@@ -383,8 +370,7 @@ export class Actor<TLogic extends AnyActorLogic>
   // array of functions to defer
   private _deferred: Array<() => void> = [];
 
-  // pending effects (timers) from a persisted snapshot, rescheduled on `start()`
-  private _pendingEffects?: PendingEffect[];
+  private _restored = false;
 
   private _setErrorSnapshot(
     err: unknown,
@@ -776,23 +762,13 @@ export class Actor<TLogic extends AnyActorLogic>
     // we need to rethink if this needs to be refactored
     this.update(this._snapshot, initEvent as unknown as EventFromLogic<TLogic>);
 
-    if (this._pendingEffects) {
-      const strategy =
-        this.options.timers ?? this.system._timerStrategy ?? 'resume';
-      for (const effect of this._pendingEffects) {
-        // Re-execute the pending effect with its remaining delay. Only
-        // self-targeted raises exist today; other effect types are ignored.
-        if (effect.type === '@xstate.raise') {
-          this.system.scheduleEvent(
-            this,
-            this,
-            effect.event,
-            resolveRestoredTimerDelay(strategy, effect),
-            effect.id
-          );
-        }
+    if (this._restored) {
+      const timers: Record<string, { id: string; delay: number }> =
+        (this._snapshot as any).timers ?? {};
+      for (const timer of Object.values(timers)) {
+        this.system.scheduleTimer(this, timer.id, timer.delay);
       }
-      this._pendingEffects = undefined;
+      this._restored = false;
     }
 
     this.mailbox.start();
@@ -925,7 +901,7 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     // Cancel all delayed events
-    this.system.cancelAllEvents(this);
+    this.system.cancelAllTimers(this);
 
     // TODO: mailbox.reset
     this.mailbox.clear();
@@ -993,38 +969,7 @@ export class Actor<TLogic extends AnyActorLogic>
    */
   public getPersistedSnapshot(): Snapshot<unknown>;
   public getPersistedSnapshot(options?: unknown): Snapshot<unknown> {
-    const persisted = this.logic.getPersistedSnapshot(this._snapshot, options);
-
-    // Capture this actor's pending self-targeted effects (delayed
-    // events/transitions) as serialized action descriptors plus their
-    // runtime progress, so they can be restored on `start()`.
-    const scheduledEvents = this.system._snapshot._scheduledEvents;
-    let pendingEffects: PendingEffect[] | undefined;
-    const now = Date.now();
-    for (const key in scheduledEvents) {
-      const scheduled = scheduledEvents[key as keyof typeof scheduledEvents];
-      if (scheduled.source === this && scheduled.target === this) {
-        (pendingEffects ??= []).push({
-          type: '@xstate.raise',
-          event: scheduled.event,
-          id: scheduled.id,
-          delay: scheduled.delay,
-          startedAt: scheduled.startedAt,
-          elapsed: Math.max(0, now - scheduled.startedAt)
-        });
-      }
-    }
-
-    // If this actor was restored but not yet started, its pending effects
-    // are not in the scheduler yet — carry them through as-is.
-    pendingEffects ??= this._pendingEffects;
-
-    return pendingEffects
-      ? ({
-          ...(persisted as any),
-          _pendingEffects: pendingEffects
-        } as Snapshot<unknown>)
-      : persisted;
+    return this.logic.getPersistedSnapshot(this._snapshot, options);
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {
@@ -1052,24 +997,6 @@ export class Actor<TLogic extends AnyActorLogic>
       );
     }
     return this._snapshot;
-  }
-}
-
-function resolveRestoredTimerDelay(
-  strategy: TimersRestoreStrategy,
-  effect: PendingEffect
-): number {
-  if (typeof strategy === 'function') {
-    return strategy(effect);
-  }
-  switch (strategy) {
-    case 'restart':
-      return effect.delay;
-    case 'absolute':
-      return Math.max(0, effect.startedAt + effect.delay - Date.now());
-    case 'resume':
-    default:
-      return Math.max(0, effect.delay - effect.elapsed);
   }
 }
 

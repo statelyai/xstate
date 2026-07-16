@@ -1135,14 +1135,14 @@ describe('transition function', () => {
       const source = initialEffects.find(isEffect('@xstate.raise'))!.source;
 
       expect(
-        Object.keys(source.system.getSnapshot()._scheduledEvents)
+        Object.keys(source.system.getSnapshot()._scheduledTimers)
       ).toHaveLength(1);
 
       const [, effects] = machine.transition(waiting, { type: 'CANCEL' });
       effects.forEach((effect: ExecutableActionObject) => void effect.exec());
 
       expect(
-        Object.keys(source.system.getSnapshot()._scheduledEvents)
+        Object.keys(source.system.getSnapshot()._scheduledTimers)
       ).toHaveLength(0);
     });
 

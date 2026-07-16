@@ -7,19 +7,18 @@ import {
   HomomorphicOmit,
   EventObject,
   Subscription,
-  TimersRestoreStrategy,
   AnyActorLogic,
   ActorOptions
 } from './types.ts';
+import { XSTATE_TIMER } from './constants.ts';
 import { toObserver } from './utils.ts';
 
-interface ScheduledEvent {
+interface ScheduledTimer {
   id: string;
-  event: EventObject;
-  startedAt: number; // timestamp
+  scheduledAt: number;
+  dueAt: number;
   delay: number;
   source: AnyActor;
-  target: AnyActor;
 }
 
 export interface Clock {
@@ -28,13 +27,7 @@ export interface Clock {
 }
 
 interface Scheduler {
-  schedule(
-    source: AnyActor,
-    target: AnyActor,
-    event: EventObject,
-    delay: number,
-    id: string | undefined
-  ): void;
+  schedule(source: AnyActor, id: string, delay: number): void;
   cancel(source: AnyActor, id: string): void;
   cancelAll(actor: AnyActor): void;
 }
@@ -58,21 +51,19 @@ export interface ActorSystemRuntime {
     event: AnyEventObject
   ): void | PromiseLike<void>;
   emitEvent(source: AnyActor, event: EventObject): void | PromiseLike<void>;
-  scheduleEvent(
+  scheduleTimer(
     source: AnyActor,
-    target: AnyActor,
-    event: EventObject,
-    delay: number,
-    id: string | undefined
+    id: string,
+    delay: number
   ): void | PromiseLike<void>;
-  cancelEvent(source: AnyActor, id: string): void | PromiseLike<void>;
-  cancelAllEvents(source: AnyActor): void | PromiseLike<void>;
+  cancelTimer(source: AnyActor, id: string): void | PromiseLike<void>;
+  cancelAllTimers(source: AnyActor): void | PromiseLike<void>;
 }
 
-type ScheduledEventId = string & { __scheduledEventId: never };
+type ScheduledTimerId = string & { __scheduledTimerId: never };
 
-function createScheduledEventId(actor: AnyActor, id: string): ScheduledEventId {
-  return `${actor.sessionId}.${id}` as ScheduledEventId;
+function createScheduledTimerId(actor: AnyActor, id: string): ScheduledTimerId {
+  return `${actor.sessionId}.${id}` as ScheduledTimerId;
 }
 
 export interface ActorSystem<T extends ActorSystemInfo>
@@ -116,22 +107,16 @@ export interface ActorSystem<T extends ActorSystemInfo>
   ) => void | PromiseLike<void>;
   scheduler: Scheduler;
   getSnapshot: () => {
-    _scheduledEvents: Record<string, ScheduledEvent>;
+    _scheduledTimers: Record<string, ScheduledTimer>;
   };
   /** @internal */
   _snapshot: {
-    _scheduledEvents: Record<ScheduledEventId, ScheduledEvent>;
+    _scheduledTimers: Record<ScheduledTimerId, ScheduledTimer>;
     _nextActorId: number;
   };
   start: () => void;
   _clock: Clock;
   _logger: (...args: any[]) => void;
-  /**
-   * How rehydrated actors in this system restore persisted timers.
-   *
-   * @internal
-   */
-  _timerStrategy?: TimersRestoreStrategy;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -142,7 +127,6 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     clock: Clock;
     logger: (...args: any[]) => void;
     snapshot?: unknown;
-    timers?: TimersRestoreStrategy;
     createActorRef: ActorSystem<T>['createActorRef'];
   }
 ): ActorSystem<T> {
@@ -150,7 +134,7 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
   const keyedActors = new Map<keyof T['actors'], AnyActor | undefined>();
   const reverseKeyedActors = new WeakMap<AnyActor, keyof T['actors']>();
   const inspectionObservers = new Set<Observer<InspectionEvent>>();
-  const timerMap: { [id: ScheduledEventId]: number } = {};
+  const timerMap: { [id: ScheduledTimerId]: number } = {};
   const { clock, logger } = options;
 
   // Records a send on the *sender's* transition for the `sent[]` inspection
@@ -177,55 +161,57 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
   };
 
   const scheduler: Scheduler = {
-    schedule: (
-      source,
-      target,
-      event,
-      delay,
-      id = Math.random().toString(36).slice(2)
-    ) => {
-      recordSent(source, target, event, delay, id);
-      const scheduledEvent: ScheduledEvent = {
+    schedule: (source, id, delay) => {
+      const existingId = createScheduledTimerId(source, id);
+      if (timerMap[existingId] !== undefined) {
+        scheduler.cancel(source, id);
+      }
+
+      const timer = source.getSnapshot()?.timers?.[id];
+      if (timer) {
+        const target = timer.target === 'self' ? source : timer.target;
+        recordSent(source, target, timer.event, delay, id);
+      }
+
+      const scheduledAt = Date.now();
+      const scheduledTimer: ScheduledTimer = {
         source,
-        target,
-        event,
         delay,
         id,
-        startedAt: Date.now()
+        scheduledAt,
+        dueAt: scheduledAt + delay
       };
-      const scheduledEventId = createScheduledEventId(source, id);
-      system._snapshot._scheduledEvents[scheduledEventId] = scheduledEvent;
+      const scheduledTimerId = createScheduledTimerId(source, id);
+      system._snapshot._scheduledTimers[scheduledTimerId] = scheduledTimer;
 
       const timeout = clock.setTimeout(() => {
-        delete timerMap[scheduledEventId];
-        delete system._snapshot._scheduledEvents[scheduledEventId];
+        delete timerMap[scheduledTimerId];
+        delete system._snapshot._scheduledTimers[scheduledTimerId];
 
-        // The send was already recorded at schedule time on the sender's
-        // transition, so deliver without re-recording.
-        void system.sendEvent(source, target, event);
+        void system.sendEvent(source, source, { type: XSTATE_TIMER, id });
       }, delay);
 
-      timerMap[scheduledEventId] = timeout;
+      timerMap[scheduledTimerId] = timeout;
     },
     cancel: (source, id: string) => {
-      const scheduledEventId = createScheduledEventId(source, id);
-      const timeout = timerMap[scheduledEventId];
+      const scheduledTimerId = createScheduledTimerId(source, id);
+      const timeout = timerMap[scheduledTimerId];
 
-      delete timerMap[scheduledEventId];
-      delete system._snapshot._scheduledEvents[scheduledEventId];
+      delete timerMap[scheduledTimerId];
+      delete system._snapshot._scheduledTimers[scheduledTimerId];
 
       if (timeout !== undefined) {
         clock.clearTimeout(timeout);
       }
     },
     cancelAll: (actor) => {
-      for (const scheduledEventId in system._snapshot._scheduledEvents) {
-        const scheduledEvent =
-          system._snapshot._scheduledEvents[
-            scheduledEventId as ScheduledEventId
+      for (const scheduledTimerId in system._snapshot._scheduledTimers) {
+        const scheduledTimer =
+          system._snapshot._scheduledTimers[
+            scheduledTimerId as ScheduledTimerId
           ];
-        if (scheduledEvent.source === actor) {
-          scheduler.cancel(actor, scheduledEvent.id);
+        if (scheduledTimer.source === actor) {
+          scheduler.cancel(actor, scheduledTimer.id);
         }
       }
     }
@@ -271,7 +257,7 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     reverseKeyedActors,
     keyedActors,
     _snapshot: {
-      _scheduledEvents:
+      _scheduledTimers:
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {},
       _nextActorId: 0
     },
@@ -330,10 +316,9 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     sendEvent: deliver,
     emitEvent: (source, event) =>
       (source as AnyActor & { _emit(event: EventObject): void })._emit(event),
-    scheduleEvent: (source, target, event, delay, id) =>
-      scheduler.schedule(source, target, event, delay, id),
-    cancelEvent: (source, id) => scheduler.cancel(source, id),
-    cancelAllEvents: (source) => scheduler.cancelAll(source),
+    scheduleTimer: (source, id, delay) => scheduler.schedule(source, id, delay),
+    cancelTimer: (source, id) => scheduler.cancel(source, id),
+    cancelAllTimers: (source) => scheduler.cancelAll(source),
     _relay: (source, target, event) => {
       recordSent(source, target, event);
       return system.sendEvent(source, target, event);
@@ -341,21 +326,20 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     scheduler,
     getSnapshot: () => {
       return {
-        _scheduledEvents: { ...system._snapshot._scheduledEvents }
+        _scheduledTimers: { ...system._snapshot._scheduledTimers }
       };
     },
     start: () => {
-      const scheduledEvents = system._snapshot._scheduledEvents;
-      system._snapshot._scheduledEvents = {};
-      for (const scheduledId in scheduledEvents) {
-        const { source, target, event, delay, id } =
-          scheduledEvents[scheduledId as ScheduledEventId];
-        system.scheduleEvent(source, target, event, delay, id);
+      const scheduledTimers = system._snapshot._scheduledTimers;
+      system._snapshot._scheduledTimers = {};
+      for (const scheduledId in scheduledTimers) {
+        const { source, dueAt, id } =
+          scheduledTimers[scheduledId as ScheduledTimerId];
+        system.scheduleTimer(source, id, Math.max(0, dueAt - Date.now()));
       }
     },
     _clock: clock,
-    _logger: logger,
-    _timerStrategy: options.timers
+    _logger: logger
   };
 
   return system;

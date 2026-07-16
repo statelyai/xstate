@@ -23,15 +23,13 @@ export const builtInActions = {
   },
   ['@xstate.raise']: (
     actorScope: AnyActorScope,
-    event: EventObject,
+    _event: EventObject,
     options: { id?: string; delay?: number }
   ) => {
-    return actorScope.system.scheduleEvent(
+    return actorScope.system.scheduleTimer(
       actorScope.self,
-      actorScope.self,
-      event,
-      options?.delay ?? 0,
-      options?.id
+      options.id!,
+      options?.delay ?? 0
     );
   },
   ['@xstate.sendTo']: (
@@ -42,19 +40,17 @@ export const builtInActions = {
   ) => {
     assertSendToEvent(event);
     if (options?.delay !== undefined) {
-      return actorScope.system.scheduleEvent(
+      return actorScope.system.scheduleTimer(
         actorScope.self,
-        actor,
-        event,
-        options?.delay ?? 0,
-        options?.id
+        options.id!,
+        options?.delay ?? 0
       );
     } else {
       return actorScope.system._relay(actorScope.self, actor, event);
     }
   },
   ['@xstate.cancel']: (actorScope: AnyActorScope, sendId: string) => {
-    return actorScope.system.cancelEvent(actorScope.self, sendId);
+    return actorScope.system.cancelTimer(actorScope.self, sendId);
   },
   ['@xstate.stop']: (actorScope: AnyActorScope, actor: AnyActor) => {
     return actorScope.system.stopActor(actor);

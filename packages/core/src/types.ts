@@ -1528,11 +1528,14 @@ export interface StateConfig<
   /** @internal */
   value?: StateValue;
   children: Record<string, AnyActorRef | undefined>;
+  timers?: Record<string, LogicalTimer>;
   status: SnapshotStatus;
   output?: any;
   error?: unknown;
   /** @internal */
   _stateInputs?: Record<string, Record<string, unknown>>;
+  /** @internal */
+  _nextTimerId?: number;
   machine?: StateMachine<
     TContext,
     TEvent,
@@ -1551,51 +1554,23 @@ export interface StateConfig<
   >;
 }
 
-/**
- * A pending effect (delayed event/transition that has not fired yet) captured
- * in a persisted snapshot — a serialized built-in action descriptor plus its
- * runtime progress, with enough information to restore it under any strategy.
- */
-export interface PendingEffect {
-  /** The serialized built-in action type for this effect. */
-  type: '@xstate.raise';
-  event: EventObject;
+/** A deterministic delayed-delivery declaration owned by a logic snapshot. */
+export interface LogicalTimer {
   id: string;
-  /** The original delay (in ms) the effect was scheduled with. */
   delay: number;
-  /** Wall-clock timestamp (ms) when the effect was scheduled. */
-  startedAt: number;
-  /** Wall-clock time (ms) that had elapsed when the snapshot was persisted. */
-  elapsed: number;
+  type: '@xstate.raise' | '@xstate.sendTo';
+  event: EventObject;
+  /** `self` or the logical actor that will receive `event`. */
+  target: 'self' | AnyActor;
 }
 
-/**
- * How pending effects (timers) from a persisted snapshot are restored on
- * `actor.start()`:
- *
- * - `'resume'` (default) — the clock was "frozen" while persisted: a 5-minute
- *   timer persisted with 1 minute elapsed fires after 4 more minutes.
- * - `'restart'` — timers start over with their full delay.
- * - `'absolute'` — timers honor the original wall-clock expiry (`startedAt +
- *   delay`); already-expired timers fire immediately.
- * - A custom function receiving the pending effect and returning the remaining
- *   delay in ms.
- */
-export type TimersRestoreStrategy =
-  | 'resume'
-  | 'restart'
-  | 'absolute'
-  | ((pendingEffect: PendingEffect) => number);
+/** The logical input delivered to a timer's source when its runtime delay ends. */
+export interface TimerEvent extends EventObject {
+  type: 'xstate.timer';
+  id: string;
+}
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
-  /**
-   * How pending timers (delayed events/transitions) from a persisted `snapshot`
-   * are restored when the actor starts. Applies to this actor and (when this is
-   * the root) all rehydrated child actors.
-   *
-   * @default 'resume'
-   */
-  timers?: TimersRestoreStrategy;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as
    * delayed events and transitions.

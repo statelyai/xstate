@@ -11,7 +11,8 @@ import {
   XSTATE_INIT,
   STATE_DELIMITER,
   STATE_IDENTIFIER,
-  XSTATE_STOP
+  XSTATE_STOP,
+  XSTATE_TIMER
 } from './constants.ts';
 import {
   getEventOutput,
@@ -48,6 +49,7 @@ import { builtInActions } from './actions.ts';
 import {
   createEnqueueObject,
   createTransitionEnqueue,
+  createTimerDeliveryEffect,
   mergeContextPatch,
   resolveActionsWithContext
 } from './transitionActions.ts';
@@ -1747,6 +1749,14 @@ function microstep(
       );
       nextState = stoppedState;
       executableActions.push(...stopEffects);
+
+      const [withoutTimers, cancelEffects] = cancelTimers(
+        nextState,
+        event,
+        actorScope
+      );
+      nextState = withoutTimers;
+      executableActions.push(...cancelEffects);
     }
 
     if (
@@ -1905,10 +1915,15 @@ export function macrostep(
       event,
       actorScope
     );
-    nextSnapshot = cloneMachineSnapshot(stoppedChildrenSnapshot, {
+    const [withoutTimers, cancelEffects] = cancelTimers(
+      stoppedChildrenSnapshot,
+      event,
+      actorScope
+    );
+    nextSnapshot = cloneMachineSnapshot(withoutTimers, {
       status: 'stopped'
     });
-    addMicrostep([nextSnapshot, stopEffects], []);
+    addMicrostep([nextSnapshot, [...stopEffects, ...cancelEffects]], []);
     return {
       snapshot: nextSnapshot,
       microsteps
@@ -1917,9 +1932,33 @@ export function macrostep(
 
   let nextEvent = event;
 
+  if (event.type === XSTATE_TIMER) {
+    const timer = nextSnapshot.timers[(event as any).id];
+    if (!timer) {
+      return { snapshot: nextSnapshot, microsteps };
+    }
+
+    const timers = { ...nextSnapshot.timers };
+    delete timers[timer.id];
+    nextSnapshot = cloneMachineSnapshot(nextSnapshot, { timers });
+    if (timer.type === '@xstate.raise') {
+      internalQueue.push(timer.event);
+      addMicrostep([nextSnapshot, []], []);
+    } else {
+      const target = timer.target === 'self' ? actorScope.self : timer.target;
+      addMicrostep(
+        [
+          nextSnapshot,
+          [createTimerDeliveryEffect(actorScope, target, timer.event)]
+        ],
+        []
+      );
+    }
+  }
+
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  if (nextEvent.type !== XSTATE_INIT) {
+  if (nextEvent.type !== XSTATE_INIT && nextEvent.type !== XSTATE_TIMER) {
     const currentEvent = nextEvent;
     const isErr = isErrorEvent(currentEvent);
 
@@ -2125,6 +2164,23 @@ function stopChildren(
   const enqueue = createTransitionEnqueue(actorScope, actions, []);
   for (const child of children) {
     enqueue.stop(child);
+  }
+  return resolveActionsWithContext(snapshot, event, actorScope, actions);
+}
+
+function cancelTimers(
+  snapshot: AnyMachineSnapshot,
+  event: AnyEventObject,
+  actorScope: AnyActorScope
+): [AnyMachineSnapshot, ExecutableActionObject[]] {
+  const timerIds = Object.keys(snapshot.timers);
+  if (!timerIds.length) {
+    return [snapshot, []];
+  }
+  const actions: AnyAction[] = [];
+  const enqueue = createTransitionEnqueue(actorScope, actions, []);
+  for (const id of timerIds) {
+    enqueue.cancel(id);
   }
   return resolveActionsWithContext(snapshot, event, actorScope, actions);
 }
