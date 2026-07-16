@@ -3,7 +3,6 @@ import {
   type ActorSystemRuntime,
   type AnyActorLogic,
   type EventFromLogic,
-  type SnapshotFrom,
   createActor,
   createMachine,
   executeEffects,
@@ -13,63 +12,37 @@ import {
 } from '../src/index.ts';
 import { createCallbackLogic } from '../src/actors/index.ts';
 
-class Mailbox<T> {
-  private active = false;
-  private readonly queue: T[] = [];
-
-  constructor(private readonly process: (item: T) => void) {}
-
-  enqueue(item: T) {
-    this.queue.push(item);
-    if (this.active) {
-      return;
-    }
-
-    this.active = true;
-    while (this.queue.length) {
-      this.process(this.queue.shift()!);
-    }
-    this.active = false;
-  }
-}
-
 class CustomInterpreter<TLogic extends AnyActorLogic> {
-  private snapshot: SnapshotFrom<TLogic>;
-  private readonly runtime: Partial<ActorSystemRuntime>;
-  private readonly mailbox: Mailbox<EventFromLogic<TLogic>>;
+  private readonly queue: EventFromLogic<TLogic>[] = [];
+  readonly runtime: Partial<ActorSystemRuntime>;
 
-  constructor(
-    private readonly logic: TLogic,
-    runtime: Partial<ActorSystemRuntime> = {}
-  ) {
+  constructor(runtime: Partial<ActorSystemRuntime> = {}) {
     this.runtime = {
       sendEvent: (_source, target, event) => {
         if (!target._parent) {
-          this.send(event as EventFromLogic<TLogic>);
+          this.enqueue(event as EventFromLogic<TLogic>);
           return;
         }
         target._send(event);
       },
       ...runtime
     };
-    this.mailbox = new Mailbox((event) => {
-      const [snapshot, effects] = transition(this.logic, this.snapshot, event);
-      this.snapshot = snapshot;
-      effects.forEach((effect) => effect.exec?.());
-    });
-    const [snapshot, effects] = initialTransition(logic, undefined as never, {
-      runtime: this.runtime
-    });
-    this.snapshot = snapshot;
+  }
+
+  executeEffects(effects: Parameters<typeof executeEffects>[0]): void {
     effects.forEach((effect) => effect.exec?.());
   }
 
-  send(event: EventFromLogic<TLogic>) {
-    this.mailbox.enqueue(event);
+  enqueue(event: EventFromLogic<TLogic>): void {
+    this.queue.push(event);
   }
 
-  getSnapshot() {
-    return this.snapshot;
+  dequeue(): EventFromLogic<TLogic> | undefined {
+    return this.queue.shift();
+  }
+
+  hasEvents(): boolean {
+    return this.queue.length > 0;
   }
 }
 
@@ -90,14 +63,22 @@ describe('custom interpreter runtime', () => {
         done: {}
       }
     });
-    const interpreter = new CustomInterpreter(machine);
+    const interpreter = new CustomInterpreter<typeof machine>();
+    let [state, effects] = initialTransition(machine, undefined, {
+      runtime: interpreter.runtime
+    });
+    interpreter.executeEffects(effects);
 
     vi.advanceTimersByTime(10);
+    while (interpreter.hasEvents()) {
+      [state, effects] = machine.transition(state, interpreter.dequeue()!);
+      interpreter.executeEffects(effects);
+    }
 
-    expect(interpreter.getSnapshot().matches('done')).toBe(true);
+    expect(state.matches('done')).toBe(true);
   });
 
-  it('serializes reentrant sends through the custom mailbox', () => {
+  it('serializes reentrant sends in a caller-owned transition loop', () => {
     const machine = createMachine({
       initial: 'first',
       states: {
@@ -113,11 +94,19 @@ describe('custom interpreter runtime', () => {
         done: {}
       }
     });
-    const interpreter = new CustomInterpreter(machine);
+    const interpreter = new CustomInterpreter<typeof machine>();
+    let [state, effects] = initialTransition(machine, undefined, {
+      runtime: interpreter.runtime
+    });
+    interpreter.executeEffects(effects);
+    interpreter.enqueue({ type: 'START' });
 
-    interpreter.send({ type: 'START' });
+    while (state.status === 'active' && interpreter.hasEvents()) {
+      [state, effects] = machine.transition(state, interpreter.dequeue()!);
+      interpreter.executeEffects(effects);
+    }
 
-    expect(interpreter.getSnapshot().matches('done')).toBe(true);
+    expect(state.matches('done')).toBe(true);
   });
 
   it('routes messages and completion between invoked actors and their parent', () => {
@@ -145,11 +134,19 @@ describe('custom interpreter runtime', () => {
         success: {}
       }
     });
-    const interpreter = new CustomInterpreter(machine);
+    const interpreter = new CustomInterpreter<typeof machine>();
+    let [state, effects] = initialTransition(machine, undefined, {
+      runtime: interpreter.runtime
+    });
+    interpreter.executeEffects(effects);
+    interpreter.enqueue({ type: 'FINISH_CHILD' });
 
-    interpreter.send({ type: 'FINISH_CHILD' });
+    while (state.status === 'active' && interpreter.hasEvents()) {
+      [state, effects] = machine.transition(state, interpreter.dequeue()!);
+      interpreter.executeEffects(effects);
+    }
 
-    expect(interpreter.getSnapshot().matches('success')).toBe(true);
+    expect(state.matches('success')).toBe(true);
   });
 
   it('delegates invoked actor lifecycle to the runtime', () => {
@@ -165,7 +162,7 @@ describe('custom interpreter runtime', () => {
         inactive: {}
       }
     });
-    const interpreter = new CustomInterpreter(machine, {
+    const interpreter = new CustomInterpreter<typeof machine>({
       createActorRef: (logic, options) => {
         operations.push(`create:${options.id}`);
         return createActor(logic, options as any);
@@ -182,8 +179,15 @@ describe('custom interpreter runtime', () => {
         (actor as any)._stop();
       }
     });
-
-    interpreter.send({ type: 'EXIT' });
+    let [state, effects] = initialTransition(machine, undefined, {
+      runtime: interpreter.runtime
+    });
+    interpreter.executeEffects(effects);
+    interpreter.enqueue({ type: 'EXIT' });
+    while (interpreter.hasEvents()) {
+      [state, effects] = machine.transition(state, interpreter.dequeue()!);
+      interpreter.executeEffects(effects);
+    }
 
     expect(operations).toEqual([
       'create:child',
@@ -206,7 +210,7 @@ describe('custom interpreter runtime', () => {
         exited: {}
       }
     });
-    const interpreter = new CustomInterpreter(machine, {
+    const interpreter = new CustomInterpreter<typeof machine>({
       scheduleEvent: (_source, _target, _event, _delay, id) => {
         operations.push({ type: 'schedule', id });
       },
@@ -214,8 +218,15 @@ describe('custom interpreter runtime', () => {
         operations.push({ type: 'cancel', id });
       }
     });
-
-    interpreter.send({ type: 'EXIT' });
+    let [state, effects] = initialTransition(machine, undefined, {
+      runtime: interpreter.runtime
+    });
+    interpreter.executeEffects(effects);
+    interpreter.enqueue({ type: 'EXIT' });
+    while (interpreter.hasEvents()) {
+      [state, effects] = machine.transition(state, interpreter.dequeue()!);
+      interpreter.executeEffects(effects);
+    }
 
     expect(operations.map(({ type }) => type)).toEqual(['schedule', 'cancel']);
     expect(operations[1].id).toBe(operations[0].id);
@@ -241,9 +252,17 @@ describe('custom interpreter runtime', () => {
       }
     });
 
-    const interpreter = new CustomInterpreter(machine);
+    const interpreter = new CustomInterpreter<typeof machine>();
+    let [state, effects] = initialTransition(machine, undefined, {
+      runtime: interpreter.runtime
+    });
+    interpreter.executeEffects(effects);
+    while (interpreter.hasEvents()) {
+      [state, effects] = machine.transition(state, interpreter.dequeue()!);
+      interpreter.executeEffects(effects);
+    }
 
-    expect(interpreter.getSnapshot().matches('ready')).toBe(true);
+    expect(state.matches('ready')).toBe(true);
   });
 
   it('uses the same runtime lifecycle for explicitly spawned actors', () => {
@@ -257,7 +276,7 @@ describe('custom interpreter runtime', () => {
         STOP_CHILD: ({ children }, enq) => enq.stop(children.child)
       }
     });
-    const interpreter = new CustomInterpreter(machine, {
+    const interpreter = new CustomInterpreter<typeof machine>({
       createActorRef: (logic, options) => {
         operations.push(`create:${options.id}`);
         return createActor(logic, options as any);
@@ -274,8 +293,15 @@ describe('custom interpreter runtime', () => {
         (actor as any)._stop();
       }
     });
-
-    interpreter.send({ type: 'STOP_CHILD' });
+    let [state, effects] = initialTransition(machine, undefined, {
+      runtime: interpreter.runtime
+    });
+    interpreter.executeEffects(effects);
+    interpreter.enqueue({ type: 'STOP_CHILD' });
+    while (interpreter.hasEvents()) {
+      [state, effects] = machine.transition(state, interpreter.dequeue()!);
+      interpreter.executeEffects(effects);
+    }
 
     expect(operations).toEqual([
       'create:child',
