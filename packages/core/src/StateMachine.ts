@@ -1018,7 +1018,7 @@ export class StateMachine<
 
   public restoreSnapshot(
     snapshot: Snapshot<unknown>,
-    _actorScope: ActorScope<
+    actorScope?: ActorScope<
       MachineSnapshot<
         TContext,
         TEvent,
@@ -1043,6 +1043,9 @@ export class StateMachine<
     TMeta,
     TConfig
   > {
+    const usesInertScope = !actorScope;
+    const resolvedActorScope = (actorScope ??
+      createInertActorScope(this)) as NonNullable<typeof actorScope>;
     const persistedVersion: string | undefined = (snapshot as any).version;
     if (persistedVersion !== this.version) {
       const migrate = (this.config as any).migrate;
@@ -1080,9 +1083,9 @@ export class StateMachine<
         continue;
       }
 
-      const actor = _actorScope.system.createActorRef(logic, {
+      const actor = resolvedActorScope.system.createActorRef(logic, {
         id: actorId,
-        parent: _actorScope.self,
+        parent: resolvedActorScope.self,
         syncSnapshot: actorData.syncSnapshot,
         snapshot: childState,
         src,
@@ -1151,7 +1154,7 @@ export class StateMachine<
         _stateInputs: snapshotData.stateInputs ?? {}
       },
       this,
-      _actorScope.self
+      resolvedActorScope.self
     ) as MachineSnapshot<
       TContext,
       TEvent,
@@ -1185,6 +1188,11 @@ export class StateMachine<
 
     reviveContext(restoredSnapshot.context);
 
-    return this._attachPureActorRef(restoredSnapshot, _actorScope);
+    if (usesInertScope) {
+      setInertActorScopeSnapshot(resolvedActorScope, restoredSnapshot, false);
+      return attachSnapshotActorRef(this, resolvedActorScope, restoredSnapshot);
+    }
+
+    return this._attachPureActorRef(restoredSnapshot, resolvedActorScope);
   }
 }
