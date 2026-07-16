@@ -167,11 +167,11 @@ describe('SpecialExecutableAction', () => {
     const [, actions] = initialTransition(machine);
     const action = actions[0];
 
-    if (!isBuiltInExecutableAction(action)) {
+    if (action.kind === 'action') {
       const customAction: CustomExecutableActionObject = action;
       noop(customAction.type);
       noop(customAction.args);
-      noop(customAction.exec);
+      noop(customAction.action);
     }
   });
 });

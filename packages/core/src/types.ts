@@ -5,7 +5,7 @@ import { AsyncActorLogic } from './actors/promise.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
-import { ActorSystemRuntime, AnyActorSystem, Clock } from './system.ts';
+import { AnyActorSystem, Clock } from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
 import type { SimulatedClock } from './SimulatedClock.ts';
@@ -1624,8 +1624,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   syncSnapshot?: boolean;
   /** @internal */
   _systemRef?: { current?: AnyActorSystem };
-  /** @internal */
-  _runtime?: Partial<ActorSystemRuntime>;
   /** The custom `id` for referencing this service. */
   id?: string;
   /** @deprecated Use `inspect` instead. */
@@ -2767,18 +2765,29 @@ export type ToStateValue<T extends StateSchema> = T extends {
 export interface BaseExecutableActionObject {
   params: NonReducibleUnknown;
   args: unknown[];
-  exec: (() => void | PromiseLike<void>) | undefined;
 }
 
 export interface CustomExecutableActionObject<
   TType extends string = string & {}
 > extends BaseExecutableActionObject {
+  kind: 'action';
   type: TType;
+  action: ((...args: any[]) => void | PromiseLike<void>) | undefined;
+}
+
+export interface EmitExecutableActionObject<TType extends string = string & {}>
+  extends BaseExecutableActionObject {
+  kind: 'emit';
+  type: TType;
+  source: AnyActor;
+  event: EventObject & { type: TType };
 }
 
 export interface SpawnExecutableActionObject
   extends BaseExecutableActionObject {
+  kind: 'builtin';
   type: '@xstate.spawn';
+  source: AnyActor | undefined;
   actor: AnyActor;
   id: string;
   logic: AnyActorLogic;
@@ -2789,7 +2798,9 @@ export interface SpawnExecutableActionObject
 
 export interface StartExecutableActionObject
   extends BaseExecutableActionObject {
+  kind: 'builtin';
   type: '@xstate.start';
+  source: AnyActor | undefined;
   actor: AnyActor;
   id: string;
   args: Parameters<(typeof builtInActions)['@xstate.start']>;
@@ -2797,7 +2808,9 @@ export interface StartExecutableActionObject
 
 export interface RaiseExecutableActionObject
   extends BaseExecutableActionObject {
+  kind: 'builtin';
   type: '@xstate.raise';
+  source: AnyActor;
   event: EventObject;
   id: string | undefined;
   delay: number | undefined;
@@ -2806,7 +2819,9 @@ export interface RaiseExecutableActionObject
 
 export interface SendToExecutableActionObject
   extends BaseExecutableActionObject {
+  kind: 'builtin';
   type: '@xstate.sendTo';
+  source: AnyActor;
   target: AnyActor;
   event: EventObject;
   id: string | undefined;
@@ -2816,13 +2831,17 @@ export interface SendToExecutableActionObject
 
 export interface CancelExecutableActionObject
   extends BaseExecutableActionObject {
+  kind: 'builtin';
   type: '@xstate.cancel';
+  source: AnyActor;
   id: string;
   args: Parameters<(typeof builtInActions)['@xstate.cancel']>;
 }
 
 export interface StopExecutableActionObject extends BaseExecutableActionObject {
+  kind: 'builtin';
   type: '@xstate.stop';
+  source: AnyActor;
   actor: AnyActor;
   id: string;
   args: Parameters<(typeof builtInActions)['@xstate.stop']>;
@@ -2841,6 +2860,7 @@ export type SpecialExecutableAction = BuiltInExecutableActionObject;
 
 type TransitionExecutableActionObject<TType extends string = never> =
   | BuiltInExecutableActionObject
+  | EmitExecutableActionObject
   | CustomExecutableActionObject<TType | (string & {})>;
 
 type KnownImplementationKeys<TImplementationMap> =
@@ -2870,13 +2890,14 @@ export type ExecutableActionObjectFromLogic<T extends AnyActorLogic> =
 
 export type ExecutableActionObject<TType extends string = string & {}> =
   | BuiltInExecutableActionObject
+  | EmitExecutableActionObject
   | CustomExecutableActionObject<TType>;
 
 export interface ToExecutableAction<T extends ParameterizedObject>
   extends CustomExecutableActionObject<T['type']> {
   type: T['type'];
   params: T['params'];
-  exec: undefined;
+  action: undefined;
 }
 
 export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;

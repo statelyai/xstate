@@ -9,13 +9,11 @@ import {
   AnyActor,
   AnyActorLogic,
   AnyActorScope,
-  AnyEventObject,
   EmittedFrom,
   EventFromLogic,
   InputFrom,
   SnapshotFrom
 } from './types.ts';
-import { ActorSystemRuntime } from './system.ts';
 
 function collectSnapshotActors(
   children: Record<string, AnyActor | undefined>
@@ -29,8 +27,7 @@ function collectSnapshotActors(
  */
 function createSystemProjection(
   previousSelf: AnyActor,
-  children: Record<string, AnyActor | undefined>,
-  runtime?: Partial<ActorSystemRuntime>
+  children: Record<string, AnyActor | undefined>
 ): AnyActor['system'] {
   const baseSystem = previousSelf.system;
   const registeredActors = new Map<string, AnyActor>();
@@ -41,7 +38,6 @@ function createSystemProjection(
 
   const system: AnyActor['system'] = {
     ...baseSystem,
-    ...runtime,
     children: registeredActors,
     keyedActors,
     reverseKeyedActors,
@@ -79,11 +75,6 @@ function createSystemProjection(
     },
     get: (registryKey: any) => keyedActors.get(registryKey) as any,
     getAll: () => Object.fromEntries(keyedActors),
-    _relay: (
-      source: AnyActor | undefined,
-      target: AnyActor,
-      event: AnyEventObject
-    ) => system.sendEvent(source, target, event),
     // Pure transition resolution must not leak topology inspection events into
     // a live runtime system.
     _sendInspectionEvent: () => {}
@@ -150,8 +141,7 @@ export function attachSnapshotActorRef<T extends AnyActorLogic, TSnapshot>(
 export function createInertActorScope<T extends AnyActorLogic>(
   actorLogic: T,
   snapshot?: SnapshotFrom<T>,
-  sourceSelf?: AnyActor,
-  runtime?: Partial<ActorSystemRuntime>
+  sourceSelf?: AnyActor
 ): AnyActorScope {
   const previousSelf =
     sourceSelf ??
@@ -160,17 +150,12 @@ export function createInertActorScope<T extends AnyActorLogic>(
       : undefined);
   const system =
     previousSelf && isMachineSnapshot(snapshot)
-      ? createSystemProjection(
-          previousSelf,
-          (snapshot as any).children,
-          runtime
-        )
+      ? createSystemProjection(previousSelf, (snapshot as any).children)
       : undefined;
   const self = createActor(
     actorLogic as AnyActorLogic,
     {
       _inert: true,
-      ...(runtime ? { _runtime: runtime } : {}),
       ...(system ? { _systemRef: { current: system } } : {})
     } as any
   );

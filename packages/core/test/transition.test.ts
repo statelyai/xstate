@@ -11,6 +11,7 @@ import {
   getInitialMicrosteps,
   getMicrosteps,
   getNextTransitions,
+  executeEffect,
   isBuiltInExecutableAction
 } from '../src';
 import type {
@@ -1020,7 +1021,7 @@ describe('transition function', () => {
         }
       });
       const [active, initialEffects] = initialTransition(machine);
-      initialEffects.forEach((effect) => effect.exec?.());
+      initialEffects.forEach((effect) => void executeEffect(effect));
       const child = active.children.child;
 
       const [stopped, effects] = transition(machine, active, { type: 'STOP' });
@@ -1029,7 +1030,7 @@ describe('transition function', () => {
       expect(effects.filter(isEffect(XSTATE_STOP))).toEqual([
         expect.objectContaining({ actor: child, id: 'child' })
       ]);
-      effects.forEach((effect) => effect.exec?.());
+      effects.forEach((effect) => void executeEffect(effect));
       expect(dispose).toHaveBeenCalledOnce();
     });
 
@@ -1075,7 +1076,7 @@ describe('transition function', () => {
 
       const [active, initialEffects] = initialTransition(machine);
       for (const effect of initialEffects) {
-        effect.exec?.();
+        void executeEffect(effect);
       }
 
       const child = active.children.child;
@@ -1090,7 +1091,7 @@ describe('transition function', () => {
         'start(child)'
       ]);
       for (const effect of restartEffects) {
-        effect.exec?.();
+        void executeEffect(effect);
       }
 
       expect(child.getSnapshot().status).toBe('stopped');
@@ -1111,10 +1112,12 @@ describe('transition function', () => {
         }
       });
       const [active, initialEffects] = initialTransition(machine);
-      initialEffects.forEach((effect) => effect.exec?.());
+      initialEffects.forEach((effect) => void executeEffect(effect));
 
       const [, effects] = transition(machine, active, { type: 'SEND' });
-      effects.forEach((effect: ExecutableActionObject) => effect.exec?.());
+      effects.forEach(
+        (effect: ExecutableActionObject) => void executeEffect(effect)
+      );
 
       expect(received).toHaveBeenCalledWith({ type: 'PING' });
     });
@@ -1131,15 +1134,17 @@ describe('transition function', () => {
         }
       });
       const [waiting, initialEffects] = initialTransition(machine);
-      initialEffects.forEach((effect) => effect.exec?.());
-      const source = initialEffects.find(isEffect('@xstate.raise'))!.args[0];
+      initialEffects.forEach((effect) => void executeEffect(effect));
+      const source = initialEffects.find(isEffect('@xstate.raise'))!.source;
 
       expect(
         Object.keys(source.system.getSnapshot()._scheduledEvents)
       ).toHaveLength(1);
 
       const [, effects] = machine.transition(waiting, { type: 'CANCEL' });
-      effects.forEach((effect: ExecutableActionObject) => effect.exec?.());
+      effects.forEach(
+        (effect: ExecutableActionObject) => void executeEffect(effect)
+      );
 
       expect(
         Object.keys(source.system.getSnapshot()._scheduledEvents)
@@ -1182,7 +1187,9 @@ describe('transition function', () => {
 
       const [a] = machine.initialTransition(undefined);
       const [, effects] = machine.transition(a, { type: 'NEXT' });
-      effects.forEach((effect: ExecutableActionObject) => effect.exec?.());
+      effects.forEach(
+        (effect: ExecutableActionObject) => void executeEffect(effect)
+      );
 
       expect(effectSnapshot).toBe('b');
     });
@@ -1211,7 +1218,9 @@ describe('transition function', () => {
       const [a] = machine.initialTransition(undefined);
       const [, leftEffects] = machine.transition(a, { type: 'LEFT' });
       machine.transition(a, { type: 'RIGHT' });
-      leftEffects.forEach((effect: ExecutableActionObject) => effect.exec?.());
+      leftEffects.forEach(
+        (effect: ExecutableActionObject) => void executeEffect(effect)
+      );
 
       expect(effectSnapshot).toBe('left');
     });
@@ -1346,7 +1355,7 @@ describe('transition function', () => {
       const childSnapshot = parent.getSnapshot().children.child.getSnapshot();
 
       const [, effects] = transition(child, childSnapshot, { type: 'CHECK' });
-      effects.forEach((effect) => effect.exec?.());
+      effects.forEach((effect) => void executeEffect(effect));
 
       expect(seenParent).toBe(parent);
     });
@@ -1401,7 +1410,7 @@ describe('transition function', () => {
         'spawn(child)',
         'start(child)'
       ]);
-      effects.forEach((effect) => effect.exec?.());
+      effects.forEach((effect) => void executeEffect(effect));
       expect(snapshot.children.child.getSnapshot().status).toBe('active');
       expect(started).toHaveBeenCalledOnce();
     });
@@ -1690,7 +1699,7 @@ describe('transition function', () => {
     const listenerStart = vi.spyOn(listenerRef as any, 'start');
 
     for (const effect of effects) {
-      effect.exec?.();
+      void executeEffect(effect);
     }
 
     expect(listenerStart).toHaveBeenCalled();
@@ -1704,10 +1713,11 @@ describe('transition function', () => {
   it('does not classify inherited object keys as built-in actions', () => {
     expect(
       isBuiltInExecutableAction({
+        kind: 'action',
         type: 'toString',
         params: undefined,
         args: [],
-        exec: undefined
+        action: undefined
       })
     ).toBe(false);
   });
@@ -1733,10 +1743,11 @@ describe('transition function', () => {
 
     expect(
       isBuiltInExecutableAction({
+        kind: 'action',
         type: XSTATE_SPAWN,
         params: undefined,
         args: [actor],
-        exec: undefined,
+        action: undefined,
         actor,
         id: actor.id,
         logic: actor.logic,
@@ -1937,17 +1948,18 @@ describe('transition function', () => {
     });
 
     async function execute(action: ExecutableActionObject) {
-      if (action.type === '@xstate.raise' && (action.args[2] as any)?.delay) {
+      if (
+        isBuiltInExecutableAction(action) &&
+        action.type === '@xstate.raise' &&
+        action.delay
+      ) {
         const currentTime = Date.now();
         const startedAt = currentTime;
         const elapsed = currentTime - startedAt;
-        const timeRemaining = Math.max(
-          0,
-          (action.args[2] as any)?.delay - elapsed
-        );
+        const timeRemaining = Math.max(0, action.delay - elapsed);
 
         await new Promise((res) => setTimeout(res, timeRemaining));
-        postEvent(action.args[1] as EventFrom<typeof machine>);
+        postEvent(action.event as EventFrom<typeof machine>);
       }
     }
 
@@ -2023,10 +2035,13 @@ describe('transition function', () => {
     const calls: string[] = [];
 
     async function execute(action: ExecutableActionObject) {
+      if (!isBuiltInExecutableAction(action)) {
+        return;
+      }
       switch (action.type) {
         case '@xstate.start': {
-          action.exec?.apply(null, action.args as []);
-          const startedActor = action.args[0] as ReturnType<typeof createActor>;
+          await executeEffect(action);
+          const startedActor = action.actor as ReturnType<typeof createActor>;
           const output = await toPromise(startedActor);
           postEvent(createDoneActorEvent(startedActor.id, output));
         }

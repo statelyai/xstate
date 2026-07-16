@@ -40,21 +40,12 @@ interface Scheduler {
 }
 
 /**
- * Runtime operations used by an actor system to allocate actor references and
- * execute effects.
+ * Runtime operations used to execute effects.
  *
  * An external interpreter can override these operations while the default actor
  * system provides the local in-memory implementation.
  */
 export interface ActorSystemRuntime {
-  /**
-   * Allocates a reference for the next snapshot. This runs during transition
-   * calculation and must not start or externally publish the actor.
-   */
-  createActorRef(
-    logic: AnyActorLogic,
-    options: ActorOptions<AnyActorLogic>
-  ): AnyActor;
   spawnActor(
     source: AnyActor | undefined,
     actor: AnyActor
@@ -78,11 +69,6 @@ export interface ActorSystemRuntime {
   cancelAllEvents(source: AnyActor): void | PromiseLike<void>;
 }
 
-export interface ActorSystemRuntimeOptions {
-  /** Overrides selected operations of the snapshot's actor system. */
-  runtime?: Partial<ActorSystemRuntime>;
-}
-
 type ScheduledEventId = string & { __scheduledEventId: never };
 
 function createScheduledEventId(actor: AnyActor, id: string): ScheduledEventId {
@@ -91,6 +77,11 @@ function createScheduledEventId(actor: AnyActor, id: string): ScheduledEventId {
 
 export interface ActorSystem<T extends ActorSystemInfo>
   extends ActorSystemRuntime {
+  /** @internal Allocates an actor reference during snapshot calculation. */
+  createActorRef(
+    logic: AnyActorLogic,
+    options: ActorOptions<AnyActorLogic>
+  ): AnyActor;
   /** @internal */
   children: Map<string, AnyActor>;
   /** @internal */
@@ -152,8 +143,7 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     logger: (...args: any[]) => void;
     snapshot?: unknown;
     timers?: TimersRestoreStrategy;
-    runtime?: Partial<ActorSystemRuntime>;
-    createActorRef: ActorSystemRuntime['createActorRef'];
+    createActorRef: ActorSystem<T>['createActorRef'];
   }
 ): ActorSystem<T> {
   const children = new Map<string, AnyActor>();
@@ -329,35 +319,21 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
       };
     },
     _sendInspectionEvent: sendInspectionEvent as any,
-    createActorRef: options.runtime?.createActorRef ?? options.createActorRef,
-    spawnActor: options.runtime?.spawnActor ?? (() => {}),
-    startActor:
-      options.runtime?.startActor ??
-      ((actor: AnyActor) => {
-        actor.start();
-      }),
-    stopActor:
-      options.runtime?.stopActor ??
-      ((actor: AnyActor) => {
-        (actor as AnyActor & { _stop(): void })._stop();
-      }),
-    sendEvent: options.runtime?.sendEvent ?? deliver,
-    emitEvent:
-      options.runtime?.emitEvent ??
-      ((source, event) =>
-        (source as AnyActor & { _emit(event: EventObject): void })._emit(
-          event
-        )),
-    scheduleEvent:
-      options.runtime?.scheduleEvent ??
-      ((source, target, event, delay, id) =>
-        scheduler.schedule(source, target, event, delay, id)),
-    cancelEvent:
-      options.runtime?.cancelEvent ??
-      ((source, id) => scheduler.cancel(source, id)),
-    cancelAllEvents:
-      options.runtime?.cancelAllEvents ??
-      ((source) => scheduler.cancelAll(source)),
+    createActorRef: options.createActorRef,
+    spawnActor: () => {},
+    startActor: (actor: AnyActor) => {
+      actor.start();
+    },
+    stopActor: (actor: AnyActor) => {
+      (actor as AnyActor & { _stop(): void })._stop();
+    },
+    sendEvent: deliver,
+    emitEvent: (source, event) =>
+      (source as AnyActor & { _emit(event: EventObject): void })._emit(event),
+    scheduleEvent: (source, target, event, delay, id) =>
+      scheduler.schedule(source, target, event, delay, id),
+    cancelEvent: (source, id) => scheduler.cancel(source, id),
+    cancelAllEvents: (source) => scheduler.cancelAll(source),
     _relay: (source, target, event) => {
       recordSent(source, target, event);
       return system.sendEvent(source, target, event);

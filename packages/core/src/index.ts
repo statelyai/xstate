@@ -63,7 +63,6 @@ export { getStateNodes } from './stateUtils.ts';
 export type {
   ActorSystem,
   ActorSystemRuntime,
-  ActorSystemRuntimeOptions,
   AnyActorSystem
 } from './system.ts';
 export { toPromise } from './toPromise.ts';
@@ -91,7 +90,6 @@ export {
   getInitialMicrosteps,
   getNextTransitions
 } from './transition.ts';
-export type { TransitionOptions } from './transition.ts';
 export {
   executeEffect,
   executeEffects,

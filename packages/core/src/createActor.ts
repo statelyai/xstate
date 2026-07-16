@@ -88,7 +88,7 @@ function isExecutableActionObject(
     typeof effect === 'object' &&
     effect !== null &&
     'args' in effect &&
-    'exec' in effect
+    'kind' in effect
   );
 }
 
@@ -225,7 +225,6 @@ export class Actor<TLogic extends AnyActorLogic>
           clock,
           logger,
           timers: resolvedOptions.timers,
-          runtime: resolvedOptions._runtime,
           createActorRef: (childLogic, childOptions) =>
             createActor(childLogic, childOptions as any)
         }));
@@ -282,9 +281,6 @@ export class Actor<TLogic extends AnyActorLogic>
             type: action.type,
             params: action.params
           });
-          if (!action.exec) {
-            return;
-          }
           const saveExecutingCustomAction = executingCustomAction;
           try {
             executingCustomAction = true;

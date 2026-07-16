@@ -351,12 +351,11 @@ function resolveSimpleEnqueuedActions(
     }
 
     executableActions.push({
+      kind: 'action',
       type: action.action.name || '(anonymous)',
       params: undefined,
       args: action.args,
-      exec: action.args.length
-        ? action.action.bind(null, ...action.args)
-        : action.action
+      action: action.action
     });
   }
 

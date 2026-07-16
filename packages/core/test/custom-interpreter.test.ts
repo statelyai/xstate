@@ -3,8 +3,10 @@ import {
   type ActorSystemRuntime,
   type AnyActorLogic,
   type EventFromLogic,
+  type ExecutableActionObject,
   createActor,
   createMachine,
+  executeEffect,
   executeEffects,
   getInitialMicrosteps,
   initialTransition,
@@ -14,6 +16,7 @@ import { createCallbackLogic } from '../src/actors/index.ts';
 
 class CustomInterpreter<TLogic extends AnyActorLogic> {
   private readonly queue: EventFromLogic<TLogic>[] = [];
+  private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
   readonly runtime: Partial<ActorSystemRuntime>;
 
   constructor(runtime: Partial<ActorSystemRuntime> = {}) {
@@ -25,12 +28,36 @@ class CustomInterpreter<TLogic extends AnyActorLogic> {
         }
         target._send(event);
       },
+      scheduleEvent: (source, target, event, delay, id) => {
+        const timeout = setTimeout(() => {
+          void this.runtime.sendEvent?.(source, target, event);
+        }, delay);
+        if (id) {
+          this.timers.set(`${source.sessionId}.${id}`, timeout);
+        }
+      },
+      cancelEvent: (source, id) => {
+        clearTimeout(this.timers.get(`${source.sessionId}.${id}`));
+      },
+      // When this example delegates child execution back to `createActor`, the
+      // child's system must use the same runtime operations as this mailbox.
+      spawnActor: (_source, actor) => {
+        Object.assign(actor.system, this.runtime);
+      },
+      startActor: (actor) => {
+        actor.start();
+      },
+      stopActor: (actor) => {
+        (actor as any)._stop();
+      },
       ...runtime
     };
   }
 
   executeEffects(effects: Parameters<typeof executeEffects>[0]): void {
-    effects.forEach((effect) => effect.exec?.());
+    effects.forEach((effect) => {
+      void executeEffect(effect, this.runtime);
+    });
   }
 
   enqueue(event: EventFromLogic<TLogic>): void {
@@ -64,9 +91,10 @@ describe('custom interpreter runtime', () => {
       }
     });
     const interpreter = new CustomInterpreter<typeof machine>();
-    let [state, effects] = initialTransition(machine, undefined, {
-      runtime: interpreter.runtime
-    });
+    let [state, effects] = machine.initialTransition(undefined);
+    expect(
+      effects.every((effect: ExecutableActionObject) => !('exec' in effect))
+    ).toBe(true);
     interpreter.executeEffects(effects);
 
     vi.advanceTimersByTime(10);
@@ -76,6 +104,26 @@ describe('custom interpreter runtime', () => {
     }
 
     expect(state.matches('done')).toBe(true);
+  });
+
+  it('keeps custom actions and arguments explicit', async () => {
+    const action = vi.fn();
+    const machine = createMachine({
+      entry: (_, enq) => enq(action, { value: 42 })
+    });
+
+    const [, effects] = machine.initialTransition(undefined);
+    const [effect] = effects;
+
+    expect(effect).toMatchObject({
+      kind: 'action',
+      action,
+      args: [{ value: 42 }]
+    });
+    expect(effect).not.toHaveProperty('exec');
+
+    await executeEffects(effects);
+    expect(action).toHaveBeenCalledWith({ value: 42 });
   });
 
   it('serializes reentrant sends in a caller-owned transition loop', () => {
@@ -95,9 +143,7 @@ describe('custom interpreter runtime', () => {
       }
     });
     const interpreter = new CustomInterpreter<typeof machine>();
-    let [state, effects] = initialTransition(machine, undefined, {
-      runtime: interpreter.runtime
-    });
+    let [state, effects] = machine.initialTransition(undefined);
     interpreter.executeEffects(effects);
     interpreter.enqueue({ type: 'START' });
 
@@ -135,9 +181,7 @@ describe('custom interpreter runtime', () => {
       }
     });
     const interpreter = new CustomInterpreter<typeof machine>();
-    let [state, effects] = initialTransition(machine, undefined, {
-      runtime: interpreter.runtime
-    });
+    let [state, effects] = machine.initialTransition(undefined);
     interpreter.executeEffects(effects);
     interpreter.enqueue({ type: 'FINISH_CHILD' });
 
@@ -163,10 +207,6 @@ describe('custom interpreter runtime', () => {
       }
     });
     const interpreter = new CustomInterpreter<typeof machine>({
-      createActorRef: (logic, options) => {
-        operations.push(`create:${options.id}`);
-        return createActor(logic, options as any);
-      },
       spawnActor: (_source, actor) => {
         operations.push(`spawn:${actor.id}`);
       },
@@ -179,9 +219,7 @@ describe('custom interpreter runtime', () => {
         (actor as any)._stop();
       }
     });
-    let [state, effects] = initialTransition(machine, undefined, {
-      runtime: interpreter.runtime
-    });
+    let [state, effects] = machine.initialTransition(undefined);
     interpreter.executeEffects(effects);
     interpreter.enqueue({ type: 'EXIT' });
     while (interpreter.hasEvents()) {
@@ -189,12 +227,7 @@ describe('custom interpreter runtime', () => {
       interpreter.executeEffects(effects);
     }
 
-    expect(operations).toEqual([
-      'create:child',
-      'spawn:child',
-      'start:child',
-      'stop:child'
-    ]);
+    expect(operations).toEqual(['spawn:child', 'start:child', 'stop:child']);
   });
 
   it('delegates timer scheduling and cancellation to the runtime', () => {
@@ -218,9 +251,7 @@ describe('custom interpreter runtime', () => {
         operations.push({ type: 'cancel', id });
       }
     });
-    let [state, effects] = initialTransition(machine, undefined, {
-      runtime: interpreter.runtime
-    });
+    let [state, effects] = machine.initialTransition(undefined);
     interpreter.executeEffects(effects);
     interpreter.enqueue({ type: 'EXIT' });
     while (interpreter.hasEvents()) {
@@ -253,9 +284,7 @@ describe('custom interpreter runtime', () => {
     });
 
     const interpreter = new CustomInterpreter<typeof machine>();
-    let [state, effects] = initialTransition(machine, undefined, {
-      runtime: interpreter.runtime
-    });
+    let [state, effects] = machine.initialTransition(undefined);
     interpreter.executeEffects(effects);
     while (interpreter.hasEvents()) {
       [state, effects] = machine.transition(state, interpreter.dequeue()!);
@@ -277,10 +306,6 @@ describe('custom interpreter runtime', () => {
       }
     });
     const interpreter = new CustomInterpreter<typeof machine>({
-      createActorRef: (logic, options) => {
-        operations.push(`create:${options.id}`);
-        return createActor(logic, options as any);
-      },
       spawnActor: (_source, actor) => {
         operations.push(`spawn:${actor.id}`);
       },
@@ -293,9 +318,7 @@ describe('custom interpreter runtime', () => {
         (actor as any)._stop();
       }
     });
-    let [state, effects] = initialTransition(machine, undefined, {
-      runtime: interpreter.runtime
-    });
+    let [state, effects] = machine.initialTransition(undefined);
     interpreter.executeEffects(effects);
     interpreter.enqueue({ type: 'STOP_CHILD' });
     while (interpreter.hasEvents()) {
@@ -303,12 +326,7 @@ describe('custom interpreter runtime', () => {
       interpreter.executeEffects(effects);
     }
 
-    expect(operations).toEqual([
-      'create:child',
-      'spawn:child',
-      'start:child',
-      'stop:child'
-    ]);
+    expect(operations).toEqual(['spawn:child', 'start:child', 'stop:child']);
   });
 
   it('needs no actor scope for machine transition methods', async () => {
@@ -326,7 +344,7 @@ describe('custom interpreter runtime', () => {
     expect(done.matches('done')).toBe(true);
   });
 
-  it('carries an attached runtime into direct machine transitions', async () => {
+  it('selects the runtime when executing effects', async () => {
     const received: string[] = [];
     const sendEvent: NonNullable<ActorSystemRuntime['sendEvent']> = (
       _source,
@@ -340,20 +358,10 @@ describe('custom interpreter runtime', () => {
         SEND: ({ self }, enq) => enq.sendTo(self, { type: 'NOTICE' })
       }
     });
-    const [initial] = initialTransition(machine);
-    const [withRuntime] = transition(
-      machine,
-      initial,
-      { type: 'UNKNOWN' },
-      {
-        runtime: {
-          sendEvent
-        }
-      }
-    );
-    const [, effects] = machine.transition(withRuntime, { type: 'SEND' });
+    const [initial] = machine.initialTransition(undefined);
+    const [, effects] = machine.transition(initial, { type: 'SEND' });
 
-    await executeEffects(effects);
+    await executeEffects(effects, { sendEvent });
 
     expect(received).toEqual(['NOTICE']);
   });
@@ -364,20 +372,18 @@ describe('custom interpreter runtime', () => {
     const machine = createMachine({
       invoke: { id: 'child', src: child }
     });
-    const [, effects] = initialTransition(machine, undefined, {
-      runtime: {
-        spawnActor: async () => {
-          await Promise.resolve();
-          operations.push('spawn');
-        },
-        startActor: (actor) => {
-          operations.push('start');
-          actor.start();
-        }
+    const [, effects] = machine.initialTransition(undefined);
+
+    await executeEffects(effects, {
+      spawnActor: async () => {
+        await Promise.resolve();
+        operations.push('spawn');
+      },
+      startActor: (actor) => {
+        operations.push('start');
+        actor.start();
       }
     });
-
-    await executeEffects(effects);
 
     expect(operations).toEqual(['spawn', 'start']);
   });
@@ -407,7 +413,7 @@ describe('custom interpreter runtime', () => {
     expect(stopActor).toHaveBeenCalledOnce();
   });
 
-  it('can attach a runtime when interpreting an existing snapshot', () => {
+  it('can execute an existing snapshot transition with another runtime', async () => {
     const operations: string[] = [];
     const child = createCallbackLogic(() => {});
     const machine = createMachine({
@@ -419,27 +425,20 @@ describe('custom interpreter runtime', () => {
     });
     const [inactive] = initialTransition(machine);
 
-    const [, effects] = transition(
-      machine,
-      inactive,
-      { type: 'START' },
-      {
-        runtime: {
-          spawnActor: (_source, actor) => {
-            operations.push(`spawn:${actor.id}`);
-          },
-          startActor: (actor) => {
-            operations.push(`start:${actor.id}`);
-          }
-        }
+    const [, effects] = transition(machine, inactive, { type: 'START' });
+    await executeEffects(effects, {
+      spawnActor: (_source, actor) => {
+        operations.push(`spawn:${actor.id}`);
+      },
+      startActor: (actor) => {
+        operations.push(`start:${actor.id}`);
       }
-    );
-    effects.forEach((effect) => effect.exec?.());
+    });
 
     expect(operations).toEqual(['spawn:child', 'start:child']);
   });
 
-  it('uses an attached runtime to stop an existing child', async () => {
+  it('uses the execution runtime to stop an existing child', async () => {
     const stopped: string[] = [];
     const machine = createMachine({
       initial: 'active',
@@ -452,20 +451,13 @@ describe('custom interpreter runtime', () => {
       }
     });
     const [active] = initialTransition(machine);
-    const [, effects] = transition(
-      machine,
-      active,
-      { type: 'EXIT' },
-      {
-        runtime: {
-          stopActor: (actor) => {
-            stopped.push(actor.id);
-          }
-        }
-      }
-    );
+    const [, effects] = transition(machine, active, { type: 'EXIT' });
 
-    await executeEffects(effects);
+    await executeEffects(effects, {
+      stopActor: (actor) => {
+        stopped.push(actor.id);
+      }
+    });
 
     expect(stopped).toEqual(['child']);
   });
@@ -481,21 +473,19 @@ describe('custom interpreter runtime', () => {
         }
       }
     });
-    const [snapshot] = initialTransition(machine, undefined, {
-      runtime: {
-        sendEvent: async (_source, _target, event) => {
-          expect(sending).toBe(false);
-          sending = true;
-          await Promise.resolve();
-          await Promise.resolve();
-          operations.push(event.type);
-          sending = false;
-        }
-      }
-    });
+    const [snapshot] = machine.initialTransition(undefined);
     const [, effects] = transition(machine, snapshot, { type: 'SEND' });
 
-    await executeEffects(effects);
+    await executeEffects(effects, {
+      sendEvent: async (_source, _target, event) => {
+        expect(sending).toBe(false);
+        sending = true;
+        await Promise.resolve();
+        await Promise.resolve();
+        operations.push(event.type);
+        sending = false;
+      }
+    });
 
     expect(operations).toEqual(['FIRST', 'SECOND']);
   });
@@ -505,19 +495,18 @@ describe('custom interpreter runtime', () => {
     const machine = createMachine({
       invoke: { id: 'child', src: createCallbackLogic(() => {}) }
     });
-    const microsteps = getInitialMicrosteps(machine, undefined, {
-      runtime: {
-        spawnActor: (_source, actor) => {
-          operations.push(`spawn:${actor.id}`);
-        },
-        startActor: (actor) => {
-          operations.push(`start:${actor.id}`);
-        }
+    const microsteps = getInitialMicrosteps(machine);
+    const runtime: Partial<ActorSystemRuntime> = {
+      spawnActor: (_source, actor) => {
+        operations.push(`spawn:${actor.id}`);
+      },
+      startActor: (actor) => {
+        operations.push(`start:${actor.id}`);
       }
-    });
+    };
 
     for (const [, effects] of microsteps) {
-      await executeEffects(effects);
+      await executeEffects(effects, runtime);
     }
 
     expect(operations).toEqual(['spawn:child', 'start:child']);
@@ -530,16 +519,14 @@ describe('custom interpreter runtime', () => {
         EMIT: (_, enq) => enq.emit({ type: 'NOTICE' })
       }
     });
-    const [snapshot] = initialTransition(machine, undefined, {
-      runtime: {
-        emitEvent: (_source, event) => {
-          emitted.push(event.type);
-        }
-      }
-    });
+    const [snapshot] = machine.initialTransition(undefined);
     const [, effects] = transition(machine, snapshot, { type: 'EMIT' });
 
-    await executeEffects(effects);
+    await executeEffects(effects, {
+      emitEvent: (_source, event) => {
+        emitted.push(event.type);
+      }
+    });
 
     expect(emitted).toEqual(['NOTICE']);
   });
