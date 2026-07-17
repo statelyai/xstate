@@ -834,4 +834,243 @@ describe('undoRedo with snapshot strategy', () => {
     store.trigger.undo(); // count = 0
     expect(store.getSnapshot().context.count).toBe(0);
   });
+
+  it('should preserve orthogonal context during undo and redo', () => {
+    const store = createStore({
+      context: { document: 'a', viewport: 0 },
+      on: {
+        updateDocument: (context, event: { document: string }) => ({
+          ...context,
+          document: event.document
+        }),
+        updateViewport: (context, event: { viewport: number }) => ({
+          ...context,
+          viewport: event.viewport
+        })
+      }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        skipEvent: (event) => event.type === 'updateViewport',
+        restore: ({ current, next }) => ({
+          ...next,
+          viewport: current.viewport
+        })
+      })
+    );
+
+    store.trigger.updateDocument({ document: 'b' });
+    store.trigger.updateViewport({ viewport: 10 });
+    store.trigger.undo();
+    expect(store.getSnapshot().context).toEqual({
+      document: 'a',
+      viewport: 10
+    });
+
+    store.trigger.redo();
+    expect(store.getSnapshot().context).toEqual({
+      document: 'b',
+      viewport: 10
+    });
+
+    store.trigger.updateViewport({ viewport: 20 });
+    store.trigger.undo();
+    expect(store.getSnapshot().context).toEqual({
+      document: 'a',
+      viewport: 20
+    });
+  });
+
+  it('should pass current, next, and direction to restore', () => {
+    const restore = vi.fn(({ next }) => next);
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(undoRedo({ strategy: 'snapshot', restore }));
+
+    store.trigger.inc();
+    store.trigger.undo();
+    store.trigger.redo();
+
+    expect(restore.mock.calls.map(([args]) => args)).toEqual([
+      { current: { count: 1 }, next: { count: 0 }, direction: 'undo' },
+      { current: { count: 0 }, next: { count: 1 }, direction: 'redo' }
+    ]);
+  });
+
+  it('should restore once for a transaction group', () => {
+    const restore = vi.fn(({ next }) => next);
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        getTransactionId: () => 'transaction',
+        restore
+      })
+    );
+
+    store.trigger.inc();
+    store.trigger.inc();
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(0);
+    store.trigger.redo();
+    expect(store.getSnapshot().context.count).toBe(2);
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(0);
+    expect(restore).toHaveBeenCalledTimes(3);
+  });
+
+  it('should run emitted events after restored context commits', () => {
+    const observed: number[] = [];
+    const store = createStore({
+      schemas: {
+        emitted: { restored: z.object({ count: z.number() }) }
+      },
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        restore: ({ next }, enqueue) => {
+          enqueue.emit.restored({ count: next.count });
+          return next;
+        }
+      })
+    );
+    store.on('restored', () =>
+      observed.push(store.getSnapshot().context.count)
+    );
+
+    store.trigger.inc();
+    store.trigger.undo();
+
+    expect(observed).toEqual([0]);
+  });
+
+  it('should run effects after restored context commits', () => {
+    const observed: number[] = [];
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        restore: ({ next }, enqueue) => {
+          enqueue.effect((enq) => {
+            observed.push(enq!.getSnapshot().context.count);
+          });
+          return next;
+        }
+      })
+    );
+
+    store.trigger.inc();
+    store.trigger.undo();
+
+    expect(observed).toEqual([0]);
+  });
+
+  it('should apply triggered transitions and effects once without history', () => {
+    const effect = vi.fn();
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (context) => ({ count: context.count + 1 }),
+        add: (context, event: { by: number }, enqueue) => {
+          enqueue.effect(effect);
+          return { count: context.count + event.by };
+        }
+      }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        restore: ({ next }, enqueue) => {
+          enqueue.trigger.add({ by: 10 });
+          return next;
+        }
+      })
+    );
+
+    store.trigger.inc();
+    expect(store.can.undo()).toBe(true);
+    expect(effect).not.toHaveBeenCalled();
+    store.trigger.undo();
+
+    expect(store.getSnapshot().context.count).toBe(10);
+    expect(effect).toHaveBeenCalledTimes(1);
+    expect(store.can.undo()).toBe(false);
+  });
+
+  it('should not execute enqueued effects when checking can', () => {
+    const effect = vi.fn();
+    const emitted = vi.fn();
+    const store = createStore({
+      schemas: { emitted: { restored: z.object({}) } },
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        restore: ({ next }, enqueue) => {
+          enqueue.effect(effect);
+          enqueue.emit.restored({});
+          return next;
+        }
+      })
+    );
+    store.on('restored', emitted);
+
+    store.trigger.inc();
+    expect(store.can.undo()).toBe(true);
+    expect(effect).not.toHaveBeenCalled();
+    expect(emitted).not.toHaveBeenCalled();
+    store.trigger.undo();
+    expect(store.can.redo()).toBe(true);
+    expect(effect).toHaveBeenCalledTimes(1);
+    expect(emitted).toHaveBeenCalledTimes(1);
+  });
+
+  it('should infer restore context, emitted events, and triggers', () => {
+    createStore({
+      schemas: {
+        emitted: { restored: z.object({ count: z.number() }) }
+      },
+      context: { count: 0 },
+      on: {
+        add: (context, event: { by: number }) => ({
+          count: context.count + event.by
+        })
+      }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        restore: ({ current, next, direction }, enqueue) => {
+          current.count satisfies number;
+          next.count satisfies number;
+          direction satisfies 'undo' | 'redo';
+          enqueue.emit.restored({ count: next.count });
+          enqueue.trigger.add({ by: 1 });
+
+          if (false) {
+            // @ts-expect-error
+            enqueue.emit.restored({ count: 'wrong' });
+            // @ts-expect-error
+            enqueue.trigger.add({ by: 'wrong' });
+          }
+
+          return next;
+        }
+      })
+    );
+
+    if (false) {
+      undoRedo({
+        strategy: 'event',
+        // @ts-expect-error restore is only available for snapshot strategy
+        restore: () => ({ count: 0 })
+      });
+    }
+  });
 });

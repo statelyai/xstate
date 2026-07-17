@@ -21,6 +21,7 @@ export type {
   ResolveStoreEmittedPayloadMap,
   StoreEffect,
   StoreEffectEnqueue,
+  EnqueueObject,
   TriggerObject,
   CanObject,
   StoreAssigner,
