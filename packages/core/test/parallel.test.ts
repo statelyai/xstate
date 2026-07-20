@@ -1050,6 +1050,50 @@ describe('parallel states', () => {
       expect(actorRef.getSnapshot().context.log.length).toBe(2);
     });
   });
+  // https://github.com/statelyai/xstate/issues/5162
+  it('should not reenter sibling parallel regions when reenter: true targets a child state', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        region1: {
+          initial: 'a',
+          states: {
+            a: {},
+            b: {}
+          },
+          on: {
+            REENTER_A: {
+              target: '.a',
+              reenter: true
+            }
+          }
+        },
+        region2: {
+          initial: 'c',
+          states: {
+            c: {},
+            d: {}
+          }
+        }
+      }
+    });
+
+    const flushTracked = trackEntries(machine);
+
+    const actor = createActor(machine);
+    actor.start();
+    flushTracked(); // discard initial entries
+
+    actor.send({ type: 'REENTER_A' });
+
+    expect(flushTracked()).toEqual([
+      'exit: region1.a',
+      'exit: region1',
+      'enter: region1',
+      'enter: region1.a'
+    ]);
+  });
+
 
   it('should raise a "xstate.done.state.*" event when all child states reach final state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();

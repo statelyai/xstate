@@ -915,12 +915,17 @@ function getTransitionDomain(
   }
 
   if (
-    !transition.reenter &&
     targetStates.every(
       (target) =>
         target === transition.source || isDescendant(target, transition.source)
     )
   ) {
+    // When all targets are within the source (including the source itself), the
+    // source is the transition domain. For non-reentering transitions this is an
+    // ordinary internal self-transition. For reentering transitions we still
+    // return the source so that only the source region is exited/reentered;
+    // computing the LCA of [target, source] would climb to a parallel ancestor
+    // and cause all sibling regions to reenter incorrectly (fixes #5162).
     return transition.source;
   }
 
@@ -1288,6 +1293,13 @@ function computeEntrySet(
         statesForDefaultEntry,
         statesToEnter
       );
+    }
+    // When reenter: true and the source is also the transition domain, the
+    // source was exited by computeExitSet but is not reachable via ancestor
+    // traversal (ancestors are collected up to, but not including, the domain).
+    // Explicitly add the source to statesToEnter so it is reentered (fixes #5162).
+    if (t.reenter && domain && t.source === domain) {
+      statesToEnter.add(t.source);
     }
     const targetStates = getEffectiveTargetStates(t, historyValue);
     for (const s of targetStates) {
