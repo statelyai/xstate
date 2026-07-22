@@ -23,6 +23,7 @@ linkWorkspacePackages: true
 overrides:
   '@types/node': 25.2.1
   vue: 3.5.17
+  yaml: 2.8.2
 
 patchedDependencies:
   '@vue/test-utils@2.4.6': patches/@vue__test-utils@2.4.6.patch

@@ -8,7 +8,11 @@ import {
   Snapshot,
   ActorLogic,
   ActorRefFrom,
-  AnyStateMachine
+  AnyStateMachine,
+  AnyActorSystem,
+  EventObject,
+  initialTransition,
+  transition
 } from '../src/index.ts';
 import {
   createCallbackLogic,
@@ -23,6 +27,91 @@ import type { Mock } from 'vitest';
 import z from 'zod';
 
 describe('logic (createLogic)', () => {
+  it('returns actor termination as an ordered transition effect', () => {
+    const logic = createLogic({
+      context: undefined,
+      run: ({ event }) =>
+        event.type === 'finish'
+          ? { status: 'done' as const, output: 42 }
+          : undefined
+    });
+    const [active] = initialTransition(logic);
+
+    const [done, effects] = transition(logic, active, { type: 'finish' });
+
+    expect(done).toMatchObject({ status: 'done', output: 42 });
+    expect(effects).toEqual([
+      expect.objectContaining({
+        kind: 'builtin',
+        type: '@xstate.terminate',
+        status: 'done',
+        output: 42
+      })
+    ]);
+    expect(transition(logic, done, { type: 'finish' })[1]).toEqual([]);
+  });
+
+  it('returns async actor termination from the pure transition', () => {
+    const logic = createAsyncLogic({ run: async () => 42 });
+    const [active] = initialTransition(logic);
+
+    const [done, effects] = transition(logic, active, {
+      type: 'xstate.async.resolve',
+      data: 42
+    } as any);
+
+    expect(done).toMatchObject({ status: 'done', output: 42 });
+    expect(effects.at(-1)).toMatchObject({
+      type: '@xstate.terminate',
+      status: 'done',
+      output: 42
+    });
+  });
+
+  it('returns observable completion and failure as termination effects', () => {
+    const logic = createObservableLogic(() => EMPTY);
+    const [active] = initialTransition(logic);
+    const [done, doneEffects] = transition(logic, active, {
+      type: 'xstate.observable.complete'
+    } as any);
+    const error = new Error('failed');
+    const [failed, errorEffects] = transition(logic, active, {
+      type: 'xstate.observable.error',
+      data: error
+    } as any);
+
+    expect(done.status).toBe('done');
+    expect(doneEffects.at(-1)).toMatchObject({
+      type: '@xstate.terminate',
+      status: 'done'
+    });
+    expect(failed).toMatchObject({ status: 'error', error });
+    expect(errorEffects.at(-1)).toMatchObject({
+      type: '@xstate.terminate',
+      status: 'error',
+      error
+    });
+  });
+
+  it('returns termination when createLogic completes during initialization', () => {
+    const logic = createLogic({
+      context: undefined,
+      run: ({ event }) =>
+        event.type === '@xstate.init'
+          ? { status: 'done' as const, output: 42 }
+          : undefined
+    });
+
+    const [done, effects] = initialTransition(logic);
+
+    expect(done).toMatchObject({ status: 'done', output: 42 });
+    expect(effects.at(-1)).toMatchObject({
+      type: '@xstate.terminate',
+      status: 'done',
+      output: 42
+    });
+  });
+
   it('returns a snapshot and effects from transition', () => {
     const logic = createLogic({
       context: { count: 0 },
@@ -47,7 +136,13 @@ describe('logic (createLogic)', () => {
     );
 
     expect(nextSnapshot.context).toEqual({ count: 1 });
-    expect(effects).toEqual([{ type: 'emit', event: { type: 'counted' } }]);
+    expect(effects).toEqual([
+      expect.objectContaining({
+        kind: 'emit',
+        type: 'counted',
+        event: { type: 'counted' }
+      })
+    ]);
   });
 
   it('tracks enqueued effects in the next snapshot', () => {
@@ -57,17 +152,11 @@ describe('logic (createLogic)', () => {
         enq.effect('subscription', () => {});
       }
     });
-    const scope = createInertActorScope(logic);
-    const snapshot = logic.getInitialSnapshot(scope, undefined);
-    const [nextSnapshot, effects] = logic.transition(
-      snapshot,
-      { type: 'next' },
-      scope
-    );
-    const [snapshotAfterSecondTransition, repeatedEffects] = logic.transition(
+    const [nextSnapshot, effects] = initialTransition(logic);
+    const [snapshotAfterSecondTransition, repeatedEffects] = transition(
+      logic,
       nextSnapshot,
-      { type: 'next' },
-      scope
+      { type: 'next' }
     );
 
     expect(effects).toHaveLength(1);
@@ -132,6 +221,44 @@ describe('logic (createLogic)', () => {
     expect(actor.getSnapshot().context).toEqual({ count: 2 });
     expect(starts).toBe(1);
     expect(stops).toBe(1);
+  });
+});
+
+describe('hand-written actor logic', () => {
+  it('completes when a transition returns a terminal snapshot without a terminate effect', () => {
+    const logic: ActorLogic<
+      Snapshot<number>,
+      { type: 'finish' },
+      unknown,
+      AnyActorSystem,
+      EventObject
+    > = {
+      initialTransition: () => [
+        { status: 'active', output: undefined, error: undefined },
+        []
+      ],
+      transition: (snapshot, event) =>
+        event.type === 'finish'
+          ? [{ status: 'done', output: 42, error: undefined }, []]
+          : [snapshot, []],
+      getInitialSnapshot: () => ({
+        status: 'active',
+        output: undefined,
+        error: undefined
+      }),
+      getPersistedSnapshot: (snapshot) => snapshot
+    };
+    const observed: string[] = [];
+    const actor = createActor(logic);
+    actor.subscribe({
+      next: (snapshot) => observed.push(`next:${snapshot.status}`),
+      complete: () => observed.push('complete')
+    });
+    actor.start();
+
+    actor.send({ type: 'finish' });
+
+    expect(observed).toEqual(['next:active', 'next:done', 'complete']);
   });
 });
 

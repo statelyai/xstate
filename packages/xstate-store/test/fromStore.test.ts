@@ -1,4 +1,9 @@
-import { createActor } from 'xstate';
+import {
+  createActor,
+  executeEffects,
+  initialTransition,
+  transition
+} from 'xstate';
 import { fromStore } from '../src/index.ts';
 import type { StoreEffectEnqueue } from '../src/index.ts';
 import { z } from 'zod';
@@ -113,5 +118,63 @@ describe('fromStore', () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     expect(seen).toEqual(11);
+  });
+
+  it('routes effect sends through a custom transition runtime', async () => {
+    let effectCount: number | undefined;
+    const storeLogic = fromStore({
+      context: { count: 0 },
+      on: {
+        inc: (context, _, enq) => {
+          enq.effect(
+            ({ getSnapshot, send }: StoreEffectEnqueue<{ count: number }>) => {
+              effectCount = getSnapshot().context.count;
+              send({ type: 'dec' });
+            }
+          );
+          return { count: context.count + 1 };
+        },
+        dec: (context) => ({ count: context.count - 1 })
+      }
+    });
+    const [initial] = initialTransition(storeLogic);
+    const [, effects] = transition(storeLogic, initial, { type: 'inc' });
+    const sent: string[] = [];
+
+    await executeEffects(effects, {
+      sendEvent: (_source, _target, event) => {
+        sent.push(event.type);
+      }
+    });
+
+    expect(sent).toEqual(['dec']);
+    expect(effectCount).toBe(1);
+  });
+
+  it('routes effect triggers through a custom transition runtime', async () => {
+    const storeLogic = fromStore({
+      context: { count: 0 },
+      on: {
+        inc: (context, _, enq) => {
+          enq.effect(
+            ({ trigger }: StoreEffectEnqueue<{ count: number }, { dec: {} }>) =>
+              trigger.dec()
+          );
+          return { count: context.count + 1 };
+        },
+        dec: (context) => ({ count: context.count - 1 })
+      }
+    });
+    const [initial] = initialTransition(storeLogic);
+    const [, effects] = transition(storeLogic, initial, { type: 'inc' });
+    const sent: string[] = [];
+
+    await executeEffects(effects, {
+      sendEvent: (_source, _target, event) => {
+        sent.push(event.type);
+      }
+    });
+
+    expect(sent).toEqual(['dec']);
   });
 });

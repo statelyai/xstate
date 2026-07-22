@@ -33,7 +33,6 @@ import {
 } from './stateUtils.ts';
 import {
   createSpawnEffect,
-  deriveDeferredStarts,
   resolveActionsWithContext
 } from './transitionActions.ts';
 import { AnyActorSystem } from './system.ts';
@@ -492,17 +491,11 @@ export class StateMachine<
   private _collectEffects(
     microsteps: ReadonlyArray<
       readonly [unknown, ReadonlyArray<ExecutableActionObject>]
-    >,
-    initialActions: ReadonlyArray<ExecutableActionObject> = []
+    >
   ): ExecutableActionObjectFromLogic<this>[] {
-    const effects = [
-      ...initialActions,
-      ...microsteps.flatMap(([, actions]) => actions)
-    ];
-    return [
-      ...effects,
-      ...deriveDeferredStarts(effects)
-    ] as ExecutableActionObjectFromLogic<this>[];
+    return microsteps.flatMap(
+      ([, actions]) => actions
+    ) as ExecutableActionObjectFromLogic<this>[];
   }
 
   private _attachPureActorRef<TSnapshot extends AnyMachineSnapshot>(
@@ -914,7 +907,13 @@ export class StateMachine<
         nextState,
         initEvent as AnyEventObject,
         resolvedActorScope,
-        internalQueue
+        internalQueue,
+        [
+          [nextState, [...contextSpawnEffects, ...initialActions]] as [
+            AnyMachineSnapshot,
+            ExecutableActionObject[]
+          ]
+        ]
       ));
     } catch (err) {
       if (!this.root.config.onError) {
@@ -925,7 +924,13 @@ export class StateMachine<
         preInitialState,
         errorEvent,
         resolvedActorScope,
-        []
+        [],
+        [
+          [preInitialState, contextSpawnEffects] as [
+            AnyMachineSnapshot,
+            ExecutableActionObject[]
+          ]
+        ]
       );
       macroState = errorMacrostep.snapshot;
       microsteps = errorMacrostep.microsteps;
@@ -940,10 +945,7 @@ export class StateMachine<
       : this._attachPureActorRef(macroState, resolvedActorScope);
     return [
       returnedSnapshot as SnapshotFrom<this>,
-      this._collectEffects(microsteps, [
-        ...contextSpawnEffects,
-        ...initialActions
-      ])
+      this._collectEffects(microsteps)
     ];
   }
 

@@ -1,4 +1,8 @@
-import type { ActorLogic } from 'xstate';
+import type {
+  ActorLogic,
+  ActorSystemRuntime,
+  ExecutableActionObject
+} from 'xstate';
 import {
   createStoreTransition,
   TransitionsFromEventPayloadMap
@@ -280,43 +284,49 @@ export function fromStore(config: {
   return {
     transition: (snapshot, event, actorScope) => {
       const [nextSnapshot, effects] = transition(snapshot, event);
-      const effectEnqueue = {
-        send: (event: EventObject) => actorScope.self.send(event),
-        trigger: new Proxy({} as any, {
-          get: (_, eventType: string) => {
-            return (payload: any) =>
-              actorScope.self.send({ type: eventType, ...payload });
-          }
-        }),
-        getSnapshot: () => actorScope.self.getSnapshot()
-      };
 
       return [
         nextSnapshot,
-        effects.map((effect) =>
-          typeof effect === 'function'
-            ? {
-                type: 'effect',
-                exec: () => effect(effectEnqueue)
-              }
-            : {
-                type: 'emit',
-                event: effect
-              }
-        )
+        effects.map<ExecutableActionObject>((effect) => {
+          if (typeof effect === 'function') {
+            const action = (
+              system: Partial<ActorSystemRuntime> = actorScope.self.system
+            ) => {
+              const send = (event: EventObject) =>
+                void system.sendEvent!(actorScope.self, actorScope.self, event);
+              return effect({
+                send,
+                trigger: new Proxy({} as any, {
+                  get: (_, eventType: string) => {
+                    return (payload: any) =>
+                      send({ type: eventType, ...payload });
+                  }
+                }),
+                getSnapshot: () => actorScope.self.getSnapshot()
+              });
+            };
+            return {
+              kind: 'action',
+              type: 'effect',
+              action,
+              params: undefined,
+              args: [],
+              exec: action
+            };
+          }
+          return {
+            kind: 'emit',
+            type: effect.type,
+            source: actorScope.self,
+            event: effect,
+            params: undefined,
+            args: [],
+            exec: (
+              system: Partial<ActorSystemRuntime> = actorScope.self.system
+            ) => system.emitEvent!(actorScope.self, effect)
+          };
+        })
       ];
-    },
-    executeEffects: (effects, actorScope) => {
-      for (const effect of effects as Array<
-        | { type: 'effect'; exec: () => void }
-        | { type: 'emit'; event: EventObject }
-      >) {
-        if (effect.type === 'emit') {
-          actorScope.emit(effect.event);
-        } else {
-          effect.exec();
-        }
-      }
     },
     initialTransition,
     getInitialSnapshot: (actorScope, input: unknown) =>

@@ -24,8 +24,13 @@ import type {
   LogicalTimer
 } from './types.ts';
 import { matchesState } from './utils.ts';
-
-const machineSnapshotActorRef = Symbol('xstate.machineSnapshotActorRef');
+import {
+  copySnapshotActorRef,
+  getSnapshotActorRef,
+  setSnapshotActorRef,
+  type SnapshotActorRef,
+  snapshotActorRef
+} from './snapshotActorRef.ts';
 
 export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
@@ -34,21 +39,6 @@ export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
     'machine' in value &&
     'value' in value
   );
-}
-
-/** @internal */
-export function getMachineSnapshotActorRef(
-  snapshot: AnyMachineSnapshot
-): AnyActor | undefined {
-  return snapshot[machineSnapshotActorRef];
-}
-
-/** @internal */
-export function setMachineSnapshotActorRef(
-  snapshot: AnyMachineSnapshot,
-  actorRef: AnyActor
-): void {
-  snapshot[machineSnapshotActorRef] = actorRef;
 }
 
 type Values<T> = T[keyof T];
@@ -159,7 +149,7 @@ interface MachineSnapshotBase<
   /** @internal */
   _nextTimerId: number;
   /** @internal */
-  [machineSnapshotActorRef]?: AnyActor;
+  [snapshotActorRef]?: SnapshotActorRef;
 
   /**
    * Whether the current state value is a subset of the given partial state
@@ -406,7 +396,7 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     _nodes: nodes,
     _stateInputs,
-    [machineSnapshotActorRef]: _actorRef,
+    [snapshotActorRef]: _actorRef,
     tags,
     machine,
     getMeta,
@@ -466,7 +456,7 @@ export function createMachineSnapshot<
   TMeta,
   TStateSchema
 > {
-  return {
+  const snapshot = {
     status: config.status as never,
     output: config.output,
     error: config.error,
@@ -481,7 +471,6 @@ export function createMachineSnapshot<
     historyValue: config.historyValue || {},
     _stateInputs: config._stateInputs || {},
     _nextTimerId: config._nextTimerId ?? 0,
-    [machineSnapshotActorRef]: actorRef,
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
@@ -489,6 +478,10 @@ export function createMachineSnapshot<
     getInputs: machineSnapshotGetInputs,
     toJSON: machineSnapshotToJSON
   };
+  if (actorRef) {
+    setSnapshotActorRef(snapshot, actorRef);
+  }
+  return snapshot;
 }
 
 export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
@@ -501,7 +494,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   } as StateConfig<any, any>;
 
   if ((config._nodes ?? snapshot._nodes) === snapshot._nodes) {
-    return {
+    const clonedSnapshot = {
       status: configWithSnapshot.status as never,
       output: configWithSnapshot.output,
       error: configWithSnapshot.error,
@@ -515,7 +508,6 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       historyValue: configWithSnapshot.historyValue || {},
       _stateInputs: configWithSnapshot._stateInputs || {},
       _nextTimerId: configWithSnapshot._nextTimerId ?? 0,
-      [machineSnapshotActorRef]: getMachineSnapshotActorRef(snapshot),
       matches: machineSnapshotMatches as never,
       hasTag: machineSnapshotHasTag,
       can: machineSnapshotCan,
@@ -523,16 +515,19 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       getInputs: machineSnapshotGetInputs,
       toJSON: machineSnapshotToJSON
     } as unknown as TState;
+    copySnapshotActorRef(snapshot, clonedSnapshot);
+    return clonedSnapshot;
   }
 
-  return createMachineSnapshot(
+  const clonedSnapshot = createMachineSnapshot(
     {
       ...configWithSnapshot,
       value: undefined
     },
-    snapshot.machine,
-    getMachineSnapshotActorRef(snapshot)
+    snapshot.machine
   ) as unknown as TState;
+  copySnapshotActorRef(snapshot, clonedSnapshot);
+  return clonedSnapshot;
 }
 
 function serializeHistoryValue(
@@ -620,7 +615,7 @@ export function getPersistedSnapshot<
       if (childId) {
         target = childId;
       } else if (
-        timer.target === getMachineSnapshotActorRef(snapshot)?._parent
+        timer.target === getSnapshotActorRef(snapshot)?.actor._parent
       ) {
         target = { type: 'parent' };
       } else {

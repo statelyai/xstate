@@ -98,6 +98,13 @@ describe('SpecialExecutableAction', () => {
           noop(action.actor);
           noop(action.id);
           break;
+        case '@xstate.terminate':
+          noop(action.actor);
+          noop(action.id);
+          noop(action.status);
+          noop(action.output);
+          noop(action.error);
+          break;
         default: {
           const _exhaustive: never = action;
           noop(_exhaustive);
@@ -438,12 +445,12 @@ describe('context', () => {
   });
 
   it('context should be required if present in types', () => {
-    // @ts-expect-error
     createMachine({
       // types: {} as {
       //   context: { count: number };
       // }
       schemas: {
+        // @ts-expect-error
         context: z.object({
           count: z.number()
         })
@@ -696,7 +703,6 @@ it('should not use actions as possible inference sites', () => {
 });
 
 it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
-  // @ts-expect-error
   createMachine({
     // types: {
     //   context: {} as {
@@ -704,6 +710,7 @@ it('should not widen literal types defined in `schema.context` based on `config.
     //   }
     // },
     schemas: {
+      // @ts-expect-error
       context: z.object({
         literalTest: z.union([z.literal('foo'), z.literal('bar')])
       })
@@ -4236,9 +4243,11 @@ describe('actions', () => {
       //   }
       // },
       schemas: {
+        // @ts-expect-error TS7 reports the rejected schema overload here too
         events: {
           TOGGLE: z.object({})
         },
+        // @ts-expect-error TS7 reports the rejected schema overload here too
         context: z.object({
           count: z.number(),
           mode: z.union([z.literal('foo'), z.literal('bar'), z.literal(null)])

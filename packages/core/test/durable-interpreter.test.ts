@@ -9,7 +9,15 @@ import {
 
 type DurableCommand = {
   effectId: string;
-  type: 'spawn' | 'start' | 'stop' | 'schedule' | 'cancel' | 'send' | 'emit';
+  type:
+    | 'spawn'
+    | 'start'
+    | 'stop'
+    | 'terminate'
+    | 'schedule'
+    | 'cancel'
+    | 'send'
+    | 'emit';
   sourceKey?: string;
   actorKey?: string;
   targetKey?: string;
@@ -18,6 +26,9 @@ type DurableCommand = {
   dueAt?: number;
   src?: string;
   input?: unknown;
+  status?: 'done' | 'error';
+  output?: unknown;
+  error?: unknown;
 };
 
 type DurableRecord = {
@@ -128,6 +139,16 @@ function commitTransition(
         delete nextBindings[slot];
         break;
       }
+      case '@xstate.terminate':
+        outbox.push({
+          effectId,
+          type: 'terminate',
+          actorKey: getActorKey(effect.actor),
+          status: effect.status,
+          output: effect.output,
+          error: effect.error
+        });
+        break;
       case '@xstate.raise':
         outbox.push({
           effectId,
@@ -206,6 +227,27 @@ class IdempotentRuntime {
 }
 
 describe('durable interpreter adapter', () => {
+  it('commits terminal actor lifecycle to the durable outbox', () => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: { on: { FINISH: { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+    const [active] = machine.initialTransition(undefined);
+    const [done, effects] = machine.transition(active, { type: 'FINISH' });
+
+    const record = commitTransition(machine, done, effects, 'finish', 0);
+
+    expect(record.outbox.at(-1)).toMatchObject({
+      type: 'terminate',
+      actorKey: 'root',
+      status: 'done'
+    });
+    expect(() => JSON.stringify(record)).not.toThrow();
+  });
+
   it('can recover an outbox without duplicate effects or resetting timers', () => {
     const fiveMinutes = 5 * 60 * 1000;
     const startedAt = 1_000_000;

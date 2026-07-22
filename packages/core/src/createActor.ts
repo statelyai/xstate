@@ -24,6 +24,7 @@ import type { createMachine } from './createMachine.ts';
 let executingCustomAction: boolean = false;
 
 import type {
+  ActorTermination,
   ActorScope,
   ActorTrigger,
   AnyActor,
@@ -48,6 +49,8 @@ import {
   Subscription
 } from './types.ts';
 import { toObserver } from './utils.ts';
+import { finalizeTransitionResult } from './transitionActions.ts';
+import { setSnapshotActorRef } from './snapshotActorRef.ts';
 
 export const $$ACTOR_TYPE = 1;
 
@@ -78,36 +81,17 @@ function safeCall<T>(fn: ((arg: T) => void) | undefined, arg?: T) {
   }
 }
 
-function isExecutableActionObject(
-  effect: unknown
-): effect is ExecutableActionObject {
-  return (
-    typeof effect === 'object' &&
-    effect !== null &&
-    'args' in effect &&
-    'kind' in effect &&
-    'exec' in effect &&
-    typeof effect.exec === 'function'
-  );
-}
-
 function executeExecutableEffects(
-  effects: readonly unknown[] | undefined,
+  effects: readonly ExecutableActionObject[] | undefined,
   actorScope: ActorScope<any, any, any, any>
-): unknown[] {
+): void {
   if (!effects?.length) {
-    return [];
+    return;
   }
 
-  const logicEffects = [];
   for (const effect of effects) {
-    if (isExecutableActionObject(effect)) {
-      actorScope.actionExecutor(effect);
-    } else {
-      logicEffects.push(effect);
-    }
+    actorScope.actionExecutor(effect);
   }
-  return logicEffects;
 }
 
 /**
@@ -185,7 +169,7 @@ export class Actor<TLogic extends AnyActorLogic>
   public _collectedActions: ActionRecord[] = [];
   /** @internal Events relayed to other actors during the in-flight transition. */
   public _collectedSent: SentRecord[] = [];
-  private _initialEffects: unknown[] | undefined;
+  private _initialEffects: ExecutableActionObject[] | undefined;
   public registryKey: string | undefined;
 
   /** The globally unique process ID for this invocation. */
@@ -321,30 +305,33 @@ export class Actor<TLogic extends AnyActorLogic>
     this._restored = persistedState !== undefined;
     try {
       if (persistedState) {
-        this._snapshot = this.logic.restoreSnapshot
-          ? this.logic.restoreSnapshot(persistedState, this._actorScope)
-          : persistedState;
+        this._setSnapshot(
+          this.logic.restoreSnapshot
+            ? this.logic.restoreSnapshot(persistedState, this._actorScope)
+            : persistedState
+        );
       } else if ((options as any)?._inert) {
         // Inert actors (createInertActorScope) only anchor a scope for pure
         // transition functions; computing an initial snapshot here would run
         // init-time side effects (context factories, entry) a second time.
       } else {
-        const [snapshot, effects] = this.logic.initialTransition(
-          this.options?.input,
-          this._actorScope
+        const [snapshot, effects] = finalizeTransitionResult(
+          this._actorScope,
+          undefined,
+          this.logic.initialTransition(this.options?.input, this._actorScope)
         );
-        this._snapshot = snapshot;
+        this._setSnapshot(snapshot);
         this._initialEffects = effects;
       }
     } catch (err) {
       // if we get here then it means that we assign a value to this._snapshot that is not of the correct type
       // we can't get the true `TSnapshot & { status: 'error'; }`, it's impossible
       // so right now this is a lie of sorts
-      this._snapshot = {
+      this._setSnapshot({
         status: 'error',
         output: undefined,
         error: err
-      } as any;
+      } as any);
       // discard any functions deferred during the failed initial snapshot
       // computation so they can't run against an inconsistent actor
       this._deferred.length = 0;
@@ -372,15 +359,21 @@ export class Actor<TLogic extends AnyActorLogic>
 
   private _restored = false;
 
+  /** Associates each live snapshot with this actor for later pure transitions. */
+  private _setSnapshot(snapshot: SnapshotFrom<TLogic>): void {
+    this._snapshot = snapshot;
+    setSnapshotActorRef(snapshot, this);
+  }
+
   private _setErrorSnapshot(
     err: unknown,
     snapshot: SnapshotFrom<TLogic> = this._snapshot
   ) {
-    this._snapshot = {
+    this._setSnapshot({
       ...(snapshot as any),
       status: 'error',
       error: err
-    };
+    });
   }
 
   /** Recover via the logic's error event if possible; otherwise error out. */
@@ -405,15 +398,14 @@ export class Actor<TLogic extends AnyActorLogic>
     }
 
     try {
-      const [nextSnapshot, effects] = this.logic.transition(
+      const [nextSnapshot, effects] = finalizeTransitionResult(
+        this._actorScope,
         snapshot,
-        errorEvent,
-        this._actorScope
+        this.logic.transition(snapshot, errorEvent, this._actorScope)
       );
-      this._snapshot = nextSnapshot;
-      const logicEffects = executeExecutableEffects(effects, this._actorScope);
+      this._setSnapshot(nextSnapshot);
+      executeExecutableEffects(effects, this._actorScope);
       this.update(nextSnapshot, errorEvent);
-      this.logic.executeEffects?.(logicEffects, this._actorScope);
       return true;
     } catch {
       return false;
@@ -428,7 +420,7 @@ export class Actor<TLogic extends AnyActorLogic>
 
   private update(snapshot: SnapshotFrom<TLogic>, event: EventObject): void {
     // Update state
-    this._snapshot = snapshot;
+    this._setSnapshot(snapshot);
 
     // Execute deferred effects
     for (let i = 0; i < this._deferred.length; i++) {
@@ -446,6 +438,7 @@ export class Actor<TLogic extends AnyActorLogic>
           return;
         }
         this._setErrorSnapshot(err, snapshot);
+        this._error(err);
         break;
       }
     }
@@ -455,29 +448,10 @@ export class Actor<TLogic extends AnyActorLogic>
       case 'active':
         this._next(snapshot);
         break;
-      case 'done': {
-        // next observers are meant to be notified about done snapshots
-        // this can be seen as something that is different from how observable work
-        // but with observables `complete` callback is called without any arguments
-        // it's more ergonomic for XState to treat a done snapshot as a "next" value
-        // and the completion event as something that is separate,
-        // something that merely follows emitting that done snapshot
-        this._next(snapshot);
-
-        this._stopProcedure();
-        this._complete();
-        const doneEvent = createDoneActorEvent(
-          this.id,
-          (this._snapshot as any).output
-        );
-        if (this._parent) {
-          this.system._relay(this, this._parent, doneEvent);
-        }
-
-        break;
-      }
+      case 'done':
       case 'error':
-        this._error((this._snapshot as any).error);
+        // Terminal lifecycle is represented by the ordered
+        // `@xstate.terminate` effect returned by the actor logic.
         break;
     }
     this.system._sendInspectionEvent({
@@ -504,11 +478,7 @@ export class Actor<TLogic extends AnyActorLogic>
     }
     this._forceDeferredActions = true;
     try {
-      const logicEffects = executeExecutableEffects(
-        this._initialEffects,
-        this._actorScope
-      );
-      this.logic.executeEffects?.(logicEffects, this._actorScope);
+      executeExecutableEffects(this._initialEffects, this._actorScope);
       this._initialEffects = undefined;
       return true;
     } catch (err) {
@@ -725,6 +695,14 @@ export class Actor<TLogic extends AnyActorLogic>
       case 'done':
         // a state machine can be "done" upon initialization (it could reach a final state using initial microsteps)
         // we still need to complete observers, flush deferreds etc
+        if (this._restored) {
+          // Restoration does not replay the transition that originally
+          // terminated the actor, and must not notify the parent again.
+          this._next(this._snapshot);
+          this._stopProcedure();
+          this._complete();
+          return this;
+        }
         if (!this._flushInitialEffects()) {
           return this;
         }
@@ -743,18 +721,20 @@ export class Actor<TLogic extends AnyActorLogic>
       this.system.start();
     }
 
+    if (!this._flushInitialEffects()) {
+      return this;
+    }
+
     if (this.logic.start) {
       try {
-        this.logic.start(this._snapshot, this._actorScope);
+        this.logic.start(this._snapshot, this._actorScope, {
+          restored: this._restored
+        });
       } catch (err) {
         this._setErrorSnapshot(err);
         this._error(err);
         return this;
       }
-    }
-
-    if (!this._flushInitialEffects()) {
-      return this;
     }
 
     // TODO: this notifies all subscribers but usually this is redundant
@@ -780,10 +760,10 @@ export class Actor<TLogic extends AnyActorLogic>
     let nextState: any;
     let caughtError;
     try {
-      nextState = this.logic.transition(
+      nextState = finalizeTransitionResult(
+        this._actorScope,
         this._snapshot,
-        event,
-        this._actorScope
+        this.logic.transition(this._snapshot, event, this._actorScope)
       );
     } catch (err) {
       // we wrap it in a box so we can rethrow it later even if falsy value gets caught here
@@ -799,10 +779,9 @@ export class Actor<TLogic extends AnyActorLogic>
     try {
       const [nextSnapshot, effects] = nextState;
       snapshot = nextSnapshot;
-      this._snapshot = snapshot;
-      const logicEffects = executeExecutableEffects(effects, this._actorScope);
+      this._setSnapshot(snapshot);
+      executeExecutableEffects(effects, this._actorScope);
       this.update(snapshot, event);
-      this.logic.executeEffects?.(logicEffects, this._actorScope);
     } catch (err) {
       this._recoverOrError(err, snapshot);
       return;
@@ -825,6 +804,28 @@ export class Actor<TLogic extends AnyActorLogic>
           safeCall(handler, event);
         }
       }
+    }
+  }
+
+  /** @internal */
+  public _terminate(termination: ActorTermination): void {
+    if (termination.status === 'done') {
+      // The terminal snapshot is published before observer completion and the
+      // parent notification, matching actor lifecycle order.
+      this._next(this._snapshot);
+      this._stopProcedure();
+      this._complete();
+      if (this._parent) {
+        this.system._relay(
+          this,
+          this._parent,
+          createDoneActorEvent(this.id, termination.output)
+        );
+      }
+      return;
+    }
+    if (termination.status === 'error') {
+      this._error(termination.error);
     }
   }
 

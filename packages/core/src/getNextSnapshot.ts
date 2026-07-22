@@ -1,9 +1,10 @@
 import { createActor } from './createActor.ts';
+import { isMachineSnapshot } from './State.ts';
 import {
-  getMachineSnapshotActorRef,
-  isMachineSnapshot,
-  setMachineSnapshotActorRef
-} from './State.ts';
+  createSnapshotSystem,
+  getSnapshotActorRef,
+  setSnapshotActorRef
+} from './snapshotActorRef.ts';
 import {
   ActorScope,
   AnyActor,
@@ -15,96 +16,6 @@ import {
   SnapshotFrom
 } from './types.ts';
 
-function collectSnapshotActors(
-  children: Record<string, AnyActor | undefined>
-): AnyActor[] {
-  return Object.values(children).filter(Boolean) as AnyActor[];
-}
-
-/**
- * Creates the isolated receptionist/id view used by a pure branch. Scheduling,
- * relaying and clocks remain delegated to the snapshot's execution system.
- */
-function createSystemProjection(
-  previousSelf: AnyActor,
-  children: Record<string, AnyActor | undefined>
-): AnyActor['system'] {
-  const baseSystem = previousSelf.system;
-  const registeredActors = new Map<string, AnyActor>();
-  const keyedActors = new Map<any, AnyActor>();
-  const reverseKeyedActors = new WeakMap<AnyActor, any>();
-  const actors = collectSnapshotActors(children);
-  let booksRoot = true;
-
-  const system: AnyActor['system'] = {
-    ...baseSystem,
-    children: registeredActors,
-    keyedActors,
-    reverseKeyedActors,
-    _snapshot: { ...baseSystem._snapshot },
-    _bookId: () => {
-      if (booksRoot) {
-        booksRoot = false;
-        return previousSelf.sessionId ?? previousSelf.id;
-      }
-      return `x:${system._snapshot._nextActorId++}`;
-    },
-    _register: (sessionId: string, actor: AnyActor) => {
-      registeredActors.set(sessionId, actor);
-      return sessionId;
-    },
-    _unregister: (actor: AnyActor) => {
-      if (actor.sessionId) {
-        registeredActors.delete(actor.sessionId);
-      }
-      const registryKey = reverseKeyedActors.get(actor);
-      if (registryKey !== undefined && keyedActors.get(registryKey) === actor) {
-        keyedActors.delete(registryKey);
-      }
-      reverseKeyedActors.delete(actor);
-    },
-    _set: (registryKey: any, actor: AnyActor) => {
-      const existing = keyedActors.get(registryKey);
-      if (existing && existing !== actor) {
-        throw new Error(
-          `Actor with registry key '${String(registryKey)}' already exists.`
-        );
-      }
-      keyedActors.set(registryKey, actor);
-      reverseKeyedActors.set(actor, registryKey);
-    },
-    get: (registryKey: any) => keyedActors.get(registryKey) as any,
-    getAll: () => Object.fromEntries(keyedActors),
-    // Pure transition resolution must not leak topology inspection events into
-    // a live runtime system.
-    _sendInspectionEvent: () => {}
-  };
-
-  for (const [sessionId, actor] of baseSystem.children) {
-    registeredActors.set(sessionId, actor);
-  }
-  for (const [registryKey, actor] of Object.entries(
-    baseSystem.getAll() as Record<string, AnyActor | undefined>
-  )) {
-    if (actor) {
-      keyedActors.set(registryKey, actor);
-      reverseKeyedActors.set(actor, registryKey);
-    }
-  }
-  for (const actor of actors) {
-    if (actor.sessionId) {
-      registeredActors.set(actor.sessionId, actor);
-    }
-    const registryKey = (actor as any).registryKey;
-    if (registryKey) {
-      keyedActors.set(registryKey, actor);
-      reverseKeyedActors.set(actor, registryKey);
-    }
-  }
-
-  return system;
-}
-
 /** @internal */
 export function setInertActorScopeSnapshot<T>(
   actorScope: AnyActorScope,
@@ -112,8 +23,8 @@ export function setInertActorScopeSnapshot<T>(
   attachActorRef = true
 ): T {
   (actorScope.self as any)._snapshot = snapshot;
-  if (attachActorRef && isMachineSnapshot(snapshot)) {
-    setMachineSnapshotActorRef(snapshot, actorScope.self);
+  if (attachActorRef && snapshot && typeof snapshot === 'object') {
+    setSnapshotActorRef(snapshot as any, actorScope.self);
   }
   return snapshot;
 }
@@ -143,19 +54,23 @@ export function createInertActorScope<T extends AnyActorLogic>(
   snapshot?: SnapshotFrom<T>,
   sourceSelf?: AnyActor
 ): AnyActorScope {
-  const previousSelf =
-    sourceSelf ??
-    (isMachineSnapshot(snapshot)
-      ? getMachineSnapshotActorRef(snapshot)
-      : undefined);
+  const snapshotRef = snapshot ? getSnapshotActorRef(snapshot) : undefined;
+  const previousSelf = sourceSelf ?? snapshotRef?.actor;
+  const baseSystem = previousSelf?.system;
   const system =
-    previousSelf && isMachineSnapshot(snapshot)
-      ? createSystemProjection(previousSelf, (snapshot as any).children)
+    previousSelf && baseSystem
+      ? createSnapshotSystem(
+          baseSystem,
+          previousSelf,
+          isMachineSnapshot(snapshot) ? (snapshot as any).children : {},
+          sourceSelf ? undefined : snapshotRef?.systemState
+        )
       : undefined;
   const self = createActor(
     actorLogic as AnyActorLogic,
     {
       _inert: true,
+      ...(previousSelf ? { id: previousSelf.id } : {}),
       ...(system ? { _systemRef: { current: system } } : {})
     } as any
   );

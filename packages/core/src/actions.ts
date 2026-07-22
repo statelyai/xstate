@@ -1,5 +1,10 @@
 import isDevelopment from '#is-development';
-import { AnyActor, AnyActorScope, EventObject } from './types';
+import {
+  type ActorTermination,
+  AnyActor,
+  AnyActorScope,
+  EventObject
+} from './types';
 
 export function assertSendToEvent(event: EventObject): void {
   if (typeof event === 'string') {
@@ -54,5 +59,8 @@ export const builtInActions = {
   },
   ['@xstate.stop']: (actorScope: AnyActorScope, actor: AnyActor) => {
     return actorScope.system.stopActor(actor);
+  },
+  ['@xstate.terminate']: (actor: AnyActor, termination: ActorTermination) => {
+    return actor.system.terminateActor(actor, termination);
   }
 };

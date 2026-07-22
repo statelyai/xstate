@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type ActorSystemRuntime,
+  type AnyActor,
   type AnyActorLogic,
   type EventFromLogic,
   type ExecutableActionObject,
@@ -8,10 +9,15 @@ import {
   createMachine,
   executeEffects,
   getInitialMicrosteps,
+  getMicrosteps,
   initialTransition,
   transition
 } from '../src/index.ts';
-import { createCallbackLogic } from '../src/actors/index.ts';
+import {
+  createAsyncLogic,
+  createCallbackLogic,
+  createLogic
+} from '../src/actors/index.ts';
 
 class CustomInterpreter<TLogic extends AnyActorLogic> {
   private readonly queue: EventFromLogic<TLogic>[] = [];
@@ -110,6 +116,159 @@ describe('custom interpreter runtime', () => {
     expect(state.matches('done')).toBe(true);
   });
 
+  it('executes createLogic startup and termination with the same loop', async () => {
+    const operations: string[] = [];
+    const logic = createLogic({
+      context: undefined,
+      run: ({ event }, enq) => {
+        if (event.type === '@xstate.init') {
+          enq.effect(() => {
+            operations.push('start');
+          });
+          enq.emit({ type: 'started' });
+        }
+        if (event.type === 'finish') {
+          enq.effect(() => {
+            operations.push('finish');
+          });
+          return { status: 'done' as const, output: 42 };
+        }
+      }
+    });
+    const interpreter = new CustomInterpreter<typeof logic>({
+      emitEvent: (_source, event) => {
+        operations.push(`emit:${event.type}`);
+      },
+      terminateActor: (_actor, termination) => {
+        operations.push(`terminate:${termination.status}`);
+      }
+    });
+
+    let [state, effects] = initialTransition(logic);
+    await interpreter.executeEffects(effects);
+    [state, effects] = transition(logic, state, { type: 'finish' });
+    await interpreter.executeEffects(effects);
+
+    expect(state).toMatchObject({ status: 'done', output: 42 });
+    expect(operations).toEqual([
+      'start',
+      'emit:started',
+      'finish',
+      'terminate:done'
+    ]);
+  });
+
+  it('uses self.system as the default effect runtime', async () => {
+    let self: AnyActor | undefined;
+    let runtime: Partial<ActorSystemRuntime> | undefined;
+    const logic = createLogic({
+      context: undefined,
+      run: (args, enq) => {
+        self = args.self as AnyActor;
+        enq.effect((providedRuntime) => {
+          runtime = providedRuntime;
+        });
+      }
+    });
+    const [, effects] = initialTransition(logic);
+
+    await executeEffects(effects);
+
+    expect(runtime).toBe(self!.system);
+  });
+
+  it('preserves an invoked createLogic child reference across pure transitions', async () => {
+    const child = createLogic({
+      context: undefined,
+      run: ({ event }, enq) => {
+        if (event.type === 'ping') {
+          enq.sendBack({ type: 'pong' });
+        }
+      }
+    });
+    const parent = createMachine({ invoke: { id: 'worker', src: child } });
+    const [parentSnapshot] = initialTransition(parent);
+    const childRef = parentSnapshot.children.worker!;
+    const [, effects] = transition(child, childRef.getSnapshot(), {
+      type: 'ping'
+    });
+    const deliveries: Array<{
+      source: AnyActor;
+      target: AnyActor;
+      event: { type: string };
+    }> = [];
+
+    await executeEffects(effects, {
+      sendEvent: (source, target, event) => {
+        deliveries.push({ source: source!, target, event });
+      }
+    });
+
+    expect(deliveries).toEqual([
+      expect.objectContaining({
+        source: expect.objectContaining({ id: childRef.id }),
+        target: expect.objectContaining({ id: 'x:0' }),
+        event: { type: 'pong' }
+      })
+    ]);
+  });
+
+  it('terminates an invoked createLogic child under its logical id', async () => {
+    const child = createLogic({
+      context: undefined,
+      run: ({ event }) =>
+        event.type === 'finish'
+          ? { status: 'done' as const, output: 42 }
+          : undefined
+    });
+    const parent = createMachine({ invoke: { id: 'worker', src: child } });
+    const [parentSnapshot] = initialTransition(parent);
+    const childRef = parentSnapshot.children.worker!;
+    const [, effects] = transition(child, childRef.getSnapshot(), {
+      type: 'finish'
+    });
+    const terminated: string[] = [];
+
+    await executeEffects(effects, {
+      terminateActor: (actor) => {
+        terminated.push(actor.id);
+      }
+    });
+
+    expect(terminated).toEqual(['worker']);
+  });
+
+  it('routes async logic emissions and completion through the runtime', async () => {
+    const operations: string[] = [];
+    const logic = createAsyncLogic({
+      run: async (_, enq) => {
+        enq.emit({ type: 'progress' });
+        return 42;
+      }
+    });
+    const interpreter = new CustomInterpreter<typeof logic>({
+      emitEvent: (_source, event) => {
+        operations.push(`emit:${event.type}`);
+      },
+      terminateActor: (_actor, termination) => {
+        operations.push(`terminate:${termination.status}`);
+      }
+    });
+
+    let [state, effects] = initialTransition(logic);
+    await interpreter.executeEffects(effects);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    while (state.status === 'active' && interpreter.hasEvents()) {
+      [state, effects] = transition(logic, state, interpreter.dequeue()!);
+      await interpreter.executeEffects(effects);
+    }
+
+    expect(state).toMatchObject({ status: 'done', output: 42 });
+    expect(operations).toEqual(['emit:progress', 'terminate:done']);
+  });
+
   it('keeps custom actions and arguments explicit', async () => {
     const action = vi.fn();
     const machine = createMachine({
@@ -195,6 +354,209 @@ describe('custom interpreter runtime', () => {
     }
 
     expect(state.matches('success')).toBe(true);
+  });
+
+  it('surfaces child completion as an ordered termination effect', async () => {
+    const exit = vi.fn();
+    const child = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: { exit, on: { FINISH: { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+    const parent = createMachine({
+      invoke: { id: 'child', src: child }
+    });
+    const [parentSnapshot] = initialTransition(parent);
+    const childRef = parentSnapshot.children.child!;
+
+    const [done, effects] = transition(child, childRef.getSnapshot(), {
+      type: 'FINISH'
+    });
+
+    expect(done.status).toBe('done');
+    expect(effects.at(-2)).toMatchObject({ kind: 'action' });
+    expect(effects.at(-1)).toMatchObject({
+      type: '@xstate.terminate',
+      actor: expect.objectContaining({ id: 'child' }),
+      status: 'done'
+    });
+
+    expect(
+      child.transition(childRef.getSnapshot(), { type: 'FINISH' })[1].at(-1)
+    ).toMatchObject({
+      type: '@xstate.terminate',
+      actor: expect.objectContaining({ id: 'child' }),
+      status: 'done'
+    });
+
+    const repeatedEffects = transition(child, done, { type: 'FINISH' })[1];
+    expect(
+      repeatedEffects.some((effect) => effect.type === '@xstate.terminate')
+    ).toBe(false);
+  });
+
+  it('exposes child completion in the final microstep', () => {
+    const child = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: { on: { FINISH: { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+    const parent = createMachine({ invoke: { id: 'child', src: child } });
+    const [parentSnapshot] = initialTransition(parent);
+    const childSnapshot = parentSnapshot.children.child!.getSnapshot();
+
+    const microsteps = getMicrosteps(child, childSnapshot, {
+      type: 'FINISH'
+    });
+
+    expect(microsteps.at(-1)?.[1].at(-1)).toMatchObject({
+      type: '@xstate.terminate',
+      actor: expect.objectContaining({ id: 'child' }),
+      status: 'done'
+    });
+  });
+
+  it('exposes initial completion in the final initial microstep', () => {
+    const machine = createMachine({
+      initial: 'done',
+      states: { done: { type: 'final' } }
+    });
+
+    const [, effects] = initialTransition(machine);
+    const microsteps = getInitialMicrosteps(machine);
+
+    expect(effects.at(-1)).toMatchObject({
+      type: '@xstate.terminate',
+      status: 'done'
+    });
+    expect(microsteps.at(-1)?.[1].at(-1)).toMatchObject({
+      type: '@xstate.terminate',
+      status: 'done'
+    });
+  });
+
+  it('delegates terminal lifecycle to the runtime in effect order', async () => {
+    const operations: string[] = [];
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          exit: (_, enq) => enq(() => operations.push('exit')),
+          on: { FINISH: { target: 'done' } }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const [active] = initialTransition(machine);
+    const [, effects] = transition(machine, active, { type: 'FINISH' });
+
+    await executeEffects(effects, {
+      terminateActor: (actor, termination) => {
+        operations.push(`terminate:${actor.id}:${termination.status}`);
+      }
+    });
+
+    expect(operations).toEqual(['exit', 'terminate:x:0:done']);
+  });
+
+  it('surfaces unhandled actor errors as terminal termination effects', () => {
+    const error = new Error('failed');
+    const machine = createMachine({});
+    const [active] = initialTransition(machine);
+
+    const [failed, effects] = transition(machine, active, {
+      type: 'xstate.error.actor.child',
+      error,
+      actorId: 'child'
+    } as any);
+
+    expect(failed).toMatchObject({ status: 'error', error });
+    expect(effects.at(-1)).toMatchObject({
+      type: '@xstate.terminate',
+      status: 'error',
+      error
+    });
+  });
+
+  it('completes a child before notifying its parent', () => {
+    const order: string[] = [];
+    const child = createMachine({
+      initial: 'active',
+      states: {
+        active: { on: { FINISH: { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+    const parent = createMachine({
+      invoke: {
+        id: 'child',
+        src: child,
+        onDone: (_, enq) => enq(() => order.push('parent done'))
+      }
+    });
+    const actor = createActor(parent).start();
+    const childRef = actor.getSnapshot().children.child!;
+    childRef.subscribe({
+      next: (snapshot) => {
+        if (snapshot.status === 'done') {
+          order.push('child done snapshot');
+        }
+      },
+      complete: () => order.push('child complete')
+    });
+
+    childRef.send({ type: 'FINISH' });
+
+    expect(order).toEqual([
+      'child done snapshot',
+      'child complete',
+      'parent done'
+    ]);
+  });
+
+  it('does not notify an invoked parent twice on child completion', () => {
+    const completed = vi.fn();
+    const duplicate = vi.fn();
+    const child = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: { on: { FINISH: { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+    const parent = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            id: 'child',
+            src: child,
+            onDone: (_, enq) => {
+              enq(completed);
+              return { target: 'success' };
+            }
+          }
+        },
+        success: {
+          on: {
+            'xstate.done.actor.child': (_, enq) => {
+              enq(duplicate);
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(parent).start();
+
+    actor.getSnapshot().children.child!.send({ type: 'FINISH' });
+
+    expect(actor.getSnapshot().matches('success')).toBe(true);
+    expect(completed).toHaveBeenCalledTimes(1);
+    expect(duplicate).not.toHaveBeenCalled();
   });
 
   it('delivers delayed sends through the source timer input', async () => {

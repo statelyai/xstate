@@ -1,4 +1,4 @@
-import { XSTATE_STOP } from '../constants';
+import { XSTATE_INIT, XSTATE_STOP } from '../constants';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
 import {
@@ -6,6 +6,7 @@ import {
   ActorFromLogic,
   ActorRefFromLogic,
   AnyActor,
+  AnyEventObject,
   EventObject,
   NonReducibleUnknown,
   Snapshot,
@@ -13,6 +14,7 @@ import {
   Subscription
 } from '../types';
 import { createLogic as createBaseLogic } from './logic.ts';
+import { finalizeTransitionResult } from '../transitionActions.ts';
 
 const XSTATE_OBSERVABLE_NEXT = 'xstate.observable.next';
 const XSTATE_OBSERVABLE_ERROR = 'xstate.observable.error';
@@ -255,7 +257,6 @@ export function createObservableLogic<
     context: undefined,
     run: (args, enq) => {
       const { event, input, self, system } = args;
-      const emit = (args as any).emit as (emitted: TEmitted) => void;
       switch (event.type) {
         case XSTATE_OBSERVABLE_NEXT: {
           return {
@@ -281,28 +282,37 @@ export function createObservableLogic<
           };
       }
 
-      enq.effect('observable', () => {
+      if (event.type !== XSTATE_INIT) {
+        return;
+      }
+
+      enq.effect((runtime = system) => {
         const actorSelf = self as unknown as AnyActor;
+        const sendSelf = (event: AnyEventObject) =>
+          void runtime.sendEvent!(actorSelf, actorSelf, event);
         const subscription = observableCreator({
           input,
           system,
           self: self as any,
-          emit: emit as (emitted: TEmitted) => void
+          emit: ((event: TEmitted) =>
+            void runtime.emitEvent!(actorSelf, event)) as (
+            emitted: TEmitted
+          ) => void
         }).subscribe({
           next: (value) => {
-            system._relay(actorSelf, actorSelf, {
+            sendSelf({
               type: XSTATE_OBSERVABLE_NEXT,
               data: value
             });
           },
           error: (err) => {
-            system._relay(actorSelf, actorSelf, {
+            sendSelf({
               type: XSTATE_OBSERVABLE_ERROR,
               data: err
             });
           },
           complete: () => {
-            system._relay(actorSelf, actorSelf, {
+            sendSelf({
               type: XSTATE_OBSERVABLE_COMPLETE
             });
           }
@@ -418,33 +428,41 @@ export function createEventObservableLogic<
   // TODO: event types
   const logic: ObservableActorLogic<TEvent, TInput, TEmitted> = {
     config: lazyObservable,
-    transition: (state, event) => {
+    transition: (state, event, actorScope) => {
       if (state.status !== 'active') {
         return [state, []];
       }
 
       switch (event.type) {
         case XSTATE_OBSERVABLE_ERROR:
-          return [
-            {
-              ...state,
-              status: 'error',
-              error: (event as any).data,
-              input: undefined,
-              _subscription: undefined
-            },
-            []
-          ];
+          return finalizeTransitionResult(
+            actorScope,
+            state as ObservableSnapshot<TEvent, TInput>,
+            [
+              {
+                ...state,
+                status: 'error',
+                error: (event as any).data,
+                input: undefined,
+                _subscription: undefined
+              } as ObservableSnapshot<TEvent, TInput>,
+              []
+            ]
+          );
         case XSTATE_OBSERVABLE_COMPLETE:
-          return [
-            {
-              ...state,
-              status: 'done',
-              input: undefined,
-              _subscription: undefined
-            },
-            []
-          ];
+          return finalizeTransitionResult(
+            actorScope,
+            state as ObservableSnapshot<TEvent, TInput>,
+            [
+              {
+                ...state,
+                status: 'done',
+                input: undefined,
+                _subscription: undefined
+              } as ObservableSnapshot<TEvent, TInput>,
+              []
+            ]
+          );
         case XSTATE_STOP:
           state._subscription!.unsubscribe();
           return [

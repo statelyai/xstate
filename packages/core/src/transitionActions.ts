@@ -6,12 +6,13 @@ import {
   type SubscriptionInput,
   type SubscriptionMappers
 } from './actors/subscription.ts';
-import { XSTATE_SPAWN, XSTATE_START } from './constants.ts';
+import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
 import type { ActorSystemRuntime } from './system.ts';
 import { getEventOutput } from './utils.ts';
 import type {
   Action,
+  ActorTermination,
   AnyAction,
   AnyActor,
   AnyActorScope,
@@ -26,10 +27,12 @@ import type {
   MachineContext,
   RaiseExecutableActionObject,
   SendToExecutableActionObject,
+  Snapshot,
   SpecialExecutableAction,
   SpawnExecutableActionObject,
   StartExecutableActionObject,
-  StopExecutableActionObject
+  StopExecutableActionObject,
+  TerminateExecutableActionObject
 } from './types.ts';
 
 type TransitionActionRecord = {
@@ -50,72 +53,98 @@ function execCustomEffect(
 
 function execEmitEffect(
   this: EmitExecutableActionObject,
-  runtime?: EffectRuntime
+  runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
-  return runtime?.emitEvent
-    ? runtime.emitEvent(this.source, this.event)
-    : this.source.system.emitEvent(this.source, this.event);
+  return runtime.emitEvent!(this.source, this.event);
+}
+
+/** @internal Creates an emitted-event effect. */
+export function createEmitEffect(
+  actorScope: AnyActorScope,
+  event: EventObject
+): EmitExecutableActionObject {
+  return {
+    kind: 'emit',
+    exec: execEmitEffect,
+    type: event.type,
+    source: actorScope.self,
+    event,
+    params: undefined,
+    args: []
+  };
+}
+
+/** @internal Creates a directly executable user effect. */
+export function createCustomEffect(
+  type: string,
+  action: (runtime?: EffectRuntime) => void | PromiseLike<void> | undefined,
+  params?: unknown
+): CustomExecutableActionObject {
+  return {
+    kind: 'action',
+    exec: action,
+    type,
+    action: action as () => void | PromiseLike<void>,
+    params,
+    args: []
+  };
 }
 
 function execSpawnEffect(
   this: SpawnExecutableActionObject,
-  runtime?: EffectRuntime
+  runtime: EffectRuntime = this.actor.system
 ): void | PromiseLike<void> {
-  return runtime?.spawnActor
-    ? runtime.spawnActor(this.source, this.actor)
-    : this.actor.system.spawnActor(this.source, this.actor);
+  return runtime.spawnActor!(this.source, this.actor);
 }
 
 function execStartEffect(
   this: StartExecutableActionObject,
-  runtime?: EffectRuntime
+  runtime: EffectRuntime = this.actor.system
 ): void | PromiseLike<void> {
-  return runtime?.startActor
-    ? runtime.startActor(this.actor)
-    : this.actor.system.startActor(this.actor);
+  return runtime.startActor!(this.actor);
 }
 
 function execStopEffect(
   this: StopExecutableActionObject,
-  runtime?: EffectRuntime
+  runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
-  return runtime?.stopActor
-    ? runtime.stopActor(this.actor)
-    : this.source.system.stopActor(this.actor);
+  return runtime.stopActor!(this.actor);
+}
+
+function execTerminateEffect(
+  this: TerminateExecutableActionObject,
+  runtime: EffectRuntime = this.actor.system
+): void | PromiseLike<void> {
+  const termination: ActorTermination =
+    this.status === 'done'
+      ? { status: 'done', output: this.output, error: undefined }
+      : { status: 'error', output: undefined, error: this.error };
+  return runtime.terminateActor!(this.actor, termination);
 }
 
 function execRaiseEffect(
   this: RaiseExecutableActionObject,
-  runtime?: EffectRuntime
+  runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
-  return runtime?.scheduleTimer
-    ? runtime.scheduleTimer(this.source, this.id!, this.delay ?? 0)
-    : this.source.system.scheduleTimer(this.source, this.id!, this.delay ?? 0);
+  return runtime.scheduleTimer!(this.source, this.id!, this.delay ?? 0);
 }
 
 function execSendToEffect(
   this: SendToExecutableActionObject,
-  runtime?: EffectRuntime
+  runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
   assertSendToEvent(this.event);
   if (this.delay !== undefined) {
-    return runtime?.scheduleTimer
-      ? runtime.scheduleTimer(this.source, this.id!, this.delay)
-      : this.source.system.scheduleTimer(this.source, this.id!, this.delay);
+    return runtime.scheduleTimer!(this.source, this.id!, this.delay);
   }
-  if (runtime?.sendEvent) {
-    return runtime.sendEvent(this.source, this.target, this.event);
-  }
-  return this.source.system._relay(this.source, this.target, this.event);
+  return runtime.sendEvent!(this.source, this.target, this.event);
 }
 
 function execCancelEffect(
   this: CancelExecutableActionObject,
-  runtime?: EffectRuntime
+  runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
-  return runtime?.cancelTimer
-    ? runtime.cancelTimer(this.source, this.id)
-    : this.source.system.cancelTimer(this.source, this.id);
+  return runtime.cancelTimer!(this.source, this.id);
 }
 
 function updateLogicalTimers(
@@ -490,8 +519,8 @@ export function createSpawnEffect(
   };
 }
 
-/** @internal Creates the immediate delivery produced by `xstate.timer`. */
-export function createTimerDeliveryEffect(
+/** @internal Creates an immediate actor-to-actor delivery effect. */
+export function createSendToEffect(
   actorScope: AnyActorScope,
   target: AnyActor,
   event: EventObject
@@ -514,6 +543,69 @@ export function createTimerDeliveryEffect(
     params: undefined,
     args
   };
+}
+
+/** @internal Creates the terminal lifecycle effect for an actor. */
+export function createTerminationEffect(
+  actorScope: AnyActorScope,
+  snapshot: Snapshot<unknown>
+): TerminateExecutableActionObject {
+  if (snapshot.status !== 'done' && snapshot.status !== 'error') {
+    throw new Error('Cannot terminate an active or stopped actor');
+  }
+  const termination: ActorTermination =
+    snapshot.status === 'done'
+      ? { status: 'done', output: snapshot.output, error: undefined }
+      : { status: 'error', output: undefined, error: snapshot.error };
+  const args: Parameters<(typeof builtInActions)['@xstate.terminate']> = [
+    actorScope.self,
+    termination
+  ];
+  return {
+    kind: 'builtin',
+    exec: execTerminateEffect,
+    type: XSTATE_TERMINATE,
+    source: actorScope.self,
+    actor: actorScope.self,
+    id: actorScope.self.id,
+    ...termination,
+    params: undefined,
+    args
+  };
+}
+
+/**
+ * Ensures that a newly terminal snapshot has exactly one ordered actor
+ * termination effect.
+ *
+ * @internal
+ */
+export function finalizeTransitionResult<
+  TSnapshot extends Snapshot<unknown>,
+  TEffect
+>(
+  actorScope: AnyActorScope,
+  previousSnapshot: TSnapshot | undefined,
+  [nextSnapshot, effects]: [TSnapshot, TEffect[]]
+): [TSnapshot, Array<TEffect | TerminateExecutableActionObject>] {
+  const becameTerminal =
+    nextSnapshot.status === 'done' || nextSnapshot.status === 'error';
+  const wasTerminal =
+    previousSnapshot?.status === 'done' || previousSnapshot?.status === 'error';
+  const hasTerminationEffect = effects.some(
+    (effect) =>
+      typeof effect === 'object' &&
+      effect !== null &&
+      'type' in effect &&
+      effect.type === XSTATE_TERMINATE
+  );
+
+  return becameTerminal && !wasTerminal && !hasTerminationEffect
+    ? [
+        nextSnapshot,
+        [...effects, createTerminationEffect(actorScope, nextSnapshot)]
+      ]
+    : [nextSnapshot, effects];
 }
 
 /**

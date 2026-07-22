@@ -1,6 +1,7 @@
 import { InspectionEvent } from './inspection.ts';
 import {
   AnyEventObject,
+  ActorTermination,
   ActorSystemInfo,
   AnyActor,
   Observer,
@@ -39,24 +40,37 @@ interface Scheduler {
  * system provides the local in-memory implementation.
  */
 export interface ActorSystemRuntime {
+  /** Publishes a newly created actor to the runtime. */
   spawnActor(
     source: AnyActor | undefined,
     actor: AnyActor
   ): void | PromiseLike<void>;
+  /** Starts an actor. */
   startActor(actor: AnyActor): void | PromiseLike<void>;
+  /** Stops an actor without producing a completion result. */
   stopActor(actor: AnyActor): void | PromiseLike<void>;
+  /** Completes or errors an actor and publishes its terminal result. */
+  terminateActor(
+    actor: AnyActor,
+    termination: ActorTermination
+  ): void | PromiseLike<void>;
+  /** Delivers an event between actors. */
   sendEvent(
     source: AnyActor | undefined,
     target: AnyActor,
     event: AnyEventObject
   ): void | PromiseLike<void>;
+  /** Publishes an emitted event. */
   emitEvent(source: AnyActor, event: EventObject): void | PromiseLike<void>;
+  /** Schedules a logical timer. */
   scheduleTimer(
     source: AnyActor,
     id: string,
     delay: number
   ): void | PromiseLike<void>;
+  /** Cancels one logical timer. */
   cancelTimer(source: AnyActor, id: string): void | PromiseLike<void>;
+  /** Cancels all logical timers owned by an actor. */
   cancelAllTimers(source: AnyActor): void | PromiseLike<void>;
 }
 
@@ -188,7 +202,7 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
         delete timerMap[scheduledTimerId];
         delete system._snapshot._scheduledTimers[scheduledTimerId];
 
-        void system.sendEvent(source, source, { type: XSTATE_TIMER, id });
+        deliver(source, source, { type: XSTATE_TIMER, id });
       }, delay);
 
       timerMap[scheduledTimerId] = timeout;
@@ -313,16 +327,23 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     stopActor: (actor: AnyActor) => {
       (actor as AnyActor & { _stop(): void })._stop();
     },
-    sendEvent: deliver,
+    terminateActor: (actor, termination) => {
+      (
+        actor as AnyActor & {
+          _terminate(termination: ActorTermination): void;
+        }
+      )._terminate(termination);
+    },
+    sendEvent: (source, target, event) => {
+      recordSent(source, target, event);
+      deliver(source, target, event);
+    },
     emitEvent: (source, event) =>
       (source as AnyActor & { _emit(event: EventObject): void })._emit(event),
     scheduleTimer: (source, id, delay) => scheduler.schedule(source, id, delay),
     cancelTimer: (source, id) => scheduler.cancel(source, id),
     cancelAllTimers: (source) => scheduler.cancelAll(source),
-    _relay: (source, target, event) => {
-      recordSent(source, target, event);
-      return system.sendEvent(source, target, event);
-    },
+    _relay: (source, target, event) => system.sendEvent(source, target, event),
     scheduler,
     getSnapshot: () => {
       return {

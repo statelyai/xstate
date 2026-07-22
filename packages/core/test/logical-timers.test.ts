@@ -264,7 +264,8 @@ describe('logical snapshot timers', () => {
     expect(effects.map(({ type }) => type)).toEqual([
       '@xstate.stop',
       '@xstate.raise',
-      '@xstate.cancel'
+      '@xstate.cancel',
+      '@xstate.terminate'
     ]);
   });
 

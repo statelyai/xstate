@@ -1,17 +1,28 @@
 ---
-'xstate': patch
+'xstate': major
 ---
 
-Pure machine transitions now return an `@xstate.stop` effect whenever leaving a state stops an invoked actor. The effect exposes both the stopped `actor` and its `id`, including in `getMicrosteps(...)` and when the machine reaches its final state. Lifecycle effects are independently executable in order, so reentering an invoking state produces stop, spawn, then start effects that can be processed sequentially. Direct `machine.initialTransition(...)`, `machine.transition(...)`, and `machine.restoreSnapshot(...)` calls preserve their transition scope automatically, without requiring an `actorScope` argument.
+Pure transitions now return every effect needed to interpret actor logic in execution order. This includes actor spawning, starting and stopping, event delivery, emitted events, timers, custom effects, and actor termination. `createActor(...)` executes the same effects through the default actor system.
 
-Transition effects expose an `exec(runtime?)` method for actor lifecycle, messaging, emitted events, and timers while retaining their semantic fields for custom interpretation. Without a runtime override, effects use the snapshot's actor system. Execute each effect directly or use `executeEffects(...)`, which preserves order and awaits each asynchronous operation.
+Each effect exposes `exec(runtime?)`. Omitting the runtime uses the effect's XState actor system; supplying an `ActorSystemRuntime` delegates execution to a custom host. `executeEffects(...)` executes and awaits the effects sequentially:
 
 ```ts
-const [nextSnapshot, effects] = transition(machine, snapshot, event);
+let [snapshot, effects] = machine.initialTransition(input);
+await executeEffects(effects, runtime);
 
-for (const effect of effects) {
-  if (isBuiltInExecutableAction(effect) && effect.type === '@xstate.stop') {
-    console.log(effect.id, effect.actor);
-  }
+while (snapshot.status === 'active') {
+  const event = await dequeue();
+  [snapshot, effects] = machine.transition(snapshot, event);
+  await executeEffects(effects, runtime);
 }
 ```
+
+`ActorSystemRuntime` defines operations for spawning, starting, stopping and terminating actors; sending and emitting events; and scheduling or cancelling timers. No runtime or `actorScope` argument is required by `machine.initialTransition(...)`, `machine.transition(...)`, or `machine.restoreSnapshot(...)`.
+
+Leaving an invoking state emits `@xstate.stop` with the stopped actor and its ID. Stops are also exposed by `getMicrosteps(...)` and `getInitialMicrosteps(...)`. Effect ordering matches `createActor(...)`: exit actions run before timer cancellation and child stopping; reentry produces stop, spawn, then start; and terminal machines stop children before terminating.
+
+When logic first reaches `done` or `error`, it emits a final `@xstate.terminate` effect. Custom runtimes implement `terminateActor(actor, termination)` to publish the terminal result, close the actor, clean up its runtime resources, and notify its parent.
+
+Pending delayed deliveries are declared in `snapshot.timers`. A runtime schedules the timer ID and sends `{ type: 'xstate.timer', id }` to its source when due; XState then removes the timer and emits the actual raise or send effect. Runtime-specific deadlines and timer handles remain outside the snapshot.
+
+Hand-written actor logic and `createLogic(...)` now return executable effects from both initial and subsequent transitions. `ActorLogic.executeEffects` has been removed. `ActorLogic.start(snapshot, scope, options?)` receives `options.restored`, allowing logic to distinguish restoration from a fresh start.

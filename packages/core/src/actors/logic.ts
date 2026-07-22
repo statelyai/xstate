@@ -1,13 +1,20 @@
 import { XSTATE_STOP } from '../constants.ts';
 import { createInitEvent } from '../eventUtils.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
-import { AnyActorSystem } from '../system.ts';
+import { ActorSystemRuntime, AnyActorSystem } from '../system.ts';
+import {
+  finalizeTransitionResult,
+  createCustomEffect,
+  createEmitEffect,
+  createSendToEffect
+} from '../transitionActions.ts';
 import {
   ActorLogic,
   ActorRefFromLogic,
   ActorScope,
   AnyActorRef,
   EventObject,
+  ExecutableActionObject,
   NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
@@ -32,14 +39,9 @@ export interface LogicArgs<TContext, TEvent extends EventObject, TInput> {
 }
 
 export type LogicEffect<
-  TEvent extends EventObject,
-  TEmitted extends EventObject
-> =
-  | { type: 'emit'; event: TEmitted }
-  | { type: 'sendBack'; event: EventObject }
-  | { type: 'raise'; event: TEvent }
-  | { type: 'effect'; key?: string; exec: () => void | (() => void) }
-  | { type: 'cleanupEffects' };
+  _TEvent extends EventObject,
+  _TEmitted extends EventObject
+> = ExecutableActionObject;
 
 export interface LogicEnqueue<
   TEvent extends EventObject,
@@ -49,8 +51,13 @@ export interface LogicEnqueue<
   sendBack: (event: EventObject) => void;
   raise: (event: TEvent) => void;
   effect: {
-    (exec: () => void | (() => void)): void;
-    (key: string, exec: () => void | (() => void)): void;
+    (
+      exec: (runtime?: Partial<ActorSystemRuntime>) => void | (() => void)
+    ): void;
+    (
+      key: string,
+      exec: (runtime?: Partial<ActorSystemRuntime>) => void | (() => void)
+    ): void;
   };
 }
 
@@ -169,65 +176,30 @@ function getEffectState(self: AnyActorRef) {
   return state;
 }
 
-export function executeLogicEffects(
-  effects: readonly unknown[] | undefined,
-  actorScope: ActorScope<any, any, any, any>
-) {
-  if (!effects?.length) {
+function executeLogicEffect(
+  self: AnyActorRef,
+  key: string | undefined,
+  effect: () => void | (() => void)
+): void {
+  const state = getEffectState(self);
+  if (key !== undefined && state.has(key)) {
     return;
   }
+  const cleanup = effect();
+  state.set(key ?? Symbol(), {
+    cleanup: typeof cleanup === 'function' ? cleanup : undefined
+  });
+}
 
-  for (const effect of effects as LogicEffect<EventObject, EventObject>[]) {
-    switch (effect.type) {
-      case 'emit':
-        actorScope.emit(effect.event);
-        break;
-      case 'sendBack': {
-        const parent = (actorScope.self as any)._parent;
-        if (parent) {
-          actorScope.system._relay(actorScope.self, parent, effect.event);
-        }
-        break;
-      }
-      case 'raise':
-        actorScope.system._relay(
-          actorScope.self,
-          actorScope.self,
-          effect.event
-        );
-        break;
-      case 'effect': {
-        if (!effect.key) {
-          const cleanup = effect.exec();
-          if (typeof cleanup === 'function') {
-            getEffectState(actorScope.self).set(Symbol(), { cleanup });
-          }
-          break;
-        }
-
-        const state = getEffectState(actorScope.self);
-        if (state.has(effect.key)) {
-          break;
-        }
-        const cleanup = effect.exec();
-        state.set(effect.key, {
-          cleanup: typeof cleanup === 'function' ? cleanup : undefined
-        });
-        break;
-      }
-      case 'cleanupEffects': {
-        const state = effectStates.get(actorScope.self);
-        if (!state) {
-          break;
-        }
-        for (const { cleanup } of state.values()) {
-          cleanup?.();
-        }
-        effectStates.delete(actorScope.self);
-        break;
-      }
-    }
+function cleanupLogicEffects(self: AnyActorRef): void {
+  const state = effectStates.get(self);
+  if (!state) {
+    return;
   }
+  for (const { cleanup } of state.values()) {
+    cleanup?.();
+  }
+  effectStates.delete(self);
 }
 
 function resolveContext<TContext, TInput>(
@@ -352,7 +324,11 @@ export function createLogic<
           status: 'stopped',
           input: undefined
         },
-        [{ type: 'cleanupEffects' }]
+        [
+          createCustomEffect('xstate.logic.cleanup', () =>
+            cleanupLogicEffects(actorScope.self)
+          )
+        ]
       ];
     }
 
@@ -403,29 +379,55 @@ export function createLogic<
 
     const effects: LogicEffect<TEvent, TEmitted>[] = [];
     const trackedEffects: Record<string, LogicEffectState> = {};
-    const enqueueEffect = (key: string, exec: () => void | (() => void)) => {
+    const enqueueEffect = (
+      key: string,
+      exec: (runtime?: Partial<ActorSystemRuntime>) => void | (() => void)
+    ) => {
       if (snapshot.effects?.[key]) {
         return;
       }
-      effects.push({ type: 'effect', key, exec });
+      effects.push(
+        createCustomEffect(
+          'xstate.logic.effect',
+          (runtime = actorScope.self.system) =>
+            executeLogicEffect(actorScope.self, key, () => exec(runtime)),
+          { key }
+        )
+      );
       trackedEffects[key] = { status: 'active' };
     };
     const enq: LogicEnqueue<TEvent, TEmitted> = {
       emit: (emitted) => {
-        effects.push({ type: 'emit', event: emitted });
+        effects.push(createEmitEffect(actorScope, emitted));
       },
       sendBack: (sentEvent) => {
-        effects.push({ type: 'sendBack', event: sentEvent });
+        const parent = actorScope.self._parent;
+        if (parent) {
+          effects.push(createSendToEffect(actorScope, parent, sentEvent));
+        }
       },
       raise: (raisedEvent) => {
-        effects.push({ type: 'raise', event: raisedEvent });
+        effects.push(
+          createSendToEffect(actorScope, actorScope.self, raisedEvent)
+        );
       },
       effect: ((keyOrExec, maybeExec) => {
         if (typeof keyOrExec === 'string') {
           enqueueEffect(keyOrExec, maybeExec);
           return;
         }
-        effects.push({ type: 'effect', exec: keyOrExec });
+        const exec = keyOrExec as (
+          runtime?: Partial<ActorSystemRuntime>
+        ) => void | (() => void);
+        effects.push(
+          createCustomEffect(
+            'xstate.logic.effect',
+            (runtime = actorScope.self.system) =>
+              executeLogicEffect(actorScope.self, undefined, () =>
+                exec(runtime)
+              )
+          )
+        );
       }) as LogicEnqueue<TEvent, TEmitted>['effect']
     };
 
@@ -444,7 +446,7 @@ export function createLogic<
     const nextSnapshot = {
       ...snapshot,
       ...(patch || {})
-    };
+    } as LogicSnapshot<TContext, TOutput, TInput>;
 
     if ('context' in snapshot || patch?.context !== undefined) {
       (nextSnapshot as any).context = patch?.context ?? snapshot.context;
@@ -457,23 +459,31 @@ export function createLogic<
       };
     }
 
-    return [nextSnapshot, effects];
+    return finalizeTransitionResult(actorScope, snapshot, [
+      nextSnapshot,
+      effects
+    ]);
   }) as LogicTransition<TContext, TOutput, TEvent, TInput, TEmitted>;
 
   const logic: LogicActorLogic<TContext, TOutput, TEvent, TInput, TEmitted> = {
     id: config.id,
     config,
     transition,
-    start: (snapshot, actorScope) => {
+    start: (snapshot, actorScope, options) => {
+      if (!options?.restored) {
+        return;
+      }
       const [nextSnapshot, effects] = transition(
         snapshot,
         createInitEvent(snapshot.input) as unknown as TEvent,
         actorScope
       );
       Object.assign(snapshot, nextSnapshot);
-      executeLogicEffects(effects, actorScope);
+      for (const effect of effects) {
+        actorScope.actionExecutor(effect);
+      }
     },
-    initialTransition: (input, _) => {
+    initialTransition: (input, actorScope) => {
       const context = resolveContext(config.context, input);
       const snapshot = {
         status: 'active' as const,
@@ -486,18 +496,16 @@ export function createLogic<
         (snapshot as any).context = context;
       }
 
-      return [
-        {
-          ...snapshot
-        } as LogicSnapshot<TContext, TOutput, TInput>,
-        []
-      ];
+      return transition(
+        { ...snapshot } as LogicSnapshot<TContext, TOutput, TInput>,
+        createInitEvent(input) as unknown as TEvent,
+        actorScope
+      );
     },
     getInitialSnapshot: (actorScope, input) =>
       logic.initialTransition(input, actorScope)[0],
     getPersistedSnapshot: (snapshot) => snapshot,
-    restoreSnapshot: (snapshot: any) => snapshot,
-    executeEffects: executeLogicEffects
+    restoreSnapshot: (snapshot: any) => snapshot
   };
 
   return logic;

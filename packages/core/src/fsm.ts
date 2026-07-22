@@ -1,8 +1,9 @@
 import { XSTATE_INIT, XSTATE_STOP, XSTATE_TIMER } from './constants.ts';
 import { builtInActions } from './actions.ts';
 import {
+  finalizeTransitionResult,
   deriveDeferredStarts,
-  createTimerDeliveryEffect,
+  createSendToEffect,
   createTransitionEnqueue,
   resolveActionsWithContext
 } from './transitionActions.ts';
@@ -585,7 +586,7 @@ export function createFSM<
       const target = timer.target === 'self' ? actorScope.self : timer.target;
       return [
         nextSnapshot,
-        [createTimerDeliveryEffect(actorScope, target, timer.event)]
+        [createSendToEffect(actorScope, target, timer.event)]
       ];
     }
 
@@ -781,7 +782,10 @@ export function createFSM<
 
   const transition = ((...args: Parameters<typeof transitionCore>) => {
     const [nextSnapshot, effects] = transitionCore(...args);
-    return [nextSnapshot, [...effects, ...deriveDeferredStarts(effects)]];
+    return finalizeTransitionResult(args[2], args[0], [
+      nextSnapshot,
+      [...effects, ...deriveDeferredStarts(effects)]
+    ]);
   }) as FSMActorLogic<TContext, TEvent, string, TInput>['transition'];
 
   const logic: FSMActorLogic<TContext, TEvent, string, TInput> = {
@@ -817,7 +821,10 @@ export function createFSM<
         nextSnapshot = raisedSnapshot;
         actions.push(...raisedActions);
       }
-      return [nextSnapshot, [...actions, ...deriveDeferredStarts(actions)]];
+      return finalizeTransitionResult(actorScope, undefined, [
+        nextSnapshot,
+        [...actions, ...deriveDeferredStarts(actions)]
+      ]);
     },
     getInitialSnapshot: (actorScope, input) =>
       logic.initialTransition(input, actorScope)[0],

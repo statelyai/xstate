@@ -48,8 +48,10 @@ import {
 import { builtInActions } from './actions.ts';
 import {
   createEnqueueObject,
+  createTerminationEffect,
   createTransitionEnqueue,
-  createTimerDeliveryEffect,
+  createSendToEffect,
+  deriveDeferredStarts,
   mergeContextPatch,
   resolveActionsWithContext
 } from './transitionActions.ts';
@@ -1887,13 +1889,39 @@ export function macrostep(
   snapshot: AnyMachineSnapshot,
   event: EventObject,
   actorScope: AnyActorScope,
-  internalQueue: AnyEventObject[]
+  internalQueue: AnyEventObject[],
+  initialMicrosteps: Microstep[] = []
 ): {
   snapshot: typeof snapshot;
   microsteps: Microstep[];
 } {
   let nextSnapshot = snapshot;
-  const microsteps: Microstep[] = [];
+  const microsteps: Microstep[] = initialMicrosteps.slice();
+
+  function completeMacrostep() {
+    const effects = microsteps.flatMap(([, actions]) => actions);
+    const starts = deriveDeferredStarts(effects);
+    const shouldTerminate =
+      (snapshot.status === 'active' || initialMicrosteps.length > 0) &&
+      (nextSnapshot.status === 'done' || nextSnapshot.status === 'error');
+
+    if (starts.length || shouldTerminate) {
+      const terminalEffects = shouldTerminate
+        ? [...starts, createTerminationEffect(actorScope, nextSnapshot)]
+        : starts;
+      if (microsteps.length) {
+        const [lastSnapshot, lastEffects] = microsteps.at(-1)!;
+        microsteps[microsteps.length - 1] = [
+          lastSnapshot,
+          [...lastEffects, ...terminalEffects]
+        ];
+      } else {
+        microsteps.push([nextSnapshot, terminalEffects]);
+      }
+    }
+
+    return { snapshot: nextSnapshot, microsteps };
+  }
 
   function addMicrostep(
     step: Microstep,
@@ -1924,10 +1952,7 @@ export function macrostep(
       status: 'stopped'
     });
     addMicrostep([nextSnapshot, [...stopEffects, ...cancelEffects]], []);
-    return {
-      snapshot: nextSnapshot,
-      microsteps
-    };
+    return completeMacrostep();
   }
 
   let nextEvent = event;
@@ -1935,7 +1960,7 @@ export function macrostep(
   if (event.type === XSTATE_TIMER) {
     const timer = nextSnapshot.timers[(event as any).id];
     if (!timer) {
-      return { snapshot: nextSnapshot, microsteps };
+      return completeMacrostep();
     }
 
     const timers = { ...nextSnapshot.timers };
@@ -1947,10 +1972,7 @@ export function macrostep(
     } else {
       const target = timer.target === 'self' ? actorScope.self : timer.target;
       addMicrostep(
-        [
-          nextSnapshot,
-          [createTimerDeliveryEffect(actorScope, target, timer.event)]
-        ],
+        [nextSnapshot, [createSendToEffect(actorScope, target, timer.event)]],
         []
       );
     }
@@ -1977,10 +1999,7 @@ export function macrostep(
         error: currentEvent.error
       });
       addMicrostep([nextSnapshot, []], []);
-      return {
-        snapshot: nextSnapshot,
-        microsteps
-      };
+      return completeMacrostep();
     }
     const step = microstep(
       transitions,
@@ -2047,10 +2066,7 @@ export function macrostep(
     addMicrostep(step, enabledTransitions);
   }
 
-  return {
-    snapshot: nextSnapshot,
-    microsteps
-  };
+  return completeMacrostep();
 }
 
 /**

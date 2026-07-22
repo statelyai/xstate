@@ -26,12 +26,12 @@ import {
 } from './types';
 import {
   createSpawnEffect,
-  deriveDeferredStarts
+  finalizeTransitionResult
 } from './transitionActions.ts';
 
 type MachineMicrostep = [AnyMachineSnapshot, ExecutableActionObject[]];
 
-function finalizeMicrosteps(
+function attachMicrostepActorRefs(
   microsteps: MachineMicrostep[],
   actorScope: AnyActorScope,
   inputSnapshot?: AnyMachineSnapshot
@@ -39,13 +39,7 @@ function finalizeMicrosteps(
   if (!microsteps.length) {
     return microsteps;
   }
-  const effects = microsteps.flatMap(([, actions]) => actions);
-  const starts = deriveDeferredStarts(effects);
   const result = microsteps.slice();
-  if (starts.length) {
-    const [snapshot, lastEffects] = result.at(-1)!;
-    result[result.length - 1] = [snapshot, [...lastEffects, ...starts]];
-  }
   const finalSnapshot = result.at(-1)![0];
   setInertActorScopeSnapshot(actorScope, finalSnapshot, false);
   for (const [snapshot] of result) {
@@ -72,15 +66,18 @@ export function transition<T extends AnyActorLogic>(
 ] {
   const actorScope = createInertActorScope(logic, snapshot);
   setInertActorScopeSnapshot(actorScope, snapshot, false);
-  const [nextSnapshot, effects] = logic.transition(snapshot, event, actorScope);
+  const [nextSnapshot, effects] = finalizeTransitionResult(
+    actorScope,
+    snapshot,
+    logic.transition(snapshot, event, actorScope)
+  );
 
   setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
-  return [
+  const returnedSnapshot =
     nextSnapshot === snapshot
       ? nextSnapshot
-      : attachSnapshotActorRef(logic, actorScope, nextSnapshot),
-    effects as ExecutableActionObjectFromLogic<T>[]
-  ];
+      : attachSnapshotActorRef(logic, actorScope, nextSnapshot);
+  return [returnedSnapshot, effects as ExecutableActionObjectFromLogic<T>[]];
 }
 
 /**
@@ -98,14 +95,20 @@ export function initialTransition<T extends AnyActorLogic>(
 ): [SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]] {
   const actorScope = createInertActorScope(logic);
 
-  const [nextSnapshot, executableActions] = logic.initialTransition(
-    input,
-    actorScope
+  const [nextSnapshot, executableActions] = finalizeTransitionResult(
+    actorScope,
+    undefined,
+    logic.initialTransition(input, actorScope)
   );
 
   setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
+  const returnedSnapshot = attachSnapshotActorRef(
+    logic,
+    actorScope,
+    nextSnapshot
+  );
   return [
-    attachSnapshotActorRef(logic, actorScope, nextSnapshot),
+    returnedSnapshot,
     executableActions as ExecutableActionObjectFromLogic<T>[]
   ];
 }
@@ -125,7 +128,7 @@ export function getMicrosteps<T extends AnyStateMachine>(
 
   const { microsteps } = macrostep(snapshot, event, actorScope, []);
 
-  return finalizeMicrosteps(
+  return attachMicrostepActorRefs(
     microsteps as MachineMicrostep[],
     actorScope,
     snapshot as AnyMachineSnapshot
@@ -166,14 +169,12 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
     first[0],
     initEvent,
     actorScope,
-    internalQueue
+    internalQueue,
+    [[first[0], [...contextSpawnEffects, ...first[1]]] as MachineMicrostep]
   );
 
-  return finalizeMicrosteps(
-    [
-      [first[0], [...contextSpawnEffects, ...first[1]]],
-      ...microsteps
-    ] as MachineMicrostep[],
+  return attachMicrostepActorRefs(
+    microsteps as MachineMicrostep[],
     actorScope
   ) as Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]>;
 }

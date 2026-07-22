@@ -63,6 +63,9 @@ export default ts.config(
       ],
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/no-redundant-type-constituents': 'off',
+      // ESLint currently uses the supported TS6 compatibility API while tsc
+      // uses TS7. Assertions required by TS7 can appear unnecessary to TS6.
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
       'prefer-const': [
         'error',
         {

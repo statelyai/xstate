@@ -619,7 +619,7 @@ import {
 
 ## 8. `createLogic`: stateful actor logic
 
-**New in v6.** A lightweight alternative to a full state machine when you want an actor with custom context, events, and effects but no hierarchical states or transitions. The `run` function is invoked for every received event and returns either nothing or a partial snapshot update.
+**New in v6.** A lightweight alternative to a full state machine when you want an actor with custom context, events, and effects but no hierarchical states or transitions. The `run` function is invoked for every received event and returns either nothing or a partial snapshot update. Its initial and subsequent transitions return the same executable-effect objects as machines.
 
 ```ts
 import { createLogic, createActor } from 'xstate';
@@ -925,7 +925,8 @@ These exports have been **removed** from `xstate`:
 - Inspection-event subtypes: `InspectedActionEvent`, `InspectedActorEvent`, `InspectedEventEvent`, `InspectedMicrostepEvent`, `InspectedSnapshotEvent` are gone. The remaining `InspectionEvent` type was reshaped: its `type` is now only `'@xstate.actor' | '@xstate.transition'` (a discriminated union of `ActorInspectionEvent` and `TransitionInspectionEvent`, both also exported).
 - The `devTools` actor option and the `xstate/dev`, `xstate/actions`, and `xstate/guards` subpath exports
 - v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, `ExecutableActionsFrom`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** - same names, different structure.
-- `transition()` / `initialTransition()` now return `ExecutableActionObject[]` for effects; hand-written actor logic `transition` and `initialTransition` return `[snapshot, effects]` tuples.
+- `transition()` / `initialTransition()` now return `ExecutableActionObject[]` for effects; hand-written actor logic `transition` and `initialTransition` return `[snapshot, effects]` tuples whose effects each provide `exec(runtime?)`.
+- `ActorLogic.executeEffects` has been removed. Actor logic returns executable effects directly.
 
 `SpecialTargets` (the `Parent`/`Internal` enum) is still exported from `'xstate'` via `types.ts` and continues to work.
 
@@ -940,7 +941,11 @@ These exports have been **added**:
 - Serialization surface (see §21): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON`/`UnserializableMarker` types; machines serialize via `serializeMachine(machine)`
 - Config types (v6 shapes): `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `Implementations`, `InferEvents`, `WidenLiterals`
 - `isBuiltInExecutableAction`
-- Executable effect types: `BaseExecutableActionObject`, `CustomExecutableActionObject`, `ExecutableActionObject`, `ExecutableActionObjectFromLogic`, `BuiltInExecutableActionObject`, `SpecialExecutableAction`, `StartExecutableActionObject`, `RaiseExecutableActionObject`, `SendToExecutableActionObject`, `CancelExecutableActionObject`, `StopExecutableActionObject`
+- `executeEffects`
+- `ActorSystemRuntime`
+- `ActorTermination`
+- Executable effect types: `BaseExecutableActionObject`, `CustomExecutableActionObject`, `ExecutableActionObject`, `ExecutableActionObjectFromLogic`, `BuiltInExecutableActionObject`, `SpecialExecutableAction`, `StartExecutableActionObject`, `RaiseExecutableActionObject`, `SendToExecutableActionObject`, `CancelExecutableActionObject`, `StopExecutableActionObject`, `TerminateExecutableActionObject`
+- `ActorLogic.start(snapshot, scope, options?)` receives `options.restored` so logic can distinguish restoration from a fresh start.
 - `actor.select(selector)` - derived, subscribable views
 
 ---
@@ -1086,6 +1091,17 @@ without rebinding stopped actors by ID.
 A locally rehydrated actor restarts each timer with its declared delay. Durable
 hosts that need wall-clock restoration persist `scheduledAt` / `dueAt`
 separately from the machine snapshot.
+
+### Terminal actor effects
+
+<!-- terminal actor effects and ActorSystemRuntime.terminateActor from packages/core/src/actors/logic.ts, packages/core/src/stateUtils.ts, and packages/core/src/system.ts -->
+
+When actor logic first returns a terminal snapshot, it emits a final
+`@xstate.terminate` effect. For machines this follows exit actions, child stops,
+timer cancellations, and deferred child starts. Runtimes implement
+`terminateActor(actor, termination)` to publish the terminal snapshot, close the
+actor, and notify its parent; the default actor system preserves the same
+ordering.
 
 ---
 

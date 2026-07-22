@@ -7,6 +7,7 @@ import {
   ActorFromLogic,
   ActorRefFromLogic,
   AnyActor,
+  AnyEventObject,
   EventObject,
   NonReducibleUnknown,
   Snapshot
@@ -370,8 +371,10 @@ export function createAsyncLogic<
         return;
       }
 
-      enq.effect(() => {
+      enq.effect((runtime = system) => {
         const actorSelf = self as unknown as AnyActor;
+        const sendSelf = (event: AnyEventObject) =>
+          void runtime.sendEvent!(actorSelf, actorSelf, event);
         const controller = new AbortController();
         const timeout = config.timeout;
         const timeoutMs = parseDelayToMilliseconds(timeout);
@@ -383,7 +386,7 @@ export function createAsyncLogic<
                   return;
                 }
                 controller.abort();
-                system._relay(actorSelf, actorSelf, {
+                sendSelf({
                   type: XSTATE_ASYNC_REJECT,
                   data: new TimeoutError(timeout!)
                 });
@@ -404,7 +407,7 @@ export function createAsyncLogic<
               signal: controller.signal
             },
             {
-              emit: enq.emit,
+              emit: (event) => void runtime.emitEvent!(actorSelf, event),
               step: async (key, exec) => {
                 const effect = self.getSnapshot().effects?.[key];
 
@@ -420,21 +423,21 @@ export function createAsyncLogic<
                   return waitForEffect(self as any, key) as any;
                 }
 
-                system._relay(actorSelf, actorSelf, {
+                sendSelf({
                   type: XSTATE_LOGIC_EFFECT_START,
                   key
                 });
 
                 try {
                   const output = await exec();
-                  system._relay(actorSelf, actorSelf, {
+                  sendSelf({
                     type: XSTATE_LOGIC_EFFECT_RESOLVE,
                     key,
                     output
                   });
                   return output;
                 } catch (error) {
-                  system._relay(actorSelf, actorSelf, {
+                  sendSelf({
                     type: XSTATE_LOGIC_EFFECT_REJECT,
                     key,
                     error
@@ -452,7 +455,7 @@ export function createAsyncLogic<
             if (self.getSnapshot().status !== 'active') {
               return;
             }
-            system._relay(actorSelf, actorSelf, {
+            sendSelf({
               type: XSTATE_ASYNC_RESOLVE,
               data: response
             });
@@ -462,7 +465,7 @@ export function createAsyncLogic<
             if (self.getSnapshot().status !== 'active') {
               return;
             }
-            system._relay(actorSelf, actorSelf, {
+            sendSelf({
               type: XSTATE_ASYNC_REJECT,
               data: errorData
             });

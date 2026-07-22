@@ -1289,6 +1289,36 @@ describe('transition function', () => {
       expect(oldSnapshotSawGrandchild).toBe(false);
     });
 
+    it('removes stopped children from later pure system views', () => {
+      let sawStoppedChild = true;
+      const machine = createMachine({
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'child',
+              src: createMachine({}),
+              registryKey: 'child'
+            },
+            on: { EXIT: { target: 'inactive' } }
+          },
+          inactive: {
+            on: {
+              CHECK: ({ system }) => {
+                sawStoppedChild = !!system.get('child');
+              }
+            }
+          }
+        }
+      });
+      const [active] = initialTransition(machine);
+      const [inactive] = transition(machine, active, { type: 'EXIT' });
+
+      transition(machine, inactive, { type: 'CHECK' });
+
+      expect(sawStoppedChild).toBe(false);
+    });
+
     it('keeps actor session ids monotonic across pure stop and reentry', () => {
       const machine = createMachine({
         initial: 'active',

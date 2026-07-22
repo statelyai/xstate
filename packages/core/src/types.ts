@@ -2139,7 +2139,7 @@ export type Snapshot<TOutput> =
 
 export type ActorLogicTransitionResult<
   TSnapshot extends Snapshot<unknown>,
-  TEffect = unknown
+  TEffect = ExecutableActionObject
 > = [nextSnapshot: TSnapshot, effects: TEffect[]];
 
 /**
@@ -2213,10 +2213,13 @@ export interface ActorLogic<
    *
    * @param snapshot - The starting state.
    * @param actorScope - The actor scope.
+   * @param options - Start metadata, including whether the snapshot was
+   *   restored.
    */
   start?: (
     snapshot: TSnapshot,
-    actorScope: ActorScope<TSnapshot, TEvent, AnyActorSystem, TEmitted>
+    actorScope: ActorScope<TSnapshot, TEvent, AnyActorSystem, TEmitted>,
+    options?: { restored: boolean }
   ) => void;
   /**
    * Obtains the internal state of the actor in a representation which can be be
@@ -2229,15 +2232,6 @@ export interface ActorLogic<
     snapshot: TSnapshot,
     options?: unknown
   ) => Snapshot<unknown>;
-  /**
-   * Executes the non-action effects returned from `transition` (e.g. the
-   * effects produced by `createLogic`-based actors). Actor logic that never
-   * returns such effects can omit this.
-   */
-  executeEffects?: (
-    effects: readonly unknown[],
-    actorScope: ActorScope<TSnapshot, TEvent, TSystem, TEmitted>
-  ) => void;
   /**
    * Returns an event that the actor should transition with to recover from an
    * execution error, or `undefined` if the given snapshot cannot handle it.
@@ -2262,9 +2256,8 @@ export interface AnyActorLogic {
   ): ActorLogicTransitionResult<any>;
   getInitialSnapshot(actorScope: any, input: any): any;
   restoreSnapshot?(persistedState: Snapshot<unknown>, actorScope: any): any;
-  start?(snapshot: any, actorScope: any): void;
+  start?(snapshot: any, actorScope: any, options?: { restored: boolean }): void;
   getPersistedSnapshot(snapshot: any, options?: unknown): Snapshot<unknown>;
-  executeEffects?(effects: readonly unknown[], actorScope: any): void;
   getExecutionErrorEvent?(snapshot: any, error: unknown): any;
 }
 
@@ -2745,6 +2738,11 @@ export interface BaseExecutableActionObject {
   ): void | PromiseLike<void> | undefined;
 }
 
+/** The terminal result published when an actor completes or errors. */
+export type ActorTermination =
+  | { status: 'done'; output: unknown; error: undefined }
+  | { status: 'error'; output: undefined; error: unknown };
+
 export interface CustomExecutableActionObject<
   TType extends string = string & {}
 > extends BaseExecutableActionObject {
@@ -2825,6 +2823,16 @@ export interface StopExecutableActionObject extends BaseExecutableActionObject {
   args: Parameters<(typeof builtInActions)['@xstate.stop']>;
 }
 
+/** An executable effect that publishes an actor's terminal result. */
+export type TerminateExecutableActionObject = BaseExecutableActionObject & {
+  kind: 'builtin';
+  type: '@xstate.terminate';
+  source: AnyActor;
+  actor: AnyActor;
+  id: string;
+  args: Parameters<(typeof builtInActions)['@xstate.terminate']>;
+} & ActorTermination;
+
 export type BuiltInExecutableActionObject = Values<{
   '@xstate.spawn': SpawnExecutableActionObject;
   '@xstate.start': StartExecutableActionObject;
@@ -2832,6 +2840,7 @@ export type BuiltInExecutableActionObject = Values<{
   '@xstate.sendTo': SendToExecutableActionObject;
   '@xstate.cancel': CancelExecutableActionObject;
   '@xstate.stop': StopExecutableActionObject;
+  '@xstate.terminate': TerminateExecutableActionObject;
 }>;
 
 export type SpecialExecutableAction = BuiltInExecutableActionObject;
