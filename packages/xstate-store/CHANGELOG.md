@@ -1,5 +1,23 @@
 # @xstate/store
 
+## 4.2.2
+
+### Patch Changes
+
+- [#5608](https://github.com/statelyai/xstate/pull/5608) [`fbcbd5a`](https://github.com/statelyai/xstate/commit/fbcbd5a389dd76de74f37dbba675b26abe790ff4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Allow snapshot-based undo and redo to customize restored context while preserving complete history snapshots. Restoration can enqueue emitted events, effects, and store triggers.
+
+  ```ts
+  const undoableStore = store.with(
+    undoRedo({
+      strategy: 'snapshot',
+      restore: ({ current, next }) => ({
+        ...next,
+        viewport: current.viewport
+      })
+    })
+  );
+  ```
+
 ## 4.2.1
 
 ### Patch Changes
