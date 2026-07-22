@@ -1797,6 +1797,8 @@ export interface StateConfig<
   status: SnapshotStatus;
   output?: any;
   error?: unknown;
+  /** The event that triggered this state */
+  event?: TEvent;
   machine?: StateMachine<
     TContext,
     TEvent,
