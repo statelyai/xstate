@@ -125,6 +125,7 @@
     "store-adapters-compare",
     "store-fromstore-effects",
     "store-is-atom",
+    "swift-invoke-stops",
     "swift-send-typing",
     "timeout-receives-input",
     "type-only-schemas",
