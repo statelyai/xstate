@@ -1,5 +1,21 @@
 # xstate
 
+## 6.0.0-alpha.23
+
+### Patch Changes
+
+- 42ce5c6: Spawning registered actor logic from a machine context now preserves its actor source identity when persisting and rehydrating the child.
+
+  ```ts
+  createMachine({
+    actorSources: { child },
+    context: ({ spawn, actorSources }) => {
+      spawn(actorSources.child);
+      return {};
+    }
+  });
+  ```
+
 ## 6.0.0-alpha.22
 
 ### Major Changes
