@@ -223,8 +223,8 @@ describe('rehydration', () => {
       actorSources: {
         foo: createMachine({})
       },
-      context: ({ spawn }) => {
-        spawn('foo', {
+      context: ({ spawn, actorSources }) => {
+        spawn(actorSources.foo, {
           registryKey: 'mySystemId'
         });
         return {};
@@ -247,8 +247,8 @@ describe('rehydration', () => {
       actorSources: {
         foo: createMachine({ type: 'final' })
       },
-      context: ({ spawn }) => {
-        spawn('foo', {
+      context: ({ spawn, actorSources }) => {
+        spawn(actorSources.foo, {
           registryKey: 'mySystemId'
         });
         return {};
@@ -273,8 +273,8 @@ describe('rehydration', () => {
       actorSources: {
         foo: createMachine({ type: 'final' })
       },
-      context: ({ spawn }) => {
-        spawn('foo', {
+      context: ({ spawn, actorSources }) => {
+        spawn(actorSources.foo, {
           registryKey: 'mySystemId'
         });
         return {};

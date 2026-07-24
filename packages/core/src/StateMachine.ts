@@ -783,7 +783,11 @@ export class StateMachine<
 
     if (typeof context === 'function') {
       const children = {};
-      const spawn = createSpawner(actorScope, preInitial, initEvent, children);
+      const spawn = createSpawner(
+        actorScope,
+        this.implementations.actorSources,
+        children
+      );
       const resolvedContext = context({
         spawn,
         input: initEvent.input,

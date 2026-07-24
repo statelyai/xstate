@@ -3,17 +3,13 @@ import {
   AnyActorLogic,
   AnyActorRef,
   AnyActorScope,
-  AnyEventObject,
-  AnyMachineSnapshot,
   ConditionalRequired,
   InputFrom,
   IsNotNever,
   RegistryKeyForLogic,
   SystemRegistry,
-  TODO,
   type RequiredLogicInput
 } from './types.ts';
-import { resolveReferencedActor } from './utils.ts';
 
 export type Spawner<TSystemRegistry extends SystemRegistry = SystemRegistry> = <
   TLogic extends AnyActorLogic
@@ -24,7 +20,7 @@ export type Spawner<TSystemRegistry extends SystemRegistry = SystemRegistry> = <
       options?: {
         id?: string;
         registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
-        input?: TLogic extends string ? unknown : InputFrom<TLogic>;
+        input?: InputFrom<TLogic>;
         syncSnapshot?: boolean;
       } & { [K in RequiredLogicInput<TLogic>]: unknown }
     ],
@@ -34,54 +30,21 @@ export type Spawner<TSystemRegistry extends SystemRegistry = SystemRegistry> = <
 
 export function createSpawner(
   actorScope: AnyActorScope,
-  { machine, context }: AnyMachineSnapshot,
-  event: AnyEventObject,
+  actorSources: Record<string, AnyActorLogic>,
   spawnedChildren: Record<string, AnyActorRef>
 ): Spawner {
-  const spawn: Spawner = ((src, options) => {
-    if (typeof src === 'string') {
-      const logic = resolveReferencedActor(machine, src);
-
-      if (!logic) {
-        throw new Error(
-          `Actor logic '${src as string}' not implemented in machine '${machine.id}'`
-        );
-      }
-
-      const actor = actorScope.system.createActorRef(logic, {
-        id: options?.id,
-        parent: actorScope.self,
-        syncSnapshot: options?.syncSnapshot,
-        input:
-          typeof options?.input === 'function'
-            ? options.input({
-                context,
-                event,
-                self: actorScope.self
-              })
-            : options?.input,
-        src,
-        registryKey: options?.registryKey
-      }) as any;
-
-      spawnedChildren[actor.id] = actor;
-
-      return actor;
-    } else {
-      const actor = actorScope.system.createActorRef(src, {
-        id: options?.id,
-        parent: actorScope.self,
-        syncSnapshot: options?.syncSnapshot,
-        input: options?.input,
-        src,
-        registryKey: options?.registryKey
-      });
-
-      return actor;
-    }
-  }) as Spawner;
   return ((src, options) => {
-    const actor = spawn(src, options) as TODO; // TODO: fix types
+    const referencedSrc = Object.entries(actorSources).find(
+      ([, logic]) => logic === src
+    )?.[0];
+    const actor = actorScope.system.createActorRef(src, {
+      id: options?.id,
+      parent: actorScope.self,
+      syncSnapshot: options?.syncSnapshot,
+      input: options?.input,
+      src: referencedSrc ?? src,
+      registryKey: options?.registryKey
+    });
     spawnedChildren[actor.id] = actor;
     return actor;
   }) as Spawner;

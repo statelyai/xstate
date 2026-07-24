@@ -23,7 +23,7 @@ function roundTrip(persisted: unknown): any {
 }
 
 describe('#5077 re-persistability of children', () => {
-  it('a spawned child (enq.spawn in entry) survives a JSON round-trip, responds to events, and re-persists', () => {
+  it('a spawned child survives a JSON round-trip, responds to events, and re-persists', () => {
     const child = createMachine({
       context: { count: 0 },
       on: {
@@ -31,15 +31,10 @@ describe('#5077 re-persistability of children', () => {
       }
     });
 
-    // NOTE: a *persistable* spawned child must be spawned by string src key so
-    // it resolves against `actorSources`. `enq.spawn(logic, ...)` produces an
-    // INLINE child that throws "An inline child actor cannot be persisted." on
-    // getPersistedSnapshot — see report. The persistable path is the context
-    // `spawn('src', { id })` factory below.
     const parent = createMachine({
       actorSources: { child },
-      context: ({ spawn }) => {
-        spawn('child', { id: 'myChild' });
+      context: ({ spawn, actorSources }) => {
+        spawn(actorSources.child, { id: 'myChild' });
         return {};
       },
       initial: 'active',
@@ -60,14 +55,12 @@ describe('#5077 re-persistability of children', () => {
 
     const restored = createActor(parent, { snapshot: json }).start();
 
-    // restored child responds to events
     restored.send({ type: 'ping' });
     expect(
       (restored.getSnapshot().children as any).myChild.getSnapshot().context
         .count
     ).toBe(1);
 
-    // second round-trip works (no "logic.transition is not a function")
     expect(() => roundTrip(restored.getPersistedSnapshot())).not.toThrow();
     const secondRestored = createActor(parent, {
       snapshot: roundTrip(restored.getPersistedSnapshot())
@@ -129,8 +122,8 @@ describe('#4873 system.get after restore', () => {
 
     const parent = createMachine({
       actorSources: { child },
-      context: ({ spawn }) => {
-        spawn('child', { registryKey: 'mySystemId' });
+      context: ({ spawn, actorSources }) => {
+        spawn(actorSources.child, { registryKey: 'mySystemId' });
         return {};
       }
     });

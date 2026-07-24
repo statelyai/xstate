@@ -2057,7 +2057,6 @@ export type ActorRefLike = Pick<AnyActor, 'sessionId' | 'send' | 'getSnapshot'>;
 
 export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
 
-// TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
 export type DevToolsAdapter = (service: AnyActor) => void;
 
 export type MachineImplementationsFrom<
