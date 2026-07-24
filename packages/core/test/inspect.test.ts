@@ -11,7 +11,10 @@ import {
   raise,
   setup
 } from '../src';
-import { InspectedActionEvent } from '../src/inspection';
+import {
+  InspectedActionEvent,
+  InspectedSubscriptionEvent
+} from '../src/inspection';
 
 function simplifyEvents(
   inspectionEvents: InspectionEvent[],
@@ -63,6 +66,14 @@ function simplifyEvents(
         return {
           type: inspectionEvent.type,
           action: inspectionEvent.action
+        };
+      }
+
+      if (inspectionEvent.type === '@xstate.subscription') {
+        return {
+          type: inspectionEvent.type,
+          actorSystemId: inspectionEvent.actorRef?.systemId,
+          subscriptionId: inspectionEvent.subscriptionId
         };
       }
     });
@@ -1042,6 +1053,55 @@ describe('inspect', () => {
   },
 ]
 `);
+  });
+
+  it('should inspect subscriptions', () => {
+    const events: InspectedSubscriptionEvent[] = [];
+
+    const machine = setup({}).createMachine({});
+
+    const actor = createActor(machine, {
+      inspect: (ev) => {
+        if (ev.type === '@xstate.subscription') {
+          events.push(ev);
+        }
+      },
+      systemId: 'actor1' // making sure that the systemId is included in the event
+    });
+
+    actor.start();
+    actor.subscribe(
+      (snapshot) => {
+        console.log('sub1', snapshot);
+      },
+      undefined,
+      undefined,
+      'sub1'
+    );
+    actor.subscribe(
+      (snapshot) => {
+        console.log('sub2', snapshot);
+      },
+      undefined,
+      undefined,
+      'sub2'
+    );
+
+    expect(simplifyEvents(events, (ev) => ev.type === '@xstate.subscription'))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "actorSystemId": "actor1",
+          "subscriptionId": "sub1",
+          "type": "@xstate.subscription",
+        },
+        {
+          "actorSystemId": "actor1",
+          "subscriptionId": "sub2",
+          "type": "@xstate.subscription",
+        },
+      ]
+    `);
   });
 
   it('@xstate.microstep inspection events should report no transitions if an unknown event was sent', () => {
