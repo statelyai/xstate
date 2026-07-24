@@ -27,6 +27,7 @@ import {
   DoneActorEvent,
   DoneStateEvent,
   ErrorActorEvent,
+  ErrorEvent,
   SystemRegistry,
   RegistryKeyForLogic,
   ActorOptions,
@@ -868,7 +869,14 @@ type StateNodeConfigWithNestedInput<
       Record<string, unknown>,
       TSystemRegistry
     >,
-    'on' | 'always' | 'initial' | 'invoke' | 'onDone'
+    | 'on'
+    | 'always'
+    | 'initial'
+    | 'invoke'
+    | 'onDone'
+    | 'after'
+    | 'onError'
+    | 'onTimeout'
   > & {
     initial?: TStateSchema['states'] extends Record<string, SetupStateSchema>
       ?
@@ -949,6 +957,56 @@ type StateNodeConfigWithNestedInput<
       TSystemRegistry,
       StateInput<TStateSchema>
     >;
+    onError?: StateTransitionConfigOrTarget<
+      TSiblingStateSchemas,
+      StateContext<TStateSchema, TContext>,
+      StateContextShape<TStateSchema, TContextShape>,
+      ErrorEvent,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry,
+      StateInput<TStateSchema>
+    >;
+    onTimeout?: StateTransitionConfigOrTarget<
+      TSiblingStateSchemas,
+      StateContext<TStateSchema, TContext>,
+      StateContextShape<TStateSchema, TContextShape>,
+      TEvent,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry,
+      StateInput<TStateSchema>
+    >;
+    after?: {
+      [K in NoInfer<TDelays> | number]?: StateTransitionConfigOrTarget<
+        TSiblingStateSchemas,
+        StateContext<TStateSchema, TContext>,
+        StateContextShape<TStateSchema, TContextShape>,
+        TEvent,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        StateInput<TStateSchema>
+      >;
+    };
   },
   TStateSchema['states'] extends Record<string, SetupStateSchema>
     ? StatesWithInput<
@@ -1083,7 +1141,8 @@ type SetupInvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TSystemRegistry
+            TSystemRegistry,
+            undefined
           >;
           onError?: StateTransitionConfigOrTarget<
             TStateSchemas,
@@ -1098,7 +1157,8 @@ type SetupInvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TSystemRegistry
+            TSystemRegistry,
+            undefined
           >;
           onSnapshot?: StateTransitionConfigOrTarget<
             TStateSchemas,
@@ -1113,7 +1173,8 @@ type SetupInvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TSystemRegistry
+            TSystemRegistry,
+            undefined
           >;
           onTimeout?: StateTransitionConfigOrTarget<
             TStateSchemas,
@@ -1128,7 +1189,8 @@ type SetupInvokeConfig<
             TActorMap,
             TGuardMap,
             TDelayMap,
-            TSystemRegistry
+            TSystemRegistry,
+            undefined
           >;
         }
       : never
@@ -1370,6 +1432,26 @@ type StateTransitionFunction<
   false
 > | void;
 
+type TransitionInputFn<
+  TSchema extends SetupStateSchema,
+  TContext extends MachineContext
+> = (
+  args: { context: TContext; event: EventObject } & OutputArg<EventObject>
+) => StateInput<TSchema>;
+
+type TransitionInputRequirement<
+  TSchema extends SetupStateSchema,
+  TContext extends MachineContext
+> = [StateInput<TSchema>] extends [undefined]
+  ? {
+      reenter?: boolean;
+      input?: StateInput<TSchema> | TransitionInputFn<TSchema, TContext>;
+    }
+  : {
+      reenter?: boolean;
+      input: StateInput<TSchema> | TransitionInputFn<TSchema, TContext>;
+    };
+
 type StateTransitionResult<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
@@ -1406,51 +1488,43 @@ type StateTransitionResult<
   | {
       [K in keyof TStateSchemas & string]: {
         target: K;
-        reenter?: boolean;
         meta?: TMeta;
-        input?:
-          | StateInput<TStateSchemas[K]>
-          | ((
-              args: {
-                context: TContext;
-                event: EventObject;
-              } & OutputArg<EventObject>
-            ) => StateInput<TStateSchemas[K]>);
-      } & ([TContextShape] extends [
-        StateContextShape<TStateSchemas[K], TContextShape>
-      ]
-        ? {
-            context?: StateTransitionContext<
-              TAllowContextMapper,
-              TContext,
-              TContextShape,
-              StateContextShape<TStateSchemas[K], TContextShape>,
-              StateContext<TStateSchemas[K], TContext>,
-              TExpressionEvent,
-              TChildren,
-              TActionMap,
-              TActorMap,
-              TGuardMap,
-              TDelayMap,
-              TSystemRegistry
-            >;
-          }
-        : {
-            context: StateTransitionContext<
-              TAllowContextMapper,
-              TContext,
-              TContextShape,
-              StateContextShape<TStateSchemas[K], TContextShape>,
-              StateContext<TStateSchemas[K], TContext>,
-              TExpressionEvent,
-              TChildren,
-              TActionMap,
-              TActorMap,
-              TGuardMap,
-              TDelayMap,
-              TSystemRegistry
-            >;
-          });
+      } & TransitionInputRequirement<TStateSchemas[K], TContext> &
+        ([TContextShape] extends [
+          StateContextShape<TStateSchemas[K], TContextShape>
+        ]
+          ? {
+              context?: StateTransitionContext<
+                TAllowContextMapper,
+                TContext,
+                TContextShape,
+                StateContextShape<TStateSchemas[K], TContextShape>,
+                StateContext<TStateSchemas[K], TContext>,
+                TExpressionEvent,
+                TChildren,
+                TActionMap,
+                TActorMap,
+                TGuardMap,
+                TDelayMap,
+                TSystemRegistry
+              >;
+            }
+          : {
+              context: StateTransitionContext<
+                TAllowContextMapper,
+                TContext,
+                TContextShape,
+                StateContextShape<TStateSchemas[K], TContextShape>,
+                StateContext<TStateSchemas[K], TContext>,
+                TExpressionEvent,
+                TChildren,
+                TActionMap,
+                TActorMap,
+                TGuardMap,
+                TDelayMap,
+                TSystemRegistry
+              >;
+            });
     }[keyof TStateSchemas & string]
   | {
       target: Exclude<
@@ -1499,6 +1573,12 @@ type RequiredContextKeys<TCurrentContext, TTargetContext> = {
     : K;
 }[keyof TTargetContext];
 
+type InitialInputFn<
+  TSchema extends SetupStateSchema,
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> = (args: { context: TContext; event: TEvent }) => StateInput<TSchema>;
+
 /** Initial transition with typed input based on target state */
 type InitialTransitionWithInput<
   TStateSchemas extends Record<string, SetupStateSchema>,
@@ -1507,13 +1587,17 @@ type InitialTransitionWithInput<
 > = {
   [K in keyof TStateSchemas & string]: {
     target: K;
-    input?:
-      | StateInput<TStateSchemas[K]>
-      | ((args: {
-          context: TContext;
-          event: TEvent;
-        }) => StateInput<TStateSchemas[K]>);
-  };
+  } & ([StateInput<TStateSchemas[K]>] extends [undefined]
+    ? {
+        input?:
+          | StateInput<TStateSchemas[K]>
+          | InitialInputFn<TStateSchemas[K], TContext, TEvent>;
+      }
+    : {
+        input:
+          | StateInput<TStateSchemas[K]>
+          | InitialInputFn<TStateSchemas[K], TContext, TEvent>;
+      });
 }[keyof TStateSchemas & string];
 
 /** Return type of setup() */

@@ -169,6 +169,11 @@ describe('setup', () => {
 
   it('createStateConfig should type a nested state input by dotted path', () => {
     const s = setup({
+      schemas: {
+        events: {
+          next: z.object({})
+        }
+      },
       states: {
         parent: {
           schemas: {
@@ -1526,48 +1531,6 @@ describe('setup', () => {
     expect(true).toBe(true);
   });
 
-  it('input should persist across self-transitions', () => {
-    const s = setup({
-      states: {
-        active: {
-          schemas: {
-            input: z.object({ count: z.number() })
-          }
-        }
-      }
-    });
-
-    const machine = s.createMachine({
-      initial: {
-        target: 'active',
-        input: { count: 1 }
-      },
-      states: {
-        active: {
-          on: {
-            // Self-transition without reenter
-            PING: {}
-          }
-        }
-      }
-    });
-
-    const actor = createActor(machine).start();
-
-    // Input should be set initially
-    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
-      count: 1
-    });
-
-    // Send event that triggers self-transition
-    actor.send({ type: 'PING' });
-
-    // Input should still be there
-    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
-      count: 1
-    });
-  });
-
   it('invoke transitions should require context for incompatible targets', () => {
     const s = setup({
       schemas: {
@@ -2193,5 +2156,539 @@ describe('setup', () => {
     });
 
     expect(true).toBe(true);
+  });
+});
+
+describe('required input on transitions', () => {
+  // Each negative (@ts-expect-error) case is paired with a positive twin identical
+  // except for `input`; the twin compiling clean proves the error is caused
+  // specifically by the missing input, not something unrelated.
+  it('requires input on every kind of transition that targets a state with an input schema', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          LOAD: z.object({}),
+          LOAD_FN: z.object({}),
+          LOAD_WRONG: z.object({}),
+          PING: z.object({}),
+          PING_REENTER: z.object({})
+        }
+      },
+      states: {
+        idle: {},
+        pending: {},
+        fetching: {},
+        failing: {},
+        work: {
+          states: {
+            step: {}
+          }
+        },
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      },
+      actorSources: {
+        load: createAsyncLogic({
+          run: async () => 'Done' as const
+        })
+      }
+    });
+
+    s.createMachine({
+      // @ts-expect-error - object-form initial targeting `loading` requires input
+      initial: {
+        target: 'loading'
+      },
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - target `loading` declares schemas.input, so input is required
+            LOAD: {
+              target: 'loading'
+            },
+            // @ts-expect-error - returned transition to `loading` requires input
+            LOAD_FN: () => ({
+              target: 'loading'
+            }),
+            // @ts-expect-error - loading input requires userId: string, not number
+            LOAD_WRONG: {
+              target: 'loading',
+              input: { userId: 123 }
+            }
+          },
+          // @ts-expect-error - always target `loading` requires input
+          always: {
+            target: 'loading'
+          }
+        },
+        pending: {
+          after: {
+            // @ts-expect-error - after target `loading` requires input
+            1000: {
+              target: 'loading'
+            }
+          },
+          timeout: 1000,
+          // @ts-expect-error - onTimeout target `loading` requires input
+          onTimeout: {
+            target: 'loading'
+          },
+          // @ts-expect-error - onError target `loading` requires input
+          onError: {
+            target: 'loading'
+          }
+        },
+        fetching: {
+          // @ts-expect-error - invoke onDone target `loading` requires input
+          invoke: {
+            src: 'load',
+            onDone: {
+              target: 'loading'
+            },
+            onError: {
+              target: 'loading',
+              input: { userId: 'user-1' }
+            }
+          }
+        },
+        failing: {
+          // @ts-expect-error - invoke onError target `loading` requires input
+          invoke: {
+            src: 'load',
+            onDone: {
+              target: 'loading',
+              input: { userId: 'user-1' }
+            },
+            onError: {
+              target: 'loading'
+            }
+          }
+        },
+        work: {
+          initial: 'step',
+          states: {
+            step: { type: 'final' }
+          },
+          // @ts-expect-error - onDone target `loading` requires input
+          onDone: {
+            target: 'loading'
+          }
+        },
+        loading: {
+          on: {
+            // @ts-expect-error - self-target `loading` declares schemas.input, so input is required
+            PING: {
+              target: 'loading'
+            },
+            // @ts-expect-error - reenter:true re-enters `loading`, so input is required
+            PING_REENTER: {
+              target: 'loading',
+              reenter: true
+            }
+          }
+        }
+      }
+    });
+
+    // Positive twin: supplying input satisfies every transition kind above.
+    s.createMachine({
+      initial: {
+        target: 'loading',
+        input: { userId: 'user-1' }
+      },
+      states: {
+        idle: {
+          on: {
+            LOAD: {
+              target: 'loading',
+              input: { userId: 'user-1' }
+            },
+            LOAD_FN: () => ({
+              target: 'loading',
+              input: { userId: 'user-1' }
+            })
+          },
+          always: {
+            target: 'loading',
+            input: { userId: 'user-1' }
+          }
+        },
+        pending: {
+          after: {
+            1000: {
+              target: 'loading',
+              input: { userId: 'user-1' }
+            }
+          },
+          timeout: 1000,
+          onTimeout: {
+            target: 'loading',
+            input: { userId: 'user-1' }
+          },
+          onError: {
+            target: 'loading',
+            input: { userId: 'user-1' }
+          }
+        },
+        fetching: {
+          invoke: {
+            src: 'load',
+            onDone: {
+              target: 'loading',
+              input: { userId: 'user-1' }
+            },
+            onError: {
+              target: 'loading',
+              input: { userId: 'user-1' }
+            }
+          }
+        },
+        failing: {},
+        work: {
+          initial: 'step',
+          states: {
+            step: { type: 'final' }
+          },
+          onDone: {
+            target: 'loading',
+            input: { userId: 'user-1' }
+          }
+        },
+        loading: {
+          on: {
+            PING: {
+              target: 'loading',
+              input: { userId: 'user-2' }
+            },
+            PING_REENTER: {
+              target: 'loading',
+              reenter: true,
+              input: { userId: 'user-2' }
+            }
+          }
+        }
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('does not require input when the target has no input schema or is out of scope', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          GO: z.object({})
+        }
+      },
+      states: {
+        idle: {},
+        loading: {
+          schemas: {
+            input: z.object({ userId: z.string() })
+          }
+        }
+      }
+    });
+
+    // Guard: a bare sibling target IS enforced here, proving the optional cases
+    // below are non-vacuous.
+    s.createStateConfig({
+      on: {
+        // @ts-expect-error - bare sibling target `loading` requires input
+        GO: {
+          target: 'loading'
+        }
+      }
+    });
+
+    s.createStateConfig({
+      on: {
+        GO: {
+          target: '#loading'
+        }
+      }
+    });
+
+    s.createStateConfig({
+      on: {
+        GO: {
+          target: '.child'
+        }
+      }
+    });
+
+    s.createStateConfig({
+      on: {
+        GO: {
+          target: ['loading']
+        }
+      }
+    });
+
+    s.createStateConfig({
+      on: {
+        GO: {
+          target: 'idle'
+        }
+      }
+    });
+
+    s.createStateConfig({
+      on: {
+        GO: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  it('requires an explicit input object even for empty or all-optional input schemas', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          LOAD_EMPTY: z.object({}),
+          LOAD_OPTIONAL: z.object({})
+        }
+      },
+      states: {
+        idle: {},
+        // empty schema -> output is `{}` (not `undefined`)
+        empty: {
+          schemas: {
+            input: z.object({})
+          }
+        },
+        // all-optional schema -> output is `{ userId?: string }` (not `undefined`)
+        allOptional: {
+          schemas: {
+            input: z.object({ userId: z.string().optional() })
+          }
+        }
+      }
+    });
+
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            // @ts-expect-error - empty-object input schema still requires input
+            LOAD_EMPTY: {
+              target: 'empty'
+            },
+            // @ts-expect-error - all-optional input schema still requires input
+            LOAD_OPTIONAL: {
+              target: 'allOptional'
+            }
+          }
+        },
+        empty: {},
+        allOptional: {}
+      }
+    });
+
+    s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            LOAD_EMPTY: {
+              target: 'empty',
+              input: {}
+            },
+            LOAD_OPTIONAL: {
+              target: 'allOptional',
+              input: {}
+            }
+          }
+        },
+        empty: {},
+        allOptional: {}
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
+  // Runtime backstop: input on a transition that doesn't (re)enter its
+  // target is silently dropped (not stored).
+  it("a self-transition's input only takes effect when the state is re-entered", () => {
+    const s = setup({
+      schemas: {
+        context: z.object({ count: z.number() }),
+        events: {
+          SET_MULTIPLIER_NO_REENTER: z.object({}),
+          SET_MULTIPLIER_REENTER: z.object({}),
+          MULTIPLY: z.object({})
+        }
+      },
+      states: {
+        active: {
+          schemas: {
+            input: z.object({ multiplier: z.number() })
+          }
+        }
+      }
+    });
+
+    const entryInputs: unknown[] = [];
+    const machine = s.createMachine({
+      context: { count: 1 },
+      initial: {
+        target: 'active',
+        input: { multiplier: 3 }
+      },
+      states: {
+        active: {
+          entry: ({ input }) => {
+            entryInputs.push(input);
+          },
+          on: {
+            // Internal self-transition (no reenter): stays in `active`, so
+            // this input is silently dropped and the resolved input stays 3.
+            SET_MULTIPLIER_NO_REENTER: {
+              target: 'active',
+              input: { multiplier: 99 }
+            },
+            // Reentering self-transition: exits and re-enters `active`, so
+            // input is re-resolved to this value.
+            SET_MULTIPLIER_REENTER: {
+              target: 'active',
+              reenter: true,
+              input: { multiplier: 10 }
+            },
+            // Multiplies count by whatever input is currently resolved,
+            // making the running count a witness of the active multiplier.
+            MULTIPLY: ({ context, input }) => ({
+              context: { count: context.count * input.multiplier }
+            })
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    // Initial entry resolves input to the value from the initial transition.
+    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+      multiplier: 3
+    });
+    expect(entryInputs).toEqual([{ multiplier: 3 }]);
+
+    // count 1 * 3 = 3 confirms the handler sees the initial multiplier of 3.
+    actor.send({ type: 'MULTIPLY' });
+    expect(actor.getSnapshot().context.count).toBe(3); // 1 * 3
+
+    // Internal self-transition: no exit/entry, input untouched.
+    actor.send({ type: 'SET_MULTIPLIER_NO_REENTER' });
+    expect(entryInputs).toEqual([{ multiplier: 3 }]);
+    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+      multiplier: 3
+    });
+
+    // count 3 * 3 = 9, not 3 * 99: the dropped input of 99 never took effect.
+    actor.send({ type: 'MULTIPLY' });
+    expect(actor.getSnapshot().context.count).toBe(9); // 3 * 3
+
+    // Reentering self-transition: re-runs entry and re-resolves input to 10.
+    actor.send({ type: 'SET_MULTIPLIER_REENTER' });
+    expect(entryInputs).toEqual([{ multiplier: 3 }, { multiplier: 10 }]);
+    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+      multiplier: 10
+    });
+
+    // count 9 * 10 = 90 confirms the handler now sees the re-resolved input of 10.
+    actor.send({ type: 'MULTIPLY' });
+    expect(actor.getSnapshot().context.count).toBe(90); // 9 * 10
+  });
+
+  // Compound seam: a self-transition targeting the compound parent applies its
+  // input only when the parent is actually re-entered. The compound child
+  // re-enters via the default-entry path either way.
+  it("a compound state's input is replaced only on reenter, while its child always re-enters", () => {
+    const s = setup({
+      schemas: {
+        events: {
+          PING: z.object({}),
+          PING_REENTER: z.object({})
+        }
+      },
+      states: {
+        parent: {
+          schemas: {
+            input: z.object({ pv: z.number() })
+          },
+          states: {
+            child: {}
+          }
+        }
+      }
+    });
+
+    const parentEntries: unknown[] = [];
+    const childEntries: string[] = [];
+
+    const machine = s.createMachine({
+      initial: {
+        target: 'parent',
+        input: { pv: 1 }
+      },
+      states: {
+        parent: {
+          initial: 'child',
+          entry: ({ input }) => {
+            parentEntries.push(input);
+          },
+          on: {
+            PING: {
+              target: 'parent',
+              input: { pv: 2 }
+            },
+            PING_REENTER: {
+              target: 'parent',
+              reenter: true,
+              input: { pv: 3 }
+            }
+          },
+          states: {
+            child: {
+              entry: () => {
+                childEntries.push('child');
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+
+    expect(parentEntries).toEqual([{ pv: 1 }]);
+    expect(childEntries).toEqual(['child']);
+    expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
+      pv: 1
+    });
+
+    // Without reenter: parent stays entered, so its input is unchanged —
+    // but the child still re-enters via default entry.
+    actor.send({ type: 'PING' });
+
+    expect(parentEntries).toEqual([{ pv: 1 }]);
+    expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
+      pv: 1
+    });
+    expect(childEntries).toEqual(['child', 'child']);
+
+    // With reenter: parent exits and re-enters, re-resolving its input.
+    actor.send({ type: 'PING_REENTER' });
+
+    expect(parentEntries).toEqual([{ pv: 1 }, { pv: 3 }]);
+    expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
+      pv: 3
+    });
+    expect(childEntries).toEqual(['child', 'child', 'child']);
   });
 });
