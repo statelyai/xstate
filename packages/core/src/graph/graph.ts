@@ -6,7 +6,6 @@ import {
   AnyActorLogic,
   EventFromLogic,
   Snapshot,
-  __unsafe_getAllOwnEventDescriptors,
   InputFrom,
   SnapshotFrom
 } from '../index.ts';
@@ -21,6 +20,7 @@ import type {
   TraversalConfig
 } from './types.ts';
 import { createMockActorScope } from './actorScope.ts';
+import { getAllOwnEvents, matchesEvent } from '../utils.ts';
 
 /**
  * Returns all state nodes of the given `node`.
@@ -91,12 +91,14 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
     events: (state) => {
       const events =
         typeof getEvents === 'function' ? getEvents(state) : (getEvents ?? []);
-      return __unsafe_getAllOwnEventDescriptors(state).flatMap((type) => {
-        const matchingEvents = events.filter((ev) => (ev as any).type === type);
+      return getAllOwnEvents(state).flatMap((defaultEvent) => {
+        const matchingEvents = events.filter((event) =>
+          matchesEvent(event as EventObject, defaultEvent)
+        );
         if (matchingEvents.length) {
           return matchingEvents;
         }
-        return [{ type }];
+        return [defaultEvent];
       }) as any[];
     },
     fromState: machine.getInitialSnapshot(

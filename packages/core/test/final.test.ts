@@ -14,7 +14,7 @@ describe('final states', () => {
 
     expect(actorRef.getSnapshot().status).toBe('done');
   });
-  it('output of a machine with a root state being final should be called with a "xstate.done.state.ROOT_ID" event', () => {
+  it('output of a machine with a root state being final should receive its state ID', () => {
     const spy = vi.fn();
     const machine = createMachine({
       type: 'final',
@@ -29,13 +29,14 @@ describe('final states', () => {
         [
           {
             "output": undefined,
-            "type": "xstate.done.state.(machine)",
+            "stateId": "(machine)",
+            "type": "xstate.done.state",
           },
         ],
       ]
     `);
   });
-  it('should emit the "xstate.done.state.*" event when all nested states are in their final states', () => {
+  it('should emit the done state event when all nested states are final', () => {
     const onDoneSpy = vi.fn();
 
     const machine = createMachine({
@@ -91,7 +92,7 @@ describe('final states', () => {
     });
 
     expect(actor.getSnapshot().value).toBe('bar');
-    expect(onDoneSpy).toHaveBeenCalledWith('xstate.done.state.m.foo');
+    expect(onDoneSpy).toHaveBeenCalledWith('xstate.done.state');
   });
 
   it('should execute final child state actions first', () => {
@@ -832,7 +833,8 @@ describe('final states', () => {
             "output": {
               "a": undefined,
             },
-            "type": "xstate.done.state.(machine)",
+            "stateId": "(machine)",
+            "type": "xstate.done.state",
           },
         ],
       ]
@@ -867,7 +869,8 @@ describe('final states', () => {
             "output": {
               "a": undefined,
             },
-            "type": "xstate.done.state.(machine)",
+            "stateId": "(machine)",
+            "type": "xstate.done.state",
           },
         ],
       ]
@@ -909,7 +912,8 @@ describe('final states', () => {
                 "b": undefined,
               },
             },
-            "type": "xstate.done.state.(machine)",
+            "stateId": "(machine)",
+            "type": "xstate.done.state",
           },
         ],
       ]
@@ -953,7 +957,8 @@ describe('final states', () => {
                 "c": undefined,
               },
             },
-            "type": "xstate.done.state.(machine).a",
+            "stateId": "(machine).a",
+            "type": "xstate.done.state",
           },
         ],
       ]

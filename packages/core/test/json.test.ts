@@ -311,11 +311,45 @@ describe('json', () => {
     ].flat();
     expect(transitions.filter((t) => t.eventType === 'EVENT')).toHaveLength(1);
     expect(
-      transitions.some((t) => t.eventType === 'xstate.done.actor.0.active')
+      transitions.some(
+        (t) =>
+          t.eventType === 'xstate.done.actor' &&
+          t.matches?.actorId === '0.active'
+      )
     ).toBe(true);
     expect(
-      transitions.some((t) => t.eventType === 'xstate.error.actor.0.active')
+      transitions.some(
+        (t) =>
+          t.eventType === 'xstate.error.actor' &&
+          t.matches?.actorId === '0.active'
+      )
     ).toBe(true);
+  });
+
+  it('round-trips transition payload matches', () => {
+    const machine = createMachine({
+      initial: 'pending',
+      states: {
+        pending: {
+          on: {
+            result: [
+              { matches: { actorId: 'first' }, target: 'first' },
+              { matches: { actorId: 'second' }, target: 'second' }
+            ]
+          }
+        },
+        first: {},
+        second: {}
+      }
+    });
+    const revived = createMachineFromConfig(
+      JSON.parse(JSON.stringify(serializeMachine(machine)))
+    );
+    const actor = createActor(revived).start();
+
+    actor.send({ type: 'result', actorId: 'second' });
+
+    expect(actor.getSnapshot().value).toBe('second');
   });
 
   it('revives delayed transitions from JSON', () => {

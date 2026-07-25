@@ -199,6 +199,7 @@ export interface InvokeJSON {
 
 export interface TransitionJSON {
   target?: string | string[];
+  matches?: Record<string, unknown>;
   context?: MachineContext;
   actions?: ActionJSON[];
   guard?: ConditionJSON;
@@ -1806,6 +1807,7 @@ export function createMachineFromConfig(
       if (!guard && !t.actions?.length) {
         if (t.context) {
           return {
+            matches: t.matches,
             to: (x: any) => ({
               target: targetConfig,
               context: resolveTransitionContext(x),
@@ -1817,6 +1819,7 @@ export function createMachineFromConfig(
           };
         }
         return {
+          matches: t.matches,
           target: targetConfig,
           description: t.description,
           reenter: t.reenter,
@@ -1829,6 +1832,7 @@ export function createMachineFromConfig(
       if (guard && !t.actions?.length) {
         if (t.context) {
           return {
+            matches: t.matches,
             guard,
             to: (x: any) => ({
               target: targetConfig,
@@ -1841,6 +1845,7 @@ export function createMachineFromConfig(
           };
         }
         return {
+          matches: t.matches,
           target: targetConfig,
           guard,
           description: t.description,
@@ -1855,6 +1860,7 @@ export function createMachineFromConfig(
       // For parallel (entries exist), first entry re-executes all in document order.
       if (!target) {
         return {
+          matches: t.matches,
           guard,
           description: t.description,
           reenter: t.reenter,
@@ -1885,6 +1891,7 @@ export function createMachineFromConfig(
       // already validated it. The .to just stores actions for entry to execute.
       // Map by target state ID so parallel transitions each get their own actions.
       return {
+        matches: t.matches,
         guard,
         description: t.description,
         reenter: t.reenter,

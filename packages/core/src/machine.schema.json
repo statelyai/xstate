@@ -90,6 +90,7 @@
         },
         "actions": { "$ref": "#/$defs/actionList" },
         "context": { "type": "object" },
+        "matches": { "type": "object" },
         "guard": { "$ref": "#/$defs/condition" },
         "input": {},
         "description": { "type": "string" },

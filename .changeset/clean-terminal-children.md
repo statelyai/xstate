@@ -8,7 +8,7 @@ Machine snapshots now remove a child after processing that child's matching done
 const child = snapshot.children.job;
 
 const [nextSnapshot] = transition(machine, snapshot, {
-  type: 'xstate.done.actor.job',
+  type: 'xstate.done.actor',
   actorId: 'job',
   sessionId: child.sessionId,
   output: result
@@ -26,4 +26,25 @@ const restored = createActor(machineWithoutChildSource, {
 });
 
 restored.getSnapshot().status; // 'error'
+```
+
+Internal actor, state-completion, delayed, and timeout events now use stable category types. Their identity is carried in event payload fields and can be selected with `matches`:
+
+```ts
+const machine = createMachine({
+  // ...
+  on: {
+    'xstate.done.actor': {
+      matches: { actorId: 'job' },
+      target: 'complete'
+    }
+  }
+});
+
+// Generated events use payload identity:
+// { type: 'xstate.done.actor', actorId: 'job', sessionId, output }
+// { type: 'xstate.done.state', stateId, output }
+// { type: 'xstate.after', stateId, delay }
+// { type: 'xstate.timeout', stateId }
+// { type: 'xstate.timeout.actor', actorId, sessionId }
 ```

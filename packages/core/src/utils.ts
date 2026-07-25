@@ -237,8 +237,7 @@ export function getEventOutput<TEvent extends EventObject>(
 
 function isDoneEvent(event: EventObject): boolean {
   return (
-    event.type.startsWith('xstate.done.actor.') ||
-    event.type.startsWith('xstate.done.state.')
+    event.type === 'xstate.done.actor' || event.type === 'xstate.done.state'
   );
 }
 
@@ -334,6 +333,49 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
 
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
   return [...new Set([...snapshot._nodes.flatMap((sn) => sn.ownEvents)])];
+}
+
+/** @internal Events synthesized from active transition descriptors. */
+export function getAllOwnEvents(snapshot: AnyMachineSnapshot) {
+  const events = snapshot._nodes.flatMap((stateNode) =>
+    [...stateNode.transitions.values()].flatMap((transitions) =>
+      transitions.map((transition) => {
+        const event: AnyEventObject = {
+          type: transition.eventType,
+          ...transition.matches
+        };
+        if (
+          'actorId' in event &&
+          (event.type === 'xstate.done.actor' ||
+            event.type === 'xstate.error.actor' ||
+            event.type === 'xstate.snapshot.actor' ||
+            event.type === 'xstate.timeout.actor')
+        ) {
+          event.sessionId = snapshot.children[event.actorId]?.sessionId;
+        }
+        return event;
+      })
+    )
+  );
+  return events.filter(
+    (event, index) =>
+      events.findIndex((candidate) => {
+        const keys = Object.keys(event);
+        return (
+          keys.length === Object.keys(candidate).length &&
+          keys.every((key) => Object.is(event[key], candidate[key]))
+        );
+      }) === index
+  );
+}
+
+export function matchesEvent(
+  event: EventObject,
+  pattern: Record<string, unknown>
+): boolean {
+  return Object.entries(pattern).every(([key, value]) =>
+    Object.is((event as AnyEventObject)[key], value)
+  );
 }
 
 /**

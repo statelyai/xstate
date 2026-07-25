@@ -5423,6 +5423,36 @@ describe('guards', () => {
 });
 
 describe('delays', () => {
+  it('types generated after and timeout events by category and payload', () => {
+    createMachine({
+      after: {
+        100: ({ event }) => {
+          event.type satisfies 'xstate.after';
+          event.delay satisfies number | string;
+          event.stateId satisfies string;
+          return {};
+        }
+      },
+      timeout: 200,
+      onTimeout: ({ event }) => {
+        event.type satisfies 'xstate.timeout';
+        event.stateId satisfies string;
+        return {};
+      },
+      invoke: {
+        id: 'child',
+        src: createAsyncLogic({ run: async () => undefined }),
+        timeout: 300,
+        onTimeout: ({ event }) => {
+          event.type satisfies 'xstate.timeout.actor';
+          event.actorId satisfies string;
+          event.sessionId satisfies string | undefined;
+          return {};
+        }
+      }
+    });
+  });
+
   it('should accept delays in provide', () => {
     createMachine({
       delays: {

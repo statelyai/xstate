@@ -317,14 +317,13 @@ describe('transition function', () => {
     expect(actions[0]).toEqual(
       expect.objectContaining({
         type: '@xstate.raise',
-        // params: expect.objectContaining({
-        //   delay: 10,
-        //   event: { type: 'xstate.after.10.(machine).a' }
-        // })
         args: [
           expect.anything(),
-          { type: 'xstate.after.10.(machine).a' },
-          expect.objectContaining({ delay: 10 })
+          { type: 'xstate.after', delay: 10, stateId: '(machine).a' },
+          expect.objectContaining({
+            delay: 10,
+            id: 'xstate.after.10.(machine).a'
+          })
         ]
       })
     );
@@ -1454,7 +1453,7 @@ describe('transition function', () => {
       const childRef = active.children.child;
 
       const [completed] = transition(machine, active, {
-        type: 'xstate.done.actor.child',
+        type: 'xstate.done.actor',
         actorId: 'child',
         sessionId: childRef.sessionId,
         output: 42
@@ -1541,6 +1540,87 @@ describe('transition function', () => {
       expect(afterStaleDone.children.child).toBe(secondChild);
     });
 
+    it('does not take an invoke completion transition for a stale child', () => {
+      const machine = createMachine({
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'child',
+              src: createAsyncLogic({ run: () => new Promise(() => {}) }),
+              onDone: { target: 'done' }
+            },
+            on: { RESET: { target: 'active', reenter: true } }
+          },
+          done: {}
+        }
+      });
+      const [firstSnapshot] = initialTransition(machine);
+      const firstChild = firstSnapshot.children.child;
+      const [secondSnapshot] = transition(machine, firstSnapshot, {
+        type: 'RESET'
+      });
+      const secondChild = secondSnapshot.children.child;
+
+      const [afterStaleDone] = transition(machine, secondSnapshot, {
+        type: 'xstate.done.actor',
+        actorId: 'child',
+        sessionId: firstChild.sessionId,
+        output: undefined
+      } as any);
+
+      expect(afterStaleDone.value).toBe('active');
+      expect(afterStaleDone.children.child).toBe(secondChild);
+    });
+
+    it('ignores an unhandled error from a stale child', () => {
+      const machine = createMachine({
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'child',
+              src: createAsyncLogic({ run: () => new Promise(() => {}) })
+            },
+            on: { RESET: { target: 'active', reenter: true } }
+          }
+        }
+      });
+      const [firstSnapshot] = initialTransition(machine);
+      const [secondSnapshot] = transition(machine, firstSnapshot, {
+        type: 'RESET'
+      });
+
+      const [afterStaleError] = transition(machine, secondSnapshot, {
+        type: 'xstate.error.actor',
+        actorId: 'child',
+        sessionId: firstSnapshot.children.child.sessionId,
+        error: new Error('stale')
+      } as any);
+
+      expect(afterStaleError.status).toBe('active');
+      expect(afterStaleError.children.child).toBe(
+        secondSnapshot.children.child
+      );
+    });
+
+    it('accepts legacy suffixed actor terminal events', () => {
+      const machine = createMachine({
+        entry: (_, enq) => enq.spawn(child, { id: 'child' })
+      });
+      const [active] = initialTransition(machine);
+      const childRef = active.children.child;
+
+      const [completed] = transition(machine, active, {
+        type: 'xstate.done.actor.child',
+        actorId: 'child',
+        sessionId: childRef.sessionId,
+        output: undefined
+      } as any);
+
+      expect(completed.children).toEqual({});
+    });
+
     it('reports the pruned child in the final microstep', () => {
       const machine = createMachine({
         entry: (_, enq) => enq.spawn(child, { id: 'child' })
@@ -1570,6 +1650,47 @@ describe('transition function', () => {
       const actor = createActor(machine).start();
 
       expect(actor.getSnapshot().children).toEqual({});
+    });
+  });
+
+  describe('legacy suffixed internal events', () => {
+    it('accepts state completion events', () => {
+      const machine = createMachine({
+        initial: 'parent',
+        states: {
+          parent: {
+            initial: 'active',
+            states: { active: {} },
+            onDone: { target: 'done' }
+          },
+          done: {}
+        }
+      });
+      const [active] = initialTransition(machine);
+
+      const [completed] = transition(machine, active, {
+        type: 'xstate.done.state.(machine).parent',
+        output: undefined
+      } as any);
+
+      expect(completed.value).toBe('done');
+    });
+
+    it('accepts delayed transition events', () => {
+      const machine = createMachine({
+        initial: 'waiting',
+        states: {
+          waiting: { after: { 10: { target: 'done' } } },
+          done: {}
+        }
+      });
+      const [waiting] = initialTransition(machine);
+
+      const [completed] = transition(machine, waiting, {
+        type: 'xstate.after.10.(machine).waiting'
+      } as any);
+
+      expect(completed.value).toBe('done');
     });
   });
 
@@ -2469,8 +2590,12 @@ describe('getNextTransitions', () => {
     // Order: on transitions first (in definition order), then after transitions
     expect(transitions.map((t) => t.eventType)).toEqual([
       'GO_C',
-      'xstate.after.1000.(machine).a'
+      'xstate.after'
     ]);
+    expect(transitions[1].matches).toEqual({
+      delay: 1000,
+      stateId: '(machine).a'
+    });
     expect(transitions.map((t) => t.target?.[0]?.key)).toEqual(['c', 'b']);
   });
 

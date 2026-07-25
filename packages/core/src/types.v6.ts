@@ -2,6 +2,8 @@ import { StandardSchemaV1 } from './schema.types.ts';
 import { MachineSnapshot } from './State';
 import {
   Action,
+  ActorTimeoutEvent,
+  AfterEvent,
   ActorLogic,
   ActorRef,
   ActorRefFromLogic,
@@ -15,6 +17,7 @@ import {
   EventDescriptor,
   ErrorEvent,
   EventObject,
+  EventPayloadPattern,
   ExtractEvent,
   InitialContext,
   InputFrom,
@@ -31,7 +34,8 @@ import {
   TransitionConfigFunction,
   Values,
   AnyStateNode,
-  SystemRegistry
+  SystemRegistry,
+  TimeoutEvent
 } from './types';
 import { MachineContext, Mapper } from './types';
 import { LowInfer } from './types';
@@ -686,7 +690,7 @@ interface Next_InvokeConfigBase<
    */
   onTimeout?: Next_TransitionConfigOrTarget<
     TContext,
-    TEvent,
+    ActorTimeoutEvent,
     TEvent,
     TEmitted,
     TActionMap,
@@ -1144,7 +1148,7 @@ interface Next_RegularStateNodeConfig<
       | { target: string }
       | TransitionConfigFunction<
           TContext,
-          TEvent,
+          AfterEvent,
           TEvent,
           TODO, // TEmitted
           TActionMap,
@@ -1177,7 +1181,7 @@ interface Next_RegularStateNodeConfig<
   /** Transition taken when `timeout` expires. Required when `timeout` is set. */
   onTimeout?: Next_TransitionConfigOrTarget<
     TContext,
-    TEvent,
+    TimeoutEvent,
     TEvent,
     TEmitted,
     TActionMap,
@@ -1210,8 +1214,8 @@ interface Next_RegularStateNodeConfig<
    */
   meta?: TMeta;
   /**
-   * The output data sent with the "xstate.done.state._id_" event if this is a
-   * final state node.
+   * The output data sent with the `xstate.done.state` event if this is a final
+   * state node.
    *
    * The output data will be evaluated with the current `context` and placed on
    * the `.data` property of the event.
@@ -1251,9 +1255,10 @@ export type Next_TransitionConfigOrTarget<
   TDelayMap extends Implementations['delays'],
   TMeta extends MetaObject,
   TInput = undefined
-> =
+> = SingleOrArray<
   | undefined
   | {
+      matches?: EventPayloadPattern<TExpressionEvent>;
       target?: string | string[];
       context?:
         | TransitionContextPatch<TContext>
@@ -1274,6 +1279,7 @@ export type Next_TransitionConfigOrTarget<
         | ((args: { context: any; event: any }) => Record<string, unknown>);
     }
   | {
+      matches?: EventPayloadPattern<TExpressionEvent>;
       to?: TransitionConfigFunction<
         TContext,
         TExpressionEvent,
@@ -1315,7 +1321,8 @@ export type Next_TransitionConfigOrTarget<
       TDelayMap,
       TMeta,
       TInput
-    >;
+    >
+>;
 
 export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;
 

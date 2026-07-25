@@ -31,7 +31,11 @@ describe('persisted logical timers', () => {
       id: expect.stringMatching(/^xstate\.after/),
       delay: 1000,
       type: '@xstate.raise',
-      event: { type: expect.stringMatching(/^xstate\.after/) },
+      event: {
+        type: 'xstate.after',
+        delay: 1000,
+        stateId: '(machine).green'
+      },
       target: 'self'
     });
     expect(timer).not.toHaveProperty('scheduledAt');

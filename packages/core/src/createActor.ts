@@ -670,7 +670,9 @@ export class Actor<TLogic extends AnyActorLogic>
         next: (snapshot: Snapshot<unknown>) => {
           if (snapshot.status === 'active') {
             this.system._relay(this, this._parent!, {
-              type: `xstate.snapshot.${this.id}`,
+              type: 'xstate.snapshot.actor',
+              actorId: this.id,
+              sessionId: this.sessionId,
               snapshot
             });
           }

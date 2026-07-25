@@ -3348,11 +3348,11 @@ describe('invoke', () => {
             src: createAsyncLogic({ run: () => Promise.resolve() }),
             onDone: ({ event }) => {
               // invoke ID should not be 'someSrc'
-              const expectedType = 'xstate.done.actor.0.(machine).a';
-              expect(event.type).toEqual(expectedType);
-              if (event.type === expectedType) {
-                return { target: 'b' };
-              }
+              expect(event).toMatchObject({
+                type: 'xstate.done.actor',
+                actorId: '0.(machine).a'
+              });
+              return { target: 'b' };
             }
           }
         },
@@ -3471,7 +3471,7 @@ describe('invoke', () => {
     await promise;
   });
 
-  it('xstate.done.actor events should have unique names when invokee is a machine with an id property', async () => {
+  it('xstate.done.actor events should identify each invokee', async () => {
     const { promise, resolve } = Promise.withResolvers<void>();
     const actual: AnyEventObject[] = [];
 
@@ -3527,13 +3527,13 @@ describe('invoke', () => {
     setTimeout(() => {
       expect(actual).toEqual([
         {
-          type: 'xstate.done.actor.0.(machine).first.fetch',
+          type: 'xstate.done.actor',
           output: undefined,
           actorId: '0.(machine).first.fetch',
           sessionId: expect.any(String)
         },
         {
-          type: 'xstate.done.actor.0.(machine).second.fetch',
+          type: 'xstate.done.actor',
           output: undefined,
           actorId: '0.(machine).second.fetch',
           sessionId: expect.any(String)

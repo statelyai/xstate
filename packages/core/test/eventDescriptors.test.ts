@@ -2,6 +2,69 @@ import z from 'zod';
 import { createMachine, createActor, assertEvent } from '../src/index';
 
 describe('event descriptors', () => {
+  it('selects transitions by shallow event payload matches before guards', () => {
+    const firstResolver = vi.fn(() => ({ target: 'first' }));
+    const machine = createMachine({
+      schemas: {
+        events: {
+          result: z.object({ actorId: z.enum(['first', 'second']) })
+        }
+      },
+      initial: 'pending',
+      states: {
+        pending: {
+          on: {
+            result: [
+              {
+                matches: { actorId: 'first' },
+                to: firstResolver
+              },
+              {
+                matches: { actorId: 'second' },
+                target: 'second'
+              }
+            ]
+          }
+        },
+        first: {},
+        second: {}
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'result', actorId: 'second' } as any);
+
+    expect(actor.getSnapshot().value).toBe('second');
+    expect(firstResolver).not.toHaveBeenCalled();
+  });
+
+  it('selects canonical actor events by actor ID', () => {
+    const machine = createMachine({
+      initial: 'pending',
+      states: {
+        pending: {
+          on: {
+            'xstate.done.actor': {
+              matches: { actorId: 'job' },
+              target: 'complete'
+            }
+          }
+        },
+        complete: {}
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({
+      type: 'xstate.done.actor',
+      actorId: 'job',
+      sessionId: 'x:1',
+      output: undefined
+    } as any);
+
+    expect(actor.getSnapshot().value).toBe('complete');
+  });
+
   it('should fallback to using wildcard transition definition (if specified)', () => {
     const machine = createMachine({
       initial: 'A',

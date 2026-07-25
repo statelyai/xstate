@@ -224,7 +224,8 @@ describe('inspect', () => {
       (event) =>
         event.type === '@xstate.transition' &&
         event.actorRef === actor &&
-        event.event.type.startsWith('xstate.error.actor.')
+        event.event.type === 'xstate.error.actor' &&
+        event.event.actorId === 'child'
     );
     if (errorTransition?.type !== '@xstate.transition') {
       throw new Error('Error transition was not inspected.');

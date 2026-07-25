@@ -37,6 +37,31 @@ afterEach(() => {
 });
 
 describe('delayed transitions', () => {
+  it('uses a canonical after event with delay and state identity', () => {
+    vi.useFakeTimers();
+    const spy = vi.fn();
+    const actor = createActor(
+      createMachine({
+        id: 'job',
+        after: {
+          10: ({ event }, enq) => {
+            enq(spy, event);
+            return {};
+          }
+        }
+      })
+    ).start();
+
+    vi.advanceTimersByTime(10);
+
+    expect(spy).toHaveBeenCalledWith({
+      type: 'xstate.after',
+      delay: 10,
+      stateId: 'job'
+    });
+    actor.stop();
+  });
+
   it('should transition after delay', () => {
     vi.useFakeTimers();
 
@@ -137,9 +162,13 @@ describe('delayed transitions', () => {
 
     expect([...transitions.keys()]).toMatchInlineSnapshot(`
       [
-        "xstate.after.1000.light.green",
+        "xstate.after",
       ]
     `);
+    expect(transitions.get('xstate.after')?.[0].matches).toEqual({
+      delay: 1000,
+      stateId: 'light.green'
+    });
   });
 
   it('should be able to transition with delay from nested initial state', () => {

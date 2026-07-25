@@ -175,7 +175,7 @@ describe('getShortestPaths', () => {
 
     expect(shortestPaths.map((p) => p.steps.map((s) => s.event.type))).toEqual([
       ['@xstate.init'],
-      ['@xstate.init', 'xstate.after.1000.(machine).a']
+      ['@xstate.init', 'xstate.after']
     ]);
   });
 });

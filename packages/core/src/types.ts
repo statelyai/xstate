@@ -95,6 +95,10 @@ export type EventObject = {
   type: string;
 };
 
+export type EventPayloadPattern<TEvent extends EventObject> = TEvent extends any
+  ? Partial<Omit<TEvent, 'type'>>
+  : never;
+
 export interface AnyEventObject extends EventObject {
   [key: string]: any;
 }
@@ -130,9 +134,7 @@ export type UnifiedArg<
 
 export type MachineContext = Record<string, any>;
 
-type DoneEventType =
-  | `xstate.done.actor.${string}`
-  | `xstate.done.state.${string}`;
+type DoneEventType = 'xstate.done.actor' | 'xstate.done.state';
 
 export type OutputArg<TEvent extends EventObject> = TEvent extends {
   type: DoneEventType;
@@ -283,6 +285,8 @@ export interface TransitionConfig<
   TDelayMap extends Implementations['delays']
 > {
   actions?: never;
+  /** A shallow partial event pattern that must match before guards run. */
+  matches?: EventPayloadPattern<TExpressionEvent>;
   guard?: unknown;
   reenter?: boolean;
   target?: TransitionTarget | undefined;
@@ -446,7 +450,7 @@ export interface InvokeDefinition<
     | SingleOrArray<
         TransitionConfig<
           TContext,
-          TEvent,
+          ActorTimeoutEvent,
           TEvent,
           TEmitted,
           TMeta,
@@ -824,7 +828,7 @@ type DistributeActors<
               | SingleOrArray<
                   TransitionConfigOrTarget<
                     TContext,
-                    TEvent,
+                    ActorTimeoutEvent,
                     TEvent,
                     TEmitted,
                     TMeta,
@@ -910,7 +914,7 @@ type DistributeActors<
             | SingleOrArray<
                 TransitionConfigOrTarget<
                   TContext,
-                  TEvent,
+                  ActorTimeoutEvent,
                   TEvent,
                   TEmitted,
                   TMeta,
@@ -1034,7 +1038,7 @@ export type InvokeConfig<
           | SingleOrArray<
               TransitionConfigOrTarget<
                 TContext,
-                TEvent,
+                ActorTimeoutEvent,
                 TEvent,
                 TEmitted,
                 TMeta,
@@ -1373,7 +1377,7 @@ type StateSnapshotFromMachine<T extends AnyStateMachine> =
 
 export interface DoneActorEvent<TOutput = unknown, TId extends string = string>
   extends EventObject {
-  type: `xstate.done.actor.${TId}`;
+  type: 'xstate.done.actor';
   output: TOutput;
   actorId: TId;
   sessionId: string;
@@ -1383,7 +1387,7 @@ export interface ErrorActorEvent<
   TErrorData = unknown,
   TId extends string = string
 > extends EventObject {
-  type: `xstate.error.actor.${TId}`;
+  type: 'xstate.error.actor';
   error: TErrorData;
   actorId: TId;
   sessionId: string;
@@ -1402,13 +1406,34 @@ export type ErrorEvent = ErrorActorEvent | ErrorPlatformEvent;
 export interface SnapshotEvent<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>
 > extends EventObject {
-  type: `xstate.snapshot.${string}`;
+  type: 'xstate.snapshot.actor';
+  actorId: string;
+  sessionId: string;
   snapshot: TSnapshot;
 }
 
-export interface DoneStateEvent<TOutput = unknown> extends EventObject {
-  type: `xstate.done.state.${string}`;
+export interface DoneStateEvent<TOutput = unknown, TId extends string = string>
+  extends EventObject {
+  type: 'xstate.done.state';
+  stateId: TId;
   output: TOutput;
+}
+
+export interface AfterEvent extends EventObject {
+  type: 'xstate.after';
+  delay: number | string;
+  stateId: string;
+}
+
+export interface TimeoutEvent extends EventObject {
+  type: 'xstate.timeout';
+  stateId: string;
+}
+
+export interface ActorTimeoutEvent extends EventObject {
+  type: 'xstate.timeout.actor';
+  actorId: string;
+  sessionId?: string;
 }
 
 export enum SpecialTargets {
@@ -1463,6 +1488,8 @@ export interface TransitionDefinition<
   source: AnyStateNode;
   reenter: boolean;
   eventType: EventDescriptor<TEvent>;
+  /** @internal Additional runtime matching for generated transitions. */
+  _eventMatcher?: (event: EventObject, snapshot: AnyMachineSnapshot) => boolean;
   to?: ((...args: any[]) => any) | undefined;
   input?:
     | Record<string, unknown>

@@ -1,5 +1,11 @@
 import z from 'zod';
-import { createActor, createMachine, setup } from '../src';
+import {
+  createActor,
+  createMachine,
+  initialTransition,
+  setup,
+  transition
+} from '../src';
 import { createAsyncLogic, TimeoutError } from '../src/actors/promise.ts';
 
 afterEach(() => {
@@ -39,13 +45,17 @@ describe('async logic timeout', () => {
 describe('state-level timeout', () => {
   it('transitions via onTimeout when duration elapses', () => {
     vi.useFakeTimers();
+    const timeoutSpy = vi.fn();
 
     const machine = createMachine({
       initial: 'waiting',
       states: {
         waiting: {
           timeout: 1000,
-          onTimeout: { target: 'escalated' }
+          onTimeout: ({ event }, enq) => {
+            enq(timeoutSpy, event);
+            return { target: 'escalated' };
+          }
         },
         escalated: {}
       }
@@ -59,6 +69,10 @@ describe('state-level timeout', () => {
 
     vi.advanceTimersByTime(600);
     expect(actor.getSnapshot().value).toBe('escalated');
+    expect(timeoutSpy).toHaveBeenCalledWith({
+      type: 'xstate.timeout',
+      stateId: '(machine).waiting'
+    });
   });
 
   it('cancels the timeout when the state is exited by another event', () => {
@@ -391,19 +405,60 @@ describe('state-level timeout', () => {
 });
 
 describe('invoke-level timeout', () => {
+  it('preserves the canonical invoke timeout event on the pure path', () => {
+    let observedEvent: unknown;
+    const machine = createMachine({
+      initial: 'working',
+      states: {
+        working: {
+          invoke: {
+            id: 'child',
+            src: createAsyncLogic({ run: () => new Promise(() => {}) }),
+            timeout: 1000,
+            onTimeout: ({ event }) => {
+              observedEvent = event;
+              return { target: 'timedOut' };
+            }
+          }
+        },
+        timedOut: {}
+      }
+    });
+    const [working] = initialTransition(machine);
+    const child = working.children.child;
+
+    const [timedOut] = transition(machine, working, {
+      type: 'xstate.timeout.actor',
+      actorId: 'child',
+      sessionId: child.sessionId
+    } as any);
+
+    expect(timedOut.value).toBe('timedOut');
+    expect(observedEvent).toEqual({
+      type: 'xstate.timeout.actor',
+      actorId: 'child',
+      sessionId: child.sessionId
+    });
+  });
+
   it('transitions via invoke.onTimeout when the invoke exceeds its timeout', async () => {
     vi.useFakeTimers();
+    const timeoutSpy = vi.fn();
 
     const machine = createMachine({
       initial: 'working',
       states: {
         working: {
           invoke: {
+            id: 'child',
             src: createAsyncLogic({
               run: () => new Promise((resolve) => setTimeout(resolve, 10_000))
             }),
             timeout: 1000,
-            onTimeout: { target: 'timedOut' },
+            onTimeout: ({ event }, enq) => {
+              enq(timeoutSpy, event);
+              return { target: 'timedOut' };
+            },
             onDone: { target: 'done' }
           }
         },
@@ -417,6 +472,11 @@ describe('invoke-level timeout', () => {
 
     vi.advanceTimersByTime(1100);
     expect(actor.getSnapshot().value).toBe('timedOut');
+    expect(timeoutSpy).toHaveBeenCalledWith({
+      type: 'xstate.timeout.actor',
+      actorId: 'child',
+      sessionId: expect.any(String)
+    });
   });
 
   it('does NOT fire onTimeout if the invoke completes first', async () => {

@@ -3,9 +3,12 @@ import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import {
   createAfterEvent,
+  createAfterEventId,
   createDoneStateEvent,
   createInvokeTimeoutEvent,
-  createTimeoutEvent
+  createInvokeTimeoutEventId,
+  createTimeoutEvent,
+  createTimeoutEventId
 } from './eventUtils.ts';
 import {
   XSTATE_INIT,
@@ -17,11 +20,13 @@ import {
 import {
   getEventOutput,
   isErrorEvent,
+  matchesEvent,
   matchesEventDescriptor
 } from './utils.ts';
 import {
   AnyEventObject,
   AnyMachineSnapshot,
+  AnyStateMachine,
   AnyStateNode,
   AnyTransitionDefinition,
   DelayedTransitionDefinition,
@@ -254,28 +259,140 @@ export function isInFinalState(
 
 export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
+function getLegacyEventType(event: EventObject): string | undefined {
+  switch (event.type) {
+    case 'xstate.done.actor':
+    case 'xstate.error.actor':
+      return `${event.type}.${(event as any).actorId}`;
+    case 'xstate.snapshot.actor':
+      return `xstate.snapshot.${(event as any).actorId}`;
+    case 'xstate.done.state':
+      return `xstate.done.state.${(event as any).stateId}`;
+    case 'xstate.after':
+      return `xstate.after.${(event as any).delay}.${(event as any).stateId}`;
+    case 'xstate.timeout':
+      return `xstate.timeout.${(event as any).stateId}`;
+    case 'xstate.timeout.actor':
+      return `xstate.timeout.actor.${(event as any).actorId}`;
+    default:
+      return undefined;
+  }
+}
+
+function getEventTypeAliases(event: EventObject): string[] {
+  const legacyType = getLegacyEventType(event);
+  return legacyType ? [event.type, legacyType] : [event.type];
+}
+
+export function getEventDescriptorKey(event: EventObject): string {
+  return getEventTypeAliases(event).join('|');
+}
+
+export function matchesActorSession(
+  event: EventObject,
+  snapshot: AnyMachineSnapshot,
+  actorId: string
+): boolean {
+  return (
+    !snapshot.children[actorId] ||
+    !('sessionId' in event) ||
+    snapshot.children[actorId]?.sessionId === event.sessionId
+  );
+}
+
+function normalizeLegacyInternalEvent(
+  event: EventObject,
+  machine: AnyStateMachine
+): EventObject {
+  if (
+    event.type === 'xstate.done.actor' ||
+    event.type === 'xstate.error.actor' ||
+    event.type === 'xstate.snapshot.actor' ||
+    event.type === 'xstate.done.state' ||
+    event.type === 'xstate.after' ||
+    event.type === 'xstate.timeout' ||
+    event.type === 'xstate.timeout.actor'
+  ) {
+    return event;
+  }
+
+  const normalizeWithId = (
+    prefix: string,
+    type: string,
+    idKey: 'actorId' | 'stateId'
+  ) =>
+    event.type.startsWith(prefix)
+      ? {
+          ...event,
+          type,
+          [idKey]: (event as any)[idKey] ?? event.type.slice(prefix.length)
+        }
+      : undefined;
+
+  const normalized =
+    normalizeWithId('xstate.done.actor.', 'xstate.done.actor', 'actorId') ??
+    normalizeWithId('xstate.error.actor.', 'xstate.error.actor', 'actorId') ??
+    normalizeWithId('xstate.snapshot.', 'xstate.snapshot.actor', 'actorId') ??
+    normalizeWithId('xstate.done.state.', 'xstate.done.state', 'stateId') ??
+    normalizeWithId(
+      'xstate.timeout.actor.',
+      'xstate.timeout.actor',
+      'actorId'
+    ) ??
+    normalizeWithId('xstate.timeout.', 'xstate.timeout', 'stateId');
+
+  if (normalized) {
+    return normalized;
+  }
+
+  const afterPrefix = 'xstate.after.';
+  if (!event.type.startsWith(afterPrefix)) {
+    return event;
+  }
+
+  const stateId = [...machine.idMap.keys()]
+    .sort((a, b) => b.length - a.length)
+    .find((id) => event.type.endsWith(`.${id}`));
+  if (!stateId) {
+    return event;
+  }
+  const delayText = event.type.slice(afterPrefix.length, -stateId.length - 1);
+  return {
+    ...event,
+    type: 'xstate.after',
+    delay: Number.isNaN(+delayText) ? delayText : +delayText,
+    stateId
+  } as AnyEventObject;
+}
+
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
-  receivedEventType: TEvent['type']
+  event: TEvent
 ): Array<TransitionDefinition<any, TEvent>> {
-  const exactMatch = stateNode.transitions.get(receivedEventType);
+  const eventTypes = getEventTypeAliases(event);
+  const exactMatches = eventTypes.flatMap(
+    (eventType) => stateNode.transitions.get(eventType) ?? []
+  );
   const wildcardCandidates = [...stateNode.transitions.keys()]
     .filter(
       (eventDescriptor) =>
-        eventDescriptor !== receivedEventType &&
-        matchesEventDescriptor(receivedEventType, eventDescriptor)
+        !eventTypes.includes(eventDescriptor) &&
+        eventTypes.some((eventType) =>
+          matchesEventDescriptor(eventType, eventDescriptor)
+        )
     )
     .sort((a, b) => b.length - a.length)
     .flatMap((key) => stateNode.transitions.get(key)!);
 
-  return exactMatch
-    ? [...exactMatch, ...wildcardCandidates]
+  return exactMatches.length
+    ? [...exactMatches, ...wildcardCandidates]
     : wildcardCandidates;
 }
 
 function scheduleDelayedEvent(
   stateNode: AnyStateNode,
-  event: AnyEventObject,
+  timerId: string,
+  resolveEvent: (args: any) => AnyEventObject,
   resolveScheduledDelay: (x: {
     context: MachineContext;
     event: EventObject;
@@ -283,22 +400,19 @@ function scheduleDelayedEvent(
     input?: Record<string, unknown>;
   }) => any
 ) {
-  const eventType = event.type;
   const oldEntry = stateNode.entry;
   stateNode.entry = (x: any, enq: any) => {
-    enq.raise(event as any, {
-      id: eventType,
+    enq.raise(resolveEvent(x) as any, {
+      id: timerId,
       delay: resolveScheduledDelay(x)
     });
     return typeof oldEntry === 'function' ? oldEntry(x, enq) : undefined;
   };
   const oldExit = stateNode.exit;
   stateNode.exit = (_: any, enq: any) => {
-    enq.cancel(eventType);
+    enq.cancel(timerId);
     return typeof oldExit === 'function' ? oldExit(_, enq) : undefined;
   };
-
-  return eventType;
 }
 
 /** All delayed transitions from the config. */
@@ -338,12 +452,18 @@ export function getDelayedTransitions(
   // differ only in the event raised, the transition(s) caught, and whether the
   // delay resolves against the machine's `delays` map (invoke timeouts do not).
   //
-  // `xstate.timeout.<id>` is a dedicated event so a state-level `timeout` cannot
-  // collide with an explicit `after` entry on the same state. Invoke timeouts
-  // are scheduled on the enclosing state; completion transitions cancel the
-  // timer separately, so it clears even when the parent state stays active.
+  // `xstate.timeout` is a dedicated event category so a state-level `timeout`
+  // cannot collide with an explicit `after` entry on the same state. Invoke
+  // timeouts are scheduled on the enclosing state; completion transitions
+  // cancel the timer separately, so it clears even when the parent stays active.
   const sources: Array<{
     event: AnyEventObject;
+    timerId: string;
+    resolveEvent?: (args: any) => AnyEventObject;
+    eventMatcher?: (
+      event: EventObject,
+      snapshot: AnyMachineSnapshot
+    ) => boolean;
     delay: any;
     transitions: unknown;
     fromDelaysMap: boolean;
@@ -354,6 +474,7 @@ export function getDelayedTransitions(
       const delay = Number.isNaN(+key) ? key : +key;
       sources.push({
         event: createAfterEvent(delay, stateNode.id),
+        timerId: createAfterEventId(delay, stateNode.id),
         delay,
         transitions: afterConfig[key],
         fromDelaysMap: true
@@ -364,6 +485,7 @@ export function getDelayedTransitions(
   if (timeoutConfig !== undefined && onTimeoutConfig) {
     sources.push({
       event: createTimeoutEvent(stateNode.id),
+      timerId: createTimeoutEventId(stateNode.id),
       delay: timeoutConfig,
       transitions: onTimeoutConfig,
       fromDelaysMap: true
@@ -373,6 +495,14 @@ export function getDelayedTransitions(
   for (const invokeDef of invokeDefs) {
     sources.push({
       event: createInvokeTimeoutEvent(invokeDef.id),
+      timerId: createInvokeTimeoutEventId(invokeDef.id),
+      resolveEvent: ({ children }: any) =>
+        createInvokeTimeoutEvent(
+          invokeDef.id,
+          children[invokeDef.id]?.sessionId
+        ),
+      eventMatcher: (event, snapshot) =>
+        matchesActorSession(event, snapshot, invokeDef.id),
       delay: invokeDef.timeout!,
       transitions: invokeDef.onTimeout,
       fromDelaysMap: false
@@ -383,20 +513,53 @@ export function getDelayedTransitions(
   // transition definition — the live delay is resolved at runtime in the
   // scheduled entry action, so no eager resolution is needed.
   const delayedTransitions: Array<
-    AnyTransitionConfig & { event: string; delay: any }
+    AnyTransitionConfig & {
+      event: string;
+      delay: any;
+      _eventMatcher?: (
+        event: EventObject,
+        snapshot: AnyMachineSnapshot
+      ) => boolean;
+    }
   > = [];
 
-  for (const { event, delay, transitions, fromDelaysMap } of sources) {
-    const eventType = scheduleDelayedEvent(stateNode, event, (x) =>
-      resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
-        context: x.context,
-        event: x.event,
-        stateNode,
-        input: x.input
-      })
+  for (const {
+    event,
+    timerId,
+    resolveEvent,
+    eventMatcher,
+    delay,
+    transitions,
+    fromDelaysMap
+  } of sources) {
+    scheduleDelayedEvent(
+      stateNode,
+      timerId,
+      resolveEvent ?? (() => event),
+      (x) =>
+        resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
+          context: x.context,
+          event: x.event,
+          stateNode,
+          input: x.input
+        })
     );
+    const { type: eventType, ...eventPattern } = event;
     for (const transition of toTransitionConfigArray(transitions as any)) {
-      delayedTransitions.push({ ...transition, event: eventType, delay });
+      delayedTransitions.push({
+        ...transition,
+        matches: {
+          ...transition.matches,
+          ...Object.fromEntries(
+            Object.entries(eventPattern).filter(
+              ([, value]) => value !== undefined
+            )
+          )
+        },
+        event: eventType,
+        delay,
+        _eventMatcher: eventMatcher
+      });
     }
   }
 
@@ -1276,7 +1439,9 @@ function microstep(
           rootCompletionNode.parent
         ) {
           const rootDoneEvent = internalQueue.find(
-            (e) => e.type === `xstate.done.state.${rootNode.id}`
+            (e) =>
+              e.type === 'xstate.done.state' &&
+              (e as DoneStateEvent).stateId === rootNode.id
           ) as DoneStateEvent | undefined;
           completionOutput =
             rootDoneEvent && rootCompletionNode.parent === rootNode
@@ -1289,9 +1454,10 @@ function microstep(
                   stateInputMap[rootCompletionNode.id]
                 );
         } else if (rootCompletionNode.type === 'parallel') {
-          const parallelDoneType = `xstate.done.state.${rootCompletionNode.id}`;
           const parallelDoneEvent = internalQueue.find(
-            (e) => e.type === parallelDoneType
+            (e) =>
+              e.type === 'xstate.done.state' &&
+              (e as DoneStateEvent).stateId === rootCompletionNode.id
           ) as DoneStateEvent | undefined;
           completionOutput = parallelDoneEvent?.output;
         }
@@ -1649,9 +1815,10 @@ function microstep(
             }
 
             if (region.type === 'parallel') {
-              const regionDoneType = `xstate.done.state.${region.id}`;
               const regionDoneEvent = internalQueue.find(
-                (e) => e.type === regionDoneType
+                (e) =>
+                  e.type === 'xstate.done.state' &&
+                  (e as DoneStateEvent).stateId === region.id
               ) as DoneStateEvent | undefined;
               regionOutput[region.key] = regionDoneEvent?.output;
               continue;
@@ -1900,8 +2067,8 @@ export function macrostep(
 
   function removeTerminatedChild(terminalEvent: EventObject) {
     if (
-      !terminalEvent.type.startsWith('xstate.done.actor.') &&
-      !terminalEvent.type.startsWith('xstate.error.actor.')
+      terminalEvent.type !== 'xstate.done.actor' &&
+      terminalEvent.type !== 'xstate.error.actor'
     ) {
       return;
     }
@@ -1988,7 +2155,7 @@ export function macrostep(
     return completeMacrostep();
   }
 
-  let nextEvent = event;
+  let nextEvent = normalizeLegacyInternalEvent(event, snapshot.machine);
 
   if (event.type === XSTATE_TIMER) {
     const timer = nextSnapshot.timers[(event as any).id];
@@ -2024,6 +2191,16 @@ export function macrostep(
     );
 
     if (isErr && !transitions.length) {
+      if (
+        currentEvent.type === 'xstate.error.actor' &&
+        !matchesActorSession(
+          currentEvent,
+          nextSnapshot,
+          (currentEvent as AnyEventObject).actorId
+        )
+      ) {
+        return completeMacrostep();
+      }
       // TODO: we should likely only allow transitions selected by very explicit descriptors
       // `*` shouldn't be matched, likely `xstate.error.*` shouldn't be either
       // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
@@ -2287,6 +2464,14 @@ export function evaluateCandidate(
   stateNode: AnyStateNode,
   self: AnyActor
 ): boolean {
+  if (candidate.matches && !matchesEvent(event, candidate.matches)) {
+    return false;
+  }
+
+  if (candidate._eventMatcher && !candidate._eventMatcher(event, snapshot)) {
+    return false;
+  }
+
   if (candidate.guard) {
     const guardArgs = {
       context: snapshot.context,

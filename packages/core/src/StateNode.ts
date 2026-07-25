@@ -1,12 +1,14 @@
 import isDevelopment from '#is-development';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
-import { createInvokeTimeoutEvent } from './eventUtils.ts';
+import { createInvokeTimeoutEventId } from './eventUtils.ts';
 import { memo } from './memo.ts';
 import {
   evaluateCandidate,
   formatTransition,
   getCandidates,
-  getDelayedTransitions
+  getEventDescriptorKey,
+  getDelayedTransitions,
+  matchesActorSession
 } from './stateUtils.ts';
 import type {
   DelayedTransitionDefinition,
@@ -117,8 +119,8 @@ export class StateNode<
    */
   public meta?: any;
   /**
-   * The output data sent with the "xstate.done.state._id_" event if this is a
-   * final state node.
+   * The output data sent with the `xstate.done.state` event if this is a final
+   * state node.
    */
   public output?:
     | Mapper<MachineContext, EventObject, unknown, EventObject>
@@ -294,11 +296,10 @@ export class StateNode<
     event: AnyEventObject,
     self: AnyActor
   ): Array<AnyTransitionDefinition> | undefined {
-    const eventType = event.type;
     const candidates: Array<AnyTransitionDefinition> = memo(
       this,
-      `candidates-${eventType}`,
-      () => getCandidates(this, eventType)
+      `candidates-${getEventDescriptorKey(event)}`,
+      () => getCandidates(this, event)
     );
 
     for (const candidate of candidates) {
@@ -405,6 +406,15 @@ function formatTransitions<
     string,
     TransitionDefinition<TContext, AnyEventObject>[]
   >();
+  const addTransitions = (
+    descriptor: string,
+    additions: AnyTransitionDefinition[]
+  ) => {
+    transitions.set(descriptor, [
+      ...(transitions.get(descriptor) ?? []),
+      ...additions
+    ]);
+  };
   if (stateNode.config.on) {
     for (const descriptor of Object.keys(stateNode.config.on)) {
       if (descriptor === NULL_EVENT) {
@@ -424,11 +434,14 @@ function formatTransitions<
     }
   }
   if (stateNode.config.onDone) {
-    const descriptor = `xstate.done.state.${stateNode.id}`;
-    transitions.set(
+    const descriptor = 'xstate.done.state';
+    addTransitions(
       descriptor,
       mapTransitionConfigs(stateNode.config.onDone, (transition) =>
-        formatTransition(stateNode, descriptor, transition)
+        formatTransition(stateNode, descriptor, {
+          ...transition,
+          matches: { ...transition.matches, stateId: stateNode.id }
+        })
       )
     );
   }
@@ -443,18 +456,22 @@ function formatTransitions<
   }
   const createCancelInvokeTimeoutTransition = (
     descriptor: string,
-    timeoutEventType: string
+    timeoutEventId: string,
+    actorId: string
   ): AnyTransitionDefinition =>
     formatTransition(stateNode, descriptor, {
+      matches: { actorId },
+      _eventMatcher: (event: EventObject, snapshot: AnyMachineSnapshot) =>
+        matchesActorSession(event, snapshot, actorId),
       to: (_args: any, enq: any) => {
-        enq.cancel(timeoutEventType);
+        enq.cancel(timeoutEventId);
         return {};
       }
     } as AnyTransitionConfig);
   const formatInvokeCompletionTransition = (
     descriptor: string,
     transitionConfig: AnyTransitionConfig,
-    timeoutEventType: string
+    timeoutEventId: string
   ): AnyTransitionDefinition => {
     const { target, to, reenter, ...rest } = transitionConfig;
 
@@ -485,13 +502,13 @@ function formatTransitions<
           const result = to(args, trackingEnqueue);
 
           if (result !== undefined || didEnqueue) {
-            enq.cancel(timeoutEventType);
+            enq.cancel(timeoutEventId);
           }
 
           return result;
         }
 
-        enq.cancel(timeoutEventType);
+        enq.cancel(timeoutEventId);
         return {
           target,
           reenter
@@ -500,62 +517,76 @@ function formatTransitions<
     } as AnyTransitionConfig);
   };
   for (const invokeDef of stateNode.invoke) {
-    const invokeTimeoutEventType =
+    const withInvokeMatch = (transition: AnyTransitionConfig) => ({
+      ...transition,
+      matches: { ...transition.matches, actorId: invokeDef.id },
+      _eventMatcher: (event: EventObject, snapshot: AnyMachineSnapshot) =>
+        matchesActorSession(event, snapshot, invokeDef.id)
+    });
+    const invokeTimeoutEventId =
       invokeDef.timeout !== undefined
-        ? createInvokeTimeoutEvent(invokeDef.id).type
+        ? createInvokeTimeoutEventId(invokeDef.id)
         : undefined;
 
     if (invokeDef.onDone) {
-      const descriptor = `xstate.done.actor.${invokeDef.id}`;
+      const descriptor = 'xstate.done.actor';
       const invokeDoneTransitions = mapTransitionConfigs(
         invokeDef.onDone,
-        (transition) =>
-          invokeTimeoutEventType
+        (rawTransition) => {
+          const transition = withInvokeMatch(rawTransition);
+          return invokeTimeoutEventId
             ? formatInvokeCompletionTransition(
                 descriptor,
                 transition,
-                invokeTimeoutEventType
+                invokeTimeoutEventId
               )
-            : formatTransition(stateNode, descriptor, transition)
+            : formatTransition(stateNode, descriptor, transition);
+        }
       );
 
-      if (invokeTimeoutEventType) {
+      if (invokeTimeoutEventId) {
         invokeDoneTransitions.push(
           createCancelInvokeTimeoutTransition(
             descriptor,
-            invokeTimeoutEventType
+            invokeTimeoutEventId,
+            invokeDef.id
           )
         );
       }
 
-      transitions.set(descriptor, invokeDoneTransitions);
-    } else if (invokeTimeoutEventType) {
-      const descriptor = `xstate.done.actor.${invokeDef.id}`;
-      transitions.set(descriptor, [
-        createCancelInvokeTimeoutTransition(descriptor, invokeTimeoutEventType)
+      addTransitions(descriptor, invokeDoneTransitions);
+    } else if (invokeTimeoutEventId) {
+      const descriptor = 'xstate.done.actor';
+      addTransitions(descriptor, [
+        createCancelInvokeTimeoutTransition(
+          descriptor,
+          invokeTimeoutEventId,
+          invokeDef.id
+        )
       ]);
     }
     if (invokeDef.onError) {
-      const descriptor = `xstate.error.actor.${invokeDef.id}`;
-      transitions.set(
+      const descriptor = 'xstate.error.actor';
+      addTransitions(
         descriptor,
-        mapTransitionConfigs(invokeDef.onError, (transition) =>
-          invokeTimeoutEventType
+        mapTransitionConfigs(invokeDef.onError, (rawTransition) => {
+          const transition = withInvokeMatch(rawTransition);
+          return invokeTimeoutEventId
             ? formatInvokeCompletionTransition(
                 descriptor,
                 transition,
-                invokeTimeoutEventType
+                invokeTimeoutEventId
               )
-            : formatTransition(stateNode, descriptor, transition)
-        )
+            : formatTransition(stateNode, descriptor, transition);
+        })
       );
     }
     if (invokeDef.onSnapshot) {
-      const descriptor = `xstate.snapshot.${invokeDef.id}`;
-      transitions.set(
+      const descriptor = 'xstate.snapshot.actor';
+      addTransitions(
         descriptor,
         mapTransitionConfigs(invokeDef.onSnapshot, (transition) =>
-          formatTransition(stateNode, descriptor, transition)
+          formatTransition(stateNode, descriptor, withInvokeMatch(transition))
         )
       );
     }
