@@ -73,6 +73,7 @@
     "clean-initial-transitions",
     "clean-invoked-snapshots",
     "clean-snapshot-matches",
+    "clean-terminal-children",
     "codemod-migrate-cli",
     "deferred-child-start",
     "durable-logic-effects",
