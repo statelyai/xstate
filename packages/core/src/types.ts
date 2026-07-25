@@ -1376,6 +1376,7 @@ export interface DoneActorEvent<TOutput = unknown, TId extends string = string>
   type: `xstate.done.actor.${TId}`;
   output: TOutput;
   actorId: TId;
+  sessionId: string;
 }
 
 export interface ErrorActorEvent<
@@ -1385,6 +1386,7 @@ export interface ErrorActorEvent<
   type: `xstate.error.actor.${TId}`;
   error: TErrorData;
   actorId: TId;
+  sessionId: string;
 }
 
 export interface ErrorPlatformEvent<
@@ -1599,6 +1601,8 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   syncSnapshot?: boolean;
   /** @internal */
   _systemRef?: { current?: AnyActorSystem };
+  /** @internal */
+  _sessionId?: string;
   /** The custom `id` for referencing this service. */
   id?: string;
   /** @deprecated Use `inspect` instead. */

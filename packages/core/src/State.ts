@@ -598,6 +598,7 @@ export function getPersistedSnapshot<
     childrenJson[id as keyof typeof childrenJson] = {
       snapshot: child.getPersistedSnapshot(options),
       src: child.src,
+      sessionId: child.sessionId,
       registryKey: child.registryKey,
       syncSnapshot: child._syncSnapshot
     };
@@ -635,6 +636,8 @@ export function getPersistedSnapshot<
 
   const persisted: Record<string, unknown> = {
     ...jsonValues,
+    _nextActorId:
+      getSnapshotActorRef(snapshot)?.systemState.snapshot._nextActorId,
     context: persistContext(context) as any,
     children: childrenJson,
     timers: timersJson,

@@ -1181,20 +1181,7 @@ describe('machine logic', () => {
     const actor = createActor(machine).start();
     await waitFor(actor, (s) => s.matches('success'));
     const persistedState = actor.getPersistedSnapshot()!;
-    expect((persistedState as any).children.a.snapshot).toMatchInlineSnapshot(`
-      {
-        "effects": {
-          "async": {
-            "output": 42,
-            "status": "done",
-          },
-        },
-        "error": undefined,
-        "input": undefined,
-        "output": 42,
-        "status": "done",
-      }
-    `);
+    expect((persistedState as any).children.a).toBeUndefined();
     expect((persistedState as any).children.b.snapshot).toEqual(
       expect.objectContaining({
         context: {

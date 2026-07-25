@@ -62,23 +62,32 @@ export function createDoneStateEvent(
  *
  * @param invokeId The invoked service ID
  * @param output The data to pass into the event
+ * @param sessionId The unique session ID of the completed actor
  */
 export function createDoneActorEvent(
   invokeId: string,
-  output?: unknown
+  output: unknown,
+  sessionId: string
 ): DoneActorEvent {
   return {
     type: `xstate.done.actor.${invokeId}`,
     output,
-    actorId: invokeId
+    actorId: invokeId,
+    sessionId
   };
 }
 
 export function createErrorActorEvent(
   id: string,
-  error?: unknown
+  error: unknown,
+  sessionId: string
 ): ErrorActorEvent {
-  return { type: `xstate.error.actor.${id}`, error, actorId: id };
+  return {
+    type: `xstate.error.actor.${id}`,
+    error,
+    actorId: id,
+    sessionId
+  };
 }
 
 export function createErrorPlatformEvent(

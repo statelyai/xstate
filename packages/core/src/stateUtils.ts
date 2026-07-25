@@ -1898,6 +1898,39 @@ export function macrostep(
   let nextSnapshot = snapshot;
   const microsteps: Microstep[] = initialMicrosteps.slice();
 
+  function removeTerminatedChild(terminalEvent: EventObject) {
+    if (
+      !terminalEvent.type.startsWith('xstate.done.actor.') &&
+      !terminalEvent.type.startsWith('xstate.error.actor.')
+    ) {
+      return;
+    }
+
+    const { actorId, sessionId } = terminalEvent as AnyEventObject & {
+      actorId?: string;
+      sessionId?: string;
+    };
+    if (!actorId) {
+      return;
+    }
+    const child = nextSnapshot.children[actorId];
+    if (!child || child.sessionId !== sessionId) {
+      return;
+    }
+
+    const children = { ...nextSnapshot.children };
+    delete children[actorId];
+    actorScope.system._unregister(child);
+    nextSnapshot = cloneMachineSnapshot(nextSnapshot, { children });
+
+    if (microsteps.length) {
+      const [, lastEffects] = microsteps.at(-1)!;
+      microsteps[microsteps.length - 1] = [nextSnapshot, lastEffects];
+    } else {
+      microsteps.push([nextSnapshot, []]);
+    }
+  }
+
   function completeMacrostep() {
     const effects = microsteps.flatMap(([, actions]) => actions);
     const starts = deriveDeferredStarts(effects);
@@ -1999,6 +2032,7 @@ export function macrostep(
         error: currentEvent.error
       });
       addMicrostep([nextSnapshot, []], []);
+      removeTerminatedChild(currentEvent);
       return completeMacrostep();
     }
     const step = microstep(
@@ -2011,6 +2045,7 @@ export function macrostep(
     );
     nextSnapshot = step[0];
     addMicrostep(step, transitions);
+    removeTerminatedChild(currentEvent);
   }
 
   let shouldSelectEventlessTransitions = true;
@@ -2064,6 +2099,7 @@ export function macrostep(
     nextSnapshot = step[0];
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;
     addMicrostep(step, enabledTransitions);
+    removeTerminatedChild(nextEvent);
   }
 
   return completeMacrostep();

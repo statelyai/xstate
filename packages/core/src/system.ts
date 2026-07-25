@@ -273,7 +273,7 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     _snapshot: {
       _scheduledTimers:
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {},
-      _nextActorId: 0
+      _nextActorId: (options?.snapshot as any)?._nextActorId ?? 0
     },
     _bookId: () => `x:${system._snapshot._nextActorId++}`,
     _register: (sessionId, actor) => {

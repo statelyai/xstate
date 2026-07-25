@@ -109,6 +109,87 @@ describe('#5077 re-persistability of children', () => {
     }).start();
     expect(secondRestored.getSnapshot().status).toBe('active');
   });
+
+  it('preserves a spawned child incarnation across a JSON round-trip', () => {
+    const child = createMachine({});
+    const parent = createMachine({
+      actorSources: { child },
+      context: ({ spawn, actorSources }) => {
+        spawn(actorSources.child, { id: 'myChild' });
+        return {};
+      }
+    });
+    const actor = createActor(parent).start();
+    const sessionId = actor.getSnapshot().children.myChild.sessionId;
+    const persisted = roundTrip(actor.getPersistedSnapshot());
+    actor.stop();
+
+    const restored = createActor(parent, { snapshot: persisted });
+
+    expect(restored.getSnapshot().children.myChild.sessionId).toBe(sessionId);
+  });
+
+  it('does not reuse a removed child incarnation after restoration', () => {
+    const child = createMachine({});
+    const parent = createMachine({
+      actorSources: { child },
+      entry: (_, enq) => enq.spawn(child, { id: 'myChild' }),
+      on: {
+        REMOVE: ({ children }, enq) => enq.stop(children.myChild),
+        SPAWN: (_, enq) => {
+          enq.spawn(child, { id: 'myChild' });
+        }
+      }
+    });
+    const actor = createActor(parent).start();
+    const removedSessionId = actor.getSnapshot().children.myChild.sessionId;
+    actor.send({ type: 'REMOVE' });
+    const persisted = roundTrip(actor.getPersistedSnapshot());
+    actor.stop();
+
+    const restored = createActor(parent, { snapshot: persisted }).start();
+    restored.send({ type: 'SPAWN' });
+    const replacement = restored.getSnapshot().children.myChild;
+
+    expect(replacement.sessionId).not.toBe(removedSessionId);
+
+    restored.send({
+      type: 'xstate.done.actor.myChild',
+      actorId: 'myChild',
+      sessionId: removedSessionId,
+      output: undefined
+    } as any);
+
+    expect(restored.getSnapshot().children.myChild).toBe(replacement);
+  });
+});
+
+describe('missing persisted child sources', () => {
+  it('fails restoration instead of silently dropping the child', () => {
+    const child = createMachine({});
+    const parent = createMachine({
+      actorSources: {} as { child: typeof child },
+      context: ({ spawn, actorSources }) => {
+        spawn(actorSources.child, { id: 'myChild' });
+        return {};
+      }
+    });
+    const configuredParent = parent.provide({
+      actorSources: { child }
+    });
+    const actor = createActor(configuredParent).start();
+    const persisted = roundTrip(actor.getPersistedSnapshot());
+    actor.stop();
+
+    const restored = createActor(parent, { snapshot: persisted });
+
+    expect(restored.getSnapshot()).toMatchObject({
+      status: 'error',
+      error: expect.objectContaining({
+        message: expect.stringContaining("child source 'child'")
+      })
+    });
+  });
 });
 
 describe('#4873 system.get after restore', () => {

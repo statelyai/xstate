@@ -1077,6 +1077,7 @@ export class StateMachine<
       {
         src: string | AnyActorLogic;
         snapshot: Snapshot<unknown>;
+        sessionId?: string;
         syncSnapshot?: boolean;
         registryKey?: string;
       }
@@ -1091,7 +1092,10 @@ export class StateMachine<
         typeof src === 'string' ? resolveReferencedActor(this, src) : src;
 
       if (!logic) {
-        continue;
+        const sourceId = typeof src === 'string' ? src : '<unknown>';
+        throw new Error(
+          `Unable to restore child actor '${actorId}': child source '${sourceId}' is not provided in machine '${this.id}'.`
+        );
       }
 
       const actor = resolvedActorScope.system.createActorRef(logic, {
@@ -1100,6 +1104,7 @@ export class StateMachine<
         syncSnapshot: actorData.syncSnapshot,
         snapshot: childState,
         src,
+        _sessionId: actorData.sessionId,
         registryKey: actorData.registryKey
       });
       // Mark so `start()` knows to start this child (freshly invoked/spawned

@@ -3529,12 +3529,14 @@ describe('invoke', () => {
         {
           type: 'xstate.done.actor.0.(machine).first.fetch',
           output: undefined,
-          actorId: '0.(machine).first.fetch'
+          actorId: '0.(machine).first.fetch',
+          sessionId: expect.any(String)
         },
         {
           type: 'xstate.done.actor.0.(machine).second.fetch',
           output: undefined,
-          actorId: '0.(machine).second.fetch'
+          actorId: '0.(machine).second.fetch',
+          sessionId: expect.any(String)
         }
       ]);
       resolve();

@@ -15,6 +15,7 @@ import {
 } from '../src';
 import type {
   AnyActor,
+  AnyEventObject,
   ExecutableActionObject,
   SpecialExecutableAction
 } from '../src/types';
@@ -1439,6 +1440,139 @@ describe('transition function', () => {
     });
   });
 
+  describe('terminal child cleanup', () => {
+    const child = createLogic({
+      context: undefined,
+      run: () => undefined
+    });
+
+    it('removes a dynamically spawned child after its matching done event', () => {
+      const machine = createMachine({
+        entry: (_, enq) => enq.spawn(child, { id: 'child' })
+      });
+      const [active] = initialTransition(machine);
+      const childRef = active.children.child;
+
+      const [completed] = transition(machine, active, {
+        type: 'xstate.done.actor.child',
+        actorId: 'child',
+        sessionId: childRef.sessionId,
+        output: 42
+      } as any);
+
+      expect(completed.children).toEqual({});
+    });
+
+    it('removes a dynamically spawned child after its matching error event', () => {
+      const machine = createMachine({
+        entry: (_, enq) => enq.spawn(child, { id: 'child' }),
+        on: {
+          'xstate.error.actor.child': {}
+        }
+      });
+      const [active] = initialTransition(machine);
+      const childRef = active.children.child;
+
+      const [failed] = transition(machine, active, {
+        type: 'xstate.error.actor.child',
+        actorId: 'child',
+        sessionId: childRef.sessionId,
+        error: new Error('failed')
+      } as any);
+
+      expect(failed.children).toEqual({});
+    });
+
+    it('keeps the child visible while handling its terminal event', () => {
+      let observedChild: AnyActor | undefined;
+      let observedEvent: AnyEventObject | undefined;
+      const machine = createMachine({
+        entry: (_, enq) => enq.spawn(child, { id: 'child' }),
+        on: {
+          'xstate.done.actor.child': ({ children, event }, _enq) => {
+            observedChild = children.child;
+            observedEvent = event;
+          }
+        }
+      });
+      const [active] = initialTransition(machine);
+      const childRef = active.children.child;
+
+      const [completed] = transition(machine, active, {
+        type: 'xstate.done.actor.child',
+        actorId: 'child',
+        sessionId: childRef.sessionId,
+        output: 42
+      } as any);
+
+      expect(observedChild).toBe(childRef);
+      expect(observedEvent).toMatchObject({
+        sessionId: childRef.sessionId,
+        output: 42
+      });
+      expect(completed.children).toEqual({});
+    });
+
+    it('does not remove a replacement child for a stale terminal event', () => {
+      const machine = createMachine({
+        entry: (_, enq) => enq.spawn(child, { id: 'child' }),
+        on: {
+          REPLACE: ({ children }, enq) => {
+            enq.stop(children.child);
+            enq.spawn(child, { id: 'child' });
+          }
+        }
+      });
+      const [firstSnapshot] = initialTransition(machine);
+      const firstChild = firstSnapshot.children.child;
+      const [secondSnapshot] = transition(machine, firstSnapshot, {
+        type: 'REPLACE'
+      });
+      const secondChild = secondSnapshot.children.child;
+
+      const [afterStaleDone] = transition(machine, secondSnapshot, {
+        type: 'xstate.done.actor.child',
+        actorId: 'child',
+        sessionId: firstChild.sessionId,
+        output: undefined
+      } as any);
+
+      expect(secondChild).not.toBe(firstChild);
+      expect(afterStaleDone.children.child).toBe(secondChild);
+    });
+
+    it('reports the pruned child in the final microstep', () => {
+      const machine = createMachine({
+        entry: (_, enq) => enq.spawn(child, { id: 'child' })
+      });
+      const [active] = initialTransition(machine);
+      const childRef = active.children.child;
+
+      const microsteps = getMicrosteps(machine, active, {
+        type: 'xstate.done.actor.child',
+        actorId: 'child',
+        sessionId: childRef.sessionId,
+        output: undefined
+      } as any);
+
+      expect(microsteps.at(-1)?.[0].children).toEqual({});
+    });
+
+    it('removes a completed dynamically spawned child on the live path', () => {
+      const completingChild = createLogic({
+        context: undefined,
+        run: () => ({ status: 'done', output: 42 })
+      });
+      const machine = createMachine({
+        entry: (_, enq) => enq.spawn(completingChild, { id: 'completingChild' })
+      });
+
+      const actor = createActor(machine).start();
+
+      expect(actor.getSnapshot().children).toEqual({});
+    });
+  });
+
   const emittingLogic = createCallbackLogic(({ emit }) => {
     emit({ type: 'someEvent' });
   });
@@ -2067,7 +2201,13 @@ describe('transition function', () => {
           await action.exec();
           const startedActor = action.actor as ReturnType<typeof createActor>;
           const output = await toPromise(startedActor);
-          postEvent(createDoneActorEvent(startedActor.id, output));
+          postEvent(
+            createDoneActorEvent(
+              startedActor.id,
+              output,
+              startedActor.sessionId
+            )
+          );
         }
 
         default:

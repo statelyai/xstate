@@ -207,6 +207,7 @@ export class Actor<TLogic extends AnyActorLogic>
         createRuntimeSystem(this, {
           clock,
           logger,
+          snapshot: resolvedOptions.snapshot ?? resolvedOptions.state,
           createActorRef: (childLogic, childOptions) =>
             createActor(childLogic, childOptions as any)
         }));
@@ -224,7 +225,7 @@ export class Actor<TLogic extends AnyActorLogic>
       this.system.inspect(toObserver(inspect));
     }
 
-    this.sessionId = this.system._bookId();
+    this.sessionId = resolvedOptions._sessionId ?? this.system._bookId();
     this.id = id ?? this.sessionId;
     this.logger = options?.logger ?? this.system._logger;
     this.clock = options?.clock ?? this.system._clock;
@@ -819,7 +820,7 @@ export class Actor<TLogic extends AnyActorLogic>
         this.system._relay(
           this,
           this._parent,
-          createDoneActorEvent(this.id, termination.output)
+          createDoneActorEvent(this.id, termination.output, this.sessionId)
         );
       }
       return;
@@ -886,7 +887,7 @@ export class Actor<TLogic extends AnyActorLogic>
       this.system._relay(
         this,
         this._parent,
-        createErrorActorEvent(this.id, err)
+        createErrorActorEvent(this.id, err, this.sessionId)
       );
     }
   }
