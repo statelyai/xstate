@@ -827,13 +827,9 @@ describe('interpreter', () => {
       expect(service.getSnapshot().value).toEqual('yellow');
     }
 
-    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
-      [
-        [
-          "Event "TIMER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.",
-        ],
-      ]
-    `);
+    expect(warnSpy).toHaveBeenCalledWith(
+      `Event "TIMER" was sent to stopped actor "x:0 (${service.sessionId})". This actor has already reached its final state, and will not transition.`
+    );
   });
 
   it('should be able to log (log action)', () => {
@@ -1332,13 +1328,9 @@ describe('interpreter', () => {
 
       setTimeout(() => {
         expect(called).toBeFalsy();
-        expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
-          [
-            [
-              "Event "TRIGGER" was sent to stopped actor "x:0 (x:0)". This actor has already reached its final state, and will not transition.",
-            ],
-          ]
-        `);
+        expect(warnSpy).toHaveBeenCalledWith(
+          `Event "TRIGGER" was sent to stopped actor "x:0 (${service.sessionId})". This actor has already reached its final state, and will not transition.`
+        );
         resolve();
       }, 10);
       return promise;

@@ -110,7 +110,7 @@ describe('#5077 re-persistability of children', () => {
     expect(secondRestored.getSnapshot().status).toBe('active');
   });
 
-  it('preserves a spawned child incarnation across a JSON round-trip', () => {
+  it('assigns a new runtime session to a restored child', () => {
     const child = createMachine({});
     const parent = createMachine({
       actorSources: { child },
@@ -122,11 +122,23 @@ describe('#5077 re-persistability of children', () => {
     const actor = createActor(parent).start();
     const sessionId = actor.getSnapshot().children.myChild.sessionId;
     const persisted = roundTrip(actor.getPersistedSnapshot());
+    expect(persisted.children.myChild).not.toHaveProperty('incarnationId');
+    expect(persisted.children.myChild).not.toHaveProperty('sessionId');
     actor.stop();
 
-    const restored = createActor(parent, { snapshot: persisted });
+    const restored = createActor(parent, { snapshot: persisted }).start();
+    const restoredChild = restored.getSnapshot().children.myChild;
 
-    expect(restored.getSnapshot().children.myChild.sessionId).toBe(sessionId);
+    expect(restoredChild.sessionId).not.toBe(sessionId);
+
+    restored.send({
+      type: 'xstate.done.actor.myChild',
+      actorId: 'myChild',
+      sessionId,
+      output: undefined
+    } as any);
+
+    expect(restored.getSnapshot().children.myChild).toBe(restoredChild);
   });
 
   it('does not reuse a removed child incarnation after restoration', () => {

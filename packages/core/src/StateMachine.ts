@@ -1,6 +1,10 @@
 import isDevelopment from '#is-development';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
-import { createErrorPlatformEvent, createInitEvent } from './eventUtils.ts';
+import {
+  createErrorPlatformEvent,
+  createInitEvent,
+  createInvokeTimeoutEvent
+} from './eventUtils.ts';
 import { XSTATE_TIMER } from './constants.ts';
 
 import { createSpawner } from './spawn.ts';
@@ -1077,7 +1081,6 @@ export class StateMachine<
       {
         src: string | AnyActorLogic;
         snapshot: Snapshot<unknown>;
-        sessionId?: string;
         syncSnapshot?: boolean;
         registryKey?: string;
       }
@@ -1104,7 +1107,6 @@ export class StateMachine<
         syncSnapshot: actorData.syncSnapshot,
         snapshot: childState,
         src,
-        _sessionId: actorData.sessionId,
         registryKey: actorData.registryKey
       });
       // Mark so `start()` knows to start this child (freshly invoked/spawned
@@ -1126,6 +1128,14 @@ export class StateMachine<
       }
     > = snapshotData.timers ?? {};
     for (const [id, timer] of Object.entries(persistedTimers)) {
+      let event = timer.event;
+      if (event.type === 'xstate.timeout.actor') {
+        const actorId = (event as AnyEventObject).actorId as string;
+        const child = children[actorId];
+        if (child) {
+          event = createInvokeTimeoutEvent(actorId, child.sessionId);
+        }
+      }
       const target =
         typeof timer.target === 'string'
           ? timer.target === 'self'
@@ -1139,7 +1149,7 @@ export class StateMachine<
           `Unable to restore timer '${id}': target actor '${targetDescription}' is unavailable.`
         );
       }
-      timers[id] = { ...timer, target };
+      timers[id] = { ...timer, event, target };
     }
 
     const reviveHistoryValue = (

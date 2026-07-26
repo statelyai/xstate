@@ -598,7 +598,6 @@ export function getPersistedSnapshot<
     childrenJson[id as keyof typeof childrenJson] = {
       snapshot: child.getPersistedSnapshot(options),
       src: child.src,
-      sessionId: child.sessionId,
       registryKey: child.registryKey,
       syncSnapshot: child._syncSnapshot
     };
@@ -606,6 +605,11 @@ export function getPersistedSnapshot<
 
   for (const id in timers) {
     const timer = timers[id];
+    let event = timer.event;
+    if (event.type === 'xstate.timeout.actor') {
+      event = { ...event };
+      delete (event as EventObject & { sessionId?: string }).sessionId;
+    }
     let target: string | { type: 'parent' };
     if (timer.target === 'self') {
       target = 'self';
@@ -629,7 +633,7 @@ export function getPersistedSnapshot<
       id: timer.id,
       delay: timer.delay,
       type: timer.type,
-      event: timer.event,
+      event,
       target
     };
   }

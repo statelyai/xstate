@@ -33,6 +33,64 @@ interface Scheduler {
   cancelAll(actor: AnyActor): void;
 }
 
+let nextFallbackSystemId = 0;
+
+function createSystemId(): string {
+  let crypto: Crypto | undefined;
+  try {
+    crypto = globalThis.crypto;
+  } catch {
+    // Use the process-local fallback below.
+  }
+
+  if (crypto?.randomUUID) {
+    try {
+      return crypto.randomUUID();
+    } catch {
+      // Try getRandomValues next.
+    }
+  }
+
+  if (crypto?.getRandomValues) {
+    try {
+      const values = new Uint32Array(4);
+      crypto.getRandomValues(values);
+      return Array.from(values, (value) => value.toString(36)).join('-');
+    } catch {
+      // Use the process-local fallback below.
+    }
+  }
+
+  return `xstate-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2)}-${nextFallbackSystemId++}`;
+}
+
+/** @internal */
+export function resolveActorId(
+  system: AnyActorSystem,
+  requestedId: string | undefined
+): string {
+  if (requestedId !== undefined) {
+    const match = /^x:(\d+)$/.exec(requestedId);
+    const reservedId = match ? Number(match[1]) : undefined;
+    if (reservedId !== undefined && Number.isSafeInteger(reservedId)) {
+      system._snapshot._nextActorId = Math.max(
+        system._snapshot._nextActorId,
+        reservedId + 1
+      );
+    }
+    return requestedId;
+  }
+
+  return `x:${system._snapshot._nextActorId++}`;
+}
+
+/** @internal */
+export function bookSessionId(system: AnyActorSystem): string {
+  return `${system._identity.systemId}:${system._identity.nextSessionId++}`;
+}
+
 /**
  * Runtime operations used to execute effects.
  *
@@ -94,8 +152,6 @@ export interface ActorSystem<T extends ActorSystemInfo>
   /** @internal */
   keyedActors: Map<keyof T['actors'], AnyActor | undefined>;
   /** @internal */
-  _bookId: () => string;
-  /** @internal */
   _register: (sessionId: string, actor: AnyActor) => string;
   /** @internal */
   _unregister: (actor: AnyActor) => void;
@@ -122,6 +178,15 @@ export interface ActorSystem<T extends ActorSystemInfo>
   scheduler: Scheduler;
   getSnapshot: () => {
     _scheduledTimers: Record<string, ScheduledTimer>;
+  };
+  /**
+   * Runtime identity shared by every snapshot view of this actor system.
+   *
+   * @internal
+   */
+  _identity: {
+    systemId: string;
+    nextSessionId: number;
   };
   /** @internal */
   _snapshot: {
@@ -270,12 +335,15 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     children,
     reverseKeyedActors,
     keyedActors,
+    _identity: {
+      systemId: createSystemId(),
+      nextSessionId: 0
+    },
     _snapshot: {
       _scheduledTimers:
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {},
       _nextActorId: (options?.snapshot as any)?._nextActorId ?? 0
     },
-    _bookId: () => `x:${system._snapshot._nextActorId++}`,
     _register: (sessionId, actor) => {
       children.set(sessionId, actor);
       return sessionId;

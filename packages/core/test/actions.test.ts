@@ -3089,6 +3089,7 @@ describe('sendTo', () => {
   it("should not attempt to deliver a delayed event to the spawned actor's ID that was stopped since the event was scheduled", async () => {
     const warnSpy = vi.spyOn(console, 'warn');
     const spy1 = vi.fn();
+    let stoppedChildSessionId: string | undefined;
     const child1 = createMachine({
       on: {
         // PING: {
@@ -3133,6 +3134,7 @@ describe('sendTo', () => {
             const child1 = enq.spawn(actorSources.child1, {
               id: 'myChild'
             });
+            stoppedChildSessionId = child1.sessionId;
             enq.sendTo(child1, { type: 'PING' }, { delay: 1 });
             enq.stop(child1);
             enq.spawn(actorSources.child2, {
@@ -3147,13 +3149,10 @@ describe('sendTo', () => {
     await sleep(10);
     expect(spy1).toHaveBeenCalledTimes(0);
     expect(spy2).toHaveBeenCalledTimes(0);
-    expect(warnSpy.mock.calls).toMatchInlineSnapshot(`
-[
-  [
-    "Event "PING" was sent to stopped actor "myChild (x:1)". This actor has already reached its final state, and will not transition.",
-  ],
-]
-`);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy).toHaveBeenCalledWith(
+      `Event "PING" was sent to stopped actor "myChild (${stoppedChildSessionId})". This actor has already reached its final state, and will not transition.`
+    );
   });
   // TODO: need to fix stale value problem
   it.skip("should not attempt to deliver a delayed event to the invoked actor's ID that was stopped since the event was scheduled", async () => {

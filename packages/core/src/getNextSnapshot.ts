@@ -70,7 +70,12 @@ export function createInertActorScope<T extends AnyActorLogic>(
     actorLogic as AnyActorLogic,
     {
       _inert: true,
-      ...(previousSelf ? { id: previousSelf.id } : {}),
+      ...(previousSelf
+        ? {
+            id: previousSelf.id,
+            _sessionId: previousSelf.sessionId
+          }
+        : {}),
       ...(system ? { _systemRef: { current: system } } : {})
     } as any
   );

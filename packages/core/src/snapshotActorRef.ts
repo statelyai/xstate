@@ -43,21 +43,12 @@ export function createSnapshotSystem(
       ).filter((entry): entry is [string, AnyActor] => !!entry[1])
   );
   const reverseKeyedActors = new WeakMap<AnyActor, any>();
-  let booksSelf = true;
-
   const system: AnyActor['system'] = {
     ...baseSystem,
     children: registeredActors,
     keyedActors,
     reverseKeyedActors,
     _snapshot: { ...(baseState?.snapshot ?? baseSystem._snapshot) },
-    _bookId: () => {
-      if (booksSelf) {
-        booksSelf = false;
-        return self.sessionId ?? self.id;
-      }
-      return `x:${system._snapshot._nextActorId++}`;
-    },
     _register: (sessionId: string, actor: AnyActor) => {
       registeredActors.set(sessionId, actor);
       return sessionId;

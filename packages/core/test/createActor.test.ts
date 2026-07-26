@@ -12,6 +12,19 @@ import {
 import { setTimeout as sleep } from 'node:timers/promises';
 import z from 'zod';
 describe('createActor()', () => {
+  it('reserves explicit IDs in the generated ID namespace', () => {
+    const logic = createMachine({});
+    const root = createActor(logic);
+    const explicitlyNamed = createActor(logic, {
+      id: 'x:1',
+      parent: root
+    });
+    const automaticallyNamed = createActor(logic, { parent: root });
+
+    expect(explicitlyNamed.id).toBe('x:1');
+    expect(automaticallyNamed.id).toBe('x:2');
+  });
+
   describe('createAsyncLogic', () => {
     it('should create an unstarted actor from promise logic', () => {
       const promiseLogic = createAsyncLogic({ run: async () => 42 });

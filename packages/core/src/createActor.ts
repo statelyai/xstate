@@ -9,7 +9,13 @@ import {
 } from './eventUtils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
-import { AnyActorSystem, Clock, createRuntimeSystem } from './system.ts';
+import {
+  AnyActorSystem,
+  bookSessionId,
+  Clock,
+  createRuntimeSystem,
+  resolveActorId
+} from './system.ts';
 
 // those are needed to make JSDoc `@link` work properly
 import type {
@@ -225,8 +231,8 @@ export class Actor<TLogic extends AnyActorLogic>
       this.system.inspect(toObserver(inspect));
     }
 
-    this.sessionId = resolvedOptions._sessionId ?? this.system._bookId();
-    this.id = id ?? this.sessionId;
+    this.sessionId = resolvedOptions._sessionId ?? bookSessionId(this.system);
+    this.id = resolveActorId(this.system, id);
     this.logger = options?.logger ?? this.system._logger;
     this.clock = options?.clock ?? this.system._clock;
     this._parent = parent;

@@ -45,6 +45,95 @@ function simplifyEvents(
 }
 
 describe('inspect', () => {
+  it('uses globally unique session IDs across actor systems', () => {
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: createMachine({})
+      }
+    });
+    const events: InspectionEvent[] = [];
+
+    const actorA = createActor(machine, {
+      inspect: (event) => events.push(event)
+    });
+    const actorB = createActor(machine, {
+      inspect: (event) => events.push(event)
+    });
+
+    actorA.start();
+    actorB.start();
+
+    expect(actorA.id).toBe('x:0');
+    expect(actorB.id).toBe('x:0');
+    expect(actorA.sessionId).not.toBe(actorB.sessionId);
+    expect(new Set(events.map((event) => event.actorRef.sessionId)).size).toBe(
+      4
+    );
+    expect(new Set(events.map((event) => event.rootId))).toEqual(
+      new Set([actorA.sessionId, actorB.sessionId])
+    );
+  });
+
+  it('falls back without failing when Web Crypto is unusable', () => {
+    vi.stubGlobal('crypto', {
+      randomUUID: () => {
+        throw new Error('unavailable');
+      },
+      getRandomValues: () => {
+        throw new Error('unavailable');
+      }
+    });
+    const sessionIds: string[] = [];
+
+    try {
+      sessionIds.push(
+        createActor(createMachine({})).sessionId,
+        createActor(createMachine({})).sessionId
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    expect(new Set(sessionIds).size).toBe(2);
+  });
+
+  it('uses new globally unique session IDs when restoring the same snapshot', () => {
+    const child = createMachine({});
+    const machine = createMachine({
+      actorSources: { child },
+      invoke: { id: 'child', src: child }
+    });
+    const original = createActor(machine).start();
+    const snapshot = JSON.parse(
+      JSON.stringify(original.getPersistedSnapshot())
+    );
+    original.stop();
+    const events: InspectionEvent[] = [];
+
+    const restoredA = createActor(machine, {
+      snapshot,
+      inspect: (event) => events.push(event)
+    });
+    const restoredB = createActor(machine, {
+      snapshot,
+      inspect: (event) => events.push(event)
+    });
+
+    expect(restoredA.getSnapshot().children.child.sessionId).not.toBe(
+      restoredB.getSnapshot().children.child.sessionId
+    );
+    expect(
+      new Set(
+        events
+          .filter(
+            (event) => event.type === '@xstate.actor' && event.id === 'child'
+          )
+          .map((event) => event.actorRef.sessionId)
+      ).size
+    ).toBe(2);
+  });
+
   it('the .inspect option can observe inspection events', async () => {
     const machine = createMachine({
       initial: 'a',
@@ -159,7 +248,9 @@ describe('inspect', () => {
     expect(
       simplified.filter((e) => e.event.type === XSTATE_INIT).length
     ).toBeGreaterThanOrEqual(2);
-    const parentEvents = simplified.filter((e) => e.targetId === 'x:0');
+    const parentEvents = simplified.filter(
+      (e) => e.targetId === actor.sessionId
+    );
     expect(parentEvents[parentEvents.length - 1].snapshot.value).toBe(
       'success'
     );

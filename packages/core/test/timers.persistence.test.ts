@@ -1,5 +1,10 @@
 import { expect, vi } from 'vitest';
-import { createActor, createMachine, SimulatedClock } from '../src';
+import {
+  createActor,
+  createAsyncLogic,
+  createMachine,
+  SimulatedClock
+} from '../src';
 
 const createLightMachine = () =>
   createMachine({
@@ -70,6 +75,49 @@ describe('persisted logical timers', () => {
     expect(restored.getSnapshot().value).toBe('green');
     clock.increment(1);
     expect(restored.getSnapshot().value).toBe('yellow');
+  });
+
+  it('materializes a restored invoke timeout for the current child session', () => {
+    const child = createAsyncLogic({ run: () => new Promise(() => {}) });
+    const machine = createMachine({
+      actorSources: { child },
+      initial: 'working',
+      states: {
+        working: {
+          invoke: {
+            id: 'child',
+            src: 'child',
+            timeout: 100,
+            onTimeout: { target: 'timedOut' }
+          }
+        },
+        timedOut: {}
+      }
+    });
+    const original = createActor(machine, {
+      clock: new SimulatedClock()
+    }).start();
+    const originalSessionId = original.getSnapshot().children.child.sessionId;
+    const persisted = original.getPersistedSnapshot();
+    const [persistedTimer] = Object.values(getTimers(persisted));
+    original.stop();
+
+    expect(persistedTimer.event).toEqual({
+      type: 'xstate.timeout.actor',
+      actorId: 'child'
+    });
+
+    const clock = new SimulatedClock();
+    const restored = createActor(machine, {
+      clock,
+      snapshot: persisted
+    }).start();
+    expect(restored.getSnapshot().children.child.sessionId).not.toBe(
+      originalSessionId
+    );
+
+    clock.increment(100);
+    expect(restored.getSnapshot().value).toBe('timedOut');
   });
 
   it('cancels a restored timer when its declaring state exits', () => {

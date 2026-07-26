@@ -1319,7 +1319,7 @@ describe('transition function', () => {
       expect(sawStoppedChild).toBe(false);
     });
 
-    it('keeps actor session ids monotonic across pure stop and reentry', () => {
+    it('uses a new actor session ID across pure stop and reentry', () => {
       const machine = createMachine({
         initial: 'active',
         states: {
@@ -1335,8 +1335,39 @@ describe('transition function', () => {
       const [inactive] = transition(machine, active, { type: 'EXIT' });
       const [reentered] = transition(machine, inactive, { type: 'ENTER' });
 
-      expect(firstSessionId).toBe('x:1');
-      expect(reentered.children.child.sessionId).toBe('x:2');
+      expect(reentered.children.child.sessionId).not.toBe(firstSessionId);
+    });
+
+    it('assigns distinct opaque session IDs across pure initial transitions', () => {
+      const machine = createMachine({
+        invoke: { id: 'child', src: listener }
+      });
+
+      const [first] = initialTransition(machine);
+      const [second] = initialTransition(machine);
+
+      expect(first.children.child.sessionId).not.toBe(
+        second.children.child.sessionId
+      );
+    });
+
+    it('assigns distinct session IDs to branches from the same snapshot', () => {
+      const machine = createMachine({
+        initial: 'idle',
+        states: {
+          idle: { on: { ENTER: { target: 'active' } } },
+          active: { invoke: { id: 'child', src: listener } }
+        }
+      });
+      const [idle] = initialTransition(machine);
+
+      const [first] = transition(machine, idle, { type: 'ENTER' });
+      const [second] = transition(machine, idle, { type: 'ENTER' });
+
+      expect(first.children.child).not.toBe(second.children.child);
+      expect(first.children.child.sessionId).not.toBe(
+        second.children.child.sessionId
+      );
     });
 
     it('projects nested system registries from the input snapshot', () => {
