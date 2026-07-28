@@ -1637,7 +1637,8 @@ function microstep(
           { resolveActions: false }
         );
         if (input && targets) {
-          for (const targetNode of targets) {
+          const enteredTargets = targets.filter((t) => statesToEnter.has(t));
+          for (const targetNode of enteredTargets) {
             stateInputMap[targetNode.id] = input;
             stateInputsChanged = true;
           }
