@@ -4,7 +4,7 @@ export const workflow = createMachine({
   delays: {
     visaDecisionTimeout: 1000
   },
-  actorSources: {
+  actors: {
     handleApprovedVisaWorkflowID: createAsyncLogic({
       run: async () => {
         console.log('handleApprovedVisaWorkflowID workflow started');

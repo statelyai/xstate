@@ -306,7 +306,7 @@ export function createInvokeId(stateNodeId: string, index: number): string {
 export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
   const match = src.match(/^xstate\.invoke\.(\d+)\.(.*)/)!;
   if (!match) {
-    return machine.implementations.actorSources[src];
+    return machine.sources.actors[src];
   }
   const [, indexStr, nodeId] = match;
   const node = machine.getStateNodeById(nodeId);
@@ -327,7 +327,7 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
   ).src;
   // A referenced actor may itself be registered by name.
   return typeof configSrc === 'string'
-    ? machine.implementations.actorSources[configSrc]
+    ? machine.sources.actors[configSrc]
     : configSrc;
 }
 

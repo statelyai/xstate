@@ -13,7 +13,7 @@ export const workflow = createMachine({
       applicantId: string;
     }
   },
-  actorSources: {
+  actors: {
     finalizeApplicationFunction: createAsyncLogic({
       schemas: {
         input: z.custom<{

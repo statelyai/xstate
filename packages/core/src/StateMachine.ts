@@ -74,7 +74,7 @@ import type {
 } from './types.ts';
 import {
   AnyMachineSchemas,
-  Implementations,
+  Sources,
   Next_MachineConfig,
   MachineOptions
 } from './types.v6.ts';
@@ -148,8 +148,8 @@ type CompatibleProvidedActorSource<
         : never
       : never;
 
-type ProvidedActorSources<
-  TExpectedActorMap extends Implementations['actorSources'],
+type ProvidedActors<
+  TExpectedActorMap extends Sources['actors'],
   TProvidedActorMap extends Partial<
     Record<keyof TExpectedActorMap & string, AnyActorLogic>
   >
@@ -175,10 +175,10 @@ export class StateMachine<
   TEmitted extends EventObject,
   TMeta extends MetaObject,
   TConfig extends StateSchema,
-  TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actorSources'],
-  TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays']
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays']
 > implements
     ActorLogic<
       MachineSnapshot<
@@ -202,7 +202,7 @@ export class StateMachine<
 
   public schemas: AnyMachineSchemas | undefined;
 
-  public implementations: Implementations;
+  public sources: Sources;
 
   /** Runtime options for machine execution. */
   public options: MachineOptions;
@@ -235,26 +235,21 @@ export class StateMachine<
       schemas?: AnyMachineSchemas;
       internalEvents?: readonly string[];
     },
-    implementations?: Implementations
+    sources?: Sources
   ) {
     this.id = config.id || '(machine)';
-    this.implementations = {
-      actorSources: config.actorSources ?? {},
+    this.sources = {
+      actors: config.actors ?? {},
       actions: config.actions ?? {},
-      delays: (config.delays ?? {}) as Implementations['delays'],
+      delays: (config.delays ?? {}) as Sources['delays'],
       guards: config.guards ?? {},
-      ...implementations
+      ...sources
     };
     if (isDevelopment) {
       // The `@xstate.` prefix is reserved for built-in serialized action and
-      // guard descriptors — user implementation names must not collide.
-      for (const kind of [
-        'actions',
-        'guards',
-        'actorSources',
-        'delays'
-      ] as const) {
-        for (const key of Object.keys(this.implementations[kind])) {
+      // guard descriptors — user source names must not collide.
+      for (const kind of ['actions', 'guards', 'actors', 'delays'] as const) {
+        for (const key of Object.keys(this.sources[kind])) {
           if (key.startsWith('@xstate.')) {
             throw new Error(
               `Invalid ${kind} name '${key}': the '@xstate.' prefix is reserved for built-in descriptors.`
@@ -292,20 +287,19 @@ export class StateMachine<
   }
 
   /**
-   * Clones this state machine with the provided implementations.
+   * Clones this state machine with the provided sources.
    *
-   * @param implementations Options (`actions`, `guards`, `actorSources`,
-   *   `delays`) to recursively merge with the existing options.
-   * @returns A new `StateMachine` instance with the provided implementations.
+   * @param sources Options (`actions`, `guards`, `actors`, `delays`) to
+   *   recursively merge with the existing options.
+   * @returns A new `StateMachine` instance with the provided sources.
    */
   public provide<
     const TProvidedActorMap extends Partial<
       Record<keyof TActorMap & string, AnyActorLogic>
     > = {}
-  >(implementations: {
+  >(sources: {
     actions?: Partial<TActionMap>;
-    actorSources?: TProvidedActorMap &
-      ProvidedActorSources<TActorMap, TProvidedActorMap>;
+    actors?: TProvidedActorMap & ProvidedActors<TActorMap, TProvidedActorMap>;
     guards?: Partial<TGuardMap>;
     delays?: Partial<TDelayMap>;
   }): StateMachine<
@@ -324,27 +318,27 @@ export class StateMachine<
     TGuardMap,
     TDelayMap
   > {
-    const { actions, guards, actorSources, delays } = this.implementations;
+    const { actions, guards, actors, delays } = this.sources;
 
     const provided = new StateMachine(this.config, {
       actions: {
         ...actions,
-        ...implementations.actions
-      } as Implementations['actions'],
+        ...sources.actions
+      } as Sources['actions'],
       guards: {
         ...guards,
-        ...implementations.guards
-      } as Implementations['guards'],
-      actorSources: {
-        ...actorSources,
-        ...implementations.actorSources
-      } as Implementations['actorSources'],
+        ...sources.guards
+      } as Sources['guards'],
+      actors: {
+        ...actors,
+        ...sources.actors
+      } as Sources['actors'],
       delays: {
         ...delays,
-        ...implementations.delays
-      } as Implementations['delays']
+        ...sources.delays
+      } as Sources['delays']
     }) as unknown as this;
-    // Providing implementations does not change the serializable definition.
+    // Providing sources does not change the serializable definition.
     provided._json = this._json;
     return provided;
   }
@@ -787,16 +781,12 @@ export class StateMachine<
 
     if (typeof context === 'function') {
       const children = {};
-      const spawn = createSpawner(
-        actorScope,
-        this.implementations.actorSources,
-        children
-      );
+      const spawn = createSpawner(actorScope, this.sources.actors, children);
       const resolvedContext = context({
         spawn,
         input: initEvent.input,
         self: actorScope.self,
-        actorSources: this.implementations.actorSources
+        actors: this.sources.actors
       });
       const [nextState] = resolveActionsWithContext(
         preInitial,

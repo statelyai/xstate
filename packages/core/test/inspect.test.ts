@@ -101,7 +101,7 @@ describe('inspect', () => {
   it('uses new globally unique session IDs when restoring the same snapshot', () => {
     const child = createMachine({});
     const machine = createMachine({
-      actorSources: { child },
+      actors: { child },
       invoke: { id: 'child', src: child }
     });
     const original = createActor(machine).start();

@@ -1,7 +1,7 @@
 import { createMachine, createCallbackLogic } from 'xstate';
 
 export const timerMachine = createMachine({
-  actorSources: {
+  actors: {
     ticks: createCallbackLogic(({ sendBack }) => {
       const interval = setInterval(() => {
         sendBack({ type: 'TICK' });

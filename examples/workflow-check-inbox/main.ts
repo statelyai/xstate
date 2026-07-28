@@ -23,7 +23,7 @@ export const workflow = createMachine({
       messages: Message[];
     }
   },
-  actorSources: {
+  actors: {
     schedule: createCallbackLogic<
       any,
       {

@@ -80,7 +80,7 @@ describe('persisted logical timers', () => {
   it('materializes a restored invoke timeout for the current child session', () => {
     const child = createAsyncLogic({ run: () => new Promise(() => {}) });
     const machine = createMachine({
-      actorSources: { child },
+      actors: { child },
       initial: 'working',
       states: {
         working: {
@@ -161,7 +161,7 @@ describe('persisted logical timers', () => {
       }
     });
     const parent = createMachine({
-      actorSources: { child },
+      actors: { child },
       initial: 'working',
       states: {
         working: {
@@ -200,7 +200,7 @@ describe('persisted logical timers', () => {
       on: { PING: ({ event }, enq) => enq(received, event) }
     });
     const parent = createMachine({
-      actorSources: { child },
+      actors: { child },
       invoke: { id: 'child', src: 'child' },
       on: {
         SCHEDULE: ({ children }, enq) => {
@@ -248,7 +248,7 @@ describe('persisted logical timers', () => {
       }
     });
     const parent = createMachine({
-      actorSources: { child },
+      actors: { child },
       invoke: { id: 'child', src: 'child' },
       on: {
         START: ({ children }, enq) =>
@@ -276,7 +276,7 @@ describe('persisted logical timers', () => {
   it('does not rebind a delayed send to a replacement child with the same id', () => {
     const child = createMachine({});
     const parent = createMachine({
-      actorSources: { child },
+      actors: { child },
       initial: 'active',
       states: {
         active: {

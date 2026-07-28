@@ -72,7 +72,7 @@ export type {
   Next_StateNodeConfig as StateNodeConfig,
   Next_InvokeConfig as InvokeConfig,
   Next_TransitionConfigOrTarget as TransitionConfigOrTarget,
-  Implementations,
+  Sources,
   InferEvents,
   WidenLiterals
 } from './types.v6.ts';

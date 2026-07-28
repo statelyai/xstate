@@ -6,7 +6,7 @@ const context = {
 
 export const fetchMachine = createMachine({
   id: 'fetch',
-  actorSources: {
+  actors: {
     fetchData: createAsyncLogic({ run: () => Promise.resolve('') })
   },
   initial: 'idle',
@@ -18,7 +18,7 @@ export const fetchMachine = createMachine({
     loading: {
       invoke: {
         id: 'fetchData',
-        src: ({ actorSources }) => actorSources.fetchData,
+        src: ({ actors }) => actors.fetchData,
         onDone: ({ event }) => {
           if (event.output.length > 0) {
             return {

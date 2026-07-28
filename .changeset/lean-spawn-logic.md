@@ -6,9 +6,9 @@ Spawning registered actor logic from a machine context now preserves its actor s
 
 ```ts
 createMachine({
-  actorSources: { child },
-  context: ({ spawn, actorSources }) => {
-    spawn(actorSources.child);
+  actors: { child },
+  context: ({ spawn, actors }) => {
+    spawn(actors.child);
     return {};
   }
 });

@@ -36,7 +36,7 @@ export const mediaScannerMachine = createMachine({
       console.log('Emailing errors');
     }
   },
-  actorSources: {
+  actors: {
     scanLibrary: createAsyncLogic({
       schemas: {
         input: z.custom<{

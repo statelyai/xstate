@@ -42,9 +42,9 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
 
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
   useIsomorphicLayoutEffect(() => {
-    (actorRef.logic as any as AnyStateMachine).implementations = (
+    (actorRef.logic as any as AnyStateMachine).sources = (
       logic as any as AnyStateMachine
-    ).implementations;
+    ).sources;
   });
 
   return [actorRef, setActorRef];

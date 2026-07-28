@@ -59,9 +59,9 @@
 
   ```ts
   createMachine({
-    actorSources: { child },
-    context: ({ spawn, actorSources }) => {
-      spawn(actorSources.child);
+    actors: { child },
+    context: ({ spawn, actors }) => {
+      spawn(actors.child);
       return {};
     }
   });
@@ -440,7 +440,7 @@
   import { z } from 'zod';
 
   const machine = setup({
-    actorSources: {
+    actors: {
       loadUser: createAsyncLogic({
         run: async () => ({ name: 'Ada' })
       })
@@ -672,7 +672,7 @@
 ### Patch Changes
 
 - 54205cc: Empty Standard Schema event objects now infer as type-only events, so `{ type: 'SEND' }` is accepted for an empty `SEND` payload schema while non-empty schemas still require their payload fields.
-- 54205cc: Registered invoke `onDone` callbacks now receive the invoked actor's output type, and `machine.provide({ actorSources })` accepts compatible actor implementations with sound input/output variance.
+- 54205cc: Registered invoke `onDone` callbacks now receive the invoked actor's output type, and `machine.provide({ actors })` accepts compatible actor sources with sound input/output variance.
 
 ## 6.0.0-alpha.8
 
@@ -1095,7 +1095,7 @@
   actor.trigger.INC({ by: 5 });
   ```
 
-- [#5543](https://github.com/statelyai/xstate/pull/5543) [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Machine JSON revival now preserves more of the serialized machine definition, including delayed transitions, state timeouts, state tags, state output, invoke input, invoke completion transitions, invoke timeouts, and implementation maps passed to `createMachineFromConfig`.
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Machine JSON revival now preserves more of the serialized machine definition, including delayed transitions, state timeouts, state tags, state output, invoke input, invoke completion transitions, invoke timeouts, and source maps passed to `createMachineFromConfig`.
 
   ```ts
   const machine = createMachineFromConfig(

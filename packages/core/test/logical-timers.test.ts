@@ -132,7 +132,7 @@ describe('logical snapshot timers', () => {
   it('uses the same timer mechanism for delayed sends to children', () => {
     const childLogic = createCallbackLogic(() => {});
     const machine = createMachine({
-      actorSources: { childLogic },
+      actors: { childLogic },
       invoke: { id: 'child', src: 'childLogic' },
       on: {
         SCHEDULE: ({ children }, enq) => {
@@ -239,7 +239,7 @@ describe('logical snapshot timers', () => {
   it('cancels remaining timers after child stops when reaching final', () => {
     const child = createCallbackLogic(() => {});
     const machine = createMachine({
-      actorSources: { child },
+      actors: { child },
       initial: 'active',
       states: {
         active: {
@@ -272,7 +272,7 @@ describe('logical snapshot timers', () => {
   it('cancels remaining timers after child stops when explicitly stopped', () => {
     const child = createCallbackLogic(() => {});
     const machine = createMachine({
-      actorSources: { child },
+      actors: { child },
       invoke: { id: 'child', src: 'child' },
       on: {
         SCHEDULE: (_, enq) =>

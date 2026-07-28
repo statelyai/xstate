@@ -433,16 +433,16 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
           todo: TodoActor | undefined;
         }>()
       },
-      actorSources: {
+      actors: {
         todo: todoMachine
       }
     }).createMachine({
       context: {
         todo: undefined
       },
-      entry: ({ actorSources }, enq) => ({
+      entry: ({ actors }, enq) => ({
         context: {
-          todo: enq.spawn(actorSources.todo)
+          todo: enq.spawn(actors.todo)
         }
       })
     });

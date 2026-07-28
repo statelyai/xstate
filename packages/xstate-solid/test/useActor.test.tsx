@@ -36,7 +36,7 @@ describe('useActor', () => {
   };
   const fetchMachine = createMachine({
     id: 'fetch',
-    actorSources: {
+    actors: {
       fetchData: createMachine({})
     },
     initial: 'idle',
@@ -48,7 +48,7 @@ describe('useActor', () => {
       loading: {
         invoke: {
           id: 'fetchData',
-          src: ({ actorSources }) => actorSources.fetchData,
+          src: ({ actors }) => actors.fetchData,
           onDone: ({ context, event }) => {
             if ((event.output as any).length > 0) {
               return {
@@ -67,7 +67,7 @@ describe('useActor', () => {
 
   const actorRef = createActor(
     fetchMachine.provide({
-      actorSources: {
+      actors: {
         fetchData: createMachine({
           initial: 'done',
           states: {
@@ -96,7 +96,7 @@ describe('useActor', () => {
     );
     const [snapshot, send] = useActor(
       fetchMachine.provide({
-        actorSources: {
+        actors: {
           fetchData: createAsyncLogic({ run: mergedProps.onFetch }) as any
         }
       }),
@@ -1176,7 +1176,7 @@ describe('useActor', () => {
 
     const machine = createMachine({
       initial: 'a',
-      actorSources: {
+      actors: {
         foo: createAsyncLogic({
           run: () => {
             serviceCalled = true;
@@ -1192,7 +1192,7 @@ describe('useActor', () => {
         },
         b: {
           invoke: {
-            src: ({ actorSources }) => actorSources.foo
+            src: ({ actors }) => actors.foo
           }
         }
       }
@@ -1727,14 +1727,14 @@ describe('useActor', () => {
 
     const machine = createMachine({
       initial: 'active',
-      actorSources: {
+      actors: {
         child: childMachine
       },
       states: {
         active: {
           invoke: {
             id: 'test',
-            src: ({ actorSources }) => actorSources.child,
+            src: ({ actors }) => actors.child,
             input: { value: 42 } as any
           }
         }

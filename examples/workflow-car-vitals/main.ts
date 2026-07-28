@@ -100,7 +100,7 @@ const vitalsWorkflow = createMachine({
       output: ({ context }) => context
     }
   },
-  actorSources: {
+  actors: {
     checkTirePressure: createAsyncLogic({
       run: async () => {
         console.log('Starting checkTirePressure');
@@ -168,7 +168,7 @@ export const workflow = createMachine({
       return { target: '.WhenCarIsOn' };
     }
   },
-  actorSources: {
+  actors: {
     vitalscheck: vitalsWorkflow
   }
 });

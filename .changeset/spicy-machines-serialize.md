@@ -49,4 +49,4 @@ Spawned actors, persistence, and machine-as-data fixes:
   });
   ```
 
-- Type fixes: context inferred from a literal initial value is widened (`context: { count: 0 }` infers `{ count: number }`, so context updates typecheck); `invoke.input` accepts a static value (not just a function); `onDone` exposes `event.output`. The v6 config types are exported: `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `MachineJSON`, plus the type utilities `InferEvents`, `WidenLiterals`, and `Implementations`.
+- Type fixes: context inferred from a literal initial value is widened (`context: { count: 0 }` infers `{ count: number }`, so context updates typecheck); `invoke.input` accepts a static value (not just a function); `onDone` exposes `event.output`. The v6 config types are exported: `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `MachineJSON`, plus the type utilities `InferEvents`, `WidenLiterals`, and `Sources`.

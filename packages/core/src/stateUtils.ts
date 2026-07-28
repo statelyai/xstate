@@ -1279,10 +1279,10 @@ function microstep(
             self: actorScope.self,
             children,
             system: actorScope.system,
-            actions: currentSnapshot.machine.implementations.actions,
-            actorSources: currentSnapshot.machine.implementations.actorSources,
-            guards: currentSnapshot.machine.implementations.guards,
-            delays: currentSnapshot.machine.implementations.delays,
+            actions: currentSnapshot.machine.sources.actions,
+            actors: currentSnapshot.machine.sources.actors,
+            guards: currentSnapshot.machine.sources.guards,
+            delays: currentSnapshot.machine.sources.delays,
             input
           },
           enqueue
@@ -1659,8 +1659,7 @@ function microstep(
           let src = invokeDef.logic;
           if (typeof src === 'function') {
             src = src({
-              actorSources:
-                currentSnapshot.machine.implementations.actorSources,
+              actors: currentSnapshot.machine.sources.actors,
               context: nextState.context,
               event,
               self: actorScope.self
@@ -1984,10 +1983,10 @@ export function getTransitionResult(
     system: actorScope.system,
     parent: actorScope.self._parent,
     self: actorScope.self,
-    actions: snapshot.machine.implementations.actions,
-    actorSources: snapshot.machine.implementations.actorSources,
-    guards: snapshot.machine.implementations.guards,
-    delays: snapshot.machine.implementations.delays,
+    actions: snapshot.machine.sources.actions,
+    actors: snapshot.machine.sources.actors,
+    guards: snapshot.machine.sources.guards,
+    delays: snapshot.machine.sources.delays,
     input: getStateInput(snapshot, transition.source.id)
   };
 
@@ -2310,7 +2309,7 @@ export function hasEffect(
       event,
       snapshot,
       self,
-      snapshot.machine.implementations,
+      snapshot.machine.sources,
       transition.source.id
     );
   }
@@ -2324,7 +2323,7 @@ function transitionToHasEffect(
   event: EventObject,
   snapshot: AnyMachineSnapshot,
   self: AnyActor,
-  implementations: AnyMachineSnapshot['machine']['implementations'],
+  sources: AnyMachineSnapshot['machine']['sources'],
   sourceId: string
 ) {
   let hasEffect = false;
@@ -2347,10 +2346,10 @@ function transitionToHasEffect(
         parent: {
           send: triggerEffect
         } as any,
-        actions: implementations.actions,
-        actorSources: implementations.actorSources,
-        guards: implementations.guards,
-        delays: implementations.delays,
+        actions: sources.actions,
+        actors: sources.actors,
+        guards: sources.guards,
+        delays: sources.delays,
         input: getStateInput(snapshot, sourceId)
       },
       createEnqueueObject(
@@ -2480,10 +2479,10 @@ export function evaluateCandidate(
       self,
       parent: self._parent,
       children: snapshot.children,
-      actions: stateNode.machine.implementations.actions,
-      actorSources: stateNode.machine.implementations.actorSources,
-      guards: stateNode.machine.implementations.guards,
-      delays: stateNode.machine.implementations.delays,
+      actions: stateNode.machine.sources.actions,
+      actors: stateNode.machine.sources.actors,
+      guards: stateNode.machine.sources.guards,
+      delays: stateNode.machine.sources.delays,
       _snapshot: snapshot
     };
     if (!(candidate.guard as (args: typeof guardArgs) => boolean)(guardArgs)) {
@@ -2498,7 +2497,7 @@ export function evaluateCandidate(
       event,
       snapshot,
       self,
-      stateNode.machine.implementations,
+      stateNode.machine.sources,
       candidate.source.id
     );
   }

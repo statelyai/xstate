@@ -110,7 +110,7 @@ The first argument is an object. The keys differ slightly between **transition h
 | `parent`       |         ✓          |         ✓         | Parent actor's `ActorRef`, or `undefined` for the root               |
 | `children`     |         ✓          |         ✓         | Record of currently-spawned/invoked child refs                       |
 | `actions`      |         ✓          |         ✓         | Named-action map from `createMachine`/`provide` (for referencing)    |
-| `actorSources` |         ✓          |         ✓         | Named actor source map                                               |
+| `actors`       |         ✓          |         ✓         | Named actor source map                                               |
 | `guards`       |         ✓          |         ✓         | Named-guard map                                                      |
 | `delays`       |         ✓          |         ✓         | Named-delay map                                                      |
 | `value`        |         ✓          |         -         | Current `StateValue`                                                 |
@@ -426,9 +426,9 @@ If you omit `schemas.context`, the context type is inferred from the literal `co
 
 ---
 
-## 4. `setup()` and providing implementations
+## 4. `setup()` and providing sources
 
-`setup()` still exists in v6 and still accepts `actions`, `guards`, `actorSources`, and `delays` (merged into every machine created from it). What changed: `types` is replaced by `schemas`, v5 `actors` is renamed to `actorSources`, and `setup()` gains a `states` key for declaring **state-level input schemas** so `createMachine` and `createStateConfig` are typed for the `initial: { target, input }` form and for transitions targeting those states.
+`setup()` still exists in v6 and still accepts `actions`, `guards`, `actors`, and `delays` (merged into every machine created from it). What changed: `types` is replaced by `schemas`, and `setup()` gains a `states` key for declaring **state-level input schemas** so `createMachine` and `createStateConfig` are typed for the `initial: { target, input }` form and for transitions targeting those states.
 
 ```ts
 // v6 - setup with root schemas and state-level input schemas
@@ -459,7 +459,7 @@ const machine = s.createMachine({
 });
 ```
 
-`actions`, `guards`, `actorSources`, and `delays` may be declared on `setup()` **or** directly on the `createMachine` config:
+`actions`, `guards`, `actors`, and `delays` may be declared on `setup()` **or** directly on the `createMachine` config:
 
 ```ts
 // v6
@@ -473,7 +473,7 @@ const machine = createMachine({
   guards: {
     isReady: ({ context }) => context.ready === true
   },
-  actorSources: {
+  actors: {
     fetchUser: createAsyncLogic({ run: ({ input }) => fetch(`/u/${input.id}`) })
   },
   delays: {
@@ -483,7 +483,7 @@ const machine = createMachine({
 });
 ```
 
-Or attached after the fact via `machine.provide({ actions, guards, actorSources })`:
+Or attached after the fact via `machine.provide({ actions, guards, actors })`:
 
 ```ts
 const provided = machine.provide({
@@ -491,7 +491,7 @@ const provided = machine.provide({
 });
 ```
 
-`provide()` is typed to accept `actions`, `guards`, `actorSources`, and `delays`.
+`provide()` is typed to accept `actions`, `guards`, `actors`, and `delays`.
 
 ---
 
@@ -722,7 +722,7 @@ const actor = createActor(machine).start();
 
 ## 11. `invoke.src` resolves actor logic directly
 
-In v5 you typically referenced an actor by string and registered it via `setup({ actors: { ... } })` or the second arg to `createMachine`. In v6 the named source map is `actorSources`, and you may pass the logic object directly to `invoke.src`:
+In v5 you typically referenced an actor by string and registered it via `setup({ actors: { ... } })` or the second arg to `createMachine`. In v6 the named source map is `actors`, and you may pass the logic object directly to `invoke.src`:
 
 ```ts
 // v5
@@ -738,9 +738,9 @@ invoke: {
 }
 ```
 
-String IDs still work when the actor is registered on `createMachine({ actorSources: { ... } })` directly or supplied via `machine.provide({ actorSources: { ... } })`. Prefer string IDs for any child you intend to **persist** - children spawned/invoked from inline logic objects cannot be rehydrated from a registry and `getPersistedSnapshot()` throws for them in development.
+String IDs still work when the actor is registered on `createMachine({ actors: { ... } })` directly or supplied via `machine.provide({ actors: { ... } })`. Prefer string IDs for any child you intend to **persist** - children spawned/invoked from inline logic objects cannot be rehydrated from a registry and `getPersistedSnapshot()` throws for them in development.
 
-`invoke.src` may also be a **function** resolving to logic or to a registered name: `src: ({ actorSources, context, event, self }) => actorSources.fetchUser`.
+`invoke.src` may also be a **function** resolving to logic or to a registered name: `src: ({ actors, context, event, self }) => actors.fetchUser`.
 
 An `invoke` may declare its own `timeout` / `onTimeout` (independent of state-level `timeout`): when the timeout elapses before the invoked actor completes, the `onTimeout` transition is taken and the invocation is cancelled.
 
@@ -939,7 +939,7 @@ These exports have been **added**:
 - `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
 - `TimeoutError`
 - Serialization surface (see §21): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON`/`UnserializableMarker` types; machines serialize via `serializeMachine(machine)`
-- Config types (v6 shapes): `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `Implementations`, `InferEvents`, `WidenLiterals`
+- Config types (v6 shapes): `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `Sources`, `InferEvents`, `WidenLiterals`
 - `isBuiltInExecutableAction`
 - `executeEffects`
 - `ActorSystemRuntime`
@@ -1108,7 +1108,7 @@ ordering.
 ## 21. Machine-as-data: serialization, JSON configs, SCXML
 
 v6 treats the machine definition as **data** with an explicit boundary around
-runtime implementations:
+runtime sources:
 
 ### Machine → JSON
 
@@ -1117,7 +1117,7 @@ the JSON-serializable definition. Values that cannot be
 represented as data - inline functions, actor logic objects, runtime schemas -
 appear as `{ "$unserializable": "function" | "actor" | "schema" | "value" }`
 markers instead of being silently dropped. A definition is fully portable iff
-it contains no markers; named `actions`/`guards`/`actorSources` keys are preserved
+it contains no markers; named `actions`/`guards`/`actors` keys are preserved
 (as the contract a revived machine must fulfill via `provide()`).
 
 ```ts
@@ -1256,7 +1256,7 @@ so `system.get('receiver')` is available without casts.
 - [ ] Replace `fromPromise(...)` with `createAsyncLogic({ run: ... })`
 - [ ] Replace `types: {} as { ... }` with `schemas: { ... }` (Zod / Standard Schema)
 - [ ] If you used `events` as a **union**, restructure to a **map keyed by type**
-- [ ] Move `actions`/`guards`/`actorSources`/`delays` off of `setup({ ... })` and onto `createMachine({ ... })` (or `machine.provide({ ... })`)
+- [ ] Move `actions`/`guards`/`actors`/`delays` off of `setup({ ... })` and onto `createMachine({ ... })` (or `machine.provide({ ... })`)
 - [ ] Audit `invoke.src` references - `src` may be a logic object, a registered name, or a resolver function
 - [ ] Drop dependencies on `@xstate/immer` and `@xstate/inspect`; update inspection to `actor.subscribe`, the `inspect` option, or `@statelyai/inspect`
 - [ ] Remove imports of `SetupReturn`, `GuardArgs`, `GuardPredicate`, `Inspected*Event`, `PromiseActorLogic`, and `fromPromise` (use `createAsyncLogic`)

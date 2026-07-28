@@ -60,7 +60,7 @@ export default defineComponent({
 
     const { snapshot, send, actorRef } = useMachine(
       fetchMachine.provide({
-        actorSources: {
+        actors: {
           fetchData: createAsyncLogic({ run: onFetch })
         }
       }),

@@ -225,7 +225,7 @@ export interface StateNodeJSON {
   /**
    * JSON route config. Unlike the authoring API (a function), the JSON layer
    * allows an object form whose `guard` may be a named guard reference (string)
-   * resolved against the machine's `guards` implementations.
+   * resolved against the machine's `guards` sources.
    */
   route?:
     | {
@@ -256,7 +256,7 @@ export interface MachineJSON extends StateNodeJSON {
   version?: string;
   actions?: Record<string, ActionJSON | ActionJSON[]>;
   guards?: Record<string, { when: ConditionJSON }>;
-  actorSources?: Record<string, unknown>;
+  actors?: Record<string, unknown>;
   delays?: Record<
     string,
     number | string | { duration: number | string | ResolvableJSON }
@@ -287,15 +287,15 @@ interface EvaluatorArgs {
   path: string;
 }
 
-interface MachineImplementations {
+interface MachineSources {
   actions?: Record<string, (...args: any[]) => unknown>;
   guards?: Record<string, (...args: any[]) => boolean>;
-  actorSources?: Record<string, AnyActorLogic>;
+  actors?: Record<string, AnyActorLogic>;
   delays?: Record<string, number | ((...args: any[]) => number)>;
   evaluators?: Record<string, (args: EvaluatorArgs) => unknown>;
 }
 
-type ProvidedImplementations = Required<MachineImplementations>;
+type ProvidedSources = Required<MachineSources>;
 
 function isExpression(value: unknown): value is ExpressionJSON {
   return (
@@ -351,19 +351,19 @@ function extractSerializableDelays(
   return result;
 }
 
-function mergeImplementations(
+function mergeSources(
   json: MachineJSON,
-  implementations: MachineImplementations
-): ProvidedImplementations {
+  sources: MachineSources
+): ProvidedSources {
   return {
-    actions: implementations.actions ?? {},
-    guards: implementations.guards ?? {},
-    actorSources: implementations.actorSources ?? {},
+    actions: sources.actions ?? {},
+    guards: sources.guards ?? {},
+    actors: sources.actors ?? {},
     delays: {
       ...extractSerializableDelays(json.delays),
-      ...(implementations.delays ?? {})
+      ...(sources.delays ?? {})
     },
-    evaluators: implementations.evaluators ?? {}
+    evaluators: sources.evaluators ?? {}
   };
 }
 
@@ -390,14 +390,14 @@ interface ExpressionResolver {
 
 function createExpressionResolver(
   expressionLanguage: string | undefined,
-  implementations: ProvidedImplementations
+  sources: ProvidedSources
 ): ExpressionResolver {
   function getEvaluator(value: ResolvableJSON, path: string) {
     const lang = value['@lang'] ?? expressionLanguage;
     if (!lang) {
       throw new Error(`Missing @exprLang for expression at ${path}`);
     }
-    const evaluator = implementations.evaluators[lang];
+    const evaluator = sources.evaluators[lang];
     if (!evaluator) {
       throw new Error(`Missing evaluator for @lang '${lang}' at ${path}`);
     }
@@ -531,7 +531,7 @@ function validateChoiceConfig(choice: StateNodeJSON['choice'], path: string) {
 
 function assertMachineJSON(
   json: MachineJSON,
-  resolvedImplementations: ProvidedImplementations,
+  resolvedSources: ProvidedSources,
   expressionResolver: ExpressionResolver
 ) {
   const { assertResolvable } = expressionResolver;
@@ -553,10 +553,10 @@ function assertMachineJSON(
       return;
     }
     if (
-      !resolvedImplementations.guards[condition.type] &&
+      !resolvedSources.guards[condition.type] &&
       !['scxml.cond', 'xstate.stateIn', 'xstate.not'].includes(condition.type)
     ) {
-      throw new Error(`Missing guard implementation "${condition.type}"`);
+      throw new Error(`Missing guard source "${condition.type}"`);
     }
   }
 
@@ -594,8 +594,8 @@ function assertMachineJSON(
       );
       return;
     }
-    if (!resolvedImplementations.actions[action.type]) {
-      throw new Error(`Missing action implementation "${action.type}"`);
+    if (!resolvedSources.actions[action.type]) {
+      throw new Error(`Missing action source "${action.type}"`);
     }
   }
 
@@ -664,11 +664,8 @@ function assertMachineJSON(
         const extInv = invoke as InvokeJSON & {
           _nestedMachineJSON?: MachineJSON;
         };
-        if (
-          !extInv._nestedMachineJSON &&
-          !resolvedImplementations.actorSources[invoke.src]
-        ) {
-          throw new Error(`Missing actorSource implementation "${invoke.src}"`);
+        if (!extInv._nestedMachineJSON && !resolvedSources.actors[invoke.src]) {
+          throw new Error(`Missing actor source "${invoke.src}"`);
         }
         assertResolvable(invoke.input, `${invokePath}.input`);
         assertResolvable(invoke.timeout, `${invokePath}.timeout`);
@@ -689,9 +686,9 @@ function assertMachineJSON(
           Number.isNaN(Number(delay)) &&
           parseDelayToMilliseconds(delay) === undefined &&
           !json.delays?.[delay] &&
-          !resolvedImplementations.delays[delay]
+          !resolvedSources.delays[delay]
         ) {
-          throw new Error(`Missing delay implementation "${delay}"`);
+          throw new Error(`Missing delay source "${delay}"`);
         }
         assertTransition(node.after[delay], `${path}.after.${delay}`);
       }
@@ -855,12 +852,12 @@ return updates;
 
 export function createMachineFromConfig(
   json: MachineJSON,
-  implementations: MachineImplementations = {}
+  sources: MachineSources = {}
 ): AnyStateMachine {
-  const resolvedImplementations = mergeImplementations(json, implementations);
+  const resolvedSources = mergeSources(json, sources);
   const expressionResolver = createExpressionResolver(
     json['@exprLang'],
-    resolvedImplementations
+    resolvedSources
   );
   const { evaluateResolvable, resolveValue, makeScope, getDurationConfig } =
     expressionResolver;
@@ -1226,10 +1223,10 @@ export function createMachineFromConfig(
       if (extInv._nestedMachineJSON) {
         src = createMachineFromConfig(
           extInv._nestedMachineJSON,
-          resolvedImplementations
+          resolvedSources
         );
       } else {
-        src = resolvedImplementations.actorSources[inv.src] ?? inv.src;
+        src = resolvedSources.actors[inv.src] ?? inv.src;
       }
       return {
         src,
@@ -1921,11 +1918,11 @@ export function createMachineFromConfig(
     for (const key of Object.keys(json.delays)) {
       const delay = json.delays[key];
       if (typeof delay === 'number') {
-        resolvedImplementations.delays[key] = delay;
+        resolvedSources.delays[key] = delay;
       } else if (typeof delay === 'string') {
-        resolvedImplementations.delays[key] = delayToMs(delay);
+        resolvedSources.delays[key] = delayToMs(delay);
       } else if (delay && typeof delay === 'object') {
-        resolvedImplementations.delays[key] = (args: any) =>
+        resolvedSources.delays[key] = (args: any) =>
           delayToMs(
             resolveValue(
               delay.duration,
@@ -1938,7 +1935,7 @@ export function createMachineFromConfig(
     }
   }
 
-  assertMachineJSON(json, resolvedImplementations, expressionResolver);
+  assertMachineJSON(json, resolvedSources, expressionResolver);
 
   const rootNodeConfig = iterNode(json);
   const contextConfig = json.context
@@ -1957,7 +1954,7 @@ export function createMachineFromConfig(
     version: json.version
   }) as unknown as AnyStateMachine;
 
-  // Register SCXML guard implementations
+  // Register SCXML guard sources
   const providedGuards: Record<string, (args: any, params: any) => boolean> = {
     'scxml.cond': ({ context, event, self }: any, params: any) => {
       const expr = params?.expr as string;
@@ -2006,13 +2003,13 @@ export function createMachineFromConfig(
     }
   };
   const provided = machine.provide({
-    actions: resolvedImplementations.actions,
-    actorSources: resolvedImplementations.actorSources,
+    actions: resolvedSources.actions,
+    actors: resolvedSources.actors,
     guards: {
       ...providedGuards,
-      ...resolvedImplementations.guards
+      ...resolvedSources.guards
     },
-    delays: resolvedImplementations.delays
+    delays: resolvedSources.delays
   });
 
   // Keep the original JSON so `serializeMachine(machine)`

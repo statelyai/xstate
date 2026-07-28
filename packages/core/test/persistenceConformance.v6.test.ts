@@ -32,9 +32,9 @@ describe('#5077 re-persistability of children', () => {
     });
 
     const parent = createMachine({
-      actorSources: { child },
-      context: ({ spawn, actorSources }) => {
-        spawn(actorSources.child, { id: 'myChild' });
+      actors: { child },
+      context: ({ spawn, actors }) => {
+        spawn(actors.child, { id: 'myChild' });
         return {};
       },
       initial: 'active',
@@ -77,7 +77,7 @@ describe('#5077 re-persistability of children', () => {
     });
 
     const parent = createMachine({
-      actorSources: { child },
+      actors: { child },
       initial: 'active',
       states: {
         active: {
@@ -113,9 +113,9 @@ describe('#5077 re-persistability of children', () => {
   it('assigns a new runtime session to a restored child', () => {
     const child = createMachine({});
     const parent = createMachine({
-      actorSources: { child },
-      context: ({ spawn, actorSources }) => {
-        spawn(actorSources.child, { id: 'myChild' });
+      actors: { child },
+      context: ({ spawn, actors }) => {
+        spawn(actors.child, { id: 'myChild' });
         return {};
       }
     });
@@ -144,7 +144,7 @@ describe('#5077 re-persistability of children', () => {
   it('does not reuse a removed child incarnation after restoration', () => {
     const child = createMachine({});
     const parent = createMachine({
-      actorSources: { child },
+      actors: { child },
       entry: (_, enq) => enq.spawn(child, { id: 'myChild' }),
       on: {
         REMOVE: ({ children }, enq) => enq.stop(children.myChild),
@@ -180,14 +180,14 @@ describe('missing persisted child sources', () => {
   it('fails restoration instead of silently dropping the child', () => {
     const child = createMachine({});
     const parent = createMachine({
-      actorSources: {} as { child: typeof child },
-      context: ({ spawn, actorSources }) => {
-        spawn(actorSources.child, { id: 'myChild' });
+      actors: {} as { child: typeof child },
+      context: ({ spawn, actors }) => {
+        spawn(actors.child, { id: 'myChild' });
         return {};
       }
     });
     const configuredParent = parent.provide({
-      actorSources: { child }
+      actors: { child }
     });
     const actor = createActor(configuredParent).start();
     const persisted = roundTrip(actor.getPersistedSnapshot());
@@ -214,9 +214,9 @@ describe('#4873 system.get after restore', () => {
     });
 
     const parent = createMachine({
-      actorSources: { child },
-      context: ({ spawn, actorSources }) => {
-        spawn(actorSources.child, { registryKey: 'mySystemId' });
+      actors: { child },
+      context: ({ spawn, actors }) => {
+        spawn(actors.child, { registryKey: 'mySystemId' });
         return {};
       }
     });

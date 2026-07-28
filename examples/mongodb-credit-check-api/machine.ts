@@ -21,7 +21,7 @@ export const creditCheckMachine = createMachine({
     },
     context: {} as CreditProfile,
   },
-  actorSources: {
+  actors: {
     checkBureau: createAsyncLogic({
       schemas: {
         input: z.custom<{

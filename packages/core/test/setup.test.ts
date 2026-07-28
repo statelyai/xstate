@@ -120,7 +120,7 @@ describe('setup', () => {
     expect(s.schemas.children.sibling).toBe(sibling);
   });
 
-  it('extends implementations', () => {
+  it('extends sources', () => {
     const calls: string[] = [];
 
     const machine = setup({
@@ -171,6 +171,6 @@ describe('setup', () => {
 
     expect(calls).toEqual(['base', 'extended']);
     expect(actor.getSnapshot().value).toBe('done');
-    expect(machine.implementations.delays.short).toBe(1);
+    expect(machine.sources.delays.short).toBe(1);
   });
 });

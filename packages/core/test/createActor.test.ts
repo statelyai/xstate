@@ -194,12 +194,12 @@ describe('invoke.src accepting actor logic', () => {
         loading: {
           invoke: {
             src: ({
-              actorSources
+              actors
             }: {
-              actorSources: {
+              actors: {
                 promiseLogic: typeof promiseLogic;
               };
-            }) => actorSources.promiseLogic,
+            }) => actors.promiseLogic,
             input: ({
               context
             }: {
@@ -227,7 +227,7 @@ describe('invoke.src accepting actor logic', () => {
           type: 'final'
         }
       } as any,
-      actorSources: {
+      actors: {
         promiseLogic
       }
     });
@@ -240,7 +240,7 @@ describe('invoke.src accepting actor logic', () => {
   it('should accept a string actor logic reference', async () => {
     const promiseLogic = createAsyncLogic({ run: async () => 'from-actors' });
     const machine = createMachine({
-      actorSources: {
+      actors: {
         myPromise: promiseLogic
       },
       schemas: {

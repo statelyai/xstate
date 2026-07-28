@@ -30,11 +30,11 @@ export type Spawner<TSystemRegistry extends SystemRegistry = SystemRegistry> = <
 
 export function createSpawner(
   actorScope: AnyActorScope,
-  actorSources: Record<string, AnyActorLogic>,
+  actors: Record<string, AnyActorLogic>,
   spawnedChildren: Record<string, AnyActorRef>
 ): Spawner {
   return ((src, options) => {
-    const referencedSrc = Object.entries(actorSources).find(
+    const referencedSrc = Object.entries(actors).find(
       ([, logic]) => logic === src
     )?.[0];
     const actor = actorScope.system.createActorRef(src, {

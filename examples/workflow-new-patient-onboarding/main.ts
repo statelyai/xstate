@@ -108,7 +108,7 @@ export const workflow = createMachine({
       type: 'final'
     }
   },
-  actorSources: {
+  actors: {
     StoreNewPatientInfo: createAsyncLogic({
       run: async ({ input }) => {
         console.log('Starting StoreNewPatientInfo', input);

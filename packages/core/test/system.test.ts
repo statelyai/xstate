@@ -699,22 +699,22 @@ describe('system', () => {
     const subchild = createMachine({});
 
     const child = createMachine({
-      actorSources: {
+      actors: {
         subchild
       },
       id: 'childSystem',
       invoke: {
-        src: ({ actorSources }) => actorSources.subchild,
+        src: ({ actors }) => actors.subchild,
         registryKey: 'subchild'
       }
     });
 
     const parent = createMachine({
-      actorSources: { child },
+      actors: { child },
 
       // entry: spawnChild('child', { id: 'childId' }),
-      entry: ({ actorSources }, enq) => {
-        enq.spawn(actorSources.child, { id: 'childId' });
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.child, { id: 'childId' });
       },
       on: {
         // restart: {
@@ -723,9 +723,9 @@ describe('system', () => {
         //     spawnChild('child', { id: 'childId' })
         //   ]
         // }
-        restart: ({ children, actorSources }, enq) => {
+        restart: ({ children, actors }, enq) => {
           enq.stop(children.childId);
-          enq.spawn(actorSources.child, { id: 'childId' });
+          enq.spawn(actors.child, { id: 'childId' });
         }
       }
     });

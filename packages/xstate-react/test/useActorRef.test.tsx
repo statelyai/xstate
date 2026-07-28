@@ -107,7 +107,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     expect(actual).toEqual([42]);
   });
 
-  it('should rerender OK when only the provided machine implementations have changed', () => {
+  it('should rerender OK when only the provided machine sources have changed', () => {
     const machine = createMachine({
       initial: 'foo',
       schemas: {

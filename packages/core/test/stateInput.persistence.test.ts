@@ -141,9 +141,9 @@ describe('persisting state input', () => {
       });
 
       // A persistable invoked child must use a string `src` resolved against
-      // `actorSources` — an inline actor cannot be persisted.
+      // `actors` — an inline actor cannot be persisted.
       const parent = setup({
-        actorSources: { child }
+        actors: { child }
       }).createMachine({
         initial: 'active',
         states: {

@@ -15,7 +15,7 @@ export const workflow = createMachine({
       job: Job;
     }
   },
-  actorSources: {
+  actors: {
     submitJob: createAsyncLogic({
       schemas: {
         input: z.custom<{

@@ -250,7 +250,7 @@
             "additionalProperties": false
           }
         },
-        "actorSources": {
+        "actors": {
           "type": "object",
           "additionalProperties": {
             "type": "object",
@@ -362,7 +362,7 @@
         "schemas": { "$ref": "#/$defs/schemas" },
         "actions": { "$ref": "#/$defs/actionDefinitions" },
         "guards": { "$ref": "#/$defs/guardDefinitions" },
-        "actorSources": { "type": "object" },
+        "actors": { "type": "object" },
         "delays": { "$ref": "#/$defs/delayDefinitions" }
       },
       "additionalProperties": true

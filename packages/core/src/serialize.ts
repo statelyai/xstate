@@ -3,9 +3,9 @@
  *
  * `machineConfigToJSON` converts a machine config into a JSON-safe structure
  * (the `MachineJSON` shape accepted by `createMachineFromConfig`). The boundary
- * between serializable structure and runtime implementations is explicit:
- * functions are represented as `@code` source objects, while actor logic,
- * runtime schemas, and other non-data runtime values are omitted.
+ * between serializable structure and runtime sources is explicit: functions are
+ * represented as `@code` source objects, while actor logic, runtime schemas,
+ * and other non-data runtime values are omitted.
  */
 
 import type { AnyStateMachine } from './types.ts';
@@ -119,7 +119,7 @@ function invokeToJSON(invoke: unknown): unknown {
   return result.src === undefined ? undefined : result;
 }
 
-function implementationsToJSON(
+function sourcesToJSON(
   map: Record<string, unknown> | undefined
 ): Record<string, unknown> | undefined {
   if (!map) {
@@ -191,7 +191,7 @@ export function machineConfigToJSON(
       const value = (config.schemas as Record<string, unknown>)[key];
       if (value && typeof value === 'object' && !('~standard' in value)) {
         // Map-form schemas (events/emitted): preserve event-type keys.
-        schemas[key] = implementationsToJSON(value as Record<string, unknown>);
+        schemas[key] = sourcesToJSON(value as Record<string, unknown>);
       } else {
         schemas[key] = valueToJSON(value);
       }
@@ -201,11 +201,9 @@ export function machineConfigToJSON(
     }
     result.schemas = schemas;
   }
-  for (const key of ['actions', 'guards', 'actorSources', 'delays'] as const) {
+  for (const key of ['actions', 'guards', 'actors', 'delays'] as const) {
     if (config[key]) {
-      const value = implementationsToJSON(
-        config[key] as Record<string, unknown>
-      );
+      const value = sourcesToJSON(config[key] as Record<string, unknown>);
       if (value && Object.keys(value).length) {
         result[key] = value;
       } else {

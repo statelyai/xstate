@@ -220,11 +220,11 @@ describe('rehydration', () => {
 
   it('a rehydrated active child should be registered in the system', () => {
     const machine = createMachine({
-      actorSources: {
+      actors: {
         foo: createMachine({})
       },
-      context: ({ spawn, actorSources }) => {
-        spawn(actorSources.foo, {
+      context: ({ spawn, actors }) => {
+        spawn(actors.foo, {
           registryKey: 'mySystemId'
         });
         return {};
@@ -244,11 +244,11 @@ describe('rehydration', () => {
 
   it('a rehydrated done child should not be registered in the system', () => {
     const machine = createMachine({
-      actorSources: {
+      actors: {
         foo: createMachine({ type: 'final' })
       },
-      context: ({ spawn, actorSources }) => {
-        spawn(actorSources.foo, {
+      context: ({ spawn, actors }) => {
+        spawn(actors.foo, {
           registryKey: 'mySystemId'
         });
         return {};
@@ -270,11 +270,11 @@ describe('rehydration', () => {
     const spy = vi.fn();
 
     const machine = createMachine({
-      actorSources: {
+      actors: {
         foo: createMachine({ type: 'final' })
       },
-      context: ({ spawn, actorSources }) => {
-        spawn(actorSources.foo, {
+      context: ({ spawn, actors }) => {
+        spawn(actors.foo, {
           registryKey: 'mySystemId'
         });
         return {};
@@ -301,7 +301,7 @@ describe('rehydration', () => {
 
   it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
     const machine = createMachine({
-      actorSources: {
+      actors: {
         foo: createAsyncLogic({ run: () => Promise.resolve(42) })
       },
       invoke: {
@@ -359,7 +359,7 @@ describe('rehydration', () => {
         }
       }
       // {
-      //   actorSources: {
+      //   actors: {
       //     failure: createAsyncLogic(() => Promise.reject(new Error('failure')))
       //   }
       // }
@@ -399,7 +399,7 @@ describe('rehydration', () => {
         }
       }
       // {
-      //   actorSources: {
+      //   actors: {
       //     failure: createAsyncLogic(() => Promise.reject(new Error('failure')))
       //   }
       // }
@@ -427,7 +427,7 @@ describe('rehydration', () => {
     const spy = vi.fn();
 
     const machine = createMachine({
-      actorSources: {
+      actors: {
         service: subjectLogic
       },
       invoke: {
@@ -476,7 +476,7 @@ describe('rehydration', () => {
         }
       }
       // {
-      //   actorSources: {
+      //   actors: {
       //     grandchild
       //   }
       // }
@@ -494,7 +494,7 @@ describe('rehydration', () => {
         }
       }
       // {
-      //   actorSources: {
+      //   actors: {
       //     child
       //   }
       // }

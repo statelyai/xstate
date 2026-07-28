@@ -254,7 +254,7 @@ describe('durable interpreter adapter', () => {
     const worker = createMachine({ on: { PING: {} } });
     const machine = createMachine({
       id: 'workflow',
-      actorSources: { worker },
+      actors: { worker },
       initial: 'running',
       states: {
         running: {

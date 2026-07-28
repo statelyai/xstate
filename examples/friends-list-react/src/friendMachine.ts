@@ -24,7 +24,7 @@ export const friendMachine = createMachine({
     },
     tags: {} as 'read' | 'form' | 'saving'
   },
-  actorSources: {
+  actors: {
     saveUser: createAsyncLogic({
       run: async () => {
         // Simulate network request

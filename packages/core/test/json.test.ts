@@ -96,7 +96,7 @@ describe('json', () => {
         output: { result: 42 }
       },
       {
-        actorSources: {
+        actors: {
           invokeSrc: createAsyncLogic({
             run: () => new Promise(() => {})
           })
@@ -262,7 +262,7 @@ describe('json', () => {
         }
       },
       {
-        actorSources: {
+        actors: {
           someSrc: createAsyncLogic({
             run: () => new Promise(() => {})
           })
@@ -275,7 +275,7 @@ describe('json', () => {
     const machineObject = JSON.parse(machineJSON);
 
     const revivedMachine = createMachineFromConfig(machineObject, {
-      actorSources: {
+      actors: {
         someSrc: createAsyncLogic({
           run: () => new Promise(() => {})
         })
@@ -421,7 +421,7 @@ describe('json', () => {
     expect(actor.getSnapshot().output).toEqual({ ok: true });
   });
 
-  it('revives invoke input, completion transitions, and implementation maps', async () => {
+  it('revives invoke input, completion transitions, and source maps', async () => {
     let receivedInput: unknown;
     const worker = createAsyncLogic<number, { count: number }>({
       run: async ({ input }) => {
@@ -448,7 +448,7 @@ describe('json', () => {
           }
         },
         {
-          actorSources: { worker }
+          actors: { worker }
         }
       )
     ).start();
@@ -459,7 +459,7 @@ describe('json', () => {
     expect(receivedInput).toEqual({ count: 42 });
   });
 
-  it('revives invoke source refs when actor implementations are provided', async () => {
+  it('revives invoke source refs when actor sources are provided', async () => {
     const worker = createAsyncLogic({
       run: async () => 42
     });
@@ -478,7 +478,7 @@ describe('json', () => {
             done: {}
           }
         },
-        { actorSources: { worker } }
+        { actors: { worker } }
       )
     ).start();
 
@@ -487,15 +487,15 @@ describe('json', () => {
     });
   });
 
-  it('rejects missing action implementations', () => {
+  it('rejects missing action sources', () => {
     expect(() =>
       createMachineFromConfig({
         entry: [{ type: 'track' }]
       })
-    ).toThrow('Missing action implementation "track"');
+    ).toThrow('Missing action source "track"');
   });
 
-  it('rejects missing guard implementations', () => {
+  it('rejects missing guard sources', () => {
     expect(() =>
       createMachineFromConfig({
         initial: 'idle',
@@ -511,7 +511,7 @@ describe('json', () => {
           done: {}
         }
       })
-    ).toThrow('Missing guard implementation "ready"');
+    ).toThrow('Missing guard source "ready"');
   });
 
   it('revives serialized numeric delays from root delay maps', () => {
@@ -558,7 +558,7 @@ describe('json', () => {
             }
           }
         },
-        { actorSources: { worker } }
+        { actors: { worker } }
       )
     ).start();
 
@@ -582,7 +582,7 @@ describe('json', () => {
             seen: {}
           }
         },
-        { actorSources: { worker } }
+        { actors: { worker } }
       )
     ).start();
 
@@ -637,7 +637,7 @@ describe('json', () => {
             timedOut: {}
           }
         },
-        { actorSources: { worker } }
+        { actors: { worker } }
       ),
       { clock }
     ).start();
@@ -781,7 +781,7 @@ describe('json', () => {
           }
         },
         {
-          actorSources: { worker },
+          actors: { worker },
           evaluators: { js: jsEvaluator }
         }
       ),
@@ -1054,7 +1054,7 @@ describe('json', () => {
             }
           }
         },
-        actorSources: {
+        actors: {
           worker: {
             input: {
               type: 'object',
@@ -1125,7 +1125,7 @@ describe('json', () => {
 
     expectSchemaInvalid({
       schemas: {
-        actorSources: {
+        actors: {
           worker: {
             schemas: {}
           }
@@ -1172,7 +1172,7 @@ describe('json', () => {
 
     expectSchemaInvalid({
       schemas: {
-        actorSources: {
+        actors: {
           worker: {
             emitted: {
               PROGRESS: {
@@ -1190,8 +1190,8 @@ describe('json', () => {
   });
 });
 
-describe('reserved implementation names', () => {
-  it("rejects implementation names using the reserved '@xstate.' prefix", () => {
+describe('reserved source names', () => {
+  it("rejects source names using the reserved '@xstate.' prefix", () => {
     expect(() =>
       createMachineFromConfig({
         initial: 'a',

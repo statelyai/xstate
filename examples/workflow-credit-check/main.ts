@@ -21,7 +21,7 @@ export const workflow = createMachine({
       customer: Customer;
     }
   },
-  actorSources: {
+  actors: {
     callCreditCheckMicroservice: createAsyncLogic({
       schemas: {
         input: z.custom<{

@@ -3,7 +3,7 @@
  *
  * Machine-as-data is a load-bearing property: machines must be storable,
  * diffable, and revivable as JSON, and the boundary between serializable
- * structure and runtime implementations must be explicit — never silent.
+ * structure and runtime sources must be explicit — never silent.
  *
  * Contract:
  *
@@ -11,8 +11,8 @@
  * 2. Serializable structure (states, transitions, targets, serialized actions,
  *    guard refs, string actor srcs, delays, meta, context values) survives a
  *    JSON round-trip through `createMachineFromConfig`.
- * 3. Inline runtime functions appear as code expressions. Root implementation
- *    maps, actor logic, and runtime schemas are omitted.
+ * 3. Inline runtime functions appear as code expressions. Root source maps, actor
+ *    logic, and runtime schemas are omitted.
  * 4. A machine created from JSON round-trips losslessly (byte-stable).
  */
 import {
@@ -69,8 +69,8 @@ describe('serializability conformance', () => {
       }
     };
 
-    const implementations = {
-      actorSources: {
+    const sources = {
+      actors: {
         worker: createAsyncLogic({
           run: async () => undefined
         })
@@ -79,14 +79,14 @@ describe('serializability conformance', () => {
         canFinish: () => true
       }
     };
-    const machine = createMachineFromConfig(definition as any, implementations);
+    const machine = createMachineFromConfig(definition as any, sources);
     const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
 
     expect(json).toEqual(definition);
     expect(findCodeExpressions(json)).toEqual([]);
 
     // Revive and serialize again: byte-stable.
-    const revived = createMachineFromConfig(json, implementations);
+    const revived = createMachineFromConfig(json, sources);
     expect(JSON.stringify(serializeMachine(revived))).toBe(
       JSON.stringify(serializeMachine(machine))
     );
@@ -99,7 +99,7 @@ describe('serializability conformance', () => {
         events: { INC: z.object({ by: z.number() }) }
       },
       context: { count: 0 },
-      actorSources: {},
+      actors: {},
       actions: {
         track: () => {}
       },
@@ -118,7 +118,7 @@ describe('serializability conformance', () => {
     expect(() => JSON.stringify(serializeMachine(machine))).not.toThrow();
   });
 
-  it('setup/createMachine root implementations are omitted', () => {
+  it('setup/createMachine root sources are omitted', () => {
     function track() {}
     function isReady() {
       return true;
@@ -246,7 +246,7 @@ describe('serializability conformance', () => {
           GO: z.object({})
         }
       },
-      actorSources: {
+      actors: {
         worker
       },
       initial: 'a',
@@ -266,7 +266,7 @@ describe('serializability conformance', () => {
     const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
 
     expect(findCodeExpressions(json)).toEqual([]);
-    expect(json.actorSources).toBeUndefined();
+    expect(json.actors).toBeUndefined();
     expect(json.schemas.context).toBeUndefined();
     expect(json.schemas.events.GO).toBeUndefined();
     expect(json.states.a.invoke).toBeUndefined();
@@ -329,7 +329,7 @@ describe('serializability conformance', () => {
     `);
   });
 
-  it('serializable structure survives even when implementations do not', () => {
+  it('serializable structure survives even when sources do not', () => {
     const machine = createMachine({
       initial: 'idle',
       internalEvents: ['tick'],
@@ -413,7 +413,7 @@ describe('serializability conformance', () => {
     `);
   });
 
-  it('revived machines run: structure + provided implementations', () => {
+  it('revived machines run: structure + provided sources', () => {
     const definition = JSON.parse(
       JSON.stringify(
         serializeMachine(

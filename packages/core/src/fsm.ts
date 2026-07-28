@@ -35,9 +35,9 @@ export type FSMSnapshot<
   _stateInput: Record<string, unknown> | undefined;
   machine: {
     id: string;
-    implementations: {
+    sources: {
       actions: {};
-      actorSources: {};
+      actors: {};
       guards: {};
       delays: {};
     };
@@ -187,9 +187,9 @@ export type FSMActorLogic<
   id?: string;
 };
 
-const emptyImplementations = {
+const emptySources = {
   actions: {},
-  actorSources: {},
+  actors: {},
   guards: {},
   delays: {}
 };
@@ -385,7 +385,7 @@ export function createFSM<
 ): FSMActorLogic<TContext, TEvent, string, TInput> {
   const machine = {
     id: config.id ?? '(fsm)',
-    implementations: emptyImplementations
+    sources: emptySources
   };
   assertNoStringTransitions(config);
 

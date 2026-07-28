@@ -11,7 +11,7 @@
 
   const { snapshot, send } = useActor(
     fetchMachine.provide({
-      actorSources: {
+      actors: {
         fetchData: createAsyncLogic({ run: onFetch })
       }
     }),

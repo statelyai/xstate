@@ -669,8 +669,8 @@ export function resolveActionsWithContext(
       system: actorScope.system,
       children: intermediateSnapshot.children,
       parent: actorScope.self._parent,
-      actions: currentSnapshot.machine.implementations.actions,
-      actorSources: currentSnapshot.machine.implementations.actorSources
+      actions: currentSnapshot.machine.sources.actions,
+      actors: currentSnapshot.machine.sources.actors
     };
 
     const isInline = typeof action === 'function';

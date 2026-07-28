@@ -10,7 +10,7 @@ export const fetchMachine = createMachine({
       } | null;
     }
   },
-  actorSources: {
+  actors: {
     fetchUser: createAsyncLogic({
       schemas: {
         input: z.custom<{

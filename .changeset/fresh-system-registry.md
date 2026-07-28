@@ -6,7 +6,7 @@ Add `createSystem({ registry })` for declaring typed actor registry keys and cre
 
 Registry keys are assigned with `registryKey` on invokes, spawned actors, and root actors created from the system. Registry keys are checked against the declared registry when using `createSystem`. Transition functions also receive the typed `system`, so registry actors can be looked up without casting.
 
-Actor logic source maps are now declared with `actorSources` and referenced by `invoke.src`, `spawnChild`, and `enqueueActions` helpers. The old `actors` setup/provide key has been removed.
+Actor logic source maps use `actors` and are referenced by `invoke.src`, `spawnChild`, and `enqueueActions` helpers.
 
 ```ts
 const system = createSystem({
@@ -17,7 +17,7 @@ const system = createSystem({
 
 const machine = system
   .setup({
-    actorSources: {
+    actors: {
       receiver: receiverLogic
     }
   })

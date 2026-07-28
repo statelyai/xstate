@@ -4,7 +4,7 @@ import {
   ActorRefFrom,
   ContextFrom,
   EventFrom,
-  MachineImplementationsFrom,
+  MachineSourcesFrom,
   Snapshot,
   SnapshotFrom,
   StateValueFrom,
@@ -103,8 +103,8 @@ describe('EventFrom', () => {
   });
 });
 
-describe('MachineImplementationsFrom', () => {
-  it('should return implementations for a machine', () => {
+describe('MachineSourcesFrom', () => {
+  it('should return sources for a machine', () => {
     const machine = createMachine({
       context: {
         count: 100
@@ -123,21 +123,21 @@ describe('MachineImplementationsFrom', () => {
       }
     });
 
-    const acceptMachineImplementations = (
-      _options: MachineImplementationsFrom<typeof machine>
+    const acceptMachineSources = (
+      _options: MachineSourcesFrom<typeof machine>
     ) => {};
 
-    acceptMachineImplementations({
+    acceptMachineSources({
       actions: {
         foo: () => {}
       },
-      actorSources: {},
+      actors: {},
       guards: {},
       delays: {}
     });
 
     // @ts-expect-error
-    acceptMachineImplementations(100);
+    acceptMachineSources(100);
   });
 
   it('should reject an action that returns an arbitrary (non-void/assignment) value', () => {

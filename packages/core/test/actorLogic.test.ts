@@ -1375,7 +1375,7 @@ describe('machine logic', () => {
       //   context: {} as {
       //     ref: AnyActorRef;
       //   },
-      //   actorSources: {} as {
+      //   actors: {} as {
       //     src: 'reducer';
       //     logic: typeof reducer;
       //     ids: 'child';
@@ -1386,14 +1386,14 @@ describe('machine logic', () => {
           ref: z.custom<AnyActorRef>()
         })
       },
-      actorSources: {
+      actors: {
         reducer
       },
-      context: ({ spawn, actorSources }) => ({
-        ref: spawn(actorSources.reducer, { id: 'child' })
+      context: ({ spawn, actors }) => ({
+        ref: spawn(actors.reducer, { id: 'child' })
       })
     }).provide({
-      actorSources: {
+      actors: {
         reducer
       }
     });

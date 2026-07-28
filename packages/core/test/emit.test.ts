@@ -519,10 +519,10 @@ describe('event emitter', () => {
     });
 
     const machine = createMachine({
-      actorSources: { logic },
+      actors: { logic },
       invoke: {
         id: 'cb',
-        src: ({ actorSources }) => actorSources.logic
+        src: ({ actors }) => actors.logic
       }
     });
 

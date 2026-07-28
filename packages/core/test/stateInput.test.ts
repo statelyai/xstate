@@ -1585,7 +1585,7 @@ describe('setup', () => {
           }
         }
       },
-      actorSources: {
+      actors: {
         load: createAsyncLogic({
           run: async () => 'Done' as const
         })

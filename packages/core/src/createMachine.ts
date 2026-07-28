@@ -16,7 +16,7 @@ import {
   Compute
 } from './types.ts';
 import {
-  Implementations,
+  Sources,
   DelayMapFromNames,
   InferChildren,
   InferOutput,
@@ -89,7 +89,7 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
  *
  * @param config The state machine configuration.
  * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })`
- *   to provide machine implementations instead.
+ *   to provide machine sources instead.
  */
 // Overload 1: With schemas.context — context type inferred from schema
 export function createMachine<
@@ -103,10 +103,10 @@ export function createMachine<
   const TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
   _TEvent extends EventObject,
   TActor extends ProvidedActor,
-  TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actorSources'],
-  TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays'],
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays'],
   TDelays extends string,
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
   TInput,
@@ -191,11 +191,10 @@ export function createMachine<
   >,
   _TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor,
-  TActionMap extends Implementations['actions'] = Implementations['actions'],
-  TActorMap extends
-    Implementations['actorSources'] = Implementations['actorSources'],
-  TGuardMap extends Implementations['guards'] = Implementations['guards'],
-  TDelayMap extends Implementations['delays'] = Implementations['delays'],
+  TActionMap extends Sources['actions'] = Sources['actions'],
+  TActorMap extends Sources['actors'] = Sources['actors'],
+  TGuardMap extends Sources['guards'] = Sources['guards'],
+  TDelayMap extends Sources['delays'] = Sources['delays'],
   TDelays extends string = string,
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> &
     string = StandardSchemaV1.InferOutput<TTagSchema> & string,
@@ -235,7 +234,7 @@ export function createMachine<
         | TContext
         | ((_: {
             spawn: any;
-            actorSources: TActorMap;
+            actors: TActorMap;
             input: InferOutput<TInputSchema, unknown>;
             self: any;
           }) => TContext);
@@ -303,10 +302,10 @@ export function createStateConfig<
   // TContext extends MachineContext,
   _TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
   _TActor extends ProvidedActor,
-  TActionMap extends Implementations['actions'],
-  TActorMap extends Implementations['actorSources'],
-  TGuardMap extends Implementations['guards'],
-  TDelayMap extends Implementations['delays'],
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays'],
   TDelays extends string,
   _TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
   _TInput,

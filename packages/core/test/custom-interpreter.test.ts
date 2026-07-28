@@ -568,7 +568,7 @@ describe('custom interpreter runtime', () => {
       }
     });
     const machine = createMachine({
-      actorSources: { child },
+      actors: { child },
       initial: 'active',
       states: {
         active: {

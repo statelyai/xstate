@@ -9,7 +9,7 @@ import { createAsyncLogic, setup } from 'xstate';
 import { z } from 'zod';
 
 const machine = setup({
-  actorSources: {
+  actors: {
     loadUser: createAsyncLogic({
       run: async () => ({ name: 'Ada' })
     })

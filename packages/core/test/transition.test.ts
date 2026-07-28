@@ -2313,7 +2313,7 @@ describe('transition function', () => {
     };
 
     const machine = createMachine({
-      actorSources: {
+      actors: {
         sendWelcomeEmail: createAsyncLogic({
           run: async () => {
             calls.push('sendWelcomeEmail');
@@ -2327,7 +2327,7 @@ describe('transition function', () => {
       states: {
         sendingWelcomeEmail: {
           invoke: {
-            src: ({ actorSources }) => actorSources.sendWelcomeEmail,
+            src: ({ actors }) => actors.sendWelcomeEmail,
             input: () => ({ message: 'hello world', subject: 'hi' }),
             onDone: { target: 'logSent' }
           }
