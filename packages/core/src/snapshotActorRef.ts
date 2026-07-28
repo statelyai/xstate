@@ -31,7 +31,7 @@ function getSnapshotChildren(
  */
 export function createSnapshotSystem(
   baseSystem: AnyActor['system'],
-  self: AnyActor,
+  _self: AnyActor,
   children: Record<string, AnyActor | undefined>,
   baseState?: SnapshotSystemState
 ): AnyActor['system'] {
