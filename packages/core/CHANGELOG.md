@@ -1,5 +1,15 @@
 # xstate
 
+## 6.0.0-alpha.25
+
+### Major Changes
+
+- 8341eb3: Actor logic maps are named `actors` again. The aggregate `Implementations` type, `MachineImplementationsFrom` helper, and `machine.implementations` property are now `Sources`, `MachineSourcesFrom`, and `machine.sources`.
+
+### Patch Changes
+
+- 6dc0cbd: Actor `sessionId`s are now globally unique across actor systems.
+
 ## 6.0.0-alpha.24
 
 ### Patch Changes
