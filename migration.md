@@ -38,26 +38,26 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 
 Beyond simplifying the action/guard surface, v6 introduces a number of features with no v5 equivalent. Each links to its detailed section below.
 
-| Feature                                                                           | What it gives you                                                                                                                                                                                                 |
-| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Inline function transitions](#1-inline-functions-replace-action-creators)        | Transitions and actions are plain functions; `enq` queues side effects.                                                                                                                                           |
-| [Standard Schema runtime types](#3-createmachine-schemas-replace-types)           | `schemas.context`/`events`/`input`/`output`/`emitted`/`meta`/`tags` accept Zod (or any [Standard Schema](https://standardschema.dev)) - single source of truth for runtime validation _and_ TypeScript inference. |
-| [State input](#5-state-input)                                                     | State nodes may declare a typed `input` payload that callers must provide on transition.                                                                                                                          |
-| [`actor.trigger.X()`](#6-typed-actortrigger)                                      | Type-safe event dispatcher generated from `schemas.events` - no event-object boilerplate.                                                                                                                         |
-| [`createAsyncLogic`](#7-async-actors-frompromise--createasynclogic)               | `fromPromise` rebuilt with `id`, `timeout`, `AbortSignal`, durable `enq.step()`, and event emission.                                                                                                              |
-| [`createLogic`](#8-createlogic-stateful-actor-logic)                              | New stateful actor logic creator - like a small state machine defined as a single transition function with `enq`.                                                                                                 |
-| [`enq.listen` / `enq.subscribeTo`](#9-enqlisten-and-enqsubscribeto)               | Declaratively wire child-actor emitted events or snapshot streams back to the parent.                                                                                                                             |
-| [Internal events](#12-internal-events)                                            | `internalEvents: ['tick', 'change.*']` - events that can be raised inside the machine but rejected when sent from outside.                                                                                        |
-| [Choice states](#13-choice-states)                                                | First-class `type: 'choice'` for declarative branch routing (replaces transient `always` chains).                                                                                                                 |
-| [State timeouts](#14-state-and-async-timeouts)                                    | `timeout` + `onTimeout` per state - independent of `after`; auto-cancelled on exit.                                                                                                                               |
-| [Duration strings](#14-state-and-async-timeouts)                                  | `'250ms'`, `'5s'` / `'1.5s'`, and ISO 8601 (`'PT1M30S'`, `'P1DT12H'`) accepted by state timeouts and async-logic timeouts.                                                                                        |
-| [`actor.select`](#22-actorselect)                                                 | Derive a subscribable, memoized selection from an actor's snapshot - `actor.select(s => s.context.x)`.                                                                                                            |
-| [Route states](#23-route-states)                                                  | A state with `route` can be navigated to directly via `actor.send({ type: 'xstate.route', to: '#id' })`, gated by an inline route guard/resolver.                                                                 |
-| [Actor registry](#24-actor-registry)                                              | `actor.system.get(registryKey)` / `system.get(registryKey)` look up actors by `registryKey` without passing refs. The root actor can be named via `system.createActor(machine, { registryKey })`.                 |
-| [Snapshot versioning](#20-persistence--rehydration)                               | `version` on the machine is stamped onto persisted snapshots and checked on restore.                                                                                                                              |
-| [Serialization](#21-machine-as-data-serialization-json-configs-scxml)             | `serializeMachine` / `machineConfigToJSON` / `createMachineFromConfig` are now public - round-trip a machine to/from a plain JSON config.                                                                         |
-| [`createMachineFromConfig`](#21-machine-as-data-serialization-json-configs-scxml) | Build a machine from a plain JSON config with serialized actions - useful for SCXML round-trip, persistence, or storing machines as data.                                                                         |
-| [`initial: { target, input }`](#5-state-input)                                    | Object form for `initial` lets you provide state input on initialization.                                                                                                                                         |
+| Feature                                                                           | What it gives you                                                                                                                                                                                 |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Inline function transitions](#1-inline-functions-replace-action-creators)        | Transitions and actions are plain functions; `enq` queues side effects.                                                                                                                           |
+| [Standard Schema definitions](#3-createmachine-schemas-replace-types)             | `schemas.context`/`events`/`input`/`output`/`emitted`/`meta`/`tags` accept Zod (or any [Standard Schema](https://standardschema.dev)) for TypeScript inference and runtime-readable metadata.     |
+| [State input](#5-state-input)                                                     | State nodes may declare a typed `input` payload that callers must provide on transition.                                                                                                          |
+| [`actor.trigger.X()`](#6-typed-actortrigger)                                      | Type-safe event dispatcher generated from `schemas.events` - no event-object boilerplate.                                                                                                         |
+| [`createAsyncLogic`](#7-async-actors-frompromise--createasynclogic)               | `fromPromise` rebuilt with `id`, `timeout`, `AbortSignal`, durable `enq.step()`, and event emission.                                                                                              |
+| [`createLogic`](#8-createlogic-stateful-actor-logic)                              | New stateful actor logic creator - like a small state machine defined as a single transition function with `enq`.                                                                                 |
+| [`enq.listen` / `enq.subscribeTo`](#9-enqlisten-and-enqsubscribeto)               | Declaratively wire child-actor emitted events or snapshot streams back to the parent.                                                                                                             |
+| [Internal events](#12-internal-events)                                            | `internalEvents: ['tick', 'change.*']` - events that can be raised inside the machine but rejected when sent from outside.                                                                        |
+| [Choice states](#13-choice-states)                                                | First-class `type: 'choice'` for declarative branch routing (replaces transient `always` chains).                                                                                                 |
+| [State timeouts](#14-state-and-async-timeouts)                                    | `timeout` + `onTimeout` per state - independent of `after`; auto-cancelled on exit.                                                                                                               |
+| [Duration strings](#14-state-and-async-timeouts)                                  | `'250ms'`, `'5s'` / `'1.5s'`, and ISO 8601 (`'PT1M30S'`, `'P1DT12H'`) accepted by state timeouts and async-logic timeouts.                                                                        |
+| [`actor.select`](#22-actorselect)                                                 | Derive a subscribable, memoized selection from an actor's snapshot - `actor.select(s => s.context.x)`.                                                                                            |
+| [Route states](#23-route-states)                                                  | A state with `route` can be navigated to directly via `actor.send({ type: 'xstate.route', to: '#id' })`, gated by an inline route guard/resolver.                                                 |
+| [Actor registry](#24-actor-registry)                                              | `actor.system.get(registryKey)` / `system.get(registryKey)` look up actors by `registryKey` without passing refs. The root actor can be named via `system.createActor(machine, { registryKey })`. |
+| [Snapshot versioning](#20-persistence--rehydration)                               | `version` on the machine is stamped onto persisted snapshots and checked on restore.                                                                                                              |
+| [Serialization](#21-machine-as-data-serialization-json-configs-scxml)             | `serializeMachine` / `machineConfigToJSON` / `createMachineFromConfig` are now public - round-trip a machine to/from a plain JSON config.                                                         |
+| [`createMachineFromConfig`](#21-machine-as-data-serialization-json-configs-scxml) | Build a machine from a plain JSON config with serialized actions - useful for SCXML round-trip, persistence, or storing machines as data.                                                         |
+| [`initial: { target, input }`](#5-state-input)                                    | Object form for `initial` lets you provide state input on initialization.                                                                                                                         |
 
 ---
 
@@ -102,20 +102,20 @@ const machine = createMachine({
 
 The first argument is an object. The keys differ slightly between **transition handlers** (`on`, `always`, `after`, `onTimeout`, `onDone`, `onError`) and **entry/exit actions**:
 
-| Key            | Transition handler | Entry/exit action | Description                                                          |
-| -------------- | :----------------: | :---------------: | -------------------------------------------------------------------- |
-| `context`      |         ✓          |         ✓         | Current context                                                      |
-| `event`        |         ✓          |         ✓         | The event that triggered this transition / state entry / state exit  |
-| `self`         |         ✓          |         ✓         | This actor's `ActorRef` - call `self.getSnapshot()` for the snapshot |
-| `parent`       |         ✓          |         ✓         | Parent actor's `ActorRef`, or `undefined` for the root               |
-| `children`     |         ✓          |         ✓         | Record of currently-spawned/invoked child refs                       |
-| `actions`      |         ✓          |         ✓         | Named-action map from `createMachine`/`provide` (for referencing)    |
-| `actors`       |         ✓          |         ✓         | Named actor source map                                               |
-| `guards`       |         ✓          |         ✓         | Named-guard map                                                      |
-| `delays`       |         ✓          |         ✓         | Named-delay map                                                      |
-| `value`        |         ✓          |         -         | Current `StateValue`                                                 |
-| `system`       |         ✓          |         ✓         | The actor system                                                     |
-| `params`       |         -          |         ✓         | Parameterized-action params (when invoked as `{ type, params }`)     |
+| Key        | Transition handler | Entry/exit action | Description                                                          |
+| ---------- | :----------------: | :---------------: | -------------------------------------------------------------------- |
+| `context`  |         ✓          |         ✓         | Current context                                                      |
+| `event`    |         ✓          |         ✓         | The event that triggered this transition / state entry / state exit  |
+| `self`     |         ✓          |         ✓         | This actor's `ActorRef` - call `self.getSnapshot()` for the snapshot |
+| `parent`   |         ✓          |         ✓         | Parent actor's `ActorRef`, or `undefined` for the root               |
+| `children` |         ✓          |         ✓         | Record of currently-spawned/invoked child refs                       |
+| `actions`  |         ✓          |         ✓         | Named-action map from `createMachine`/`provide` (for referencing)    |
+| `actors`   |         ✓          |         ✓         | Named actor source map                                               |
+| `guards`   |         ✓          |         ✓         | Named-guard map                                                      |
+| `delays`   |         ✓          |         ✓         | Named-delay map                                                      |
+| `value`    |         ✓          |         -         | Current `StateValue`                                                 |
+| `system`   |         ✓          |         ✓         | The actor system                                                     |
+| `params`   |         -          |         ✓         | Parameterized-action params (when invoked as `{ type, params }`)     |
 
 ### Transitions
 
@@ -141,6 +141,32 @@ on: {
   TOGGLE: (_, enq) => {
     enq(() => console.log('toggling'));
     return { target: 'inactive' };
+  }
+}
+```
+
+### Internal lifecycle events
+
+Generated actor, state-completion, delayed, and timeout events now use stable
+category types. Identity moved from the event type into payload fields:
+
+| Event type             | Identity fields                 |
+| ---------------------- | ------------------------------- |
+| `xstate.done.actor`    | `actorId`, `sessionId`          |
+| `xstate.error.actor`   | `actorId`, `sessionId`          |
+| `xstate.done.state`    | `stateId`                       |
+| `xstate.after`         | `stateId`, `delay`              |
+| `xstate.timeout`       | `stateId`                       |
+| `xstate.timeout.actor` | `actorId`, optional `sessionId` |
+
+Use `matches` to select a specific payload without encoding identity in the
+event key:
+
+```ts
+on: {
+  'xstate.done.actor': {
+    matches: { actorId: 'job' },
+    target: 'complete'
   }
 }
 ```
@@ -738,7 +764,7 @@ invoke: {
 }
 ```
 
-String IDs still work when the actor is registered on `createMachine({ actors: { ... } })` directly or supplied via `machine.provide({ actors: { ... } })`. Prefer string IDs for any child you intend to **persist** - children spawned/invoked from inline logic objects cannot be rehydrated from a registry and `getPersistedSnapshot()` throws for them in development.
+String IDs still work for `invoke.src` when the actor is registered on `createMachine({ actors: { ... } })` directly or supplied via `machine.provide({ actors: { ... } })`. Spawning accepts actor logic, not a string ID. Pass the registered logic from `actors`; XState preserves its source identity for persistence and rehydration. Children spawned or invoked from unregistered inline logic cannot be rehydrated, and `getPersistedSnapshot()` throws for them in development.
 
 `invoke.src` may also be a **function** resolving to logic or to a registered name: `src: ({ actors, context, event, self }) => actors.fetchUser`.
 
@@ -998,7 +1024,9 @@ createActor(machine, {
 }).start();
 ```
 
-The granular v5 inspection-event subtypes (`@xstate.event`, `@xstate.snapshot`, `@xstate.action`, `@xstate.microstep`) are gone. v6 emits two kinds: `@xstate.actor` (actor topology: identity and parent) and `@xstate.transition` (every transition facet: event, snapshot, source, target, and the microsteps array). Microsteps are carried on the `@xstate.transition` event rather than emitted as a separate event.
+<!-- inspection event types and identity fields from packages/core/src/inspection.ts -->
+
+The granular v5 inspection-event subtypes (`@xstate.event`, `@xstate.snapshot`, `@xstate.action`, `@xstate.microstep`) are gone. v6 emits two kinds: `@xstate.actor` (actor topology: identity and parent) and `@xstate.transition` (every transition facet: event, snapshot, source, target, and the microsteps array). Both carry the root actor's globally unique `sessionId` as `rootId`; actor refs also have globally unique `sessionId`s. Microsteps are carried on the `@xstate.transition` event rather than emitted as a separate event.
 
 ---
 
