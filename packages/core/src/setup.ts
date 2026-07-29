@@ -34,7 +34,10 @@ import {
   Subscription,
   OutputArg,
   SnapshotEvent,
-  SingleOrArray
+  SingleOrArray,
+  AfterEvent,
+  TimeoutEvent,
+  ErrorEvent
 } from './types.ts';
 import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
@@ -862,7 +865,14 @@ type StateNodeConfigWithNestedInput<
       Record<string, unknown>,
       TSystemRegistry
     >,
-    'on' | 'always' | 'initial' | 'invoke' | 'onDone'
+    | 'on'
+    | 'always'
+    | 'initial'
+    | 'invoke'
+    | 'onDone'
+    | 'onError'
+    | 'onTimeout'
+    | 'after'
   > & {
     initial?: TStateSchema['states'] extends Record<string, SetupStateSchema>
       ?
@@ -943,6 +953,56 @@ type StateNodeConfigWithNestedInput<
       TSystemRegistry,
       StateInput<TStateSchema>
     >;
+    onError?: StateTransitionConfigOrTarget<
+      TSiblingStateSchemas,
+      StateContext<TStateSchema, TContext>,
+      StateContextShape<TStateSchema, TContextShape>,
+      ErrorEvent,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry,
+      StateInput<TStateSchema>
+    >;
+    onTimeout?: StateTransitionConfigOrTarget<
+      TSiblingStateSchemas,
+      StateContext<TStateSchema, TContext>,
+      StateContextShape<TStateSchema, TContextShape>,
+      TimeoutEvent,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry,
+      StateInput<TStateSchema>
+    >;
+    after?: {
+      [K in NoInfer<TDelays> | number]?: StateTransitionConfigOrTarget<
+        TSiblingStateSchemas,
+        StateContext<TStateSchema, TContext>,
+        StateContextShape<TStateSchema, TContextShape>,
+        AfterEvent,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        StateInput<TStateSchema>
+      >;
+    };
   },
   TStateSchema['states'] extends Record<string, SetupStateSchema>
     ? StatesWithInput<

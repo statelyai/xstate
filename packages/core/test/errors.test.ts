@@ -7,7 +7,8 @@ import {
   createAsyncLogic,
   AnyEventObject,
   ActorLogic,
-  Snapshot
+  Snapshot,
+  setup
 } from '../src';
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
 import { toMachineJSON } from '../src/scxml';
@@ -1066,6 +1067,70 @@ describe('error handling', () => {
     expect(actor.getSnapshot().value).toBe('failed');
     expect(actor.getSnapshot().status).toBe('active');
     expect(errorSpy).toHaveBeenCalledWith('transition action failed');
+  });
+
+  it('state onError accepts a cross-state context patch (typed against the target state schema)', () => {
+    const machine = setup({
+      schemas: {
+        context: z.object({
+          error: z.union([z.string(), z.null()])
+        })
+      },
+      states: {
+        active: { schemas: { context: z.object({ error: z.null() }) } },
+        failed: { schemas: { context: z.object({ error: z.string() }) } }
+      }
+    }).createMachine({
+      context: { error: null },
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            NEXT: () => {
+              throw new Error('boom');
+            }
+          },
+          onError: ({ event }) => ({
+            target: 'failed',
+            context: { error: getErrorMessage(event.error) }
+          })
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().context).toEqual({ error: 'boom' });
+  });
+
+  it('state onError rejects a cross-state context patch that does not match the target state schema', () => {
+    setup({
+      schemas: {
+        context: z.object({
+          error: z.union([z.string(), z.null()])
+        })
+      },
+      states: {
+        active: { schemas: { context: z.object({ error: z.null() }) } },
+        failed: { schemas: { context: z.object({ error: z.string() }) } }
+      }
+    }).createMachine({
+      context: { error: null },
+      initial: 'active',
+      states: {
+        active: {
+          // @ts-expect-error - `error: null` is not assignable to the target state's context
+          onError: () => ({
+            target: 'failed',
+            context: { error: null }
+          })
+        },
+        failed: {}
+      }
+    });
   });
 
   it('state onError catches errors thrown by transition functions', () => {
