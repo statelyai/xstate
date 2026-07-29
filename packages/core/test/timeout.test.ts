@@ -123,6 +123,89 @@ describe('state-level timeout', () => {
     expect(actor.getSnapshot().value).toBe('periodic');
   });
 
+  it('accepts a cross-state context patch (typed against the target state schema)', () => {
+    vi.useFakeTimers();
+
+    const machine = setup({
+      schemas: {
+        context: z.object({
+          reason: z.union([z.literal('timeout'), z.literal('after'), z.null()])
+        })
+      },
+      states: {
+        running: { schemas: { context: z.object({ reason: z.null() }) } },
+        expired: {
+          schemas: { context: z.object({ reason: z.literal('timeout') }) }
+        },
+        elapsed: {
+          schemas: { context: z.object({ reason: z.literal('after') }) }
+        }
+      }
+    }).createMachine({
+      context: { reason: null },
+      initial: 'running',
+      states: {
+        running: {
+          timeout: 1000,
+          onTimeout: () => ({
+            target: 'expired',
+            context: { reason: 'timeout' }
+          }),
+          after: {
+            2000: () => ({
+              target: 'elapsed',
+              context: { reason: 'after' }
+            })
+          }
+        },
+        expired: { type: 'final' },
+        elapsed: { type: 'final' }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    vi.advanceTimersByTime(1000);
+    expect(actor.getSnapshot().value).toBe('expired');
+    expect(actor.getSnapshot().context).toEqual({ reason: 'timeout' });
+  });
+
+  it('rejects a cross-state context patch that does not match the target state schema', () => {
+    setup({
+      schemas: {
+        context: z.object({
+          reason: z.union([z.literal('timeout'), z.null()])
+        })
+      },
+      states: {
+        running: { schemas: { context: z.object({ reason: z.null() }) } },
+        expired: {
+          schemas: { context: z.object({ reason: z.literal('timeout') }) }
+        }
+      }
+    }).createMachine({
+      context: { reason: null },
+      initial: 'running',
+      states: {
+        running: {
+          timeout: 1000,
+          // @ts-expect-error - `reason: null` is not assignable to the target state's context
+          onTimeout: () => ({
+            target: 'expired',
+            context: { reason: null }
+          }),
+          after: {
+            // @ts-expect-error - `reason: null` is not assignable to the target state's context
+            2000: () => ({
+              target: 'expired',
+              context: { reason: null }
+            })
+          }
+        },
+        expired: { type: 'final' }
+      }
+    });
+  });
+
   it('supports onTimeout with object form { target }', () => {
     vi.useFakeTimers();
 
