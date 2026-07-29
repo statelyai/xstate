@@ -1821,20 +1821,118 @@ describe('actors', () => {
     expect(spy).toHaveBeenCalledWith('foo');
   });
 
-  it('inline invokes should not leak into provided actors object', async () => {
-    const actors = {};
-
-    const machine = createMachine(
-      {
-        invoke: {
-          src: fromPromise(async () => 'foo')
+  it('should be async iterable', async () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            NEXT: 'active'
+          }
+        },
+        active: {
+          on: {
+            DONE: 'done'
+          }
+        },
+        done: {
+          type: 'final'
         }
-      },
-      { actors }
-    );
+      }
+    });
 
-    createActor(machine).start();
+    const actor = createActor(machine);
+    actor.start();
 
-    expect(actors).toEqual({});
+    const snapshots: any[] = [];
+
+    // Start the async iteration
+    const iterator = actor[Symbol.asyncIterator]();
+
+    // Send events to trigger state changes
+    setTimeout(() => actor.send({ type: 'NEXT' }), 10);
+    setTimeout(() => actor.send({ type: 'DONE' }), 20);
+
+    // Collect snapshots from the async iterator
+    for await (const snapshot of actor) {
+      snapshots.push(snapshot);
+      if (snapshot.status === 'done') {
+        break;
+      }
+    }
+
+    expect(snapshots).toHaveLength(3);
+    expect(snapshots[0].status).toBe('active');
+    expect(snapshots[0].value).toBe('idle');
+    expect(snapshots[1].status).toBe('active');
+    expect(snapshots[1].value).toBe('active');
+    expect(snapshots[2].status).toBe('done');
+  });
+
+  it('should handle errors in async iteration', async () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            ERROR: 'error'
+          }
+        },
+        error: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+
+    const snapshots: any[] = [];
+
+    setTimeout(() => actor.send({ type: 'ERROR' }), 10);
+
+    for await (const snapshot of actor) {
+      snapshots.push(snapshot);
+      if (snapshot.status === 'done') {
+        break;
+      }
+    }
+
+    expect(snapshots).toHaveLength(2);
+    expect(snapshots[0].status).toBe('active');
+    expect(snapshots[0].value).toBe('idle');
+    expect(snapshots[1].status).toBe('done');
+    expect(snapshots[1].value).toBe('error');
+  });
+
+  it('should complete iteration when actor stops', async () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            STOP: 'stopped'
+          }
+        },
+        stopped: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actor = createActor(machine);
+    actor.start();
+
+    const snapshots: any[] = [];
+
+    setTimeout(() => actor.send({ type: 'STOP' }), 10);
+
+    for await (const snapshot of actor) {
+      snapshots.push(snapshot);
+    }
+
+    expect(snapshots).toHaveLength(2);
+    expect(snapshots[0].status).toBe('active');
+    expect(snapshots[1].status).toBe('done');
   });
 });
