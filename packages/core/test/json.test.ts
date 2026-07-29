@@ -327,7 +327,7 @@ describe('json', () => {
   });
 
   it('round-trips transition payload matches', () => {
-    const machine = createMachine({
+    const machine = createMachineFromConfig({
       initial: 'pending',
       states: {
         pending: {

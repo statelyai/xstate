@@ -1283,6 +1283,22 @@ describe('events', () => {
     });
   });
 
+  it('should reject transition arrays in authored machine configs', () => {
+    createMachine({
+      initial: 'a',
+      // @ts-expect-error - transition arrays are reserved for serialized configs
+      states: {
+        a: {
+          on: {
+            NEXT: [{ target: 'b' }, { target: 'c' }]
+          }
+        },
+        b: {},
+        c: {}
+      }
+    });
+  });
+
   it('should type context mappers on object transition configs', () => {
     const worker = createAsyncLogic({
       schemas: {

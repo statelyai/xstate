@@ -1,15 +1,10 @@
 import z from 'zod';
 import { createMachine, createActor, assertEvent } from '../src/index';
+import { createMachineFromConfig } from '../src/createMachineFromConfig';
 
 describe('event descriptors', () => {
-  it('selects transitions by shallow event payload matches before guards', () => {
-    const firstResolver = vi.fn(() => ({ target: 'first' }));
-    const machine = createMachine({
-      schemas: {
-        events: {
-          result: z.object({ actorId: z.enum(['first', 'second']) })
-        }
-      },
+  it('selects serialized transition arrays by shallow event payload matches', () => {
+    const machine = createMachineFromConfig({
       initial: 'pending',
       states: {
         pending: {
@@ -17,7 +12,7 @@ describe('event descriptors', () => {
             result: [
               {
                 matches: { actorId: 'first' },
-                to: firstResolver
+                target: 'first'
               },
               {
                 matches: { actorId: 'second' },
@@ -35,7 +30,6 @@ describe('event descriptors', () => {
     actor.send({ type: 'result', actorId: 'second' } as any);
 
     expect(actor.getSnapshot().value).toBe('second');
-    expect(firstResolver).not.toHaveBeenCalled();
   });
 
   it('selects canonical actor events by actor ID', () => {

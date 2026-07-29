@@ -8,10 +8,7 @@ import {
   MachineContext,
   MetaObject
 } from './types';
-import {
-  Next_StateNodeConfig,
-  Next_TransitionConfigOrTarget
-} from './types.v6';
+import { Next_StateNodeConfig } from './types.v6';
 import { createMachine } from './createMachine';
 import { parseDelayToMilliseconds } from './delay';
 
@@ -1117,20 +1114,7 @@ export function createMachineFromConfig(
               acc[key] = getTransitionConfig(value);
               return acc;
             },
-            {} as Record<
-              string,
-              Next_TransitionConfigOrTarget<
-                any,
-                any,
-                any,
-                any,
-                any,
-                any,
-                any,
-                any,
-                any
-              >
-            >
+            {} as Record<string, any>
           )
         : undefined,
       always: node.always ? getTransitionConfig(node.always) : undefined,

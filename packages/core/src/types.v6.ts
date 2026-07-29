@@ -1254,7 +1254,7 @@ export type Next_TransitionConfigOrTarget<
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
   TInput = undefined
-> = SingleOrArray<
+> =
   | undefined
   | {
       matches?: EventPayloadPattern<TExpressionEvent>;
@@ -1320,8 +1320,7 @@ export type Next_TransitionConfigOrTarget<
       TDelayMap,
       TMeta,
       TInput
-    >
->;
+    >;
 
 export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;
 

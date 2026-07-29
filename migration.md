@@ -931,7 +931,9 @@ always: ({ context }) => {
 };
 ```
 
-Array form still works.
+Transition arrays are not accepted by the authoring APIs. Use a single
+transition function to select among targets. Serialized transition arrays are
+still accepted by `createMachineFromConfig(...)`.
 
 ---
 
