@@ -36,7 +36,8 @@ import {
   SnapshotEvent,
   SingleOrArray,
   AfterEvent,
-  TimeoutEvent
+  TimeoutEvent,
+  ErrorEvent
 } from './types.ts';
 import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
@@ -864,7 +865,14 @@ type StateNodeConfigWithNestedInput<
       Record<string, unknown>,
       TSystemRegistry
     >,
-    'on' | 'always' | 'initial' | 'invoke' | 'onDone' | 'onTimeout' | 'after'
+    | 'on'
+    | 'always'
+    | 'initial'
+    | 'invoke'
+    | 'onDone'
+    | 'onError'
+    | 'onTimeout'
+    | 'after'
   > & {
     initial?: TStateSchema['states'] extends Record<string, SetupStateSchema>
       ?
@@ -934,6 +942,22 @@ type StateNodeConfigWithNestedInput<
       StateContext<TStateSchema, TContext>,
       StateContextShape<TStateSchema, TContextShape>,
       DoneStateEvent,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry,
+      StateInput<TStateSchema>
+    >;
+    onError?: StateTransitionConfigOrTarget<
+      TSiblingStateSchemas,
+      StateContext<TStateSchema, TContext>,
+      StateContextShape<TStateSchema, TContextShape>,
+      ErrorEvent,
       TEvent,
       TEmitted,
       TChildren,

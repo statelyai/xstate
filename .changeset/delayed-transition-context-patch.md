@@ -2,7 +2,7 @@
 'xstate': patch
 ---
 
-Delayed transitions (`onTimeout` and `after`) in machines created with `setup({ states })` now type the `context` patch against the **target** state's context schema, matching the behavior of `on:` transitions. Previously, a cross-state context patch that was valid at runtime failed to typecheck:
+Delayed transitions (`onTimeout` and `after`) and error transitions (`onError`) in machines created with `setup({ states })` now type the `context` patch against the **target** state's context schema, matching the behavior of `on:` transitions. Previously, a cross-state context patch that was valid at runtime failed to typecheck:
 
 ```ts
 const machine = setup({
