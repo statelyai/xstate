@@ -4,6 +4,12 @@ export interface StandardSchemaV1<Input = unknown, Output = Input> {
   readonly '~standard': StandardSchemaV1.Props<Input, Output>;
 }
 
+/** Schemas that can be declared for an individual state node. */
+export type SetupStateSchemas = {
+  context?: StandardSchemaV1;
+  input?: StandardSchemaV1;
+};
+
 /** A type-only Standard Schema produced by {@link types}. */
 export interface TypeSchema<T> extends StandardSchemaV1<T, T> {
   readonly '~standard': StandardSchemaV1.Props<T, T> & {

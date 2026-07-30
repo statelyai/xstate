@@ -120,6 +120,47 @@ describe('setup', () => {
     expect(s.schemas.children.sibling).toBe(sibling);
   });
 
+  it('exposes per-state schemas on the machine state nodes', () => {
+    const rootContext = types<{ count: number }>();
+    const runningContext = types<{ startedAt: number }>();
+    const runningInput = types<{ timeout: number }>();
+    const retryingContext = types<{ attempt: number }>();
+
+    const machine = setup({
+      schemas: { context: rootContext },
+      states: {
+        running: {
+          schemas: { context: runningContext, input: runningInput },
+          states: {
+            retrying: {
+              schemas: { context: retryingContext }
+            }
+          }
+        }
+      }
+    }).createMachine({
+      context: { count: 0 },
+      initial: 'running',
+      states: {
+        running: {
+          initial: 'retrying',
+          states: {
+            retrying: {}
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+
+    expect(machine.schemas?.context).toBe(rootContext);
+    expect(machine.states.running.schemas?.context).toBe(runningContext);
+    expect(machine.states.running.schemas?.input).toBe(runningInput);
+    expect(machine.states.running.states.retrying.schemas?.context).toBe(
+      retryingContext
+    );
+    expect(machine.states.done.schemas).toBeUndefined();
+  });
+
   it('extends sources', () => {
     const calls: string[] = [];
 

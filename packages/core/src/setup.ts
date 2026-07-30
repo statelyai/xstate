@@ -1,4 +1,4 @@
-import { StandardSchemaV1 } from './schema.types.ts';
+import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
   createActor as createActorFromLogic,
@@ -171,10 +171,7 @@ type ValidateRegistryKeys<
           }
         : unknown);
 
-export type SetupStateSchemas = {
-  context?: StandardSchemaV1;
-  input?: StandardSchemaV1;
-};
+export type { SetupStateSchemas };
 
 export type SetupSchemas = {
   context?: StandardSchemaV1;
@@ -1942,6 +1939,7 @@ export function setup<
     createMachine(machineConfig) {
       const configSchemas = machineConfig.schemas;
       const mergedSchemas = mergeSchemas(configSchemas, schemas);
+      const mergedStates = mergeStateSchemas(machineConfig.states, states);
       const mergedActions = mergeMaps(actions, machineConfig.actions);
       const mergedActors = mergeMaps(actors, machineConfig.actors);
       const mergedGuards = mergeMaps(guards, machineConfig.guards);
@@ -1950,6 +1948,7 @@ export function setup<
       return new StateMachine({
         ...machineConfig,
         ...(mergedSchemas ? { schemas: mergedSchemas } : undefined),
+        ...(mergedStates ? { states: mergedStates } : undefined),
         ...(mergedActions ? { actions: mergedActions } : undefined),
         ...(mergedActors ? { actors: mergedActors } : undefined),
         ...(mergedGuards ? { guards: mergedGuards } : undefined),
@@ -2101,6 +2100,41 @@ function mergeSchemas(
     emitted: mergeMaps(left?.emitted, right?.emitted),
     children: mergeMaps(left?.children, right?.children)
   };
+}
+
+/**
+ * Setup schemas win over inline config schemas (same precedence as root
+ * `mergeSchemas`); setup states with no matching config state are skipped.
+ */
+function mergeStateSchemas(
+  configStates: Record<string, SetupStateSchema> | undefined,
+  setupStates: Record<string, SetupStateSchema> | undefined
+): Record<string, SetupStateSchema> | undefined {
+  if (!configStates || !setupStates) {
+    return configStates;
+  }
+
+  return Object.fromEntries(
+    Object.entries(configStates).map(([key, configState]) => {
+      const setupState = setupStates[key];
+
+      if (!setupState) {
+        return [key, configState];
+      }
+
+      const schemas = mergeMaps(configState.schemas, setupState.schemas);
+      const states = mergeStateSchemas(configState.states, setupState.states);
+
+      return [
+        key,
+        {
+          ...configState,
+          ...(schemas ? { schemas } : undefined),
+          ...(states ? { states } : undefined)
+        }
+      ];
+    })
+  );
 }
 
 function mergeSetupConfigs<
