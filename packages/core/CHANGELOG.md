@@ -1,5 +1,73 @@
 # xstate
 
+## 6.0.0-alpha.26
+
+### Patch Changes
+
+- d46fbd2: Delayed transitions (`onTimeout` and `after`) and error transitions (`onError`) in machines created with `setup({ states })` now type the `context` patch against the **target** state's context schema, matching the behavior of `on:` transitions. Previously, a cross-state context patch that was valid at runtime failed to typecheck:
+
+  ```ts
+  const machine = setup({
+    schemas: {
+      context: z.object({ reason: z.union([z.literal('timeout'), z.null()]) })
+    },
+    states: {
+      running: { schemas: { context: z.object({ reason: z.null() }) } },
+      expired: {
+        schemas: { context: z.object({ reason: z.literal('timeout') }) }
+      }
+    }
+  }).createMachine({
+    context: { reason: null },
+    initial: 'running',
+    states: {
+      running: {
+        timeout: 5000,
+        // Previously a type error; now checked against `expired`'s context
+        onTimeout: () => ({
+          target: 'expired',
+          context: { reason: 'timeout' as const }
+        })
+      },
+      expired: { type: 'final' }
+    }
+  });
+  ```
+
+- d9d9e29: Per-state schemas declared in `setup({ states })` are now available on the compiled machine's state nodes via `machine.states.X.schemas`, so tooling (e.g. per-state snapshot validators) can be derived from the machine alone. Previously they were only accessible on the setup return value.
+
+  ```ts
+  import { setup, types } from 'xstate';
+
+  const machine = setup({
+    states: {
+      running: {
+        schemas: { context: types<{ startedAt: number }>() }
+      }
+    }
+  }).createMachine({
+    initial: 'running',
+    states: {
+      running: {}
+    }
+  });
+
+  machine.states.running.schemas?.context; // the schema declared in setup
+  ```
+
+- 7da1486: Transition arrays are no longer accepted by the v6 `createMachine(...)` authoring API. Use a transition function to select among targets:
+
+  ```ts
+  createMachine({
+    always: ({ context }) => {
+      if (context.hour < 12) return { target: 'morning' };
+      return { target: 'afternoon' };
+    }
+  });
+  ```
+
+  Serialized transition arrays remain supported by `createMachineFromConfig(...)`.
+
 ## 6.0.0-alpha.25
 
 ### Major Changes
