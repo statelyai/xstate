@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { NULL_EVENT, STATE_DELIMITER } from './constants.ts';
+import type { SetupStateSchemas } from './schema.types.ts';
 import { createInvokeTimeoutEventId } from './eventUtils.ts';
 import { memo } from './memo.ts';
 import {
@@ -134,6 +135,8 @@ export class StateNode<
 
   public description?: string;
 
+  public schemas: SetupStateSchemas | undefined;
+
   public tags: string[] = [];
   public transitions!: Map<string, AnyTransitionDefinition[]>;
   public always?: Array<AnyTransitionDefinition>;
@@ -165,6 +168,7 @@ export class StateNode<
           ? 'history'
           : 'atomic');
     this.description = this.config.description;
+    this.schemas = this.config.schemas;
 
     validateStateNodeConfig(this);
 

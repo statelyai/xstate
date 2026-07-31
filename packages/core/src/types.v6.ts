@@ -1,4 +1,4 @@
-import { StandardSchemaV1 } from './schema.types.ts';
+import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
 import { MachineSnapshot } from './State';
 import {
   Action,
@@ -274,7 +274,7 @@ export type Next_MachineConfig<
     DoNotInfer<TSystemRegistry>,
     DoNotInfer<InferOutput<TOutputSchema, unknown>>
   >,
-  'output'
+  'output' | 'schemas'
 > & {
   internalEvents?: readonly InternalEventDescriptorFor<
     InferEvents<TEventSchemaMap>
@@ -920,6 +920,7 @@ interface Next_ChoiceStateNodeConfig<
   TDelayMap extends Sources['delays']
 > {
   contextSchema?: StandardSchemaV1;
+  schemas?: SetupStateSchemas;
   type: 'choice';
   /** Function that resolves this choice state to a target. */
   choice: Next_ChoiceConfigFunction<
@@ -984,6 +985,7 @@ interface Next_RegularStateNodeConfig<
   TChildOutput = unknown
 > {
   contextSchema?: StandardSchemaV1;
+  schemas?: SetupStateSchemas;
   /** The initial state transition. */
   initial?:
     | string
