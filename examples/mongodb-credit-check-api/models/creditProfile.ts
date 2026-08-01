@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { ObjectId } from 'mongodb';
 
 export default class CreditProfile {
   constructor(
@@ -11,6 +11,6 @@ export default class CreditProfile {
     public ErrorMessage: string,
     public MiddleScore: number,
     public InterestRateOptions: number[],
-    public _id?: ObjectId,
+    public _id?: ObjectId
   ) {}
 }

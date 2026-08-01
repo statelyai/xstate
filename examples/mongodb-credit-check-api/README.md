@@ -20,7 +20,7 @@ We recommend installing the [MongoDB Compass app](https://www.mongodb.com/produc
 Add the connection string to the DB client in the `actorService.ts` file by updating this line:
 
 ```typescript
-const uri = "<your mongo uri here>/creditCheck";
+const uri = '<your mongo uri here>/creditCheck';
 ```
 
 ```bash

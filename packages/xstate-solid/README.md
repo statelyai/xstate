@@ -106,9 +106,7 @@ With options:
 
 const App = () => {
   const service = useActorRef(someMachine, {
-    input: {
-      /* ... */
-    }
+    input: {/* ... */}
   });
 
   // ...
@@ -119,7 +117,7 @@ const App = () => {
 
 When using [hierarchical](https://xstate.js.org/docs/guides/hierarchical.html) and [parallel](https://xstate.js.org/docs/guides/parallel.html) machines, the state values will be objects, not strings. In this case, it is best to use [`state.matches(...)`](https://xstate.js.org/docs/guides/states.html#state-methods-and-getters).
 
-The SolidJS [Switch and Match Components]() are ideal for this use case:
+The SolidJS [Switch and Match Components](<>) are ideal for this use case:
 
 ```jsx
 const Loader = () => {

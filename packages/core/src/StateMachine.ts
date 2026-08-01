@@ -70,24 +70,22 @@ export class StateMachine<
   TEmitted extends EventObject,
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
-> implements
-    ActorLogic<
-      MachineSnapshot<
-        TContext,
-        TEvent,
-        TChildren,
-        TStateValue,
-        TTag,
-        TOutput,
-        TMeta,
-        TStateSchema
-      >,
-      TEvent,
-      TInput,
-      AnyActorSystem,
-      TEmitted
-    >
-{
+> implements ActorLogic<
+  MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta,
+    TStateSchema
+  >,
+  TEvent,
+  TInput,
+  AnyActorSystem,
+  TEmitted
+> {
   /** The machine's own version. */
   public version?: string;
 

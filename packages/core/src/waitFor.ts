@@ -51,7 +51,7 @@ export function waitFor<TActorRef extends AnyActorRef>(
   return new Promise((res, rej) => {
     const { signal } = resolvedOptions;
     if (signal?.aborted) {
-      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+      // oxlint-disable-next-line typescript/prefer-promise-reject-errors
       rej(signal.reason);
       return;
     }
@@ -90,7 +90,7 @@ export function waitFor<TActorRef extends AnyActorRef>(
      * `abort` event
      */
     let abortListener: () => void | undefined;
-    // eslint-disable-next-line prefer-const
+    // oxlint-disable-next-line prefer-const
     let sub: Subscription | undefined; // avoid TDZ when disposing synchronously
 
     // See if the current snapshot already matches the predicate
@@ -104,7 +104,7 @@ export function waitFor<TActorRef extends AnyActorRef>(
       abortListener = () => {
         dispose();
         // XState does not "own" the signal, so we should reject with its reason (if any)
-        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+        // oxlint-disable-next-line typescript/prefer-promise-reject-errors
         rej(signal.reason);
       };
       signal.addEventListener('abort', abortListener);
@@ -114,7 +114,7 @@ export function waitFor<TActorRef extends AnyActorRef>(
       next: checkEmitted,
       error: (err) => {
         dispose();
-        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+        // oxlint-disable-next-line typescript/prefer-promise-reject-errors
         rej(err);
       },
       complete: () => {

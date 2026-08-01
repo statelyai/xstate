@@ -54,7 +54,7 @@ function resolveRaise(
 
   if (typeof eventOrExpr === 'string') {
     throw new Error(
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      // oxlint-disable-next-line typescript/restrict-template-expressions
       `Only event objects may be used with raise; use raise({ type: "${eventOrExpr}" }) instead`
     );
   }

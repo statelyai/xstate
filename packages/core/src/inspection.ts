@@ -31,8 +31,7 @@ export interface InspectedSnapshotEvent extends BaseInspectionEventProperties {
   snapshot: Snapshot<unknown>;
 }
 
-export interface InspectedTransitionEvent
-  extends BaseInspectionEventProperties {
+export interface InspectedTransitionEvent extends BaseInspectionEventProperties {
   type: '@xstate.transition';
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;

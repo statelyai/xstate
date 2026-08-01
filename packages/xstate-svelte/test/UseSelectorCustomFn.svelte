@@ -31,10 +31,12 @@
 
 <div data-testid="name">{$name}</div>
 <button
+  aria-label="Send uppercase name"
   data-testid="sendUpper"
   on:click={() => actorRef.send({ type: 'CHANGE', value: 'DAVID' })}
-/>
+></button>
 <button
+  aria-label="Send other name"
   data-testid="sendOther"
   on:click={() => actorRef.send({ type: 'CHANGE', value: 'other' })}
-/>
+></button>

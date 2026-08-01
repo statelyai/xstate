@@ -1,6 +1,3 @@
-# eslint
-.eslintcache
-
 # Coverage directory used by tools like istanbul
 coverage
 .nyc_output
