@@ -1,0 +1,10 @@
+{
+  "title": "XState Vue",
+  "pages": [
+    "use-machine",
+    "selectors",
+    "shared-actors",
+    "input-and-snapshots",
+    "server-rendering"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "title": "Learn",
+  "pages": [
+    "why-state-machines",
+    "your-first-machine",
+    "states-events-transitions",
+    "data-and-effects",
+    "async-logic",
+    "actors",
+    "statecharts",
+    "modeling"
+  ]
+}

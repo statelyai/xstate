@@ -1,0 +1,10 @@
+{
+  "title": "XState Solid",
+  "pages": [
+    "use-machine",
+    "selectors",
+    "shared-actors",
+    "input-and-snapshots",
+    "server-rendering"
+  ]
+}

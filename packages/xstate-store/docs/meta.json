@@ -1,0 +1,14 @@
+{
+  "title": "XState Store",
+  "pages": [
+    "quick-start",
+    "events-and-context",
+    "effects-and-emitted-events",
+    "selectors",
+    "frameworks",
+    "persistence",
+    "undo-redo",
+    "typescript",
+    "migration"
+  ]
+}

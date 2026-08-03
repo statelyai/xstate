@@ -21,6 +21,10 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 📖 [Read the documentation](https://stately.ai/docs)
 
+<!-- documentation sections from docs/meta.json -->
+
+[Start](docs/start/quick-start.md) · [Learn](docs/learn/why-state-machines.md) · [Build](docs/build/async-requests.md) · [Reference](docs/reference/machine/configuration.md) · [Migrate](docs/migrate/xstate-v5-to-v6.md)
+
 ➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
 
 🖥 [Download our VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode)
@@ -129,48 +133,43 @@ Get started by forking one of these templates on CodeSandbox:
 
 ## Super quick start
 
+<!-- install command matching packages/core/package.json#version and example matching the XState v6 API -->
+
 ```bash
-npm install xstate
+npm install xstate@alpha
 ```
 
 ```ts
-import { createMachine, createActor } from 'xstate';
+import { createActor, createMachine } from 'xstate';
 
-// State machine
-const toggleMachine = createMachine({
-  id: 'toggle',
-  initial: 'inactive',
-  context: {
-    count: 0
-  },
+const playerMachine = createMachine({
+  initial: 'stopped',
   states: {
-    inactive: {
+    stopped: {
+      on: { play: { target: 'playing' } }
+    },
+    playing: {
       on: {
-        TOGGLE: { target: 'active' }
+        pause: { target: 'paused' },
+        stop: { target: 'stopped' }
       }
     },
-    active: {
-      entry: ({ context }) => ({
-        context: { count: context.count + 1 }
-      }),
+    paused: {
       on: {
-        TOGGLE: { target: 'inactive' }
+        play: { target: 'playing' },
+        stop: { target: 'stopped' }
       }
     }
   }
 });
 
-// Actor (instance of the machine logic, like a store)
-const toggleActor = createActor(toggleMachine);
-toggleActor.subscribe((state) => console.log(state.value, state.context));
-toggleActor.start();
-// => logs 'inactive', { count: 0 }
+const player = createActor(playerMachine).start();
 
-toggleActor.send({ type: 'TOGGLE' });
-// => logs 'active', { count: 1 }
+player.send({ type: 'pause' });
+console.log(player.getSnapshot().value); // 'stopped'
 
-toggleActor.send({ type: 'TOGGLE' });
-// => logs 'inactive', { count: 1 }
+player.send({ type: 'play' });
+console.log(player.getSnapshot().value); // 'playing'
 ```
 
 ---

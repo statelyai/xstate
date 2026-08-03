@@ -1,0 +1,12 @@
+{
+  "title": "Actors",
+  "pages": [
+    "create-actor",
+    "snapshots",
+    "invoke",
+    "spawn",
+    "actor-logic",
+    "systems",
+    "lifecycle-and-errors"
+  ]
+}
