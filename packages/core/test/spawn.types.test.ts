@@ -24,7 +24,7 @@ describe('spawn inside machine', () => {
       context: ({ spawn }) => ({
         ref: spawn(childMachine, { input: { value: 42 } })
       }),
-      initial: 'idle',
+      initial: 'Idle',
       states: {
         Idle: {
           on: {
@@ -51,7 +51,7 @@ describe('spawn inside machine', () => {
       context: ({ spawn }) => ({
         ref: spawn(childMachine)
       }),
-      initial: 'idle',
+      initial: 'Idle',
       states: {
         Idle: {
           on: {

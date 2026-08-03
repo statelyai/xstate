@@ -581,6 +581,7 @@ export function formatTransition(
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
   const target = resolveTarget(stateNode, normalizedTarget);
+  assertLegalTargetSet(stateNode, target);
 
   const transition = {
     ...transitionConfig,
@@ -596,6 +597,74 @@ export function formatTransition(
   };
 
   return transition;
+}
+
+function isStateNodeDescendantOf(
+  stateNode: AnyStateNode,
+  ancestor: AnyStateNode
+): boolean {
+  for (let current = stateNode.parent; current; current = current.parent) {
+    if (current === ancestor) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function getLeastCommonStateNodeAncestor(
+  left: AnyStateNode,
+  right: AnyStateNode
+): AnyStateNode | undefined {
+  const leftAncestors = new Set<AnyStateNode>();
+  for (
+    let current: AnyStateNode | undefined = left;
+    current;
+    current = current.parent
+  ) {
+    leftAncestors.add(current);
+  }
+  for (
+    let current: AnyStateNode | undefined = right;
+    current;
+    current = current.parent
+  ) {
+    if (leftAncestors.has(current)) {
+      return current;
+    }
+  }
+  return undefined;
+}
+
+function assertLegalTargetSet(
+  source: AnyStateNode,
+  targets: readonly AnyStateNode[] | undefined
+): void {
+  if (!targets || targets.length < 2) {
+    return;
+  }
+  for (let leftIndex = 0; leftIndex < targets.length; leftIndex++) {
+    for (
+      let rightIndex = leftIndex + 1;
+      rightIndex < targets.length;
+      rightIndex++
+    ) {
+      const left = targets[leftIndex];
+      const right = targets[rightIndex];
+      const commonAncestor = getLeastCommonStateNodeAncestor(left, right);
+      if (
+        left === right ||
+        isStateNodeDescendantOf(left, right) ||
+        isStateNodeDescendantOf(right, left) ||
+        commonAncestor?.type !== 'parallel'
+      ) {
+        throw new Error(
+          isDevelopment
+            ? `Invalid transition definition for state node '${source.id}': target set is not a legal SCXML configuration.`
+            : `Invalid target set for '${source.id}'`
+        );
+      }
+    }
+  }
 }
 
 /**
@@ -721,10 +790,12 @@ function resolveHistoryDefaultTransition(
     }
     return stateNode.parent!.initial as AnyTransitionDefinition;
   }
+  const target = normalizedTarget.map((t) =>
+    typeof t === 'string' ? getStateNodeByPath(stateNode.parent!, t) : t
+  );
+  assertLegalTargetSet(stateNode, target);
   return {
-    target: normalizedTarget.map((t) =>
-      typeof t === 'string' ? getStateNodeByPath(stateNode.parent!, t) : t
-    ),
+    target,
     source: stateNode,
     reenter: false,
     eventType: '' as any

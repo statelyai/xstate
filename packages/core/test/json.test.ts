@@ -55,7 +55,10 @@ describe('json', () => {
             ],
             on: {
               TO_FOO: {
-                target: ['foo', 'bar'],
+                target: [
+                  'testParallel.one.inactive',
+                  'testParallel.two.inactive'
+                ],
                 guard: { type: 'isString', params: { string: 'hello' } }
               }
             },
@@ -67,7 +70,8 @@ describe('json', () => {
           bar: {},
           testHistory: {
             type: 'history',
-            history: 'deep'
+            history: 'deep',
+            target: 'foo'
           },
           testFinal: {
             type: 'final',
@@ -1083,6 +1087,32 @@ describe('json', () => {
   });
 
   it('rejects invalid serializable machine schema shapes', () => {
+    expectSchemaInvalid({
+      initial: 'on',
+      states: {
+        on: {
+          initial: 'active',
+          states: {
+            active: {},
+            history: { type: 'history' }
+          }
+        }
+      }
+    });
+
+    expectSchemaInvalid({
+      initial: 'on',
+      states: {
+        on: {
+          initial: 'active',
+          states: {
+            active: {},
+            history: { type: 'history', target: [] }
+          }
+        }
+      }
+    });
+
     expectSchemaInvalid({
       initial: 'routing',
       states: {

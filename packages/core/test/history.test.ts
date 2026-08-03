@@ -3,6 +3,25 @@ import { trackEntries } from './utils';
 import { StateNode } from '../src/StateNode';
 
 describe('history states', () => {
+  it('rejects a history state without a non-empty default target at runtime', () => {
+    expect(() =>
+      (createMachine as any)({
+        initial: 'on',
+        states: {
+          on: {
+            initial: 'active',
+            states: {
+              active: {},
+              history: { type: 'history' }
+            }
+          }
+        }
+      })
+    ).toThrow(
+      'History state "(machine).on.history" must declare a non-empty `target`.'
+    );
+  });
+
   it('should go to the most recently visited state (explicit shallow history type)', () => {
     const machine = createMachine({
       initial: 'on',
@@ -16,7 +35,8 @@ describe('history states', () => {
             second: {},
             hist: {
               type: 'history',
-              history: 'shallow'
+              history: 'shallow',
+              target: 'first'
             }
           },
           on: {
@@ -50,7 +70,8 @@ describe('history states', () => {
             },
             second: {},
             hist: {
-              type: 'history'
+              type: 'history',
+              target: 'first'
             }
           },
           on: {
@@ -85,7 +106,8 @@ describe('history states', () => {
             second: {},
             hist: {
               type: 'history',
-              history: 'shallow'
+              history: 'shallow',
+              target: 'first'
             }
           }
         }
@@ -111,7 +133,8 @@ describe('history states', () => {
             first: {},
             second: {},
             hist: {
-              type: 'history'
+              type: 'history',
+              target: 'first'
             }
           }
         }
@@ -144,7 +167,8 @@ describe('history states', () => {
               }
             },
             hist: {
-              type: 'history'
+              type: 'history',
+              target: 'absent'
             }
           }
         },
@@ -200,7 +224,8 @@ describe('history states', () => {
             },
             a3: {
               type: 'history',
-              id: 'b_hist'
+              id: 'b_hist',
+              target: 'a1'
             }
           }
         }
@@ -265,7 +290,35 @@ describe('history states', () => {
     });
   });
 
-  it('should execute actions of the initial transition when a history state without a default target is targeted and its parent state was never visited yet', () => {
+  it('should enter a legal multi-target default for deep parallel history', () => {
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: { on: { POWER: { target: 'on.hist' } } },
+        on: {
+          type: 'parallel',
+          states: {
+            A: { initial: 'B', states: { B: {}, C: {} } },
+            K: { initial: 'L', states: { L: {}, M: {} } },
+            hist: {
+              type: 'history',
+              history: 'deep',
+              target: ['A.C', 'K.M']
+            }
+          }
+        }
+      }
+    });
+
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'POWER' });
+
+    expect(actorRef.getSnapshot().value).toEqual({
+      on: { A: 'C', K: 'M' }
+    });
+  });
+
+  it('should execute parent entry actions when a history default is used before its parent was visited', () => {
     const spy = vi.fn();
 
     const machine = createMachine({
@@ -285,7 +338,8 @@ describe('history states', () => {
             b1: {},
             b2: {
               id: 'hist',
-              type: 'history'
+              type: 'history',
+              target: 'b1'
             }
           }
         }
@@ -298,7 +352,7 @@ describe('history states', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('should enter the parallel default configuration when a deep history state without a default target is targeted and its parent parallel state was never visited yet', () => {
+  it('should enter a deep parallel history default before its parent was visited', () => {
     const machine = createMachine({
       initial: 'off',
       states: {
@@ -310,7 +364,11 @@ describe('history states', () => {
           states: {
             regA: { initial: 'a1', states: { a1: {}, a2: {} } },
             regB: { initial: 'b1', states: { b1: {}, b2: {} } },
-            hist: { type: 'history', history: 'deep' }
+            hist: {
+              type: 'history',
+              history: 'deep',
+              target: ['regA.a1', 'regB.b1']
+            }
           }
         }
       }
@@ -324,7 +382,7 @@ describe('history states', () => {
     });
   });
 
-  it('should enter the parallel default configuration when a shallow history state without a default target is targeted and its parent parallel state was never visited yet', () => {
+  it('should enter a shallow parallel history default before its parent was visited', () => {
     const machine = createMachine({
       initial: 'off',
       states: {
@@ -336,7 +394,11 @@ describe('history states', () => {
           states: {
             regA: { initial: 'a1', states: { a1: {}, a2: {} } },
             regB: { initial: 'b1', states: { b1: {}, b2: {} } },
-            hist: { type: 'history', history: 'shallow' }
+            hist: {
+              type: 'history',
+              history: 'shallow',
+              target: ['regA', 'regB']
+            }
           }
         }
       }
@@ -453,7 +515,7 @@ describe('history states', () => {
 
   // TODO: discuss - the workaround is that the entry action should be
   // on the b1 state node instead of the b state node
-  it.skip('should execute actions of the initial transition when a history state without a default target is targeted and its parent state was already visited', () => {
+  it.skip('should execute parent entry actions when recorded history is restored', () => {
     const spy = vi.fn();
 
     const machine = createMachine({
@@ -473,7 +535,8 @@ describe('history states', () => {
             b1: {},
             b2: {
               id: 'hist',
-              type: 'history'
+              type: 'history',
+              target: 'b1'
             }
           },
           on: {
@@ -592,7 +655,8 @@ describe('history states', () => {
           }
         },
         refresh: {
-          type: 'history'
+          type: 'history',
+          target: 'running'
         }
       }
     });
@@ -619,7 +683,7 @@ describe('history states', () => {
           },
           initial: 'first',
           states: {
-            hist: { type: 'history' },
+            hist: { type: 'history', target: 'first' },
             first: {},
             second: {}
           }
@@ -656,7 +720,7 @@ describe('history states', () => {
           },
           initial: 'first',
           states: {
-            hist: { type: 'history' },
+            hist: { type: 'history', target: 'first' },
             first: {
               on: {
                 NEXT: { target: 'second' }
@@ -722,7 +786,7 @@ describe('deep history states', () => {
                 }
               }
             },
-            history: { history: 'shallow' }
+            history: { history: 'shallow', target: 'first' }
           },
           on: {
             POWER: { target: 'off' }
@@ -774,7 +838,7 @@ describe('deep history states', () => {
                 }
               }
             },
-            history: { history: 'deep' }
+            history: { history: 'deep', target: 'first' }
           },
           on: {
             POWER: { target: 'off' }
@@ -830,7 +894,7 @@ describe('deep history states', () => {
                 }
               }
             },
-            history: { history: 'deep' }
+            history: { history: 'deep', target: 'first' }
           },
           on: {
             POWER: { target: 'off' }
@@ -883,7 +947,7 @@ describe('parallel history states', () => {
                     E: {}
                   }
                 },
-                hist: { history: true }
+                hist: { history: true, target: 'B' }
               }
             },
             K: {
@@ -891,14 +955,16 @@ describe('parallel history states', () => {
               states: {
                 L: {},
                 M: {},
-                hist: { history: true },
+                hist: { history: true, target: 'L' },
                 deepHistory: {
-                  history: 'deep'
+                  history: 'deep',
+                  target: 'L'
                 }
               }
             },
             hist: {
-              history: true
+              history: true,
+              target: ['A', 'K']
             }
           },
           on: {
@@ -949,9 +1015,10 @@ describe('parallel history states', () => {
                     E: {}
                   }
                 },
-                hist: { history: true },
+                hist: { history: true, target: 'B' },
                 deepHistory: {
-                  history: 'deep'
+                  history: 'deep',
+                  target: 'B'
                 }
               }
             },
@@ -960,14 +1027,16 @@ describe('parallel history states', () => {
               states: {
                 L: {},
                 M: {},
-                hist: { history: true },
+                hist: { history: true, target: 'L' },
                 deepHistory: {
-                  history: 'deep'
+                  history: 'deep',
+                  target: 'L'
                 }
               }
             },
             deepHistory: {
-              history: 'deep'
+              history: 'deep',
+              target: ['A.B', 'K.L']
             }
           },
           on: {
@@ -1022,9 +1091,10 @@ describe('parallel history states', () => {
                     E: {}
                   }
                 },
-                hist: { history: true },
+                hist: { history: true, target: 'B' },
                 deepHistory: {
-                  history: 'deep'
+                  history: 'deep',
+                  target: 'B'
                 }
               }
             },
@@ -1043,20 +1113,24 @@ describe('parallel history states', () => {
                     O: {}
                   }
                 },
-                hist: { history: true },
+                hist: { history: true, target: 'L' },
                 deepHistory: {
-                  history: 'deep'
+                  history: 'deep',
+                  target: 'L'
                 }
               }
             },
             hist: {
-              history: true
+              history: true,
+              target: ['A', 'K']
             },
             shallowHistory: {
-              history: 'shallow'
+              history: 'shallow',
+              target: ['A', 'K']
             },
             deepHistory: {
-              history: 'deep'
+              history: 'deep',
+              target: ['A.B', 'K.L']
             }
           },
           on: {
@@ -1113,9 +1187,10 @@ describe('parallel history states', () => {
                     E: {}
                   }
                 },
-                hist: { history: true },
+                hist: { history: true, target: 'B' },
                 deepHistory: {
-                  history: 'deep'
+                  history: 'deep',
+                  target: 'B'
                 }
               }
             },
@@ -1134,20 +1209,24 @@ describe('parallel history states', () => {
                     O: {}
                   }
                 },
-                hist: { history: true },
+                hist: { history: true, target: 'L' },
                 deepHistory: {
-                  history: 'deep'
+                  history: 'deep',
+                  target: 'L'
                 }
               }
             },
             hist: {
-              history: true
+              history: true,
+              target: ['A', 'K']
             },
             shallowHistory: {
-              history: 'shallow'
+              history: 'shallow',
+              target: ['A', 'K']
             },
             deepHistory: {
-              history: 'deep'
+              history: 'deep',
+              target: ['A.B', 'K.L']
             }
           },
           on: {
@@ -1205,9 +1284,10 @@ describe('parallel history states', () => {
                     E: {}
                   }
                 },
-                hist: { history: true },
+                hist: { history: true, target: 'B' },
                 deepHistory: {
-                  history: 'deep'
+                  history: 'deep',
+                  target: 'B'
                 }
               }
             },
@@ -1226,20 +1306,24 @@ describe('parallel history states', () => {
                     O: {}
                   }
                 },
-                hist: { history: true },
+                hist: { history: true, target: 'L' },
                 deepHistory: {
-                  history: 'deep'
+                  history: 'deep',
+                  target: 'L'
                 }
               }
             },
             hist: {
-              history: true
+              history: true,
+              target: ['A', 'K']
             },
             shallowHistory: {
-              history: 'shallow'
+              history: 'shallow',
+              target: ['A', 'K']
             },
             deepHistory: {
-              history: 'deep'
+              history: 'deep',
+              target: ['A.B', 'K.L']
             }
           },
           on: {
@@ -1297,9 +1381,10 @@ describe('parallel history states', () => {
                     E: {}
                   }
                 },
-                hist: { history: true },
+                hist: { history: true, target: 'B' },
                 deepHistory: {
-                  history: 'deep'
+                  history: 'deep',
+                  target: 'B'
                 }
               }
             },
@@ -1318,20 +1403,24 @@ describe('parallel history states', () => {
                     O: {}
                   }
                 },
-                hist: { history: true },
+                hist: { history: true, target: 'L' },
                 deepHistory: {
-                  history: 'deep'
+                  history: 'deep',
+                  target: 'L'
                 }
               }
             },
             hist: {
-              history: true
+              history: true,
+              target: ['A', 'K']
             },
             shallowHistory: {
-              history: 'shallow'
+              history: 'shallow',
+              target: ['A', 'K']
             },
             deepHistory: {
-              history: 'deep'
+              history: 'deep',
+              target: ['A.B', 'K.L']
             }
           },
           on: {
@@ -1376,7 +1465,8 @@ it('internal transition to a history state should enter default history state co
             nested: {},
             other: {},
             hist: {
-              history: true
+              history: true,
+              target: 'nested'
             }
           },
           on: {
@@ -1412,7 +1502,8 @@ describe('multistage history states', () => {
               on: { SWITCH_TURBO: { target: 'normal' } }
             },
             H: {
-              history: true
+              history: true,
+              target: 'normal'
             }
           },
           on: {
@@ -1453,7 +1544,8 @@ describe('revive history states', () => {
           },
           second: {},
           hist: {
-            type: 'history'
+            type: 'history',
+            target: 'first'
           }
         },
         on: {

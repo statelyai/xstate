@@ -1242,7 +1242,7 @@ interface Next_RegularStateNodeConfig<
   description?: string;
 
   /** A default target for a history state */
-  target?: string | undefined; // `| undefined` makes `HistoryStateNodeConfig` compatible with this interface (it extends it) under `exactOptionalPropertyTypes`
+  target?: string | string[] | undefined;
 }
 
 export type Next_TransitionConfigOrTarget<
@@ -1373,3 +1373,530 @@ export type ValidateDelayReferences<TConfig> =
         > extends never
       ? unknown
       : never;
+
+type IsHistoryStateConfig<TConfig> = TConfig extends { type: 'history' }
+  ? true
+  : TConfig extends { history: false | undefined }
+    ? false
+    : TConfig extends { history: unknown }
+      ? true
+      : false;
+
+type MissingHistoryDefault<TConfig> = 0 extends 1 & TConfig
+  ? never
+  : IsHistoryStateConfig<TConfig> extends true
+    ? TConfig extends {
+        target: string | readonly [string, ...string[]];
+      }
+      ? never
+      : true
+    : TConfig extends { states: infer TStates }
+      ? TStates extends Record<string, unknown>
+        ? {
+            [K in keyof TStates]: MissingHistoryDefault<TStates[K]>;
+          }[keyof TStates]
+        : never
+      : never;
+
+/**
+ * Rejects authored machines containing a history state without its SCXML
+ * default target.
+ */
+export type ValidateHistoryDefaults<TConfig> =
+  MissingHistoryDefault<TConfig> extends never ? unknown : never;
+
+type StatePath = readonly string[];
+
+type AppendStatePath<TPrefix extends StatePath, TKey extends string> = [
+  ...TPrefix,
+  TKey
+];
+
+type EscapeStatePathDots<TValue extends string> =
+  TValue extends `${infer THead}.${infer TTail}`
+    ? `${THead}\\.${EscapeStatePathDots<TTail>}`
+    : TValue;
+
+type ProtectEscapedStatePathDots<TValue extends string> =
+  TValue extends `${infer THead}\\.${infer TTail}`
+    ? `${THead}__XSTATE_ESCAPED_DOT__${ProtectEscapedStatePathDots<TTail>}`
+    : TValue;
+
+type RestoreEscapedStatePathDots<TValue extends string> =
+  TValue extends `${infer THead}__XSTATE_ESCAPED_DOT__${infer TTail}`
+    ? `${THead}.${RestoreEscapedStatePathDots<TTail>}`
+    : TValue;
+
+type SplitStatePath<TPath extends string> =
+  ProtectEscapedStatePathDots<TPath> extends infer TProtected extends string
+    ? TProtected extends ''
+      ? []
+      : TProtected extends `${infer THead}.${infer TTail}`
+        ? [RestoreEscapedStatePathDots<THead>, ...SplitStatePath<TTail>]
+        : [RestoreEscapedStatePathDots<TProtected>]
+    : never;
+
+type ParentStatePath<TPath extends StatePath> = TPath extends readonly [
+  ...infer TParent extends string[],
+  string
+]
+  ? TParent
+  : [];
+
+type StatePathsFromStates<TStates, TPrefix extends StatePath = []> =
+  TStates extends Record<string, unknown>
+    ? {
+        [K in keyof TStates & string]:
+          | AppendStatePath<TPrefix, K>
+          | (0 extends 1 & TStates[K]
+              ? never
+              : TStates[K] extends { states: infer TChildren }
+                ? StatePathsFromStates<TChildren, AppendStatePath<TPrefix, K>>
+                : never);
+      }[keyof TStates & string]
+    : never;
+
+type AuthoredStatePaths<TConfig> = TConfig extends { states: infer TStates }
+  ? StatePathsFromStates<TStates>
+  : never;
+
+type OpaqueStatePathsFromStates<TStates, TPrefix extends StatePath = []> =
+  TStates extends Record<string, unknown>
+    ? {
+        [K in keyof TStates & string]: 0 extends 1 & TStates[K]
+          ? AppendStatePath<TPrefix, K>
+          : TStates[K] extends { states: infer TChildren }
+            ? OpaqueStatePathsFromStates<TChildren, AppendStatePath<TPrefix, K>>
+            : never;
+      }[keyof TStates & string]
+    : never;
+
+type OpaqueStatePaths<TConfig> = TConfig extends { states: infer TStates }
+  ? OpaqueStatePathsFromStates<TStates>
+  : never;
+
+type IsWithinStatePath<
+  TPath extends StatePath,
+  TAncestor
+> = TAncestor extends StatePath
+  ? TPath extends readonly [...TAncestor, ...string[]]
+    ? true
+    : false
+  : false;
+
+type JoinStateTargetString<
+  TPrefix extends string,
+  TKey extends string
+> = TPrefix extends '' ? TKey : `${TPrefix}.${TKey}`;
+
+type StateTargetStringsFromStates<TStates, TPrefix extends string = ''> =
+  TStates extends Record<string, unknown>
+    ? {
+        [K in keyof TStates & string]:
+          | JoinStateTargetString<TPrefix, EscapeStatePathDots<K>>
+          | (0 extends 1 & TStates[K]
+              ? never
+              : TStates[K] extends { states: infer TChildren }
+                ? StateTargetStringsFromStates<
+                    TChildren,
+                    JoinStateTargetString<TPrefix, EscapeStatePathDots<K>>
+                  >
+                : never);
+      }[keyof TStates & string]
+    : never;
+
+type IdTargetsForNode<TNode> = TNode extends { id: infer TId extends string }
+  ? string extends TId
+    ? never
+    : TNode extends { states: infer TStates }
+      ?
+          | `#${EscapeStatePathDots<TId>}`
+          | `#${EscapeStatePathDots<TId>}.${StateTargetStringsFromStates<TStates>}`
+      : `#${EscapeStatePathDots<TId>}`
+  : never;
+
+type IdTargetsFromStates<TStates> =
+  TStates extends Record<string, unknown>
+    ? {
+        [K in keyof TStates & string]:
+          | IdTargetsForNode<TStates[K]>
+          | (0 extends 1 & TStates[K]
+              ? never
+              : TStates[K] extends { states: infer TChildren }
+                ? IdTargetsFromStates<TChildren>
+                : never);
+      }[keyof TStates & string]
+    : never;
+
+type AuthoredIdTargets<TConfig> =
+  | IdTargetsForNode<TConfig>
+  | (TConfig extends { states: infer TStates }
+      ? IdTargetsFromStates<TStates>
+      : never);
+
+type ResolveIdTargetAtNode<
+  TNode,
+  TNodePath extends StatePath,
+  TTarget extends string
+> = TNode extends { id: infer TId extends string }
+  ? string extends TId
+    ? never
+    : TTarget extends `#${EscapeStatePathDots<TId>}`
+      ? TNodePath
+      : TTarget extends `#${EscapeStatePathDots<TId>}.${infer TDescendant}`
+        ? [...TNodePath, ...SplitStatePath<TDescendant>]
+        : never
+  : never;
+
+type ResolveIdTargetInStates<
+  TStates,
+  TTarget extends string,
+  TPrefix extends StatePath = []
+> =
+  TStates extends Record<string, unknown>
+    ? {
+        [K in keyof TStates & string]:
+          | ResolveIdTargetAtNode<
+              TStates[K],
+              AppendStatePath<TPrefix, K>,
+              TTarget
+            >
+          | (0 extends 1 & TStates[K]
+              ? never
+              : TStates[K] extends { states: infer TChildren }
+                ? ResolveIdTargetInStates<
+                    TChildren,
+                    TTarget,
+                    AppendStatePath<TPrefix, K>
+                  >
+                : never);
+      }[keyof TStates & string]
+    : never;
+
+type ResolveIdTargetPath<TConfig, TTarget extends string> =
+  | ResolveIdTargetAtNode<TConfig, [], TTarget>
+  | (TConfig extends { states: infer TStates }
+      ? ResolveIdTargetInStates<TStates, TTarget>
+      : never);
+
+type ResolveAuthoredTarget<
+  TSourcePath extends StatePath,
+  TTarget extends string
+> = TTarget extends `#${string}`
+  ? never
+  : TTarget extends '.'
+    ? TSourcePath
+    : TTarget extends `.${infer TDescendant}`
+      ? [...TSourcePath, ...SplitStatePath<TDescendant>]
+      : [...ParentStatePath<TSourcePath>, ...SplitStatePath<TTarget>];
+
+type StateNodeAtPath<TConfig, TPath extends StatePath> = TConfig extends {
+  states: infer TStates;
+}
+  ? TPath extends readonly [
+      infer THead extends string,
+      ...infer TTail extends string[]
+    ]
+    ? THead extends keyof TStates
+      ? TTail extends []
+        ? TStates[THead]
+        : StateNodeAtPath<TStates[THead], TTail>
+      : never
+    : TConfig
+  : never;
+
+type CommonStatePathSegments<
+  TLeft extends readonly string[],
+  TRight extends readonly string[],
+  TCommon extends readonly string[] = []
+> = TLeft extends readonly [
+  infer TLeftHead extends string,
+  ...infer TLeftTail extends string[]
+]
+  ? TRight extends readonly [
+      infer TRightHead extends string,
+      ...infer TRightTail extends string[]
+    ]
+    ? TLeftHead extends TRightHead
+      ? CommonStatePathSegments<TLeftTail, TRightTail, [...TCommon, TLeftHead]>
+      : TCommon
+    : TCommon
+  : TCommon;
+
+type NearestCommonStatePath<
+  TLeft extends StatePath,
+  TRight extends StatePath
+> = CommonStatePathSegments<TLeft, TRight>;
+
+type IsAncestorStatePath<
+  TAncestor extends StatePath,
+  TDescendant extends StatePath
+> = TDescendant extends readonly [...TAncestor, ...infer TRest]
+  ? TRest extends []
+    ? false
+    : true
+  : false;
+
+type IsParallelStatePath<
+  TConfig,
+  TPath extends StatePath
+> = TPath extends readonly []
+  ? TConfig extends { type: 'parallel' }
+    ? true
+    : false
+  : StateNodeAtPath<TConfig, TPath> extends { type: 'parallel' }
+    ? true
+    : false;
+
+type ResolvedAuthoredTargetPath<
+  TRootConfig,
+  TSourcePath extends StatePath,
+  TTarget
+> = TTarget extends string
+  ? TTarget extends `#${string}`
+    ? ResolveIdTargetPath<TRootConfig, TTarget>
+    : ResolveAuthoredTarget<TSourcePath, TTarget>
+  : never;
+
+type InvalidTargetPair<
+  TRootConfig,
+  TLeftPath extends StatePath,
+  TRightPath extends StatePath
+> = TLeftPath extends TRightPath
+  ? TRightPath extends TLeftPath
+    ? true
+    : never
+  : IsAncestorStatePath<TLeftPath, TRightPath> extends true
+    ? true
+    : IsAncestorStatePath<TRightPath, TLeftPath> extends true
+      ? true
+      : IsParallelStatePath<
+            TRootConfig,
+            NearestCommonStatePath<TLeftPath, TRightPath>
+          > extends true
+        ? never
+        : true;
+
+type InvalidTargetPairsWithHead<
+  TRootConfig,
+  TSourcePath extends StatePath,
+  THead,
+  TRest extends readonly unknown[]
+> = TRest extends readonly [infer TNext, ...infer TTail]
+  ?
+      | (ResolvedAuthoredTargetPath<
+          TRootConfig,
+          TSourcePath,
+          THead
+        > extends infer THeadPath extends StatePath
+          ? ResolvedAuthoredTargetPath<
+              TRootConfig,
+              TSourcePath,
+              TNext
+            > extends infer TNextPath extends StatePath
+            ? InvalidTargetPair<TRootConfig, THeadPath, TNextPath>
+            : never
+          : never)
+      | InvalidTargetPairsWithHead<TRootConfig, TSourcePath, THead, TTail>
+  : never;
+
+type InvalidTargetSet<
+  TRootConfig,
+  TSourcePath extends StatePath,
+  TTargets
+> = TTargets extends readonly [infer THead, ...infer TRest]
+  ?
+      | InvalidTargetPairsWithHead<TRootConfig, TSourcePath, THead, TRest>
+      | InvalidTargetSet<TRootConfig, TSourcePath, TRest>
+  : never;
+
+type InvalidTargetValue<
+  TRootConfig,
+  TSourcePath extends StatePath,
+  TTarget
+> = TTarget extends string
+  ? string extends TTarget
+    ? never
+    : TTarget extends `#${string}`
+      ? TTarget extends AuthoredIdTargets<TRootConfig>
+        ? never
+        : TTarget
+      : ResolveAuthoredTarget<
+            TSourcePath,
+            TTarget
+          > extends infer TResolvedTarget extends StatePath
+        ? TResolvedTarget extends AuthoredStatePaths<TRootConfig>
+          ? never
+          : true extends IsWithinStatePath<
+                TResolvedTarget,
+                OpaqueStatePaths<TRootConfig>
+              >
+            ? never
+            : TTarget
+        : TTarget
+  : TTarget extends readonly unknown[]
+    ? InvalidTargetValue<TRootConfig, TSourcePath, TTarget[number]>
+    : never;
+
+type InvalidTransitionTarget<
+  TRootConfig,
+  TSourcePath extends StatePath,
+  TTransition
+> = 0 extends 1 & TTransition
+  ? never
+  : TTransition extends (...args: any[]) => any
+    ? InvalidTransitionTarget<TRootConfig, TSourcePath, ReturnType<TTransition>>
+    : TTransition extends readonly unknown[]
+      ? InvalidTransitionTarget<TRootConfig, TSourcePath, TTransition[number]>
+      : TTransition extends { target: infer TTarget }
+        ?
+            | InvalidTargetValue<TRootConfig, TSourcePath, TTarget>
+            | InvalidTargetSet<TRootConfig, TSourcePath, TTarget>
+        : never;
+
+type InvalidTransitionMapTargets<
+  TRootConfig,
+  TSourcePath extends StatePath,
+  TTransitionMap
+> = 0 extends 1 & TTransitionMap
+  ? never
+  : TTransitionMap extends Record<string, unknown>
+    ? {
+        [K in keyof TTransitionMap]: InvalidTransitionTarget<
+          TRootConfig,
+          TSourcePath,
+          TTransitionMap[K]
+        >;
+      }[keyof TTransitionMap]
+    : never;
+
+type InvalidInvokeTargets<
+  TRootConfig,
+  TSourcePath extends StatePath,
+  TInvoke
+> = 0 extends 1 & TInvoke
+  ? never
+  : TInvoke extends readonly unknown[]
+    ? InvalidInvokeTargets<TRootConfig, TSourcePath, TInvoke[number]>
+    : TInvoke extends Record<string, unknown>
+      ?
+          | (TInvoke extends { onDone: infer TOnDone }
+              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnDone>
+              : never)
+          | (TInvoke extends { onError: infer TOnError }
+              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnError>
+              : never)
+          | (TInvoke extends { onSnapshot: infer TOnSnapshot }
+              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnSnapshot>
+              : never)
+          | (TInvoke extends { onTimeout: infer TOnTimeout }
+              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnTimeout>
+              : never)
+      : never;
+
+type InvalidNodeTargets<
+  TRootConfig,
+  TNode,
+  TSourcePath extends StatePath
+> = 0 extends 1 & TNode
+  ? never
+  :
+      | (TNode extends {
+          initial: infer TInitial;
+          states: infer TChildStates;
+        }
+          ? (
+              TInitial extends { target: infer TInitialTarget }
+                ? TInitialTarget
+                : TInitial
+            ) extends infer TInitialTarget
+            ? TInitialTarget extends string
+              ? string extends TInitialTarget
+                ? never
+                : TInitialTarget extends keyof TChildStates
+                  ? never
+                  : TInitialTarget
+              : never
+            : never
+          : never)
+      | (TNode extends { on: infer TOn }
+          ? InvalidTransitionMapTargets<TRootConfig, TSourcePath, TOn>
+          : never)
+      | (TNode extends { always: infer TAlways }
+          ? InvalidTransitionTarget<TRootConfig, TSourcePath, TAlways>
+          : never)
+      | (TNode extends { choice: infer TChoice }
+          ? InvalidTransitionTarget<TRootConfig, TSourcePath, TChoice>
+          : never)
+      | (TNode extends { after: infer TAfter }
+          ? InvalidTransitionMapTargets<TRootConfig, TSourcePath, TAfter>
+          : never)
+      | (TNode extends { onDone: infer TOnDone }
+          ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnDone>
+          : never)
+      | (TNode extends { onError: infer TOnError }
+          ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnError>
+          : never)
+      | (TNode extends { onTimeout: infer TOnTimeout }
+          ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnTimeout>
+          : never)
+      | (TNode extends { invoke: infer TInvoke }
+          ? InvalidInvokeTargets<TRootConfig, TSourcePath, TInvoke>
+          : never)
+      | (TNode extends { target: infer THistoryTarget }
+          ? InvalidTargetValue<TRootConfig, TSourcePath, THistoryTarget>
+          : never);
+
+type InvalidTargetsInStates<
+  TRootConfig,
+  TStates,
+  TPrefix extends StatePath = []
+> =
+  TStates extends Record<string, unknown>
+    ? {
+        [K in keyof TStates & string]: 0 extends 1 & TStates[K]
+          ? never
+          :
+              | InvalidNodeTargets<
+                  TRootConfig,
+                  TStates[K],
+                  AppendStatePath<TPrefix, K>
+                >
+              | (TStates[K] extends { states: infer TChildren }
+                  ? InvalidTargetsInStates<
+                      TRootConfig,
+                      TChildren,
+                      AppendStatePath<TPrefix, K>
+                    >
+                  : never);
+      }[keyof TStates & string]
+    : never;
+
+/**
+ * Rejects authored literal transition targets that do not resolve in the
+ * machine topology.
+ */
+export type ValidateStateTargets<TConfig> = 0 extends 1 & TConfig
+  ? unknown
+  : TConfig extends { states: infer TStates }
+    ?
+        | (TConfig extends { initial: infer TInitial }
+            ? (
+                TInitial extends { target: infer TInitialTarget }
+                  ? TInitialTarget
+                  : TInitial
+              ) extends infer TInitialTarget
+              ? TInitialTarget extends string
+                ? string extends TInitialTarget
+                  ? never
+                  : TInitialTarget extends keyof TStates
+                    ? never
+                    : TInitialTarget
+                : never
+              : never
+            : never)
+        | InvalidNodeTargets<TConfig, TConfig, []>
+        | InvalidTargetsInStates<TConfig, TStates> extends never
+      ? unknown
+      : never
+    : unknown;

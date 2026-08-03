@@ -37,8 +37,8 @@ describe('Example 6.9', () => {
               }
             }
           },
-          hist: { history: true },
-          deepHist: { history: 'deep' }
+          hist: { history: true, target: 'B' },
+          deepHist: { history: 'deep', target: 'B.E' }
         }
       },
       H: {

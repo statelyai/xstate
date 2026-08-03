@@ -2533,6 +2533,8 @@ export type StateSchema = {
   // Needed because TS treats objects with all optional properties as a "weak" object
   // https://github.com/statelyai/xstate/issues/5031
   type?: unknown;
+  history?: unknown;
+  target?: unknown;
   invoke?: unknown;
   on?: unknown;
   entry?: unknown;

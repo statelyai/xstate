@@ -243,7 +243,7 @@ export interface StateNodeJSON {
   timeout?: number | string | ResolvableJSON;
   onTimeout?: TransitionConfigJSON | TransitionConfigJSON[];
   history?: 'shallow' | 'deep';
-  target?: string;
+  target?: string | [string, ...string[]];
   output?: unknown;
   context?: Record<string, unknown>;
   _scxmlDonedata?: ScxmlDonedataJSON;
@@ -630,6 +630,19 @@ function assertMachineJSON(
   }
 
   function assertStateNode(node: StateNodeJSON, path: string) {
+    if (
+      (node.type === 'history' || node.history !== undefined) &&
+      !(
+        (typeof node.target === 'string' && node.target.trim().length > 0) ||
+        (Array.isArray(node.target) &&
+          node.target.length > 0 &&
+          node.target.every((target) => target.trim().length > 0))
+      )
+    ) {
+      throw new Error(
+        `History state at ${path} must declare a non-empty target.`
+      );
+    }
     assertResolvable(node.context, `${path}.context`);
     assertResolvable(node.input, `${path}.input`);
     assertResolvable(node.output, `${path}.output`);

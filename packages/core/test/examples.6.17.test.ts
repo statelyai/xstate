@@ -18,7 +18,12 @@ describe('Example 6.17', () => {
         states: {
           A: {
             initial: 'D',
-            states: { C: {}, D: {}, E: {}, hist: { history: true } }
+            states: {
+              C: {},
+              D: {},
+              E: {},
+              hist: { history: true, target: 'D' }
+            }
           },
           B: {
             initial: 'G',
@@ -91,7 +96,7 @@ describe('Jump to ID', () => {
               },
               D: {},
               E: {},
-              hist: { history: true }
+              hist: { history: true, target: 'D' }
             }
           },
           B: {

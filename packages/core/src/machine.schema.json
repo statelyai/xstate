@@ -343,7 +343,16 @@
         "meta": { "type": "object" },
         "description": { "type": "string" },
         "history": { "type": "string", "enum": ["shallow", "deep"] },
-        "target": { "type": "string" },
+        "target": {
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          ]
+        },
         "output": {},
         "input": {},
         "tags": {
@@ -365,6 +374,19 @@
         "actors": { "type": "object" },
         "delays": { "$ref": "#/$defs/delayDefinitions" }
       },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "history" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["target"] }
+        },
+        {
+          "if": { "required": ["history"] },
+          "then": { "required": ["target"] }
+        }
+      ],
       "additionalProperties": true
     },
     "machine": { "$ref": "#/$defs/stateNode" }

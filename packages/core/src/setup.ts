@@ -55,6 +55,8 @@ import {
   Next_InvokeConfig,
   Next_StateNodeConfig,
   Next_TransitionConfigOrTarget,
+  ValidateHistoryDefaults,
+  ValidateStateTargets,
   WithDefault
 } from './types.v6.ts';
 
@@ -1741,6 +1743,8 @@ export interface SetupReturn<
       states?: Record<TStateKeys, unknown>;
     } & TConfig &
       ValidateSetupDelayReferences<TConfig, TSetupDelays> &
+      ValidateHistoryDefaults<TConfig> &
+      ValidateStateTargets<TConfig> &
       ValidateRegistryKeys<
         TConfig,
         TSystemRegistry,

@@ -2,6 +2,70 @@ import { createActor, initialTransition, transition } from '../src';
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
 
 describe('createMachineFromConfig ', () => {
+  it('rejects history states without a non-empty default target', () => {
+    expect(() =>
+      createMachineFromConfig({
+        initial: 'on',
+        states: {
+          on: {
+            initial: 'active',
+            states: {
+              active: {},
+              history: { type: 'history' }
+            }
+          }
+        }
+      })
+    ).toThrow(
+      'History state at $.states.on.states.history must declare a non-empty target.'
+    );
+
+    expect(() =>
+      createMachineFromConfig({
+        initial: 'on',
+        states: {
+          on: {
+            initial: 'active',
+            states: {
+              active: {},
+              history: {
+                type: 'history',
+                // @ts-expect-error - runtime JSON can still contain an empty array
+                target: []
+              }
+            }
+          }
+        }
+      })
+    ).toThrow(
+      'History state at $.states.on.states.history must declare a non-empty target.'
+    );
+  });
+
+  it('rejects SCXML-illegal multi-target transitions at construction', () => {
+    expect(() =>
+      createMachineFromConfig({
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              GO: { target: ['parallel.left.a', 'parallel.left.b'] }
+            }
+          },
+          parallel: {
+            type: 'parallel',
+            states: {
+              left: { initial: 'a', states: { a: {}, b: {} } },
+              right: { initial: 'c', states: { c: {}, d: {} } }
+            }
+          }
+        }
+      })
+    ).toThrow(
+      "Invalid transition definition for state node '(machine).idle': target set is not a legal SCXML configuration."
+    );
+  });
+
   it('should create a machine from a config', () => {
     const machine = createMachineFromConfig({
       initial: 'a',

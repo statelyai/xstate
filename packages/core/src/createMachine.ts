@@ -24,6 +24,8 @@ import {
   Next_MachineConfig,
   Next_StateNodeConfig,
   ValidateDelayReferences,
+  ValidateHistoryDefaults,
+  ValidateStateTargets,
   ValidateTopLevelFinalOutputs,
   WidenLiterals,
   WithDefault
@@ -114,6 +116,8 @@ export function createMachine<
 >(
   config: TSS &
     ValidateDelayReferences<TSS> &
+    ValidateHistoryDefaults<TSS> &
+    ValidateStateTargets<TSS> &
     Next_MachineConfig<
       TContextSchema,
       TEventSchemaMap,
@@ -203,6 +207,8 @@ export function createMachine<
 >(
   config: TSS &
     ValidateDelayReferences<TSS> &
+    ValidateHistoryDefaults<TSS> &
+    ValidateStateTargets<TSS> &
     Next_MachineConfig<
       StandardSchemaV1,
       TEventSchemaMap,

@@ -8,6 +8,37 @@ import type {
 } from '../src/types.ts';
 
 describe('setup', () => {
+  it('requires authored history states to declare a default target', () => {
+    const s = setup({
+      states: {
+        off: {
+          states: {
+            idle: {},
+            hist: {}
+          }
+        }
+      }
+    });
+
+    if (false) {
+      // @ts-expect-error - SCXML history states require a default transition
+      s.createMachine({
+        initial: 'off',
+        states: {
+          off: {
+            initial: 'idle',
+            states: {
+              idle: {},
+              hist: { type: 'history' }
+            }
+          }
+        }
+      });
+    }
+
+    expect(true).toBe(true);
+  });
+
   it('setup without schemas should infer context from machine config', () => {
     setup({}).createMachine({
       context: {

@@ -249,7 +249,8 @@ describe('#5178 historyValue revival', () => {
             second: {},
             hist: {
               type: 'history',
-              history: 'shallow'
+              history: 'shallow',
+              target: 'first'
             }
           },
           on: {

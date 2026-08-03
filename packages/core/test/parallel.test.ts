@@ -1153,7 +1153,8 @@ describe('parallel states', () => {
           type: 'parallel',
           states: {
             hist: {
-              type: 'history'
+              type: 'history',
+              target: ['one', 'two']
             },
             one: {
               initial: 'wait_one',
@@ -1237,10 +1238,7 @@ describe('parallel states', () => {
 
     actor.send({ type: 'TOGGLE_MODE' });
 
-    expect(flushTracked()).toEqual([
-      'exit: Mode.Normal',
-      'enter: Mode.Demo'
-    ]);
+    expect(flushTracked()).toEqual(['exit: Mode.Normal', 'enter: Mode.Demo']);
   });
 
   it('source parallel region should not be exited when a transition within it targets another parallel region (nested parallel)', async () => {

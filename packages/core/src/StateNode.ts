@@ -327,6 +327,25 @@ export class StateNode<
 function validateStateNodeConfig(stateNode: AnyStateNode) {
   const config = stateNode.config as any;
 
+  if (
+    stateNode.type === 'history' &&
+    !(
+      (typeof config.target === 'string' && config.target.trim().length > 0) ||
+      (Array.isArray(config.target) &&
+        config.target.length > 0 &&
+        config.target.every(
+          (target: unknown) =>
+            typeof target === 'string' && target.trim().length > 0
+        ))
+    )
+  ) {
+    throw new Error(
+      isDevelopment
+        ? `History state "${stateNode.id}" must declare a non-empty \`target\`.`
+        : `Missing history target on "${stateNode.id}"`
+    );
+  }
+
   if (stateNode.type !== 'choice') {
     if (isDevelopment && config.choice !== undefined) {
       throw new Error(

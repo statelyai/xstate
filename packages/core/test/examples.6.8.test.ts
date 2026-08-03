@@ -23,7 +23,7 @@ describe('Example 6.8', () => {
           E: {
             on: { 4: { target: 'B' }, 5: { target: 'D' } }
           },
-          hist: { history: true }
+          hist: { history: true, target: 'B' }
         }
       },
       F: {
