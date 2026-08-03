@@ -1,5 +1,33 @@
 # xstate
 
+## 6.0.0-alpha.27
+
+### Major Changes
+
+- 7656e70: Require history states to declare a non-empty default target. Authored literal
+  transition targets are now checked against the machine topology, and illegal
+  SCXML multi-target configurations are rejected when the machine is created.
+
+  Add a default target to every history state:
+
+  ```ts
+  createMachine({
+    initial: 'active',
+    states: {
+      active: {
+        initial: 'idle',
+        states: {
+          idle: {},
+          history: {
+            type: 'history',
+            target: 'idle'
+          }
+        }
+      }
+    }
+  });
+  ```
+
 ## 6.0.0-alpha.26
 
 ### Patch Changes
