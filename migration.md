@@ -29,9 +29,7 @@ IDs are recommended on the root state node (machine):
 const machine = createMachine({
   id: 'light', // add this property!
   initial: 'green',
-  states: {
-    /* ... */
-  }
+  states: {/* ... */}
 });
 ```
 

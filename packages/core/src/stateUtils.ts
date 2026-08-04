@@ -440,7 +440,7 @@ export function formatInitialTransition<
         : undefined;
   if (!resolvedTarget && _target) {
     throw new Error(
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-base-to-string
+      // oxlint-disable-next-line typescript/restrict-template-expressions, typescript/no-base-to-string
       `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
     );
   }
@@ -1091,7 +1091,7 @@ function microstep(
       );
     }
 
-    // eslint-disable-next-line no-useless-catch
+    // oxlint-disable no-useless-catch
     try {
       if (
         historyValue === currentSnapshot.historyValue &&
@@ -1111,6 +1111,7 @@ function microstep(
       // See https://github.com/statelyai/rfcs/pull/4
       throw e;
     }
+    // oxlint-enable no-useless-catch
   } finally {
     actorScope.actionExecutor = originalExecutor;
   }

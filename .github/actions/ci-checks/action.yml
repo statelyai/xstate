@@ -6,8 +6,12 @@ runs:
       run: pnpm build
       shell: bash
 
-    - name: ESLint
-      run: pnpm lint --no-cache
+    - name: Oxlint
+      run: pnpm lint
+      shell: bash
+
+    - name: Oxfmt
+      run: pnpm format:check
       shell: bash
 
     - name: Typecheck

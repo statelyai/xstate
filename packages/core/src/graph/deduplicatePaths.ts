@@ -37,7 +37,7 @@ export const deduplicatePaths = <
   pathLoop: for (const pathWithEventSequence of allPathsWithEventSequence) {
     // Check each existing superpath to see if the path is a subpath of it
     superpathLoop: for (const superpathWithEventSequence of superpathsWithEventSequence) {
-      // eslint-disable-next-line @typescript-eslint/no-for-in-array
+      // oxlint-disable-next-line typescript/no-for-in-array
       for (const i in pathWithEventSequence.eventSequence) {
         // Check event sequence to determine if path is subpath, e.g.:
         //

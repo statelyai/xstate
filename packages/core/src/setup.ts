@@ -371,14 +371,10 @@ export function setup<
   TEvent extends AnyEventObject, // TODO: consider using a stricter `EventObject` here
   TActors extends Record<string, UnknownActorLogic> = {},
   TChildrenMap extends Record<string, string> = {},
-  TActions extends Record<
-    string,
-    ParameterizedObject['params'] | undefined
-  > = {},
-  TGuards extends Record<
-    string,
-    ParameterizedObject['params'] | undefined
-  > = {},
+  TActions extends Record<string, ParameterizedObject['params'] | undefined> =
+    {},
+  TGuards extends Record<string, ParameterizedObject['params'] | undefined> =
+    {},
   TDelay extends string = never,
   TTag extends string = string,
   TInput = NonReducibleUnknown,

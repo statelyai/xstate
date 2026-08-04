@@ -12,6 +12,7 @@ import { Spawner } from './spawn.ts';
 import { AnyActorSystem, Clock } from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
+// oxlint-disable-next-line no-unused-vars
 import type { SimulatedClock } from './SimulatedClock.ts';
 
 export type Identity<T> = { [K in keyof T]: T[K] };
@@ -348,16 +349,16 @@ export interface InitialTransitionConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string
 > extends TransitionConfig<
-    TContext,
-    TEvent,
-    TEvent,
-    TActor,
-    TAction,
-    TGuard,
-    TDelay,
-    TODO, // TEmitted
-    TODO // TMeta
-  > {
+  TContext,
+  TEvent,
+  TEvent,
+  TActor,
+  TAction,
+  TGuard,
+  TDelay,
+  TODO, // TEmitted
+  TODO // TMeta
+> {
   target: string;
 }
 
@@ -1181,17 +1182,17 @@ export interface AtomicStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends StateNodeConfig<
-    TContext,
-    TEvent,
-    TODO,
-    TODO,
-    TODO,
-    TODO,
-    TODO,
-    TODO,
-    TODO, // emitted
-    TODO // meta
-  > {
+  TContext,
+  TEvent,
+  TODO,
+  TODO,
+  TODO,
+  TODO,
+  TODO,
+  TODO,
+  TODO, // emitted
+  TODO // meta
+> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
@@ -1485,17 +1486,17 @@ export interface MachineTypes<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > extends SetupTypes<
-    TContext,
-    TEvent,
-    // in machine types we currently don't support `TChildren`
-    // and IDs can still be configured through `TActor['id']`
-    never,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta
-  > {
+  TContext,
+  TEvent,
+  // in machine types we currently don't support `TChildren`
+  // and IDs can still be configured through `TActor['id']`
+  never,
+  TTag,
+  TInput,
+  TOutput,
+  TEmitted,
+  TMeta
+> {
   actors?: TActor;
   actions?: TAction;
   guards?: TGuard;
@@ -1503,8 +1504,9 @@ export interface MachineTypes<
   meta?: TMeta;
 }
 
-export interface HistoryStateNode<TContext extends MachineContext>
-  extends StateNode<TContext> {
+export interface HistoryStateNode<
+  TContext extends MachineContext
+> extends StateNode<TContext> {
   history: 'shallow' | 'deep';
   target: string | undefined;
 }
@@ -1531,8 +1533,10 @@ export type Transitions<
   TEvent extends EventObject
 > = Array<TransitionDefinition<TContext, TEvent>>;
 
-export interface DoneActorEvent<TOutput = unknown, TId extends string = string>
-  extends EventObject {
+export interface DoneActorEvent<
+  TOutput = unknown,
+  TId extends string = string
+> extends EventObject {
   type: `xstate.done.actor.${TId}`;
   output: TOutput;
   actorId: TId;
@@ -1602,12 +1606,12 @@ export interface SendToActionOptions<
   TEvent extends EventObject,
   TDelay extends string
 > extends RaiseActionOptions<
-    TContext,
-    TExpressionEvent,
-    TParams,
-    TEvent,
-    TDelay
-  > {}
+  TContext,
+  TExpressionEvent,
+  TParams,
+  TEvent,
+  TDelay
+> {}
 
 export interface RaiseActionOptions<
   TContext extends MachineContext,
@@ -1629,12 +1633,12 @@ export interface RaiseActionParams<
   TEvent extends EventObject,
   TDelay extends string
 > extends RaiseActionOptions<
-    TContext,
-    TExpressionEvent,
-    TParams,
-    TEvent,
-    TDelay
-  > {
+  TContext,
+  TExpressionEvent,
+  TParams,
+  TEvent,
+  TDelay
+> {
   event: TEvent | SendExpr<TContext, TExpressionEvent, TParams, TEvent, TEvent>;
 }
 
@@ -1646,12 +1650,12 @@ export interface SendToActionParams<
   TEvent extends EventObject,
   TDelay extends string
 > extends SendToActionOptions<
-    TContext,
-    TExpressionEvent,
-    TParams,
-    TEvent,
-    TDelay
-  > {
+  TContext,
+  TExpressionEvent,
+  TParams,
+  TEvent,
+  TDelay
+> {
   event:
     | TSentEvent
     | SendExpr<TContext, TExpressionEvent, TParams, TSentEvent, TEvent>;
@@ -1720,23 +1724,23 @@ export interface TransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends Omit<
-    TransitionConfig<
-      TContext,
-      TEvent,
-      TEvent,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO, // TEmitted
-      TODO // TMeta
-    >,
-    | 'target'
-    // `guard` is correctly rejected by `extends` here and `actions` should be too
-    // however, `any` passed to `TransitionConfig` as `TAction` collapses its `.actions` to `any` and it's accidentally allowed here
-    // it doesn't exactly have to be incorrect, we are overriding this here anyway but it looks like a lucky accident rather than smth done on purpose
-    | 'guard'
-  > {
+  TransitionConfig<
+    TContext,
+    TEvent,
+    TEvent,
+    TODO,
+    TODO,
+    TODO,
+    TODO,
+    TODO, // TEmitted
+    TODO // TMeta
+  >,
+  | 'target'
+  // `guard` is correctly rejected by `extends` here and `actions` should be too
+  // however, `any` passed to `TransitionConfig` as `TAction` collapses its `.actions` to `any` and it's accidentally allowed here
+  // it doesn't exactly have to be incorrect, we are overriding this here anyway but it looks like a lucky accident rather than smth done on purpose
+  | 'guard'
+> {
   target: ReadonlyArray<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
   actions: readonly UnknownAction[];
@@ -2022,8 +2026,10 @@ export interface BaseActorRef<TEvent extends EventObject> {
   send: (event: TEvent) => void;
 }
 
-export interface ActorLike<TCurrent, TEvent extends EventObject>
-  extends Subscribable<TCurrent> {
+export interface ActorLike<
+  TCurrent,
+  TEvent extends EventObject
+> extends Subscribable<TCurrent> {
   send: (event: TEvent) => void;
 }
 
@@ -2031,8 +2037,8 @@ export interface ActorRef<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TEmitted extends EventObject = EventObject
-> extends Subscribable<TSnapshot>,
-    InteropObservable<TSnapshot> {
+>
+  extends Subscribable<TSnapshot>, InteropObservable<TSnapshot> {
   /** The unique identifier for this actor relative to its parent. */
   id: string;
   sessionId: string;
@@ -2743,8 +2749,9 @@ export interface ExecutableActionObject {
     | undefined;
 }
 
-export interface ToExecutableAction<T extends ParameterizedObject>
-  extends ExecutableActionObject {
+export interface ToExecutableAction<
+  T extends ParameterizedObject
+> extends ExecutableActionObject {
   type: T['type'];
   params: T['params'];
   exec: undefined;

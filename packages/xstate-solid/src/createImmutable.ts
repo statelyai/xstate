@@ -27,7 +27,7 @@ const updateStore = <Path extends unknown[]>(
   store: Store<any>
 ) => {
   const valueRefs = new WeakMap<any, unknown>();
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
+  // oxlint-disable-next-line typescript/no-unnecessary-type-constraint
   const diff = <CompareValue extends unknown>(
     next: CompareValue,
     prev: CompareValue,

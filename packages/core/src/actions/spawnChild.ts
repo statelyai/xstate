@@ -78,7 +78,7 @@ function resolveSpawn(
 
   if (isDevelopment && !actorRef) {
     console.warn(
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions,@typescript-eslint/no-base-to-string
+      // oxlint-disable-next-line typescript/restrict-template-expressions,typescript/no-base-to-string
       `Actor type '${src}' not found in machine '${actorScope.id}'.`
     );
   }

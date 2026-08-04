@@ -1,11 +1,11 @@
-import bodyParser from "body-parser";
+import bodyParser from 'body-parser';
 import {
   collections,
   getDurableActor,
-  initDbConnection,
-} from "./services/actorService";
-import express from "express";
-import { creditCheckMachine } from "./machine";
+  initDbConnection
+} from './services/actorService';
+import express from 'express';
+import { creditCheckMachine } from './machine';
 
 const app = express();
 
@@ -16,19 +16,19 @@ app.use(bodyParser.json());
 // - Starts the actor
 // - Persists the actor state
 // - Returns a 201-Created code with the actor ID in the response
-app.post("/workflows", async (_req, res) => {
-  console.log("starting new workflow...");
+app.post('/workflows', async (_req, res) => {
+  console.log('starting new workflow...');
   try {
     // Create a new actor and get its ID
     const { workflowId } = await getDurableActor({
-      machine: creditCheckMachine,
+      machine: creditCheckMachine
     });
     res
       .status(201)
-      .json({ message: "New workflow created successfully", workflowId });
+      .json({ message: 'New workflow created successfully', workflowId });
   } catch (err) {
     console.log(err);
-    res.status(500).send("Error starting workflow. Details: " + err);
+    res.status(500).send('Error starting workflow. Details: ' + err);
   }
 });
 
@@ -39,26 +39,26 @@ app.post("/workflows", async (_req, res) => {
 // - Sends the event from the request body to the actor
 // - Persists the updated state
 // - Returns the updated state in the response
-app.post("/workflows/:workflowId", async (req, res) => {
+app.post('/workflows/:workflowId', async (req, res) => {
   const { workflowId } = req.params;
   const event = req.body;
 
   try {
     const { actor } = await getDurableActor({
       machine: creditCheckMachine,
-      workflowId,
+      workflowId
     });
     actor.send(event);
   } catch (err) {
     // note: you can (and should!) create custom errors to handle different scenarios and return different status codes
     console.log(err);
-    res.status(500).send("Error sending event. Details: " + err);
+    res.status(500).send('Error sending event. Details: ' + err);
   }
 
   res
     .status(200)
     .send(
-      "Event received. Issue a GET request to see the current workflow state",
+      'Event received. Issue a GET request to see the current workflow state'
     );
 });
 
@@ -66,20 +66,20 @@ app.post("/workflows/:workflowId", async (req, res) => {
 // - Gets the actor ID from request params
 // - Gets the persisted state for that actor
 // - Returns the persisted state in the response
-app.get("/workflows/:workflowId", async (req, res) => {
+app.get('/workflows/:workflowId', async (req, res) => {
   const { workflowId } = req.params;
   const persistedState = await collections.machineStates?.findOne({
-    workflowId,
+    workflowId
   });
 
   if (!persistedState) {
-    return res.status(404).send("Workflow state not found");
+    return res.status(404).send('Workflow state not found');
   }
 
   res.json(persistedState);
 });
 
-app.get("/", (_, res) => {
+app.get('/', (_, res) => {
   res.send(`
     <html>
       <body style="font-family: sans-serif;">
@@ -98,6 +98,6 @@ app.get("/", (_, res) => {
 // Connect to the DB and start the server
 initDbConnection().then(() => {
   app.listen(4242, () => {
-    console.log("Server listening on port 4242");
+    console.log('Server listening on port 4242');
   });
 });

@@ -147,7 +147,7 @@ with (context) {
 }
   `;
 
-  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  // oxlint-disable-next-line typescript/no-implied-eval
   const fn = new Function(...args, ...extraArgs, fnBody);
 
   return fn(context, { name: event.type, data: event });
@@ -252,7 +252,7 @@ return { type: ${event ? `"${event}"` : eventexpr}, ${params ? params : ''} }
         convertedDelay = ({ context, event: _ev, ...meta }) => {
           const fnBody = `
 return (${
-            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+            // oxlint-disable-next-line typescript/restrict-template-expressions
             delayToMs
           })(${element.attributes!.delayexpr});
             `;

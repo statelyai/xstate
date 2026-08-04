@@ -12,6 +12,7 @@ import { symbolObservable } from './symbolObservable.ts';
 import { AnyActorSystem, Clock, createSystem } from './system.ts';
 
 // those are needed to make JSDoc `@link` work properly
+// oxlint-disable no-unused-vars
 import type {
   fromObservable,
   fromEventObservable
@@ -20,6 +21,7 @@ import type { fromCallback } from './actors/callback.ts';
 import type { fromPromise } from './actors/promise.ts';
 import type { fromTransition } from './actors/transition.ts';
 import type { createMachine } from './createMachine.ts';
+// oxlint-enable no-unused-vars
 
 export let executingCustomAction: boolean = false;
 
@@ -74,10 +76,11 @@ const defaultOptions = {
  * its behavior based on the events it receives, which can cause effects outside
  * of the actor. When you run a state machine, it becomes an actor.
  */
-export class Actor<TLogic extends AnyActorLogic>
-  implements
-    ActorRef<SnapshotFrom<TLogic>, EventFromLogic<TLogic>, EmittedFrom<TLogic>>
-{
+export class Actor<TLogic extends AnyActorLogic> implements ActorRef<
+  SnapshotFrom<TLogic>,
+  EventFromLogic<TLogic>,
+  EmittedFrom<TLogic>
+> {
   /** The current internal state of the actor. */
   private _snapshot!: SnapshotFrom<TLogic>;
   /**

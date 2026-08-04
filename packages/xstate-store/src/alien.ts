@@ -1,4 +1,4 @@
-/* eslint-disable */
+/* oxlint-disable */
 // Adapted from Alien Signals
 // https://github.com/stackblitz/alien-signals/
 

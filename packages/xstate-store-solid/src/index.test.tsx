@@ -1,3 +1,4 @@
+/* @jsxRuntime automatic */
 /* @jsxImportSource solid-js */
 import { fireEvent, render, screen } from '@solidjs/testing-library';
 import {

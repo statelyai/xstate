@@ -647,12 +647,10 @@
   };
 
   type CoffeeEvents =
-    | { type: 'addBeans'; amount: number }
-    | { type: 'brewCup' };
+    { type: 'addBeans'; amount: number } | { type: 'brewCup' };
 
   type CoffeeEmitted =
-    | { type: 'beansAdded'; amount: number }
-    | { type: 'cupBrewed' };
+    { type: 'beansAdded'; amount: number } | { type: 'cupBrewed' };
 
   const coffeeStore = createStore<CoffeeContext, CoffeeEvents, CoffeeEmitted>({
     context: {

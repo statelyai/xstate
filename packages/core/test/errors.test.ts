@@ -1,3 +1,5 @@
+// @vitest-environment happy-dom
+
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
   AnyEventObject,
