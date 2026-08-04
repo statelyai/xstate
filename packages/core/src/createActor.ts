@@ -18,6 +18,7 @@ import {
 } from './system.ts';
 
 // those are needed to make JSDoc `@link` work properly
+// oxlint-disable no-unused-vars
 import type {
   createObservableLogic,
   createEventObservableLogic
@@ -26,6 +27,7 @@ import type { createCallbackLogic } from './actors/callback.ts';
 import type { createLogic } from './actors/logic.ts';
 import type { createAsyncLogic } from './actors/promise.ts';
 import type { createMachine } from './createMachine.ts';
+// oxlint-enable no-unused-vars
 
 let executingCustomAction: boolean = false;
 
@@ -110,15 +112,12 @@ function executeExecutableEffects(
  * so consumer APIs should accept `ActorRef` when they only need to send events
  * or read snapshots.
  */
-export class Actor<TLogic extends AnyActorLogic>
-  implements
-    ActorInstance<
-      SnapshotFrom<TLogic>,
-      EventFromLogic<TLogic>,
-      EmittedFrom<TLogic>,
-      SendableEventFromLogic<TLogic>
-    >
-{
+export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
+  SnapshotFrom<TLogic>,
+  EventFromLogic<TLogic>,
+  EmittedFrom<TLogic>,
+  SendableEventFromLogic<TLogic>
+> {
   /** The current internal state of the actor. */
   private _snapshot!: SnapshotFrom<TLogic>;
   /**

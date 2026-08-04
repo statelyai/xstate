@@ -1019,12 +1019,8 @@ const [current, send] = useMachine(someMachine, {
   actions: {
     doThing: doTheThing
   },
-  services: {
-    /* ... */
-  },
-  guards: {
-    /* ... */
-  }
+  services: {/* ... */},
+  guards: {/* ... */}
   // ... etc.
 });
 ```

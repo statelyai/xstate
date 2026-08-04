@@ -1,1 +1,0 @@
-["packages/*", "packages/xstate-store/vitest.config.{solid,vue}.mts"]

@@ -1,6 +1,6 @@
 import { Clock } from './system.ts';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
+// oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 export interface SimulatedClock extends Clock {
   start(speed: number): void;
   increment(ms: number): void;
@@ -12,7 +12,6 @@ interface SimulatedTimeout {
   timeout: number;
   fn: (...args: any[]) => void;
 }
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class SimulatedClock implements SimulatedClock {
   private timeouts: Map<number, SimulatedTimeout> = new Map();
   private _now: number = 0;

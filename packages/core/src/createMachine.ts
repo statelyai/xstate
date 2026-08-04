@@ -200,8 +200,8 @@ export function createMachine<
   TGuardMap extends Sources['guards'] = Sources['guards'],
   TDelayMap extends Sources['delays'] = Sources['delays'],
   TDelays extends string = string,
-  TTag extends StandardSchemaV1.InferOutput<TTagSchema> &
-    string = StandardSchemaV1.InferOutput<TTagSchema> & string,
+  TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string =
+    StandardSchemaV1.InferOutput<TTagSchema> & string,
   TInput = unknown,
   const TSS extends StateSchema = StateSchema
 >(

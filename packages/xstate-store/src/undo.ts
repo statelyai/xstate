@@ -1,14 +1,16 @@
 import {
   AnyStoreLogic,
+  EnqueueObject,
   EventObject,
   EventPayloadMap,
   ExtractEvents,
+  StoreEffect,
   StoreContext,
   StoreExtension,
   StoreLogic,
   StoreSnapshot
 } from './types.ts';
-import { appendInternalEventTypes } from './store.ts';
+import { appendInternalEventTypes, createEnqueueObject } from './store.ts';
 
 interface UndoRedoEventOptions<
   TContext extends StoreContext,
@@ -29,7 +31,9 @@ interface UndoRedoEventOptions<
 
 interface UndoRedoSnapshotOptions<
   TContext extends StoreContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TEventPayloadMap extends EventPayloadMap
 > {
   /** A function that returns the transaction ID of an event. */
   getTransactionId?: (
@@ -51,27 +55,44 @@ interface UndoRedoSnapshotOptions<
     pastSnapshot: StoreSnapshot<TContext>,
     currentSnapshot: StoreSnapshot<TContext>
   ) => boolean;
+  /** Customizes the context restored by snapshot-based undo/redo. */
+  restore?: (
+    args: {
+      current: TContext;
+      next: TContext;
+      direction: 'undo' | 'redo';
+    },
+    enqueue: EnqueueObject<TContext, TEmitted, TEventPayloadMap>
+  ) => TContext;
 }
 
 type UndoRedoStrategyOptions<
   TContext extends StoreContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TEventPayloadMap extends EventPayloadMap
 > =
   | ({
       strategy?: 'event';
     } & UndoRedoEventOptions<TContext, TEvent>)
   | ({
       strategy: 'snapshot';
-    } & UndoRedoSnapshotOptions<TContext, TEvent>);
+    } & UndoRedoSnapshotOptions<TContext, TEvent, TEmitted, TEventPayloadMap>);
 
 // Internal: create undo/redo logic from existing logic (for .with() pattern)
 function undoRedoFromLogic<
   TContext extends StoreContext,
   TEvent extends EventObject,
-  TEmitted extends EventObject
+  TEmitted extends EventObject,
+  TEventPayloadMap extends EventPayloadMap
 >(
   logic: StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>,
-  options?: UndoRedoStrategyOptions<TContext, TEvent>
+  options?: UndoRedoStrategyOptions<
+    TContext,
+    TEvent,
+    TEmitted,
+    TEventPayloadMap
+  >
 ): StoreLogic<
   StoreSnapshot<TContext>,
   TEvent | { type: 'undo' } | { type: 'redo' },
@@ -83,6 +104,54 @@ function undoRedoFromLogic<
       : Infinity;
 
   if (options?.strategy === 'snapshot') {
+    const restore = (
+      snapshot: any,
+      historicalSnapshot: StoreSnapshot<TContext>,
+      direction: 'undo' | 'redo',
+      past: any[],
+      future: any[]
+    ): [any, StoreEffect<TEmitted>[]] => {
+      if (!options.restore) {
+        return [{ ...historicalSnapshot, past, future }, []];
+      }
+
+      const effects: StoreEffect<TEmitted>[] = [];
+      const triggeredEvents: EventObject[] = [];
+      const enqueue = createEnqueueObject<TEmitted>(effects, (event) => {
+        triggeredEvents.push(event);
+      }) as EnqueueObject<TContext, TEmitted, TEventPayloadMap>;
+      let triggeredSnapshot = {
+        ...historicalSnapshot,
+        context: options.restore(
+          {
+            current: snapshot.context,
+            next: historicalSnapshot.context,
+            direction
+          },
+          enqueue
+        )
+      };
+
+      for (const triggeredEvent of triggeredEvents) {
+        const [nextTriggeredSnapshot, triggeredEffects] = logic.transition(
+          triggeredSnapshot,
+          triggeredEvent as TEvent
+        );
+        triggeredSnapshot = nextTriggeredSnapshot;
+        effects.push(...triggeredEffects);
+      }
+
+      return [
+        {
+          ...historicalSnapshot,
+          context: triggeredSnapshot.context,
+          past,
+          future
+        },
+        effects
+      ];
+    };
+
     // Snapshot strategy
     const enhancedLogic: AnyStoreLogic = {
       ...logic,
@@ -139,7 +208,7 @@ function undoRedoFromLogic<
             });
           }
 
-          return [{ ...newSnapshot, past, future }, []];
+          return restore(snapshot, newSnapshot, 'undo', past, future);
         }
 
         if (event.type === 'redo') {
@@ -152,12 +221,25 @@ function undoRedoFromLogic<
 
           const firstItem = future[0];
           const firstTransactionId = firstItem.transactionId;
+          const currentSnapshot = {
+            status: snapshot.status,
+            context: snapshot.context,
+            output: snapshot.output,
+            error: snapshot.error
+          };
 
           let newSnapshot;
           if (firstTransactionId === undefined) {
             const item = future.shift()!;
             newSnapshot = item.snapshot;
-            past.push(item);
+            past.push(
+              options.restore
+                ? {
+                    snapshot: currentSnapshot,
+                    transactionId: firstTransactionId
+                  }
+                : item
+            );
           } else {
             while (
               future.length > 0 &&
@@ -165,7 +247,15 @@ function undoRedoFromLogic<
             ) {
               const item = future.shift()!;
               newSnapshot = item.snapshot;
-              past.push(item);
+              if (!options.restore) {
+                past.push(item);
+              }
+            }
+            if (options.restore) {
+              past.push({
+                snapshot: currentSnapshot,
+                transactionId: firstTransactionId
+              });
             }
           }
 
@@ -174,7 +264,7 @@ function undoRedoFromLogic<
             past.splice(0, excessCount);
           }
 
-          return [{ ...newSnapshot, past, future }, []];
+          return restore(snapshot, newSnapshot, 'redo', past, future);
         }
 
         const [state, effects] = logic.transition(snapshot, event);
@@ -365,7 +455,12 @@ export function undoRedo<
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
 >(
-  options?: UndoRedoStrategyOptions<TContext, ExtractEvents<TEventPayloadMap>>
+  options?: UndoRedoStrategyOptions<
+    TContext,
+    ExtractEvents<TEventPayloadMap>,
+    TEmitted,
+    TEventPayloadMap
+  >
 ): StoreExtension<
   TContext,
   TEventPayloadMap,

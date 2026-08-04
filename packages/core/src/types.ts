@@ -8,6 +8,7 @@ import { Spawner } from './spawn.ts';
 import type { ActorSystemRuntime, AnyActorSystem, Clock } from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
+// oxlint-disable-next-line no-unused-vars
 import type { SimulatedClock } from './SimulatedClock.ts';
 import { Sources, Next_StateNodeConfig } from './types.v6.ts';
 import { StandardSchemaV1 } from './schema.types.ts';
@@ -326,16 +327,16 @@ export interface InitialTransitionConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays']
 > extends TransitionConfig<
-    TContext,
-    TEvent,
-    TEvent,
-    TEmitted,
-    TMeta,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap
-  > {
+  TContext,
+  TEvent,
+  TEvent,
+  TEmitted,
+  TMeta,
+  TActionMap,
+  TActorMap,
+  TGuardMap,
+  TDelayMap
+> {
   target: string;
 }
 
@@ -1205,17 +1206,17 @@ export interface MachineTypes<
   TEmitted extends EventObject,
   TMeta extends MetaObject
 > extends SetupTypes<
-    TContext,
-    TEvent,
-    // in machine types we currently don't support `TChildren`
-    // and IDs can still be configured through `TActor['id']`
-    never,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta
-  > {
+  TContext,
+  TEvent,
+  // in machine types we currently don't support `TChildren`
+  // and IDs can still be configured through `TActor['id']`
+  never,
+  TTag,
+  TInput,
+  TOutput,
+  TEmitted,
+  TMeta
+> {
   actors?: TActor;
   actions?: TAction;
   guards?: TGuard;
@@ -1223,8 +1224,9 @@ export interface MachineTypes<
   meta?: TMeta;
 }
 
-export interface HistoryStateNode<TContext extends MachineContext>
-  extends StateNode<TContext> {
+export interface HistoryStateNode<
+  TContext extends MachineContext
+> extends StateNode<TContext> {
   history: 'shallow' | 'deep';
   target: string | undefined;
 }
@@ -1375,8 +1377,10 @@ type StateSnapshotFromMachine<T extends AnyStateMachine> =
       >
     : SnapshotFrom<T>;
 
-export interface DoneActorEvent<TOutput = unknown, TId extends string = string>
-  extends EventObject {
+export interface DoneActorEvent<
+  TOutput = unknown,
+  TId extends string = string
+> extends EventObject {
   type: 'xstate.done.actor';
   output: TOutput;
   actorId: TId;
@@ -1412,8 +1416,10 @@ export interface SnapshotEvent<
   snapshot: TSnapshot;
 }
 
-export interface DoneStateEvent<TOutput = unknown, TId extends string = string>
-  extends EventObject {
+export interface DoneStateEvent<
+  TOutput = unknown,
+  TId extends string = string
+> extends EventObject {
   type: 'xstate.done.state';
   stateId: TId;
   output: TOutput;
@@ -1471,19 +1477,19 @@ export interface TransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends Omit<
-    TransitionConfig<
-      TContext,
-      TEvent,
-      TEvent,
-      TODO,
-      TODO,
-      TODO,
-      TODO,
-      TODO, // TEmitted
-      TODO // TMeta
-    >,
-    'target' | 'to'
-  > {
+  TransitionConfig<
+    TContext,
+    TEvent,
+    TEvent,
+    TODO,
+    TODO,
+    TODO,
+    TODO,
+    TODO, // TEmitted
+    TODO // TMeta
+  >,
+  'target' | 'to'
+> {
   target: ReadonlyArray<AnyStateNode> | undefined;
   source: AnyStateNode;
   reenter: boolean;
@@ -1811,8 +1817,10 @@ export interface BaseActorRef<TEvent extends EventObject> {
   send: (event: TEvent) => void;
 }
 
-export interface ActorLike<TCurrent, TEvent extends EventObject>
-  extends Subscribable<TCurrent> {
+export interface ActorLike<
+  TCurrent,
+  TEvent extends EventObject
+> extends Subscribable<TCurrent> {
   send: (event: TEvent) => void;
 }
 
@@ -1831,8 +1839,8 @@ export interface ActorRef<
   TEvent extends EventObject,
   TEmitted extends EventObject = EventObject,
   TSendEvent extends EventObject = TEvent
-> extends Subscribable<TSnapshot>,
-    InteropObservable<TSnapshot> {
+>
+  extends Subscribable<TSnapshot>, InteropObservable<TSnapshot> {
   send: (event: TSendEvent) => void;
   getSnapshot: () => TSnapshot;
   on: <TType extends TEmitted['type'] | '*'>(
@@ -1907,7 +1915,9 @@ export interface ActorInstance<
   TEvent extends EventObject,
   TEmitted extends EventObject = EventObject,
   TSendEvent extends EventObject = TEvent
-> extends ActorRuntime<TSnapshot, TEvent, TEmitted, TSendEvent>,
+>
+  extends
+    ActorRuntime<TSnapshot, TEvent, TEmitted, TSendEvent>,
     ActorRef<TSnapshot, TEvent, TEmitted, TSendEvent> {}
 
 /**
@@ -2783,16 +2793,16 @@ export interface CustomExecutableActionObject<
   action: ((...args: any[]) => void | PromiseLike<void>) | undefined;
 }
 
-export interface EmitExecutableActionObject<TType extends string = string & {}>
-  extends BaseExecutableActionObject {
+export interface EmitExecutableActionObject<
+  TType extends string = string & {}
+> extends BaseExecutableActionObject {
   kind: 'emit';
   type: TType;
   source: AnyActor;
   event: EventObject & { type: TType };
 }
 
-export interface SpawnExecutableActionObject
-  extends BaseExecutableActionObject {
+export interface SpawnExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
   type: '@xstate.spawn';
   source: AnyActor | undefined;
@@ -2804,8 +2814,7 @@ export interface SpawnExecutableActionObject
   args: Parameters<(typeof builtInActions)['@xstate.spawn']>;
 }
 
-export interface StartExecutableActionObject
-  extends BaseExecutableActionObject {
+export interface StartExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
   type: '@xstate.start';
   source: AnyActor | undefined;
@@ -2814,8 +2823,7 @@ export interface StartExecutableActionObject
   args: Parameters<(typeof builtInActions)['@xstate.start']>;
 }
 
-export interface RaiseExecutableActionObject
-  extends BaseExecutableActionObject {
+export interface RaiseExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
   type: '@xstate.raise';
   source: AnyActor;
@@ -2825,8 +2833,7 @@ export interface RaiseExecutableActionObject
   args: Parameters<(typeof builtInActions)['@xstate.raise']>;
 }
 
-export interface SendToExecutableActionObject
-  extends BaseExecutableActionObject {
+export interface SendToExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
   type: '@xstate.sendTo';
   source: AnyActor;
@@ -2837,8 +2844,7 @@ export interface SendToExecutableActionObject
   args: Parameters<(typeof builtInActions)['@xstate.sendTo']>;
 }
 
-export interface CancelExecutableActionObject
-  extends BaseExecutableActionObject {
+export interface CancelExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
   type: '@xstate.cancel';
   source: AnyActor;
@@ -2911,8 +2917,9 @@ export type ExecutableActionObject<TType extends string = string & {}> =
   | EmitExecutableActionObject
   | CustomExecutableActionObject<TType>;
 
-export interface ToExecutableAction<T extends ParameterizedObject>
-  extends CustomExecutableActionObject<T['type']> {
+export interface ToExecutableAction<
+  T extends ParameterizedObject
+> extends CustomExecutableActionObject<T['type']> {
   type: T['type'];
   params: T['params'];
   action: undefined;

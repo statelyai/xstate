@@ -39,7 +39,10 @@
     "update:examples:deps": "node ./scripts/update-example-deps.js",
     "update:examples:links": "node ./scripts/update-example-links.js",
     "fix": "manypkg fix",
-    "lint": "eslint --cache --quiet",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint --quiet --report-unused-disable-directives-severity=error",
+    "lint:fix": "oxlint --fix --report-unused-disable-directives-severity=error",
     "typecheck": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -67,32 +70,29 @@
   },
   "homepage": "https://github.com/statelyai/xstate#readme",
   "dependencies": {
-    "@babel/core": "^7.23.3",
+    "@babel/core": "^7.29.7",
     "@babel/plugin-proposal-class-properties": "^7.18.6",
-    "@babel/preset-env": "^7.23.3",
-    "@babel/preset-react": "^7.23.3",
-    "@babel/preset-typescript": "^7.23.3",
-    "@changesets/cli": "^2.29.5",
-    "@eslint/js": "^9.26.0",
+    "@babel/preset-env": "^7.29.7",
+    "@babel/preset-react": "^7.29.7",
+    "@babel/preset-typescript": "^7.29.7",
+    "@changesets/cli": "^2.31.1",
     "@manypkg/cli": "^0.21.4",
     "@preconstruct/cli": "^2.8.13",
-    "@types/node": "^25.2.1",
+    "@types/node": "25.2.1",
     "@typescript/native": "npm:typescript@^7.0.2",
-    "@vitest/coverage-istanbul": "3.2.4",
-    "babel-preset-solid": "^1.8.4",
-    "eslint": "^10.1.0",
-    "eslint-plugin-jsdoc": "^50.6.14",
-    "globals": "^15.8.0",
-    "happy-dom": "^17.4.4",
+    "@vitest/coverage-istanbul": "3.2.7",
+    "babel-preset-solid": "^1.9.12",
+    "eslint-plugin-jsdoc": "^63.3.2",
+    "happy-dom": "^17.6.3",
     "husky": "^3.1.0",
     "knip": "6.27.0",
-    "lint-staged": "^16.2.7",
-    "prettier": "^3.1.0",
-    "prettier-plugin-jsdoc": "^1.3.0",
-    "synckit": "^0.8.5",
+    "lint-staged": "^16.4.0",
+    "oxfmt": "^0.61.0",
+    "oxlint": "^1.76.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "synckit": "^0.8.8",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-eslint": "^8.65.0",
-    "vitest": "^3.2.2"
+    "vitest": "^3.2.7"
   },
   "husky": {
     "hooks": {
@@ -100,10 +100,7 @@
     }
   },
   "lint-staged": {
-    "!(CLAUDE).{ts,tsx,js,jsx,json,md,mdx}": [
-      "prettier --write",
-      "git add"
-    ]
+    "!(CLAUDE).{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc,json5,md,mdx,css,scss,less,yml,yaml,html}": "oxfmt --write"
   },
   "packageManager": "pnpm@11.8.0+sha512.c1f5e7c4cb241c8f174b743851d82f42b802324afc8b0f116b96adb15aa06664948dde36960a3ba1079ba5b4b29dd0140135b94b5b5f5263592249d68e555f26"
 }

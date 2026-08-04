@@ -63,6 +63,24 @@
 
 - [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Export a new `isAtom(value)` helper that returns `true` when a value is an atom (i.e. has `get` and `subscribe` methods).
 
+## 4.2.2
+
+### Patch Changes
+
+- [#5608](https://github.com/statelyai/xstate/pull/5608) [`fbcbd5a`](https://github.com/statelyai/xstate/commit/fbcbd5a389dd76de74f37dbba675b26abe790ff4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Allow snapshot-based undo and redo to customize restored context while preserving complete history snapshots. Restoration can enqueue emitted events, effects, and store triggers.
+
+  ```ts
+  const undoableStore = store.with(
+    undoRedo({
+      strategy: 'snapshot',
+      restore: ({ current, next }) => ({
+        ...next,
+        viewport: current.viewport
+      })
+    })
+  );
+  ```
+
 ## 4.2.1
 
 ### Patch Changes
@@ -692,12 +710,10 @@
   };
 
   type CoffeeEvents =
-    | { type: 'addBeans'; amount: number }
-    | { type: 'brewCup' };
+    { type: 'addBeans'; amount: number } | { type: 'brewCup' };
 
   type CoffeeEmitted =
-    | { type: 'beansAdded'; amount: number }
-    | { type: 'cupBrewed' };
+    { type: 'beansAdded'; amount: number } | { type: 'cupBrewed' };
 
   const coffeeStore = createStore<CoffeeContext, CoffeeEvents, CoffeeEmitted>({
     context: {

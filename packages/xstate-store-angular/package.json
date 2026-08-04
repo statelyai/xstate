@@ -43,6 +43,7 @@
     "@angular/platform-browser": "^19.0.0",
     "@angular/platform-browser-dynamic": "^19.0.0",
     "jsdom": "^26.0.0",
+    "typescript": "~5.8.3",
     "zone.js": "^0.15.0"
   },
   "preconstruct": {

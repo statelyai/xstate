@@ -1619,6 +1619,12 @@
   - Machine serialization (`machine.toJSON()`) and the internal listener/subscription actor logic are significantly smaller.
   - Long diagnostic error messages are now development-only; production builds throw the same errors with shorter messages.
 
+## 5.32.5
+
+### Patch Changes
+
+- [#5603](https://github.com/statelyai/xstate/pull/5603) [`345e04c`](https://github.com/statelyai/xstate/commit/345e04ce66963c2a5a2a879bb4928a1b179de7f6) Thanks [@xianjianlf2](https://github.com/xianjianlf2)! - Sending an event to a stopped actor no longer throws when the event contains unserializable data (e.g. circular references). Previously, the development-only warning that an event was sent to a stopped actor used `JSON.stringify` on the event, which could throw and mask the intended warning. The warning is now emitted safely regardless of the event's contents.
+
 ## 5.32.4
 
 ### Patch Changes
@@ -2944,9 +2950,7 @@
 - [#4616](https://github.com/statelyai/xstate/pull/4616) [`e8c0b15b2`](https://github.com/statelyai/xstate/commit/e8c0b15b2ed385b233c75d79def2a7e9fe99a597) Thanks [@Andarist](https://github.com/Andarist)! - `context` factories receive `self` now so you can immediately pass that as part of the input to spawned actors.
 
   ```ts
-  setup({
-    /* ... */
-  }).createMachine({
+  setup({/* ... */}).createMachine({
     context: ({ spawn, self }) => {
       return {
         childRef: spawn('child', { input: { parent: self } })
@@ -4015,10 +4019,10 @@
   - ✅ `"*"`
   - ✅ `"event.*"`
   - ✅ `"event.something.*"`
-  - ❌ ~`"event.*.something"`~
-  - ❌ ~`"event*"`~
-  - ❌ ~`"event*.some*thing"`~
-  - ❌ ~`"*.something"`~
+  - ❌ ~~`"event.*.something"`~~
+  - ❌ ~~`"event*"`~~
+  - ❌ ~~`"event*.some*thing"`~~
+  - ❌ ~~`"*.something"`~~
 
 - d3d6149c7: The interface for guard objects has changed. Notably, all guard parameters should be placed in the `params` property of the guard object:
 
@@ -4165,8 +4169,7 @@
   createMachine({
     types: {} as {
       actions:
-        | { type: 'greet'; params: { surname: string } }
-        | { type: 'poke' };
+        { type: 'greet'; params: { surname: string } } | { type: 'poke' };
     },
     entry: {
       type: 'greet',
@@ -5342,8 +5345,7 @@
   createMachine({
     types: {} as {
       actions:
-        | { type: 'greet'; params: { surname: string } }
-        | { type: 'poke' };
+        { type: 'greet'; params: { surname: string } } | { type: 'poke' };
     },
     entry: {
       type: 'greet',
@@ -6896,10 +6898,10 @@
   - ✅ `"*"`
   - ✅ `"event.*"`
   - ✅ `"event.something.*"`
-  - ❌ ~`"event.*.something"`~
-  - ❌ ~`"event*"`~
-  - ❌ ~`"event*.some*thing"`~
-  - ❌ ~`"*.something"`~
+  - ❌ ~~`"event.*.something"`~~
+  - ❌ ~~`"event*"`~~
+  - ❌ ~~`"event*.some*thing"`~~
+  - ❌ ~~`"*.something"`~~
 
 * [#1456](https://github.com/statelyai/xstate/pull/1456) [`8fcbddd51`](https://github.com/statelyai/xstate/commit/8fcbddd51d66716ab1d326d934566a7664a4e175) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The interface for guard objects has changed. Notably, all guard parameters should be placed in the `params` property of the guard object:
 
@@ -7515,15 +7517,11 @@
 
   ```ts
   createMachine({
-    context: {
-      /* ... */
-    }, // ✅ This is allowed
+    context: {/* ... */}, // ✅ This is allowed
     initial: 'inner',
     states: {
       inner: {
-        context: {
-          /* ... */
-        } // ❌ This will no longer compile
+        context: {/* ... */} // ❌ This will no longer compile
       }
     }
   });
@@ -7685,8 +7683,10 @@
 - [`99bc5fb9`](https://github.com/statelyai/xstate/commit/99bc5fb9d1d7be35f4c767dcbbf5287755b306d0) [#2275](https://github.com/statelyai/xstate/pull/2275) Thanks [@davidkpiano](https://github.com/statelyai)! - The `SpawnedActorRef` TypeScript interface has been deprecated in favor of a unified `ActorRef` interface, which contains the following:
 
   ```ts
-  interface ActorRef<TEvent extends EventObject, TEmitted = any>
-    extends Subscribable<TEmitted> {
+  interface ActorRef<
+    TEvent extends EventObject,
+    TEmitted = any
+  > extends Subscribable<TEmitted> {
     send: (event: TEvent) => void;
     id: string;
     subscribe(observer: Observer<T>): Subscription;
@@ -7964,12 +7964,8 @@
     states: {
       active: {
         on: {
-          updateName: {
-            /* ... */
-          },
-          updateAge: {
-            /* ... */
-          }
+          updateName: {/* ... */},
+          updateAge: {/* ... */}
         }
       }
     }

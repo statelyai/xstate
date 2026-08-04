@@ -179,24 +179,22 @@ export class StateMachine<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays']
-> implements
-    ActorLogic<
-      MachineSnapshot<
-        TContext,
-        TEvent,
-        TChildren,
-        TStateValue,
-        TTag,
-        TOutput,
-        TMeta,
-        TConfig
-      >,
-      TEvent,
-      TInput,
-      AnyActorSystem,
-      TEmitted
-    >
-{
+> implements ActorLogic<
+  MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta,
+    TConfig
+  >,
+  TEvent,
+  TInput,
+  AnyActorSystem,
+  TEmitted
+> {
   /** The machine's own version. */
   public version?: string;
 

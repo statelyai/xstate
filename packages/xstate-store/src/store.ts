@@ -87,7 +87,7 @@ function toEvent(eventType: string, payload: any) {
       };
 }
 
-function createEnqueueObject<TEmitted extends EventObject>(
+export function createEnqueueObject<TEmitted extends EventObject>(
   effects: StoreEffect<TEmitted>[],
   trigger?: (event: EventObject) => void
 ): EnqueueObject<any, TEmitted, any> {

@@ -1,12 +1,12 @@
-import { z } from "zod";
-import { collections } from "./actorService";
-import CreditReport from "../models/creditReport";
-import CreditProfile from "../models/creditProfile";
+import { z } from 'zod';
+import { collections } from './actorService';
+import CreditReport from '../models/creditReport';
+import CreditProfile from '../models/creditProfile';
 
 const userCredentialSchema = z.object({
   firstName: z.string().min(1).max(255),
   lastName: z.string().min(1).max(255),
-  SSN: z.string().min(9).max(9),
+  SSN: z.string().min(9).max(9)
 });
 
 export type userCredential = z.infer<typeof userCredentialSchema>;
@@ -14,12 +14,12 @@ export type userCredential = z.infer<typeof userCredentialSchema>;
 // this would be a great place to lookup the user in a database and confirm they exist
 // for now, we will just validate the input and return it
 export async function verifyCredentials(credentials: userCredential) {
-  console.log("Verifying Credentials...");
+  console.log('Verifying Credentials...');
   try {
     userCredentialSchema.parse(credentials);
     return credentials;
   } catch (err) {
-    const errorMessage = "Invalid Credentials. Details: " + err;
+    const errorMessage = 'Invalid Credentials. Details: ' + err;
     console.log(errorMessage);
     throw new Error(errorMessage);
   }
@@ -36,20 +36,20 @@ export async function determineMiddleScore(scores: number[]) {
 // for this sample, we will just return the report if it exists
 export async function checkReportsTable({
   ssn,
-  bureauName,
+  bureauName
 }: {
   ssn: string;
   bureauName: string;
 }) {
-  console.log("Checking for an existing report....");
+  console.log('Checking for an existing report....');
   try {
     const report = await collections.creditReports?.findOne({
       ssn,
-      bureauName,
+      bureauName
     });
     return report as CreditReport | undefined;
   } catch (err) {
-    console.log("Error checking reports table", err);
+    console.log('Error checking reports table', err);
     throw err;
   }
 }
@@ -58,19 +58,19 @@ export async function checkReportsTable({
 // returns a random number representing a credit score between 300 and 850
 export async function checkBureauService({
   ssn,
-  bureauName,
+  bureauName
 }: {
   ssn: string;
   bureauName: string;
 }) {
   switch (bureauName) {
-    case "GavUnion":
+    case 'GavUnion':
       await sleep(range({ min: 1000, max: 10000 }));
       return range({ min: 300, max: 850 });
-    case "EquiGavin":
+    case 'EquiGavin':
       await sleep(range({ min: 1000, max: 10000 }));
       return range({ min: 300, max: 850 });
-    case "Gavperian":
+    case 'Gavperian':
       await sleep(range({ min: 1000, max: 10000 }));
       return range({ min: 300, max: 850 });
   }
@@ -96,13 +96,13 @@ export async function saveCreditReport(report: CreditReport) {
     await collections.creditReports?.replaceOne(
       {
         ssn: report.ssn,
-        bureauName: report.bureauName,
+        bureauName: report.bureauName
       },
       report,
-      { upsert: true },
+      { upsert: true }
     );
   } catch (err) {
-    console.log("Error saving credit report", err);
+    console.log('Error saving credit report', err);
     throw err;
   }
 }
@@ -111,13 +111,13 @@ export async function saveCreditProfile(profile: CreditProfile) {
   try {
     await collections.creditProfiles?.replaceOne(
       {
-        ssn: profile.SSN,
+        ssn: profile.SSN
       },
       profile,
-      { upsert: true },
+      { upsert: true }
     );
   } catch (err) {
-    console.log("Error saving credit profile", err);
+    console.log('Error saving credit profile', err);
     throw err;
   }
 }

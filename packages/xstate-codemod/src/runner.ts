@@ -1,6 +1,9 @@
 import { Project, SourceFile } from 'ts-morph';
 import type { Transform } from './types.ts';
-import { transforms as allTransforms, transformsByName } from './transforms/index.ts';
+import {
+  transforms as allTransforms,
+  transformsByName
+} from './transforms/index.ts';
 
 export interface FileTransformReport {
   filePath: string;

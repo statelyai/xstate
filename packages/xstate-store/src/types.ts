@@ -217,7 +217,9 @@ export interface Store<
   TContext extends StoreContext,
   TEventPayloadMap extends EventPayloadMap,
   TEmitted extends EventObject
-> extends Subscribable<StoreSnapshot<TContext>>,
+>
+  extends
+    Subscribable<StoreSnapshot<TContext>>,
     InteropObservable<StoreSnapshot<TContext>>,
     Readable<StoreSnapshot<TContext>> {
   /** Standard Schema definitions for this store, if provided. */
@@ -523,8 +525,7 @@ interface StoreBaseInspectionEventProperties {
   actorRef: ActorRefLike;
 }
 
-export interface StoreInspectionEvent
-  extends StoreBaseInspectionEventProperties {
+export interface StoreInspectionEvent extends StoreBaseInspectionEventProperties {
   type: '@xstate.transition';
   event: AnyEventObject; // { type: string, ... }
   snapshot: Snapshot<unknown>;

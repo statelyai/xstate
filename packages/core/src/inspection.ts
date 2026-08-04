@@ -81,8 +81,7 @@ export interface ActorInspectionEvent extends BaseInspectionEventProperties {
  * `@xstate.event`/`@xstate.snapshot`/`@xstate.action`/`@xstate.microstep`
  * events.
  */
-export interface TransitionInspectionEvent
-  extends BaseInspectionEventProperties {
+export interface TransitionInspectionEvent extends BaseInspectionEventProperties {
   type: '@xstate.transition';
   eventType: string;
   /** The event that caused the transition. */

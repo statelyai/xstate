@@ -16,9 +16,4 @@ export const transformsByName: Record<string, Transform> = Object.fromEntries(
   transforms.map((t) => [t.name, t])
 );
 
-export {
-  renameImports,
-  stringTargets,
-  typesToSchemas,
-  reportRemovedApis
-};
+export { renameImports, stringTargets, typesToSchemas, reportRemovedApis };

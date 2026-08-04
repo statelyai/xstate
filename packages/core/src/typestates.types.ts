@@ -48,7 +48,7 @@ type TargetAndContextFrom<T> = T extends { states: infer S }
 type _TargetsFromStates<S, PathAcc extends readonly string[], CtxAcc> =
   S extends Record<string, any>
     ? {
-        [K in keyof S & string]:  // this node
+        [K in keyof S & string]: // this node
           | _NodeResult<S[K], [...PathAcc, K], CtxAcc>
           // its children (if any)
           | _ChildrenResult<S[K], [...PathAcc, K], CtxAcc>;

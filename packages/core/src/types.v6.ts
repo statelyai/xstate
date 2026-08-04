@@ -241,10 +241,8 @@ export type Next_MachineConfig<
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext = InferOutput<TContextSchema, MachineContext>,
   TEvent extends EventObject = InferEvents<TEventSchemaMap>,
-  TChildren extends Record<
-    string,
-    AnyActorRef | undefined
-  > = InferChildren<TChildrenSchemaMap>,
+  TChildren extends Record<string, AnyActorRef | undefined> =
+    InferChildren<TChildrenSchemaMap>,
   TDelays extends string = string,
   _TTag extends string = string,
   TActionMap extends Sources['actions'] = Sources['actions'],

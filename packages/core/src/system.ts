@@ -138,8 +138,9 @@ function createScheduledTimerId(actor: AnyActor, id: string): ScheduledTimerId {
   return `${actor.sessionId}.${id}` as ScheduledTimerId;
 }
 
-export interface ActorSystem<T extends ActorSystemInfo>
-  extends ActorSystemRuntime {
+export interface ActorSystem<
+  T extends ActorSystemInfo
+> extends ActorSystemRuntime {
   /** @internal Allocates an actor reference during snapshot calculation. */
   createActorRef(
     logic: AnyActorLogic,

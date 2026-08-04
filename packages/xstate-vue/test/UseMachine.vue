@@ -15,7 +15,7 @@
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
 import { useMachine } from '../src/index.ts';
-import { createMachine, assign, AnyState } from 'xstate';
+import { AsyncActorLogic, createMachine, AnyState } from 'xstate';
 import { createAsyncLogic } from 'xstate/actors';
 
 const context = {
@@ -23,22 +23,32 @@ const context = {
 };
 const fetchMachine = createMachine({
   id: 'fetch',
+  types: {} as {
+    actors: {
+      src: 'fetchData';
+      logic: AsyncActorLogic<string>;
+    };
+  },
   initial: 'idle',
-  context,
+  context: context as any,
   states: {
     idle: {
-      on: { FETCH: 'loading' }
+      on: { FETCH: { target: 'loading' } }
     },
     loading: {
       invoke: {
         id: 'fetchData',
         src: 'fetchData',
-        onDone: {
-          target: 'success',
-          actions: assign({
-            data: ({ event }) => event.output
-          }),
-          guard: ({ event }) => event.output.length
+        onDone: ({ event }) => {
+          if (!event.output.length) {
+            return;
+          }
+          return {
+            target: 'success',
+            context: {
+              data: event.output
+            }
+          };
         }
       }
     },

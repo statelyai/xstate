@@ -226,15 +226,15 @@ interface ActiveMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TOutput,
-    TMeta,
-    TStateSchema
-  > {
+  TContext,
+  TEvent,
+  TChildren,
+  TStateValue,
+  TTag,
+  TOutput,
+  TMeta,
+  TStateSchema
+> {
   status: 'active';
   output: undefined;
   error: undefined;
@@ -250,15 +250,15 @@ interface DoneMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TOutput,
-    TMeta,
-    TStateSchema
-  > {
+  TContext,
+  TEvent,
+  TChildren,
+  TStateValue,
+  TTag,
+  TOutput,
+  TMeta,
+  TStateSchema
+> {
   status: 'done';
   output: TOutput;
   error: undefined;
@@ -274,15 +274,15 @@ interface ErrorMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TOutput,
-    TMeta,
-    TStateSchema
-  > {
+  TContext,
+  TEvent,
+  TChildren,
+  TStateValue,
+  TTag,
+  TOutput,
+  TMeta,
+  TStateSchema
+> {
   status: 'error';
   output: undefined;
   error: unknown;
@@ -298,15 +298,15 @@ interface StoppedMachineSnapshot<
   TMeta extends MetaObject,
   TStateSchema extends StateSchema
 > extends MachineSnapshotBase<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TOutput,
-    TMeta,
-    TStateSchema
-  > {
+  TContext,
+  TEvent,
+  TChildren,
+  TStateValue,
+  TTag,
+  TOutput,
+  TMeta,
+  TStateSchema
+> {
   status: 'stopped';
   output: undefined;
   error: undefined;
