@@ -16,3 +16,5 @@ Descendants can read the same reference.
 const actorRef = getContext(actorKey);
 const count = useSelector(actorRef, (snapshot) => snapshot.context.count);
 ```
+
+This works well for a cart shared by checkout components or a session actor shared by one application shell. Create one actor per application or request.

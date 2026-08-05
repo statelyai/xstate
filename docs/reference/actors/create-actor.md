@@ -17,6 +17,16 @@ const actor = createActor(machine);
 actor.start();
 ```
 
+Subscribe before `start()` when the subscriber must receive the initial snapshot. An actor does not process events until it starts.
+
+```ts
+actor.subscribe((snapshot) => console.log(snapshot.value));
+actor.start();
+actor.send({ type: 'next' });
+```
+
+Create a separate actor for each running instance. The same machine can run one actor per browser tab, order or uploaded file.
+
 ## Actor methods
 
 | Method | Purpose |

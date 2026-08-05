@@ -28,6 +28,30 @@ const machine = createMachine({
 
 Use an array to invoke more than one actor. Set `id` when another action needs to address the child.
 
+Invoked actors belong to the state that starts them:
+
+- entering the state starts the actor
+- leaving the state stops it
+- re-entering the state stops the old actor and starts a new one
+
+Use an actor instead of an action when work is async, can be canceled, sends snapshots or affects the next state. Common examples are payment authorization and file uploads.
+
+`onDone` receives final output. `onError` receives an unhandled error. `onSnapshot` handles intermediate snapshots.
+
+```ts
+invoke: {
+  src: uploadMachine,
+  onSnapshot: ({ context, event }) => ({
+    context: {
+      ...context,
+      progress: event.snapshot.context.progress
+    }
+  }),
+  onDone: { target: 'complete' },
+  onError: { target: 'failed' }
+}
+```
+
 ## TypeScript
 
 Provide named actor logic through `setup({ actors })`. XState checks `src` and `input` against that logic.
@@ -40,6 +64,7 @@ invoke: {
   src: requestLogic,
   input: ({ context }) => context.request,
   onDone: { target: 'success' },
-  onError: { target: 'failure' }
+  onError: { target: 'failure' },
+  onSnapshot: ({ event }) => ({ context: { snapshot: event.snapshot } })
 }
 ```

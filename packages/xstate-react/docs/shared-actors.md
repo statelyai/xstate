@@ -30,3 +30,5 @@ function CounterView() {
 ```
 
 Each provider creates one actor for its subtree.
+
+Use a provider for a cart shared by several checkout components or a session actor shared by one application shell. Put the provider close enough that separate application instances do not share an actor by accident.

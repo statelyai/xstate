@@ -38,3 +38,27 @@ const parentMachine = createMachine({
 ```
 
 Use actors when behavior needs its own lifecycle or communication boundary.
+
+## Real examples
+
+- Give each upload its own actor so uploads can progress, fail and cancel independently.
+- Give a WebSocket connection its own actor so opening, receiving messages and cleanup share one lifecycle.
+
+```ts
+import { createCallbackLogic } from 'xstate';
+
+const socketLogic = createCallbackLogic<{
+  type: 'send';
+  message: string;
+}>(({ receive }) => {
+  const socket = new WebSocket('wss://example.com/updates');
+
+  receive((event) => {
+    if (event.type === 'send') socket.send(event.message);
+  });
+
+  return () => socket.close();
+});
+```
+
+Stopping the actor runs the cleanup function.

@@ -16,3 +16,5 @@ const count = useSelector(actorRef, (snapshot) => snapshot.context.count);
 ```
 
 Create a unique actor for each application or request.
+
+This works well for a cart shared by checkout components or a session actor shared by one application shell.

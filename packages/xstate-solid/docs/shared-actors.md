@@ -19,3 +19,5 @@ function ActorProvider(props: ParentProps) {
 ```
 
 Descendants call `useContext(ActorContext)` to use the same actor.
+
+This works well for a cart shared by checkout components or a session actor shared by one application shell. Create one actor per application or request.

@@ -49,3 +49,5 @@ form.trigger.next({ value: 'ada@example.com' });
 ```
 
 The event schemas type the generated `trigger` methods.
+
+Use this shape for account onboarding and multi-step checkout. Put fields in context, steps in states and validation rules in transition functions or guards.

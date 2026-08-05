@@ -13,3 +13,5 @@ const { snapshot, send } = useActor(machine, {
 ```
 
 Input creates new initial state. A persisted snapshot restores earlier state.
+
+Use input to start a profile actor for one `userId`. Use a restored snapshot to resume a checkout after a refresh.

@@ -30,6 +30,8 @@ const { snapshot, send } = useActor(machine);
 
 Use `useActorRef(...)` when the component does not need every snapshot.
 
+Use `useActor(...)` for UI driven by the whole snapshot, such as a wizard step or request status. Use `useActorRef(...)` with `useSelector(...)` for a shared cart or session actor when a component only needs one value.
+
 ## TypeScript
 
 The composable infers snapshot and event types from the actor logic.

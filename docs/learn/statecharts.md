@@ -39,3 +39,11 @@ history: { type: 'history', target: 'normal' }
 ```
 
 Target the history state when returning to its parent. The default `target` is used when there is no recorded history.
+
+## Real examples
+
+A media player can use parallel regions for playback and volume. Pausing playback does not mute audio, and muting audio does not change the playback state.
+
+A checkout can use a parent `payment` state with `editingCard`, `authorizing` and `declined` children. A `cancel` transition on `payment` applies to every child.
+
+History is useful when a user temporarily leaves a multi-step form or a media player reconnects and should return to its previous mode.

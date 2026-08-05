@@ -7,13 +7,23 @@ description: Terms used throughout the XState documentation.
 
 **Actor logic**: The rules used by an actor to process events.
 
+**Action**: An effect scheduled by a transition.
+
 **Context**: Data stored in a state machine snapshot.
 
 **Event**: A value sent to an actor. Events have a `type`.
 
 **Guard**: A condition that chooses whether a transition can run.
 
+**Input**: Data provided when an actor is created.
+
+**Invoked actor**: A child actor whose lifecycle belongs to a state.
+
+**Output**: Final data produced when an actor completes.
+
 **Snapshot**: An actor's observable state at one point in time.
+
+**Spawned actor**: A child actor created during a transition and managed by its parent.
 
 **State**: A named mode in a state machine.
 

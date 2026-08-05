@@ -21,3 +21,7 @@ Use the matching package entry point for the framework:
 - `@xstate/store-angular`
 
 Create the store outside a component when components should share it. Create it inside an application provider when each application instance needs separate state.
+
+Bindings expose `useSelector(...)` for an existing store and `useStore(...)` for a store created with the component lifecycle. Use selectors for values such as a cart total or the visible rows in a table.
+
+Do not create a shared server-side store at module scope. Create one per request.

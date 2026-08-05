@@ -46,6 +46,17 @@ The request is in one state at a time. A `retry` event only has meaning in the `
 
 State machines do not remove complexity. They make it visible and give it a structure.
 
+## Real examples
+
+An online payment may be `idle`, `authorizing`, `confirmed` or `declined`. While it is `authorizing`, a second `submit` event can be ignored. A `retry` event only applies after the payment is declined.
+
+A video call may be `joining`, `connected`, `reconnecting` or `ended`. The UI, timers and network effects can follow the current state instead of checking several connection flags.
+
+These models answer two questions in one place:
+
+- What can happen now?
+- What should happen next?
+
 ## When not to use a state machine
 
 Do not add a state machine only to replace a value. A counter, an open menu and a single text field may be clearer as ordinary state. Use a machine when the rules between states are the important part of the problem.

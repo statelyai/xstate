@@ -21,3 +21,5 @@ const restored = createActor(machine, {
 ```
 
 Persisted snapshots include persisted child actors. Store the machine version with each snapshot and keep external resources out of context.
+
+Restore a checkout after a refresh or resume an order when the next webhook arrives. Do not restore an old snapshot with incompatible actor logic.

@@ -30,3 +30,11 @@ submitting --cancel--> editing
 Look for states with no way in or out, forbidden events, async work without failure behavior, boolean combinations, and behavior that needs another actor.
 
 Implement the smallest useful model first. Add hierarchy and actors when the model needs those boundaries.
+
+## Real examples
+
+For a support ticket, start with `open`, `waitingForCustomer`, `resolved` and `closed`. Events such as `requestInfo`, `reply`, `resolve` and `reopen` show which status changes are allowed.
+
+For an order, start with `draft`, `submitted`, `paid`, `shipped` and `canceled`. Treat payment and shipping as child actors when they need separate retries, timeouts or persistence.
+
+If two parts can change independently, consider parallel states. If one part has its own lifecycle, consider an actor.

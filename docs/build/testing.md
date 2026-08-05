@@ -25,3 +25,7 @@ test('does not pause while stopped', () => {
 ```
 
 Use `waitFor(...)` for async outcomes. Provide fake actor logic for network, clock and storage boundaries.
+
+Use `getInitialSnapshot(...)` and `getNextSnapshot(...)` when a test only needs pure transition results. Start an actor when the test covers effects, child actors or subscriptions.
+
+For an order workflow, test the successful payment path and a declined payment retry. For an upload, test completion and cancellation while the request is active.

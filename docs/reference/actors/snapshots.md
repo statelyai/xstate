@@ -16,6 +16,10 @@ subscription.unsubscribe();
 
 Snapshot status is `active`, `done`, `error` or `stopped`. Machine snapshots also contain `value`, `context`, `children` and helper methods such as `matches(...)` and `can(...)`.
 
+`getSnapshot()` reads the current value without subscribing. `subscribe(...)` observes future snapshots. A subscription created before `start()` receives the initial snapshot.
+
+Use a snapshot to render a checkout step or upload progress. Use `waitFor(...)` in a test or request handler that must wait for `ready` or `done`.
+
 Use `waitFor(...)` when code should wait until a snapshot matches a condition.
 
 ```ts
@@ -41,5 +45,6 @@ type MachineSnapshot = SnapshotFrom<typeof machine>;
 ```ts
 actor.getSnapshot();
 actor.subscribe((snapshot) => console.log(snapshot));
+actor.getSnapshot().can({ type: 'submit' });
 await waitFor(actor, (snapshot) => snapshot.status === 'done');
 ```

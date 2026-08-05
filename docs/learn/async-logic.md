@@ -43,3 +43,12 @@ await waitFor(user, (snapshot) => snapshot.matches('success'));
 ```
 
 Entering `loading` starts the invoked actor. Leaving `loading` stops it.
+
+The done event contains the actor's output. The error event contains the thrown error. The `signal` passed to async logic is aborted when the actor stops, so pass it to `fetch` and other abortable APIs.
+
+## Real examples
+
+- Invoke payment authorization while an order is `authorizing`. Move to `confirmed`, `declined` or `timedOut` from the result.
+- Invoke a file upload while a file is `uploading`. A `cancel` event leaves that state and aborts the request.
+
+Model retries as states and delayed transitions when users or operators need to see and control them.

@@ -31,6 +31,13 @@ const machine = createMachine({
 
 Read output from a completed snapshot or an invocation's done event.
 
+Input configures one actor instance. Output reports its final result.
+
+- An invoice actor can receive a currency and line items as input, then output the calculated total.
+- A file-processing actor can receive a file key as input, then output the generated asset URL.
+
+Actors that run indefinitely may never produce output.
+
 ## TypeScript
 
 Declare input and output schemas when they cross actor boundaries.

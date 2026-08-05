@@ -14,3 +14,5 @@ const [snapshot] = useActor(machine, {
 ```
 
 Keep browser-only effects out of server transitions. Start them after hydration or in actor logic that only runs in the browser.
+
+For example, restore an order actor from the database for one request, or send a persisted checkout snapshot with the page so the browser resumes the same step.

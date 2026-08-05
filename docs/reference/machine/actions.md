@@ -26,6 +26,14 @@ entry: ({ context }, enq) => {
 
 Provide reusable named action sources through `setup(...)`.
 
+Actions are fire-and-forget. XState does not wait for a promise returned by an action. Use invoked async logic when the result changes what happens next.
+
+Use actions for work such as:
+
+- recording analytics after an order is submitted
+- focusing a field when a form enters an invalid state
+- notifying another actor that a job is ready
+
 ## TypeScript
 
 Action arguments are inferred from context and event schemas.

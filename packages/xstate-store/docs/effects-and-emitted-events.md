@@ -32,6 +32,20 @@ Subscribe to emitted events without observing every context change.
 store.on('document.saved', (event) => console.log(event.id));
 ```
 
+Effects run after the next context is calculated. Emitted events notify external consumers without becoming store transitions.
+
+Use effects to write a draft to storage or send analytics. Use emitted events to notify a toast system or close a dialog after a save.
+
+Use `store.inspect(...)` to observe every store transition without changing store behavior.
+
+```ts
+const subscription = store.inspect((event) => {
+  console.log(event.event, store.getSnapshot().context);
+});
+
+subscription.unsubscribe();
+```
+
 ## TypeScript
 
 Emitted event payloads are inferred from the store configuration.
@@ -41,5 +55,7 @@ Emitted event payloads are inferred from the store configuration.
 ```ts
 enq.effect(() => runEffect());
 enq.emit.notice({ message });
+enq.trigger.refresh();
 store.on('notice', (event) => console.log(event.message));
+store.inspect((event) => console.log(event));
 ```

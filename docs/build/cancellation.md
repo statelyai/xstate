@@ -38,3 +38,5 @@ const uploadMachine = createMachine({
 ```
 
 Sending `cancel` leaves `uploading`. XState aborts the async actor's `signal`. Pass that signal to APIs such as `fetch`.
+
+Use the same pattern to cancel stale search requests when the query changes or stop route data loading when a user navigates away.

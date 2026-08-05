@@ -52,3 +52,5 @@ actor.send({ type: 'search', query: 'actors' });
 ```
 
 The request starts when the machine enters `loading`. It stops when the machine leaves `loading`.
+
+The same shape works for loading a user profile or checking inventory before checkout. Keep request input in context when retry needs the same values.

@@ -14,6 +14,8 @@ return <output>{snapshot().context.count}</output>;
 
 Derive narrower values with Solid's `createMemo(...)` when needed.
 
+Prefer small selected values such as a cart total, user name or `snapshot.matches('loading')`. This keeps dependencies clear and avoids recalculating unrelated UI.
+
 ## TypeScript
 
 The accessor snapshot type comes from the actor reference.

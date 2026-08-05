@@ -34,3 +34,5 @@ const requestMachine = createMachine({
 ```
 
 `timeout` limits the invocation. `onTimeout` is required when an invocation has a timeout. The delayed transition makes the pause between attempts visible.
+
+Retries fit transient reads and idempotent jobs. Be careful with payments and other writes. Give each attempt an idempotency key before retrying it.

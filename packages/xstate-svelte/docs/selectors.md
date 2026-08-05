@@ -14,6 +14,8 @@ description: Subscribe to selected actor data in Svelte.
 <output>{$count}</output>
 ```
 
+Prefer small selected values such as a count, name or `snapshot.matches('loading')`. Selecting the whole context updates more consumers. Pass a comparison function when a selector returns an object.
+
 ## TypeScript
 
 The selector receives the snapshot type from the actor reference.

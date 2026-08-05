@@ -16,7 +16,12 @@ Use XState when behavior depends on both the current state and an event. XState 
 - long-running or persisted workflows
 - actors that communicate with each other
 
-Forms, media players, checkout flows and backend workflows are common examples.
+Common examples include:
+
+- a checkout with payment, confirmation, failure and retry states
+- a file upload that can finish, fail, time out or be canceled
+- a media player with playback and volume controls
+- an order workflow restored from storage between requests
 
 ## Use XState Store
 
@@ -33,8 +38,10 @@ const counter = createStore({
 });
 ```
 
+A shopping cart, editable table or shared set of filters often fits a store. The important part is how events update data, not which events are allowed in each state.
+
 ## Use ordinary code
 
-Use local variables, functions or framework state when the behavior is small and has few meaningful transitions. A boolean that only controls whether a menu is open does not usually need a state machine.
+Use local variables, functions or framework state when the behavior is small and has few meaningful transitions. A menu that is only open or closed and a text field that only stores its value do not usually need a state machine.
 
 Start with events when you are unsure. If the logic becomes difficult to change, list its possible states and transitions. That list will show whether a state machine would make the behavior clearer.

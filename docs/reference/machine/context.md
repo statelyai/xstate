@@ -30,6 +30,10 @@ increment: ({ context }) => ({
 
 Do not mutate the current context. Keep resources that cannot be serialized outside context.
 
+Use context for supporting data, not hidden state. An order can store its items and total in context while its current status stays in states such as `editing`, `paying` and `complete`.
+
+Input creates context for each actor instance. The same machine can run one upload for `report.pdf` and another for `photo.jpg` without closing over either file.
+
 ## TypeScript
 
 Context is inferred from its initial value. Use a context schema when you need a wider or shared type.
@@ -40,7 +44,7 @@ Context is inferred from its initial value. Use a context schema when you need a
 context: { count: 0 }
 on: {
   increment: ({ context }) => ({
-    context: { count: context.count + 1 }
+    context: { ...context, count: context.count + 1 }
   })
 }
 ```

@@ -24,6 +24,14 @@ enq.raise({ type: 'search' }, { delay: 300, id: 'debounce' });
 enq.cancel('debounce');
 ```
 
+Use delayed transitions for behavior tied to the current state. Use delayed events when another transition may replace or cancel the pending event.
+
+Common examples include:
+
+- moving a notification from `visible` to `hidden` after five seconds
+- waiting before retrying a failed request
+- debouncing search input by canceling the previous delayed event
+
 ## TypeScript
 
 Named delay references are checked against configured delay sources.

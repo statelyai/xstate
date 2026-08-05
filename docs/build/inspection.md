@@ -18,3 +18,5 @@ actor.start();
 ```
 
 Use inspection for developer tools, logs and telemetry. Do not put application decisions in an inspector.
+
+Inspection can show actor activity in a development panel or attach the last transition to a failed backend request trace.

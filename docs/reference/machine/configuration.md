@@ -34,6 +34,16 @@ const machine = createMachine({
 | `guards` | Named guard sources. |
 | `delays` | Named delay sources. |
 
+Define implementations with `setup(...)` when the machine should be fully typed and reusable. Use `machine.provide(...)` when an application needs to replace an implementation without changing the machine structure.
+
+```ts
+const testMachine = machine.provide({
+  actors: { chargeCard: fakeChargeCard }
+});
+```
+
+A media player machine may provide browser audio actors in production and fake actors in tests. An order machine may provide different payment actors for development and production.
+
 ## TypeScript
 
 `createMachine(...)` infers state keys and literal transition targets. Use schemas when events or context need explicit types.
@@ -42,6 +52,7 @@ const machine = createMachine({
 
 ```ts
 const machine = createMachine({
+  id: 'workflow',
   context: {},
   initial: 'idle',
   states: {

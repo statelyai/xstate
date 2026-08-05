@@ -65,3 +65,16 @@ on: {
 ```
 
 Returning `undefined` prevents the transition. Keep transition functions deterministic.
+
+## Real examples
+
+In a checkout, `submit` can move `reviewing` to `paying`. The same event is ignored while payment is already in progress. `paymentSucceeded` and `paymentFailed` only matter in `paying`.
+
+In a media player, `play` can move `paused` to `playing`. While the player is `buffering`, `play` may do nothing until a `bufferReady` event arrives.
+
+Use event data for facts about what happened:
+
+```ts
+actor.send({ type: 'paymentFailed', reason: 'card_declined' });
+actor.send({ type: 'bufferReady', duration: 184 });
+```

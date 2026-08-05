@@ -25,3 +25,5 @@ export async function handleOrderEvent(orderId: string, event: unknown) {
 ```
 
 Use one workflow actor per entity or process. Give external writes an idempotency key. Store a machine version with each snapshot.
+
+This works for orders resumed by webhooks and approval flows resumed by an operator. Load, process, persist and stop the same entity actor for each request.

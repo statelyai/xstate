@@ -12,3 +12,5 @@ const [snapshot] = useActor(machine, { snapshot: restoredSnapshot });
 ```
 
 Start browser-only effects after hydration.
+
+For example, restore an order actor from the database for one request, or send a persisted checkout snapshot with the page so the browser resumes the same step.

@@ -29,6 +29,8 @@ export function Toggle() {
 
 Use `useActorRef(...)` when the component only needs the actor reference.
 
+Use `useActor(...)` for UI driven by the whole snapshot, such as a wizard step or request status. Use `useActorRef(...)` with `fromActorRef(...)` for a shared cart or session actor when a component only needs selected data.
+
 ## TypeScript
 
 The helper infers snapshot and event types from the actor logic.
