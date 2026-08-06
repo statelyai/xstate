@@ -138,6 +138,7 @@
     "timeout-receives-input",
     "type-only-schemas",
     "typed-invoke-targets",
+    "typed-machine-migrations",
     "typed-state-enq",
     "typed-target-only",
     "witty-choice-states"
