@@ -1605,6 +1605,20 @@ export interface TimerEvent extends EventObject {
   id: string;
 }
 
+declare const persistedSnapshotLogic: unique symbol;
+
+type PersistedSnapshotLogicIdentity<TLogic> = TLogic extends {
+  readonly id: infer TId extends string;
+  readonly version: infer TVersion extends string;
+}
+  ? { readonly id: TId; readonly version: TVersion }
+  : never;
+
+/** A persisted snapshot tied to a versioned actor logic identity. */
+export type PersistedSnapshotFor<TLogic> = {
+  readonly [persistedSnapshotLogic]: PersistedSnapshotLogicIdentity<TLogic>;
+};
+
 export interface ActorOptions<TLogic extends AnyActorLogic> {
   /**
    * The clock that is responsible for setting and clearing timeouts, such as
@@ -1659,7 +1673,8 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Can be generated with {@link Actor.getPersistedSnapshot}.
    * @see https://stately.ai/docs/persistence
    */
-  snapshot?: Snapshot<unknown>;
+  snapshot?: Snapshot<unknown> &
+    Partial<PersistedSnapshotFor<DoNotInfer<TLogic>>>;
 
   /** @deprecated Use `snapshot` instead. */
   state?: Snapshot<unknown>;

@@ -653,6 +653,10 @@ export function getPersistedSnapshot<
   }
 
   if (machine.version !== undefined) {
+    persisted.machine = {
+      id: machine.id,
+      version: machine.version
+    };
     persisted.version = machine.version;
   }
 

@@ -43,6 +43,22 @@ describe('persisted snapshot versioning', () => {
     expect(restored.getSnapshot().value).toBe('b');
   });
 
+  it('restores from nested machine identity without the legacy top-level version', () => {
+    const machine = createMachine({
+      id: 'checkout',
+      version: '1',
+      initial: 'a',
+      states: { a: { on: { NEXT: { target: 'b' } } }, b: {} }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+    const { version: _, ...persisted } = actor.getPersistedSnapshot() as any;
+
+    const restored = createActor(machine, { snapshot: persisted }).start();
+
+    expect(restored.getSnapshot().value).toBe('b');
+  });
+
   it('errors when restoring a version-mismatched snapshot without a migrate function', () => {
     const machineV1 = createMachine({
       version: '1',
@@ -98,6 +114,38 @@ describe('persisted snapshot versioning', () => {
 
     expect(migrate).toHaveBeenCalledTimes(1);
     expect(restored.getSnapshot().status).toBe('active');
+    expect(restored.getSnapshot().context).toEqual({ total: 5 });
+  });
+
+  it('passes the nested machine version to migration without a top-level version', () => {
+    const machineV1 = createMachine({
+      id: 'checkout',
+      version: '1',
+      context: { count: 5 },
+      initial: 'a',
+      states: { a: {} }
+    });
+    const migrate = vi.fn(
+      (persisted: any, fromVersion: string | undefined) => ({
+        ...persisted,
+        context: { total: persisted.context.count }
+      })
+    );
+    const machineV2 = createMachine({
+      id: 'checkout',
+      version: '2',
+      migrate,
+      context: { total: 0 },
+      initial: 'a',
+      states: { a: {} }
+    });
+    const { version: _, ...persisted } = createActor(machineV1)
+      .start()
+      .getPersistedSnapshot() as any;
+
+    const restored = createActor(machineV2, { snapshot: persisted }).start();
+
+    expect(migrate).toHaveBeenCalledWith(expect.anything(), '1');
     expect(restored.getSnapshot().context).toEqual({ total: 5 });
   });
 

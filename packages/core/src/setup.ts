@@ -93,6 +93,15 @@ export type SystemActorMap<TSystemRegistry extends SystemRegistry> = {
   [K in keyof TSystemRegistry & string]: ActorRefFromLogic<TSystemRegistry[K]>;
 };
 
+type MachineIdentity<TConfig> = {
+  readonly id: TConfig extends { id: infer TId extends string }
+    ? TId
+    : '(machine)';
+  readonly version: TConfig extends { version: infer TVersion extends string }
+    ? TVersion
+    : undefined;
+};
+
 export type SystemRuntime<TSystemRegistry extends SystemRegistry> = Omit<
   AnyActorSystem,
   'get' | 'getAll'
@@ -1788,7 +1797,8 @@ export interface SetupReturn<
       TSetupDelays | TDelays,
       MergeSourceMaps<TSetupDelayMap, TDelayMap>
     >
-  >;
+  > &
+    MachineIdentity<TConfig>;
 
   /**
    * Creates a state node config bound to a specific setup-declared state,
@@ -2017,7 +2027,7 @@ export function setup<
         ...(mergedActors ? { actors: mergedActors } : undefined),
         ...(mergedGuards ? { guards: mergedGuards } : undefined),
         ...(mergedDelays ? { delays: mergedDelays } : undefined)
-      } as any);
+      } as any) as any;
     },
     createStateConfig(...args: unknown[]) {
       return args.length > 1 ? args[1] : args[0];

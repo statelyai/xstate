@@ -972,6 +972,8 @@ These exports have been **added**:
 - `executeEffects`
 - `ActorSystemRuntime`
 - `ActorTermination`
+- Persistence/versioning surface: `machineVersions`, `migrateSnapshot`, and their
+  related snapshot types
 - Executable effect types: `BaseExecutableActionObject`, `CustomExecutableActionObject`, `ExecutableActionObject`, `ExecutableActionObjectFromLogic`, `BuiltInExecutableActionObject`, `SpecialExecutableAction`, `StartExecutableActionObject`, `RaiseExecutableActionObject`, `SendToExecutableActionObject`, `CancelExecutableActionObject`, `StopExecutableActionObject`, `TerminateExecutableActionObject`
 - `ActorLogic.start(snapshot, scope, options?)` receives `options.restored` so logic can distinguish restoration from a fresh start.
 - `actor.select(selector)` - derived, subscribable views
@@ -1085,9 +1087,10 @@ Child actors, async logic with effects, and listener-resume semantics are all pa
 
 ### Snapshot versioning
 
-A machine may declare a `version`. When set, it is stamped onto every persisted
-snapshot (and survives `JSON.stringify`), so a rollout can detect and migrate
-older snapshots instead of feeding them to an incompatible machine:
+A machine may declare an `id` and `version`. When set, they are stamped onto every
+persisted snapshot as `machine: { id, version }` (and survive `JSON.stringify`), so
+a rollout can detect and migrate older snapshots instead of feeding them to an
+incompatible machine. The legacy top-level `version` is also retained:
 
 ```ts
 const machine = createMachine({
@@ -1098,9 +1101,19 @@ const machine = createMachine({
 
 const persisted = actor.getPersistedSnapshot();
 (persisted as any).version; // '1'
+(persisted as any).machine; // { id: '(machine)', version: '1' }
 ```
 
 Machines without a `version` produce snapshots with no `version` key.
+
+Keep old versioned machines when you need typed migration. `machineVersions()`
+parses stored snapshots with the matching machine schemas. `migrateSnapshot()`
+converts directly to a target machine.
+
+To migrate snapshots created before versioning was adopted, retain the old machine
+definition as a version and pass `{ unversioned: '<old-version>' }` to
+`machineVersions()`. This fallback applies only to snapshots without version
+metadata; explicit unknown versions are rejected.
 
 ### Durable timers
 

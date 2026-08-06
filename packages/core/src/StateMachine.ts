@@ -1049,7 +1049,33 @@ export class StateMachine<
     const usesInertScope = !actorScope;
     const resolvedActorScope = (actorScope ??
       createInertActorScope(this)) as NonNullable<typeof actorScope>;
-    const persistedVersion: string | undefined = (snapshot as any).version;
+    const persistedMachine = (snapshot as any).machine;
+    const legacyPersistedVersion: string | undefined = (snapshot as any)
+      .version;
+    const persistedVersion: string | undefined =
+      typeof persistedMachine?.version === 'string'
+        ? persistedMachine.version
+        : legacyPersistedVersion;
+    if (
+      legacyPersistedVersion !== undefined &&
+      persistedMachine?.version !== undefined &&
+      persistedMachine.version !== legacyPersistedVersion
+    ) {
+      throw new Error(
+        `Persisted snapshot version '${legacyPersistedVersion}' conflicts with machine version '${persistedMachine.version}'.`
+      );
+    }
+    if (
+      persistedMachine &&
+      typeof persistedMachine.id === 'string' &&
+      persistedMachine.id !== this.id
+    ) {
+      throw new Error(
+        isDevelopment
+          ? `Machine ID mismatch: persisted snapshot was created by machine '${persistedMachine.id}', but machine '${this.id}' was provided.`
+          : `Machine ID mismatch: persisted snapshot machine '${persistedMachine.id}' does not match '${this.id}'.`
+      );
+    }
     if (persistedVersion !== this.version) {
       const migrate = (this.config as any).migrate;
       if (typeof migrate !== 'function') {

@@ -28,6 +28,16 @@ export {
 } from './serialize.ts';
 export { mapState } from './mapState.ts';
 export {
+  machineVersions,
+  migrateSnapshot,
+  type MachineVersionsOptions,
+  type ParsedPersistedSnapshot,
+  type PersistedMachineIdentity,
+  type PersistedSnapshotDataFrom,
+  type SnapshotMigrationHandlers,
+  type PersistedSnapshotFrom
+} from './machineVersions.ts';
+export {
   types,
   isTypeSchema,
   type StandardSchemaV1,

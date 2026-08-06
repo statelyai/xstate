@@ -38,6 +38,15 @@ type MergeChildren<
   ? Compute<ToChildren<TActor>>
   : Compute<TChildren>;
 
+type MachineIdentity<TConfig> = {
+  readonly id: TConfig extends { id: infer TId extends string }
+    ? TId
+    : '(machine)';
+  readonly version: TConfig extends { version: infer TVersion extends string }
+    ? TVersion
+    : undefined;
+};
+
 type TestValue =
   | string
   | {
@@ -172,7 +181,7 @@ export function createMachine<
   DelayMapFromNames<TDelays, TDelayMap>
 > & {
   states: TSS;
-};
+} & MachineIdentity<TSS>;
 
 // Overload 2: Without schemas.context — context type inferred from config.context
 export function createMachine<
@@ -275,7 +284,7 @@ export function createMachine<
   DelayMapFromNames<TDelays, TDelayMap>
 > & {
   states: TSS;
-};
+} & MachineIdentity<TSS>;
 
 // Implementation
 export function createMachine(config: any): any {
