@@ -51,6 +51,20 @@
       "import": "./dist/xstate-actors.cjs.mjs",
       "default": "./dist/xstate-actors.cjs.js"
     },
+    "./validation": {
+      "types": {
+        "import": "./dist/xstate-validation.cjs.mjs",
+        "default": "./dist/xstate-validation.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-validation.development.esm.js",
+        "import": "./dist/xstate-validation.development.cjs.mjs",
+        "default": "./dist/xstate-validation.development.cjs.js"
+      },
+      "module": "./dist/xstate-validation.esm.js",
+      "import": "./dist/xstate-validation.cjs.mjs",
+      "default": "./dist/xstate-validation.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "imports": {
@@ -72,6 +86,7 @@
     "guards",
     "dev",
     "graph",
+    "validation",
     "bin"
   ],
   "keywords": [
@@ -108,7 +123,8 @@
     "entrypoints": [
       "./index.ts",
       "./actors/index.ts",
-      "./graph/index.ts"
+      "./graph/index.ts",
+      "./validation/index.ts"
     ]
   }
 }

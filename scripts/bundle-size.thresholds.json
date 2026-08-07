@@ -8,6 +8,9 @@
   "machine-and-actors": {
     "maxGzipBytes": 16561
   },
+  "validated-machine": {
+    "maxGzipBytes": 21574
+  },
   "kitchen-sink": {
     "maxGzipBytes": 23667
   }

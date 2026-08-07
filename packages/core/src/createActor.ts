@@ -383,11 +383,16 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   /** Recover via the logic's error event if possible; otherwise error out. */
-  private _recoverOrError(err: unknown, snapshot?: SnapshotFrom<TLogic>) {
-    if (!this._tryHandleExecutionError(err, snapshot)) {
-      this._setErrorSnapshot(err);
-      this._error(err);
+  private _recoverOrError(
+    err: unknown,
+    snapshot?: SnapshotFrom<TLogic>
+  ): boolean {
+    if (this._tryHandleExecutionError(err, snapshot)) {
+      return true;
     }
+    this._setErrorSnapshot(err);
+    this._error(err);
+    return false;
   }
 
   private _tryHandleExecutionError(
@@ -460,6 +465,13 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         // `@xstate.terminate` effect returned by the actor logic.
         break;
     }
+    this._inspectTransition(this._snapshot, event);
+  }
+
+  private _inspectTransition(
+    snapshot: SnapshotFrom<TLogic>,
+    event: EventObject
+  ): void {
     this.system._sendInspectionEvent({
       type: '@xstate.transition',
       actorRef: this as any,
@@ -472,7 +484,6 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       sent: this._collectedSent,
       eventType: event.type
     });
-    // reset facets after emission
     this._collectedMicrosteps = [] as any;
     this._collectedActions = [];
     this._collectedSent = [];
@@ -779,7 +790,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     if (caughtError) {
-      this._recoverOrError(caughtError.err);
+      this._collectedMicrosteps = [] as any;
+      this._collectedActions = [];
+      this._collectedSent = [];
+      if (!this._recoverOrError(caughtError.err)) {
+        this._inspectTransition(this._snapshot, event);
+      }
       return;
     }
 
@@ -791,7 +807,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       executeExecutableEffects(effects, this._actorScope);
       this.update(snapshot, event);
     } catch (err) {
-      this._recoverOrError(err, snapshot);
+      if (!this._recoverOrError(err, snapshot)) {
+        this._inspectTransition(this._snapshot, event);
+      }
       return;
     }
 

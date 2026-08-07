@@ -1,6 +1,6 @@
 // Bundle-size benchmark for the `xstate` package.
 //
-// Measures min+gzip size of three entry profiles bundled from the local build
+// Measures min+gzip size of representative entry profiles bundled from the local build
 // (`packages/core/dist`), compares them against the thresholds in
 // scripts/bundle-size.thresholds.json, and exits non-zero on regression.
 //
@@ -85,6 +85,28 @@ const PROFILES = {
     const actor = createActor(machine).start();
     console.log(actor.getSnapshot().value);
   `,
+  'validated-machine': `
+    import { setup, createActor } from 'xstate';
+    import { standardSchemaValidator } from 'xstate/validation';
+    const countSchema = {
+      '~standard': {
+        version: 1,
+        vendor: 'fixture',
+        validate(value) {
+          return typeof value.count === 'number'
+            ? { value }
+            : { issues: [{ message: 'Expected count' }] };
+        }
+      }
+    };
+    const machine = setup({
+      validator: standardSchemaValidator(),
+      schemas: { events: { increment: countSchema } }
+    }).createMachine({ context: { count: 0 } });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'increment', count: 1 });
+    console.log(actor.getSnapshot().context.count);
+  `,
   'kitchen-sink': `
     export * from 'xstate';
   `
@@ -133,6 +155,9 @@ try {
       metafile: why,
       // Resolve 'xstate' to the locally built package (or src for --why).
       alias: {
+        'xstate/validation': why
+          ? join(root, 'packages', 'core', 'src', 'validation', 'index.ts')
+          : join(root, 'packages', 'core', 'validation'),
         xstate: why
           ? join(root, 'packages', 'core', 'src', 'index.ts')
           : join(root, 'packages', 'core')

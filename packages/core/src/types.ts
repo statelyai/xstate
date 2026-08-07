@@ -1108,6 +1108,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   sources: Sources;
   config: any;
   version?: string;
+  schemas?: import('./types.v6.ts').AnyMachineSchemas;
+  validator?: import('./validation.types.ts').MachineValidator;
   provide(sources: any): AnyStateMachine;
   resolveState(config: any): any;
   /** @internal */
