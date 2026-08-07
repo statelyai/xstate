@@ -141,6 +141,7 @@
     "typed-machine-migrations",
     "typed-state-enq",
     "typed-target-only",
+    "validate-setup-boundaries",
     "witty-choice-states"
   ]
 }
