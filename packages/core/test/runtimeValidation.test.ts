@@ -162,6 +162,23 @@ describe('runtime schema validation', () => {
     expect(context).not.toHaveBeenCalled();
   });
 
+  it('does not validate the machine input schema as root state input', () => {
+    const machine = setup({
+      validator: standardSchemaValidator(),
+      schemas: {
+        input: z.object({ count: z.number() }),
+        events: { GO: z.object({}) }
+      }
+    }).createMachine({
+      initial: 'idle',
+      states: { idle: { on: { GO: { target: 'done' } } }, done: {} }
+    });
+
+    const [snapshot] = initialTransition(machine, { count: 1 });
+    expect(snapshot.value).toBe('idle');
+    expect(transition(machine, snapshot, { type: 'GO' })[0].value).toBe('done');
+  });
+
   it('validates external events before guard or transition selection', () => {
     const guard = vi.fn((_event: unknown) => true);
     const machine = setup({
