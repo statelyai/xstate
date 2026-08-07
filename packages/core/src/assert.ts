@@ -1,22 +1,27 @@
 import { EventDescriptor, EventObject } from './types.ts';
 import { matchesEventDescriptor, toArray } from './utils.ts';
 
-// Mirrors the wildcard normalization in `NormalizeDescriptor` (types.ts), but is
-// kept local to this module (rather than reusing `ExtractEvent`) so that the
-// narrowed type stays a single-level conditional over `TEvent`. `ExtractEvent`
-// nests a `TEvent['type']` check inside the branch of a distributive conditional
-// over `TEvent`, and TypeScript can't eagerly resolve that when `TEvent` is
-// itself an unresolved generic type parameter (e.g. `<T extends SomeEventUnion>`)
-// - it leaves the whole expression as an opaque, unexpanded type, so every
-// property access on the "narrowed" event then fails. Keeping the wildcard
-// normalization and the `TEvent` distribution as siblings (joined by `|`
-// instead of nested) lets TypeScript resolve each branch independently, so the
-// narrowing also works for generic callers, e.g.:
+// `AssertedEvent` is kept local to this module rather than reusing
+// `ExtractEvent` (types.ts) so that the narrowing also resolves when `TEvent` is
+// an unresolved generic type parameter, e.g.:
 //
 // function example<T extends SomeEventUnion>(event: T) {
 //   assertEvent(event, 'someType');
 //   event.someProp; // previously a type error; now narrows correctly
 // }
+//
+// Two details make that work while still matching what `ExtractEvent` does:
+//
+// 1. We match `{ type: infer TType }` and test the fresh `TType` parameter
+//    instead of indexing `TEvent['type']` inside the distribution over
+//    `TEvent`. Indexing a still-unresolved generic `TEvent` leaves the whole
+//    conditional opaque, so every property access on the "narrowed" event then
+//    fails.
+// 2. Testing the inferred `TType` also lets the descriptor check distribute
+//    over a union-typed `type` field, so an event like `{ type: 'a' | 'b' }` is
+//    still matched by the descriptor `'a'` (mirroring `ExtractEvent`'s
+//    `EventDescriptorMatches`). Plain assignability
+//    (`TEvent extends { type: 'a' }`) would instead throw such an event away.
 type NormalizeAssertedDescriptor<TDescriptor extends string> =
   TDescriptor extends '*'
     ? string
@@ -25,8 +30,15 @@ type NormalizeAssertedDescriptor<TDescriptor extends string> =
       : TDescriptor;
 
 type AssertedEvent<TEvent extends EventObject, TDescriptor extends string> =
-  | (TEvent extends { type: NormalizeAssertedDescriptor<TDescriptor> }
-      ? TEvent
+  | (TEvent extends { type: infer TType extends string }
+      ? // `true` is the check type here to match both `true` and `boolean`, so a
+        // member whose `type` is itself a union (e.g. `'a' | 'b'`) still matches
+        // a descriptor for one of its constituents.
+        true extends (
+          TType extends NormalizeAssertedDescriptor<TDescriptor> ? true : false
+        )
+        ? TEvent
+        : never
       : never)
   | (string extends TEvent['type'] ? TEvent : never);
 
