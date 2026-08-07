@@ -43,6 +43,12 @@ export {
   type StandardSchemaV1,
   type TypeSchema
 } from './schema.types.ts';
+export type {
+  ActorValidationBoundary,
+  ActorValidationEventOrigin,
+  ActorValidationRequest,
+  ActorLogicValidator
+} from './validation.types.ts';
 export { createSystem, setup } from './setup.ts';
 export type {
   AnySetupConfig,

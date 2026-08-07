@@ -2,6 +2,7 @@ import { parseDelayToMilliseconds } from '../delay.ts';
 import { XSTATE_INIT } from '../constants.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
+import type { ActorLogicValidator } from '../validation.types.ts';
 import {
   ActorLogic,
   ActorFromLogic,
@@ -105,6 +106,7 @@ export interface LogicConfig<
    * particular actor instance.
    */
   id?: string;
+  validator?: ActorLogicValidator;
   /** Schemas for inferring async logic types. */
   schemas?: {
     input?: TInputSchema;
@@ -233,10 +235,7 @@ export function createAsyncLogic<
     TInputSchema,
     TOutputSchema
   > & {
-    schemas: {
-      input: TInputSchema;
-      output: TOutputSchema;
-    };
+    schemas: { input: TInputSchema; output: TOutputSchema };
   }
 ): AsyncActorLogic<
   StandardSchemaV1.InferOutput<TOutputSchema>,
@@ -261,10 +260,7 @@ export function createAsyncLogic<
     >,
     'run' | 'schemas'
   > & {
-    schemas: {
-      input: TInputSchema;
-      output?: never;
-    };
+    schemas: { input: TInputSchema; output?: never };
     run: TLogicFunction;
   }
 ): AsyncActorLogic<
@@ -284,10 +280,7 @@ export function createAsyncLogic<
     StandardSchemaV1,
     TOutputSchema
   > & {
-    schemas: {
-      input?: never;
-      output: TOutputSchema;
-    };
+    schemas: { input?: never; output: TOutputSchema };
   }
 ): AsyncActorLogic<
   StandardSchemaV1.InferOutput<TOutputSchema>,
@@ -339,6 +332,7 @@ export function createAsyncLogic<
     TEmitted
   >({
     id: config.id,
+    validator: config.validator,
     schemas: config.schemas,
     context: undefined,
     run: ({ event, input, self, system }, enq) => {

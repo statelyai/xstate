@@ -1,4 +1,5 @@
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
+import type { ActorLogicValidator } from './validation.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
   createActor as createActorFromLogic,
@@ -66,8 +67,12 @@ export type SetupConfig<
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
-  TDelayMap extends Sources['delays']
+  TDelayMap extends Sources['delays'],
+  TValidator extends ActorLogicValidator | undefined =
+    | ActorLogicValidator
+    | undefined
 > = {
+  validator?: TValidator;
   schemas?: TSchemas & SetupSchemas;
   states?: TStates;
   actions?: TActionMap;
@@ -82,8 +87,171 @@ export type AnySetupConfig = SetupConfig<
   Sources['actions'],
   Sources['actors'],
   Sources['guards'],
-  Sources['delays']
+  Sources['delays'],
+  ActorLogicValidator | undefined
 >;
+
+interface RuntimeValidationDoesNotSupportTransformingSchemas {
+  readonly __xstate_error: 'Runtime validation does not support schemas with different input and output types';
+}
+
+type IsAny<T> = 0 extends 1 & T ? true : false;
+
+type AssertNonTransformingSchema<TSchema extends StandardSchemaV1> =
+  IsAny<StandardSchemaV1.InferInput<TSchema>> extends true
+    ? TSchema
+    : IsAny<StandardSchemaV1.InferOutput<TSchema>> extends true
+      ? TSchema
+      : [
+            StandardSchemaV1.InferInput<TSchema>,
+            StandardSchemaV1.InferOutput<TSchema>
+          ] extends [
+            StandardSchemaV1.InferOutput<TSchema>,
+            StandardSchemaV1.InferInput<TSchema>
+          ]
+        ? TSchema
+        : RuntimeValidationDoesNotSupportTransformingSchemas;
+
+type ValidateSchemaMap<TMap> =
+  TMap extends Record<string, StandardSchemaV1>
+    ? {
+        [K in keyof TMap]: TMap[K] extends StandardSchemaV1
+          ? AssertNonTransformingSchema<TMap[K]>
+          : TMap[K];
+      }
+    : TMap;
+
+type ValidateSetupSchemas<TSchemas> = TSchemas extends SetupSchemas
+  ? {
+      [K in keyof TSchemas]: K extends 'events' | 'emitted' | 'children'
+        ? ValidateSchemaMap<TSchemas[K]>
+        : K extends 'context' | 'input' | 'output'
+          ? TSchemas[K] extends StandardSchemaV1
+            ? AssertNonTransformingSchema<TSchemas[K]>
+            : TSchemas[K]
+          : TSchemas[K];
+    }
+  : TSchemas;
+
+type ValidateSetupStates<TStates> =
+  TStates extends Record<string, SetupStateSchema>
+    ? {
+        [K in keyof TStates]: TStates[K] extends SetupStateSchema
+          ? Omit<TStates[K], 'schemas' | 'states'> & {
+              schemas?: TStates[K]['schemas'] extends SetupStateSchemas
+                ? {
+                    [P in keyof TStates[K]['schemas']]: TStates[K]['schemas'][P] extends StandardSchemaV1
+                      ? AssertNonTransformingSchema<TStates[K]['schemas'][P]>
+                      : TStates[K]['schemas'][P];
+                  }
+                : TStates[K]['schemas'];
+              states?: TStates[K]['states'] extends Record<
+                string,
+                SetupStateSchema
+              >
+                ? ValidateSetupStates<TStates[K]['states']>
+                : TStates[K]['states'];
+            }
+          : TStates[K];
+      }
+    : TStates;
+
+type RuntimeValidationConstraint<TSchemas, TStates, TValidator> = [
+  TValidator
+] extends [ActorLogicValidator]
+  ? {
+      schemas?: ValidateSetupSchemas<TSchemas>;
+      states?: ValidateSetupStates<TStates>;
+    }
+  : unknown;
+
+declare const inheritedValidator: unique symbol;
+type InheritedValidator = typeof inheritedValidator;
+
+type ResolveExtendedValidator<TBase, TExtension> = [TExtension] extends [
+  InheritedValidator
+]
+  ? TBase
+  : Exclude<TExtension, InheritedValidator>;
+
+type ExtendValidatorConfig<TExtension> = [TExtension] extends [
+  InheritedValidator
+]
+  ? { validator?: never }
+  : { validator: TExtension };
+
+type SetupExtensionConfig<
+  TBaseSchemas,
+  TBaseStates,
+  TBaseValidator,
+  TExtendSchemas extends SetupSchemas,
+  TExtendStates extends Record<string, SetupStateSchema>,
+  TExtendActionMap extends Sources['actions'],
+  TExtendActorMap extends Sources['actors'],
+  TExtendGuardMap extends Sources['guards'],
+  TExtendDelayMap extends Sources['delays'],
+  TExtendValidator extends ActorLogicValidator | undefined | InheritedValidator
+> = Omit<
+  SetupConfig<
+    TExtendSchemas,
+    TExtendStates,
+    TExtendActionMap,
+    TExtendActorMap,
+    TExtendGuardMap,
+    TExtendDelayMap
+  >,
+  'validator'
+> &
+  ExtendValidatorConfig<TExtendValidator> &
+  (TBaseValidator extends ActorLogicValidator
+    ? unknown
+    : { validator?: never }) &
+  RuntimeValidationConstraint<
+    NoInfer<TBaseSchemas>,
+    NoInfer<TBaseStates>,
+    ResolveExtendedValidator<TBaseValidator, TExtendValidator>
+  > &
+  RuntimeValidationConstraint<
+    NoInfer<TExtendSchemas>,
+    NoInfer<TExtendStates>,
+    ResolveExtendedValidator<TBaseValidator, TExtendValidator>
+  >;
+
+type InlineMachineSchemas<
+  TContextSchema,
+  TEventSchemaMap,
+  TEmittedSchemaMap,
+  TActionSchemaMap,
+  TGuardSchemaMap,
+  TInputSchema,
+  TOutputSchema,
+  TMetaSchema,
+  TTagSchema,
+  TChildrenSchemaMap
+> = {
+  context?: TContextSchema;
+  events?: TEventSchemaMap;
+  emitted?: TEmittedSchemaMap;
+  actions?: TActionSchemaMap;
+  guards?: TGuardSchemaMap;
+  input?: TInputSchema;
+  output?: TOutputSchema;
+  meta?: TMetaSchema;
+  tags?: TTagSchema;
+  children?: TChildrenSchemaMap;
+};
+
+type MachineConfigStates<TConfig> = TConfig extends {
+  states?: infer TStates;
+}
+  ? TStates
+  : {};
+
+type MachineConfigSchemas<TConfig> = TConfig extends {
+  schemas?: infer TSchemas;
+}
+  ? TSchemas
+  : {};
 
 export type SystemConfig<TSystemRegistry extends SystemRegistry> = {
   registry?: TSystemRegistry;
@@ -1590,7 +1758,8 @@ export interface SetupReturn<
   TSetupGuardMap extends Sources['guards'] = {},
   TSetupDelayMap extends Sources['delays'] = {},
   TSetupDelays extends string = Extract<keyof TSetupDelayMap, string>,
-  TSystemRegistry extends SystemRegistry = SystemRegistry
+  TSystemRegistry extends SystemRegistry = SystemRegistry,
+  TValidator extends ActorLogicValidator | undefined = undefined
 > {
   /** Extends the setup configuration */
   extend<
@@ -1599,15 +1768,23 @@ export interface SetupReturn<
     TExtendActionMap extends Sources['actions'] = {},
     TExtendActorMap extends Sources['actors'] = {},
     TExtendGuardMap extends Sources['guards'] = {},
-    TExtendDelayMap extends Sources['delays'] = {}
+    TExtendDelayMap extends Sources['delays'] = {},
+    const TExtendValidator extends
+      | ActorLogicValidator
+      | undefined
+      | InheritedValidator = InheritedValidator
   >(
-    config: SetupConfig<
+    config: SetupExtensionConfig<
+      TSchemas,
+      TStates,
+      TValidator,
       TExtendSchemas,
       TExtendStates,
       TExtendActionMap,
       TExtendActorMap,
       TExtendGuardMap,
-      TExtendDelayMap
+      TExtendDelayMap,
+      TExtendValidator
     >
   ): SetupReturn<
     MergeSourceMaps<TStates, TExtendStates>,
@@ -1617,7 +1794,8 @@ export interface SetupReturn<
     MergeSourceMaps<TSetupGuardMap, TExtendGuardMap>,
     MergeSourceMaps<TSetupDelayMap, TExtendDelayMap>,
     TSetupDelays | Extract<keyof TExtendDelayMap, string>,
-    TSystemRegistry
+    TSystemRegistry,
+    ResolveExtendedValidator<TValidator, TExtendValidator>
   >;
 
   /** Creates a state machine with the setup configuration */
@@ -1744,13 +1922,33 @@ export interface SetupReturn<
         meta?: TMetaSchema;
         tags?: TTagSchema;
         children?: TChildrenSchemaMap;
-      };
+      } & ([TValidator] extends [ActorLogicValidator]
+        ? ValidateSetupSchemas<
+            InlineMachineSchemas<
+              TContextSchema,
+              TEventSchemaMap,
+              TEmittedSchemaMap,
+              TActionSchemaMap,
+              TGuardSchemaMap,
+              TInputSchema,
+              TOutputSchema,
+              TMetaSchema,
+              TTagSchema,
+              TChildrenSchemaMap
+            >
+          >
+        : unknown);
       actions?: TActionMap;
       actors?: TActorMap;
       guards?: TGuardMap;
       delays?: TDelayMap;
       states?: Record<TStateKeys, unknown>;
     } & TConfig &
+      RuntimeValidationConstraint<
+        NoInfer<MachineConfigSchemas<TConfig>>,
+        NoInfer<MachineConfigStates<TConfig>>,
+        TValidator
+      > &
       ValidateSetupDelayReferences<TConfig, TSetupDelays> &
       ValidateHistoryDefaults<TConfig> &
       ValidateStateTargets<TConfig> &
@@ -1889,7 +2087,12 @@ export type SetupReturnFromConfig<TConfig extends AnySetupConfig> = SetupReturn<
   SetupConfigActions<TConfig>,
   SetupConfigActors<TConfig>,
   SetupConfigGuards<TConfig>,
-  SetupConfigDelays<TConfig>
+  SetupConfigDelays<TConfig>,
+  Extract<keyof SetupConfigDelays<TConfig>, string>,
+  SystemRegistry,
+  TConfig extends { validator: infer TValidator extends ActorLogicValidator }
+    ? TValidator
+    : undefined
 >;
 
 /**
@@ -1938,7 +2141,8 @@ export function setup<
   TActionMap extends Sources['actions'] = {},
   TActorMap extends Sources['actors'] = {},
   TGuardMap extends Sources['guards'] = {},
-  TDelayMap extends Sources['delays'] = {}
+  TDelayMap extends Sources['delays'] = {},
+  const TValidator extends ActorLogicValidator | undefined = undefined
 >(
   config: SetupConfig<
     TSchemas,
@@ -1946,11 +2150,28 @@ export function setup<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
-  >
-): SetupReturn<TStates, TSchemas, TActionMap, TActorMap, TGuardMap, TDelayMap>;
+    TDelayMap,
+    TValidator
+  > &
+    RuntimeValidationConstraint<NoInfer<TSchemas>, NoInfer<TStates>, TValidator>
+): SetupReturn<
+  TStates,
+  TSchemas,
+  TActionMap,
+  TActorMap,
+  TGuardMap,
+  TDelayMap,
+  Extract<keyof TDelayMap, string>,
+  SystemRegistry,
+  TValidator
+>;
 export function setup<const TConfig extends AnySetupConfig>(
-  config: TConfig
+  config: TConfig &
+    RuntimeValidationConstraint<
+      NoInfer<SetupConfigSchemas<TConfig>>,
+      NoInfer<SetupConfigStates<TConfig>>,
+      TConfig extends { validator: infer TValidator } ? TValidator : undefined
+    >
 ): SetupReturnFromConfig<TConfig>;
 export function setup<
   const TSchemas extends SetupSchemas = {},
@@ -1961,7 +2182,10 @@ export function setup<
   TActionMap extends Sources['actions'] = {},
   TActorMap extends Sources['actors'] = {},
   TGuardMap extends Sources['guards'] = {},
-  TDelayMap extends Sources['delays'] = {}
+  TDelayMap extends Sources['delays'] = {},
+  TValidator extends ActorLogicValidator | undefined =
+    | ActorLogicValidator
+    | undefined
 >(
   config: SetupConfig<
     TSchemas,
@@ -1969,10 +2193,22 @@ export function setup<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    TValidator
   > = {}
-): SetupReturn<TStates, TSchemas, TActionMap, TActorMap, TGuardMap, TDelayMap> {
+): SetupReturn<
+  TStates,
+  TSchemas,
+  TActionMap,
+  TActorMap,
+  TGuardMap,
+  TDelayMap,
+  Extract<keyof TDelayMap, string>,
+  SystemRegistry,
+  TValidator
+> {
   const {
+    validator,
     states = {} as TStates,
     schemas,
     actions,
@@ -1988,18 +2224,28 @@ export function setup<
       TExtendActionMap extends Sources['actions'] = {},
       TExtendActorMap extends Sources['actors'] = {},
       TExtendGuardMap extends Sources['guards'] = {},
-      TExtendDelayMap extends Sources['delays'] = {}
+      TExtendDelayMap extends Sources['delays'] = {},
+      const TExtendValidator extends
+        | ActorLogicValidator
+        | undefined
+        | InheritedValidator = InheritedValidator
     >(
-      extension: SetupConfig<
+      extension: SetupExtensionConfig<
+        TSchemas,
+        TStates,
+        TValidator,
         TExtendSchemas,
         TExtendStates,
         TExtendActionMap,
         TExtendActorMap,
         TExtendGuardMap,
-        TExtendDelayMap
+        TExtendDelayMap,
+        TExtendValidator
       >
     ) {
-      return setup(mergeSetupConfigs(config, extension)) as SetupReturn<
+      return setup(
+        mergeSetupConfigs(config, extension as AnySetupConfig) as any
+      ) as SetupReturn<
         MergeSourceMaps<TStates, TExtendStates>,
         MergeSourceMaps<TSchemas, TExtendSchemas>,
         MergeSourceMaps<TActionMap, TExtendActionMap>,
@@ -2007,7 +2253,9 @@ export function setup<
         MergeSourceMaps<TGuardMap, TExtendGuardMap>,
         MergeSourceMaps<TDelayMap, TExtendDelayMap>,
         | Extract<keyof TDelayMap, string>
-        | Extract<keyof TExtendDelayMap, string>
+        | Extract<keyof TExtendDelayMap, string>,
+        SystemRegistry,
+        ResolveExtendedValidator<TValidator, TExtendValidator>
       >;
     },
     createMachine(machineConfig) {
@@ -2019,15 +2267,19 @@ export function setup<
       const mergedGuards = mergeMaps(guards, machineConfig.guards);
       const mergedDelays = mergeMaps(delays, machineConfig.delays);
 
-      return new StateMachine({
-        ...machineConfig,
-        ...(mergedSchemas ? { schemas: mergedSchemas } : undefined),
-        ...(mergedStates ? { states: mergedStates } : undefined),
-        ...(mergedActions ? { actions: mergedActions } : undefined),
-        ...(mergedActors ? { actors: mergedActors } : undefined),
-        ...(mergedGuards ? { guards: mergedGuards } : undefined),
-        ...(mergedDelays ? { delays: mergedDelays } : undefined)
-      } as any) as any;
+      return new StateMachine(
+        {
+          ...machineConfig,
+          ...(mergedSchemas ? { schemas: mergedSchemas } : undefined),
+          ...(mergedStates ? { states: mergedStates } : undefined),
+          ...(mergedActions ? { actions: mergedActions } : undefined),
+          ...(mergedActors ? { actors: mergedActors } : undefined),
+          ...(mergedGuards ? { guards: mergedGuards } : undefined),
+          ...(mergedDelays ? { delays: mergedDelays } : undefined)
+        } as any,
+        undefined,
+        validator
+      ) as any;
     },
     createStateConfig(...args: unknown[]) {
       return args.length > 1 ? args[1] : args[0];

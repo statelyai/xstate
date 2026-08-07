@@ -83,6 +83,8 @@ import {
   resolveReferencedActor,
   toStatePath
 } from './utils.ts';
+import { assertValid } from './validation.ts';
+import type { ActorLogicValidator } from './validation.types.ts';
 
 const STATE_IDENTIFIER = '#';
 
@@ -233,7 +235,8 @@ export class StateMachine<
       schemas?: AnyMachineSchemas;
       internalEvents?: readonly string[];
     },
-    sources?: Sources
+    sources?: Sources,
+    public validator?: ActorLogicValidator
   ) {
     this.id = config.id || '(machine)';
     this.sources = {
@@ -318,24 +321,28 @@ export class StateMachine<
   > {
     const { actions, guards, actors, delays } = this.sources;
 
-    const provided = new StateMachine(this.config, {
-      actions: {
-        ...actions,
-        ...sources.actions
-      } as Sources['actions'],
-      guards: {
-        ...guards,
-        ...sources.guards
-      } as Sources['guards'],
-      actors: {
-        ...actors,
-        ...sources.actors
-      } as Sources['actors'],
-      delays: {
-        ...delays,
-        ...sources.delays
-      } as Sources['delays']
-    }) as unknown as this;
+    const provided = new StateMachine(
+      this.config,
+      {
+        actions: {
+          ...actions,
+          ...sources.actions
+        } as Sources['actions'],
+        guards: {
+          ...guards,
+          ...sources.guards
+        } as Sources['guards'],
+        actors: {
+          ...actors,
+          ...sources.actors
+        } as Sources['actors'],
+        delays: {
+          ...delays,
+          ...sources.delays
+        } as Sources['delays']
+      },
+      this.validator
+    ) as unknown as this;
     // Providing sources does not change the serializable definition.
     provided._json = this._json;
     return provided;
@@ -435,6 +442,17 @@ export class StateMachine<
         this,
         snapshot as SnapshotFrom<this>
       )) as NonNullable<typeof actorScope>;
+    if (this.validator) {
+      assertValid(this.validator, {
+        kind: 'event',
+        logic: this,
+        event,
+        eventOrigin:
+          actorScope && (actorScope.self as any)._lastSourceRef
+            ? 'actor'
+            : 'external'
+      });
+    }
     if (usesInertScope) {
       setInertActorScopeSnapshot(resolvedActorScope, snapshot, false);
     }
@@ -451,6 +469,14 @@ export class StateMachine<
         usesInertScope && fastSnapshot !== snapshot
           ? attachSnapshotActorRef(this, resolvedActorScope, fastSnapshot)
           : this._attachPureActorRef(fastSnapshot, resolvedActorScope);
+      if (this.validator) {
+        assertValid(this.validator, {
+          kind: 'result',
+          logic: this,
+          snapshot: returnedSnapshot,
+          effects: []
+        });
+      }
       return [returnedSnapshot, []];
     }
 
@@ -469,6 +495,15 @@ export class StateMachine<
         ? nextSnapshot
         : attachSnapshotActorRef(this, resolvedActorScope, nextSnapshot)
       : this._attachPureActorRef(nextSnapshot, resolvedActorScope);
+    const effects = this._collectEffects(microsteps);
+    if (this.validator) {
+      assertValid(this.validator, {
+        kind: 'result',
+        logic: this,
+        snapshot: returnedSnapshot,
+        effects
+      });
+    }
     return [
       returnedSnapshot as MachineSnapshot<
         TContext,
@@ -480,7 +515,7 @@ export class StateMachine<
         TMeta,
         TConfig
       >,
-      this._collectEffects(microsteps)
+      effects
     ];
   }
 
@@ -871,6 +906,13 @@ export class StateMachine<
     >,
     ExecutableActionObjectFromLogic<this>
   > {
+    if (this.validator) {
+      assertValid(this.validator, {
+        kind: 'input',
+        logic: this,
+        input
+      });
+    }
     const usesInertScope = !actorScope;
     const resolvedActorScope = (actorScope ??
       createInertActorScope(this)) as NonNullable<typeof actorScope>;
@@ -883,15 +925,35 @@ export class StateMachine<
     const contextSpawnEffects = Object.values(preInitialState.children)
       .filter(Boolean)
       .map((actor) => createSpawnEffect(actor as AnyActor));
-    let nextState: AnyMachineSnapshot;
-    let initialActions: ReadonlyArray<ExecutableActionObject> = [];
-    let microsteps: ReadonlyArray<
-      readonly [unknown, ReadonlyArray<ExecutableActionObject>]
-    > = [];
-    let macroState: AnyMachineSnapshot;
+    const finalizeInitialResult = (
+      macroState: AnyMachineSnapshot,
+      microsteps: ReadonlyArray<
+        readonly [unknown, ReadonlyArray<ExecutableActionObject>]
+      >
+    ): ActorLogicTransitionResult<
+      SnapshotFrom<this>,
+      ExecutableActionObjectFromLogic<this>
+    > => {
+      if (usesInertScope) {
+        setInertActorScopeSnapshot(resolvedActorScope, macroState, false);
+      }
+      const returnedSnapshot = usesInertScope
+        ? attachSnapshotActorRef(this, resolvedActorScope, macroState)
+        : this._attachPureActorRef(macroState, resolvedActorScope);
+      const effects = this._collectEffects(microsteps);
+      if (this.validator) {
+        assertValid(this.validator, {
+          kind: 'result',
+          logic: this,
+          snapshot: returnedSnapshot,
+          effects
+        });
+      }
+      return [returnedSnapshot as SnapshotFrom<this>, effects];
+    };
 
     try {
-      [nextState, initialActions] = initialMicrostep(
+      const [nextState, initialActions] = initialMicrostep(
         this.root,
         preInitialState,
         resolvedActorScope,
@@ -899,7 +961,7 @@ export class StateMachine<
         internalQueue
       );
 
-      ({ snapshot: macroState, microsteps } = macrostep(
+      const { snapshot: macroState, microsteps } = macrostep(
         nextState,
         initEvent as AnyEventObject,
         resolvedActorScope,
@@ -910,7 +972,8 @@ export class StateMachine<
             ExecutableActionObject[]
           ]
         ]
-      ));
+      );
+      return finalizeInitialResult(macroState, microsteps);
     } catch (err) {
       if (!this.root.config.onError) {
         throw err;
@@ -928,21 +991,11 @@ export class StateMachine<
           ]
         ]
       );
-      macroState = errorMacrostep.snapshot;
-      microsteps = errorMacrostep.microsteps;
-      initialActions = [];
+      return finalizeInitialResult(
+        errorMacrostep.snapshot,
+        errorMacrostep.microsteps
+      );
     }
-
-    if (usesInertScope) {
-      setInertActorScopeSnapshot(resolvedActorScope, macroState, false);
-    }
-    const returnedSnapshot = usesInertScope
-      ? attachSnapshotActorRef(this, resolvedActorScope, macroState)
-      : this._attachPureActorRef(macroState, resolvedActorScope);
-    return [
-      returnedSnapshot as SnapshotFrom<this>,
-      this._collectEffects(microsteps)
-    ];
   }
 
   public start(

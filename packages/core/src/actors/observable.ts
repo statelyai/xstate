@@ -1,6 +1,8 @@
 import { XSTATE_INIT, XSTATE_STOP } from '../constants';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
+import { assertValid } from '../validation.ts';
+import type { ActorLogicValidator } from '../validation.types.ts';
 import {
   ActorLogic,
   ActorFromLogic,
@@ -114,6 +116,7 @@ export interface ObservableLogicConfig<
   TEmitted extends EventObject = EventObject,
   TInputSchema extends StandardSchemaV1 = StandardSchemaV1
 > {
+  validator?: ActorLogicValidator;
   schemas?: {
     input?: TInputSchema;
   };
@@ -142,6 +145,7 @@ export interface EventObservableLogicConfig<
   TEmitted extends EventObject = EventObject,
   TInputSchema extends StandardSchemaV1 = StandardSchemaV1
 > {
+  validator?: ActorLogicValidator;
   schemas?: {
     input?: TInputSchema;
   };
@@ -202,11 +206,7 @@ export function createObservableLogic<
     StandardSchemaV1.InferOutput<TInputSchema>,
     TEmitted,
     TInputSchema
-  > & {
-    schemas: {
-      input: TInputSchema;
-    };
-  }
+  > & { schemas: { input: TInputSchema } }
 ): ObservableActorLogic<
   TContext,
   StandardSchemaV1.InferOutput<TInputSchema>,
@@ -245,6 +245,10 @@ export function createObservableLogic<
     typeof observableCreatorOrConfig === 'function'
       ? undefined
       : observableCreatorOrConfig.schemas;
+  const validator =
+    typeof observableCreatorOrConfig === 'function'
+      ? undefined
+      : observableCreatorOrConfig.validator;
 
   return createBaseLogic<
     TContext | undefined,
@@ -253,6 +257,7 @@ export function createObservableLogic<
     TInput,
     TEmitted
   >({
+    validator,
     schemas,
     context: undefined,
     run: (args, enq) => {
@@ -385,11 +390,7 @@ export function createEventObservableLogic<
     StandardSchemaV1.InferOutput<TInputSchema>,
     TEmitted,
     TInputSchema
-  > & {
-    schemas: {
-      input: TInputSchema;
-    };
-  }
+  > & { schemas: { input: TInputSchema } }
 ): ObservableActorLogic<
   TEvent,
   StandardSchemaV1.InferOutput<TInputSchema>,
@@ -424,10 +425,15 @@ export function createEventObservableLogic<
     typeof lazyObservableOrConfig === 'function'
       ? lazyObservableOrConfig
       : lazyObservableOrConfig.run;
+  const validator =
+    typeof lazyObservableOrConfig === 'function'
+      ? undefined
+      : lazyObservableOrConfig.validator;
 
   // TODO: event types
   const logic: ObservableActorLogic<TEvent, TInput, TEmitted> = {
-    config: lazyObservable,
+    config: lazyObservableOrConfig,
+    validator,
     transition: (state, event, actorScope) => {
       if (state.status !== 'active') {
         return [state, []];
@@ -478,17 +484,20 @@ export function createEventObservableLogic<
           return [state, []];
       }
     },
-    initialTransition: (input, _) => [
-      {
+    initialTransition: (input, _) => {
+      if (validator) {
+        assertValid(validator, { kind: 'input', logic, input });
+      }
+      const snapshot = {
         status: 'active',
         output: undefined,
         error: undefined,
         context: undefined,
         input,
         _subscription: undefined
-      },
-      []
-    ],
+      } as ObservableSnapshot<TEvent, TInput>;
+      return [snapshot, []];
+    },
     getInitialSnapshot: (actorScope, input) =>
       logic.initialTransition(input, actorScope)[0],
     start: (state, { self, system, emit }) => {
