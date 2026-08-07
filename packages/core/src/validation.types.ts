@@ -1,11 +1,11 @@
 import type {
+  AnyActorLogic,
   AnyEventObject,
-  AnyMachineSnapshot,
-  AnyStateMachine,
-  ExecutableActionObject
+  ExecutableActionObject,
+  Snapshot
 } from './types.ts';
 
-export type MachineValidationBoundary =
+export type ActorValidationBoundary =
   | 'input'
   | 'event'
   | 'context'
@@ -15,28 +15,28 @@ export type MachineValidationBoundary =
   | 'output'
   | 'child';
 
-export type MachineValidationEventOrigin = 'external' | 'actor' | 'raised';
+export type ActorValidationEventOrigin = 'external' | 'actor' | 'raised';
 
-export type MachineValidationRequest =
+export type ActorValidationRequest =
   | {
       kind: 'input';
-      machine: AnyStateMachine;
+      logic: AnyActorLogic;
       input: unknown;
     }
   | {
       kind: 'event';
-      machine: AnyStateMachine;
+      logic: AnyActorLogic;
       event: AnyEventObject;
-      eventOrigin: Exclude<MachineValidationEventOrigin, 'raised'>;
+      eventOrigin: Exclude<ActorValidationEventOrigin, 'raised'>;
     }
   | {
       kind: 'result';
-      machine: AnyStateMachine;
-      snapshot: AnyMachineSnapshot;
+      logic: AnyActorLogic;
+      snapshot: Snapshot<unknown>;
       effects: readonly ExecutableActionObject[];
     };
 
-/** Runtime schema validator installed through `setup({ validator })`. */
-export interface MachineValidator {
-  check(request: MachineValidationRequest): Error | undefined;
+/** Runtime schema validator installed on actor logic. */
+export interface ActorLogicValidator {
+  check(request: ActorValidationRequest): Error | undefined;
 }

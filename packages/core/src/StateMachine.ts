@@ -83,22 +83,10 @@ import {
   resolveReferencedActor,
   toStatePath
 } from './utils.ts';
-import type {
-  MachineValidationRequest,
-  MachineValidator
-} from './validation.types.ts';
+import { assertValid } from './validation.ts';
+import type { ActorLogicValidator } from './validation.types.ts';
 
 const STATE_IDENTIFIER = '#';
-
-function assertValid(
-  validator: MachineValidator,
-  request: MachineValidationRequest
-): void {
-  const error = validator.check(request);
-  if (error) {
-    throw error;
-  }
-}
 
 let emptyCanActor: AnyActor | undefined;
 let emptyCanActorScope: AnyActorScope | undefined;
@@ -248,7 +236,7 @@ export class StateMachine<
       internalEvents?: readonly string[];
     },
     sources?: Sources,
-    public validator?: MachineValidator
+    public validator?: ActorLogicValidator
   ) {
     this.id = config.id || '(machine)';
     this.sources = {
@@ -457,7 +445,7 @@ export class StateMachine<
     if (this.validator) {
       assertValid(this.validator, {
         kind: 'event',
-        machine: this,
+        logic: this,
         event,
         eventOrigin:
           actorScope && (actorScope.self as any)._lastSourceRef
@@ -484,7 +472,7 @@ export class StateMachine<
       if (this.validator) {
         assertValid(this.validator, {
           kind: 'result',
-          machine: this,
+          logic: this,
           snapshot: returnedSnapshot,
           effects: []
         });
@@ -511,7 +499,7 @@ export class StateMachine<
     if (this.validator) {
       assertValid(this.validator, {
         kind: 'result',
-        machine: this,
+        logic: this,
         snapshot: returnedSnapshot,
         effects
       });
@@ -921,7 +909,7 @@ export class StateMachine<
     if (this.validator) {
       assertValid(this.validator, {
         kind: 'input',
-        machine: this,
+        logic: this,
         input
       });
     }
@@ -956,7 +944,7 @@ export class StateMachine<
       if (this.validator) {
         assertValid(this.validator, {
           kind: 'result',
-          machine: this,
+          logic: this,
           snapshot: returnedSnapshot,
           effects
         });

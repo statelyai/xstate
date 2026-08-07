@@ -9,6 +9,7 @@ import {
   Snapshot
 } from '../types';
 import { StandardSchemaV1 } from '../schema.types.ts';
+import type { ActorLogicValidator } from '../validation.types.ts';
 import { createLogic as createBaseLogic } from './logic.ts';
 
 interface CallbackInstanceState<TEvent extends EventObject> {
@@ -130,6 +131,7 @@ export interface CallbackLogicConfig<
   TEmitted extends EventObject = EventObject,
   TInputSchema extends StandardSchemaV1 = StandardSchemaV1
 > {
+  validator?: ActorLogicValidator;
   schemas?: {
     input?: TInputSchema;
   };
@@ -213,11 +215,7 @@ export function createCallbackLogic<
     StandardSchemaV1.InferOutput<TInputSchema>,
     TEmitted,
     TInputSchema
-  > & {
-    schemas: {
-      input: TInputSchema;
-    };
-  }
+  > & { schemas: { input: TInputSchema } }
 ): CallbackActorLogic<
   TEvent,
   StandardSchemaV1.InferOutput<TInputSchema>,
@@ -256,8 +254,13 @@ export function createCallbackLogic<
     typeof callbackOrConfig === 'function'
       ? undefined
       : callbackOrConfig.schemas;
+  const validator =
+    typeof callbackOrConfig === 'function'
+      ? undefined
+      : callbackOrConfig.validator;
 
   return createBaseLogic<undefined, undefined, TEvent, TInput, TEmitted>({
+    validator,
     schemas,
     context: undefined,
     run: (args, enq) => {

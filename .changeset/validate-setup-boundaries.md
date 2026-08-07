@@ -23,4 +23,6 @@ Validation covers machine input and incoming public events before calculation. I
 
 Derived setups inherit validation unless they explicitly replace it or disable it with `validator: undefined`.
 
+The same validator can be installed on `createLogic()`, async, callback, and observable logic configurations. Those actors validate their existing input and output schema boundaries.
+
 Named action and guard parameters, immediate raised events, static meta and tags, persistence, restoration, and `snapshot.can()` are not validation boundaries in this initial release.

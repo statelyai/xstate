@@ -1,16 +1,19 @@
 import type { StandardSchemaV1 } from '../schema.types.ts';
 import type {
-  MachineValidationBoundary,
-  MachineValidationEventOrigin,
-  MachineValidationRequest,
-  MachineValidator
+  ActorValidationBoundary,
+  ActorValidationEventOrigin,
+  ActorLogicValidator
 } from '../validation.types.ts';
+import type {
+  AnyActorLogic,
+  AnyMachineSnapshot,
+  AnyStateMachine,
+  ExecutableActionObject
+} from '../types.ts';
 
-const machineValidationErrorSymbol = Symbol.for(
-  'xstate.machineValidationError'
-);
+const actorValidationErrorSymbol = Symbol.for('xstate.actorValidationError');
 
-export type MachineValidationReason =
+export type ActorValidationReason =
   | 'invalid'
   | 'unknownEvent'
   | 'unknownEmitted'
@@ -18,37 +21,37 @@ export type MachineValidationReason =
   | 'asyncValidationUnsupported'
   | 'schemaThrew';
 
-export interface MachineValidationErrorOptions {
-  reason: MachineValidationReason;
-  boundary: MachineValidationBoundary;
-  machineId: string;
+export interface ActorValidationErrorOptions {
+  reason: ActorValidationReason;
+  boundary: ActorValidationBoundary;
+  logicId?: string;
   stateNodeId?: string;
   eventType?: string;
-  eventOrigin?: MachineValidationEventOrigin;
+  eventOrigin?: ActorValidationEventOrigin;
   childId?: string;
   issues?: readonly StandardSchemaV1.Issue[];
   cause?: unknown;
 }
 
 /** A structured failure produced by `standardSchemaValidator()`. */
-export class MachineValidationError extends Error {
-  public readonly [machineValidationErrorSymbol] = true;
-  public readonly reason: MachineValidationReason;
-  public readonly boundary: MachineValidationBoundary;
-  public readonly machineId: string;
+export class ActorValidationError extends Error {
+  public readonly [actorValidationErrorSymbol] = true;
+  public readonly reason: ActorValidationReason;
+  public readonly boundary: ActorValidationBoundary;
+  public readonly logicId?: string;
   public readonly stateNodeId?: string;
   public readonly eventType?: string;
-  public readonly eventOrigin?: MachineValidationEventOrigin;
+  public readonly eventOrigin?: ActorValidationEventOrigin;
   public readonly childId?: string;
   public readonly issues?: readonly StandardSchemaV1.Issue[];
   public override readonly cause?: unknown;
 
-  constructor(options: MachineValidationErrorOptions) {
+  constructor(options: ActorValidationErrorOptions) {
     super(getMessage(options), { cause: options.cause });
-    this.name = 'MachineValidationError';
+    this.name = 'ActorValidationError';
     this.reason = options.reason;
     this.boundary = options.boundary;
-    this.machineId = options.machineId;
+    this.logicId = options.logicId;
     this.stateNodeId = options.stateNodeId;
     this.eventType = options.eventType;
     this.eventOrigin = options.eventOrigin;
@@ -58,13 +61,13 @@ export class MachineValidationError extends Error {
   }
 }
 
-export function isMachineValidationError(
+export function isActorValidationError(
   value: unknown
-): value is MachineValidationError {
+): value is ActorValidationError {
   return !!(
     value &&
     typeof value === 'object' &&
-    machineValidationErrorSymbol in value
+    actorValidationErrorSymbol in value
   );
 }
 
@@ -76,24 +79,31 @@ export interface StandardSchemaValidatorOptions {
 interface ValidationTarget {
   schema: StandardSchemaV1 | undefined;
   value: unknown;
-  boundary: MachineValidationBoundary;
-  machineId: string;
+  boundary: ActorValidationBoundary;
+  logicId?: string;
   stateNodeId?: string;
   eventType?: string;
-  eventOrigin?: MachineValidationEventOrigin;
+  eventOrigin?: ActorValidationEventOrigin;
   childId?: string;
+}
+
+interface ActorSchemas {
+  input?: StandardSchemaV1;
+  output?: StandardSchemaV1;
+  events?: Record<string, StandardSchemaV1>;
+  emitted?: Record<string, StandardSchemaV1>;
 }
 
 /** Creates a synchronous, assertion-only Standard Schema validator. */
 export function standardSchemaValidator(
   options: StandardSchemaValidatorOptions = {}
-): MachineValidator {
+): ActorLogicValidator {
   const unknownEvents = options.unknownEvents ?? 'error';
   const unknownEmitted = options.unknownEmitted ?? 'error';
 
   const checkTarget = (
     target: ValidationTarget
-  ): MachineValidationError | undefined => {
+  ): ActorValidationError | undefined => {
     if (!target.schema) {
       if (target.boundary === 'event' && unknownEvents === 'error') {
         return createError(target, 'unknownEvent');
@@ -126,147 +136,174 @@ export function standardSchemaValidator(
   };
 
   const checkEvent = (
-    machine: MachineValidationRequest['machine'],
+    logic: AnyActorLogic,
     event: { type: string; [key: string]: unknown },
-    eventOrigin: MachineValidationEventOrigin
+    eventOrigin: ActorValidationEventOrigin
   ) => {
+    const schemas = getSchemas(logic);
     if (
-      !machine.schemas?.events ||
+      !schemas?.events ||
       event.type.startsWith('xstate.') ||
       event.type.startsWith('@xstate.')
     ) {
       return undefined;
     }
     return checkTarget({
-      schema: machine.schemas.events[event.type],
+      schema: schemas.events[event.type],
       value: getPayload(event),
       boundary: 'event',
-      machineId: machine.id,
+      logicId: getLogicId(logic),
       eventType: event.type,
       eventOrigin
     });
   };
 
-  return {
-    check(request) {
-      const { machine } = request;
-
-      if (request.kind === 'input') {
-        return checkTarget({
-          schema: machine.schemas?.input,
-          value: request.input,
-          boundary: 'input',
-          machineId: machine.id
-        });
+  const checkEmitted = (
+    logic: AnyActorLogic,
+    effects: readonly ExecutableActionObject[]
+  ) => {
+    const schemas = getSchemas(logic);
+    if (!schemas?.emitted) {
+      return undefined;
+    }
+    for (const effect of effects) {
+      if (effect.kind !== 'emit') {
+        continue;
       }
-
-      if (request.kind === 'event') {
-        return checkEvent(machine, request.event, request.eventOrigin);
-      }
-
-      const { snapshot, effects } = request;
-      let error = checkTarget({
-        schema: machine.schemas?.context,
-        value: snapshot.context,
-        boundary: 'context',
-        machineId: machine.id
+      const error = checkTarget({
+        schema: schemas.emitted[effect.event.type],
+        value: getPayload(effect.event),
+        boundary: 'emitted',
+        logicId: getLogicId(logic),
+        eventType: effect.event.type
       });
       if (error) {
         return error;
       }
+    }
+    return undefined;
+  };
 
-      for (const stateNode of snapshot._nodes) {
+  const checkMachineResult = (
+    machine: AnyStateMachine,
+    snapshot: AnyMachineSnapshot
+  ) => {
+    let error = checkTarget({
+      schema: machine.schemas?.context,
+      value: snapshot.context,
+      boundary: 'context',
+      logicId: machine.id
+    });
+    if (error) {
+      return error;
+    }
+
+    for (const stateNode of snapshot._nodes) {
+      error = checkTarget({
+        schema: stateNode.schemas?.context,
+        value: snapshot.context,
+        boundary: 'state.context',
+        logicId: machine.id,
+        stateNodeId: stateNode.id
+      });
+      if (error) {
+        return error;
+      }
+      if (stateNode.schemas?.input) {
         error = checkTarget({
-          schema: stateNode.schemas?.context,
-          value: snapshot.context,
-          boundary: 'state.context',
-          machineId: machine.id,
+          schema: stateNode.schemas.input,
+          value: snapshot._stateInputs[stateNode.id],
+          boundary: 'state.input',
+          logicId: machine.id,
           stateNodeId: stateNode.id
         });
         if (error) {
           return error;
         }
-        if (stateNode.schemas?.input) {
-          error = checkTarget({
-            schema: stateNode.schemas.input,
-            value: snapshot._stateInputs[stateNode.id],
-            boundary: 'state.input',
-            machineId: machine.id,
-            stateNodeId: stateNode.id
-          });
-          if (error) {
-            return error;
-          }
+      }
+    }
+
+    for (const childId of Object.keys(machine.schemas?.children ?? {})) {
+      const child = snapshot.children[childId];
+      if (child !== undefined) {
+        error = checkTarget({
+          schema: machine.schemas!.children![childId],
+          value: child,
+          boundary: 'child',
+          logicId: machine.id,
+          childId
+        });
+        if (error) {
+          return error;
         }
       }
+    }
 
-      for (const childId of Object.keys(machine.schemas?.children ?? {})) {
-        const child = snapshot.children[childId];
-        if (child !== undefined) {
-          error = checkTarget({
-            schema: machine.schemas!.children![childId],
-            value: child,
-            boundary: 'child',
-            machineId: machine.id,
-            childId
-          });
-          if (error) {
-            return error;
-          }
+    for (const timer of Object.values(snapshot.timers)) {
+      if (timer.type === '@xstate.raise') {
+        error = checkEvent(machine, timer.event, 'raised');
+        if (error) {
+          return error;
+        }
+      }
+    }
+
+    return undefined;
+  };
+
+  return {
+    check(request) {
+      const { logic } = request;
+      const schemas = getSchemas(logic);
+
+      if (request.kind === 'input') {
+        return checkTarget({
+          schema: schemas?.input,
+          value: request.input,
+          boundary: 'input',
+          logicId: getLogicId(logic)
+        });
+      }
+
+      if (request.kind === 'event') {
+        return checkEvent(logic, request.event, request.eventOrigin);
+      }
+
+      const { snapshot, effects } = request;
+      if (isStateMachine(logic)) {
+        const error = checkMachineResult(logic, snapshot as AnyMachineSnapshot);
+        if (error) {
+          return error;
         }
       }
 
       if (snapshot.status === 'done') {
-        error = checkTarget({
-          schema: machine.schemas?.output,
+        const error = checkTarget({
+          schema: schemas?.output,
           value: snapshot.output,
           boundary: 'output',
-          machineId: machine.id
+          logicId: getLogicId(logic)
         });
         if (error) {
           return error;
         }
       }
 
-      for (const timer of Object.values(snapshot.timers)) {
-        if (timer.type === '@xstate.raise') {
-          error = checkEvent(machine, timer.event, 'raised');
-          if (error) {
-            return error;
-          }
-        }
-      }
-
-      for (const effect of effects) {
-        if (effect.kind === 'emit' && machine.schemas?.emitted) {
-          error = checkTarget({
-            schema: machine.schemas.emitted[effect.event.type],
-            value: getPayload(effect.event),
-            boundary: 'emitted',
-            machineId: machine.id,
-            eventType: effect.event.type
-          });
-          if (error) {
-            return error;
-          }
-        }
-      }
-
-      return undefined;
+      return checkEmitted(logic, effects);
     }
   };
 }
 
 function createError(
   request: ValidationTarget,
-  reason: MachineValidationReason,
+  reason: ActorValidationReason,
   issues?: readonly StandardSchemaV1.Issue[],
   cause?: unknown
-): MachineValidationError {
-  return new MachineValidationError({
+): ActorValidationError {
+  return new ActorValidationError({
     reason,
     boundary: request.boundary,
-    machineId: request.machineId,
+    ...(request.logicId === undefined ? {} : { logicId: request.logicId }),
     ...(request.stateNodeId === undefined
       ? {}
       : { stateNodeId: request.stateNodeId }),
@@ -282,6 +319,21 @@ function createError(
   });
 }
 
+function isStateMachine(logic: AnyActorLogic): logic is AnyStateMachine {
+  return 'root' in logic && 'schemas' in logic;
+}
+
+function getSchemas(logic: AnyActorLogic): ActorSchemas | undefined {
+  if (isStateMachine(logic)) {
+    return logic.schemas;
+  }
+  return (logic.config as { schemas?: ActorSchemas } | undefined)?.schemas;
+}
+
+function getLogicId(logic: AnyActorLogic): string | undefined {
+  return 'id' in logic && typeof logic.id === 'string' ? logic.id : undefined;
+}
+
 function getPayload(event: {
   type: string;
   [key: string]: unknown;
@@ -290,7 +342,7 @@ function getPayload(event: {
   return payload;
 }
 
-function getMessage(options: MachineValidationErrorOptions): string {
+function getMessage(options: ActorValidationErrorOptions): string {
   const subject =
     options.eventType !== undefined
       ? ` "${options.eventType}"`
@@ -319,8 +371,8 @@ function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
 }
 
 export type {
-  MachineValidationBoundary,
-  MachineValidationEventOrigin,
-  MachineValidationRequest,
-  MachineValidator
+  ActorValidationBoundary,
+  ActorValidationEventOrigin,
+  ActorValidationRequest,
+  ActorLogicValidator
 } from '../validation.types.ts';

@@ -44,10 +44,10 @@ export {
   type TypeSchema
 } from './schema.types.ts';
 export type {
-  MachineValidationBoundary,
-  MachineValidationEventOrigin,
-  MachineValidationRequest,
-  MachineValidator
+  ActorValidationBoundary,
+  ActorValidationEventOrigin,
+  ActorValidationRequest,
+  ActorLogicValidator
 } from './validation.types.ts';
 export { createSystem, setup } from './setup.ts';
 export type {

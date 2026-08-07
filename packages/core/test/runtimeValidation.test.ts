@@ -1,17 +1,22 @@
 import { z } from 'zod';
 import {
   type AnyActorRef,
-  type MachineValidator,
-  createMachine,
+  type ActorLogicValidator,
   createActor,
+  createAsyncLogic,
+  createCallbackLogic,
+  createEventObservableLogic,
+  createLogic,
+  createMachine,
+  createObservableLogic,
   initialTransition,
   setup,
   transition,
   types
 } from '../src/index.ts';
 import {
-  MachineValidationError,
-  isMachineValidationError,
+  ActorValidationError,
+  isActorValidationError,
   standardSchemaValidator
 } from '../src/validation/index.ts';
 
@@ -25,15 +30,84 @@ function getThrown(fn: () => void): unknown {
 
 function expectValidationError(
   error: unknown,
-  boundary: MachineValidationError['boundary'],
-  reason: MachineValidationError['reason'] = 'invalid'
+  boundary: ActorValidationError['boundary'],
+  reason: ActorValidationError['reason'] = 'invalid'
 ) {
-  expect(error).toBeInstanceOf(MachineValidationError);
-  expect(isMachineValidationError(error)).toBe(true);
+  expect(error).toBeInstanceOf(ActorValidationError);
+  expect(isActorValidationError(error)).toBe(true);
   expect(error).toMatchObject({ boundary, reason });
 }
 
 describe('runtime schema validation', () => {
+  it('validates input across actor logic creators', () => {
+    const input = z.object({ count: z.number() });
+    const validator = standardSchemaValidator();
+    const subscribable = {
+      subscribe: () => ({ unsubscribe: () => {} })
+    };
+    const logics = [
+      createLogic({
+        validator,
+        schemas: { input },
+        context: undefined,
+        run: () => undefined
+      }),
+      createAsyncLogic({
+        validator,
+        schemas: { input },
+        run: async () => undefined
+      }),
+      createCallbackLogic({
+        validator,
+        schemas: { input },
+        run: () => undefined
+      }),
+      createObservableLogic({
+        validator,
+        schemas: { input },
+        run: () => subscribable
+      }),
+      createEventObservableLogic({
+        validator,
+        schemas: { input },
+        run: () => subscribable
+      })
+    ];
+
+    for (const logic of logics) {
+      expectValidationError(
+        getThrown(() =>
+          initialTransition(logic as any, { count: 'invalid' } as any)
+        ),
+        'input'
+      );
+    }
+  });
+
+  it('validates generic actor output before returning it', () => {
+    const effect = vi.fn();
+    const logic = createLogic({
+      validator: standardSchemaValidator(),
+      schemas: { output: z.number() },
+      context: undefined,
+      run: (_, enq) => {
+        enq.effect(effect);
+        return { status: 'done', output: 'invalid' as any };
+      }
+    });
+
+    expectValidationError(
+      getThrown(() => initialTransition(logic)),
+      'output'
+    );
+
+    const actor = createActor(logic);
+    actor.subscribe({ error: () => {} });
+    actor.start();
+    expect(actor.getSnapshot().status).toBe('error');
+    expect(effect).not.toHaveBeenCalled();
+  });
+
   it('can be disabled by a derived setup', () => {
     const validated = setup({
       validator: standardSchemaValidator(),
@@ -49,7 +123,7 @@ describe('runtime schema validation', () => {
   });
 
   it('calls validators only at pure calculation boundaries', () => {
-    const check = vi.fn<MachineValidator['check']>(() => undefined);
+    const check = vi.fn<ActorLogicValidator['check']>(() => undefined);
     const machine = setup({ validator: { check } }).createMachine({
       on: {
         GO: (_, enq) => {

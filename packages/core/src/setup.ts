@@ -1,5 +1,5 @@
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
-import type { MachineValidator } from './validation.types.ts';
+import type { ActorLogicValidator } from './validation.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
   createActor as createActorFromLogic,
@@ -68,7 +68,9 @@ export type SetupConfig<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
-  TValidator extends MachineValidator | undefined = MachineValidator | undefined
+  TValidator extends ActorLogicValidator | undefined =
+    | ActorLogicValidator
+    | undefined
 > = {
   validator?: TValidator;
   schemas?: TSchemas & SetupSchemas;
@@ -86,7 +88,7 @@ export type AnySetupConfig = SetupConfig<
   Sources['actors'],
   Sources['guards'],
   Sources['delays'],
-  MachineValidator | undefined
+  ActorLogicValidator | undefined
 >;
 
 interface RuntimeValidationDoesNotSupportTransformingSchemas {
@@ -156,7 +158,7 @@ type ValidateSetupStates<TStates> =
 
 type RuntimeValidationConstraint<TSchemas, TStates, TValidator> = [
   TValidator
-] extends [MachineValidator]
+] extends [ActorLogicValidator]
   ? {
       schemas?: ValidateSetupSchemas<TSchemas>;
       states?: ValidateSetupStates<TStates>;
@@ -188,7 +190,7 @@ type SetupExtensionConfig<
   TExtendActorMap extends Sources['actors'],
   TExtendGuardMap extends Sources['guards'],
   TExtendDelayMap extends Sources['delays'],
-  TExtendValidator extends MachineValidator | undefined | InheritedValidator
+  TExtendValidator extends ActorLogicValidator | undefined | InheritedValidator
 > = Omit<
   SetupConfig<
     TExtendSchemas,
@@ -201,7 +203,9 @@ type SetupExtensionConfig<
   'validator'
 > &
   ExtendValidatorConfig<TExtendValidator> &
-  (TBaseValidator extends MachineValidator ? unknown : { validator?: never }) &
+  (TBaseValidator extends ActorLogicValidator
+    ? unknown
+    : { validator?: never }) &
   RuntimeValidationConstraint<
     NoInfer<TBaseSchemas>,
     NoInfer<TBaseStates>,
@@ -1755,7 +1759,7 @@ export interface SetupReturn<
   TSetupDelayMap extends Sources['delays'] = {},
   TSetupDelays extends string = Extract<keyof TSetupDelayMap, string>,
   TSystemRegistry extends SystemRegistry = SystemRegistry,
-  TValidator extends MachineValidator | undefined = undefined
+  TValidator extends ActorLogicValidator | undefined = undefined
 > {
   /** Extends the setup configuration */
   extend<
@@ -1766,7 +1770,7 @@ export interface SetupReturn<
     TExtendGuardMap extends Sources['guards'] = {},
     TExtendDelayMap extends Sources['delays'] = {},
     const TExtendValidator extends
-      | MachineValidator
+      | ActorLogicValidator
       | undefined
       | InheritedValidator = InheritedValidator
   >(
@@ -1918,7 +1922,7 @@ export interface SetupReturn<
         meta?: TMetaSchema;
         tags?: TTagSchema;
         children?: TChildrenSchemaMap;
-      } & ([TValidator] extends [MachineValidator]
+      } & ([TValidator] extends [ActorLogicValidator]
         ? ValidateSetupSchemas<
             InlineMachineSchemas<
               TContextSchema,
@@ -2086,7 +2090,7 @@ export type SetupReturnFromConfig<TConfig extends AnySetupConfig> = SetupReturn<
   SetupConfigDelays<TConfig>,
   Extract<keyof SetupConfigDelays<TConfig>, string>,
   SystemRegistry,
-  TConfig extends { validator: infer TValidator extends MachineValidator }
+  TConfig extends { validator: infer TValidator extends ActorLogicValidator }
     ? TValidator
     : undefined
 >;
@@ -2138,7 +2142,7 @@ export function setup<
   TActorMap extends Sources['actors'] = {},
   TGuardMap extends Sources['guards'] = {},
   TDelayMap extends Sources['delays'] = {},
-  const TValidator extends MachineValidator | undefined = undefined
+  const TValidator extends ActorLogicValidator | undefined = undefined
 >(
   config: SetupConfig<
     TSchemas,
@@ -2179,7 +2183,9 @@ export function setup<
   TActorMap extends Sources['actors'] = {},
   TGuardMap extends Sources['guards'] = {},
   TDelayMap extends Sources['delays'] = {},
-  TValidator extends MachineValidator | undefined = MachineValidator | undefined
+  TValidator extends ActorLogicValidator | undefined =
+    | ActorLogicValidator
+    | undefined
 >(
   config: SetupConfig<
     TSchemas,
@@ -2220,7 +2226,7 @@ export function setup<
       TExtendGuardMap extends Sources['guards'] = {},
       TExtendDelayMap extends Sources['delays'] = {},
       const TExtendValidator extends
-        | MachineValidator
+        | ActorLogicValidator
         | undefined
         | InheritedValidator = InheritedValidator
     >(

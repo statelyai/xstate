@@ -2,6 +2,8 @@ import { XSTATE_STOP } from '../constants.ts';
 import { createInitEvent } from '../eventUtils.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import { ActorSystemRuntime, AnyActorSystem } from '../system.ts';
+import { assertValid } from '../validation.ts';
+import type { ActorLogicValidator } from '../validation.types.ts';
 import {
   finalizeTransitionResult,
   createCustomEffect,
@@ -91,6 +93,7 @@ export interface LogicConfig<
   TOutputSchema extends StandardSchemaV1 = StandardSchemaV1
 > {
   id?: string;
+  validator?: ActorLogicValidator;
   schemas?: {
     input?: TInputSchema;
     output?: TOutputSchema;
@@ -227,10 +230,7 @@ export function createLogic<
     TInputSchema,
     TOutputSchema
   > & {
-    schemas: {
-      input: TInputSchema;
-      output: TOutputSchema;
-    };
+    schemas: { input: TInputSchema; output: TOutputSchema };
   }
 ): LogicActorLogic<
   TContext,
@@ -254,10 +254,7 @@ export function createLogic<
     TEmitted,
     TInputSchema
   > & {
-    schemas: {
-      input: TInputSchema;
-      output?: undefined;
-    };
+    schemas: { input: TInputSchema; output?: undefined };
   }
 ): LogicActorLogic<
   TContext,
@@ -282,10 +279,7 @@ export function createLogic<
     StandardSchemaV1,
     TOutputSchema
   > & {
-    schemas: {
-      input?: undefined;
-      output: TOutputSchema;
-    };
+    schemas: { input?: undefined; output: TOutputSchema };
   }
 ): LogicActorLogic<
   TContext,
@@ -312,7 +306,7 @@ export function createLogic<
 >(
   config: LogicConfig<TContext, TOutput, TEvent, TInput, TEmitted>
 ): LogicActorLogic<TContext, TOutput, TEvent, TInput, TEmitted> {
-  const transition = ((snapshot, event, actorScope) => {
+  const calculateTransition = ((snapshot, event, actorScope) => {
     if (snapshot.status !== 'active') {
       return [snapshot, []];
     }
@@ -465,9 +459,33 @@ export function createLogic<
     ]);
   }) as LogicTransition<TContext, TOutput, TEvent, TInput, TEmitted>;
 
+  const transition = ((snapshot, event, actorScope) => {
+    if (config.validator) {
+      assertValid(config.validator, {
+        kind: 'event',
+        logic,
+        event,
+        eventOrigin: (actorScope.self as any)._lastSourceRef
+          ? 'actor'
+          : 'external'
+      });
+    }
+    const result = calculateTransition(snapshot, event, actorScope);
+    if (config.validator) {
+      assertValid(config.validator, {
+        kind: 'result',
+        logic,
+        snapshot: result[0],
+        effects: result[1]
+      });
+    }
+    return result;
+  }) as LogicTransition<TContext, TOutput, TEvent, TInput, TEmitted>;
+
   const logic: LogicActorLogic<TContext, TOutput, TEvent, TInput, TEmitted> = {
     id: config.id,
     config,
+    validator: config.validator,
     transition,
     start: (snapshot, actorScope, options) => {
       if (!options?.restored) {
@@ -484,6 +502,13 @@ export function createLogic<
       }
     },
     initialTransition: (input, actorScope) => {
+      if (config.validator) {
+        assertValid(config.validator, {
+          kind: 'input',
+          logic,
+          input
+        });
+      }
       const context = resolveContext(config.context, input);
       const snapshot = {
         status: 'active' as const,
