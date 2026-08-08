@@ -230,34 +230,22 @@ function undoRedoFromLogic<
 
           let newSnapshot;
           if (firstTransactionId === undefined) {
-            const item = future.shift()!;
-            newSnapshot = item.snapshot;
-            past.push(
-              options.restore
-                ? {
-                    snapshot: currentSnapshot,
-                    transactionId: firstTransactionId
-                  }
-                : item
-            );
+            newSnapshot = future.shift()!.snapshot;
           } else {
             while (
               future.length > 0 &&
               future[0].transactionId === firstTransactionId
             ) {
-              const item = future.shift()!;
-              newSnapshot = item.snapshot;
-              if (!options.restore) {
-                past.push(item);
-              }
-            }
-            if (options.restore) {
-              past.push({
-                snapshot: currentSnapshot,
-                transactionId: firstTransactionId
-              });
+              newSnapshot = future.shift()!.snapshot;
             }
           }
+
+          // Both stacks hold the snapshot that preceded the change, so a redo
+          // pushes the snapshot it is moving away from, not the one it restores.
+          past.push({
+            snapshot: currentSnapshot,
+            transactionId: firstTransactionId
+          });
 
           const excessCount = past.length - historyLimit;
           if (excessCount > 0) {
