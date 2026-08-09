@@ -42,6 +42,8 @@ describe('propertyTest with FastCheck', () => {
 
       expect(result.coverage.runs).toBe(5);
       expect(checked.length).toBeGreaterThanOrEqual(5);
+      expect(result.coverage.invariantChecks).toBe(checked.length);
+      expect(result.coverage.statuses.active).toBeGreaterThan(0);
     }
   });
 

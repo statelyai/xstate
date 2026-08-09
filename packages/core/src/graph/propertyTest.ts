@@ -9,6 +9,7 @@ import {
 } from '../index.ts';
 import { XSTATE_INIT } from '../constants.ts';
 import { TestModel } from './TestModel.ts';
+import { getStateNodes } from './graph.ts';
 import type { StatePath } from './types.ts';
 
 export interface PropertyGeneratorKind {
@@ -133,6 +134,7 @@ export interface PropertyStep<
   readonly event: TEvent;
   readonly snapshot: TSnapshot;
   readonly effects: readonly unknown[];
+  readonly activeStateIds: readonly string[];
 }
 
 export interface PropertyTrace<
@@ -154,9 +156,18 @@ export interface PropertyCoverage {
   readonly runs: number;
   readonly steps: number;
   readonly skipped: number;
+  readonly prefixSteps: number;
+  readonly generatedSteps: number;
+  readonly invariantChecks: number;
   readonly states: Readonly<Record<string, number>>;
+  readonly configurations: Readonly<Record<string, number>>;
+  readonly statuses: Readonly<Record<string, number>>;
   readonly events: Readonly<Record<string, number>>;
   readonly frontiers: Readonly<Record<string, number>>;
+  readonly stateNodes: {
+    readonly hits: Readonly<Record<string, number>>;
+    readonly missed: readonly string[];
+  };
 }
 
 export class PropertyTestFailure<
@@ -179,13 +190,52 @@ interface MutableCoverage {
   runs: number;
   steps: number;
   skipped: number;
+  prefixSteps: number;
+  generatedSteps: number;
+  invariantChecks: number;
   states: Record<string, number>;
+  configurations: Record<string, number>;
+  statuses: Record<string, number>;
   events: Record<string, number>;
   frontiers: Record<string, number>;
+  stateNodes: Record<string, number>;
+  declaredStateNodes: readonly string[];
 }
 
 function increment(record: Record<string, number>, key: string): void {
   record[key] = (record[key] ?? 0) + 1;
+}
+
+function getActiveStateIds(snapshot: Snapshot<unknown>): string[] {
+  const nodes = (snapshot as { _nodes?: readonly { id: string }[] })._nodes;
+  return nodes?.map((node) => node.id) ?? [];
+}
+
+function getConfiguration(snapshot: Snapshot<unknown>): string {
+  const value = (snapshot as { value?: unknown }).value;
+  return JSON.stringify(value ?? null);
+}
+
+function finalizeCoverage(coverage: MutableCoverage): PropertyCoverage {
+  return {
+    runs: coverage.runs,
+    steps: coverage.steps,
+    skipped: coverage.skipped,
+    prefixSteps: coverage.prefixSteps,
+    generatedSteps: coverage.generatedSteps,
+    invariantChecks: coverage.invariantChecks,
+    states: { ...coverage.states },
+    configurations: { ...coverage.configurations },
+    statuses: { ...coverage.statuses },
+    events: { ...coverage.events },
+    frontiers: { ...coverage.frontiers },
+    stateNodes: {
+      hits: { ...coverage.stateNodes },
+      missed: coverage.declaredStateNodes.filter(
+        (id) => coverage.stateNodes[id] === undefined
+      )
+    }
+  };
 }
 
 export class PropertyScenarioRunner<
@@ -228,7 +278,7 @@ export class PropertyScenarioRunner<
     this.initialSnapshot = snapshot;
     this.initialEffects = effects;
     this.started = true;
-    increment(this.coverage.states, this.serializeState(snapshot));
+    this.recordSnapshot(snapshot);
     await this.checkInvariant(undefined, snapshot, snapshot, effects, 0);
     for (const event of this.prefixEvents) {
       await this.execute(event, 'prefix');
@@ -267,13 +317,19 @@ export class PropertyScenarioRunner<
       previousSnapshot,
       event,
       snapshot,
-      effects
+      effects,
+      activeStateIds: getActiveStateIds(snapshot)
     };
     this.steps.push(step);
     this.snapshot = snapshot;
     this.coverage.steps++;
+    if (phase === 'prefix') {
+      this.coverage.prefixSteps++;
+    } else {
+      this.coverage.generatedSteps++;
+    }
     increment(this.coverage.events, event.type);
-    increment(this.coverage.states, this.serializeState(snapshot));
+    this.recordSnapshot(snapshot);
     await this.checkInvariant(
       event,
       previousSnapshot,
@@ -312,6 +368,7 @@ export class PropertyScenarioRunner<
     effects: readonly unknown[],
     step: number
   ): Promise<void> {
+    this.coverage.invariantChecks++;
     try {
       await this.invariant({
         initialSnapshot: this.initialSnapshot,
@@ -329,6 +386,15 @@ export class PropertyScenarioRunner<
         undefined,
         this.getReplayFixture(step)
       );
+    }
+  }
+
+  private recordSnapshot(snapshot: TSnapshot): void {
+    increment(this.coverage.states, this.serializeState(snapshot));
+    increment(this.coverage.configurations, getConfiguration(snapshot));
+    increment(this.coverage.statuses, snapshot.status);
+    for (const id of getActiveStateIds(snapshot)) {
+      increment(this.coverage.stateNodes, id);
     }
   }
 
@@ -427,13 +493,28 @@ export async function propertyTest<
     eventDescriptors.set(type, descriptor);
     return { type, generator: descriptor.generate };
   });
+  const machineRoot = (
+    model.testLogic as { root?: Parameters<typeof getStateNodes>[0] }
+  ).root;
+  const declaredStateNodes = machineRoot
+    ? getStateNodes(machineRoot)
+        .filter((node) => node.type !== 'history' && node.type !== 'choice')
+        .map((node) => node.id)
+    : [];
   const coverage: MutableCoverage = {
     runs: 0,
     steps: 0,
     skipped: 0,
+    prefixSteps: 0,
+    generatedSteps: 0,
+    invariantChecks: 0,
     states: {},
+    configurations: {},
+    statuses: {},
     events: {},
-    frontiers: {}
+    frontiers: {},
+    stateNodes: {},
+    declaredStateNodes
   };
 
   const frontiers = options.frontiers?.length
@@ -492,7 +573,7 @@ export async function propertyTest<
     }
   }
 
-  return { coverage };
+  return { coverage: finalizeCoverage(coverage) };
 }
 
 export async function replayPropertyTest<
@@ -548,9 +629,16 @@ export async function replayPropertyTest<
     runs: 1,
     steps: 0,
     skipped: 0,
+    prefixSteps: 0,
+    generatedSteps: 0,
+    invariantChecks: 0,
     states: {},
+    configurations: {},
+    statuses: {},
     events: {},
-    frontiers: {}
+    frontiers: {},
+    stateNodes: {},
+    declaredStateNodes: []
   };
   const runner = new PropertyScenarioRunner(
     model.testLogic as ActorLogic<
@@ -575,4 +663,36 @@ export async function replayPropertyTest<
     await runner.run(event as EventFromSource<TSource>);
   }
   return runner.getTrace();
+}
+
+export function serializePropertyTrace<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+>(trace: PropertyTrace<TSnapshot, TEvent>): unknown {
+  const serializeSnapshot = (snapshot: TSnapshot) =>
+    'toJSON' in snapshot && typeof snapshot.toJSON === 'function'
+      ? snapshot.toJSON()
+      : snapshot;
+  return {
+    start:
+      trace.start.type === 'snapshot'
+        ? {
+            type: 'snapshot',
+            snapshot: serializeSnapshot(trace.start.snapshot)
+          }
+        : trace.start,
+    initialSnapshot: serializeSnapshot(trace.initialSnapshot),
+    prefixEvents: trace.prefixEvents,
+    events: trace.events,
+    steps: trace.steps.map((step) => ({
+      index: step.index,
+      phase: step.phase,
+      previousSnapshot: serializeSnapshot(step.previousSnapshot),
+      event: step.event,
+      snapshot: serializeSnapshot(step.snapshot),
+      effects: step.effects,
+      activeStateIds: step.activeStateIds
+    })),
+    finalSnapshot: serializeSnapshot(trace.finalSnapshot)
+  };
 }
