@@ -28,6 +28,20 @@ export interface PropertyReplayMetadata {
   readonly data?: unknown;
 }
 
+export interface PortablePropertyReplayFixture {
+  readonly formatVersion: 1;
+  readonly machine?: {
+    readonly id?: string;
+    readonly version?: string;
+  };
+  readonly start:
+    | { readonly type: 'input'; readonly input: unknown }
+    | { readonly type: 'snapshot'; readonly snapshot: unknown };
+  readonly prefixEvents: readonly unknown[];
+  readonly events: readonly unknown[];
+  readonly failedAt: number;
+}
+
 export interface PropertyTestAdapterResult {
   readonly runs: number;
   readonly replay?: PropertyReplayMetadata;
@@ -122,6 +136,9 @@ export interface PropertyTrace<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
+  readonly start:
+    | { readonly type: 'input'; readonly input: unknown }
+    | { readonly type: 'snapshot'; readonly snapshot: TSnapshot };
   readonly initialSnapshot: TSnapshot;
   readonly initialEffects: readonly unknown[];
   readonly steps: readonly PropertyStep<TSnapshot, TEvent>[];
@@ -144,7 +161,8 @@ export class PropertyTestFailure<
     message: string,
     public readonly trace: PropertyTrace<TSnapshot, TEvent>,
     public readonly cause: unknown,
-    public readonly replay?: PropertyReplayMetadata
+    public readonly replay?: PropertyReplayMetadata,
+    public readonly fixture?: PortablePropertyReplayFixture
   ) {
     super(message, { cause });
     this.name = 'PropertyTestFailure';
@@ -176,6 +194,10 @@ export class PropertyScenarioRunner<
   public constructor(
     private readonly logic: ActorLogic<TSnapshot, TEvent, unknown>,
     private readonly input: unknown,
+    private readonly startingSnapshot: TSnapshot | undefined,
+    private readonly serializeStartingSnapshot:
+      | ((snapshot: TSnapshot) => unknown)
+      | undefined,
     private readonly invariant: PropertyInvariant<TSnapshot, TEvent>,
     private readonly serializeState: (snapshot: TSnapshot) => string,
     private readonly eventDescriptors: ReadonlyMap<
@@ -186,10 +208,13 @@ export class PropertyScenarioRunner<
   ) {}
 
   public async start(): Promise<void> {
-    const [snapshot, effects] = initialTransition(
-      this.logic,
-      this.input as never
-    );
+    const [snapshot, effects]: [TSnapshot, readonly unknown[]] = this
+      .startingSnapshot
+      ? [this.startingSnapshot, []]
+      : (initialTransition(this.logic, this.input as never) as [
+          TSnapshot,
+          readonly unknown[]
+        ]);
     this.snapshot = snapshot;
     this.initialSnapshot = snapshot;
     this.initialEffects = effects;
@@ -241,6 +266,9 @@ export class PropertyScenarioRunner<
 
   public getTrace(): PropertyTrace<TSnapshot, TEvent> {
     return {
+      start: this.startingSnapshot
+        ? { type: 'snapshot', snapshot: this.startingSnapshot }
+        : { type: 'input', input: this.input },
       initialSnapshot: this.initialSnapshot,
       initialEffects: this.initialEffects,
       steps: this.steps.slice(),
@@ -268,9 +296,36 @@ export class PropertyScenarioRunner<
       throw new PropertyTestFailure(
         `Property invariant failed after ${step} step${step === 1 ? '' : 's'}`,
         this.getTrace(),
-        cause
+        cause,
+        undefined,
+        this.getReplayFixture(step)
       );
     }
+  }
+
+  private getReplayFixture(failedAt: number): PortablePropertyReplayFixture {
+    const identity = this.logic as { id?: string; version?: string };
+    if (this.startingSnapshot && !this.serializeStartingSnapshot) {
+      throw new Error(
+        'Property tests starting from a snapshot require serializeSnapshot to create replay fixtures'
+      );
+    }
+    return {
+      formatVersion: 1,
+      machine:
+        identity.id || identity.version
+          ? { id: identity.id, version: identity.version }
+          : undefined,
+      start: this.startingSnapshot
+        ? {
+            type: 'snapshot',
+            snapshot: this.serializeStartingSnapshot!(this.startingSnapshot)
+          }
+        : { type: 'input', input: this.input },
+      prefixEvents: [],
+      events: this.steps.map((step) => step.event),
+      failedAt
+    };
   }
 }
 
@@ -295,6 +350,10 @@ export interface PropertyTestOptions<
   readonly adapter: PropertyTestAdapter<TKind>;
   readonly events: PropertyEventGenerators<TSnapshot, TEvent, TKind>;
   readonly input?: TInput;
+  readonly start?: {
+    readonly snapshot: TSnapshot;
+    readonly serializeSnapshot: (snapshot: TSnapshot) => unknown;
+  };
   readonly invariant: PropertyInvariant<TSnapshot, TEvent>;
 }
 
@@ -358,6 +417,8 @@ export async function propertyTest<
           unknown
         >,
         options.input,
+        options.start?.snapshot,
+        options.start?.serializeSnapshot,
         options.invariant,
         (snapshot) => model.options.serializeState!(snapshot, undefined),
         eventDescriptors,
@@ -372,7 +433,8 @@ export async function propertyTest<
         result.error.message,
         result.error.trace,
         result.error.cause,
-        result.replay
+        result.replay,
+        result.error.fixture
       );
     }
     throw result.error instanceof Error
@@ -381,4 +443,83 @@ export async function propertyTest<
   }
 
   return { coverage };
+}
+
+export async function replayPropertyTest<
+  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
+>(
+  source: TSource,
+  fixture: PortablePropertyReplayFixture,
+  options: {
+    readonly invariant: PropertyInvariant<
+      SnapshotFromSource<TSource>,
+      EventFromSource<TSource>
+    >;
+    readonly restoreSnapshot?: (
+      snapshot: unknown
+    ) => SnapshotFromSource<TSource>;
+  }
+): Promise<
+  PropertyTrace<SnapshotFromSource<TSource>, EventFromSource<TSource>>
+> {
+  if (fixture.formatVersion !== 1) {
+    throw new Error(`Unsupported property replay fixture version`);
+  }
+  const model =
+    source instanceof TestModel
+      ? source
+      : new TestModel(source as ActorLogic<any, any, any>);
+  const identity = model.testLogic as { id?: string; version?: string };
+  if (fixture.machine?.id && fixture.machine.id !== identity.id) {
+    throw new Error(
+      `Property replay fixture targets machine "${fixture.machine.id}", received "${identity.id ?? '(anonymous)'}"`
+    );
+  }
+  if (
+    fixture.machine?.version &&
+    fixture.machine.version !== identity.version
+  ) {
+    throw new Error(
+      `Property replay fixture targets machine version "${fixture.machine.version}", received "${identity.version ?? '(unversioned)'}"`
+    );
+  }
+  const startingSnapshot =
+    fixture.start.type === 'snapshot'
+      ? options.restoreSnapshot?.(fixture.start.snapshot)
+      : undefined;
+  const serializedStartingSnapshot =
+    fixture.start.type === 'snapshot' ? fixture.start.snapshot : undefined;
+  if (fixture.start.type === 'snapshot' && !startingSnapshot) {
+    throw new Error(
+      'Property replay fixture contains a snapshot but no restoreSnapshot function was provided'
+    );
+  }
+  const coverage: MutableCoverage = {
+    runs: 1,
+    steps: 0,
+    skipped: 0,
+    states: {},
+    events: {}
+  };
+  const runner = new PropertyScenarioRunner(
+    model.testLogic as ActorLogic<
+      SnapshotFromSource<TSource>,
+      EventFromSource<TSource>,
+      unknown
+    >,
+    fixture.start.type === 'input' ? fixture.start.input : undefined,
+    startingSnapshot,
+    fixture.start.type === 'snapshot'
+      ? () => serializedStartingSnapshot
+      : undefined,
+    options.invariant,
+    (snapshot) => model.options.serializeState!(snapshot, undefined),
+    new Map(),
+    coverage
+  );
+  await runner.start();
+  for (const event of [...fixture.prefixEvents, ...fixture.events]) {
+    await runner.run(event as EventFromSource<TSource>);
+  }
+  return runner.getTrace();
 }

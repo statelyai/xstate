@@ -1,9 +1,10 @@
 import * as fc from 'fast-check';
-import { createMachine, types } from 'xstate';
+import { createMachine, initialTransition, types } from 'xstate';
 import {
   PropertyTestFailure,
   createTestModel,
-  propertyTest
+  propertyTest,
+  replayPropertyTest
 } from 'xstate/graph';
 import { fastCheckAdapter } from '../src/index.ts';
 
@@ -81,5 +82,55 @@ describe('propertyTest with FastCheck', () => {
     });
 
     expect(executed).toBe(0);
+  });
+
+  it('creates portable fixtures that replay without FastCheck', async () => {
+    let error!: PropertyTestFailure;
+    try {
+      await propertyTest(counterMachine, {
+        adapter: fastCheckAdapter({ seed: 123, numRuns: 20, maxCommands: 10 }),
+        events: {
+          INC: fc.record({ value: fc.integer({ min: 1, max: 1_000 }) })
+        },
+        invariant: ({ snapshot }) => {
+          expect(snapshot.context.count).toBeLessThan(10);
+        }
+      });
+    } catch (value) {
+      error = value as PropertyTestFailure;
+    }
+
+    expect(error.fixture).toMatchObject({ formatVersion: 1, failedAt: 1 });
+    let replayed!: PropertyTestFailure;
+    try {
+      await replayPropertyTest(counterMachine, error.fixture!, {
+        invariant: ({ snapshot }) => {
+          expect(snapshot.context.count).toBeLessThan(10);
+        }
+      });
+    } catch (value) {
+      replayed = value as PropertyTestFailure;
+    }
+    expect(replayed).toBeInstanceOf(PropertyTestFailure);
+    expect(replayed.trace.steps).toHaveLength(error.trace.steps.length);
+  });
+
+  it('starts from an explicitly serializable snapshot', async () => {
+    const [snapshot] = initialTransition(counterMachine);
+    const seen: number[] = [];
+
+    await propertyTest(counterMachine, {
+      adapter: fastCheckAdapter({ seed: 4, numRuns: 2, maxCommands: 1 }),
+      start: {
+        snapshot,
+        serializeSnapshot: (value) => value.toJSON()
+      },
+      events: { INC: fc.constant({ value: 1 }) },
+      invariant: ({ snapshot: value }) => {
+        seen.push(value.context.count);
+      }
+    });
+
+    expect(seen).toContain(0);
   });
 });
