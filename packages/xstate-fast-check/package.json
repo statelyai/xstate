@@ -6,6 +6,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/xstate-fast-check.js",
+    "./effect-schema": "./dist/xstate-fast-check-effect-schema.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -19,17 +20,25 @@
   },
   "license": "MIT",
   "peerDependencies": {
+    "effect": "4.0.0-beta.106",
     "fast-check": "^4.9.0",
     "xstate": "workspace:^"
   },
   "devDependencies": {
+    "effect": "4.0.0-beta.106",
     "fast-check": "^4.9.0",
     "xstate": "workspace:^"
   },
   "preconstruct": {
     "umdName": "XStateFastCheck",
     "entrypoints": [
-      "./index.ts"
+      "./index.ts",
+      "./effect-schema.ts"
     ]
+  },
+  "peerDependenciesMeta": {
+    "effect": {
+      "optional": true
+    }
   }
 }

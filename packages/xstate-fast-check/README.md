@@ -35,3 +35,6 @@ await propertyTest(machine, {
 ```
 
 Event-map keys supply each event's `type`; arbitraries generate payloads only.
+
+The optional `@xstate/fast-check/effect-schema` entrypoint converts Effect
+Schemas into FastCheck arbitraries without adding Effect to XState.

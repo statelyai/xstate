@@ -20,6 +20,9 @@ allowBuilds:
 
 linkWorkspacePackages: true
 
+minimumReleaseAgeExclude:
+  - effect@4.0.0-beta.106
+
 overrides:
   '@types/node': 25.2.1
   stylus: 0.55.0
