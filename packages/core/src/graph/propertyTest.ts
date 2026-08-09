@@ -7,7 +7,9 @@ import {
   initialTransition,
   transition
 } from '../index.ts';
+import { XSTATE_INIT } from '../constants.ts';
 import { TestModel } from './TestModel.ts';
+import type { StatePath } from './types.ts';
 
 export interface PropertyGeneratorKind {
   readonly target: unknown;
@@ -126,6 +128,7 @@ export interface PropertyStep<
   TEvent extends EventObject
 > {
   readonly index: number;
+  readonly phase: 'prefix' | 'generated';
   readonly previousSnapshot: TSnapshot;
   readonly event: TEvent;
   readonly snapshot: TSnapshot;
@@ -141,6 +144,8 @@ export interface PropertyTrace<
     | { readonly type: 'snapshot'; readonly snapshot: TSnapshot };
   readonly initialSnapshot: TSnapshot;
   readonly initialEffects: readonly unknown[];
+  readonly prefixEvents: readonly TEvent[];
+  readonly events: readonly TEvent[];
   readonly steps: readonly PropertyStep<TSnapshot, TEvent>[];
   readonly finalSnapshot: TSnapshot;
 }
@@ -151,6 +156,7 @@ export interface PropertyCoverage {
   readonly skipped: number;
   readonly states: Readonly<Record<string, number>>;
   readonly events: Readonly<Record<string, number>>;
+  readonly frontiers: Readonly<Record<string, number>>;
 }
 
 export class PropertyTestFailure<
@@ -175,6 +181,7 @@ interface MutableCoverage {
   skipped: number;
   states: Record<string, number>;
   events: Record<string, number>;
+  frontiers: Record<string, number>;
 }
 
 function increment(record: Record<string, number>, key: string): void {
@@ -198,6 +205,8 @@ export class PropertyScenarioRunner<
     private readonly serializeStartingSnapshot:
       | ((snapshot: TSnapshot) => unknown)
       | undefined,
+    private readonly prefixEvents: readonly TEvent[],
+    private readonly frontierId: string | undefined,
     private readonly invariant: PropertyInvariant<TSnapshot, TEvent>,
     private readonly serializeState: (snapshot: TSnapshot) => string,
     private readonly eventDescriptors: ReadonlyMap<
@@ -221,6 +230,12 @@ export class PropertyScenarioRunner<
     this.started = true;
     increment(this.coverage.states, this.serializeState(snapshot));
     await this.checkInvariant(undefined, snapshot, snapshot, effects, 0);
+    for (const event of this.prefixEvents) {
+      await this.execute(event, 'prefix');
+    }
+    if (this.frontierId) {
+      increment(this.coverage.frontiers, this.frontierId);
+    }
   }
 
   public canRun(event: TEvent): boolean {
@@ -237,10 +252,18 @@ export class PropertyScenarioRunner<
     if (!this.started) {
       throw new Error('Property scenario runner has not been started');
     }
+    await this.execute(event, 'generated');
+  }
+
+  private async execute(
+    event: TEvent,
+    phase: PropertyStep<TSnapshot, TEvent>['phase']
+  ): Promise<void> {
     const previousSnapshot = this.snapshot;
     const [snapshot, effects] = transition(this.logic, previousSnapshot, event);
     const step: PropertyStep<TSnapshot, TEvent> = {
       index: this.steps.length,
+      phase,
       previousSnapshot,
       event,
       snapshot,
@@ -271,6 +294,12 @@ export class PropertyScenarioRunner<
         : { type: 'input', input: this.input },
       initialSnapshot: this.initialSnapshot,
       initialEffects: this.initialEffects,
+      prefixEvents: this.steps
+        .filter((step) => step.phase === 'prefix')
+        .map((step) => step.event),
+      events: this.steps
+        .filter((step) => step.phase === 'generated')
+        .map((step) => step.event),
       steps: this.steps.slice(),
       finalSnapshot: this.snapshot
     };
@@ -322,8 +351,12 @@ export class PropertyScenarioRunner<
             snapshot: this.serializeStartingSnapshot!(this.startingSnapshot)
           }
         : { type: 'input', input: this.input },
-      prefixEvents: [],
-      events: this.steps.map((step) => step.event),
+      prefixEvents: this.steps
+        .filter((step) => step.phase === 'prefix')
+        .map((step) => step.event),
+      events: this.steps
+        .filter((step) => step.phase === 'generated')
+        .map((step) => step.event),
       failedAt
     };
   }
@@ -354,6 +387,7 @@ export interface PropertyTestOptions<
     readonly snapshot: TSnapshot;
     readonly serializeSnapshot: (snapshot: TSnapshot) => unknown;
   };
+  readonly frontiers?: readonly StatePath<TSnapshot, TEvent>[];
   readonly invariant: PropertyInvariant<TSnapshot, TEvent>;
 }
 
@@ -398,48 +432,64 @@ export async function propertyTest<
     steps: 0,
     skipped: 0,
     states: {},
-    events: {}
+    events: {},
+    frontiers: {}
   };
 
-  const result = await options.adapter.run({
-    events,
-    createEvent: (type, payload) =>
-      ({
-        ...(payload as object),
-        type
-      }) as EventFromSource<TSource>,
-    createRunner: () => {
-      coverage.runs++;
-      return new PropertyScenarioRunner(
-        model.testLogic as ActorLogic<
-          SnapshotFromSource<TSource>,
-          EventFromSource<TSource>,
-          unknown
-        >,
-        options.input,
-        options.start?.snapshot,
-        options.start?.serializeSnapshot,
-        options.invariant,
-        (snapshot) => model.options.serializeState!(snapshot, undefined),
-        eventDescriptors,
-        coverage
-      );
-    }
-  });
+  const frontiers = options.frontiers?.length
+    ? options.frontiers
+    : ([undefined] as const);
+  for (const frontier of frontiers) {
+    const prefixEvents = frontier
+      ? frontier.steps
+          .map((step) => step.event)
+          .filter((event) => event.type !== XSTATE_INIT)
+      : [];
+    const frontierId = frontier
+      ? model.options.serializeState!(frontier.state, undefined)
+      : undefined;
+    const result = await options.adapter.run({
+      events,
+      createEvent: (type, payload) =>
+        ({
+          ...(payload as object),
+          type
+        }) as EventFromSource<TSource>,
+      createRunner: () => {
+        coverage.runs++;
+        return new PropertyScenarioRunner(
+          model.testLogic as ActorLogic<
+            SnapshotFromSource<TSource>,
+            EventFromSource<TSource>,
+            unknown
+          >,
+          options.input,
+          options.start?.snapshot,
+          options.start?.serializeSnapshot,
+          prefixEvents,
+          frontierId,
+          options.invariant,
+          (snapshot) => model.options.serializeState!(snapshot, undefined),
+          eventDescriptors,
+          coverage
+        );
+      }
+    });
 
-  if (result.error !== undefined) {
-    if (result.error instanceof PropertyTestFailure) {
-      throw new PropertyTestFailure(
-        result.error.message,
-        result.error.trace,
-        result.error.cause,
-        result.replay,
-        result.error.fixture
-      );
+    if (result.error !== undefined) {
+      if (result.error instanceof PropertyTestFailure) {
+        throw new PropertyTestFailure(
+          result.error.message,
+          result.error.trace,
+          result.error.cause,
+          result.replay,
+          result.error.fixture
+        );
+      }
+      throw result.error instanceof Error
+        ? result.error
+        : new Error('Property adapter failed', { cause: result.error });
     }
-    throw result.error instanceof Error
-      ? result.error
-      : new Error('Property adapter failed', { cause: result.error });
   }
 
   return { coverage };
@@ -499,7 +549,8 @@ export async function replayPropertyTest<
     steps: 0,
     skipped: 0,
     states: {},
-    events: {}
+    events: {},
+    frontiers: {}
   };
   const runner = new PropertyScenarioRunner(
     model.testLogic as ActorLogic<
@@ -512,13 +563,15 @@ export async function replayPropertyTest<
     fixture.start.type === 'snapshot'
       ? () => serializedStartingSnapshot
       : undefined,
+    fixture.prefixEvents as EventFromSource<TSource>[],
+    undefined,
     options.invariant,
     (snapshot) => model.options.serializeState!(snapshot, undefined),
     new Map(),
     coverage
   );
   await runner.start();
-  for (const event of [...fixture.prefixEvents, ...fixture.events]) {
+  for (const event of fixture.events) {
     await runner.run(event as EventFromSource<TSource>);
   }
   return runner.getTrace();

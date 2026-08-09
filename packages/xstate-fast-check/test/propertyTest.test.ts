@@ -133,4 +133,54 @@ describe('propertyTest with FastCheck', () => {
 
     expect(seen).toContain(0);
   });
+
+  it('generates shrinkable continuations from graph frontiers', async () => {
+    const machine = createMachine({
+      schemas: {
+        context: types<{ count: number }>(),
+        events: {
+          GO: types<{}>(),
+          INC: types<{ value: number }>()
+        }
+      },
+      context: { count: 0 },
+      initial: 'idle',
+      states: {
+        idle: { on: { GO: { target: 'active' } } },
+        active: {
+          on: {
+            INC: ({ context, event }) => ({
+              context: { count: context.count + event.value }
+            })
+          }
+        }
+      }
+    });
+    const model = createTestModel(machine, { events: [{ type: 'GO' }] });
+    const frontier = model.getPathsFromEvents([{ type: 'GO' }])[0];
+    expect(frontier).toBeDefined();
+    let failure!: PropertyTestFailure;
+
+    try {
+      await propertyTest(model, {
+        adapter: fastCheckAdapter({ seed: 123, numRuns: 100, maxCommands: 5 }),
+        frontiers: [frontier],
+        events: {
+          INC: fc.constant({ value: 10 })
+        },
+        invariant: ({ snapshot }) => {
+          expect(snapshot.context.count).toBeLessThan(10);
+        }
+      });
+    } catch (value) {
+      failure = value as PropertyTestFailure;
+    }
+
+    expect(failure.fixture?.prefixEvents).toEqual([{ type: 'GO' }]);
+    expect(failure.fixture?.events).toHaveLength(1);
+    expect(failure.trace.steps[0]).toMatchObject({
+      phase: 'prefix',
+      event: { type: 'GO' }
+    });
+  });
 });
