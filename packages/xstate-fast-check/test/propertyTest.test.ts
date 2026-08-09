@@ -1,5 +1,10 @@
 import * as fc from 'fast-check';
-import { createMachine, initialTransition, types } from 'xstate';
+import {
+  createMachine,
+  initialTransition,
+  SimulatedClock,
+  types
+} from 'xstate';
 import {
   PropertyTestFailure,
   createTestModel,
@@ -184,5 +189,95 @@ describe('propertyTest with FastCheck', () => {
       phase: 'prefix',
       event: { type: 'GO' }
     });
+  });
+
+  it('shrinks SUT divergence and disposes every run', async () => {
+    let active = 0;
+    let failure!: PropertyTestFailure;
+    try {
+      await propertyTest(counterMachine, {
+        adapter: fastCheckAdapter({ seed: 8, numRuns: 10, maxCommands: 5 }),
+        events: { INC: fc.constant({ value: 1 }) },
+        sut: {
+          create: () => {
+            active++;
+            let count = 0;
+            return {
+              send: (event) => {
+                if (event.type === 'INC') {
+                  count += event.value + 1;
+                }
+              },
+              read: () => count,
+              dispose: () => {
+                active--;
+              }
+            };
+          },
+          projectModel: (snapshot) => snapshot.context.count,
+          projectSut: (count) => count
+        },
+        invariant: () => {}
+      });
+    } catch (error) {
+      failure = error as PropertyTestFailure;
+    }
+
+    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure.message).toContain('SUT diverged');
+    expect(failure.trace.events).toEqual([{ type: 'INC', value: 1 }]);
+    expect(active).toBe(0);
+  });
+
+  it('composes shrinkable clock commands with a fresh SimulatedClock', async () => {
+    const timerMachine = createMachine({
+      schemas: {
+        context: types<{ ticks: number }>(),
+        events: { TICK: types<{}>() }
+      },
+      context: { ticks: 0 },
+      on: {
+        TICK: ({ context }) => ({ context: { ticks: context.ticks + 1 } })
+      }
+    });
+    let created = 0;
+    let disposed = 0;
+    const result = await propertyTest(timerMachine, {
+      adapter: fastCheckAdapter({ seed: 17, numRuns: 10, maxCommands: 3 }),
+      events: {},
+      commands: { advance: fc.constant(1) },
+      sut: {
+        create: () => {
+          created++;
+          const clock = new SimulatedClock();
+          const value = { ticks: 0 };
+          const events: { type: 'TICK' }[] = [];
+          clock.setTimeout(() => {
+            value.ticks++;
+            events.push({ type: 'TICK' });
+          }, 1);
+          return {
+            send: () => {},
+            read: () => value,
+            advance: (milliseconds) => {
+              clock.increment(milliseconds);
+              return events.splice(0);
+            },
+            dispose: () => {
+              disposed++;
+            }
+          };
+        },
+        projectModel: (snapshot) => snapshot.context.ticks,
+        projectSut: (value) => (value as { ticks: number }).ticks,
+        equivalent: (model, sut) => model === sut
+      },
+      invariant: () => {}
+    });
+
+    expect(result.coverage.clockAdvances).toBeGreaterThan(0);
+    expect(result.coverage.sutComparisons).toBeGreaterThan(0);
+    expect(created).toBe(result.coverage.runs);
+    expect(disposed).toBe(created);
   });
 });

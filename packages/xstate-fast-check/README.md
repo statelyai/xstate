@@ -36,5 +36,21 @@ await propertyTest(machine, {
 
 Event-map keys supply each event's `type`; arbitraries generate payloads only.
 
+Use `commands.advance` with a SUT adapter that owns its clock. The adapter
+returns any events delivered by advancing time so XState can apply them through
+the same pure transition path before comparing model and SUT snapshots.
+
+```ts
+await propertyTest(machine, {
+  adapter: fastCheckAdapter(),
+  events: {},
+  commands: { advance: fc.integer({ min: 0, max: 1_000 }) },
+  sut: timerSut,
+  invariant: ({ snapshot }) => {
+    // Checked after every stable macrostep.
+  }
+});
+```
+
 The optional `@xstate/fast-check/effect-schema` entrypoint converts Effect
 Schemas into FastCheck arbitraries without adding Effect to XState.

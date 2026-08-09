@@ -20,7 +20,7 @@ export interface FastCheckAdapterOptions extends Omit<
   readonly replayPath?: string;
 }
 
-class PropertyCommand<
+class EventPropertyCommand<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > implements fc.AsyncCommand<
@@ -47,6 +47,31 @@ class PropertyCommand<
   }
 }
 
+class AdvancePropertyCommand<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> implements fc.AsyncCommand<
+  PropertyScenarioRunner<TSnapshot, TEvent>,
+  undefined,
+  false
+> {
+  public constructor(public readonly milliseconds: number) {}
+
+  public check(): boolean {
+    return true;
+  }
+
+  public async run(
+    runner: PropertyScenarioRunner<TSnapshot, TEvent>
+  ): Promise<void> {
+    await runner.advance(this.milliseconds);
+  }
+
+  public toString(): string {
+    return `advance(${this.milliseconds})`;
+  }
+}
+
 class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
   declare public readonly kind?: FastCheckGeneratorKind;
 
@@ -66,9 +91,22 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
       >
     >[] = request.events.map(({ type, generator }) =>
       (generator as fc.Arbitrary<unknown>).map(
-        (payload) => new PropertyCommand(request.createEvent(type, payload))
+        (payload) =>
+          new EventPropertyCommand(request.createEvent(type, payload))
       )
     );
+    if (request.advanceGenerator) {
+      commands.push(
+        (request.advanceGenerator as fc.Arbitrary<number>).map(
+          (milliseconds) => new AdvancePropertyCommand(milliseconds)
+        )
+      );
+    }
+    if (!commands.length) {
+      throw new Error(
+        'Property tests require at least one event or command generator'
+      );
+    }
     const commandSequence = fc.commands<
       PropertyScenarioRunner<TSnapshot, TEvent>,
       undefined,
@@ -79,11 +117,15 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
     });
     const property = fc.asyncProperty(commandSequence, async (generated) => {
       const runner = request.createRunner();
-      await runner.start();
-      await fc.asyncModelRun(
-        () => ({ model: runner, real: undefined }),
-        generated
-      );
+      try {
+        await runner.start();
+        await fc.asyncModelRun(
+          () => ({ model: runner, real: undefined }),
+          generated
+        );
+      } finally {
+        await runner.dispose();
+      }
     });
     const { maxCommands: _, replayPath: __, ...parameters } = this.options;
     const result = await fc.check(

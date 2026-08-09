@@ -42,7 +42,14 @@ export interface PortablePropertyReplayFixture {
     | { readonly type: 'snapshot'; readonly snapshot: unknown };
   readonly prefixEvents: readonly unknown[];
   readonly events: readonly unknown[];
+  readonly commands?: readonly PropertyRuntimeCommand[];
   readonly failedAt: number;
+}
+
+export interface PropertyRuntimeCommand {
+  readonly type: 'advance';
+  readonly milliseconds: number;
+  readonly atStep: number;
 }
 
 export interface PropertyTestAdapterResult {
@@ -59,8 +66,43 @@ export interface PropertyTestAdapterRequest<
     readonly type: string;
     readonly generator: unknown;
   }[];
+  readonly advanceGenerator?: unknown;
   readonly createEvent: (type: string, payload: unknown) => TEvent;
   readonly createRunner: () => PropertyScenarioRunner<TSnapshot, TEvent>;
+}
+
+export interface PropertySutContext<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  readonly logic: ActorLogic<TSnapshot, TEvent, unknown>;
+  readonly input: unknown;
+  readonly snapshot: TSnapshot | undefined;
+}
+
+export interface PropertySut<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  readonly create: (
+    context: PropertySutContext<TSnapshot, TEvent>
+  ) => PropertySutSession<TEvent> | Promise<PropertySutSession<TEvent>>;
+  readonly projectModel: (snapshot: TSnapshot) => unknown;
+  readonly projectSut?: (observed: unknown) => unknown;
+  readonly equivalent?: (
+    model: unknown,
+    sut: unknown
+  ) => boolean | Promise<boolean>;
+}
+
+export interface PropertySutSession<TEvent extends EventObject> {
+  readonly send: (event: TEvent) => void | Promise<void>;
+  readonly read: () => unknown | Promise<unknown>;
+  readonly settle?: () => void | Promise<void>;
+  readonly advance?: (
+    milliseconds: number
+  ) => readonly TEvent[] | Promise<readonly TEvent[]>;
+  readonly dispose?: () => void | Promise<void>;
 }
 
 export interface PropertyTestAdapter<
@@ -148,6 +190,7 @@ export interface PropertyTrace<
   readonly initialEffects: readonly unknown[];
   readonly prefixEvents: readonly TEvent[];
   readonly events: readonly TEvent[];
+  readonly commands: readonly PropertyRuntimeCommand[];
   readonly steps: readonly PropertyStep<TSnapshot, TEvent>[];
   readonly finalSnapshot: TSnapshot;
 }
@@ -159,6 +202,8 @@ export interface PropertyCoverage {
   readonly prefixSteps: number;
   readonly generatedSteps: number;
   readonly invariantChecks: number;
+  readonly clockAdvances: number;
+  readonly sutComparisons: number;
   readonly states: Readonly<Record<string, number>>;
   readonly configurations: Readonly<Record<string, number>>;
   readonly statuses: Readonly<Record<string, number>>;
@@ -193,6 +238,8 @@ interface MutableCoverage {
   prefixSteps: number;
   generatedSteps: number;
   invariantChecks: number;
+  clockAdvances: number;
+  sutComparisons: number;
   states: Record<string, number>;
   configurations: Record<string, number>;
   statuses: Record<string, number>;
@@ -224,6 +271,8 @@ function finalizeCoverage(coverage: MutableCoverage): PropertyCoverage {
     prefixSteps: coverage.prefixSteps,
     generatedSteps: coverage.generatedSteps,
     invariantChecks: coverage.invariantChecks,
+    clockAdvances: coverage.clockAdvances,
+    sutComparisons: coverage.sutComparisons,
     states: { ...coverage.states },
     configurations: { ...coverage.configurations },
     statuses: { ...coverage.statuses },
@@ -246,7 +295,10 @@ export class PropertyScenarioRunner<
   private initialSnapshot!: TSnapshot;
   private initialEffects: readonly unknown[] = [];
   private readonly steps: PropertyStep<TSnapshot, TEvent>[] = [];
+  private readonly commands: PropertyRuntimeCommand[] = [];
   private started = false;
+  private sutSession: PropertySutSession<TEvent> | undefined;
+  private sutCreated = false;
 
   public constructor(
     private readonly logic: ActorLogic<TSnapshot, TEvent, unknown>,
@@ -257,6 +309,7 @@ export class PropertyScenarioRunner<
       | undefined,
     private readonly prefixEvents: readonly TEvent[],
     private readonly frontierId: string | undefined,
+    private readonly sut: PropertySut<TSnapshot, TEvent> | undefined,
     private readonly invariant: PropertyInvariant<TSnapshot, TEvent>,
     private readonly serializeState: (snapshot: TSnapshot) => string,
     private readonly eventDescriptors: ReadonlyMap<
@@ -279,6 +332,15 @@ export class PropertyScenarioRunner<
     this.initialEffects = effects;
     this.started = true;
     this.recordSnapshot(snapshot);
+    if (this.sut) {
+      this.sutSession = await this.sut.create({
+        logic: this.logic,
+        input: this.input,
+        snapshot: this.startingSnapshot
+      });
+      this.sutCreated = true;
+      await this.compareSut(0);
+    }
     await this.checkInvariant(undefined, snapshot, snapshot, effects, 0);
     for (const event of this.prefixEvents) {
       await this.execute(event, 'prefix');
@@ -305,9 +367,40 @@ export class PropertyScenarioRunner<
     await this.execute(event, 'generated');
   }
 
+  public async advance(milliseconds: number): Promise<void> {
+    if (!this.started) {
+      throw new Error('Property scenario runner has not been started');
+    }
+    if (!this.sutSession?.advance) {
+      throw new Error('Property SUT does not support clock advancement');
+    }
+    this.commands.push({
+      type: 'advance',
+      milliseconds,
+      atStep: this.steps.length
+    });
+    this.coverage.clockAdvances++;
+    const events = await this.sutSession.advance(milliseconds);
+    for (const event of events) {
+      await this.execute(event, 'generated', false);
+    }
+    if (!events.length) {
+      await this.compareSut(this.steps.length);
+    }
+  }
+
+  public async dispose(): Promise<void> {
+    if (this.sut && this.sutCreated) {
+      await this.sutSession?.dispose?.();
+      this.sutSession = undefined;
+      this.sutCreated = false;
+    }
+  }
+
   private async execute(
     event: TEvent,
-    phase: PropertyStep<TSnapshot, TEvent>['phase']
+    phase: PropertyStep<TSnapshot, TEvent>['phase'],
+    sendToSut = true
   ): Promise<void> {
     const previousSnapshot = this.snapshot;
     const [snapshot, effects] = transition(this.logic, previousSnapshot, event);
@@ -330,6 +423,12 @@ export class PropertyScenarioRunner<
     }
     increment(this.coverage.events, event.type);
     this.recordSnapshot(snapshot);
+    if (this.sut) {
+      if (sendToSut) {
+        await this.sutSession!.send(event);
+      }
+      await this.compareSut(this.steps.length);
+    }
     await this.checkInvariant(
       event,
       previousSnapshot,
@@ -356,9 +455,31 @@ export class PropertyScenarioRunner<
       events: this.steps
         .filter((step) => step.phase === 'generated')
         .map((step) => step.event),
+      commands: this.commands.slice(),
       steps: this.steps.slice(),
       finalSnapshot: this.snapshot
     };
+  }
+
+  private async compareSut(step: number): Promise<void> {
+    const sut = this.sut!;
+    await this.sutSession!.settle?.();
+    const observed = await this.sutSession!.read();
+    const modelValue = sut.projectModel(this.snapshot);
+    const sutValue = sut.projectSut ? sut.projectSut(observed) : observed;
+    const equivalent = sut.equivalent
+      ? await sut.equivalent(modelValue, sutValue)
+      : JSON.stringify(modelValue) === JSON.stringify(sutValue);
+    this.coverage.sutComparisons++;
+    if (!equivalent) {
+      throw new PropertyTestFailure(
+        `Property SUT diverged after ${step} step${step === 1 ? '' : 's'}`,
+        this.getTrace(),
+        { model: modelValue, sut: sutValue },
+        undefined,
+        this.getReplayFixture(step)
+      );
+    }
   }
 
   private async checkInvariant(
@@ -423,6 +544,7 @@ export class PropertyScenarioRunner<
       events: this.steps
         .filter((step) => step.phase === 'generated')
         .map((step) => step.event),
+      commands: this.commands.slice(),
       failedAt
     };
   }
@@ -448,6 +570,10 @@ export interface PropertyTestOptions<
 > {
   readonly adapter: PropertyTestAdapter<TKind>;
   readonly events: PropertyEventGenerators<TSnapshot, TEvent, TKind>;
+  readonly commands?: {
+    readonly advance?: PropertyGenerator<TKind, number>;
+  };
+  readonly sut?: PropertySut<TSnapshot, TEvent>;
   readonly input?: TInput;
   readonly start?: {
     readonly snapshot: TSnapshot;
@@ -508,6 +634,8 @@ export async function propertyTest<
     prefixSteps: 0,
     generatedSteps: 0,
     invariantChecks: 0,
+    clockAdvances: 0,
+    sutComparisons: 0,
     states: {},
     configurations: {},
     statuses: {},
@@ -531,6 +659,7 @@ export async function propertyTest<
       : undefined;
     const result = await options.adapter.run({
       events,
+      advanceGenerator: options.commands?.advance,
       createEvent: (type, payload) =>
         ({
           ...(payload as object),
@@ -549,6 +678,7 @@ export async function propertyTest<
           options.start?.serializeSnapshot,
           prefixEvents,
           frontierId,
+          options.sut,
           options.invariant,
           (snapshot) => model.options.serializeState!(snapshot, undefined),
           eventDescriptors,
@@ -632,6 +762,8 @@ export async function replayPropertyTest<
     prefixSteps: 0,
     generatedSteps: 0,
     invariantChecks: 0,
+    clockAdvances: 0,
+    sutComparisons: 0,
     states: {},
     configurations: {},
     statuses: {},
@@ -653,16 +785,21 @@ export async function replayPropertyTest<
       : undefined,
     fixture.prefixEvents as EventFromSource<TSource>[],
     undefined,
+    undefined,
     options.invariant,
     (snapshot) => model.options.serializeState!(snapshot, undefined),
     new Map(),
     coverage
   );
   await runner.start();
-  for (const event of fixture.events) {
-    await runner.run(event as EventFromSource<TSource>);
+  try {
+    for (const event of fixture.events) {
+      await runner.run(event as EventFromSource<TSource>);
+    }
+    return runner.getTrace();
+  } finally {
+    await runner.dispose();
   }
-  return runner.getTrace();
 }
 
 export function serializePropertyTrace<
@@ -684,6 +821,7 @@ export function serializePropertyTrace<
     initialSnapshot: serializeSnapshot(trace.initialSnapshot),
     prefixEvents: trace.prefixEvents,
     events: trace.events,
+    commands: trace.commands,
     steps: trace.steps.map((step) => ({
       index: step.index,
       phase: step.phase,
