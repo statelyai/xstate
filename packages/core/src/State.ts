@@ -27,9 +27,7 @@ import { matchesState } from './utils.ts';
 import {
   copySnapshotActorRef,
   getSnapshotActorRef,
-  setSnapshotActorRef,
-  type SnapshotActorRef,
-  snapshotActorRef
+  setSnapshotActorRef
 } from './snapshotActorRef.ts';
 
 export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
@@ -148,9 +146,6 @@ interface MachineSnapshotBase<
   _stateInputs: Record<string, Record<string, unknown>>;
   /** @internal */
   _nextTimerId: number;
-  /** @internal */
-  [snapshotActorRef]?: SnapshotActorRef;
-
   /**
    * Whether the current state value is a subset of the given partial state
    * value.
@@ -396,7 +391,6 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
     _nodes: nodes,
     _stateInputs,
-    [snapshotActorRef]: _actorRef,
     tags,
     machine,
     getMeta,

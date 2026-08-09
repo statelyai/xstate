@@ -816,19 +816,22 @@ export function createEnqueueObject(
   };
 
   Object.assign(enqueueFn, {
-    cancel: () => {},
-    emit: () => {},
-    log: () => {},
-    raise: () => {},
-    spawn: () => ({}) as any,
-    sendTo: () => {},
-    stop: () => {},
-    listen: () => ({}) as any,
-    subscribeTo: () => ({}) as any,
+    cancel: noop,
+    emit: noop,
+    log: noop,
+    raise: noop,
+    spawn: emptyActor,
+    sendTo: noop,
+    stop: noop,
+    listen: emptyActor,
+    subscribeTo: emptyActor,
     ...props
   });
 
   return enqueueFn as any;
 }
 
-const emptyEnqueueObject = createEnqueueObject({}, () => {});
+const noop = () => {};
+const emptyActor = () => ({}) as any;
+
+const emptyEnqueueObject = createEnqueueObject({}, noop);

@@ -2008,7 +2008,12 @@ function microstep(
       // If context was changed (e.g. by entry actions during self-transition),
       // clone to ensure reference inequality for eventless transition re-evaluation
       if (nextState.context !== originalContext) {
-        return [cloneMachineSnapshot(nextState), executableActions];
+        return [
+          nextState === currentSnapshot
+            ? cloneMachineSnapshot(nextState)
+            : nextState,
+          executableActions
+        ];
       }
       return [nextState, executableActions];
     }

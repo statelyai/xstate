@@ -20,6 +20,7 @@ import {
   getPersistedSnapshot,
   MachineSnapshot
 } from './State.ts';
+import { setSnapshotActorRef } from './snapshotActorRef.ts';
 import { StateNode } from './StateNode.ts';
 import {
   formatRouteTransitions,
@@ -536,7 +537,8 @@ export class StateMachine<
     if (isInertActorScope(actorScope)) {
       return snapshot;
     }
-    return attachSnapshotActorRef(this, actorScope, snapshot);
+    setSnapshotActorRef(snapshot, actorScope.self, actorScope.system);
+    return snapshot;
   }
 
   private _transitionFast(
