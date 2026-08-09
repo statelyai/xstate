@@ -24,6 +24,7 @@ import { initialTransition } from '../src/transition';
 import { listenerLogic } from '../src/actors/listener';
 import { subscriptionLogic } from '../src/actors/subscription';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_STOP } from '../src/constants';
+import { getSnapshotActorRef } from '../src/snapshotActorRef';
 import { z } from 'zod';
 
 const isEffect =
@@ -1261,6 +1262,36 @@ describe('transition function', () => {
 
       expect(actor.system.get('child')).toBeDefined();
       expect(oldSnapshotSawChild).toBe(false);
+    });
+
+    it('reuses captured live system state until topology changes', () => {
+      const child = createMachine({});
+      const machine = createMachine({
+        context: { count: 0 },
+        on: {
+          INCREMENT: ({ context }) => ({
+            context: { count: context.count + 1 }
+          }),
+          SPAWN: (_, enq) => {
+            enq.spawn(child, { registryKey: 'child' });
+          }
+        }
+      });
+      const actor = createActor(machine).start();
+      const getSystemState = () =>
+        getSnapshotActorRef(actor.getSnapshot())!.systemState;
+      const initialSystemState = getSystemState();
+
+      actor.send({ type: 'INCREMENT' });
+      expect(getSystemState()).toBe(initialSystemState);
+
+      actor.send({ type: 'SPAWN' });
+      const spawnedSystemState = getSystemState();
+      expect(spawnedSystemState).not.toBe(initialSystemState);
+
+      actor.send({ type: 'INCREMENT' });
+      expect(getSystemState()).toBe(spawnedSystemState);
+      expect(actor.system.get('child')).toBeDefined();
     });
 
     it('does not discover future nested actors through old child refs', () => {

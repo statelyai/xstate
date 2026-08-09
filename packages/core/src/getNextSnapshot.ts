@@ -61,7 +61,6 @@ export function createInertActorScope<T extends AnyActorLogic>(
     previousSelf && baseSystem
       ? createSnapshotSystem(
           baseSystem,
-          previousSelf,
           isMachineSnapshot(snapshot) ? (snapshot as any).children : {},
           sourceSelf ? undefined : snapshotRef?.systemState
         )

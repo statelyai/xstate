@@ -13,6 +13,7 @@ import {
 } from './types.ts';
 import { XSTATE_TIMER } from './constants.ts';
 import { toObserver } from './utils.ts';
+import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 
 interface ScheduledTimer {
   id: string;
@@ -75,15 +76,21 @@ export function resolveActorId(
     const match = /^x:(\d+)$/.exec(requestedId);
     const reservedId = match ? Number(match[1]) : undefined;
     if (reservedId !== undefined && Number.isSafeInteger(reservedId)) {
-      system._snapshot._nextActorId = Math.max(
+      const nextActorId = Math.max(
         system._snapshot._nextActorId,
         reservedId + 1
       );
+      if (nextActorId !== system._snapshot._nextActorId) {
+        system._snapshot._nextActorId = nextActorId;
+        markSystemSnapshotDirty(system);
+      }
     }
     return requestedId;
   }
 
-  return `x:${system._snapshot._nextActorId++}`;
+  const id = `x:${system._snapshot._nextActorId++}`;
+  markSystemSnapshotDirty(system);
+  return id;
 }
 
 /** @internal */
@@ -194,6 +201,8 @@ export interface ActorSystem<
     _scheduledTimers: Record<ScheduledTimerId, ScheduledTimer>;
     _nextActorId: number;
   };
+  /** @internal */
+  _snapshotVersion: number;
   start: () => void;
   _clock: Clock;
   _logger: (...args: any[]) => void;
@@ -263,10 +272,12 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
       };
       const scheduledTimerId = createScheduledTimerId(source, id);
       system._snapshot._scheduledTimers[scheduledTimerId] = scheduledTimer;
+      markSystemSnapshotDirty(system);
 
       const timeout = clock.setTimeout(() => {
         delete timerMap[scheduledTimerId];
         delete system._snapshot._scheduledTimers[scheduledTimerId];
+        markSystemSnapshotDirty(system);
 
         deliver(source, source, { type: XSTATE_TIMER, id });
       }, delay);
@@ -279,6 +290,7 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
 
       delete timerMap[scheduledTimerId];
       delete system._snapshot._scheduledTimers[scheduledTimerId];
+      markSystemSnapshotDirty(system);
 
       if (timeout !== undefined) {
         clock.clearTimeout(timeout);
@@ -345,19 +357,25 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
         (options?.snapshot && (options.snapshot as any).scheduler) ?? {},
       _nextActorId: (options?.snapshot as any)?._nextActorId ?? 0
     },
+    _snapshotVersion: 0,
     _register: (sessionId, actor) => {
       children.set(sessionId, actor);
+      markSystemSnapshotDirty(system);
       return sessionId;
     },
     _unregister: (actor) => {
-      children.delete(actor.sessionId!);
+      let changed = children.delete(actor.sessionId!);
       const registryKey = reverseKeyedActors.get(actor);
 
       if (registryKey !== undefined) {
         if (keyedActors.get(registryKey) === actor) {
           keyedActors.delete(registryKey);
+          changed = true;
         }
         reverseKeyedActors.delete(actor);
+      }
+      if (changed) {
+        markSystemSnapshotDirty(system);
       }
     },
     get: (registryKey) => {
@@ -376,6 +394,9 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
 
       keyedActors.set(registryKey, actor);
       reverseKeyedActors.set(actor, registryKey);
+      if (existing !== actor) {
+        markSystemSnapshotDirty(system);
+      }
     },
     inspect: (observerOrFn) => {
       const observer = toObserver(observerOrFn);

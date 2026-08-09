@@ -367,8 +367,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
   /** Associates each live snapshot with this actor for later pure transitions. */
   private _setSnapshot(snapshot: SnapshotFrom<TLogic>): void {
+    const previousSnapshot = this._snapshot;
     this._snapshot = snapshot;
-    setSnapshotActorRef(snapshot, this);
+    setSnapshotActorRef(snapshot, this, this.system, previousSnapshot);
   }
 
   private _setErrorSnapshot(
