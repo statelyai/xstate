@@ -1409,6 +1409,15 @@ importers:
         specifier: ^3.2.2
         version: 3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@17.6.3)(jsdom@26.1.0)(sass@1.97.3)(stylus@0.55.0)(supports-color@5.5.0)(terser@5.49.0)
 
+  packages/xstate-fast-check:
+    devDependencies:
+      fast-check:
+        specifier: ^4.9.0
+        version: 4.9.0
+      xstate:
+        specifier: workspace:^
+        version: link:../core
+
   packages/xstate-react:
     dependencies:
       use-isomorphic-layout-effect:
@@ -6916,6 +6925,10 @@ packages:
     resolution: {integrity: sha512-HuC1qF9iTnHDnML9YZAdCDQwT0yKl/U55K4XSUXqGAA2GLoafFgWRqdAbhWJxXaYD4pyoVxAJ8wH670jMpI9DQ==, tarball: https://registry.npmjs.org/falafel/-/falafel-2.2.5.tgz}
     engines: {node: '>=0.4.0'}
 
+  fast-check@4.9.0:
+    resolution: {integrity: sha512-7ms6T7SybUev/PQITciI0yLM2pOSFy5zpG8Ty7tQofcVaQUvrMXp6CBwqF6fThLCLOrfBtuHAtwq6Yu4XPCllg==, tarball: https://registry.npmjs.org/fast-check/-/fast-check-4.9.0.tgz}
+    engines: {node: '>=12.17.0'}
+
   fast-deep-equal@2.0.1:
     resolution: {integrity: sha512-bCK/2Z4zLidyB4ReuIsvALH6w31YfAQDmXMqMx6FyfHqvBxtjC0eRumeSu4Bs3XtXwpyIywtSTrVT99BxY1f9w==, tarball: https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-2.0.1.tgz}
 
@@ -9584,6 +9597,9 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==, tarball: https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz}
     engines: {node: '>=6'}
+
+  pure-rand@8.4.2:
+    resolution: {integrity: sha512-vvuOGgcuPJAirlHvuQw1TrOiw7ptaIXXmIbNuiNOY6lNGJJH49PQ1Kj4nd783nPdQhQdicgOjVI2yI/9BD6/Ng==, tarball: https://registry.npmjs.org/pure-rand/-/pure-rand-8.4.2.tgz}
 
   purgecss@2.3.0:
     resolution: {integrity: sha512-BE5CROfVGsx2XIhxGuZAT7rTH9lLeQx/6M0P7DTXQH4IUc3BBzs9JUzt4yzGf3JrH9enkeq6YJBe9CTtkm1WmQ==, tarball: https://registry.npmjs.org/purgecss/-/purgecss-2.3.0.tgz}
@@ -17835,6 +17851,10 @@ snapshots:
       acorn: 7.4.1
       isarray: 2.0.5
 
+  fast-check@4.9.0:
+    dependencies:
+      pure-rand: 8.4.2
+
   fast-deep-equal@2.0.1: {}
 
   fast-deep-equal@3.1.3: {}
@@ -21124,6 +21144,8 @@ snapshots:
   punycode@1.4.1: {}
 
   punycode@2.3.1: {}
+
+  pure-rand@8.4.2: {}
 
   purgecss@2.3.0:
     dependencies:

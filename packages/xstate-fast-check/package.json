@@ -1,0 +1,35 @@
+{
+  "name": "@xstate/fast-check",
+  "version": "0.1.0-alpha.0",
+  "description": "FastCheck property testing adapter for XState",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/xstate-fast-check.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "fast-check": "^4.9.0",
+    "xstate": "workspace:^"
+  },
+  "devDependencies": {
+    "fast-check": "^4.9.0",
+    "xstate": "workspace:^"
+  },
+  "preconstruct": {
+    "umdName": "XStateFastCheck",
+    "entrypoints": [
+      "./index.ts"
+    ]
+  }
+}
