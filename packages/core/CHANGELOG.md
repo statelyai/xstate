@@ -1,5 +1,11 @@
 # xstate
 
+## 6.0.0-alpha.31
+
+### Patch Changes
+
+- 085adc8: Reduce retained memory for idle actors and actor families.
+
 ## 6.0.0-alpha.30
 
 ### Minor Changes
