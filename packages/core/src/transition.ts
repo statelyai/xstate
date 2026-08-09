@@ -31,6 +31,11 @@ import {
 
 type MachineMicrostep = [AnyMachineSnapshot, ExecutableActionObject[]];
 
+export interface GuardEvaluation {
+  readonly transition: AnyTransitionDefinition;
+  readonly result: boolean;
+}
+
 function attachMicrostepActorRefs(
   microsteps: MachineMicrostep[],
   actorScope: AnyActorScope,
@@ -64,6 +69,21 @@ export function transition<T extends AnyActorLogic>(
   nextSnapshot: SnapshotFrom<T>,
   actions: ExecutableActionObjectFromLogic<T>[]
 ] {
+  const [nextSnapshot, effects] = transitionWithDetails(logic, snapshot, event);
+  return [nextSnapshot, effects];
+}
+
+/** @internal */
+export function transitionWithDetails<T extends AnyActorLogic>(
+  logic: T,
+  snapshot: SnapshotFrom<T>,
+  event: EventFromLogic<T>
+): [
+  nextSnapshot: SnapshotFrom<T>,
+  actions: ExecutableActionObjectFromLogic<T>[],
+  transitions: AnyTransitionDefinition[],
+  guards: GuardEvaluation[]
+] {
   const actorScope = createInertActorScope(logic, snapshot);
   setInertActorScopeSnapshot(actorScope, snapshot, false);
   const [nextSnapshot, effects] = finalizeTransitionResult(
@@ -77,7 +97,12 @@ export function transition<T extends AnyActorLogic>(
     nextSnapshot === snapshot
       ? nextSnapshot
       : attachSnapshotActorRef(logic, actorScope, nextSnapshot);
-  return [returnedSnapshot, effects as ExecutableActionObjectFromLogic<T>[]];
+  return [
+    returnedSnapshot,
+    effects as ExecutableActionObjectFromLogic<T>[],
+    ((actorScope.self as AnyActor as any)._collectedMicrosteps ?? []).slice(),
+    ((actorScope.self as AnyActor as any)._collectedGuards ?? []).slice()
+  ];
 }
 
 /**
@@ -93,6 +118,22 @@ export function initialTransition<T extends AnyActorLogic>(
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
 ): [SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]] {
+  const [snapshot, effects] = initialTransitionWithDetails(logic, input as any);
+  return [snapshot, effects];
+}
+
+/** @internal */
+export function initialTransitionWithDetails<T extends AnyActorLogic>(
+  logic: T,
+  ...[input]: undefined extends InputFrom<T>
+    ? [input?: InputFrom<T>]
+    : [input: InputFrom<T>]
+): [
+  SnapshotFrom<T>,
+  ExecutableActionObjectFromLogic<T>[],
+  AnyTransitionDefinition[],
+  GuardEvaluation[]
+] {
   const actorScope = createInertActorScope(logic);
 
   const [nextSnapshot, executableActions] = finalizeTransitionResult(
@@ -109,7 +150,9 @@ export function initialTransition<T extends AnyActorLogic>(
   );
   return [
     returnedSnapshot,
-    executableActions as ExecutableActionObjectFromLogic<T>[]
+    executableActions as ExecutableActionObjectFromLogic<T>[],
+    ((actorScope.self as AnyActor as any)._collectedMicrosteps ?? []).slice(),
+    ((actorScope.self as AnyActor as any)._collectedGuards ?? []).slice()
   ];
 }
 

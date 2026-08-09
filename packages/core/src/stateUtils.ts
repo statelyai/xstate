@@ -2556,7 +2556,16 @@ export function evaluateCandidate(
       delays: stateNode.machine.sources.delays,
       _snapshot: snapshot
     };
-    if (!(candidate.guard as (args: typeof guardArgs) => boolean)(guardArgs)) {
+    const result = (candidate.guard as (args: typeof guardArgs) => boolean)(
+      guardArgs
+    );
+    if ((self as any).options?._inert) {
+      ((self as any)._collectedGuards ??= []).push({
+        transition: candidate,
+        result
+      });
+    }
+    if (!result) {
       return false;
     }
   }

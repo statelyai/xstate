@@ -57,8 +57,8 @@ class AdvancePropertyCommand<
 > {
   public constructor(public readonly milliseconds: number) {}
 
-  public check(): boolean {
-    return true;
+  public check(runner: PropertyScenarioRunner<TSnapshot, TEvent>): boolean {
+    return runner.getSnapshot().status === 'active';
   }
 
   public async run(
@@ -69,6 +69,54 @@ class AdvancePropertyCommand<
 
   public toString(): string {
     return `advance(${this.milliseconds})`;
+  }
+}
+
+class CheckpointPropertyCommand<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> implements fc.AsyncCommand<
+  PropertyScenarioRunner<TSnapshot, TEvent>,
+  undefined,
+  false
+> {
+  public constructor(public readonly label?: string) {}
+
+  public check(): boolean {
+    return true;
+  }
+
+  public async run(
+    runner: PropertyScenarioRunner<TSnapshot, TEvent>
+  ): Promise<void> {
+    await runner.checkpoint(this.label);
+  }
+
+  public toString(): string {
+    return `checkpoint(${JSON.stringify(this.label)})`;
+  }
+}
+
+class StopPropertyCommand<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> implements fc.AsyncCommand<
+  PropertyScenarioRunner<TSnapshot, TEvent>,
+  undefined,
+  false
+> {
+  public check(runner: PropertyScenarioRunner<TSnapshot, TEvent>): boolean {
+    return runner.getSnapshot().status === 'active';
+  }
+
+  public async run(
+    runner: PropertyScenarioRunner<TSnapshot, TEvent>
+  ): Promise<void> {
+    await runner.stop();
+  }
+
+  public toString(): string {
+    return 'stop()';
   }
 }
 
@@ -95,12 +143,26 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
           new EventPropertyCommand(request.createEvent(type, payload))
       )
     );
-    if (request.advanceGenerator) {
-      commands.push(
-        (request.advanceGenerator as fc.Arbitrary<number>).map(
-          (milliseconds) => new AdvancePropertyCommand(milliseconds)
-        )
-      );
+    for (const command of request.commands) {
+      if (command.type === 'advance') {
+        commands.push(
+          (command.generator as fc.Arbitrary<number>).map(
+            (milliseconds) => new AdvancePropertyCommand(milliseconds)
+          )
+        );
+      } else if (command.type === 'checkpoint') {
+        commands.push(
+          (command.generator as fc.Arbitrary<{ readonly label?: string }>).map(
+            (value) => new CheckpointPropertyCommand(value.label)
+          )
+        );
+      } else {
+        commands.push(
+          (command.generator as fc.Arbitrary<Record<string, never>>).map(
+            () => new StopPropertyCommand()
+          )
+        );
+      }
     }
     if (!commands.length) {
       throw new Error(
@@ -123,11 +185,15 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
           () => ({ model: runner, real: undefined }),
           generated
         );
+        runner.finish();
       } finally {
         await runner.dispose();
       }
     });
     const { maxCommands: _, replayPath: __, ...parameters } = this.options;
+    if (request.runBudget !== undefined) {
+      parameters.numRuns = request.runBudget;
+    }
     const result = await fc.check(
       property,
       parameters as fc.Parameters<

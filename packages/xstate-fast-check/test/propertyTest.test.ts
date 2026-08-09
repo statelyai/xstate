@@ -48,7 +48,7 @@ describe('propertyTest with FastCheck', () => {
       expect(result.coverage.runs).toBe(5);
       expect(checked.length).toBeGreaterThanOrEqual(5);
       expect(result.coverage.invariantChecks).toBe(checked.length);
-      expect(result.coverage.statuses.active).toBeGreaterThan(0);
+      expect(result.coverage.statuses.counts.active).toBeGreaterThan(0);
     }
   });
 
@@ -107,7 +107,7 @@ describe('propertyTest with FastCheck', () => {
       error = value as PropertyTestFailure;
     }
 
-    expect(error.fixture).toMatchObject({ formatVersion: 1, failedAt: 1 });
+    expect(error.fixture).toMatchObject({ formatVersion: 2, failedAt: 1 });
     let replayed!: PropertyTestFailure;
     try {
       await replayPropertyTest(counterMachine, error.fixture!, {
@@ -183,8 +183,17 @@ describe('propertyTest with FastCheck', () => {
       failure = value as PropertyTestFailure;
     }
 
-    expect(failure.fixture?.prefixEvents).toEqual([{ type: 'GO' }]);
-    expect(failure.fixture?.events).toHaveLength(1);
+    expect(
+      failure.fixture?.timeline
+        .filter((entry) => entry.kind === 'event')
+        .map((entry) => entry.command)
+    ).toEqual([
+      expect.objectContaining({
+        phase: 'prefix',
+        event: { type: 'GO' }
+      }),
+      expect.objectContaining({ phase: 'generated' })
+    ]);
     expect(failure.trace.steps[0]).toMatchObject({
       phase: 'prefix',
       event: { type: 'GO' }
@@ -224,7 +233,7 @@ describe('propertyTest with FastCheck', () => {
     }
 
     expect(failure).toBeInstanceOf(PropertyTestFailure);
-    expect(failure.message).toContain('SUT diverged');
+    expect(failure.message).toContain('observation diverged');
     expect(failure.trace.events).toEqual([{ type: 'INC', value: 1 }]);
     expect(active).toBe(0);
   });

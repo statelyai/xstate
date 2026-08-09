@@ -1,16 +1,36 @@
-import {
+import type {
   ActorLogic,
+  AnyTransitionDefinition,
   EventObject,
   InputFrom,
   Snapshot,
-  SnapshotFrom,
-  initialTransition,
-  transition
+  SnapshotFrom
 } from '../index.ts';
-import { XSTATE_INIT } from '../constants.ts';
+import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
+import {
+  initialTransitionWithDetails,
+  transitionWithDetails
+} from '../transition.ts';
 import { TestModel } from './TestModel.ts';
-import { getStateNodes } from './graph.ts';
+import {
+  createPropertyCoverage,
+  declarePropertyFrontier,
+  finalizePropertyCoverage,
+  getPropertyConfigurationId,
+  incrementCoverage,
+  recordPropertyGuards,
+  recordPropertySnapshot,
+  recordPropertyTransitions,
+  type MutablePropertyCoverage,
+  type PropertyCoverage
+} from './propertyCoverage.ts';
 import type { StatePath } from './types.ts';
+
+export type {
+  PropertyCoverage,
+  PropertyCoverageDimension,
+  PropertyCoverageStatus
+} from './propertyCoverage.ts';
 
 export interface PropertyGeneratorKind {
   readonly target: unknown;
@@ -31,8 +51,80 @@ export interface PropertyReplayMetadata {
   readonly data?: unknown;
 }
 
+export type PropertyCommand<TEvent extends EventObject = EventObject> =
+  | {
+      readonly type: 'event';
+      readonly event: TEvent;
+      readonly phase: 'prefix' | 'generated';
+      readonly origin: 'frontier' | 'generator' | 'clock';
+    }
+  | {
+      readonly type: 'advance';
+      readonly milliseconds: number;
+      readonly deliveredEvents: readonly TEvent[];
+    }
+  | { readonly type: 'checkpoint'; readonly label?: string }
+  | { readonly type: 'stop' };
+
+export interface PropertyObservation {
+  readonly model: unknown;
+  readonly oracle?: unknown;
+  readonly sut?: unknown;
+}
+
+export interface PropertyEventTimelineEntry<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  readonly kind: 'event';
+  readonly index: number;
+  readonly command: Extract<PropertyCommand<TEvent>, { type: 'event' }>;
+  readonly previousSnapshot: TSnapshot;
+  readonly snapshot: TSnapshot;
+  readonly effects: readonly unknown[];
+  readonly transitionIds: readonly string[];
+  readonly guardIds: readonly string[];
+  readonly activeStateIds: readonly string[];
+  readonly observation?: PropertyObservation;
+}
+
+export interface PropertyRuntimeTimelineEntry<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  readonly kind: 'command';
+  readonly index: number;
+  readonly command: Exclude<PropertyCommand<TEvent>, { type: 'event' }>;
+  readonly previousSnapshot: TSnapshot;
+  readonly snapshot: TSnapshot;
+  readonly effects: readonly unknown[];
+  readonly transitionIds: readonly string[];
+  readonly guardIds: readonly string[];
+  readonly observation?: PropertyObservation;
+}
+
+export type PropertyTimelineEntry<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> =
+  | PropertyEventTimelineEntry<TSnapshot, TEvent>
+  | PropertyRuntimeTimelineEntry<TSnapshot, TEvent>;
+
+export interface PortablePropertyTimelineEntry {
+  readonly kind: 'event' | 'command';
+  readonly command: PropertyCommand;
+}
+
+export interface PortableTemporalFailure {
+  readonly type: 'eventually' | 'until';
+  readonly id: string;
+  readonly description?: string;
+  readonly within: number;
+  readonly atStep: number;
+}
+
 export interface PortablePropertyReplayFixture {
-  readonly formatVersion: 1;
+  readonly formatVersion: 2;
   readonly machine?: {
     readonly id?: string;
     readonly version?: string;
@@ -40,22 +132,31 @@ export interface PortablePropertyReplayFixture {
   readonly start:
     | { readonly type: 'input'; readonly input: unknown }
     | { readonly type: 'snapshot'; readonly snapshot: unknown };
-  readonly prefixEvents: readonly unknown[];
-  readonly events: readonly unknown[];
-  readonly commands?: readonly PropertyRuntimeCommand[];
+  readonly timeline: readonly PortablePropertyTimelineEntry[];
   readonly failedAt: number;
+  readonly temporalFailure?: PortableTemporalFailure;
 }
 
-export interface PropertyRuntimeCommand {
-  readonly type: 'advance';
-  readonly milliseconds: number;
-  readonly atStep: number;
+interface LegacyPortablePropertyReplayFixture {
+  readonly formatVersion: 1;
+  readonly machine?: { readonly id?: string; readonly version?: string };
+  readonly start:
+    | { readonly type: 'input'; readonly input: unknown }
+    | { readonly type: 'snapshot'; readonly snapshot: unknown };
+  readonly prefixEvents: readonly unknown[];
+  readonly events: readonly unknown[];
+  readonly failedAt: number;
 }
 
 export interface PropertyTestAdapterResult {
   readonly runs: number;
   readonly replay?: PropertyReplayMetadata;
   readonly error?: unknown;
+}
+
+export interface PropertyGeneratedCommand {
+  readonly type: 'advance' | 'checkpoint' | 'stop';
+  readonly generator: unknown;
 }
 
 export interface PropertyTestAdapterRequest<
@@ -66,9 +167,19 @@ export interface PropertyTestAdapterRequest<
     readonly type: string;
     readonly generator: unknown;
   }[];
-  readonly advanceGenerator?: unknown;
+  readonly commands: readonly PropertyGeneratedCommand[];
+  readonly runBudget?: number;
   readonly createEvent: (type: string, payload: unknown) => TEvent;
   readonly createRunner: () => PropertyScenarioRunner<TSnapshot, TEvent>;
+}
+
+export interface PropertyTestAdapter<
+  TKind extends PropertyGeneratorKind = PropertyGeneratorKind
+> {
+  readonly kind?: TKind;
+  run<TSnapshot extends Snapshot<unknown>, TEvent extends EventObject>(
+    request: PropertyTestAdapterRequest<TSnapshot, TEvent>
+  ): Promise<PropertyTestAdapterResult>;
 }
 
 export interface PropertySutContext<
@@ -102,16 +213,38 @@ export interface PropertySutSession<TEvent extends EventObject> {
   readonly advance?: (
     milliseconds: number
   ) => readonly TEvent[] | Promise<readonly TEvent[]>;
+  readonly checkpoint?: (label?: string) => void | Promise<void>;
+  readonly stop?: () => void | Promise<void>;
   readonly dispose?: () => void | Promise<void>;
 }
 
-export interface PropertyTestAdapter<
-  TKind extends PropertyGeneratorKind = PropertyGeneratorKind
+export interface PropertyReferenceContext<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> extends PropertySutContext<TSnapshot, TEvent> {}
+
+export interface PropertyReferenceOracle<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
 > {
-  readonly kind?: TKind;
-  run<TSnapshot extends Snapshot<unknown>, TEvent extends EventObject>(
-    request: PropertyTestAdapterRequest<TSnapshot, TEvent>
-  ): Promise<PropertyTestAdapterResult>;
+  readonly create: (
+    context: PropertyReferenceContext<TSnapshot, TEvent>
+  ) =>
+    | PropertyReferenceSession<TEvent>
+    | Promise<PropertyReferenceSession<TEvent>>;
+  readonly projectModel: (snapshot: TSnapshot) => unknown;
+  readonly projectReference?: (observed: unknown) => unknown;
+  readonly equivalent?: (
+    model: unknown,
+    reference: unknown
+  ) => boolean | Promise<boolean>;
+}
+
+export interface PropertyReferenceSession<TEvent extends EventObject> {
+  readonly transition: (event: TEvent) => void | Promise<void>;
+  readonly read: () => unknown | Promise<unknown>;
+  readonly stop?: () => void | Promise<void>;
+  readonly dispose?: () => void | Promise<void>;
 }
 
 type EventType<TEvent extends EventObject> = TEvent['type'] & string;
@@ -166,17 +299,39 @@ export type PropertyEventGenerators<
       >;
 };
 
+export type PropertyTemporalPredicate<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> = (
+  context: PropertyInvariantContext<TSnapshot, TEvent>
+) => boolean | Promise<boolean>;
+
+export type PropertyTemporal<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> =
+  | {
+      readonly type: 'eventually';
+      readonly id: string;
+      readonly description?: string;
+      readonly within: number;
+      readonly predicate: PropertyTemporalPredicate<TSnapshot, TEvent>;
+    }
+  | {
+      readonly type: 'until';
+      readonly id: string;
+      readonly description?: string;
+      readonly within: number;
+      readonly hold: PropertyTemporalPredicate<TSnapshot, TEvent>;
+      readonly until: PropertyTemporalPredicate<TSnapshot, TEvent>;
+    };
+
 export interface PropertyStep<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
-> {
-  readonly index: number;
+> extends PropertyEventTimelineEntry<TSnapshot, TEvent> {
   readonly phase: 'prefix' | 'generated';
-  readonly previousSnapshot: TSnapshot;
   readonly event: TEvent;
-  readonly snapshot: TSnapshot;
-  readonly effects: readonly unknown[];
-  readonly activeStateIds: readonly string[];
 }
 
 export interface PropertyTrace<
@@ -188,31 +343,18 @@ export interface PropertyTrace<
     | { readonly type: 'snapshot'; readonly snapshot: TSnapshot };
   readonly initialSnapshot: TSnapshot;
   readonly initialEffects: readonly unknown[];
+  readonly initialTransitionIds: readonly string[];
+  readonly initialGuardIds: readonly string[];
+  readonly timeline: readonly PropertyTimelineEntry<TSnapshot, TEvent>[];
   readonly prefixEvents: readonly TEvent[];
   readonly events: readonly TEvent[];
-  readonly commands: readonly PropertyRuntimeCommand[];
+  readonly commands: readonly Exclude<
+    PropertyCommand<TEvent>,
+    { type: 'event' }
+  >[];
   readonly steps: readonly PropertyStep<TSnapshot, TEvent>[];
   readonly finalSnapshot: TSnapshot;
-}
-
-export interface PropertyCoverage {
-  readonly runs: number;
-  readonly steps: number;
-  readonly skipped: number;
-  readonly prefixSteps: number;
-  readonly generatedSteps: number;
-  readonly invariantChecks: number;
-  readonly clockAdvances: number;
-  readonly sutComparisons: number;
-  readonly states: Readonly<Record<string, number>>;
-  readonly configurations: Readonly<Record<string, number>>;
-  readonly statuses: Readonly<Record<string, number>>;
-  readonly events: Readonly<Record<string, number>>;
-  readonly frontiers: Readonly<Record<string, number>>;
-  readonly stateNodes: {
-    readonly hits: Readonly<Record<string, number>>;
-    readonly missed: readonly string[];
-  };
+  readonly finalObservation?: PropertyObservation;
 }
 
 export class PropertyTestFailure<
@@ -231,60 +373,16 @@ export class PropertyTestFailure<
   }
 }
 
-interface MutableCoverage {
-  runs: number;
-  steps: number;
-  skipped: number;
-  prefixSteps: number;
-  generatedSteps: number;
-  invariantChecks: number;
-  clockAdvances: number;
-  sutComparisons: number;
-  states: Record<string, number>;
-  configurations: Record<string, number>;
-  statuses: Record<string, number>;
-  events: Record<string, number>;
-  frontiers: Record<string, number>;
-  stateNodes: Record<string, number>;
-  declaredStateNodes: readonly string[];
+interface TemporalState<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  definition: PropertyTemporal<TSnapshot, TEvent>;
+  satisfied: boolean;
 }
 
-function increment(record: Record<string, number>, key: string): void {
-  record[key] = (record[key] ?? 0) + 1;
-}
-
-function getActiveStateIds(snapshot: Snapshot<unknown>): string[] {
-  const nodes = (snapshot as { _nodes?: readonly { id: string }[] })._nodes;
-  return nodes?.map((node) => node.id) ?? [];
-}
-
-function getConfiguration(snapshot: Snapshot<unknown>): string {
-  const value = (snapshot as { value?: unknown }).value;
-  return JSON.stringify(value ?? null);
-}
-
-function finalizeCoverage(coverage: MutableCoverage): PropertyCoverage {
-  return {
-    runs: coverage.runs,
-    steps: coverage.steps,
-    skipped: coverage.skipped,
-    prefixSteps: coverage.prefixSteps,
-    generatedSteps: coverage.generatedSteps,
-    invariantChecks: coverage.invariantChecks,
-    clockAdvances: coverage.clockAdvances,
-    sutComparisons: coverage.sutComparisons,
-    states: { ...coverage.states },
-    configurations: { ...coverage.configurations },
-    statuses: { ...coverage.statuses },
-    events: { ...coverage.events },
-    frontiers: { ...coverage.frontiers },
-    stateNodes: {
-      hits: { ...coverage.stateNodes },
-      missed: coverage.declaredStateNodes.filter(
-        (id) => coverage.stateNodes[id] === undefined
-      )
-    }
-  };
+function defaultEquivalent(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 export class PropertyScenarioRunner<
@@ -294,11 +392,16 @@ export class PropertyScenarioRunner<
   private snapshot!: TSnapshot;
   private initialSnapshot!: TSnapshot;
   private initialEffects: readonly unknown[] = [];
-  private readonly steps: PropertyStep<TSnapshot, TEvent>[] = [];
-  private readonly commands: PropertyRuntimeCommand[] = [];
+  private initialTransitionIds: readonly string[] = [];
+  private initialGuardIds: readonly string[] = [];
+  private readonly timeline: PropertyTimelineEntry<TSnapshot, TEvent>[] = [];
+  private readonly temporal: TemporalState<TSnapshot, TEvent>[];
+  private stableStep = 0;
   private started = false;
+  private finished = false;
   private sutSession: PropertySutSession<TEvent> | undefined;
-  private sutCreated = false;
+  private referenceSession: PropertyReferenceSession<TEvent> | undefined;
+  private lastObservation: PropertyObservation | undefined;
 
   public constructor(
     private readonly logic: ActorLogic<TSnapshot, TEvent, unknown>,
@@ -310,47 +413,72 @@ export class PropertyScenarioRunner<
     private readonly prefixEvents: readonly TEvent[],
     private readonly frontierId: string | undefined,
     private readonly sut: PropertySut<TSnapshot, TEvent> | undefined,
+    private readonly reference:
+      | PropertyReferenceOracle<TSnapshot, TEvent>
+      | undefined,
     private readonly invariant: PropertyInvariant<TSnapshot, TEvent>,
-    private readonly serializeState: (snapshot: TSnapshot) => string,
+    temporal: readonly PropertyTemporal<TSnapshot, TEvent>[],
     private readonly eventDescriptors: ReadonlyMap<
       string,
       PropertyEventDescriptor<unknown, TSnapshot, TEvent>
     >,
-    private readonly coverage: MutableCoverage
-  ) {}
+    private readonly coverage: MutablePropertyCoverage
+  ) {
+    this.temporal = temporal.map((definition) => ({
+      definition,
+      satisfied: false
+    }));
+  }
 
   public async start(): Promise<void> {
-    const [snapshot, effects]: [TSnapshot, readonly unknown[]] = this
-      .startingSnapshot
-      ? [this.startingSnapshot, []]
-      : (initialTransition(this.logic, this.input as never) as [
+    const [snapshot, effects, selected, guards]: [
+      TSnapshot,
+      readonly unknown[],
+      readonly AnyTransitionDefinition[],
+      readonly import('../transition.ts').GuardEvaluation[]
+    ] = this.startingSnapshot
+      ? [this.startingSnapshot, [], [], []]
+      : (initialTransitionWithDetails(this.logic, this.input as never) as [
           TSnapshot,
-          readonly unknown[]
+          readonly unknown[],
+          readonly AnyTransitionDefinition[],
+          readonly import('../transition.ts').GuardEvaluation[]
         ]);
     this.snapshot = snapshot;
     this.initialSnapshot = snapshot;
     this.initialEffects = effects;
+    this.initialTransitionIds = recordPropertyTransitions(
+      this.coverage,
+      { type: XSTATE_INIT },
+      selected
+    );
+    this.initialGuardIds = recordPropertyGuards(this.coverage, guards);
     this.started = true;
     this.recordSnapshot(snapshot);
-    if (this.sut) {
-      this.sutSession = await this.sut.create({
-        logic: this.logic,
-        input: this.input,
-        snapshot: this.startingSnapshot
-      });
-      this.sutCreated = true;
-      await this.compareSut(0);
+    const context = {
+      logic: this.logic,
+      input: this.input,
+      snapshot: this.startingSnapshot
+    };
+    if (this.reference) {
+      this.referenceSession = await this.reference.create(context);
     }
-    await this.checkInvariant(undefined, snapshot, snapshot, effects, 0);
+    if (this.sut) {
+      this.sutSession = await this.sut.create(context);
+    }
+    await this.checkStable(undefined, snapshot, snapshot, effects);
     for (const event of this.prefixEvents) {
-      await this.execute(event, 'prefix');
+      await this.executeEvent(event, 'prefix', 'frontier', true);
     }
     if (this.frontierId) {
-      increment(this.coverage.frontiers, this.frontierId);
+      incrementCoverage(this.coverage.frontiers, this.frontierId);
     }
   }
 
   public canRun(event: TEvent): boolean {
+    if (this.snapshot.status !== 'active') {
+      return false;
+    }
     const descriptor = this.eventDescriptors.get(event.type);
     const canRun =
       descriptor?.when?.({ snapshot: this.snapshot, event }) ?? true;
@@ -361,81 +489,167 @@ export class PropertyScenarioRunner<
   }
 
   public async run(event: TEvent): Promise<void> {
-    if (!this.started) {
-      throw new Error('Property scenario runner has not been started');
+    this.assertStarted();
+    await this.executeEvent(event, 'generated', 'generator', true);
+  }
+
+  public async replay(command: PropertyCommand<TEvent>): Promise<void> {
+    this.assertStarted();
+    if (command.type === 'event') {
+      await this.executeEvent(
+        command.event,
+        command.phase,
+        command.origin,
+        command.origin !== 'clock'
+      );
+    } else if (command.type === 'advance') {
+      this.coverage.clockAdvances++;
+      this.timeline.push({
+        kind: 'command',
+        index: this.timeline.length,
+        command,
+        previousSnapshot: this.snapshot,
+        snapshot: this.snapshot,
+        effects: [],
+        transitionIds: [],
+        guardIds: []
+      });
+    } else if (command.type === 'checkpoint') {
+      await this.checkpoint(command.label);
+    } else {
+      await this.stop();
     }
-    await this.execute(event, 'generated');
   }
 
   public async advance(milliseconds: number): Promise<void> {
-    if (!this.started) {
-      throw new Error('Property scenario runner has not been started');
-    }
+    this.assertStarted();
     if (!this.sutSession?.advance) {
       throw new Error('Property SUT does not support clock advancement');
     }
-    this.commands.push({
+    const previousSnapshot = this.snapshot;
+    const events = await this.sutSession.advance(milliseconds);
+    const command: Extract<PropertyCommand<TEvent>, { type: 'advance' }> = {
       type: 'advance',
       milliseconds,
-      atStep: this.steps.length
-    });
+      deliveredEvents: events.slice()
+    };
     this.coverage.clockAdvances++;
-    const events = await this.sutSession.advance(milliseconds);
-    for (const event of events) {
-      await this.execute(event, 'generated', false);
+    this.timeline.push({
+      kind: 'command',
+      index: this.timeline.length,
+      command,
+      previousSnapshot,
+      snapshot: this.snapshot,
+      effects: [],
+      transitionIds: [],
+      guardIds: []
+    });
+    for (let index = 0; index < events.length; index++) {
+      await this.executeEvent(
+        events[index],
+        'generated',
+        'clock',
+        false,
+        index === events.length - 1
+      );
     }
     if (!events.length) {
-      await this.compareSut(this.steps.length);
+      this.lastObservation = await this.compareObservations();
+      this.replaceLastObservation(this.lastObservation);
+    }
+  }
+
+  public async checkpoint(label?: string): Promise<void> {
+    this.assertStarted();
+    const entry: PropertyRuntimeTimelineEntry<TSnapshot, TEvent> = {
+      kind: 'command',
+      index: this.timeline.length,
+      command: { type: 'checkpoint', label },
+      previousSnapshot: this.snapshot,
+      snapshot: this.snapshot,
+      effects: [],
+      transitionIds: [],
+      guardIds: []
+    };
+    this.timeline.push(entry);
+    await this.sutSession?.checkpoint?.(label);
+    this.coverage.checkpoints++;
+    const observation = await this.compareObservations();
+    this.lastObservation = observation;
+    (entry as { observation?: PropertyObservation }).observation = observation;
+  }
+
+  public async stop(): Promise<void> {
+    this.assertStarted();
+    const previousSnapshot = this.snapshot;
+    const [snapshot, effects, selected, guards] = transitionWithDetails(
+      this.logic,
+      previousSnapshot,
+      { type: XSTATE_STOP } as TEvent
+    );
+    this.snapshot = snapshot;
+    await this.referenceSession?.stop?.();
+    await this.sutSession?.stop?.();
+    const transitionIds = recordPropertyTransitions(
+      this.coverage,
+      { type: XSTATE_STOP },
+      selected
+    );
+    const guardIds = recordPropertyGuards(this.coverage, guards);
+    this.coverage.stops++;
+    this.coverage.steps++;
+    this.coverage.generatedSteps++;
+    this.recordSnapshot(snapshot);
+    const entry: PropertyRuntimeTimelineEntry<TSnapshot, TEvent> = {
+      kind: 'command',
+      index: this.timeline.length,
+      command: { type: 'stop' },
+      previousSnapshot,
+      snapshot,
+      effects,
+      transitionIds,
+      guardIds
+    };
+    this.timeline.push(entry);
+    const observation = await this.checkStable(
+      undefined,
+      previousSnapshot,
+      snapshot,
+      effects
+    );
+    (entry as { observation?: PropertyObservation }).observation = observation;
+  }
+
+  public finish(): void {
+    this.assertStarted();
+    if (this.finished) {
+      return;
+    }
+    this.finished = true;
+    for (const state of this.temporal) {
+      if (!state.satisfied) {
+        this.failTemporal(state.definition);
+      }
     }
   }
 
   public async dispose(): Promise<void> {
-    if (this.sut && this.sutCreated) {
-      await this.sutSession?.dispose?.();
-      this.sutSession = undefined;
-      this.sutCreated = false;
-    }
-  }
-
-  private async execute(
-    event: TEvent,
-    phase: PropertyStep<TSnapshot, TEvent>['phase'],
-    sendToSut = true
-  ): Promise<void> {
-    const previousSnapshot = this.snapshot;
-    const [snapshot, effects] = transition(this.logic, previousSnapshot, event);
-    const step: PropertyStep<TSnapshot, TEvent> = {
-      index: this.steps.length,
-      phase,
-      previousSnapshot,
-      event,
-      snapshot,
-      effects,
-      activeStateIds: getActiveStateIds(snapshot)
-    };
-    this.steps.push(step);
-    this.snapshot = snapshot;
-    this.coverage.steps++;
-    if (phase === 'prefix') {
-      this.coverage.prefixSteps++;
-    } else {
-      this.coverage.generatedSteps++;
-    }
-    increment(this.coverage.events, event.type);
-    this.recordSnapshot(snapshot);
-    if (this.sut) {
-      if (sendToSut) {
-        await this.sutSession!.send(event);
+    const errors: unknown[] = [];
+    for (const dispose of [
+      this.sutSession?.dispose,
+      this.referenceSession?.dispose
+    ]) {
+      try {
+        await dispose?.();
+      } catch (error) {
+        errors.push(error);
       }
-      await this.compareSut(this.steps.length);
     }
-    await this.checkInvariant(
-      event,
-      previousSnapshot,
-      snapshot,
-      effects,
-      this.steps.length
-    );
+    this.sutSession = undefined;
+    this.referenceSession = undefined;
+    if (errors.length) {
+      throw new AggregateError(errors, 'Property scenario disposal failed');
+    }
   }
 
   public getSnapshot(): TSnapshot {
@@ -443,52 +657,113 @@ export class PropertyScenarioRunner<
   }
 
   public getTrace(): PropertyTrace<TSnapshot, TEvent> {
+    const steps = this.timeline
+      .filter(
+        (entry): entry is PropertyEventTimelineEntry<TSnapshot, TEvent> =>
+          entry.kind === 'event'
+      )
+      .map(
+        (entry): PropertyStep<TSnapshot, TEvent> => ({
+          ...entry,
+          phase: entry.command.phase,
+          event: entry.command.event
+        })
+      );
     return {
       start: this.startingSnapshot
         ? { type: 'snapshot', snapshot: this.startingSnapshot }
         : { type: 'input', input: this.input },
       initialSnapshot: this.initialSnapshot,
       initialEffects: this.initialEffects,
-      prefixEvents: this.steps
+      initialTransitionIds: this.initialTransitionIds,
+      initialGuardIds: this.initialGuardIds,
+      timeline: this.timeline.slice(),
+      prefixEvents: steps
         .filter((step) => step.phase === 'prefix')
         .map((step) => step.event),
-      events: this.steps
-        .filter((step) => step.phase === 'generated')
+      events: steps
+        .filter(
+          (step) =>
+            step.phase === 'generated' && step.command.origin === 'generator'
+        )
         .map((step) => step.event),
-      commands: this.commands.slice(),
-      steps: this.steps.slice(),
-      finalSnapshot: this.snapshot
+      commands: this.timeline
+        .filter(
+          (entry): entry is PropertyRuntimeTimelineEntry<TSnapshot, TEvent> =>
+            entry.kind === 'command'
+        )
+        .map((entry) => entry.command),
+      steps,
+      finalSnapshot: this.snapshot,
+      finalObservation: this.lastObservation
     };
   }
 
-  private async compareSut(step: number): Promise<void> {
-    const sut = this.sut!;
-    await this.sutSession!.settle?.();
-    const observed = await this.sutSession!.read();
-    const modelValue = sut.projectModel(this.snapshot);
-    const sutValue = sut.projectSut ? sut.projectSut(observed) : observed;
-    const equivalent = sut.equivalent
-      ? await sut.equivalent(modelValue, sutValue)
-      : JSON.stringify(modelValue) === JSON.stringify(sutValue);
-    this.coverage.sutComparisons++;
-    if (!equivalent) {
-      throw new PropertyTestFailure(
-        `Property SUT diverged after ${step} step${step === 1 ? '' : 's'}`,
-        this.getTrace(),
-        { model: modelValue, sut: sutValue },
-        undefined,
-        this.getReplayFixture(step)
-      );
+  private async executeEvent(
+    event: TEvent,
+    phase: 'prefix' | 'generated',
+    origin: 'frontier' | 'generator' | 'clock',
+    sendToSut: boolean,
+    compare = true
+  ): Promise<void> {
+    const previousSnapshot = this.snapshot;
+    const [snapshot, effects, selected, guards] = transitionWithDetails(
+      this.logic,
+      previousSnapshot,
+      event
+    );
+    this.snapshot = snapshot;
+    if (this.referenceSession) {
+      await this.referenceSession.transition(event);
     }
+    if (sendToSut) {
+      await this.sutSession?.send(event);
+    }
+    const transitionIds = recordPropertyTransitions(
+      this.coverage,
+      event,
+      selected
+    );
+    const guardIds = recordPropertyGuards(this.coverage, guards);
+    this.coverage.steps++;
+    if (phase === 'prefix') {
+      this.coverage.prefixSteps++;
+    } else {
+      this.coverage.generatedSteps++;
+    }
+    this.recordSnapshot(snapshot);
+    const entry: PropertyEventTimelineEntry<TSnapshot, TEvent> = {
+      kind: 'event',
+      index: this.timeline.length,
+      command: { type: 'event', event, phase, origin },
+      previousSnapshot,
+      snapshot,
+      effects,
+      transitionIds,
+      guardIds,
+      activeStateIds: this.getActiveStateIds(snapshot)
+    };
+    this.timeline.push(entry);
+    const observation = await this.checkStable(
+      event,
+      previousSnapshot,
+      snapshot,
+      effects,
+      compare
+    );
+    (entry as { observation?: PropertyObservation }).observation = observation;
   }
 
-  private async checkInvariant(
+  private async checkStable(
     event: TEvent | undefined,
     previousSnapshot: TSnapshot,
     snapshot: TSnapshot,
     effects: readonly unknown[],
-    step: number
-  ): Promise<void> {
+    compare = true
+  ): Promise<PropertyObservation | undefined> {
+    const step = this.stableStep++;
+    const observation = compare ? await this.compareObservations() : undefined;
+    this.lastObservation = observation;
     this.coverage.invariantChecks++;
     try {
       await this.invariant({
@@ -500,26 +775,165 @@ export class PropertyScenarioRunner<
         step
       });
     } catch (cause) {
-      throw new PropertyTestFailure(
+      this.fail(
         `Property invariant failed after ${step} step${step === 1 ? '' : 's'}`,
-        this.getTrace(),
         cause,
-        undefined,
-        this.getReplayFixture(step)
+        step
       );
+    }
+    await this.checkTemporal({
+      initialSnapshot: this.initialSnapshot,
+      previousSnapshot,
+      snapshot,
+      event,
+      effects,
+      step
+    });
+    return observation;
+  }
+
+  private async checkTemporal(
+    context: PropertyInvariantContext<TSnapshot, TEvent>
+  ): Promise<void> {
+    for (const state of this.temporal) {
+      if (state.satisfied) {
+        continue;
+      }
+      this.coverage.temporalChecks++;
+      const definition = state.definition;
+      if (definition.type === 'eventually') {
+        state.satisfied = await definition.predicate(context);
+      } else if (await definition.until(context)) {
+        state.satisfied = true;
+      } else if (!(await definition.hold(context))) {
+        this.failTemporal(definition);
+      }
+      if (!state.satisfied && context.step >= definition.within) {
+        this.failTemporal(definition);
+      }
+    }
+  }
+
+  private failTemporal(definition: PropertyTemporal<TSnapshot, TEvent>): never {
+    const failure: PortableTemporalFailure = {
+      type: definition.type,
+      id: definition.id,
+      description: definition.description,
+      within: definition.within,
+      atStep: this.stableStep - 1
+    };
+    this.fail(
+      `Temporal property "${definition.id}" failed`,
+      failure,
+      failure.atStep,
+      failure
+    );
+  }
+
+  private async compareObservations(): Promise<
+    PropertyObservation | undefined
+  > {
+    if (!this.reference && !this.sut) {
+      return undefined;
+    }
+    await this.sutSession?.settle?.();
+    const referenceRaw = await this.referenceSession?.read();
+    const sutRaw = await this.sutSession?.read();
+    const model = this.reference
+      ? this.reference.projectModel(this.snapshot)
+      : this.sut!.projectModel(this.snapshot);
+    const reference = this.reference
+      ? this.reference.projectReference
+        ? this.reference.projectReference(referenceRaw)
+        : referenceRaw
+      : undefined;
+    const sut = this.sut
+      ? this.sut.projectSut
+        ? this.sut.projectSut(sutRaw)
+        : sutRaw
+      : undefined;
+    const observation: PropertyObservation = {
+      model,
+      oracle: reference,
+      sut
+    };
+    let referenceMatches = true;
+    let sutMatches = true;
+    if (this.reference) {
+      this.coverage.oracleComparisons++;
+      referenceMatches = this.reference.equivalent
+        ? await this.reference.equivalent(model, reference)
+        : defaultEquivalent(model, reference);
+    }
+    if (this.sut) {
+      this.coverage.sutComparisons++;
+      const sutModel = this.sut.projectModel(this.snapshot);
+      sutMatches = this.sut.equivalent
+        ? await this.sut.equivalent(sutModel, sut)
+        : defaultEquivalent(sutModel, sut);
+    }
+    if (!referenceMatches || !sutMatches) {
+      this.lastObservation = observation;
+      this.replaceLastObservation(observation);
+      this.fail(
+        'Property observation diverged',
+        {
+          model,
+          oracle: reference,
+          sut,
+          oracleMatches: referenceMatches,
+          sutMatches
+        },
+        this.stableStep
+      );
+    }
+    return observation;
+  }
+
+  private replaceLastObservation(observation: PropertyObservation | undefined) {
+    const last = this.timeline.at(-1);
+    if (last) {
+      (last as { observation?: PropertyObservation }).observation = observation;
     }
   }
 
   private recordSnapshot(snapshot: TSnapshot): void {
-    increment(this.coverage.states, this.serializeState(snapshot));
-    increment(this.coverage.configurations, getConfiguration(snapshot));
-    increment(this.coverage.statuses, snapshot.status);
-    for (const id of getActiveStateIds(snapshot)) {
-      increment(this.coverage.stateNodes, id);
+    recordPropertySnapshot(this.coverage, snapshot);
+  }
+
+  private getActiveStateIds(snapshot: TSnapshot): readonly string[] {
+    return (
+      (snapshot as { _nodes?: readonly { id: string }[] })._nodes?.map(
+        (node) => node.id
+      ) ?? []
+    );
+  }
+
+  private assertStarted(): void {
+    if (!this.started) {
+      throw new Error('Property scenario runner has not been started');
     }
   }
 
-  private getReplayFixture(failedAt: number): PortablePropertyReplayFixture {
+  private fail(
+    message: string,
+    cause: unknown,
+    failedAt: number,
+    temporalFailure?: PortableTemporalFailure
+  ): never {
+    throw new PropertyTestFailure(
+      message,
+      this.getTrace(),
+      cause,
+      undefined,
+      this.getReplayFixture(failedAt, temporalFailure)
+    );
+  }
+
+  private getReplayFixture(
+    failedAt: number,
+    temporalFailure?: PortableTemporalFailure
+  ): PortablePropertyReplayFixture {
     const identity = this.logic as { id?: string; version?: string };
     if (this.startingSnapshot && !this.serializeStartingSnapshot) {
       throw new Error(
@@ -527,7 +941,7 @@ export class PropertyScenarioRunner<
       );
     }
     return {
-      formatVersion: 1,
+      formatVersion: 2,
       machine:
         identity.id || identity.version
           ? { id: identity.id, version: identity.version }
@@ -538,14 +952,12 @@ export class PropertyScenarioRunner<
             snapshot: this.serializeStartingSnapshot!(this.startingSnapshot)
           }
         : { type: 'input', input: this.input },
-      prefixEvents: this.steps
-        .filter((step) => step.phase === 'prefix')
-        .map((step) => step.event),
-      events: this.steps
-        .filter((step) => step.phase === 'generated')
-        .map((step) => step.event),
-      commands: this.commands.slice(),
-      failedAt
+      timeline: this.timeline.map((entry) => ({
+        kind: entry.kind,
+        command: entry.command as PropertyCommand
+      })),
+      failedAt,
+      temporalFailure
     };
   }
 }
@@ -562,6 +974,28 @@ type EventFromSource<TSource> =
     : never;
 type InputFromSource<TSource> = InputFrom<LogicFromSource<TSource>>;
 
+export interface PropertyFrontierContext<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  readonly frontier: StatePath<TSnapshot, TEvent>;
+  readonly index: number;
+  readonly id: string;
+}
+
+export interface PropertyFrontierOptions<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  readonly paths: readonly StatePath<TSnapshot, TEvent>[];
+  readonly select?: (
+    context: PropertyFrontierContext<TSnapshot, TEvent>
+  ) => boolean;
+  readonly runsPerFrontier?:
+    | number
+    | ((context: PropertyFrontierContext<TSnapshot, TEvent>) => number);
+}
+
 export interface PropertyTestOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -572,15 +1006,34 @@ export interface PropertyTestOptions<
   readonly events: PropertyEventGenerators<TSnapshot, TEvent, TKind>;
   readonly commands?: {
     readonly advance?: PropertyGenerator<TKind, number>;
+    readonly checkpoint?: PropertyGenerator<TKind, { readonly label?: string }>;
+    readonly stop?: PropertyGenerator<TKind, Record<string, never>>;
   };
   readonly sut?: PropertySut<TSnapshot, TEvent>;
+  readonly reference?: PropertyReferenceOracle<TSnapshot, TEvent>;
   readonly input?: TInput;
   readonly start?: {
     readonly snapshot: TSnapshot;
     readonly serializeSnapshot: (snapshot: TSnapshot) => unknown;
   };
-  readonly frontiers?: readonly StatePath<TSnapshot, TEvent>[];
+  readonly frontiers?:
+    | readonly StatePath<TSnapshot, TEvent>[]
+    | PropertyFrontierOptions<TSnapshot, TEvent>;
   readonly invariant: PropertyInvariant<TSnapshot, TEvent>;
+  readonly temporal?: readonly PropertyTemporal<TSnapshot, TEvent>[];
+}
+
+function getFrontierId<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+>(frontier: StatePath<TSnapshot, TEvent>): string {
+  return JSON.stringify([
+    'frontier',
+    getPropertyConfigurationId(frontier.state),
+    frontier.steps
+      .map((step) => step.event)
+      .filter((event) => event.type !== XSTATE_INIT)
+  ]);
 }
 
 export async function propertyTest<
@@ -619,52 +1072,66 @@ export async function propertyTest<
     eventDescriptors.set(type, descriptor);
     return { type, generator: descriptor.generate };
   });
-  const machineRoot = (
-    model.testLogic as { root?: Parameters<typeof getStateNodes>[0] }
-  ).root;
-  const declaredStateNodes = machineRoot
-    ? getStateNodes(machineRoot)
-        .filter((node) => node.type !== 'history' && node.type !== 'choice')
-        .map((node) => node.id)
-    : [];
-  const coverage: MutableCoverage = {
-    runs: 0,
-    steps: 0,
-    skipped: 0,
-    prefixSteps: 0,
-    generatedSteps: 0,
-    invariantChecks: 0,
-    clockAdvances: 0,
-    sutComparisons: 0,
-    states: {},
-    configurations: {},
-    statuses: {},
-    events: {},
-    frontiers: {},
-    stateNodes: {},
-    declaredStateNodes
-  };
+  const commands: PropertyGeneratedCommand[] = [];
+  for (const type of ['advance', 'checkpoint', 'stop'] as const) {
+    const generator = options.commands?.[type];
+    if (generator !== undefined) {
+      commands.push({ type, generator });
+    }
+  }
+  const coverage = createPropertyCoverage(model.testLogic);
+  const configuredFrontiers = options.frontiers;
+  const frontierOptions: PropertyFrontierOptions<
+    SnapshotFromSource<TSource>,
+    EventFromSource<TSource>
+  > | null = Array.isArray(configuredFrontiers)
+    ? { paths: configuredFrontiers }
+    : configuredFrontiers
+      ? (configuredFrontiers as PropertyFrontierOptions<
+          SnapshotFromSource<TSource>,
+          EventFromSource<TSource>
+        >)
+      : null;
+  const frontierContexts = (frontierOptions?.paths ?? []).map(
+    (frontier, index) => ({ frontier, index, id: getFrontierId(frontier) })
+  );
+  for (const context of frontierContexts) {
+    declarePropertyFrontier(coverage, context.id);
+  }
+  const selectedFrontiers = frontierContexts.filter(
+    (context) => frontierOptions?.select?.(context) ?? true
+  );
+  const scenarios: Array<
+    | PropertyFrontierContext<
+        SnapshotFromSource<TSource>,
+        EventFromSource<TSource>
+      >
+    | undefined
+  > = frontierOptions ? selectedFrontiers : [undefined];
 
-  const frontiers = options.frontiers?.length
-    ? options.frontiers
-    : ([undefined] as const);
-  for (const frontier of frontiers) {
-    const prefixEvents = frontier
-      ? frontier.steps
+  for (const frontierContext of scenarios) {
+    const prefixEvents = frontierContext
+      ? frontierContext.frontier.steps
           .map((step) => step.event)
           .filter((event) => event.type !== XSTATE_INIT)
       : [];
-    const frontierId = frontier
-      ? model.options.serializeState!(frontier.state, undefined)
+    const runBudget = frontierContext
+      ? typeof frontierOptions?.runsPerFrontier === 'function'
+        ? frontierOptions.runsPerFrontier(frontierContext)
+        : frontierOptions?.runsPerFrontier
       : undefined;
+    if (
+      runBudget !== undefined &&
+      (!Number.isInteger(runBudget) || runBudget < 1)
+    ) {
+      throw new Error('runsPerFrontier must return a positive integer');
+    }
     const result = await options.adapter.run({
       events,
-      advanceGenerator: options.commands?.advance,
+      commands,
+      runBudget,
       createEvent: (type, payload) =>
-        ({
-          ...(payload as object),
-          type
-        }) as EventFromSource<TSource>,
+        ({ ...(payload as object), type }) as EventFromSource<TSource>,
       createRunner: () => {
         coverage.runs++;
         return new PropertyScenarioRunner(
@@ -677,10 +1144,11 @@ export async function propertyTest<
           options.start?.snapshot,
           options.start?.serializeSnapshot,
           prefixEvents,
-          frontierId,
+          frontierContext?.id,
           options.sut,
+          options.reference,
           options.invariant,
-          (snapshot) => model.options.serializeState!(snapshot, undefined),
+          options.temporal ?? [],
           eventDescriptors,
           coverage
         );
@@ -703,16 +1171,52 @@ export async function propertyTest<
     }
   }
 
-  return { coverage: finalizeCoverage(coverage) };
+  return { coverage: finalizePropertyCoverage(coverage) };
+}
+
+function normalizeFixtureTimeline(
+  fixture: PortablePropertyReplayFixture | LegacyPortablePropertyReplayFixture
+): readonly PortablePropertyTimelineEntry[] {
+  if (fixture.formatVersion === 2) {
+    return fixture.timeline;
+  }
+  return [
+    ...fixture.prefixEvents.map((event) => ({
+      kind: 'event' as const,
+      command: {
+        type: 'event' as const,
+        event: event as EventObject,
+        phase: 'prefix' as const,
+        origin: 'frontier' as const
+      }
+    })),
+    ...fixture.events.map((event) => ({
+      kind: 'event' as const,
+      command: {
+        type: 'event' as const,
+        event: event as EventObject,
+        phase: 'generated' as const,
+        origin: 'generator' as const
+      }
+    }))
+  ];
 }
 
 export async function replayPropertyTest<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 >(
   source: TSource,
-  fixture: PortablePropertyReplayFixture,
+  fixture: PortablePropertyReplayFixture | LegacyPortablePropertyReplayFixture,
   options: {
     readonly invariant: PropertyInvariant<
+      SnapshotFromSource<TSource>,
+      EventFromSource<TSource>
+    >;
+    readonly temporal?: readonly PropertyTemporal<
+      SnapshotFromSource<TSource>,
+      EventFromSource<TSource>
+    >[];
+    readonly reference?: PropertyReferenceOracle<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
     >;
@@ -723,9 +1227,6 @@ export async function replayPropertyTest<
 ): Promise<
   PropertyTrace<SnapshotFromSource<TSource>, EventFromSource<TSource>>
 > {
-  if (fixture.formatVersion !== 1) {
-    throw new Error(`Unsupported property replay fixture version`);
-  }
   const model =
     source instanceof TestModel
       ? source
@@ -748,30 +1249,15 @@ export async function replayPropertyTest<
     fixture.start.type === 'snapshot'
       ? options.restoreSnapshot?.(fixture.start.snapshot)
       : undefined;
-  const serializedStartingSnapshot =
-    fixture.start.type === 'snapshot' ? fixture.start.snapshot : undefined;
   if (fixture.start.type === 'snapshot' && !startingSnapshot) {
     throw new Error(
       'Property replay fixture contains a snapshot but no restoreSnapshot function was provided'
     );
   }
-  const coverage: MutableCoverage = {
-    runs: 1,
-    steps: 0,
-    skipped: 0,
-    prefixSteps: 0,
-    generatedSteps: 0,
-    invariantChecks: 0,
-    clockAdvances: 0,
-    sutComparisons: 0,
-    states: {},
-    configurations: {},
-    statuses: {},
-    events: {},
-    frontiers: {},
-    stateNodes: {},
-    declaredStateNodes: []
-  };
+  const coverage = createPropertyCoverage(model.testLogic);
+  coverage.runs = 1;
+  const serializedStartingSnapshot =
+    fixture.start.type === 'snapshot' ? fixture.start.snapshot : undefined;
   const runner = new PropertyScenarioRunner(
     model.testLogic as ActorLogic<
       SnapshotFromSource<TSource>,
@@ -783,33 +1269,42 @@ export async function replayPropertyTest<
     fixture.start.type === 'snapshot'
       ? () => serializedStartingSnapshot
       : undefined,
-    fixture.prefixEvents as EventFromSource<TSource>[],
+    [],
     undefined,
     undefined,
+    options.reference,
     options.invariant,
-    (snapshot) => model.options.serializeState!(snapshot, undefined),
+    options.temporal ?? [],
     new Map(),
     coverage
   );
   await runner.start();
   try {
-    for (const event of fixture.events) {
-      await runner.run(event as EventFromSource<TSource>);
+    for (const entry of normalizeFixtureTimeline(fixture)) {
+      const command = entry.command as PropertyCommand<
+        EventFromSource<TSource>
+      >;
+      await runner.replay(command);
     }
+    runner.finish();
     return runner.getTrace();
   } finally {
     await runner.dispose();
   }
 }
 
+function serializeSnapshot<TSnapshot extends Snapshot<unknown>>(
+  snapshot: TSnapshot
+): unknown {
+  return 'toJSON' in snapshot && typeof snapshot.toJSON === 'function'
+    ? snapshot.toJSON()
+    : snapshot;
+}
+
 export function serializePropertyTrace<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 >(trace: PropertyTrace<TSnapshot, TEvent>): unknown {
-  const serializeSnapshot = (snapshot: TSnapshot) =>
-    'toJSON' in snapshot && typeof snapshot.toJSON === 'function'
-      ? snapshot.toJSON()
-      : snapshot;
   return {
     start:
       trace.start.type === 'snapshot'
@@ -819,18 +1314,48 @@ export function serializePropertyTrace<
           }
         : trace.start,
     initialSnapshot: serializeSnapshot(trace.initialSnapshot),
-    prefixEvents: trace.prefixEvents,
-    events: trace.events,
-    commands: trace.commands,
-    steps: trace.steps.map((step) => ({
-      index: step.index,
-      phase: step.phase,
-      previousSnapshot: serializeSnapshot(step.previousSnapshot),
-      event: step.event,
-      snapshot: serializeSnapshot(step.snapshot),
-      effects: step.effects,
-      activeStateIds: step.activeStateIds
+    initialTransitionIds: trace.initialTransitionIds,
+    initialGuardIds: trace.initialGuardIds,
+    timeline: trace.timeline.map((entry) => ({
+      kind: entry.kind,
+      index: entry.index,
+      command: entry.command,
+      previousSnapshot: serializeSnapshot(entry.previousSnapshot),
+      snapshot: serializeSnapshot(entry.snapshot),
+      effects: entry.effects,
+      transitionIds: entry.transitionIds,
+      guardIds: entry.guardIds,
+      observation: entry.observation,
+      ...(entry.kind === 'event'
+        ? { activeStateIds: entry.activeStateIds }
+        : {})
     })),
-    finalSnapshot: serializeSnapshot(trace.finalSnapshot)
+    finalSnapshot: serializeSnapshot(trace.finalSnapshot),
+    finalObservation: trace.finalObservation
   };
+}
+
+export function formatPropertyTrace<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+>(trace: PropertyTrace<TSnapshot, TEvent>): string {
+  const lines = [
+    `start ${JSON.stringify(serializeSnapshot(trace.initialSnapshot))}`
+  ];
+  for (const entry of trace.timeline) {
+    if (entry.kind === 'event') {
+      lines.push(
+        `${entry.index}. ${entry.command.phase}/${entry.command.origin} ${JSON.stringify(entry.command.event)} -> ${JSON.stringify(serializeSnapshot(entry.snapshot))}`
+      );
+      if (entry.transitionIds.length) {
+        lines.push(`   transitions ${entry.transitionIds.join(', ')}`);
+      }
+    } else {
+      lines.push(`${entry.index}. command ${JSON.stringify(entry.command)}`);
+    }
+    if (entry.observation) {
+      lines.push(`   observations ${JSON.stringify(entry.observation)}`);
+    }
+  }
+  return lines.join('\n');
 }
