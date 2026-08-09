@@ -36,6 +36,30 @@ await propertyTest(machine, {
 
 Event-map keys supply each event's `type`; arbitraries generate payloads only.
 
+`propertyTest()` may receive a machine or `createTestModel(machine)`. Existing
+shortest or simple paths can establish deterministic frontiers while FastCheck
+shrinks only the continuation:
+
+```ts
+const model = createTestModel(machine);
+
+await propertyTest(model, {
+  adapter: fastCheckAdapter({ maxCommands: 20 }),
+  frontiers: {
+    paths: model.getShortestPaths(),
+    select: ({ frontier }) => frontier.state.status === 'active',
+    runsPerFrontier: 100
+  },
+  events,
+  invariant
+});
+```
+
+Coverage reports stable state-node, configuration, event, transition, guard,
+and frontier identifiers. Every dimension separates `covered`, `uncovered`,
+`unreachable`, and `unknown`; transition hits come from selected XState
+microsteps rather than inferred state visitation.
+
 Use `commands.advance` with a SUT adapter that owns its clock. The adapter
 returns any events delivered by advancing time so XState can apply them through
 the same pure transition path before comparing model and SUT snapshots.
@@ -51,6 +75,44 @@ await propertyTest(machine, {
   }
 });
 ```
+
+Runtime command generators also support checkpoints and stopping:
+
+```ts
+commands: {
+  advance: fc.nat({ max: 1_000 }),
+  checkpoint: fc.record({ label: fc.string() }),
+  stop: fc.constant({})
+}
+```
+
+The neutral XState layer owns the chronological trace, portable replay fixture,
+temporal checks, reference-oracle comparison, and SUT comparison. A reference
+oracle supplies its own transition implementation:
+
+```ts
+await propertyTest(machine, {
+  adapter: fastCheckAdapter(),
+  events,
+  reference: {
+    create: () => referenceSession,
+    projectModel: (snapshot) => snapshot.context
+  },
+  temporal: [
+    {
+      type: 'eventually',
+      id: 'settles',
+      within: 10,
+      predicate: ({ snapshot }) => snapshot.matches('settled')
+    }
+  ],
+  invariant
+});
+```
+
+Use `replayPropertyTest()` to replay versioned fixtures without FastCheck and
+`formatPropertyTrace()` for a readable XState trace. Engine-native seed/path
+metadata remains available on `PropertyTestFailure.replay`.
 
 The optional `@xstate/fast-check/effect-schema` entrypoint converts Effect
 Schemas into FastCheck arbitraries without adding Effect to XState.
