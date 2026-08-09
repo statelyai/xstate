@@ -1653,6 +1653,8 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   _systemRef?: { current?: AnyActorSystem };
   /** @internal */
   _sessionId?: string;
+  /** @internal */
+  _inert?: boolean;
   /** The custom `id` for referencing this service. */
   id?: string;
   /** @deprecated Use `inspect` instead. */
@@ -1913,7 +1915,11 @@ export interface ActorRuntime<
   system: any;
   /** @internal */
   _processingStatus: ProcessingStatus;
+  /** @internal */
+  _isRunning: () => boolean;
   src: string | AnyActorLogic;
+  /** Registry key used by the actor system receptionist. */
+  registryKey?: string;
   trigger: ActorTrigger<TSendEvent>;
   select<TSelected>(
     selector: (snapshot: TSnapshot) => TSelected,

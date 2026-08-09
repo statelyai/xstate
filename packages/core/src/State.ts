@@ -30,6 +30,17 @@ import {
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
 
+const emptySnapshotRecord = Object.freeze({});
+
+function compactSnapshotRecord<T extends object>(value: T | undefined): T {
+  if (value === emptySnapshotRecord) {
+    return value;
+  }
+  return value && Object.keys(value).length
+    ? value
+    : (emptySnapshotRecord as T);
+}
+
 export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
     !!value &&
@@ -414,8 +425,14 @@ const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
   return meta;
 };
 
-const machineSnapshotGetInputs = function getInputs(this: AnyMachineSnapshot) {
-  return this._stateInputs as any;
+const machineSnapshotGetInputs = function getInputs<
+  TStateSchema extends StateSchema
+>(
+  this: AnyMachineSnapshot & {
+    _stateInputs: StateIdInputs<TStateSchema>;
+  }
+): StateIdInputs<TStateSchema> {
+  return this._stateInputs;
 };
 
 function collectTags(stateNodes: Array<AnyStateNode>): Set<string> {
@@ -460,10 +477,10 @@ export function createMachineSnapshot<
     value: (config.value ??
       getStateValue(machine.root, config._nodes)) as never,
     tags: collectTags(config._nodes),
-    children: config.children as any,
-    timers: config.timers ?? {},
-    historyValue: config.historyValue || {},
-    _stateInputs: config._stateInputs || {},
+    children: compactSnapshotRecord(config.children) as TChildren,
+    timers: compactSnapshotRecord(config.timers),
+    historyValue: compactSnapshotRecord(config.historyValue),
+    _stateInputs: compactSnapshotRecord(config._stateInputs),
     _nextTimerId: config._nextTimerId ?? 0,
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
@@ -497,10 +514,10 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       _nodes: snapshot._nodes,
       value: snapshot.value,
       tags: snapshot.tags,
-      children: configWithSnapshot.children as any,
-      timers: configWithSnapshot.timers ?? {},
-      historyValue: configWithSnapshot.historyValue || {},
-      _stateInputs: configWithSnapshot._stateInputs || {},
+      children: compactSnapshotRecord(configWithSnapshot.children),
+      timers: compactSnapshotRecord(configWithSnapshot.timers),
+      historyValue: compactSnapshotRecord(configWithSnapshot.historyValue),
+      _stateInputs: compactSnapshotRecord(configWithSnapshot._stateInputs),
       _nextTimerId: configWithSnapshot._nextTimerId ?? 0,
       matches: machineSnapshotMatches as never,
       hasTag: machineSnapshotHasTag,

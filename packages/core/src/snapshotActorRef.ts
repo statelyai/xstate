@@ -7,14 +7,59 @@ export interface SnapshotActorRef {
 }
 
 interface SnapshotSystemState {
-  children: Map<string, AnyActor>;
-  keyedActors: Map<any, AnyActor>;
+  root?: AnyActor;
+  children?: Map<string, AnyActor>;
+  keyedActors: Map<PropertyKey, AnyActor | undefined>;
   snapshot: AnyActor['system']['_snapshot'];
   sourceSystem: AnyActor['system'];
   sourceVersion: number;
 }
 
 const snapshotActorRefs = new WeakMap<object, SnapshotActorRef>();
+const emptyKeyedActors = new Map<PropertyKey, AnyActor | undefined>();
+
+function copyRegisteredActors(
+  system: AnyActor['system'],
+  state?: SnapshotSystemState
+): Map<string, AnyActor> {
+  if (state) {
+    const children = new Map<string, AnyActor>(state.children);
+    if (state.root?.sessionId) {
+      children.set(state.root.sessionId, state.root);
+    }
+    return children;
+  }
+  return new Map(system.children);
+}
+
+function captureRegisteredActors(system: AnyActor['system']): {
+  root?: AnyActor;
+  children?: Map<string, AnyActor>;
+} {
+  const root = system._getRootActor?.();
+  const peekedChildren = system._peekChildren?.();
+  if (!root && !peekedChildren) {
+    if (system._getRootActor && system._peekChildren) {
+      return {};
+    }
+    const children = new Map<string, AnyActor>(system.children);
+    return children.size ? { children } : {};
+  }
+  if (!peekedChildren?.size) {
+    return root ? { root } : {};
+  }
+  return { children: new Map<string, AnyActor>(system.children) };
+}
+
+function getKeyedActors(
+  system: AnyActor['system']
+): Map<PropertyKey, AnyActor | undefined> {
+  const peek = system._peekKeyedActors;
+  if (peek) {
+    return peek.call(system) ?? emptyKeyedActors;
+  }
+  return system.keyedActors;
+}
 
 /** Marks topology or persisted runtime state as changed. @internal */
 export function markSystemSnapshotDirty(system: AnyActor['system']): void {
@@ -44,13 +89,12 @@ export function createSnapshotSystem(
   children: Record<string, AnyActor | undefined>,
   baseState?: SnapshotSystemState
 ): AnyActor['system'] {
-  const registeredActors = new Map(baseState?.children ?? baseSystem.children);
-  const keyedActors = new Map<any, AnyActor>(
-    baseState?.keyedActors ?? baseSystem.keyedActors
+  const registeredActors = copyRegisteredActors(baseSystem, baseState);
+  const keyedActors = new Map<PropertyKey, AnyActor | undefined>(
+    baseState?.keyedActors ?? getKeyedActors(baseSystem)
   );
-  const reverseKeyedActors = new WeakMap<AnyActor, any>();
-  const system: AnyActor['system'] = {
-    ...baseSystem,
+  const reverseKeyedActors = new WeakMap<AnyActor, PropertyKey>();
+  const system: AnyActor['system'] = Object.assign(Object.create(baseSystem), {
     children: registeredActors,
     keyedActors,
     reverseKeyedActors,
@@ -72,7 +116,7 @@ export function createSnapshotSystem(
       reverseKeyedActors.delete(actor);
       markSystemSnapshotDirty(system);
     },
-    _set: (registryKey: any, actor: AnyActor) => {
+    _set: (registryKey: PropertyKey, actor: AnyActor) => {
       const existing = keyedActors.get(registryKey);
       if (existing && existing !== actor) {
         throw new Error(
@@ -83,14 +127,17 @@ export function createSnapshotSystem(
       reverseKeyedActors.set(actor, registryKey);
       markSystemSnapshotDirty(system);
     },
-    get: (registryKey: any) => keyedActors.get(registryKey) as any,
+    get: (registryKey: PropertyKey) => keyedActors.get(registryKey),
     getAll: () => Object.fromEntries(keyedActors),
     // Pure transition resolution must not leak topology inspection events into
     // a live runtime system.
     _sendInspectionEvent: () => {}
-  };
+  });
 
   for (const [registryKey, actor] of keyedActors) {
+    if (!actor) {
+      continue;
+    }
     reverseKeyedActors.set(actor, registryKey);
   }
   for (const actor of Object.values(children)) {
@@ -100,7 +147,7 @@ export function createSnapshotSystem(
     if (actor.sessionId) {
       registeredActors.set(actor.sessionId, actor);
     }
-    const registryKey = (actor as any).registryKey;
+    const registryKey = actor.registryKey;
     if (registryKey) {
       keyedActors.set(registryKey, actor);
       reverseKeyedActors.set(actor, registryKey);
@@ -160,16 +207,34 @@ export function setSnapshotActorRef(
     return;
   }
 
-  const system = createSnapshotSystem(
-    baseSystem,
-    getSnapshotChildren(snapshot)
-  );
+  const capturedActors = captureRegisteredActors(baseSystem);
+  let children = capturedActors.children;
+  const baseKeyedActors = getKeyedActors(baseSystem);
+  let keyedActors = baseKeyedActors.size
+    ? new Map(baseKeyedActors)
+    : emptyKeyedActors;
+  for (const child of Object.values(getSnapshotChildren(snapshot))) {
+    if (!child) {
+      continue;
+    }
+    if (child.sessionId) {
+      (children ??= new Map()).set(child.sessionId, child);
+    }
+    const registryKey = child.registryKey;
+    if (registryKey) {
+      if (keyedActors === emptyKeyedActors) {
+        keyedActors = new Map();
+      }
+      keyedActors.set(registryKey, child);
+    }
+  }
   snapshotActorRefs.set(snapshot, {
     actor,
     systemState: {
-      children: system.children,
-      keyedActors: system.keyedActors as Map<any, AnyActor>,
-      snapshot: system._snapshot,
+      ...capturedActors,
+      children,
+      keyedActors,
+      snapshot: { ...baseSystem._snapshot },
       sourceSystem: baseSystem,
       sourceVersion
     }

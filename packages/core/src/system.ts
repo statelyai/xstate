@@ -1,4 +1,4 @@
-import { InspectionEvent } from './inspection.ts';
+import type { InspectionEvent, SentRecord } from './inspection.ts';
 import {
   AnyEventObject,
   ActorTermination,
@@ -157,10 +157,18 @@ export interface ActorSystem<
   ): AnyActor;
   /** @internal */
   children: Map<string, AnyActor>;
+  /** @internal Avoids materializing the registered-actor map. */
+  _getRootActor?: () => AnyActor | undefined;
+  /** @internal Avoids materializing the registered-actor map. */
+  _peekChildren?: () => Map<string, AnyActor> | undefined;
   /** @internal */
   reverseKeyedActors: WeakMap<AnyActor, keyof T['actors']>;
   /** @internal */
   keyedActors: Map<keyof T['actors'], AnyActor | undefined>;
+  /** @internal */
+  _peekKeyedActors?: () =>
+    | Map<keyof T['actors'], AnyActor | undefined>
+    | undefined;
   /** @internal */
   _register: (sessionId: string, actor: AnyActor) => string;
   /** @internal */
@@ -212,36 +220,109 @@ export interface ActorSystem<
 
 export type AnyActorSystem = ActorSystem<any>;
 
-export function createRuntimeSystem<T extends ActorSystemInfo>(
-  rootActor: AnyActor,
-  options: {
-    clock: Clock;
-    logger: (...args: any[]) => void;
-    snapshot?: unknown;
-    createActorRef: ActorSystem<T>['createActorRef'];
+class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
+  private _children?: Map<string, AnyActor>;
+  private _keyedActors?: Map<keyof T['actors'], AnyActor | undefined>;
+  private _reverseKeyedActors?: WeakMap<AnyActor, keyof T['actors']>;
+  public _identity = {
+    systemId: createSystemId(),
+    nextSessionId: 0
+  };
+  public _snapshot: ActorSystem<T>['_snapshot'];
+  public _snapshotVersion = 0;
+  public scheduler: Scheduler = this;
+  public _clock: Clock;
+  public _logger: (...args: any[]) => void;
+  public createActorRef: ActorSystem<T>['createActorRef'];
+
+  private _inspectionObservers?: Set<Observer<InspectionEvent>>;
+  private _timerMap?: { [id: ScheduledTimerId]: number };
+
+  public get children(): Map<string, AnyActor> {
+    const children = (this._children ??= new Map());
+    if (this._getRootActor()) {
+      children.set(this._rootActor.sessionId, this._rootActor);
+    }
+    return children;
   }
-): ActorSystem<T> {
-  const children = new Map<string, AnyActor>();
-  const keyedActors = new Map<keyof T['actors'], AnyActor | undefined>();
-  const reverseKeyedActors = new WeakMap<AnyActor, keyof T['actors']>();
-  const inspectionObservers = new Set<Observer<InspectionEvent>>();
-  const timerMap: { [id: ScheduledTimerId]: number } = {};
-  const { clock, logger } = options;
+
+  public set children(children: Map<string, AnyActor>) {
+    this._children = children;
+  }
+
+  public _getRootActor(): AnyActor | undefined {
+    return this._rootActor._isRunning() ? this._rootActor : undefined;
+  }
+
+  public _peekChildren(): Map<string, AnyActor> | undefined {
+    return this._children;
+  }
+
+  public get keyedActors(): Map<keyof T['actors'], AnyActor | undefined> {
+    return (this._keyedActors ??= new Map());
+  }
+
+  public set keyedActors(actors: Map<keyof T['actors'], AnyActor | undefined>) {
+    this._keyedActors = actors;
+  }
+
+  public get reverseKeyedActors(): WeakMap<AnyActor, keyof T['actors']> {
+    return (this._reverseKeyedActors ??= new WeakMap());
+  }
+
+  public set reverseKeyedActors(actors: WeakMap<AnyActor, keyof T['actors']>) {
+    this._reverseKeyedActors = actors;
+  }
+
+  /** @internal Avoids materializing the receptionist for empty systems. */
+  public _peekKeyedActors():
+    | Map<keyof T['actors'], AnyActor | undefined>
+    | undefined {
+    return this._keyedActors;
+  }
+
+  constructor(
+    private _rootActor: AnyActor,
+    options: {
+      clock: Clock;
+      logger: (...args: any[]) => void;
+      snapshot?: unknown;
+      createActorRef: ActorSystem<T>['createActorRef'];
+    }
+  ) {
+    const restoredSnapshot =
+      typeof options.snapshot === 'object' && options.snapshot !== null
+        ? (options.snapshot as {
+            scheduler?: Record<ScheduledTimerId, ScheduledTimer>;
+            _nextActorId?: number;
+          })
+        : undefined;
+    this._clock = options.clock;
+    this._logger = options.logger;
+    this.createActorRef = options.createActorRef;
+    this._snapshot = {
+      _scheduledTimers: restoredSnapshot?.scheduler ?? {},
+      _nextActorId: restoredSnapshot?._nextActorId ?? 0
+    };
+  }
 
   // Records a send on the *sender's* transition for the `sent[]` inspection
   // facet. Captures the send when it is initiated (including delayed sends that
   // may never deliver), keyed to the source actor's in-flight transition.
-  const recordSent = (
+  private _recordSent(
     source: AnyActor | undefined,
     target: AnyActor,
     event: AnyEventObject,
     delay?: number,
     id?: string
-  ) => {
-    if (!inspectionObservers.size || !source) {
+  ): void {
+    if (!this._inspectionObservers?.size || !source) {
       return;
     }
-    const collected = ((source as any)._collectedSent ??= []);
+    const inspectionSource = source as AnyActor & {
+      _collectedSent?: SentRecord[];
+    };
+    const collected = (inspectionSource._collectedSent ??= []);
     collected.push({
       targetRef: target,
       targetId: target.id,
@@ -249,75 +330,82 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
       delay,
       id
     });
-  };
+  }
 
-  const scheduler: Scheduler = {
-    schedule: (source, id, delay) => {
-      const existingId = createScheduledTimerId(source, id);
-      if (timerMap[existingId] !== undefined) {
-        scheduler.cancel(source, id);
+  public schedule(source: AnyActor, id: string, delay: number): void {
+    const existingId = createScheduledTimerId(source, id);
+    if (this._timerMap?.[existingId] !== undefined) {
+      this.cancel(source, id);
+    }
+
+    const timer = source.getSnapshot()?.timers?.[id];
+    if (timer) {
+      const target = timer.target === 'self' ? source : timer.target;
+      this._recordSent(source, target, timer.event, delay, id);
+    }
+
+    const scheduledAt = this._clock.now?.() ?? Date.now();
+    const scheduledTimer: ScheduledTimer = {
+      source,
+      delay,
+      id,
+      scheduledAt,
+      dueAt: scheduledAt + delay
+    };
+    const scheduledTimerId = createScheduledTimerId(source, id);
+    this._snapshot._scheduledTimers[scheduledTimerId] = scheduledTimer;
+    markSystemSnapshotDirty(this);
+
+    const timeout = this._clock.setTimeout(() => {
+      if (this._timerMap) {
+        delete this._timerMap[scheduledTimerId];
       }
+      delete this._snapshot._scheduledTimers[scheduledTimerId];
+      markSystemSnapshotDirty(this);
 
-      const timer = source.getSnapshot()?.timers?.[id];
-      if (timer) {
-        const target = timer.target === 'self' ? source : timer.target;
-        recordSent(source, target, timer.event, delay, id);
-      }
+      this._deliver(source, source, { type: XSTATE_TIMER, id });
+    }, delay);
 
-      const scheduledAt = clock.now?.() ?? Date.now();
-      const scheduledTimer: ScheduledTimer = {
-        source,
-        delay,
-        id,
-        scheduledAt,
-        dueAt: scheduledAt + delay
-      };
-      const scheduledTimerId = createScheduledTimerId(source, id);
-      system._snapshot._scheduledTimers[scheduledTimerId] = scheduledTimer;
-      markSystemSnapshotDirty(system);
+    (this._timerMap ??= {})[scheduledTimerId] = timeout;
+  }
 
-      const timeout = clock.setTimeout(() => {
-        delete timerMap[scheduledTimerId];
-        delete system._snapshot._scheduledTimers[scheduledTimerId];
-        markSystemSnapshotDirty(system);
+  public cancel(source: AnyActor, id: string): void {
+    const scheduledTimerId = createScheduledTimerId(source, id);
+    const timeout = this._timerMap?.[scheduledTimerId];
 
-        deliver(source, source, { type: XSTATE_TIMER, id });
-      }, delay);
+    if (this._timerMap) {
+      delete this._timerMap[scheduledTimerId];
+    }
+    delete this._snapshot._scheduledTimers[scheduledTimerId];
+    markSystemSnapshotDirty(this);
 
-      timerMap[scheduledTimerId] = timeout;
-    },
-    cancel: (source, id: string) => {
-      const scheduledTimerId = createScheduledTimerId(source, id);
-      const timeout = timerMap[scheduledTimerId];
+    if (timeout !== undefined) {
+      this._clock.clearTimeout(timeout);
+    }
+  }
 
-      delete timerMap[scheduledTimerId];
-      delete system._snapshot._scheduledTimers[scheduledTimerId];
-      markSystemSnapshotDirty(system);
-
-      if (timeout !== undefined) {
-        clock.clearTimeout(timeout);
-      }
-    },
-    cancelAll: (actor) => {
-      for (const scheduledTimerId in system._snapshot._scheduledTimers) {
-        const scheduledTimer =
-          system._snapshot._scheduledTimers[
-            scheduledTimerId as ScheduledTimerId
-          ];
-        if (scheduledTimer.source === actor) {
-          scheduler.cancel(actor, scheduledTimer.id);
-        }
+  public cancelAll(actor: AnyActor): void {
+    for (const scheduledTimerId in this._snapshot._scheduledTimers) {
+      const scheduledTimer =
+        this._snapshot._scheduledTimers[scheduledTimerId as ScheduledTimerId];
+      if (scheduledTimer.source === actor) {
+        this.cancel(actor, scheduledTimer.id);
       }
     }
-  };
+  }
+
   // Delivers an event to the target actor. Used by both `_relay` (which also
   // records the send) and the scheduler's timer (which already recorded it).
-  const deliver = (
+  private _deliver(
     source: AnyActor | undefined,
     target: AnyActor,
     event: AnyEventObject
-  ) => {
-    const targetMachine = (target as any).logic;
+  ): void {
+    const runtimeTarget = target as AnyActor & {
+      logic?: { isInternalEventType?: (eventType: string) => boolean };
+      _lastSourceRef?: AnyActor;
+    };
+    const targetMachine = runtimeTarget.logic;
     const isInternalEvent =
       typeof targetMachine?.isInternalEventType === 'function' &&
       targetMachine.isInternalEventType(event.type);
@@ -329,135 +417,182 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     }
 
     // remember the last source for unified transition inspect event
-    (target as any)._lastSourceRef = source;
+    runtimeTarget._lastSourceRef = source;
     target._send(event);
-  };
+  }
 
-  const sendInspectionEvent = (event: InspectionEvent) => {
-    if (!inspectionObservers.size) {
+  public _register(sessionId: string, actor: AnyActor): string {
+    if (actor === this._rootActor) {
+      this._children?.set(sessionId, actor);
+    } else {
+      (this._children ??= new Map()).set(sessionId, actor);
+    }
+    markSystemSnapshotDirty(this);
+    return sessionId;
+  }
+
+  public _unregister(actor: AnyActor): void {
+    let changed: boolean;
+    if (actor === this._rootActor) {
+      changed = this._getRootActor() !== undefined;
+      changed = (this._children?.delete(actor.sessionId!) ?? false) || changed;
+    } else {
+      changed = this._children?.delete(actor.sessionId!) ?? false;
+    }
+    const registryKey = this._reverseKeyedActors?.get(actor);
+
+    if (registryKey !== undefined) {
+      if (this._keyedActors?.get(registryKey) === actor) {
+        this._keyedActors.delete(registryKey);
+        changed = true;
+      }
+      this._reverseKeyedActors?.delete(actor);
+    }
+    if (changed) {
+      markSystemSnapshotDirty(this);
+    }
+  }
+
+  public get<K extends keyof T['actors']>(
+    registryKey: K
+  ): T['actors'][K] | undefined {
+    return this._keyedActors?.get(registryKey) as T['actors'][K] | undefined;
+  }
+
+  public getAll(): Partial<T['actors']> {
+    return Object.fromEntries(this._keyedActors?.entries() ?? []) as Partial<
+      T['actors']
+    >;
+  }
+
+  public _set<K extends keyof T['actors']>(
+    registryKey: K,
+    actor: AnyActor
+  ): void {
+    const existing = this._keyedActors?.get(registryKey);
+    if (existing && existing !== actor) {
+      throw new Error(
+        `Actor with registry key '${registryKey as string}' already exists.`
+      );
+    }
+
+    (this._keyedActors ??= new Map()).set(registryKey, actor);
+    (this._reverseKeyedActors ??= new WeakMap()).set(actor, registryKey);
+    if (existing !== actor) {
+      markSystemSnapshotDirty(this);
+    }
+  }
+
+  public inspect(
+    observerOrFn:
+      | Observer<InspectionEvent>
+      | ((inspectionEvent: InspectionEvent) => void)
+  ): Subscription {
+    const observer = toObserver(observerOrFn);
+    (this._inspectionObservers ??= new Set()).add(observer);
+
+    return {
+      unsubscribe: () => {
+        this._inspectionObservers?.delete(observer);
+      }
+    };
+  }
+
+  public _sendInspectionEvent(
+    event: HomomorphicOmit<InspectionEvent, 'rootId'>
+  ): void {
+    if (!this._inspectionObservers?.size) {
       return;
     }
     const resolvedInspectionEvent: InspectionEvent = {
       ...event,
-      rootId: rootActor.sessionId!
+      rootId: this._rootActor.sessionId!
     };
-    inspectionObservers.forEach((observer) =>
+    this._inspectionObservers.forEach((observer) =>
       observer.next?.(resolvedInspectionEvent)
     );
-  };
+  }
 
-  const system: ActorSystem<T> = {
-    children,
-    reverseKeyedActors,
-    keyedActors,
-    _identity: {
-      systemId: createSystemId(),
-      nextSessionId: 0
-    },
-    _snapshot: {
-      _scheduledTimers:
-        (options?.snapshot && (options.snapshot as any).scheduler) ?? {},
-      _nextActorId: (options?.snapshot as any)?._nextActorId ?? 0
-    },
-    _snapshotVersion: 0,
-    _register: (sessionId, actor) => {
-      children.set(sessionId, actor);
-      markSystemSnapshotDirty(system);
-      return sessionId;
-    },
-    _unregister: (actor) => {
-      let changed = children.delete(actor.sessionId!);
-      const registryKey = reverseKeyedActors.get(actor);
+  public spawnActor(): void {}
 
-      if (registryKey !== undefined) {
-        if (keyedActors.get(registryKey) === actor) {
-          keyedActors.delete(registryKey);
-          changed = true;
-        }
-        reverseKeyedActors.delete(actor);
-      }
-      if (changed) {
-        markSystemSnapshotDirty(system);
-      }
-    },
-    get: (registryKey) => {
-      return keyedActors.get(registryKey) as T['actors'][any] | undefined;
-    },
-    getAll: () => {
-      return Object.fromEntries(keyedActors.entries()) as Partial<T['actors']>;
-    },
-    _set: (registryKey, actor) => {
-      const existing = keyedActors.get(registryKey);
-      if (existing && existing !== actor) {
-        throw new Error(
-          `Actor with registry key '${registryKey as string}' already exists.`
-        );
-      }
+  public startActor(actor: AnyActor): void {
+    actor.start();
+  }
 
-      keyedActors.set(registryKey, actor);
-      reverseKeyedActors.set(actor, registryKey);
-      if (existing !== actor) {
-        markSystemSnapshotDirty(system);
-      }
-    },
-    inspect: (observerOrFn) => {
-      const observer = toObserver(observerOrFn);
-      inspectionObservers.add(observer);
+  public stopActor(actor: AnyActor): void {
+    (actor as AnyActor & { _stop(): void })._stop();
+  }
 
-      return {
-        unsubscribe() {
-          inspectionObservers.delete(observer);
-        }
-      };
-    },
-    _sendInspectionEvent: sendInspectionEvent as any,
-    createActorRef: options.createActorRef,
-    spawnActor: () => {},
-    startActor: (actor: AnyActor) => {
-      actor.start();
-    },
-    stopActor: (actor: AnyActor) => {
-      (actor as AnyActor & { _stop(): void })._stop();
-    },
-    terminateActor: (actor, termination) => {
-      (
-        actor as AnyActor & {
-          _terminate(termination: ActorTermination): void;
-        }
-      )._terminate(termination);
-    },
-    sendEvent: (source, target, event) => {
-      recordSent(source, target, event);
-      deliver(source, target, event);
-    },
-    emitEvent: (source, event) =>
-      (source as AnyActor & { _emit(event: EventObject): void })._emit(event),
-    scheduleTimer: (source, id, delay) => scheduler.schedule(source, id, delay),
-    cancelTimer: (source, id) => scheduler.cancel(source, id),
-    cancelAllTimers: (source) => scheduler.cancelAll(source),
-    _relay: (source, target, event) => system.sendEvent(source, target, event),
-    scheduler,
-    getSnapshot: () => {
-      return {
-        _scheduledTimers: { ...system._snapshot._scheduledTimers }
-      };
-    },
-    start: () => {
-      const scheduledTimers = system._snapshot._scheduledTimers;
-      system._snapshot._scheduledTimers = {};
-      for (const scheduledId in scheduledTimers) {
-        const { source, dueAt, id } =
-          scheduledTimers[scheduledId as ScheduledTimerId];
-        system.scheduleTimer(
-          source,
-          id,
-          Math.max(0, dueAt - (clock.now?.() ?? Date.now()))
-        );
-      }
-    },
-    _clock: clock,
-    _logger: logger
-  };
+  public terminateActor(actor: AnyActor, termination: ActorTermination): void {
+    (
+      actor as AnyActor & { _terminate(value: ActorTermination): void }
+    )._terminate(termination);
+  }
 
-  return system;
+  public sendEvent(
+    source: AnyActor | undefined,
+    target: AnyActor,
+    event: AnyEventObject
+  ): void {
+    this._recordSent(source, target, event);
+    this._deliver(source, target, event);
+  }
+
+  public emitEvent(source: AnyActor, event: EventObject): void {
+    (source as AnyActor & { _emit(value: EventObject): void })._emit(event);
+  }
+
+  public scheduleTimer(source: AnyActor, id: string, delay: number): void {
+    this.schedule(source, id, delay);
+  }
+
+  public cancelTimer(source: AnyActor, id: string): void {
+    this.cancel(source, id);
+  }
+
+  public cancelAllTimers(source: AnyActor): void {
+    this.cancelAll(source);
+  }
+
+  public _relay(
+    source: AnyActor | undefined,
+    target: AnyActor,
+    event: AnyEventObject
+  ): void {
+    this.sendEvent(source, target, event);
+  }
+
+  public getSnapshot(): {
+    _scheduledTimers: Record<string, ScheduledTimer>;
+  } {
+    return {
+      _scheduledTimers: { ...this._snapshot._scheduledTimers }
+    };
+  }
+
+  public start(): void {
+    const scheduledTimers = this._snapshot._scheduledTimers;
+    this._snapshot._scheduledTimers = {};
+    for (const scheduledId in scheduledTimers) {
+      const { source, dueAt, id } =
+        scheduledTimers[scheduledId as ScheduledTimerId];
+      this.scheduleTimer(
+        source,
+        id,
+        Math.max(0, dueAt - (this._clock.now?.() ?? Date.now()))
+      );
+    }
+  }
+}
+
+export function createRuntimeSystem<T extends ActorSystemInfo>(
+  rootActor: AnyActor,
+  options: {
+    clock: Clock;
+    logger: (...args: any[]) => void;
+    snapshot?: unknown;
+    createActorRef: ActorSystem<T>['createActorRef'];
+  }
+): ActorSystem<T> {
+  return new RuntimeSystem(rootActor, options);
 }
