@@ -1626,13 +1626,15 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * delayed events and transitions.
    *
    * @remarks
-   * You can create your own “clock”. The clock interface is an object with two
-   * functions/methods:
+   * You can create your own “clock”. The clock interface supports these
+   * methods:
    *
+   * - `now` - optional; returns the current time in milliseconds
    * - `setTimeout` - same arguments as `window.setTimeout(fn, timeout)`
    * - `clearTimeout` - same arguments as `window.clearTimeout(id)`
    *
-   * By default, the native `setTimeout` and `clearTimeout` functions are used.
+   * By default, `Date.now`, native `setTimeout`, and native `clearTimeout` are
+   * used.
    *
    * For testing, XState provides `SimulatedClock`.
    * @see {@link Clock}
