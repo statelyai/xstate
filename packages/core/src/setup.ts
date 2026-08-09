@@ -1269,6 +1269,22 @@ type InvokeDoneEvent<TInvoke> = TInvoke extends {
   ? Cast<TDoneEvent, EventObject>
   : DoneActorEvent;
 
+type InvokeErrorEvent<TInvoke> = TInvoke extends {
+  onError?: Next_TransitionConfigOrTarget<
+    infer _TContext,
+    infer TErrorEvent,
+    infer _TEvent,
+    infer _TEmitted,
+    infer _TActionMap,
+    infer _TActorMap,
+    infer _TGuardMap,
+    infer _TDelayMap,
+    infer _TMeta
+  >;
+}
+  ? Cast<TErrorEvent, EventObject>
+  : ErrorActorEvent;
+
 type SetupInvokeConfig<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
@@ -1319,7 +1335,7 @@ type SetupInvokeConfig<
             TStateSchemas,
             TContext,
             TContextShape,
-            ErrorActorEvent,
+            InvokeErrorEvent<TInvoke>,
             TEvent,
             TEmitted,
             TChildren,

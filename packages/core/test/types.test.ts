@@ -9,6 +9,7 @@ import {
 import {
   ActorRefFrom,
   ActorRefFromLogic,
+  type ActorLogicWithError,
   AnyActorLogic,
   AnyActorRef,
   AnyMachineSnapshot,
@@ -16,6 +17,7 @@ import {
   BuiltInExecutableActionObject,
   CustomExecutableActionObject,
   ExecutableActionObject,
+  type ErrorFrom,
   InputFrom,
   OutputFrom,
   type SnapshotFrom,
@@ -6386,4 +6388,24 @@ it('createSystem registry keys typecheck registryKey usage', () => {
     // @ts-expect-error registry key expects the registered logic
     app.createActor(other, { registryKey: 'receiver' });
   }
+});
+
+it('infers a registered actor logic error in invoke onError', () => {
+  type WorkerError = { readonly _tag: 'WorkerError'; readonly message: string };
+  const baseWorker = createLogic({ context: {}, run: () => {} });
+  const worker = baseWorker as ActorLogicWithError<
+    typeof baseWorker,
+    WorkerError
+  >;
+
+  expectTypeOf<ErrorFrom<typeof worker>>().toEqualTypeOf<WorkerError>();
+
+  setup({ actors: { worker } }).createMachine({
+    invoke: {
+      src: 'worker',
+      onError: ({ event }) => {
+        expectTypeOf(event.error).toEqualTypeOf<WorkerError>();
+      }
+    }
+  });
 });

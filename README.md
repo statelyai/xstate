@@ -39,8 +39,11 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 Pick based on what you need:
 
+<!-- package choices matching packages/*/package.json names and descriptions -->
+
 - **[`@xstate/store`](#xstate-store)**: simple event-based state management. <1kb, great TypeScript inference, similar in spirit to Redux/Zustand. Start here if you just need a store.
 - **[`xstate`](#super-quick-start)**: state machines, statecharts, actors, effects, and orchestration for complex app logic.
+- **[`@xstate/effect`](packages/xstate-effect)**: Effect-native actor logic with typed errors, requirements, Layers, Fibers, and scoped cancellation.
 
 They work great together, but you don't need one to use the other.
 

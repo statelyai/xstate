@@ -193,6 +193,35 @@ export type OutputFrom<T> =
       ? (TSnapshot & { status: 'done' })['output']
       : never;
 
+declare const actorLogicError: unique symbol;
+
+/** Associates an actor logic type with the error it can publish. */
+export interface ActorLogicError<TError> {
+  readonly [actorLogicError]: TError;
+}
+
+/** Re-declares an actor logic with a typed published error. */
+export type ActorLogicWithError<TLogic extends AnyActorLogic, TError> =
+  TLogic extends ActorLogic<
+    infer TSnapshot,
+    infer TEvent,
+    infer TInput,
+    infer TSystem,
+    infer TEmitted,
+    any
+  >
+    ? ActorLogic<TSnapshot, TEvent, TInput, TSystem, TEmitted, TError> &
+        Omit<TLogic, keyof ActorLogic<any, any, any, any, any, any>>
+    : never;
+
+/** The error published by an actor logic, or `unknown` when not declared. */
+export type ErrorFrom<T> =
+  T extends ActorLogicError<infer TError>
+    ? TError
+    : T extends ActorLogic<any, any, any, any, any, infer TError>
+      ? TError
+      : unknown;
+
 export type NoRequiredParams<T extends ParameterizedObject> = T extends any
   ? undefined extends T['params']
     ? T['type']
@@ -2211,8 +2240,11 @@ export interface ActorLogic<
   in out TEvent extends EventObject, // it's invariant because it's also part of `ActorScope["self"]["send"]`
   in TInput = NonReducibleUnknown,
   TSystem extends AnyActorSystem = AnyActorSystem,
-  in out TEmitted extends EventObject = EventObject // it's invariant because it's also aprt of `ActorScope["self"]["on"]`
+  in out TEmitted extends EventObject = EventObject, // it's invariant because it's also aprt of `ActorScope["self"]["on"]`
+  out TError = unknown
 > {
+  /** Type-only error channel published by this actor logic. */
+  readonly [actorLogicError]?: TError;
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
   /** Optional runtime validator for pure calculation boundaries. */

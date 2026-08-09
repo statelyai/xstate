@@ -1,0 +1,44 @@
+{
+  "name": "@xstate/effect",
+  "version": "0.0.1-alpha.0",
+  "type": "module",
+  "description": "Effect-native actor logic and scoped runners for XState",
+  "keywords": [
+    "xstate",
+    "effect",
+    "actors",
+    "statecharts"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-effect#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "exports": {
+    ".": "./dist/xstate-effect.js",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "effect": "4.0.0-beta.105",
+    "xstate": "^6.0.0-alpha.29"
+  },
+  "devDependencies": {
+    "effect": "4.0.0-beta.105",
+    "xstate": "workspace:^"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "./index.ts"
+    ]
+  }
+}

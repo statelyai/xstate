@@ -23,6 +23,8 @@ interface ScheduledTimer {
 }
 
 export interface Clock {
+  /** Returns the clock's current time in milliseconds. */
+  now?(): number;
   setTimeout(fn: (...args: any[]) => void, timeout: number): any;
   clearTimeout(id: any): void;
 }
@@ -253,7 +255,7 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
         recordSent(source, target, timer.event, delay, id);
       }
 
-      const scheduledAt = Date.now();
+      const scheduledAt = clock.now?.() ?? Date.now();
       const scheduledTimer: ScheduledTimer = {
         source,
         delay,
@@ -425,7 +427,11 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
       for (const scheduledId in scheduledTimers) {
         const { source, dueAt, id } =
           scheduledTimers[scheduledId as ScheduledTimerId];
-        system.scheduleTimer(source, id, Math.max(0, dueAt - Date.now()));
+        system.scheduleTimer(
+          source,
+          id,
+          Math.max(0, dueAt - (clock.now?.() ?? Date.now()))
+        );
       }
     },
     _clock: clock,
