@@ -113,6 +113,7 @@
     "public-effect-introspection",
     "public-machine-schemas",
     "public-setup-system-types",
+    "quiet-actors-rest",
     "quiet-internal-events",
     "quiet-zebras-invoke",
     "random-actor-sessions",
