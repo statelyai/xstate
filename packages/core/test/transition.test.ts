@@ -86,6 +86,23 @@ function describeEffects(effects: ExecutableActionObject[]): string[] {
 }
 
 describe('transition function', () => {
+  it('does not repeatedly resolve a selected transition during a microstep', () => {
+    const update = vi.fn(({ context }: { context: { count: number } }) => ({
+      context: { count: context.count + 1 }
+    }));
+    const machine = createMachine({
+      context: { count: 0 },
+      on: { UPDATE: update }
+    });
+    const actor = createActor(machine).start();
+
+    update.mockClear();
+    actor.send({ type: 'UPDATE' });
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(actor.getSnapshot().context).toEqual({ count: 1 });
+  });
+
   it('resolves mapper context on object transitions', () => {
     const machine = createMachine({
       schemas: {

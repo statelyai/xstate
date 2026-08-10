@@ -183,6 +183,8 @@ export interface ActorSystem<
       | Observer<InspectionEvent>
       | ((inspectionEvent: InspectionEvent) => void)
   ) => Subscription;
+  /** @internal Avoids collecting inspection-only transition metadata. */
+  _hasInspectionObservers?: () => boolean;
   /** @internal */
   _sendInspectionEvent: (
     event: HomomorphicOmit<InspectionEvent, 'rootId'>
@@ -496,6 +498,10 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
         this._inspectionObservers?.delete(observer);
       }
     };
+  }
+
+  public _hasInspectionObservers(): boolean {
+    return !!this._inspectionObservers?.size;
   }
 
   public _sendInspectionEvent(

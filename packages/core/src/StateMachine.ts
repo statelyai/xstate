@@ -36,6 +36,7 @@ import {
   resolveStateValue,
   transitionNode
 } from './stateUtils.ts';
+import type { TransitionSelectionResults } from './stateUtils.ts';
 import {
   createSpawnEffect,
   resolveActionsWithContext
@@ -218,6 +219,8 @@ export class StateMachine<
   public states: StateNode<TContext, TEvent>['states'];
   public events: Array<EventDescriptor<TEvent>>;
   public internalEventDescriptors: ReadonlyArray<string>;
+  /** @internal Skips eventless-selection scans for machines without `always`. */
+  public _hasEventlessTransitions: boolean;
   constructor(
     /** The raw config used to create the machine. */
     public config: Next_MachineConfig<
@@ -283,6 +286,9 @@ export class StateMachine<
     this.root._initialize();
     formatRouteTransitions(this.root);
     this.root._refreshEventMetadata();
+    this._hasEventlessTransitions = Array.from(this.idMap.values()).some(
+      (stateNode) => !!stateNode.always?.length
+    );
 
     this.states = this.root.states; // TODO: remove!
     this.events = this.root.events;
@@ -688,10 +694,18 @@ export class StateMachine<
       TConfig
     >,
     event: TEvent,
-    self: AnyActor
+    self: AnyActor,
+    selectionResults?: TransitionSelectionResults
   ): Array<AnyTransitionDefinition> {
     return (
-      transitionNode(this.root, snapshot.value, snapshot, event, self) || []
+      transitionNode(
+        this.root,
+        snapshot.value,
+        snapshot,
+        event,
+        self,
+        selectionResults
+      ) || []
     );
   }
 
@@ -810,8 +824,7 @@ export class StateMachine<
         children: {},
         status: 'active'
       },
-      this,
-      actorScope.self
+      this
     );
 
     if (typeof context === 'function') {

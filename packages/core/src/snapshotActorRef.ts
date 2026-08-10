@@ -131,6 +131,7 @@ export function createSnapshotSystem(
     getAll: () => Object.fromEntries(keyedActors),
     // Pure transition resolution must not leak topology inspection events into
     // a live runtime system.
+    _hasInspectionObservers: () => false,
     _sendInspectionEvent: () => {}
   });
 
