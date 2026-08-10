@@ -1,5 +1,11 @@
 # xstate
 
+## 6.0.0-alpha.32
+
+### Patch Changes
+
+- e41f339: Improve state machine actor throughput for event bursts, child delivery, and compound and parallel machines.
+
 ## 6.0.0-alpha.31
 
 ### Patch Changes
