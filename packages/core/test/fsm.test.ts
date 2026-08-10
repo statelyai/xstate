@@ -3,6 +3,7 @@ import {
   createCallbackLogic,
   createFSM,
   initialTransition,
+  SimulatedClock,
   transition
 } from '../src';
 
@@ -228,6 +229,140 @@ describe('createFSM', () => {
     actor.send({ type: 'inc' });
 
     expect(actor.getSnapshot().context.count).toBe(1);
+  });
+
+  it('completes when entering a final state', () => {
+    const calls: string[] = [];
+    const fsm = createFSM({
+      initial: 'active',
+      states: {
+        active: {
+          exit: () => {
+            calls.push('active:exit');
+          },
+          on: {
+            finish: { target: 'done' }
+          }
+        },
+        done: {
+          type: 'final',
+          entry: () => {
+            calls.push('done:entry');
+          },
+          exit: () => {
+            calls.push('done:exit');
+          }
+        }
+      }
+    });
+    const actor = createActor(fsm);
+    const complete = vi.fn();
+    actor.subscribe({ complete });
+    actor.start();
+
+    actor.send({ type: 'finish' });
+
+    expect(actor.getSnapshot()).toMatchObject({
+      status: 'done',
+      value: 'done',
+      output: undefined
+    });
+    expect(calls).toEqual(['active:exit', 'done:entry', 'done:exit']);
+    expect(complete).toHaveBeenCalledTimes(1);
+  });
+
+  it('completes when a transition function targets a final state', () => {
+    const fsm = createFSM({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            finish: () => ({ target: 'done' })
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const actor = createActor(fsm).start();
+
+    actor.send({ type: 'finish' });
+
+    expect(actor.getSnapshot().status).toBe('done');
+  });
+
+  it('completes an initially final state', () => {
+    const calls: string[] = [];
+    const fsm = createFSM({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          entry: () => {
+            calls.push('entry');
+          },
+          exit: () => {
+            calls.push('exit');
+          }
+        }
+      }
+    });
+    const actor = createActor(fsm);
+    const complete = vi.fn();
+    actor.subscribe({ complete });
+
+    actor.start();
+
+    expect(actor.getSnapshot()).toMatchObject({
+      status: 'done',
+      value: 'done',
+      output: undefined
+    });
+    expect(calls).toEqual(['entry', 'exit']);
+    expect(complete).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns one terminal effect for a final initial transition', () => {
+    const fsm = createFSM({
+      initial: 'done',
+      states: {
+        done: { type: 'final' }
+      }
+    });
+
+    const [snapshot, effects] = initialTransition(fsm);
+
+    expect(snapshot.status).toBe('done');
+    expect(
+      effects.filter((effect) => effect.type === '@xstate.terminate')
+    ).toHaveLength(1);
+  });
+
+  it('stops owned children and cancels timers on completion', () => {
+    const stopped = vi.fn();
+    const child = createCallbackLogic(() => () => stopped());
+    const clock = new SimulatedClock();
+    const fsm = createFSM({
+      initial: 'active',
+      states: {
+        active: {
+          entry: (_, enq) => {
+            enq.spawn(child, { id: 'child' });
+            enq.raise({ type: 'later' }, { delay: 100, id: 'later' });
+          },
+          on: {
+            finish: { target: 'done' }
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const actor = createActor(fsm, { clock }).start();
+
+    actor.send({ type: 'finish' });
+
+    expect(actor.getSnapshot().children).toEqual({});
+    expect(actor.getSnapshot().timers).toEqual({});
+    expect(stopped).toHaveBeenCalledTimes(1);
   });
 });
 

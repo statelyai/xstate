@@ -11,6 +11,7 @@ import type {
   ActorLogic,
   ActorScope,
   AnyAction,
+  AnyActor,
   AnyActorScope,
   AnyEventObject,
   EventObject,
@@ -147,6 +148,7 @@ type FSMStateConfig<
   TState extends string,
   TInput
 > = {
+  type?: 'final';
   entry?:
     | FSMAction<TContext, TEvent, TState, TInput>
     | Array<FSMAction<TContext, TEvent, TState, TInput>>;
@@ -465,6 +467,56 @@ export function createFSM<
     return runActions(nextSnapshot, event, actorScope, actions);
   };
 
+  const completeFinalState = (
+    snapshot: FSMSnapshot<TContext, string, TInput>,
+    event: EventObject,
+    actorScope: AnyActorScope,
+    stateInput: Record<string, unknown> | undefined,
+    internalQueue: EventObject[]
+  ): [FSMSnapshot<TContext, string, TInput>, ExecutableActionObject[]] => {
+    let nextSnapshot = {
+      ...snapshot,
+      status: 'done',
+      output: undefined,
+      error: undefined
+    } as FSMSnapshot<TContext, string, TInput>;
+    const [exitedSnapshot, exitActions] = runStateActions(
+      nextSnapshot,
+      event,
+      actorScope,
+      config.states[nextSnapshot.value]?.exit,
+      stateInput,
+      internalQueue
+    );
+    nextSnapshot = exitedSnapshot;
+
+    const cleanupActions: AnyAction[] = [];
+    const children = Object.values(nextSnapshot.children) as AnyActor[];
+    const timerIds = Object.keys(nextSnapshot.timers);
+    if (children.length || timerIds.length) {
+      const enqueue = createTransitionEnqueue(actorScope, cleanupActions, []);
+      for (const child of children) {
+        enqueue.stop(child);
+      }
+      for (const id of timerIds) {
+        enqueue.cancel(id);
+      }
+    }
+    if (!cleanupActions.length) {
+      return [nextSnapshot, exitActions];
+    }
+    const [cleanedSnapshot, cleanupEffects] = resolveActionsWithContext(
+      nextSnapshot as any,
+      event,
+      actorScope,
+      cleanupActions
+    );
+    return [
+      cleanedSnapshot as unknown as FSMSnapshot<TContext, string, TInput>,
+      [...exitActions, ...cleanupEffects]
+    ];
+  };
+
   const selectTransition = (
     snapshot: FSMSnapshot<TContext, string, TInput>,
     event: TEvent,
@@ -605,7 +657,12 @@ export function createFSM<
     ) {
       const target = directTransition.target ?? snapshot.value;
       const stateChanged = target !== snapshot.value;
-      if (stateChanged && (stateConfig.exit || config.states[target]?.entry)) {
+      if (
+        stateChanged &&
+        (stateConfig.exit ||
+          config.states[target]?.entry ||
+          config.states[target]?.type === 'final')
+      ) {
         // Exit/entry actions need the general path.
       } else {
         const hasContext = directTransition.context !== undefined;
@@ -668,7 +725,10 @@ export function createFSM<
       );
       if (result) {
         const target = result.target ?? snapshot.value;
-        if (!config.states[target]?.entry) {
+        if (
+          !config.states[target]?.entry &&
+          config.states[target]?.type !== 'final'
+        ) {
           const hasContext = result.context !== undefined;
           const hasInput = result.input !== undefined;
           const context =
@@ -775,6 +835,19 @@ export function createFSM<
         nextSnapshot = entered;
         executableActions.push(...entryActions);
       }
+
+      if (config.states[nextValue]?.type === 'final') {
+        const [completedSnapshot, completionActions] = completeFinalState(
+          nextSnapshot,
+          nextEvent,
+          actorScope,
+          stateInput,
+          internalQueue
+        );
+        nextSnapshot = completedSnapshot;
+        executableActions.push(...completionActions);
+        internalQueue.length = 0;
+      }
     }
 
     return [nextSnapshot, executableActions];
@@ -809,6 +882,18 @@ export function createFSM<
         undefined,
         internalQueue
       );
+      if (config.states[config.initial]?.type === 'final') {
+        const [completedSnapshot, completionActions] = completeFinalState(
+          nextSnapshot,
+          { type: XSTATE_INIT },
+          actorScope,
+          undefined,
+          internalQueue
+        );
+        nextSnapshot = completedSnapshot;
+        actions.push(...completionActions);
+        internalQueue.length = 0;
+      }
       if (!actions.length) {
         actions = [];
       }
