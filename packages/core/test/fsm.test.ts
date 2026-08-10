@@ -337,6 +337,29 @@ describe('createFSM', () => {
     ).toHaveLength(1);
   });
 
+  it('does not retain final effects across initial transitions', () => {
+    const finalFsm = createFSM({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          exit: (_, enq) => {
+            enq(() => {});
+          }
+        }
+      }
+    });
+    const activeFsm = createFSM({
+      initial: 'active',
+      states: { active: {} }
+    });
+
+    initialTransition(finalFsm);
+    const [, effects] = initialTransition(activeFsm);
+
+    expect(effects).toEqual([]);
+  });
+
   it('stops owned children and cancels timers on completion', () => {
     const stopped = vi.fn();
     const child = createCallbackLogic(() => () => stopped());

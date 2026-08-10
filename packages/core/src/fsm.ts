@@ -471,28 +471,26 @@ export function createFSM<
     snapshot: FSMSnapshot<TContext, string, TInput>,
     event: EventObject,
     actorScope: AnyActorScope,
-    stateInput: Record<string, unknown> | undefined,
     internalQueue: EventObject[]
   ): [FSMSnapshot<TContext, string, TInput>, ExecutableActionObject[]] => {
-    let nextSnapshot = {
+    const completedSnapshot = {
       ...snapshot,
       status: 'done',
       output: undefined,
       error: undefined
     } as FSMSnapshot<TContext, string, TInput>;
     const [exitedSnapshot, exitActions] = runStateActions(
-      nextSnapshot,
+      completedSnapshot,
       event,
       actorScope,
-      config.states[nextSnapshot.value]?.exit,
-      stateInput,
+      config.states[completedSnapshot.value]?.exit,
+      completedSnapshot._stateInput,
       internalQueue
     );
-    nextSnapshot = exitedSnapshot;
 
     const cleanupActions: AnyAction[] = [];
-    const children = Object.values(nextSnapshot.children) as AnyActor[];
-    const timerIds = Object.keys(nextSnapshot.timers);
+    const children = Object.values(exitedSnapshot.children) as AnyActor[];
+    const timerIds = Object.keys(exitedSnapshot.timers);
     if (children.length || timerIds.length) {
       const enqueue = createTransitionEnqueue(actorScope, cleanupActions, []);
       for (const child of children) {
@@ -503,10 +501,10 @@ export function createFSM<
       }
     }
     if (!cleanupActions.length) {
-      return [nextSnapshot, exitActions];
+      return [exitedSnapshot, exitActions];
     }
     const [cleanedSnapshot, cleanupEffects] = resolveActionsWithContext(
-      nextSnapshot as any,
+      exitedSnapshot as any,
       event,
       actorScope,
       cleanupActions
@@ -656,12 +654,13 @@ export function createFSM<
       typeof directTransition.input !== 'function'
     ) {
       const target = directTransition.target ?? snapshot.value;
+      const targetState = config.states[target];
       const stateChanged = target !== snapshot.value;
       if (
         stateChanged &&
         (stateConfig.exit ||
-          config.states[target]?.entry ||
-          config.states[target]?.type === 'final')
+          targetState?.entry ||
+          targetState?.type === 'final')
       ) {
         // Exit/entry actions need the general path.
       } else {
@@ -725,10 +724,8 @@ export function createFSM<
       );
       if (result) {
         const target = result.target ?? snapshot.value;
-        if (
-          !config.states[target]?.entry &&
-          config.states[target]?.type !== 'final'
-        ) {
+        const targetState = config.states[target];
+        if (!targetState?.entry && targetState?.type !== 'final') {
           const hasContext = result.context !== undefined;
           const hasInput = result.input !== undefined;
           const context =
@@ -777,6 +774,7 @@ export function createFSM<
       }
 
       const nextValue = selected.target ?? nextSnapshot.value;
+      const nextStateConfig = config.states[nextValue];
       const stateChanged = nextValue !== nextSnapshot.value;
 
       if (stateChanged) {
@@ -828,7 +826,7 @@ export function createFSM<
           nextSnapshot,
           nextEvent,
           actorScope,
-          config.states[nextValue]?.entry,
+          nextStateConfig?.entry,
           stateInput,
           internalQueue
         );
@@ -836,17 +834,16 @@ export function createFSM<
         executableActions.push(...entryActions);
       }
 
-      if (config.states[nextValue]?.type === 'final') {
+      if (nextStateConfig?.type === 'final') {
         const [completedSnapshot, completionActions] = completeFinalState(
           nextSnapshot,
           nextEvent,
           actorScope,
-          stateInput,
           internalQueue
         );
         nextSnapshot = completedSnapshot;
         executableActions.push(...completionActions);
-        internalQueue.length = 0;
+        break;
       }
     }
 
@@ -866,6 +863,7 @@ export function createFSM<
     config,
     transition,
     initialTransition: (input, actorScope) => {
+      const initialState = config.states[config.initial];
       const context = resolveContext(config.context, input);
       const snapshot = createSnapshot(
         config.initial,
@@ -878,33 +876,32 @@ export function createFSM<
         snapshot,
         { type: XSTATE_INIT },
         actorScope,
-        config.states[config.initial]?.entry,
+        initialState?.entry,
         undefined,
         internalQueue
       );
-      if (config.states[config.initial]?.type === 'final') {
+      if (!actions.length) {
+        actions = [];
+      }
+      if (initialState?.type === 'final') {
         const [completedSnapshot, completionActions] = completeFinalState(
           nextSnapshot,
           { type: XSTATE_INIT },
           actorScope,
-          undefined,
           internalQueue
         );
         nextSnapshot = completedSnapshot;
         actions.push(...completionActions);
-        internalQueue.length = 0;
-      }
-      if (!actions.length) {
-        actions = [];
-      }
-      while (internalQueue.length) {
-        const [raisedSnapshot, raisedActions] = transitionCore(
-          nextSnapshot,
-          internalQueue.shift()! as TEvent,
-          actorScope
-        );
-        nextSnapshot = raisedSnapshot;
-        actions.push(...raisedActions);
+      } else {
+        while (internalQueue.length) {
+          const [raisedSnapshot, raisedActions] = transitionCore(
+            nextSnapshot,
+            internalQueue.shift()! as TEvent,
+            actorScope
+          );
+          nextSnapshot = raisedSnapshot;
+          actions.push(...raisedActions);
+        }
       }
       return finalizeTransitionResult(actorScope, undefined, [
         nextSnapshot,
