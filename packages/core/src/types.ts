@@ -1101,6 +1101,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   id: string;
   root: AnyStateNode;
   /** @internal */
+  _hasEventlessTransitions?: boolean;
+  /** @internal */
   idMap: Map<string, AnyStateNode>;
   options?: { maxIterations?: number };
   states: StateNodesConfig<any, any>;
@@ -1116,7 +1118,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   getTransitionData(
     snapshot: any,
     event: any,
-    actor: AnyActorRef
+    actor: AnyActorRef,
+    selectionResults?: Map<AnyTransitionDefinition, unknown>
   ): AnyTransitionDefinition[];
   /** @internal */
   _canTransition(snapshot: AnyMachineSnapshot, event: any): boolean;

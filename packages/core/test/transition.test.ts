@@ -86,6 +86,82 @@ function describeEffects(effects: ExecutableActionObject[]): string[] {
 }
 
 describe('transition function', () => {
+  it('does not repeatedly resolve a selected transition during a microstep', () => {
+    const update = vi.fn(({ context }: { context: { count: number } }) => ({
+      context: { count: context.count + 1 }
+    }));
+    const machine = createMachine({
+      context: { count: 0 },
+      on: { UPDATE: update }
+    });
+    const actor = createActor(machine).start();
+
+    update.mockClear();
+    actor.send({ type: 'UPDATE' });
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(actor.getSnapshot().context).toEqual({ count: 1 });
+  });
+
+  it('resolves a selected transition with the real parent', () => {
+    const childMachine = createMachine({
+      context: { parent: undefined as unknown },
+      on: {
+        CHECK: ({ parent }) => ({ context: { parent } })
+      }
+    });
+    const parent = createActor(
+      createMachine({
+        invoke: { id: 'child', src: childMachine }
+      })
+    ).start();
+    const child = parent.getSnapshot().children.child!;
+
+    child.send({ type: 'CHECK' });
+
+    expect(child.getSnapshot().context.parent).toBe(parent);
+  });
+
+  it('resolves a root transition with an undefined parent', () => {
+    const machine = createMachine({
+      context: { hasParent: true },
+      on: {
+        CHECK: ({ parent }) => ({ context: { hasParent: !!parent } })
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'CHECK' });
+
+    expect(actor.getSnapshot().context.hasParent).toBe(false);
+  });
+
+  it('does not send to the parent during transition selection', () => {
+    const childMachine = createMachine({
+      on: {
+        CHECK: ({ parent }) => {
+          parent?.send({ type: 'CHILD' });
+          return {};
+        }
+      }
+    });
+    const parent = createActor(
+      createMachine({
+        context: { received: 0 },
+        on: {
+          CHILD: ({ context }) => ({
+            context: { received: context.received + 1 }
+          })
+        },
+        invoke: { id: 'child', src: childMachine }
+      })
+    ).start();
+
+    parent.getSnapshot().children.child!.send({ type: 'CHECK' });
+
+    expect(parent.getSnapshot().context.received).toBe(1);
+  });
+
   it('resolves mapper context on object transitions', () => {
     const machine = createMachine({
       schemas: {

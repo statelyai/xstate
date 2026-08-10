@@ -569,6 +569,32 @@ describe('inspect', () => {
     expect(events.some((e) => e.type === '@xstate.transition')).toBe(true);
   });
 
+  it('actor.system.inspect(…) captures initial microsteps before start', () => {
+    const actor = createActor(
+      createMachine({
+        initial: 'a',
+        states: {
+          a: { always: () => ({ target: 'b' }) },
+          b: {}
+        }
+      })
+    );
+    const events: InspectionEvent[] = [];
+
+    actor.system.inspect((event) => events.push(event));
+    actor.start();
+
+    const initialTransition = events.find(
+      (event) =>
+        event.type === '@xstate.transition' && event.event.type === XSTATE_INIT
+    );
+    expect(initialTransition?.type).toBe('@xstate.transition');
+    if (initialTransition?.type !== '@xstate.transition') {
+      throw new Error('Initial transition was not inspected.');
+    }
+    expect(initialTransition.microsteps).toHaveLength(1);
+  });
+
   it('actor.system.inspect(…) can inspect actors (observer)', () => {
     const actor = createActor(createMachine({}));
     const events: InspectionEvent[] = [];

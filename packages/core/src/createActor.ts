@@ -388,14 +388,16 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     // Announce actor topology: emitted once for every actor (root and every
     // spawned/invoked child) so the actor graph can be drawn before any
     // transitions occur. This is the only place actor identity is announced.
-    this.system._sendInspectionEvent({
-      type: '@xstate.actor',
-      actorRef: this,
-      parentRef: this._parent,
-      id: this.id,
-      src: this.src,
-      snapshot: this._snapshot
-    });
+    if (this.system._hasInspectionObservers?.() ?? true) {
+      this.system._sendInspectionEvent({
+        type: '@xstate.actor',
+        actorRef: this,
+        parentRef: this._parent,
+        id: this.id,
+        src: this.src,
+        snapshot: this._snapshot
+      });
+    }
   }
 
   // array of functions to defer
@@ -438,10 +440,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     const exec = () => {
       // Record every executed action for the '@xstate.transition' inspection
       // event's `actions[]` facet (replaces the v5 '@xstate.action' event).
-      (this._collectedActions ??= []).push({
-        type: action.type,
-        params: action.params
-      });
+      if (this.system._hasInspectionObservers?.() ?? true) {
+        (this._collectedActions ??= []).push({
+          type: action.type,
+          params: action.params
+        });
+      }
       const saveExecutingCustomAction = executingCustomAction;
       try {
         executingCustomAction = true;
@@ -571,18 +575,20 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     snapshot: SnapshotFrom<TLogic>,
     event: EventObject
   ): void {
-    this.system._sendInspectionEvent({
-      type: '@xstate.transition',
-      actorRef: this,
-      event,
-      sourceRef: this._lastSourceRef,
-      targetRef: this,
-      snapshot,
-      microsteps: this._collectedMicrosteps ?? emptyInspectionRecords,
-      actions: this._collectedActions ?? emptyInspectionRecords,
-      sent: this._collectedSent ?? emptyInspectionRecords,
-      eventType: event.type
-    });
+    if (this.system._hasInspectionObservers?.() ?? true) {
+      this.system._sendInspectionEvent({
+        type: '@xstate.transition',
+        actorRef: this,
+        event,
+        sourceRef: this._lastSourceRef,
+        targetRef: this,
+        snapshot,
+        microsteps: this._collectedMicrosteps ?? emptyInspectionRecords,
+        actions: this._collectedActions ?? emptyInspectionRecords,
+        sent: this._collectedSent ?? emptyInspectionRecords,
+        eventType: event.type
+      });
+    }
     this._collectedMicrosteps = undefined;
     this._collectedActions = undefined;
     this._collectedSent = undefined;

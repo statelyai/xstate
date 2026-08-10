@@ -38,6 +38,11 @@ interface Scheduler {
 
 let nextFallbackSystemId = 0;
 
+/** @internal */
+export const transitionEffectSignal = new Error('Transition effect');
+/** @internal */
+export const transitionEffectTargets: AnyActor[] = [];
+
 function createSystemId(): string {
   let crypto: Crypto | undefined;
   try {
@@ -183,6 +188,8 @@ export interface ActorSystem<
       | Observer<InspectionEvent>
       | ((inspectionEvent: InspectionEvent) => void)
   ) => Subscription;
+  /** @internal Avoids collecting inspection-only transition metadata. */
+  _hasInspectionObservers?: () => boolean;
   /** @internal */
   _sendInspectionEvent: (
     event: HomomorphicOmit<InspectionEvent, 'rootId'>
@@ -498,6 +505,10 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     };
   }
 
+  public _hasInspectionObservers(): boolean {
+    return !!this._inspectionObservers?.size;
+  }
+
   public _sendInspectionEvent(
     event: HomomorphicOmit<InspectionEvent, 'rootId'>
   ): void {
@@ -559,6 +570,12 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void {
+    if (
+      transitionEffectTargets.length &&
+      transitionEffectTargets.includes(target)
+    ) {
+      throw transitionEffectSignal;
+    }
     this.sendEvent(source, target, event);
   }
 

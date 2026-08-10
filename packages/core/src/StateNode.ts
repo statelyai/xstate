@@ -9,7 +9,8 @@ import {
   getCandidates,
   getEventDescriptorKey,
   getDelayedTransitions,
-  matchesActorSession
+  matchesActorSession,
+  type TransitionSelectionResults
 } from './stateUtils.ts';
 import type {
   DelayedTransitionDefinition,
@@ -145,6 +146,7 @@ export class StateNode<
   public after!: Array<DelayedTransitionDefinition<any, any>>;
   public events!: Array<EventDescriptor<any>>;
   public ownEvents!: Array<EventDescriptor<any>>;
+  private _candidateCache?: Map<string, AnyTransitionDefinition[]>;
 
   constructor(
     /** The raw config used to create the machine. */
@@ -298,13 +300,15 @@ export class StateNode<
   public next(
     snapshot: AnyMachineSnapshot,
     event: AnyEventObject,
-    self: AnyActor
+    self: AnyActor,
+    selectionResults?: TransitionSelectionResults
   ): Array<AnyTransitionDefinition> | undefined {
-    const candidates: Array<AnyTransitionDefinition> = memo(
-      this,
-      `candidates-${getEventDescriptorKey(event)}`,
-      () => getCandidates(this, event)
-    );
+    const descriptorKey = getEventDescriptorKey(event);
+    let candidates = this._candidateCache?.get(descriptorKey);
+    if (!candidates) {
+      candidates = getCandidates(this, event);
+      (this._candidateCache ??= new Map()).set(descriptorKey, candidates);
+    }
 
     for (const candidate of candidates) {
       const guardPassed = evaluateCandidate(
@@ -312,7 +316,8 @@ export class StateNode<
         event,
         snapshot,
         this,
-        self
+        self,
+        selectionResults
       );
 
       if (guardPassed) {
