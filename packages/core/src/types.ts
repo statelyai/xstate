@@ -1118,7 +1118,7 @@ export interface AnyStateMachine extends AnyActorLogic {
   getTransitionData(
     snapshot: any,
     event: any,
-    actor: AnyActorRef,
+    actorScope: AnyActorScope,
     selectionResults?: Map<AnyTransitionDefinition, unknown>
   ): AnyTransitionDefinition[];
   /** @internal */

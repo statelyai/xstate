@@ -18,6 +18,7 @@ import {
   Snapshot,
   SnapshotFrom
 } from './types.ts';
+import { lazyActorScope } from './actorScope.ts';
 
 /** @internal */
 export function setInertActorScopeSnapshot<T>(
@@ -25,7 +26,7 @@ export function setInertActorScopeSnapshot<T>(
   snapshot: T,
   attachActorRef = true
 ): T {
-  const lazyState = lazyInertActorScopes.get(actorScope);
+  const lazyState = getLazyInertActorState(actorScope);
   if (lazyState) {
     lazyState.snapshot = snapshot;
     if (lazyState.materialized) {
@@ -43,7 +44,7 @@ export function setInertActorScopeSnapshot<T>(
 /** @internal */
 export function isInertActorScope(actorScope: AnyActorScope): boolean {
   return (
-    lazyInertActorScopes.has(actorScope) ||
+    !!getLazyInertActorState(actorScope) ||
     !!(actorScope.self as any).options?._inert
   );
 }
@@ -55,7 +56,7 @@ export function attachSnapshotActorRef<T extends AnyActorLogic, TSnapshot>(
   snapshot: TSnapshot
 ): TSnapshot {
   setInertActorScopeSnapshot(actorScope, snapshot, false);
-  const lazyState = lazyInertActorScopes.get(actorScope);
+  const lazyState = getLazyInertActorState(actorScope);
   if (
     lazyState &&
     !lazyState.materialized &&
@@ -91,11 +92,63 @@ type LazyInertActorState = {
   sourceScope?: AnyActorScope;
   parent?: AnyActor;
   parentKnown: boolean;
+  materialize: () => AnyActorScope;
 };
 
-const lazyInertActorScopes = new WeakMap<AnyActorScope, LazyInertActorState>();
+const lazyInertActorState = Symbol();
+type LazyInertActorScope = AnyActorScope & {
+  [lazyInertActorState]?: LazyInertActorState;
+};
 const snapshotActorScopes = new WeakMap<object, AnyActorScope>();
 let inertActorMaterializationObserver: (() => void) | undefined;
+
+function getLazyInertActorState(
+  actorScope: AnyActorScope
+): LazyInertActorState | undefined {
+  return (actorScope as LazyInertActorScope)[lazyInertActorState];
+}
+
+function materializeInertActorScope(actorScope: AnyActorScope): AnyActorScope {
+  return getLazyInertActorState(actorScope)!.materialize();
+}
+
+const lazyInertActorScopePrototype = {
+  [lazyActorScope]: true,
+  get _parent() {
+    const actorScope = this as AnyActorScope;
+    const state = getLazyInertActorState(actorScope)!;
+    return state.parentKnown
+      ? state.parent
+      : materializeInertActorScope(actorScope).self._parent;
+  },
+  get self() {
+    return materializeInertActorScope(this as AnyActorScope).self;
+  },
+  get defer() {
+    return materializeInertActorScope(this as AnyActorScope).defer;
+  },
+  get id() {
+    return materializeInertActorScope(this as AnyActorScope).id;
+  },
+  get logger() {
+    return materializeInertActorScope(this as AnyActorScope).logger;
+  },
+  get sessionId() {
+    return materializeInertActorScope(this as AnyActorScope).sessionId;
+  },
+  get stopChild() {
+    return materializeInertActorScope(this as AnyActorScope).stopChild;
+  },
+  get system() {
+    return materializeInertActorScope(this as AnyActorScope).system;
+  },
+  get emit() {
+    return materializeInertActorScope(this as AnyActorScope).emit;
+  },
+  get actionExecutor() {
+    return materializeInertActorScope(this as AnyActorScope).actionExecutor;
+  }
+};
 
 /** Test-only allocation instrumentation. @internal */
 export function setInertActorMaterializationObserver(
@@ -176,90 +229,29 @@ export function createInertActorScope<T extends AnyActorLogic>(
       ? snapshotActorScopes.get(snapshot as object)
       : undefined;
   const sourceState = sourceScope
-    ? lazyInertActorScopes.get(sourceScope)
+    ? getLazyInertActorState(sourceScope)
     : undefined;
-  const state: LazyInertActorState = {
+  const state = {
     sourceSnapshot: snapshot,
     snapshot,
     sourceScope,
     parent: sourceSelf?._parent ?? sourceState?.parent,
     parentKnown: !!sourceSelf || !!sourceState?.parentKnown || !snapshot
-  };
-  const materialize = () =>
+  } as LazyInertActorState;
+  state.materialize = () =>
     (state.materialized ??= createMaterializedInertActorScope(
       actorLogic,
       state.sourceSnapshot as SnapshotFrom<T>,
       state.snapshot as SnapshotFrom<T>,
       sourceSelf
     ));
-  const actorScope = {} as ActorScope<
+  const actorScope = Object.create(lazyInertActorScopePrototype) as ActorScope<
     SnapshotFrom<T>,
     EventFromLogic<T>,
     any,
     EmittedFrom<T>
   >;
-  const systemProxy = new Proxy({} as AnyActor['system'], {
-    get: (_, key) => {
-      if (key === '_hasInspectionObservers') {
-        return () => false;
-      }
-      if (key === '_sendInspectionEvent') {
-        return () => {};
-      }
-      const system = materialize().system as any;
-      return Reflect.get(system, key, system);
-    },
-    set: (_, key, value) => {
-      const system = materialize().system as any;
-      return Reflect.set(system, key, value, system);
-    }
-  });
-  const selfProxy = new Proxy({} as AnyActor, {
-    get: (_, key) => {
-      if (key === '_parent' && state.parentKnown) {
-        return state.parent;
-      }
-      if (key === 'system') {
-        return systemProxy;
-      }
-      const self = materialize().self as any;
-      return Reflect.get(self, key, self);
-    },
-    set: (_, key, value) => {
-      const self = materialize().self as any;
-      return Reflect.set(self, key, value, self);
-    },
-    has: (_, key) => {
-      if (key === 'system' || (key === '_parent' && state.parentKnown)) {
-        return true;
-      }
-      return key in materialize().self;
-    },
-    ownKeys: () => Reflect.ownKeys(materialize().self),
-    getOwnPropertyDescriptor: (_, key) => {
-      const descriptor = Reflect.getOwnPropertyDescriptor(
-        materialize().self,
-        key
-      );
-      return descriptor ? { ...descriptor, configurable: true } : undefined;
-    }
-  });
-  Object.defineProperties(actorScope, {
-    _isInert: { value: true },
-    self: { enumerable: true, value: selfProxy },
-    defer: { enumerable: true, get: () => materialize().defer },
-    id: { enumerable: true, get: () => materialize().id },
-    logger: { enumerable: true, get: () => materialize().logger },
-    sessionId: { enumerable: true, get: () => materialize().sessionId },
-    stopChild: { enumerable: true, get: () => materialize().stopChild },
-    system: { enumerable: true, value: systemProxy },
-    emit: { enumerable: true, get: () => materialize().emit },
-    actionExecutor: {
-      enumerable: true,
-      get: () => materialize().actionExecutor
-    }
-  });
-  lazyInertActorScopes.set(actorScope, state);
+  (actorScope as LazyInertActorScope)[lazyInertActorState] = state;
   return actorScope;
 }
 

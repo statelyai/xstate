@@ -7,6 +7,7 @@ import {
   createTransitionEnqueue,
   resolveActionsWithContext
 } from './transitionActions.ts';
+import { isLazyActorScope, withActorScope } from './actorScope.ts';
 import type {
   ActorLogic,
   ActorScope,
@@ -437,16 +438,16 @@ export function createFSM<
         ? actionsConfig[i]
         : actionsConfig;
       const result = action(
-        {
-          context: context ?? snapshot.context,
-          event: event as TEvent,
-          input: stateInput as any,
-          value: snapshot.value,
-          self: actorScope.self,
-          system: actorScope.system,
-          parent: actorScope.self._parent,
-          children: snapshot.children
-        },
+        withActorScope(
+          {
+            context: context ?? snapshot.context,
+            event: event as TEvent,
+            input: stateInput as any,
+            value: snapshot.value,
+            children: snapshot.children
+          },
+          actorScope
+        ),
         enq
       );
       if (result?.context !== undefined) {
@@ -489,16 +490,16 @@ export function createFSM<
       const transition = Array.isArray(transitionsConfig)
         ? transitionsConfig[i]
         : transitionsConfig;
-      const args = {
-        context: snapshot.context,
-        event,
-        input: snapshot.input,
-        value: snapshot.value,
-        self: actorScope.self,
-        system: actorScope.system,
-        parent: actorScope.self._parent,
-        children: snapshot.children
-      };
+      const args = withActorScope(
+        {
+          context: snapshot.context,
+          event,
+          input: snapshot.input,
+          value: snapshot.value,
+          children: snapshot.children
+        },
+        actorScope
+      );
 
       if (typeof transition === 'function') {
         const actions: AnyAction[] = [];
@@ -610,19 +611,31 @@ export function createFSM<
       } else {
         const hasContext = directTransition.context !== undefined;
         const hasInput = directTransition.input !== undefined;
-        const resolvedContext = resolveTransitionContext(
-          directTransition.context,
-          {
-            context: snapshot.context,
-            event,
-            input: snapshot.input,
-            value: snapshot.value,
-            self: actorScope.self,
-            system: actorScope.system,
-            parent: actorScope.self._parent,
-            children: snapshot.children
-          }
-        );
+        const resolvedContext = !isLazyActorScope(actorScope)
+          ? resolveTransitionContext(directTransition.context, {
+              context: snapshot.context,
+              event,
+              input: snapshot.input,
+              value: snapshot.value,
+              self: actorScope.self,
+              system: actorScope.system,
+              parent: actorScope.self._parent,
+              children: snapshot.children
+            })
+          : typeof directTransition.context === 'function'
+            ? directTransition.context(
+                withActorScope(
+                  {
+                    context: snapshot.context,
+                    event,
+                    input: snapshot.input,
+                    value: snapshot.value,
+                    children: snapshot.children
+                  },
+                  actorScope
+                )
+              )
+            : directTransition.context;
         const context =
           hasContext && resolvedContext
             ? mergeContextPatch(snapshot.context, resolvedContext)
@@ -654,16 +667,16 @@ export function createFSM<
       !stateConfig?.exit
     ) {
       const result = directTransition(
-        {
-          context: snapshot.context,
-          event,
-          input: snapshot.input,
-          value: snapshot.value,
-          self: actorScope.self,
-          system: actorScope.system,
-          parent: actorScope.self._parent,
-          children: snapshot.children
-        },
+        withActorScope(
+          {
+            context: snapshot.context,
+            event,
+            input: snapshot.input,
+            value: snapshot.value,
+            children: snapshot.children
+          },
+          actorScope
+        ),
         undefined as any
       );
       if (result) {

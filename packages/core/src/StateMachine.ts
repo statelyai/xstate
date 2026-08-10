@@ -14,6 +14,7 @@ import {
   isInertActorScope,
   setInertActorScopeSnapshot
 } from './getNextSnapshot.ts';
+import { withActorScope } from './actorScope.ts';
 import {
   createMachineSnapshot,
   cloneMachineSnapshot,
@@ -629,7 +630,10 @@ export class StateMachine<
         ? ({ ...snapshot.context, ...selected.context } as TContext)
         : snapshot.context;
 
-    if (actorScope.system._hasInspectionObservers?.() ?? true) {
+    if (
+      !isInertActorScope(actorScope) &&
+      (actorScope.system._hasInspectionObservers?.() ?? true)
+    ) {
       const collectedMicrosteps =
         ((actorScope.self as any)._collectedMicrosteps as any[]) || [];
       collectedMicrosteps.push(selected);
@@ -696,7 +700,7 @@ export class StateMachine<
       TConfig
     >,
     event: TEvent,
-    self: AnyActor,
+    actorScope: AnyActorScope,
     selectionResults?: TransitionSelectionResults
   ): Array<AnyTransitionDefinition> {
     return (
@@ -705,7 +709,7 @@ export class StateMachine<
         snapshot.value,
         snapshot,
         event,
-        self,
+        actorScope,
         selectionResults
       ) || []
     );
@@ -732,12 +736,11 @@ export class StateMachine<
    * @internal
    */
   public _canTransition(snapshot: AnyMachineSnapshot, event: TEvent): boolean {
-    const emptyActor = getEmptyCanActor();
     const emptyActorScope = getEmptyCanActorScope();
     const transitionData = this.getTransitionData(
       snapshot as any,
       event,
-      emptyActor
+      emptyActorScope
     );
 
     if (!transitionData?.length) {
@@ -760,7 +763,13 @@ export class StateMachine<
       if (
         res.targets?.length ||
         res.context ||
-        hasEffect(transition, snapshot.context, event, snapshot, emptyActor)
+        hasEffect(
+          transition,
+          snapshot.context,
+          event,
+          snapshot,
+          emptyActorScope
+        )
       ) {
         return true;
       }
@@ -832,12 +841,16 @@ export class StateMachine<
     if (typeof context === 'function') {
       const children = {};
       const spawn = createSpawner(actorScope, this.sources.actors, children);
-      const resolvedContext = context({
-        spawn,
-        input: initEvent.input,
-        self: actorScope.self,
-        actors: this.sources.actors
-      });
+      const resolvedContext = context(
+        withActorScope(
+          {
+            spawn,
+            input: initEvent.input,
+            actors: this.sources.actors
+          },
+          actorScope
+        )
+      );
       const [nextState] = resolveActionsWithContext(
         preInitial,
         initEvent,

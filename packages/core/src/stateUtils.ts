@@ -63,6 +63,11 @@ import {
 import { parseDurationToMilliseconds } from './delay.ts';
 import { transitionEffectSignal, transitionEffectTargets } from './system.ts';
 import { isInertActorScope } from './getNextSnapshot.ts';
+import {
+  getActorScopeParent,
+  isLazyActorScope,
+  withActorScope
+} from './actorScope.ts';
 
 type AnyStateNodeIterable = Iterable<AnyStateNode>;
 
@@ -952,16 +957,21 @@ export function transitionNode<
     any // TStateSchema
   >,
   event: TEvent,
-  self: AnyActor,
+  actorScope: AnyActorScope,
   selectionResults?: TransitionSelectionResults
 ): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
   if (typeof stateValue === 'string') {
     const childStateNode = getStateNode(stateNode, stateValue);
-    const next = childStateNode.next(snapshot, event, self, selectionResults);
+    const next = childStateNode.next(
+      snapshot,
+      event,
+      actorScope,
+      selectionResults
+    );
 
     if (!next || !next.length) {
-      return stateNode.next(snapshot, event, self, selectionResults);
+      return stateNode.next(snapshot, event, actorScope, selectionResults);
     }
 
     return next;
@@ -977,12 +987,12 @@ export function transitionNode<
       stateValue[subStateKey]!,
       snapshot,
       event,
-      self,
+      actorScope,
       selectionResults
     );
 
     if (!next || !next.length) {
-      return stateNode.next(snapshot, event, self, selectionResults);
+      return stateNode.next(snapshot, event, actorScope, selectionResults);
     }
 
     return next;
@@ -1003,7 +1013,7 @@ export function transitionNode<
       subStateValue,
       snapshot,
       event,
-      self,
+      actorScope,
       selectionResults
     );
     if (innerTransitions) {
@@ -1012,7 +1022,7 @@ export function transitionNode<
   }
 
   if (!allInnerTransitions.length) {
-    return stateNode.next(snapshot, event, self, selectionResults);
+    return stateNode.next(snapshot, event, actorScope, selectionResults);
   }
 
   return allInnerTransitions;
@@ -1388,22 +1398,34 @@ function microstep(
           true
         );
 
-        const res = transitionFn(
-          {
-            context,
-            event,
-            parent: actorScope.self._parent,
-            self: actorScope.self,
-            children,
-            system: actorScope.system,
-            actions: currentSnapshot.machine.sources.actions,
-            actors: currentSnapshot.machine.sources.actors,
-            guards: currentSnapshot.machine.sources.guards,
-            delays: currentSnapshot.machine.sources.delays,
-            input
-          },
-          enqueue
-        );
+        const args = isLazyActorScope(actorScope)
+          ? withActorScope(
+              {
+                context,
+                event,
+                children,
+                actions: currentSnapshot.machine.sources.actions,
+                actors: currentSnapshot.machine.sources.actors,
+                guards: currentSnapshot.machine.sources.guards,
+                delays: currentSnapshot.machine.sources.delays,
+                input
+              },
+              actorScope
+            )
+          : {
+              context,
+              event,
+              parent: actorScope.self._parent,
+              self: actorScope.self,
+              children,
+              system: actorScope.system,
+              actions: currentSnapshot.machine.sources.actions,
+              actors: currentSnapshot.machine.sources.actors,
+              guards: currentSnapshot.machine.sources.guards,
+              delays: currentSnapshot.machine.sources.delays,
+              input
+            };
+        const res = transitionFn(args, enqueue);
 
         if (res?.context !== undefined) {
           updatedContext = mergeContextPatch(context, res.context);
@@ -2086,21 +2108,39 @@ export function getTransitionResult(
   internalEvents: EventObject[] | undefined;
   input: Record<string, unknown> | undefined;
 } {
-  const transitionArgs = {
-    context: snapshot.context,
-    event,
-    output: getEventOutput(event),
-    value: snapshot.value,
-    children: snapshot.children,
-    system: actorScope.system,
-    parent: actorScope.self._parent,
-    self: actorScope.self,
-    actions: snapshot.machine.sources.actions,
-    actors: snapshot.machine.sources.actors,
-    guards: snapshot.machine.sources.guards,
-    delays: snapshot.machine.sources.delays,
-    input: getStateInput(snapshot, transition.source.id)
-  };
+  let transitionArgs: any;
+  const getTransitionArgs = () =>
+    (transitionArgs ??= isLazyActorScope(actorScope)
+      ? withActorScope(
+          {
+            context: snapshot.context,
+            event,
+            output: getEventOutput(event),
+            value: snapshot.value,
+            children: snapshot.children,
+            actions: snapshot.machine.sources.actions,
+            actors: snapshot.machine.sources.actors,
+            guards: snapshot.machine.sources.guards,
+            delays: snapshot.machine.sources.delays,
+            input: getStateInput(snapshot, transition.source.id)
+          },
+          actorScope
+        )
+      : {
+          context: snapshot.context,
+          event,
+          output: getEventOutput(event),
+          value: snapshot.value,
+          children: snapshot.children,
+          system: actorScope.system,
+          parent: actorScope.self._parent,
+          self: actorScope.self,
+          actions: snapshot.machine.sources.actions,
+          actors: snapshot.machine.sources.actors,
+          guards: snapshot.machine.sources.guards,
+          delays: snapshot.machine.sources.delays,
+          input: getStateInput(snapshot, transition.source.id)
+        });
 
   if (transition.to) {
     const actions: AnyAction[] = [];
@@ -2108,7 +2148,7 @@ export function getTransitionResult(
     const res = options?.selectionResult?.reusable
       ? options.selectionResult.result
       : transition.to(
-          transitionArgs,
+          getTransitionArgs(),
           createTransitionEnqueue(
             actorScope,
             actions,
@@ -2153,7 +2193,7 @@ export function getTransitionResult(
       : transition.input;
   const resolvedContext =
     typeof transition.context === 'function'
-      ? transition.context(transitionArgs)
+      ? transition.context(getTransitionArgs())
       : transition.context;
 
   return {
@@ -2244,8 +2284,9 @@ export function macrostep(
     // collect microsteps; surfaced on the enclosing '@xstate.transition' event
     // via its `microsteps[]` facet (there is no standalone microstep event)
     if (
-      (event.type === XSTATE_INIT && !isInertActorScope(actorScope)) ||
-      (actorScope.system._hasInspectionObservers?.() ?? true)
+      !isInertActorScope(actorScope) &&
+      (event.type === XSTATE_INIT ||
+        (actorScope.system._hasInspectionObservers?.() ?? true))
     ) {
       const collectedMicrosteps =
         ((actorScope.self as any)._collectedMicrosteps as any[]) || [];
@@ -2307,7 +2348,7 @@ export function macrostep(
     const transitions = nextSnapshot.machine.getTransitionData(
       nextSnapshot as any,
       currentEvent,
-      actorScope.self,
+      actorScope,
       selectionResults
     );
 
@@ -2392,7 +2433,7 @@ export function macrostep(
       enabledTransitions = nextSnapshot.machine.getTransitionData(
         nextSnapshot as any,
         nextEvent,
-        actorScope.self,
+        actorScope,
         selectionResults
       );
     }
@@ -2434,7 +2475,7 @@ export function hasEffect(
   context: MachineContext,
   event: EventObject,
   snapshot: AnyMachineSnapshot,
-  self: AnyActor
+  actorScope: AnyActorScope
 ): boolean {
   if (transition.to) {
     return evaluateTransitionFunction(
@@ -2442,7 +2483,7 @@ export function hasEffect(
       context,
       event,
       snapshot,
-      self,
+      actorScope,
       snapshot.machine.sources,
       transition.source.id
     ).enabled;
@@ -2475,33 +2516,33 @@ function evaluateTransitionFunction(
   context: MachineContext,
   event: EventObject,
   snapshot: AnyMachineSnapshot,
-  self: AnyActor,
+  actorScope: AnyActorScope,
   sources: AnyMachineSnapshot['machine']['sources'],
   sourceId: string
 ): TransitionSelectionResult {
   let res;
-  const parent = self._parent;
+  const parent = getActorScopeParent(actorScope);
   if (parent) {
     transitionEffectTargets.push(parent);
   }
 
   try {
     res = transitionTo(
-      {
-        context,
-        event,
-        output: getEventOutput(event),
-        self,
-        system: self.system,
-        value: snapshot.value,
-        children: snapshot.children,
-        parent,
-        actions: sources.actions,
-        actors: sources.actors,
-        guards: sources.guards,
-        delays: sources.delays,
-        input: getStateInput(snapshot, sourceId)
-      },
+      withActorScope(
+        {
+          context,
+          event,
+          output: getEventOutput(event),
+          value: snapshot.value,
+          children: snapshot.children,
+          actions: sources.actions,
+          actors: sources.actors,
+          guards: sources.guards,
+          delays: sources.delays,
+          input: getStateInput(snapshot, sourceId)
+        },
+        actorScope
+      ),
       getTransitionEffectEnqueue()
     );
   } catch (err) {
@@ -2575,13 +2616,7 @@ function selectEventlessTransitions(
       }
       for (const transition of stateNode.always) {
         if (
-          evaluateCandidate(
-            transition,
-            event,
-            snapshot,
-            stateNode,
-            actorScope.self
-          )
+          evaluateCandidate(transition, event, snapshot, stateNode, actorScope)
         ) {
           enabledTransitionSet.add(transition);
           break loop;
@@ -2603,7 +2638,7 @@ export function evaluateCandidate(
   event: EventObject,
   snapshot: AnyMachineSnapshot,
   stateNode: AnyStateNode,
-  self: AnyActor,
+  actorScope: AnyActorScope,
   selectionResults?: TransitionSelectionResults
 ): boolean {
   if (candidate.matches && !matchesEvent(event, candidate.matches)) {
@@ -2615,19 +2650,20 @@ export function evaluateCandidate(
   }
 
   if (candidate.guard) {
-    const guardArgs = {
-      context: snapshot.context,
-      event,
-      output: getEventOutput(event),
-      self,
-      parent: self._parent,
-      children: snapshot.children,
-      actions: stateNode.machine.sources.actions,
-      actors: stateNode.machine.sources.actors,
-      guards: stateNode.machine.sources.guards,
-      delays: stateNode.machine.sources.delays,
-      _snapshot: snapshot
-    };
+    const guardArgs = withActorScope(
+      {
+        context: snapshot.context,
+        event,
+        output: getEventOutput(event),
+        children: snapshot.children,
+        actions: stateNode.machine.sources.actions,
+        actors: stateNode.machine.sources.actors,
+        guards: stateNode.machine.sources.guards,
+        delays: stateNode.machine.sources.delays,
+        _snapshot: snapshot
+      },
+      actorScope
+    );
     if (!(candidate.guard as (args: typeof guardArgs) => boolean)(guardArgs)) {
       return false;
     }
@@ -2639,7 +2675,7 @@ export function evaluateCandidate(
       snapshot.context,
       event,
       snapshot,
-      self,
+      actorScope,
       stateNode.machine.sources,
       candidate.source.id
     );
