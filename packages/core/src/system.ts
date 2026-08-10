@@ -38,6 +38,11 @@ interface Scheduler {
 
 let nextFallbackSystemId = 0;
 
+/** @internal */
+export const transitionEffectSignal = new Error('Transition effect');
+/** @internal */
+export const transitionEffectTargets: AnyActor[] = [];
+
 function createSystemId(): string {
   let crypto: Crypto | undefined;
   try {
@@ -565,6 +570,12 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void {
+    if (
+      transitionEffectTargets.length &&
+      transitionEffectTargets.includes(target)
+    ) {
+      throw transitionEffectSignal;
+    }
     this.sendEvent(source, target, event);
   }
 

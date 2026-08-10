@@ -61,6 +61,7 @@ import {
   resolveActionsWithContext
 } from './transitionActions.ts';
 import { parseDurationToMilliseconds } from './delay.ts';
+import { transitionEffectSignal, transitionEffectTargets } from './system.ts';
 
 type AnyStateNodeIterable = Iterable<AnyStateNode>;
 
@@ -2241,7 +2242,10 @@ export function macrostep(
   ) {
     // collect microsteps; surfaced on the enclosing '@xstate.transition' event
     // via its `microsteps[]` facet (there is no standalone microstep event)
-    if (actorScope.system._hasInspectionObservers?.() ?? true) {
+    if (
+      event.type === XSTATE_INIT ||
+      (actorScope.system._hasInspectionObservers?.() ?? true)
+    ) {
       const collectedMicrosteps =
         ((actorScope.self as any)._collectedMicrosteps as any[]) || [];
       collectedMicrosteps.push(...transitions);
@@ -2446,7 +2450,6 @@ export function hasEffect(
   return false;
 }
 
-const transitionEffectSignal = new Error('Transition effect');
 const triggerTransitionEffect = () => {
   throw transitionEffectSignal;
 };
@@ -2465,7 +2468,6 @@ function getTransitionEffectEnqueue() {
     triggerTransitionEffect
   ));
 }
-const transitionEffectParent = { send: triggerTransitionEffect };
 
 function evaluateTransitionFunction(
   transitionTo: NonNullable<AnyTransitionDefinition['to']>,
@@ -2477,6 +2479,10 @@ function evaluateTransitionFunction(
   sourceId: string
 ): TransitionSelectionResult {
   let res;
+  const parent = self._parent;
+  if (parent) {
+    transitionEffectTargets.push(parent);
+  }
 
   try {
     res = transitionTo(
@@ -2488,7 +2494,7 @@ function evaluateTransitionFunction(
         system: self.system,
         value: snapshot.value,
         children: snapshot.children,
-        parent: transitionEffectParent as any,
+        parent,
         actions: sources.actions,
         actors: sources.actors,
         guards: sources.guards,
@@ -2502,6 +2508,10 @@ function evaluateTransitionFunction(
       return { enabled: true, result: undefined, reusable: false };
     }
     throw err;
+  } finally {
+    if (parent) {
+      transitionEffectTargets.pop();
+    }
   }
 
   return { enabled: res !== undefined, result: res, reusable: true };
