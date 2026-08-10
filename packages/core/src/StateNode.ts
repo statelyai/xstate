@@ -9,9 +9,9 @@ import {
   getCandidates,
   getEventDescriptorKey,
   getDelayedTransitions,
-  matchesActorSession
+  matchesActorSession,
+  type TransitionSelectionResults
 } from './stateUtils.ts';
-import type { TransitionSelectionResults } from './stateUtils.ts';
 import type {
   DelayedTransitionDefinition,
   EventObject,

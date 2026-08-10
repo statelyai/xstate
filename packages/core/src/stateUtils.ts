@@ -1337,14 +1337,6 @@ function microstep(
     let historyValue = currentSnapshot.historyValue;
     const originalContext = currentSnapshot.context;
 
-    const resolvePlanningTransition = createTransitionResultResolver(
-      currentSnapshot,
-      event,
-      actorScope,
-      false,
-      selectionResults
-    );
-
     const filteredTransitions =
       transitions.length === 1
         ? transitions
@@ -1352,7 +1344,13 @@ function microstep(
             transitions,
             mutStateNodeSet,
             currentSnapshot,
-            resolvePlanningTransition
+            createTransitionResultResolver(
+              currentSnapshot,
+              event,
+              actorScope,
+              false,
+              selectionResults
+            )
           );
     const getCurrentTransitionResult = createTransitionResultResolver(
       currentSnapshot,
@@ -1361,12 +1359,10 @@ function microstep(
       true,
       selectionResults
     );
-    const transitionResults = filteredTransitions.map(
-      getCurrentTransitionResult
-    );
-    const changesState = transitionResults.some(
-      ({ targets, reenter }) => !!targets?.length || !!reenter
-    );
+    const changesState = filteredTransitions.some((transition) => {
+      const { targets, reenter } = getCurrentTransitionResult(transition);
+      return !!targets?.length || !!reenter;
+    });
     const getStateActionsAndContext = (
       transitionFn: any,
       context: MachineContext,
@@ -2372,6 +2368,7 @@ export function macrostep(
       );
     }
 
+    let selectionResults: TransitionSelectionResults | undefined;
     let enabledTransitions: AnyTransitionDefinition[] =
       shouldSelectEventlessTransitions
         ? selectEventlessTransitions(nextSnapshot, nextEvent, actorScope)
@@ -2386,27 +2383,13 @@ export function macrostep(
         break;
       }
       nextEvent = internalQueue.shift()!;
-      const selectionResults: TransitionSelectionResults = new Map();
+      selectionResults = new Map();
       enabledTransitions = nextSnapshot.machine.getTransitionData(
         nextSnapshot as any,
         nextEvent,
         actorScope.self,
         selectionResults
       );
-      const step = microstep(
-        enabledTransitions,
-        nextSnapshot,
-        actorScope,
-        nextEvent,
-        false,
-        internalQueue,
-        selectionResults
-      );
-      nextSnapshot = step[0];
-      shouldSelectEventlessTransitions = nextSnapshot !== previousState;
-      addMicrostep(step, enabledTransitions);
-      removeTerminatedChild(nextEvent);
-      continue;
     }
 
     const step = microstep(
@@ -2415,7 +2398,8 @@ export function macrostep(
       actorScope,
       nextEvent,
       false,
-      internalQueue
+      internalQueue,
+      selectionResults
     );
     nextSnapshot = step[0];
     shouldSelectEventlessTransitions = nextSnapshot !== previousState;

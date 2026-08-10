@@ -34,9 +34,9 @@ import {
   isStateId,
   macrostep,
   resolveStateValue,
-  transitionNode
+  transitionNode,
+  type TransitionSelectionResults
 } from './stateUtils.ts';
-import type { TransitionSelectionResults } from './stateUtils.ts';
 import {
   createSpawnEffect,
   resolveActionsWithContext
