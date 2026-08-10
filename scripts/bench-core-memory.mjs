@@ -23,6 +23,7 @@ if (!scenarioName) {
     'invoked child',
     'observed invoked child',
     'active mailbox actor',
+    'pure context planning',
     'flat machine actor',
     'compound machine actor',
     'parallel machine actor'
@@ -77,8 +78,9 @@ if (typeof global.gc !== 'function') {
 }
 
 const require = createRequire(import.meta.url);
-const { createActor, createMachine } = require(
-  join(root, 'packages/core/dist/xstate.development.cjs.js')
+const { createActor, createMachine, initialTransition, transition } = require(
+  process.env.XSTATE_BUNDLE ??
+    join(root, 'packages/core/dist/xstate.development.cjs.js')
 );
 const noop = () => {};
 const idleMachine = createMachine({});
@@ -89,6 +91,14 @@ const spawnedMachine = createMachine({
   entry: (_, enq) => enq.spawn(idleMachine, { id: 'child' })
 });
 const activeMailboxMachine = createMachine({ on: { PING: {} } });
+const pureContextMachine = createMachine({
+  context: { count: 0 },
+  on: {
+    INCREMENT: ({ context }) => ({
+      context: { count: context.count + 1 }
+    })
+  }
+});
 const flatMachine = createMachine({
   initial: 'one',
   states: { one: {}, two: {}, three: {} }
@@ -162,6 +172,15 @@ const factories = {
       actor.send({ type: 'PING' });
     }
     return actor;
+  },
+  'pure context planning': () => {
+    let [snapshot] = initialTransition(pureContextMachine);
+    for (let index = 0; index < 10; index++) {
+      [snapshot] = transition(pureContextMachine, snapshot, {
+        type: 'INCREMENT'
+      });
+    }
+    return snapshot;
   },
   'flat machine actor': () => createActor(flatMachine).start(),
   'compound machine actor': () => createActor(compoundMachine).start(),

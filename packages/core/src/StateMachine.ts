@@ -629,10 +629,12 @@ export class StateMachine<
         ? ({ ...snapshot.context, ...selected.context } as TContext)
         : snapshot.context;
 
-    const collectedMicrosteps =
-      ((actorScope.self as any)._collectedMicrosteps as any[]) || [];
-    collectedMicrosteps.push(selected);
-    (actorScope.self as any)._collectedMicrosteps = collectedMicrosteps;
+    if (actorScope.system._hasInspectionObservers?.() ?? true) {
+      const collectedMicrosteps =
+        ((actorScope.self as any)._collectedMicrosteps as any[]) || [];
+      collectedMicrosteps.push(selected);
+      (actorScope.self as any)._collectedMicrosteps = collectedMicrosteps;
+    }
 
     return cloneMachineSnapshot(snapshot, {
       ...(context !== snapshot.context ? { context } : {}),

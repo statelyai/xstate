@@ -25,6 +25,7 @@ import { listenerLogic } from '../src/actors/listener';
 import { subscriptionLogic } from '../src/actors/subscription';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_STOP } from '../src/constants';
 import { getSnapshotActorRef } from '../src/snapshotActorRef';
+import { setInertActorMaterializationObserver } from '../src/getNextSnapshot';
 import { z } from 'zod';
 
 const isEffect =
@@ -86,6 +87,52 @@ function describeEffects(effects: ExecutableActionObject[]): string[] {
 }
 
 describe('transition function', () => {
+  it('does not materialize actors or systems for context-only planning', () => {
+    let materializations = 0;
+    setInertActorMaterializationObserver(() => materializations++);
+    try {
+      const machine = createMachine({
+        context: { count: 0 },
+        on: {
+          INCREMENT: ({ context }) => ({
+            context: { count: context.count + 1 }
+          })
+        }
+      });
+
+      let [snapshot] = initialTransition(machine);
+      for (let index = 0; index < 100; index++) {
+        [snapshot] = transition(machine, snapshot, { type: 'INCREMENT' });
+      }
+
+      expect(snapshot.context.count).toBe(100);
+      expect(materializations).toBe(0);
+
+      const checkingMachine = createMachine({
+        context: { found: false },
+        on: {
+          CHECK: ({ system }) => ({
+            context: { found: !!system.get('missing') }
+          })
+        }
+      });
+      let [checkingSnapshot] = initialTransition(checkingMachine);
+      for (let index = 0; index < 100; index++) {
+        [checkingSnapshot] = transition(checkingMachine, checkingSnapshot, {
+          type: 'UNKNOWN'
+        });
+      }
+      [checkingSnapshot] = transition(checkingMachine, checkingSnapshot, {
+        type: 'CHECK'
+      });
+
+      expect(checkingSnapshot.context.found).toBe(false);
+      expect(materializations).toBe(2);
+    } finally {
+      setInertActorMaterializationObserver(undefined);
+    }
+  });
+
   it('does not repeatedly resolve a selected transition during a microstep', () => {
     const update = vi.fn(({ context }: { context: { count: number } }) => ({
       context: { count: context.count + 1 }

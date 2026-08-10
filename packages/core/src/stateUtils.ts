@@ -62,6 +62,7 @@ import {
 } from './transitionActions.ts';
 import { parseDurationToMilliseconds } from './delay.ts';
 import { transitionEffectSignal, transitionEffectTargets } from './system.ts';
+import { isInertActorScope } from './getNextSnapshot.ts';
 
 type AnyStateNodeIterable = Iterable<AnyStateNode>;
 
@@ -2243,7 +2244,7 @@ export function macrostep(
     // collect microsteps; surfaced on the enclosing '@xstate.transition' event
     // via its `microsteps[]` facet (there is no standalone microstep event)
     if (
-      event.type === XSTATE_INIT ||
+      (event.type === XSTATE_INIT && !isInertActorScope(actorScope)) ||
       (actorScope.system._hasInspectionObservers?.() ?? true)
     ) {
       const collectedMicrosteps =

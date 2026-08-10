@@ -16,6 +16,7 @@ interface SnapshotSystemState {
 }
 
 const snapshotActorRefs = new WeakMap<object, SnapshotActorRef>();
+const lazySnapshotActorRefs = new WeakMap<object, () => SnapshotActorRef>();
 const emptyKeyedActors = new Map<PropertyKey, AnyActor | undefined>();
 
 function copyRegisteredActors(
@@ -162,7 +163,26 @@ export function createSnapshotSystem(
 export function getSnapshotActorRef(
   snapshot: Snapshot<unknown>
 ): SnapshotActorRef | undefined {
-  return snapshotActorRefs.get(snapshot);
+  const existing = snapshotActorRefs.get(snapshot);
+  if (existing) {
+    return existing;
+  }
+  const create = lazySnapshotActorRefs.get(snapshot);
+  if (!create) {
+    return undefined;
+  }
+  const created = create();
+  snapshotActorRefs.set(snapshot, created);
+  lazySnapshotActorRefs.delete(snapshot);
+  return created;
+}
+
+/** Defers actor/system identity allocation until a snapshot capability is used. @internal */
+export function setLazySnapshotActorRef(
+  snapshot: Snapshot<unknown>,
+  create: () => SnapshotActorRef
+): void {
+  lazySnapshotActorRefs.set(snapshot, create);
 }
 
 /**
@@ -173,11 +193,18 @@ export function getSnapshotActorRef(
 export function copySnapshotActorRef(
   source: Snapshot<unknown>,
   target: Snapshot<unknown>
-): void {
-  const ref = getSnapshotActorRef(source);
+): boolean {
+  const ref = snapshotActorRefs.get(source);
   if (ref) {
     snapshotActorRefs.set(target, ref);
+    return true;
   }
+  const create = lazySnapshotActorRefs.get(source);
+  if (create) {
+    lazySnapshotActorRefs.set(target, create);
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -192,6 +219,7 @@ export function setSnapshotActorRef(
   baseSystem: AnyActor['system'] = actor.system,
   previousSnapshot?: Snapshot<unknown>
 ): void {
+  lazySnapshotActorRefs.delete(snapshot);
   const sourceVersion = getSystemSnapshotVersion(baseSystem);
   const previousRef = previousSnapshot
     ? getSnapshotActorRef(previousSnapshot)
