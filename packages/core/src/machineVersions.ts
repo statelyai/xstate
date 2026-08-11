@@ -3,6 +3,8 @@ import type { AnyMachineSchemas } from './types.v6.ts';
 import type {
   AnyStateMachine,
   ContextFrom,
+  EventFrom,
+  EventObject,
   PersistedSnapshotFor,
   Snapshot
 } from './types.ts';
@@ -96,6 +98,37 @@ export type MigrateSnapshotOptions<
   >;
 };
 
+export type EventHistorySource = {
+  id?: string;
+  version?: string;
+};
+
+export type EventAdapterHandlers<
+  TMachines extends readonly VersionedStateMachine[],
+  TTarget extends VersionedStateMachine
+> = {
+  [TVersion in Exclude<MachineVersion<TMachines>, TTarget['version']>]?: (
+    events: readonly EventFrom<MachineForVersion<TMachines, TVersion>>[]
+  ) => MaybePromise<readonly EventFrom<TTarget>[]>;
+} & {
+  '*'?: (
+    events: readonly unknown[],
+    source: EventHistorySource
+  ) => MaybePromise<readonly EventFrom<TTarget>[]>;
+};
+
+export type AdaptEventsOptions<
+  TMachines extends readonly VersionedStateMachine[],
+  TTargetVersion extends MachineVersion<TMachines>
+> = {
+  from: EventHistorySource;
+  to: TTargetVersion;
+  adapters: EventAdapterHandlers<
+    TMachines,
+    MachineForVersion<TMachines, TTargetVersion>
+  >;
+};
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object';
 }
@@ -155,7 +188,39 @@ async function finalizeSnapshot<TTarget extends VersionedStateMachine>(
   } as unknown as PersistedSnapshotFrom<TTarget>;
 }
 
-/** Creates parsers backed by retained versions of one machine. */
+async function validateEvents<TMachine extends VersionedStateMachine>(
+  events: readonly unknown[],
+  machine: TMachine
+): Promise<EventFrom<TMachine>[]> {
+  return Promise.all(
+    events.map(async (event, index) => {
+      if (!isObject(event) || typeof event.type !== 'string') {
+        throw new Error(`Invalid event at index ${index}.`);
+      }
+      const schema = machine.schemas?.events?.[event.type];
+      if (machine.schemas?.events && !schema) {
+        throw new Error(
+          `Unknown event '${event.type}' for machine '${machine.id}' version '${machine.version}'.`
+        );
+      }
+      if (!schema) {
+        return event as EventFrom<TMachine>;
+      }
+      const { type, ...payload } = event;
+      const validatedPayload = await validate(
+        schema,
+        payload,
+        `event '${type}' at index ${index}`
+      );
+      if (!isObject(validatedPayload)) {
+        throw new Error(`Invalid event '${type}' at index ${index}.`);
+      }
+      return { ...validatedPayload, type } as EventFrom<TMachine>;
+    })
+  );
+}
+
+/** Creates migration and adaptation utilities backed by retained versions of one machine. */
 export function machineVersions<
   const TMachines extends readonly [
     VersionedStateMachine,
@@ -255,6 +320,78 @@ export function machineVersions<
 
   return {
     parseSnapshot,
+    async adaptEvents<TTargetVersion extends MachineVersion<TMachines>>(
+      events: readonly unknown[],
+      adaptationOptions: AdaptEventsOptions<TMachines, TTargetVersion>
+    ): Promise<EventFrom<MachineForVersion<TMachines, TTargetVersion>>[]> {
+      type TargetMachine = MachineForVersion<TMachines, TTargetVersion>;
+      const target = byIdentity.get(`${machineId}\0${adaptationOptions.to}`) as
+        | TargetMachine
+        | undefined;
+      if (!target) {
+        throw new Error(
+          `Target version '${adaptationOptions.to}' is not retained for machine '${machineId}'.`
+        );
+      }
+
+      const source = byIdentity.get(
+        `${adaptationOptions.from.id}\0${adaptationOptions.from.version}`
+      );
+      let sourceError: unknown;
+      let sourceValidationFailed = false;
+      if (source) {
+        let sourceEvents: EventObject[] | undefined;
+        try {
+          sourceEvents = await validateEvents(events, source);
+        } catch (error) {
+          sourceError = error;
+          sourceValidationFailed = true;
+        }
+        if (sourceEvents) {
+          if (source === target) {
+            return sourceEvents as EventFrom<TargetMachine>[];
+          }
+          const adapter = (
+            adaptationOptions.adapters as Record<
+              string,
+              | ((
+                  events: readonly EventObject[]
+                ) =>
+                  | readonly EventFrom<TargetMachine>[]
+                  | PromiseLike<readonly EventFrom<TargetMachine>[]>)
+              | undefined
+            >
+          )[source.version];
+          if (adapter) {
+            return validateEvents(await adapter(sourceEvents), target);
+          }
+        }
+      }
+
+      const wildcardAdapter = adaptationOptions.adapters['*'];
+      if (wildcardAdapter) {
+        return validateEvents(
+          await wildcardAdapter(events, adaptationOptions.from),
+          target
+        );
+      }
+      if (source) {
+        if (sourceValidationFailed) {
+          throw sourceError instanceof Error
+            ? sourceError
+            : new Error(
+                `Unable to validate event history for machine '${source.id}' version '${source.version}'.`,
+                { cause: sourceError }
+              );
+        }
+        throw new Error(
+          `No event adapter from version '${source.version}' to '${target.version}' for machine '${target.id}'.`
+        );
+      }
+      throw new Error(
+        `Unknown event history source '${adaptationOptions.from.id}' version '${adaptationOptions.from.version}'.`
+      );
+    },
     async migrateSnapshot<TTargetVersion extends MachineVersion<TMachines>>(
       raw: unknown,
       migrationOptions: MigrateSnapshotOptions<TMachines, TTargetVersion>

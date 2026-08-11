@@ -29,6 +29,9 @@ export {
 export { mapState } from './mapState.ts';
 export {
   machineVersions,
+  type AdaptEventsOptions,
+  type EventAdapterHandlers,
+  type EventHistorySource,
   type MigrateSnapshotOptions,
   type MachineVersionsOptions,
   type ParsedPersistedSnapshot,
