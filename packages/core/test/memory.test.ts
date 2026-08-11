@@ -3,7 +3,8 @@ import {
   AnyActorSystem,
   createActor,
   createMachine,
-  Snapshot
+  Snapshot,
+  transition
 } from '../src';
 
 describe('runtime allocation lifecycle', () => {
@@ -51,11 +52,23 @@ describe('runtime allocation lifecycle', () => {
   });
 
   it('keeps the running root inline until registered actors are requested', () => {
-    const actor = createActor(createMachine({})).start();
+    let transitionSawRoot = false;
+    let actor: ReturnType<typeof createActor>;
+    const machine = createMachine({
+      on: {
+        CHECK: ({ system }) => {
+          transitionSawRoot = system.children.get(actor.sessionId) === actor;
+        }
+      }
+    });
+    actor = createActor(machine).start();
     const runtimeSystem = actor.system as typeof actor.system & {
       _children?: Map<string, unknown>;
     };
 
+    expect(runtimeSystem._children).toBeUndefined();
+    transition(machine, actor.getSnapshot(), { type: 'CHECK' });
+    expect(transitionSawRoot).toBe(true);
     expect(runtimeSystem._children).toBeUndefined();
     expect(actor.system.children.get(actor.sessionId)).toBe(actor);
     expect(runtimeSystem._children?.size).toBe(1);
@@ -69,11 +82,20 @@ describe('runtime allocation lifecycle', () => {
     expect(Object.hasOwn(first.system, 'sendEvent')).toBe(false);
   });
 
+  it('shares enumerable default actor options but copies explicit options', () => {
+    const logic = createMachine({});
+    const first = createActor(logic);
+    const second = createActor(logic);
+    const explicit = createActor(logic, {});
+
+    expect(first.options).toBe(second.options);
+    expect(Object.keys(first.options)).toEqual(['clock', 'logger']);
+    expect(explicit.options).not.toBe(first.options);
+    expect(Object.keys(explicit.options)).toEqual(['clock', 'logger']);
+  });
+
   it('keeps detachable actor-scope operations lazy', () => {
     type ScopeMethods = {
-      _defer?: (fn: () => void) => void;
-      _stopChild?: (child: never) => void;
-      _actionExecutor?: (action: never) => void;
       defer: (fn: () => void) => void;
       stopChild: (child: never) => void;
       actionExecutor: (action: never) => void;
@@ -86,15 +108,64 @@ describe('runtime allocation lifecycle', () => {
     const secondScope = (second as unknown as { _actorScope: ScopeMethods })
       ._actorScope;
 
-    expect(firstScope._defer).toBeUndefined();
-    expect(firstScope._stopChild).toBeUndefined();
-    expect(firstScope._actionExecutor).toBeUndefined();
+    expect(Object.hasOwn(firstScope, 'defer')).toBe(false);
+    expect(Object.hasOwn(firstScope, 'stopChild')).toBe(false);
+    expect(Object.hasOwn(firstScope, 'actionExecutor')).toBe(false);
 
     const detachedDefer = firstScope.defer;
     detachedDefer(() => {});
 
-    expect(firstScope._defer).toBe(detachedDefer);
-    expect(secondScope._defer).toBeUndefined();
+    expect(firstScope.defer).toBe(detachedDefer);
+    expect(Object.hasOwn(firstScope, 'defer')).toBe(true);
+    expect(Object.hasOwn(secondScope, 'defer')).toBe(false);
+  });
+
+  it('keeps detached actor-scope operations callable asynchronously', async () => {
+    const childLogic = createMachine({});
+    const actor = createActor(
+      createMachine({
+        invoke: { id: 'child', src: childLogic },
+        on: { FLUSH: {} }
+      })
+    ).start();
+    const child = actor.getSnapshot().children.child!;
+    const scope = (
+      actor as unknown as {
+        _actorScope: {
+          defer: (fn: () => void) => void;
+          emit: (event: { type: string }) => void;
+          stopChild: (child: typeof actor) => void;
+          actionExecutor: (action: unknown) => void;
+        };
+      }
+    )._actorScope;
+    const { defer, emit, stopChild, actionExecutor } = scope;
+    let deferred = false;
+    let emitted = false;
+    let executed = false;
+
+    actor.on('scope-event' as never, () => {
+      emitted = true;
+    });
+    await Promise.resolve();
+    defer(() => {
+      deferred = true;
+    });
+    emit({ type: 'scope-event' });
+    actionExecutor({
+      type: 'scope-action',
+      params: undefined,
+      exec: () => {
+        executed = true;
+      }
+    });
+    actor.send({ type: 'FLUSH' });
+    stopChild(child as typeof actor);
+
+    expect(deferred).toBe(true);
+    expect(emitted).toBe(true);
+    expect(executed).toBe(true);
+    expect(child.getSnapshot().status).toBe('stopped');
   });
 
   it('shares frozen empty snapshot records', () => {

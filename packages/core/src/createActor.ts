@@ -59,7 +59,10 @@ import {
 } from './types.ts';
 import { toObserver } from './utils.ts';
 import { finalizeTransitionResult } from './transitionActions.ts';
-import { setSnapshotActorRef } from './snapshotActorRef.ts';
+import {
+  refreshSnapshotActorRefRoot,
+  setSnapshotActorRef
+} from './snapshotActorRef.ts';
 
 export const $$ACTOR_TYPE = 1;
 
@@ -72,7 +75,7 @@ export enum ProcessingStatus {
   Stopped = 2
 }
 
-const defaultOptions = {
+const defaultOptions = Object.freeze({
   clock: {
     setTimeout: (fn, ms) => {
       return setTimeout(fn, ms);
@@ -82,7 +85,7 @@ const defaultOptions = {
     }
   } as Clock,
   logger: console.log.bind(console)
-};
+});
 
 function safeCall<T>(fn: ((arg: T) => void) | undefined, arg?: T) {
   try {
@@ -110,62 +113,6 @@ function createActorRef(
   options: ActorOptions<AnyActorLogic>
 ): AnyActor {
   return new Actor(logic, options);
-}
-
-class RuntimeActorScope<TLogic extends AnyActorLogic> implements ActorScope<
-  SnapshotFrom<TLogic>,
-  EventFromLogic<TLogic>,
-  AnyActorSystem,
-  EmittedFrom<TLogic>,
-  SendableEventFromLogic<TLogic>
-> {
-  private _defer?: (fn: () => void) => void;
-  private _stopChild?: (child: AnyActor) => void;
-  private _emit?: (event: EmittedFrom<TLogic>) => void | PromiseLike<void>;
-  private _actionExecutor?: (action: ExecutableActionObject) => void;
-
-  constructor(private actor: Actor<TLogic>) {}
-
-  public get self(): Actor<TLogic> {
-    return this.actor;
-  }
-
-  public get id(): string {
-    return this.actor.id;
-  }
-
-  public get sessionId(): string {
-    return this.actor.sessionId;
-  }
-
-  public get logger(): ActorScope<
-    SnapshotFrom<TLogic>,
-    EventFromLogic<TLogic>
-  >['logger'] {
-    return this.actor._getLogger();
-  }
-
-  public get system(): AnyActorSystem {
-    return this.actor.system;
-  }
-
-  public get defer(): (fn: () => void) => void {
-    return (this._defer ??= (fn) => this.actor._defer(fn));
-  }
-
-  public get stopChild(): (child: AnyActor) => void {
-    return (this._stopChild ??= (child) => this.actor._stopChild(child));
-  }
-
-  public get emit(): (event: EmittedFrom<TLogic>) => void | PromiseLike<void> {
-    return (this._emit ??= (event) =>
-      this.actor.system.emitEvent(this.actor, event));
-  }
-
-  public get actionExecutor(): (action: ExecutableActionObject) => void {
-    return (this._actionExecutor ??= (action) =>
-      this.actor._executeAction(action));
-  }
 }
 
 /**
@@ -290,10 +237,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     public logic: TLogic,
     options?: ActorOptions<TLogic>
   ) {
-    const resolvedOptions = {
-      ...defaultOptions,
-      ...options
-    };
+    const resolvedOptions = (
+      options ? { ...defaultOptions, ...options } : defaultOptions
+    ) as ActorOptions<TLogic> & typeof defaultOptions;
 
     const { clock, logger, parent, syncSnapshot, id, registryKey, inspect } =
       resolvedOptions;
@@ -331,7 +277,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       typeof defaultOptions;
     this.src = resolvedOptions.src ?? logic;
     this.ref = this;
-    this._actorScope = new RuntimeActorScope(this);
+    this._actorScope = this as unknown as typeof this._actorScope;
 
     if (registryKey) {
       this.registryKey = registryKey;
@@ -360,7 +306,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
           this.logic.initialTransition(this.options?.input, this._actorScope)
         );
         this._setSnapshot(snapshot);
-        this._initialEffects = effects;
+        this._initialEffects = effects.length ? effects : undefined;
       }
     } catch (err) {
       // if we get here then it means that we assign a value to this._snapshot that is not of the correct type
@@ -411,6 +357,36 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     EventFromLogic<TLogic>
   >['logger'] {
     return this.logger;
+  }
+
+  private get self(): Actor<TLogic> {
+    return this;
+  }
+
+  private get defer(): (fn: () => void) => void {
+    const defer = (fn: () => void) => this._defer(fn);
+    Object.defineProperty(this, 'defer', { value: defer });
+    return defer;
+  }
+
+  private get stopChild(): (child: AnyActor) => void {
+    const stopChild = (child: AnyActor) => this._stopChild(child);
+    Object.defineProperty(this, 'stopChild', { value: stopChild });
+    return stopChild;
+  }
+
+  private get emit(): (event: EmittedFrom<TLogic>) => void | PromiseLike<void> {
+    const emit = (event: EmittedFrom<TLogic>) =>
+      this.system.emitEvent(this, event);
+    Object.defineProperty(this, 'emit', { value: emit });
+    return emit;
+  }
+
+  private get actionExecutor(): (action: ExecutableActionObject) => void {
+    const actionExecutor = (action: ExecutableActionObject) =>
+      this._executeAction(action);
+    Object.defineProperty(this, 'actionExecutor', { value: actionExecutor });
+    return actionExecutor;
   }
 
   /** @internal */
@@ -595,7 +571,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   private _flushInitialEffects(): boolean {
-    if (!this._initialEffects) {
+    if (!this._initialEffects?.length) {
       return true;
     }
     this._forceDeferredActions = true;
@@ -810,10 +786,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
     this._processingStatus = ProcessingStatus.Running;
 
-    // TODO: this isn't correct when rehydrating
-    const initEvent = createInitEvent(this.options.input);
-    // remember source of init as parent for unified transition event
-    this._lastSourceRef = this._parent;
+    if (this._parent) {
+      this._lastSourceRef = this._parent;
+    }
 
     const status = (this._snapshot as Snapshot<unknown>).status;
 
@@ -834,7 +809,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         }
         this.update(
           this._snapshot,
-          initEvent as unknown as EventFromLogic<TLogic>
+          createInitEvent(
+            this.options.input
+          ) as unknown as EventFromLogic<TLogic>
         );
         // TODO: rethink cleanup of observers, mailbox, etc
         return this;
@@ -863,10 +840,23 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       }
     }
 
-    // TODO: this notifies all subscribers but usually this is redundant
-    // there is no real change happening here
-    // we need to rethink if this needs to be refactored
-    this.update(this._snapshot, initEvent as unknown as EventFromLogic<TLogic>);
+    if (
+      !this._restored &&
+      !this._deferred?.length &&
+      !this.observers?.size &&
+      !(this.system._hasInspectionObservers?.() ?? true)
+    ) {
+      // Starting changes the registered system view associated with the
+      // snapshot, even when there is nothing to publish or execute.
+      if (!refreshSnapshotActorRefRoot(this._snapshot, this, this.system)) {
+        this._setSnapshot(this._snapshot);
+      }
+    } else {
+      this.update(
+        this._snapshot,
+        createInitEvent(this.options.input) as unknown as EventFromLogic<TLogic>
+      );
+    }
 
     if (this._restored) {
       const timers: Record<string, { id: string; delay: number }> =

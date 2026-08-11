@@ -36,14 +36,15 @@ interface Scheduler {
   cancelAll(actor: AnyActor): void;
 }
 
-let nextFallbackSystemId = 0;
+let systemIdPrefix: string | undefined;
+let nextSystemId = 0;
 
 /** @internal */
 export const transitionEffectSignal = new Error('Transition effect');
 /** @internal */
 export const transitionEffectTargets: AnyActor[] = [];
 
-function createSystemId(): string {
+function createSystemIdPrefix(): string {
   let crypto: Crypto | undefined;
   try {
     crypto = globalThis.crypto;
@@ -51,19 +52,21 @@ function createSystemId(): string {
     // Use the process-local fallback below.
   }
 
-  if (crypto?.randomUUID) {
-    try {
-      return crypto.randomUUID();
-    } catch {
-      // Try getRandomValues next.
-    }
-  }
-
   if (crypto?.getRandomValues) {
     try {
       const values = new Uint32Array(4);
       crypto.getRandomValues(values);
-      return Array.from(values, (value) => value.toString(36)).join('-');
+      return Array.from(values, (value) =>
+        value.toString(36).padStart(7, '0')
+      ).join('');
+    } catch {
+      // Try randomUUID next.
+    }
+  }
+
+  if (crypto?.randomUUID) {
+    try {
+      return crypto.randomUUID().replaceAll('-', '');
     } catch {
       // Use the process-local fallback below.
     }
@@ -71,7 +74,12 @@ function createSystemId(): string {
 
   return `xstate-${Date.now().toString(36)}-${Math.random()
     .toString(36)
-    .slice(2)}-${nextFallbackSystemId++}`;
+    .slice(2)}`;
+}
+
+function createSystemId(): string {
+  systemIdPrefix ??= createSystemIdPrefix();
+  return `${systemIdPrefix}:${(nextSystemId++).toString(36)}`;
 }
 
 /** @internal */
@@ -147,6 +155,10 @@ export interface ActorSystemRuntime {
 }
 
 type ScheduledTimerId = string & { __scheduledTimerId: never };
+
+const emptyScheduledTimers = Object.freeze(
+  {}
+) as ActorSystem<any>['_snapshot']['_scheduledTimers'];
 
 function createScheduledTimerId(actor: AnyActor, id: string): ScheduledTimerId {
   return `${actor.sessionId}.${id}` as ScheduledTimerId;
@@ -227,10 +239,17 @@ export interface ActorSystem<
 
 export type AnyActorSystem = ActorSystem<any>;
 
+// These optional lazy fields intentionally have no emitted initializers.
+// oxlint-disable-next-line typescript/no-unsafe-declaration-merging
+interface RuntimeSystem<T extends ActorSystemInfo> {
+  _children?: Map<string, AnyActor>;
+  _keyedActors?: Map<keyof T['actors'], AnyActor | undefined>;
+  _reverseKeyedActors?: WeakMap<AnyActor, keyof T['actors']>;
+  _inspectionObservers?: Set<Observer<InspectionEvent>>;
+  _timerMap?: { [id: ScheduledTimerId]: number };
+}
+
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
-  private _children?: Map<string, AnyActor>;
-  private _keyedActors?: Map<keyof T['actors'], AnyActor | undefined>;
-  private _reverseKeyedActors?: WeakMap<AnyActor, keyof T['actors']>;
   public _identity = {
     systemId: createSystemId(),
     nextSessionId: 0
@@ -241,9 +260,6 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   public _clock: Clock;
   public _logger: (...args: any[]) => void;
   public createActorRef: ActorSystem<T>['createActorRef'];
-
-  private _inspectionObservers?: Set<Observer<InspectionEvent>>;
-  private _timerMap?: { [id: ScheduledTimerId]: number };
 
   public get children(): Map<string, AnyActor> {
     const children = (this._children ??= new Map());
@@ -308,7 +324,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     this._logger = options.logger;
     this.createActorRef = options.createActorRef;
     this._snapshot = {
-      _scheduledTimers: restoredSnapshot?.scheduler ?? {},
+      _scheduledTimers: restoredSnapshot?.scheduler ?? emptyScheduledTimers,
       _nextActorId: restoredSnapshot?._nextActorId ?? 0
     };
   }
@@ -360,6 +376,9 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       dueAt: scheduledAt + delay
     };
     const scheduledTimerId = createScheduledTimerId(source, id);
+    if (this._snapshot._scheduledTimers === emptyScheduledTimers) {
+      this._snapshot._scheduledTimers = {};
+    }
     this._snapshot._scheduledTimers[scheduledTimerId] = scheduledTimer;
     markSystemSnapshotDirty(this);
 
@@ -383,7 +402,9 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     if (this._timerMap) {
       delete this._timerMap[scheduledTimerId];
     }
-    delete this._snapshot._scheduledTimers[scheduledTimerId];
+    if (this._snapshot._scheduledTimers !== emptyScheduledTimers) {
+      delete this._snapshot._scheduledTimers[scheduledTimerId];
+    }
     markSystemSnapshotDirty(this);
 
     if (timeout !== undefined) {
@@ -589,8 +610,12 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
 
   public start(): void {
     const scheduledTimers = this._snapshot._scheduledTimers;
-    this._snapshot._scheduledTimers = {};
+    let resetScheduledTimers = true;
     for (const scheduledId in scheduledTimers) {
+      if (resetScheduledTimers) {
+        this._snapshot._scheduledTimers = {};
+        resetScheduledTimers = false;
+      }
       const { source, dueAt, id } =
         scheduledTimers[scheduledId as ScheduledTimerId];
       this.scheduleTimer(

@@ -75,7 +75,7 @@ describe('inspect', () => {
     );
   });
 
-  it('falls back without failing when Web Crypto is unusable', () => {
+  it('falls back without failing when Web Crypto is unusable', async () => {
     vi.stubGlobal('crypto', {
       randomUUID: () => {
         throw new Error('unavailable');
@@ -87,15 +87,19 @@ describe('inspect', () => {
     const sessionIds: string[] = [];
 
     try {
+      vi.resetModules();
+      const isolatedXState = await import('../src/index.ts');
       sessionIds.push(
-        createActor(createMachine({})).sessionId,
-        createActor(createMachine({})).sessionId
+        isolatedXState.createActor(isolatedXState.createMachine({})).sessionId,
+        isolatedXState.createActor(isolatedXState.createMachine({})).sessionId
       );
     } finally {
       vi.unstubAllGlobals();
+      vi.resetModules();
     }
 
     expect(new Set(sessionIds).size).toBe(2);
+    expect(sessionIds.every((id) => id.startsWith('xstate-'))).toBe(true);
   });
 
   it('uses new globally unique session IDs when restoring the same snapshot', () => {
