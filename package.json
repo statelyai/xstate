@@ -44,7 +44,7 @@
     "test:store": "vitest run --project @xstate/store*",
     "test:store:watch": "vitest --project @xstate/store*",
     "changeset": "changeset",
-    "release": "pnpm -r publish --access=public && changeset tag",
+    "release": "changeset publish",
     "version": "changeset version"
   },
   "repository": {
@@ -63,8 +63,8 @@
     "@babel/preset-env": "^7.29.7",
     "@babel/preset-react": "^7.29.7",
     "@babel/preset-typescript": "^7.29.7",
-    "@changesets/changelog-github": "^0.5.2",
-    "@changesets/cli": "^2.31.1",
+    "@changesets/changelog-github": "^1.0.0",
+    "@changesets/cli": "^3.0.0",
     "@manypkg/cli": "^0.21.4",
     "@preconstruct/cli": "^2.8.13",
     "@types/node": "25.2.1",
@@ -90,15 +90,5 @@
   "lint-staged": {
     "!(CLAUDE).{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc,json5,md,mdx,css,scss,less,yml,yaml,html}": "oxfmt --write"
   },
-  "pnpm": {
-    "overrides": {
-      "@types/node": "25.2.1",
-      "stylus": "0.55.0",
-      "vite": "5.4.21"
-    },
-    "patchedDependencies": {
-      "@vue/test-utils@2.4.6": "patches/@vue__test-utils@2.4.6.patch"
-    }
-  },
-  "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531"
+  "packageManager": "pnpm@10.34.5"
 }

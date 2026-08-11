@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
-      hasChangesets: ${{ steps.changesets.outputs.hasChangesets }}
+      hasChangesets: ${{ steps.changesets.outputs['has-changesets'] }}
     permissions:
       contents: write # to create release (changesets/action)
       issues: write # to post issue comments (changesets/action)
@@ -29,9 +29,9 @@ jobs:
       - name: Create or update release pull request
         id: changesets
         # https://github.com/changesets/action
-        uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1.7.0
+        uses: changesets/action@22ccf9aa43179fe9e27dc62e575971d28cce197c # v2.0.0
         with:
-          version: pnpm run version
+          version-script: pnpm run version
 
   publish:
     name: Publish
@@ -52,6 +52,6 @@ jobs:
 
       - name: Publish to npm
         # https://github.com/changesets/action
-        uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1.7.0
+        uses: changesets/action@22ccf9aa43179fe9e27dc62e575971d28cce197c # v2.0.0
         with:
-          publish: pnpm run release
+          publish-script: pnpm run release
