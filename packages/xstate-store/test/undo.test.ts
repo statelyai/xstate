@@ -534,6 +534,32 @@ describe('undoRedo with snapshot strategy', () => {
     expect(store.getSnapshot().context.count).toBe(3);
   });
 
+  it('should undo back into history after a redo', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    }).with(undoRedo({ strategy: 'snapshot' }));
+
+    store.trigger.inc();
+    store.trigger.inc();
+    store.trigger.inc();
+    store.trigger.undo();
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.trigger.redo();
+    expect(store.getSnapshot().context.count).toBe(2);
+
+    // Undoing the redo returns to the snapshot the redo moved away from
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(1);
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(0);
+    store.trigger.redo();
+    expect(store.getSnapshot().context.count).toBe(1);
+  });
+
   it('should group events by transaction ID', () => {
     const store = createStore({
       context: { count: 0 },
@@ -565,6 +591,41 @@ describe('undoRedo with snapshot strategy', () => {
     expect(store.getSnapshot().context.count).toBe(2);
 
     // Undo first transaction (both increments)
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(0);
+  });
+
+  it('should undo back into history after redoing a transaction', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        dec: (ctx) => ({ count: ctx.count - 1 })
+      }
+    }).with(
+      undoRedo({
+        strategy: 'snapshot',
+        getTransactionId: (event) => {
+          return event.type;
+        }
+      })
+    );
+
+    // First transaction
+    store.trigger.inc();
+    store.trigger.inc();
+
+    // Second transaction
+    store.trigger.dec();
+    store.trigger.dec();
+
+    store.trigger.undo();
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(0);
+
+    // Redo the first transaction, then undo it again
+    store.trigger.redo();
+    expect(store.getSnapshot().context.count).toBe(2);
     store.trigger.undo();
     expect(store.getSnapshot().context.count).toBe(0);
   });
