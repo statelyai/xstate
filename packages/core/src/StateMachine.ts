@@ -539,9 +539,23 @@ export class StateMachine<
 
   private _attachPureActorRef<TSnapshot extends AnyMachineSnapshot>(
     snapshot: TSnapshot,
-    actorScope: AnyActorScope
+    actorScope: AnyActorScope,
+    skipInitializingActor = false
   ): TSnapshot {
     if (isInertActorScope(actorScope)) {
+      return snapshot;
+    }
+    if (
+      skipInitializingActor &&
+      (
+        actorScope.self as AnyActor & {
+          _actorScope?: AnyActorScope;
+          _snapshot?: unknown;
+        }
+      )._actorScope === actorScope &&
+      (actorScope.self as AnyActor & { _snapshot?: unknown })._snapshot ===
+        undefined
+    ) {
       return snapshot;
     }
     setSnapshotActorRef(snapshot, actorScope.self, actorScope.system);
@@ -969,7 +983,7 @@ export class StateMachine<
       }
       const returnedSnapshot = usesInertScope
         ? attachSnapshotActorRef(resolvedActorScope, macroState)
-        : this._attachPureActorRef(macroState, resolvedActorScope);
+        : this._attachPureActorRef(macroState, resolvedActorScope, true);
       const effects = this._collectEffects(microsteps);
       if (this.validator) {
         assertValid(this.validator, {
@@ -1046,9 +1060,12 @@ export class StateMachine<
     if (!snapshot?.children) {
       return;
     }
-    for (const child of Object.values(
-      snapshot.children as unknown as Record<string, AnyActor>
-    )) {
+    const children = snapshot.children as unknown as Record<string, AnyActor>;
+    for (const childId in children) {
+      if (!Object.hasOwn(children, childId)) {
+        continue;
+      }
+      const child = children[childId];
       if (
         (child as any)._rehydrated &&
         (child as any).getSnapshot?.().status === 'active'

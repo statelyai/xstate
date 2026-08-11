@@ -223,6 +223,28 @@ export function copySnapshotActorRef(
   return false;
 }
 
+/** Refreshes the only topology change made by an otherwise idle root start. */
+export function refreshSnapshotActorRefRoot(
+  snapshot: Snapshot<unknown>,
+  actor: AnyActor,
+  system: AnyActor['system']
+): boolean {
+  const ref = snapshotActorRefs.get(snapshot);
+  const sourceVersion = getSystemSnapshotVersion(system);
+  if (
+    ref?.actor !== actor ||
+    ref.systemState.sourceSystem !== system ||
+    ref.systemState.sourceVersion + 1 !== sourceVersion ||
+    system._getRootActor?.() !== actor ||
+    system._peekChildren?.()
+  ) {
+    return false;
+  }
+  ref.systemState.root = actor;
+  ref.systemState.sourceVersion = sourceVersion;
+  return true;
+}
+
 /**
  * Associates a transition snapshot with an actor and an immutable system view.
  * The internal association is excluded from enumeration and persistence.
