@@ -1,5 +1,11 @@
 # xstate
 
+## 6.0.0-alpha.34
+
+### Patch Changes
+
+- faa0f19: Improve the performance and memory usage of pure transitions that only update machine context.
+
 ## 6.0.0-alpha.33
 
 ### Minor Changes
