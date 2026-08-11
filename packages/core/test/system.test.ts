@@ -2,6 +2,7 @@ import { of } from 'rxjs';
 import { z } from 'zod';
 import { createCallbackLogic } from '../src/actors/callback.ts';
 import {
+  AnyActor,
   ActorRef,
   Snapshot,
   createActor,
@@ -10,7 +11,8 @@ import {
   createSystem,
   createEventObservableLogic,
   createObservableLogic,
-  createAsyncLogic
+  createAsyncLogic,
+  transition
 } from '../src/index.ts';
 import { ActorSystem } from '../src/system.ts';
 
@@ -91,6 +93,27 @@ describe('system', () => {
       .children.grandchild;
 
     expect(actor.system.get('grandchild')).toBe(grandchild);
+  });
+
+  it('refreshes registry changes made before the root actor starts', () => {
+    let registeredActor: AnyActor | undefined;
+    const machine = createMachine({
+      on: {
+        CHECK: ({ system }) => {
+          registeredActor = system.get('child');
+        }
+      }
+    });
+    const actor = createActor(machine);
+    const child = createActor(createMachine({}), {
+      parent: actor,
+      registryKey: 'child'
+    });
+
+    actor.start();
+    transition(machine, actor.getSnapshot(), { type: 'CHECK' });
+
+    expect(registeredActor).toBe(child);
   });
 
   it('createSystem should own the runtime actor system', () => {

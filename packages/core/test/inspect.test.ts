@@ -599,6 +599,53 @@ describe('inspect', () => {
     expect(initialTransition.microsteps).toHaveLength(1);
   });
 
+  it('clears a pre-start event source before inspecting initialization', () => {
+    const actor = createActor(createMachine({}));
+    const sender = createActor(createMachine({}), { parent: actor });
+    const events: InspectionEvent[] = [];
+
+    actor.system._relay(sender, actor, { type: 'QUEUED' });
+    actor.system.inspect((event) => events.push(event));
+    actor.start();
+
+    const initialTransition = events.find(
+      (event) =>
+        event.type === '@xstate.transition' && event.event.type === XSTATE_INIT
+    );
+    expect(initialTransition?.type).toBe('@xstate.transition');
+    if (initialTransition?.type !== '@xstate.transition') {
+      throw new Error('Initial transition was not inspected.');
+    }
+    expect(initialTransition.sourceRef).toBeUndefined();
+  });
+
+  it('does not retain uninspected initialization steps for the first event', () => {
+    const actor = createActor(
+      createMachine({
+        initial: 'a',
+        states: {
+          a: { always: { target: 'b' } },
+          b: {}
+        }
+      })
+    );
+    const events: InspectionEvent[] = [];
+
+    actor.start();
+    actor.system.inspect((event) => events.push(event));
+    actor.send({ type: 'PING' });
+
+    const transition = events.find(
+      (event) =>
+        event.type === '@xstate.transition' && event.event.type === 'PING'
+    );
+    expect(transition?.type).toBe('@xstate.transition');
+    if (transition?.type !== '@xstate.transition') {
+      throw new Error('PING transition was not inspected.');
+    }
+    expect(transition.microsteps).toHaveLength(0);
+  });
+
   it('actor.system.inspect(…) can inspect actors (observer)', () => {
     const actor = createActor(createMachine({}));
     const events: InspectionEvent[] = [];

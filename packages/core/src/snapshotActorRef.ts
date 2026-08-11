@@ -230,16 +230,18 @@ export function refreshSnapshotActorRefRoot(
   system: AnyActor['system']
 ): boolean {
   const ref = snapshotActorRefs.get(snapshot);
+  const sourceVersion = getSystemSnapshotVersion(system);
   if (
     ref?.actor !== actor ||
     ref.systemState.sourceSystem !== system ||
+    ref.systemState.sourceVersion + 1 !== sourceVersion ||
     system._getRootActor?.() !== actor ||
     system._peekChildren?.()
   ) {
     return false;
   }
   ref.systemState.root = actor;
-  ref.systemState.sourceVersion = getSystemSnapshotVersion(system);
+  ref.systemState.sourceVersion = sourceVersion;
   return true;
 }
 

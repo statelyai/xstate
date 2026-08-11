@@ -786,9 +786,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
     this._processingStatus = ProcessingStatus.Running;
 
-    if (this._parent) {
-      this._lastSourceRef = this._parent;
-    }
+    this._lastSourceRef = this._parent;
 
     const status = (this._snapshot as Snapshot<unknown>).status;
 
@@ -851,6 +849,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       if (!refreshSnapshotActorRefRoot(this._snapshot, this, this.system)) {
         this._setSnapshot(this._snapshot);
       }
+      this._collectedMicrosteps = undefined;
+      this._collectedActions = undefined;
+      this._collectedSent = undefined;
     } else {
       this.update(
         this._snapshot,
