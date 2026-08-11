@@ -127,6 +127,7 @@
     "setup-simplified",
     "sharp-final-outputs",
     "silver-done-output",
+    "soft-snapshots-migrate",
     "soft-states-narrow",
     "spicy-machines-serialize",
     "split-spawn-start-effects",
