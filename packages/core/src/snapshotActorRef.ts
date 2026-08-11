@@ -177,6 +177,21 @@ export function getSnapshotActorRef(
   return created;
 }
 
+/** Reads an already materialized snapshot association without creating one. @internal */
+export function peekSnapshotActorRef(
+  snapshot: Snapshot<unknown>
+): SnapshotActorRef | undefined {
+  return snapshotActorRefs.get(snapshot);
+}
+
+/** Returns the existing identity provider without resolving it. @internal */
+export function getSnapshotActorRefProvider(
+  snapshot: Snapshot<unknown>
+): (() => SnapshotActorRef) | undefined {
+  const existing = snapshotActorRefs.get(snapshot);
+  return existing ? () => existing : lazySnapshotActorRefs.get(snapshot);
+}
+
 /** Defers actor/system identity allocation until a snapshot capability is used. @internal */
 export function setLazySnapshotActorRef(
   snapshot: Snapshot<unknown>,

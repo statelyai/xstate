@@ -42,9 +42,18 @@ function attachMicrostepActorRefs(
   const result = microsteps.slice();
   const finalSnapshot = result.at(-1)![0];
   setInertActorScopeSnapshot(actorScope, finalSnapshot, false);
+  if (finalSnapshot !== inputSnapshot) {
+    attachSnapshotActorRef(finalSnapshot.machine, actorScope, finalSnapshot);
+  }
   for (const [snapshot] of result) {
-    if (snapshot !== inputSnapshot) {
-      attachSnapshotActorRef(snapshot.machine, actorScope, snapshot);
+    if (snapshot !== inputSnapshot && snapshot !== finalSnapshot) {
+      const snapshotScope = createInertActorScope(
+        snapshot.machine,
+        snapshot,
+        undefined,
+        actorScope
+      );
+      attachSnapshotActorRef(snapshot.machine, snapshotScope, snapshot);
     }
   }
   return result;

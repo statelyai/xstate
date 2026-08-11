@@ -128,9 +128,68 @@ describe('transition function', () => {
 
       expect(checkingSnapshot.context.found).toBe(false);
       expect(materializations).toBe(2);
+
+      materializations = 0;
+      const livePlanningMachine = createMachine({
+        context: { count: 0 },
+        on: {
+          INCREMENT: ({ context }) => ({
+            context: { count: context.count + 1 }
+          })
+        }
+      });
+      const liveActor = createActor(livePlanningMachine).start();
+      transition(livePlanningMachine, liveActor.getSnapshot(), {
+        type: 'INCREMENT'
+      });
+      expect(materializations).toBe(0);
+
+      const entryMachine = createMachine({
+        context: { count: 0 },
+        entry: ({ context }) => ({ context })
+      });
+      initialTransition(entryMachine);
+      expect(materializations).toBe(0);
     } finally {
       setInertActorMaterializationObserver(undefined);
     }
+  });
+
+  it('preserves callback argument surfaces while planning lazily', () => {
+    let contextKeys: string[] = [];
+    let guardKeys: string[] = [];
+    const machine = createMachine({
+      context: (args: any) => {
+        contextKeys = Object.keys(args).sort();
+        return { initialized: true };
+      },
+      on: {
+        CHECK: {
+          guard: (args: any) => {
+            guardKeys = Object.keys(args).sort();
+            return true;
+          }
+        }
+      }
+    } as any);
+
+    const [snapshot] = initialTransition(machine);
+    transition(machine, snapshot, { type: 'CHECK' });
+
+    expect(contextKeys).toEqual(['actors', 'input', 'self', 'spawn']);
+    expect(guardKeys).toEqual([
+      '_snapshot',
+      'actions',
+      'actors',
+      'children',
+      'context',
+      'delays',
+      'event',
+      'guards',
+      'output',
+      'parent',
+      'self'
+    ]);
   });
 
   it('does not repeatedly resolve a selected transition during a microstep', () => {
@@ -1611,6 +1670,50 @@ describe('transition function', () => {
       expect(branchRef.actor.getSnapshot()).toBe(nextSnapshot);
       expect(actor.getSnapshot()).toBe(liveSnapshot);
       expect(getSnapshotActorRef(liveSnapshot)!.actor).toBe(actor);
+    });
+
+    it('gives every planned snapshot its own current owner snapshot', () => {
+      const machine = createMachine({
+        context: { count: 0 },
+        on: {
+          INCREMENT: ({ context }) => ({
+            context: { count: context.count + 1 }
+          })
+        }
+      });
+      const liveActor = createActor(machine).start();
+      const liveSnapshot = liveActor.getSnapshot();
+      const [first] = transition(machine, liveSnapshot, {
+        type: 'INCREMENT'
+      });
+      const [second] = transition(machine, first, { type: 'INCREMENT' });
+
+      expect(getSnapshotActorRef(first)!.actor.getSnapshot()).toBe(first);
+      expect(getSnapshotActorRef(second)!.actor.getSnapshot()).toBe(second);
+      expect(getSnapshotActorRef(liveSnapshot)!.actor).toBe(liveActor);
+    });
+
+    it('gives every microstep its own current owner snapshot', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: { on: { NEXT: { target: 'b' } } },
+          b: { always: { target: 'c' } },
+          c: {}
+        }
+      });
+      const [initial] = initialTransition(machine);
+      const microsteps = getMicrosteps(machine, initial, { type: 'NEXT' });
+
+      expect(microsteps).toHaveLength(2);
+      for (const [snapshot] of microsteps) {
+        expect(getSnapshotActorRef(snapshot)!.actor.getSnapshot()).toBe(
+          snapshot
+        );
+      }
+      expect(getSnapshotActorRef(microsteps[0][0])!.actor).not.toBe(
+        getSnapshotActorRef(microsteps[1][0])!.actor
+      );
     });
 
     it('appends deferred starts to the final microstep', () => {

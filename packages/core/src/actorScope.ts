@@ -22,6 +22,38 @@ export function getActorScopeParent(
     : actorScope.self._parent;
 }
 
+/** Adds only `self`, preserving callback surfaces that expose no other capabilities. @internal */
+export function withActorSelf<T extends object>(
+  args: T,
+  actorScope: AnyActorScope
+): T & Pick<AnyActorScope, 'self'> {
+  if (!isLazyActorScope(actorScope)) {
+    return Object.assign(args, { self: actorScope.self });
+  }
+  Object.defineProperty(args, 'self', {
+    enumerable: true,
+    get: () => actorScope.self
+  });
+  return args as T & Pick<AnyActorScope, 'self'>;
+}
+
+/** Adds the actor reference and parent without exposing the system. @internal */
+export function withActorSelfAndParent<T extends object>(
+  args: T,
+  actorScope: AnyActorScope
+): T & Pick<AnyActorScope, 'self'> & { parent: AnyActor | undefined } {
+  if (!isLazyActorScope(actorScope)) {
+    const self = actorScope.self;
+    return Object.assign(args, { self, parent: self._parent });
+  }
+  Object.defineProperties(args, {
+    self: { enumerable: true, get: () => actorScope.self },
+    parent: { enumerable: true, get: () => getActorScopeParent(actorScope) }
+  });
+  return args as T &
+    Pick<AnyActorScope, 'self'> & { parent: AnyActor | undefined };
+}
+
 /** Adds actor capabilities without reading them until the callback does. @internal */
 export function withActorScope<T extends object>(
   args: T,

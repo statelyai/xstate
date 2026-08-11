@@ -14,7 +14,7 @@ import {
   isInertActorScope,
   setInertActorScopeSnapshot
 } from './getNextSnapshot.ts';
-import { withActorScope } from './actorScope.ts';
+import { withActorSelf } from './actorScope.ts';
 import {
   createMachineSnapshot,
   cloneMachineSnapshot,
@@ -842,7 +842,7 @@ export class StateMachine<
       const children = {};
       const spawn = createSpawner(actorScope, this.sources.actors, children);
       const resolvedContext = context(
-        withActorScope(
+        withActorSelf(
           {
             spawn,
             input: initEvent.input,
