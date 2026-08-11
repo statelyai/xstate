@@ -50,38 +50,76 @@ export type MachineVersionsOptions<
   unversioned?: NonNullable<TMachines[number]['version']>;
 };
 
-type ParsedSnapshotSource = {
-  machine: VersionedStateMachine;
-  snapshot: Snapshot<unknown> & {
-    context: unknown;
-    machine: PersistedMachineIdentity;
-    [key: string]: unknown;
-  };
+type MaybePromise<T> = T | PromiseLike<T>;
+
+type MachineVersion<TMachines extends readonly VersionedStateMachine[]> =
+  TMachines[number]['version'];
+
+type MachineForVersion<
+  TMachines extends readonly VersionedStateMachine[],
+  TVersion extends string
+> = {
+  [K in keyof TMachines]: TMachines[K] extends VersionedStateMachine
+    ? TMachines[K]['version'] extends TVersion
+      ? TMachines[K]
+      : never
+    : never;
+}[number];
+
+export type PersistedSnapshotSource = {
+  id?: string;
+  version?: string;
 };
 
-type SourceVersion<TSource extends ParsedSnapshotSource> =
-  TSource extends unknown ? NonNullable<TSource['machine']['version']> : never;
-
-type SourceForVersion<
-  TSource extends ParsedSnapshotSource,
-  TVersion extends string
-> = TSource extends unknown
-  ? TSource['machine']['version'] extends TVersion
-    ? TSource
-    : never
-  : never;
-
 export type SnapshotMigrationHandlers<
-  TSource extends ParsedSnapshotSource,
-  TTarget extends AnyStateMachine
+  TMachines extends readonly VersionedStateMachine[],
+  TTarget extends VersionedStateMachine
 > = {
-  [TVersion in SourceVersion<TSource>]?: (
-    snapshot: SourceForVersion<TSource, TVersion>['snapshot']
-  ) => PersistedSnapshotDataFrom<TTarget>;
+  [TVersion in Exclude<MachineVersion<TMachines>, TTarget['version']>]?: (
+    snapshot: PersistedSnapshotFrom<MachineForVersion<TMachines, TVersion>>
+  ) => MaybePromise<PersistedSnapshotDataFrom<TTarget>>;
+} & {
+  '*'?: (
+    snapshot: unknown,
+    source: PersistedSnapshotSource
+  ) => MaybePromise<PersistedSnapshotDataFrom<TTarget>>;
+};
+
+export type MigrateSnapshotOptions<
+  TMachines extends readonly VersionedStateMachine[],
+  TTargetVersion extends MachineVersion<TMachines>
+> = {
+  to: TTargetVersion;
+  migrations: SnapshotMigrationHandlers<
+    TMachines,
+    MachineForVersion<TMachines, TTargetVersion>
+  >;
 };
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object';
+}
+
+function getSnapshotSource(
+  raw: unknown,
+  defaultId: string
+): PersistedSnapshotSource {
+  if (!isObject(raw)) {
+    return {};
+  }
+  if (isObject(raw.machine)) {
+    return {
+      id: typeof raw.machine.id === 'string' ? raw.machine.id : undefined,
+      version:
+        typeof raw.machine.version === 'string'
+          ? raw.machine.version
+          : undefined
+    };
+  }
+  return {
+    id: typeof raw.version === 'string' ? defaultId : undefined,
+    version: typeof raw.version === 'string' ? raw.version : undefined
+  };
 }
 
 async function validate(
@@ -99,6 +137,24 @@ async function validate(
   return result.value;
 }
 
+async function finalizeSnapshot<TTarget extends VersionedStateMachine>(
+  snapshot: PersistedSnapshotDataFrom<TTarget>,
+  target: TTarget
+): Promise<PersistedSnapshotFrom<TTarget>> {
+  const context = await validate(
+    target.schemas?.context,
+    snapshot.context,
+    `context for machine '${target.id}' version '${target.version}'`
+  );
+
+  return {
+    ...snapshot,
+    context,
+    machine: { id: target.id, version: target.version },
+    version: target.version
+  } as unknown as PersistedSnapshotFrom<TTarget>;
+}
+
 /** Creates parsers backed by retained versions of one machine. */
 export function machineVersions<
   const TMachines extends readonly [
@@ -112,6 +168,11 @@ export function machineVersions<
   for (const machine of machines) {
     if (machine.version === undefined) {
       throw new Error(`Machine '${machine.id}' must define a version.`);
+    }
+    if (machine.version === '*') {
+      throw new Error(
+        "Machine version '*' is reserved for wildcard migrations."
+      );
     }
     if (machine.id !== machineId) {
       throw new Error(
@@ -136,118 +197,127 @@ export function machineVersions<
     );
   }
 
+  const parseSnapshot = async (
+    raw: unknown
+  ): Promise<ParsedPersistedSnapshot<TMachines>> => {
+    if (!isObject(raw)) {
+      throw new Error('Persisted snapshot is missing machine identity.');
+    }
+
+    let id: string;
+    let version: string;
+    if (isObject(raw.machine)) {
+      ({ id, version } = raw.machine as { id: string; version: string });
+      if (typeof id !== 'string' || typeof version !== 'string') {
+        throw new Error('Persisted snapshot has an invalid machine identity.');
+      }
+    } else if (typeof raw.version === 'string') {
+      id = machineId;
+      version = raw.version;
+    } else if (
+      raw.version === undefined &&
+      options?.unversioned !== undefined
+    ) {
+      id = machineId;
+      version = options.unversioned;
+    } else {
+      throw new Error('Persisted snapshot is missing machine identity.');
+    }
+    if (raw.version !== undefined && typeof raw.version !== 'string') {
+      throw new Error('Persisted snapshot has an invalid version.');
+    }
+    if (raw.version !== undefined && raw.version !== version) {
+      throw new Error(
+        `Persisted snapshot version '${raw.version}' conflicts with machine version '${version}'.`
+      );
+    }
+
+    const machine = byIdentity.get(`${id}\0${version}`);
+    if (!machine) {
+      throw new Error(`Unknown machine identity '${id}' version '${version}'.`);
+    }
+
+    const context = await validate(
+      machine.schemas?.context,
+      raw.context,
+      `context for machine '${id}' version '${version}'`
+    );
+
+    return {
+      machine,
+      snapshot: {
+        ...raw,
+        context,
+        machine: { id, version }
+      }
+    } as ParsedPersistedSnapshot<TMachines>;
+  };
+
   return {
-    async parseSnapshot(
-      raw: unknown
-    ): Promise<ParsedPersistedSnapshot<TMachines>> {
-      if (!isObject(raw)) {
-        throw new Error('Persisted snapshot is missing machine identity.');
+    parseSnapshot,
+    async migrateSnapshot<TTargetVersion extends MachineVersion<TMachines>>(
+      raw: unknown,
+      migrationOptions: MigrateSnapshotOptions<TMachines, TTargetVersion>
+    ): Promise<
+      PersistedSnapshotFrom<MachineForVersion<TMachines, TTargetVersion>>
+    > {
+      type TargetMachine = MachineForVersion<TMachines, TTargetVersion>;
+      const target = byIdentity.get(`${machineId}\0${migrationOptions.to}`) as
+        | TargetMachine
+        | undefined;
+      if (!target) {
+        throw new Error(
+          `Target version '${migrationOptions.to}' is not retained for machine '${machineId}'.`
+        );
       }
 
-      let id: string;
-      let version: string;
-      if (isObject(raw.machine)) {
-        ({ id, version } = raw.machine as { id: string; version: string });
-        if (typeof id !== 'string' || typeof version !== 'string') {
-          throw new Error(
-            'Persisted snapshot has an invalid machine identity.'
+      let source: ParsedPersistedSnapshot<TMachines> | undefined;
+      let parseError: unknown;
+      try {
+        source = await parseSnapshot(raw);
+      } catch (error) {
+        parseError = error;
+      }
+
+      if (source) {
+        if (source.machine.version === target.version) {
+          return finalizeSnapshot(
+            source.snapshot as PersistedSnapshotDataFrom<TargetMachine>,
+            target
           );
         }
-      } else if (typeof raw.version === 'string') {
-        id = machineId;
-        version = raw.version;
-      } else if (
-        raw.version === undefined &&
-        options?.unversioned !== undefined
-      ) {
-        id = machineId;
-        version = options.unversioned;
-      } else {
-        throw new Error('Persisted snapshot is missing machine identity.');
-      }
-      if (raw.version !== undefined && typeof raw.version !== 'string') {
-        throw new Error('Persisted snapshot has an invalid version.');
-      }
-      if (raw.version !== undefined && raw.version !== version) {
-        throw new Error(
-          `Persisted snapshot version '${raw.version}' conflicts with machine version '${version}'.`
-        );
-      }
-
-      const machine = byIdentity.get(`${id}\0${version}`);
-      if (!machine) {
-        throw new Error(
-          `Unknown machine identity '${id}' version '${version}'.`
-        );
-      }
-
-      const context = await validate(
-        machine.schemas?.context,
-        raw.context,
-        `context for machine '${id}' version '${version}'`
-      );
-
-      return {
-        machine,
-        snapshot: {
-          ...raw,
-          context,
-          machine: { id, version }
+        const exactMigration = (
+          migrationOptions.migrations as unknown as Record<
+            string,
+            | ((
+                snapshot: unknown
+              ) => MaybePromise<PersistedSnapshotDataFrom<TargetMachine>>)
+            | undefined
+          >
+        )[source.machine.version];
+        if (exactMigration) {
+          return finalizeSnapshot(
+            await exactMigration(source.snapshot),
+            target
+          );
         }
-      } as ParsedPersistedSnapshot<TMachines>;
+      }
+
+      const wildcardMigration = migrationOptions.migrations['*'];
+      if (!wildcardMigration) {
+        if (source) {
+          throw new Error(
+            `No snapshot migration from version '${source.machine.version}' to '${target.version}' for machine '${target.id}'.`
+          );
+        }
+        throw parseError;
+      }
+
+      const snapshot = await wildcardMigration(
+        raw,
+        getSnapshotSource(raw, machineId)
+      );
+      return finalizeSnapshot(snapshot, target);
     }
   };
-}
-
-/** Migrates a parsed persisted snapshot directly to a target machine. */
-export async function migrateSnapshot<
-  TSource extends ParsedSnapshotSource,
-  TTarget extends VersionedStateMachine
->(
-  source: TSource,
-  target: TTarget,
-  migrations: SnapshotMigrationHandlers<TSource, TTarget>
-): Promise<PersistedSnapshotFrom<TTarget>> {
-  if (target.version === undefined) {
-    throw new Error(`Target machine '${target.id}' must define a version.`);
-  }
-  if (source.machine.id !== target.id) {
-    throw new Error(
-      `Cannot migrate machine '${source.machine.id}' to '${target.id}'.`
-    );
-  }
-
-  let snapshot: PersistedSnapshotDataFrom<TTarget>;
-  if (source.machine.version === target.version) {
-    snapshot = source.snapshot as PersistedSnapshotDataFrom<TTarget>;
-  } else {
-    const migrate = (
-      migrations as Record<
-        string,
-        | ((
-            snapshot: TSource['snapshot']
-          ) => PersistedSnapshotDataFrom<TTarget>)
-        | undefined
-      >
-    )[source.machine.version];
-    if (!migrate) {
-      throw new Error(
-        `No snapshot migration from version '${source.machine.version}' to '${target.version}' for machine '${target.id}'.`
-      );
-    }
-    snapshot = migrate(source.snapshot as never);
-  }
-
-  const context = await validate(
-    target.schemas?.context,
-    snapshot.context,
-    `context for machine '${target.id}' version '${target.version}'`
-  );
-
-  return {
-    ...snapshot,
-    context,
-    machine: { id: target.id, version: target.version },
-    version: target.version
-  } as unknown as PersistedSnapshotFrom<TTarget>;
 }

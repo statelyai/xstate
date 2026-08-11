@@ -30,29 +30,53 @@ Persisted snapshots record current state. Event sourcing records the events that
 
 <!-- machine version parsing and migration APIs from packages/core/src/machineVersions.ts -->
 
-Keep the old machines whose persisted data you still support. `machineVersions()`
-uses their schemas to parse persisted snapshots. Each machine must have the same
-stable `id` and its own `version`.
+Register the machine versions whose persisted data you want parsed and typed.
+Each machine must have the same stable `id` and its own `version`.
 
 ```ts
 const checkoutVersions = machineVersions([checkoutV1, checkoutV2]);
-const source = await checkoutVersions.parseSnapshot(
-  JSON.parse(localStorage.getItem('checkout')!)
+const snapshot = await checkoutVersions.migrateSnapshot(
+  JSON.parse(localStorage.getItem('checkout')!),
+  {
+    to: '2',
+    migrations: {
+      '1': async (snapshot) => ({
+        ...snapshot,
+        context: { total: snapshot.context.count }
+      })
+    }
+  }
 );
-
-const snapshot = await migrateSnapshot(source, checkoutV2, {
-  '1': (snapshot) => ({
-    ...snapshot,
-    context: { total: snapshot.context.count }
-  })
-});
 
 const actor = createActor(checkoutV2, { snapshot }).start();
 ```
 
-The source version narrows the migration callback to that machine's context type.
-Migration is direct to the target machine. You do not need to define every
-intermediate version.
+Exact version keys narrow the callback to that retained machine's snapshot type.
+Migration is direct to the target machine and may be asynchronous. You do not
+need to define every intermediate version.
+
+Use `'*'` to handle any snapshot that cannot use an exact retained version. The
+snapshot is `unknown`, so the migration can inspect its shape or load an old
+schema only when needed:
+
+```ts
+const checkoutVersions = machineVersions([checkoutV2]);
+const snapshot = await checkoutVersions.migrateSnapshot(persisted, {
+  to: '2',
+  migrations: {
+    '*': async (snapshot, source) => {
+      const { checkoutV1Snapshot, migrateV1 } = await import(
+        './checkout-v1-migration'
+      );
+      return migrateV1(await checkoutV1Snapshot.parseAsync(snapshot));
+    }
+  }
+});
+```
+
+An exact version migration runs before `'*'`. If neither matches, migration
+throws. The target context schema validates the result before its machine
+identity and version are stamped.
 
 When adopting versioning for snapshots that were already persisted without a
 version, retain the old machine definition as an explicit version and configure it
@@ -64,8 +88,9 @@ const checkoutVersions = machineVersions([checkoutV0, checkoutV1], {
 });
 ```
 
-This policy applies only when version metadata is absent. An explicit unknown
-version is still rejected.
+This policy applies only when version metadata is absent. `parseSnapshot()`
+still rejects an explicit unknown version; `migrateSnapshot()` may handle it
+with `'*'`.
 
 Use a runtime Standard Schema such as Zod to reject invalid persisted data.
 `types<T>()` provides TypeScript inference only and does not validate at runtime.
