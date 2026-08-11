@@ -2,6 +2,21 @@ packages:
   - 'packages/*'
   - 'scripts/*'
 
+allowBuilds:
+  '@parcel/watcher': true
+  '@scarf/scarf': true
+  core-js: true
+  deasync: false
+  esbuild: true
+  fsevents: true
+  husky: true
+  lmdb: true
+  msgpackr-extract: true
+  oxc-resolver: true
+  parcel-bundler: true
+  svelte-preprocess: true
+  vue-demi: true
+
 overrides:
   '@types/node': 25.2.1
   stylus: 0.55.0
