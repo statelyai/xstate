@@ -8,14 +8,23 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
-const { createActor, createFSM, createMachine } = require(
-  join(root, 'packages/core/dist/xstate.development.cjs.js')
-);
-
 const args = process.argv.slice(2);
+const xstateArg = args.find((arg) => arg.startsWith('--xstate='));
+const xstatePath = xstateArg
+  ? xstateArg.slice('--xstate='.length)
+  : join(root, 'packages/core/dist/xstate.development.cjs.js');
+const {
+  createActor,
+  createFSM,
+  createMachine,
+  initialTransition,
+  transition
+} = require(xstatePath);
+
 const timeArg = args.find((arg) => arg.startsWith('--time='));
 const warmupArg = args.find((arg) => arg.startsWith('--warmup='));
 const dunkyArg = args.find((arg) => arg.startsWith('--dunky='));
+const filterArg = args.find((arg) => arg.startsWith('--filter='));
 const json = args.includes('--json');
 const measureMemory = args.includes('--memory');
 
@@ -23,6 +32,9 @@ const measureMs = timeArg ? Number(timeArg.slice('--time='.length)) : 500;
 const warmupMs = warmupArg ? Number(warmupArg.slice('--warmup='.length)) : 100;
 const batchSize = 1_000;
 const dunkySpecifier = dunkyArg?.slice('--dunky='.length);
+const filter = filterArg
+  ? new RegExp(filterArg.slice('--filter='.length))
+  : undefined;
 
 if (!Number.isFinite(measureMs) || measureMs <= 0) {
   throw new Error('--time must be a positive number of milliseconds');
@@ -66,7 +78,11 @@ function runFor(ms, fn) {
   return [performance.now() - start, count];
 }
 
-function bench(name, fn) {
+function bench(name, setup) {
+  if (filter && !filter.test(name)) {
+    return undefined;
+  }
+  const fn = setup();
   runFor(warmupMs, fn);
   const [elapsedMs, count] = runFor(measureMs, fn);
   return {
@@ -258,6 +274,14 @@ function makeRawTransitionBench(makeLogic, event) {
   };
 }
 
+function makePublicTransitionBench(makeLogic, event) {
+  const logic = makeLogic();
+  let [snapshot] = initialTransition(logic);
+  return () => {
+    [snapshot] = transition(logic, snapshot, event);
+  };
+}
+
 function makeActorSendBench(makeLogic, event) {
   const actor = createActor(makeLogic()).start();
   return () => {
@@ -266,7 +290,7 @@ function makeActorSendBench(makeLogic, event) {
 }
 
 function benchConstruction(name, makeLogic) {
-  return bench(name, makeLogic);
+  return bench(name, () => makeLogic);
 }
 
 function memoryPerInstance(name, makeLogic, count = 10_000) {
@@ -307,77 +331,61 @@ if (dunkyModule) {
     );
   }
   dunkyResults.push(
-    bench(
-      'Dunky send: { target }',
-      makeDunkySendBench(() => makeDunkyTarget(machine), { type: 'next' })
-    ),
-    bench(
-      'Dunky send: static context action',
+    bench('Dunky send: { target }', () =>
+      makeDunkySendBench(() => makeDunkyTarget(machine), { type: 'next' })),
+    bench('Dunky send: static context action', () =>
       makeDunkySendBench(() => makeDunkyStaticContext(machine, act), {
         type: 'hit'
-      })
-    ),
-    bench(
-      'Dunky send: function context action',
+      })),
+    bench('Dunky send: function context action', () =>
       makeDunkySendBench(() => makeDunkyFunctionContext(machine, act), {
         type: 'hit'
-      })
-    ),
-    bench(
-      'Dunky send: function action',
+      })),
+    bench('Dunky send: function action', () =>
       makeDunkySendBench(() => makeDunkyFunctionAction(machine), {
         type: 'hit'
-      })
-    ),
+      })),
     benchConstruction('construct Dunky', () => makeDunkyTarget(machine))
   );
 }
 
 const results = [
-  bench(
-    'createFSM raw transition: { target }',
-    makeRawTransitionBench(makeFSMTarget, { type: 'next' })
-  ),
-  bench(
-    'createMachine raw transition: { target }',
-    makeRawTransitionBench(makeMachineTarget, { type: 'next' })
-  ),
-  bench(
-    'createFSM actor.send: { target }',
-    makeActorSendBench(makeFSMTarget, { type: 'next' })
-  ),
-  bench(
-    'createMachine actor.send: { target }',
-    makeActorSendBench(makeMachineTarget, { type: 'next' })
-  ),
-  bench(
-    'createFSM actor.send: { context }',
-    makeActorSendBench(makeFSMContext, { type: 'hit' })
-  ),
-  bench(
-    'createMachine actor.send: { context }',
-    makeActorSendBench(makeMachineContext, { type: 'hit' })
-  ),
-  bench(
-    'createFSM actor.send: function context',
-    makeActorSendBench(makeFSMFunctionContext, { type: 'hit' })
-  ),
-  bench(
-    'createMachine actor.send: function context',
-    makeActorSendBench(makeMachineFunctionContext, { type: 'hit' })
-  ),
-  bench(
-    'createFSM actor.send: function enq',
-    makeActorSendBench(makeFSMEnq, { type: 'hit' })
-  ),
-  bench(
-    'createMachine actor.send: function enq',
-    makeActorSendBench(makeMachineEnq, { type: 'hit' })
-  ),
+  bench('createFSM public transition: { target }', () =>
+    makePublicTransitionBench(makeFSMTarget, { type: 'next' })),
+  bench('createMachine public transition: { target }', () =>
+    makePublicTransitionBench(makeMachineTarget, { type: 'next' })),
+  bench('createFSM public transition: { context }', () =>
+    makePublicTransitionBench(makeFSMContext, { type: 'hit' })),
+  bench('createMachine public transition: { context }', () =>
+    makePublicTransitionBench(makeMachineContext, { type: 'hit' })),
+  bench('createFSM public transition: function context', () =>
+    makePublicTransitionBench(makeFSMFunctionContext, { type: 'hit' })),
+  bench('createMachine public transition: function context', () =>
+    makePublicTransitionBench(makeMachineFunctionContext, { type: 'hit' })),
+  bench('createFSM raw transition: { target }', () =>
+    makeRawTransitionBench(makeFSMTarget, { type: 'next' })),
+  bench('createMachine raw transition: { target }', () =>
+    makeRawTransitionBench(makeMachineTarget, { type: 'next' })),
+  bench('createFSM actor.send: { target }', () =>
+    makeActorSendBench(makeFSMTarget, { type: 'next' })),
+  bench('createMachine actor.send: { target }', () =>
+    makeActorSendBench(makeMachineTarget, { type: 'next' })),
+  bench('createFSM actor.send: { context }', () =>
+    makeActorSendBench(makeFSMContext, { type: 'hit' })),
+  bench('createMachine actor.send: { context }', () =>
+    makeActorSendBench(makeMachineContext, { type: 'hit' })),
+  bench('createFSM actor.send: function context', () =>
+    makeActorSendBench(makeFSMFunctionContext, { type: 'hit' })),
+  bench('createMachine actor.send: function context', () =>
+    makeActorSendBench(makeMachineFunctionContext, { type: 'hit' })),
+  bench('createFSM actor.send: function enq', () =>
+    makeActorSendBench(makeFSMEnq, { type: 'hit' })),
+  bench('createMachine actor.send: function enq', () =>
+    makeActorSendBench(makeMachineEnq, { type: 'hit' })),
   benchConstruction('construct createFSM', makeFSMTarget),
   benchConstruction('construct createMachine', makeMachineTarget),
   ...dunkyResults
-];
+].filter(Boolean);
 
 const memoryResults = measureMemory
   ? [

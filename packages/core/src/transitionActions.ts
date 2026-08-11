@@ -9,6 +9,7 @@ import {
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
 import type { ActorSystemRuntime } from './system.ts';
+import { isLazyActorScope, withActorScope } from './actorScope.ts';
 import { getEventOutput } from './utils.ts';
 import type {
   Action,
@@ -661,17 +662,29 @@ export function resolveActionsWithContext(
   const executableActions: ExecutableActionObject[] = [];
 
   for (const action of actions) {
-    const actionArgs = {
-      context: intermediateSnapshot.context,
-      event,
-      output: getEventOutput(event),
-      self: actorScope.self,
-      system: actorScope.system,
-      children: intermediateSnapshot.children,
-      parent: actorScope.self._parent,
-      actions: currentSnapshot.machine.sources.actions,
-      actors: currentSnapshot.machine.sources.actors
-    };
+    const actionArgs = isLazyActorScope(actorScope)
+      ? withActorScope(
+          {
+            context: intermediateSnapshot.context,
+            event,
+            output: getEventOutput(event),
+            children: intermediateSnapshot.children,
+            actions: currentSnapshot.machine.sources.actions,
+            actors: currentSnapshot.machine.sources.actors
+          },
+          actorScope
+        )
+      : {
+          context: intermediateSnapshot.context,
+          event,
+          output: getEventOutput(event),
+          self: actorScope.self,
+          system: actorScope.system,
+          parent: actorScope.self._parent,
+          children: intermediateSnapshot.children,
+          actions: currentSnapshot.machine.sources.actions,
+          actors: currentSnapshot.machine.sources.actors
+        };
 
     const isInline = typeof action === 'function';
     const actionRecord = getTransitionActionRecord(action);

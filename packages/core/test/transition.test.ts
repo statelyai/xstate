@@ -25,6 +25,7 @@ import { listenerLogic } from '../src/actors/listener';
 import { subscriptionLogic } from '../src/actors/subscription';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_STOP } from '../src/constants';
 import { getSnapshotActorRef } from '../src/snapshotActorRef';
+import { setInertActorMaterializationObserver } from '../src/getNextSnapshot';
 import { z } from 'zod';
 
 const isEffect =
@@ -86,6 +87,136 @@ function describeEffects(effects: ExecutableActionObject[]): string[] {
 }
 
 describe('transition function', () => {
+  it('does not materialize actors or systems for context-only planning', () => {
+    let materializations = 0;
+    setInertActorMaterializationObserver(() => materializations++);
+    try {
+      const machine = createMachine({
+        context: { count: 0 },
+        on: {
+          INCREMENT: ({ context }) => ({
+            context: { count: context.count + 1 }
+          })
+        }
+      });
+
+      let [snapshot] = initialTransition(machine);
+      for (let index = 0; index < 100; index++) {
+        [snapshot] = transition(machine, snapshot, { type: 'INCREMENT' });
+      }
+
+      expect(snapshot.context.count).toBe(100);
+      expect(materializations).toBe(0);
+
+      const checkingMachine = createMachine({
+        context: { found: false },
+        on: {
+          CHECK: ({ system }) => ({
+            context: { found: !!system.get('missing') }
+          })
+        }
+      });
+      let [checkingSnapshot] = initialTransition(checkingMachine);
+      for (let index = 0; index < 100; index++) {
+        [checkingSnapshot] = transition(checkingMachine, checkingSnapshot, {
+          type: 'UNKNOWN'
+        });
+      }
+      [checkingSnapshot] = transition(checkingMachine, checkingSnapshot, {
+        type: 'CHECK'
+      });
+
+      expect(checkingSnapshot.context.found).toBe(false);
+      expect(materializations).toBe(2);
+
+      materializations = 0;
+      const livePlanningMachine = createMachine({
+        context: { count: 0 },
+        on: {
+          INCREMENT: ({ context }) => ({
+            context: { count: context.count + 1 }
+          })
+        }
+      });
+      const liveActor = createActor(livePlanningMachine).start();
+      transition(livePlanningMachine, liveActor.getSnapshot(), {
+        type: 'INCREMENT'
+      });
+      expect(materializations).toBe(0);
+
+      const entryMachine = createMachine({
+        context: { count: 0 },
+        entry: ({ context }) => ({ context })
+      });
+      initialTransition(entryMachine);
+      expect(materializations).toBe(0);
+    } finally {
+      setInertActorMaterializationObserver(undefined);
+    }
+  });
+
+  it('preserves callback argument surfaces while planning lazily', () => {
+    let contextKeys: string[] = [];
+    let guardKeys: string[] = [];
+    const machine = createMachine({
+      context: (args: any) => {
+        contextKeys = Object.keys(args).sort();
+        return { initialized: true };
+      },
+      on: {
+        CHECK: {
+          guard: (args: any) => {
+            guardKeys = Object.keys(args).sort();
+            return true;
+          }
+        }
+      }
+    } as any);
+
+    const [snapshot] = initialTransition(machine);
+    transition(machine, snapshot, { type: 'CHECK' });
+
+    expect(contextKeys).toEqual(['actors', 'input', 'self', 'spawn']);
+    expect(guardKeys).toEqual([
+      '_snapshot',
+      'actions',
+      'actors',
+      'children',
+      'context',
+      'delays',
+      'event',
+      'guards',
+      'output',
+      'parent',
+      'self'
+    ]);
+  });
+
+  it('keeps materialized pure scopes effect-free', () => {
+    let deferred = false;
+    let executed = false;
+    const snapshot = {
+      status: 'active',
+      output: undefined,
+      error: undefined
+    };
+    const logic = {
+      initialTransition: (_input: unknown, actorScope: any) => {
+        actorScope.defer(() => (deferred = true));
+        actorScope.actionExecutor({ exec: () => (executed = true) });
+        return [snapshot, []];
+      },
+      transition: () => [snapshot, []],
+      getInitialSnapshot: () => snapshot,
+      getPersistedSnapshot: (value: unknown) => value
+    } as any;
+
+    initialTransition(logic);
+
+    expect(deferred).toBe(false);
+    expect(executed).toBe(false);
+  });
+
   it('does not repeatedly resolve a selected transition during a microstep', () => {
     const update = vi.fn(({ context }: { context: { count: number } }) => ({
       context: { count: context.count + 1 }
@@ -1537,6 +1668,114 @@ describe('transition function', () => {
 
       expect(next.value).toBe('b');
       expect(actor.getSnapshot().value).toBe('a');
+    });
+
+    it('replaces inherited live identity after materializing a pure branch', () => {
+      let branchSelf: AnyActor | undefined;
+      const machine = createMachine({
+        context: { count: 0 },
+        on: {
+          INCREMENT: ({ context, self, system }) => {
+            branchSelf = self;
+            system.get('missing');
+            return { context: { count: context.count + 1 } };
+          }
+        }
+      });
+      const actor = createActor(machine).start();
+      const liveSnapshot = actor.getSnapshot();
+
+      const [nextSnapshot] = transition(machine, liveSnapshot, {
+        type: 'INCREMENT'
+      });
+      const branchRef = getSnapshotActorRef(nextSnapshot)!;
+
+      expect(branchSelf).not.toBe(actor);
+      expect(branchRef.actor).toBe(branchSelf);
+      expect(branchRef.actor.getSnapshot()).toBe(nextSnapshot);
+      expect(actor.getSnapshot()).toBe(liveSnapshot);
+      expect(getSnapshotActorRef(liveSnapshot)!.actor).toBe(actor);
+    });
+
+    it('gives every planned snapshot its own current owner snapshot', () => {
+      const machine = createMachine({
+        context: { count: 0 },
+        on: {
+          INCREMENT: ({ context }) => ({
+            context: { count: context.count + 1 }
+          })
+        }
+      });
+      const liveActor = createActor(machine).start();
+      const liveSnapshot = liveActor.getSnapshot();
+      const [first] = transition(machine, liveSnapshot, {
+        type: 'INCREMENT'
+      });
+      const [second] = transition(machine, first, { type: 'INCREMENT' });
+
+      expect(getSnapshotActorRef(first)!.actor.getSnapshot()).toBe(first);
+      expect(getSnapshotActorRef(second)!.actor.getSnapshot()).toBe(second);
+      expect(getSnapshotActorRef(liveSnapshot)!.actor).toBe(liveActor);
+    });
+
+    it('keeps one session identity across a plan started from scratch', () => {
+      const machine = createMachine({
+        context: { count: 0 },
+        on: {
+          INCREMENT: ({ context }) => ({
+            context: { count: context.count + 1 }
+          })
+        }
+      });
+      const [initial] = initialTransition(machine);
+      const [next] = transition(machine, initial, { type: 'INCREMENT' });
+
+      expect(getSnapshotActorRef(next)!.actor.sessionId).toBe(
+        getSnapshotActorRef(initial)!.actor.sessionId
+      );
+    });
+
+    it('keeps one session identity across initial microsteps', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: { always: { target: 'b' } },
+          b: {}
+        }
+      });
+      const microsteps = getInitialMicrosteps(machine);
+
+      expect(microsteps).toHaveLength(2);
+      expect(
+        new Set(
+          microsteps.map(
+            ([snapshot]) => getSnapshotActorRef(snapshot)!.actor.sessionId
+          )
+        )
+      ).toHaveLength(1);
+    });
+
+    it('gives every microstep its own current owner snapshot', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: { on: { NEXT: { target: 'b' } } },
+          b: { always: { target: 'c' } },
+          c: {}
+        }
+      });
+      const [initial] = initialTransition(machine);
+      const microsteps = getMicrosteps(machine, initial, { type: 'NEXT' });
+
+      expect(microsteps).toHaveLength(2);
+      for (const [snapshot] of microsteps) {
+        expect(getSnapshotActorRef(snapshot)!.actor.getSnapshot()).toBe(
+          snapshot
+        );
+      }
+      expect(getSnapshotActorRef(microsteps[0][0])!.actor).not.toBe(
+        getSnapshotActorRef(microsteps[1][0])!.actor
+      );
     });
 
     it('appends deferred starts to the final microstep', () => {

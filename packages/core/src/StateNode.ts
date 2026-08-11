@@ -25,7 +25,7 @@ import type {
   AnyStateNodeConfig,
   NonReducibleUnknown,
   EventDescriptor,
-  AnyActor,
+  AnyActorScope,
   AnyStateNode,
   AnyEventObject,
   AnyAction,
@@ -300,7 +300,7 @@ export class StateNode<
   public next(
     snapshot: AnyMachineSnapshot,
     event: AnyEventObject,
-    self: AnyActor,
+    actorScope: AnyActorScope,
     selectionResults?: TransitionSelectionResults
   ): Array<AnyTransitionDefinition> | undefined {
     const descriptorKey = getEventDescriptorKey(event);
@@ -316,7 +316,7 @@ export class StateNode<
         event,
         snapshot,
         this,
-        self,
+        actorScope,
         selectionResults
       );
 
