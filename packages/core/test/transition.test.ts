@@ -1586,6 +1586,33 @@ describe('transition function', () => {
       expect(actor.getSnapshot().value).toBe('a');
     });
 
+    it('replaces inherited live identity after materializing a pure branch', () => {
+      let branchSelf: AnyActor | undefined;
+      const machine = createMachine({
+        context: { count: 0 },
+        on: {
+          INCREMENT: ({ context, self, system }) => {
+            branchSelf = self;
+            system.get('missing');
+            return { context: { count: context.count + 1 } };
+          }
+        }
+      });
+      const actor = createActor(machine).start();
+      const liveSnapshot = actor.getSnapshot();
+
+      const [nextSnapshot] = transition(machine, liveSnapshot, {
+        type: 'INCREMENT'
+      });
+      const branchRef = getSnapshotActorRef(nextSnapshot)!;
+
+      expect(branchSelf).not.toBe(actor);
+      expect(branchRef.actor).toBe(branchSelf);
+      expect(branchRef.actor.getSnapshot()).toBe(nextSnapshot);
+      expect(actor.getSnapshot()).toBe(liveSnapshot);
+      expect(getSnapshotActorRef(liveSnapshot)!.actor).toBe(actor);
+    });
+
     it('appends deferred starts to the final microstep', () => {
       const machine = createMachine({
         entry: (_, enq) => enq.spawn(listener, { id: 'child' })

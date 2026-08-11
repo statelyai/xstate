@@ -197,12 +197,14 @@ function createMaterializedInertActorScope<T extends AnyActorLogic>(
   }
   if (currentSnapshot) {
     (self as any)._snapshot = currentSnapshot;
-    setSnapshotActorRef(
-      currentSnapshot as Snapshot<unknown>,
-      self,
-      self.system,
-      sourceSnapshot as Snapshot<unknown> | undefined
-    );
+    if (currentSnapshot !== sourceSnapshot) {
+      setSnapshotActorRef(
+        currentSnapshot as Snapshot<unknown>,
+        self,
+        self.system,
+        sourceSnapshot as Snapshot<unknown> | undefined
+      );
+    }
   }
 
   return {

@@ -182,6 +182,7 @@ export function setLazySnapshotActorRef(
   snapshot: Snapshot<unknown>,
   create: () => SnapshotActorRef
 ): void {
+  snapshotActorRefs.delete(snapshot);
   lazySnapshotActorRefs.set(snapshot, create);
 }
 
