@@ -193,6 +193,7 @@ function createMaterializedInertActorScope<T extends AnyActorLogic>(
   // Reuse the branch actor's scope while keeping planning transactional.
   return Object.create((self as any)._actorScope, {
     defer: { value: () => {} },
+    stopChild: { value: (child: AnyActor) => (child as any)._stop() },
     actionExecutor: { value: () => {} }
   });
 }
