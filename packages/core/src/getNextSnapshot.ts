@@ -251,23 +251,29 @@ export function createInertActorScope<T extends AnyActorLogic>(
     const identitySnapshot = {} as Snapshot<unknown>;
     const identitySourceRef = state.sourceRef;
     const identitySourceChildren = state.sourceChildren;
+    let identityScope: AnyActorScope | undefined;
     let identityRef: SnapshotActorRef | undefined;
-    state.identityProvider = () => {
-      if (identityRef) {
-        return identityRef;
-      }
-      const identityScope = createMaterializedInertActorScope(
+    const getIdentityScope = () =>
+      (identityScope ??= createMaterializedInertActorScope(
         actorLogic,
         identitySourceRef,
         identitySourceChildren,
         undefined,
         sourceSelf
-      );
-      setSnapshotActorRef(
-        identitySnapshot,
-        identityScope.self,
-        identityScope.system
-      );
+      ));
+    state.materialize = () => {
+      const scope = getIdentityScope();
+      if (state.snapshot !== undefined) {
+        (scope.self as any)._snapshot = state.snapshot;
+      }
+      return (state.materialized = scope);
+    };
+    state.identityProvider = () => {
+      if (identityRef) {
+        return identityRef;
+      }
+      const scope = getIdentityScope();
+      setSnapshotActorRef(identitySnapshot, scope.self, scope.system);
       return (identityRef = getSnapshotActorRef(identitySnapshot)!);
     };
   }

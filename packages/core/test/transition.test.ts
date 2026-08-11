@@ -1718,6 +1718,43 @@ describe('transition function', () => {
       expect(getSnapshotActorRef(liveSnapshot)!.actor).toBe(liveActor);
     });
 
+    it('keeps one session identity across a plan started from scratch', () => {
+      const machine = createMachine({
+        context: { count: 0 },
+        on: {
+          INCREMENT: ({ context }) => ({
+            context: { count: context.count + 1 }
+          })
+        }
+      });
+      const [initial] = initialTransition(machine);
+      const [next] = transition(machine, initial, { type: 'INCREMENT' });
+
+      expect(getSnapshotActorRef(next)!.actor.sessionId).toBe(
+        getSnapshotActorRef(initial)!.actor.sessionId
+      );
+    });
+
+    it('keeps one session identity across initial microsteps', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: { always: { target: 'b' } },
+          b: {}
+        }
+      });
+      const microsteps = getInitialMicrosteps(machine);
+
+      expect(microsteps).toHaveLength(2);
+      expect(
+        new Set(
+          microsteps.map(
+            ([snapshot]) => getSnapshotActorRef(snapshot)!.actor.sessionId
+          )
+        )
+      ).toHaveLength(1);
+    });
+
     it('gives every microstep its own current owner snapshot', () => {
       const machine = createMachine({
         initial: 'a',
