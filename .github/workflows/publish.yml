@@ -6,37 +6,75 @@ on:
       - main
       - next
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+  queue: max
 
 permissions: {} # each job should define its own permission explicitly
 
 jobs:
-  version:
-    name: Version
+  select-mode:
+    name: Select Mode
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
-      hasChangesets: ${{ steps.changesets.outputs.hasChangesets }}
+      mode: ${{ steps.select-mode.outputs.mode }}
+      publish-plan-artifact-id: ${{ steps.select-mode.outputs.publish-plan-artifact-id }}
     permissions:
-      contents: write # to create release (changesets/action)
-      issues: write # to post issue comments (changesets/action)
+      contents: read # to check out repo (actions/checkout)
+    steps:
+      - uses: $/.github/actions/ci-setup
+
+      - name: Select mode
+        id: select-mode
+        # https://github.com/changesets/action
+        uses: changesets/action/select-mode@22ccf9aa43179fe9e27dc62e575971d28cce197c # v2.0.0
+
+  version:
+    name: Version
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'version'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # to create version commits (changesets/action)
       pull-requests: write # to create pull request (changesets/action)
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: ./.github/actions/ci-setup
-      - uses: ./.github/actions/ci-checks
+      - uses: $/.github/actions/ci-setup
 
       - name: Create or update release pull request
-        id: changesets
         # https://github.com/changesets/action
-        uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1.7.0
+        uses: changesets/action/version@22ccf9aa43179fe9e27dc62e575971d28cce197c # v2.0.0
         with:
-          version: pnpm run version
+          script: pnpm run version
+
+  pack:
+    name: Pack
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'publish'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
+    permissions:
+      contents: read # to check out repo (actions/checkout)
+    steps:
+      - uses: $/.github/actions/ci-setup
+
+      - name: Build
+        run: pnpm build
+
+      - name: Pack
+        id: pack
+        # https://github.com/changesets/action
+        uses: changesets/action/pack@22ccf9aa43179fe9e27dc62e575971d28cce197c # v2.0.0
+        with:
+          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
 
   publish:
     name: Publish
-    if: needs.version.outputs.hasChangesets == 'false'
-    needs: version
+    needs: pack
     runs-on: ubuntu-latest
     environment: npm
     timeout-minutes: 20
@@ -44,14 +82,10 @@ jobs:
       contents: write # to create release (changesets/action)
       id-token: write # to use OpenID Connect token for trusted publishing (changesets/action)
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: ./.github/actions/ci-setup
-
-      - name: Build
-        run: pnpm build
+      - uses: $/.github/actions/ci-setup
 
       - name: Publish to npm
         # https://github.com/changesets/action
-        uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1.7.0
+        uses: changesets/action/publish@22ccf9aa43179fe9e27dc62e575971d28cce197c # v2.0.0
         with:
-          publish: pnpm run release
+          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}

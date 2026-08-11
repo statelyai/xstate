@@ -1,7 +1,8 @@
 {
-  "$schema": "https://unpkg.com/@changesets/config@1.6.3/schema.json",
+  "$schema": "https://unpkg.com/@changesets/config@4.0.0/schema.json",
   "changelog": ["@changesets/changelog-github", { "repo": "statelyai/xstate" }],
   "commit": false,
+  "format": false,
   "linked": [],
   "access": "public",
   "baseBranch": "main",
