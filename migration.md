@@ -972,8 +972,8 @@ These exports have been **added**:
 - `executeEffects`
 - `ActorSystemRuntime`
 - `ActorTermination`
-- Persistence/versioning surface: `machineVersions`, `migrateSnapshot`, and their
-  related snapshot types
+- Persistence/versioning surface: `machineVersions` and its related snapshot
+  migration types
 - Executable effect types: `BaseExecutableActionObject`, `CustomExecutableActionObject`, `ExecutableActionObject`, `ExecutableActionObjectFromLogic`, `BuiltInExecutableActionObject`, `SpecialExecutableAction`, `StartExecutableActionObject`, `RaiseExecutableActionObject`, `SendToExecutableActionObject`, `CancelExecutableActionObject`, `StopExecutableActionObject`, `TerminateExecutableActionObject`
 - `ActorLogic.start(snapshot, scope, options?)` receives `options.restored` so logic can distinguish restoration from a fresh start.
 - `actor.select(selector)` - derived, subscribable views
@@ -1107,13 +1107,15 @@ const persisted = actor.getPersistedSnapshot();
 Machines without a `version` produce snapshots with no `version` key.
 
 Keep old versioned machines when you need typed migration. `machineVersions()`
-parses stored snapshots with the matching machine schemas. `migrateSnapshot()`
-converts directly to a target machine.
+parses stored snapshots with matching machine schemas and migrates raw snapshots
+directly to a retained target version. A `'*'` migration may asynchronously
+handle unknown snapshots without retaining old machines.
 
 To migrate snapshots created before versioning was adopted, retain the old machine
 definition as a version and pass `{ unversioned: '<old-version>' }` to
 `machineVersions()`. This fallback applies only to snapshots without version
-metadata; explicit unknown versions are rejected.
+metadata. `parseSnapshot()` rejects explicit unknown versions;
+`migrateSnapshot()` may handle them with `'*'`.
 
 ### Durable timers
 

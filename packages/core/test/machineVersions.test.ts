@@ -1,14 +1,114 @@
 import { z } from 'zod';
-import {
-  createActor,
-  createMachine,
-  machineVersions,
-  migrateSnapshot,
-  types
-} from '../src';
+import { createActor, createMachine, machineVersions, types } from '../src';
 
 describe('machineVersions', () => {
-  it('only exposes persisted snapshot parsing', () => {
+  it('migrates an unknown snapshot through an async wildcard handler', async () => {
+    const legacyCheckout = createMachine({
+      id: 'checkout',
+      context: { count: 2 },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const checkoutV2 = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        context: z.object({ total: z.number() })
+      },
+      context: { total: 0 },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const persisted = JSON.parse(
+      JSON.stringify(createActor(legacyCheckout).getPersistedSnapshot())
+    );
+    const versions = machineVersions([checkoutV2]);
+
+    const compatible = await versions.migrateSnapshot(persisted, {
+      to: '2',
+      migrations: {
+        '*': async (snapshot, source) => {
+          expect(snapshot).toEqual(persisted);
+          expect(source).toEqual({ id: undefined, version: undefined });
+          await Promise.resolve();
+          return {
+            ...(snapshot as Record<string, unknown>),
+            context: {
+              total: (snapshot as { context: { count: number } }).context.count
+            }
+          } as any;
+        }
+      }
+    });
+    const actor = createActor(checkoutV2, { snapshot: compatible }).start();
+
+    expect(actor.getSnapshot().context).toEqual({ total: 2 });
+  });
+
+  it('validates wildcard migration output against the target machine', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        context: z.object({ total: z.number() })
+      },
+      context: { total: 0 },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkout]);
+
+    await expect(
+      versions.migrateSnapshot(
+        {},
+        {
+          to: '2',
+          migrations: {
+            '*': () =>
+              ({
+                ...createActor(checkout).getPersistedSnapshot(),
+                context: { total: 'invalid' }
+              }) as any
+          }
+        }
+      )
+    ).rejects.toThrow("Invalid context for machine 'checkout' version '2'");
+  });
+
+  it('routes an unretained source version to the wildcard', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '2',
+      context: { total: 0 },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkout]);
+    const persisted = {
+      ...createActor(checkout).getPersistedSnapshot(),
+      machine: { id: 'checkout', version: '1' },
+      version: '1',
+      context: { count: 3 }
+    };
+
+    const compatible = await versions.migrateSnapshot(persisted, {
+      to: '2',
+      migrations: {
+        '*': (snapshot, source) => {
+          expect(snapshot).toBe(persisted);
+          expect(source).toEqual({ id: 'checkout', version: '1' });
+          return {
+            ...(snapshot as typeof persisted),
+            context: { total: 3 }
+          } as any;
+        }
+      }
+    });
+
+    expect(compatible.context).toEqual({ total: 3 });
+  });
+
+  it('exposes persisted snapshot parsing and migration', () => {
     const checkout = createMachine({
       id: 'checkout',
       version: '1',
@@ -17,7 +117,8 @@ describe('machineVersions', () => {
     });
 
     expect(machineVersions([checkout])).toEqual({
-      parseSnapshot: expect.any(Function)
+      parseSnapshot: expect.any(Function),
+      migrateSnapshot: expect.any(Function)
     });
   });
 
@@ -30,6 +131,19 @@ describe('machineVersions', () => {
 
     expect(() => machineVersions([unversionedMachine] as any)).toThrow(
       "Machine 'checkout' must define a version."
+    );
+  });
+
+  it("reserves '*' for wildcard migrations", () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '*',
+      initial: 'active',
+      states: { active: {} }
+    });
+
+    expect(() => machineVersions([checkout])).toThrow(
+      "Machine version '*' is reserved for wildcard migrations."
     );
   });
 
@@ -195,11 +309,14 @@ describe('machineVersions', () => {
       machine: { id: 'checkout', version: '0' }
     });
 
-    const compatible = await migrateSnapshot(parsed, checkoutV1, {
-      '0': (snapshot) => ({
-        ...snapshot,
-        context: { total: snapshot.context.count }
-      })
+    const compatible = await versions.migrateSnapshot(persisted, {
+      to: '1',
+      migrations: {
+        '0': (snapshot) => ({
+          ...snapshot,
+          context: { total: snapshot.context.count }
+        })
+      }
     });
     const actor = createActor(checkoutV1, { snapshot: compatible }).start();
 
@@ -288,7 +405,7 @@ describe('machineVersions', () => {
     ).rejects.toThrow("Invalid context for machine 'checkout' version '1'");
   });
 
-  it('migrates a parsed snapshot to a target machine', async () => {
+  it('prefers an async exact-version migration over the wildcard', async () => {
     const checkoutV1 = createMachine({
       id: 'checkout',
       version: '1',
@@ -310,15 +427,20 @@ describe('machineVersions', () => {
       states: { active: {} }
     });
     const versions = machineVersions([checkoutV1, checkoutV2]);
-    const source = await versions.parseSnapshot(
-      JSON.parse(JSON.stringify(createActor(checkoutV1).getPersistedSnapshot()))
+    const persisted = JSON.parse(
+      JSON.stringify(createActor(checkoutV1).getPersistedSnapshot())
     );
+    const wildcard = vi.fn();
 
-    const compatible = await migrateSnapshot(source, checkoutV2, {
-      '1': (snapshot) => ({
-        ...snapshot,
-        context: { total: snapshot.context.count }
-      })
+    const compatible = await versions.migrateSnapshot(persisted, {
+      to: '2',
+      migrations: {
+        '1': async (snapshot) => ({
+          ...snapshot,
+          context: { total: snapshot.context.count }
+        }),
+        '*': wildcard
+      }
     });
     const actor = createActor(checkoutV2, { snapshot: compatible }).start();
 
@@ -327,5 +449,6 @@ describe('machineVersions', () => {
       id: 'checkout',
       version: '2'
     });
+    expect(wildcard).not.toHaveBeenCalled();
   });
 });

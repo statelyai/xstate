@@ -29,11 +29,12 @@ export {
 export { mapState } from './mapState.ts';
 export {
   machineVersions,
-  migrateSnapshot,
+  type MigrateSnapshotOptions,
   type MachineVersionsOptions,
   type ParsedPersistedSnapshot,
   type PersistedMachineIdentity,
   type PersistedSnapshotDataFrom,
+  type PersistedSnapshotSource,
   type SnapshotMigrationHandlers,
   type PersistedSnapshotFrom
 } from './machineVersions.ts';

@@ -2,7 +2,6 @@ import {
   createActor,
   createMachine,
   machineVersions,
-  migrateSnapshot,
   setup,
   types
 } from '../src';
@@ -53,23 +52,56 @@ if (false) {
 }
 
 async function checkSnapshotMigrationTypes() {
-  const source = await versions.parseSnapshot({} as unknown);
-
-  const compatible = await migrateSnapshot(source, checkoutV2, {
-    '1': (snapshot) => {
-      const count: number = snapshot.context.count;
-      // @ts-expect-error v1 context does not contain the v2 field
-      snapshot.context.total;
-      return {
-        ...snapshot,
-        context: { total: count }
-      };
+  const compatible = await versions.migrateSnapshot({} as unknown, {
+    to: '2',
+    migrations: {
+      '1': async (snapshot) => {
+        const count: number = snapshot.context.count;
+        // @ts-expect-error v1 context does not contain the v2 field
+        snapshot.context.total;
+        return {
+          ...snapshot,
+          context: { total: count }
+        };
+      },
+      '*': async (snapshot, source) => {
+        // @ts-expect-error wildcard snapshots are unknown
+        snapshot.context;
+        const id: string | undefined = source.id;
+        const version: string | undefined = source.version;
+        void id;
+        void version;
+        return {
+          ...createActor(checkoutV2).getPersistedSnapshot(),
+          context: { total: 0 }
+        };
+      }
     }
   });
 
   createActor(checkoutV2, { snapshot: compatible });
   // @ts-expect-error a v2 snapshot is not compatible with the v1 machine
   createActor(checkoutV1, { snapshot: compatible });
+
+  await versions.migrateSnapshot(
+    {},
+    {
+      // @ts-expect-error target version must be retained
+      to: '3',
+      migrations: {}
+    }
+  );
+
+  await versions.migrateSnapshot(
+    {},
+    {
+      to: '2',
+      migrations: {
+        // @ts-expect-error the target version is validated without migration
+        '2': (snapshot) => snapshot
+      }
+    }
+  );
 }
 
 void version;
