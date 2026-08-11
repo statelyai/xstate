@@ -70,6 +70,7 @@
     "brave-react-rehydrate",
     "bright-json-revival",
     "calm-actors-rename",
+    "calm-actors-run",
     "clean-initial-transitions",
     "clean-invoked-snapshots",
     "clean-snapshot-matches",

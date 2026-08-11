@@ -1,5 +1,11 @@
 # xstate
 
+## 6.0.0-alpha.35
+
+### Patch Changes
+
+- db0a16c: Reduce actor runtime memory usage and improve actor startup performance.
+
 ## 6.0.0-alpha.34
 
 ### Patch Changes
