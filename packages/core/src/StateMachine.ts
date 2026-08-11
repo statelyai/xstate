@@ -475,7 +475,7 @@ export class StateMachine<
       }
       const returnedSnapshot =
         usesInertScope && fastSnapshot !== snapshot
-          ? attachSnapshotActorRef(this, resolvedActorScope, fastSnapshot)
+          ? attachSnapshotActorRef(resolvedActorScope, fastSnapshot)
           : this._attachPureActorRef(fastSnapshot, resolvedActorScope);
       if (this.validator) {
         assertValid(this.validator, {
@@ -501,7 +501,7 @@ export class StateMachine<
     const returnedSnapshot = usesInertScope
       ? nextSnapshot === snapshot
         ? nextSnapshot
-        : attachSnapshotActorRef(this, resolvedActorScope, nextSnapshot)
+        : attachSnapshotActorRef(resolvedActorScope, nextSnapshot)
       : this._attachPureActorRef(nextSnapshot, resolvedActorScope);
     const effects = this._collectEffects(microsteps);
     if (this.validator) {
@@ -968,7 +968,7 @@ export class StateMachine<
         setInertActorScopeSnapshot(resolvedActorScope, macroState, false);
       }
       const returnedSnapshot = usesInertScope
-        ? attachSnapshotActorRef(this, resolvedActorScope, macroState)
+        ? attachSnapshotActorRef(resolvedActorScope, macroState)
         : this._attachPureActorRef(macroState, resolvedActorScope);
       const effects = this._collectEffects(microsteps);
       if (this.validator) {
@@ -1342,7 +1342,7 @@ export class StateMachine<
 
     if (usesInertScope) {
       setInertActorScopeSnapshot(resolvedActorScope, restoredSnapshot, false);
-      return attachSnapshotActorRef(this, resolvedActorScope, restoredSnapshot);
+      return attachSnapshotActorRef(resolvedActorScope, restoredSnapshot);
     }
 
     return this._attachPureActorRef(restoredSnapshot, resolvedActorScope);

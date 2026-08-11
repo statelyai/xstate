@@ -52,8 +52,7 @@ export function isInertActorScope(actorScope: AnyActorScope): boolean {
 }
 
 /** @internal */
-export function attachSnapshotActorRef<T extends AnyActorLogic, TSnapshot>(
-  _actorLogic: T,
+export function attachSnapshotActorRef<TSnapshot>(
   actorScope: AnyActorScope,
   snapshot: TSnapshot
 ): TSnapshot {
@@ -191,17 +190,11 @@ function createMaterializedInertActorScope<T extends AnyActorLogic>(
     (self as any)._snapshot = currentSnapshot;
   }
 
-  return {
-    self: self as any,
-    defer: () => {},
-    id: self.id,
-    logger: self.system._logger,
-    sessionId: self.sessionId,
-    stopChild: (child) => (child as any)._stop(),
-    system: self.system,
-    emit: (event) => self.system.emitEvent(self, event),
-    actionExecutor: () => {}
-  };
+  // Reuse the branch actor's scope while keeping planning transactional.
+  return Object.create((self as any)._actorScope, {
+    defer: { value: () => {} },
+    actionExecutor: { value: () => {} }
+  });
 }
 
 /** @internal */
@@ -344,5 +337,5 @@ export function getNextSnapshot<T extends AnyActorLogic>(
   setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
   return nextSnapshot === snapshot
     ? nextSnapshot
-    : attachSnapshotActorRef(actorLogic, actorScope, nextSnapshot);
+    : attachSnapshotActorRef(actorScope, nextSnapshot);
 }

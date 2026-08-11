@@ -192,6 +192,31 @@ describe('transition function', () => {
     ]);
   });
 
+  it('keeps materialized pure scopes effect-free', () => {
+    let deferred = false;
+    let executed = false;
+    const snapshot = {
+      status: 'active',
+      output: undefined,
+      error: undefined
+    };
+    const logic = {
+      initialTransition: (_input: unknown, actorScope: any) => {
+        actorScope.defer(() => (deferred = true));
+        actorScope.actionExecutor({ exec: () => (executed = true) });
+        return [snapshot, []];
+      },
+      transition: () => [snapshot, []],
+      getInitialSnapshot: () => snapshot,
+      getPersistedSnapshot: (value: unknown) => value
+    } as any;
+
+    initialTransition(logic);
+
+    expect(deferred).toBe(false);
+    expect(executed).toBe(false);
+  });
+
   it('does not repeatedly resolve a selected transition during a microstep', () => {
     const update = vi.fn(({ context }: { context: { count: number } }) => ({
       context: { count: context.count + 1 }

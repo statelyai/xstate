@@ -43,7 +43,7 @@ function attachMicrostepActorRefs(
   const finalSnapshot = result.at(-1)![0];
   setInertActorScopeSnapshot(actorScope, finalSnapshot, false);
   if (finalSnapshot !== inputSnapshot) {
-    attachSnapshotActorRef(finalSnapshot.machine, actorScope, finalSnapshot);
+    attachSnapshotActorRef(actorScope, finalSnapshot);
   }
   for (const [snapshot] of result) {
     if (snapshot !== inputSnapshot && snapshot !== finalSnapshot) {
@@ -53,7 +53,7 @@ function attachMicrostepActorRefs(
         undefined,
         actorScope
       );
-      attachSnapshotActorRef(snapshot.machine, snapshotScope, snapshot);
+      attachSnapshotActorRef(snapshotScope, snapshot);
     }
   }
   return result;
@@ -85,7 +85,7 @@ export function transition<T extends AnyActorLogic>(
   const returnedSnapshot =
     nextSnapshot === snapshot
       ? nextSnapshot
-      : attachSnapshotActorRef(logic, actorScope, nextSnapshot);
+      : attachSnapshotActorRef(actorScope, nextSnapshot);
   return [returnedSnapshot, effects as ExecutableActionObjectFromLogic<T>[]];
 }
 
@@ -111,11 +111,7 @@ export function initialTransition<T extends AnyActorLogic>(
   );
 
   setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
-  const returnedSnapshot = attachSnapshotActorRef(
-    logic,
-    actorScope,
-    nextSnapshot
-  );
+  const returnedSnapshot = attachSnapshotActorRef(actorScope, nextSnapshot);
   return [
     returnedSnapshot,
     executableActions as ExecutableActionObjectFromLogic<T>[]
