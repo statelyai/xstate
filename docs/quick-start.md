@@ -50,6 +50,6 @@ The machine describes the behavior. `createActor(...)` creates a running actor f
 
 ## What next?
 
-- [Learn why state machines are useful](../learn/why-state-machines.md).
-- [Build your first machine step by step](../learn/your-first-machine.md).
+- [Learn why state machines are useful](why-state-machines.md).
+- [Build your first machine step by step](your-first-machine.md).
 - [Choose between XState and XState Store](choose-xstate.md).

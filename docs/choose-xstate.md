@@ -25,7 +25,7 @@ Common examples include:
 
 ## Use XState Store
 
-Use [`@xstate/store`](../../packages/xstate-store/README.md) when you need simple event-based state management. A store is a good fit when events update data without a statechart.
+Use [`@xstate/store`](../packages/xstate-store/README.md) when you need simple event-based state management. A store is a good fit when events update data without a statechart.
 
 ```ts
 import { createStore } from '@xstate/store';

@@ -1,4 +1,0 @@
-{
-  "title": "Machines",
-  "pages": ["configuration", "states", "transitions", "context", "input-output", "actions", "guards", "delays", "final-history-parallel"]
-}

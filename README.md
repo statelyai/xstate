@@ -23,7 +23,7 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 <!-- documentation sections from docs/meta.json -->
 
-[Start](docs/start/quick-start.md) · [Learn](docs/learn/why-state-machines.md) · [Build](docs/build/async-requests.md) · [Reference](docs/reference/machine/configuration.md) · [Migrate](docs/migrate/xstate-v5-to-v6.md)
+[Start](docs/quick-start.md) · [Learn](docs/why-state-machines.md) · [Build](docs/async-requests.md) · [Reference](docs/configuration.md) · [Migrate](docs/xstate-v5-to-v6.md)
 
 ➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
 
