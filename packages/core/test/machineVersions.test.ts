@@ -2,6 +2,338 @@ import { z } from 'zod';
 import { createActor, createMachine, machineVersions, types } from '../src';
 
 describe('machineVersions', () => {
+  it('adapts a whole event history through an async exact-version adapter', async () => {
+    const checkoutV1 = createMachine({
+      id: 'checkout',
+      version: '1',
+      schemas: {
+        events: {
+          ADD: z.object({ value: z.number() }),
+          REMOVE: z.object({ value: z.number() })
+        }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const checkoutV2 = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        events: {
+          CHANGE: z.object({ delta: z.number() })
+        }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkoutV1, checkoutV2]);
+    const wildcard = vi.fn();
+
+    const events = await versions.adaptEvents(
+      [
+        { type: 'ADD', value: 5 },
+        { type: 'REMOVE', value: 2 }
+      ],
+      {
+        from: { id: 'checkout', version: '1' },
+        to: '2',
+        adapters: {
+          '1': async (sourceEvents) => [
+            {
+              type: 'CHANGE',
+              delta: sourceEvents.reduce(
+                (total, event) =>
+                  total + (event.type === 'ADD' ? event.value : -event.value),
+                0
+              )
+            }
+          ],
+          '*': wildcard
+        }
+      }
+    );
+
+    expect(events).toEqual([{ type: 'CHANGE', delta: 3 }]);
+    expect(wildcard).not.toHaveBeenCalled();
+  });
+
+  it('defaults an omitted source ID to the retained machine ID', async () => {
+    const checkoutV1 = createMachine({
+      id: 'checkout',
+      version: '1',
+      initial: 'active',
+      states: { active: {} }
+    });
+    const checkoutV2 = createMachine({
+      id: 'checkout',
+      version: '2',
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkoutV1, checkoutV2]);
+
+    const events = await versions.adaptEvents([{ type: 'ADD' }], {
+      from: { version: '1' },
+      to: '2',
+      adapters: {
+        '1': () => [{ type: 'CHANGE' }]
+      }
+    });
+
+    expect(events).toEqual([{ type: 'CHANGE' }]);
+  });
+
+  it('adapts an unknown history through an async wildcard adapter', async () => {
+    const checkoutV2 = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        events: {
+          CHANGE: z.object({ delta: z.number() })
+        }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkoutV2]);
+    const history = [{ kind: 'added', amount: 3 }];
+    const source = { id: 'legacy-checkout', version: 'draft' };
+
+    const events = await versions.adaptEvents(history, {
+      from: source,
+      to: '2',
+      adapters: {
+        '*': async (unknownEvents, actualSource) => {
+          expect(unknownEvents).toBe(history);
+          expect(actualSource).toBe(source);
+          await Promise.resolve();
+          return [
+            {
+              type: 'CHANGE',
+              delta: (unknownEvents[0] as { amount: number }).amount
+            }
+          ];
+        }
+      }
+    });
+
+    expect(events).toEqual([{ type: 'CHANGE', delta: 3 }]);
+  });
+
+  it('validates and returns same-version histories without calling adapters', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        events: {
+          CHANGE: z.object({ delta: z.number() })
+        }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkout]);
+    const wildcard = vi.fn();
+
+    const events = await versions.adaptEvents([{ type: 'CHANGE', delta: 3 }], {
+      from: { id: 'checkout', version: '2' },
+      to: '2',
+      adapters: { '*': wildcard }
+    });
+
+    expect(events).toEqual([{ type: 'CHANGE', delta: 3 }]);
+    expect(wildcard).not.toHaveBeenCalled();
+  });
+
+  it('routes invalid retained-source histories to the wildcard adapter', async () => {
+    const checkoutV1 = createMachine({
+      id: 'checkout',
+      version: '1',
+      schemas: {
+        events: { ADD: z.object({ value: z.number() }) }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const checkoutV2 = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        events: { CHANGE: z.object({ delta: z.number() }) }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkoutV1, checkoutV2]);
+    const history = [{ type: 'legacy-add', amount: 4 }];
+    const exact = vi.fn();
+
+    const events = await versions.adaptEvents(history, {
+      from: { id: 'checkout', version: '1' },
+      to: '2',
+      adapters: {
+        '1': exact,
+        '*': (unknownEvents) => [
+          {
+            type: 'CHANGE',
+            delta: (unknownEvents[0] as { amount: number }).amount
+          }
+        ]
+      }
+    });
+
+    expect(events).toEqual([{ type: 'CHANGE', delta: 4 }]);
+    expect(exact).not.toHaveBeenCalled();
+  });
+
+  it('rejects a retained source without an exact or wildcard adapter', async () => {
+    const checkoutV1 = createMachine({
+      id: 'checkout',
+      version: '1',
+      initial: 'active',
+      states: { active: {} }
+    });
+    const checkoutV2 = createMachine({
+      id: 'checkout',
+      version: '2',
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkoutV1, checkoutV2]);
+
+    await expect(
+      versions.adaptEvents([{ type: 'ADD' }], {
+        from: { id: 'checkout', version: '1' },
+        to: '2',
+        adapters: {}
+      })
+    ).rejects.toThrow(
+      "No event adapter from version '1' to '2' for machine 'checkout'."
+    );
+  });
+
+  it('propagates exact adapter errors without falling back to wildcard', async () => {
+    const checkoutV1 = createMachine({
+      id: 'checkout',
+      version: '1',
+      initial: 'active',
+      states: { active: {} }
+    });
+    const checkoutV2 = createMachine({
+      id: 'checkout',
+      version: '2',
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkoutV1, checkoutV2]);
+    const wildcard = vi.fn();
+
+    await expect(
+      versions.adaptEvents([], {
+        from: { id: 'checkout', version: '1' },
+        to: '2',
+        adapters: {
+          '1': async () => {
+            throw new Error('adapter failed');
+          },
+          '*': wildcard
+        }
+      })
+    ).rejects.toThrow('adapter failed');
+    expect(wildcard).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown source without a wildcard adapter', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '2',
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkout]);
+
+    await expect(
+      versions.adaptEvents([], {
+        from: { id: 'checkout', version: 'unknown' },
+        to: '2',
+        adapters: {}
+      })
+    ).rejects.toThrow(
+      "Unknown event history source 'checkout' version 'unknown'."
+    );
+  });
+
+  it('validates adapted output against target event schemas', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        events: { CHANGE: z.object({ delta: z.number() }) }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkout]);
+
+    await expect(
+      versions.adaptEvents([], {
+        from: { version: 'legacy' },
+        to: '2',
+        adapters: {
+          '*': () => [{ type: 'CHANGE', delta: 'invalid' }] as any
+        }
+      })
+    ).rejects.toThrow("Invalid event 'CHANGE' at index 0");
+  });
+
+  it('rejects inherited event schema keys as unknown events', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        events: { CHANGE: z.object({ delta: z.number() }) }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkout]);
+
+    await expect(
+      versions.adaptEvents([{ type: 'constructor' }], {
+        from: { id: 'checkout', version: '2' },
+        to: '2',
+        adapters: {}
+      })
+    ).rejects.toThrow(
+      "Unknown event 'constructor' for machine 'checkout' version '2'."
+    );
+  });
+
+  it('preserves reserved framework events without schema validation', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        events: { CHANGE: z.object({ delta: z.number() }) }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkout]);
+    const events = [
+      { type: 'xstate.done.actor', actorId: 'child' },
+      { type: '@xstate.init' }
+    ];
+
+    await expect(
+      versions.adaptEvents(events, {
+        from: { id: 'checkout', version: '2' },
+        to: '2',
+        adapters: {}
+      })
+    ).resolves.toEqual(events);
+  });
+
   it('migrates an unknown snapshot through an async wildcard handler', async () => {
     const legacyCheckout = createMachine({
       id: 'checkout',
@@ -108,7 +440,7 @@ describe('machineVersions', () => {
     expect(compatible.context).toEqual({ total: 3 });
   });
 
-  it('exposes persisted snapshot parsing and migration', () => {
+  it('exposes snapshot migration and event adaptation separately', () => {
     const checkout = createMachine({
       id: 'checkout',
       version: '1',
@@ -118,6 +450,7 @@ describe('machineVersions', () => {
 
     expect(machineVersions([checkout])).toEqual({
       parseSnapshot: expect.any(Function),
+      adaptEvents: expect.any(Function),
       migrateSnapshot: expect.any(Function)
     });
   });

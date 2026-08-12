@@ -43,6 +43,30 @@ const unversioned = createMachine({
   initial: 'active',
   states: { active: {} }
 });
+const eventMachineV1 = createMachine({
+  id: 'events',
+  version: '1',
+  schemas: {
+    events: {
+      ADD: types<{ value: number }>(),
+      REMOVE: types<{ value: number }>()
+    }
+  },
+  initial: 'active',
+  states: { active: {} }
+});
+const eventMachineV2 = createMachine({
+  id: 'events',
+  version: '2',
+  schemas: {
+    events: {
+      CHANGE: types<{ delta: number }>()
+    }
+  },
+  initial: 'active',
+  states: { active: {} }
+});
+const eventVersions = machineVersions([eventMachineV1, eventMachineV2]);
 
 if (false) {
   // @ts-expect-error version parsers require versioned machines
@@ -104,10 +128,59 @@ async function checkSnapshotMigrationTypes() {
   );
 }
 
+async function checkEventAdaptationTypes() {
+  const adapted = await eventVersions.adaptEvents([], {
+    from: { id: 'events', version: '1' },
+    to: '2',
+    adapters: {
+      '1': async (events) => {
+        const event = events[0];
+        if (event?.type === 'ADD') {
+          const value: number = event.value;
+          // @ts-expect-error v1 ADD events do not contain the v2 field
+          event.delta;
+          void value;
+        }
+        return [{ type: 'CHANGE', delta: events.length }];
+      },
+      '*': async (events, source) => {
+        // @ts-expect-error wildcard event values are unknown
+        events[0].type;
+        const id: string | undefined = source.id;
+        const version: string | undefined = source.version;
+        void id;
+        void version;
+        return [{ type: 'CHANGE', delta: 0 }];
+      }
+    }
+  });
+  const targetEvents: Array<{ type: 'CHANGE'; delta: number }> = adapted;
+  void targetEvents;
+
+  await eventVersions.adaptEvents([], {
+    from: { id: 'events', version: '1' },
+    to: '2',
+    adapters: {
+      // @ts-expect-error the target version is validated without adaptation
+      '2': (events) => events
+    }
+  });
+
+  await eventVersions.adaptEvents([], {
+    from: { id: 'events', version: '1' },
+    to: '2',
+    adapters: {
+      // @ts-expect-error adapters must return target-version events
+      '1': () => [{ type: 'ADD', value: 1 }]
+    }
+  });
+}
+
 void version;
 void setupVersion;
 void versionsWithUnversioned;
 void checkSnapshotMigrationTypes;
+void checkEventAdaptationTypes;
 
 describe('machine version types', () => {
   it('checks machine and migration versions at compile time', () => {
