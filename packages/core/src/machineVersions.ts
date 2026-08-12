@@ -198,11 +198,13 @@ async function validateEvents<TMachine extends VersionedStateMachine>(
         throw new Error(`Invalid event at index ${index}.`);
       }
       const eventSchemas = machine.schemas?.events;
+      const isFrameworkEvent =
+        event.type.startsWith('xstate.') || event.type.startsWith('@xstate.');
       const schema =
         eventSchemas && Object.hasOwn(eventSchemas, event.type)
           ? eventSchemas[event.type]
           : undefined;
-      if (eventSchemas && !schema) {
+      if (eventSchemas && !schema && !isFrameworkEvent) {
         throw new Error(
           `Unknown event '${event.type}' for machine '${machine.id}' version '${machine.version}'.`
         );

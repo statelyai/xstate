@@ -309,6 +309,31 @@ describe('machineVersions', () => {
     );
   });
 
+  it('preserves reserved framework events without schema validation', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        events: { CHANGE: z.object({ delta: z.number() }) }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkout]);
+    const events = [
+      { type: 'xstate.done.actor', actorId: 'child' },
+      { type: '@xstate.init' }
+    ];
+
+    await expect(
+      versions.adaptEvents(events, {
+        from: { id: 'checkout', version: '2' },
+        to: '2',
+        adapters: {}
+      })
+    ).resolves.toEqual(events);
+  });
+
   it('migrates an unknown snapshot through an async wildcard handler', async () => {
     const legacyCheckout = createMachine({
       id: 'checkout',
