@@ -197,8 +197,12 @@ async function validateEvents<TMachine extends VersionedStateMachine>(
       if (!isObject(event) || typeof event.type !== 'string') {
         throw new Error(`Invalid event at index ${index}.`);
       }
-      const schema = machine.schemas?.events?.[event.type];
-      if (machine.schemas?.events && !schema) {
+      const eventSchemas = machine.schemas?.events;
+      const schema =
+        eventSchemas && Object.hasOwn(eventSchemas, event.type)
+          ? eventSchemas[event.type]
+          : undefined;
+      if (eventSchemas && !schema) {
         throw new Error(
           `Unknown event '${event.type}' for machine '${machine.id}' version '${machine.version}'.`
         );
@@ -334,8 +338,9 @@ export function machineVersions<
         );
       }
 
+      const sourceId = adaptationOptions.from.id ?? machineId;
       const source = byIdentity.get(
-        `${adaptationOptions.from.id}\0${adaptationOptions.from.version}`
+        `${sourceId}\0${adaptationOptions.from.version}`
       );
       let sourceError: unknown;
       let sourceValidationFailed = false;
@@ -389,7 +394,7 @@ export function machineVersions<
         );
       }
       throw new Error(
-        `Unknown event history source '${adaptationOptions.from.id}' version '${adaptationOptions.from.version}'.`
+        `Unknown event history source '${sourceId}' version '${adaptationOptions.from.version}'.`
       );
     },
     async migrateSnapshot<TTargetVersion extends MachineVersion<TMachines>>(
