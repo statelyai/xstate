@@ -28,7 +28,7 @@ Persisted snapshots record current state. Event sourcing records the events that
 
 ## Migrate machine versions
 
-<!-- machine version parsing and migration APIs from packages/core/src/machineVersions.ts -->
+<!-- snapshot migration and event adaptation APIs from packages/core/src/machineVersions.ts -->
 
 Register the machine versions whose persisted data you want parsed and typed.
 Each machine must have the same stable `id` and its own `version`.
@@ -94,6 +94,44 @@ with `'*'`.
 
 Use a runtime Standard Schema such as Zod to reject invalid persisted data.
 `types<T>()` provides TypeScript inference only and does not validate at runtime.
+
+## Adapt event histories
+
+Event adaptation is separate from snapshot migration. Pass the source identity
+once for the stream; events do not need version envelopes or metadata.
+
+```ts
+const events = await checkoutVersions.adaptEvents(storedEvents, {
+  from: { id: 'checkout', version: '1' },
+  to: '2',
+  adapters: {
+    '1': async (events) => [
+      {
+        type: 'totalChanged',
+        amount: events.reduce(
+          (total, event) => total + event.amount,
+          0
+        )
+      }
+    ]
+  }
+});
+```
+
+Adapters receive and return whole arrays, so they may insert, drop, combine or
+reorder events. Exact retained-version adapters receive typed source events and
+must return target events. `'*'` receives `unknown[]` plus the caller-provided
+source identity, allowing lazy schema imports or shape-based adaptation.
+
+An exact adapter takes precedence over `'*'`. A matching target version needs no
+adapter. Source histories are validated before exact adapters when a source
+event schema is available; unrecognized histories may fall through to `'*'`.
+Every result, including a same-version history, is validated against available
+target event schemas. If no applicable adapter exists, adaptation throws. An
+exact adapter's error propagates instead of falling through to `'*'`.
+
+`adaptEvents()` only adapts a materialized history. It does not store or replay
+events and does not produce a snapshot.
 
 ## Persistence cheatsheet
 

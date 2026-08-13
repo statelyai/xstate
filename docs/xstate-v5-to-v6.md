@@ -28,7 +28,7 @@ Define runtime schemas in `setup({ schemas })`. Event schema keys create typed m
 
 ## Update actor logic
 
-Replace `fromPromise(...)` with `createAsyncLogic(...)`. Check other actor logic imports against the [actor logic reference](../reference/actors/actor-logic.md).
+Replace `fromPromise(...)` with `createAsyncLogic(...)`. Check other actor logic imports against the [actor logic reference](actor-logic.md).
 
 ## Update framework hooks
 
@@ -48,4 +48,4 @@ Create new persisted snapshots with `getPersistedSnapshot()`. Test restoring sna
 - Test persisted snapshots.
 - Run type checking and behavior tests.
 
-See the [full migration guide](../../migration.md) for API-by-API changes.
+See the [full migration guide](../migration.md) for API-by-API changes.

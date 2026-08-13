@@ -973,7 +973,7 @@ These exports have been **added**:
 - `ActorSystemRuntime`
 - `ActorTermination`
 - Persistence/versioning surface: `machineVersions` and its related snapshot
-  migration types
+  migration and event adaptation types
 - Executable effect types: `BaseExecutableActionObject`, `CustomExecutableActionObject`, `ExecutableActionObject`, `ExecutableActionObjectFromLogic`, `BuiltInExecutableActionObject`, `SpecialExecutableAction`, `StartExecutableActionObject`, `RaiseExecutableActionObject`, `SendToExecutableActionObject`, `CancelExecutableActionObject`, `StopExecutableActionObject`, `TerminateExecutableActionObject`
 - `ActorLogic.start(snapshot, scope, options?)` receives `options.restored` so logic can distinguish restoration from a fresh start.
 - `actor.select(selector)` - derived, subscribable views
@@ -1116,6 +1116,12 @@ definition as a version and pass `{ unversioned: '<old-version>' }` to
 `machineVersions()`. This fallback applies only to snapshots without version
 metadata. `parseSnapshot()` rejects explicit unknown versions;
 `migrateSnapshot()` may handle them with `'*'`.
+
+Event history adaptation is a separate operation. Use
+`machineVersions().adaptEvents(events, { from, to, adapters })` to transform a
+whole source history into target-version events. Exact retained-version
+adapters are typed; `'*'` receives unknown events. Adaptation validates target
+event schemas when available but does not replay events or create a snapshot.
 
 ### Durable timers
 
