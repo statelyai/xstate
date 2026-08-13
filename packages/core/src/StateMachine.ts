@@ -813,7 +813,7 @@ export class StateMachine<
   ): TEvent | undefined {
     if (
       (snapshot as any)?.status !== 'active' ||
-      !snapshot._nodes?.some((stateNode) => stateNode.config.onError)
+      !snapshot.nodes?.some((stateNode) => stateNode.config.onError)
     ) {
       return undefined;
     }

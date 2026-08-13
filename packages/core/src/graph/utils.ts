@@ -85,7 +85,7 @@ export function getDescription<T, TContext extends MachineContext>(
     ? ''
     : `(${JSON.stringify(snapshot.context)})`;
 
-  const stateStrings = snapshot._nodes
+  const stateStrings = snapshot.nodes
     .filter((sn) => sn.type === 'atomic' || sn.type === 'final')
     .map(({ id, path }) => {
       const meta = snapshot.getMeta()[id] as TestMeta<T, TContext>;

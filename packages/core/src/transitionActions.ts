@@ -742,7 +742,7 @@ export function resolveActionsWithContext(
       const res = specialAction(actionArgs as any, emptyEnqueueObject);
 
       if (res && ('context' in res || 'children' in res)) {
-        // Special-action patches never change `_nodes`, so a shallow clone is
+        // Special-action patches never change `nodes`, so a shallow clone is
         // equivalent to `cloneMachineSnapshot` — and keeps this module (and
         // non-machine logic like `createFSM`) independent of State.ts.
         intermediateSnapshot = {

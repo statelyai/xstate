@@ -148,7 +148,7 @@ interface MachineSnapshotBase<
 
   historyValue: Readonly<HistoryValue>;
   /** The enabled state nodes representative of the state value. */
-  _nodes: Array<AnyStateNode>;
+  nodes: Array<AnyStateNode>;
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
   /** Pending logical timers owned by this machine snapshot. */
@@ -400,7 +400,7 @@ const machineSnapshotCan = function can(
 
 const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
-    _nodes: nodes,
+    nodes,
     _stateInputs,
     tags,
     machine,
@@ -417,7 +417,7 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
 
 const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
   const meta: Record<string, any> = {};
-  for (const stateNode of this._nodes) {
+  for (const stateNode of this.nodes) {
     if (stateNode.meta !== undefined) {
       meta[stateNode.id] = stateNode.meta;
     }
@@ -473,7 +473,7 @@ export function createMachineSnapshot<
     error: config.error,
     machine,
     context: config.context,
-    _nodes: config._nodes,
+    nodes: config._nodes,
     value: (config.value ??
       getStateValue(machine.root, config._nodes)) as never,
     tags: collectTags(config._nodes),
@@ -504,14 +504,14 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
     ...config
   } as StateConfig<any, any>;
 
-  if ((config._nodes ?? snapshot._nodes) === snapshot._nodes) {
+  if ((config._nodes ?? snapshot.nodes) === snapshot.nodes) {
     const clonedSnapshot = {
       status: configWithSnapshot.status as never,
       output: configWithSnapshot.output,
       error: configWithSnapshot.error,
       machine: snapshot.machine,
       context: configWithSnapshot.context,
-      _nodes: snapshot._nodes,
+      nodes: snapshot.nodes,
       value: snapshot.value,
       tags: snapshot.tags,
       children: compactSnapshotRecord(configWithSnapshot.children),
@@ -578,7 +578,7 @@ export function getPersistedSnapshot<
   options?: unknown
 ): Snapshot<unknown> {
   const {
-    _nodes: nodes,
+    nodes,
     _stateInputs,
     tags,
     machine,

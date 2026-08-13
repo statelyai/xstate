@@ -775,9 +775,9 @@ with (context) {
     if (!self) return false;
     try {
       const snap = (self as any).getSnapshot?.();
-      if (snap?._nodes) {
+      if (snap?.nodes) {
         const sanitized = stateId.replace(/\./g, '$');
-        return snap._nodes.some(
+        return snap.nodes.some(
           (node: any) =>
             node.id === sanitized || node.id.endsWith('.' + sanitized)
         );
@@ -1983,8 +1983,8 @@ export function createMachineFromConfig(
       if (!stateId) return false;
       const normalizedId = stateId.replace(/^#/, '');
       const snapshot = args._snapshot;
-      if (snapshot?._nodes) {
-        return snapshot._nodes.some((node: any) => node.id === normalizedId);
+      if (snapshot?.nodes) {
+        return snapshot.nodes.some((node: any) => node.id === normalizedId);
       }
       return false;
     },

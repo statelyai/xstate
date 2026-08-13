@@ -1346,7 +1346,7 @@ function microstep(
   }
 
   {
-    const mutStateNodeSet = new Set(currentSnapshot._nodes as StateNode[]);
+    const mutStateNodeSet = new Set(currentSnapshot.nodes as StateNode[]);
     let historyValue = currentSnapshot.historyValue;
     const originalContext = currentSnapshot.context;
 
@@ -2073,8 +2073,8 @@ function microstep(
 
     if (
       historyValue === currentSnapshot.historyValue &&
-      currentSnapshot._nodes.length === mutStateNodeSet.size &&
-      currentSnapshot._nodes.every((node) =>
+      currentSnapshot.nodes.length === mutStateNodeSet.size &&
+      currentSnapshot.nodes.every((node) =>
         mutStateNodeSet.has(node as StateNode)
       )
     ) {
@@ -2621,7 +2621,7 @@ function selectEventlessTransitions(
   actorScope: AnyActorScope
 ) {
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
-  const atomicStates = snapshot._nodes.filter(isAtomicStateNode);
+  const atomicStates = snapshot.nodes.filter(isAtomicStateNode);
 
   for (const atomicStateNode of atomicStates) {
     loop: for (
@@ -2645,7 +2645,7 @@ function selectEventlessTransitions(
 
   return removeConflictingTransitions(
     Array.from(enabledTransitionSet),
-    new Set(snapshot._nodes),
+    new Set(snapshot.nodes),
     snapshot,
     createTransitionResultResolver(snapshot, event, actorScope, false)
   );

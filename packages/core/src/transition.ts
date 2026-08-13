@@ -212,11 +212,11 @@ export function getNextTransitions(
   state: AnyMachineSnapshot
 ): AnyTransitionDefinition[] {
   const potentialTransitions: AnyTransitionDefinition[] = [];
-  const atomicStates = state._nodes.filter(isAtomicStateNode);
+  const atomicStates = state.nodes.filter(isAtomicStateNode);
   const visited = new Set();
 
   // Collect all transitions from atomic states and their ancestors
-  // Process atomic states in document order (as they appear in state._nodes)
+  // Process atomic states in document order (as they appear in state.nodes)
   for (const stateNode of atomicStates) {
     // For each atomic state, process the state itself first, then its ancestors
     // This ensures child state transitions come before parent state transitions

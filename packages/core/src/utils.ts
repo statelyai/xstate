@@ -59,7 +59,7 @@ export function checkStateIn(
 ) {
   if (typeof stateValue === 'string' && isStateId(stateValue)) {
     const target = snapshot.machine.getStateNodeById(stateValue);
-    return snapshot._nodes.some((sn) => sn === target);
+    return snapshot.nodes.some((sn) => sn === target);
   }
 
   return snapshot.matches(stateValue);
@@ -332,12 +332,12 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
 }
 
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
-  return [...new Set([...snapshot._nodes.flatMap((sn) => sn.ownEvents)])];
+  return [...new Set([...snapshot.nodes.flatMap((sn) => sn.ownEvents)])];
 }
 
 /** @internal Events synthesized from active transition descriptors. */
 export function getAllOwnEvents(snapshot: AnyMachineSnapshot) {
-  const events = snapshot._nodes.flatMap((stateNode) =>
+  const events = snapshot.nodes.flatMap((stateNode) =>
     [...stateNode.transitions.values()].flatMap((transitions) =>
       transitions.map((transition) => {
         const event: AnyEventObject = {
