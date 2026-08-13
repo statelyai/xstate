@@ -174,6 +174,3 @@ export function createDurable<TLogic extends AnyActorLogic>(
 
   return execution;
 }
-
-/** Lower-level name retained for explicit transition-loop usage. */
-export const createDurableExecution = createDurable;

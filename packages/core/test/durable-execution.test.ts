@@ -3,7 +3,6 @@ import { createMachine, type ActorLogic, type Snapshot } from '../src/index.ts';
 import {
   DurableExecutionCancelledError,
   createDurable,
-  createDurableExecution,
   type DurableEffectMetadata
 } from '../src/durable/index.ts';
 
@@ -29,7 +28,7 @@ describe('durable execution', () => {
         }
       }
     });
-    const d = createDurableExecution(machine, {
+    const d = createDurable(machine, {
       runtime: (metadata) => ({
         terminateActor: () => {
           executed.push(metadata);
@@ -65,7 +64,7 @@ describe('durable execution', () => {
     const machine = createMachine({
       entry: (_, enq) => enq(() => {})
     });
-    const d = createDurableExecution(machine, {
+    const d = createDurable(machine, {
       executeAction: (_effect, { id }) => {
         ids.push(id);
       },
@@ -96,7 +95,7 @@ describe('durable execution', () => {
       }
     });
     const replay = () => {
-      const d = createDurableExecution(machine, {
+      const d = createDurable(machine, {
         executeAction: () => {},
         waitForEvent: () => ({ type: 'NEXT' })
       });
@@ -118,7 +117,7 @@ describe('durable execution', () => {
         done: {}
       }
     });
-    const d = createDurableExecution(machine, {
+    const d = createDurable(machine, {
       runtime: () => ({ scheduleTimer }),
       executeAction: () => {},
       waitForEvent: () => ({ type: 'unused' as const })
@@ -142,7 +141,7 @@ describe('durable execution', () => {
         done: {}
       }
     });
-    const d = createDurableExecution(machine, {
+    const d = createDurable(machine, {
       executeAction: () => {},
       waitForEvent: () => ({ type: 'unused' })
     });
@@ -157,7 +156,7 @@ describe('durable execution', () => {
         EFFECT: (_, enq) => enq(() => {})
       }
     });
-    const d = createDurableExecution(machine, {
+    const d = createDurable(machine, {
       transitionIndex: 12,
       executeAction: () => {},
       waitForEvent: () => ({ type: 'unused' })
@@ -169,7 +168,7 @@ describe('durable execution', () => {
     expect(d.nextTransitionIndex).toBe(13);
 
     const checkpoint = d.nextTransitionIndex;
-    const restored = createDurableExecution(machine, {
+    const restored = createDurable(machine, {
       transitionIndex: checkpoint,
       executeAction: () => {},
       waitForEvent: () => ({ type: 'unused' })
@@ -184,7 +183,7 @@ describe('durable execution', () => {
     const machine = createMachine({});
 
     expect(() =>
-      createDurableExecution(machine, {
+      createDurable(machine, {
         transitionIndex: -1,
         executeAction: () => {},
         waitForEvent: () => ({ type: 'unused' })
