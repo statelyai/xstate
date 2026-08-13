@@ -1,7 +1,7 @@
 import { createMachine, setup as setupXState } from 'xstate';
-import { createRivetDurable } from '../src/index.ts';
+import { createRivetDurable } from '../../src/index.ts';
 
-describe('@xstate/rivet', () => {
+describe('@xstate/rivet context contract', () => {
   it('runs actions as workflow steps and receives events from an actor queue', async () => {
     const calls: number[] = [];
     const stepNames: string[] = [];
