@@ -40,9 +40,14 @@ export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
   ): void | PromiseLike<void>;
   /**
    * Creates the runtime used by one built-in effect. Timers, messaging and
-   * child actors should be translated to equivalent host operations.
+   * child actors should be translated to equivalent host operations. The
+   * complete effect is provided for hosts that need serializable actor source,
+   * input, event or target data beyond the runtime method arguments.
    */
-  runtime?(metadata: DurableEffectMetadata): Partial<ActorSystemRuntime>;
+  runtime?(
+    metadata: DurableEffectMetadata,
+    effect: ExecutableActionObjectFromLogic<TLogic>
+  ): Partial<ActorSystemRuntime>;
   /** Waits durably for the next event addressed to this execution. */
   waitForEvent(
     metadata: DurableWaitMetadata
@@ -138,7 +143,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
         if (effect.kind === 'action') {
           await adapter.executeAction(effect, metadata);
         } else {
-          await effect.exec(adapter.runtime?.(metadata) ?? {});
+          await effect.exec(adapter.runtime?.(metadata, effect) ?? {});
         }
       }
     },

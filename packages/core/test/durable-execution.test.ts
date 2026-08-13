@@ -110,6 +110,7 @@ describe('durable execution', () => {
 
   it('delegates timers to the host runtime without awaiting the delay', async () => {
     const scheduleTimer = vi.fn();
+    const seenEffects: unknown[] = [];
     const machine = createMachine({
       initial: 'waiting',
       states: {
@@ -118,7 +119,10 @@ describe('durable execution', () => {
       }
     });
     const d = createDurable(machine, {
-      runtime: () => ({ scheduleTimer }),
+      runtime: (_metadata, effect) => {
+        seenEffects.push(effect);
+        return { scheduleTimer };
+      },
       executeAction: () => {},
       waitForEvent: () => ({ type: 'unused' as const })
     });
@@ -130,6 +134,13 @@ describe('durable execution', () => {
     expect(scheduleTimer.mock.calls[0]?.slice(1)).toEqual([
       expect.any(String),
       100
+    ]);
+    expect(seenEffects).toEqual([
+      expect.objectContaining({
+        type: '@xstate.raise',
+        delay: 100,
+        event: expect.objectContaining({ type: expect.stringMatching('after') })
+      })
     ]);
   });
 

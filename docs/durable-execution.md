@@ -13,7 +13,7 @@ import { createDurable } from 'xstate/durable';
 const durable = createDurable(machine, {
   executeAction: (action, { id }) =>
     host.runAction(id, action.type, action.params),
-  runtime: ({ id: effectId }) => ({
+  runtime: ({ id: effectId }, effect) => ({
     sendEvent: (_source, target, event) =>
       host.send(effectId, target.id, event),
     scheduleTimer: (source, id, delay) =>
@@ -60,7 +60,10 @@ The host runtime subsumes the local actor system:
 
 Custom actions are dispatched separately from actor-system effects. This keeps
 host operations such as timers and child workflows visible to runtimes that do
-not permit durable operations to be nested inside a generic activity.
+not permit durable operations to be nested inside a generic activity. The
+runtime receives the complete built-in `effect` when it needs registered actor
+source, input, event or target data that is not present in the runtime method
+arguments.
 
 `run()` resolves with the machine output when the machine is done, throws the
 machine error when it fails, and throws `DurableExecutionCancelledError` when
@@ -71,3 +74,31 @@ implementations. Hosts that restore from checkpoints instead of replaying from
 the beginning should persist `durable.nextTransitionIndex` after every
 transition, including transitions with no effects, and pass it as
 `transitionIndex` when recreating the durable execution.
+
+## Host adapters
+
+Experimental adapters provide the common loop without hiding host-specific
+semantics:
+
+```ts
+import { createDurable } from '@xstate/inngest';
+
+const output = await createDurable(machine, {
+  step,
+  event: 'machine/event',
+  timeout: '30 days',
+  if: 'async.data.actorId == event.data.actorId',
+  runtime: ({ id }, effect) => host.runtimeFor(id, effect)
+}).run(input);
+```
+
+`@xstate/inngest` maps actions and event waits to Inngest steps.
+`@xstate/rivet` maps actions to workflow steps and uses a Rivet queue as the
+inbox. Both expose `create…Adapter()` for the explicit transition loop and pass
+the complete built-in effect to `runtime` so the application can map timers,
+sends and child actors without coupling XState core to either host.
+
+These adapters deliberately do not approximate missing host semantics. For
+example, awaiting a sleep inline cannot implement a cancellable timer while
+also receiving intervening events. Such operations require a host-native
+timer/inbox mapping; an unmapped operation throws.
