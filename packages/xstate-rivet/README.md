@@ -36,15 +36,4 @@ than awaiting `context.sleep()` inline.
 Use `createRivetAdapter()` with XState's lower-level `createDurable()` when you
 need to assemble the transition loop yourself.
 
-## Tests
-
-<!-- test layers from vitest configs and package.json#scripts -->
-
-Fast context-contract tests run in the normal monorepo suite. Runtime
-integration tests are opt-in and run serially against an externally managed
-Rivet test endpoint, so the suite never starts or leaks an engine process:
-
-```sh
-XSTATE_RIVET_TEST_ENDPOINT=http://127.0.0.1:6420 \
-  pnpm --filter @xstate/rivet test:integration
-```
+Fast context-contract tests run in the normal monorepo suite.

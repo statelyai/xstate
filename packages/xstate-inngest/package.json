@@ -32,15 +32,12 @@
     "type": "git",
     "url": "git+https://github.com/statelyai/xstate.git"
   },
-  "scripts": {
-    "test:integration": "vitest run --config vitest.integration.config.mts"
-  },
+  "scripts": {},
   "peerDependencies": {
     "inngest": "^4.18.1",
     "xstate": "workspace:^"
   },
   "devDependencies": {
-    "@inngest/test": "^1.0.0",
     "inngest": "^4.18.1",
     "xstate": "workspace:^"
   },

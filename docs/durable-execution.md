@@ -103,19 +103,10 @@ example, awaiting a sleep inline cannot implement a cancellable timer while
 also receiving intervening events. Such operations require a host-native
 timer/inbox mapping; an unmapped operation throws.
 
-## Adapter test layers
+## Adapter contract tests
 
-Official adapters keep two test layers in this monorepo:
-
-1. Context-contract tests use small host doubles and run in the normal CI
-   suite. They verify stable IDs, action execution, waits, outputs, errors and
-   runtime-effect mapping without starting vendor infrastructure.
-2. Integration tests use the vendor SDK or an externally managed test runtime.
-   They live under each adapter's `test/integration` directory, have a separate
-   Vitest config and run only through that package's `test:integration` script.
-
-This keeps XState's adapter contract and vendor package versions together while
-preventing credentials, emulators and detached runtime processes from entering
-the default test suite. Each integration suite should declare only capabilities
-the host actually implements; unsupported mailbox, timer or child-actor
-semantics remain explicit gaps.
+Official adapters keep fast context-contract tests in this monorepo. They use
+small host doubles and run in the normal CI suite, verifying stable IDs, action
+execution, waits, outputs, errors and runtime-effect mapping without starting
+vendor infrastructure. Unsupported mailbox, timer or child-actor semantics
+remain explicit gaps.

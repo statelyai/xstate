@@ -37,13 +37,4 @@ an inline `step.sleep()` would block intervening events and cancellation.
 Use `createInngestAdapter()` with XState's lower-level `createDurable()` when
 you need to assemble the transition loop yourself.
 
-## Tests
-
-<!-- test layers from vitest configs and package.json#scripts -->
-
-Fast context-contract tests run in the normal monorepo suite. SDK integration
-tests are opt-in:
-
-```sh
-pnpm --filter @xstate/inngest test:integration
-```
+Fast context-contract tests run in the normal monorepo suite.

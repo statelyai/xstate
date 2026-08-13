@@ -32,9 +32,7 @@
     "type": "git",
     "url": "git+https://github.com/statelyai/xstate.git"
   },
-  "scripts": {
-    "test:integration": "vitest run --config vitest.integration.config.mts"
-  },
+  "scripts": {},
   "peerDependencies": {
     "rivetkit": "^2.3.10",
     "xstate": "workspace:^"
