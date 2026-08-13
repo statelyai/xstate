@@ -11,8 +11,8 @@ execution.
 import { createDurable } from 'xstate/durable';
 
 const durable = createDurable(machine, {
-  executeAction: (action, { id }) =>
-    host.runAction(id, action.type, action.params),
+  executeAction: (action, { id }, runtime) =>
+    host.runAction(id, () => action.exec(runtime)),
   runtime: ({ id: effectId }, effect) => ({
     sendEvent: (_source, target, event) =>
       host.send(effectId, target.id, event),
@@ -67,7 +67,10 @@ arguments.
 
 `run()` resolves with the machine output when the machine is done, throws the
 machine error when it fails, and throws `DurableExecutionCancelledError` when
-it stops.
+it stops. It only starts fresh executions. A nonzero `transitionIndex`, or
+calling a lower-level transition method before `run()`, causes
+`DurableExecutionResumeError`; resume with the persisted snapshot and the
+explicit transition loop instead.
 
 The helper does not prescribe storage, inboxes, retries or timer
 implementations. Hosts that restore from checkpoints instead of replaying from

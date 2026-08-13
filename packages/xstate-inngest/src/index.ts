@@ -64,9 +64,9 @@ export function createInngestAdapter<TLogic extends AnyActorLogic>(
 
   return {
     transitionIndex: options.transitionIndex,
-    async executeAction(action, metadata) {
+    async executeAction(action, metadata, runtime) {
       await options.step.run(metadata.id, async () => {
-        await action.exec();
+        await action.exec(runtime);
       });
     },
     runtime(metadata, effect) {

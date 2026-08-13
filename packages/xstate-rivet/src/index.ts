@@ -44,9 +44,9 @@ export function createRivetAdapter<TLogic extends AnyActorLogic>(
 
   return {
     transitionIndex: options.transitionIndex,
-    executeAction: (action, metadata) =>
+    executeAction: (action, metadata, runtime) =>
       options.context.step(metadata.id, async () => {
-        await action.exec();
+        await action.exec(runtime);
       }),
     runtime(metadata, effect) {
       const runtime = options.runtime?.(metadata, effect) ?? {};

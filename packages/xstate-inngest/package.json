@@ -34,11 +34,11 @@
   },
   "scripts": {},
   "peerDependencies": {
-    "inngest": "^4.18.1",
+    "inngest": "^4.18.0",
     "xstate": "workspace:^"
   },
   "devDependencies": {
-    "inngest": "^4.18.1",
+    "inngest": "4.18.0",
     "xstate": "workspace:^"
   },
   "preconstruct": {

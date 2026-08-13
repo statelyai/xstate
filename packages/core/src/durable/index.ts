@@ -36,10 +36,11 @@ export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
    */
   executeAction(
     action: CustomExecutableActionObject,
-    metadata: DurableEffectMetadata
+    metadata: DurableEffectMetadata,
+    runtime: Partial<ActorSystemRuntime>
   ): void | PromiseLike<void>;
   /**
-   * Creates the runtime used by one built-in effect. Timers, messaging and
+   * Creates the runtime used by one effect. Timers, messaging and
    * child actors should be translated to equivalent host operations. The
    * complete effect is provided for hosts that need serializable actor source,
    * input, event or target data beyond the runtime method arguments.
@@ -60,6 +61,15 @@ export class DurableExecutionCancelledError extends Error {
   constructor() {
     super('Durable execution was stopped');
     this.name = 'DurableExecutionCancelledError';
+  }
+}
+
+export class DurableExecutionResumeError extends Error {
+  constructor() {
+    super(
+      'run() can only start a fresh durable execution; resume checkpoints with transition() and the persisted snapshot'
+    );
+    this.name = 'DurableExecutionResumeError';
   }
 }
 
@@ -106,6 +116,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
   adapter: DurableExecutionAdapter<TLogic>
 ): DurableExecution<TLogic> {
   let nextTransitionIndex = adapter.transitionIndex ?? 0;
+  const startingTransitionIndex = nextTransitionIndex;
   let lastTransitionIndex =
     nextTransitionIndex === 0 ? undefined : nextTransitionIndex - 1;
 
@@ -140,10 +151,11 @@ export function createDurable<TLogic extends AnyActorLogic>(
     },
     async executeEffects(effects) {
       for (const { effect, ...metadata } of effects) {
+        const runtime = adapter.runtime?.(metadata, effect) ?? {};
         if (effect.kind === 'action') {
-          await adapter.executeAction(effect, metadata);
+          await adapter.executeAction(effect, metadata, runtime);
         } else {
-          await effect.exec(adapter.runtime?.(metadata, effect) ?? {});
+          await effect.exec(runtime);
         }
       }
     },
@@ -157,6 +169,12 @@ export function createDurable<TLogic extends AnyActorLogic>(
       });
     },
     async run(...args) {
+      if (
+        startingTransitionIndex !== 0 ||
+        nextTransitionIndex !== startingTransitionIndex
+      ) {
+        throw new DurableExecutionResumeError();
+      }
       let [snapshot, effects] = execution.initialTransition(...args);
       await execution.executeEffects(effects);
 

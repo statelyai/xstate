@@ -1,4 +1,4 @@
-import { createMachine, setup as setupXState } from 'xstate';
+import { createLogic, createMachine, setup as setupXState } from 'xstate';
 import { createRivetDurable } from '../../src/index.ts';
 
 describe('@xstate/rivet context contract', () => {
@@ -80,5 +80,35 @@ describe('@xstate/rivet context contract', () => {
     expect(effects).toEqual([
       expect.objectContaining({ type: '@xstate.raise', delay: 10 })
     ]);
+  });
+
+  it('forwards the host runtime to custom effects', async () => {
+    const runtime = { sendEvent: vi.fn() };
+    let providedRuntime: unknown;
+    const logic = createLogic({
+      context: undefined,
+      run: ({ event }, enq) => {
+        if (event.type === '@xstate.init') {
+          enq.effect((effectRuntime) => {
+            providedRuntime = effectRuntime;
+          });
+        }
+      }
+    });
+    const durable = createRivetDurable(logic, {
+      context: {
+        async step<T>(_name: string, run: (_context: unknown) => Promise<T>) {
+          return run({});
+        },
+        queue: { next: vi.fn() }
+      },
+      queue: 'machine-events',
+      runtime: () => runtime
+    });
+    const [, effects] = durable.initialTransition(undefined);
+
+    await durable.executeEffects(effects);
+
+    expect(providedRuntime).toBe(runtime);
   });
 });

@@ -1,4 +1,4 @@
-import { createMachine } from 'xstate';
+import { createLogic, createMachine } from 'xstate';
 import {
   InngestEventWaitTimeoutError,
   createInngestDurable
@@ -70,6 +70,35 @@ describe('@xstate/inngest context contract', () => {
     expect(effects).toEqual([
       expect.objectContaining({ type: '@xstate.raise', delay: 10 })
     ]);
+  });
+
+  it('forwards the host runtime to custom effects', async () => {
+    const runtime = { sendEvent: vi.fn() };
+    let providedRuntime: unknown;
+    const logic = createLogic({
+      context: undefined,
+      run: ({ event }, enq) => {
+        if (event.type === '@xstate.init') {
+          enq.effect((effectRuntime) => {
+            providedRuntime = effectRuntime;
+          });
+        }
+      }
+    });
+    const durable = createInngestDurable(logic, {
+      step: {
+        run: vi.fn(async (_id: unknown, fn: () => unknown) => fn()),
+        waitForEvent: vi.fn()
+      } as never,
+      event: 'machine/event',
+      timeout: '1 day',
+      runtime: () => runtime
+    });
+    const [, effects] = durable.initialTransition(undefined);
+
+    await durable.executeEffects(effects);
+
+    expect(providedRuntime).toBe(runtime);
   });
 
   it('reports an expired wait explicitly', async () => {

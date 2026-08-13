@@ -109,9 +109,9 @@ class InMemoryDurableHost implements DurableConformanceHarness {
       }
     };
     const durable = createDurable(logic, {
-      executeAction: async (action) => {
+      executeAction: async (action, _metadata, runtime) => {
         operations.push({ type: 'action', actionType: action.type });
-        await action.exec();
+        await action.exec(runtime);
       },
       runtime: () => ({
         ...actorRuntime,

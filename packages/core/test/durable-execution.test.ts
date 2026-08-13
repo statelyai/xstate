@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createMachine, type ActorLogic, type Snapshot } from '../src/index.ts';
+import {
+  createLogic,
+  createMachine,
+  type ActorLogic,
+  type Snapshot
+} from '../src/index.ts';
 import {
   DurableExecutionCancelledError,
+  DurableExecutionResumeError,
   createDurable,
   type DurableEffectMetadata
 } from '../src/durable/index.ts';
@@ -200,6 +206,67 @@ describe('durable execution', () => {
         waitForEvent: () => ({ type: 'unused' })
       })
     ).toThrow('transitionIndex must be a non-negative safe integer');
+  });
+
+  it('rejects run() when configured to resume from a checkpoint', async () => {
+    const action = vi.fn();
+    const machine = createMachine({
+      entry: (_, enq) => enq(action)
+    });
+    const durable = createDurable(machine, {
+      transitionIndex: 12,
+      executeAction: async (effect, _metadata, runtime) => {
+        await effect.exec(runtime);
+      },
+      waitForEvent: () => ({ type: 'unused' })
+    });
+
+    await expect(durable.run(undefined)).rejects.toBeInstanceOf(
+      DurableExecutionResumeError
+    );
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it('rejects run() after lower-level transition methods were used', async () => {
+    const machine = createMachine({});
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      waitForEvent: () => ({ type: 'unused' })
+    });
+
+    durable.initialTransition(undefined);
+
+    await expect(durable.run(undefined)).rejects.toBeInstanceOf(
+      DurableExecutionResumeError
+    );
+  });
+
+  it('forwards the host runtime to createLogic effects', async () => {
+    const sendEvent = vi.fn();
+    const runtime = { sendEvent };
+    let providedRuntime: unknown;
+    const logic = createLogic({
+      context: undefined,
+      run: ({ event }, enq) => {
+        if (event.type === '@xstate.init') {
+          enq.effect((effectRuntime) => {
+            providedRuntime = effectRuntime;
+          });
+        }
+      }
+    });
+    const durable = createDurable(logic, {
+      executeAction: async (effect, _metadata, effectRuntime) => {
+        await effect.exec(effectRuntime);
+      },
+      runtime: () => runtime,
+      waitForEvent: () => ({ type: 'unused' })
+    });
+    const [, effects] = durable.initialTransition(undefined);
+
+    await durable.executeEffects(effects);
+
+    expect(providedRuntime).toBe(runtime);
   });
 
   it('runs to completion and assigns stable IDs to event waits', async () => {
