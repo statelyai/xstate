@@ -2,9 +2,12 @@ import type { ActorSystemRuntime } from '../system.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
   AnyActorLogic,
+  CustomExecutableActionObject,
   EventFromLogic,
   ExecutableActionObjectFromLogic,
   InputFrom,
+  OutputFrom,
+  Snapshot,
   SnapshotFrom
 } from '../types.ts';
 
@@ -15,29 +18,44 @@ export interface DurableEffectMetadata {
   effectIndex: number;
 }
 
+export interface DurableWaitMetadata {
+  /** Stable within one durable execution. */
+  id: string;
+  transitionIndex: number;
+}
+
 export interface DurableEffect<TEffect> extends DurableEffectMetadata {
   effect: TEffect;
 }
 
 export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
   /**
-   * Runtime operations supplied by the durable host. Timers, messaging and
+   * Executes a custom action as a durable host step or activity. The host
+   * should identify the action by `type` and memoize or deduplicate it using
+   * `metadata.id`.
+   */
+  executeAction(
+    action: CustomExecutableActionObject,
+    metadata: DurableEffectMetadata
+  ): void | PromiseLike<void>;
+  /**
+   * Creates the runtime used by one built-in effect. Timers, messaging and
    * child actors should be translated to equivalent host operations.
    */
-  runtime?: Partial<ActorSystemRuntime>;
-  /**
-   * Executes one effect durably. The host should memoize or deduplicate the
-   * execution using `metadata.id`.
-   */
-  executeEffect(
-    effect: ExecutableActionObjectFromLogic<TLogic>,
-    metadata: DurableEffectMetadata,
-    runtime: Partial<ActorSystemRuntime>
-  ): void | PromiseLike<void>;
-  /** Waits for the next event addressed to this durable execution. */
-  waitForEvent(): EventFromLogic<TLogic> | PromiseLike<EventFromLogic<TLogic>>;
+  runtime?(metadata: DurableEffectMetadata): Partial<ActorSystemRuntime>;
+  /** Waits durably for the next event addressed to this execution. */
+  waitForEvent(
+    metadata: DurableWaitMetadata
+  ): EventFromLogic<TLogic> | PromiseLike<EventFromLogic<TLogic>>;
   /** Index assigned to the first transition. Defaults to `0`. */
   transitionIndex?: number;
+}
+
+export class DurableExecutionCancelledError extends Error {
+  constructor() {
+    super('Durable execution was stopped');
+    this.name = 'DurableExecutionCancelledError';
+  }
 }
 
 export interface DurableExecution<TLogic extends AnyActorLogic> {
@@ -62,6 +80,11 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
     effects: readonly DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
   ): Promise<void>;
   waitForEvent(): Promise<EventFromLogic<TLogic>>;
+  run(
+    ...[input]: undefined extends InputFrom<TLogic>
+      ? [input?: InputFrom<TLogic>]
+      : [input: InputFrom<TLogic>]
+  ): Promise<OutputFrom<TLogic>>;
 }
 
 /**
@@ -73,12 +96,13 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
  *
  * @experimental
  */
-export function createDurableExecution<TLogic extends AnyActorLogic>(
+export function createDurable<TLogic extends AnyActorLogic>(
   logic: TLogic,
   adapter: DurableExecutionAdapter<TLogic>
 ): DurableExecution<TLogic> {
   let nextTransitionIndex = adapter.transitionIndex ?? 0;
-  const runtime = adapter.runtime ?? {};
+  let lastTransitionIndex =
+    nextTransitionIndex === 0 ? undefined : nextTransitionIndex - 1;
 
   if (!Number.isSafeInteger(nextTransitionIndex) || nextTransitionIndex < 0) {
     throw new RangeError('transitionIndex must be a non-negative safe integer');
@@ -88,6 +112,7 @@ export function createDurableExecution<TLogic extends AnyActorLogic>(
     effects: ExecutableActionObjectFromLogic<TLogic>[]
   ): DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[] => {
     const transitionIndex = nextTransitionIndex++;
+    lastTransitionIndex = transitionIndex;
     return effects.map((effect, effectIndex) => ({
       id: `${transitionIndex}:${effectIndex}`,
       transitionIndex,
@@ -96,7 +121,7 @@ export function createDurableExecution<TLogic extends AnyActorLogic>(
     }));
   };
 
-  return {
+  const execution: DurableExecution<TLogic> = {
     get nextTransitionIndex() {
       return nextTransitionIndex;
     },
@@ -110,11 +135,45 @@ export function createDurableExecution<TLogic extends AnyActorLogic>(
     },
     async executeEffects(effects) {
       for (const { effect, ...metadata } of effects) {
-        await adapter.executeEffect(effect, metadata, runtime);
+        if (effect.kind === 'action') {
+          await adapter.executeAction(effect, metadata);
+        } else {
+          await effect.exec(adapter.runtime?.(metadata) ?? {});
+        }
       }
     },
     async waitForEvent() {
-      return adapter.waitForEvent();
+      if (lastTransitionIndex === undefined) {
+        throw new Error('Cannot wait for an event before the first transition');
+      }
+      return adapter.waitForEvent({
+        id: `event:${lastTransitionIndex}`,
+        transitionIndex: lastTransitionIndex
+      });
+    },
+    async run(...args) {
+      let [snapshot, effects] = execution.initialTransition(...args);
+      await execution.executeEffects(effects);
+
+      while ((snapshot as Snapshot<OutputFrom<TLogic>>).status === 'active') {
+        const event = await execution.waitForEvent();
+        [snapshot, effects] = execution.transition(snapshot, event);
+        await execution.executeEffects(effects);
+      }
+
+      const terminalSnapshot = snapshot as Snapshot<OutputFrom<TLogic>>;
+      if (terminalSnapshot.status === 'done') {
+        return terminalSnapshot.output;
+      }
+      if (terminalSnapshot.status === 'error') {
+        throw terminalSnapshot.error;
+      }
+      throw new DurableExecutionCancelledError();
     }
   };
+
+  return execution;
 }
+
+/** Lower-level name retained for explicit transition-loop usage. */
+export const createDurableExecution = createDurable;

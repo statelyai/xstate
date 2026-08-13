@@ -3,18 +3,11 @@
 ---
 
 Add an experimental, host-neutral durable execution helper at `xstate/durable`.
-It assigns stable IDs to effects from pure transitions while leaving durable
-execution, event waiting, timers, messaging and child actors to the host.
+It assigns stable IDs to effects and event waits from pure transitions while
+leaving durable execution, timers, messaging and child actors to the host.
 Hosts can read `nextTransitionIndex` after every transition for checkpointing.
 
 ```ts
-const d = createDurableExecution(machine, adapter);
-let [state, effects] = d.initialTransition(input);
-await d.executeEffects(effects);
-
-while (state.status === 'active') {
-  const event = await d.waitForEvent();
-  [state, effects] = d.transition(state, event);
-  await d.executeEffects(effects);
-}
+const durable = createDurable(machine, adapter);
+const output = await durable.run(input);
 ```

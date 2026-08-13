@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createMachine } from '../src/index.ts';
+import { createMachine, type ActorLogic, type Snapshot } from '../src/index.ts';
 import {
+  DurableExecutionCancelledError,
+  createDurable,
   createDurableExecution,
   type DurableEffectMetadata
 } from '../src/durable/index.ts';
@@ -28,10 +30,14 @@ describe('durable execution', () => {
       }
     });
     const d = createDurableExecution(machine, {
-      runtime: { terminateActor: vi.fn() },
-      executeEffect: async (effect, metadata, runtime) => {
+      runtime: (metadata) => ({
+        terminateActor: () => {
+          executed.push(metadata);
+        }
+      }),
+      executeAction: async (effect, metadata) => {
         executed.push(metadata);
-        await effect.exec(runtime);
+        await effect.exec();
       },
       waitForEvent: () => ({ type: 'FINISH' })
     });
@@ -60,10 +66,10 @@ describe('durable execution', () => {
       entry: (_, enq) => enq(() => {})
     });
     const d = createDurableExecution(machine, {
-      executeEffect: (_effect, { id }) => {
+      executeAction: (_effect, { id }) => {
         ids.push(id);
       },
-      waitForEvent: () => ({ type: 'unused' })
+      waitForEvent: () => ({ type: 'unused' as const })
     });
     const [, effects] = d.initialTransition(undefined);
 
@@ -91,7 +97,7 @@ describe('durable execution', () => {
     });
     const replay = () => {
       const d = createDurableExecution(machine, {
-        executeEffect: () => {},
+        executeAction: () => {},
         waitForEvent: () => ({ type: 'NEXT' })
       });
       let [state, initialEffects] = d.initialTransition(undefined);
@@ -113,9 +119,9 @@ describe('durable execution', () => {
       }
     });
     const d = createDurableExecution(machine, {
-      runtime: { scheduleTimer },
-      executeEffect: (effect, _metadata, runtime) => effect.exec(runtime),
-      waitForEvent: () => ({ type: 'unused' })
+      runtime: () => ({ scheduleTimer }),
+      executeAction: () => {},
+      waitForEvent: () => ({ type: 'unused' as const })
     });
     const [, effects] = d.initialTransition(undefined);
 
@@ -137,7 +143,7 @@ describe('durable execution', () => {
       }
     });
     const d = createDurableExecution(machine, {
-      executeEffect: (effect, _metadata, runtime) => effect.exec(runtime),
+      executeAction: () => {},
       waitForEvent: () => ({ type: 'unused' })
     });
     const [, effects] = d.initialTransition(undefined);
@@ -153,7 +159,7 @@ describe('durable execution', () => {
     });
     const d = createDurableExecution(machine, {
       transitionIndex: 12,
-      executeEffect: () => {},
+      executeAction: () => {},
       waitForEvent: () => ({ type: 'unused' })
     });
 
@@ -165,7 +171,7 @@ describe('durable execution', () => {
     const checkpoint = d.nextTransitionIndex;
     const restored = createDurableExecution(machine, {
       transitionIndex: checkpoint,
-      executeEffect: () => {},
+      executeAction: () => {},
       waitForEvent: () => ({ type: 'unused' })
     });
     const [, effects] = restored.transition(state, { type: 'EFFECT' });
@@ -180,9 +186,76 @@ describe('durable execution', () => {
     expect(() =>
       createDurableExecution(machine, {
         transitionIndex: -1,
-        executeEffect: () => {},
+        executeAction: () => {},
         waitForEvent: () => ({ type: 'unused' })
       })
     ).toThrow('transitionIndex must be a non-negative safe integer');
+  });
+
+  it('runs to completion and assigns stable IDs to event waits', async () => {
+    const waits: Array<{ id: string; transitionIndex: number }> = [];
+    const machine = createMachine({
+      output: 42,
+      initial: 'active',
+      states: {
+        active: { on: { FINISH: { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      runtime: () => ({ terminateActor: () => {} }),
+      waitForEvent: (metadata) => {
+        waits.push(metadata);
+        return { type: 'FINISH' };
+      }
+    });
+
+    await expect(durable.run(undefined)).resolves.toBe(42);
+    expect(waits).toEqual([{ id: 'event:0', transitionIndex: 0 }]);
+  });
+
+  it('throws the machine error when execution ends with an error', async () => {
+    const error = new Error('failed');
+    const snapshot: Snapshot<never> = {
+      status: 'error',
+      output: undefined,
+      error
+    };
+    const logic: ActorLogic<Snapshot<never>, { type: 'unused' }, undefined> = {
+      initialTransition: () => [snapshot, []],
+      transition: () => [snapshot, []],
+      getInitialSnapshot: () => snapshot,
+      getPersistedSnapshot: (value) => value
+    };
+    const durable = createDurable(logic, {
+      executeAction: () => {},
+      runtime: () => ({ terminateActor: () => {} }),
+      waitForEvent: () => ({ type: 'unused' as const })
+    });
+
+    await expect(durable.run(undefined)).rejects.toBe(error);
+  });
+
+  it('treats a stopped machine as cancellation', async () => {
+    const snapshot: Snapshot<never> = {
+      status: 'stopped',
+      output: undefined,
+      error: undefined
+    };
+    const logic: ActorLogic<Snapshot<never>, { type: 'unused' }, undefined> = {
+      initialTransition: () => [snapshot, []],
+      transition: () => [snapshot, []],
+      getInitialSnapshot: () => snapshot,
+      getPersistedSnapshot: (value) => value
+    };
+    const durable = createDurable(logic, {
+      executeAction: () => {},
+      waitForEvent: () => ({ type: 'unused' as const })
+    });
+
+    await expect(durable.run(undefined)).rejects.toBeInstanceOf(
+      DurableExecutionCancelledError
+    );
   });
 });
