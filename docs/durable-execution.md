@@ -52,5 +52,6 @@ The host runtime subsumes the local actor system:
 
 The helper does not prescribe storage, inboxes, retries or timer
 implementations. Hosts that restore from checkpoints instead of replaying from
-the beginning should persist the next transition index and pass it as
-`transitionIndex` when recreating the durable execution.
+the beginning should persist `d.nextTransitionIndex` after every transition,
+including transitions with no effects, and pass it as `transitionIndex` when
+recreating the durable execution.

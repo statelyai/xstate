@@ -145,9 +145,11 @@ describe('durable execution', () => {
     await expect(d.executeEffects(effects)).rejects.toBeInstanceOf(TypeError);
   });
 
-  it('can continue stable IDs after a host-managed checkpoint', () => {
+  it('exposes the next transition index for host-managed checkpoints', () => {
     const machine = createMachine({
-      entry: (_, enq) => enq(() => {})
+      on: {
+        EFFECT: (_, enq) => enq(() => {})
+      }
     });
     const d = createDurableExecution(machine, {
       transitionIndex: 12,
@@ -155,9 +157,21 @@ describe('durable execution', () => {
       waitForEvent: () => ({ type: 'unused' })
     });
 
-    const [, effects] = d.initialTransition(undefined);
+    const [state, initialEffects] = d.initialTransition(undefined);
 
-    expect(effects[0]?.id).toBe('12:0');
+    expect(initialEffects).toEqual([]);
+    expect(d.nextTransitionIndex).toBe(13);
+
+    const checkpoint = d.nextTransitionIndex;
+    const restored = createDurableExecution(machine, {
+      transitionIndex: checkpoint,
+      executeEffect: () => {},
+      waitForEvent: () => ({ type: 'unused' })
+    });
+    const [, effects] = restored.transition(state, { type: 'EFFECT' });
+
+    expect(effects[0]?.id).toBe('13:0');
+    expect(restored.nextTransitionIndex).toBe(14);
   });
 
   it('rejects an invalid starting transition index', () => {

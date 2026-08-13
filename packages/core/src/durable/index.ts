@@ -41,6 +41,8 @@ export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
 }
 
 export interface DurableExecution<TLogic extends AnyActorLogic> {
+  /** Index assigned to the next transition. Persist this with checkpoints. */
+  readonly nextTransitionIndex: number;
   initialTransition(
     ...[input]: undefined extends InputFrom<TLogic>
       ? [input?: InputFrom<TLogic>]
@@ -95,6 +97,9 @@ export function createDurableExecution<TLogic extends AnyActorLogic>(
   };
 
   return {
+    get nextTransitionIndex() {
+      return nextTransitionIndex;
+    },
     initialTransition(...args) {
       const [snapshot, effects] = initialTransition(logic, ...args);
       return [snapshot, tagEffects(effects)];
