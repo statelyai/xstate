@@ -83,6 +83,7 @@ export {
 export { mapState } from './mapState.ts';
 export {
   machineVersions,
+  snapshotVersion,
   type AdaptEventsOptions,
   type EventAdapterHandlers,
   type EventHistorySource,
@@ -90,9 +91,11 @@ export {
   type MachineVersionsOptions,
   type ParsedPersistedSnapshot,
   type PersistedMachineIdentity,
+  type PersistedMachineSnapshot,
   type PersistedSnapshotDataFrom,
   type PersistedSnapshotSource,
   type SnapshotMigrationHandlers,
+  type SnapshotVersion,
   type PersistedSnapshotFrom
 } from './machineVersions.ts';
 export {

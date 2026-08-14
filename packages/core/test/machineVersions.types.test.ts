@@ -2,6 +2,7 @@ import {
   createActor,
   createMachine,
   machineVersions,
+  snapshotVersion,
   setup,
   types
 } from '../src';
@@ -26,6 +27,24 @@ const checkoutV2 = createMachine({
   initial: 'active',
   states: { active: {} }
 });
+const checkoutV0 = snapshotVersion({
+  id: 'checkout',
+  version: '0',
+  schema: types<{
+    status: 'active';
+    output?: undefined;
+    error?: undefined;
+    value: 'legacy';
+    context: { quantity: number };
+    children: Record<string, unknown>;
+    historyValue: Record<string, unknown>;
+    timers: Record<string, unknown>;
+    _nextActorId: number;
+    _nextTimerId: number;
+    machine: { id: 'checkout'; version: '0' };
+    version: '0';
+  }>()
+});
 
 const version: '1' = checkoutV1.version;
 const setupVersion: '1' = setup({}).createMachine({
@@ -35,6 +54,7 @@ const setupVersion: '1' = setup({}).createMachine({
   states: { active: {} }
 }).version;
 const versions = machineVersions([checkoutV1, checkoutV2]);
+const schemaVersions = machineVersions([checkoutV0, checkoutV2]);
 const versionsWithUnversioned = machineVersions([checkoutV1, checkoutV2], {
   unversioned: '1'
 });
@@ -76,6 +96,32 @@ if (false) {
 }
 
 async function checkSnapshotMigrationTypes() {
+  await schemaVersions.migrateSnapshot({} as unknown, {
+    to: '2',
+    migrations: {
+      '0': (snapshot) => {
+        const quantity: number = snapshot.context.quantity;
+        const value: 'legacy' = snapshot.value;
+        // @ts-expect-error descriptor schema output has no v2 context field
+        snapshot.context.total;
+        void value;
+        return {
+          ...snapshot,
+          context: { total: quantity }
+        };
+      }
+    }
+  });
+
+  await schemaVersions.migrateSnapshot(
+    {},
+    {
+      // @ts-expect-error snapshot-only versions cannot be migration targets
+      to: '0',
+      migrations: {}
+    }
+  );
+
   const compatible = await versions.migrateSnapshot({} as unknown, {
     to: '2',
     migrations: {
@@ -129,6 +175,15 @@ async function checkSnapshotMigrationTypes() {
 }
 
 async function checkEventAdaptationTypes() {
+  await machineVersions([checkoutV0, eventMachineV2]).adaptEvents([], {
+    from: { id: 'checkout', version: '0' },
+    to: '2',
+    adapters: {
+      // @ts-expect-error snapshot-only versions do not provide event typing
+      '0': () => [{ type: 'CHANGE', delta: 0 }]
+    }
+  });
+
   const adapted = await eventVersions.adaptEvents([], {
     from: { id: 'events', version: '1' },
     to: '2',

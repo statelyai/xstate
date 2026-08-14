@@ -30,10 +30,35 @@ Persisted snapshots record current state. Event sourcing records the events that
 
 <!-- snapshot migration and event adaptation APIs from packages/core/src/machineVersions.ts -->
 
-Register the machine versions whose persisted data you want parsed and typed.
-Each machine must have the same stable `id` and its own `version`.
+Register lightweight snapshot descriptors for historical versions and retain an
+actual machine for each version that may be a restoration target. Every entry
+must have the same stable `id` and its own `version`.
 
 ```ts
+const checkoutV1 = snapshotVersion({
+  id: 'checkout',
+  version: '1',
+  // This version had no persisted children, history, timers or state inputs.
+  schema: z.object({
+    status: z.enum(['active', 'done', 'error', 'stopped']),
+    output: z.unknown().optional(),
+    error: z.unknown().optional(),
+    value: z.literal('active'),
+    context: z.object({ count: z.number() }),
+    children: z.object({}),
+    historyValue: z.object({}),
+    timers: z.object({}),
+    _nextActorId: z.number().optional(),
+    _nextTimerId: z.number(),
+    stateInputs: z.undefined().optional(),
+    machine: z.object({
+      id: z.literal('checkout'),
+      version: z.literal('1')
+    }),
+    version: z.literal('1')
+  })
+});
+
 const checkoutVersions = machineVersions([checkoutV1, checkoutV2]);
 const snapshot = await checkoutVersions.migrateSnapshot(
   JSON.parse(localStorage.getItem('checkout')!),
@@ -51,9 +76,15 @@ const snapshot = await checkoutVersions.migrateSnapshot(
 const actor = createActor(checkoutV2, { snapshot }).start();
 ```
 
-Exact version keys narrow the callback to that retained machine's snapshot type.
+Exact version keys narrow the callback to that historical schema's output type.
 Migration is direct to the target machine and may be asynchronous. You do not
-need to define every intermediate version.
+need to retain old executable machines or define every intermediate version.
+
+A snapshot schema describes the entire persisted contract, not only context:
+status/output/error, state value, context, children, history, timers, state
+inputs, counters and version metadata as applicable. Active state nodes are
+reconstructed from the state value, so `nodes` itself is not persisted. Existing
+versioned machines remain valid registry entries.
 
 Use `'*'` to handle any snapshot that cannot use an exact retained version. The
 snapshot is `unknown`, so the migration can inspect its shape or load an old
@@ -75,12 +106,18 @@ const snapshot = await checkoutVersions.migrateSnapshot(persisted, {
 ```
 
 An exact version migration runs before `'*'`. If neither matches, migration
-throws. The target context schema validates the result before its machine
-identity and version are stamped.
+throws. Standard Schema validation may itself be asynchronous. There is no
+separate lazy-loader API: use an async Standard Schema or the existing `'*'`
+route when schema code must be imported conditionally. The target context schema
+validates the result before its machine identity and version are stamped.
+
+The `to` version must be backed by an actual machine, because it interprets the
+restored state. `machine.version` remains the compatibility stamp written to the
+nested machine identity and legacy top-level `version` field.
 
 When adopting versioning for snapshots that were already persisted without a
-version, retain the old machine definition as an explicit version and configure it
-as `unversioned`:
+version, describe the old snapshot contract as an explicit version and configure
+it as `unversioned`:
 
 ```ts
 const checkoutVersions = machineVersions([checkoutV0, checkoutV1], {
@@ -129,6 +166,16 @@ event schema is available; unrecognized histories may fall through to `'*'`.
 Every result, including a same-version history, is validated against available
 target event schemas. If no applicable adapter exists, adaptation throws. An
 exact adapter's error propagates instead of falling through to `'*'`.
+
+`snapshotVersion()` descriptors participate only in snapshot parsing and
+migration. Exact event adapters and event targets require actual machines, whose
+event schemas provide typing and runtime validation. Histories identified with a
+snapshot-only version may still use the unknown `'*'` adapter.
+
+The descriptor is intentionally named and scoped to snapshots rather than being
+a general `machineVersion({ snapshot, events })` bundle. This prevents a
+snapshot schema from implying event validation and leaves room for a separate
+event descriptor if one is needed later.
 
 `adaptEvents()` only adapts a materialized history. It does not store or replay
 events and does not produce a snapshot.
