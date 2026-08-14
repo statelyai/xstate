@@ -1,9 +1,9 @@
 <script lang="ts">
   import { useActor } from '@xstate/svelte';
-  import { createBrowserInspector } from '@statelyai/inspect';
+  import { createInspector } from '@statelyai/sdk';
   import { toggleMachine } from './toggleMachine';
 
-  const inspector = createBrowserInspector();
+  const inspector = createInspector();
 
   const { snapshot, send } = useActor(toggleMachine, {
     inspect: inspector.inspect

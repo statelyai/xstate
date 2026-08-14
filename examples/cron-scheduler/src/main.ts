@@ -1,7 +1,7 @@
-import { createActor, setup, toPromise, types } from 'xstate';
-// Actor creators are imported from the `xstate/actors` subpath so that this
-// example runs under `tsx` against the workspace build.
-import { createAsyncLogic } from 'xstate/actors';
+import { createActor, setup, toPromise, types, createAsyncLogic } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) =>
   console.log(`${Date.now() % 100000} ${message}`);
@@ -172,7 +172,7 @@ const schedulerMachine = setup({
   }
 });
 
-const actor = createActor(schedulerMachine);
+const actor = createActor(schedulerMachine, { inspect: inspector?.inspect });
 
 actor.subscribe((snapshot) =>
   log(
@@ -187,3 +187,5 @@ setTimeout(() => actor.send({ type: 'pause' }), TICK_MS * 2.5);
 setTimeout(() => actor.send({ type: 'resume' }), TICK_MS * 3.5);
 
 log(`summary: ${JSON.stringify(await toPromise(actor), null, 2)}`);
+
+inspector?.destroy();

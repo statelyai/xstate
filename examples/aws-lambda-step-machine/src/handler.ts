@@ -6,6 +6,9 @@ import {
   type ExpenseEvent
 } from './expenseMachine';
 import { createMemoryStore, type SnapshotStore } from './storage';
+import { createInspector } from '@statelyai/sdk';
+
+export const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 export type StepRequest = {
   /** Which workflow instance this invocation belongs to. */
@@ -36,7 +39,8 @@ export function createStepHandler(
 
     const actor = createActor(expenseMachine, {
       // `undefined` starts a fresh workflow; anything else resumes one.
-      snapshot: persisted
+      snapshot: persisted,
+      inspect: inspector?.inspect
     });
 
     actor.start();

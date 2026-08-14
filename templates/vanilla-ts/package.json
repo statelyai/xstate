@@ -13,6 +13,7 @@
     "vite": "^7.3.6"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "xstate": "6.0.0-alpha.36"
   }
 }

@@ -22,4 +22,4 @@ Four deliveries arrive: one is processed, one has a bad signature, one is a dupl
 
 ## Inspect it
 
-Inspection is pending a v6-compatible `@statelyai/inspect`. Until then the example prints every delivery outcome to stdout.
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

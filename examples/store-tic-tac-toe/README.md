@@ -18,4 +18,4 @@ pnpm dev
 
 ## Inspect it
 
-The inspector is not wired up in this example. To view the store in the [Stately Inspector](https://stately.ai/registry/inspect), add `@statelyai/inspect` and call `store.inspect(createBrowserInspector().inspect)` in `src/store.ts`.
+The inspector is not wired up in this example. To view the store in the [Stately Inspector](https://stately.ai/registry/inspect), add `@statelyai/sdk` and call `store.inspect(createInspector().inspect)` in `src/store.ts`.

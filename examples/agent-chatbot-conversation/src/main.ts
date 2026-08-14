@@ -1,10 +1,13 @@
 import { createActor, toPromise } from 'xstate';
 import { conversationMachine, log } from './conversationMachine.ts';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const wait = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-const actor = createActor(conversationMachine);
+const actor = createActor(conversationMachine, { inspect: inspector?.inspect });
 
 actor.subscribe((snapshot) => log(`state: ${JSON.stringify(snapshot.value)}`));
 
@@ -28,3 +31,5 @@ void (async () => {
 })();
 
 log(`session: ${JSON.stringify(await toPromise(actor), null, 2)}`);
+
+inspector?.destroy();

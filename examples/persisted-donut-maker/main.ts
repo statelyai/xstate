@@ -2,6 +2,9 @@ import { promises as fs } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { createActor } from 'xstate';
 import { donutMachine } from './donutMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const FILENAME = './persisted-state.json';
 
@@ -12,7 +15,10 @@ try {
   console.log('No persisted state found.');
 }
 
-const actor = createActor(donutMachine, { snapshot: restoredSnapshot });
+const actor = createActor(donutMachine, {
+  snapshot: restoredSnapshot,
+  inspect: inspector?.inspect
+});
 
 const bold = (value: string) => `\x1b[1m${value}\x1b[0m`;
 
@@ -46,3 +52,5 @@ const input = createInterface({ input: process.stdin });
 for await (const line of input) {
   actor.send({ type: line.trim() });
 }
+
+inspector?.destroy();

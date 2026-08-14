@@ -1,8 +1,8 @@
 import { useMachine } from '@xstate/solid';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 import { toggleMachine } from './toggleMachine';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 export default function App() {
   // `snapshot` is a Solid store, so reads inside JSX are fine-grained: only the

@@ -1,9 +1,9 @@
 import { useMachine } from '@xstate/react';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 import { bookingMachine } from './bookingMachine';
 import './App.css';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 function App() {
   const [state, send] = useMachine(bookingMachine, {

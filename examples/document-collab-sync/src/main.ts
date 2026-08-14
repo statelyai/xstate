@@ -1,4 +1,7 @@
 import { createActor, setup, types } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) =>
   console.log(`${Date.now() % 100000} ${message}`);
@@ -149,7 +152,7 @@ const clientMachine = setup({
 
 /** The "network": in-process, with a little latency in both directions. */
 const clients = new Map<string, ReturnType<typeof startClient>>();
-const server = createActor(serverMachine);
+const server = createActor(serverMachine, { inspect: inspector?.inspect });
 
 function toServer(clientId: string, baseVersion: number, op: Op) {
   setTimeout(
@@ -168,7 +171,10 @@ function toClient(
 }
 
 function startClient(id: string) {
-  const actor = createActor(clientMachine, { input: { id } });
+  const actor = createActor(clientMachine, {
+    input: { id },
+    inspect: inspector?.inspect
+  });
   actor.start();
   return actor;
 }
@@ -195,3 +201,5 @@ for (const [id, actor] of clients) {
 }
 
 server.stop();
+
+inspector?.destroy();

@@ -1,8 +1,14 @@
-import { createActor, setup, toPromise, types } from 'xstate';
-// Actor creators are imported from the `xstate/actors` subpath so that this
-// example runs under `tsx` against the workspace build.
-import { createEventObservableLogic } from 'xstate/actors';
+import {
+  createActor,
+  setup,
+  toPromise,
+  types,
+  createEventObservableLogic
+} from 'xstate';
 import { concat, interval, map, take, throwError } from 'rxjs';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) =>
   console.log(`${Date.now() % 100000} ${message}`);
@@ -106,7 +112,7 @@ async function run(
 ) {
   log(`--- ${label}`);
 
-  const actor = createActor(machine, { input });
+  const actor = createActor(machine, { input, inspect: inspector?.inspect });
 
   actor.subscribe((snapshot) =>
     log(
@@ -137,3 +143,5 @@ await run(
   true
 );
 await run('stream errors', { count: 2, fail: true });
+
+inspector?.destroy();

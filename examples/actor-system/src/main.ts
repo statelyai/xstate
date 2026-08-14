@@ -1,7 +1,7 @@
-import { createSystem, toPromise, types } from 'xstate';
-// Actor creators are imported from the `xstate/actors` subpath so that this
-// example runs under `tsx` against the workspace build.
-import { createCallbackLogic } from 'xstate/actors';
+import { createSystem, toPromise, types, createCallbackLogic } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) =>
   console.log(`${Date.now() % 100000} ${message}`);
@@ -100,7 +100,8 @@ const orderMachine = system
 
 // `system.createActor` starts the root actor inside this system.
 const actor = system.createActor(orderMachine, {
-  input: { orderId: 'ord-1001', customer: 'ada@example.com' }
+  input: { orderId: 'ord-1001', customer: 'ada@example.com' },
+  inspect: inspector?.inspect
 });
 
 actor.subscribe((snapshot) => log(`state: ${JSON.stringify(snapshot.value)}`));
@@ -113,3 +114,5 @@ actor.send({ type: 'pay' });
 actor.send({ type: 'ship' });
 
 log(`result: ${JSON.stringify(await toPromise(actor))}`);
+
+inspector?.destroy();

@@ -22,4 +22,4 @@ Type-check the Svelte components with `pnpm check`.
 
 ## Inspect it
 
-`@statelyai/inspect` is wired up in `src/App.svelte`. Running `pnpm dev` opens the [Stately Inspector](https://stately.ai/registry/inspect) in a new tab, where you can watch the state change and the `autoOff` delay fire.
+`@statelyai/sdk` is wired up in `src/App.svelte`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.

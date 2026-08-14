@@ -2,12 +2,13 @@
 
 ## What it teaches
 
-How to test an agent machine by model: enumerate every simple path through it, then assert invariants at every step instead of hand-writing individual test cases.
+How to test an agent machine by model: generate every simple path through it with `xstate/graph`, then assert invariants at every step instead of hand-writing individual test cases.
 
 ## XState features used
 
-- `machine.getInitialSnapshot()` and `machine.transition()` as a pure, actor-free API
-- `snapshot.nodes` and `stateNode.ownEvents` for introspecting which events a state handles
+- `createTestModel` from the `xstate/graph` subpath, with an `events` array supplying one sample payload per equivalence class
+- `testModel.getSimplePaths({ toState })` to enumerate non-looping paths that end in a final state
+- `path.steps` (each step holds the snapshot before its event) and `path.description`
 - branching transition functions (the agent clarifies short questions)
 - final states as path terminators
 
@@ -18,10 +19,10 @@ pnpm install
 pnpm start
 ```
 
-The harness prints every enumerated path, any invariant violations, and state coverage. It exits non-zero if an invariant fails or a state is unreachable.
+The harness prints every generated path, any invariant violations, and state coverage. It exits non-zero if an invariant fails or a state is unreachable.
 
-`@xstate/graph` has no v6-compatible package in this repo, so `getSimplePaths` is hand-rolled here as a breadth-first walk over `machine.transition` — about 30 lines, and it shows exactly what path generation needs from the machine.
+Model-based testing lives in core in v6: import from `xstate/graph`, not from a separate package. The same generators (`getSimplePaths`, `getShortestPaths`, `getPathsFromEvents`) are also exported standalone if you do not need a `TestModel`.
 
 ## Inspect it
 
-Inspection is pending a v6-compatible `@statelyai/inspect`. The harness never starts an actor, so there is nothing live to inspect; the printed paths are the output.
+The harness never starts an actor — it generates and walks paths — so there is nothing live to inspect. The printed paths are the output.

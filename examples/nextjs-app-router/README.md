@@ -30,4 +30,4 @@ cd examples/nextjs-app-router && pnpm build
 
 ## Inspect it
 
-Inspection is pending a v6-compatible `@statelyai/inspect`. Until then the page renders the checkout machine's state and context on every request.
+Not wired up: the checkout actor is created and stopped inside a server action, so there is no long-lived actor to stream. The page renders the machine's state and context on every request. To inspect the same machine live, run it under Node with [`@statelyai/sdk`](https://stately.ai/docs/inspector).

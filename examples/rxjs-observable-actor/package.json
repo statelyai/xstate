@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "rxjs": "^7.8.2",
     "xstate": "workspace:*"
   },

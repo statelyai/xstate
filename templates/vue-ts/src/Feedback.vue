@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { useActor } from '@xstate/vue';
 import { feedbackMachine } from './feedbackMachine';
+import { createInspector } from '@statelyai/sdk';
 
-const { snapshot, send } = useActor(feedbackMachine);
+const inspector = createInspector();
+
+const { snapshot, send } = useActor(feedbackMachine, {
+  inspect: inspector.inspect
+});
 </script>
 
 <template>

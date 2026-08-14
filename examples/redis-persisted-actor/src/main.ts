@@ -3,6 +3,9 @@ import { createClient } from 'redis';
 import { createActor } from 'xstate';
 import { isOrderEvent, ORDER_EVENTS, orderMachine } from './orderMachine';
 import { TaskQueue } from './TaskQueue';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const url = process.env.REDIS_URL ?? 'redis://localhost:6379';
 const actorId = process.env.ACTOR_ID ?? 'order-1';
@@ -29,7 +32,8 @@ console.log(
 );
 
 const actor = createActor(orderMachine, {
-  snapshot: stored ? JSON.parse(stored) : undefined
+  snapshot: stored ? JSON.parse(stored) : undefined,
+  inspect: inspector?.inspect
 });
 
 // Writes are queued so that snapshots reach Redis in transition order.
@@ -82,3 +86,5 @@ for await (const line of input) {
 }
 
 await client.quit();
+
+inspector?.destroy();

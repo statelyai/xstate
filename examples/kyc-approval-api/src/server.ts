@@ -1,6 +1,9 @@
 import express from 'express';
 import { createActor, type Actor, type Snapshot } from 'xstate';
 import { kycMachine } from './kycMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 /** In-memory persistence: every transition writes the applicant's snapshot. */
 const snapshots = new Map<string, Snapshot<unknown>>();
@@ -18,7 +21,8 @@ app.use(express.json());
 app.post('/applicants', (req, res) => {
   const id = nextId();
   const actor = createActor(kycMachine, {
-    input: { applicant: { name: req.body.name, country: req.body.country } }
+    input: { applicant: { name: req.body.name, country: req.body.country } },
+    inspect: inspector?.inspect
   });
 
   // The actor stays running because the automated checks are in flight; the
@@ -96,7 +100,13 @@ export const startServer = (port = 4243) =>
   new Promise<{ port: number; close: () => void }>((resolve) => {
     const server = app.listen(port, () => {
       const address = server.address() as { port: number };
-      resolve({ port: address.port, close: () => server.close() });
+      resolve({
+        port: address.port,
+        close: () => {
+          server.close();
+          inspector?.destroy();
+        }
+      });
     });
   });
 

@@ -42,7 +42,6 @@ minimumReleaseAgeExclude:
 overrides:
   '@types/node': 25.2.1
   stylus: 0.55.0
-  vite: 5.4.21
   vue: 3.5.17
   yaml: 2.8.2
 

@@ -1,9 +1,9 @@
 import './App.css';
 import { useMachine } from '@xstate/react';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 import { timerMachine } from './timerMachine';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 function convertSecondsToTime(seconds: number) {
   const minutes = Math.floor(seconds / 60);

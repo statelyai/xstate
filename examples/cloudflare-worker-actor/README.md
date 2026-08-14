@@ -33,4 +33,4 @@ Each order id maps to its own Durable Object, so `order-2` starts from scratch. 
 
 ## Inspect it
 
-Inspection is pending a v6-compatible `@statelyai/inspect`. Until then every request responds with the order's current state, context, and the events it will accept next.
+Not wired up: each request restores, advances, and persists the actor inside a Workers isolate, so there is no long-lived actor to stream. Every response reports the order's current state, context, and the events it will accept next. To inspect the same machine live, run it under Node with [`@statelyai/sdk`](https://stately.ai/docs/inspector).

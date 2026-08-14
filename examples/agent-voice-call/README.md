@@ -22,4 +22,4 @@ Three scripted calls run in sequence: a billing question, a caller who barges in
 
 ## Inspect it
 
-Inspection is pending a v6-compatible `@statelyai/inspect`. Until then the example prints the call transcript and the outcome of each call to stdout.
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

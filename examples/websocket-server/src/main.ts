@@ -1,5 +1,8 @@
 import { createActor, setup, types } from 'xstate';
 import { WebSocket, WebSocketServer } from 'ws';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) =>
   console.log(`${Date.now() % 100000} ${message}`);
@@ -166,7 +169,7 @@ const serverMachine = setup({
   }
 });
 
-const server = createActor(serverMachine);
+const server = createActor(serverMachine, { inspect: inspector?.inspect });
 server.start();
 
 let nextId = 0;
@@ -226,3 +229,5 @@ alice.close();
 await wait(100);
 wss.close();
 server.stop();
+
+inspector?.destroy();

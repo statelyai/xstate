@@ -106,23 +106,46 @@ Every example needs a `README.md` with these sections, in this order:
    pnpm dev # or `pnpm start` for backend examples
    ```
 
-5. **Inspect it** — how to view the running actors in the [Stately Inspector](https://stately.ai/docs/inspector). For browser examples, note that `@statelyai/inspect` is wired up and link to https://stately.ai/registry/inspect. For headless examples, document the `INSPECT=1` flag (see below).
+5. **Inspect it** — how to view the running actors in the [Stately Inspector](https://stately.ai/docs/inspector). For browser examples, note that `@statelyai/sdk` is wired up. For headless examples, document the `INSPECT=1` flag (see below).
 
 Keep the README under a page. Explanation of the concept belongs in the docs; the README points at it.
 
 ## Inspection
 
-Browser examples may create the inspector unconditionally in development.
+Inspection uses [`@statelyai/sdk`](https://stately.ai/docs/inspector), which works with XState v5 and v6. Add it as a published dependency:
 
-Headless examples — backend workflows, `pattern-*`, and `agent-*` — must put it behind an environment flag so the default run has no external dependency:
+```json
+{
+  "dependencies": {
+    "@statelyai/sdk": "^0.20.1"
+  }
+}
+```
+
+`createInspector()` connects to Stately's hosted relay at `wss://sky.stately.ai` and opens the hosted inspector in your default browser. Machine definitions, snapshots, events, and actor topology are sent to that relay, so keep an example's data uninteresting, and pass a self-hosted `url` if you need it to stay on your own infrastructure.
+
+Browser examples may create the inspector unconditionally:
+
+```ts
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
+
+const actor = createActor(machine, { inspect: inspector.inspect });
+```
+
+Headless examples — backend workflows, `pattern-*`, and `agent-*` — must put it behind an environment flag so the default run has no external dependency, and must destroy the inspector when the demo ends so the process can exit:
 
 ```ts
 import { createActor } from 'xstate';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 
-const inspector = process.env.INSPECT === '1' ? createBrowserInspector() : undefined;
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const actor = createActor(machine, { inspect: inspector?.inspect });
+
+// ...at the end of the demo:
+inspector?.destroy();
 ```
 
 Run with inspection:

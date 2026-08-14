@@ -1,7 +1,4 @@
-import { setup, types } from 'xstate';
-// Actor creators are imported from the `xstate/actors` subpath so that this
-// example runs against the workspace build.
-import { createAsyncLogic } from 'xstate/actors';
+import { createAsyncLogic, setup, types } from 'xstate';
 
 export interface Feedback {
   rating: number;

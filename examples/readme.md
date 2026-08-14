@@ -112,6 +112,7 @@ Features per example. `—` means not used or not determined.
 | history-states                  | Vanilla + Vite | —      | —        | —      | —     | —      | —           | —     | yes |
 | machine-input-output            | Node           | yes    | —        | yes    | —     | —      | —           | —     | no  |
 | unit-testing-machines           | Node + Vitest  | yes    | —        | yes    | —     | yes    | —           | —     | no  |
+| model-based-testing             | Node + Vitest  | yes    | —        | —      | —     | —      | —           | —     | no  |
 | store-atoms                     | React          | —      | —        | —      | —     | —      | —           | yes   | yes |
 | store-undo-redo                 | React          | —      | —        | —      | —     | —      | —           | yes   | yes |
 | actor-system                    | Node           | —      | —        | yes    | —     | —      | —           | —     | no  |

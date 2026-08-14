@@ -1,9 +1,14 @@
 import './App.css';
 import { feedbackMachine } from './feedbackMachine';
 import { useActor } from '@xstate/react';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function Feedback() {
-  const [state, send] = useActor(feedbackMachine);
+  const [state, send] = useActor(feedbackMachine, {
+    inspect: inspector.inspect
+  });
 
   if (state.matches('closed')) {
     return (

@@ -1,6 +1,9 @@
 import express from 'express';
 import { createActor, type Snapshot } from 'xstate';
 import { machine } from './machine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const persistedSnapshots = new Map<string, Snapshot<unknown>>();
 
@@ -15,7 +18,7 @@ app.use(express.json());
 // Start a new workflow instance and persist its initial snapshot.
 app.post('/workflows', (_req, res) => {
   const workflowId = generateWorkflowId();
-  const actor = createActor(machine).start();
+  const actor = createActor(machine, { inspect: inspector?.inspect }).start();
 
   persistedSnapshots.set(workflowId, actor.getPersistedSnapshot());
   actor.stop();
@@ -33,7 +36,10 @@ app.post('/workflows/:workflowId', (req, res) => {
     return;
   }
 
-  const actor = createActor(machine, { snapshot }).start();
+  const actor = createActor(machine, {
+    snapshot,
+    inspect: inspector?.inspect
+  }).start();
   actor.send(req.body);
 
   persistedSnapshots.set(workflowId, actor.getPersistedSnapshot());

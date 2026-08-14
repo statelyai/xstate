@@ -1,7 +1,4 @@
-import { setup, types } from 'xstate';
-// Actor creators are imported from the `xstate/actors` subpath so that this
-// example runs under `tsx` against the workspace build.
-import { createAsyncLogic } from 'xstate/actors';
+import { setup, types, createAsyncLogic } from 'xstate';
 
 export interface Applicant {
   name: string;

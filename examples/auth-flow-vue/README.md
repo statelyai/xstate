@@ -23,4 +23,4 @@ Sign in with `ada@example.com` / `lovelace`. Any other password fails.
 
 ## Inspect it
 
-`@statelyai/inspect` is wired up in `src/Auth.vue`. Running `pnpm dev` opens the [Stately Inspector](https://stately.ai/registry/inspect), where you can watch the refresh cycle and the invoked actors.
+`@statelyai/sdk` is wired up in `src/Auth.vue`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.

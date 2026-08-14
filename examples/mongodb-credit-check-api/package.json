@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "express": "^5.1.0",
     "mongodb": "^6.21.0",
     "xstate": "workspace:*",

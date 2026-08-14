@@ -3,6 +3,9 @@ import pg from 'pg';
 import { createActor } from 'xstate';
 import { isOrderEvent, ORDER_EVENTS, orderMachine } from './orderMachine';
 import { TaskQueue } from './TaskQueue';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const connectionString =
   process.env.DATABASE_URL ??
@@ -36,7 +39,10 @@ console.log(
     : `No persisted state for ${actorId}. Starting from scratch.`
 );
 
-const actor = createActor(orderMachine, { snapshot });
+const actor = createActor(orderMachine, {
+  snapshot,
+  inspect: inspector?.inspect
+});
 
 // Writes are queued so that snapshots reach the database in transition order.
 const taskQueue = new TaskQueue();
@@ -89,3 +95,5 @@ for await (const line of input) {
 }
 
 await pool.end();
+
+inspector?.destroy();

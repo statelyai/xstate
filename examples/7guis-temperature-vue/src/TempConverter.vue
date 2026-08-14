@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useMachine } from '@xstate/vue';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 import { tempMachine } from './tempMachine';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 const { snapshot, send } = useMachine(tempMachine, {
   inspect: inspector.inspect

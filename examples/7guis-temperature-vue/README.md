@@ -19,4 +19,4 @@ pnpm dev
 
 ## Inspect it
 
-`@statelyai/inspect` is wired up in `src/TempConverter.vue`, so running the example opens the [Stately Inspector](https://stately.ai/registry/inspect) in a new tab.
+`@statelyai/sdk` is wired up in `src/TempConverter.vue`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.

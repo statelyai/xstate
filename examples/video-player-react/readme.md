@@ -21,12 +21,12 @@ pnpm dev
 
 ## Inspect it
 
-This example does not bundle an inspector. To watch the actor live, add [`@statelyai/inspect`](https://stately.ai/docs/inspector) and pass it to the hook:
+This example does not bundle an inspector. To watch the actor live, add [`@statelyai/sdk`](https://stately.ai/docs/inspector) and pass it to the hook:
 
 ```ts
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 const [state, send] = useActor(videoMachine, { inspect: inspector.inspect });
 ```

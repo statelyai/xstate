@@ -28,3 +28,7 @@ Then build and typecheck with:
 npm run build
 npm run check
 ```
+
+## Inspect it
+
+[`@statelyai/sdk`](https://stately.ai/docs/inspector) is wired up, so running the app opens Stately's hosted inspector with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay; remove the `createInspector()` call in `src/App.svelte` to turn it off.

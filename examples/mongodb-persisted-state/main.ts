@@ -3,6 +3,9 @@ import { MongoClient } from 'mongodb';
 import { createActor } from 'xstate';
 import { donutMachine } from './donutMachine';
 import { TaskQueue } from './TaskQueue';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const uri = process.env.MONGODB_URI ?? 'mongodb://localhost:27017';
 
@@ -18,7 +21,10 @@ if (!stored) {
   console.log('No persisted state found in the db. Starting from scratch.');
 }
 
-const actor = createActor(donutMachine, { snapshot: stored?.persistedState });
+const actor = createActor(donutMachine, {
+  snapshot: stored?.persistedState,
+  inspect: inspector?.inspect
+});
 
 // Writes are queued so that snapshots reach the database in transition order.
 const taskQueue = new TaskQueue();
@@ -61,3 +67,5 @@ const input = createInterface({ input: process.stdin });
 for await (const line of input) {
   actor.send({ type: line.trim() });
 }
+
+inspector?.destroy();

@@ -1,6 +1,9 @@
 import './style.css';
 import { feedbackMachine } from './feedbackMachine';
 import { createActor } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
@@ -18,7 +21,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `;
 
-const actor = createActor(feedbackMachine);
+const actor = createActor(feedbackMachine, { inspect: inspector.inspect });
 
 (window as any).feedbackActor = actor;
 

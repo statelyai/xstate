@@ -1,7 +1,7 @@
-import { createActor, setup, types } from 'xstate';
-// Actor creators are imported from the `xstate/actors` subpath so that this
-// example runs under `tsx` against the workspace build.
-import { createAsyncLogic } from 'xstate/actors';
+import { createActor, setup, types, createAsyncLogic } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) => console.log(message);
 
@@ -164,13 +164,9 @@ function send(sessionId: string, response: Response) {
   log(`← [${sessionId}] ${JSON.stringify(response)}`);
 }
 
-/** The server only needs to talk to a session and read its result. */
+/** The server only needs to talk to a session. */
 interface SessionRef {
   send: (event: { type: 'request'; request: Request }) => void;
-  getSnapshot: () => {
-    status: string;
-    output?: { sessionId: string; handled: number };
-  };
 }
 
 const serverMachine = setup({
@@ -178,7 +174,8 @@ const serverMachine = setup({
     context: types<{ sessions: Record<string, SessionRef> }>(),
     events: {
       connect: types<{ sessionId: string }>(),
-      incoming: types<{ sessionId: string; request: Request }>()
+      incoming: types<{ sessionId: string; request: Request }>(),
+      sessionDone: types<{ output: { sessionId: string; handled: number } }>()
     }
   }
 }).createMachine({
@@ -192,11 +189,21 @@ const serverMachine = setup({
         id: event.sessionId,
         input: { sessionId: event.sessionId }
       });
+      enq.subscribeTo(session, {
+        done: (output) => ({ type: 'sessionDone', output })
+      });
       return {
         context: {
           sessions: { ...context.sessions, [event.sessionId]: session }
         }
       };
+    },
+    // Each session reports its result when it reaches shutdown.
+    sessionDone: ({ context, event }, enq) => {
+      const { sessionId, handled } = event.output;
+      enq(log, `session ${sessionId}: done, ${handled} request(s) handled`);
+      const { [sessionId]: _, ...sessions } = context.sessions;
+      return { context: { sessions } };
     },
     incoming: ({ context, event }, enq) => {
       enq(log, `→ [${event.sessionId}] ${JSON.stringify(event.request)}`);
@@ -208,7 +215,7 @@ const serverMachine = setup({
   }
 });
 
-const server = createActor(serverMachine);
+const server = createActor(serverMachine, { inspect: inspector?.inspect });
 server.start();
 
 let nextId = 0;
@@ -243,13 +250,6 @@ for (const [sessionId, request] of script) {
 
 await new Promise((resolve) => setTimeout(resolve, 200));
 
-for (const [sessionId, session] of Object.entries(
-  server.getSnapshot().context.sessions
-)) {
-  const snapshot = session.getSnapshot();
-  log(
-    `session ${sessionId}: ${snapshot.status}, ${snapshot.output?.handled ?? 0} request(s) handled`
-  );
-}
-
 server.stop();
+
+inspector?.destroy();

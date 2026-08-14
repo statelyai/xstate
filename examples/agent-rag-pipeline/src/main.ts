@@ -1,7 +1,7 @@
-import { createActor, setup, toPromise, types } from 'xstate';
-// Actor creators are imported from the `xstate/actors` subpath so that this
-// example runs under `tsx` against the workspace build.
-import { createAsyncLogic } from 'xstate/actors';
+import { createActor, setup, toPromise, types, createAsyncLogic } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) => console.log(message);
 
@@ -182,7 +182,10 @@ for (const question of [
   'how does an actor spawn a transition',
   'what is the capital of France'
 ]) {
-  const actor = createActor(ragMachine, { input: { question } });
+  const actor = createActor(ragMachine, {
+    input: { question },
+    inspect: inspector?.inspect
+  });
   actor.start();
   const result = await toPromise(actor);
 
@@ -195,3 +198,5 @@ for (const question of [
   );
   log('');
 }
+
+inspector?.destroy();

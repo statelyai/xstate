@@ -34,4 +34,4 @@ Click `addItem` a few times, then `checkout`. Charges over $500 are declined, wh
 
 ## Inspect it
 
-Inspection is pending a v6-compatible `@statelyai/inspect`. Until then the dashboard's own event log and context view stand in for it.
+The dashboard's own event log and context view are the inspector here. For the full [Stately Inspector](https://stately.ai/docs/inspector), add [`@statelyai/sdk`](https://stately.ai/docs/inspector) and pass `createInspector().inspect` as the `inspect` option when the actors are created.

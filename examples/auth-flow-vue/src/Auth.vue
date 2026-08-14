@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useActor } from '@xstate/vue';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 import { authMachine } from './authMachine';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 const { snapshot, send } = useActor(authMachine, {
   inspect: inspector.inspect
@@ -15,7 +15,9 @@ const password = ref('lovelace');
 
 const session = computed(() => snapshot.value.context.session);
 const error = computed(() => snapshot.value.context.error);
-const isAuthenticating = computed(() => snapshot.value.matches('authenticating'));
+const isAuthenticating = computed(() =>
+  snapshot.value.matches('authenticating')
+);
 const isRefreshing = computed(() =>
   snapshot.value.matches({ authenticated: 'refreshing' })
 );

@@ -1,7 +1,7 @@
 import './style.css';
 
 import { createActor } from 'xstate';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 import {
   BOTTOM_FLOOR,
   TOP_FLOOR,
@@ -9,7 +9,7 @@ import {
   elevatorMachine
 } from './elevatorMachine';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 const floors = Array.from(
   { length: TOP_FLOOR - BOTTOM_FLOOR + 1 },

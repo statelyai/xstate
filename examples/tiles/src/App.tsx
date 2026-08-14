@@ -1,9 +1,9 @@
 import './App.css';
 import { useMachine } from '@xstate/react';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 import { tilesMachine } from './tilesMachine';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 function TileGrid({
   children,

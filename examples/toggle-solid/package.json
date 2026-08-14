@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@statelyai/inspect": "^0.4.0",
+    "@statelyai/sdk": "^0.20.1",
     "@xstate/solid": "workspace:*",
     "solid-js": "^1.9.12",
     "xstate": "workspace:*"

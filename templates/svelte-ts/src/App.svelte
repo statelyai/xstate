@@ -1,8 +1,11 @@
 <script lang="ts">
   import { feedbackMachine } from './feedbackMachine';
   import { useActor } from '@xstate/svelte';
+  import { createInspector } from '@statelyai/sdk';
 
-  const { snapshot, send } = useActor(feedbackMachine);
+  const inspector = createInspector();
+
+  const { snapshot, send } = useActor(feedbackMachine, { inspect: inspector.inspect });
 </script>
 
 {#if $snapshot.matches('closed')}

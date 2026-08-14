@@ -1,5 +1,4 @@
-import { setup, types } from 'xstate';
-import { createAsyncLogic } from 'xstate/actors';
+import { createAsyncLogic, setup, types } from 'xstate';
 
 const MAX_ATTEMPTS = 4;
 

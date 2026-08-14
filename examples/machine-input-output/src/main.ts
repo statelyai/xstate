@@ -1,4 +1,7 @@
 import { createActor, setup, toPromise, types } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) => console.log(message);
 
@@ -178,7 +181,10 @@ const compareOffersMachine = setup({
 
 async function run(principal: number) {
   log(`\n=== principal: ${principal}`);
-  const actor = createActor(compareOffersMachine, { input: { principal } });
+  const actor = createActor(compareOffersMachine, {
+    input: { principal },
+    inspect: inspector?.inspect
+  });
   actor.start();
   const output = await toPromise(actor);
 
@@ -197,3 +203,5 @@ async function run(principal: number) {
 
 await run(25_000);
 await run(250);
+
+inspector?.destroy();

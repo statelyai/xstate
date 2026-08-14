@@ -28,13 +28,13 @@ pnpm dev
 This example does not bundle an inspector. To add one:
 
 ```bash
-pnpm add @statelyai/inspect
+pnpm add @statelyai/sdk
 ```
 
 ```ts
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 // then pass it as the second argument
 const [state, send] = useActor(machine, { inspect: inspector.inspect });

@@ -1,7 +1,4 @@
-import { setup, types } from 'xstate';
-// Actor creators are imported from the `xstate/actors` subpath so that this
-// example runs under `tsx` against the workspace build.
-import { createCallbackLogic } from 'xstate/actors';
+import { setup, types, createCallbackLogic } from 'xstate';
 
 export const log = (message: string) =>
   console.log(`${Date.now() % 100000} ${message}`);

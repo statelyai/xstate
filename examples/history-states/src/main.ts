@@ -1,10 +1,10 @@
 import './style.css';
 
 import { createActor } from 'xstate';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 import { settingsMachine } from './settingsMachine';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <h1>Settings</h1>

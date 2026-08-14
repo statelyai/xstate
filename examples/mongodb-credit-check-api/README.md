@@ -51,4 +51,4 @@ This example is for learning, not production: there is no authentication, no err
 
 ## Inspect it
 
-Inspector: pending v6-compatible `@statelyai/inspect` (the current release peers on `xstate@^5`).
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   createActor,
+  createAsyncLogic,
   initialTransition,
   SimulatedClock,
   toPromise,
   transition
 } from 'xstate';
-import { createAsyncLogic } from 'xstate/actors';
 import {
   feedbackMachine,
   RETRY_DELAY,

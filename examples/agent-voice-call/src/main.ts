@@ -1,4 +1,7 @@
 import { createActor, setup, toPromise, types } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) => console.log(message);
 
@@ -155,7 +158,10 @@ type CallEvent =
 /** Plays a scripted caller against the machine, one event every 150ms. */
 async function runCall(caller: string, script: CallEvent[]) {
   log(`\n=== call from ${caller}`);
-  const actor = createActor(callMachine, { input: { caller } });
+  const actor = createActor(callMachine, {
+    input: { caller },
+    inspect: inspector?.inspect
+  });
   actor.start();
   for (const event of script) {
     await wait(400);
@@ -184,3 +190,5 @@ await runCall('Alan', [
   { type: 'utterance', text: 'get me an agent' },
   { type: 'hangup' }
 ]);
+
+inspector?.destroy();

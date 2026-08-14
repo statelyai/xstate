@@ -1,5 +1,8 @@
 import * as mongoDB from 'mongodb';
 import { createActor, type AnyStateMachine } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const uri = process.env.MONGODB_URI ?? 'mongodb://localhost:27017';
 
@@ -45,7 +48,7 @@ export async function getDurableActor({
     workflowId = generateWorkflowId();
   }
 
-  const actor = createActor(machine, { snapshot });
+  const actor = createActor(machine, { snapshot, inspect: inspector?.inspect });
 
   actor.subscribe({
     next: async () => {

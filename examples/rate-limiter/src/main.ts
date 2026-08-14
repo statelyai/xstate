@@ -1,4 +1,7 @@
 import { createActor, setup, toPromise, types } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) =>
   console.log(`${Date.now() % 100000} ${message}`);
@@ -83,7 +86,7 @@ const limiterMachine = setup({
   }
 });
 
-const actor = createActor(limiterMachine);
+const actor = createActor(limiterMachine, { inspect: inspector?.inspect });
 
 actor.subscribe((snapshot) =>
   log(
@@ -99,3 +102,5 @@ for (let i = 1; i <= EXPECTED; i++) {
 }
 
 log(`result: ${JSON.stringify(await toPromise(actor), null, 2)}`);
+
+inspector?.destroy();

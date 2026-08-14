@@ -26,4 +26,4 @@ The `start` script passes `--conditions=module` so that Node resolves `xstate` t
 
 ## Inspect it
 
-Inspector: pending v6-compatible `@statelyai/inspect`. Until then the example logs every session transition to stdout.
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

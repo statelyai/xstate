@@ -27,3 +27,7 @@ Then build and typecheck with:
 ```bash
 npm run build
 ```
+
+## Inspect it
+
+[`@statelyai/sdk`](https://stately.ai/docs/inspector) is wired up, so running the app opens Stately's hosted inspector with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay; remove the `createInspector()` call in `src/Feedback.vue` to turn it off.

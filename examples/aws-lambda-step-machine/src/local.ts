@@ -1,6 +1,7 @@
 import type { Context } from 'aws-lambda';
 import {
   createStepHandler,
+  inspector,
   type ExpenseSnapshot,
   type StepRequest
 } from './handler';
@@ -29,3 +30,5 @@ for (const request of requests) {
     JSON.stringify({ ...response?.context, next: response?.nextEvents })
   );
 }
+
+inspector?.destroy();

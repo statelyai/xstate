@@ -1,7 +1,10 @@
 import { createActor, toPromise, waitFor } from 'xstate';
 import { log, memoryMachine } from './memoryMachine.ts';
+import { createInspector } from '@statelyai/sdk';
 
-const actor = createActor(memoryMachine);
+const inspector = process.env.INSPECT ? createInspector() : undefined;
+
+const actor = createActor(memoryMachine, { inspect: inspector?.inspect });
 
 actor.subscribe((snapshot) =>
   log(
@@ -32,3 +35,5 @@ void (async () => {
 })();
 
 log(`session: ${JSON.stringify(await toPromise(actor), null, 2)}`);
+
+inspector?.destroy();

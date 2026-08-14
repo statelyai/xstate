@@ -1,4 +1,7 @@
 import { createActor, setup, toPromise, types } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) =>
   console.log(`${Date.now() % 100000} ${message}`);
@@ -60,7 +63,8 @@ const auctionMachine = setup({
 });
 
 const actor = createActor(auctionMachine, {
-  input: { lot: 'Lot 7: vintage sign' }
+  input: { lot: 'Lot 7: vintage sign' },
+  inspect: inspector?.inspect
 });
 
 actor.subscribe((snapshot) =>
@@ -87,3 +91,5 @@ void (async () => {
 })();
 
 log(`sold: ${JSON.stringify(await toPromise(actor))}`);
+
+inspector?.destroy();

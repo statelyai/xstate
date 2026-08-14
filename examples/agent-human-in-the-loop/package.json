@@ -12,6 +12,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "xstate": "workspace:*"
   }
 }

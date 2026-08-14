@@ -1,5 +1,8 @@
 import { createActor, toPromise } from 'xstate';
 import { log, streamingMachine } from './streamingMachine.ts';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const wait = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -10,7 +13,10 @@ async function run(
   cancelAfter?: number
 ) {
   log(`--- ${label} ---`);
-  const actor = createActor(streamingMachine, { input });
+  const actor = createActor(streamingMachine, {
+    input,
+    inspect: inspector?.inspect
+  });
   actor.subscribe((snapshot) =>
     log(`state: ${JSON.stringify(snapshot.value)}`)
   );
@@ -30,3 +36,5 @@ await run(
   400
 );
 await run('fails once, then retries', { prompt: 'flaky', failAfter: 2 });
+
+inspector?.destroy();

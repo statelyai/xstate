@@ -2,9 +2,9 @@ import './style.css';
 
 import { counterMachine } from './counterMachine';
 import { createActor } from 'xstate';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>

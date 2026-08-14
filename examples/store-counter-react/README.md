@@ -20,4 +20,4 @@ pnpm dev
 
 ## Inspect it
 
-The inspector is not wired up in this example. To view the global store in the [Stately Inspector](https://stately.ai/registry/inspect), add `@statelyai/inspect` and call `globalStore.inspect(createBrowserInspector().inspect)` in `src/App.tsx`.
+The inspector is not wired up in this example. To view the global store in the [Stately Inspector](https://stately.ai/registry/inspect), add `@statelyai/sdk` and call `globalStore.inspect(createInspector().inspect)` in `src/App.tsx`.

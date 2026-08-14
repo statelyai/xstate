@@ -22,4 +22,4 @@ The fake service fails three times and then succeeds, so the run shows three bac
 
 ## Inspect it
 
-Inspection is pending a v6-compatible `@statelyai/inspect`. Until then the example prints every attempt, failure and backoff delay to stdout.
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

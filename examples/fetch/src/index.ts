@@ -1,8 +1,8 @@
 import { createActor } from 'xstate';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 import { fetchMachine } from './fetchMachine';
 
-const inspector = createBrowserInspector();
+const inspector = createInspector();
 
 const fetchActor = createActor(fetchMachine, { inspect: inspector.inspect });
 

@@ -8,6 +8,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "express": "^5.1.0",
     "xstate": "workspace:*"
   },

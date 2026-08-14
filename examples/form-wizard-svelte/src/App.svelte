@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useActor } from '@xstate/svelte';
-  import { createBrowserInspector } from '@statelyai/inspect';
+  import { createInspector } from '@statelyai/sdk';
   import {
     wizardMachine,
     accountErrors,
@@ -8,7 +8,7 @@
     planErrors
   } from './wizardMachine';
 
-  const inspector = createBrowserInspector();
+  const inspector = createInspector();
 
   const { snapshot, send } = useActor(wizardMachine, {
     inspect: inspector.inspect

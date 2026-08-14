@@ -1,4 +1,7 @@
 import { ActorRefFrom, createActor, setup, toPromise, types } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const log = (message: string) =>
   console.log(`${Date.now() % 100000} ${message}`);
@@ -152,7 +155,10 @@ const inventoryMachine = setup({
 const wait = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-const actor = createActor(inventoryMachine, { input: { available: 1 } });
+const actor = createActor(inventoryMachine, {
+  input: { available: 1 },
+  inspect: inspector?.inspect
+});
 
 actor.subscribe((snapshot) =>
   log(
@@ -176,3 +182,5 @@ await wait(HOLD_MS / 2);
 actor.send({ type: 'commit', customer: 'grace' });
 
 log(`result: ${JSON.stringify(await toPromise(actor), null, 2)}`);
+
+inspector?.destroy();
