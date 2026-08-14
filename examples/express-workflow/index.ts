@@ -1,11 +1,11 @@
-import { AnyMachineSnapshot, createActor } from 'xstate';
+import { Snapshot, createActor } from 'xstate';
 import bodyParser from 'body-parser';
 
 function generateActorId() {
   return Math.random().toString(36).substring(2, 8);
 }
 
-const persistedStates: Record<string, unknown> = {};
+const persistedStates: Record<string, Snapshot<unknown>> = {};
 
 import express from 'express';
 import { machine } from './machine';
@@ -23,7 +23,6 @@ app.post('/workflows', (req, res) => {
   const workflowId = generateActorId(); // generate a unique ID
   const actor = createActor(machine).start();
 
-  // @ts-ignore
   persistedStates[workflowId] = actor.getPersistedSnapshot();
 
   res.send({ workflowId });
@@ -44,12 +43,9 @@ app.post('/workflows/:workflowId', (req, res) => {
   }
 
   const event = req.body;
-  const actor = createActor(machine, {
-    snapshot: snapshot as AnyMachineSnapshot
-  }).start();
+  const actor = createActor(machine, { snapshot }).start();
   actor.send(event);
 
-  // @ts-ignore
   persistedStates[workflowId] = actor.getPersistedSnapshot();
 
   actor.stop();

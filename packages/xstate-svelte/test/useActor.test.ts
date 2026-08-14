@@ -1,5 +1,5 @@
 import { fireEvent, render } from '@testing-library/svelte';
-import { createActor, createMachine, type AnyMachineSnapshot } from 'xstate';
+import { createActor, createMachine } from 'xstate';
 import UseActor from './UseActor.svelte';
 import UseActorNonPersistentSubscription from './UseActorNonPersistentSubscription.svelte';
 import { fetchMachine } from './fetchMachine.ts';
@@ -40,7 +40,7 @@ describe('useActor', () => {
 
   it('should work with a component with rehydrated state', async () => {
     const { findByText, getByTestId } = render(UseActor, {
-      persistedState: persistedFetchState as AnyMachineSnapshot
+      persistedState: persistedFetchState
     });
     await findByText(/Success/);
     const dataEl = getByTestId('data');

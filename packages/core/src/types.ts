@@ -1623,6 +1623,19 @@ export type PersistedSnapshotFor<TLogic> = {
   readonly [persistedSnapshotLogic]: PersistedSnapshotLogicIdentity<TLogic>;
 };
 
+/**
+ * A persisted snapshot restorable into the given actor logic: any snapshot
+ * created by logic with the same machine `id` is accepted, regardless of
+ * version (version mismatches are handled at runtime, e.g. by `migrate`).
+ */
+export type RestorablePersistedSnapshotFor<TLogic> = {
+  readonly [persistedSnapshotLogic]: TLogic extends {
+    readonly id: infer TId extends string;
+  }
+    ? { readonly id: TId; readonly version: string }
+    : never;
+};
+
 export interface ActorOptions<TLogic extends AnyActorLogic> {
   /**
    * The clock that is responsible for setting and clearing timeouts, such as
@@ -1682,7 +1695,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * @see https://stately.ai/docs/persistence
    */
   snapshot?: Snapshot<unknown> &
-    Partial<PersistedSnapshotFor<DoNotInfer<TLogic>>>;
+    Partial<RestorablePersistedSnapshotFor<DoNotInfer<TLogic>>>;
 
   /** @deprecated Use `snapshot` instead. */
   state?: Snapshot<unknown>;

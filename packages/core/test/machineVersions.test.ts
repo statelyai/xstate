@@ -529,7 +529,10 @@ describe('machineVersions', () => {
     });
     const persisted = createActor(checkout).getPersistedSnapshot();
 
-    const restored = createActor(cart, { snapshot: persisted });
+    const restored = createActor(cart, {
+      // @ts-expect-error -- cross-ID restore is also rejected at the type level
+      snapshot: persisted
+    });
     restored.subscribe({ error: () => {} });
     restored.start();
 
