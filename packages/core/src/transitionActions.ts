@@ -345,13 +345,16 @@ export function createTransitionEnqueue(
     },
     stop: (actor) => {
       if (actor) {
+        // enq.stop accepts the consumer ActorRef contract; refs handed to
+        // machine code are always full actor instances at runtime.
+        const actorInstance = actor as AnyActor;
         const action = pushBuiltInAction(
           actions,
           builtInActions['@xstate.stop'],
           actorScope,
-          actor
+          actorInstance
         );
-        action.childUpdate = { type: 'remove', actor };
+        action.childUpdate = { type: 'remove', actor: actorInstance };
       }
     }
   };
