@@ -2,7 +2,6 @@ import type { ActorSystemRuntime } from '../system.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
   AnyActorLogic,
-  CustomExecutableActionObject,
   EventFromLogic,
   ExecutableActionObjectFromLogic,
   InputFrom,
@@ -28,6 +27,17 @@ export interface DurableEffect<TEffect> extends DurableEffectMetadata {
   effect: TEffect;
 }
 
+export type DurableActionFromLogic<TLogic extends AnyActorLogic> = Extract<
+  ExecutableActionObjectFromLogic<TLogic>,
+  { kind: 'action' }
+>;
+
+function isDurableAction<TLogic extends AnyActorLogic>(
+  effect: ExecutableActionObjectFromLogic<TLogic>
+): effect is DurableActionFromLogic<TLogic> {
+  return effect.kind === 'action';
+}
+
 export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
   /**
    * Executes a custom action as a durable host step or activity. The host
@@ -35,7 +45,7 @@ export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
    * `metadata.id`.
    */
   executeAction(
-    action: CustomExecutableActionObject,
+    action: DurableActionFromLogic<TLogic>,
     metadata: DurableEffectMetadata,
     runtime: Partial<ActorSystemRuntime>
   ): void | PromiseLike<void>;
@@ -43,7 +53,9 @@ export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
    * Creates the runtime used by one effect. Timers, messaging and
    * child actors should be translated to equivalent host operations. The
    * complete effect is provided for hosts that need serializable actor source,
-   * input, event or target data beyond the runtime method arguments.
+   * input, event or target data beyond the runtime method arguments. Every
+   * mapped operation must be durable or idempotent using `metadata.id`, because
+   * the runtime is invoked again when a host replays the execution.
    */
   runtime?(
     metadata: DurableEffectMetadata,
@@ -53,8 +65,8 @@ export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
   waitForEvent(
     metadata: DurableWaitMetadata
   ): EventFromLogic<TLogic> | PromiseLike<EventFromLogic<TLogic>>;
-  /** Index assigned to the first transition. Defaults to `0`. */
-  transitionIndex?: number;
+  /** Index assigned to the next transition. Defaults to `0`. */
+  nextTransitionIndex?: number;
 }
 
 export class DurableExecutionCancelledError extends Error {
@@ -115,13 +127,15 @@ export function createDurable<TLogic extends AnyActorLogic>(
   logic: TLogic,
   adapter: DurableExecutionAdapter<TLogic>
 ): DurableExecution<TLogic> {
-  let nextTransitionIndex = adapter.transitionIndex ?? 0;
+  let nextTransitionIndex = adapter.nextTransitionIndex ?? 0;
   const startingTransitionIndex = nextTransitionIndex;
   let lastTransitionIndex =
     nextTransitionIndex === 0 ? undefined : nextTransitionIndex - 1;
 
   if (!Number.isSafeInteger(nextTransitionIndex) || nextTransitionIndex < 0) {
-    throw new RangeError('transitionIndex must be a non-negative safe integer');
+    throw new RangeError(
+      'nextTransitionIndex must be a non-negative safe integer'
+    );
   }
 
   const tagEffects = (
@@ -152,7 +166,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
     async executeEffects(effects) {
       for (const { effect, ...metadata } of effects) {
         const runtime = adapter.runtime?.(metadata, effect) ?? {};
-        if (effect.kind === 'action') {
+        if (isDurableAction(effect)) {
           await adapter.executeAction(effect, metadata, runtime);
         } else {
           await effect.exec(runtime);

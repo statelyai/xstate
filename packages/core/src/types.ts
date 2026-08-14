@@ -2895,6 +2895,7 @@ export interface StopExecutableActionObject extends BaseExecutableActionObject {
 export type TerminateExecutableActionObject = BaseExecutableActionObject & {
   kind: 'builtin';
   type: '@xstate.terminate';
+  isRoot: boolean;
   source: AnyActor;
   actor: AnyActor;
   id: string;

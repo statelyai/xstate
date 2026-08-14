@@ -566,6 +566,7 @@ export function createTerminationEffect(
     kind: 'builtin',
     exec: execTerminateEffect,
     type: XSTATE_TERMINATE,
+    isRoot: actorScope.self._parent === undefined,
     source: actorScope.self,
     actor: actorScope.self,
     id: actorScope.self.id,

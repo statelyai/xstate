@@ -1,18 +1,11 @@
-import {
-  type AnyActor,
-  type AnyActorLogic,
-  type Snapshot
-} from '../src/index.ts';
-import {
-  DurableExecutionCancelledError,
-  createDurable
-} from '../src/durable/index.ts';
+import { type AnyActor, type AnyActorLogic, type Snapshot } from 'xstate';
+import { DurableExecutionCancelledError, createDurable } from 'xstate/durable';
 import {
   type DurableConformanceExecution,
   type DurableConformanceHarness,
   type DurableConformanceOperation,
   durableExecutionConformance
-} from './durable-conformance.ts';
+} from '../src/index.ts';
 
 interface PendingTimer {
   source: AnyActor;
@@ -32,6 +25,7 @@ class InMemoryDurableHost implements DurableConformanceHarness {
     const inbox: any[] = [];
     const waiters: Array<(event: any) => void> = [];
     const timers = new Map<string, PendingTimer>();
+    const childActors = new WeakSet<AnyActor>();
     const operations: DurableConformanceOperation[] = [];
     let markReady!: () => void;
     const ready = new Promise<void>((resolve) => {
@@ -49,8 +43,11 @@ class InMemoryDurableHost implements DurableConformanceHarness {
     const timerKey = (source: AnyActor, id: string) =>
       `${source.sessionId}:${id}`;
     const actorRuntime = {
-      spawnActor: (_source: AnyActor | undefined, actor: AnyActor) => {
+      spawnActor: (source: AnyActor | undefined, actor: AnyActor) => {
         operations.push({ type: 'actor.spawn' as const, actorId: actor.id });
+        if (source) {
+          childActors.add(actor);
+        }
         Object.assign(actor.system, actorRuntime);
       },
       startActor: (actor: AnyActor) => {
@@ -72,7 +69,7 @@ class InMemoryDurableHost implements DurableConformanceHarness {
           targetId: target.id,
           eventType: event.type
         });
-        if (target._parent) {
+        if (childActors.has(target)) {
           target._send(event);
         } else {
           enqueue(event);

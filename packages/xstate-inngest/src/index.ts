@@ -31,8 +31,8 @@ interface InngestDurableBaseOptions<TLogic extends AnyActorLogic> {
    * Missing operations fail when XState attempts to execute them.
    */
   runtime?: DurableExecutionAdapter<TLogic>['runtime'];
-  /** Index assigned to the first transition. Defaults to `0`. */
-  transitionIndex?: number;
+  /** Index assigned to the next transition. Defaults to `0`. */
+  nextTransitionIndex?: number;
 }
 
 export type InngestDurableOptions<TLogic extends AnyActorLogic> =
@@ -63,7 +63,7 @@ export function createInngestAdapter<TLogic extends AnyActorLogic>(
   const getEvent = options.getEvent ?? defaultGetEvent<TLogic>;
 
   return {
-    transitionIndex: options.transitionIndex,
+    nextTransitionIndex: options.nextTransitionIndex,
     async executeAction(action, metadata, runtime) {
       await options.step.run(metadata.id, async () => {
         await action.exec(runtime);
@@ -72,6 +72,7 @@ export function createInngestAdapter<TLogic extends AnyActorLogic>(
     runtime(metadata, effect) {
       const runtime = options.runtime?.(metadata, effect) ?? {};
       if (
+        effect.kind !== 'builtin' ||
         effect.type !== '@xstate.terminate' ||
         runtime.terminateActor !== undefined
       ) {
@@ -79,12 +80,14 @@ export function createInngestAdapter<TLogic extends AnyActorLogic>(
       }
       return {
         ...runtime,
-        async terminateActor(actor) {
-          if (actor._parent) {
+        async terminateActor() {
+          if (!effect.isRoot) {
             throw new TypeError(
               'The Inngest adapter requires a terminateActor mapping for child actors'
             );
           }
+          // Record root completion under its stable effect ID. Child
+          // completion needs an application mapping that notifies the parent.
           await options.step.run(metadata.id, async () => {});
         }
       };

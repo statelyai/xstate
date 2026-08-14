@@ -48,7 +48,9 @@ while (state.status === 'active') {
 `initialTransition()` and `transition()` remain pure. The helper tags their
 ordered effects with stable IDs such as `0:0` and `1:0`, and event waits with
 IDs such as `event:0`. A durable host should memoize or deduplicate each
-operation using that ID. Replaying the same events from the beginning
+operation using that ID. This applies to every operation returned by
+`runtime()`, not only custom actions: raw I/O in a runtime method repeats when
+the host replays the execution. Replaying the same events from the beginning
 reconstructs the same snapshots, effects, waits and IDs.
 
 The host runtime subsumes the local actor system. XState calculates transitions
@@ -75,7 +77,7 @@ runtime when it executes the action.
 
 `run()` resolves with the machine output when the machine is done, throws the
 machine error when it fails, and throws `DurableExecutionCancelledError` when
-it stops. It only starts fresh executions. A nonzero `transitionIndex`, or
+it stops. It only starts fresh executions. A nonzero `nextTransitionIndex`, or
 calling a lower-level transition method before `run()`, causes
 `DurableExecutionResumeError`; resume with the persisted snapshot and the
 explicit transition loop instead.
@@ -84,7 +86,7 @@ The helper does not prescribe storage, inboxes, retries or timer
 implementations. Hosts that restore from checkpoints instead of replaying from
 the beginning should persist `durable.nextTransitionIndex` after every
 transition, including transitions with no effects, and pass it as
-`transitionIndex` when recreating the durable execution.
+`nextTransitionIndex` when recreating the durable execution.
 
 ## Host adapters
 
@@ -109,6 +111,10 @@ inbox. Both expose `create…Adapter()` for the explicit transition loop and pas
 the complete effect to `runtime` so the application can map timers, sends and
 child actors without coupling XState core to either host.
 
+An Inngest event-wait timeout throws `InngestEventWaitTimeoutError`; it does not
+become a machine event. Catch and translate it outside `run()` if the machine
+should handle timeout as domain input.
+
 These adapters deliberately do not approximate missing host semantics. For
 example, awaiting a sleep inline cannot implement a cancellable timer while
 also receiving intervening events. Such operations require a host-native
@@ -121,6 +127,9 @@ small host doubles and run in the normal CI suite, verifying stable IDs, action
 execution, waits, outputs, errors and runtime-effect mapping without starting
 vendor infrastructure. Unsupported mailbox, timer or child-actor semantics
 remain explicit gaps.
+
+Third-party adapters can use `@xstate/durable-test` to register the same
+capability-based Vitest conformance suite against their own host harness.
 
 ## What next?
 

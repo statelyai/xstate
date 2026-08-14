@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import {
   createLogic,
   createMachine,
@@ -9,6 +9,7 @@ import {
   DurableExecutionCancelledError,
   DurableExecutionResumeError,
   createDurable,
+  type DurableActionFromLogic,
   type DurableEffectMetadata
 } from '../src/durable/index.ts';
 
@@ -174,7 +175,7 @@ describe('durable execution', () => {
       }
     });
     const d = createDurable(machine, {
-      transitionIndex: 12,
+      nextTransitionIndex: 12,
       executeAction: () => {},
       waitForEvent: () => ({ type: 'unused' })
     });
@@ -186,7 +187,7 @@ describe('durable execution', () => {
 
     const checkpoint = d.nextTransitionIndex;
     const restored = createDurable(machine, {
-      transitionIndex: checkpoint,
+      nextTransitionIndex: checkpoint,
       executeAction: () => {},
       waitForEvent: () => ({ type: 'unused' })
     });
@@ -201,11 +202,11 @@ describe('durable execution', () => {
 
     expect(() =>
       createDurable(machine, {
-        transitionIndex: -1,
+        nextTransitionIndex: -1,
         executeAction: () => {},
         waitForEvent: () => ({ type: 'unused' })
       })
-    ).toThrow('transitionIndex must be a non-negative safe integer');
+    ).toThrow('nextTransitionIndex must be a non-negative safe integer');
   });
 
   it('rejects run() when configured to resume from a checkpoint', async () => {
@@ -214,7 +215,7 @@ describe('durable execution', () => {
       entry: (_, enq) => enq(action)
     });
     const durable = createDurable(machine, {
-      transitionIndex: 12,
+      nextTransitionIndex: 12,
       executeAction: async (effect, _metadata, runtime) => {
         await effect.exec(runtime);
       },
@@ -267,6 +268,42 @@ describe('durable execution', () => {
     await durable.executeEffects(effects);
 
     expect(providedRuntime).toBe(runtime);
+  });
+
+  it('types custom actions from the provided logic', () => {
+    const machine = createMachine({
+      entry: (_, enq) => enq(() => {})
+    });
+
+    createDurable(machine, {
+      executeAction: (action) => {
+        expectTypeOf(action).toEqualTypeOf<
+          DurableActionFromLogic<typeof machine>
+        >();
+      },
+      waitForEvent: () => ({ type: 'unused' })
+    });
+  });
+
+  it('identifies root termination without adapter access to actor internals', () => {
+    const machine = createMachine({
+      initial: 'done',
+      states: { done: { type: 'final' } }
+    });
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      waitForEvent: () => ({ type: 'unused' })
+    });
+    const [, effects] = durable.initialTransition(undefined);
+
+    expect(effects).toContainEqual(
+      expect.objectContaining({
+        effect: expect.objectContaining({
+          type: '@xstate.terminate',
+          isRoot: true
+        })
+      })
+    );
   });
 
   it('runs to completion and assigns stable IDs to event waits', async () => {

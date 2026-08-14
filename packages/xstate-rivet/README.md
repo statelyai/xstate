@@ -33,9 +33,16 @@ const run = workflow(async (context) => {
 ```
 
 The adapter maps custom actions to `context.step()` and receives machine events
-from a Rivet queue. The `runtime` callback maps XState timers, sends, emits and
-child lifecycle effects to Rivet operations. It receives the complete effect,
-including the event, target, actor source and input needed for that mapping.
+from a Rivet queue. Each wait uses its stable `event:N` ID as the workflow
+history entry name and filters messages by the configured queue. Rivet records
+the selected message in workflow history and returns it on replay. The
+`runtime` callback maps XState timers, sends, emits and child lifecycle effects
+to Rivet operations. It receives the complete effect, including the event,
+target, actor source and input needed for that mapping.
+
+Every runtime mapping must itself use a Rivet durable workflow primitive or be
+idempotent using the supplied effect ID. Plain I/O in a runtime method repeats
+when Rivet replays the workflow.
 
 Only root completion has a default runtime mapping. Any other unmapped runtime
 operation throws. A full timer mapping must preserve event/timer races and

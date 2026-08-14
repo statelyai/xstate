@@ -34,8 +34,9 @@ describe('@xstate/rivet context contract', () => {
         return run({});
       },
       queue: {
-        async next(name: string) {
-          expect(name).toBe('machine-events');
+        async next(name: string, options?: { names?: readonly string[] }) {
+          expect(name).toBe('event:0');
+          expect(options).toEqual({ names: ['machine-events'] });
           return messages.shift();
         }
       }

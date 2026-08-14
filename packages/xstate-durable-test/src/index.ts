@@ -6,9 +6,9 @@ import {
   type SnapshotFrom,
   createMachine,
   setup
-} from '../src/index.ts';
+} from 'xstate';
 
-type DurableConformanceCapability =
+export type DurableConformanceCapability =
   | 'actions'
   | 'timers'
   | 'actors'

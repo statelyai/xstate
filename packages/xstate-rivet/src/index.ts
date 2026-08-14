@@ -10,7 +10,10 @@ export type { WorkflowContextOf as RivetWorkflowContextOf } from 'rivetkit/workf
 export interface RivetDurableWorkflowContext {
   step<T>(name: string, run: (context: any) => Promise<T>): Promise<T>;
   queue: {
-    next(name: string): Promise<unknown>;
+    next(
+      name: string,
+      options?: { names?: readonly string[] }
+    ): Promise<unknown>;
   };
 }
 
@@ -26,8 +29,8 @@ export interface RivetDurableOptions<TLogic extends AnyActorLogic> {
    * Missing operations fail when XState attempts to execute them.
    */
   runtime?: DurableExecutionAdapter<TLogic>['runtime'];
-  /** Index assigned to the first transition. Defaults to `0`. */
-  transitionIndex?: number;
+  /** Index assigned to the next transition. Defaults to `0`. */
+  nextTransitionIndex?: number;
 }
 
 function defaultGetEvent<TLogic extends AnyActorLogic>(
@@ -43,7 +46,7 @@ export function createRivetAdapter<TLogic extends AnyActorLogic>(
   const getEvent = options.getEvent ?? defaultGetEvent<TLogic>;
 
   return {
-    transitionIndex: options.transitionIndex,
+    nextTransitionIndex: options.nextTransitionIndex,
     executeAction: (action, metadata, runtime) =>
       options.context.step(metadata.id, async () => {
         await action.exec(runtime);
@@ -51,6 +54,7 @@ export function createRivetAdapter<TLogic extends AnyActorLogic>(
     runtime(metadata, effect) {
       const runtime = options.runtime?.(metadata, effect) ?? {};
       if (
+        effect.kind !== 'builtin' ||
         effect.type !== '@xstate.terminate' ||
         runtime.terminateActor !== undefined
       ) {
@@ -58,18 +62,24 @@ export function createRivetAdapter<TLogic extends AnyActorLogic>(
       }
       return {
         ...runtime,
-        async terminateActor(actor) {
-          if (actor._parent) {
+        async terminateActor() {
+          if (!effect.isRoot) {
             throw new TypeError(
               'The Rivet adapter requires a terminateActor mapping for child actors'
             );
           }
+          // Record root completion under its stable effect ID. Child
+          // completion needs an application mapping that notifies the parent.
           await options.context.step(metadata.id, async () => {});
         }
       };
     },
-    async waitForEvent() {
-      return getEvent(await options.context.queue.next(options.queue));
+    async waitForEvent(metadata) {
+      return getEvent(
+        await options.context.queue.next(metadata.id, {
+          names: [options.queue]
+        })
+      );
     }
   };
 }

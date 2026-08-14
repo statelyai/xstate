@@ -36,11 +36,17 @@ and child lifecycle effects to application-specific Inngest operations. It
 receives the complete effect, including the event, target, actor source and
 input needed for that mapping.
 
+Every runtime mapping must itself use an Inngest durable primitive or be
+idempotent using the supplied effect ID. Plain I/O in a runtime method repeats
+when Inngest replays the function.
+
 Only root completion has a default runtime mapping. Any other unmapped runtime
 operation throws. Inngest's event wait is not a general mailbox: events sent
 before the wait is registered require sender discipline or an application
 inbox. Likewise, cancellable timers require an application timer/inbox design;
 an inline `step.sleep()` would block intervening events and cancellation.
+When `step.waitForEvent()` times out, the adapter throws
+`InngestEventWaitTimeoutError`; it does not send a timeout event to the machine.
 
 Use `createInngestAdapter()` with XState's lower-level `createDurable()` when
 you need to assemble the transition loop yourself.

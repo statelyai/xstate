@@ -1,0 +1,49 @@
+{
+  "name": "@xstate/durable-test",
+  "version": "0.1.0-alpha.0",
+  "description": "Conformance tests for XState durable execution adapters",
+  "keywords": [
+    "xstate",
+    "durable execution",
+    "adapter",
+    "testing"
+  ],
+  "license": "MIT",
+  "main": "dist/xstate-durable-test.cjs.js",
+  "module": "dist/xstate-durable-test.esm.js",
+  "types": "dist/xstate-durable-test.cjs.d.ts",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-durable-test.cjs.mjs",
+        "default": "./dist/xstate-durable-test.cjs.js"
+      },
+      "module": "./dist/xstate-durable-test.esm.js",
+      "import": "./dist/xstate-durable-test.cjs.mjs",
+      "default": "./dist/xstate-durable-test.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/statelyai/xstate.git"
+  },
+  "scripts": {},
+  "peerDependencies": {
+    "vitest": "^3.2.7",
+    "xstate": "workspace:^"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7",
+    "xstate": "workspace:^"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "./index.ts"
+    ]
+  }
+}
