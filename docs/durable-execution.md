@@ -47,10 +47,14 @@ IDs such as `event:0`. A durable host should memoize or deduplicate each
 operation using that ID. Replaying the same events from the beginning
 reconstructs the same snapshots, effects, waits and IDs.
 
-The host runtime subsumes the local actor system:
+The host runtime subsumes the local actor system. XState calculates transitions
+and stable operation IDs; the adapter maps those operations to durable host
+primitives:
 
-- Registered actions run as durable steps or activities. Adapters should reject
-  inline actions that cannot be identified and restored by `type`.
+- Actions run through `executeAction()` with their stable effect ID and the
+  runtime returned by `runtime()`. External work should use the effect ID as an
+  idempotency key. A host may require actions to have registered `type` values
+  when its activity model cannot replay inline code.
 - Sends route through the host's actor or workflow identity.
 - Timers register host-managed delivery and return immediately. The host stamps
   `dueAt` when it durably commits the timer; transition calculation never reads
@@ -60,10 +64,10 @@ The host runtime subsumes the local actor system:
 
 Custom actions are dispatched separately from actor-system effects. This keeps
 host operations such as timers and child workflows visible to runtimes that do
-not permit durable operations to be nested inside a generic activity. The
-runtime receives the complete built-in `effect` when it needs registered actor
-source, input, event or target data that is not present in the runtime method
-arguments.
+not permit durable operations to be nested inside a generic activity. Both
+callbacks receive the complete effect metadata. `runtime()` creates the host
+runtime and receives the complete effect; `executeAction()` receives that
+runtime when it executes the action.
 
 `run()` resolves with the machine output when the machine is done, throws the
 machine error when it fails, and throws `DurableExecutionCancelledError` when
@@ -98,8 +102,8 @@ const output = await createDurable(machine, {
 `@xstate/inngest` maps actions and event waits to Inngest steps.
 `@xstate/rivet` maps actions to workflow steps and uses a Rivet queue as the
 inbox. Both expose `create…Adapter()` for the explicit transition loop and pass
-the complete built-in effect to `runtime` so the application can map timers,
-sends and child actors without coupling XState core to either host.
+the complete effect to `runtime` so the application can map timers, sends and
+child actors without coupling XState core to either host.
 
 These adapters deliberately do not approximate missing host semantics. For
 example, awaiting a sleep inline cannot implement a cancellable timer while

@@ -10,6 +10,15 @@ pnpm add @xstate/rivet rivetkit xstate
 
 <!-- public API from src/index.ts -->
 
+| Export | Purpose |
+| --- | --- |
+| `createDurable` | Alias for `createRivetDurable()` |
+| `createRivetDurable(logic, options)` | Creates an execution using a Rivet workflow context |
+| `createRivetAdapter(options)` | Creates only the adapter for a custom transition loop |
+| `RivetDurableOptions` | Adapter options type |
+| `RivetDurableWorkflowContext` | Minimal workflow context accepted by the adapter |
+| `RivetWorkflowContextOf` | Re-export of RivetKit's workflow context helper type |
+
 ```ts
 import { createDurable } from '@xstate/rivet';
 import { workflow } from 'rivetkit/workflow';

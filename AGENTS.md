@@ -12,6 +12,7 @@ This is a monorepo containing XState, @xstate/store, and related packages.
 - Run `pnpm lint` and `pnpm format:check` to check linting and formatting.
 - Run `pnpm typecheck` to make sure that there are no type errors.
 - Before making a PR, run `pnpm changeset` to create a changeset with a short description of the changes, and a code example if applicable. Do not include implementation details; only pertinent details for developers using the package.
+- For every new feature or behavior change, audit the relevant docs and READMEs and fix missing or inaccurate guidance in the same PR.
 
 ## XState v6 (alpha)
 

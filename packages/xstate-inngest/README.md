@@ -10,6 +10,14 @@ pnpm add @xstate/inngest inngest xstate
 
 <!-- public API from src/index.ts -->
 
+| Export | Purpose |
+| --- | --- |
+| `createDurable` | Alias for `createInngestDurable()` |
+| `createInngestDurable(logic, options)` | Creates an execution using the current Inngest step tools |
+| `createInngestAdapter(options)` | Creates only the adapter for a custom transition loop |
+| `InngestEventWaitTimeoutError` | Error thrown when `waitForEvent()` times out |
+| `InngestDurableOptions` | Adapter options type |
+
 ```ts
 import { createDurable } from '@xstate/inngest';
 
