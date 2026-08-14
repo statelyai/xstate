@@ -4,7 +4,9 @@
     "use-machine",
     "selectors",
     "shared-actors",
+    "global-state",
     "input-and-snapshots",
-    "server-rendering"
+    "server-rendering",
+    "testing"
   ]
 }
