@@ -1238,11 +1238,7 @@ describe('useActor', () => {
       const [state, send] = useActor(machine);
       return (
         <div>
-          <div data-testid="result">
-            {typeof state.value === 'string'
-              ? state.value
-              : state.value.toString()}
-          </div>
+          <div data-testid="result">{String(state.value)}</div>
           <button role="button" onclick={() => send({ type: 'EV' })} />
         </div>
       );
