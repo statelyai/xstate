@@ -1,5 +1,15 @@
 import type { StandardSchemaV1 } from './schema.types.ts';
-import type { AnyMachineSchemas } from './types.v6.ts';
+import type {
+  MachineEventSchema,
+  MachineSnapshotSchema,
+  MachineVersionDescriptor
+} from './machineVersion.types.ts';
+export type {
+  MachineEventSchema,
+  MachineSnapshotSchema,
+  MachineVersionDescriptor,
+  PersistedMachineSnapshot
+} from './machineVersion.types.ts';
 import type {
   AnyStateMachine,
   ContextFrom,
@@ -18,47 +28,11 @@ export type PersistedMachineIdentity<
 
 type VersionedStateMachine = AnyStateMachine & {
   version: string;
-  schemas?: AnyMachineSchemas;
+  snapshotSchema: MachineSnapshotSchema;
+  eventSchema: MachineEventSchema;
 };
 
-/** Durable machine snapshot fields that a historical snapshot schema describes. */
-export type PersistedMachineSnapshot = {
-  status: Snapshot<unknown>['status'];
-  output?: unknown;
-  error?: unknown;
-  value: unknown;
-  context: unknown;
-  children: Record<string, unknown>;
-  historyValue: Record<string, unknown>;
-  timers: Record<string, unknown>;
-  _nextActorId?: number;
-  _nextTimerId?: number;
-  stateInputs?: Record<string, Record<string, unknown>>;
-  machine?: { id: string; version: string };
-  version?: string;
-  [key: string]: unknown;
-};
-
-/** A Standard Schema for a complete persisted machine snapshot. */
-type SnapshotSchema = StandardSchemaV1<unknown, PersistedMachineSnapshot>;
-type EventSchema = StandardSchemaV1<unknown, EventObject>;
-
-/** Schema-backed capabilities for one historical machine version. */
-export type MachineVersionDescriptor = {
-  id: string;
-  version: string;
-} & (
-  | {
-      snapshotSchema: SnapshotSchema;
-      eventSchema?: EventSchema;
-    }
-  | {
-      snapshotSchema?: SnapshotSchema;
-      eventSchema: EventSchema;
-    }
-);
-
-type VersionEntry = VersionedStateMachine | MachineVersionDescriptor;
+type VersionEntry = MachineVersionDescriptor;
 
 export type PersistedSnapshotFrom<TMachine extends AnyStateMachine> =
   Snapshot<unknown> &
@@ -104,7 +78,7 @@ type MachineVersion<TEntries extends readonly VersionEntry[]> = Extract<
 type SnapshotSourceVersion<TEntries extends readonly VersionEntry[]> = {
   [K in keyof TEntries]: TEntries[K] extends
     | VersionedStateMachine
-    | { snapshotSchema: SnapshotSchema }
+    | { snapshotSchema: MachineSnapshotSchema }
     ? TEntries[K]['version']
     : never;
 }[number];
@@ -112,7 +86,7 @@ type SnapshotSourceVersion<TEntries extends readonly VersionEntry[]> = {
 type EventSourceVersion<TEntries extends readonly VersionEntry[]> = {
   [K in keyof TEntries]: TEntries[K] extends
     | VersionedStateMachine
-    | { eventSchema: EventSchema }
+    | { eventSchema: MachineEventSchema }
     ? TEntries[K]['version']
     : never;
 }[number];
@@ -134,7 +108,7 @@ type SnapshotEntryForVersion<
 > = {
   [K in keyof TEntries]: TEntries[K] extends
     | VersionedStateMachine
-    | { snapshotSchema: SnapshotSchema }
+    | { snapshotSchema: MachineSnapshotSchema }
     ? TEntries[K]['version'] extends TVersion
       ? TEntries[K]
       : never
@@ -147,7 +121,7 @@ type EventEntryForVersion<
 > = {
   [K in keyof TEntries]: TEntries[K] extends
     | VersionedStateMachine
-    | { eventSchema: EventSchema }
+    | { eventSchema: MachineEventSchema }
     ? TEntries[K]['version'] extends TVersion
       ? TEntries[K]
       : never
@@ -155,7 +129,7 @@ type EventEntryForVersion<
 }[number];
 
 type PersistedSnapshotFromEntry<TEntry extends VersionEntry> = TEntry extends {
-  snapshotSchema: infer TSchema extends SnapshotSchema;
+  snapshotSchema: infer TSchema extends MachineSnapshotSchema;
 }
   ? StandardSchemaV1.InferOutput<TSchema>
   : TEntry extends VersionedStateMachine
@@ -163,7 +137,7 @@ type PersistedSnapshotFromEntry<TEntry extends VersionEntry> = TEntry extends {
     : never;
 
 type EventFromEntry<TEntry extends VersionEntry> = TEntry extends {
-  eventSchema: infer TSchema extends EventSchema;
+  eventSchema: infer TSchema extends MachineEventSchema;
 }
   ? StandardSchemaV1.InferOutput<TSchema>
   : TEntry extends VersionedStateMachine
@@ -248,13 +222,15 @@ function isVersionedStateMachine(
 
 function hasSnapshotSchema(
   entry: VersionEntry
-): entry is MachineVersionDescriptor & { snapshotSchema: SnapshotSchema } {
+): entry is MachineVersionDescriptor & {
+  snapshotSchema: MachineSnapshotSchema;
+} {
   return 'snapshotSchema' in entry && entry.snapshotSchema !== undefined;
 }
 
 function hasEventSchema(
   entry: VersionEntry
-): entry is MachineVersionDescriptor & { eventSchema: EventSchema } {
+): entry is MachineVersionDescriptor & { eventSchema: MachineEventSchema } {
   return 'eventSchema' in entry && entry.eventSchema !== undefined;
 }
 
@@ -299,73 +275,45 @@ async function finalizeSnapshot<TTarget extends VersionedStateMachine>(
   snapshot: PersistedSnapshotDataFrom<TTarget>,
   target: TTarget
 ): Promise<PersistedSnapshotFrom<TTarget>> {
-  const context = await validate(
-    target.schemas?.context,
-    snapshot.context,
-    `context for machine '${target.id}' version '${target.version}'`
-  );
-
-  return {
-    ...snapshot,
-    context,
-    machine: { id: target.id, version: target.version },
-    version: target.version
-  } as unknown as PersistedSnapshotFrom<TTarget>;
+  return (await validate(
+    target.snapshotSchema,
+    {
+      ...snapshot,
+      machine: { id: target.id, version: target.version },
+      version: target.version
+    },
+    `snapshot for machine '${target.id}' version '${target.version}'`
+  )) as PersistedSnapshotFrom<TTarget>;
 }
 
-async function validateEvents<TMachine extends VersionedStateMachine>(
+async function validateEvents<
+  TSource extends MachineVersionDescriptor & {
+    eventSchema: MachineEventSchema;
+  }
+>(
   events: readonly unknown[],
-  machine: TMachine
-): Promise<EventFrom<TMachine>[]> {
+  source: TSource
+): Promise<EventFromEntry<TSource>[]> {
   return Promise.all(
     events.map(async (event, index) => {
-      if (!isObject(event) || typeof event.type !== 'string') {
-        throw new Error(`Invalid event at index ${index}.`);
-      }
-      const eventSchemas = machine.schemas?.events;
-      const isFrameworkEvent =
-        event.type.startsWith('xstate.') || event.type.startsWith('@xstate.');
-      const schema =
-        eventSchemas && Object.hasOwn(eventSchemas, event.type)
-          ? eventSchemas[event.type]
-          : undefined;
-      if (eventSchemas && !schema && !isFrameworkEvent) {
+      const result = await source.eventSchema['~standard'].validate(event);
+      if (result.issues) {
+        const message = result.issues[0]?.message;
+        if (message?.startsWith('Unknown event ')) {
+          throw new Error(message);
+        }
+        const type = isObject(event) ? event.type : undefined;
         throw new Error(
-          `Unknown event '${event.type}' for machine '${machine.id}' version '${machine.version}'.`
+          typeof type === 'string'
+            ? `Invalid event '${type}' at index ${index}${message ? `: ${message}` : '.'}`
+            : `Invalid event at index ${index}${message ? `: ${message}` : '.'}`
         );
       }
-      if (!schema) {
-        return event as EventFrom<TMachine>;
-      }
-      const { type, ...payload } = event;
-      const validatedPayload = await validate(
-        schema,
-        payload,
-        `event '${type}' at index ${index}`
-      );
-      if (!isObject(validatedPayload)) {
-        throw new Error(`Invalid event '${type}' at index ${index}.`);
-      }
-      return { ...validatedPayload, type } as EventFrom<TMachine>;
-    })
-  );
-}
-
-async function validateDescriptorEvents(
-  events: readonly unknown[],
-  descriptor: MachineVersionDescriptor & { eventSchema: EventSchema }
-): Promise<EventObject[]> {
-  return Promise.all(
-    events.map(async (event, index) => {
-      const validated = await validate(
-        descriptor.eventSchema,
-        event,
-        `event at index ${index} for machine '${descriptor.id}' version '${descriptor.version}'`
-      );
+      const validated = result.value;
       if (!isObject(validated) || typeof validated.type !== 'string') {
         throw new Error(`Invalid event at index ${index}.`);
       }
-      return validated as EventObject;
+      return validated as EventFromEntry<TSource>;
     })
   );
 }
@@ -453,27 +401,16 @@ export function machineVersions<
       throw new Error(`Unknown machine identity '${id}' version '${version}'.`);
     }
 
-    let snapshot: unknown;
-    if (hasSnapshotSchema(source)) {
-      snapshot = await validate(
-        source.snapshotSchema,
-        raw,
-        `snapshot for machine '${id}' version '${version}'`
-      );
-    } else if (isVersionedStateMachine(source)) {
-      snapshot = {
-        ...raw,
-        context: await validate(
-          source.schemas?.context,
-          raw.context,
-          `context for machine '${id}' version '${version}'`
-        )
-      };
-    } else {
+    if (!hasSnapshotSchema(source)) {
       throw new Error(
         `Machine version '${version}' does not define a snapshot schema.`
       );
     }
+    const snapshot = await validate(
+      source.snapshotSchema,
+      raw,
+      `snapshot for machine '${id}' version '${version}'`
+    );
 
     return {
       source,
@@ -507,20 +444,17 @@ export function machineVersions<
       );
       let sourceError: unknown;
       let sourceValidationFailed = false;
-      const hasTypedSource =
-        source && (isVersionedStateMachine(source) || hasEventSchema(source));
+      const hasTypedSource = source && hasEventSchema(source);
       if (hasTypedSource) {
         let sourceEvents: EventObject[] | undefined;
         try {
-          sourceEvents = isVersionedStateMachine(source)
-            ? await validateEvents(events, source)
-            : await validateDescriptorEvents(events, source);
+          sourceEvents = await validateEvents(events, source);
         } catch (error) {
           sourceError = error;
           sourceValidationFailed = true;
         }
         if (sourceEvents) {
-          if (isVersionedStateMachine(source) && source === target) {
+          if (source === target) {
             return sourceEvents as EventFrom<TargetMachine>[];
           }
           const adapter = (
@@ -535,7 +469,10 @@ export function machineVersions<
             >
           )[source.version];
           if (adapter) {
-            return validateEvents(await adapter(sourceEvents), target);
+            return validateEvents(
+              await adapter(sourceEvents),
+              target
+            ) as Promise<EventFrom<TargetMachine>[]>;
           }
         }
       }
@@ -545,7 +482,7 @@ export function machineVersions<
         return validateEvents(
           await wildcardAdapter(events, adaptationOptions.from),
           target
-        );
+        ) as Promise<EventFrom<TargetMachine>[]>;
       }
       if (hasTypedSource) {
         if (sourceValidationFailed) {

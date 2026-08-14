@@ -1122,6 +1122,10 @@ the corresponding schema. Targets must be backed by actual machines, which also
 remain supported directly as entries. A `'*'` handler may asynchronously handle
 unknown data.
 
+Versioned machines expose the same `snapshotSchema` and `eventSchema` fields as
+historical descriptors. `machineVersions()` therefore consumes one source
+interface; executable-machine detection is only used to constrain `to`.
+
 To migrate snapshots created before versioning was adopted, describe the old
 snapshot as a version and pass `{ unversioned: '<old-version>' }` to
 `machineVersions()`. This fallback applies only to snapshots without version

@@ -1111,6 +1111,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   config: any;
   version?: string;
   schemas?: import('./types.v6.ts').AnyMachineSchemas;
+  snapshotSchema: import('./machineVersion.types.ts').MachineSnapshotSchema;
+  eventSchema: import('./machineVersion.types.ts').MachineEventSchema;
   provide(sources: any): AnyStateMachine;
   resolveState(config: any): any;
   /** @internal */

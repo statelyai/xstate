@@ -3,7 +3,8 @@
 ---
 
 Represent historical machine versions with Standard Schema snapshot and event
-descriptors instead of retaining their executable machines.
+descriptors instead of retaining their executable machines. Versioned machines
+expose the same `snapshotSchema` and `eventSchema` interface.
 
 ```ts
 const versions = machineVersions([

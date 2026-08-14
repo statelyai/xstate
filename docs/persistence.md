@@ -34,6 +34,12 @@ Register lightweight schema descriptors for historical versions and retain an
 actual machine for each version that may be a target. Every entry must have the
 same stable `id` and its own `version`.
 
+Every entry satisfies one `MachineVersionDescriptor` contract:
+`{ id, version, snapshotSchema?, eventSchema? }`. Versioned machines expose
+`snapshotSchema` and `eventSchema` themselves, so `machineVersions()` uses the
+same schema path for machines and lightweight historical descriptors. It only
+checks whether an entry is executable when resolving `to`.
+
 ```ts
 const checkoutVersions = machineVersions([
   {
@@ -88,8 +94,9 @@ need to retain old executable machines or define every intermediate version.
 A `snapshotSchema` describes the entire persisted contract, not only context:
 status/output/error, state value, context, children, history, timers, state
 inputs, counters and version metadata as applicable. Active state nodes are
-reconstructed from the state value, so `nodes` itself is not persisted. Existing
-versioned machines remain valid registry entries.
+reconstructed from the state value, so `nodes` itself is not persisted. A
+versioned machine's generated `snapshotSchema` validates this durable shape,
+its state value and its configured context schema.
 
 Use `'*'` to handle any snapshot that cannot use an exact retained version. The
 snapshot is `unknown`, so the migration can inspect its shape or load an old
@@ -176,7 +183,8 @@ An `eventSchema` validates each complete historical event object and infers the
 exact adapter's event union. A descriptor may provide `snapshotSchema`,
 `eventSchema` or both. If the relevant schema is absent, that operation may use
 its unknown `'*'` handler instead. Actual machines continue to work directly as
-entries and supply their existing snapshot and event types.
+entries. Their generated `eventSchema` turns the payload-oriented
+`schemas.events` map into a Standard Schema for complete event objects.
 
 Exact event and snapshot targets require actual machines. A schema descriptor
 describes historical data but cannot interpret restored state or receive events.

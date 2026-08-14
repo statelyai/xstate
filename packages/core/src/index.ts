@@ -87,6 +87,8 @@ export {
   type EventAdapterHandlers,
   type EventHistorySource,
   type MigrateSnapshotOptions,
+  type MachineEventSchema,
+  type MachineSnapshotSchema,
   type MachineVersionsOptions,
   type MachineVersionDescriptor,
   type ParsedPersistedSnapshot,

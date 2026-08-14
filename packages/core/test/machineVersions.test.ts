@@ -2,6 +2,40 @@ import { z } from 'zod';
 import { createActor, createMachine, machineVersions, types } from '../src';
 
 describe('machineVersions', () => {
+  it('exposes the same version schemas on machines and descriptors', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '1',
+      schemas: {
+        context: z.object({ count: z.number() }),
+        events: { ADD: z.object({ value: z.number() }) }
+      },
+      context: { count: 0 },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const persisted = createActor(checkout).getPersistedSnapshot();
+
+    await expect(
+      checkout.snapshotSchema['~standard'].validate({
+        ...persisted,
+        context: { count: 1 }
+      })
+    ).resolves.toMatchObject({ value: { context: { count: 1 } } });
+    await expect(
+      checkout.eventSchema['~standard'].validate({
+        type: 'ADD',
+        value: 2
+      })
+    ).resolves.toEqual({ value: { type: 'ADD', value: 2 } });
+    await expect(
+      checkout.snapshotSchema['~standard'].validate({
+        ...persisted,
+        value: 'removed'
+      })
+    ).resolves.toHaveProperty('issues');
+  });
+
   it('migrates a historical snapshot validated by its complete schema', async () => {
     const checkoutV1 = {
       id: 'checkout',
@@ -817,9 +851,12 @@ describe('machineVersions', () => {
       states: { active: {} }
     });
     const versions = machineVersions([checkoutV1]);
+    const { machine: _, ...legacyPersisted } = createActor(
+      checkoutV1
+    ).getPersistedSnapshot() as Record<string, unknown>;
 
     const parsed = await versions.parseSnapshot({
-      version: '1',
+      ...legacyPersisted,
       context: { count: 2 }
     });
 
