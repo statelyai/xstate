@@ -2523,7 +2523,9 @@ function getTransitionEffectEnqueue() {
       raise: triggerTransitionEffect,
       spawn: triggerTransitionEffect,
       sendTo: triggerTransitionEffect,
-      stop: triggerTransitionEffect
+      stop: triggerTransitionEffect,
+      listen: triggerTransitionEffect,
+      subscribeTo: triggerTransitionEffect
     },
     triggerTransitionEffect
   ));

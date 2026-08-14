@@ -635,6 +635,55 @@ describe('enq.subscribeTo()', () => {
     expect(receivedEvents[0].output).toEqual({ result: 'success' });
   });
 
+  it('subscribes to an existing child when the transition has no other effects', async () => {
+    const childLogic = createAsyncLogic({
+      run: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        return { result: 'success' };
+      }
+    });
+
+    const receivedEvents: any[] = [];
+
+    const parentMachine = createMachine({
+      entry: (_, enq) => {
+        enq.spawn(childLogic, { id: 'child' });
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            SUBSCRIBE: ({ children }, enq) => {
+              enq.subscribeTo(children.child as AnyActor, {
+                done: (output) => ({
+                  type: 'CHILD_DONE',
+                  output
+                })
+              });
+            },
+            CHILD_DONE: ({ event }, enq) => {
+              enq(() => receivedEvents.push(event));
+              return { target: 'done' };
+            }
+          }
+        },
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    const actor = createActor(parentMachine);
+    actor.start();
+    actor.send({ type: 'SUBSCRIBE' });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(actor.getSnapshot().value).toBe('done');
+    expect(receivedEvents).toHaveLength(1);
+    expect(receivedEvents[0].output).toEqual({ result: 'success' });
+  });
+
   it('listens to emitted events from an actor spawned in a transition', async () => {
     const childLogic = createCallbackLogic(({ emit }) => {
       emit({ type: 'childEvent', value: 42 } as any);
