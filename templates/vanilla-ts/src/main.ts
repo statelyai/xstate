@@ -1,13 +1,6 @@
 import './style.css';
 import { feedbackMachine } from './feedbackMachine';
-import { AnyMachineSnapshot, createActor } from 'xstate';
-import { createBrowserInspector } from '@statelyai/inspect';
-
-const { inspect } = createBrowserInspector({
-  // Comment out the line below to start the inspector
-  // autoStart: false
-  url: 'http://localhost:3000/registry/inspect'
-});
+import { createActor } from 'xstate';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
@@ -25,29 +18,14 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `;
 
-function getNextTransitions(state: AnyMachineSnapshot) {
-  return state.nodes.flatMap((node) => [...node.transitions.values()]).flat(1);
-}
-
-const actor = createActor(feedbackMachine, {
-  inspect
-});
+const actor = createActor(feedbackMachine);
 
 (window as any).feedbackActor = actor;
 
 actor.subscribe((state) => {
   console.group('State update');
   console.log('%cState value:', 'background-color: #056dff', state.value);
-  console.log('%cState:', 'background-color: #056dff', state);
-  console.groupCollapsed('%cNext events:', 'background-color: #056dff');
-  console.log(
-    getNextTransitions(state)
-      .map((t) => {
-        return `feedbackActor.send({ type: '${t.eventType}' })`;
-      })
-      .join('\n\n')
-  );
-  console.groupEnd();
+  console.log('%cContext:', 'background-color: #056dff', state.context);
   console.groupEnd();
 });
 

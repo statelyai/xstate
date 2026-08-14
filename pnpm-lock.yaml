@@ -249,6 +249,19 @@ importers:
         specifier: 5.4.21
         version: 5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0)
 
+  examples/_shared/actor-ui:
+    dependencies:
+      xstate:
+        specifier: workspace:*
+        version: link:../../../packages/core
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: 5.4.21
+        version: 5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0)
+
   examples/counter:
     dependencies:
       xstate:
@@ -1623,7 +1636,7 @@ importers:
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^4.0.0
-        version: 4.0.4(supports-color@5.5.0)(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
+        version: 4.0.4(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
       '@testing-library/svelte':
         specifier: ^5.2.6
         version: 5.2.8(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))(vitest@3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@17.6.3)(jsdom@26.1.0)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
@@ -1663,7 +1676,7 @@ importers:
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^4.0.0
-        version: 4.0.4(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
+        version: 4.0.4(supports-color@5.5.0)(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
       '@testing-library/svelte':
         specifier: ^5.2.6
         version: 5.2.8(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))(vitest@3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@17.6.3)(jsdom@26.1.0)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))

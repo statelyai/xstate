@@ -2,6 +2,7 @@ packages:
   - 'packages/*'
   - 'scripts/*'
   - 'examples/*'
+  - 'examples/_shared/*'
 
 allowBuilds:
   '@parcel/watcher': true
