@@ -1,5 +1,5 @@
 {
-  "name": "store-tic-tac-toe",
+  "name": "@xstate/example-store-tic-tac-toe",
   "private": true,
   "version": "0.0.0",
   "type": "module",

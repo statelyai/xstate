@@ -1,0 +1,20 @@
+{
+  "name": "@xstate/example-websocket-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx --conditions=module src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ws": "^8.18.3",
+    "xstate": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.35",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  }
+}

@@ -86,5 +86,25 @@ Features per example. `—` means not used or not determined.
 | vending-machine                 | Vanilla + Vite | yes    | —        | —      | —     | yes    | —           | —     | yes |
 | quiz-react                      | React          | —      | —        | yes    | —     | yes    | —           | —     | yes |
 | booking-calendar-react          | React          | yes    | —        | yes    | —     | yes    | —           | —     | yes |
+| queue-worker                    | Node           | yes    | —        | yes    | yes   | yes    | —           | —     | no  |
+| saga-order-fulfillment          | Node           | —      | —        | yes    | —     | —      | —           | —     | no  |
+| webhook-processor               | Node           | yes    | —        | yes    | —     | —      | —           | —     | no  |
+| rate-limiter                    | Node           | yes    | —        | —      | —     | yes    | —           | —     | no  |
+| cron-scheduler                  | Node           | —      | —        | —      | yes   | yes    | —           | —     | no  |
+| inventory-reservation           | Node           | yes    | —        | —      | yes   | yes    | —           | —     | no  |
+| connection-manager              | Node           | yes    | —        | yes    | —     | yes    | —           | —     | no  |
+| toggle-svelte                   | Svelte         | —      | —        | —      | —     | yes    | —           | —     | yes |
+| form-wizard-svelte              | Svelte         | yes    | —        | —      | —     | —      | —           | —     | yes |
+| store-svelte                    | Svelte         | —      | —        | —      | —     | —      | —           | yes   | yes |
+| auth-flow-vue                   | Vue            | —      | —        | yes    | —     | yes    | —           | —     | yes |
+| store-vue                       | Vue            | —      | —        | —      | —     | —      | —           | yes   | yes |
+| toggle-solid                    | Solid          | —      | —        | —      | —     | —      | —           | —     | yes |
+| rxjs-observable-actor           | Node + RxJS    | —      | —        | yes    | —     | —      | —           | —     | no  |
+| websocket-server                | Node + ws      | —      | —        | —      | yes   | yes    | —           | —     | no  |
+| kyc-approval-api                | Node + Express | —      | yes      | yes    | —     | —      | yes         | —     | no  |
+| email-drip-campaign             | Node           | yes    | —        | yes    | —     | yes    | —           | —     | no  |
+| document-collab-sync            | Node           | yes    | —        | —      | —     | —      | —           | —     | no  |
+| postgres-persisted-actor        | Node + pg      | yes    | —        | —      | —     | —      | yes         | —     | no  |
+| redis-persisted-actor           | Node + redis   | yes    | —        | —      | —     | —      | yes         | —     | no  |
 
 [`_shared/`](./_shared) is not an example. It holds the `actor-ui` dashboard that headless examples can use instead of writing their own UI.

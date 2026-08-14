@@ -36,6 +36,7 @@ minimumReleaseAgeExclude:
   - '@changesets/should-skip-package@1.0.0'
   - '@changesets/types@7.0.0'
   - '@changesets/write@1.0.0'
+  - svelte-check@4.7.6
 
 overrides:
   '@types/node': 25.2.1

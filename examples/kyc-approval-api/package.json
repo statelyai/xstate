@@ -1,0 +1,21 @@
+{
+  "name": "@xstate/example-kyc-approval-api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx --conditions=module src/main.ts",
+    "serve": "tsx --conditions=module src/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "xstate": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^20.19.35",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  }
+}

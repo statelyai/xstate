@@ -1,0 +1,23 @@
+{
+  "name": "@xstate/example-auth-flow-vue",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@statelyai/inspect": "^0.4.0",
+    "@xstate/vue": "workspace:*",
+    "vue": "^3.5.29",
+    "xstate": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vue-tsc": "^3.1.1"
+  }
+}

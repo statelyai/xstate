@@ -8,9 +8,9 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/node": "^20.19.35",
     "tsx": "^4.23.12",
-    "typescript": "^5.9.3",
-    "@types/node": "^20.19.35"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "xstate": "workspace:*"

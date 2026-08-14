@@ -1,0 +1,55 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 2rem;
+}
+
+main {
+  max-width: 24rem;
+  margin: 0 auto;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+input {
+  font: inherit;
+  padding: 0.4rem;
+}
+
+nav {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button.active {
+  font-weight: bold;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+.done {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.summary {
+  color: #666;
+}

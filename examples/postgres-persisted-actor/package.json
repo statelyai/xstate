@@ -1,0 +1,20 @@
+{
+  "name": "@xstate/example-postgres-persisted-actor",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx --conditions=module src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pg": "^8.16.3",
+    "xstate": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.35",
+    "@types/pg": "^8.15.5",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  }
+}
