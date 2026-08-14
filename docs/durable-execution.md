@@ -7,6 +7,10 @@ Import the experimental durable execution helper from `xstate/durable` when a
 workflow platform owns persistence, retries, timers, messaging and child
 execution.
 
+This is for hosts that durably replay or checkpoint the execution loop. If your
+application instead restores an actor for each request, processes one event and
+saves its snapshot, use the [backend workflow](backend-workflows.md) pattern.
+
 ```ts
 import { createDurable } from 'xstate/durable';
 
@@ -117,3 +121,10 @@ small host doubles and run in the normal CI suite, verifying stable IDs, action
 execution, waits, outputs, errors and runtime-effect mapping without starting
 vendor infrastructure. Unsupported mailbox, timer or child-actor semantics
 remain explicit gaps.
+
+## What next?
+
+- [Run backend workflows](backend-workflows.md) when your application owns
+  snapshot storage and restores an actor per request.
+- [Persistence](persistence.md) for snapshot versioning, migration and event
+  adaptation.

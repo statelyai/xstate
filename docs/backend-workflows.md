@@ -114,6 +114,7 @@ For deadlines that must respect real time, persist the scheduled and due times n
 
 ## What next?
 
+- [Delegate the transition loop to a durable execution host](durable-execution.md).
 - [Persist and version snapshots](persistence.md).
 - [Retry failed steps and bound how long they may run](retries-and-timeouts.md).
 - [Write the async logic a workflow invokes](actor-logic.md).
