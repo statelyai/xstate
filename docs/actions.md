@@ -22,7 +22,9 @@ entry: ({ context }, enq) => {
 | `enq.stop(...)` | Stop an actor. |
 | `enq.cancel(...)` | Cancel a delayed event. |
 | `enq.log(...)` | Log values. |
-| `enq.emit(...)` | Emit an actor event. |
+| `enq.emit(...)` | Emit an [actor event](emitted-events.md). |
+| `enq.listen(...)` | Map another actor's [emitted events](listen-and-subscribe.md) to events for this machine. Entry and exit only. |
+| `enq.subscribeTo(...)` | Map another actor's [snapshots and outcomes](listen-and-subscribe.md) to events for this machine. Entry and exit only. |
 
 Provide reusable named action sources through `setup(...)`.
 

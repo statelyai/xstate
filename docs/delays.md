@@ -17,6 +17,16 @@ The timer starts when the state is entered and is canceled when the state is exi
 const appSetup = setup({ delays: { retryDelay: 1_000 } });
 ```
 
+## Duration formats
+
+A delay is a number of milliseconds, or a duration string: `'250ms'`, `'5s'`, `'1.5s'`, or an ISO 8601 duration such as `'PT1M30S'`, `'PT2H'` or `'P1D'`. Plain `'5m'` and `'1h'` are not accepted.
+
+```ts
+loading: { after: { '5s': { target: 'timedOut' } } }
+```
+
+A string is looked up in the configured delays first, and parsed as a duration only when no delay of that name exists.
+
 ## Delayed events
 
 ```ts
@@ -25,6 +35,10 @@ enq.cancel('debounce');
 ```
 
 Use delayed transitions for behavior tied to the current state. Use delayed events when another transition may replace or cancel the pending event.
+
+## `after` and `timeout`
+
+`after` schedules a transition at a point in time after a state is entered. A state [`timeout`](timeouts.md) expresses a deadline for the work the state represents and takes its `onTimeout` transition when it expires. Both timers can be used on the same state, and both are canceled when the state is exited. Invocations and async logic accept a `timeout` as well; an invoke `timeout` must be a number of milliseconds, while async logic also accepts duration strings.
 
 Common examples include:
 

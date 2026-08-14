@@ -14,9 +14,14 @@ idle: { on: { start: { target: 'active' } } }
 | Property | Description |
 | --- | --- |
 | `target` | Target state or states. |
-| `guard` | Condition that must pass. |
+| `matches` | Event payload that must match. |
+| `context` | Context patch or mapper. |
+| `input` | Input for the target state. |
 | `reenter` | Re-enter the source state when targeting it. |
+| `meta` | Per-transition metadata. |
 | `description` | Human-readable description. |
+
+There is no `guard` property. Conditions live inside the transition function, which returns `undefined` to reject the event. See [guards](guards.md).
 
 A targetless transition can update context and run effects without leaving the current state. Set `reenter: true` when a self-transition should run exit and entry behavior again.
 
@@ -57,6 +62,45 @@ on: {
 }
 ```
 
+## Match event payloads
+
+Internal lifecycle events use stable category types and carry the identity of what produced them:
+
+| Event type | Identity |
+| --- | --- |
+| `xstate.done.actor` | `actorId`, `sessionId` |
+| `xstate.error.actor` | `actorId`, `sessionId` |
+| `xstate.timeout.actor` | `actorId`, `sessionId` |
+| `xstate.done.state` | `stateId` |
+| `xstate.after` | `stateId`, `delay` |
+| `xstate.timeout` | `stateId` |
+
+Use `matches` to select one payload of an event type:
+
+```ts
+on: {
+  'xstate.done.actor': {
+    matches: { actorId: 'job' },
+    target: 'complete'
+  }
+}
+```
+
+`matches` is a shallow partial pattern over the event's payload, compared by identity, so use it with primitive values. It is checked before the transition function runs. It works on any event, not only lifecycle events. `onDone`, `onError`, `onTimeout` and `after` set `matches` for you, which is how each one selects its own actor or state.
+
+## One transition per event
+
+Transition arrays are not accepted by the authoring APIs. An event maps to a single transition. Return a target from a transition function to choose among several, and use `matches` to select a payload. Serialized transition arrays are still accepted by `createMachineFromConfig(...)`.
+
+```ts
+on: {
+  submit: ({ context }) =>
+    context.role === 'admin'
+      ? { target: 'adminReview' }
+      : { target: 'standardReview' }
+}
+```
+
 ## TypeScript
 
 Transition targets are checked against authored state paths. Event schemas narrow `event` inside transition functions.
@@ -69,6 +113,7 @@ on: { rename: ({ context, event }) => ({ context: { ...context, name: event.name
 on: { cancel: undefined }
 always: { target: 'ready' }
 after: { 1000: { target: 'idle' } }
+on: { 'xstate.done.actor': { matches: { actorId: 'job' }, target: 'done' } }
 onDone: { target: 'success' }
 onError: { target: 'failure' }
 ```
