@@ -2171,7 +2171,7 @@ export function getTransitionResult(
             actorScope,
             actions,
             internalEvents,
-            false,
+            true,
             options?.resolveActions ?? true
           )
         );
