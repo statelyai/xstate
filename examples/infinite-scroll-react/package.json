@@ -1,0 +1,24 @@
+{
+  "name": "@xstate/example-infinite-scroll-react",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "serve": "vite preview"
+  },
+  "dependencies": {
+    "@xstate/react": "workspace:*",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "xstate": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.1.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}

@@ -1,0 +1,108 @@
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  display: grid;
+  place-items: start center;
+  padding: 2rem 1rem;
+}
+
+#app {
+  width: min(34rem, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+p {
+  color: #555;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.meta {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, monospace;
+}
+
+button {
+  appearance: none;
+  background: #311bf6;
+  color: white;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  font-weight: bold;
+}
+
+button.ghost {
+  background: transparent;
+  color: #311bf6;
+  border: 2px solid #dce0ea;
+}
+
+input {
+  width: 100%;
+  background: white;
+  border: 2px solid #dce0ea;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  font: inherit;
+}
+
+label {
+  display: block;
+  font-size: 0.8125rem;
+  color: #555;
+  margin-bottom: 0.25rem;
+}
+
+.dialog {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 25%);
+}
+
+.dialog.behind .panel {
+  transform: scale(0.97);
+  filter: saturate(0.6);
+}
+
+.panel {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 25%);
+  padding: 1.25rem;
+  width: min(22rem, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}

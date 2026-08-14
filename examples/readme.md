@@ -64,5 +64,27 @@ Features per example. `—` means not used or not determined.
 | agent-voice-call                | Node           | yes    | —        | —      | —     | yes    | —           | —     | no  |
 | agent-eval-harness              | Node           | yes    | —        | —      | —     | —      | —           | —     | no  |
 | agent-mcp-server                | Node           | yes    | —        | yes    | yes   | —      | —           | —     | no  |
+| auth-flow-react                 | React          | —      | —        | yes    | —     | yes    | —           | —     | yes |
+| signup-wizard-react             | React          | yes    | —        | yes    | —     | —      | —           | —     | yes |
+| form-validation-react           | React          | —      | yes      | yes    | —     | yes    | —           | —     | yes |
+| checkout-react                  | React          | yes    | —        | yes    | —     | —      | —           | —     | yes |
+| payment-retry-react             | React          | yes    | —        | yes    | —     | yes    | —           | —     | yes |
+| settings-persistence-react      | React          | —      | —        | yes    | —     | —      | yes         | —     | yes |
+| router-sync-react               | React          | —      | —        | yes    | —     | —      | —           | —     | yes |
+| onboarding-tour-react           | React          | yes    | —        | —      | —     | yes    | yes         | —     | yes |
+| video-player-react              | React          | yes    | —        | yes    | —     | yes    | —           | —     | yes |
+| audio-player-react              | React          | yes    | —        | yes    | —     | —      | —           | —     | yes |
+| search-autocomplete-react       | React          | yes    | —        | yes    | —     | yes    | —           | —     | yes |
+| infinite-scroll-react           | React          | yes    | —        | yes    | —     | —      | —           | —     | yes |
+| file-upload-react               | React          | yes    | —        | yes    | yes   | —      | —           | —     | yes |
+| drag-and-drop-react             | React          | yes    | —        | —      | —     | —      | —           | —     | yes |
+| undo-redo-react                 | React          | yes    | —        | —      | —     | yes    | —           | —     | yes |
+| notifications-react             | React          | —      | —        | —      | yes   | yes    | —           | —     | yes |
+| modal-manager-react             | React          | yes    | —        | —      | —     | —      | —           | —     | yes |
+| traffic-light                   | Vanilla + Vite | —      | yes      | —      | —     | yes    | —           | —     | yes |
+| elevator                        | Vanilla + Vite | yes    | —        | —      | —     | yes    | —           | —     | yes |
+| vending-machine                 | Vanilla + Vite | yes    | —        | —      | —     | yes    | —           | —     | yes |
+| quiz-react                      | React          | —      | —        | yes    | —     | yes    | —           | —     | yes |
+| booking-calendar-react          | React          | yes    | —        | yes    | —     | yes    | —           | —     | yes |
 
 [`_shared/`](./_shared) is not an example. It holds the `actor-ui` dashboard that headless examples can use instead of writing their own UI.
