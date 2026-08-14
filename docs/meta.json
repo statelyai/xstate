@@ -23,6 +23,7 @@
     "cancellation",
     "forms-and-wizards",
     "backend-workflows",
+    "durable-execution",
     "persist-and-restore-actors",
     "testing",
     "inspect-actor-systems",

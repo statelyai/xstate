@@ -1,0 +1,49 @@
+{
+  "name": "@xstate/inngest",
+  "version": "0.1.0-alpha.0",
+  "description": "Run XState machines with Inngest durable execution",
+  "keywords": [
+    "xstate",
+    "inngest",
+    "durable execution",
+    "workflow"
+  ],
+  "license": "MIT",
+  "main": "dist/xstate-inngest.cjs.js",
+  "module": "dist/xstate-inngest.esm.js",
+  "types": "dist/xstate-inngest.cjs.d.ts",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-inngest.cjs.mjs",
+        "default": "./dist/xstate-inngest.cjs.js"
+      },
+      "module": "./dist/xstate-inngest.esm.js",
+      "import": "./dist/xstate-inngest.cjs.mjs",
+      "default": "./dist/xstate-inngest.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/statelyai/xstate.git"
+  },
+  "scripts": {},
+  "peerDependencies": {
+    "inngest": "^4.18.0",
+    "xstate": "workspace:^"
+  },
+  "devDependencies": {
+    "inngest": "4.18.0",
+    "xstate": "workspace:^"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "./index.ts"
+    ]
+  }
+}
