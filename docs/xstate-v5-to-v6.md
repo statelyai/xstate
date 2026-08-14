@@ -1114,13 +1114,16 @@ const persisted = actor.getPersistedSnapshot();
 
 Machines without a `version` produce snapshots with no `version` key.
 
-Keep old versioned machines when you need typed migration. `machineVersions()`
-parses stored snapshots with matching machine schemas and migrates raw snapshots
-directly to a retained target version. A `'*'` migration may asynchronously
-handle unknown snapshots without retaining old machines.
+Pass `{ id, version, snapshotSchema, eventSchema }` to retain Standard Schema
+contracts for a historical version without retaining its old executable machine.
+Either schema may be omitted when only one kind of historical data exists.
+`machineVersions()` infers exact snapshot migration and event adapter inputs from
+the corresponding schema. Targets must be backed by actual machines, which also
+remain supported directly as entries. A `'*'` handler may asynchronously handle
+unknown data.
 
-To migrate snapshots created before versioning was adopted, retain the old machine
-definition as a version and pass `{ unversioned: '<old-version>' }` to
+To migrate snapshots created before versioning was adopted, describe the old
+snapshot as a version and pass `{ unversioned: '<old-version>' }` to
 `machineVersions()`. This fallback applies only to snapshots without version
 metadata. `parseSnapshot()` rejects explicit unknown versions;
 `migrateSnapshot()` may handle them with `'*'`.
@@ -1130,6 +1133,8 @@ Event history adaptation is a separate operation. Use
 whole source history into target-version events. Exact retained-version
 adapters are typed; `'*'` receives unknown events. Adaptation validates target
 event schemas when available but does not replay events or create a snapshot.
+Descriptors with an `eventSchema` provide exact event adapters. The schema
+validates complete event objects rather than machine `schemas.events` payloads.
 
 ### Durable timers
 

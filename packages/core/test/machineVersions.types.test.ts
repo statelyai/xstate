@@ -2,7 +2,6 @@ import {
   createActor,
   createMachine,
   machineVersions,
-  snapshotVersion,
   setup,
   types
 } from '../src';
@@ -27,10 +26,10 @@ const checkoutV2 = createMachine({
   initial: 'active',
   states: { active: {} }
 });
-const checkoutV0 = snapshotVersion({
+const checkoutV0 = {
   id: 'checkout',
   version: '0',
-  schema: types<{
+  snapshotSchema: types<{
     status: 'active';
     output?: undefined;
     error?: undefined;
@@ -44,7 +43,7 @@ const checkoutV0 = snapshotVersion({
     machine: { id: 'checkout'; version: '0' };
     version: '0';
   }>()
-});
+} as const;
 
 const version: '1' = checkoutV1.version;
 const setupVersion: '1' = setup({}).createMachine({
@@ -86,13 +85,27 @@ const eventMachineV2 = createMachine({
   initial: 'active',
   states: { active: {} }
 });
+const eventVersionV0 = {
+  id: 'events',
+  version: '0',
+  eventSchema: types<
+    | { type: 'INCREMENT'; amount: number }
+    | { type: 'DECREMENT'; amount: number }
+  >()
+} as const;
 const eventVersions = machineVersions([eventMachineV1, eventMachineV2]);
+const eventDescriptorVersions = machineVersions([
+  eventVersionV0,
+  eventMachineV2
+]);
 
 if (false) {
   // @ts-expect-error version parsers require versioned machines
   machineVersions([unversioned]);
   // @ts-expect-error unversioned must reference a retained version
   machineVersions([checkoutV1, checkoutV2], { unversioned: '3' });
+  // @ts-expect-error event-only descriptors cannot parse unversioned snapshots
+  machineVersions([eventVersionV0, eventMachineV2], { unversioned: '0' });
 }
 
 async function checkSnapshotMigrationTypes() {
@@ -175,6 +188,30 @@ async function checkSnapshotMigrationTypes() {
 }
 
 async function checkEventAdaptationTypes() {
+  await eventDescriptorVersions.adaptEvents([], {
+    from: { id: 'events', version: '0' },
+    to: '2',
+    adapters: {
+      '0': (events) => {
+        const event = events[0];
+        if (event?.type === 'INCREMENT') {
+          const amount: number = event.amount;
+          // @ts-expect-error historical event schema has no delta
+          event.delta;
+          void amount;
+        }
+        return [{ type: 'CHANGE', delta: events.length }];
+      }
+    }
+  });
+
+  await eventDescriptorVersions.adaptEvents([], {
+    from: { id: 'events', version: '2' },
+    // @ts-expect-error schema-only versions cannot be event targets
+    to: '0',
+    adapters: {}
+  });
+
   await machineVersions([checkoutV0, eventMachineV2]).adaptEvents([], {
     from: { id: 'checkout', version: '0' },
     to: '2',

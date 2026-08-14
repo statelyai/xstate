@@ -2,11 +2,17 @@
 'xstate': minor
 ---
 
-Represent historical persisted machine versions with complete Standard Schema snapshot descriptors instead of retaining their executable machines.
+Represent historical machine versions with Standard Schema snapshot and event
+descriptors instead of retaining their executable machines.
 
 ```ts
 const versions = machineVersions([
-  snapshotVersion({ id: 'checkout', version: '1', schema: checkoutV1Snapshot }),
+  {
+    id: 'checkout',
+    version: '1',
+    snapshotSchema: checkoutV1Snapshot,
+    eventSchema: checkoutV1Event
+  },
   checkoutV2
 ]);
 

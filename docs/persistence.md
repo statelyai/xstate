@@ -30,36 +30,41 @@ Persisted snapshots record current state. Event sourcing records the events that
 
 <!-- snapshot migration and event adaptation APIs from packages/core/src/machineVersions.ts -->
 
-Register lightweight snapshot descriptors for historical versions and retain an
-actual machine for each version that may be a restoration target. Every entry
-must have the same stable `id` and its own `version`.
+Register lightweight schema descriptors for historical versions and retain an
+actual machine for each version that may be a target. Every entry must have the
+same stable `id` and its own `version`.
 
 ```ts
-const checkoutV1 = snapshotVersion({
-  id: 'checkout',
-  version: '1',
-  // This version had no persisted children, history, timers or state inputs.
-  schema: z.object({
-    status: z.enum(['active', 'done', 'error', 'stopped']),
-    output: z.unknown().optional(),
-    error: z.unknown().optional(),
-    value: z.literal('active'),
-    context: z.object({ count: z.number() }),
-    children: z.object({}),
-    historyValue: z.object({}),
-    timers: z.object({}),
-    _nextActorId: z.number().optional(),
-    _nextTimerId: z.number(),
-    stateInputs: z.undefined().optional(),
-    machine: z.object({
-      id: z.literal('checkout'),
+const checkoutVersions = machineVersions([
+  {
+    id: 'checkout',
+    version: '1',
+    // This version had no persisted children, history, timers or state inputs.
+    snapshotSchema: z.object({
+      status: z.enum(['active', 'done', 'error', 'stopped']),
+      output: z.unknown().optional(),
+      error: z.unknown().optional(),
+      value: z.literal('active'),
+      context: z.object({ count: z.number() }),
+      children: z.object({}),
+      historyValue: z.object({}),
+      timers: z.object({}),
+      _nextActorId: z.number().optional(),
+      _nextTimerId: z.number(),
+      stateInputs: z.undefined().optional(),
+      machine: z.object({
+        id: z.literal('checkout'),
+        version: z.literal('1')
+      }),
       version: z.literal('1')
     }),
-    version: z.literal('1')
-  })
-});
-
-const checkoutVersions = machineVersions([checkoutV1, checkoutV2]);
+    eventSchema: z.discriminatedUnion('type', [
+      z.object({ type: z.literal('ADD'), value: z.number() }),
+      z.object({ type: z.literal('REMOVE'), value: z.number() })
+    ])
+  },
+  checkoutV2
+]);
 const snapshot = await checkoutVersions.migrateSnapshot(
   JSON.parse(localStorage.getItem('checkout')!),
   {
@@ -80,7 +85,7 @@ Exact version keys narrow the callback to that historical schema's output type.
 Migration is direct to the target machine and may be asynchronous. You do not
 need to retain old executable machines or define every intermediate version.
 
-A snapshot schema describes the entire persisted contract, not only context:
+A `snapshotSchema` describes the entire persisted contract, not only context:
 status/output/error, state value, context, children, history, timers, state
 inputs, counters and version metadata as applicable. Active state nodes are
 reconstructed from the state value, so `nodes` itself is not persisted. Existing
@@ -167,15 +172,14 @@ Every result, including a same-version history, is validated against available
 target event schemas. If no applicable adapter exists, adaptation throws. An
 exact adapter's error propagates instead of falling through to `'*'`.
 
-`snapshotVersion()` descriptors participate only in snapshot parsing and
-migration. Exact event adapters and event targets require actual machines, whose
-event schemas provide typing and runtime validation. Histories identified with a
-snapshot-only version may still use the unknown `'*'` adapter.
+An `eventSchema` validates each complete historical event object and infers the
+exact adapter's event union. A descriptor may provide `snapshotSchema`,
+`eventSchema` or both. If the relevant schema is absent, that operation may use
+its unknown `'*'` handler instead. Actual machines continue to work directly as
+entries and supply their existing snapshot and event types.
 
-The descriptor is intentionally named and scoped to snapshots rather than being
-a general `machineVersion({ snapshot, events })` bundle. This prevents a
-snapshot schema from implying event validation and leaves room for a separate
-event descriptor if one is needed later.
+Exact event and snapshot targets require actual machines. A schema descriptor
+describes historical data but cannot interpret restored state or receive events.
 
 `adaptEvents()` only adapts a materialized history. It does not store or replay
 events and does not produce a snapshot.
