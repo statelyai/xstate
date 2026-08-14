@@ -38,7 +38,10 @@ function getEventTypes(actor: AnyActorRef, options: ActorUIOptions): string[] {
     | undefined;
   const events = logic?.events;
   return Array.isArray(events)
-    ? events.filter((e): e is string => typeof e === 'string' && e !== '*')
+    ? events.filter(
+        (e): e is string =>
+          typeof e === 'string' && e !== '*' && !e.startsWith('xstate.')
+      )
     : [];
 }
 

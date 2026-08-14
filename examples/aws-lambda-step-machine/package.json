@@ -1,0 +1,19 @@
+{
+  "name": "@xstate/example-aws-lambda-step-machine",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx --conditions=module src/local.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.152",
+    "@types/node": "^20.19.35",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "xstate": "workspace:*"
+  }
+}

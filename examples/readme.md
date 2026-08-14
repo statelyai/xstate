@@ -106,5 +106,16 @@ Features per example. `—` means not used or not determined.
 | document-collab-sync            | Node           | yes    | —        | —      | —     | —      | —           | —     | no  |
 | postgres-persisted-actor        | Node + pg      | yes    | —        | —      | —     | —      | yes         | —     | no  |
 | redis-persisted-actor           | Node + redis   | yes    | —        | —      | —     | —      | yes         | —     | no  |
+| cloudflare-worker-actor         | Cloudflare Workers | —    | —        | —      | —     | —      | yes         | —     | no  |
+| aws-lambda-step-machine         | AWS Lambda     | yes    | —        | —      | —     | —      | yes         | —     | no  |
+| nextjs-app-router               | Next.js        | yes    | —        | —      | —     | —      | yes         | —     | yes |
+| history-states                  | Vanilla + Vite | —      | —        | —      | —     | —      | —           | —     | yes |
+| machine-input-output            | Node           | yes    | —        | yes    | —     | —      | —           | —     | no  |
+| unit-testing-machines           | Node + Vitest  | yes    | —        | yes    | —     | yes    | —           | —     | no  |
+| store-atoms                     | React          | —      | —        | —      | —     | —      | —           | yes   | yes |
+| store-undo-redo                 | React          | —      | —        | —      | —     | —      | —           | yes   | yes |
+| actor-system                    | Node           | —      | —        | yes    | —     | —      | —           | —     | no  |
+| v5-to-v6-migration              | Node           | yes    | —        | yes    | —     | —      | —           | —     | no  |
+| actor-ui-dashboard              | Vanilla + Vite | yes    | —        | yes    | —     | yes    | —           | —     | yes |
 
 [`_shared/`](./_shared) is not an example. It holds the `actor-ui` dashboard that headless examples can use instead of writing their own UI.

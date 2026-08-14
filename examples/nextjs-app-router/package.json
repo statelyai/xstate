@@ -1,0 +1,24 @@
+{
+  "name": "@xstate/example-nextjs-app-router",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@xstate/react": "workspace:*",
+    "next": "^15.5.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "xstate": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.35",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "^5.9.3"
+  }
+}

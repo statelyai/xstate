@@ -18,6 +18,7 @@ allowBuilds:
   parcel-bundler: true
   svelte-preprocess: true
   vue-demi: true
+  workerd: false
 
 linkWorkspacePackages: true
 
