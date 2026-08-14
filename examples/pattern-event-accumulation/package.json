@@ -1,0 +1,17 @@
+{
+  "name": "@xstate/example-pattern-event-accumulation",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx --conditions=module src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "xstate": "workspace:*"
+  }
+}

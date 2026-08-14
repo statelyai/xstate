@@ -1,6 +1,9 @@
 import './App.css';
 import { useMachine } from '@xstate/react';
+import { createBrowserInspector } from '@statelyai/inspect';
 import { tilesMachine } from './tilesMachine';
+
+const inspector = createBrowserInspector();
 
 function TileGrid({
   children,
@@ -17,7 +20,7 @@ function TileGrid({
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
         gridTemplateRows: 'repeat(4, 1fr)',
-        backgroundImage: `url(${image})`,
+        backgroundImage: image,
         backgroundSize: '600% center'
       }}
     >
@@ -25,18 +28,6 @@ function TileGrid({
     </div>
   );
 }
-
-// export const Tile = withDefaultProps(Box, ({ tile, highlight }) => ({
-//   height: "100%",
-//   width: "100%",
-//   backgroundImage: "inherit",
-//   backgroundSize: "600% center",
-//   backgroundPosition: `${(tile % 4) * -100}% ${Math.floor(tile / 4) * -100}%`,
-//   css: css({
-//     filter: highlight ? "brightness(1.1)" : "brightness(1)"
-//   }),
-//   userSelect: "none"
-// }));
 
 function Tile({
   tile,
@@ -65,11 +56,13 @@ function Tile({
 }
 
 function App() {
-  const [state, send] = useMachine(tilesMachine);
+  const [state, send] = useMachine(tilesMachine, {
+    inspect: inspector.inspect
+  });
 
   return (
     <div className="App">
-      <TileGrid image="https://source.unsplash.com/random/?city,night">
+      <TileGrid image="conic-gradient(from 45deg, #0ea5e9, #a855f7, #f97316, #22c55e, #0ea5e9)">
         {state.context.tiles.map((tile, index) => {
           const x = index % 4;
           const y = Math.floor(index / 4);

@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@statelyai/inspect": "^0.4.0",
     "@xstate/store": "workspace:*",
     "@xstate/store-react": "workspace:*",
     "react": "^19.2.4",
@@ -18,15 +17,15 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.3",
-    "@types/react": "^18.3.28",
-    "@types/react-dom": "^18.3.7",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
     "eslint": "^9.39.3",
-    "eslint-plugin-react-hooks": "5.1.0-rc-fb9a90fa48-20240614",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.26",
-    "globals": "^15.15.0",
+    "globals": "^16.5.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^5.4.21"
+    "vite": "^7.1.14"
   }
 }

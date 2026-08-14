@@ -1,144 +1,110 @@
-import { EventObject, createMachine } from 'xstate';
+import { setup, types } from 'xstate';
 
-function assertEvent<TEvent extends EventObject, Type extends TEvent['type']>(
-  ev: TEvent,
-  type: Type
-): asserts ev is Extract<TEvent, { type: Type }> {
-  if (ev.type !== type) {
-    throw new Error('Unexpected event type.');
-  }
+export type Player = 'x' | 'o';
+
+type Board = Array<Player | null>;
+
+interface TicTacToeContext {
+  board: Board;
+  moves: number;
+  player: Player;
+  winner: Player | undefined;
 }
 
-type Player = 'x' | 'o';
-
-const context = {
-  board: Array(9).fill(null) as Array<Player | null>,
+const initialContext = (): TicTacToeContext => ({
+  board: Array(9).fill(null),
   moves: 0,
-  player: 'x' as Player,
-  winner: undefined as Player | undefined
-};
+  player: 'x',
+  winner: undefined
+});
 
-export const ticTacToeMachine = createMachine({
-  initial: 'playing',
-  types: {} as {
-    context: typeof context;
-    events: { type: 'PLAY'; value: number } | { type: 'RESET' };
+const winningLines = [
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  [0, 4, 8],
+  [2, 4, 6]
+];
+
+export const ticTacToeMachine = setup({
+  schemas: {
+    context: types<TicTacToeContext>(),
+    events: {
+      PLAY: types<{ value: number }>(),
+      RESET: types<{}>()
+    },
+    tags: types<'winner' | 'draw'>()
   },
-  context,
+  guards: {
+    checkWin: (board: Board) =>
+      winningLines.some(
+        (line) =>
+          line.every((i) => board[i] === 'x') ||
+          line.every((i) => board[i] === 'o')
+      ),
+    checkDraw: (moves: number) => moves === 9,
+    isValidMove: (params: { board: Board; value: number }) =>
+      params.board[params.value] === null
+  }
+}).createMachine({
+  initial: 'playing',
+  context: initialContext(),
   states: {
     playing: {
-      always: [
-        ({ context, event, guards, actions }, enq) => {
-          if (!guards['checkWin']({ context, event })) {
-            return;
-          }
+      always: ({ context, guards }) => {
+        if (guards.checkWin(context.board)) {
           return { target: 'gameOver.winner' };
-        },
-        ({ context, event, guards, actions }, enq) => {
-          if (!guards['checkDraw']({ context, event })) {
-            return;
-          }
+        }
+        if (guards.checkDraw(context.moves)) {
           return { target: 'gameOver.draw' };
         }
-      ],
+      },
       on: {
-        PLAY: [
-          ({ context, event, guards, actions }, enq) => {
-            if (!guards['isValidMove']({ context, event })) {
-              return;
-            }
-            enq((actionArgs) => actions['updateBoard'](actionArgs as any));
-            return { target: 'playing' };
+        PLAY: ({ context, event, guards }) => {
+          if (
+            !guards.isValidMove({ board: context.board, value: event.value })
+          ) {
+            return;
           }
-        ]
+
+          const board = [...context.board];
+          board[event.value] = context.player;
+
+          return {
+            target: 'playing',
+            context: {
+              board,
+              moves: context.moves + 1,
+              player: context.player === 'x' ? 'o' : 'x'
+            }
+          };
+        }
       }
     },
     gameOver: {
       initial: 'winner',
       states: {
         winner: {
-          tags: 'winner',
-          entry: (args, enq) => {
-            enq((actionArgs) => args.actions['setWinner'](actionArgs as any));
-          }
+          tags: ['winner'],
+          // The player that made the winning move is the previous player,
+          // because `PLAY` already handed the turn over.
+          entry: ({ context }) => ({
+            context: { winner: context.player === 'x' ? 'o' : 'x' }
+          })
         },
         draw: {
-          tags: 'draw'
+          tags: ['draw']
         }
       },
       on: {
-        RESET: ({ context, event, guards, actions }, enq) => {
-          enq((actionArgs) => actions['resetGame'](actionArgs as any));
-          return { target: 'playing' };
-        }
+        RESET: () => ({
+          target: 'playing',
+          context: initialContext()
+        })
       }
-    }
-  },
-  actions: {
-    updateBoard: ({ context, event }) => {
-      assertEvent(event, 'PLAY');
-      const updatedBoard = [...context.board];
-      updatedBoard[event.value] = context.player;
-      return {
-        context: {
-          ...context,
-          board: updatedBoard,
-          moves: context.moves + 1,
-          player: context.player === 'x' ? 'o' : 'x'
-        }
-      };
-    },
-    resetGame: ({ context }) => ({ context: { ...context } }),
-    setWinner: ({ context }) => ({
-      context: {
-        ...context,
-        winner: context.player === 'x' ? 'o' : 'x'
-      }
-    })
-  },
-  guards: {
-    checkWin: ({ context }) => {
-      const { board } = context;
-      const winningLines = [
-        [0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8],
-        [0, 3, 6],
-        [1, 4, 7],
-        [2, 5, 8],
-        [0, 4, 8],
-        [2, 4, 6]
-      ];
-
-      for (let line of winningLines) {
-        const xWon = line.every((index) => {
-          return board[index] === 'x';
-        });
-
-        if (xWon) {
-          return true;
-        }
-
-        const oWon = line.every((index) => {
-          return board[index] === 'o';
-        });
-
-        if (oWon) {
-          return true;
-        }
-      }
-
-      return false;
-    },
-    checkDraw: ({ context }) => {
-      return context.moves === 9;
-    },
-    isValidMove: ({ context, event }) => {
-      if (event.type !== 'PLAY') {
-        return false;
-      }
-
-      return context.board[event.value] === null;
     }
   }
 });

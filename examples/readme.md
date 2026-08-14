@@ -22,18 +22,24 @@ Features per example. `—` means not used or not determined.
 
 | Example | Framework | Guards | Parallel | Invoke | Spawn | Delays | Persistence | Store | UI |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 7guis-1-counter-vue | Vue | — | — | — | — | — | — | — | yes |
-| 7guis-2-temperature-vue | Vue | yes | — | — | — | — | — | — | yes |
 | 7guis-counter-react | React | — | — | — | — | — | — | — | yes |
+| 7guis-counter-vue | Vue | — | — | — | — | — | — | — | yes |
 | 7guis-flight-booker-react | React | yes | — | yes | — | — | — | — | yes |
 | 7guis-temperature-react | React | — | — | — | — | — | — | — | yes |
+| 7guis-temperature-vue | Vue | — | — | — | — | — | — | — | yes |
 | counter | Vanilla + Vite | — | — | — | — | — | — | — | yes |
 | express-workflow | Express | — | — | — | — | — | yes | — | no |
 | fetch | Vanilla + Vite | — | — | yes | — | yes | — | — | yes |
 | friends-list-react | React | — | — | yes | yes | — | — | — | yes |
-| local-store-counter-react | React | — | — | — | — | — | — | yes | yes |
 | mongodb-credit-check-api | Express | yes | yes | yes | — | — | yes | — | no |
 | mongodb-persisted-state | Vanilla + Vite | — | yes | — | — | — | yes | — | yes |
+| pattern-deadline-timeout | Node | — | — | yes | — | yes | — | — | no |
+| pattern-event-accumulation | Node | — | — | — | — | yes | — | — | no |
+| pattern-long-running-approval | Node | — | — | yes | — | yes | — | — | no |
+| pattern-parallel-branches | Node | — | yes | yes | — | — | — | — | no |
+| pattern-per-item-error-handling | Node | — | — | yes | yes | — | — | — | no |
+| pattern-polling | Node | — | — | yes | — | yes | — | — | no |
+| pattern-retry-policy | Node | yes | — | yes | — | yes | — | — | no |
 | persisted-donut-maker | Vanilla + Vite | — | yes | — | — | — | yes | — | yes |
 | snake-react | React | yes | — | yes | — | — | — | — | yes |
 | stopwatch | Vanilla + Vite | — | — | yes | — | — | — | — | yes |
@@ -45,31 +51,6 @@ Features per example. `—` means not used or not determined.
 | todomvc-react | React | — | — | — | — | — | yes | — | yes |
 | toggle | Vanilla + Vite | — | — | — | — | — | — | — | yes |
 | trivia-game-example | React | yes | — | yes | — | — | — | — | yes |
-| workflow-accumulate-room-readings | Node | — | — | yes | — | yes | — | — | no |
-| workflow-applicant-request | Node | yes | — | yes | — | — | — | — | no |
-| workflow-async-function | Node | — | — | yes | — | — | — | — | no |
-| workflow-async-subflow | Node | — | — | yes | — | — | — | — | no |
-| workflow-book-lending | Node | — | — | yes | — | yes | — | — | no |
-| workflow-car-auction-bids | Node | — | — | — | — | yes | — | — | no |
-| workflow-car-vitals | Node | — | — | yes | — | yes | — | — | no |
-| workflow-check-inbox | Node | — | — | yes | — | — | — | — | no |
-| workflow-credit-check | Node | — | — | yes | — | yes | — | — | no |
-| workflow-event-based | Node | — | — | yes | — | yes | — | — | no |
-| workflow-event-based-service | Node | — | — | yes | — | — | — | — | no |
-| workflow-event-greeting | Node | — | — | yes | — | — | — | — | no |
-| workflow-filling-water | Node | — | — | — | — | yes | — | — | no |
-| workflow-finalize-college-app | Node | — | — | yes | — | — | — | — | no |
-| workflow-greeting | Node | — | — | yes | — | — | — | — | no |
-| workflow-hello | Node | — | — | — | — | — | — | — | no |
-| workflow-math-problem | Node | — | — | yes | — | — | — | — | no |
 | workflow-media-scanner | Node | — | — | yes | — | — | — | — | no |
-| workflow-monitor-job | Node | — | — | yes | — | yes | — | — | no |
-| workflow-monitor-patient | Node | — | — | — | — | — | — | — | no |
-| workflow-new-patient-onboarding | Node | — | — | yes | — | — | — | — | no |
-| workflow-parallel | Node | — | yes | yes | — | — | — | — | no |
-| workflow-provision-orders | Node | — | — | yes | — | — | — | — | no |
-| workflow-purchase-order-deadline | Node | — | — | yes | — | yes | — | — | no |
-| workflow-reusing-functions | Node | yes | — | yes | — | — | — | — | no |
-| workflow-send-cloudevent | Node | — | — | yes | — | — | — | — | no |
 
 [`_shared/`](./_shared) is not an example. It holds the `actor-ui` dashboard that headless examples can use instead of writing their own UI.

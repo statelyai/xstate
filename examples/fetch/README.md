@@ -1,10 +1,25 @@
-# Fetch
+# fetch
 
-This is a simple fetch example built with:
+## What it teaches
 
-- XState v5
-- Parcel
+Invoking an async actor and modelling its loading, success, and failure states — including an automatic retry.
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/fetch)
+## XState features used
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/examples/fetch)
+- `setup()` with `actors`
+- `createAsyncLogic()` with an `input` schema
+- `invoke` with `input`, `onDone`, and `onError`
+- Delayed transitions (`after`)
+
+## Run it
+
+```bash
+pnpm install
+pnpm dev
+```
+
+The example logs each snapshot to the console.
+
+## Inspect it
+
+`@statelyai/inspect` is wired up, so running the example opens the [Stately Inspector](https://stately.ai/registry/inspect) with the live actor.

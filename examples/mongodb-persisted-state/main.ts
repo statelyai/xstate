@@ -1,86 +1,63 @@
-import { __unsafe_getAllOwnEventDescriptors, createActor } from 'xstate';
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import { createInterface } from 'node:readline';
+import { MongoClient } from 'mongodb';
+import { createActor } from 'xstate';
 import { donutMachine } from './donutMachine';
 import { TaskQueue } from './TaskQueue';
 
-const uri = '<your mongodb connection string>';
+const uri = process.env.MONGODB_URI ?? 'mongodb://localhost:27017';
 
-const client = new MongoClient(uri, {
-  serverApi: ServerApiVersion.v1
-});
-const db = client.db('donut-maker');
-const donutCollection = db.collection('donuts');
-const options = { upsert: true };
+const client = new MongoClient(uri);
+const donutCollection = client.db('donut-maker').collection('donuts');
 const filter = { persistedState: { $exists: true } };
 
-let restoredState;
+await client.connect();
 
-try {
-  await client.connect();
-  restoredState = await donutCollection.findOne();
-  if (!restoredState) {
-    console.log('no persisted state found in db. starting from scratch.');
+const stored = await donutCollection.findOne(filter);
+
+if (!stored) {
+  console.log('No persisted state found in the db. Starting from scratch.');
+}
+
+const actor = createActor(donutMachine, { snapshot: stored?.persistedState });
+
+// Writes are queued so that snapshots reach the database in transition order.
+const taskQueue = new TaskQueue();
+const bold = (value: string) => `\x1b[1m${value}\x1b[0m`;
+
+actor.subscribe({
+  next(snapshot) {
+    const nextEvents = donutMachine.events.filter(
+      (type) => !type.startsWith('done.') && snapshot.can({ type })
+    );
+
+    taskQueue.addTask(async () => {
+      await donutCollection.updateOne(
+        filter,
+        { $set: { persistedState: actor.getPersistedSnapshot() } },
+        { upsert: true }
+      );
+
+      console.log(
+        'Current state:',
+        `${bold(JSON.stringify(snapshot.value))}\n`,
+        'Next events:',
+        nextEvents.map((type) => `\n  ${bold(type)}`).join(''),
+        '\nEnter the next event to send:'
+      );
+    });
+  },
+  complete() {
+    taskQueue.addTask(async () => {
+      console.log('Workflow completed', actor.getSnapshot().output);
+      await client.close();
+    });
   }
-  console.log('restored state: ', restoredState);
+});
 
-  const actor = createActor(donutMachine, {
-    state: restoredState?.persistedState
-  });
+actor.start();
 
-  const taskQueue = new TaskQueue();
+const input = createInterface({ input: process.stdin });
 
-  actor.subscribe({
-    next(snapshot) {
-      taskQueue.addTask(async () => {
-        // save persisted state to mongodb
-        const persistedState = actor.getPersistedSnapshot();
-        const updateDoc = {
-          $set: {
-            persistedState
-          }
-        };
-
-        const result = await donutCollection.updateOne(
-          filter,
-          updateDoc,
-          options
-        );
-
-        // only log if the upsert occurred
-        if (result.modifiedCount > 0 || result.upsertedCount > 0) {
-          console.log('persisted state saved to db. ', result);
-        }
-
-        const nextEvents = __unsafe_getAllOwnEventDescriptors(snapshot);
-        console.log(
-          'Current state:',
-          // the current state, bolded
-          `\x1b[1m${JSON.stringify(snapshot.value)}\x1b[0m\n`,
-          'Next events:',
-          // the next events, each of them bolded
-          nextEvents
-            .filter((event) => !event.startsWith('done.'))
-            .map((event) => `\n  \x1b[1m${event}\x1b[0m`)
-            .join(''),
-          '\nEnter the next event to send:'
-        );
-      });
-    },
-    complete() {
-      taskQueue.addTask(async () => {
-        console.log('workflow completed', actor.getSnapshot().output);
-        await client.close();
-      });
-    }
-  });
-
-  actor.start();
-
-  process.stdin.on('data', (data) => {
-    const eventType = data.toString().trim();
-    actor.send({ type: eventType });
-  });
-} catch (e) {
-  console.log('error details: ', e);
-  restoredState = undefined;
+for await (const line of input) {
+  actor.send({ type: line.trim() });
 }

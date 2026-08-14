@@ -2,6 +2,9 @@ import './style.css';
 
 import { toggleMachine } from './toggleMachine';
 import { createActor } from 'xstate';
+import { createBrowserInspector } from '@statelyai/inspect';
+
+const inspector = createBrowserInspector();
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
@@ -12,7 +15,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `;
 
-const toggleActor = createActor(toggleMachine);
+const toggleActor = createActor(toggleMachine, { inspect: inspector.inspect });
 
 const toggleButton = document.querySelector<HTMLButtonElement>('#toggle')!;
 const outputEl = document.querySelector<HTMLDivElement>('#output')!;

@@ -1,78 +1,60 @@
-import { AnyMachineSnapshot, createActor } from 'xstate';
-import bodyParser from 'body-parser';
+import express from 'express';
+import { createActor, type Snapshot } from 'xstate';
+import { machine } from './machine';
 
-function generateActorId() {
+const persistedSnapshots = new Map<string, Snapshot<unknown>>();
+
+function generateWorkflowId() {
   return Math.random().toString(36).substring(2, 8);
 }
 
-const persistedStates: Record<string, unknown> = {};
-
-import express from 'express';
-import { machine } from './machine';
-
 const app = express();
 
-app.use(bodyParser.json());
+app.use(express.json());
 
-// Endpoint to start a new workflow instance
-// - Generates a unique ID for the actor
-// - Starts the actor
-// - Persists the actor state
-// - Returns the actor ID in the response
-app.post('/workflows', (req, res) => {
-  const workflowId = generateActorId(); // generate a unique ID
+// Start a new workflow instance and persist its initial snapshot.
+app.post('/workflows', (_req, res) => {
+  const workflowId = generateWorkflowId();
   const actor = createActor(machine).start();
 
-  // @ts-ignore
-  persistedStates[workflowId] = actor.getPersistedSnapshot();
+  persistedSnapshots.set(workflowId, actor.getPersistedSnapshot());
+  actor.stop();
 
   res.send({ workflowId });
 });
 
-// Endpoint to send events to an existing workflow instance
-// - Gets the actor ID from request params
-// - Gets the persisted state for that actor
-// - Sends the event from the request body to the actor
-// - Persists the updated state
-// - Returns the updated state in the response
+// Restore a workflow instance, send it an event, and persist the next snapshot.
 app.post('/workflows/:workflowId', (req, res) => {
   const { workflowId } = req.params;
-  const snapshot = persistedStates[workflowId];
+  const snapshot = persistedSnapshots.get(workflowId);
 
   if (!snapshot) {
-    return res.status(404).send('Actor not found');
+    res.status(404).send('Workflow not found');
+    return;
   }
 
-  const event = req.body;
-  const actor = createActor(machine, {
-    snapshot: snapshot as AnyMachineSnapshot
-  }).start();
-  actor.send(event);
+  const actor = createActor(machine, { snapshot }).start();
+  actor.send(req.body);
 
-  // @ts-ignore
-  persistedStates[workflowId] = actor.getPersistedSnapshot();
-
+  persistedSnapshots.set(workflowId, actor.getPersistedSnapshot());
   actor.stop();
 
-  res.sendStatus(200);
+  res.json(persistedSnapshots.get(workflowId));
 });
 
-// Endpoint to get the current state of an existing workflow instance
-// - Gets the actor ID from request params
-// - Gets the persisted state for that actor
-// - Returns the persisted state in the response
+// Read the persisted snapshot of a workflow instance.
 app.get('/workflows/:workflowId', (req, res) => {
-  const { workflowId } = req.params;
-  const persistedState = persistedStates[workflowId];
+  const snapshot = persistedSnapshots.get(req.params.workflowId);
 
-  if (!persistedState) {
-    return res.status(404).send('Actor not found');
+  if (!snapshot) {
+    res.status(404).send('Workflow not found');
+    return;
   }
 
-  res.json(persistedState);
+  res.json(snapshot);
 });
 
-app.get('/', (_, res) => {
+app.get('/', (_req, res) => {
   res.send(`
     <html>
       <body style="font-family: sans-serif;">
@@ -80,7 +62,7 @@ app.get('/', (_, res) => {
         <p>Start a new workflow instance:</p>
         <pre>curl -X POST http://localhost:4242/workflows</pre>
         <p>Send an event to a workflow instance:</p>
-        <pre>curl -X POST http://localhost:4242/workflows/:workflowId -d '{"type":"TIMER"}' -H "Content-Type: application/json" </pre>
+        <pre>curl -X POST http://localhost:4242/workflows/:workflowId -d '{"type":"TIMER"}' -H "Content-Type: application/json"</pre>
         <p>Get the current state of a workflow instance:</p>
         <pre>curl -X GET http://localhost:4242/workflows/:workflowId</pre>
       </body>

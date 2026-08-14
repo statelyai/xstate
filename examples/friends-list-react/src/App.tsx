@@ -1,11 +1,10 @@
-import React from 'react';
 import './App.css';
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
 import { friendsMachine } from './friendsMachine';
 import { Friend } from './Friend';
 
 function App() {
-  const [state, send] = useMachine(friendsMachine);
+  const [state, send] = useActor(friendsMachine);
 
   return (
     <div className="app">

@@ -53,18 +53,23 @@ Examples are reference material, so the code must be idiomatic v6.
 **Use `setup()` as the entry point.** Declare actors, guards, actions, and delays in `setup()`, then call `.createMachine()`. Reference them by name in the machine config.
 
 ```ts
-import { setup, createAsyncLogic } from 'xstate';
+import { setup, createAsyncLogic, types } from 'xstate';
 
 const machine = setup({
-  types: {
-    context: {} as { user: User | null },
-    events: {} as { type: 'SUBMIT'; email: string }
+  schemas: {
+    context: types<{ user: User | null }>(),
+    events: {
+      submit: types<{ email: string }>()
+    }
   },
   actors: {
-    authenticate: createAsyncLogic(async ({ input }) => login(input))
+    authenticate: createAsyncLogic({
+      schemas: { input: types<{ email: string }>() },
+      run: async ({ input }) => login(input)
+    })
   },
   guards: {
-    hasSession: ({ context }) => context.user !== null
+    hasSession: (context: { user: User | null }) => context.user !== null
   }
 }).createMachine({
   /* ... */

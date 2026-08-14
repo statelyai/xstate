@@ -1,16 +1,14 @@
-import { ObjectId } from 'mongodb';
+export const BUREAU_NAMES = ['EquiGavin', 'GavUnion', 'Gavperian'] as const;
 
-export default class CreditProfile {
-  constructor(
-    public SSN: string,
-    public LastName: string,
-    public FirstName: string,
-    public GavUnionScore: number,
-    public EquiGavinScore: number,
-    public GavperianScore: number,
-    public ErrorMessage: string,
-    public MiddleScore: number,
-    public InterestRateOptions: number[],
-    public _id?: ObjectId
-  ) {}
+export type BureauName = (typeof BUREAU_NAMES)[number];
+
+export interface CreditProfile {
+  SSN: string;
+  FirstName: string;
+  LastName: string;
+  /** Credit score per bureau. `0` means "not retrieved". */
+  scores: Record<BureauName, number>;
+  MiddleScore: number;
+  InterestRateOptions: number[];
+  ErrorMessage: string;
 }

@@ -1,10 +1,9 @@
-import React from 'react';
 import './App.css';
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
 import { temperatureMachine } from './temperatureMachine';
 
 function App() {
-  const [state, send] = useMachine(temperatureMachine);
+  const [state, send] = useActor(temperatureMachine);
 
   const { tempC, tempF } = state.context;
 

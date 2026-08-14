@@ -2,6 +2,9 @@ import './style.css';
 
 import { stopwatchMachine } from './stopwatchMachine';
 import { createActor } from 'xstate';
+import { createBrowserInspector } from '@statelyai/inspect';
+
+const inspector = createBrowserInspector();
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
@@ -19,7 +22,9 @@ const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
 const resetButton = document.querySelector<HTMLButtonElement>('#reset')!;
 const outputEl = document.querySelector<HTMLDivElement>('#output')!;
 
-const stopwatchActor = createActor(stopwatchMachine);
+const stopwatchActor = createActor(stopwatchMachine, {
+  inspect: inspector.inspect
+});
 stopwatchActor.subscribe((snapshot) => {
   outputEl.innerHTML = snapshot.context.elapsed.toString();
 });

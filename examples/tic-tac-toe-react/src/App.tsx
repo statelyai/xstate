@@ -1,6 +1,6 @@
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
 import React from 'react';
-import { ticTacToeMachine } from './ticTacToeMachine';
+import { ticTacToeMachine, type Player } from './ticTacToeMachine';
 import './styles.css';
 
 function range(start: number, end: number) {
@@ -12,7 +12,7 @@ function range(start: number, end: number) {
 const Tile: React.FC<{
   index: number;
   onClick: () => void;
-  player: 'x' | 'o' | null;
+  player: Player | null;
 }> = ({ index, onClick, player }) => {
   return (
     <div
@@ -25,7 +25,7 @@ const Tile: React.FC<{
 };
 
 export default function App() {
-  const [state, send] = useMachine(ticTacToeMachine);
+  const [state, send] = useActor(ticTacToeMachine);
 
   return (
     <div className="game">

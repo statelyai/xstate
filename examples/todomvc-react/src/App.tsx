@@ -1,10 +1,11 @@
-import React from 'react';
 import { Todos } from './Todos';
 import { createActorContext } from '@xstate/react';
 import { todosMachine } from './todosMachine';
 
+const persistedSnapshot = JSON.parse(localStorage.getItem('todos') || 'null');
+
 export const TodosContext = createActorContext(todosMachine, {
-  state: JSON.parse(localStorage.getItem('todos') || 'null')
+  snapshot: persistedSnapshot ?? undefined
 });
 
 function App() {

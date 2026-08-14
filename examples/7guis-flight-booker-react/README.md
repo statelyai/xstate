@@ -1,13 +1,44 @@
-# XState v5 + React - 7GUIs Flight Booker
+# 7guis-flight-booker-react
 
-The 7GUIs Fligt Booker App built with:
+## What it teaches
 
-- React 18
-- XState 5
-- Typescript
-- Vite
+Guarded transitions plus an invoked async actor: nested states model one-way vs. return trips, guards reject invalid date ranges, and booking runs as an invoked actor with `onDone`/`onError`. This is [the 7GUIs flight booker task](https://eugenkiss.github.io/7guis/tasks#flight).
 
-Visit the [7GUIs project](https://eugenkiss.github.io/7guis/tasks#flight/ 'Flight Booker') for more info.
+## XState features used
+
+- `setup()` with `schemas`, named `guards`, and `actors`
+- Nested states and transition functions returning `{ target }` / `{ context }`
+- `createAsyncLogic` invoked with `onDone` and `onError`
+- `createActorContext` from `@xstate/react` (`Provider`, `useActorRef`, `useSelector`)
+
+## Run it
+
+```bash
+pnpm install
+pnpm dev
+```
+
+## Inspect it
+
+This example does not bundle an inspector. To watch the actor live, add [`@statelyai/inspect`](https://stately.ai/docs/inspector) and pass it to the hook:
+
+```ts
+import { createBrowserInspector } from '@statelyai/inspect';
+
+const inspector = createBrowserInspector();
+
+const [state, send] = useActor(flightBookerMachine, {
+  inspect: inspector.inspect
+});
+```
+
+The same `inspect` option can be passed to `FlightContext.Provider` via its `options` prop. Then open https://stately.ai/registry/inspect.
+
+## Notes
+
+Built against the XState v6 alpha in this repo (`xstate: workspace:*`), not a published release.
+
+Global helper types (`FlightData`, `Input`, `EventType`, …) live in `types.d.ts` at the package root rather than being imported per file.
 
 ## Screenshots
 

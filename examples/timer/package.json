@@ -9,16 +9,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@statelyai/inspect": "^0.4.0",
     "@xstate/react": "workspace:*",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "xstate": "workspace:*"
   },
   "devDependencies": {
-    "@types/react": "^18.3.28",
-    "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^4.7.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.1.1",
     "typescript": "^5.9.3",
-    "vite": "^5.4.21"
+    "vite": "^7.3.1"
   }
 }

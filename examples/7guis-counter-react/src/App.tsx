@@ -1,10 +1,9 @@
-import React from 'react';
+import { useActor } from '@xstate/react';
 import './App.css';
-import { useMachine } from '@xstate/react';
 import { counterMachine } from './counterMachine';
 
 function App() {
-  const [state, send] = useMachine(counterMachine);
+  const [state, send] = useActor(counterMachine);
 
   return (
     <section id="app">
