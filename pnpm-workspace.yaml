@@ -16,6 +16,7 @@ allowBuilds:
   msgpackr-extract: true
   oxc-resolver: true
   parcel-bundler: true
+  sharp: false
   svelte-preprocess: true
   vue-demi: true
   workerd: false
