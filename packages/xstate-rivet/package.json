@@ -1,6 +1,6 @@
 {
   "name": "@xstate/rivet",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Run XState machines with Rivet durable actors",
   "keywords": [
     "xstate",
