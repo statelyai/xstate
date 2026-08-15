@@ -1,5 +1,17 @@
 # xstate
 
+## 6.0.0-alpha.38
+
+### Patch Changes
+
+- 8aaac46: Restoring a persisted snapshot whose state value references a state that no longer exists on the machine now throws a descriptive error, e.g.:
+  
+  ```
+  Persisted snapshot references state 'reviewing' which does not exist on machine 'order-approval'.
+  ```
+  
+  Nested state values report the full state path (e.g. `'active.reviewing'`), and parallel state regions are validated as well.
+
 ## 6.0.0-alpha.37
 
 ### Minor Changes
