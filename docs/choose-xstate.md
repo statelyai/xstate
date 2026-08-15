@@ -3,7 +3,7 @@ title: Choose XState
 description: Decide whether to use XState, XState Store, or ordinary application code.
 ---
 
-Use the smallest tool that clearly describes your logic.
+XState, XState Store and ordinary application code each suit a different kind of logic. Use the one that matches the behavior you are describing.
 
 ## Use XState
 
@@ -25,7 +25,7 @@ Common examples include:
 
 ## Use XState Store
 
-Use [`@xstate/store`](../packages/xstate-store/README.md) when you need simple event-based state management. A store is a good fit when events update data without a statechart.
+Use [`@xstate/store`](../../xstate-store/v4/quick-start.md) when you need simple event-based state management. A store is a good fit when events update data without a statechart.
 
 ```ts
 import { createStore } from '@xstate/store';

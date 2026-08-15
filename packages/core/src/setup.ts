@@ -1300,21 +1300,52 @@ type SetupInvokeConfig<
           TInvoke,
           'onDone' | 'onError' | 'onSnapshot' | 'onTimeout'
         > & {
-          onDone?: StateTransitionConfigOrTarget<
-            TStateSchemas,
-            TContext,
-            TContextShape,
-            InvokeDoneEvent<TInvoke>,
-            TEvent,
-            TEmitted,
-            TChildren,
-            TMeta,
-            TActionMap,
-            TActorMap,
-            TGuardMap,
-            TDelayMap,
-            TSystemRegistry
-          >;
+          // Inline (unregistered-logic) invoke branches have no function-form
+          // `onDone` when actors are registered (see InlineInvokeOnDone), and
+          // that must be preserved when rebuilding `onDone` here: when a
+          // registered logic value is passed as `src`, TypeScript narrows the
+          // invoke union to the matching registered branch plus the inline
+          // branch, and contextual typing of `onDone` callbacks (and their
+          // per-actor `event.output`) only works if the registered branch
+          // provides the union's only call signature.
+          onDone?: TInvoke extends {
+            onDone?: infer TOnDone;
+          }
+            ? [
+                Extract<NonNullable<TOnDone>, (...args: any[]) => unknown>
+              ] extends [never]
+              ?
+                  | undefined
+                  | StateTransitionObjectConfig<
+                      TStateSchemas,
+                      TContext,
+                      TContextShape,
+                      DoneActorEvent,
+                      TChildren,
+                      TMeta,
+                      TActionMap,
+                      TActorMap,
+                      TGuardMap,
+                      TDelayMap,
+                      TSystemRegistry,
+                      false
+                    >
+              : StateTransitionConfigOrTarget<
+                  TStateSchemas,
+                  TContext,
+                  TContextShape,
+                  InvokeDoneEvent<TInvoke>,
+                  TEvent,
+                  TEmitted,
+                  TChildren,
+                  TMeta,
+                  TActionMap,
+                  TActorMap,
+                  TGuardMap,
+                  TDelayMap,
+                  TSystemRegistry
+                >
+            : never;
           onError?: StateTransitionConfigOrTarget<
             TStateSchemas,
             TContext,
@@ -1422,7 +1453,8 @@ type StateTransitionObjectConfig<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TAllowContextMapper extends boolean = true
 > =
   | (StateTransitionResult<
       TStateSchemas,
@@ -1436,14 +1468,14 @@ type StateTransitionObjectConfig<
       TGuardMap,
       TDelayMap,
       TSystemRegistry,
-      true
+      TAllowContextMapper
     > & {
       description?: string;
     })
   | {
       target: SetupStateTarget<TStateSchemas>[];
       context?: StateTransitionContext<
-        true,
+        TAllowContextMapper,
         TContext,
         TContextShape,
         TContextShape,

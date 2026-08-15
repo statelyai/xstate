@@ -38,13 +38,13 @@ The request is in one state at a time. A `retry` event only has meaning in the `
 
 ## Benefits of explicit states
 
-- **Impossible states stay impossible.** The request cannot be both successful and failed.
+- **No contradictory states.** The request cannot be both successful and failed.
 - **Events have local meaning.** You can see which events each state accepts.
 - **Changes are easier to review.** New behavior appears as a new state or transition.
 - **Tests follow the model.** Test states and transitions instead of combinations of flags.
 - **Behavior can be visualized.** States and transitions form a statechart.
 
-State machines do not remove complexity. They make it visible and give it a structure.
+A state machine does not reduce the complexity of the behavior. It describes that complexity as states and transitions.
 
 ## Real examples
 
@@ -52,10 +52,7 @@ An online payment may be `idle`, `authorizing`, `confirmed` or `declined`. While
 
 A video call may be `joining`, `connected`, `reconnecting` or `ended`. The UI, timers and network effects can follow the current state instead of checking several connection flags.
 
-These models answer two questions in one place:
-
-- What can happen now?
-- What should happen next?
+Each model describes what can happen in the current state and which state comes next, in one place.
 
 ## When not to use a state machine
 

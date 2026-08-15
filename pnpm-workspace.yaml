@@ -7,6 +7,8 @@ packages:
 allowBuilds:
   '@parcel/watcher': true
   '@scarf/scarf': true
+  better-sqlite3: true
+  cbor-extract: true
   core-js: true
   deasync: false
   esbuild: true
@@ -16,6 +18,7 @@ allowBuilds:
   msgpackr-extract: true
   oxc-resolver: true
   parcel-bundler: true
+  protobufjs: true
   sharp: false
   svelte-preprocess: true
   vue-demi: true
