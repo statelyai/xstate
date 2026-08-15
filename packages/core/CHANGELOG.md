@@ -1,5 +1,57 @@
 # xstate
 
+## 6.0.0-alpha.37
+
+### Minor Changes
+
+- 86f7303: Add an experimental, host-neutral durable execution helper at `xstate/durable`.
+  It assigns stable IDs to effects and event waits from pure transitions while
+  leaving durable execution, timers, messaging and child actors to the host.
+  Hosts can read `nextTransitionIndex` after every transition for checkpointing.
+  
+  ```ts
+  const durable = createDurable(machine, adapter);
+  const output = await durable.run(input);
+  ```
+
+### Patch Changes
+
+- 86f7303: Add experimental durable execution adapters for Inngest and Rivet workflows.
+  Host runtime mappings now receive the complete built-in effect, allowing them
+  to map timers, sends and child actors without coupling XState to either host.
+  
+  ```ts
+  import { createDurable } from '@xstate/inngest';
+  
+  const output = await createDurable(machine, options).run(input);
+  ```
+- 6df07b8: Fixed `invoke.onDone` transition argument inference when actor logic is passed directly as `src` in a machine with two or more differently-typed registered actors. Previously, the transition function's arguments collapsed to `any` (`event.output` was unusable without annotations); now `event.output` is inferred from the invoked actor's output type.
+  
+  ```ts
+  const fetchUser = createAsyncLogic({ run: async () => ({ name: 'David' }) });
+  const fetchCount = createAsyncLogic({ run: async () => 42 });
+  
+  setup({
+    actors: { fetchUser, fetchCount }
+  }).createMachine({
+    initial: 'loading',
+    states: {
+      loading: {
+        invoke: {
+          src: fetchUser,
+          onDone: ({ event }) => {
+            event.output.name; // string
+            return { target: 'done' };
+          }
+        }
+      },
+      done: {}
+    }
+  });
+  ```
+  
+  Note: when actors are registered, invoking *unregistered* inline logic now only supports the object/target forms of `onDone` (not the transition function form). Register the actor to get fully-typed function-form transitions.
+
 ## 6.0.0-alpha.36
 
 ### Minor Changes
