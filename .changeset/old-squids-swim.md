@@ -4,7 +4,8 @@
 
 Represent historical machine versions with Standard Schema snapshot and event
 descriptors instead of retaining their executable machines. Versioned machines
-expose the same `snapshotSchema` and `eventSchema` interface.
+expose the same `snapshotSchema` and `eventSchema` interface. Machine-backed
+snapshot schemas default omitted history and timer records during migration.
 
 ```ts
 const versions = machineVersions([

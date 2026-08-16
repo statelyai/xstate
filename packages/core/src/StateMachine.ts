@@ -285,7 +285,11 @@ export class StateMachine<
           if (value === null || typeof value !== 'object') {
             return { issues: [{ message: 'Expected a persisted snapshot.' }] };
           }
-          const snapshot = value as Record<string, unknown>;
+          const snapshot: Record<string, unknown> = {
+            historyValue: {},
+            timers: {},
+            ...(value as Record<string, unknown>)
+          };
           const contextSchema = this.schemas?.context;
           let context = snapshot.context;
           if (contextSchema) {
@@ -301,12 +305,7 @@ export class StateMachine<
             }
             context = result.value;
           }
-          for (const key of [
-            'value',
-            'children',
-            'historyValue',
-            'timers'
-          ] as const) {
+          for (const key of ['value', 'children'] as const) {
             if (!(key in snapshot)) {
               return {
                 issues: [{ message: `Persisted snapshot is missing '${key}'.` }]

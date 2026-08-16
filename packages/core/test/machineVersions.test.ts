@@ -177,6 +177,38 @@ describe('machineVersions', () => {
     ).resolves.toEqual([{ type: 'CHANGE', delta: 2 }]);
   });
 
+  it('reports when a registered source has no event schema', async () => {
+    const historical = {
+      id: 'checkout',
+      version: '1',
+      snapshotSchema: types<{
+        status: 'active';
+        value: 'active';
+        context: {};
+        children: {};
+        historyValue: {};
+        timers: {};
+      }>()
+    } as const;
+    const current = createMachine({
+      id: 'checkout',
+      version: '2',
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([historical, current]);
+
+    await expect(
+      versions.adaptEvents([], {
+        from: { version: '1' },
+        to: '2',
+        adapters: {}
+      })
+    ).rejects.toThrow(
+      "Machine version '1' does not define an event schema; only the '*' adapter can handle its event history."
+    );
+  });
+
   it('adapts events from a historical event schema', async () => {
     const historical = {
       id: 'checkout',
@@ -669,6 +701,40 @@ describe('machineVersions', () => {
         }
       )
     ).rejects.toThrow("Invalid context for machine 'checkout' version '2'");
+  });
+
+  it('defaults restoration-optional bookkeeping in migration output', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '2',
+      context: { total: 0 },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkout]);
+
+    const compatible = await versions.migrateSnapshot(
+      {},
+      {
+        to: '2',
+        migrations: {
+          '*': () => ({
+            status: 'active',
+            output: undefined,
+            error: undefined,
+            value: 'active',
+            context: { total: 3 },
+            children: {}
+          })
+        }
+      }
+    );
+
+    expect(compatible).toMatchObject({ historyValue: {}, timers: {} });
+    expect(
+      createActor(checkout, { snapshot: compatible }).start().getSnapshot()
+        .context
+    ).toEqual({ total: 3 });
   });
 
   it('routes an unretained source version to the wildcard', async () => {

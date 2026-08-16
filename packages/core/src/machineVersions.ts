@@ -497,6 +497,11 @@ export function machineVersions<
           `No event adapter from version '${source.version}' to '${target.version}' for machine '${target.id}'.`
         );
       }
+      if (source) {
+        throw new Error(
+          `Machine version '${source.version}' does not define an event schema; only the '*' adapter can handle its event history.`
+        );
+      }
       throw new Error(
         `Unknown event history source '${sourceId}' version '${adaptationOptions.from.version}'.`
       );

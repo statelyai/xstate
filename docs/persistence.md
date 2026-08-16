@@ -96,7 +96,8 @@ status/output/error, state value, context, children, history, timers, state
 inputs, counters and version metadata as applicable. Active state nodes are
 reconstructed from the state value, so `nodes` itself is not persisted. A
 versioned machine's generated `snapshotSchema` validates this durable shape,
-its state value and its configured context schema.
+its state value and its configured context schema. It normalizes omitted
+`historyValue` and `timers` to empty records, matching restoration behavior.
 
 Use `'*'` to handle any snapshot that cannot use an exact retained version. The
 snapshot is `unknown`, so the migration can inspect its shape or load an old
@@ -185,6 +186,8 @@ exact adapter's event union. A descriptor may provide `snapshotSchema`,
 its unknown `'*'` handler instead. Actual machines continue to work directly as
 entries. Their generated `eventSchema` turns the payload-oriented
 `schemas.events` map into a Standard Schema for complete event objects.
+Without that schema or a `'*'` adapter, adaptation reports the missing event
+schema rather than treating the registered version as unknown.
 
 Exact event and snapshot targets require actual machines. A schema descriptor
 describes historical data but cannot interpret restored state or receive events.
