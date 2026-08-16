@@ -86,41 +86,18 @@ the beginning should persist `durable.nextTransitionIndex` after every
 transition, including transitions with no effects, and pass it as
 `transitionIndex` when recreating the durable execution.
 
-## Host adapters
+## Host integration examples
 
-Experimental adapters provide the common loop without hiding host-specific
-semantics:
+The repository includes proof-of-concept contract tests for
+[Inngest](../packages/core/test/durable-adapters/inngest.test.ts) and
+[Rivet](../packages/core/test/durable-adapters/rivet.test.ts). They demonstrate
+how host steps and event waits can implement the durable adapter contract.
 
-```ts
-import { createDurable } from '@xstate/inngest';
-
-const output = await createDurable(machine, {
-  step,
-  event: 'machine/event',
-  timeout: '30 days',
-  if: 'async.data.actorId == event.data.actorId',
-  runtime: ({ id }, effect) => host.runtimeFor(id, effect)
-}).run(input);
-```
-
-`@xstate/inngest` maps actions and event waits to Inngest steps.
-`@xstate/rivet` maps actions to workflow steps and uses a Rivet queue as the
-inbox. Both expose `create…Adapter()` for the explicit transition loop and pass
-the complete effect to `runtime` so the application can map timers, sends and
-child actors without coupling XState core to either host.
-
-These adapters deliberately do not approximate missing host semantics. For
-example, awaiting a sleep inline cannot implement a cancellable timer while
-also receiving intervening events. Such operations require a host-native
-timer/inbox mapping; an unmapped operation throws.
-
-## Adapter contract tests
-
-Official adapters keep fast context-contract tests in this monorepo. They use
-small host doubles and run in the normal CI suite, verifying stable IDs, action
-execution, waits, outputs, errors and runtime-effect mapping without starting
-vendor infrastructure. Unsupported mailbox, timer or child-actor semantics
-remain explicit gaps.
+These examples are not supported or published host adapters. They deliberately
+cover bounded workflows only and do not approximate missing host semantics.
+For example, awaiting a sleep inline cannot implement a cancellable timer while
+also receiving intervening events. Full integrations need host-native mappings
+for timers, messaging and child actors.
 
 ## What next?
 

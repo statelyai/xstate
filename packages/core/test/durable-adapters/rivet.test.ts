@@ -1,8 +1,62 @@
-import { createLogic, createMachine, setup as setupXState } from 'xstate';
-import { createRivetDurable } from '../../src/index.ts';
+import {
+  createLogic,
+  createMachine,
+  setup as setupXState
+} from '../../src/index.ts';
+import {
+  createDurable,
+  type DurableExecutionAdapter
+} from '../../src/durable/index.ts';
+import type { AnyActorLogic, EventFromLogic } from '../../src/types.ts';
 
-describe('@xstate/rivet context contract', () => {
-  it('runs actions as workflow steps and receives events from an actor queue', async () => {
+interface RivetWorkflowContext {
+  step(name: string, run: () => unknown | Promise<unknown>): Promise<unknown>;
+  queue: {
+    next(name: string, options: { names: readonly string[] }): Promise<unknown>;
+  };
+}
+
+function createRivetPoc<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  options: {
+    context: RivetWorkflowContext;
+    queue: string;
+    runtime?: DurableExecutionAdapter<TLogic>['runtime'];
+  }
+) {
+  return createDurable(logic, {
+    async executeAction(action, metadata, runtime) {
+      await options.context.step(metadata.id, async () => action.exec(runtime));
+    },
+    runtime(metadata, effect) {
+      const runtime = options.runtime?.(metadata, effect) ?? {};
+      if (
+        effect.type !== '@xstate.terminate' ||
+        runtime.terminateActor !== undefined
+      ) {
+        return runtime;
+      }
+
+      // This bounded-workflow PoC only supports root completion.
+      return {
+        ...runtime,
+        async terminateActor() {
+          await options.context.step(metadata.id, async () => {});
+        }
+      };
+    },
+    async waitForEvent(metadata) {
+      const message = await options.context.queue.next(metadata.id, {
+        names: [options.queue]
+      });
+      return (message as { body: { event: EventFromLogic<TLogic> } }).body
+        .event;
+    }
+  });
+}
+
+describe('Rivet durable execution PoC', () => {
+  it('runs actions as workflow steps and receives queue events', async () => {
     const calls: number[] = [];
     const stepNames: string[] = [];
     const messages = [{ body: { event: { type: 'FINISH' } } }];
@@ -29,29 +83,31 @@ describe('@xstate/rivet context contract', () => {
       }
     });
     const context = {
-      async step<T>(name: string, run: (context: unknown) => Promise<T>) {
+      async step(name: string, run: () => unknown | Promise<unknown>) {
         stepNames.push(name);
-        return run({});
+        return run();
       },
       queue: {
-        async next(name: string) {
-          expect(name).toBe('machine-events');
+        async next(name: string, options: { names: readonly string[] }) {
+          expect(name).toBe('event:0');
+          expect(options).toEqual({ names: ['machine-events'] });
           return messages.shift();
         }
       }
     };
 
     await expect(
-      createRivetDurable(machine, {
+      createRivetPoc(machine, {
         context,
         queue: 'machine-events'
       }).run(undefined)
     ).resolves.toBe('complete');
+
     expect(calls).toEqual([1, 2]);
     expect(stepNames).toEqual(['0:0', '1:0', '1:1']);
   });
 
-  it('exposes the full built-in effect to runtime mappings', async () => {
+  it('exposes built-in effects to host runtime mappings', async () => {
     const effects: unknown[] = [];
     const machine = createMachine({
       initial: 'waiting',
@@ -60,10 +116,10 @@ describe('@xstate/rivet context contract', () => {
         done: { type: 'final' }
       }
     });
-    const durable = createRivetDurable(machine, {
+    const durable = createRivetPoc(machine, {
       context: {
-        async step<T>(_name: string, run: (_context: unknown) => Promise<T>) {
-          return run({});
+        async step(_name: string, run: () => unknown | Promise<unknown>) {
+          return run();
         },
         queue: { next: vi.fn() }
       },
@@ -95,10 +151,10 @@ describe('@xstate/rivet context contract', () => {
         }
       }
     });
-    const durable = createRivetDurable(logic, {
+    const durable = createRivetPoc(logic, {
       context: {
-        async step<T>(_name: string, run: (_context: unknown) => Promise<T>) {
-          return run({});
+        async step(_name: string, run: () => unknown | Promise<unknown>) {
+          return run();
         },
         queue: { next: vi.fn() }
       },

@@ -28,15 +28,6 @@
 
 ### Patch Changes
 
-- 86f7303: Add experimental durable execution adapters for Inngest and Rivet workflows.
-  Host runtime mappings now receive the complete built-in effect, allowing them
-  to map timers, sends and child actors without coupling XState to either host.
-  
-  ```ts
-  import { createDurable } from '@xstate/inngest';
-  
-  const output = await createDurable(machine, options).run(input);
-  ```
 - 6df07b8: Fixed `invoke.onDone` transition argument inference when actor logic is passed directly as `src` in a machine with two or more differently-typed registered actors. Previously, the transition function's arguments collapsed to `any` (`event.output` was unusable without annotations); now `event.output` is inferred from the invoked actor's output type.
   
   ```ts
