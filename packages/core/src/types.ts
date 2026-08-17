@@ -1613,9 +1613,15 @@ declare const persistedSnapshotLogic: unique symbol;
 
 type PersistedSnapshotLogicIdentity<TLogic> = TLogic extends {
   readonly id: infer TId extends string;
-  readonly version: infer TVersion extends string;
 }
-  ? { readonly id: TId; readonly version: TVersion }
+  ? {
+      readonly id: TId;
+      readonly version: TLogic extends {
+        readonly version: infer TVersion extends string;
+      }
+        ? TVersion
+        : string;
+    }
   : never;
 
 /** A persisted snapshot tied to a versioned actor logic identity. */

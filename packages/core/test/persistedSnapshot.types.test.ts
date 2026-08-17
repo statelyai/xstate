@@ -67,6 +67,42 @@ describe('persisted snapshot round-trip types', () => {
     });
   });
 
+  it('should reject a snapshot from an unversioned machine with a different ID', () => {
+    const machineA = createMachine({
+      id: 'a',
+      initial: 'x',
+      states: { x: {} }
+    });
+    const machineB = createMachine({
+      id: 'b',
+      initial: 'x',
+      states: { x: {} }
+    });
+
+    const snapshot = createActor(machineA).getPersistedSnapshot();
+
+    createActor(machineB, {
+      // @ts-expect-error
+      snapshot
+    });
+  });
+
+  it('should round-trip a provided machine snapshot without a cast', () => {
+    const machine = createMachine({
+      id: 'checkout',
+      initial: 'a',
+      states: { a: {} }
+    });
+    const provided = machine.provide({});
+
+    const snapshot = createActor(provided).getPersistedSnapshot();
+
+    createActor(machine, { snapshot });
+    createActor(provided, {
+      snapshot: createActor(machine).getPersistedSnapshot()
+    });
+  });
+
   it('should accept a revived (unbranded) snapshot', () => {
     const machine = createMachine({
       initial: 'a',
