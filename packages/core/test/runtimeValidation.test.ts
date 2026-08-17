@@ -8,6 +8,7 @@ import {
   createEventObservableLogic,
   createLogic,
   createMachine,
+  createSystem,
   createObservableLogic,
   initialTransition,
   setup,
@@ -39,6 +40,20 @@ function expectValidationError(
 }
 
 describe('runtime schema validation', () => {
+  it('validates setup schemas created through a system builder', () => {
+    const machine = createSystem()
+      .setup({
+        validator: standardSchemaValidator(),
+        schemas: { input: z.object({ count: z.number() }) }
+      })
+      .createMachine({});
+
+    expectValidationError(
+      getThrown(() => initialTransition(machine, { count: 'invalid' } as any)),
+      'input'
+    );
+  });
+
   it('validates input across actor logic creators', () => {
     const input = z.object({ count: z.number() });
     const validator = standardSchemaValidator();

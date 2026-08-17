@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { setup } from '../src/index.ts';
+import {
+  type AnySetupConfig,
+  createCallbackLogic,
+  createSystem,
+  setup
+} from '../src/index.ts';
 import { standardSchemaValidator } from '../src/validation/index.ts';
 
 describe('runtime validation types', () => {
@@ -113,5 +118,51 @@ describe('runtime validation types', () => {
         validator: standardSchemaValidator()
       });
     }
+  });
+
+  it('preserves runtime validation types through createSystem().setup()', () => {
+    const transforming = z.string().transform((value) => value.length);
+    const receiver = createCallbackLogic<{ type: 'HELLO' }>(() => {});
+    const system = createSystem({ registry: { receiver } });
+
+    if (false) {
+      system.setup({
+        validator: standardSchemaValidator(),
+        // @ts-expect-error - runtime validation does not apply schema transforms
+        schemas: { input: transforming }
+      });
+    }
+
+    const validated = system.setup({
+      validator: standardSchemaValidator()
+    });
+
+    if (false) {
+      validated.extend({
+        schemas: {
+          // @ts-expect-error - extended schemas inherit runtime validation
+          input: transforming
+        }
+      });
+    }
+
+    validated.extend({ validator: standardSchemaValidator() });
+
+    const setupFromConfig = <const TConfig extends AnySetupConfig>(
+      config: TConfig
+    ) => system.setup(config);
+    setupFromConfig({ validator: standardSchemaValidator() }).extend({
+      validator: standardSchemaValidator()
+    });
+
+    validated.createMachine({
+      on: {
+        TEST: ({ system }) => {
+          system.get('receiver')?.send({ type: 'HELLO' });
+          // @ts-expect-error - registry actor only accepts HELLO
+          system.get('receiver')?.send({ type: 'OTHER' });
+        }
+      }
+    });
   });
 });

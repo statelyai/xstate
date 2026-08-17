@@ -2113,7 +2113,10 @@ type SetupConfigDelays<TConfig> = TConfig extends { delays?: infer TDelays }
     : {}
   : {};
 
-export type SetupReturnFromConfig<TConfig extends AnySetupConfig> = SetupReturn<
+export type SetupReturnFromConfig<
+  TConfig extends AnySetupConfig,
+  TSystemRegistry extends SystemRegistry = SystemRegistry
+> = SetupReturn<
   SetupConfigStates<TConfig>,
   SetupConfigSchemas<TConfig>,
   SetupConfigActions<TConfig>,
@@ -2121,7 +2124,7 @@ export type SetupReturnFromConfig<TConfig extends AnySetupConfig> = SetupReturn<
   SetupConfigGuards<TConfig>,
   SetupConfigDelays<TConfig>,
   Extract<keyof SetupConfigDelays<TConfig>, string>,
-  SystemRegistry,
+  TSystemRegistry,
   TConfig extends { validator: infer TValidator extends ActorLogicValidator }
     ? TValidator
     : undefined
@@ -2337,6 +2340,16 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
       | Observer<InspectionEvent>
       | ((inspectionEvent: InspectionEvent) => void)
   ): Subscription;
+  setup(): SetupReturn<
+    Record<string, SetupStateSchema>,
+    {},
+    {},
+    {},
+    {},
+    {},
+    never,
+    TSystemRegistry
+  >;
   setup<
     const TSchemas extends SetupSchemas = {},
     const TStates extends Record<string, SetupStateSchema> = Record<
@@ -2346,16 +2359,23 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
     TActionMap extends Sources['actions'] = {},
     TActorMap extends Sources['actors'] = {},
     TGuardMap extends Sources['guards'] = {},
-    TDelayMap extends Sources['delays'] = {}
+    TDelayMap extends Sources['delays'] = {},
+    const TValidator extends ActorLogicValidator | undefined = undefined
   >(
-    config?: SetupConfig<
+    config: SetupConfig<
       TSchemas,
       TStates,
       TActionMap,
       TActorMap,
       TGuardMap,
-      TDelayMap
-    >
+      TDelayMap,
+      TValidator
+    > &
+      RuntimeValidationConstraint<
+        NoInfer<TSchemas>,
+        NoInfer<TStates>,
+        TValidator
+      >
   ): SetupReturn<
     TStates,
     TSchemas,
@@ -2364,8 +2384,17 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
     TGuardMap,
     TDelayMap,
     Extract<keyof TDelayMap, string>,
-    TSystemRegistry
+    TSystemRegistry,
+    TValidator
   >;
+  setup<const TConfig extends AnySetupConfig>(
+    config: TConfig &
+      RuntimeValidationConstraint<
+        NoInfer<SetupConfigSchemas<TConfig>>,
+        NoInfer<SetupConfigStates<TConfig>>,
+        TConfig extends { validator: infer TValidator } ? TValidator : undefined
+      >
+  ): SetupReturnFromConfig<TConfig, TSystemRegistry>;
 };
 
 export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
@@ -2428,7 +2457,7 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
         }
       };
     },
-    setup(config) {
+    setup(config?: AnySetupConfig) {
       return (config ? setup(config) : setup()) as any;
     }
   };
