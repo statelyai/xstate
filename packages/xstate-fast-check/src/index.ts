@@ -28,18 +28,21 @@ class EventPropertyCommand<
   undefined,
   false
 > {
-  public constructor(public readonly event: TEvent) {}
+  public constructor(
+    public readonly event: TEvent,
+    public readonly caseId: string
+  ) {}
 
   public check(
     runner: Readonly<PropertyScenarioRunner<TSnapshot, TEvent>>
   ): boolean {
-    return runner.canRun(this.event);
+    return runner.canRun(this.event, this.caseId);
   }
 
   public async run(
     runner: PropertyScenarioRunner<TSnapshot, TEvent>
   ): Promise<void> {
-    await runner.run(this.event);
+    await runner.run(this.event, this.caseId);
   }
 
   public toString(): string {
@@ -58,7 +61,7 @@ class AdvancePropertyCommand<
   public constructor(public readonly milliseconds: number) {}
 
   public check(runner: PropertyScenarioRunner<TSnapshot, TEvent>): boolean {
-    return runner.getSnapshot().status === 'active';
+    return runner.canRunCommand(runner.getSnapshot().status === 'active');
   }
 
   public async run(
@@ -82,8 +85,8 @@ class CheckpointPropertyCommand<
 > {
   public constructor(public readonly label?: string) {}
 
-  public check(): boolean {
-    return true;
+  public check(runner: PropertyScenarioRunner<TSnapshot, TEvent>): boolean {
+    return runner.canRunCommand(true);
   }
 
   public async run(
@@ -106,7 +109,7 @@ class StopPropertyCommand<
   false
 > {
   public check(runner: PropertyScenarioRunner<TSnapshot, TEvent>): boolean {
-    return runner.getSnapshot().status === 'active';
+    return runner.canRunCommand(runner.getSnapshot().status === 'active');
   }
 
   public async run(
@@ -137,10 +140,10 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
         undefined,
         false
       >
-    >[] = request.events.map(({ type, generator }) =>
+    >[] = request.events.map(({ type, caseId, generator }) =>
       (generator as fc.Arbitrary<unknown>).map(
         (payload) =>
-          new EventPropertyCommand(request.createEvent(type, payload))
+          new EventPropertyCommand(request.createEvent(type, payload), caseId)
       )
     );
     for (const command of request.commands) {
@@ -209,12 +212,35 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
       >
     );
 
+    const configuredRuns = result.runConfiguration.numRuns ?? 100;
+    const truncationReasons: string[] = [];
+    if (result.interrupted) {
+      truncationReasons.push('adapter run interrupted');
+    }
+    if (result.failed && result.numRuns < configuredRuns) {
+      truncationReasons.push(
+        result.errorInstance
+          ? 'counterexample found before configured runs completed'
+          : 'precondition skips exhausted before configured runs completed'
+      );
+    }
+    const exploration = {
+      configuredRuns,
+      maximumSequenceLength: this.options.maxCommands ?? null,
+      engine: 'fast-check',
+      seed: result.seed,
+      path: result.counterexamplePath ?? undefined,
+      truncated: truncationReasons.length > 0,
+      truncationReasons
+    };
+
     if (!result.failed) {
-      return { runs: result.numRuns };
+      return { runs: result.numRuns, exploration };
     }
 
     return {
       runs: result.numRuns,
+      exploration,
       error:
         result.errorInstance ??
         new Error(

@@ -17,8 +17,7 @@ describe('advanced property testing', () => {
         events: {
           GO: types<{ allow: boolean }>(),
           NEXT: types<{}>(),
-          UNUSED: types<{}>(),
-          DYNAMIC: types<{}>()
+          UNUSED: types<{}>()
         }
       },
       type: 'parallel',
@@ -36,8 +35,7 @@ describe('advanced property testing', () => {
                   },
                   { target: 'denied' }
                 ] as any,
-                UNUSED: { target: 'idle' },
-                DYNAMIC: () => ({ target: 'allowed' })
+                UNUSED: { target: 'idle' }
               }
             },
             allowed: {},
@@ -90,12 +88,117 @@ describe('advanced property testing', () => {
     expect(result.coverage.transitions.unreachable).toEqual(
       expect.arrayContaining([expect.stringContaining('NEXT')])
     );
-    expect(result.coverage.transitions.unknown).toEqual(
-      expect.arrayContaining([expect.stringContaining('DYNAMIC')])
-    );
+    expect(result.coverage.transitions.unknown).toEqual([]);
     expect(result.coverage.states.unknown).toContain(
       '(runtime serialized states)'
     );
+  });
+
+  it('separates supplied event cases, event types, and exploration bounds', async () => {
+    const machine = createMachine({
+      schemas: {
+        events: { RUN: types<{}>(), BLOCKED: types<{}>() }
+      },
+      on: {
+        RUN: {},
+        BLOCKED: {}
+      }
+    });
+
+    const result = await propertyTest(machine, {
+      adapter: fastCheckAdapter({ seed: 31, numRuns: 50, maxCommands: 2 }),
+      events: {
+        RUN: {
+          case: 'applicable',
+          generate: fc.constant({}),
+          when: () => true
+        },
+        BLOCKED: {
+          case: 'disabled',
+          generate: fc.constant({}),
+          when: () => false
+        }
+      },
+      invariant: () => {}
+    });
+
+    const applicable =
+      result.coverage.eventCases[
+        JSON.stringify(['event-case', 'RUN', 'applicable'])
+      ];
+    const disabled =
+      result.coverage.eventCases[
+        JSON.stringify(['event-case', 'BLOCKED', 'disabled'])
+      ];
+    expect(applicable.generated).toBeGreaterThan(0);
+    expect(applicable.applicable).toBe(applicable.generated);
+    expect(applicable.executed).toBe(applicable.applicable);
+    expect(applicable.ignored).toBe(0);
+    expect(disabled.generated).toBeGreaterThan(0);
+    expect(disabled.applicable).toBe(0);
+    expect(disabled.executed).toBe(0);
+    expect(disabled.ignored).toBe(disabled.generated);
+    expect(result.coverage.eventTypes.counts.RUN).toBeGreaterThan(0);
+    expect(result.coverage.eventTypes.counts.BLOCKED).toBeUndefined();
+    expect(result.coverage.exploration).toMatchObject({
+      configuredRuns: 50,
+      completedRuns: 50,
+      attemptedRuns: 50,
+      maximumSequenceLength: 2,
+      truncated: true,
+      frontiers: [
+        {
+          prefixLength: 0,
+          runBudget: null,
+          configuredRuns: 50,
+          completedRuns: 50,
+          attemptedRuns: 50
+        }
+      ],
+      seeds: [{ engine: 'fast-check', seed: 31 }]
+    });
+    expect(
+      result.coverage.exploration.maximumObservedSequenceLength
+    ).toBeGreaterThan(0);
+    expect(result.coverage.exploration.truncationReasons).toContain(
+      'maximum sequence length reached'
+    );
+  });
+
+  it('covers dynamic definitions while keeping their outcomes unknown', async () => {
+    const machine = createMachine({
+      id: 'dynamic',
+      schemas: {
+        events: { MOVE: types<{ target: 'left' | 'right' }>() }
+      },
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            MOVE: ({ event }) => ({ target: event.target })
+          }
+        },
+        left: {},
+        right: {}
+      }
+    });
+
+    const result = await propertyTest(machine, {
+      adapter: fastCheckAdapter({ seed: 17, numRuns: 50, maxCommands: 1 }),
+      events: {
+        MOVE: fc.record({ target: fc.constantFrom('left', 'right') })
+      },
+      invariant: () => {}
+    });
+
+    const [id, dynamic] = Object.entries(result.coverage.dynamicTransitions)[0];
+    expect(result.coverage.transitions.covered).toContain(id);
+    expect(result.coverage.transitions.unknown).not.toContain(id);
+    expect(dynamic).toEqual({
+      hits: expect.any(Number),
+      observedTargetIds: ['dynamic.left', 'dynamic.right'],
+      outcomeCompleteness: 'unknown'
+    });
   });
 
   it('keeps SCXML macrostep transition coverage distinct from visitation', async () => {
@@ -198,6 +301,19 @@ describe('advanced property testing', () => {
       phase: 'prefix',
       event: { type: 'ACTIVATE' }
     });
+    expect(failure.fixture?.timeline.at(-1)?.command).toMatchObject({
+      caseId: JSON.stringify(['event-case', 'INC', 'default'])
+    });
+    expect(failure.coverage?.exploration).toMatchObject({
+      configuredRuns: 100,
+      maximumSequenceLength: 8,
+      truncated: true
+    });
+    expect(
+      failure.coverage?.eventCases[
+        JSON.stringify(['event-case', 'INC', 'default'])
+      ].executed
+    ).toBeGreaterThan(0);
   });
 
   it('shrinks independent reference divergence with model, oracle, and SUT observations', async () => {
@@ -281,16 +397,25 @@ describe('advanced property testing', () => {
     const adapter = {
       run: async (request: any) => {
         const runner = request.createRunner();
+        const caseId = request.events[0].caseId;
+        const exploration = {
+          configuredRuns: 1,
+          maximumSequenceLength: 4
+        };
         try {
           await runner.start();
-          await runner.run({ type: 'GO' });
+          runner.canRun({ type: 'GO' }, caseId);
+          await runner.run({ type: 'GO' }, caseId);
+          runner.canRunCommand(true);
           await runner.advance(1);
+          runner.canRunCommand(true);
           await runner.checkpoint('after-tick');
+          runner.canRunCommand(true);
           await runner.stop();
           await runner.finish();
-          return { runs: 1 };
+          return { runs: 1, exploration };
         } catch (error) {
-          return { runs: 1, error };
+          return { runs: 1, error, exploration };
         } finally {
           await runner.dispose();
         }
@@ -410,12 +535,21 @@ describe('advanced property testing', () => {
     const adapter = {
       run: async (request: any) => {
         const runner = request.createRunner();
+        const caseId = request.events[0].caseId;
         try {
           await runner.start();
-          await runner.run({ type: 'INC' });
-          await runner.run({ type: 'INC' });
+          runner.canRun({ type: 'INC' }, caseId);
+          await runner.run({ type: 'INC' }, caseId);
+          runner.canRun({ type: 'INC' }, caseId);
+          await runner.run({ type: 'INC' }, caseId);
           await runner.finish();
-          return { runs: 1 };
+          return {
+            runs: 1,
+            exploration: {
+              configuredRuns: 1,
+              maximumSequenceLength: 2
+            }
+          };
         } finally {
           await runner.dispose();
         }

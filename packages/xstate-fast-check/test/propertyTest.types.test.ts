@@ -25,7 +25,15 @@ it('infers machine and TestModel property APIs', () => {
     void propertyTest(machine, {
       adapter: fastCheckAdapter(),
       events: {
-        INC: fc.record({ value: fc.integer() }),
+        INC: {
+          case: 'positive',
+          generate: fc.record({ value: fc.integer() }),
+          when: ({ snapshot, event }) => {
+            expectTypeOf(snapshot.context.count).toEqualTypeOf<number>();
+            expectTypeOf(event.value).toEqualTypeOf<number>();
+            return event.value > 0;
+          }
+        },
         RESET: fc.constant({})
       },
       commands: {

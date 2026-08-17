@@ -36,6 +36,11 @@ export interface GuardEvaluation {
   readonly result: boolean;
 }
 
+export interface TransitionResolution {
+  readonly transition: AnyTransitionDefinition;
+  readonly targetIds: readonly string[];
+}
+
 function attachMicrostepActorRefs(
   microsteps: MachineMicrostep[],
   actorScope: AnyActorScope,
@@ -82,7 +87,8 @@ export function transitionWithDetails<T extends AnyActorLogic>(
   nextSnapshot: SnapshotFrom<T>,
   actions: ExecutableActionObjectFromLogic<T>[],
   transitions: AnyTransitionDefinition[],
-  guards: GuardEvaluation[]
+  guards: GuardEvaluation[],
+  resolutions: TransitionResolution[]
 ] {
   const actorScope = createInertActorScope(logic, snapshot);
   setInertActorScopeSnapshot(actorScope, snapshot, false);
@@ -101,7 +107,10 @@ export function transitionWithDetails<T extends AnyActorLogic>(
     returnedSnapshot,
     effects as ExecutableActionObjectFromLogic<T>[],
     ((actorScope.self as AnyActor as any)._collectedMicrosteps ?? []).slice(),
-    ((actorScope.self as AnyActor as any)._collectedGuards ?? []).slice()
+    ((actorScope.self as AnyActor as any)._collectedGuards ?? []).slice(),
+    (
+      (actorScope.self as AnyActor as any)._collectedTransitionResolutions ?? []
+    ).slice()
   ];
 }
 
@@ -132,7 +141,8 @@ export function initialTransitionWithDetails<T extends AnyActorLogic>(
   SnapshotFrom<T>,
   ExecutableActionObjectFromLogic<T>[],
   AnyTransitionDefinition[],
-  GuardEvaluation[]
+  GuardEvaluation[],
+  TransitionResolution[]
 ] {
   const actorScope = createInertActorScope(logic);
 
@@ -152,7 +162,10 @@ export function initialTransitionWithDetails<T extends AnyActorLogic>(
     returnedSnapshot,
     executableActions as ExecutableActionObjectFromLogic<T>[],
     ((actorScope.self as AnyActor as any)._collectedMicrosteps ?? []).slice(),
-    ((actorScope.self as AnyActor as any)._collectedGuards ?? []).slice()
+    ((actorScope.self as AnyActor as any)._collectedGuards ?? []).slice(),
+    (
+      (actorScope.self as AnyActor as any)._collectedTransitionResolutions ?? []
+    ).slice()
   ];
 }
 

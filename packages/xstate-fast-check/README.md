@@ -35,6 +35,18 @@ await propertyTest(machine, {
 ```
 
 Event-map keys supply each event's `type`; arbitraries generate payloads only.
+Each keyed arbitrary is reported as the stable `default` case for that event.
+Use a descriptor to name a behavioral case or make it state-aware:
+
+```ts
+events: {
+  INC: {
+    case: 'positive',
+    generate: fc.record({ value: fc.integer({ min: 1 }) }),
+    when: ({ snapshot }) => snapshot.matches('active')
+  }
+}
+```
 
 `propertyTest()` may receive a machine or `createTestModel(machine)`. Existing
 shortest or simple paths can establish deterministic frontiers while FastCheck
@@ -55,10 +67,23 @@ await propertyTest(model, {
 });
 ```
 
-Coverage reports stable state-node, configuration, event, transition, guard,
-and frontier identifiers. Every dimension separates `covered`, `uncovered`,
-`unreachable`, and `unknown`; transition hits come from selected XState
-microsteps rather than inferred state visitation.
+<!-- propertyTest coverage fields from packages/core/src/graph/propertyCoverage.ts -->
+
+Coverage reports stable state-node, configuration, event-type, transition,
+guard, and frontier identifiers. Topology dimensions separate `covered`,
+`uncovered`, `unreachable`, and `unknown`; transition hits come from selected
+XState microsteps rather than inferred state visitation.
+
+`coverage.eventCases` separately reports `generated`, `applicable`, `executed`,
+and `ignored` counts for supplied cases. These counts do not imply payload-domain
+coverage. Dynamic transition definitions count as hits, while
+`coverage.dynamicTransitions` keeps their outcome completeness `unknown` and
+lists only resolved targets actually observed.
+
+`coverage.exploration` always reports configured, completed, and attempted
+runs; configured and observed sequence lengths; frontier budgets; adapter
+seeds/paths; and truncation. Coverage is relative to these supplied cases and
+bounds, never a claim of global behavioral completeness.
 
 Use `commands.advance` with a SUT adapter that owns its clock. The adapter
 returns any events delivered by advancing time so XState can apply them through

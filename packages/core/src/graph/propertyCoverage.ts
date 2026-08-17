@@ -28,6 +28,47 @@ export interface PropertyGuardCoverageDimension extends PropertyCoverageDimensio
   >;
 }
 
+export interface PropertyEventCaseCounts {
+  readonly generated: number;
+  readonly applicable: number;
+  readonly executed: number;
+  readonly ignored: number;
+}
+
+export interface PropertyDynamicTransitionCoverage {
+  readonly hits: number;
+  readonly observedTargetIds: readonly string[];
+  readonly outcomeCompleteness: 'unknown';
+}
+
+export interface PropertyExplorationFrontier {
+  readonly id: string;
+  readonly prefixLength: number;
+  readonly runBudget: number | null;
+  readonly configuredRuns: number | null;
+  readonly completedRuns: number;
+  readonly attemptedRuns: number;
+}
+
+export interface PropertyExplorationSeed {
+  readonly frontierId: string;
+  readonly engine?: string;
+  readonly seed?: number;
+  readonly path?: string;
+}
+
+export interface PropertyExplorationBounds {
+  readonly configuredRuns: number | null;
+  readonly completedRuns: number;
+  readonly attemptedRuns: number;
+  readonly maximumSequenceLength: number | null;
+  readonly maximumObservedSequenceLength: number;
+  readonly frontiers: readonly PropertyExplorationFrontier[];
+  readonly seeds: readonly PropertyExplorationSeed[];
+  readonly truncated: boolean;
+  readonly truncationReasons: readonly string[];
+}
+
 export interface PropertyCoverage {
   readonly runs: number;
   readonly steps: number;
@@ -45,10 +86,17 @@ export interface PropertyCoverage {
   readonly stateNodes: PropertyCoverageDimension;
   readonly configurations: PropertyCoverageDimension;
   readonly statuses: PropertyCoverageDimension;
-  readonly events: PropertyCoverageDimension;
+  /** Delivered event types. This does not describe payload-domain coverage. */
+  readonly eventTypes: PropertyCoverageDimension;
+  /** Lifecycle counts for the event cases supplied to `propertyTest()`. */
+  readonly eventCases: Readonly<Record<string, PropertyEventCaseCounts>>;
   readonly transitions: PropertyCoverageDimension;
+  readonly dynamicTransitions: Readonly<
+    Record<string, PropertyDynamicTransitionCoverage>
+  >;
   readonly guards: PropertyGuardCoverageDimension;
   readonly frontiers: PropertyCoverageDimension;
+  readonly exploration: PropertyExplorationBounds;
 }
 
 interface Declaration {
@@ -78,13 +126,23 @@ export interface MutablePropertyCoverage {
   stateNodes: MutableDimension;
   configurations: MutableDimension;
   statuses: MutableDimension;
-  events: MutableDimension;
+  eventTypes: MutableDimension;
+  eventCases: Record<string, PropertyEventCaseCounts>;
   transitions: MutableDimension;
+  dynamicTransitions: Record<
+    string,
+    {
+      hits: number;
+      observedTargetIds: Set<string>;
+      outcomeCompleteness: 'unknown';
+    }
+  >;
   guards: MutableDimension;
   frontiers: MutableDimension;
   transitionIds: WeakMap<AnyTransitionDefinition, string>;
   guardIds: WeakMap<AnyTransitionDefinition, string>;
   guardOutcomes: Record<string, { passed: number; failed: number }>;
+  maximumObservedSequenceLength: number;
 }
 
 function dimension(): MutableDimension {
@@ -195,7 +253,8 @@ function registerTransition(
   coverage: MutablePropertyCoverage,
   transition: AnyTransitionDefinition,
   index: number,
-  reachable: Set<string>
+  reachable: Set<string>,
+  reachabilityUnknown: boolean
 ): void {
   const id = JSON.stringify([
     'transition',
@@ -207,19 +266,26 @@ function registerTransition(
   const dynamic = !!transition.to;
   coverage.transitionIds.set(transition, id);
   declare(coverage.transitions, id, {
-    unreachable: sourceUnreachable,
-    unknown: dynamic
+    unreachable: sourceUnreachable && !reachabilityUnknown,
+    unknown: sourceUnreachable && reachabilityUnknown
   });
-  declareAggregate(coverage.events, transition.eventType || '@eventless', {
-    unreachable: sourceUnreachable,
-    unknown: dynamic
+  declareAggregate(coverage.eventTypes, transition.eventType || '@eventless', {
+    unreachable: sourceUnreachable && !reachabilityUnknown,
+    unknown: sourceUnreachable && reachabilityUnknown
   });
+  if (dynamic) {
+    coverage.dynamicTransitions[id] = {
+      hits: 0,
+      observedTargetIds: new Set(),
+      outcomeCompleteness: 'unknown'
+    };
+  }
   if (transition.guard) {
     const guardId = JSON.stringify(['guard', id]);
     coverage.guardIds.set(transition, guardId);
     declare(coverage.guards, guardId, {
-      unreachable: sourceUnreachable,
-      unknown: dynamic
+      unreachable: sourceUnreachable && !reachabilityUnknown,
+      unknown: sourceUnreachable && reachabilityUnknown
     });
   }
 }
@@ -244,13 +310,16 @@ export function createPropertyCoverage(
     stateNodes: dimension(),
     configurations: dimension(),
     statuses: dimension(),
-    events: dimension(),
+    eventTypes: dimension(),
+    eventCases: {},
     transitions: dimension(),
+    dynamicTransitions: {},
     guards: dimension(),
     frontiers: dimension(),
     transitionIds: new WeakMap(),
     guardIds: new WeakMap(),
-    guardOutcomes: {}
+    guardOutcomes: {},
+    maximumObservedSequenceLength: 0
   };
   const machine = logic as Partial<AnyStateMachine>;
   if (!machine.root) {
@@ -258,7 +327,7 @@ export function createPropertyCoverage(
       coverage.states,
       coverage.stateNodes,
       coverage.configurations,
-      coverage.events,
+      coverage.eventTypes,
       coverage.transitions,
       coverage.guards
     ]) {
@@ -269,17 +338,38 @@ export function createPropertyCoverage(
 
   const nodes = [machine.root, ...getStateNodes(machine.root)];
   const reachable = collectReachableNodes(machine.root);
+  const hasReachableDynamicTransition = nodes.some(
+    (node) =>
+      reachable.has(node.id) &&
+      ([...node.transitions.values()].some((definitions) =>
+        definitions.some((definition) => !!definition.to)
+      ) ||
+        (node.always ?? []).some((definition) => !!definition.to))
+  );
   for (const node of nodes) {
     declare(coverage.stateNodes, node.id, {
-      unreachable: !reachable.has(node.id)
+      unreachable: !reachable.has(node.id) && !hasReachableDynamicTransition,
+      unknown: !reachable.has(node.id) && hasReachableDynamicTransition
     });
     for (const definitions of node.transitions.values()) {
       for (let index = 0; index < definitions.length; index++) {
-        registerTransition(coverage, definitions[index], index, reachable);
+        registerTransition(
+          coverage,
+          definitions[index],
+          index,
+          reachable,
+          !reachable.has(node.id) && hasReachableDynamicTransition
+        );
       }
     }
     for (let index = 0; index < (node.always?.length ?? 0); index++) {
-      registerTransition(coverage, node.always![index], index, reachable);
+      registerTransition(
+        coverage,
+        node.always![index],
+        index,
+        reachable,
+        !reachable.has(node.id) && hasReachableDynamicTransition
+      );
     }
   }
   declare(coverage.states, '(runtime serialized states)', { unknown: true });
@@ -308,20 +398,71 @@ export function recordPropertySnapshot(
 export function recordPropertyTransitions(
   coverage: MutablePropertyCoverage,
   event: EventObject,
-  transitions: readonly AnyTransitionDefinition[]
+  transitions: readonly AnyTransitionDefinition[],
+  resolutions: readonly {
+    readonly transition: AnyTransitionDefinition;
+    readonly targetIds: readonly string[];
+  }[] = []
 ): readonly string[] {
-  incrementCoverage(coverage.events, event.type);
+  incrementCoverage(coverage.eventTypes, event.type);
+  const resolvedTargets = new Map(
+    resolutions.map((resolution) => [
+      resolution.transition,
+      resolution.targetIds
+    ])
+  );
   const ids: string[] = [];
   for (const selected of transitions) {
     const id = getPropertyTransitionId(coverage, selected);
     ids.push(id);
     incrementCoverage(coverage.transitions, id);
+    const dynamic = coverage.dynamicTransitions[id];
+    if (dynamic) {
+      dynamic.hits++;
+      for (const targetId of resolvedTargets.get(selected) ?? []) {
+        dynamic.observedTargetIds.add(targetId);
+      }
+    }
     const guardId = coverage.guardIds.get(selected);
     if (guardId) {
       incrementCoverage(coverage.guards, guardId);
     }
   }
   return ids;
+}
+
+export function getPropertyEventCaseId(
+  eventType: string,
+  caseName: string
+): string {
+  return JSON.stringify(['event-case', eventType, caseName]);
+}
+
+export function declarePropertyEventCase(
+  coverage: MutablePropertyCoverage,
+  id: string
+): void {
+  coverage.eventCases[id] ??= {
+    generated: 0,
+    applicable: 0,
+    executed: 0,
+    ignored: 0
+  };
+}
+
+export function recordPropertyEventCase(
+  coverage: MutablePropertyCoverage,
+  id: string,
+  stage: keyof PropertyEventCaseCounts
+): void {
+  declarePropertyEventCase(coverage, id);
+  const counts = coverage.eventCases[id] as {
+    generated: number;
+    applicable: number;
+    executed: number;
+    ignored: number;
+  };
+  counts[stage]++;
 }
 
 export function recordPropertyGuards(
@@ -380,7 +521,18 @@ function finalizeDimension(
 }
 
 export function finalizePropertyCoverage(
-  coverage: MutablePropertyCoverage
+  coverage: MutablePropertyCoverage,
+  exploration: PropertyExplorationBounds = {
+    configuredRuns: null,
+    completedRuns: coverage.runs,
+    attemptedRuns: coverage.runs,
+    maximumSequenceLength: null,
+    maximumObservedSequenceLength: coverage.maximumObservedSequenceLength,
+    frontiers: [],
+    seeds: [],
+    truncated: false,
+    truncationReasons: []
+  }
 ): PropertyCoverage {
   return {
     runs: coverage.runs,
@@ -399,13 +551,31 @@ export function finalizePropertyCoverage(
     stateNodes: finalizeDimension(coverage.stateNodes),
     configurations: finalizeDimension(coverage.configurations),
     statuses: finalizeDimension(coverage.statuses),
-    events: finalizeDimension(coverage.events),
+    eventTypes: finalizeDimension(coverage.eventTypes),
+    eventCases: Object.fromEntries(
+      Object.entries(coverage.eventCases)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([id, counts]) => [id, { ...counts }])
+    ),
     transitions: finalizeDimension(coverage.transitions),
+    dynamicTransitions: Object.fromEntries(
+      Object.entries(coverage.dynamicTransitions)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([id, dynamic]) => [
+          id,
+          {
+            hits: dynamic.hits,
+            observedTargetIds: [...dynamic.observedTargetIds].sort(),
+            outcomeCompleteness: dynamic.outcomeCompleteness
+          }
+        ])
+    ),
     guards: {
       ...finalizeDimension(coverage.guards),
       outcomes: { ...coverage.guardOutcomes }
     },
-    frontiers: finalizeDimension(coverage.frontiers)
+    frontiers: finalizeDimension(coverage.frontiers),
+    exploration
   };
 }
 

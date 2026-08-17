@@ -2078,6 +2078,13 @@ export function getTransitionResult(
       ? resolveTarget(transition.source, toArray(res.target) as string[])
       : undefined;
 
+    if ((actorScope.self as any).options?._inert) {
+      ((actorScope.self as any)._collectedTransitionResolutions ??= []).push({
+        transition,
+        targetIds: targets?.map((target) => target.id) ?? []
+      });
+    }
+
     const resolvedInput =
       res?.input ??
       (typeof transition.input === 'function'

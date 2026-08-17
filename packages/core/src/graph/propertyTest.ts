@@ -14,22 +14,33 @@ import {
 import { TestModel } from './TestModel.ts';
 import {
   createPropertyCoverage,
+  declarePropertyEventCase,
   declarePropertyFrontier,
   finalizePropertyCoverage,
   getPropertyConfigurationId,
+  getPropertyEventCaseId,
   incrementCoverage,
+  recordPropertyEventCase,
   recordPropertyGuards,
   recordPropertySnapshot,
   recordPropertyTransitions,
   type MutablePropertyCoverage,
-  type PropertyCoverage
+  type PropertyCoverage,
+  type PropertyExplorationBounds,
+  type PropertyExplorationFrontier,
+  type PropertyExplorationSeed
 } from './propertyCoverage.ts';
 import type { StatePath } from './types.ts';
 
 export type {
   PropertyCoverage,
   PropertyCoverageDimension,
-  PropertyCoverageStatus
+  PropertyCoverageStatus,
+  PropertyDynamicTransitionCoverage,
+  PropertyEventCaseCounts,
+  PropertyExplorationBounds,
+  PropertyExplorationFrontier,
+  PropertyExplorationSeed
 } from './propertyCoverage.ts';
 
 export interface PropertyGeneratorKind {
@@ -57,6 +68,7 @@ export type PropertyCommand<TEvent extends EventObject = EventObject> =
       readonly event: TEvent;
       readonly phase: 'prefix' | 'generated';
       readonly origin: 'frontier' | 'generator' | 'clock';
+      readonly caseId?: string;
     }
   | {
       readonly type: 'advance';
@@ -150,6 +162,15 @@ interface LegacyPortablePropertyReplayFixture {
 
 export interface PropertyTestAdapterResult {
   readonly runs: number;
+  readonly exploration: {
+    readonly configuredRuns: number | null;
+    readonly maximumSequenceLength: number | null;
+    readonly engine?: string;
+    readonly seed?: number;
+    readonly path?: string;
+    readonly truncated?: boolean;
+    readonly truncationReasons?: readonly string[];
+  };
   readonly replay?: PropertyReplayMetadata;
   readonly error?: unknown;
 }
@@ -165,6 +186,7 @@ export interface PropertyTestAdapterRequest<
 > {
   readonly events: readonly {
     readonly type: string;
+    readonly caseId: string;
     readonly generator: unknown;
   }[];
   readonly commands: readonly PropertyGeneratedCommand[];
@@ -279,6 +301,7 @@ export interface PropertyEventDescriptor<
   TEvent extends EventObject
 > {
   readonly generate: TGenerator;
+  readonly case?: string;
   readonly when?: (context: {
     readonly snapshot: TSnapshot;
     readonly event: TEvent;
@@ -366,7 +389,8 @@ export class PropertyTestFailure<
     public readonly trace: PropertyTrace<TSnapshot, TEvent>,
     public readonly cause: unknown,
     public readonly replay?: PropertyReplayMetadata,
-    public readonly fixture?: PortablePropertyReplayFixture
+    public readonly fixture?: PortablePropertyReplayFixture,
+    public readonly coverage?: PropertyCoverage
   ) {
     super(message, { cause });
     this.name = 'PropertyTestFailure';
@@ -402,6 +426,7 @@ export class PropertyScenarioRunner<
   private sutSession: PropertySutSession<TEvent> | undefined;
   private referenceSession: PropertyReferenceSession<TEvent> | undefined;
   private lastObservation: PropertyObservation | undefined;
+  private generatedCommandCount = 0;
 
   public constructor(
     private readonly logic: ActorLogic<TSnapshot, TEvent, unknown>,
@@ -431,18 +456,20 @@ export class PropertyScenarioRunner<
   }
 
   public async start(): Promise<void> {
-    const [snapshot, effects, selected, guards]: [
+    const [snapshot, effects, selected, guards, resolutions]: [
       TSnapshot,
       readonly unknown[],
       readonly AnyTransitionDefinition[],
-      readonly import('../transition.ts').GuardEvaluation[]
+      readonly import('../transition.ts').GuardEvaluation[],
+      readonly import('../transition.ts').TransitionResolution[]
     ] = this.startingSnapshot
-      ? [this.startingSnapshot, [], [], []]
+      ? [this.startingSnapshot, [], [], [], []]
       : (initialTransitionWithDetails(this.logic, this.input as never) as [
           TSnapshot,
           readonly unknown[],
           readonly AnyTransitionDefinition[],
-          readonly import('../transition.ts').GuardEvaluation[]
+          readonly import('../transition.ts').GuardEvaluation[],
+          readonly import('../transition.ts').TransitionResolution[]
         ]);
     this.snapshot = snapshot;
     this.initialSnapshot = snapshot;
@@ -450,7 +477,8 @@ export class PropertyScenarioRunner<
     this.initialTransitionIds = recordPropertyTransitions(
       this.coverage,
       { type: XSTATE_INIT },
-      selected
+      selected,
+      resolutions
     );
     this.initialGuardIds = recordPropertyGuards(this.coverage, guards);
     this.started = true;
@@ -475,22 +503,41 @@ export class PropertyScenarioRunner<
     }
   }
 
-  public canRun(event: TEvent): boolean {
-    if (this.snapshot.status !== 'active') {
-      return false;
-    }
+  public canRun(event: TEvent, caseId: string): boolean {
+    this.recordGeneratedCommand();
+    recordPropertyEventCase(this.coverage, caseId, 'generated');
     const descriptor = this.eventDescriptors.get(event.type);
     const canRun =
-      descriptor?.when?.({ snapshot: this.snapshot, event }) ?? true;
+      this.snapshot.status === 'active' &&
+      (descriptor?.when?.({ snapshot: this.snapshot, event }) ?? true);
     if (!canRun) {
       this.coverage.skipped++;
+      recordPropertyEventCase(this.coverage, caseId, 'ignored');
+    } else {
+      recordPropertyEventCase(this.coverage, caseId, 'applicable');
     }
     return canRun;
   }
 
-  public async run(event: TEvent): Promise<void> {
+  public canRunCommand(applicable: boolean): boolean {
+    this.recordGeneratedCommand();
+    if (!applicable) {
+      this.coverage.skipped++;
+    }
+    return applicable;
+  }
+
+  public async run(event: TEvent, caseId: string): Promise<void> {
     this.assertStarted();
-    await this.executeEvent(event, 'generated', 'generator', true);
+    recordPropertyEventCase(this.coverage, caseId, 'executed');
+    await this.executeEvent(
+      event,
+      'generated',
+      'generator',
+      true,
+      true,
+      caseId
+    );
   }
 
   public async replay(command: PropertyCommand<TEvent>): Promise<void> {
@@ -500,7 +547,9 @@ export class PropertyScenarioRunner<
         command.event,
         command.phase,
         command.origin,
-        command.origin !== 'clock'
+        command.origin !== 'clock',
+        true,
+        command.caseId
       );
     } else if (command.type === 'advance') {
       this.coverage.clockAdvances++;
@@ -582,18 +631,18 @@ export class PropertyScenarioRunner<
   public async stop(): Promise<void> {
     this.assertStarted();
     const previousSnapshot = this.snapshot;
-    const [snapshot, effects, selected, guards] = transitionWithDetails(
-      this.logic,
-      previousSnapshot,
-      { type: XSTATE_STOP } as TEvent
-    );
+    const [snapshot, effects, selected, guards, resolutions] =
+      transitionWithDetails(this.logic, previousSnapshot, {
+        type: XSTATE_STOP
+      } as TEvent);
     this.snapshot = snapshot;
     await this.referenceSession?.stop?.();
     await this.sutSession?.stop?.();
     const transitionIds = recordPropertyTransitions(
       this.coverage,
       { type: XSTATE_STOP },
-      selected
+      selected,
+      resolutions
     );
     const guardIds = recordPropertyGuards(this.coverage, guards);
     this.coverage.stops++;
@@ -704,14 +753,12 @@ export class PropertyScenarioRunner<
     phase: 'prefix' | 'generated',
     origin: 'frontier' | 'generator' | 'clock',
     sendToSut: boolean,
-    compare = true
+    compare = true,
+    caseId?: string
   ): Promise<void> {
     const previousSnapshot = this.snapshot;
-    const [snapshot, effects, selected, guards] = transitionWithDetails(
-      this.logic,
-      previousSnapshot,
-      event
-    );
+    const [snapshot, effects, selected, guards, resolutions] =
+      transitionWithDetails(this.logic, previousSnapshot, event);
     this.snapshot = snapshot;
     if (this.referenceSession) {
       await this.referenceSession.transition(event);
@@ -722,7 +769,8 @@ export class PropertyScenarioRunner<
     const transitionIds = recordPropertyTransitions(
       this.coverage,
       event,
-      selected
+      selected,
+      resolutions
     );
     const guardIds = recordPropertyGuards(this.coverage, guards);
     this.coverage.steps++;
@@ -735,7 +783,7 @@ export class PropertyScenarioRunner<
     const entry: PropertyEventTimelineEntry<TSnapshot, TEvent> = {
       kind: 'event',
       index: this.timeline.length,
-      command: { type: 'event', event, phase, origin },
+      command: { type: 'event', event, phase, origin, caseId },
       previousSnapshot,
       snapshot,
       effects,
@@ -901,6 +949,14 @@ export class PropertyScenarioRunner<
     recordPropertySnapshot(this.coverage, snapshot);
   }
 
+  private recordGeneratedCommand(): void {
+    this.generatedCommandCount++;
+    this.coverage.maximumObservedSequenceLength = Math.max(
+      this.coverage.maximumObservedSequenceLength,
+      this.generatedCommandCount
+    );
+  }
+
   private getActiveStateIds(snapshot: TSnapshot): readonly string[] {
     return (
       (snapshot as { _nodes?: readonly { id: string }[] })._nodes?.map(
@@ -1036,6 +1092,45 @@ function getFrontierId<
   ]);
 }
 
+interface PropertyExplorationAccumulator {
+  configuredRuns: number;
+  configuredRunsUnknown: boolean;
+  completedRuns: number;
+  maximumSequenceLength: number | null;
+  maximumSequenceLengthUnknown: boolean;
+  frontiers: PropertyExplorationFrontier[];
+  seeds: PropertyExplorationSeed[];
+  truncationReasons: Set<string>;
+}
+
+function finalizeExploration(
+  coverage: MutablePropertyCoverage,
+  accumulator: PropertyExplorationAccumulator
+): PropertyExplorationBounds {
+  const maximumSequenceLength = accumulator.maximumSequenceLengthUnknown
+    ? null
+    : accumulator.maximumSequenceLength;
+  if (
+    maximumSequenceLength !== null &&
+    coverage.maximumObservedSequenceLength >= maximumSequenceLength
+  ) {
+    accumulator.truncationReasons.add('maximum sequence length reached');
+  }
+  return {
+    configuredRuns: accumulator.configuredRunsUnknown
+      ? null
+      : accumulator.configuredRuns,
+    completedRuns: accumulator.completedRuns,
+    attemptedRuns: coverage.runs,
+    maximumSequenceLength,
+    maximumObservedSequenceLength: coverage.maximumObservedSequenceLength,
+    frontiers: accumulator.frontiers.slice(),
+    seeds: accumulator.seeds.slice(),
+    truncated: accumulator.truncationReasons.size > 0,
+    truncationReasons: [...accumulator.truncationReasons].sort()
+  };
+}
+
 export async function propertyTest<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>,
   TKind extends PropertyGeneratorKind
@@ -1062,15 +1157,22 @@ export async function propertyTest<
   >();
   const events = Object.entries(options.events).map(([type, configured]) => {
     const descriptor =
-      configured && typeof configured === 'object' && 'when' in configured
+      configured &&
+      typeof configured === 'object' &&
+      ('when' in configured || 'case' in configured)
         ? (configured as PropertyEventDescriptor<
             unknown,
             SnapshotFromSource<TSource>,
             EventFromSource<TSource>
           >)
         : { generate: configured };
+    const caseName = descriptor.case ?? 'default';
+    if (!caseName) {
+      throw new Error(`Property event case for "${type}" must not be empty`);
+    }
+    const caseId = getPropertyEventCaseId(type, caseName);
     eventDescriptors.set(type, descriptor);
-    return { type, generator: descriptor.generate };
+    return { type, caseId, generator: descriptor.generate };
   });
   const commands: PropertyGeneratedCommand[] = [];
   for (const type of ['advance', 'checkpoint', 'stop'] as const) {
@@ -1080,6 +1182,19 @@ export async function propertyTest<
     }
   }
   const coverage = createPropertyCoverage(model.testLogic);
+  for (const event of events) {
+    declarePropertyEventCase(coverage, event.caseId);
+  }
+  const exploration: PropertyExplorationAccumulator = {
+    configuredRuns: 0,
+    configuredRunsUnknown: false,
+    completedRuns: 0,
+    maximumSequenceLength: 0,
+    maximumSequenceLengthUnknown: false,
+    frontiers: [],
+    seeds: [],
+    truncationReasons: new Set()
+  };
   const configuredFrontiers = options.frontiers;
   const frontierOptions: PropertyFrontierOptions<
     SnapshotFromSource<TSource>,
@@ -1126,6 +1241,7 @@ export async function propertyTest<
     ) {
       throw new Error('runsPerFrontier must return a positive integer');
     }
+    const attemptedRunsBefore = coverage.runs;
     const result = await options.adapter.run({
       events,
       commands,
@@ -1155,6 +1271,48 @@ export async function propertyTest<
       }
     });
 
+    const configuredRuns = result.exploration.configuredRuns;
+    if (configuredRuns === null) {
+      exploration.configuredRunsUnknown = true;
+    } else {
+      exploration.configuredRuns += configuredRuns;
+    }
+    exploration.completedRuns += result.runs;
+    const maximumSequenceLength = result.exploration.maximumSequenceLength;
+    if (maximumSequenceLength === null) {
+      exploration.maximumSequenceLengthUnknown = true;
+    } else {
+      exploration.maximumSequenceLength = Math.max(
+        exploration.maximumSequenceLength ?? 0,
+        maximumSequenceLength
+      );
+    }
+    const frontierId =
+      frontierContext?.id ?? JSON.stringify(['frontier', 'initial']);
+    exploration.frontiers.push({
+      id: frontierId,
+      prefixLength: prefixEvents.length,
+      runBudget: runBudget ?? null,
+      configuredRuns,
+      completedRuns: result.runs,
+      attemptedRuns: coverage.runs - attemptedRunsBefore
+    });
+    exploration.seeds.push({
+      frontierId,
+      engine: result.exploration.engine,
+      seed: result.exploration.seed,
+      path: result.exploration.path
+    });
+    for (const reason of result.exploration.truncationReasons ?? []) {
+      exploration.truncationReasons.add(reason);
+    }
+    if (
+      result.exploration.truncated &&
+      !(result.exploration.truncationReasons?.length ?? 0)
+    ) {
+      exploration.truncationReasons.add('adapter reported truncation');
+    }
+
     if (result.error !== undefined) {
       if (result.error instanceof PropertyTestFailure) {
         throw new PropertyTestFailure(
@@ -1162,7 +1320,11 @@ export async function propertyTest<
           result.error.trace,
           result.error.cause,
           result.replay,
-          result.error.fixture
+          result.error.fixture,
+          finalizePropertyCoverage(
+            coverage,
+            finalizeExploration(coverage, exploration)
+          )
         );
       }
       throw result.error instanceof Error
@@ -1171,7 +1333,12 @@ export async function propertyTest<
     }
   }
 
-  return { coverage: finalizePropertyCoverage(coverage) };
+  return {
+    coverage: finalizePropertyCoverage(
+      coverage,
+      finalizeExploration(coverage, exploration)
+    )
+  };
 }
 
 function normalizeFixtureTimeline(
