@@ -38,21 +38,20 @@ Do not fetch data in a guard. Invoke an actor, store the result in context, then
 
 ## Named guards
 
-Define reusable guards on `setup(...)` or the machine's `guards`. They are available as typed functions on every transition function's arguments.
+Define reusable guards on `setup(...)` or the machine's `guards`. A guard function receives the transition arguments object (`{ context, event, ... }`) first, followed by any params. Named guards are available as typed functions on every transition function's arguments; call one by forwarding the args object.
 
 ```ts
 const orderMachine = createMachine({
   context: { available: 0, quantity: 0 },
   guards: {
-    hasStock: ({ available, quantity }: { available: number; quantity: number }) =>
-      available >= quantity
+    hasStock: ({ context }) => context.available >= context.quantity
   },
   initial: 'browsing',
   states: {
     browsing: {
       on: {
-        addItem: ({ context, guards }) => {
-          if (!guards.hasStock(context)) return;
+        addItem: (args) => {
+          if (!args.guards.hasStock(args)) return;
           return { target: 'adding' };
         }
       }
@@ -104,10 +103,10 @@ on: {
 }
 
 // named guard
-guards: { isReady: ({ ready }: { ready: boolean }) => ready }
+guards: { isReady: ({ context }) => context.ready }
 on: {
-  start: ({ context, guards }) => {
-    if (guards.isReady(context)) return { target: 'active' };
+  start: (args) => {
+    if (args.guards.isReady(args)) return { target: 'active' };
   }
 }
 ```
