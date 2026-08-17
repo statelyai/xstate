@@ -1,5 +1,48 @@
 # xstate
 
+## 6.0.0-alpha.40
+
+### Minor Changes
+
+- 107d0c2: Represent historical machine versions with Standard Schema snapshot and event
+  descriptors instead of retaining their executable machines. Versioned machines
+  expose the same `snapshotSchema` and `eventSchema` interface. Machine-backed
+  snapshot schemas default omitted history and timer records during migration.
+  
+  ```ts
+  const versions = machineVersions([
+    {
+      id: 'checkout',
+      version: '1',
+      snapshotSchema: checkoutV1Snapshot,
+      eventSchema: checkoutV1Event
+    },
+    checkoutV2
+  ]);
+  
+  const snapshot = await versions.migrateSnapshot(persisted, {
+    to: '2',
+    migrations: {
+      '1': (snapshot) => ({
+        ...snapshot,
+        context: { total: snapshot.context.count }
+      })
+    }
+  });
+  ```
+
+### Patch Changes
+
+- 2e77ff6: `actor.getPersistedSnapshot()` is now typed to the actor’s logic, so persist/restore round-trips through `createActor(logic, { snapshot })` no longer require a cast. Restoring a snapshot into a machine with a different `id` is a type error, while snapshots from other versions of the same machine remain assignable (for runtime migration via `migrate`).
+  
+  ```ts
+  const actor = createActor(machine).start();
+  const snapshot = actor.getPersistedSnapshot();
+  
+  // No cast needed:
+  const restored = createActor(machine, { snapshot }).start();
+  ```
+
 ## 6.0.0-alpha.39
 
 ### Patch Changes
