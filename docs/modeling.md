@@ -3,7 +3,7 @@ title: Model application behavior
 description: Turn requirements into states, events and transitions.
 ---
 
-Start with behavior, not code.
+Model the behavior before writing implementation code.
 
 ## List the events
 

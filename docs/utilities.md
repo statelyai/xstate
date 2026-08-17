@@ -7,8 +7,8 @@ description: Work with actors, snapshots and state values.
 | --- | --- |
 | `waitFor(actor, predicate)` | Wait for a matching snapshot. |
 | `toPromise(actor)` | Resolve with an actor's output. |
-| `getInitialSnapshot(logic, input)` | Get the initial snapshot without starting an actor. |
-| `getNextSnapshot(logic, snapshot, event)` | Calculate the next snapshot. |
+| `initialTransition(logic, input?)` | Get `[snapshot, actions]` for the initial transition without starting an actor. |
+| `transition(logic, snapshot, event)` | Calculate `[nextSnapshot, actions]` for an event. |
 | `mapState(...)` | Map one state value to another value. |
 | `SimulatedClock` | Control time in tests. |
 
@@ -18,7 +18,7 @@ const finalSnapshot = await waitFor(actor, (snapshot) =>
 );
 ```
 
-Use `getInitialSnapshot(...)` and `getNextSnapshot(...)` for pure calculations. They do not start actors or run effects. Use `SimulatedClock` to test delays without waiting for real time.
+Use `initialTransition(...)` and `transition(...)` for pure calculations. They do not start actors or run effects; the returned actions describe the effects that an actor would execute. The older `getInitialSnapshot(...)` and `getNextSnapshot(...)` are deprecated aliases that return only the snapshot. Use `SimulatedClock` to test delays without waiting for real time.
 
 For example, a route loader can calculate an initial view without starting a long-lived actor. A timeout test can advance a simulated clock to the retry state.
 
@@ -27,6 +27,6 @@ For example, a route loader can calculate an initial view without starting a lon
 ```ts
 await waitFor(actor, predicate);
 await toPromise(actor);
-getInitialSnapshot(logic, input);
-getNextSnapshot(logic, snapshot, event);
+const [initialSnapshot, initialActions] = initialTransition(logic, input);
+const [nextSnapshot, actions] = transition(logic, snapshot, event);
 ```

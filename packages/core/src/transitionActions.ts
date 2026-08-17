@@ -362,6 +362,9 @@ export function createTransitionEnqueue(
   if (actorSubscriptions) {
     Object.assign(props, {
       listen: (actor: any, eventType: string, mapper: any) => {
+        if (!createActors) {
+          return { id: undefined } as unknown as AnyActor;
+        }
         const input: ListenerInput<any, any> = {
           actor,
           eventType,
@@ -379,6 +382,9 @@ export function createTransitionEnqueue(
         return listenerActor;
       },
       subscribeTo: (actor: any, mappers: any) => {
+        if (!createActors) {
+          return { id: undefined } as unknown as AnyActor;
+        }
         const normalizedMappers: SubscriptionMappers<any, any, any> =
           typeof mappers === 'function' ? { snapshot: mappers } : mappers;
 

@@ -1314,6 +1314,35 @@ export class StateMachine<
     };
 
     const revivedHistoryValue = reviveHistoryValue(snapshotData.historyValue);
+
+    const validateStateValue = (
+      stateValue: StateValue,
+      node: AnyStateNode,
+      path: string[]
+    ): void => {
+      const missingStateError = (statePath: string[]) =>
+        new Error(
+          `Persisted snapshot references state '${statePath.join('.')}' which does not exist on machine '${this.id}'.`
+        );
+      if (typeof stateValue === 'string') {
+        if (!node.states[stateValue]) {
+          throw missingStateError(path.concat(stateValue));
+        }
+        return;
+      }
+      if (!stateValue || typeof stateValue !== 'object') {
+        return;
+      }
+      for (const key of Object.keys(stateValue)) {
+        const childNode = node.states[key];
+        if (!childNode) {
+          throw missingStateError(path.concat(key));
+        }
+        validateStateValue(stateValue[key]!, childNode, path.concat(key));
+      }
+    };
+    validateStateValue(snapshotData.value, this.root, []);
+
     const nodes = Array.from(
       getAllStateNodes(getStateNodes(this.root, snapshotData.value))
     );

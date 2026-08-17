@@ -47,3 +47,8 @@ A media player can use parallel regions for playback and volume. Pausing playbac
 A checkout can use a parent `payment` state with `editingCard`, `authorizing` and `declined` children. A `cancel` transition on `payment` applies to every child.
 
 History is useful when a user temporarily leaves a multi-step form or a media player reconnects and should return to its previous mode.
+
+## What next?
+
+- [Final states](final-states.md), [history states](history-states.md), and [parallel states](parallel-states.md) for the full reference on each.
+- [How XState runs your machine](how-xstate-runs-machines.md) for how nested and parallel states process events.

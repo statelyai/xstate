@@ -1,4 +1,58 @@
-export * from './actors/index.ts';
+// Explicit named re-exports (not `export *`): the root entry must stay
+// statically analyzable by Node's CJS export lexer, which loses names that
+// only flow through a star re-export when this file is compiled to CJS
+// (e.g. preconstruct dev mode under `tsx`).
+export {
+  createAsyncLogic,
+  createCallbackLogic,
+  createEmptyActor,
+  createEventObservableLogic,
+  createListenerLogic,
+  createLogic,
+  createObservableLogic,
+  createSubscriptionLogic,
+  listenerLogic,
+  subscriptionLogic,
+  TimeoutError,
+  type AsyncActorLogic,
+  type AsyncActorRef,
+  type AsyncLogicArgs,
+  type AsyncLogicConfig,
+  type AsyncLogicEnqueue,
+  type AsyncLogicFunction,
+  type AsyncSnapshot,
+  type CallbackActorLogic,
+  type CallbackActorRef,
+  type CallbackLogicConfig,
+  type CallbackLogicFunction,
+  type CallbackSnapshot,
+  type EventObservableLogicConfig,
+  type EventObservableLogicFunction,
+  type ListenerActorLogic,
+  type ListenerActorRef,
+  type ListenerInput,
+  type ListenerSnapshot,
+  type LogicActorLogic,
+  type LogicActorRef,
+  type LogicArgs,
+  type LogicConfig,
+  type LogicEffect,
+  type LogicEffectState,
+  type LogicEnqueue,
+  type LogicFunction,
+  type LogicPatch,
+  type LogicSnapshot,
+  type ObservableActorLogic,
+  type ObservableActorRef,
+  type ObservableLogicConfig,
+  type ObservableLogicFunction,
+  type ObservableSnapshot,
+  type SubscriptionActorLogic,
+  type SubscriptionActorRef,
+  type SubscriptionInput,
+  type SubscriptionMappers,
+  type SubscriptionSnapshot
+} from './actors/index.ts';
 export { assertEvent } from './assert.ts';
 export {
   Actor,
@@ -86,7 +140,8 @@ export type {
   AnyActorSystem
 } from './system.ts';
 export { toPromise } from './toPromise.ts';
-export * from './types.ts';
+export type * from './types.ts';
+export { SpecialTargets } from './types.ts';
 export type {
   Next_MachineConfig as MachineConfig,
   Next_StateNodeConfig as StateNodeConfig,
