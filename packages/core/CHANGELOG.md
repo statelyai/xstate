@@ -1,5 +1,77 @@
 # xstate
 
+## 6.0.0-alpha.39
+
+### Patch Changes
+
+- 7a7e564: Fixed a bug where `enq.subscribeTo(…)` and `enq.listen(…)` silently did nothing when called inside a transition function. They now work the same as in `entry` actions:
+  
+  ```ts
+  const machine = createMachine({
+    on: {
+      start: (_, enq) => {
+        const child = enq.spawn(childLogic);
+        enq.subscribeTo(child, {
+          done: (output) => ({ type: 'childDone', output })
+        });
+      },
+      childDone: ({ event }) => {
+        // event.output is the child's output
+      }
+    }
+  });
+  ```
+- 4e6dbfd: Named imports from the root `xstate` entry (such as the actor logic creators and `SpecialTargets`) now work in all environments, including tools that load the package as CommonJS.
+  
+  ```ts
+  import { createAsyncLogic } from 'xstate'; // now works everywhere
+  ```
+- 20a52b9: Optional event payload fields declared with `types()` are now preserved instead of being made required:
+  
+  ```ts
+  const machine = setup({
+    schemas: {
+      events: {
+        submit: types<{ email: string; referrer?: string }>()
+      }
+    }
+  }).createMachine({
+    // ...
+  });
+  
+  // referrer can now be omitted
+  actor.send({ type: 'submit', email: 'a@b.co' });
+  ```
+  
+  Payloads inferred from validator libraries (e.g. Zod) are still wrapped in `Required<>`.
+- 20a52b9: `snapshot.value` is now structurally typed from the machine config instead of the generic `StateValue` type. Flat machines get a union of state keys, and parallel machines get an object type with a key per region:
+  
+  ```ts
+  const machine = createMachine({
+    type: 'parallel',
+    states: {
+      bold: { initial: 'off', states: { off: {}, on: {} } },
+      italic: { initial: 'off', states: { off: {}, on: {} } }
+    }
+  });
+  
+  const value = createActor(machine).getSnapshot().value;
+  // { bold: 'off' | 'on'; italic: 'off' | 'on' }
+  ```
+- 90a173a: Fixed `createSystem(...).setup(...)` to preserve runtime validator types alongside typed actor registries. Validated setups now reject unsupported transforming schemas and carry validation into derived setups.
+  
+  Runtime validation can now also be installed on a derived setup when its inherited schemas are compatible:
+  
+  ```ts
+  import { setup } from 'xstate';
+  import { standardSchemaValidator } from 'xstate/validation';
+  import { z } from 'zod';
+  
+  const validated = setup({
+    schemas: { input: z.object({ id: z.string() }) }
+  }).extend({ validator: standardSchemaValidator() });
+  ```
+
 ## 6.0.0-alpha.38
 
 ### Patch Changes
