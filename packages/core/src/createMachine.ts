@@ -7,7 +7,7 @@ import {
   Cast,
   MachineContext,
   ProvidedActor,
-  StateValue,
+  StateValueFromStateSchema,
   ToChildren,
   MetaObject,
   StateSchema,
@@ -168,7 +168,7 @@ export function createMachine<
     MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
     Record<string, AnyActorRef | undefined>
   >,
-  StateValue,
+  StateValueFromStateSchema<TSS>,
   TTag & string,
   TInput,
   InferOutput<TOutputSchema, unknown>,
@@ -271,7 +271,7 @@ export function createMachine<
     MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
     Record<string, AnyActorRef | undefined>
   >,
-  StateValue,
+  StateValueFromStateSchema<TSS>,
   TTag & string,
   TInput,
   InferOutput<TOutputSchema, unknown>,

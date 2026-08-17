@@ -1249,13 +1249,14 @@ export type StateFrom<
     ? StateSnapshotFromMachine<ReturnType<T>>
     : never;
 
-type StateValueFromStateSchema<T extends StateSchema> = StateSchema extends T
-  ? StateValue
-  : ToStateValue<T> extends infer TStateValue
-    ? TStateValue extends StateValue
-      ? TStateValue
-      : StateValue
-    : StateValue;
+export type StateValueFromStateSchema<T extends StateSchema> =
+  StateSchema extends T
+    ? StateValue
+    : ToStateValue<T> extends infer TStateValue
+      ? TStateValue extends StateValue
+        ? TStateValue
+        : StateValue
+      : StateValue;
 
 type MatchingStateValueForStateFrom<
   TStateValue extends StateValue,

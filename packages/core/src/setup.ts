@@ -20,6 +20,7 @@ import {
   RoutableStateId,
   StateSchema,
   StateValue,
+  StateValueFromStateSchema,
   ToChildren,
   MetaObject,
   Cast,
@@ -2009,7 +2010,12 @@ export interface SetupReturn<
       MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
       Record<string, AnyActorRef | undefined>
     >,
-    StateValue,
+    StateValueFromStateSchema<
+      MergeStateSchema<
+        Cast<TConfig, StateSchema>,
+        SetupStatesToStateSchema<TStates>
+      >
+    >,
     TTag & string,
     [SetupSchema<TSchemas, 'input'>] extends [never]
       ? TInput

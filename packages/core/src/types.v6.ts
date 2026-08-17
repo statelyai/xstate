@@ -1,4 +1,8 @@
-import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
+import {
+  SetupStateSchemas,
+  StandardSchemaV1,
+  TypeSchema
+} from './schema.types.ts';
 import { MachineSnapshot } from './State';
 import {
   Action,
@@ -50,7 +54,9 @@ export type InferOutput<T extends StandardSchemaV1, U> = Compute<
 /**
  * Event payloads from schemas (e.g. Zod) are often inferred as optional in
  * output types. Wrapping in Required<> ensures properties defined in the schema
- * are required on the event.
+ * are required on the event. Type-only schemas created with the `types()`
+ * helper are exempt: their declared type is authoritative, so optional
+ * properties stay optional.
  */
 export type InferEvents<
   TEventSchemaMap extends Record<string, StandardSchemaV1>
@@ -67,10 +73,17 @@ export type InferEvents<
           : string extends keyof O
             ? [O[string]] extends [never]
               ? { type: K }
-              : Required<O> & { type: K }
-            : Required<O> & { type: K }
+              : NormalizeEventPayload<TEventSchemaMap[K], O> & { type: K }
+            : NormalizeEventPayload<TEventSchemaMap[K], O> & { type: K }
     : never;
 }>;
+
+/**
+ * Keeps a type-only schema's payload verbatim; applies Required<> to payloads
+ * from validator libraries (see {@link InferEvents}).
+ */
+type NormalizeEventPayload<TSchema extends StandardSchemaV1, O> =
+  TSchema extends TypeSchema<any> ? O : Required<O>;
 
 export type InferChildren<
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>
