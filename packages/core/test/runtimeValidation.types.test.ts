@@ -108,15 +108,37 @@ describe('runtime validation types', () => {
     });
   });
 
-  it('requires validation to be installed by the root setup', () => {
+  it('can install validation on a compatible derived setup', () => {
     const transforming = z.string().transform((value) => value.length);
-    const base = setup({ schemas: { input: transforming } });
+    setup().extend({ validator: standardSchemaValidator() });
+    const validated = setup({ schemas: { input: z.string() } }).extend({
+      validator: standardSchemaValidator()
+    });
 
     if (false) {
-      base.extend({
-        // @ts-expect-error - validation must be installed by the root setup
+      validated.createMachine({
+        schemas: {
+          // @ts-expect-error - derived validation applies to inline schemas
+          output: transforming
+        }
+      });
+    }
+
+    const incompatible = setup({ schemas: { input: transforming } });
+
+    if (false) {
+      // @ts-expect-error - inherited schema transforms cannot be validated
+      incompatible.extend({
         validator: standardSchemaValidator()
       });
+
+      const incompatibleState = setup({
+        states: {
+          loading: { schemas: { input: transforming } }
+        }
+      });
+      // @ts-expect-error - inherited state schema transforms cannot be validated
+      incompatibleState.extend({ validator: standardSchemaValidator() });
     }
   });
 

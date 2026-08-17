@@ -30,6 +30,28 @@ const orderMachine = orderSetup.createMachine({
 
 Use `setup(...).extend(...)` to build a more specific setup from a shared one, merging schemas and sources.
 
+## Runtime validation
+
+<!-- runtime validation behavior from packages/core/src/setup.ts and packages/core/src/validation/index.ts -->
+
+Schemas provide type inference by default. Install `standardSchemaValidator()` to check actor inputs, events, snapshots and outputs at runtime:
+
+```ts
+import { setup } from 'xstate';
+import { standardSchemaValidator } from 'xstate/validation';
+import { z } from 'zod';
+
+const base = setup({
+  schemas: { input: z.object({ orderId: z.string() }) }
+});
+
+const validated = base.extend({
+  validator: standardSchemaValidator()
+});
+```
+
+Validation can be installed, replaced or disabled by a derived setup. Installing it checks inherited and new schemas for compatibility. Runtime validation is assertion-only, so schemas that transform one type into another are rejected; disable validation with `validator: undefined` when transformations are required.
+
 ## Sources on the machine
 
 `actions`, `guards`, `actors` and `delays` can be declared directly on `createMachine(...)` instead of on `setup(...)`. Use `setup(...)` when several machines share the same sources or when state schemas are needed.

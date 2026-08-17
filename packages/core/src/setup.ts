@@ -165,6 +165,16 @@ type RuntimeValidationConstraint<TSchemas, TStates, TValidator> = [
     }
   : unknown;
 
+type RuntimeValidationCompatibility<TSchemas, TStates, TValidator> = [
+  TValidator
+] extends [ActorLogicValidator]
+  ? [TSchemas] extends [ValidateSetupSchemas<TSchemas>]
+    ? [TStates] extends [ValidateSetupStates<TStates>]
+      ? unknown
+      : RuntimeValidationDoesNotSupportTransformingSchemas
+    : RuntimeValidationDoesNotSupportTransformingSchemas
+  : unknown;
+
 declare const inheritedValidator: unique symbol;
 type InheritedValidator = typeof inheritedValidator;
 
@@ -203,10 +213,7 @@ type SetupExtensionConfig<
   'validator'
 > &
   ExtendValidatorConfig<TExtendValidator> &
-  (TBaseValidator extends ActorLogicValidator
-    ? unknown
-    : { validator?: never }) &
-  RuntimeValidationConstraint<
+  RuntimeValidationCompatibility<
     NoInfer<TBaseSchemas>,
     NoInfer<TBaseStates>,
     ResolveExtendedValidator<TBaseValidator, TExtendValidator>
@@ -2130,6 +2137,64 @@ export type SetupReturnFromConfig<
     : undefined
 >;
 
+type SetupFunction<TSystemRegistry extends SystemRegistry = SystemRegistry> = {
+  (): SetupReturn<
+    Record<string, SetupStateSchema>,
+    {},
+    {},
+    {},
+    {},
+    {},
+    never,
+    TSystemRegistry
+  >;
+  <
+    const TSchemas extends SetupSchemas = {},
+    const TStates extends Record<string, SetupStateSchema> = Record<
+      string,
+      SetupStateSchema
+    >,
+    TActionMap extends Sources['actions'] = {},
+    TActorMap extends Sources['actors'] = {},
+    TGuardMap extends Sources['guards'] = {},
+    TDelayMap extends Sources['delays'] = {},
+    const TValidator extends ActorLogicValidator | undefined = undefined
+  >(
+    config: SetupConfig<
+      TSchemas,
+      TStates,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TValidator
+    > &
+      RuntimeValidationConstraint<
+        NoInfer<TSchemas>,
+        NoInfer<TStates>,
+        TValidator
+      >
+  ): SetupReturn<
+    TStates,
+    TSchemas,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    Extract<keyof TDelayMap, string>,
+    TSystemRegistry,
+    TValidator
+  >;
+  <const TConfig extends AnySetupConfig>(
+    config: TConfig &
+      RuntimeValidationConstraint<
+        NoInfer<SetupConfigSchemas<TConfig>>,
+        NoInfer<SetupConfigStates<TConfig>>,
+        TConfig extends { validator: infer TValidator } ? TValidator : undefined
+      >
+  ): SetupReturnFromConfig<TConfig, TSystemRegistry>;
+};
+
 /**
  * Sets up a state machine with state input schemas and other configuration.
  *
@@ -2166,49 +2231,7 @@ export type SetupReturnFromConfig<
  * });
  * ```
  */
-export function setup(): SetupReturn;
-export function setup<
-  const TSchemas extends SetupSchemas = {},
-  const TStates extends Record<string, SetupStateSchema> = Record<
-    string,
-    SetupStateSchema
-  >,
-  TActionMap extends Sources['actions'] = {},
-  TActorMap extends Sources['actors'] = {},
-  TGuardMap extends Sources['guards'] = {},
-  TDelayMap extends Sources['delays'] = {},
-  const TValidator extends ActorLogicValidator | undefined = undefined
->(
-  config: SetupConfig<
-    TSchemas,
-    TStates,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap,
-    TValidator
-  > &
-    RuntimeValidationConstraint<NoInfer<TSchemas>, NoInfer<TStates>, TValidator>
-): SetupReturn<
-  TStates,
-  TSchemas,
-  TActionMap,
-  TActorMap,
-  TGuardMap,
-  TDelayMap,
-  Extract<keyof TDelayMap, string>,
-  SystemRegistry,
-  TValidator
->;
-export function setup<const TConfig extends AnySetupConfig>(
-  config: TConfig &
-    RuntimeValidationConstraint<
-      NoInfer<SetupConfigSchemas<TConfig>>,
-      NoInfer<SetupConfigStates<TConfig>>,
-      TConfig extends { validator: infer TValidator } ? TValidator : undefined
-    >
-): SetupReturnFromConfig<TConfig>;
-export function setup<
+export const setup = function setupImplementation<
   const TSchemas extends SetupSchemas = {},
   const TStates extends Record<string, SetupStateSchema> = Record<
     string,
@@ -2322,7 +2345,7 @@ export function setup<
     states,
     schemas: schemas ?? ({} as TSchemas)
   };
-}
+} as SetupFunction;
 
 type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
   createActor<TLogic extends AnyActorLogic>(
@@ -2340,61 +2363,7 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
       | Observer<InspectionEvent>
       | ((inspectionEvent: InspectionEvent) => void)
   ): Subscription;
-  setup(): SetupReturn<
-    Record<string, SetupStateSchema>,
-    {},
-    {},
-    {},
-    {},
-    {},
-    never,
-    TSystemRegistry
-  >;
-  setup<
-    const TSchemas extends SetupSchemas = {},
-    const TStates extends Record<string, SetupStateSchema> = Record<
-      string,
-      SetupStateSchema
-    >,
-    TActionMap extends Sources['actions'] = {},
-    TActorMap extends Sources['actors'] = {},
-    TGuardMap extends Sources['guards'] = {},
-    TDelayMap extends Sources['delays'] = {},
-    const TValidator extends ActorLogicValidator | undefined = undefined
-  >(
-    config: SetupConfig<
-      TSchemas,
-      TStates,
-      TActionMap,
-      TActorMap,
-      TGuardMap,
-      TDelayMap,
-      TValidator
-    > &
-      RuntimeValidationConstraint<
-        NoInfer<TSchemas>,
-        NoInfer<TStates>,
-        TValidator
-      >
-  ): SetupReturn<
-    TStates,
-    TSchemas,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap,
-    Extract<keyof TDelayMap, string>,
-    TSystemRegistry,
-    TValidator
-  >;
-  setup<const TConfig extends AnySetupConfig>(
-    config: TConfig &
-      RuntimeValidationConstraint<
-        NoInfer<SetupConfigSchemas<TConfig>>,
-        NoInfer<SetupConfigStates<TConfig>>,
-        TConfig extends { validator: infer TValidator } ? TValidator : undefined
-      >
-  ): SetupReturnFromConfig<TConfig, TSystemRegistry>;
+  setup: SetupFunction<TSystemRegistry>;
 };
 
 export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
@@ -2457,9 +2426,7 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
         }
       };
     },
-    setup(config?: AnySetupConfig) {
-      return (config ? setup(config) : setup()) as any;
-    }
+    setup: setup as SetupFunction<TSystemRegistry>
   };
 }
 

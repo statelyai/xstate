@@ -137,6 +137,21 @@ describe('runtime schema validation', () => {
     ).not.toThrow();
   });
 
+  it('can be installed by a derived setup', () => {
+    const validated = setup({
+      schemas: { input: z.object({ count: z.number() }) }
+    }).extend({ validator: standardSchemaValidator() });
+
+    expectValidationError(
+      getThrown(() =>
+        initialTransition(validated.createMachine({}), {
+          count: 'invalid'
+        } as any)
+      ),
+      'input'
+    );
+  });
+
   it('calls validators only at pure calculation boundaries', () => {
     const check = vi.fn<ActorLogicValidator['check']>(() => undefined);
     const machine = setup({ validator: { check } }).createMachine({
