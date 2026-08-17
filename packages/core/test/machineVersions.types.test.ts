@@ -104,7 +104,7 @@ async function checkSnapshotMigrationTypes() {
   });
 
   createActor(checkoutV2, { snapshot: compatible });
-  // @ts-expect-error a v2 snapshot is not compatible with the v1 machine
+  // a snapshot from another version of the same machine is accepted (migration path)
   createActor(checkoutV1, { snapshot: compatible });
 
   await versions.migrateSnapshot(

@@ -311,22 +311,7 @@ export class StateMachine<
     actors?: TProvidedActorMap & ProvidedActors<TActorMap, TProvidedActorMap>;
     guards?: Partial<TGuardMap>;
     delays?: Partial<TDelayMap>;
-  }): StateMachine<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta,
-    TConfig,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap
-  > {
+  }): this {
     const { actions, guards, actors, delays } = this.sources;
 
     const provided = new StateMachine(
