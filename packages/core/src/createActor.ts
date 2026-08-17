@@ -45,7 +45,8 @@ import type {
   SnapshotFrom,
   AnyTransitionDefinition,
   ExecutableActionObject,
-  Readable
+  Readable,
+  ActorLogicTransitionResult
 } from './types.ts';
 import {
   ActorOptions,
@@ -58,9 +59,14 @@ import {
 } from './types.ts';
 import { toObserver } from './utils.ts';
 import { finalizeTransitionResult } from './transitionActions.ts';
-import { setSnapshotActorRef } from './snapshotActorRef.ts';
+import {
+  refreshSnapshotActorRefRoot,
+  setSnapshotActorRef
+} from './snapshotActorRef.ts';
 
 export const $$ACTOR_TYPE = 1;
+
+const emptyInspectionRecords = Object.freeze([]) as unknown as never[];
 
 // those values are currently used by @xstate/react directly so it's important to keep the assigned values in sync
 export enum ProcessingStatus {
@@ -69,7 +75,7 @@ export enum ProcessingStatus {
   Stopped = 2
 }
 
-const defaultOptions = {
+const defaultOptions = Object.freeze({
   clock: {
     setTimeout: (fn, ms) => {
       return setTimeout(fn, ms);
@@ -79,7 +85,7 @@ const defaultOptions = {
     }
   } as Clock,
   logger: console.log.bind(console)
-};
+});
 
 function safeCall<T>(fn: ((arg: T) => void) | undefined, arg?: T) {
   try {
@@ -100,6 +106,13 @@ function executeExecutableEffects(
   for (const effect of effects) {
     actorScope.actionExecutor(effect);
   }
+}
+
+function createActorRef(
+  logic: AnyActorLogic,
+  options: ActorOptions<AnyActorLogic>
+): AnyActor {
+  return new Actor(logic, options);
 }
 
 /**
@@ -130,17 +143,14 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** The unique identifier for this actor relative to its parent. */
   public id: string;
 
-  private readonly _boundProcess = this._process.bind(this);
+  private _boundProcess?: (event: EventFromLogic<TLogic>) => void;
+  private mailbox?: Mailbox<EventFromLogic<TLogic>>;
+  private _mailboxStarted = false;
 
-  private mailbox: Mailbox<EventFromLogic<TLogic>> = new Mailbox(
-    this._boundProcess
-  );
-
-  private observers: Set<Observer<SnapshotFrom<TLogic>>> = new Set();
-  private eventListeners: Map<
-    string,
-    Set<(emittedEvent: EmittedFrom<TLogic>) => void>
-  > = new Map();
+  private observers?: Set<Observer<SnapshotFrom<TLogic>>>;
+  private eventListeners:
+    | Map<string, Set<(emittedEvent: EmittedFrom<TLogic>) => void>>
+    | undefined;
   private logger: (...args: any[]) => void;
 
   /** @internal */
@@ -169,11 +179,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** @internal */
   public _lastSourceRef?: AnyActor;
   /** @internal */
-  public _collectedMicrosteps: AnyTransitionDefinition[] = [] as any;
+  public _collectedMicrosteps: AnyTransitionDefinition[] | undefined;
   /** @internal Actions executed during the in-flight transition. */
-  public _collectedActions: ActionRecord[] = [];
+  public _collectedActions: ActionRecord[] | undefined;
   /** @internal Events relayed to other actors during the in-flight transition. */
-  public _collectedSent: SentRecord[] = [];
+  public _collectedSent: SentRecord[] | undefined;
   private _initialEffects: ExecutableActionObject[] | undefined;
   public registryKey: string | undefined;
 
@@ -183,7 +193,36 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** The system to which this actor belongs. */
   public system: AnyActorSystem;
 
-  public trigger: ActorTrigger<SendableEventFromLogic<TLogic>>;
+  private _trigger?: ActorTrigger<SendableEventFromLogic<TLogic>>;
+
+  public get trigger(): ActorTrigger<SendableEventFromLogic<TLogic>> {
+    return (this._trigger ??= new Proxy({} as Actor<TLogic>['trigger'], {
+      get: (_, eventType: string) => {
+        return (payload?: Record<PropertyKey, unknown>) => {
+          this.send({
+            ...payload,
+            type: eventType
+          } as SendableEventFromLogic<TLogic>);
+        };
+      }
+    }) as ActorTrigger<SendableEventFromLogic<TLogic>>);
+  }
+
+  private _boundSend?: ActorRef<
+    SnapshotFrom<TLogic>,
+    EventFromLogic<TLogic>,
+    EmittedFrom<TLogic>,
+    SendableEventFromLogic<TLogic>
+  >['send'];
+
+  public get send(): ActorRef<
+    SnapshotFrom<TLogic>,
+    EventFromLogic<TLogic>,
+    EmittedFrom<TLogic>,
+    SendableEventFromLogic<TLogic>
+  >['send'] {
+    return (this._boundSend ??= this._sendPublic.bind(this));
+  }
 
   public src: string | AnyActorLogic;
 
@@ -198,10 +237,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     public logic: TLogic,
     options?: ActorOptions<TLogic>
   ) {
-    const resolvedOptions = {
-      ...defaultOptions,
-      ...options
-    };
+    const resolvedOptions = (
+      options ? { ...defaultOptions, ...options } : defaultOptions
+    ) as ActorOptions<TLogic> & typeof defaultOptions;
 
     const { clock, logger, parent, syncSnapshot, id, registryKey, inspect } =
       resolvedOptions;
@@ -213,8 +251,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
           clock,
           logger,
           snapshot: resolvedOptions.snapshot ?? resolvedOptions.state,
-          createActorRef: (childLogic, childOptions) =>
-            createActor(childLogic, childOptions as any)
+          createActorRef
         }));
 
     if (
@@ -240,65 +277,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       typeof defaultOptions;
     this.src = resolvedOptions.src ?? logic;
     this.ref = this;
-    this._actorScope = {
-      self: this,
-      id: this.id,
-      sessionId: this.sessionId,
-      logger: this.logger,
-      defer: (fn) => {
-        this._deferred.push(fn);
-      },
-      system: this.system,
-      stopChild: (child) => {
-        if (child._parent !== this) {
-          throw new Error(
-            isDevelopment
-              ? `Cannot stop child actor ${child.id} of ${this.id} because it is not a child`
-              : `Cannot stop non-child actor ${child.id}`
-          );
-        }
-        (child as Actor<AnyActorLogic>)._stop();
-      },
-      emit: (emittedEvent) =>
-        this.system.emitEvent(this, emittedEvent as EventObject),
-      actionExecutor: (action) => {
-        const exec = () => {
-          // Record every executed action for the '@xstate.transition' inspection
-          // event's `actions[]` facet (replaces the v5 '@xstate.action' event).
-          this._collectedActions.push({
-            type: action.type,
-            params: action.params
-          });
-          const saveExecutingCustomAction = executingCustomAction;
-          try {
-            executingCustomAction = true;
-
-            void action.exec();
-          } finally {
-            executingCustomAction = saveExecutingCustomAction;
-          }
-        };
-        if (
-          this._processingStatus === ProcessingStatus.Running &&
-          !this._forceDeferredActions
-        ) {
-          exec();
-        } else {
-          this._deferred.push(exec);
-        }
-      }
-    };
-
-    // Ensure that the send method is bound to this Actor instance
-    // if destructured
-    this.send = this.send.bind(this);
-    this.trigger = new Proxy({} as Actor<TLogic>['trigger'], {
-      get: (_, eventType: string) => {
-        return (payload?: any) => {
-          this.send({ ...payload, type: eventType });
-        };
-      }
-    });
+    this._actorScope = this as unknown as typeof this._actorScope;
 
     if (registryKey) {
       this.registryKey = registryKey;
@@ -306,7 +285,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     // prepare to collect initial microsteps during initialTransition
-    this._collectedMicrosteps = [] as any;
+    this._collectedMicrosteps = undefined;
     const persistedState = options?.snapshot ?? options?.state;
     this._restored = persistedState !== undefined;
     try {
@@ -316,7 +295,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
             ? this.logic.restoreSnapshot(persistedState, this._actorScope)
             : persistedState
         );
-      } else if ((options as any)?._inert) {
+      } else if (options?._inert) {
         // Inert actors (createInertActorScope) only anchor a scope for pure
         // transition functions; computing an initial snapshot here would run
         // init-time side effects (context factories, entry) a second time.
@@ -327,7 +306,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
           this.logic.initialTransition(this.options?.input, this._actorScope)
         );
         this._setSnapshot(snapshot);
-        this._initialEffects = effects;
+        this._initialEffects = effects.length ? effects : undefined;
       }
     } catch (err) {
       // if we get here then it means that we assign a value to this._snapshot that is not of the correct type
@@ -337,38 +316,135 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         status: 'error',
         output: undefined,
         error: err
-      } as any);
+      } as SnapshotFrom<TLogic>);
       // discard any functions deferred during the failed initial snapshot
       // computation so they can't run against an inconsistent actor
-      this._deferred.length = 0;
+      if (this._deferred) {
+        this._deferred.length = 0;
+      }
     }
 
-    if (registryKey && (this._snapshot as any).status !== 'active') {
+    if (
+      registryKey &&
+      (this._snapshot as Snapshot<unknown>).status !== 'active'
+    ) {
       this.system._unregister(this);
     }
 
     // Announce actor topology: emitted once for every actor (root and every
     // spawned/invoked child) so the actor graph can be drawn before any
     // transitions occur. This is the only place actor identity is announced.
-    this.system._sendInspectionEvent({
-      type: '@xstate.actor',
-      actorRef: this as any,
-      parentRef: this._parent,
-      id: this.id,
-      src: this.src,
-      snapshot: this._snapshot
-    });
+    if (this.system._hasInspectionObservers?.() ?? true) {
+      this.system._sendInspectionEvent({
+        type: '@xstate.actor',
+        actorRef: this,
+        parentRef: this._parent,
+        id: this.id,
+        src: this.src,
+        snapshot: this._snapshot
+      });
+    }
   }
 
   // array of functions to defer
-  private _deferred: Array<() => void> = [];
+  private _deferred: Array<() => void> | undefined;
 
   private _restored = false;
 
+  /** @internal */
+  public _getLogger(): ActorScope<
+    SnapshotFrom<TLogic>,
+    EventFromLogic<TLogic>
+  >['logger'] {
+    return this.logger;
+  }
+
+  private get self(): Actor<TLogic> {
+    return this;
+  }
+
+  private get defer(): (fn: () => void) => void {
+    const defer = (fn: () => void) => this._defer(fn);
+    Object.defineProperty(this, 'defer', { value: defer });
+    return defer;
+  }
+
+  private get stopChild(): (child: AnyActor) => void {
+    const stopChild = (child: AnyActor) => this._stopChild(child);
+    Object.defineProperty(this, 'stopChild', { value: stopChild });
+    return stopChild;
+  }
+
+  private get emit(): (event: EmittedFrom<TLogic>) => void | PromiseLike<void> {
+    const emit = (event: EmittedFrom<TLogic>) =>
+      this.system.emitEvent(this, event);
+    Object.defineProperty(this, 'emit', { value: emit });
+    return emit;
+  }
+
+  private get actionExecutor(): (action: ExecutableActionObject) => void {
+    const actionExecutor = (action: ExecutableActionObject) =>
+      this._executeAction(action);
+    Object.defineProperty(this, 'actionExecutor', { value: actionExecutor });
+    return actionExecutor;
+  }
+
+  /** @internal */
+  public _isRunning(): boolean {
+    return this._processingStatus === ProcessingStatus.Running;
+  }
+
+  /** @internal */
+  public _defer(fn: () => void): void {
+    (this._deferred ??= []).push(fn);
+  }
+
+  /** @internal */
+  public _stopChild(child: AnyActor): void {
+    if (child._parent !== this) {
+      throw new Error(
+        isDevelopment
+          ? `Cannot stop child actor ${child.id} of ${this.id} because it is not a child`
+          : `Cannot stop non-child actor ${child.id}`
+      );
+    }
+    (child as Actor<AnyActorLogic>)._stop();
+  }
+
+  /** @internal */
+  public _executeAction(action: ExecutableActionObject): void {
+    const exec = () => {
+      // Record every executed action for the '@xstate.transition' inspection
+      // event's `actions[]` facet (replaces the v5 '@xstate.action' event).
+      if (this.system._hasInspectionObservers?.() ?? true) {
+        (this._collectedActions ??= []).push({
+          type: action.type,
+          params: action.params
+        });
+      }
+      const saveExecutingCustomAction = executingCustomAction;
+      try {
+        executingCustomAction = true;
+        void action.exec();
+      } finally {
+        executingCustomAction = saveExecutingCustomAction;
+      }
+    };
+    if (
+      this._processingStatus === ProcessingStatus.Running &&
+      !this._forceDeferredActions
+    ) {
+      exec();
+    } else {
+      (this._deferred ??= []).push(exec);
+    }
+  }
+
   /** Associates each live snapshot with this actor for later pure transitions. */
   private _setSnapshot(snapshot: SnapshotFrom<TLogic>): void {
+    const previousSnapshot = this._snapshot;
     this._snapshot = snapshot;
-    setSnapshotActorRef(snapshot, this);
+    setSnapshotActorRef(snapshot, this, this.system, previousSnapshot);
   }
 
   private _setErrorSnapshot(
@@ -376,10 +452,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     snapshot: SnapshotFrom<TLogic> = this._snapshot
   ) {
     this._setSnapshot({
-      ...(snapshot as any),
+      ...(snapshot as Snapshot<unknown>),
       status: 'error',
       error: err
-    });
+    } as SnapshotFrom<TLogic>);
   }
 
   /** Recover via the logic's error event if possible; otherwise error out. */
@@ -424,7 +500,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   private _next(snapshot: SnapshotFrom<TLogic>) {
-    for (const observer of this.observers) {
+    for (const observer of this.observers ?? emptyInspectionRecords) {
       safeCall(observer.next, snapshot);
     }
   }
@@ -434,8 +510,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     this._setSnapshot(snapshot);
 
     // Execute deferred effects
-    for (let i = 0; i < this._deferred.length; i++) {
-      const deferredFn = this._deferred[i];
+    const deferred = this._deferred;
+    for (let i = 0; i < (deferred?.length ?? 0); i++) {
+      const deferredFn = deferred![i];
       try {
         deferredFn();
       } catch (err) {
@@ -444,7 +521,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         // when the actor is already running we always execute them synchronously while transitioning
         // no "builtin deferred" should actually throw an error since they are either safe
         // or the control flow is passed through the mailbox and errors should be caught by the `_process` used by the mailbox
-        this._deferred.length = 0;
+        deferred!.length = 0;
         if (this._tryHandleExecutionError(err, snapshot)) {
           return;
         }
@@ -453,9 +530,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         break;
       }
     }
-    this._deferred.length = 0;
+    if (deferred) {
+      deferred.length = 0;
+    }
 
-    switch ((this._snapshot as any).status) {
+    switch ((this._snapshot as Snapshot<unknown>).status) {
       case 'active':
         this._next(snapshot);
         break;
@@ -472,25 +551,27 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     snapshot: SnapshotFrom<TLogic>,
     event: EventObject
   ): void {
-    this.system._sendInspectionEvent({
-      type: '@xstate.transition',
-      actorRef: this as any,
-      event,
-      sourceRef: this._lastSourceRef,
-      targetRef: this as any,
-      snapshot,
-      microsteps: this._collectedMicrosteps as any,
-      actions: this._collectedActions,
-      sent: this._collectedSent,
-      eventType: event.type
-    });
-    this._collectedMicrosteps = [] as any;
-    this._collectedActions = [];
-    this._collectedSent = [];
+    if (this.system._hasInspectionObservers?.() ?? true) {
+      this.system._sendInspectionEvent({
+        type: '@xstate.transition',
+        actorRef: this,
+        event,
+        sourceRef: this._lastSourceRef,
+        targetRef: this,
+        snapshot,
+        microsteps: this._collectedMicrosteps ?? emptyInspectionRecords,
+        actions: this._collectedActions ?? emptyInspectionRecords,
+        sent: this._collectedSent ?? emptyInspectionRecords,
+        eventType: event.type
+      });
+    }
+    this._collectedMicrosteps = undefined;
+    this._collectedActions = undefined;
+    this._collectedSent = undefined;
   }
 
   private _flushInitialEffects(): boolean {
-    if (!this._initialEffects) {
+    if (!this._initialEffects?.length) {
       return true;
     }
     this._forceDeferredActions = true;
@@ -500,9 +581,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       return true;
     } catch (err) {
       this._initialEffects = undefined;
-      this._deferred.length = 0;
+      if (this._deferred) {
+        this._deferred.length = 0;
+      }
       this._recoverOrError(err);
-      return (this._snapshot as any).status === 'active';
+      return (this._snapshot as Snapshot<unknown>).status === 'active';
     } finally {
       this._forceDeferredActions = false;
     }
@@ -587,14 +670,14 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     );
 
     if (this._processingStatus !== ProcessingStatus.Stopped) {
-      this.observers.add(observer);
+      (this.observers ??= new Set()).add(observer);
     } else {
-      switch ((this._snapshot as any).status) {
+      switch ((this._snapshot as Snapshot<unknown>).status) {
         case 'done':
           safeCall(observer.complete);
           break;
         case 'error': {
-          const err = (this._snapshot as any).error;
+          const err = (this._snapshot as Snapshot<unknown>).error;
           if (!observer.error) {
             reportUnhandledError(err);
           } else {
@@ -607,7 +690,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
     return {
       unsubscribe: () => {
-        this.observers.delete(observer);
+        this.observers?.delete(observer);
       }
     };
   }
@@ -619,10 +702,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         (TType extends '*' ? unknown : { type: TType })
     ) => void
   ): Subscription {
-    let listeners = this.eventListeners.get(type);
+    let listeners = this.eventListeners?.get(type);
     if (!listeners) {
       listeners = new Set();
-      this.eventListeners.set(type, listeners);
+      (this.eventListeners ??= new Map()).set(type, listeners);
     }
     listeners.add(handler as (emittedEvent: EmittedFrom<TLogic>) => void);
 
@@ -703,12 +786,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
     this._processingStatus = ProcessingStatus.Running;
 
-    // TODO: this isn't correct when rehydrating
-    const initEvent = createInitEvent(this.options.input);
-    // remember source of init as parent for unified transition event
     this._lastSourceRef = this._parent;
 
-    const status = (this._snapshot as any).status;
+    const status = (this._snapshot as Snapshot<unknown>).status;
 
     switch (status) {
       case 'done':
@@ -727,12 +807,14 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         }
         this.update(
           this._snapshot,
-          initEvent as unknown as EventFromLogic<TLogic>
+          createInitEvent(
+            this.options.input
+          ) as unknown as EventFromLogic<TLogic>
         );
         // TODO: rethink cleanup of observers, mailbox, etc
         return this;
       case 'error':
-        this._error((this._snapshot as any).error);
+        this._error((this._snapshot as Snapshot<unknown>).error);
         return this;
     }
 
@@ -756,27 +838,48 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       }
     }
 
-    // TODO: this notifies all subscribers but usually this is redundant
-    // there is no real change happening here
-    // we need to rethink if this needs to be refactored
-    this.update(this._snapshot, initEvent as unknown as EventFromLogic<TLogic>);
+    if (
+      !this._restored &&
+      !this._deferred?.length &&
+      !this.observers?.size &&
+      !(this.system._hasInspectionObservers?.() ?? true)
+    ) {
+      // Starting changes the registered system view associated with the
+      // snapshot, even when there is nothing to publish or execute.
+      if (!refreshSnapshotActorRefRoot(this._snapshot, this, this.system)) {
+        this._setSnapshot(this._snapshot);
+      }
+      this._collectedMicrosteps = undefined;
+      this._collectedActions = undefined;
+      this._collectedSent = undefined;
+    } else {
+      this.update(
+        this._snapshot,
+        createInitEvent(this.options.input) as unknown as EventFromLogic<TLogic>
+      );
+    }
 
     if (this._restored) {
       const timers: Record<string, { id: string; delay: number }> =
-        (this._snapshot as any).timers ?? {};
+        (
+          this._snapshot as unknown as {
+            timers?: Record<string, { id: string; delay: number }>;
+          }
+        ).timers ?? {};
       for (const timer of Object.values(timers)) {
         this.system.scheduleTimer(this, timer.id, timer.delay);
       }
       this._restored = false;
     }
 
-    this.mailbox.start();
+    this._mailboxStarted = true;
+    this.mailbox?.start();
 
     return this;
   }
 
   private _process(event: EventFromLogic<TLogic>) {
-    let nextState: any;
+    let nextState: ActorLogicTransitionResult<SnapshotFrom<TLogic>> | undefined;
     let caughtError;
     try {
       nextState = finalizeTransitionResult(
@@ -790,12 +893,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     if (caughtError) {
-      this._collectedMicrosteps = [] as any;
-      this._collectedActions = [];
-      this._collectedSent = [];
+      this._collectedMicrosteps = undefined;
+      this._collectedActions = undefined;
+      this._collectedSent = undefined;
       if (!this._recoverOrError(caughtError.err)) {
         this._inspectTransition(this._snapshot, event);
       }
+      return;
+    }
+    if (!nextState) {
       return;
     }
 
@@ -822,8 +928,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** @internal */
   public _emit(event: EmittedFrom<TLogic>): void {
     for (const listeners of [
-      this.eventListeners.get(event.type),
-      this.eventListeners.get('*')
+      this.eventListeners?.get(event.type),
+      this.eventListeners?.get('*')
     ]) {
       if (listeners) {
         for (const handler of listeners) {
@@ -860,13 +966,13 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     if (this._processingStatus === ProcessingStatus.Stopped) {
       return this;
     }
-    this.mailbox.clear();
+    this.mailbox?.clear();
     if (this._processingStatus === ProcessingStatus.NotStarted) {
       this._processingStatus = ProcessingStatus.Stopped;
       this.system._unregister(this);
       return this;
     }
-    this.mailbox.enqueue({ type: XSTATE_STOP } as any);
+    this._send({ type: XSTATE_STOP } as EventFromLogic<TLogic>);
     this.system._unregister(this);
 
     return this;
@@ -880,16 +986,16 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     return this._stop();
   }
   private _complete(): void {
-    for (const observer of this.observers) {
+    for (const observer of this.observers ?? emptyInspectionRecords) {
       safeCall(observer.complete);
     }
-    this.observers.clear();
-    this.eventListeners.clear();
+    this.observers?.clear();
+    this.eventListeners?.clear();
   }
 
   private _error(err: unknown): void {
     this._stopProcedure();
-    if (!this.observers.size) {
+    if (!this.observers?.size) {
       if (!this._parent) {
         reportUnhandledError(err);
       }
@@ -906,7 +1012,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         reportUnhandledError(err);
       }
     }
-    this.eventListeners.clear();
+    this.eventListeners?.clear();
 
     if (this._parent) {
       this.system._relay(
@@ -931,12 +1037,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     this.system.cancelAllTimers(this);
 
     // TODO: mailbox.reset
-    this.mailbox.clear();
-    // TODO: after `stop` we must prepare ourselves for receiving events again
-    // events sent *after* stop signal must be queued
-    // it seems like this should be the common behavior for all of our consumers
-    // so perhaps this should be unified somehow for all of them
-    this.mailbox = new Mailbox(this._boundProcess);
+    this.mailbox?.clear();
+    this.mailbox = undefined;
+    this._boundProcess = undefined;
+    this._mailboxStarted = false;
 
     this._processingStatus = ProcessingStatus.Stopped;
     this.system._unregister(this);
@@ -957,7 +1061,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       return;
     }
 
-    this.mailbox.enqueue(event);
+    let mailbox = this.mailbox;
+    if (!mailbox) {
+      this._boundProcess ??= this._process.bind(this);
+      mailbox = this.mailbox = new Mailbox(this._boundProcess);
+      if (this._mailboxStarted) {
+        mailbox.start();
+      }
+    }
+    mailbox.enqueue(event);
   }
 
   /**
@@ -965,7 +1077,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
    *
    * @param event The event to send
    */
-  public send(event: SendableEventFromLogic<TLogic>) {
+  private _sendPublic(event: SendableEventFromLogic<TLogic>) {
     if (isDevelopment && typeof event === 'string') {
       throw new Error(
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`

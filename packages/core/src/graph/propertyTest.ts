@@ -958,11 +958,14 @@ export class PropertyScenarioRunner<
   }
 
   private getActiveStateIds(snapshot: TSnapshot): readonly string[] {
-    return (
-      (snapshot as { _nodes?: readonly { id: string }[] })._nodes?.map(
-        (node) => node.id
-      ) ?? []
-    );
+    const nodes =
+      (
+        snapshot as {
+          nodes?: readonly { id: string }[];
+          _nodes?: readonly { id: string }[];
+        }
+      ).nodes ?? (snapshot as { _nodes?: readonly { id: string }[] })._nodes;
+    return nodes?.map((node) => node.id) ?? [];
   }
 
   private assertStarted(): void {

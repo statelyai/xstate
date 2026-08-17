@@ -10,5 +10,5 @@
   "jsdoc": false,
   "tsdoc": true,
   "sortPackageJson": false,
-  "ignorePatterns": ["pnpm-lock.yaml", "/docs"]
+  "ignorePatterns": ["pnpm-lock.yaml", "/docs", "*.md", "*.mdx"]
 }

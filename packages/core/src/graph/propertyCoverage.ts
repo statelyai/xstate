@@ -185,7 +185,13 @@ export function incrementCoverage(target: MutableDimension, id: string): void {
 export function getPropertyConfigurationId(
   snapshot: Snapshot<unknown>
 ): string {
-  const nodes = (snapshot as { _nodes?: readonly { id: string }[] })._nodes;
+  const nodes =
+    (
+      snapshot as {
+        nodes?: readonly { id: string }[];
+        _nodes?: readonly { id: string }[];
+      }
+    ).nodes ?? (snapshot as { _nodes?: readonly { id: string }[] })._nodes;
   return JSON.stringify((nodes?.map((node) => node.id) ?? []).sort());
 }
 
@@ -389,7 +395,13 @@ export function recordPropertySnapshot(
     getPropertyConfigurationId(snapshot)
   );
   incrementCoverage(coverage.statuses, snapshot.status);
-  const nodes = (snapshot as { _nodes?: readonly { id: string }[] })._nodes;
+  const nodes =
+    (
+      snapshot as {
+        nodes?: readonly { id: string }[];
+        _nodes?: readonly { id: string }[];
+      }
+    ).nodes ?? (snapshot as { _nodes?: readonly { id: string }[] })._nodes;
   for (const node of nodes ?? []) {
     incrementCoverage(coverage.stateNodes, node.id);
   }

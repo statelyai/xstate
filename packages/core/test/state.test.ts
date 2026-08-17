@@ -106,6 +106,16 @@ const exampleMachine = createMachine({
 });
 
 describe('State', () => {
+  it('should expose active state nodes as nodes', () => {
+    const snapshot = createActor(exampleMachine).getSnapshot();
+
+    expect(snapshot.nodes.map((node) => node.id)).toEqual([
+      '(machine)',
+      '(machine).one'
+    ]);
+    expect('_nodes' in snapshot).toBe(false);
+  });
+
   describe('status', () => {
     it('should show that a machine has not reached its final state', () => {
       expect(createActor(exampleMachine).getSnapshot().status).not.toBe('done');

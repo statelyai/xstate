@@ -198,7 +198,7 @@ export function standardSchemaValidator(
       return error;
     }
 
-    for (const stateNode of snapshot._nodes) {
+    for (const stateNode of snapshot.nodes) {
       // the root state node reuses the machine-level `schemas` object, which is
       // already validated above and elsewhere; those are not state-local
       if (stateNode === machine.root) {

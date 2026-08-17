@@ -27,10 +27,19 @@ import { matchesState } from './utils.ts';
 import {
   copySnapshotActorRef,
   getSnapshotActorRef,
-  setSnapshotActorRef,
-  type SnapshotActorRef,
-  snapshotActorRef
+  setSnapshotActorRef
 } from './snapshotActorRef.ts';
+
+const emptySnapshotRecord = Object.freeze({});
+
+function compactSnapshotRecord<T extends object>(value: T | undefined): T {
+  if (value === emptySnapshotRecord) {
+    return value;
+  }
+  return value && Object.keys(value).length
+    ? value
+    : (emptySnapshotRecord as T);
+}
 
 export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
@@ -139,7 +148,7 @@ interface MachineSnapshotBase<
 
   historyValue: Readonly<HistoryValue>;
   /** The enabled state nodes representative of the state value. */
-  _nodes: Array<AnyStateNode>;
+  nodes: Array<AnyStateNode>;
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
   /** Pending logical timers owned by this machine snapshot. */
@@ -148,9 +157,6 @@ interface MachineSnapshotBase<
   _stateInputs: Record<string, Record<string, unknown>>;
   /** @internal */
   _nextTimerId: number;
-  /** @internal */
-  [snapshotActorRef]?: SnapshotActorRef;
-
   /**
    * Whether the current state value is a subset of the given partial state
    * value.
@@ -394,9 +400,8 @@ const machineSnapshotCan = function can(
 
 const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
   const {
-    _nodes: nodes,
+    nodes,
     _stateInputs,
-    [snapshotActorRef]: _actorRef,
     tags,
     machine,
     getMeta,
@@ -412,7 +417,7 @@ const machineSnapshotToJSON = function toJSON(this: AnyMachineSnapshot) {
 
 const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
   const meta: Record<string, any> = {};
-  for (const stateNode of this._nodes) {
+  for (const stateNode of this.nodes) {
     if (stateNode.meta !== undefined) {
       meta[stateNode.id] = stateNode.meta;
     }
@@ -420,8 +425,14 @@ const machineSnapshotGetMeta = function getMeta(this: AnyMachineSnapshot) {
   return meta;
 };
 
-const machineSnapshotGetInputs = function getInputs(this: AnyMachineSnapshot) {
-  return this._stateInputs as any;
+const machineSnapshotGetInputs = function getInputs<
+  TStateSchema extends StateSchema
+>(
+  this: AnyMachineSnapshot & {
+    _stateInputs: StateIdInputs<TStateSchema>;
+  }
+): StateIdInputs<TStateSchema> {
+  return this._stateInputs;
 };
 
 function collectTags(stateNodes: Array<AnyStateNode>): Set<string> {
@@ -462,14 +473,14 @@ export function createMachineSnapshot<
     error: config.error,
     machine,
     context: config.context,
-    _nodes: config._nodes,
+    nodes: config._nodes,
     value: (config.value ??
       getStateValue(machine.root, config._nodes)) as never,
     tags: collectTags(config._nodes),
-    children: config.children as any,
-    timers: config.timers ?? {},
-    historyValue: config.historyValue || {},
-    _stateInputs: config._stateInputs || {},
+    children: compactSnapshotRecord(config.children) as TChildren,
+    timers: compactSnapshotRecord(config.timers),
+    historyValue: compactSnapshotRecord(config.historyValue),
+    _stateInputs: compactSnapshotRecord(config._stateInputs),
     _nextTimerId: config._nextTimerId ?? 0,
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
@@ -493,20 +504,20 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
     ...config
   } as StateConfig<any, any>;
 
-  if ((config._nodes ?? snapshot._nodes) === snapshot._nodes) {
+  if ((config._nodes ?? snapshot.nodes) === snapshot.nodes) {
     const clonedSnapshot = {
       status: configWithSnapshot.status as never,
       output: configWithSnapshot.output,
       error: configWithSnapshot.error,
       machine: snapshot.machine,
       context: configWithSnapshot.context,
-      _nodes: snapshot._nodes,
+      nodes: snapshot.nodes,
       value: snapshot.value,
       tags: snapshot.tags,
-      children: configWithSnapshot.children as any,
-      timers: configWithSnapshot.timers ?? {},
-      historyValue: configWithSnapshot.historyValue || {},
-      _stateInputs: configWithSnapshot._stateInputs || {},
+      children: compactSnapshotRecord(configWithSnapshot.children),
+      timers: compactSnapshotRecord(configWithSnapshot.timers),
+      historyValue: compactSnapshotRecord(configWithSnapshot.historyValue),
+      _stateInputs: compactSnapshotRecord(configWithSnapshot._stateInputs),
       _nextTimerId: configWithSnapshot._nextTimerId ?? 0,
       matches: machineSnapshotMatches as never,
       hasTag: machineSnapshotHasTag,
@@ -567,7 +578,7 @@ export function getPersistedSnapshot<
   options?: unknown
 ): Snapshot<unknown> {
   const {
-    _nodes: nodes,
+    nodes,
     _stateInputs,
     tags,
     machine,

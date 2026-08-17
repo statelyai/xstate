@@ -5,6 +5,7 @@
     "selectors",
     "shared-actors",
     "input-and-snapshots",
-    "server-rendering"
+    "server-rendering",
+    "testing"
   ]
 }

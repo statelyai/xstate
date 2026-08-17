@@ -26,7 +26,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 `;
 
 function getNextTransitions(state: AnyMachineSnapshot) {
-  return state._nodes.flatMap((node) => [...node.transitions.values()]).flat(1);
+  return state.nodes.flatMap((node) => [...node.transitions.values()]).flat(1);
 }
 
 const actor = createActor(feedbackMachine, {

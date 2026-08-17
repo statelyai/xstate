@@ -27,13 +27,15 @@ describe('clock', () => {
     const setTimeoutSpy = vi.spyOn(clock, 'setTimeout');
     const actor = createActor(createMachine({}), { clock });
 
-    (actor.system._snapshot._scheduledTimers as any).restored = {
-      source: actor,
-      id: 'restored',
-      delay: 100,
-      scheduledAt: 950,
-      dueAt: 1_050
-    };
+    actor.system._snapshot._scheduledTimers = {
+      restored: {
+        source: actor,
+        id: 'restored',
+        delay: 100,
+        scheduledAt: 950,
+        dueAt: 1_050
+      }
+    } as any;
 
     actor.start();
 

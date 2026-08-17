@@ -28,18 +28,15 @@ import {
   createSpawnEffect,
   finalizeTransitionResult
 } from './transitionActions.ts';
+import {
+  createTransitionDetails,
+  type GuardEvaluation,
+  type TransitionResolution
+} from './actorScope.ts';
 
 type MachineMicrostep = [AnyMachineSnapshot, ExecutableActionObject[]];
 
-export interface GuardEvaluation {
-  readonly transition: AnyTransitionDefinition;
-  readonly result: boolean;
-}
-
-export interface TransitionResolution {
-  readonly transition: AnyTransitionDefinition;
-  readonly targetIds: readonly string[];
-}
+export type { GuardEvaluation, TransitionResolution } from './actorScope.ts';
 
 function attachMicrostepActorRefs(
   microsteps: MachineMicrostep[],
@@ -52,9 +49,18 @@ function attachMicrostepActorRefs(
   const result = microsteps.slice();
   const finalSnapshot = result.at(-1)![0];
   setInertActorScopeSnapshot(actorScope, finalSnapshot, false);
+  if (finalSnapshot !== inputSnapshot) {
+    attachSnapshotActorRef(actorScope, finalSnapshot);
+  }
   for (const [snapshot] of result) {
-    if (snapshot !== inputSnapshot) {
-      attachSnapshotActorRef(snapshot.machine, actorScope, snapshot);
+    if (snapshot !== inputSnapshot && snapshot !== finalSnapshot) {
+      const snapshotScope = createInertActorScope(
+        snapshot.machine,
+        snapshot,
+        undefined,
+        actorScope
+      );
+      attachSnapshotActorRef(snapshotScope, snapshot);
     }
   }
   return result;
@@ -91,6 +97,7 @@ export function transitionWithDetails<T extends AnyActorLogic>(
   resolutions: TransitionResolution[]
 ] {
   const actorScope = createInertActorScope(logic, snapshot);
+  const details = createTransitionDetails(actorScope);
   setInertActorScopeSnapshot(actorScope, snapshot, false);
   const [nextSnapshot, effects] = finalizeTransitionResult(
     actorScope,
@@ -102,15 +109,13 @@ export function transitionWithDetails<T extends AnyActorLogic>(
   const returnedSnapshot =
     nextSnapshot === snapshot
       ? nextSnapshot
-      : attachSnapshotActorRef(logic, actorScope, nextSnapshot);
+      : attachSnapshotActorRef(actorScope, nextSnapshot);
   return [
     returnedSnapshot,
     effects as ExecutableActionObjectFromLogic<T>[],
-    ((actorScope.self as AnyActor as any)._collectedMicrosteps ?? []).slice(),
-    ((actorScope.self as AnyActor as any)._collectedGuards ?? []).slice(),
-    (
-      (actorScope.self as AnyActor as any)._collectedTransitionResolutions ?? []
-    ).slice()
+    details.transitions,
+    details.guards,
+    details.resolutions
   ];
 }
 
@@ -145,6 +150,7 @@ export function initialTransitionWithDetails<T extends AnyActorLogic>(
   TransitionResolution[]
 ] {
   const actorScope = createInertActorScope(logic);
+  const details = createTransitionDetails(actorScope);
 
   const [nextSnapshot, executableActions] = finalizeTransitionResult(
     actorScope,
@@ -153,19 +159,13 @@ export function initialTransitionWithDetails<T extends AnyActorLogic>(
   );
 
   setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
-  const returnedSnapshot = attachSnapshotActorRef(
-    logic,
-    actorScope,
-    nextSnapshot
-  );
+  const returnedSnapshot = attachSnapshotActorRef(actorScope, nextSnapshot);
   return [
     returnedSnapshot,
     executableActions as ExecutableActionObjectFromLogic<T>[],
-    ((actorScope.self as AnyActor as any)._collectedMicrosteps ?? []).slice(),
-    ((actorScope.self as AnyActor as any)._collectedGuards ?? []).slice(),
-    (
-      (actorScope.self as AnyActor as any)._collectedTransitionResolutions ?? []
-    ).slice()
+    details.transitions,
+    details.guards,
+    details.resolutions
   ];
 }
 
@@ -263,11 +263,11 @@ export function getNextTransitions(
   state: AnyMachineSnapshot
 ): AnyTransitionDefinition[] {
   const potentialTransitions: AnyTransitionDefinition[] = [];
-  const atomicStates = state._nodes.filter(isAtomicStateNode);
+  const atomicStates = state.nodes.filter(isAtomicStateNode);
   const visited = new Set();
 
   // Collect all transitions from atomic states and their ancestors
-  // Process atomic states in document order (as they appear in state._nodes)
+  // Process atomic states in document order (as they appear in state.nodes)
   for (const stateNode of atomicStates) {
     // For each atomic state, process the state itself first, then its ancestors
     // This ensures child state transitions come before parent state transitions

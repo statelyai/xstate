@@ -448,7 +448,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     },
     stateMatcher: (state, key) => {
       return key.startsWith('#')
-        ? (state as any)._nodes.includes(machine.getStateNodeById(key))
+        ? (state as any).nodes.includes(machine.getStateNodeById(key))
         : (state as any).matches(key);
     },
     events: (state) => {

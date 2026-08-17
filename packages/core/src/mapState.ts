@@ -73,7 +73,7 @@ export function mapState<T extends AnyMachineSnapshot, TResult>(
 
   const visited = new Set<AnyStateNode>();
 
-  for (const atomicNode of snapshot._nodes.filter(isAtomicStateNode)) {
+  for (const atomicNode of snapshot.nodes.filter(isAtomicStateNode)) {
     let current: AnyStateNode | undefined = atomicNode;
     while (current && !visited.has(current)) {
       visited.add(current);

@@ -1125,7 +1125,7 @@ describe('final states', () => {
     const actorRef = createActor(machine).start();
     flushTracked();
 
-    // it's important to send an event here that results in a transition that computes new `state._nodes`
+    // it's important to send an event here that results in a transition that computes new `state.nodes`
     // and that could impact the order in which exit actions are called
     actorRef.send({ type: 'EV' });
 
@@ -1176,7 +1176,7 @@ describe('final states', () => {
 
     const actorRef = createActor(machine).start();
 
-    // it's important to send an event here that results in a transition as that computes new `state._nodes`
+    // it's important to send an event here that results in a transition as that computes new `state.nodes`
     // and that could impact the order in which exit actions are called
     actorRef.send({ type: 'EV1' });
     flushTracked();
@@ -1231,7 +1231,7 @@ describe('final states', () => {
     const flushTracked = trackEntries(machine);
 
     const actorRef = createActor(machine).start();
-    // it's important to send an event here that results in a transition as that computes new `state._nodes`
+    // it's important to send an event here that results in a transition as that computes new `state.nodes`
     // and that could impact the order in which exit actions are called
     actorRef.send({ type: 'EV1' });
     flushTracked();
@@ -1287,7 +1287,7 @@ describe('final states', () => {
 
     const actorRef = createActor(machine).start();
     flushTracked();
-    // it's important to send an event here that results in a transition as that computes new `state._nodes`
+    // it's important to send an event here that results in a transition as that computes new `state.nodes`
     // and that could impact the order in which exit actions are called
     actorRef.send({ type: 'EV' });
 

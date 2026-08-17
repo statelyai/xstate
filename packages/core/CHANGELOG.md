@@ -1,5 +1,214 @@
 # xstate
 
+## 6.0.0-alpha.39
+
+### Patch Changes
+
+- 7a7e564: Fixed a bug where `enq.subscribeTo(…)` and `enq.listen(…)` silently did nothing when called inside a transition function. They now work the same as in `entry` actions:
+  
+  ```ts
+  const machine = createMachine({
+    on: {
+      start: (_, enq) => {
+        const child = enq.spawn(childLogic);
+        enq.subscribeTo(child, {
+          done: (output) => ({ type: 'childDone', output })
+        });
+      },
+      childDone: ({ event }) => {
+        // event.output is the child's output
+      }
+    }
+  });
+  ```
+- 4e6dbfd: Named imports from the root `xstate` entry (such as the actor logic creators and `SpecialTargets`) now work in all environments, including tools that load the package as CommonJS.
+  
+  ```ts
+  import { createAsyncLogic } from 'xstate'; // now works everywhere
+  ```
+- 20a52b9: Optional event payload fields declared with `types()` are now preserved instead of being made required:
+  
+  ```ts
+  const machine = setup({
+    schemas: {
+      events: {
+        submit: types<{ email: string; referrer?: string }>()
+      }
+    }
+  }).createMachine({
+    // ...
+  });
+  
+  // referrer can now be omitted
+  actor.send({ type: 'submit', email: 'a@b.co' });
+  ```
+  
+  Payloads inferred from validator libraries (e.g. Zod) are still wrapped in `Required<>`.
+- 20a52b9: `snapshot.value` is now structurally typed from the machine config instead of the generic `StateValue` type. Flat machines get a union of state keys, and parallel machines get an object type with a key per region:
+  
+  ```ts
+  const machine = createMachine({
+    type: 'parallel',
+    states: {
+      bold: { initial: 'off', states: { off: {}, on: {} } },
+      italic: { initial: 'off', states: { off: {}, on: {} } }
+    }
+  });
+  
+  const value = createActor(machine).getSnapshot().value;
+  // { bold: 'off' | 'on'; italic: 'off' | 'on' }
+  ```
+- 90a173a: Fixed `createSystem(...).setup(...)` to preserve runtime validator types alongside typed actor registries. Validated setups now reject unsupported transforming schemas and carry validation into derived setups.
+  
+  Runtime validation can now also be installed on a derived setup when its inherited schemas are compatible:
+  
+  ```ts
+  import { setup } from 'xstate';
+  import { standardSchemaValidator } from 'xstate/validation';
+  import { z } from 'zod';
+  
+  const validated = setup({
+    schemas: { input: z.object({ id: z.string() }) }
+  }).extend({ validator: standardSchemaValidator() });
+  ```
+
+## 6.0.0-alpha.38
+
+### Patch Changes
+
+- 8aaac46: Restoring a persisted snapshot whose state value references a state that no longer exists on the machine now throws a descriptive error, e.g.:
+  
+  ```
+  Persisted snapshot references state 'reviewing' which does not exist on machine 'order-approval'.
+  ```
+  
+  Nested state values report the full state path (e.g. `'active.reviewing'`), and parallel state regions are validated as well.
+
+## 6.0.0-alpha.37
+
+### Minor Changes
+
+- 86f7303: Add an experimental, host-neutral durable execution helper at `xstate/durable`.
+  It assigns stable IDs to effects and event waits from pure transitions while
+  leaving durable execution, timers, messaging and child actors to the host.
+  Hosts can read `nextTransitionIndex` after every transition for checkpointing.
+  
+  ```ts
+  const durable = createDurable(machine, adapter);
+  const output = await durable.run(input);
+  ```
+
+### Patch Changes
+
+- 6df07b8: Fixed `invoke.onDone` transition argument inference when actor logic is passed directly as `src` in a machine with two or more differently-typed registered actors. Previously, the transition function's arguments collapsed to `any` (`event.output` was unusable without annotations); now `event.output` is inferred from the invoked actor's output type.
+  
+  ```ts
+  const fetchUser = createAsyncLogic({ run: async () => ({ name: 'David' }) });
+  const fetchCount = createAsyncLogic({ run: async () => 42 });
+  
+  setup({
+    actors: { fetchUser, fetchCount }
+  }).createMachine({
+    initial: 'loading',
+    states: {
+      loading: {
+        invoke: {
+          src: fetchUser,
+          onDone: ({ event }) => {
+            event.output.name; // string
+            return { target: 'done' };
+          }
+        }
+      },
+      done: {}
+    }
+  });
+  ```
+  
+  Note: when actors are registered, invoking *unregistered* inline logic now only supports the object/target forms of `onDone` (not the transition function form). Register the actor to get fully-typed function-form transitions.
+
+## 6.0.0-alpha.36
+
+### Minor Changes
+
+- af31f22: Add `machineVersions().adaptEvents()` for adapting complete event histories
+  between machine versions. Exact retained-version adapters infer source and
+  target event types, while an async `'*'` adapter can handle unknown histories.
+  
+  ```ts
+  const events = await versions.adaptEvents(storedEvents, {
+    from: { id: 'checkout', version: '1' },
+    to: '2',
+    adapters: {
+      '1': (events) => events.map(toV2Event)
+    }
+  });
+  ```
+
+## 6.0.0-alpha.35
+
+### Patch Changes
+
+- db0a16c: Reduce actor runtime memory usage and improve actor startup performance.
+
+## 6.0.0-alpha.34
+
+### Patch Changes
+
+- faa0f19: Improve the performance and memory usage of pure transitions that only update machine context.
+
+## 6.0.0-alpha.33
+
+### Minor Changes
+
+- 44aae13: Migrate persisted snapshots directly from `unknown` values with
+  `machineVersions().migrateSnapshot()`. Exact version handlers are typed from
+  retained machines, while `'*'` handles unversioned, unrecognized, or
+  shape-detected snapshots. All migration handlers may be asynchronous.
+
+  ```ts
+  const versions = machineVersions([checkoutV1, checkoutV2]);
+  const snapshot = await versions.migrateSnapshot(persisted, {
+    to: "2",
+    migrations: {
+      "1": async (snapshot) => migrateV1(snapshot),
+      "*": async (snapshot, source) => migrateUnknown(snapshot, source),
+    },
+  });
+  ```
+
+## 6.0.0-alpha.32
+
+### Patch Changes
+
+- e41f339: Improve state machine actor throughput for event bursts, child delivery, and compound and parallel machines.
+
+## 6.0.0-alpha.31
+
+### Patch Changes
+
+- 085adc8: Reduce retained memory for idle actors and actor families.
+
+## 6.0.0-alpha.30
+
+### Minor Changes
+
+- 5982c32: Custom clocks may now provide `now()` so scheduled and restored timers use the same time source:
+
+  ```ts
+  createActor(machine, {
+    clock: {
+      now: () => currentTime,
+      setTimeout: (callback, delay) => schedule(callback, delay),
+      clearTimeout: (handle) => cancel(handle),
+    },
+  });
+  ```
+
+### Patch Changes
+
+- 67fddcf: Improve transition and actor runtime performance.
+
 ## 6.0.0-alpha.29
 
 ### Minor Changes

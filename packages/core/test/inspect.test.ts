@@ -75,7 +75,7 @@ describe('inspect', () => {
     );
   });
 
-  it('falls back without failing when Web Crypto is unusable', () => {
+  it('falls back without failing when Web Crypto is unusable', async () => {
     vi.stubGlobal('crypto', {
       randomUUID: () => {
         throw new Error('unavailable');
@@ -87,15 +87,19 @@ describe('inspect', () => {
     const sessionIds: string[] = [];
 
     try {
+      vi.resetModules();
+      const isolatedXState = await import('../src/index.ts');
       sessionIds.push(
-        createActor(createMachine({})).sessionId,
-        createActor(createMachine({})).sessionId
+        isolatedXState.createActor(isolatedXState.createMachine({})).sessionId,
+        isolatedXState.createActor(isolatedXState.createMachine({})).sessionId
       );
     } finally {
       vi.unstubAllGlobals();
+      vi.resetModules();
     }
 
     expect(new Set(sessionIds).size).toBe(2);
+    expect(sessionIds.every((id) => id.startsWith('xstate-'))).toBe(true);
   });
 
   it('uses new globally unique session IDs when restoring the same snapshot', () => {
@@ -567,6 +571,79 @@ describe('inspect', () => {
     actor.start();
 
     expect(events.some((e) => e.type === '@xstate.transition')).toBe(true);
+  });
+
+  it('actor.system.inspect(…) captures initial microsteps before start', () => {
+    const actor = createActor(
+      createMachine({
+        initial: 'a',
+        states: {
+          a: { always: () => ({ target: 'b' }) },
+          b: {}
+        }
+      })
+    );
+    const events: InspectionEvent[] = [];
+
+    actor.system.inspect((event) => events.push(event));
+    actor.start();
+
+    const initialTransition = events.find(
+      (event) =>
+        event.type === '@xstate.transition' && event.event.type === XSTATE_INIT
+    );
+    expect(initialTransition?.type).toBe('@xstate.transition');
+    if (initialTransition?.type !== '@xstate.transition') {
+      throw new Error('Initial transition was not inspected.');
+    }
+    expect(initialTransition.microsteps).toHaveLength(1);
+  });
+
+  it('clears a pre-start event source before inspecting initialization', () => {
+    const actor = createActor(createMachine({}));
+    const sender = createActor(createMachine({}), { parent: actor });
+    const events: InspectionEvent[] = [];
+
+    actor.system._relay(sender, actor, { type: 'QUEUED' });
+    actor.system.inspect((event) => events.push(event));
+    actor.start();
+
+    const initialTransition = events.find(
+      (event) =>
+        event.type === '@xstate.transition' && event.event.type === XSTATE_INIT
+    );
+    expect(initialTransition?.type).toBe('@xstate.transition');
+    if (initialTransition?.type !== '@xstate.transition') {
+      throw new Error('Initial transition was not inspected.');
+    }
+    expect(initialTransition.sourceRef).toBeUndefined();
+  });
+
+  it('does not retain uninspected initialization steps for the first event', () => {
+    const actor = createActor(
+      createMachine({
+        initial: 'a',
+        states: {
+          a: { always: { target: 'b' } },
+          b: {}
+        }
+      })
+    );
+    const events: InspectionEvent[] = [];
+
+    actor.start();
+    actor.system.inspect((event) => events.push(event));
+    actor.send({ type: 'PING' });
+
+    const transition = events.find(
+      (event) =>
+        event.type === '@xstate.transition' && event.event.type === 'PING'
+    );
+    expect(transition?.type).toBe('@xstate.transition');
+    if (transition?.type !== '@xstate.transition') {
+      throw new Error('PING transition was not inspected.');
+    }
+    expect(transition.microsteps).toHaveLength(0);
   });
 
   it('actor.system.inspect(…) can inspect actors (observer)', () => {

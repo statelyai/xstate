@@ -1,8 +1,5 @@
 import type { AnyActor, Snapshot } from './types.ts';
 
-/** @internal */
-export const snapshotActorRef = Symbol('xstate.snapshotActorRef');
-
 /** Snapshot-scoped actor identity and system view. @internal */
 export interface SnapshotActorRef {
   actor: AnyActor;
@@ -10,9 +7,68 @@ export interface SnapshotActorRef {
 }
 
 interface SnapshotSystemState {
-  children: Map<string, AnyActor>;
-  keyedActors: Map<any, AnyActor>;
+  root?: AnyActor;
+  children?: Map<string, AnyActor>;
+  keyedActors: Map<PropertyKey, AnyActor | undefined>;
   snapshot: AnyActor['system']['_snapshot'];
+  sourceSystem: AnyActor['system'];
+  sourceVersion: number;
+}
+
+const snapshotActorRefs = new WeakMap<object, SnapshotActorRef>();
+const lazySnapshotActorRefs = new WeakMap<object, () => SnapshotActorRef>();
+const emptyKeyedActors = new Map<PropertyKey, AnyActor | undefined>();
+
+function copyRegisteredActors(
+  system: AnyActor['system'],
+  state?: SnapshotSystemState
+): Map<string, AnyActor> {
+  if (state) {
+    const children = new Map<string, AnyActor>(state.children);
+    if (state.root?.sessionId) {
+      children.set(state.root.sessionId, state.root);
+    }
+    return children;
+  }
+  return new Map(system.children);
+}
+
+function captureRegisteredActors(system: AnyActor['system']): {
+  root?: AnyActor;
+  children?: Map<string, AnyActor>;
+} {
+  const root = system._getRootActor?.();
+  const peekedChildren = system._peekChildren?.();
+  if (!root && !peekedChildren) {
+    if (system._getRootActor && system._peekChildren) {
+      return {};
+    }
+    const children = new Map<string, AnyActor>(system.children);
+    return children.size ? { children } : {};
+  }
+  if (!peekedChildren?.size) {
+    return root ? { root } : {};
+  }
+  return { children: new Map<string, AnyActor>(system.children) };
+}
+
+function getKeyedActors(
+  system: AnyActor['system']
+): Map<PropertyKey, AnyActor | undefined> {
+  const peek = system._peekKeyedActors;
+  if (peek) {
+    return peek.call(system) ?? emptyKeyedActors;
+  }
+  return system.keyedActors;
+}
+
+/** Marks topology or persisted runtime state as changed. @internal */
+export function markSystemSnapshotDirty(system: AnyActor['system']): void {
+  system._snapshotVersion++;
+}
+
+function getSystemSnapshotVersion(system: AnyActor['system']): number {
+  return system._snapshotVersion;
 }
 
 function getSnapshotChildren(
@@ -31,26 +87,23 @@ function getSnapshotChildren(
  */
 export function createSnapshotSystem(
   baseSystem: AnyActor['system'],
-  _self: AnyActor,
   children: Record<string, AnyActor | undefined>,
   baseState?: SnapshotSystemState
 ): AnyActor['system'] {
-  const registeredActors = new Map(baseState?.children ?? baseSystem.children);
-  const keyedActors = new Map<any, AnyActor>(
-    baseState?.keyedActors ??
-      Object.entries(
-        baseSystem.getAll() as Record<string, AnyActor | undefined>
-      ).filter((entry): entry is [string, AnyActor] => !!entry[1])
+  const registeredActors = copyRegisteredActors(baseSystem, baseState);
+  const keyedActors = new Map<PropertyKey, AnyActor | undefined>(
+    baseState?.keyedActors ?? getKeyedActors(baseSystem)
   );
-  const reverseKeyedActors = new WeakMap<AnyActor, any>();
-  const system: AnyActor['system'] = {
-    ...baseSystem,
+  const reverseKeyedActors = new WeakMap<AnyActor, PropertyKey>();
+  const system: AnyActor['system'] = Object.assign(Object.create(baseSystem), {
     children: registeredActors,
     keyedActors,
     reverseKeyedActors,
     _snapshot: { ...(baseState?.snapshot ?? baseSystem._snapshot) },
+    _snapshotVersion: baseState?.sourceVersion ?? baseSystem._snapshotVersion,
     _register: (sessionId: string, actor: AnyActor) => {
       registeredActors.set(sessionId, actor);
+      markSystemSnapshotDirty(system);
       return sessionId;
     },
     _unregister: (actor: AnyActor) => {
@@ -62,8 +115,9 @@ export function createSnapshotSystem(
         keyedActors.delete(registryKey);
       }
       reverseKeyedActors.delete(actor);
+      markSystemSnapshotDirty(system);
     },
-    _set: (registryKey: any, actor: AnyActor) => {
+    _set: (registryKey: PropertyKey, actor: AnyActor) => {
       const existing = keyedActors.get(registryKey);
       if (existing && existing !== actor) {
         throw new Error(
@@ -72,15 +126,20 @@ export function createSnapshotSystem(
       }
       keyedActors.set(registryKey, actor);
       reverseKeyedActors.set(actor, registryKey);
+      markSystemSnapshotDirty(system);
     },
-    get: (registryKey: any) => keyedActors.get(registryKey) as any,
+    get: (registryKey: PropertyKey) => keyedActors.get(registryKey),
     getAll: () => Object.fromEntries(keyedActors),
     // Pure transition resolution must not leak topology inspection events into
     // a live runtime system.
+    _hasInspectionObservers: () => false,
     _sendInspectionEvent: () => {}
-  };
+  });
 
   for (const [registryKey, actor] of keyedActors) {
+    if (!actor) {
+      continue;
+    }
     reverseKeyedActors.set(actor, registryKey);
   }
   for (const actor of Object.values(children)) {
@@ -90,7 +149,7 @@ export function createSnapshotSystem(
     if (actor.sessionId) {
       registeredActors.set(actor.sessionId, actor);
     }
-    const registryKey = (actor as any).registryKey;
+    const registryKey = actor.registryKey;
     if (registryKey) {
       keyedActors.set(registryKey, actor);
       reverseKeyedActors.set(actor, registryKey);
@@ -104,7 +163,42 @@ export function createSnapshotSystem(
 export function getSnapshotActorRef(
   snapshot: Snapshot<unknown>
 ): SnapshotActorRef | undefined {
-  return (snapshot as any)[snapshotActorRef];
+  const existing = snapshotActorRefs.get(snapshot);
+  if (existing) {
+    return existing;
+  }
+  const create = lazySnapshotActorRefs.get(snapshot);
+  if (!create) {
+    return undefined;
+  }
+  const created = create();
+  snapshotActorRefs.set(snapshot, created);
+  lazySnapshotActorRefs.delete(snapshot);
+  return created;
+}
+
+/** Reads an already materialized snapshot association without creating one. @internal */
+export function peekSnapshotActorRef(
+  snapshot: Snapshot<unknown>
+): SnapshotActorRef | undefined {
+  return snapshotActorRefs.get(snapshot);
+}
+
+/** Returns the existing identity provider without resolving it. @internal */
+export function getSnapshotActorRefProvider(
+  snapshot: Snapshot<unknown>
+): (() => SnapshotActorRef) | undefined {
+  const existing = snapshotActorRefs.get(snapshot);
+  return existing ? () => existing : lazySnapshotActorRefs.get(snapshot);
+}
+
+/** Defers actor/system identity allocation until a snapshot capability is used. @internal */
+export function setLazySnapshotActorRef(
+  snapshot: Snapshot<unknown>,
+  create: () => SnapshotActorRef
+): void {
+  snapshotActorRefs.delete(snapshot);
+  lazySnapshotActorRefs.set(snapshot, create);
 }
 
 /**
@@ -115,14 +209,40 @@ export function getSnapshotActorRef(
 export function copySnapshotActorRef(
   source: Snapshot<unknown>,
   target: Snapshot<unknown>
-): void {
-  const ref = getSnapshotActorRef(source);
+): boolean {
+  const ref = snapshotActorRefs.get(source);
   if (ref) {
-    Object.defineProperty(target, snapshotActorRef, {
-      configurable: true,
-      value: ref
-    });
+    snapshotActorRefs.set(target, ref);
+    return true;
   }
+  const create = lazySnapshotActorRefs.get(source);
+  if (create) {
+    lazySnapshotActorRefs.set(target, create);
+    return true;
+  }
+  return false;
+}
+
+/** Refreshes the only topology change made by an otherwise idle root start. */
+export function refreshSnapshotActorRefRoot(
+  snapshot: Snapshot<unknown>,
+  actor: AnyActor,
+  system: AnyActor['system']
+): boolean {
+  const ref = snapshotActorRefs.get(snapshot);
+  const sourceVersion = getSystemSnapshotVersion(system);
+  if (
+    ref?.actor !== actor ||
+    ref.systemState.sourceSystem !== system ||
+    ref.systemState.sourceVersion + 1 !== sourceVersion ||
+    system._getRootActor?.() !== actor ||
+    system._peekChildren?.()
+  ) {
+    return false;
+  }
+  ref.systemState.root = actor;
+  ref.systemState.sourceVersion = sourceVersion;
+  return true;
 }
 
 /**
@@ -134,22 +254,56 @@ export function copySnapshotActorRef(
 export function setSnapshotActorRef(
   snapshot: Snapshot<unknown>,
   actor: AnyActor,
-  baseSystem: AnyActor['system'] = actor.system
+  baseSystem: AnyActor['system'] = actor.system,
+  previousSnapshot?: Snapshot<unknown>
 ): void {
-  const system = createSnapshotSystem(
-    baseSystem,
-    actor,
-    getSnapshotChildren(snapshot)
-  );
-  Object.defineProperty(snapshot, snapshotActorRef, {
-    configurable: true,
-    value: {
-      actor,
-      systemState: {
-        children: system.children,
-        keyedActors: system.keyedActors as Map<any, AnyActor>,
-        snapshot: system._snapshot
+  lazySnapshotActorRefs.delete(snapshot);
+  const sourceVersion = getSystemSnapshotVersion(baseSystem);
+  const previousRef = previousSnapshot
+    ? getSnapshotActorRef(previousSnapshot)
+    : undefined;
+  const reusableRef =
+    previousRef?.actor === actor ? previousRef : getSnapshotActorRef(snapshot);
+
+  if (
+    reusableRef?.actor === actor &&
+    reusableRef.systemState.sourceSystem === baseSystem &&
+    reusableRef.systemState.sourceVersion === sourceVersion
+  ) {
+    snapshotActorRefs.set(snapshot, reusableRef);
+    return;
+  }
+
+  const capturedActors = captureRegisteredActors(baseSystem);
+  let children = capturedActors.children;
+  const baseKeyedActors = getKeyedActors(baseSystem);
+  let keyedActors = baseKeyedActors.size
+    ? new Map(baseKeyedActors)
+    : emptyKeyedActors;
+  for (const child of Object.values(getSnapshotChildren(snapshot))) {
+    if (!child) {
+      continue;
+    }
+    if (child.sessionId) {
+      (children ??= new Map()).set(child.sessionId, child);
+    }
+    const registryKey = child.registryKey;
+    if (registryKey) {
+      if (keyedActors === emptyKeyedActors) {
+        keyedActors = new Map();
       }
-    } satisfies SnapshotActorRef
-  });
+      keyedActors.set(registryKey, child);
+    }
+  }
+  snapshotActorRefs.set(snapshot, {
+    actor,
+    systemState: {
+      ...capturedActors,
+      children,
+      keyedActors,
+      snapshot: { ...baseSystem._snapshot },
+      sourceSystem: baseSystem,
+      sourceVersion
+    }
+  } satisfies SnapshotActorRef);
 }

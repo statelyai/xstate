@@ -9,6 +9,7 @@ import {
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
 import type { ActorSystemRuntime } from './system.ts';
+import { isLazyActorScope, withActorScope } from './actorScope.ts';
 import { getEventOutput } from './utils.ts';
 import type {
   Action,
@@ -358,6 +359,9 @@ export function createTransitionEnqueue(
   if (actorSubscriptions) {
     Object.assign(props, {
       listen: (actor: any, eventType: string, mapper: any) => {
+        if (!createActors) {
+          return { id: undefined } as unknown as AnyActor;
+        }
         const input: ListenerInput<any, any> = {
           actor,
           eventType,
@@ -375,6 +379,9 @@ export function createTransitionEnqueue(
         return listenerActor;
       },
       subscribeTo: (actor: any, mappers: any) => {
+        if (!createActors) {
+          return { id: undefined } as unknown as AnyActor;
+        }
         const normalizedMappers: SubscriptionMappers<any, any, any> =
           typeof mappers === 'function' ? { snapshot: mappers } : mappers;
 
@@ -661,17 +668,29 @@ export function resolveActionsWithContext(
   const executableActions: ExecutableActionObject[] = [];
 
   for (const action of actions) {
-    const actionArgs = {
-      context: intermediateSnapshot.context,
-      event,
-      output: getEventOutput(event),
-      self: actorScope.self,
-      system: actorScope.system,
-      children: intermediateSnapshot.children,
-      parent: actorScope.self._parent,
-      actions: currentSnapshot.machine.sources.actions,
-      actors: currentSnapshot.machine.sources.actors
-    };
+    const actionArgs = isLazyActorScope(actorScope)
+      ? withActorScope(
+          {
+            context: intermediateSnapshot.context,
+            event,
+            output: getEventOutput(event),
+            children: intermediateSnapshot.children,
+            actions: currentSnapshot.machine.sources.actions,
+            actors: currentSnapshot.machine.sources.actors
+          },
+          actorScope
+        )
+      : {
+          context: intermediateSnapshot.context,
+          event,
+          output: getEventOutput(event),
+          self: actorScope.self,
+          system: actorScope.system,
+          parent: actorScope.self._parent,
+          children: intermediateSnapshot.children,
+          actions: currentSnapshot.machine.sources.actions,
+          actors: currentSnapshot.machine.sources.actors
+        };
 
     const isInline = typeof action === 'function';
     const actionRecord = getTransitionActionRecord(action);
@@ -729,7 +748,7 @@ export function resolveActionsWithContext(
       const res = specialAction(actionArgs as any, emptyEnqueueObject);
 
       if (res && ('context' in res || 'children' in res)) {
-        // Special-action patches never change `_nodes`, so a shallow clone is
+        // Special-action patches never change `nodes`, so a shallow clone is
         // equivalent to `cloneMachineSnapshot` — and keeps this module (and
         // non-machine logic like `createFSM`) independent of State.ts.
         intermediateSnapshot = {
@@ -816,19 +835,22 @@ export function createEnqueueObject(
   };
 
   Object.assign(enqueueFn, {
-    cancel: () => {},
-    emit: () => {},
-    log: () => {},
-    raise: () => {},
-    spawn: () => ({}) as any,
-    sendTo: () => {},
-    stop: () => {},
-    listen: () => ({}) as any,
-    subscribeTo: () => ({}) as any,
+    cancel: noop,
+    emit: noop,
+    log: noop,
+    raise: noop,
+    spawn: emptyActor,
+    sendTo: noop,
+    stop: noop,
+    listen: emptyActor,
+    subscribeTo: emptyActor,
     ...props
   });
 
   return enqueueFn as any;
 }
 
-const emptyEnqueueObject = createEnqueueObject({}, () => {});
+const noop = () => {};
+const emptyActor = () => ({}) as any;
+
+const emptyEnqueueObject = createEnqueueObject({}, noop);

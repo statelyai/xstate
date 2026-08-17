@@ -1101,6 +1101,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   id: string;
   root: AnyStateNode;
   /** @internal */
+  _hasEventlessTransitions?: boolean;
+  /** @internal */
   idMap: Map<string, AnyStateNode>;
   options?: { maxIterations?: number };
   states: StateNodesConfig<any, any>;
@@ -1116,7 +1118,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   getTransitionData(
     snapshot: any,
     event: any,
-    actor: AnyActorRef
+    actorScope: AnyActorScope,
+    selectionResults?: Map<AnyTransitionDefinition, unknown>
   ): AnyTransitionDefinition[];
   /** @internal */
   _canTransition(snapshot: AnyMachineSnapshot, event: any): boolean;
@@ -1246,13 +1249,14 @@ export type StateFrom<
     ? StateSnapshotFromMachine<ReturnType<T>>
     : never;
 
-type StateValueFromStateSchema<T extends StateSchema> = StateSchema extends T
-  ? StateValue
-  : ToStateValue<T> extends infer TStateValue
-    ? TStateValue extends StateValue
-      ? TStateValue
-      : StateValue
-    : StateValue;
+export type StateValueFromStateSchema<T extends StateSchema> =
+  StateSchema extends T
+    ? StateValue
+    : ToStateValue<T> extends infer TStateValue
+      ? TStateValue extends StateValue
+        ? TStateValue
+        : StateValue
+      : StateValue;
 
 type MatchingStateValueForStateFrom<
   TStateValue extends StateValue,
@@ -1653,6 +1657,8 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   _systemRef?: { current?: AnyActorSystem };
   /** @internal */
   _sessionId?: string;
+  /** @internal */
+  _inert?: boolean;
   /** The custom `id` for referencing this service. */
   id?: string;
   /** @deprecated Use `inspect` instead. */
@@ -1913,7 +1919,11 @@ export interface ActorRuntime<
   system: any;
   /** @internal */
   _processingStatus: ProcessingStatus;
+  /** @internal */
+  _isRunning: () => boolean;
   src: string | AnyActorLogic;
+  /** Registry key used by the actor system receptionist. */
+  registryKey?: string;
   trigger: ActorTrigger<TSendEvent>;
   select<TSelected>(
     selector: (snapshot: TSnapshot) => TSelected,
