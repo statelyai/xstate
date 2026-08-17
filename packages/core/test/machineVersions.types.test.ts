@@ -1,6 +1,7 @@
 import {
   createActor,
   createMachine,
+  type MachineVersionDescriptor,
   machineVersions,
   setup,
   types
@@ -26,6 +27,24 @@ const checkoutV2 = createMachine({
   initial: 'active',
   states: { active: {} }
 });
+const checkoutV0 = {
+  id: 'checkout',
+  version: '0',
+  snapshotSchema: types<{
+    status: 'active';
+    output?: undefined;
+    error?: undefined;
+    value: 'legacy';
+    context: { quantity: number };
+    children: Record<string, unknown>;
+    historyValue: Record<string, unknown>;
+    timers: Record<string, unknown>;
+    _nextActorId: number;
+    _nextTimerId: number;
+    machine: { id: 'checkout'; version: '0' };
+    version: '0';
+  }>()
+} as const;
 
 const version: '1' = checkoutV1.version;
 const setupVersion: '1' = setup({}).createMachine({
@@ -35,6 +54,7 @@ const setupVersion: '1' = setup({}).createMachine({
   states: { active: {} }
 }).version;
 const versions = machineVersions([checkoutV1, checkoutV2]);
+const schemaVersions = machineVersions([checkoutV0, checkoutV2]);
 const versionsWithUnversioned = machineVersions([checkoutV1, checkoutV2], {
   unversioned: '1'
 });
@@ -66,16 +86,58 @@ const eventMachineV2 = createMachine({
   initial: 'active',
   states: { active: {} }
 });
+const eventVersionV0 = {
+  id: 'events',
+  version: '0',
+  eventSchema: types<
+    | { type: 'INCREMENT'; amount: number }
+    | { type: 'DECREMENT'; amount: number }
+  >()
+} as const;
 const eventVersions = machineVersions([eventMachineV1, eventMachineV2]);
+const eventDescriptorVersions = machineVersions([
+  eventVersionV0,
+  eventMachineV2
+]);
+const machineVersionDescriptor: MachineVersionDescriptor = eventMachineV1;
+void machineVersionDescriptor;
 
 if (false) {
   // @ts-expect-error version parsers require versioned machines
   machineVersions([unversioned]);
   // @ts-expect-error unversioned must reference a retained version
   machineVersions([checkoutV1, checkoutV2], { unversioned: '3' });
+  // @ts-expect-error event-only descriptors cannot parse unversioned snapshots
+  machineVersions([eventVersionV0, eventMachineV2], { unversioned: '0' });
 }
 
 async function checkSnapshotMigrationTypes() {
+  await schemaVersions.migrateSnapshot({} as unknown, {
+    to: '2',
+    migrations: {
+      '0': (snapshot) => {
+        const quantity: number = snapshot.context.quantity;
+        const value: 'legacy' = snapshot.value;
+        // @ts-expect-error descriptor schema output has no v2 context field
+        snapshot.context.total;
+        void value;
+        return {
+          ...snapshot,
+          context: { total: quantity }
+        };
+      }
+    }
+  });
+
+  await schemaVersions.migrateSnapshot(
+    {},
+    {
+      // @ts-expect-error snapshot-only versions cannot be migration targets
+      to: '0',
+      migrations: {}
+    }
+  );
+
   const compatible = await versions.migrateSnapshot({} as unknown, {
     to: '2',
     migrations: {
@@ -129,6 +191,39 @@ async function checkSnapshotMigrationTypes() {
 }
 
 async function checkEventAdaptationTypes() {
+  await eventDescriptorVersions.adaptEvents([], {
+    from: { id: 'events', version: '0' },
+    to: '2',
+    adapters: {
+      '0': (events) => {
+        const event = events[0];
+        if (event?.type === 'INCREMENT') {
+          const amount: number = event.amount;
+          // @ts-expect-error historical event schema has no delta
+          event.delta;
+          void amount;
+        }
+        return [{ type: 'CHANGE', delta: events.length }];
+      }
+    }
+  });
+
+  await eventDescriptorVersions.adaptEvents([], {
+    from: { id: 'events', version: '2' },
+    // @ts-expect-error schema-only versions cannot be event targets
+    to: '0',
+    adapters: {}
+  });
+
+  await machineVersions([checkoutV0, eventMachineV2]).adaptEvents([], {
+    from: { id: 'checkout', version: '0' },
+    to: '2',
+    adapters: {
+      // @ts-expect-error snapshot-only versions do not provide event typing
+      '0': () => [{ type: 'CHANGE', delta: 0 }]
+    }
+  });
+
   const adapted = await eventVersions.adaptEvents([], {
     from: { id: 'events', version: '1' },
     to: '2',
