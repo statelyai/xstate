@@ -84,6 +84,77 @@ describe('setup() source typing', () => {
     });
   });
 
+  it('merges base and extension event schemas for extend() sources', () => {
+    setup({
+      schemas: {
+        context: z.object({ count: z.number() }),
+        events: { A: z.object({ a: z.number() }) }
+      }
+    }).extend({
+      schemas: {
+        events: { B: z.object({ b: z.string() }) }
+      },
+      guards: {
+        seesBothEvents: ({ event }) => {
+          expectType<{ type: 'A'; a: number } | { type: 'B'; b: string }>(
+            event
+          );
+          return event.type === 'A';
+        }
+      }
+    });
+  });
+
+  it('checks return types of sources passed to provide()', () => {
+    const machine = createMachine({
+      schemas: {
+        context: z.object({ count: z.number() })
+      },
+      context: { count: 0 },
+      guards: {
+        isPositive: ({ context }) => context.count > 0
+      },
+      delays: {
+        backoff: ({ context }) => context.count * 100
+      },
+      initial: 'a',
+      states: { a: {} }
+    });
+
+    machine.provide({
+      guards: {
+        isPositive: ({ context }) => {
+          expectType<{ count: number }>(context);
+          return context.count > 1;
+        }
+      },
+      delays: {
+        backoff: 500
+      }
+    });
+
+    if (false) {
+      machine.provide({
+        guards: {
+          // @ts-expect-error - guards must return boolean
+          isPositive: () => 'nope'
+        }
+      });
+      machine.provide({
+        delays: {
+          // @ts-expect-error - delays must be a number or return one
+          backoff: () => 'soon'
+        }
+      });
+      machine.provide({
+        guards: {
+          // @ts-expect-error - unknown guard name
+          other: () => true
+        }
+      });
+    }
+  });
+
   it('contextually types machine-level guards from machine schemas', () => {
     createMachine({
       schemas: {

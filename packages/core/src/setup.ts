@@ -108,12 +108,31 @@ type SetupSourceCompanions<TSchemas> = {
   delays?: SetupDelaySources<TSchemas>;
 };
 
-/** Extension schemas override base schemas key-by-key (matching runtime merge). */
-type MergedSetupSchemas<TBaseSchemas, TExtendSchemas> = Omit<
-  TBaseSchemas,
-  keyof TExtendSchemas
-> &
-  TExtendSchemas;
+type MergeRecord<TBase, TExtend> = Omit<TBase, keyof TExtend> & TExtend;
+
+/**
+ * Mirrors the runtime `mergeSchemas`: scalar schema keys (`context`, `input`,
+ * ...) are overridden whole, while map-valued keys (`events`, `emitted`,
+ * `children`, `actions`, `guards`) are merged entry-by-entry with extension
+ * entries winning, so base-declared entries stay visible to extension sources.
+ */
+type MergedSetupSchemas<TBaseSchemas, TExtendSchemas> = {
+  [K in keyof TBaseSchemas | keyof TExtendSchemas]: K extends
+    | 'events'
+    | 'emitted'
+    | 'children'
+    | 'actions'
+    | 'guards'
+    ? MergeRecord<
+        K extends keyof TBaseSchemas ? NonNullable<TBaseSchemas[K]> : {},
+        K extends keyof TExtendSchemas ? NonNullable<TExtendSchemas[K]> : {}
+      >
+    : K extends keyof TExtendSchemas
+      ? TExtendSchemas[K]
+      : K extends keyof TBaseSchemas
+        ? TBaseSchemas[K]
+        : never;
+};
 
 export type AnySetupConfig = SetupConfig<
   SetupSchemas,

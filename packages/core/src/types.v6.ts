@@ -1386,10 +1386,17 @@ export type DelaySourceMap<
 
 export type DelayMapFromNames<
   TDelays extends string,
-  _TDelayMap extends Sources['delays']
+  TDelayMap extends Sources['delays']
 > = string extends TDelays
   ? Sources['delays']
-  : { [K in TDelays]: Sources['delays'][string] };
+  : {
+      // Preserve authored entry types so downstream consumers (e.g.
+      // `machine.provide({ delays })`) keep the concrete signatures; names
+      // referenced only from `after` keys fall back to the generic shape.
+      [K in TDelays]: K extends keyof TDelayMap
+        ? TDelayMap[K]
+        : number | ((...args: any[]) => number);
+    };
 
 type DelayNamesFromConfig<TConfig> = TConfig extends {
   delays: infer TDelays;
