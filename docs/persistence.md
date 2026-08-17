@@ -121,8 +121,9 @@ const snapshot = await checkoutVersions.migrateSnapshot(persisted, {
 An exact version migration runs before `'*'`. If neither matches, migration
 throws. Standard Schema validation may itself be asynchronous. There is no
 separate lazy-loader API: use an async Standard Schema or the existing `'*'`
-route when schema code must be imported conditionally. The target context schema
-validates the result before its machine identity and version are stamped.
+route when schema code must be imported conditionally. The target machine's
+snapshot schema validates the stamped result, so a migration must produce a
+valid `status`, a state value the target machine can resolve, and `children`.
 
 The `to` version must be backed by an actual machine, because it interprets the
 restored state. `machine.version` remains the compatibility stamp written to the
