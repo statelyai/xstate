@@ -45,6 +45,12 @@ timers, starts, stops, and completion events all use that logical ID. This lets
 the host persist routing without reading `_parent`, `_send`, `_terminate`, or
 other actor internals.
 
+Snapshots produced by the durable planner contain inert child handles whose
+`sessionId` is the logical incarnation. They support identity, persistence, and
+effect planning, but cannot be started, subscribed to, or sent events directly.
+Use the returned effect plan for those operations. No live `Actor` or
+`ActorSystemRuntime` is created while planning.
+
 Only registered string actor sources can be spawned durably. The normalized
 `actor.spawn` effect contains the source key and input; it never contains an
 actor logic object.
@@ -96,9 +102,9 @@ if (!result.accepted) {
 }
 ```
 
-XState translates a current logical ID to its transition-local actor identity.
-It returns `{ accepted: false, effects: [] }` for an old or unknown generation.
-The state object is unchanged.
+XState compares this ID directly with the child's logical `sessionId`. It
+returns `{ accepted: false, effects: [] }` for an old or unknown generation. The
+state object is unchanged.
 
 ## Host contract
 

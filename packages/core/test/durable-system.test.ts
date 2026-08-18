@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createMachine, setup } from '../src/index.ts';
+import { createMachine, setup, type AnyMachineSnapshot } from '../src/index.ts';
 import { createDurableSystem } from '../src/durable/system.ts';
+import { setInertActorMaterializationObserver } from '../src/getNextSnapshot.ts';
 
 const roundTrip = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
@@ -110,7 +111,7 @@ describe('durable actor system', () => {
     expect(current.accepted).toBe(true);
   });
 
-  it('accepts current logical completion without exposing runtime session IDs', () => {
+  it('uses the logical incarnation as the child session ID', () => {
     const child = createMachine({});
     const parent = createMachine({
       actors: { child },
@@ -141,9 +142,71 @@ describe('durable actor system', () => {
       type: 'actor.terminate',
       actor: { id: 'root:0', actorId: 'root' }
     });
-    expect(JSON.stringify(completed.effects)).not.toContain(
-      initial.state.snapshot.children.worker!.sessionId
+    expect(initial.state.snapshot.children.worker!.sessionId).toBe('worker:1');
+    expect(completed.effects).toContainEqual(
+      expect.objectContaining({
+        type: 'actor.stop',
+        actor: { id: 'worker:1', actorId: 'worker' }
+      })
     );
+  });
+
+  it('plans and restores without materializing runtime actors', () => {
+    let materializations = 0;
+    setInertActorMaterializationObserver(() => materializations++);
+    try {
+      const durable = createDurableSystem(machine);
+      const initial = durable.initialTransition(undefined);
+      const restored = durable.restoreSystemSnapshot(
+        roundTrip(durable.getPersistedSystemSnapshot(initial.state))
+      );
+      durable.transition(restored, { type: 'PING' });
+
+      expect(materializations).toBe(0);
+      expect(() =>
+        restored.snapshot.children.notifier!.send({ type: 'PING' })
+      ).toThrowError(
+        'Cannot send to a durable actor reference during pure planning.'
+      );
+    } finally {
+      setInertActorMaterializationObserver(undefined);
+    }
+  });
+
+  it('restores nested logical actor identities', () => {
+    const leaf = createMachine({});
+    const child = createMachine({
+      actors: { leaf },
+      invoke: { id: 'leaf', src: 'leaf' }
+    });
+    const parent = createMachine({
+      actors: { child },
+      invoke: { id: 'child', src: 'child' }
+    });
+    const durable = createDurableSystem(parent);
+    const initial = durable.initialTransition(undefined);
+
+    expect(initial.state.system.actors).toMatchObject({
+      'root:0': { ref: { id: 'root:0', actorId: 'root' } },
+      'child:1': {
+        ref: { id: 'child:1', actorId: 'child' },
+        parent: 'root:0'
+      },
+      'leaf:2': {
+        ref: { id: 'leaf:2', actorId: 'leaf' },
+        parent: 'child:1'
+      }
+    });
+
+    const restored = durable.restoreSystemSnapshot(
+      roundTrip(durable.getPersistedSystemSnapshot(initial.state))
+    );
+    const restoredChild = restored.snapshot.children.child!;
+    const restoredLeaf = (restoredChild.getSnapshot() as AnyMachineSnapshot)
+      .children.leaf!;
+
+    expect(restoredChild.sessionId).toBe('child:1');
+    expect(restoredLeaf.sessionId).toBe('leaf:2');
   });
 
   it('includes timer delivery intent and plans logical cancellation', () => {
