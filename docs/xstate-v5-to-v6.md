@@ -300,14 +300,14 @@ in transition (and `choice`) function args:
 
 ```ts
 // v6
-choice: ({ context, guards }) => {
-  if (guards.isVip(context)) {
+choice: (args) => {
+  if (args.guards.isVip(args)) {
     return { target: 'vipFlow' };
   }
   return { target: 'defaultFlow' };
 },
 guards: {
-  isVip: ({ isVip }) => isVip
+  isVip: ({ context }) => context.isVip
 }
 ```
 

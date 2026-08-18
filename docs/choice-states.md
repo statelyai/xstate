@@ -57,9 +57,9 @@ const machine = createMachine({
   states: {
     routing: {
       type: 'choice',
-      choice: ({ context, guards }) => {
-        if (guards.isVip(context)) return { target: 'vipFlow' };
-        if (guards.isOverBudget(context)) return { target: 'review' };
+      choice: (args) => {
+        if (args.guards.isVip(args)) return { target: 'vipFlow' };
+        if (args.guards.isOverBudget(args)) return { target: 'review' };
         return { target: 'standardFlow' };
       }
     },
@@ -68,8 +68,8 @@ const machine = createMachine({
     standardFlow: {}
   },
   guards: {
-    isVip: ({ isVip }: { isVip: boolean }) => isVip,
-    isOverBudget: ({ overBudget }: { overBudget: boolean }) => overBudget
+    isVip: ({ context }) => context.isVip,
+    isOverBudget: ({ context }) => context.overBudget
   }
 });
 ```
@@ -98,8 +98,8 @@ Choice states replace v5 chains of transient `always` transitions, keeping the b
 states: {
   routing: {
     type: 'choice',
-    choice: ({ context, guards }) => {
-      if (guards.isVip(context)) return { target: 'vipFlow' };
+    choice: (args) => {
+      if (args.guards.isVip(args)) return { target: 'vipFlow' };
       return { target: 'standardFlow' }; // fallback: must resolve
     }
   },

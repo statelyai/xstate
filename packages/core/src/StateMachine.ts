@@ -77,6 +77,8 @@ import type {
 } from './types.ts';
 import {
   AnyMachineSchemas,
+  DelaySourceMap,
+  GuardSourceMap,
   Sources,
   Next_MachineConfig,
   MachineOptions
@@ -446,8 +448,14 @@ export class StateMachine<
   >(sources: {
     actions?: Partial<TActionMap>;
     actors?: TProvidedActorMap & ProvidedActors<TActorMap, TProvidedActorMap>;
-    guards?: Partial<TGuardMap>;
-    delays?: Partial<TDelayMap>;
+    // Mapped over the known names (not an index signature) so unknown source
+    // names are still rejected, while entries keep typed args/return values.
+    guards?: Partial<TGuardMap> & {
+      [K in keyof TGuardMap]?: GuardSourceMap<TContext, TEvent>[string];
+    };
+    delays?: Partial<TDelayMap> & {
+      [K in keyof TDelayMap]?: DelaySourceMap<TContext, TEvent>[string];
+    };
   }): this {
     const { actions, guards, actors, delays } = this.sources;
 
