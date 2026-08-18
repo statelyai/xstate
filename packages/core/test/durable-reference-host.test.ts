@@ -1,4 +1,7 @@
 import {
+  deliverEvent,
+  stopActor,
+  terminateActor,
   type AnyActor,
   type AnyActorLogic,
   type Snapshot
@@ -48,10 +51,10 @@ class InMemoryDurableHost implements DurableConformanceHarness {
     };
     const timerKey = (source: AnyActor, id: string) =>
       `${source.sessionId}:${id}`;
+    let rootAddress: string | undefined;
     const actorRuntime = {
       spawnActor: (_source: AnyActor | undefined, actor: AnyActor) => {
         operations.push({ type: 'actor.spawn' as const, actorId: actor.id });
-        Object.assign(actor.system, actorRuntime);
       },
       startActor: (actor: AnyActor) => {
         operations.push({ type: 'actor.start' as const, actorId: actor.id });
@@ -59,7 +62,12 @@ class InMemoryDurableHost implements DurableConformanceHarness {
       },
       stopActor: (actor: AnyActor) => {
         operations.push({ type: 'actor.stop' as const, actorId: actor.id });
-        (actor as AnyActor & { _stop(): void })._stop();
+        stopActor(actor);
+      },
+      terminateActor: (actor: AnyActor, termination: any) => {
+        // Child actors complete locally; the root's terminal effect is
+        // recorded through the per-effect runtime instead.
+        terminateActor(actor, termination);
       },
       sendEvent: (
         source: AnyActor | undefined,
@@ -72,10 +80,10 @@ class InMemoryDurableHost implements DurableConformanceHarness {
           targetId: target.id,
           eventType: event.type
         });
-        if (target._parent) {
-          target._send(event);
-        } else {
+        if (target.address === rootAddress) {
           enqueue(event);
+        } else {
+          deliverEvent(source, target, event);
         }
       },
       emitEvent: () => {},
@@ -113,6 +121,7 @@ class InMemoryDurableHost implements DurableConformanceHarness {
         operations.push({ type: 'action', actionType: action.type });
         await action.exec(runtime);
       },
+      systemRuntime: actorRuntime,
       runtime: () => ({
         ...actorRuntime,
         terminateActor: (actor, termination) => {
@@ -136,6 +145,7 @@ class InMemoryDurableHost implements DurableConformanceHarness {
     const result = (async () => {
       let effects;
       [snapshot, effects] = durable.initialTransition(input as never);
+      rootAddress = durable.getActorRef(snapshot)?.address;
       await durable.executeEffects(effects);
 
       while ((snapshot as Snapshot<unknown>).status === 'active') {

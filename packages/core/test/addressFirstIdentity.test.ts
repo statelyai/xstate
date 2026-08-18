@@ -253,3 +253,59 @@ describe('string-id sendTo', () => {
     expect(child.getSnapshot().value).toBe('pinged');
   });
 });
+
+describe('sessionId as incarnation id', () => {
+  const invokeMachine = setup({
+    actors: { worker: workerMachine }
+  }).createMachine({
+    id: 'order',
+    initial: 'working',
+    states: {
+      working: {
+        invoke: {
+          id: 'w',
+          src: 'worker',
+          onDone: { target: 'finished' }
+        }
+      },
+      finished: { type: 'final' }
+    }
+  });
+
+  it('drops completions from a previous incarnation after restore', () => {
+    const actor = createActor(invokeMachine).start();
+    const staleSessionId = (actor.getSnapshot().children.w as AnyActor)
+      .sessionId;
+    const persisted = actor.getPersistedSnapshot();
+    actor.stop();
+
+    const restored = createActor(invokeMachine, { snapshot: persisted });
+    restored.start();
+    restored.send({
+      type: 'xstate.done.actor',
+      actorId: 'w',
+      output: undefined,
+      sessionId: staleSessionId
+    } as never);
+    expect(restored.getSnapshot().value).toBe('working');
+  });
+
+  it('accepts completions from the current incarnation', () => {
+    const actor = createActor(invokeMachine).start();
+    const persisted = actor.getPersistedSnapshot();
+    actor.stop();
+
+    const restored = createActor(invokeMachine, { snapshot: persisted });
+    restored.start();
+    const currentSessionId = (restored.getSnapshot().children.w as AnyActor)
+      .sessionId;
+    restored.send({
+      type: 'xstate.done.actor',
+      actorId: 'w',
+      output: undefined,
+      sessionId: currentSessionId
+    } as never);
+    expect(restored.getSnapshot().value).toBe('finished');
+    expect(restored.getSnapshot().status).toBe('done');
+  });
+});

@@ -1,6 +1,8 @@
+import { getSnapshotActorRef } from '../snapshotActorRef.ts';
 import type { ActorSystemRuntime } from '../system.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
+  AnyActor,
   AnyActorLogic,
   CustomExecutableActionObject,
   EventFromLogic,
@@ -49,6 +51,14 @@ export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
     metadata: DurableEffectMetadata,
     effect: ExecutableActionObjectFromLogic<TLogic>
   ): Partial<ActorSystemRuntime>;
+  /**
+   * Runtime operations installed on the actor system of every snapshot this
+   * execution produces, including children created during transitions and
+   * actors rehydrated from restored snapshots. Operations initiated by live
+   * child actors (parent sends, timers, terminations) route here without any
+   * per-actor wiring; omitted operations keep their default local behavior.
+   */
+  systemRuntime?: Partial<ActorSystemRuntime>;
   /** Waits durably for the next event addressed to this execution. */
   waitForEvent(
     metadata: DurableWaitMetadata
@@ -91,6 +101,13 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
     snapshot: SnapshotFrom<TLogic>,
     effects: DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
   ];
+  /**
+   * Returns the actor reference behind a snapshot produced by this execution,
+   * for addressing and inspection. `undefined` for snapshots this execution
+   * has not seen (for example a freshly deserialized checkpoint that has not
+   * been passed through `transition()` yet).
+   */
+  getActorRef(snapshot: SnapshotFrom<TLogic>): AnyActor | undefined;
   executeEffects(
     effects: readonly DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
   ): Promise<void>;
@@ -137,17 +154,30 @@ export function createDurable<TLogic extends AnyActorLogic>(
     }));
   };
 
+  const installSystemRuntime = <TSnapshot>(snapshot: TSnapshot): TSnapshot => {
+    if (adapter.systemRuntime) {
+      const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
+      if (ref) {
+        ref.system.runtimeOverride = adapter.systemRuntime;
+      }
+    }
+    return snapshot;
+  };
+
   const execution: DurableExecution<TLogic> = {
     get nextTransitionIndex() {
       return nextTransitionIndex;
     },
     initialTransition(...args) {
       const [snapshot, effects] = initialTransition(logic, ...args);
-      return [snapshot, tagEffects(effects)];
+      return [installSystemRuntime(snapshot), tagEffects(effects)];
     },
     transition(snapshot, event) {
       const [nextSnapshot, effects] = transition(logic, snapshot, event);
-      return [nextSnapshot, tagEffects(effects)];
+      return [installSystemRuntime(nextSnapshot), tagEffects(effects)];
+    },
+    getActorRef(snapshot) {
+      return getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
     },
     async executeEffects(effects) {
       for (const { effect, ...metadata } of effects) {

@@ -307,6 +307,15 @@ export interface ActorSystem<
   start: () => void;
   _clock: Clock;
   _logger: (...args: any[]) => void;
+  /**
+   * Host-provided runtime operations that take precedence over the default
+   * in-memory implementations for this system and every actor in it,
+   * including snapshot-scoped views and children created later.
+   *
+   * Set by durable executions; hosts should provide it through
+   * `createDurable` rather than assigning it directly.
+   */
+  runtimeOverride?: Partial<ActorSystemRuntime>;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -314,6 +323,7 @@ export type AnyActorSystem = ActorSystem<any>;
 // These optional lazy fields intentionally have no emitted initializers.
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 interface RuntimeSystem<T extends ActorSystemInfo> {
+  runtimeOverride?: Partial<ActorSystemRuntime>;
   _children?: Map<string, AnyActor>;
   _keyedActors?: Map<keyof T['actors'], AnyActor | undefined>;
   _reverseKeyedActors?: WeakMap<AnyActor, keyof T['actors']>;
@@ -619,17 +629,37 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     );
   }
 
-  public spawnActor(): void {}
+  public spawnActor(
+    source: AnyActor | undefined,
+    actor: AnyActor
+  ): void | PromiseLike<void> {
+    return this.runtimeOverride?.spawnActor?.(source, actor);
+  }
 
-  public startActor(actor: AnyActor): void {
+  public startActor(actor: AnyActor): void | PromiseLike<void> {
+    const override = this.runtimeOverride?.startActor;
+    if (override) {
+      return override(actor);
+    }
     actor.start();
   }
 
-  public stopActor(actor: AnyActor): void {
+  public stopActor(actor: AnyActor): void | PromiseLike<void> {
+    const override = this.runtimeOverride?.stopActor;
+    if (override) {
+      return override(actor);
+    }
     (actor as AnyActor & { _stop(): void })._stop();
   }
 
-  public terminateActor(actor: AnyActor, termination: ActorTermination): void {
+  public terminateActor(
+    actor: AnyActor,
+    termination: ActorTermination
+  ): void | PromiseLike<void> {
+    const override = this.runtimeOverride?.terminateActor;
+    if (override) {
+      return override(actor, termination);
+    }
     (
       actor as AnyActor & { _terminate(value: ActorTermination): void }
     )._terminate(termination);
@@ -639,24 +669,51 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     source: AnyActor | undefined,
     target: AnyActor,
     event: AnyEventObject
-  ): void {
+  ): void | PromiseLike<void> {
+    const override = this.runtimeOverride?.sendEvent;
+    if (override) {
+      return override(source, target, event);
+    }
     this._recordSent(source, target, event);
     this._deliver(source, target, event);
   }
 
-  public emitEvent(source: AnyActor, event: EventObject): void {
+  public emitEvent(
+    source: AnyActor,
+    event: EventObject
+  ): void | PromiseLike<void> {
+    const override = this.runtimeOverride?.emitEvent;
+    if (override) {
+      return override(source, event);
+    }
     (source as AnyActor & { _emit(value: EventObject): void })._emit(event);
   }
 
-  public scheduleTimer(source: AnyActor, id: string, delay: number): void {
+  public scheduleTimer(
+    source: AnyActor,
+    id: string,
+    delay: number
+  ): void | PromiseLike<void> {
+    const override = this.runtimeOverride?.scheduleTimer;
+    if (override) {
+      return override(source, id, delay);
+    }
     this.schedule(source, id, delay);
   }
 
-  public cancelTimer(source: AnyActor, id: string): void {
+  public cancelTimer(source: AnyActor, id: string): void | PromiseLike<void> {
+    const override = this.runtimeOverride?.cancelTimer;
+    if (override) {
+      return override(source, id);
+    }
     this.cancel(source, id);
   }
 
-  public cancelAllTimers(source: AnyActor): void {
+  public cancelAllTimers(source: AnyActor): void | PromiseLike<void> {
+    const override = this.runtimeOverride?.cancelAllTimers;
+    if (override) {
+      return override(source);
+    }
     this.cancelAll(source);
   }
 
