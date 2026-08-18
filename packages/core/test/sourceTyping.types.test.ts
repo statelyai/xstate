@@ -155,6 +155,41 @@ describe('setup() source typing', () => {
     }
   });
 
+  it('allows provide() to swap a fixed delay for a computed one and back', () => {
+    const machine = setup({
+      schemas: {
+        context: z.object({ ms: z.number() })
+      },
+      delays: {
+        retry: 1_000,
+        backoff: ({ context }) => context.ms
+      }
+    }).createMachine({
+      context: { ms: 100 },
+      initial: 'a',
+      states: { a: {} }
+    });
+
+    machine.provide({
+      delays: {
+        retry: ({ context }) => {
+          expectType<{ ms: number }>(context);
+          return context.ms * 2;
+        },
+        backoff: 250
+      }
+    });
+
+    if (false) {
+      machine.provide({
+        delays: {
+          // @ts-expect-error - unknown delay name
+          unknown: 100
+        }
+      });
+    }
+  });
+
   it('contextually types machine-level guards from machine schemas', () => {
     createMachine({
       schemas: {

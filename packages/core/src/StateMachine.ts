@@ -453,7 +453,9 @@ export class StateMachine<
     guards?: Partial<TGuardMap> & {
       [K in keyof TGuardMap]?: GuardSourceMap<TContext, TEvent>[string];
     };
-    delays?: Partial<TDelayMap> & {
+    // Delays are widened to `number | fn` per entry (not Partial<TDelayMap>)
+    // so a fixed delay can be swapped for a computed one and vice versa.
+    delays?: {
       [K in keyof TDelayMap]?: DelaySourceMap<TContext, TEvent>[string];
     };
   }): this {
