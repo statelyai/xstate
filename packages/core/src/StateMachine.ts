@@ -90,6 +90,8 @@ import {
 } from './utils.ts';
 import { assertValid } from './validation.ts';
 import type { ActorLogicValidator } from './validation.types.ts';
+import type { StandardSchemaV1 } from './schema.types.ts';
+import type { PersistedMachineSnapshot } from './machineVersion.types.ts';
 
 const STATE_IDENTIFIER = '#';
 
@@ -207,6 +209,15 @@ export class StateMachine<
 
   public schemas: AnyMachineSchemas | undefined;
 
+  /** Standard Schema for snapshots persisted by this machine version. */
+  public readonly snapshotSchema: StandardSchemaV1<
+    unknown,
+    Snapshot<unknown> & PersistedMachineSnapshot & { context: TContext }
+  >;
+
+  /** Standard Schema for complete events accepted by this machine version. */
+  public readonly eventSchema: StandardSchemaV1<unknown, TEvent>;
+
   public sources: Sources;
 
   /** Runtime options for machine execution. */
@@ -268,6 +279,132 @@ export class StateMachine<
     }
     this.version = this.config.version;
     this.schemas = this.config.schemas;
+    this.snapshotSchema = {
+      '~standard': {
+        version: 1,
+        vendor: 'xstate',
+        validate: async (value) => {
+          if (value === null || typeof value !== 'object') {
+            return { issues: [{ message: 'Expected a persisted snapshot.' }] };
+          }
+          const snapshot: Record<string, unknown> = {
+            historyValue: {},
+            timers: {},
+            ...(value as Record<string, unknown>)
+          };
+          const contextSchema = this.schemas?.context;
+          let context = snapshot.context;
+          if (contextSchema) {
+            const result = await contextSchema['~standard'].validate(context);
+            if (result.issues) {
+              return {
+                issues: [
+                  {
+                    message: `Invalid context for machine '${this.id}' version '${this.version}': ${result.issues[0]?.message}`
+                  }
+                ]
+              };
+            }
+            context = result.value;
+          }
+          for (const key of ['value', 'children'] as const) {
+            if (!(key in snapshot)) {
+              return {
+                issues: [{ message: `Persisted snapshot is missing '${key}'.` }]
+              };
+            }
+          }
+          if (
+            !['active', 'done', 'error', 'stopped'].includes(
+              snapshot.status as string
+            )
+          ) {
+            return {
+              issues: [{ message: 'Persisted snapshot has invalid status.' }]
+            };
+          }
+          for (const key of ['children', 'historyValue', 'timers'] as const) {
+            if (
+              snapshot[key] === null ||
+              typeof snapshot[key] !== 'object' ||
+              Array.isArray(snapshot[key])
+            ) {
+              return {
+                issues: [
+                  { message: `Persisted snapshot has invalid '${key}'.` }
+                ]
+              };
+            }
+          }
+          try {
+            this.resolveState({
+              value: snapshot.value as StateValue,
+              context
+            } as any);
+          } catch (error) {
+            return {
+              issues: [
+                {
+                  message:
+                    error instanceof Error
+                      ? error.message
+                      : 'Persisted snapshot has invalid state value.'
+                }
+              ]
+            };
+          }
+          return {
+            value: { ...snapshot, context } as Snapshot<unknown> &
+              PersistedMachineSnapshot & { context: TContext }
+          };
+        }
+      }
+    };
+    this.eventSchema = {
+      '~standard': {
+        version: 1,
+        vendor: 'xstate',
+        validate: async (value) => {
+          if (
+            value === null ||
+            typeof value !== 'object' ||
+            typeof (value as EventObject).type !== 'string'
+          ) {
+            return { issues: [{ message: 'Expected an event object.' }] };
+          }
+          const event = value as EventObject;
+          const eventSchemas = this.schemas?.events;
+          const isFrameworkEvent =
+            event.type.startsWith('xstate.') ||
+            event.type.startsWith('@xstate.');
+          const schema =
+            eventSchemas && Object.hasOwn(eventSchemas, event.type)
+              ? eventSchemas[event.type]
+              : undefined;
+          if (eventSchemas && !schema && !isFrameworkEvent) {
+            return {
+              issues: [
+                {
+                  message: `Unknown event '${event.type}' for machine '${this.id}' version '${this.version}'.`
+                }
+              ]
+            };
+          }
+          if (!schema) {
+            return { value: event as TEvent };
+          }
+          const { type, ...payload } = event;
+          const result = await schema['~standard'].validate(payload);
+          if (result.issues) {
+            return result;
+          }
+          if (result.value === null || typeof result.value !== 'object') {
+            return { issues: [{ message: 'Expected an event payload.' }] };
+          }
+          return { value: { ...result.value, type } as TEvent };
+        }
+      }
+    };
     this.internalEventDescriptors = this.config.internalEvents ?? [];
     this.options = {
       maxIterations: Infinity,
@@ -319,22 +456,7 @@ export class StateMachine<
     delays?: Partial<TDelayMap> & {
       [K in keyof TDelayMap]?: DelaySourceMap<TContext, TEvent>[string];
     };
-  }): StateMachine<
-    TContext,
-    TEvent,
-    TChildren,
-    TStateValue,
-    TTag,
-    TInput,
-    TOutput,
-    TEmitted,
-    TMeta,
-    TConfig,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap
-  > {
+  }): this {
     const { actions, guards, actors, delays } = this.sources;
 
     const provided = new StateMachine(

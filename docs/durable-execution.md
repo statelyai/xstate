@@ -86,18 +86,16 @@ the beginning should persist `durable.nextTransitionIndex` after every
 transition, including transitions with no effects, and pass it as
 `transitionIndex` when recreating the durable execution.
 
-## Host integration examples
+## Host adapters
 
-The repository includes proof-of-concept contract tests for
-[Inngest](../packages/core/test/durable-adapters/inngest.test.ts) and
-[Rivet](../packages/core/test/durable-adapters/rivet.test.ts). They demonstrate
-how host steps and event waits can implement the durable adapter contract.
+XState does not ship adapters for specific workflow platforms. `createDurable`
+defines the contract; writing the adapter for a given host is your
+responsibility.
 
-These examples are not supported or published host adapters. They deliberately
-cover bounded workflows only and do not approximate missing host semantics.
-For example, awaiting a sleep inline cannot implement a cancellable timer while
-also receiving intervening events. Full integrations need host-native mappings
-for timers, messaging and child actors.
+A full integration needs host-native mappings for timers, messaging and child
+actors. Approximations break subtle semantics. For example, awaiting a sleep
+inline cannot implement a cancelable timer while also receiving intervening
+events.
 
 ## What next?
 

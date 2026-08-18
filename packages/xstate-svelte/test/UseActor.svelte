@@ -1,9 +1,9 @@
 <script lang="ts">
-  export let persistedState: AnyMachineSnapshot | undefined = undefined;
+  export let persistedState: Snapshot<unknown> | undefined = undefined;
 
   import { useActor } from '../src/index.ts';
   import { fetchMachine } from './fetchMachine.ts';
-  import type { AnyMachineSnapshot } from 'xstate';
+  import type { Snapshot } from 'xstate';
   import { createAsyncLogic } from 'xstate';
 
   const onFetch = () =>

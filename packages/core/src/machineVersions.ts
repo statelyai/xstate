@@ -1,5 +1,15 @@
 import type { StandardSchemaV1 } from './schema.types.ts';
-import type { AnyMachineSchemas } from './types.v6.ts';
+import type {
+  MachineEventSchema,
+  MachineSnapshotSchema,
+  MachineVersionDescriptor
+} from './machineVersion.types.ts';
+export type {
+  MachineEventSchema,
+  MachineSnapshotSchema,
+  MachineVersionDescriptor,
+  PersistedMachineSnapshot
+} from './machineVersion.types.ts';
 import type {
   AnyStateMachine,
   ContextFrom,
@@ -18,8 +28,11 @@ export type PersistedMachineIdentity<
 
 type VersionedStateMachine = AnyStateMachine & {
   version: string;
-  schemas?: AnyMachineSchemas;
+  snapshotSchema: MachineSnapshotSchema;
+  eventSchema: MachineEventSchema;
 };
+
+type VersionEntry = MachineVersionDescriptor;
 
 export type PersistedSnapshotFrom<TMachine extends AnyStateMachine> =
   Snapshot<unknown> &
@@ -35,38 +48,101 @@ export type PersistedSnapshotDataFrom<TMachine extends AnyStateMachine> =
     [key: string]: unknown;
   };
 
-export type ParsedPersistedSnapshot<
-  TMachines extends readonly AnyStateMachine[]
-> = {
-  [K in keyof TMachines]: TMachines[K] extends AnyStateMachine
-    ? {
-        machine: TMachines[K];
-        snapshot: PersistedSnapshotFrom<TMachines[K]>;
-      }
-    : never;
-}[number];
+export type ParsedPersistedSnapshot<TEntries extends readonly VersionEntry[]> =
+  {
+    [K in keyof TEntries]: TEntries[K] extends VersionEntry
+      ? TEntries[K] extends VersionedStateMachine
+        ? {
+            source: TEntries[K];
+            machine: TEntries[K];
+            snapshot: PersistedSnapshotFromEntry<TEntries[K]>;
+          }
+        : {
+            source: TEntries[K];
+            snapshot: PersistedSnapshotFromEntry<TEntries[K]>;
+          }
+      : never;
+  }[number];
 
-export type MachineVersionsOptions<
-  TMachines extends readonly AnyStateMachine[]
-> = {
-  unversioned?: NonNullable<TMachines[number]['version']>;
+export type MachineVersionsOptions<TEntries extends readonly VersionEntry[]> = {
+  unversioned?: SnapshotSourceVersion<TEntries>;
 };
 
 type MaybePromise<T> = T | PromiseLike<T>;
 
-type MachineVersion<TMachines extends readonly VersionedStateMachine[]> =
-  TMachines[number]['version'];
+type MachineVersion<TEntries extends readonly VersionEntry[]> = Extract<
+  TEntries[number],
+  VersionedStateMachine
+>['version'];
+
+type SnapshotSourceVersion<TEntries extends readonly VersionEntry[]> = {
+  [K in keyof TEntries]: TEntries[K] extends
+    | VersionedStateMachine
+    | { snapshotSchema: MachineSnapshotSchema }
+    ? TEntries[K]['version']
+    : never;
+}[number];
+
+type EventSourceVersion<TEntries extends readonly VersionEntry[]> = {
+  [K in keyof TEntries]: TEntries[K] extends
+    | VersionedStateMachine
+    | { eventSchema: MachineEventSchema }
+    ? TEntries[K]['version']
+    : never;
+}[number];
 
 type MachineForVersion<
-  TMachines extends readonly VersionedStateMachine[],
+  TEntries extends readonly VersionEntry[],
   TVersion extends string
 > = {
-  [K in keyof TMachines]: TMachines[K] extends VersionedStateMachine
-    ? TMachines[K]['version'] extends TVersion
-      ? TMachines[K]
+  [K in keyof TEntries]: TEntries[K] extends VersionedStateMachine
+    ? TEntries[K]['version'] extends TVersion
+      ? TEntries[K]
       : never
     : never;
 }[number];
+
+type SnapshotEntryForVersion<
+  TEntries extends readonly VersionEntry[],
+  TVersion extends string
+> = {
+  [K in keyof TEntries]: TEntries[K] extends
+    | VersionedStateMachine
+    | { snapshotSchema: MachineSnapshotSchema }
+    ? TEntries[K]['version'] extends TVersion
+      ? TEntries[K]
+      : never
+    : never;
+}[number];
+
+type EventEntryForVersion<
+  TEntries extends readonly VersionEntry[],
+  TVersion extends string
+> = {
+  [K in keyof TEntries]: TEntries[K] extends
+    | VersionedStateMachine
+    | { eventSchema: MachineEventSchema }
+    ? TEntries[K]['version'] extends TVersion
+      ? TEntries[K]
+      : never
+    : never;
+}[number];
+
+type PersistedSnapshotFromEntry<TEntry extends VersionEntry> = TEntry extends {
+  snapshotSchema: infer TSchema extends MachineSnapshotSchema;
+}
+  ? StandardSchemaV1.InferOutput<TSchema>
+  : TEntry extends VersionedStateMachine
+    ? PersistedSnapshotFrom<TEntry>
+    : never;
+
+type EventFromEntry<TEntry extends VersionEntry> = TEntry extends {
+  eventSchema: infer TSchema extends MachineEventSchema;
+}
+  ? StandardSchemaV1.InferOutput<TSchema>
+  : TEntry extends VersionedStateMachine
+    ? EventFrom<TEntry>
+    : never;
 
 export type PersistedSnapshotSource = {
   id?: string;
@@ -74,11 +150,13 @@ export type PersistedSnapshotSource = {
 };
 
 export type SnapshotMigrationHandlers<
-  TMachines extends readonly VersionedStateMachine[],
+  TEntries extends readonly VersionEntry[],
   TTarget extends VersionedStateMachine
 > = {
-  [TVersion in Exclude<MachineVersion<TMachines>, TTarget['version']>]?: (
-    snapshot: PersistedSnapshotFrom<MachineForVersion<TMachines, TVersion>>
+  [TVersion in Exclude<SnapshotSourceVersion<TEntries>, TTarget['version']>]?: (
+    snapshot: PersistedSnapshotFromEntry<
+      SnapshotEntryForVersion<TEntries, TVersion>
+    >
   ) => MaybePromise<PersistedSnapshotDataFrom<TTarget>>;
 } & {
   '*'?: (
@@ -88,13 +166,13 @@ export type SnapshotMigrationHandlers<
 };
 
 export type MigrateSnapshotOptions<
-  TMachines extends readonly VersionedStateMachine[],
-  TTargetVersion extends MachineVersion<TMachines>
+  TEntries extends readonly VersionEntry[],
+  TTargetVersion extends MachineVersion<TEntries>
 > = {
   to: TTargetVersion;
   migrations: SnapshotMigrationHandlers<
-    TMachines,
-    MachineForVersion<TMachines, TTargetVersion>
+    TEntries,
+    MachineForVersion<TEntries, TTargetVersion>
   >;
 };
 
@@ -104,11 +182,11 @@ export type EventHistorySource = {
 };
 
 export type EventAdapterHandlers<
-  TMachines extends readonly VersionedStateMachine[],
+  TEntries extends readonly VersionEntry[],
   TTarget extends VersionedStateMachine
 > = {
-  [TVersion in Exclude<MachineVersion<TMachines>, TTarget['version']>]?: (
-    events: readonly EventFrom<MachineForVersion<TMachines, TVersion>>[]
+  [TVersion in Exclude<EventSourceVersion<TEntries>, TTarget['version']>]?: (
+    events: readonly EventFromEntry<EventEntryForVersion<TEntries, TVersion>>[]
   ) => MaybePromise<readonly EventFrom<TTarget>[]>;
 } & {
   '*'?: (
@@ -118,19 +196,42 @@ export type EventAdapterHandlers<
 };
 
 export type AdaptEventsOptions<
-  TMachines extends readonly VersionedStateMachine[],
-  TTargetVersion extends MachineVersion<TMachines>
+  TEntries extends readonly VersionEntry[],
+  TTargetVersion extends MachineVersion<TEntries>
 > = {
   from: EventHistorySource;
   to: TTargetVersion;
   adapters: EventAdapterHandlers<
-    TMachines,
-    MachineForVersion<TMachines, TTargetVersion>
+    TEntries,
+    MachineForVersion<TEntries, TTargetVersion>
   >;
 };
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object';
+}
+
+function isVersionedStateMachine(
+  entry: VersionEntry
+): entry is VersionedStateMachine {
+  return (
+    'transition' in entry &&
+    typeof (entry as VersionedStateMachine).transition === 'function'
+  );
+}
+
+function hasSnapshotSchema(
+  entry: VersionEntry
+): entry is MachineVersionDescriptor & {
+  snapshotSchema: MachineSnapshotSchema;
+} {
+  return 'snapshotSchema' in entry && entry.snapshotSchema !== undefined;
+}
+
+function hasEventSchema(
+  entry: VersionEntry
+): entry is MachineVersionDescriptor & { eventSchema: MachineEventSchema } {
+  return 'eventSchema' in entry && entry.eventSchema !== undefined;
 }
 
 function getSnapshotSource(
@@ -174,89 +275,81 @@ async function finalizeSnapshot<TTarget extends VersionedStateMachine>(
   snapshot: PersistedSnapshotDataFrom<TTarget>,
   target: TTarget
 ): Promise<PersistedSnapshotFrom<TTarget>> {
-  const context = await validate(
-    target.schemas?.context,
-    snapshot.context,
-    `context for machine '${target.id}' version '${target.version}'`
-  );
-
-  return {
-    ...snapshot,
-    context,
-    machine: { id: target.id, version: target.version },
-    version: target.version
-  } as unknown as PersistedSnapshotFrom<TTarget>;
+  return (await validate(
+    target.snapshotSchema,
+    {
+      ...snapshot,
+      machine: { id: target.id, version: target.version },
+      version: target.version
+    },
+    `snapshot for machine '${target.id}' version '${target.version}'`
+  )) as PersistedSnapshotFrom<TTarget>;
 }
 
-async function validateEvents<TMachine extends VersionedStateMachine>(
+async function validateEvents<
+  TSource extends MachineVersionDescriptor & {
+    eventSchema: MachineEventSchema;
+  }
+>(
   events: readonly unknown[],
-  machine: TMachine
-): Promise<EventFrom<TMachine>[]> {
+  source: TSource
+): Promise<EventFromEntry<TSource>[]> {
   return Promise.all(
     events.map(async (event, index) => {
-      if (!isObject(event) || typeof event.type !== 'string') {
-        throw new Error(`Invalid event at index ${index}.`);
-      }
-      const eventSchemas = machine.schemas?.events;
-      const isFrameworkEvent =
-        event.type.startsWith('xstate.') || event.type.startsWith('@xstate.');
-      const schema =
-        eventSchemas && Object.hasOwn(eventSchemas, event.type)
-          ? eventSchemas[event.type]
-          : undefined;
-      if (eventSchemas && !schema && !isFrameworkEvent) {
+      const result = await source.eventSchema['~standard'].validate(event);
+      if (result.issues) {
+        const message = result.issues[0]?.message;
+        if (message?.startsWith('Unknown event ')) {
+          throw new Error(message);
+        }
+        const type = isObject(event) ? event.type : undefined;
         throw new Error(
-          `Unknown event '${event.type}' for machine '${machine.id}' version '${machine.version}'.`
+          typeof type === 'string'
+            ? `Invalid event '${type}' at index ${index}${message ? `: ${message}` : '.'}`
+            : `Invalid event at index ${index}${message ? `: ${message}` : '.'}`
         );
       }
-      if (!schema) {
-        return event as EventFrom<TMachine>;
+      const validated = result.value;
+      if (!isObject(validated) || typeof validated.type !== 'string') {
+        throw new Error(`Invalid event at index ${index}.`);
       }
-      const { type, ...payload } = event;
-      const validatedPayload = await validate(
-        schema,
-        payload,
-        `event '${type}' at index ${index}`
-      );
-      if (!isObject(validatedPayload)) {
-        throw new Error(`Invalid event '${type}' at index ${index}.`);
-      }
-      return { ...validatedPayload, type } as EventFrom<TMachine>;
+      return validated as EventFromEntry<TSource>;
     })
   );
 }
 
-/** Creates migration and adaptation utilities backed by retained versions of one machine. */
+/** Creates migration and adaptation utilities for versions of one machine. */
 export function machineVersions<
-  const TMachines extends readonly [
-    VersionedStateMachine,
-    ...VersionedStateMachine[]
-  ]
->(machines: TMachines, options?: MachineVersionsOptions<TMachines>) {
-  const byIdentity = new Map<string, VersionedStateMachine>();
-  const machineId = machines[0].id;
+  const TEntries extends readonly [VersionEntry, ...VersionEntry[]]
+>(entries: TEntries, options?: MachineVersionsOptions<TEntries>) {
+  const byIdentity = new Map<string, VersionEntry>();
+  const machinesByIdentity = new Map<string, VersionedStateMachine>();
+  const machineId = entries[0].id;
 
-  for (const machine of machines) {
-    if (machine.version === undefined) {
-      throw new Error(`Machine '${machine.id}' must define a version.`);
+  for (const entry of entries) {
+    if (entry.version === undefined) {
+      throw new Error(`Machine '${entry.id}' must define a version.`);
     }
-    if (machine.version === '*') {
+    if (entry.version === '*') {
       throw new Error(
         "Machine version '*' is reserved for wildcard migrations."
       );
     }
-    if (machine.id !== machineId) {
+    if (entry.id !== machineId) {
       throw new Error(
-        `Machine '${machine.id}' does not match machine ID '${machineId}'.`
+        `Machine '${entry.id}' does not match machine ID '${machineId}'.`
       );
     }
-    const key = `${machine.id}\0${machine.version}`;
+    const key = `${entry.id}\0${entry.version}`;
     if (byIdentity.has(key)) {
       throw new Error(
-        `Duplicate machine identity '${machine.id}' version '${machine.version}'.`
+        `Duplicate machine identity '${entry.id}' version '${entry.version}'.`
       );
     }
-    byIdentity.set(key, machine);
+    byIdentity.set(key, entry);
+    if (isVersionedStateMachine(entry)) {
+      machinesByIdentity.set(key, entry);
+    }
   }
 
   if (
@@ -270,7 +363,7 @@ export function machineVersions<
 
   const parseSnapshot = async (
     raw: unknown
-  ): Promise<ParsedPersistedSnapshot<TMachines>> => {
+  ): Promise<ParsedPersistedSnapshot<TEntries>> => {
     if (!isObject(raw)) {
       throw new Error('Persisted snapshot is missing machine identity.');
     }
@@ -303,40 +396,45 @@ export function machineVersions<
       );
     }
 
-    const machine = byIdentity.get(`${id}\0${version}`);
-    if (!machine) {
+    const source = byIdentity.get(`${id}\0${version}`);
+    if (!source) {
       throw new Error(`Unknown machine identity '${id}' version '${version}'.`);
     }
 
-    const context = await validate(
-      machine.schemas?.context,
-      raw.context,
-      `context for machine '${id}' version '${version}'`
+    if (!hasSnapshotSchema(source)) {
+      throw new Error(
+        `Machine version '${version}' does not define a snapshot schema.`
+      );
+    }
+    const snapshot = await validate(
+      source.snapshotSchema,
+      raw,
+      `snapshot for machine '${id}' version '${version}'`
     );
 
     return {
-      machine,
+      source,
+      ...(isVersionedStateMachine(source) && { machine: source }),
       snapshot: {
-        ...raw,
-        context,
+        ...(snapshot as Record<string, unknown>),
         machine: { id, version }
       }
-    } as ParsedPersistedSnapshot<TMachines>;
+    } as ParsedPersistedSnapshot<TEntries>;
   };
 
   return {
     parseSnapshot,
-    async adaptEvents<TTargetVersion extends MachineVersion<TMachines>>(
+    async adaptEvents<TTargetVersion extends MachineVersion<TEntries>>(
       events: readonly unknown[],
-      adaptationOptions: AdaptEventsOptions<TMachines, TTargetVersion>
-    ): Promise<EventFrom<MachineForVersion<TMachines, TTargetVersion>>[]> {
-      type TargetMachine = MachineForVersion<TMachines, TTargetVersion>;
-      const target = byIdentity.get(`${machineId}\0${adaptationOptions.to}`) as
-        | TargetMachine
-        | undefined;
+      adaptationOptions: AdaptEventsOptions<TEntries, TTargetVersion>
+    ): Promise<EventFrom<MachineForVersion<TEntries, TTargetVersion>>[]> {
+      type TargetMachine = MachineForVersion<TEntries, TTargetVersion>;
+      const target = machinesByIdentity.get(
+        `${machineId}\0${adaptationOptions.to}`
+      ) as TargetMachine | undefined;
       if (!target) {
         throw new Error(
-          `Target version '${adaptationOptions.to}' is not retained for machine '${machineId}'.`
+          `Target version '${adaptationOptions.to}' is not backed by a machine for '${machineId}'.`
         );
       }
 
@@ -346,7 +444,8 @@ export function machineVersions<
       );
       let sourceError: unknown;
       let sourceValidationFailed = false;
-      if (source) {
+      const hasTypedSource = source && hasEventSchema(source);
+      if (hasTypedSource) {
         let sourceEvents: EventObject[] | undefined;
         try {
           sourceEvents = await validateEvents(events, source);
@@ -370,7 +469,10 @@ export function machineVersions<
             >
           )[source.version];
           if (adapter) {
-            return validateEvents(await adapter(sourceEvents), target);
+            return validateEvents(
+              await adapter(sourceEvents),
+              target
+            ) as Promise<EventFrom<TargetMachine>[]>;
           }
         }
       }
@@ -380,9 +482,9 @@ export function machineVersions<
         return validateEvents(
           await wildcardAdapter(events, adaptationOptions.from),
           target
-        );
+        ) as Promise<EventFrom<TargetMachine>[]>;
       }
-      if (source) {
+      if (hasTypedSource) {
         if (sourceValidationFailed) {
           throw sourceError instanceof Error
             ? sourceError
@@ -395,27 +497,32 @@ export function machineVersions<
           `No event adapter from version '${source.version}' to '${target.version}' for machine '${target.id}'.`
         );
       }
+      if (source) {
+        throw new Error(
+          `Machine version '${source.version}' does not define an event schema; only the '*' adapter can handle its event history.`
+        );
+      }
       throw new Error(
         `Unknown event history source '${sourceId}' version '${adaptationOptions.from.version}'.`
       );
     },
-    async migrateSnapshot<TTargetVersion extends MachineVersion<TMachines>>(
+    async migrateSnapshot<TTargetVersion extends MachineVersion<TEntries>>(
       raw: unknown,
-      migrationOptions: MigrateSnapshotOptions<TMachines, TTargetVersion>
+      migrationOptions: MigrateSnapshotOptions<TEntries, TTargetVersion>
     ): Promise<
-      PersistedSnapshotFrom<MachineForVersion<TMachines, TTargetVersion>>
+      PersistedSnapshotFrom<MachineForVersion<TEntries, TTargetVersion>>
     > {
-      type TargetMachine = MachineForVersion<TMachines, TTargetVersion>;
-      const target = byIdentity.get(`${machineId}\0${migrationOptions.to}`) as
-        | TargetMachine
-        | undefined;
+      type TargetMachine = MachineForVersion<TEntries, TTargetVersion>;
+      const target = machinesByIdentity.get(
+        `${machineId}\0${migrationOptions.to}`
+      ) as TargetMachine | undefined;
       if (!target) {
         throw new Error(
-          `Target version '${migrationOptions.to}' is not retained for machine '${machineId}'.`
+          `Target version '${migrationOptions.to}' is not backed by a machine for '${machineId}'.`
         );
       }
 
-      let source: ParsedPersistedSnapshot<TMachines> | undefined;
+      let source: ParsedPersistedSnapshot<TEntries> | undefined;
       let parseError: unknown;
       try {
         source = await parseSnapshot(raw);
@@ -424,7 +531,7 @@ export function machineVersions<
       }
 
       if (source) {
-        if (source.machine.version === target.version) {
+        if (source.source.version === target.version) {
           return finalizeSnapshot(
             source.snapshot as PersistedSnapshotDataFrom<TargetMachine>,
             target
@@ -438,7 +545,7 @@ export function machineVersions<
               ) => MaybePromise<PersistedSnapshotDataFrom<TargetMachine>>)
             | undefined
           >
-        )[source.machine.version];
+        )[source.source.version];
         if (exactMigration) {
           return finalizeSnapshot(
             await exactMigration(source.snapshot),
@@ -451,7 +558,7 @@ export function machineVersions<
       if (!wildcardMigration) {
         if (source) {
           throw new Error(
-            `No snapshot migration from version '${source.machine.version}' to '${target.version}' for machine '${target.id}'.`
+            `No snapshot migration from version '${source.source.version}' to '${target.version}' for machine '${target.id}'.`
           );
         }
         throw parseError;

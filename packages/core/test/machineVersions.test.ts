@@ -2,6 +2,302 @@ import { z } from 'zod';
 import { createActor, createMachine, machineVersions, types } from '../src';
 
 describe('machineVersions', () => {
+  it('exposes the same version schemas on machines and descriptors', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '1',
+      schemas: {
+        context: z.object({ count: z.number() }),
+        events: { ADD: z.object({ value: z.number() }) }
+      },
+      context: { count: 0 },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const persisted = createActor(checkout).getPersistedSnapshot();
+
+    await expect(
+      checkout.snapshotSchema['~standard'].validate({
+        ...persisted,
+        context: { count: 1 }
+      })
+    ).resolves.toMatchObject({ value: { context: { count: 1 } } });
+    await expect(
+      checkout.eventSchema['~standard'].validate({
+        type: 'ADD',
+        value: 2
+      })
+    ).resolves.toEqual({ value: { type: 'ADD', value: 2 } });
+    await expect(
+      checkout.snapshotSchema['~standard'].validate({
+        ...persisted,
+        value: 'removed'
+      })
+    ).resolves.toHaveProperty('issues');
+  });
+
+  it('migrates a historical snapshot validated by its complete schema', async () => {
+    const checkoutV1 = {
+      id: 'checkout',
+      version: '1',
+      snapshotSchema: z
+        .object({
+          status: z.literal('active'),
+          output: z.undefined().optional(),
+          error: z.undefined().optional(),
+          value: z.literal('active'),
+          context: z.object({ count: z.number() }),
+          children: z.record(z.string(), z.unknown()),
+          historyValue: z.record(z.string(), z.unknown()),
+          timers: z.record(z.string(), z.unknown()),
+          _nextActorId: z.number(),
+          _nextTimerId: z.number(),
+          machine: z.object({
+            id: z.literal('checkout'),
+            version: z.literal('1')
+          }),
+          version: z.literal('1')
+        })
+        .passthrough()
+    } as const;
+    const checkoutV2 = createMachine({
+      id: 'checkout',
+      version: '2',
+      context: { total: 0 },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkoutV1, checkoutV2]);
+    const persisted = {
+      status: 'active',
+      value: 'active',
+      context: { count: 3 },
+      children: {},
+      historyValue: {},
+      timers: {},
+      _nextActorId: 0,
+      _nextTimerId: 0,
+      machine: { id: 'checkout', version: '1' },
+      version: '1'
+    } as const;
+
+    const compatible = await versions.migrateSnapshot(persisted, {
+      to: '2',
+      migrations: {
+        '1': (snapshot) => ({
+          ...snapshot,
+          context: { total: snapshot.context.count }
+        })
+      }
+    });
+
+    expect(compatible.context).toEqual({ total: 3 });
+    await expect(
+      versions.migrateSnapshot(
+        { ...persisted, value: 'removed-state' },
+        {
+          to: '2',
+          migrations: {
+            '1': (snapshot) => ({
+              ...snapshot,
+              context: { total: snapshot.context.count }
+            })
+          }
+        }
+      )
+    ).rejects.toThrow("Invalid snapshot for machine 'checkout' version '1'");
+  });
+
+  it('does not use a snapshot-only version as a restoration target', async () => {
+    const historical = {
+      id: 'checkout',
+      version: '1',
+      snapshotSchema: types<{
+        status: 'active';
+        value: 'active';
+        context: {};
+        children: {};
+        historyValue: {};
+        timers: {};
+        _nextTimerId: number;
+      }>()
+    } as const;
+    const current = createMachine({
+      id: 'checkout',
+      version: '2',
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([historical, current]);
+
+    await expect(
+      versions.migrateSnapshot({}, { to: '1', migrations: {} } as any)
+    ).rejects.toThrow(
+      "Target version '1' is not backed by a machine for 'checkout'."
+    );
+  });
+
+  it('uses the unknown event adapter for snapshot-only source versions', async () => {
+    const historical = {
+      id: 'checkout',
+      version: '1',
+      snapshotSchema: types<{
+        status: 'active';
+        value: 'active';
+        context: {};
+        children: {};
+        historyValue: {};
+        timers: {};
+        _nextTimerId: number;
+      }>()
+    } as const;
+    const current = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        events: { CHANGE: z.object({ delta: z.number() }) }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([historical, current]);
+
+    await expect(
+      versions.adaptEvents([{ type: 'ADD', value: 2 }], {
+        from: { version: '1' },
+        to: '2',
+        adapters: {
+          '*': async (events, source) => {
+            expect(events).toEqual([{ type: 'ADD', value: 2 }]);
+            expect(source).toEqual({ version: '1' });
+            return [{ type: 'CHANGE', delta: 2 }];
+          }
+        }
+      })
+    ).resolves.toEqual([{ type: 'CHANGE', delta: 2 }]);
+  });
+
+  it('reports when a registered source has no event schema', async () => {
+    const historical = {
+      id: 'checkout',
+      version: '1',
+      snapshotSchema: types<{
+        status: 'active';
+        value: 'active';
+        context: {};
+        children: {};
+        historyValue: {};
+        timers: {};
+      }>()
+    } as const;
+    const current = createMachine({
+      id: 'checkout',
+      version: '2',
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([historical, current]);
+
+    await expect(
+      versions.adaptEvents([], {
+        from: { version: '1' },
+        to: '2',
+        adapters: {}
+      })
+    ).rejects.toThrow(
+      "Machine version '1' does not define an event schema; only the '*' adapter can handle its event history."
+    );
+  });
+
+  it('adapts events from a historical event schema', async () => {
+    const historical = {
+      id: 'checkout',
+      version: '1',
+      eventSchema: z.discriminatedUnion('type', [
+        z.object({ type: z.literal('ADD'), value: z.number() }),
+        z.object({ type: z.literal('REMOVE'), value: z.number() })
+      ])
+    } as const;
+    const current = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        events: { CHANGE: z.object({ delta: z.number() }) }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([historical, current]);
+    const wildcard = vi.fn();
+
+    const events = await versions.adaptEvents(
+      [
+        { type: 'ADD', value: 5 },
+        { type: 'REMOVE', value: 2 }
+      ],
+      {
+        from: { version: '1' },
+        to: '2',
+        adapters: {
+          '1': (events) => [
+            {
+              type: 'CHANGE',
+              delta: events.reduce(
+                (total, event) =>
+                  total + (event.type === 'ADD' ? event.value : -event.value),
+                0
+              )
+            }
+          ],
+          '*': wildcard
+        }
+      }
+    );
+
+    expect(events).toEqual([{ type: 'CHANGE', delta: 3 }]);
+    expect(wildcard).not.toHaveBeenCalled();
+  });
+
+  it('routes invalid historical event-schema input to the wildcard', async () => {
+    const historical = {
+      id: 'checkout',
+      version: '1',
+      eventSchema: z.object({
+        type: z.literal('ADD'),
+        value: z.number()
+      })
+    } as const;
+    const current = createMachine({
+      id: 'checkout',
+      version: '2',
+      schemas: {
+        events: { CHANGE: z.object({ delta: z.number() }) }
+      },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([historical, current]);
+    const exact = vi.fn();
+
+    const events = await versions.adaptEvents(
+      [{ type: 'ADD', value: 'invalid' }],
+      {
+        from: { version: '1' },
+        to: '2',
+        adapters: {
+          '1': exact,
+          '*': (events) => {
+            expect(events).toEqual([{ type: 'ADD', value: 'invalid' }]);
+            return [{ type: 'CHANGE', delta: 0 }];
+          }
+        }
+      }
+    );
+
+    expect(events).toEqual([{ type: 'CHANGE', delta: 0 }]);
+    expect(exact).not.toHaveBeenCalled();
+  });
+
   it('adapts a whole event history through an async exact-version adapter', async () => {
     const checkoutV1 = createMachine({
       id: 'checkout',
@@ -407,6 +703,40 @@ describe('machineVersions', () => {
     ).rejects.toThrow("Invalid context for machine 'checkout' version '2'");
   });
 
+  it('defaults restoration-optional bookkeeping in migration output', async () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      version: '2',
+      context: { total: 0 },
+      initial: 'active',
+      states: { active: {} }
+    });
+    const versions = machineVersions([checkout]);
+
+    const compatible = await versions.migrateSnapshot(
+      {},
+      {
+        to: '2',
+        migrations: {
+          '*': () => ({
+            status: 'active',
+            output: undefined,
+            error: undefined,
+            value: 'active',
+            context: { total: 3 },
+            children: {}
+          })
+        }
+      }
+    );
+
+    expect(compatible).toMatchObject({ historyValue: {}, timers: {} });
+    expect(
+      createActor(checkout, { snapshot: compatible }).start().getSnapshot()
+        .context
+    ).toEqual({ total: 3 });
+  });
+
   it('routes an unretained source version to the wildcard', async () => {
     const checkout = createMachine({
       id: 'checkout',
@@ -529,7 +859,10 @@ describe('machineVersions', () => {
     });
     const persisted = createActor(checkout).getPersistedSnapshot();
 
-    const restored = createActor(cart, { snapshot: persisted });
+    const restored = createActor(cart, {
+      // @ts-expect-error -- cross-ID restore is also rejected at the type level
+      snapshot: persisted
+    });
     restored.subscribe({ error: () => {} });
     restored.start();
 
@@ -587,9 +920,12 @@ describe('machineVersions', () => {
       states: { active: {} }
     });
     const versions = machineVersions([checkoutV1]);
+    const { machine: _, ...legacyPersisted } = createActor(
+      checkoutV1
+    ).getPersistedSnapshot() as Record<string, unknown>;
 
     const parsed = await versions.parseSnapshot({
-      version: '1',
+      ...legacyPersisted,
       context: { count: 2 }
     });
 
@@ -654,6 +990,42 @@ describe('machineVersions', () => {
     const actor = createActor(checkoutV1, { snapshot: compatible }).start();
 
     expect(actor.getSnapshot().context).toEqual({ total: 2 });
+  });
+
+  it('parses an unversioned snapshot through a historical schema', async () => {
+    const historical = {
+      id: 'checkout',
+      version: '0',
+      snapshotSchema: z.object({
+        status: z.literal('active'),
+        output: z.undefined().optional(),
+        error: z.undefined().optional(),
+        value: z.literal('active'),
+        context: z.object({ count: z.number() }),
+        children: z.object({}),
+        historyValue: z.object({}),
+        timers: z.object({}),
+        _nextActorId: z.number().optional(),
+        _nextTimerId: z.number()
+      })
+    } as const;
+    const versions = machineVersions([historical], { unversioned: '0' });
+
+    const parsed = await versions.parseSnapshot({
+      status: 'active',
+      value: 'active',
+      context: { count: 1 },
+      children: {},
+      historyValue: {},
+      timers: {},
+      _nextTimerId: 0
+    });
+
+    expect(parsed.source).toBe(historical);
+    expect(parsed.snapshot).toMatchObject({
+      context: { count: 1 },
+      machine: { id: 'checkout', version: '0' }
+    });
   });
 
   it('does not use the unversioned policy for an explicit unknown version', async () => {
