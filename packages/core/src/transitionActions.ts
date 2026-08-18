@@ -275,6 +275,19 @@ export function createTransitionEnqueue(
   actorSubscriptions = false,
   createActors = true
 ) {
+  const spawnedById = new Map<string, AnyActor>();
+  const resolveTargetId = (targetId: string): AnyActor | undefined => {
+    const spawned = spawnedById.get(targetId);
+    if (spawned) {
+      return spawned;
+    }
+    const children = (
+      actorScope.self.getSnapshot?.() as
+        | { children?: Record<string, AnyActor | undefined> }
+        | undefined
+    )?.children;
+    return children?.[targetId];
+  };
   const props: Partial<EnqueueObject<any, any>> = {
     cancel: (id: string) => {
       pushBuiltInAction(
@@ -317,18 +330,46 @@ export function createTransitionEnqueue(
           id: options?.id ?? options?.registryKey ?? (logic as any).id
         } as AnyActor;
       }
+      // Recover the registered source key for setup-provided logic so the
+      // spawned child persists (and gets a deterministic id prefix) by key
+      // instead of by inline logic reference.
+      let src: string | undefined;
+      const registeredActors = (
+        actorScope.self as {
+          logic?: { sources?: { actors?: Record<string, unknown> } };
+        }
+      ).logic?.sources?.actors;
+      if (registeredActors) {
+        for (const key of Object.keys(registeredActors)) {
+          if (registeredActors[key] === logic) {
+            src = key;
+            break;
+          }
+        }
+      }
       const actor = actorScope.system.createActorRef(logic, {
         ...options,
+        ...(src !== undefined && { src }),
         parent: actorScope.self
       });
+      spawnedById.set(options?.id ?? actor.id, actor);
       pushSpawnedChild(actions, actor, options?.id);
       return actor;
     },
-    sendTo: (actor, event, options) => {
+    sendTo: ((
+      actorOrId: AnyActor | string | undefined,
+      event: EventObject,
+      options?: { id?: string; delay?: number }
+    ) => {
+      const actor =
+        typeof actorOrId === 'string' ? resolveTargetId(actorOrId) : actorOrId;
       if (!actor) {
         internalEvents.push(
           createErrorPlatformEvent('communication', {
-            message: 'Unable to send event to an undefined actor',
+            message:
+              typeof actorOrId === 'string'
+                ? `Unable to send event to unknown child actor '${actorOrId}'`
+                : 'Unable to send event to an undefined actor',
             event
           })
         );
@@ -342,7 +383,7 @@ export function createTransitionEnqueue(
         event,
         options
       );
-    },
+    }) as EnqueueObject<any, any>['sendTo'],
     stop: (actor) => {
       if (actor) {
         const action = pushBuiltInAction(

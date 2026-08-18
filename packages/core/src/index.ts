@@ -173,6 +173,10 @@ export {
   executeEffects,
   isBuiltInExecutableAction
 } from './transitionActions.ts';
+export {
+  getEffectDescriptor,
+  type EffectDescriptor
+} from './effectDescriptor.ts';
 export { waitFor } from './waitFor.ts';
 
 declare global {

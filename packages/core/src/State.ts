@@ -653,6 +653,8 @@ export function getPersistedSnapshot<
     ...jsonValues,
     _nextActorId:
       getSnapshotActorRef(snapshot)?.systemState.snapshot._nextActorId,
+    _nextActorIds:
+      getSnapshotActorRef(snapshot)?.systemState.snapshot._nextActorIds,
     context: persistContext(context) as any,
     children: childrenJson,
     timers: timersJson,

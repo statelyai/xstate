@@ -12,6 +12,7 @@ export type PersistedMachineSnapshot = {
   historyValue: Record<string, unknown>;
   timers: Record<string, unknown>;
   _nextActorId?: number;
+  _nextActorIds?: Record<string, number>;
   _nextTimerId?: number;
   stateInputs?: Record<string, Record<string, unknown>>;
   machine?: { id: string; version: string };

@@ -191,6 +191,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** The globally unique process ID for this invocation. */
   public sessionId: string;
 
+  /**
+   * The deterministic logical address of this actor within its system: the
+   * `/`-joined path of actor ids from the root. Stable across persistence and
+   * restore, unlike `sessionId`, which identifies one incarnation.
+   */
+  public get address(): string {
+    return this._parent ? `${this._parent.address}/${this.id}` : this.id;
+  }
+
   /** The system to which this actor belongs. */
   public system: AnyActorSystem;
 
@@ -269,7 +278,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     this.sessionId = resolvedOptions._sessionId ?? bookSessionId(this.system);
-    this.id = resolveActorId(this.system, id);
+    this.id = resolveActorId(this.system, id, {
+      parent,
+      src: resolvedOptions.src ?? logic
+    });
     this.logger = options?.logger ?? this.system._logger;
     this.clock = options?.clock ?? this.system._clock;
     this._parent = parent;

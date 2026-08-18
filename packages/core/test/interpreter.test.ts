@@ -828,7 +828,7 @@ describe('interpreter', () => {
     }
 
     expect(warnSpy).toHaveBeenCalledWith(
-      `Event "TIMER" was sent to stopped actor "x:0 (${service.sessionId})". This actor has already reached its final state, and will not transition.`
+      `Event "TIMER" was sent to stopped actor "light (${service.sessionId})". This actor has already reached its final state, and will not transition.`
     );
   });
 

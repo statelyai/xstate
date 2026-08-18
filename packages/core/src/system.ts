@@ -82,30 +82,100 @@ function createSystemId(): string {
   return `${systemIdPrefix}:${(nextSystemId++).toString(36)}`;
 }
 
+/**
+ * Derives the deterministic id prefix for a generated actor id from its actor
+ * source: the registered source key when the source is a string, the logic's
+ * own `id` otherwise, with `x` as the last-resort prefix.
+ *
+ * @internal
+ */
+export function getActorIdPrefix(
+  src: string | AnyActorLogic | undefined
+): string {
+  if (typeof src === 'string') {
+    return src;
+  }
+  const logicId = (src as { id?: unknown } | undefined)?.id;
+  // Anonymous machines get the placeholder id '(machine)'; only named logic
+  // earns a named id prefix.
+  return typeof logicId === 'string' &&
+    logicId.length &&
+    logicId !== '(machine)'
+    ? logicId
+    : 'x';
+}
+
+function getActorIdCounterKey(
+  parent: AnyActor | undefined,
+  prefix: string
+): string {
+  return `${parent ? parent.address : ''}|${prefix}`;
+}
+
+function bumpActorIdCounter(
+  system: AnyActorSystem,
+  counterKey: string,
+  next: number
+): void {
+  const counters = system._snapshot._nextActorIds;
+  if ((counters[counterKey] ?? 0) >= next) {
+    return;
+  }
+  // Copy-on-write: snapshot systems share this record by shallow `_snapshot`
+  // copies, so branches must not observe each other's allocations.
+  system._snapshot._nextActorIds = { ...counters, [counterKey]: next };
+  markSystemSnapshotDirty(system);
+}
+
 /** @internal */
 export function resolveActorId(
   system: AnyActorSystem,
-  requestedId: string | undefined
+  requestedId: string | undefined,
+  options?: {
+    parent?: AnyActor;
+    src?: string | AnyActorLogic;
+  }
 ): string {
   if (requestedId !== undefined) {
-    const match = /^x:(\d+)$/.exec(requestedId);
-    const reservedId = match ? Number(match[1]) : undefined;
-    if (reservedId !== undefined && Number.isSafeInteger(reservedId)) {
-      const nextActorId = Math.max(
-        system._snapshot._nextActorId,
-        reservedId + 1
-      );
-      if (nextActorId !== system._snapshot._nextActorId) {
-        system._snapshot._nextActorId = nextActorId;
-        markSystemSnapshotDirty(system);
+    const match = /^(.*):(\d+)$/.exec(requestedId);
+    if (match) {
+      const reservedId = Number(match[2]);
+      if (Number.isSafeInteger(reservedId)) {
+        if (match[1] === 'x') {
+          // Legacy flat allocation; keep its counter reserved too.
+          const nextActorId = Math.max(
+            system._snapshot._nextActorId,
+            reservedId + 1
+          );
+          if (nextActorId !== system._snapshot._nextActorId) {
+            system._snapshot._nextActorId = nextActorId;
+            markSystemSnapshotDirty(system);
+          }
+        }
+        bumpActorIdCounter(
+          system,
+          getActorIdCounterKey(options?.parent, match[1]),
+          reservedId + 1
+        );
       }
     }
     return requestedId;
   }
 
-  const id = `x:${system._snapshot._nextActorId++}`;
+  const prefix = getActorIdPrefix(options?.src);
+  if (!options?.parent && prefix !== 'x') {
+    // A root actor is alone in its system; its id (and address root segment)
+    // is the logic's own name without a counter.
+    return prefix;
+  }
+  const counterKey = getActorIdCounterKey(options?.parent, prefix);
+  const counter = system._snapshot._nextActorIds[counterKey] ?? 0;
+  system._snapshot._nextActorIds = {
+    ...system._snapshot._nextActorIds,
+    [counterKey]: counter + 1
+  };
   markSystemSnapshotDirty(system);
-  return id;
+  return `${prefix}:${counter}`;
 }
 
 /** @internal */
@@ -229,6 +299,8 @@ export interface ActorSystem<
   _snapshot: {
     _scheduledTimers: Record<ScheduledTimerId, ScheduledTimer>;
     _nextActorId: number;
+    /** Deterministic generated-id counters keyed by `${parentAddress}|${srcPrefix}`. */
+    _nextActorIds: Record<string, number>;
   };
   /** @internal */
   _snapshotVersion: number;
@@ -318,6 +390,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
         ? (options.snapshot as {
             scheduler?: Record<ScheduledTimerId, ScheduledTimer>;
             _nextActorId?: number;
+            _nextActorIds?: Record<string, number>;
           })
         : undefined;
     this._clock = options.clock;
@@ -325,7 +398,8 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     this.createActorRef = options.createActorRef;
     this._snapshot = {
       _scheduledTimers: restoredSnapshot?.scheduler ?? emptyScheduledTimers,
-      _nextActorId: restoredSnapshot?._nextActorId ?? 0
+      _nextActorId: restoredSnapshot?._nextActorId ?? 0,
+      _nextActorIds: restoredSnapshot?._nextActorIds ?? {}
     };
   }
 
