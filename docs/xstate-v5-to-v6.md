@@ -979,6 +979,8 @@ These exports have been **added**:
 - `isBuiltInExecutableAction`
 - `executeEffects`
 - `ActorSystemRuntime`
+- Durable execution surface from `xstate/durable`: `createDurableSystem` and
+  logical actor/system snapshot types
 - `ActorTermination`
 - Persistence/versioning surface: `machineVersions` and its related snapshot
   migration and event adaptation types
@@ -1159,6 +1161,10 @@ without rebinding stopped actors by ID.
 A locally rehydrated actor restarts each timer with its declared delay. Durable
 hosts that need wall-clock restoration persist `scheduledAt` / `dueAt`
 separately from the machine snapshot.
+
+`ActorSystemRuntime` is the local interpreter seam and receives live actors.
+Distributed durable hosts instead consume normalized `createDurableSystem()`
+effects with logical `DurableActorRef` identities.
 
 ### Terminal actor effects
 

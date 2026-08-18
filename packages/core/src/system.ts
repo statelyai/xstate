@@ -116,8 +116,11 @@ export function bookSessionId(system: AnyActorSystem): string {
 /**
  * Runtime operations used to execute effects.
  *
- * An external interpreter can override these operations while the default actor
- * system provides the local in-memory implementation.
+ * A custom in-process interpreter can override these operations while the
+ * default actor system provides the local implementation. The methods receive
+ * live actors and are not a serialization or distributed-host boundary. Use
+ * `createDurableSystem()` from `xstate/durable` for logical, persistable actor
+ * references and normalized durable effects.
  */
 export interface ActorSystemRuntime {
   /** Publishes a newly created actor to the runtime. */

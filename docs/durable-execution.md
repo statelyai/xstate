@@ -1,105 +1,131 @@
 ---
 title: Durable execution
-description: Run pure XState transitions on a durable host.
+description: Plan pure XState transitions for a durable host.
 ---
 
-Import the experimental durable execution helper from `xstate/durable` when a
-workflow platform owns persistence, retries, timers, messaging and child
-execution.
-
-This is for hosts that durably replay or checkpoint the execution loop. If your
-application instead restores an actor for each request, processes one event and
-saves its snapshot, use the [backend workflow](backend-workflows.md) pattern.
+Import `createDurableSystem` from `xstate/durable` when a workflow platform owns
+persistence, retries, timers, messaging, and child execution.
 
 ```ts
-import { createDurable } from 'xstate/durable';
+import { createDurableSystem } from 'xstate/durable';
 
-const durable = createDurable(machine, {
-  executeAction: (action, { id }, runtime) =>
-    host.runAction(id, () => action.exec(runtime)),
-  runtime: ({ id: effectId }, effect) => ({
-    sendEvent: (_source, target, event) =>
-      host.send(effectId, target.id, event),
-    scheduleTimer: (source, id, delay) =>
-      host.schedule({ effectId, actorId: source.id, timerId: id, delay }),
-    cancelTimer: (source, id) =>
-      host.cancelTimer({ effectId, actorId: source.id, timerId: id })
-    // Map the remaining ActorSystemRuntime operations supported by the host.
-  }),
-  waitForEvent: ({ id }) => host.waitForEvent(id)
+const durable = createDurableSystem(machine);
+let { state, effects } = durable.initialTransition(input);
+
+await durable.executeEffects(effects, {
+  execute: (effect, executeAction) =>
+    host.step(effect.id, async () => {
+      if (executeAction) return executeAction();
+      await host.execute(effect);
+    })
 });
 
-const output = await durable.run(input);
+const persisted = durable.getPersistedSystemSnapshot(state);
 ```
 
-`run()` is convenience over the explicit transition loop:
+`initialTransition()` and `transition()` are pure. They return a state and an
+ordered plan. Every effect has a stable ID such as `0:0`. Replaying the same
+event from the same state produces the same snapshot, actor identities, and
+effects.
+
+## Logical actor references
+
+Durable effects contain `DurableActorRef` data, never live actor instances:
 
 ```ts
-let [state, effects] = durable.initialTransition(input);
-await durable.executeEffects(effects);
+type DurableActorRef = {
+  id: string; // incarnation, for example "notifier:5"
+  actorId: string; // readable parent-local ID, for example "notifier"
+};
+```
 
-while (state.status === 'active') {
-  const event = await durable.waitForEvent();
-  [state, effects] = durable.transition(state, event);
-  await durable.executeEffects(effects);
+A spawn reserves the next logical incarnation in the system snapshot. A stop
+followed by another spawn of the same `actorId` receives a new `id`. Sends,
+timers, starts, stops, and completion events all use that logical ID. This lets
+the host persist routing without reading `_parent`, `_send`, `_terminate`, or
+other actor internals.
+
+Only registered string actor sources can be spawned durably. The normalized
+`actor.spawn` effect contains the source key and input; it never contains an
+actor logic object.
+
+## Persistence
+
+Use the system snapshot whenever the execution contains child actors:
+
+```ts
+const persisted = JSON.parse(
+  JSON.stringify(durable.getPersistedSystemSnapshot(state))
+);
+state = durable.restoreSystemSnapshot(persisted);
+```
+
+It contains the persisted root machine snapshot, logical actor topology, the
+next actor incarnation counter, and the next transition index. Checkpoint the
+returned state and its effects atomically before executing the effects.
+
+For a single state machine with no durable children, machine-only persistence
+remains available:
+
+```ts
+const snapshot = durable.getPersistedSnapshot(state);
+state = durable.restoreSnapshot(snapshot, {
+  transitionIndex: state.nextTransitionIndex
+});
+```
+
+The transition index must still be checkpointed so effect IDs do not reset.
+Machine-only restoration rejects snapshots with children because it cannot
+preserve their logical generations.
+
+## Stale completion events
+
+Child lifecycle events sent by the host carry their logical incarnation in
+`sessionId`:
+
+```ts
+const result = durable.transition(state, {
+  type: 'xstate.done.actor',
+  actorId: 'notifier',
+  sessionId: 'notifier:5',
+  output
+});
+
+if (!result.accepted) {
+  // The child was stopped or replaced. Acknowledge the stale message.
 }
 ```
 
-`initialTransition()` and `transition()` remain pure. The helper tags their
-ordered effects with stable IDs such as `0:0` and `1:0`, and event waits with
-IDs such as `event:0`. A durable host should memoize or deduplicate each
-operation using that ID. Replaying the same events from the beginning
-reconstructs the same snapshots, effects, waits and IDs.
+XState translates a current logical ID to its transition-local actor identity.
+It returns `{ accepted: false, effects: [] }` for an old or unknown generation.
+The state object is unchanged.
 
-The host runtime subsumes the local actor system. XState calculates transitions
-and stable operation IDs; the adapter maps those operations to durable host
-primitives:
+## Host contract
 
-- Actions run through `executeAction()` with their stable effect ID and the
-  runtime returned by `runtime()`. External work should use the effect ID as an
-  idempotency key. A host may require actions to have registered `type` values
-  when its activity model cannot replay inline code.
-- Sends route through the host's actor or workflow identity.
-- Timers register host-managed delivery and return immediately. The host stamps
-  `dueAt` when it durably commits the timer; transition calculation never reads
-  wall-clock time.
-- Invoked or spawned actors use host child-workflow facilities when available.
-- Unsupported runtime operations throw.
+Normalized effects cover actions, spawn/start/stop/termination, sends, emits,
+and timer schedule/cancel operations. Timer schedules include their logical
+source, target, event, ID, and relative delay. The host stamps an absolute
+deadline when it commits the effect.
 
-Custom actions are dispatched separately from actor-system effects. This keeps
-host operations such as timers and child workflows visible to runtimes that do
-not permit durable operations to be nested inside a generic activity. Both
-callbacks receive the complete effect metadata. `runtime()` creates the host
-runtime and receives the complete effect; `executeAction()` receives that
-runtime when it executes the action.
+`executeEffects()` awaits host operations in order. The host remains responsible
+for:
 
-`run()` resolves with the machine output when the machine is done, throws the
-machine error when it fails, and throws `DurableExecutionCancelledError` when
-it stops. It only starts fresh executions. A nonzero `transitionIndex`, or
-calling a lower-level transition method before `run()`, causes
-`DurableExecutionResumeError`; resume with the persisted snapshot and the
-explicit transition loop instead.
+- atomically storing the checkpoint and outbox;
+- deduplicating effects by `effect.id`;
+- durable inboxes and deterministic local delivery queues;
+- retries, absolute timer deadlines, and cancellation storage;
+- running registered actor sources and publishing their lifecycle events;
+- durable inspection storage and transport.
 
-The helper does not prescribe storage, inboxes, retries or timer
-implementations. Hosts that restore from checkpoints instead of replaying from
-the beginning should persist `durable.nextTransitionIndex` after every
-transition, including transitions with no effects, and pass it as
-`transitionIndex` when recreating the durable execution.
-
-## Host adapters
-
-XState does not ship adapters for specific workflow platforms. `createDurable`
-defines the contract; writing the adapter for a given host is your
-responsibility.
-
-A full integration needs host-native mappings for timers, messaging and child
-actors. Approximations break subtle semantics. For example, awaiting a sleep
-inline cannot implement a cancelable timer while also receiving intervening
-events.
+`ActorSystemRuntime` is the low-level runtime used by XState's local
+interpreter. It receives live actors and is not the durable/distributed host
+protocol. Existing `createDurable()` adapters that override it remain available
+for compatibility, but new durable hosts should consume `createDurableSystem()`
+plans.
 
 ## What next?
 
-- [Run backend workflows](backend-workflows.md) when your application owns
-  snapshot storage and restores an actor per request.
-- [Persistence](persistence.md) for snapshot versioning, migration and event
+- [Run backend workflows](backend-workflows.md) when your application restores a
+  local actor per request.
+- [Persistence](persistence.md) for snapshot versioning, migration, and event
   adaptation.

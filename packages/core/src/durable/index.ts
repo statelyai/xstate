@@ -1,4 +1,17 @@
 import type { ActorSystemRuntime } from '../system.ts';
+export {
+  createDurableSystem,
+  type DurableActorRecord,
+  type DurableActorRef,
+  type DurableSystem,
+  type DurableSystemEffect,
+  type DurableSystemEffectExecutor,
+  type DurableSystemEffectMetadata,
+  type DurableSystemSnapshot,
+  type DurableSystemState,
+  type DurableSystemTransition,
+  type PersistedDurableSystemState
+} from './system.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
   AnyActorLogic,

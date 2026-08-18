@@ -1,13 +1,16 @@
+import { createMachine, setup as setupXState } from '../../src/index.ts';
 import {
-  createLogic,
-  createMachine,
-  setup as setupXState
-} from '../../src/index.ts';
-import {
-  createDurable,
-  type DurableExecutionAdapter
+  createDurableSystem,
+  DurableExecutionCancelledError,
+  type DurableSystemEffect
 } from '../../src/durable/index.ts';
-import type { AnyActorLogic, EventFromLogic } from '../../src/types.ts';
+import type {
+  AnyStateMachine,
+  EventFromLogic,
+  InputFrom,
+  OutputFrom,
+  Snapshot
+} from '../../src/types.ts';
 
 interface RivetWorkflowContext {
   step(name: string, run: () => unknown | Promise<unknown>): Promise<unknown>;
@@ -16,43 +19,62 @@ interface RivetWorkflowContext {
   };
 }
 
-function createRivetPoc<TLogic extends AnyActorLogic>(
+function createRivetPoc<TLogic extends AnyStateMachine>(
   logic: TLogic,
   options: {
     context: RivetWorkflowContext;
     queue: string;
-    runtime?: DurableExecutionAdapter<TLogic>['runtime'];
+    executeEffect?(effect: DurableSystemEffect): void | PromiseLike<void>;
   }
 ) {
-  return createDurable(logic, {
-    async executeAction(action, metadata, runtime) {
-      await options.context.step(metadata.id, async () => action.exec(runtime));
-    },
-    runtime(metadata, effect) {
-      const runtime = options.runtime?.(metadata, effect) ?? {};
-      if (
-        effect.type !== '@xstate.terminate' ||
-        runtime.terminateActor !== undefined
-      ) {
-        return runtime;
+  const durable = createDurableSystem(logic);
+
+  const executeEffects = (effects: readonly DurableSystemEffect[]) =>
+    durable.executeEffects(effects, {
+      execute: async (effect, executeAction) => {
+        await options.context.step(effect.id, async () => {
+          if (executeAction) {
+            await executeAction();
+          } else {
+            await options.executeEffect?.(effect);
+          }
+        });
+      }
+    });
+
+  return {
+    durable,
+    executeEffects,
+    async run(
+      ...[input]: undefined extends InputFrom<TLogic>
+        ? [input?: InputFrom<TLogic>]
+        : [input: InputFrom<TLogic>]
+    ): Promise<OutputFrom<TLogic>> {
+      let result = durable.initialTransition(input as never);
+      await executeEffects(result.effects);
+
+      while ((result.state.snapshot as Snapshot<unknown>).status === 'active') {
+        const waitId = `event:${result.state.nextTransitionIndex - 1}`;
+        const message = await options.context.queue.next(waitId, {
+          names: [options.queue]
+        });
+        result = durable.transition(
+          result.state,
+          (message as { body: { event: EventFromLogic<TLogic> } }).body.event
+        );
+        await executeEffects(result.effects);
       }
 
-      // This bounded-workflow PoC only supports root completion.
-      return {
-        ...runtime,
-        async terminateActor() {
-          await options.context.step(metadata.id, async () => {});
-        }
-      };
-    },
-    async waitForEvent(metadata) {
-      const message = await options.context.queue.next(metadata.id, {
-        names: [options.queue]
-      });
-      return (message as { body: { event: EventFromLogic<TLogic> } }).body
-        .event;
+      const snapshot = result.state.snapshot as Snapshot<OutputFrom<TLogic>>;
+      if (snapshot.status === 'done') {
+        return snapshot.output;
+      }
+      if (snapshot.status === 'error') {
+        throw snapshot.error;
+      }
+      throw new DurableExecutionCancelledError();
     }
-  });
+  };
 }
 
 describe('Rivet durable execution PoC', () => {
@@ -88,9 +110,9 @@ describe('Rivet durable execution PoC', () => {
         return run();
       },
       queue: {
-        async next(name: string, options: { names: readonly string[] }) {
+        async next(name: string, queueOptions: { names: readonly string[] }) {
           expect(name).toBe('event:0');
-          expect(options).toEqual({ names: ['machine-events'] });
+          expect(queueOptions).toEqual({ names: ['machine-events'] });
           return messages.shift();
         }
       }
@@ -107,8 +129,8 @@ describe('Rivet durable execution PoC', () => {
     expect(stepNames).toEqual(['0:0', '1:0', '1:1']);
   });
 
-  it('exposes built-in effects to host runtime mappings', async () => {
-    const effects: unknown[] = [];
+  it('receives serializable logical timer effects', async () => {
+    const effects: DurableSystemEffect[] = [];
     const machine = createMachine({
       initial: 'waiting',
       states: {
@@ -116,7 +138,7 @@ describe('Rivet durable execution PoC', () => {
         done: { type: 'final' }
       }
     });
-    const durable = createRivetPoc(machine, {
+    const poc = createRivetPoc(machine, {
       context: {
         async step(_name: string, run: () => unknown | Promise<unknown>) {
           return run();
@@ -124,47 +146,22 @@ describe('Rivet durable execution PoC', () => {
         queue: { next: vi.fn() }
       },
       queue: 'machine-events',
-      runtime: (_metadata, effect) => {
+      executeEffect: (effect) => {
         effects.push(effect);
-        return { scheduleTimer: vi.fn() };
       }
     });
-    const [, initialEffects] = durable.initialTransition(undefined);
+    const initial = poc.durable.initialTransition(undefined);
 
-    await durable.executeEffects(initialEffects);
+    await poc.executeEffects(initial.effects);
 
     expect(effects).toEqual([
-      expect.objectContaining({ type: '@xstate.raise', delay: 10 })
+      expect.objectContaining({
+        type: 'timer.schedule',
+        delay: 10,
+        source: { id: 'root:0', actorId: 'root' },
+        target: { id: 'root:0', actorId: 'root' }
+      })
     ]);
-  });
-
-  it('forwards the host runtime to custom effects', async () => {
-    const runtime = { sendEvent: vi.fn() };
-    let providedRuntime: unknown;
-    const logic = createLogic({
-      context: undefined,
-      run: ({ event }, enq) => {
-        if (event.type === '@xstate.init') {
-          enq.effect((effectRuntime) => {
-            providedRuntime = effectRuntime;
-          });
-        }
-      }
-    });
-    const durable = createRivetPoc(logic, {
-      context: {
-        async step(_name: string, run: () => unknown | Promise<unknown>) {
-          return run();
-        },
-        queue: { next: vi.fn() }
-      },
-      queue: 'machine-events',
-      runtime: () => runtime
-    });
-    const [, effects] = durable.initialTransition(undefined);
-
-    await durable.executeEffects(effects);
-
-    expect(providedRuntime).toBe(runtime);
+    expect(() => JSON.stringify(effects)).not.toThrow();
   });
 });
