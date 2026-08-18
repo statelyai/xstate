@@ -158,7 +158,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
     if (adapter.systemRuntime) {
       const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
       if (ref) {
-        ref.system.runtimeOverride = adapter.systemRuntime;
+        ref.system.runtime = adapter.systemRuntime;
       }
     }
     return snapshot;

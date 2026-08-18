@@ -186,8 +186,10 @@ export function bookSessionId(system: AnyActorSystem): string {
 /**
  * Runtime operations used to execute effects.
  *
- * An external interpreter can override these operations while the default actor
- * system provides the local in-memory implementation.
+ * XState calculates pure transitions; a runtime executes their effects. The
+ * built-in local runtime is one implementation at the same level as any
+ * other: install a different one via `system.runtime` (for durable hosts,
+ * through `createDurable`'s `systemRuntime`).
  */
 export interface ActorSystemRuntime {
   /** Publishes a newly created actor to the runtime. */
@@ -308,14 +310,17 @@ export interface ActorSystem<
   _clock: Clock;
   _logger: (...args: any[]) => void;
   /**
-   * Host-provided runtime operations that take precedence over the default
-   * in-memory implementations for this system and every actor in it,
-   * including snapshot-scoped views and children created later.
+   * The runtime executing this system's effects. When unset, the built-in
+   * local in-memory runtime runs them; `createActor(machine).start()` is just
+   * that built-in runtime. A host runtime installed here applies to every
+   * actor in the system — snapshot-scoped views and children created later
+   * included — and may implement any subset of operations, with the rest
+   * keeping the built-in behavior.
    *
-   * Set by durable executions; hosts should provide it through
-   * `createDurable` rather than assigning it directly.
+   * Durable hosts should provide this through `createDurable`'s
+   * `systemRuntime` rather than assigning it directly.
    */
-  runtimeOverride?: Partial<ActorSystemRuntime>;
+  runtime?: Partial<ActorSystemRuntime>;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -323,7 +328,7 @@ export type AnyActorSystem = ActorSystem<any>;
 // These optional lazy fields intentionally have no emitted initializers.
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 interface RuntimeSystem<T extends ActorSystemInfo> {
-  runtimeOverride?: Partial<ActorSystemRuntime>;
+  runtime?: Partial<ActorSystemRuntime>;
   _children?: Map<string, AnyActor>;
   _keyedActors?: Map<keyof T['actors'], AnyActor | undefined>;
   _reverseKeyedActors?: WeakMap<AnyActor, keyof T['actors']>;
@@ -633,11 +638,11 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     source: AnyActor | undefined,
     actor: AnyActor
   ): void | PromiseLike<void> {
-    return this.runtimeOverride?.spawnActor?.(source, actor);
+    return this.runtime?.spawnActor?.(source, actor);
   }
 
   public startActor(actor: AnyActor): void | PromiseLike<void> {
-    const override = this.runtimeOverride?.startActor;
+    const override = this.runtime?.startActor;
     if (override) {
       return override(actor);
     }
@@ -645,7 +650,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   }
 
   public stopActor(actor: AnyActor): void | PromiseLike<void> {
-    const override = this.runtimeOverride?.stopActor;
+    const override = this.runtime?.stopActor;
     if (override) {
       return override(actor);
     }
@@ -656,7 +661,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     actor: AnyActor,
     termination: ActorTermination
   ): void | PromiseLike<void> {
-    const override = this.runtimeOverride?.terminateActor;
+    const override = this.runtime?.terminateActor;
     if (override) {
       return override(actor, termination);
     }
@@ -670,7 +675,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void | PromiseLike<void> {
-    const override = this.runtimeOverride?.sendEvent;
+    const override = this.runtime?.sendEvent;
     if (override) {
       return override(source, target, event);
     }
@@ -682,7 +687,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     source: AnyActor,
     event: EventObject
   ): void | PromiseLike<void> {
-    const override = this.runtimeOverride?.emitEvent;
+    const override = this.runtime?.emitEvent;
     if (override) {
       return override(source, event);
     }
@@ -694,7 +699,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     id: string,
     delay: number
   ): void | PromiseLike<void> {
-    const override = this.runtimeOverride?.scheduleTimer;
+    const override = this.runtime?.scheduleTimer;
     if (override) {
       return override(source, id, delay);
     }
@@ -702,7 +707,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   }
 
   public cancelTimer(source: AnyActor, id: string): void | PromiseLike<void> {
-    const override = this.runtimeOverride?.cancelTimer;
+    const override = this.runtime?.cancelTimer;
     if (override) {
       return override(source, id);
     }
@@ -710,7 +715,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   }
 
   public cancelAllTimers(source: AnyActor): void | PromiseLike<void> {
-    const override = this.runtimeOverride?.cancelAllTimers;
+    const override = this.runtime?.cancelAllTimers;
     if (override) {
       return override(source);
     }
