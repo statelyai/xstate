@@ -154,7 +154,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
     }));
   };
 
-  const installSystemRuntime = <TSnapshot>(snapshot: TSnapshot): TSnapshot => {
+  function installSystemRuntime<TSnapshot>(snapshot: TSnapshot): TSnapshot {
     if (adapter.systemRuntime) {
       const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
       if (ref) {
@@ -162,7 +162,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
       }
     }
     return snapshot;
-  };
+  }
 
   const execution: DurableExecution<TLogic> = {
     get nextTransitionIndex() {
