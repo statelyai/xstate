@@ -8,7 +8,7 @@ import {
 } from './actors/subscription.ts';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
-import type { ActorSystemRuntime } from './system.ts';
+import { getActorIdPrefix, type ActorSystemRuntime } from './system.ts';
 import { isLazyActorScope, withActorScope } from './actorScope.ts';
 import { getEventOutput } from './utils.ts';
 import type {
@@ -40,7 +40,12 @@ type TransitionActionRecord = {
   action: (...args: any[]) => any;
   args: any[];
   childUpdate?:
-    | { type: 'add'; actor: AnyActor; id: string }
+    | {
+        type: 'add';
+        actor: AnyActor;
+        id: string;
+        counters?: Record<string, number>;
+      }
     | { type: 'remove'; actor: AnyActor };
 };
 
@@ -218,7 +223,10 @@ function applyChildUpdate(
   if (update.type === 'add') {
     return {
       ...snapshot,
-      children: { ...snapshot.children, [update.id]: update.actor }
+      children: { ...snapshot.children, [update.id]: update.actor },
+      ...(update.counters && {
+        _nextActorIds: { ...snapshot._nextActorIds, ...update.counters }
+      })
     };
   }
 
@@ -258,14 +266,15 @@ function getTransitionActionRecord(
 function pushSpawnedChild(
   actions: any[],
   actor: AnyActor,
-  id: string | undefined
+  id: string | undefined,
+  counters?: Record<string, number>
 ) {
   const action = pushBuiltInAction(
     actions,
     builtInActions['@xstate.spawn'],
     actor
   );
-  action.childUpdate = { type: 'add', actor, id: id ?? actor.id };
+  action.childUpdate = { type: 'add', actor, id: id ?? actor.id, counters };
 }
 
 export function createTransitionEnqueue(
@@ -276,6 +285,7 @@ export function createTransitionEnqueue(
   createActors = true
 ) {
   const spawnedById = new Map<string, AnyActor>();
+  const spawnCounters = new Map<string, number>();
   const resolveTargetId = (targetId: string): AnyActor | undefined => {
     const spawned = spawnedById.get(targetId);
     if (spawned) {
@@ -347,13 +357,46 @@ export function createTransitionEnqueue(
           }
         }
       }
+      // Generated ids allocate from the parent snapshot's own counters, so
+      // each actor's numbering is deterministic from its own persisted state.
+      let id = options?.id;
+      let counters: Record<string, number> | undefined;
+      if (id === undefined) {
+        const prefix = getActorIdPrefix(src ?? logic);
+        // Read the raw snapshot: getSnapshot() throws while the actor
+        // initializes, and the initial transition spawns before any snapshot
+        // exists.
+        const parentSnapshot = (
+          actorScope.self as {
+            _snapshot?: {
+              _nextActorIds?: Record<string, number>;
+              children?: Record<string, unknown>;
+            };
+          }
+        )._snapshot;
+        const children = parentSnapshot?.children ?? {};
+        let next =
+          spawnCounters.get(prefix) ??
+          parentSnapshot?._nextActorIds?.[prefix] ??
+          0;
+        while (
+          children[`${prefix}:${next}`] !== undefined ||
+          spawnedById.has(`${prefix}:${next}`)
+        ) {
+          next++;
+        }
+        id = `${prefix}:${next}`;
+        spawnCounters.set(prefix, next + 1);
+        counters = { [prefix]: next + 1 };
+      }
       const actor = actorScope.system.createActorRef(logic, {
         ...options,
         ...(src !== undefined && { src }),
+        id,
         parent: actorScope.self
       });
-      spawnedById.set(options?.id ?? actor.id, actor);
-      pushSpawnedChild(actions, actor, options?.id);
+      spawnedById.set(id, actor);
+      pushSpawnedChild(actions, actor, id, counters);
       return actor;
     },
     sendTo: ((

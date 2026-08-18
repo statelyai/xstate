@@ -157,6 +157,8 @@ interface MachineSnapshotBase<
   _stateInputs: Record<string, Record<string, unknown>>;
   /** @internal */
   _nextTimerId: number;
+  /** @internal */
+  _nextActorIds?: Record<string, number>;
   /**
    * Whether the current state value is a subset of the given partial state
    * value.
@@ -482,6 +484,7 @@ export function createMachineSnapshot<
     historyValue: compactSnapshotRecord(config.historyValue),
     _stateInputs: compactSnapshotRecord(config._stateInputs),
     _nextTimerId: config._nextTimerId ?? 0,
+    _nextActorIds: config._nextActorIds,
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
@@ -519,6 +522,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       historyValue: compactSnapshotRecord(configWithSnapshot.historyValue),
       _stateInputs: compactSnapshotRecord(configWithSnapshot._stateInputs),
       _nextTimerId: configWithSnapshot._nextTimerId ?? 0,
+      _nextActorIds: configWithSnapshot._nextActorIds,
       matches: machineSnapshotMatches as never,
       hasTag: machineSnapshotHasTag,
       can: machineSnapshotCan,
@@ -607,6 +611,9 @@ export function getPersistedSnapshot<
       throw new Error('An inline child actor cannot be persisted.');
     }
     childrenJson[id as keyof typeof childrenJson] = {
+      // Children are referenced by their logical address; the embedded child
+      // state is the co-locating runtime's whole-tree checkpoint capability.
+      address: child.address,
       snapshot: child.getPersistedSnapshot(options),
       src: child.src,
       registryKey: child.registryKey,
@@ -653,8 +660,6 @@ export function getPersistedSnapshot<
     ...jsonValues,
     _nextActorId:
       getSnapshotActorRef(snapshot)?.systemState.snapshot._nextActorId,
-    _nextActorIds:
-      getSnapshotActorRef(snapshot)?.systemState.snapshot._nextActorIds,
     context: persistContext(context) as any,
     children: childrenJson,
     timers: timersJson,

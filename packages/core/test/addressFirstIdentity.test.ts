@@ -309,3 +309,72 @@ describe('sessionId as incarnation id', () => {
     expect(restored.getSnapshot().status).toBe('done');
   });
 });
+
+describe('children-by-address persistence', () => {
+  const coordinatorMachine = setup({
+    actors: { worker: workerMachine }
+  }).createMachine({
+    id: 'coordinator',
+    initial: 'a',
+    entry: ({ actors }, enq) => {
+      enq.spawn(actors.worker);
+    },
+    states: {
+      a: {
+        on: {
+          MORE: ({ actors }, enq) => {
+            enq.spawn(actors.worker);
+          }
+        }
+      }
+    }
+  });
+
+  it('persisted children carry their logical address', () => {
+    const actor = createActor(coordinatorMachine).start();
+    const persisted = actor.getPersistedSnapshot() as unknown as {
+      children: Record<string, { address: string; src: string }>;
+    };
+    expect(persisted.children['worker:0']).toMatchObject({
+      address: 'coordinator/worker:0',
+      src: 'worker'
+    });
+  });
+
+  it('an actor owns its id counters in its own persisted snapshot', () => {
+    const orderMachine = setup({
+      actors: { coordinator: coordinatorMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.coordinator);
+      },
+      states: { a: {} }
+    });
+
+    const root = createActor(orderMachine).start();
+    const coordinator = root.getSnapshot().children[
+      'coordinator:0'
+    ] as AnyActor;
+    coordinator.send({ type: 'MORE' });
+    // Persist ONLY the subtree; its counters must travel with it.
+    const persistedSubtree = coordinator.getPersistedSnapshot() as {
+      _nextActorIds?: Record<string, number>;
+    };
+    expect(persistedSubtree._nextActorIds).toEqual({ worker: 2 });
+    root.stop();
+
+    // Restore the subtree standalone (a different placement) and keep
+    // spawning: numbering continues with no shared system state.
+    const restored = createActor(coordinatorMachine, {
+      snapshot: persistedSubtree as never
+    }).start();
+    restored.send({ type: 'MORE' });
+    expect(Object.keys(restored.getSnapshot().children).sort()).toEqual([
+      'worker:0',
+      'worker:1',
+      'worker:2'
+    ]);
+  });
+});

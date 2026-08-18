@@ -1578,6 +1578,13 @@ export interface StateConfig<
   _stateInputs?: Record<string, Record<string, unknown>>;
   /** @internal */
   _nextTimerId?: number;
+  /**
+   * Deterministic generated-child-id counters owned by this snapshot, keyed
+   * by src prefix.
+   *
+   * @internal
+   */
+  _nextActorIds?: Record<string, number>;
   machine?: StateMachine<
     TContext,
     TEvent,

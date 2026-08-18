@@ -405,7 +405,6 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
         ? (options.snapshot as {
             scheduler?: Record<ScheduledTimerId, ScheduledTimer>;
             _nextActorId?: number;
-            _nextActorIds?: Record<string, number>;
           })
         : undefined;
     this._clock = options.clock;
@@ -414,7 +413,10 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     this._snapshot = {
       _scheduledTimers: restoredSnapshot?.scheduler ?? emptyScheduledTimers,
       _nextActorId: restoredSnapshot?._nextActorId ?? 0,
-      _nextActorIds: restoredSnapshot?._nextActorIds ?? {}
+      // System-level counters are process-local backstops; per-actor
+      // counters persist on each machine snapshot, and restored explicit ids
+      // reserve their numbering here via `resolveActorId`.
+      _nextActorIds: {}
     };
   }
 
