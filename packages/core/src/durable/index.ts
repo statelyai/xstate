@@ -1,5 +1,9 @@
+import {
+  getEffectDescriptor,
+  type EffectDescriptor
+} from '../effectDescriptor.ts';
 import { getSnapshotActorRef } from '../snapshotActorRef.ts';
-import type { ActorSystemRuntime } from '../system.ts';
+import { getActorIdPrefix, type ActorSystemRuntime } from '../system.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
   AnyActor,
@@ -28,6 +32,12 @@ export interface DurableWaitMetadata {
 
 export interface DurableEffect<TEffect> extends DurableEffectMetadata {
   effect: TEffect;
+  /**
+   * JSON-safe view of the effect: actor references replaced by logical
+   * addresses and actor sources by source keys, for journaling and
+   * deduplication.
+   */
+  descriptor: EffectDescriptor;
 }
 
 export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
@@ -84,6 +94,12 @@ export class DurableExecutionResumeError extends Error {
 }
 
 export interface DurableExecution<TLogic extends AnyActorLogic> {
+  /**
+   * The logical address of this execution's root actor: the logic's own name,
+   * or `x:0` for anonymous logic. Known before any transition runs, so hosts
+   * can label mailboxes and wire messages without a snapshot.
+   */
+  readonly rootAddress: string;
   /** Index assigned to the next transition. Persist this with checkpoints. */
   readonly nextTransitionIndex: number;
   initialTransition(
@@ -150,7 +166,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
       id: `${transitionIndex}:${effectIndex}`,
       transitionIndex,
       effectIndex,
-      effect
+      effect,
+      descriptor: getEffectDescriptor(effect)
     }));
   };
 
@@ -164,7 +181,9 @@ export function createDurable<TLogic extends AnyActorLogic>(
     return snapshot;
   }
 
+  const rootPrefix = getActorIdPrefix(logic);
   const execution: DurableExecution<TLogic> = {
+    rootAddress: rootPrefix === 'x' ? 'x:0' : rootPrefix,
     get nextTransitionIndex() {
       return nextTransitionIndex;
     },
@@ -180,10 +199,17 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
     },
     async executeEffects(effects) {
-      for (const { effect, ...metadata } of effects) {
-        const runtime = adapter.runtime?.(metadata, effect) ?? {};
+      for (const { effect, descriptor: _descriptor, ...metadata } of effects) {
+        // With a `systemRuntime`, an absent per-effect runtime stays
+        // `undefined` so the effect's default parameter (the actor's system,
+        // and through it the installed `systemRuntime`) applies. Without
+        // either, the empty runtime makes unsupported operations throw
+        // instead of silently running local behavior on a durable host.
+        const runtime =
+          adapter.runtime?.(metadata, effect) ??
+          (adapter.systemRuntime ? undefined : {});
         if (effect.kind === 'action') {
-          await adapter.executeAction(effect, metadata, runtime);
+          await adapter.executeAction(effect, metadata, runtime ?? {});
         } else {
           await effect.exec(runtime);
         }
