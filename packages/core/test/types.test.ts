@@ -874,6 +874,43 @@ describe('states', () => {
     });
   });
 
+  it('types snapshot.value structurally, including parallel states', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        bold: {
+          initial: 'off',
+          states: { off: {}, on: {} }
+        },
+        italic: {
+          initial: 'off',
+          states: { off: {}, on: {} }
+        }
+      }
+    });
+
+    const value = createActor(machine).getSnapshot().value;
+    value satisfies {
+      bold: 'off' | 'on';
+      italic: 'off' | 'on';
+    };
+    value.bold satisfies 'off' | 'on';
+    // @ts-expect-error - may also be 'on'
+    value.bold satisfies 'off';
+  });
+
+  it('types snapshot.value as a string union for flat machines', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: { a: {}, b: {} }
+    });
+
+    const value = createActor(machine).getSnapshot().value;
+    value satisfies 'a' | 'b';
+    // @ts-expect-error - c is not a state
+    value satisfies 'c';
+  });
+
   // technically it wouldn't be a big problem accepting this, such transitions would just never be selected
   // it's not worth complicating our types to support this though unless a strong argument is made in favor for this
   it('should not accept a state handling an event type outside of the events accepted by the machine', () => {
@@ -6386,4 +6423,139 @@ it('createSystem registry keys typecheck registryKey usage', () => {
     // @ts-expect-error registry key expects the registered logic
     app.createActor(other, { registryKey: 'receiver' });
   }
+});
+
+describe('invoke onDone inference with heterogeneous actor maps', () => {
+  const numberLogic = createAsyncLogic({ run: async () => 42 });
+  const stringLogic = createAsyncLogic({ run: async () => 'hello' });
+
+  it('should infer per-actor event.output for a string src', () => {
+    setup({
+      actors: { numberLogic, stringLogic }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: 'numberLogic',
+            onDone: ({ event }) => {
+              event.output satisfies number;
+              // @ts-expect-error output is a number
+              event.output satisfies string;
+              return {};
+            }
+          }
+        },
+        b: {
+          invoke: {
+            src: 'stringLogic',
+            onDone: ({ event }) => {
+              event.output satisfies string;
+              return {};
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('should infer per-actor event.output for a logic value src', () => {
+    setup({
+      actors: { numberLogic, stringLogic }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: numberLogic,
+            onDone: ({ event }) => {
+              event.output satisfies number;
+              // @ts-expect-error output is a number
+              event.output satisfies string;
+              return {};
+            }
+          }
+        },
+        b: {
+          invoke: {
+            src: stringLogic,
+            onDone: ({ event }) => {
+              event.output satisfies string;
+              return {};
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('should infer event.output for a logic value src in a single-actor map', () => {
+    setup({
+      actors: { numberLogic }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: numberLogic,
+            onDone: ({ event }) => {
+              event.output satisfies number;
+              return {};
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('should infer per-actor event.output for a logic value src in plain createMachine', () => {
+    createMachine({
+      actors: { numberLogic, stringLogic },
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: numberLogic,
+            onDone: ({ event }) => {
+              event.output satisfies number;
+              return {};
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('should accept object-form onDone for a logic value src', () => {
+    setup({
+      actors: { numberLogic, stringLogic }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: numberLogic,
+            onDone: { target: ['b'] }
+          }
+        },
+        b: {}
+      }
+    });
+  });
+
+  it('should keep function-form onDone for inline logic when no actors are registered', () => {
+    const inlineLogic = createAsyncLogic({ run: async () => true });
+
+    setup({}).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: inlineLogic,
+            onDone: () => ({})
+          }
+        }
+      }
+    });
+  });
 });

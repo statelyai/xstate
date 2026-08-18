@@ -41,6 +41,7 @@ import type {
   EventFromLogic,
   SendableEventFromLogic,
   InputFrom,
+  PersistedSnapshotFor,
   Snapshot,
   SnapshotFrom,
   AnyTransitionDefinition,
@@ -1106,9 +1107,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
    * Can be restored with {@link ActorOptions.state}
    * @see https://stately.ai/docs/persistence
    */
-  public getPersistedSnapshot(): Snapshot<unknown>;
-  public getPersistedSnapshot(options?: unknown): Snapshot<unknown> {
-    return this.logic.getPersistedSnapshot(this._snapshot, options);
+  public getPersistedSnapshot(): Snapshot<unknown> &
+    PersistedSnapshotFor<TLogic>;
+  public getPersistedSnapshot(
+    options?: unknown
+  ): Snapshot<unknown> & PersistedSnapshotFor<TLogic> {
+    return this.logic.getPersistedSnapshot(
+      this._snapshot,
+      options
+    ) as Snapshot<unknown> & PersistedSnapshotFor<TLogic>;
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {

@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "6.0.0-alpha.36",
+  "version": "6.0.0-alpha.40",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "bin": {
@@ -51,6 +51,20 @@
       "import": "./dist/xstate-actors.cjs.mjs",
       "default": "./dist/xstate-actors.cjs.js"
     },
+    "./durable": {
+      "types": {
+        "import": "./dist/xstate-durable.cjs.mjs",
+        "default": "./dist/xstate-durable.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-durable.development.esm.js",
+        "import": "./dist/xstate-durable.development.cjs.mjs",
+        "default": "./dist/xstate-durable.development.cjs.js"
+      },
+      "module": "./dist/xstate-durable.esm.js",
+      "import": "./dist/xstate-durable.cjs.mjs",
+      "default": "./dist/xstate-durable.cjs.js"
+    },
     "./validation": {
       "types": {
         "import": "./dist/xstate-validation.cjs.mjs",
@@ -87,6 +101,7 @@
     "dev",
     "graph",
     "validation",
+    "durable",
     "bin"
   ],
   "keywords": [
@@ -124,7 +139,8 @@
       "./index.ts",
       "./actors/index.ts",
       "./graph/index.ts",
-      "./validation/index.ts"
+      "./validation/index.ts",
+      "./durable/index.ts"
     ]
   }
 }

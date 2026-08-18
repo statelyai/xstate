@@ -1,4 +1,8 @@
-import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
+import {
+  SetupStateSchemas,
+  StandardSchemaV1,
+  TypeSchema
+} from './schema.types.ts';
 import { MachineSnapshot } from './State';
 import {
   Action,
@@ -50,7 +54,9 @@ export type InferOutput<T extends StandardSchemaV1, U> = Compute<
 /**
  * Event payloads from schemas (e.g. Zod) are often inferred as optional in
  * output types. Wrapping in Required<> ensures properties defined in the schema
- * are required on the event.
+ * are required on the event. Type-only schemas created with the `types()`
+ * helper are exempt: their declared type is authoritative, so optional
+ * properties stay optional.
  */
 export type InferEvents<
   TEventSchemaMap extends Record<string, StandardSchemaV1>
@@ -67,10 +73,17 @@ export type InferEvents<
           : string extends keyof O
             ? [O[string]] extends [never]
               ? { type: K }
-              : Required<O> & { type: K }
-            : Required<O> & { type: K }
+              : NormalizeEventPayload<TEventSchemaMap[K], O> & { type: K }
+            : NormalizeEventPayload<TEventSchemaMap[K], O> & { type: K }
     : never;
 }>;
+
+/**
+ * Keeps a type-only schema's payload verbatim; applies Required<> to payloads
+ * from validator libraries (see {@link InferEvents}).
+ */
+type NormalizeEventPayload<TSchema extends StandardSchemaV1, O> =
+  TSchema extends TypeSchema<any> ? O : Required<O>;
 
 export type InferChildren<
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>
@@ -434,6 +447,71 @@ type LogicForChildRef<TActorRef> =
     ? ActorLogic<TSnapshot, TEvent, any, any, TEmitted>
     : never;
 
+/**
+ * The `onDone` config for inline (unregistered-logic) invoke branches.
+ *
+ * When the actor map has registered sources, this deliberately has no
+ * function forms (no transition function, no context mapper): passing a
+ * registered logic value as `src` makes TypeScript narrow the invoke union to
+ * the matching registered branch plus the inline branch, and per-actor
+ * `event.output` inference in `onDone` callbacks only survives if the
+ * registered branch contributes the union's only call signature. Inline
+ * (unregistered) logic in such setups can use the object/target forms, or be
+ * registered to get function-form transitions.
+ *
+ * With no registered sources (empty or permissive maps) there is no competing
+ * branch, so the full transition config is allowed.
+ */
+type InlineInvokeOnDone<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays'],
+  TMeta extends MetaObject
+> = [keyof TActorMap & string] extends [never]
+  ? Next_TransitionConfigOrTarget<
+      TContext,
+      DoneActorEvent<any>,
+      TEvent,
+      TEmitted,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TMeta
+    >
+  : string extends keyof TActorMap
+    ? Next_TransitionConfigOrTarget<
+        TContext,
+        DoneActorEvent<OutputFrom<TActorMap[keyof TActorMap & string]>>,
+        TEvent,
+        TEmitted,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TMeta
+      >
+    :
+        | undefined
+        | {
+            matches?: EventPayloadPattern<DoneActorEvent>;
+            target?: string | string[];
+            context?: TransitionContextPatch<TContext>;
+            description?: string;
+            reenter?: boolean;
+            meta?: TMeta;
+            input?:
+              | Record<string, unknown>
+              | ((args: {
+                  context: any;
+                  event: any;
+                }) => Record<string, unknown>);
+          };
+
 type InlineChildInvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -446,18 +524,31 @@ type InlineChildInvokeConfig<
   TMeta extends MetaObject,
   TSystemRegistry extends SystemRegistry
 > = Values<{
-  [K in keyof TChildren & string]: Next_InvokeConfigBase<
-    TContext,
-    TEvent,
-    TEmitted,
-    TChildren,
-    TActionMap,
-    TActorMap,
-    TGuardMap,
-    TDelayMap,
-    TMeta,
-    TSystemRegistry
+  [K in keyof TChildren & string]: Omit<
+    Next_InvokeConfigBase<
+      TContext,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TMeta,
+      TSystemRegistry
+    >,
+    'onDone'
   > & {
+    onDone?: InlineInvokeOnDone<
+      TContext,
+      TEvent,
+      TEmitted,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TMeta
+    >;
     id: K;
     src: LogicForChildRef<TChildren[K]>;
     input?:
@@ -493,18 +584,31 @@ type InlineInvokeConfig<
         TMeta,
         TSystemRegistry
       >
-    : Next_InvokeConfigBase<
-        TContext,
-        TEvent,
-        TEmitted,
-        TChildren,
-        TActionMap,
-        TActorMap,
-        TGuardMap,
-        TDelayMap,
-        TMeta,
-        TSystemRegistry
+    : Omit<
+        Next_InvokeConfigBase<
+          TContext,
+          TEvent,
+          TEmitted,
+          TChildren,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TMeta,
+          TSystemRegistry
+        >,
+        'onDone'
       > & {
+        onDone?: InlineInvokeOnDone<
+          TContext,
+          TEvent,
+          TEmitted,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TMeta
+        >;
         src: AnyActorLogic;
         input?:
           | ((

@@ -1111,6 +1111,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   config: any;
   version?: string;
   schemas?: import('./types.v6.ts').AnyMachineSchemas;
+  snapshotSchema: import('./machineVersion.types.ts').MachineSnapshotSchema;
+  eventSchema: import('./machineVersion.types.ts').MachineEventSchema;
   provide(sources: any): AnyStateMachine;
   resolveState(config: any): any;
   /** @internal */
@@ -1249,13 +1251,14 @@ export type StateFrom<
     ? StateSnapshotFromMachine<ReturnType<T>>
     : never;
 
-type StateValueFromStateSchema<T extends StateSchema> = StateSchema extends T
-  ? StateValue
-  : ToStateValue<T> extends infer TStateValue
-    ? TStateValue extends StateValue
-      ? TStateValue
-      : StateValue
-    : StateValue;
+export type StateValueFromStateSchema<T extends StateSchema> =
+  StateSchema extends T
+    ? StateValue
+    : ToStateValue<T> extends infer TStateValue
+      ? TStateValue extends StateValue
+        ? TStateValue
+        : StateValue
+      : StateValue;
 
 type MatchingStateValueForStateFrom<
   TStateValue extends StateValue,
@@ -1613,14 +1616,33 @@ declare const persistedSnapshotLogic: unique symbol;
 
 type PersistedSnapshotLogicIdentity<TLogic> = TLogic extends {
   readonly id: infer TId extends string;
-  readonly version: infer TVersion extends string;
 }
-  ? { readonly id: TId; readonly version: TVersion }
+  ? {
+      readonly id: TId;
+      readonly version: TLogic extends {
+        readonly version: infer TVersion extends string;
+      }
+        ? TVersion
+        : string;
+    }
   : never;
 
 /** A persisted snapshot tied to a versioned actor logic identity. */
 export type PersistedSnapshotFor<TLogic> = {
   readonly [persistedSnapshotLogic]: PersistedSnapshotLogicIdentity<TLogic>;
+};
+
+/**
+ * A persisted snapshot restorable into the given actor logic: any snapshot
+ * created by logic with the same machine `id` is accepted, regardless of
+ * version (version mismatches are handled at runtime, e.g. by `migrate`).
+ */
+export type RestorablePersistedSnapshotFor<TLogic> = {
+  readonly [persistedSnapshotLogic]: TLogic extends {
+    readonly id: infer TId extends string;
+  }
+    ? { readonly id: TId; readonly version: string }
+    : never;
 };
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
@@ -1682,7 +1704,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * @see https://stately.ai/docs/persistence
    */
   snapshot?: Snapshot<unknown> &
-    Partial<PersistedSnapshotFor<DoNotInfer<TLogic>>>;
+    Partial<RestorablePersistedSnapshotFor<DoNotInfer<TLogic>>>;
 
   /** @deprecated Use `snapshot` instead. */
   state?: Snapshot<unknown>;
