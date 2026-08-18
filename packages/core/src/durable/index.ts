@@ -287,6 +287,18 @@ export function createDurable<TLogic extends AnyActorLogic>(
       if (ref) {
         ref.system.runtime = wrappedSystemRuntime;
       }
+      // Children restored outside this execution (rehydrated actors and
+      // remote handles) may carry a system created before this install.
+      const children = (
+        snapshot as { children?: Record<string, AnyActor | undefined> }
+      ).children;
+      if (children) {
+        for (const child of Object.values(children)) {
+          if (child) {
+            child.system.runtime = wrappedSystemRuntime;
+          }
+        }
+      }
     }
     return snapshot;
   }

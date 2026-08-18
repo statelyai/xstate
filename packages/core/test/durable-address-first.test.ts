@@ -129,3 +129,60 @@ describe('durable rootAddress', () => {
     expect(durable.getActorRef(snapshot)?.address).toBe(durable.rootAddress);
   });
 });
+
+describe('restored children under a durable execution', () => {
+  it('routes sends to restored remote handles through the system runtime', async () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker);
+      },
+      states: {
+        a: {
+          on: {
+            KICK: ({ children }, enq) => {
+              enq.sendTo(children['worker:0'], { type: 'PING' });
+            }
+          }
+        }
+      }
+    });
+
+    // Persist by address on one placement...
+    const seed = createDurable(machine, {
+      executeAction: () => {},
+      systemRuntime: {},
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+    const [seedSnapshot, seedEffects] = seed.initialTransition();
+    await seed.executeEffects(seedEffects);
+    const persisted = machine.getPersistedSnapshot(seedSnapshot, {
+      embedChildren: false
+    } as never);
+
+    // ...and resume on another, where the child is a remote handle.
+    const sent: string[] = [];
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      systemRuntime: {
+        sendEvent: (_source, target, event) => {
+          sent.push(`${target.address}:${event.type}`);
+        }
+      },
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+    const restored = machine.restoreSnapshot(persisted as never);
+    const [, effects] = durable.transition(restored as never, {
+      type: 'KICK'
+    });
+    await durable.executeEffects(effects);
+    expect(sent).toEqual(['order/worker:0:PING']);
+  });
+});

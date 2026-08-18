@@ -1102,7 +1102,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   public toJSON() {
     return {
       xstate$$type: $$ACTOR_TYPE,
-      id: this.id
+      id: this.id,
+      address: this.address,
+      src: typeof this.src === 'string' ? this.src : undefined
     };
   }
 
