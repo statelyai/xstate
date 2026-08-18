@@ -28,6 +28,20 @@ ordered plan. Every effect has a stable ID such as `0:0`. Replaying the same
 event from the same state produces the same snapshot, actor identities, and
 effects.
 
+The planner coordinates the complete actor tree. Deliver an event to a child
+without constructing a separate runtime or rewriting its identity:
+
+```ts
+const result = durable.transitionActor(state, workerRef, {
+  type: 'PROCESS'
+});
+```
+
+Child initialization effects are included after that child's `actor.start`
+effect. A local interpreter and a distributed host can therefore consume the
+same system plan; they differ only in how effects, inboxes, and timers are
+executed.
+
 ## Logical actor references
 
 Durable effects contain `DurableActorRef` data, never live actor instances:

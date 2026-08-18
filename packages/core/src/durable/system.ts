@@ -14,6 +14,7 @@ import type {
   SnapshotFrom
 } from '../types.ts';
 import { resolveActorId } from '../system.ts';
+import { cloneMachineSnapshot } from '../State.ts';
 import { finalizeTransitionResult } from '../transitionActions.ts';
 
 export interface DurableActorRef {
@@ -119,6 +120,12 @@ export interface DurableSystem<TLogic extends AnyStateMachine> {
     state: DurableSystemState<TLogic>,
     event: EventFromLogic<TLogic>
   ): DurableSystemTransition<TLogic>;
+  /** Plans an event for any live logical actor in this system. */
+  transitionActor(
+    state: DurableSystemState<TLogic>,
+    actor: DurableActorRef | string,
+    event: AnyEventObject
+  ): DurableSystemTransition<TLogic>;
   /** Persists only the root machine. Suitable when it has no durable children. */
   getPersistedSnapshot(state: DurableSystemState<TLogic>): Snapshot<unknown>;
   /** Persists root state plus logical actor identity and effect ordering. */
@@ -167,6 +174,7 @@ function cloneSystemSnapshot(
 }
 
 const durableRefByActor = new WeakMap<object, DurableActorRef>();
+const initialEffectsByActor = new WeakMap<object, ExecutableActionObject[]>();
 
 function getDurableRef(actor: AnyActor): DurableActorRef {
   const ref = durableRefByActor.get(actor);
@@ -307,11 +315,25 @@ function createPlanningScope(
         },
         system
       );
-      const childSnapshot = childOptions.snapshot
-        ? childLogic.restoreSnapshot
+      let childSnapshot: Snapshot<unknown>;
+      if (childOptions.snapshot) {
+        childSnapshot = childLogic.restoreSnapshot
           ? childLogic.restoreSnapshot(childOptions.snapshot, child.scope)
-          : childOptions.snapshot
-        : childLogic.initialTransition(childOptions.input, child.scope)[0];
+          : childOptions.snapshot;
+      } else {
+        const [snapshot, effects] = finalizeTransitionResult(
+          child.scope,
+          undefined,
+          childLogic.initialTransition(childOptions.input, child.scope)
+        );
+        childSnapshot = snapshot;
+        if (effects.length) {
+          initialEffectsByActor.set(
+            child.scope.self,
+            effects as ExecutableActionObject[]
+          );
+        }
+      }
       child.setSnapshot(childSnapshot);
       const childActor = child.scope.self;
       registeredActors.set(ref.id, childActor);
@@ -446,6 +468,81 @@ function isActorLifecycleEvent(event: AnyEventObject): boolean {
   );
 }
 
+function getActorPath(
+  system: DurableSystemSnapshot,
+  actorId: string
+): DurableActorRecord[] | undefined {
+  if (actorId === system.root) {
+    return [];
+  }
+  const path: DurableActorRecord[] = [];
+  let record = system.actors[actorId];
+  while (record?.parent) {
+    path.unshift(record);
+    if (record.parent === system.root) {
+      return path;
+    }
+    record = system.actors[record.parent];
+  }
+  return undefined;
+}
+
+function getActorAtPath(
+  snapshot: Snapshot<unknown>,
+  path: readonly DurableActorRecord[]
+): AnyActor | undefined {
+  let currentSnapshot = snapshot;
+  let actor: AnyActor | undefined;
+  for (const record of path) {
+    actor = getChildren(currentSnapshot)[record.ref.actorId];
+    if (!actor) {
+      return undefined;
+    }
+    currentSnapshot = actor.getSnapshot();
+  }
+  return actor;
+}
+
+function replaceActorAtPath(
+  snapshot: Snapshot<unknown>,
+  path: readonly DurableActorRecord[],
+  replacement: AnyActor,
+  systemSnapshot: DurableSystemSnapshot,
+  planningSystem: AnyActorScope['system']
+): Snapshot<unknown> {
+  const [record, ...rest] = path;
+  const children = { ...getChildren(snapshot) };
+  if (!rest.length) {
+    children[record.ref.actorId] = replacement;
+  } else {
+    const current = children[record.ref.actorId]!;
+    const childSnapshot = replaceActorAtPath(
+      current.getSnapshot(),
+      rest,
+      replacement,
+      systemSnapshot,
+      planningSystem
+    );
+    const recreated = createPlanningScope(
+      (current as any).logic,
+      systemSnapshot,
+      {
+        actorId: current.id,
+        ref: getDurableRef(current),
+        parent: current._parent,
+        snapshot: childSnapshot,
+        src: current.src,
+        registryKey: current.registryKey
+      },
+      planningSystem
+    );
+    children[record.ref.actorId] = recreated.scope.self;
+  }
+  return cloneMachineSnapshot(snapshot as AnyMachineSnapshot, {
+    children
+  });
+}
+
 /**
  * Creates a pure durable actor-system planner.
  *
@@ -502,11 +599,12 @@ export function createDurableSystem<TLogic extends AnyStateMachine>(
     };
 
     const effects: DurableSystemEffect[] = [];
-    for (const [effectIndex, effect] of executableEffects.entries()) {
+    let effectIndex = 0;
+    const appendEffect = (effect: ExecutableActionObject): void => {
       const metadata = {
         id: `${transitionIndex}:${effectIndex}`,
         transitionIndex,
-        effectIndex
+        effectIndex: effectIndex++
       };
       let normalized: DurableSystemEffect;
 
@@ -519,7 +617,7 @@ export function createDurableSystem<TLogic extends AnyStateMachine>(
         };
         executableActions.set(normalized, effect);
         effects.push(normalized);
-        continue;
+        return;
       }
       if (effect.kind === 'emit') {
         effects.push({
@@ -528,7 +626,7 @@ export function createDurableSystem<TLogic extends AnyStateMachine>(
           source: refFor(effect.source),
           event: normalizeValue(effect.event)
         });
-        continue;
+        return;
       }
 
       switch (effect.type) {
@@ -618,6 +716,15 @@ export function createDurableSystem<TLogic extends AnyStateMachine>(
           break;
       }
       effects.push(normalized);
+      if (effect.type === '@xstate.start') {
+        for (const initialEffect of initialEffectsByActor.get(effect.actor) ??
+          []) {
+          appendEffect(initialEffect);
+        }
+      }
+    };
+    for (const effect of executableEffects) {
+      appendEffect(effect);
     }
 
     return {
@@ -629,6 +736,88 @@ export function createDurableSystem<TLogic extends AnyStateMachine>(
       effects,
       accepted: true
     };
+  };
+
+  const transitionActor = (
+    state: DurableSystemState<TLogic>,
+    actorRef: DurableActorRef | string,
+    event: AnyEventObject
+  ): DurableSystemTransition<TLogic> => {
+    const actorId = typeof actorRef === 'string' ? actorRef : actorRef.id;
+    const path = getActorPath(state.system, actorId);
+    if (!path) {
+      return { state, effects: [], accepted: false };
+    }
+    const currentActor = path.length
+      ? getActorAtPath(state.snapshot, path)
+      : undefined;
+    if (path.length && !currentActor) {
+      return { state, effects: [], accepted: false };
+    }
+    const targetRef = path.length
+      ? getDurableRef(currentActor!)
+      : state.system.actors[state.system.root].ref;
+    const currentSnapshot = path.length
+      ? currentActor!.getSnapshot()
+      : state.snapshot;
+
+    if (
+      isActorLifecycleEvent(event) &&
+      typeof event.sessionId === 'string' &&
+      typeof event.actorId === 'string'
+    ) {
+      const record = state.system.actors[event.sessionId];
+      const child = getChildren(currentSnapshot)[event.actorId];
+      if (
+        !record ||
+        record.parent !== targetRef.id ||
+        record.ref.actorId !== event.actorId ||
+        !child
+      ) {
+        return { state, effects: [], accepted: false };
+      }
+    }
+
+    const system = cloneSystemSnapshot(state.system);
+    const rootPlanning = createRootPlanningScope(logic, system, state.snapshot);
+    const planning = path.length
+      ? createPlanningScope(
+          (currentActor as any).logic,
+          system,
+          {
+            actorId: currentActor!.id,
+            ref: targetRef,
+            parent: currentActor!._parent,
+            snapshot: currentSnapshot,
+            src: currentActor!.src,
+            registryKey: currentActor!.registryKey
+          },
+          rootPlanning.scope.system
+        )
+      : rootPlanning;
+    const actorLogic = path.length ? (currentActor as any).logic : logic;
+    const [nextActorSnapshot, effects] = finalizeTransitionResult(
+      planning.scope,
+      currentSnapshot,
+      actorLogic.transition(currentSnapshot, event, planning.scope)
+    );
+    planning.setSnapshot(nextActorSnapshot);
+    const snapshot = path.length
+      ? replaceActorAtPath(
+          state.snapshot,
+          path,
+          planning.scope.self,
+          system,
+          rootPlanning.scope.system
+        )
+      : nextActorSnapshot;
+    rootPlanning.setSnapshot(snapshot);
+    return plan(
+      snapshot as SnapshotFrom<TLogic>,
+      system,
+      state.nextTransitionIndex,
+      effects as ExecutableActionObject[]
+    );
   };
 
   const durable: DurableSystem<TLogic> = {
@@ -644,37 +833,9 @@ export function createDurableSystem<TLogic extends AnyStateMachine>(
       return plan(snapshot, system, 0, effects);
     },
     transition(state, event) {
-      const resolvedEvent = event as AnyEventObject;
-      if (
-        isActorLifecycleEvent(resolvedEvent) &&
-        typeof resolvedEvent.sessionId === 'string' &&
-        typeof resolvedEvent.actorId === 'string'
-      ) {
-        const record = state.system.actors[resolvedEvent.sessionId];
-        const child = getChildren(state.snapshot)[resolvedEvent.actorId];
-        if (
-          !record ||
-          record.parent !== state.system.root ||
-          record.ref.actorId !== resolvedEvent.actorId ||
-          !child
-        ) {
-          return { state, effects: [], accepted: false };
-        }
-      }
-      const system = cloneSystemSnapshot(state.system);
-      const planning = createRootPlanningScope(logic, system, state.snapshot);
-      const [snapshot, effects] = finalizeTransitionResult(
-        planning.scope,
-        state.snapshot,
-        logic.transition(
-          state.snapshot,
-          resolvedEvent as EventFromLogic<TLogic>,
-          planning.scope
-        )
-      );
-      planning.setSnapshot(snapshot);
-      return plan(snapshot, system, state.nextTransitionIndex, effects);
+      return transitionActor(state, state.system.root, event as AnyEventObject);
     },
+    transitionActor,
     getPersistedSnapshot(state) {
       return logic.getPersistedSnapshot(state.snapshot);
     },

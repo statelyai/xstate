@@ -197,6 +197,17 @@ describe('durable actor system', () => {
         parent: 'child:1'
       }
     });
+    expect(
+      initial.effects.map((effect) => [
+        effect.type,
+        'actor' in effect ? effect.actor.id : undefined
+      ])
+    ).toEqual([
+      ['actor.spawn', 'child:1'],
+      ['actor.start', 'child:1'],
+      ['actor.spawn', 'leaf:2'],
+      ['actor.start', 'leaf:2']
+    ]);
 
     const restored = durable.restoreSystemSnapshot(
       roundTrip(durable.getPersistedSystemSnapshot(initial.state))
@@ -207,6 +218,65 @@ describe('durable actor system', () => {
 
     expect(restoredChild.sessionId).toBe('child:1');
     expect(restoredLeaf.sessionId).toBe('leaf:2');
+  });
+
+  it('plans child execution and parent completion in one system', () => {
+    const worker = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: { on: { PING: { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+    const parent = createMachine({
+      actors: { worker },
+      initial: 'working',
+      states: {
+        working: {
+          invoke: {
+            id: 'worker',
+            src: 'worker',
+            onDone: { target: 'done' }
+          }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const durable = createDurableSystem(parent);
+    const initial = durable.initialTransition(undefined);
+    const childDone = durable.transitionActor(initial.state, 'worker:1', {
+      type: 'PING'
+    });
+
+    expect(
+      (
+        initial.state.snapshot.children.worker!.getSnapshot() as AnyMachineSnapshot
+      ).value
+    ).toBe('waiting');
+    expect(
+      (
+        childDone.state.snapshot.children.worker!.getSnapshot() as AnyMachineSnapshot
+      ).value
+    ).toBe('done');
+    expect(childDone.effects).toEqual([
+      expect.objectContaining({
+        type: 'actor.terminate',
+        actor: { id: 'worker:1', actorId: 'worker' },
+        status: 'done'
+      })
+    ]);
+
+    const parentDone = durable.transitionActor(childDone.state, 'root:0', {
+      type: 'xstate.done.actor',
+      actorId: 'worker',
+      sessionId: 'worker:1',
+      output: undefined
+    });
+    expect(parentDone.state.snapshot.status).toBe('done');
+    expect(parentDone.effects.map((effect) => effect.type)).toEqual([
+      'actor.stop',
+      'actor.terminate'
+    ]);
   });
 
   it('includes timer delivery intent and plans logical cancellation', () => {
