@@ -2,12 +2,14 @@ import {
   getEffectDescriptor,
   type EffectDescriptor
 } from '../effectDescriptor.ts';
+import { deliverEvent } from '../runtimeHelpers.ts';
 import { getSnapshotActorRef } from '../snapshotActorRef.ts';
 import { getActorIdPrefix, type ActorSystemRuntime } from '../system.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
   AnyActor,
   AnyActorLogic,
+  AnyEventObject,
   CustomExecutableActionObject,
   EventFromLogic,
   ExecutableActionObjectFromLogic,
@@ -16,6 +18,17 @@ import type {
   Snapshot,
   SnapshotFrom
 } from '../types.ts';
+
+const RUNTIME_OPERATIONS = [
+  'spawnActor',
+  'startActor',
+  'stopActor',
+  'terminateActor',
+  'emitEvent',
+  'scheduleTimer',
+  'cancelTimer',
+  'cancelAllTimers'
+] as const satisfies readonly (keyof ActorSystemRuntime)[];
 
 export interface DurableEffectMetadata {
   /** Stable within one durable execution. */
@@ -28,6 +41,16 @@ export interface DurableWaitMetadata {
   /** Stable within one durable execution. */
   id: string;
   transitionIndex: number;
+}
+
+/**
+ * An event addressed to a durable execution's root actor, captured while
+ * effects settled. `source` is the live reference of the sending actor when
+ * one initiated the send.
+ */
+export interface DurableRootEvent<TEvent> {
+  event: TEvent;
+  source: AnyActor | undefined;
 }
 
 export interface DurableEffect<TEffect> extends DurableEffectMetadata {
@@ -67,6 +90,10 @@ export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
    * actors rehydrated from restored snapshots. Operations initiated by live
    * child actors (parent sends, timers, terminations) route here without any
    * per-actor wiring; omitted operations keep their default local behavior.
+   *
+   * Events addressed to this execution's root actor never reach `sendEvent`:
+   * the execution captures them and resolves them from `executeEffects` for
+   * the durable loop to process before suspending.
    */
   systemRuntime?: Partial<ActorSystemRuntime>;
   /** Waits durably for the next event addressed to this execution. */
@@ -124,9 +151,21 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * been passed through `transition()` yet).
    */
   getActorRef(snapshot: SnapshotFrom<TLogic>): AnyActor | undefined;
+  /**
+   * Executes effects and resolves only when every runtime operation they
+   * transitively initiated — including operations from live child actors
+   * reacting to delivered events — has been accepted by the runtime.
+   * Operations are handed to the runtime strictly sequentially in initiation
+   * order.
+   *
+   * Resolves with the events addressed to this execution's root actor that
+   * were produced along the way, in order. Feed them back through
+   * `transition()` (and execute their effects) before durably waiting for an
+   * external event; `run()` does this automatically.
+   */
   executeEffects(
     effects: readonly DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
-  ): Promise<void>;
+  ): Promise<DurableRootEvent<EventFromLogic<TLogic>>[]>;
   waitForEvent(): Promise<EventFromLogic<TLogic>>;
   run(
     ...[input]: undefined extends InputFrom<TLogic>
@@ -171,19 +210,89 @@ export function createDurable<TLogic extends AnyActorLogic>(
     }));
   };
 
+  const rootPrefix = getActorIdPrefix(logic);
+  const rootAddress = rootPrefix === 'x' ? 'x:0' : rootPrefix;
+
+  // Every inter-actor edge is an async handoff to the runtime. Operations are
+  // handed over strictly sequentially (`operationTail`) and tracked
+  // (`pendingOperations`) so `executeEffects` resolves only when the
+  // transitive closure of initiated operations has been accepted. Events
+  // addressed to the root are captured for the durable loop instead of being
+  // delivered to the (inert) root actor.
+  const pendingOperations = new Set<Promise<void>>();
+  let operationTail: Promise<unknown> = Promise.resolve();
+  const capturedRootEvents: DurableRootEvent<AnyEventObject>[] = [];
+
+  const handOff = (run: () => void | PromiseLike<void>): PromiseLike<void> => {
+    const operation = operationTail.then(run);
+    operationTail = operation.then(
+      () => undefined,
+      () => undefined
+    );
+    pendingOperations.add(operation);
+    operation.then(
+      () => pendingOperations.delete(operation),
+      () => pendingOperations.delete(operation)
+    );
+    return operation;
+  };
+
+  const settle = async (): Promise<void> => {
+    while (pendingOperations.size) {
+      await Promise.all([...pendingOperations]);
+    }
+  };
+
+  function wrapRuntime(
+    runtime: Partial<ActorSystemRuntime>,
+    options: { localDeliveryFallback: boolean }
+  ): Partial<ActorSystemRuntime> {
+    const wrapped: Partial<ActorSystemRuntime> = {};
+    for (const operation of RUNTIME_OPERATIONS) {
+      const impl = runtime[operation] as
+        | ((...args: unknown[]) => void | PromiseLike<void>)
+        | undefined;
+      if (impl) {
+        (wrapped as Record<string, unknown>)[operation] = (
+          ...args: unknown[]
+        ) => handOff(() => impl(...args));
+      }
+    }
+    wrapped.sendEvent = (source, target, event) => {
+      if (target.address === rootAddress) {
+        capturedRootEvents.push({ event, source });
+        return;
+      }
+      const impl = runtime.sendEvent;
+      if (impl) {
+        return handOff(() => impl(source, target, event));
+      }
+      if (options.localDeliveryFallback) {
+        return handOff(() => deliverEvent(source, target, event));
+      }
+      throw new TypeError(
+        `The durable runtime does not support the sendEvent operation (target '${target.address}')`
+      );
+    };
+    return wrapped;
+  }
+
+  const wrappedSystemRuntime = adapter.systemRuntime
+    ? wrapRuntime(adapter.systemRuntime, { localDeliveryFallback: true })
+    : undefined;
+
   function installSystemRuntime<TSnapshot>(snapshot: TSnapshot): TSnapshot {
-    if (adapter.systemRuntime) {
+    if (wrappedSystemRuntime) {
       const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
       if (ref) {
-        ref.system.runtime = adapter.systemRuntime;
+        ref.system.runtime = wrappedSystemRuntime;
       }
     }
     return snapshot;
   }
 
-  const rootPrefix = getActorIdPrefix(logic);
   const execution: DurableExecution<TLogic> = {
-    rootAddress: rootPrefix === 'x' ? 'x:0' : rootPrefix,
+    rootAddress,
     get nextTransitionIndex() {
       return nextTransitionIndex;
     },
@@ -205,15 +314,22 @@ export function createDurable<TLogic extends AnyActorLogic>(
         // and through it the installed `systemRuntime`) applies. Without
         // either, the empty runtime makes unsupported operations throw
         // instead of silently running local behavior on a durable host.
-        const runtime =
-          adapter.runtime?.(metadata, effect) ??
-          (adapter.systemRuntime ? undefined : {});
+        const perEffectRuntime = adapter.runtime?.(metadata, effect);
+        const runtime = perEffectRuntime
+          ? wrapRuntime(perEffectRuntime, { localDeliveryFallback: false })
+          : adapter.systemRuntime
+            ? undefined
+            : {};
         if (effect.kind === 'action') {
           await adapter.executeAction(effect, metadata, runtime ?? {});
         } else {
           await effect.exec(runtime);
         }
       }
+      await settle();
+      return capturedRootEvents.splice(0) as DurableRootEvent<
+        EventFromLogic<TLogic>
+      >[];
     },
     async waitForEvent() {
       if (lastTransitionIndex === undefined) {
@@ -232,12 +348,15 @@ export function createDurable<TLogic extends AnyActorLogic>(
         throw new DurableExecutionResumeError();
       }
       let [snapshot, effects] = execution.initialTransition(...args);
-      await execution.executeEffects(effects);
+      const internalEvents = await execution.executeEffects(effects);
 
       while ((snapshot as Snapshot<OutputFrom<TLogic>>).status === 'active') {
-        const event = await execution.waitForEvent();
+        // Root-bound events produced while effects executed are processed
+        // before durably waiting for an external event.
+        const event =
+          internalEvents.shift()?.event ?? (await execution.waitForEvent());
         [snapshot, effects] = execution.transition(snapshot, event);
-        await execution.executeEffects(effects);
+        internalEvents.push(...(await execution.executeEffects(effects)));
       }
 
       const terminalSnapshot = snapshot as Snapshot<OutputFrom<TLogic>>;

@@ -23,7 +23,9 @@ interface PendingTimer {
   dueAt: number;
 }
 
-const flush = () => new Promise<void>((resolve) => queueMicrotask(resolve));
+// Effects now settle over an async handoff tail spanning several microtasks,
+// so quiescence needs a macrotask boundary, not a single microtask.
+const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 class InMemoryDurableHost implements DurableConformanceHarness {
   async start<TLogic extends AnyActorLogic>(
@@ -69,6 +71,8 @@ class InMemoryDurableHost implements DurableConformanceHarness {
         // recorded through the per-effect runtime instead.
         terminateActor(actor, termination);
       },
+      // Root-bound events never reach sendEvent; the execution captures them
+      // and returns them from executeEffects.
       sendEvent: (
         source: AnyActor | undefined,
         target: AnyActor,
@@ -80,11 +84,7 @@ class InMemoryDurableHost implements DurableConformanceHarness {
           targetId: target.id,
           eventType: event.type
         });
-        if (target.address === rootAddress) {
-          enqueue(event);
-        } else {
-          deliverEvent(source, target, event);
-        }
+        deliverEvent(source, target, event);
       },
       emitEvent: () => {},
       scheduleTimer: (source: AnyActor, id: string, delay: number) => {
@@ -142,16 +142,31 @@ class InMemoryDurableHost implements DurableConformanceHarness {
       }
     });
 
+    const rootId = () => durable.rootAddress;
+    const enqueueRootEvents = (
+      rootEvents: Awaited<ReturnType<typeof durable.executeEffects>>
+    ) => {
+      for (const { event, source } of rootEvents) {
+        operations.push({
+          type: 'event.send' as const,
+          sourceId: source?.id,
+          targetId: rootId(),
+          eventType: event.type
+        });
+        enqueue(event);
+      }
+    };
+
     const result = (async () => {
       let effects;
       [snapshot, effects] = durable.initialTransition(input as never);
       rootAddress = durable.getActorRef(snapshot)?.address;
-      await durable.executeEffects(effects);
+      enqueueRootEvents(await durable.executeEffects(effects));
 
       while ((snapshot as Snapshot<unknown>).status === 'active') {
         const event = await durable.waitForEvent();
         [snapshot, effects] = durable.transition(snapshot, event);
-        await durable.executeEffects(effects);
+        enqueueRootEvents(await durable.executeEffects(effects));
       }
 
       const terminal = snapshot as Snapshot<unknown>;
@@ -185,10 +200,13 @@ class InMemoryDurableHost implements DurableConformanceHarness {
           }
           const [key, timer] = due;
           timers.delete(key);
-          actorRuntime.sendEvent(timer.source, timer.source, {
-            type: 'xstate.timer',
-            id: timer.id
-          });
+          const timerEvent = { type: 'xstate.timer', id: timer.id };
+          if (timer.source.address === rootAddress) {
+            // Fired root timers are external mailbox events.
+            enqueue(timerEvent);
+          } else {
+            actorRuntime.sendEvent(timer.source, timer.source, timerEvent);
+          }
           await flush();
         }
       },

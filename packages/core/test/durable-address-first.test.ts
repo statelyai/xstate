@@ -41,7 +41,6 @@ const orderMachine = setup({
 describe('durable execution with only systemRuntime', () => {
   it('executes spawn effects without a per-effect runtime', async () => {
     const operations: string[] = [];
-    const rootEvents: unknown[] = [];
     const durable = createDurable(orderMachine, {
       executeAction: async (action) => {
         operations.push(`action:${action.type}`);
@@ -58,11 +57,7 @@ describe('durable execution with only systemRuntime', () => {
           operations.push(
             `send:${source?.address}->${target.address}:${event.type}`
           );
-          if (target.address === durable.rootAddress) {
-            rootEvents.push(event);
-          } else {
-            deliverEvent(source, target, event);
-          }
+          deliverEvent(source, target, event);
         }
       },
       waitForEvent: () => {
@@ -78,16 +73,18 @@ describe('durable execution with only systemRuntime', () => {
     ]);
 
     [snapshot, effects] = durable.transition(snapshot, { type: 'KICK' });
-    await durable.executeEffects(effects);
-    // The child's reply routed through the system runtime with no
-    // per-actor wiring.
-    expect(operations).toContain('send:order/worker:0->order:WORKER.READY');
-    expect(rootEvents).toEqual([{ type: 'WORKER.READY' }]);
+    const rootEvents = await durable.executeEffects(effects);
+    // The child's reply was produced with no per-actor wiring, captured by
+    // the execution instead of reaching the host's sendEvent, and returned
+    // with its source for the durable loop.
+    expect(operations).toContain('send:order->order/worker:0:PING');
+    expect(operations).not.toContain('send:order/worker:0->order:WORKER.READY');
+    expect(rootEvents).toEqual([
+      { event: { type: 'WORKER.READY' }, source: expect.anything() }
+    ]);
+    expect(rootEvents[0]!.source?.address).toBe('order/worker:0');
 
-    [snapshot] = durable.transition(
-      snapshot,
-      rootEvents[0] as { type: 'WORKER.READY' }
-    );
+    [snapshot] = durable.transition(snapshot, rootEvents[0]!.event);
     expect(snapshot.status).toBe('done');
   });
 });

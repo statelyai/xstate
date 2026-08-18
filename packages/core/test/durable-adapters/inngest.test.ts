@@ -154,7 +154,12 @@ describe('Inngest durable execution PoC', () => {
 
     await durable.executeEffects(effects);
 
-    expect(providedRuntime).toBe(runtime);
+    const target = { address: 'elsewhere' } as never;
+    const event = { type: 'X' };
+    await (
+      providedRuntime as { sendEvent(...args: unknown[]): PromiseLike<void> }
+    ).sendEvent(undefined, target, event);
+    expect(runtime.sendEvent).toHaveBeenCalledWith(undefined, target, event);
   });
 
   it('reports an expired wait explicitly', async () => {
