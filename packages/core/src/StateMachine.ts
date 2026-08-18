@@ -6,6 +6,7 @@ import {
   createInvokeTimeoutEvent
 } from './eventUtils.ts';
 import { XSTATE_TIMER } from './constants.ts';
+import { createRemoteActorRef } from './remoteActorRef.ts';
 
 import { createSpawner } from './spawn.ts';
 import {
@@ -1316,7 +1317,8 @@ export class StateMachine<
       string,
       {
         src: string | AnyActorLogic;
-        snapshot: Snapshot<unknown>;
+        snapshot?: Snapshot<unknown>;
+        address?: string;
         syncSnapshot?: boolean;
         registryKey?: string;
       }
@@ -1324,6 +1326,20 @@ export class StateMachine<
 
     for (const actorId of Object.keys(snapshotChildren)) {
       const actorData = snapshotChildren[actorId];
+
+      if (actorData.snapshot === undefined && actorData.address !== undefined) {
+        // The child's state lives with another runtime; restore a
+        // location-transparent handle constructed from its identity alone.
+        children[actorId] = createRemoteActorRef(resolvedActorScope.system, {
+          id: actorId,
+          address: actorData.address,
+          src: typeof actorData.src === 'string' ? actorData.src : actorId,
+          parent: resolvedActorScope.self,
+          registryKey: actorData.registryKey
+        });
+        continue;
+      }
+
       const childState = actorData.snapshot;
       const src = actorData.src;
 

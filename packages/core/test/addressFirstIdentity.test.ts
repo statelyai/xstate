@@ -378,3 +378,79 @@ describe('children-by-address persistence', () => {
     ]);
   });
 });
+
+describe('detached children (remote handles)', () => {
+  const invokeMachine = setup({
+    actors: { worker: workerMachine }
+  }).createMachine({
+    id: 'order',
+    initial: 'working',
+    states: {
+      working: {
+        invoke: { id: 'w', src: 'worker', onDone: { target: 'finished' } },
+        on: {
+          KICK: ({ children }, enq) => {
+            enq.sendTo(children.w, { type: 'PING' });
+          }
+        }
+      },
+      finished: { type: 'final' }
+    }
+  });
+
+  it('persists children by address only when not embedding', () => {
+    const actor = createActor(invokeMachine).start();
+    const persisted = actor.getPersistedSnapshot({
+      embedChildren: false
+    }) as unknown as { children: Record<string, unknown> };
+    expect(persisted.children.w).toEqual({
+      address: 'order/w',
+      src: 'worker',
+      registryKey: undefined,
+      syncSnapshot: false
+    });
+    actor.stop();
+  });
+
+  it('restores address-only children as location-transparent handles', () => {
+    const actor = createActor(invokeMachine).start();
+    const persisted = actor.getPersistedSnapshot({
+      embedChildren: false
+    });
+    actor.stop();
+
+    const restored = createActor(invokeMachine, {
+      snapshot: persisted
+    }).start();
+    const handle = restored.getSnapshot().children.w as AnyActor;
+    expect(handle.address).toBe('order/w');
+    expect(handle.sessionId).toBeUndefined();
+    expect(handle.getSnapshot().status).toBe('active');
+
+    // Remote state round-trips by address, never re-embedding.
+    const again = restored.getPersistedSnapshot() as unknown as {
+      children: Record<string, { address: string; snapshot?: unknown }>;
+    };
+    expect(again.children.w.address).toBe('order/w');
+    expect(again.children.w.snapshot).toBeUndefined();
+  });
+
+  it('accepts completions for remote children from any incarnation', () => {
+    const actor = createActor(invokeMachine).start();
+    const persisted = actor.getPersistedSnapshot({
+      embedChildren: false
+    });
+    actor.stop();
+
+    const restored = createActor(invokeMachine, {
+      snapshot: persisted
+    }).start();
+    restored.send({
+      type: 'xstate.done.actor',
+      actorId: 'w',
+      output: undefined,
+      sessionId: 'some-other-runtime:7'
+    } as never);
+    expect(restored.getSnapshot().value).toBe('finished');
+  });
+});

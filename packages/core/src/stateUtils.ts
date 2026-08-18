@@ -305,6 +305,9 @@ export function matchesActorSession(
   return (
     !snapshot.children[actorId] ||
     !('sessionId' in event) ||
+    // A child without a known sessionId is a remote handle: the runtime that
+    // owns the child is the authority on incarnation staleness.
+    snapshot.children[actorId]?.sessionId === undefined ||
     snapshot.children[actorId]?.sessionId === event.sessionId
   );
 }
@@ -2253,7 +2256,10 @@ export function macrostep(
       return;
     }
     const child = nextSnapshot.children[actorId];
-    if (!child || child.sessionId !== sessionId) {
+    if (
+      !child ||
+      (child.sessionId !== undefined && child.sessionId !== sessionId)
+    ) {
       return;
     }
 

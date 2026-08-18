@@ -601,6 +601,9 @@ export function getPersistedSnapshot<
   const childrenJson: Record<string, unknown> = {};
   const timersJson: Record<string, unknown> = {};
 
+  const embedChildren =
+    (options as { embedChildren?: boolean } | undefined)?.embedChildren !==
+    false;
   for (const id in children) {
     const child = children[id] as any;
     if (
@@ -610,9 +613,19 @@ export function getPersistedSnapshot<
     ) {
       throw new Error('An inline child actor cannot be persisted.');
     }
+    // Children are referenced by their logical address. Embedding the child
+    // state is the co-locating runtime's whole-tree checkpoint capability;
+    // remote handles never embed — their state lives with another runtime.
+    if (child._remote === true || !embedChildren) {
+      childrenJson[id as keyof typeof childrenJson] = {
+        address: child.address,
+        src: child.src,
+        registryKey: child.registryKey,
+        syncSnapshot: child._syncSnapshot
+      };
+      continue;
+    }
     childrenJson[id as keyof typeof childrenJson] = {
-      // Children are referenced by their logical address; the embedded child
-      // state is the co-locating runtime's whole-tree checkpoint capability.
       address: child.address,
       snapshot: child.getPersistedSnapshot(options),
       src: child.src,

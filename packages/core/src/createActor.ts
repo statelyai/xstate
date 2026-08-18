@@ -1119,8 +1119,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
    * Can be restored with {@link ActorOptions.state}
    * @see https://stately.ai/docs/persistence
    */
-  public getPersistedSnapshot(): Snapshot<unknown> &
-    PersistedSnapshotFor<TLogic>;
+  public getPersistedSnapshot(options?: {
+    /**
+     * Whether persisted machine children embed their own persisted state
+     * (the co-locating runtime's whole-tree checkpoint) or are referenced by
+     * logical address only, leaving each child's state with the runtime that
+     * owns it. Defaults to `true`.
+     */
+    embedChildren?: boolean;
+  }): Snapshot<unknown> & PersistedSnapshotFor<TLogic>;
   public getPersistedSnapshot(
     options?: unknown
   ): Snapshot<unknown> & PersistedSnapshotFor<TLogic> {
