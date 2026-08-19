@@ -109,9 +109,10 @@ whole-tree checkpoint of a runtime that co-locates the tree.
 `getPersistedSnapshot(snapshot, { embedChildren: false })` instead references
 children by logical address, leaving each child's state with the runtime that
 owns it. Restoring an address-only child produces a location-transparent
-handle: sends route through the system runtime, its state is not
-synchronously readable, and completion staleness for it is the owning
-runtime's responsibility.
+handle: sends route through the system runtime, its snapshot exposes
+lifecycle only (a full snapshot is the last value an actor published, which
+only co-located actors observe), and completion staleness for it is the
+owning runtime's responsibility.
 
 Hosts that restore from checkpoints instead of replaying from the beginning
 should persist `durable.nextTransitionIndex` after every transition,

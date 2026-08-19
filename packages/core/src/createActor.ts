@@ -1151,10 +1151,16 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
    * Read an actor’s snapshot synchronously.
    *
    * @remarks
-   * The snapshot represent an actor's last emitted value.
+   * The snapshot is the last value the actor published, not a query of its
+   * private state: the actor emits a snapshot when it transitions, and this
+   * returns that cached last emission. The read is coherent within one
+   * synchronous transition turn because event processing runs to completion;
+   * across asynchronous boundaries it may be stale, like any observed value.
    *
-   * When an actor receives an event, its internal state may change. An actor
-   * may emit a snapshot when a state transition occurs.
+   * Only co-located actors publish full snapshots. A location-transparent
+   * remote handle exposes lifecycle only ({ status, output?, error? }): while
+   * the handle exists among its parent's children the child is presumed
+   * `active`, and its terminal result arrives as a completion event.
    *
    * Note that some actors, such as callback actors generated with
    * `createCallbackLogic`, will not emit snapshots.

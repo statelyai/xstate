@@ -8,12 +8,18 @@ import type {
 
 const emptySubscription: Subscription = { unsubscribe() {} };
 
-/** A placeholder snapshot for state owned by a remote actor. */
-const remoteSnapshot: Snapshot<undefined> = {
-  status: 'active',
+/**
+ * The lifecycle-only snapshot a remote handle exposes. `active` is accurate
+ * by construction: a completion removes the child from its parent's
+ * `children`, so a handle only exists while the child is presumed active,
+ * and the terminal result arrives as a completion event instead of a
+ * snapshot. Full snapshots are a co-location capability.
+ */
+const remoteSnapshot: Snapshot<undefined> = Object.freeze({
+  status: 'active' as const,
   output: undefined,
   error: undefined
-};
+});
 
 /** @internal */
 export function isRemoteActorRef(actorRef: AnyActor): boolean {
