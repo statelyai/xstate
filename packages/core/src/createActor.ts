@@ -191,13 +191,18 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** The globally unique process ID for this invocation. */
   public sessionId: string;
 
+  private _address?: string;
   /**
    * The deterministic logical address of this actor within its system: the
    * `/`-joined path of actor ids from the root. Stable across persistence and
    * restore, unlike `sessionId`, which identifies one incarnation.
    */
   public get address(): string {
-    return this._parent ? `${this._parent.address}/${this.id}` : this.id;
+    // `id` and `_parent` never change after construction, so the whole chain
+    // memoizes to O(1) amortized.
+    return (this._address ??= this._parent
+      ? `${this._parent.address}/${this.id}`
+      : this.id);
   }
 
   /** The system to which this actor belongs. */

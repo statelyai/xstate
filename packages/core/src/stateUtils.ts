@@ -1,3 +1,4 @@
+import { isRemoteActorRef } from './remoteActorRef.ts';
 import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
@@ -308,7 +309,7 @@ export function matchesActorSession(
     !('sessionId' in event) ||
     // For a remote handle the runtime that owns the child is the authority
     // on incarnation staleness.
-    (snapshot.children[actorId] as { _remote?: boolean })?._remote === true ||
+    isRemoteActorRef(snapshot.children[actorId] as AnyActor) ||
     snapshot.children[actorId]?.sessionId === event.sessionId
   );
 }
@@ -2258,11 +2259,7 @@ export function macrostep(
       return;
     }
     const child = nextSnapshot.children[actorId];
-    if (
-      !child ||
-      ((child as { _remote?: boolean })._remote !== true &&
-        child.sessionId !== sessionId)
-    ) {
+    if (!child || (!isRemoteActorRef(child) && child.sessionId !== sessionId)) {
       return;
     }
 

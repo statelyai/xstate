@@ -1,9 +1,5 @@
 import { getActorIdPrefix } from './system.ts';
-import type {
-  AnyActor,
-  AnyActorLogic,
-  ExecutableActionObject
-} from './types.ts';
+import type { ExecutableActionObject } from './types.ts';
 
 /**
  * A serializable view of an executable effect. Actor references are replaced
@@ -84,16 +80,6 @@ export type EffectDescriptor =
       params: unknown;
     };
 
-function addressOf(actor: AnyActor | undefined): string | undefined {
-  return actor?.address;
-}
-
-// `src` is only a unique key for registered sources; anonymous inline logic
-// collapses to its logic id or 'x'. The `actor` address is the identity field.
-function srcKeyOf(src: string | AnyActorLogic): string {
-  return typeof src === 'string' ? src : getActorIdPrefix(src);
-}
-
 /**
  * Returns the serializable descriptor for an executable effect: the same
  * discriminants (`kind`, `type`) with actor references replaced by logical
@@ -127,17 +113,20 @@ export function getEffectDescriptor(
       return {
         kind: 'builtin',
         type: '@xstate.spawn',
-        source: addressOf(effect.source),
+        source: effect.source?.address,
         actor: effect.actor.address,
         id: effect.id,
-        src: srcKeyOf(effect.src),
+        // `src` is only a unique key for registered sources; anonymous inline
+        // logic collapses to its logic id or 'x'. The `actor` address is the
+        // identity field.
+        src: getActorIdPrefix(effect.src),
         input: effect.input
       };
     case '@xstate.start':
       return {
         kind: 'builtin',
         type: '@xstate.start',
-        source: addressOf(effect.source),
+        source: effect.source?.address,
         actor: effect.actor.address,
         id: effect.id
       };

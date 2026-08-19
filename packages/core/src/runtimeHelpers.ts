@@ -12,13 +12,12 @@ export function deliverEvent(
   target: AnyActor,
   event: AnyEventObject
 ): void {
-  (
-    target as AnyActor & {
-      _lastSourceRef?: AnyActor;
-      _send(event: AnyEventObject): void;
-    }
-  )._lastSourceRef = source;
-  (target as AnyActor & { _send(event: AnyEventObject): void })._send(event);
+  const runtimeTarget = target as AnyActor & {
+    _lastSourceRef?: AnyActor;
+    _send(event: AnyEventObject): void;
+  };
+  runtimeTarget._lastSourceRef = source;
+  runtimeTarget._send(event);
 }
 
 /**

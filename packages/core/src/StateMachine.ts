@@ -6,6 +6,7 @@ import {
   createInvokeTimeoutEvent
 } from './eventUtils.ts';
 import { XSTATE_TIMER } from './constants.ts';
+import { parseGeneratedActorId } from './system.ts';
 import { createRemoteActorRef } from './remoteActorRef.ts';
 
 import { createSpawner } from './spawn.ts';
@@ -43,7 +44,8 @@ import {
   beginSpawnAllocation,
   createSpawnEffect,
   resolveActionsWithContext,
-  registerSpawnedChild
+  mergeActorIdCounters,
+  takeSpawnAllocationCounters
 } from './transitionActions.ts';
 import { AnyActorSystem } from './system.ts';
 import type {
@@ -1005,23 +1007,17 @@ export class StateMachine<
           ...nextState.children,
           ...children
         };
-        for (const [childId, child] of Object.entries(children)) {
-          registerSpawnedChild(actorScope, childId, child as AnyActor);
+        // Commit the transaction counters so context-factory allocations
+        // persist with the snapshot: a freed id is never handed out again
+        // after a restore or in a fresh replay process. (The spawner already
+        // registered each child for string-id resolution.)
+        const counters = takeSpawnAllocationCounters(actorScope);
+        if (counters) {
+          nextState._nextActorIds = mergeActorIdCounters(
+            nextState._nextActorIds,
+            counters
+          );
         }
-        // Record generated-shaped ids in the snapshot's own counters so the
-        // allocation survives persistence: a freed id is never handed out
-        // again after a restore or in a fresh replay process.
-        let counters = nextState._nextActorIds;
-        for (const childId of Object.keys(children)) {
-          const generated = /^(.*):(\d+)$/.exec(childId);
-          if (generated && Number.isSafeInteger(Number(generated[2]))) {
-            const floor = Number(generated[2]) + 1;
-            if ((counters?.[generated[1]] ?? 0) < floor) {
-              counters = { ...counters, [generated[1]]: floor };
-            }
-          }
-        }
-        nextState._nextActorIds = counters;
       }
       return nextState as SnapshotFrom<this>;
     }
@@ -1515,11 +1511,29 @@ export class StateMachine<
 
     const { version: _persistedSnapshotVersion, ...persistedRest } =
       snapshot as any;
+    // Fold generated-shaped child ids into the counters as a floor: snapshots
+    // persisted before per-actor counters (or hand-crafted ones) still must
+    // never reuse a live child's id.
+    let restoredCounters: Record<string, number> | undefined =
+      persistedRest._nextActorIds;
+    for (const childId of Object.keys(snapshotChildren)) {
+      const generated = parseGeneratedActorId(childId);
+      if (
+        generated &&
+        (restoredCounters?.[generated.prefix] ?? 0) <= generated.index
+      ) {
+        restoredCounters = {
+          ...restoredCounters,
+          [generated.prefix]: generated.index + 1
+        };
+      }
+    }
     const restoredSnapshot = createMachineSnapshot(
       {
         ...persistedRest,
         children,
         timers,
+        _nextActorIds: restoredCounters,
         _nodes: nodes,
         value: snapshotData.value,
         historyValue: revivedHistoryValue,

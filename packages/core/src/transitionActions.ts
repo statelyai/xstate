@@ -8,7 +8,11 @@ import {
 } from './actors/subscription.ts';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
-import { getActorIdPrefix, type ActorSystemRuntime } from './system.ts';
+import {
+  getActorIdPrefix,
+  parseGeneratedActorId,
+  type ActorSystemRuntime
+} from './system.ts';
 import { isLazyActorScope, withActorScope } from './actorScope.ts';
 import { getEventOutput } from './utils.ts';
 import type {
@@ -16,6 +20,7 @@ import type {
   ActorTermination,
   AnyAction,
   AnyActor,
+  AnyActorLogic,
   AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
@@ -215,7 +220,8 @@ function pushBuiltInAction(actions: any[], action: any, ...args: any[]) {
   return actionRecord;
 }
 
-function mergeActorIdCounters(
+/** @internal Max-merges generated-id counter records, copy-on-write. */
+export function mergeActorIdCounters(
   current: Record<string, number> | undefined,
   update: Record<string, number>
 ): Record<string, number> {
@@ -312,6 +318,12 @@ interface SpawnAllocation {
 
 const spawnAllocations = new WeakMap<object, SpawnAllocation>();
 
+const createSpawnAllocation = (): SpawnAllocation => ({
+  spawnedById: new Map(),
+  counters: new Map(),
+  removedIds: new Set()
+});
+
 /**
  * Starts a fresh spawn-allocation transaction for one logical transition.
  * Called at every transition boundary so pure replays from the same snapshot
@@ -320,11 +332,121 @@ const spawnAllocations = new WeakMap<object, SpawnAllocation>();
  * @internal
  */
 export function beginSpawnAllocation(actorScope: AnyActorScope): void {
-  spawnAllocations.set(actorScope, {
-    spawnedById: new Map(),
-    counters: new Map(),
-    removedIds: new Set()
-  });
+  spawnAllocations.set(actorScope, createSpawnAllocation());
+}
+
+// Read the raw snapshot: getSnapshot() throws while the actor initializes,
+// and entry actions run before any snapshot exists.
+function getWorkingSnapshotOf(actorScope: AnyActorScope):
+  | {
+      _nextActorIds?: Record<string, number>;
+      children?: Record<string, AnyActor | undefined>;
+    }
+  | undefined {
+  return (
+    actorScope.self as {
+      _snapshot?: {
+        _nextActorIds?: Record<string, number>;
+        children?: Record<string, AnyActor | undefined>;
+      };
+    }
+  )._snapshot;
+}
+
+const srcKeyCaches = new WeakMap<object, Map<unknown, string | undefined>>();
+
+function getRegisteredSrcKey(
+  actorScope: AnyActorScope,
+  logic: AnyActorLogic
+): string | undefined {
+  const registeredActors = (
+    actorScope.self as {
+      logic?: { sources?: { actors?: Record<string, unknown> } };
+    }
+  ).logic?.sources?.actors;
+  if (!registeredActors) {
+    return undefined;
+  }
+  let cache = srcKeyCaches.get(registeredActors);
+  if (!cache) {
+    cache = new Map();
+    for (const key of Object.keys(registeredActors)) {
+      cache.set(registeredActors[key], key);
+    }
+    srcKeyCaches.set(registeredActors, cache);
+  }
+  return cache.get(logic);
+}
+
+/**
+ * Allocates the next generated child id for the transition's allocation
+ * transaction, seeded from the parent snapshot's own persisted counters. This
+ * is the single allocator for snapshot-owned children (`enq.spawn` and
+ * context-factory spawns); a correct allocation cannot collide.
+ *
+ * @internal
+ */
+export function allocateChildId(
+  actorScope: AnyActorScope,
+  src: string | AnyActorLogic,
+  localAllocation?: SpawnAllocation
+): { id: string; counters: Record<string, number> } {
+  const allocation =
+    spawnAllocations.get(actorScope) ??
+    localAllocation ??
+    createSpawnAllocation();
+  const prefix = getActorIdPrefix(src);
+  const next =
+    allocation.counters.get(prefix) ??
+    getWorkingSnapshotOf(actorScope)?._nextActorIds?.[prefix] ??
+    0;
+  allocation.counters.set(prefix, next + 1);
+  return { id: `${prefix}:${next}`, counters: { [prefix]: next + 1 } };
+}
+
+/**
+ * Reserves an explicit generated-shaped id (`worker:5`) in the transaction
+ * and the parent snapshot, so live runs and pure replays allocate the same
+ * later ids even after this child is removed.
+ *
+ * @internal
+ */
+export function reserveChildId(
+  actorScope: AnyActorScope,
+  id: string,
+  localAllocation?: SpawnAllocation
+): Record<string, number> | undefined {
+  const generated = parseGeneratedActorId(id);
+  if (!generated) {
+    return undefined;
+  }
+  const allocation =
+    spawnAllocations.get(actorScope) ??
+    localAllocation ??
+    createSpawnAllocation();
+  const floor = generated.index + 1;
+  allocation.counters.set(
+    generated.prefix,
+    Math.max(allocation.counters.get(generated.prefix) ?? 0, floor)
+  );
+  return { [generated.prefix]: floor };
+}
+
+/**
+ * The counters allocated so far in the transition's transaction, for
+ * committing into a snapshot built outside `applyChildUpdate` (the
+ * pre-initial snapshot with context-factory spawns).
+ *
+ * @internal
+ */
+export function takeSpawnAllocationCounters(
+  actorScope: AnyActorScope
+): Record<string, number> | undefined {
+  const counters = spawnAllocations.get(actorScope)?.counters;
+  if (!counters?.size) {
+    return undefined;
+  }
+  return Object.fromEntries(counters);
 }
 
 /**
@@ -351,28 +473,10 @@ export function createTransitionEnqueue(
   actorSubscriptions = false,
   createActors = true
 ) {
-  // Paths that never begin a transaction (e.g. FSM helpers) keep the
-  // previous per-enqueue scope.
-  const {
-    spawnedById,
-    counters: spawnCounters,
-    removedIds
-  } = spawnAllocations.get(actorScope) ?? {
-    spawnedById: new Map<string, AnyActor>(),
-    counters: new Map<string, number>(),
-    removedIds: new Set<string>()
-  };
-  // Read the raw snapshot: getSnapshot() throws while the actor initializes,
-  // and entry actions run before any snapshot exists.
-  const getWorkingSnapshot = () =>
-    (
-      actorScope.self as {
-        _snapshot?: {
-          _nextActorIds?: Record<string, number>;
-          children?: Record<string, AnyActor | undefined>;
-        };
-      }
-    )._snapshot;
+  // Paths that never begin a transaction keep a per-enqueue scope.
+  const localAllocation =
+    spawnAllocations.get(actorScope) ?? createSpawnAllocation();
+  const { spawnedById, removedIds } = localAllocation;
   // Resolution order: children spawned this transition win (enqueue-time),
   // then removals recorded when their action applied hide the committed
   // child, then the pre-transition snapshot. Within one action function a
@@ -381,7 +485,7 @@ export function createTransitionEnqueue(
     spawnedById.get(targetId) ??
     (removedIds.has(targetId)
       ? undefined
-      : getWorkingSnapshot()?.children?.[targetId]);
+      : getWorkingSnapshotOf(actorScope)?.children?.[targetId]);
   const props: Partial<EnqueueObject<any, any>> = {
     cancel: (id: string) => {
       pushBuiltInAction(
@@ -427,63 +531,20 @@ export function createTransitionEnqueue(
       // Recover the registered source key for setup-provided logic so the
       // spawned child persists (and gets a deterministic id prefix) by key
       // instead of by inline logic reference.
-      let src: string | undefined;
-      const registeredActors = (
-        actorScope.self as {
-          logic?: { sources?: { actors?: Record<string, unknown> } };
-        }
-      ).logic?.sources?.actors;
-      if (registeredActors) {
-        for (const key of Object.keys(registeredActors)) {
-          if (registeredActors[key] === logic) {
-            src = key;
-            break;
-          }
-        }
-      }
-      // Generated ids allocate from the parent snapshot's own counters, so
-      // each actor's numbering is deterministic from its own persisted state.
+      const src = getRegisteredSrcKey(actorScope, logic);
+      // Generated ids allocate from the parent snapshot's own counters
+      // through the transition's allocation transaction; explicit
+      // generated-shaped ids reserve their numbering the same way.
       let id = options?.id;
       let counters: Record<string, number> | undefined;
-      if (id !== undefined) {
-        // An explicit id shaped like a generated one reserves its numbering
-        // in the parent snapshot, so live runs and pure replays allocate the
-        // same later ids even after this child is removed.
-        const reserved = /^(.*):(\d+)$/.exec(id);
-        if (reserved && Number.isSafeInteger(Number(reserved[2]))) {
-          const floor = Number(reserved[2]) + 1;
-          counters = { [reserved[1]]: floor };
-          spawnCounters.set(
-            reserved[1],
-            Math.max(spawnCounters.get(reserved[1]) ?? 0, floor)
-          );
-        }
-      }
       if (id === undefined) {
-        const prefix = getActorIdPrefix(src ?? logic);
-        const parentSnapshot = getWorkingSnapshot();
-        const children = parentSnapshot?.children ?? {};
-        // The system counters are the floor for children the snapshot cannot
-        // see yet, such as context-created spawns during initialization.
-        const systemCounter =
-          actorScope.system._snapshot._nextActorIds[
-            `${actorScope.self.address}|${prefix}`
-          ] ?? 0;
-        let next = Math.max(
-          spawnCounters.get(prefix) ??
-            parentSnapshot?._nextActorIds?.[prefix] ??
-            0,
-          systemCounter
-        );
-        while (
-          children[`${prefix}:${next}`] !== undefined ||
-          spawnedById.has(`${prefix}:${next}`)
-        ) {
-          next++;
-        }
-        id = `${prefix}:${next}`;
-        spawnCounters.set(prefix, next + 1);
-        counters = { [prefix]: next + 1 };
+        ({ id, counters } = allocateChildId(
+          actorScope,
+          src ?? logic,
+          localAllocation
+        ));
+      } else {
+        counters = reserveChildId(actorScope, id, localAllocation);
       }
       const actor = actorScope.system.createActorRef(logic, {
         ...options,

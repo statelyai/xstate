@@ -29,6 +29,7 @@ import {
   getSnapshotActorRef,
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
+import { isRemoteActorRef } from './remoteActorRef.ts';
 
 const emptySnapshotRecord = Object.freeze({});
 
@@ -616,7 +617,7 @@ export function getPersistedSnapshot<
     // Children are referenced by their logical address. Embedding the child
     // state is the co-locating runtime's whole-tree checkpoint capability;
     // remote handles never embed — their state lives with another runtime.
-    const embed = embedChildren && child._remote !== true;
+    const embed = embedChildren && !isRemoteActorRef(child);
     childrenJson[id as keyof typeof childrenJson] = {
       address: child.address,
       // The explicit marker disambiguates a by-address reference from a child

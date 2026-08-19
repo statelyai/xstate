@@ -15,6 +15,11 @@ import {
 import { XSTATE_TIMER } from './constants.ts';
 import { toObserver } from './utils.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
+import {
+  deliverEvent,
+  stopActor as stopActorLocally,
+  terminateActor as terminateActorLocally
+} from './runtimeHelpers.ts';
 
 interface ScheduledTimer {
   id: string;
@@ -106,6 +111,41 @@ export function getActorIdPrefix(
     : 'x';
 }
 
+/**
+ * Parses a generated-shaped actor id (`prefix:<n>`). This single definition is
+ * the determinism contract for id reservation: live allocation, replay, and
+ * restore must all agree on what counts as generated-shaped. Deliberately
+ * broader than ids a generated allocation could produce — over-reserving
+ * skips numbers, which is harmless, while under-reserving could collide.
+ *
+ * @internal
+ */
+export function parseGeneratedActorId(
+  id: string
+): { prefix: string; index: number } | undefined {
+  const separator = id.lastIndexOf(':');
+  if (separator <= 0) {
+    return undefined;
+  }
+  const index = Number(id.slice(separator + 1));
+  return Number.isSafeInteger(index) && index >= 0
+    ? { prefix: id.slice(0, separator), index }
+    : undefined;
+}
+
+/**
+ * The id (and address root segment) of the first parentless actor of a logic:
+ * the logic's own name, or `x:0` for anonymous logic.
+ *
+ * @internal
+ */
+export function getRootActorId(
+  src: string | AnyActorLogic | undefined
+): string {
+  const prefix = getActorIdPrefix(src);
+  return prefix === 'x' ? 'x:0' : prefix;
+}
+
 function getActorIdCounterKey(
   parent: AnyActor | undefined,
   prefix: string
@@ -143,20 +183,13 @@ export function resolveActorId(
         `Actor id '${requestedId}' must not contain '/': it is the address path delimiter.`
       );
     }
-    // Any id ending in ':<n>' reserves numbering for that prefix. This is
-    // deliberately broader than ids a generated allocation could produce:
-    // over-reserving skips numbers, which is harmless, while under-reserving
-    // could collide.
-    const match = /^(.*):(\d+)$/.exec(requestedId);
-    if (match) {
-      const reservedId = Number(match[2]);
-      if (Number.isSafeInteger(reservedId)) {
-        bumpActorIdCounter(
-          system,
-          getActorIdCounterKey(options?.parent, match[1]),
-          reservedId + 1
-        );
-      }
+    const generated = parseGeneratedActorId(requestedId);
+    if (generated) {
+      bumpActorIdCounter(
+        system,
+        getActorIdCounterKey(options?.parent, generated.prefix),
+        generated.index + 1
+      );
     } else if (!options?.parent) {
       // Reserve a restored root's bare name so a later parentless actor of
       // the same logic in this system numbers past it.
@@ -170,27 +203,15 @@ export function resolveActorId(
   }
 
   const prefix = getActorIdPrefix(options?.src);
-  if (!options?.parent && prefix !== 'x') {
-    // The first parentless actor of a logic gets the logic's own name; later
-    // parentless actors of the same logic in a shared system get numbered so
-    // addresses stay unique.
-    const counterKey = getActorIdCounterKey(undefined, prefix);
-    const counter = system._snapshot._nextActorIds[counterKey] ?? 0;
-    system._snapshot._nextActorIds = {
-      ...system._snapshot._nextActorIds,
-      [counterKey]: counter + 1
-    };
-    markSystemSnapshotDirty(system);
-    return counter === 0 ? prefix : `${prefix}:${counter}`;
-  }
   const counterKey = getActorIdCounterKey(options?.parent, prefix);
   const counter = system._snapshot._nextActorIds[counterKey] ?? 0;
-  system._snapshot._nextActorIds = {
-    ...system._snapshot._nextActorIds,
-    [counterKey]: counter + 1
-  };
-  markSystemSnapshotDirty(system);
-  return `${prefix}:${counter}`;
+  bumpActorIdCounter(system, counterKey, counter + 1);
+  // The first parentless actor of a logic gets the logic's own name; later
+  // parentless actors of the same logic in a shared system get numbered so
+  // addresses stay unique.
+  return !options?.parent && prefix !== 'x' && counter === 0
+    ? prefix
+    : `${prefix}:${counter}`;
 }
 
 /** @internal */
@@ -240,6 +261,18 @@ export interface ActorSystemRuntime {
   /** Cancels all logical timers owned by an actor. */
   cancelAllTimers(source: AnyActor): void | PromiseLike<void>;
 }
+
+/** @internal Every operation of `ActorSystemRuntime`, for runtime wrappers. */
+export const RUNTIME_OPERATIONS = [
+  'spawnActor',
+  'startActor',
+  'stopActor',
+  'terminateActor',
+  'emitEvent',
+  'scheduleTimer',
+  'cancelTimer',
+  'cancelAllTimers'
+] as const satisfies readonly (keyof ActorSystemRuntime)[];
 
 type ScheduledTimerId = string & { __scheduledTimerId: never };
 
@@ -547,9 +580,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       );
     }
 
-    // remember the last source for unified transition inspect event
-    runtimeTarget._lastSourceRef = source;
-    target._send(event);
+    deliverEvent(source, target, event);
   }
 
   public _register(sessionId: string, actor: AnyActor): string {
@@ -678,7 +709,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     if (override) {
       return override(actor);
     }
-    (actor as AnyActor & { _stop(): void })._stop();
+    stopActorLocally(actor);
   }
 
   public terminateActor(
@@ -689,9 +720,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     if (override) {
       return override(actor, termination);
     }
-    (
-      actor as AnyActor & { _terminate(value: ActorTermination): void }
-    )._terminate(termination);
+    terminateActorLocally(actor, termination);
   }
 
   public sendEvent(

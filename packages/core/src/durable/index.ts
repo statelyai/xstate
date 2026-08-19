@@ -4,7 +4,11 @@ import {
 } from '../effectDescriptor.ts';
 import { deliverEvent } from '../runtimeHelpers.ts';
 import { getSnapshotActorRef } from '../snapshotActorRef.ts';
-import { getActorIdPrefix, type ActorSystemRuntime } from '../system.ts';
+import {
+  getRootActorId,
+  RUNTIME_OPERATIONS,
+  type ActorSystemRuntime
+} from '../system.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
   AnyActor,
@@ -18,17 +22,6 @@ import type {
   Snapshot,
   SnapshotFrom
 } from '../types.ts';
-
-const RUNTIME_OPERATIONS = [
-  'spawnActor',
-  'startActor',
-  'stopActor',
-  'terminateActor',
-  'emitEvent',
-  'scheduleTimer',
-  'cancelTimer',
-  'cancelAllTimers'
-] as const satisfies readonly (keyof ActorSystemRuntime)[];
 
 export interface DurableEffectMetadata {
   /** Stable within one durable execution. */
@@ -204,59 +197,68 @@ export function createDurable<TLogic extends AnyActorLogic>(
   ): DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[] => {
     const transitionIndex = nextTransitionIndex++;
     lastTransitionIndex = transitionIndex;
-    return effects.map((effect, effectIndex) => ({
-      id: `${transitionIndex}:${effectIndex}`,
-      transitionIndex,
-      effectIndex,
-      effect,
-      descriptor: getEffectDescriptor(effect)
-    }));
+    return effects.map((effect, effectIndex) => {
+      const tagged = {
+        id: `${transitionIndex}:${effectIndex}`,
+        transitionIndex,
+        effectIndex,
+        effect
+      } as DurableEffect<(typeof effects)[number]>;
+      // Journaling hosts read the descriptor; executing hosts never do, so
+      // compute it (and its address walks) lazily, once.
+      let descriptor: EffectDescriptor | undefined;
+      Object.defineProperty(tagged, 'descriptor', {
+        enumerable: true,
+        get: () => (descriptor ??= getEffectDescriptor(effect))
+      });
+      return tagged;
+    });
   };
 
-  const rootPrefix = getActorIdPrefix(logic);
-  const rootAddress = rootPrefix === 'x' ? 'x:0' : rootPrefix;
+  const rootAddress = getRootActorId(logic);
 
-  // Every inter-actor edge is an async handoff to the runtime. Operations are
-  // handed over strictly sequentially (`operationTail`) and tracked
-  // (`pendingOperations`) so `executeEffects` resolves only when the
-  // transitive closure of initiated operations has been accepted. Events
-  // addressed to the root are captured for the durable loop instead of being
-  // delivered to the (inert) root actor.
-  const pendingOperations = new Set<Promise<void>>();
+  // One batch per `executeEffects` call. The wrapped runtime stays installed
+  // on the actor system for the whole execution, so it also sees operations
+  // initiated while the loop is parked in `waitForEvent()` (for example a
+  // live child reacting to a host-originated delivery). Those belong to the
+  // host's domain: they run untracked and uncaptured, so a parked-window
+  // failure cannot be attributed to an unrelated later batch. Discarding a
+  // failed batch discards its captures and failures with it.
+  interface Batch {
+    rootEvents: DurableRootEvent<AnyEventObject>[];
+    failures: unknown[];
+    pending: Set<Promise<void>>;
+  }
+  let currentBatch: Batch | undefined;
+
+  // Every inter-actor edge is an async handoff to the runtime: top-level
+  // operations queue sequentially (`operationTail`), while an operation
+  // initiated inside a running one executes inline — queueing it behind the
+  // tail would deadlock the parent operation that awaits it.
   let operationTail: Promise<unknown> = Promise.resolve();
-  const capturedRootEvents: DurableRootEvent<AnyEventObject>[] = [];
-
   let runningOperation = false;
-  const operationFailures: unknown[] = [];
-  // True only while `executeEffects` is driving a batch. The wrapped runtime
-  // stays installed on the actor system for the whole execution, so it also
-  // sees operations initiated while the loop is parked in `waitForEvent()`
-  // (for example a live child reacting to a host-originated delivery). Those
-  // belong to the host's domain: they are neither captured nor tracked, so a
-  // parked-window failure cannot be attributed to an unrelated later batch.
-  let executingBatch = false;
 
-  const track = (operation: Promise<void>): Promise<void> => {
-    pendingOperations.add(operation);
-    operation.then(
-      () => pendingOperations.delete(operation),
-      (error) => {
+  const track = (batch: Batch, operation: Promise<void>): Promise<void> => {
+    batch.pending.add(operation);
+    void operation
+      .catch((error) => {
         // Collect the failure so it reaches `executeEffects` even when the
         // operation leaves the pending set before settle() samples it.
-        operationFailures.push(error);
-        pendingOperations.delete(operation);
-      }
-    );
+        batch.failures.push(error);
+      })
+      .then(() => batch.pending.delete(operation));
     return operation;
   };
 
-  const handOff = (run: () => void | PromiseLike<void>): PromiseLike<void> => {
+  const handOff = (
+    batch: Batch,
+    run: () => void | PromiseLike<void>
+  ): PromiseLike<void> => {
     if (runningOperation) {
-      // An operation initiated while another operation is running (for
-      // example a host `sendEvent` that awaits a nested timer) executes
-      // inline: queueing it behind the tail would deadlock the parent
-      // operation that awaits it.
-      return track(Promise.resolve(run()).then(() => undefined));
+      return track(
+        batch,
+        Promise.resolve(run()).then(() => undefined)
+      );
     }
     const operation = operationTail.then(async () => {
       runningOperation = true;
@@ -266,26 +268,31 @@ export function createDurable<TLogic extends AnyActorLogic>(
         runningOperation = false;
       }
     });
-    operationTail = operation.then(
-      () => undefined,
-      () => undefined
-    );
-    return track(operation);
+    operationTail = operation.catch(() => {});
+    return track(batch, operation);
   };
 
-  const settle = async (): Promise<void> => {
-    while (pendingOperations.size) {
-      await Promise.allSettled([...pendingOperations]);
+  // Hands an operation over according to where it was initiated: batched
+  // during `executeEffects`, immediate while the loop is parked.
+  const dispatch = (run: () => void | PromiseLike<void>) =>
+    currentBatch ? handOff(currentBatch, run) : run();
+
+  const drain = async (batch: Batch): Promise<void> => {
+    while (batch.pending.size) {
+      await Promise.allSettled([...batch.pending]);
     }
-    if (operationFailures.length) {
-      const failures = operationFailures.splice(0);
-      throw failures[0];
+  };
+
+  const settle = async (batch: Batch): Promise<void> => {
+    await drain(batch);
+    if (batch.failures.length) {
+      throw batch.failures[0];
     }
   };
 
   function wrapRuntime(
     runtime: Partial<ActorSystemRuntime>,
-    options: { localDeliveryFallback: boolean }
+    localDeliveryFallback: boolean
   ): Partial<ActorSystemRuntime> {
     const wrapped: Partial<ActorSystemRuntime> = {};
     for (const operation of RUNTIME_OPERATIONS) {
@@ -295,27 +302,23 @@ export function createDurable<TLogic extends AnyActorLogic>(
       if (impl) {
         (wrapped as Record<string, unknown>)[operation] = (
           ...args: unknown[]
-        ) => (executingBatch ? handOff(() => impl(...args)) : impl(...args));
+        ) => dispatch(() => impl(...args));
       }
     }
     wrapped.sendEvent = (source, target, event) => {
-      if (executingBatch && target.address === rootAddress) {
+      if (currentBatch && target.address === rootAddress) {
         // Only the execution's own effects produce captured root events; a
         // root-addressed send while the loop is parked is an ordinary host
         // delivery that belongs in the host's mailbox.
-        capturedRootEvents.push({ event, source });
+        currentBatch.rootEvents.push({ event, source });
         return;
       }
       const impl = runtime.sendEvent;
       if (impl) {
-        return executingBatch
-          ? handOff(() => impl(source, target, event))
-          : impl(source, target, event);
+        return dispatch(() => impl(source, target, event));
       }
-      if (options.localDeliveryFallback) {
-        return executingBatch
-          ? handOff(() => deliverEvent(source, target, event))
-          : deliverEvent(source, target, event);
+      if (localDeliveryFallback) {
+        return dispatch(() => deliverEvent(source, target, event));
       }
       throw new TypeError(
         `The durable runtime does not support the sendEvent operation (target '${target.address}')`
@@ -325,7 +328,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
   }
 
   const wrappedSystemRuntime = adapter.systemRuntime
-    ? wrapRuntime(adapter.systemRuntime, { localDeliveryFallback: true })
+    ? wrapRuntime(adapter.systemRuntime, true)
     : undefined;
 
   function installSystemRuntime<TSnapshot>(snapshot: TSnapshot): TSnapshot {
@@ -341,7 +344,9 @@ export function createDurable<TLogic extends AnyActorLogic>(
       ).children;
       if (children) {
         for (const child of Object.values(children)) {
-          if (child) {
+          // Only restored/rehydrated children can carry a foreign system;
+          // everything else shares the root's.
+          if (child && child.system !== ref?.system) {
             child.system.runtime = wrappedSystemRuntime;
           }
         }
@@ -367,18 +372,25 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
     },
     async executeEffects(effects) {
-      executingBatch = true;
+      const batch: Batch = {
+        rootEvents: [],
+        failures: [],
+        pending: new Set()
+      };
+      currentBatch = batch;
+      // `undefined` lets the effect's default parameter (the actor's system,
+      // and through it the installed `systemRuntime`) apply; without any
+      // runtime, the empty object makes unsupported operations throw instead
+      // of silently running local behavior on a durable host.
+      const fallbackRuntime = adapter.systemRuntime ? undefined : {};
       try {
-        for (const {
-          effect,
-          descriptor: _descriptor,
-          ...metadata
-        } of effects) {
-          // With a `systemRuntime`, an absent per-effect runtime stays
-          // `undefined` so the effect's default parameter (the actor's system,
-          // and through it the installed `systemRuntime`) applies. Without
-          // either, the empty runtime makes unsupported operations throw
-          // instead of silently running local behavior on a durable host.
+        for (const tagged of effects) {
+          const { effect } = tagged;
+          const metadata: DurableEffectMetadata = {
+            id: tagged.id,
+            transitionIndex: tagged.transitionIndex,
+            effectIndex: tagged.effectIndex
+          };
           const perEffectRuntime = adapter.runtime?.(metadata, effect);
           // A per-effect runtime overrides the system runtime
           // operation-by-operation; operations it omits keep the system
@@ -386,11 +398,9 @@ export function createDurable<TLogic extends AnyActorLogic>(
           const runtime = perEffectRuntime
             ? wrapRuntime(
                 { ...adapter.systemRuntime, ...perEffectRuntime },
-                { localDeliveryFallback: !!adapter.systemRuntime }
+                !!adapter.systemRuntime
               )
-            : adapter.systemRuntime
-              ? undefined
-              : {};
+            : fallbackRuntime;
           if (effect.kind === 'action') {
             // Custom actions have no default-parameter fallback to the actor's
             // system, so hand them the wrapped system runtime directly.
@@ -403,28 +413,19 @@ export function createDurable<TLogic extends AnyActorLogic>(
             await effect.exec(runtime);
           }
         }
-        await settle();
+        await settle(batch);
+        return batch.rootEvents as DurableRootEvent<EventFromLogic<TLogic>>[];
       } catch (error) {
-        // A failed batch must not leak its captured root events or its
-        // recorded operation failures into a later call: a retrying host
-        // re-executes the effects and re-captures them. Drain the operations
-        // still in flight first, so their rejections land in
-        // `operationFailures` before it is cleared.
-        while (pendingOperations.size) {
-          await Promise.allSettled([...pendingOperations]);
-        }
-        capturedRootEvents.length = 0;
-        operationFailures.length = 0;
+        // Drain before discarding so batch-initiated operations are not still
+        // running when the retrying host re-executes the effects. The failed
+        // batch's captures and failures are discarded with it.
+        await drain(batch);
         throw error;
       } finally {
-        // Runs after `settle()` (and after the catch path's drain), so
-        // operations the batch initiated are still treated as in-batch while
-        // they finish.
-        executingBatch = false;
+        // Runs after `settle()`/`drain()`, so operations the batch initiated
+        // are still treated as in-batch while they finish.
+        currentBatch = undefined;
       }
-      return capturedRootEvents.splice(0) as DurableRootEvent<
-        EventFromLogic<TLogic>
-      >[];
     },
     async waitForEvent() {
       if (lastTransitionIndex === undefined) {

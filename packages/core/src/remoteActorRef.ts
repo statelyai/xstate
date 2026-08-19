@@ -8,6 +8,14 @@ import type {
 
 const emptySubscription: Subscription = { unsubscribe() {} };
 
+const restoreHint =
+  'or restore this snapshot with embedded children on the runtime that owns them.';
+
+/** @internal */
+export function isRemoteActorRef(actorRef: AnyActor): boolean {
+  return (actorRef as { _remote?: boolean })._remote === true;
+}
+
 /**
  * The lifecycle-only snapshot a remote handle exposes. `active` is accurate
  * by construction: a completion removes the child from its parent's
@@ -66,11 +74,11 @@ export function createRemoteActorRef(
     // locally.
     _syncSnapshot: options.syncSnapshot ?? false,
     send(event: AnyEventObject) {
-      void system.sendEvent(undefined, handle as unknown as AnyActor, event);
+      void system.sendEvent(undefined, ref, event);
     },
     _send(event: AnyEventObject) {
       throw new Error(
-        `Remote actor '${options.address}' has no local mailbox to receive "${event.type}". Its state lives with another runtime; install a runtime that can reach it (via \`createDurable\`'s \`systemRuntime\`, or \`system.runtime\`) before sending, or restore this snapshot with embedded children on the runtime that owns them.`
+        `Remote actor '${options.address}' has no local mailbox to receive "${event.type}". Its state lives with another runtime; install a runtime that can reach it (via \`createDurable\`'s \`systemRuntime\`, or \`system.runtime\`) before sending, ${restoreHint}`
       );
     },
     getSnapshot(): Snapshot<undefined> {
@@ -83,12 +91,12 @@ export function createRemoteActorRef(
     _stop() {},
     stop() {
       throw new Error(
-        `Cannot stop remote actor '${options.address}' directly: stopping is a co-located operation. Stop it through the system runtime that owns it (\`system.stopActor(ref)\`), or restore this snapshot with embedded children on the runtime that owns them.`
+        `Cannot stop remote actor '${options.address}' directly: stopping is a co-located operation. Stop it through the system runtime that owns it (\`system.stopActor(ref)\`), ${restoreHint}`
       );
     },
     select() {
       throw new Error(
-        `Cannot select from remote actor '${options.address}': its snapshot is not synchronously readable because its state lives with another runtime. Read it on the runtime that owns it, or restore this snapshot with embedded children there.`
+        `Cannot select from remote actor '${options.address}': its snapshot is not synchronously readable because its state lives with another runtime. Read it on the runtime that owns it, ${restoreHint}`
       );
     },
     get trigger(): never {
@@ -109,6 +117,7 @@ export function createRemoteActorRef(
       return { address: options.address, src: options.src };
     }
   };
-  handle.ref = handle as unknown as AnyActor;
-  return handle as unknown as AnyActor;
+  const ref = handle as unknown as AnyActor;
+  handle.ref = ref;
+  return ref;
 }

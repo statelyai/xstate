@@ -1,4 +1,9 @@
 import {
+  allocateChildId,
+  registerSpawnedChild,
+  reserveChildId
+} from './transitionActions.ts';
+import {
   ActorFromLogic,
   AnyActorLogic,
   AnyActorRef,
@@ -37,8 +42,16 @@ export function createSpawner(
     const referencedSrc = Object.entries(actors).find(
       ([, logic]) => logic === src
     )?.[0];
+    // Generated ids come from the same transaction allocator as `enq.spawn`,
+    // so context-factory allocations persist with the snapshot and never
+    // collide with later spawns.
+    const id =
+      options?.id ?? allocateChildId(actorScope, referencedSrc ?? src).id;
+    if (options?.id !== undefined) {
+      reserveChildId(actorScope, options.id);
+    }
     const actor = actorScope.system.createActorRef(src, {
-      id: options?.id,
+      id,
       parent: actorScope.self,
       syncSnapshot: options?.syncSnapshot,
       input: options?.input,
@@ -46,6 +59,7 @@ export function createSpawner(
       registryKey: options?.registryKey
     });
     spawnedChildren[actor.id] = actor;
+    registerSpawnedChild(actorScope, actor.id, actor);
     return actor;
   }) as Spawner;
 }
