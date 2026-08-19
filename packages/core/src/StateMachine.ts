@@ -1509,8 +1509,14 @@ export class StateMachine<
       getAllStateNodes(getStateNodes(this.root, snapshotData.value))
     );
 
-    const { version: _persistedSnapshotVersion, ...persistedRest } =
-      snapshot as any;
+    const {
+      version: _persistedSnapshotVersion,
+      // The legacy system-wide counter: superseded by per-snapshot
+      // `_nextActorIds` plus the child-id fold below; dropped so old and new
+      // snapshots round-trip to the same shape.
+      _nextActorId: _legacyNextActorId,
+      ...persistedRest
+    } = snapshot as any;
     // Fold generated-shaped child ids into the counters as a floor: snapshots
     // persisted before per-actor counters (or hand-crafted ones) still must
     // never reuse a live child's id.

@@ -70,9 +70,10 @@ export function createRemoteActorRef(
     sessionId: undefined as unknown as string,
     system,
     _parent: options.parent,
-    // Round-trips through persistence; a remote handle cannot act on it
+    // Round-trips through persistence verbatim (undefined stays undefined,
+    // so re-persisting is byte-stable); a remote handle cannot act on it
     // locally.
-    _syncSnapshot: options.syncSnapshot ?? false,
+    _syncSnapshot: options.syncSnapshot,
     send(event: AnyEventObject) {
       void system.sendEvent(undefined, ref, event);
     },
@@ -84,8 +85,10 @@ export function createRemoteActorRef(
     getSnapshot(): Snapshot<undefined> {
       return remoteSnapshot;
     },
-    getPersistedSnapshot(): undefined {
-      return undefined;
+    getPersistedSnapshot(): never {
+      throw new Error(
+        `Cannot persist remote actor '${options.address}' from here: its state lives with the runtime that owns it. Persist it there, ${restoreHint}`
+      );
     },
     start() {},
     _stop() {},
@@ -104,6 +107,9 @@ export function createRemoteActorRef(
         `Remote actor '${options.address}' has no \`trigger\` shorthand: it requires a co-located actor. Use \`send(...)\`, which routes through the system runtime.`
       );
     },
+    // Observation is a co-location capability: a remote handle never emits,
+    // so subscriptions are inert rather than errors — generic observers may
+    // attach to any ref.
     subscribe(): Subscription {
       return emptySubscription;
     },

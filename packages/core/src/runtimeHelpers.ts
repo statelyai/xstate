@@ -13,9 +13,20 @@ export function deliverEvent(
   event: AnyEventObject
 ): void {
   const runtimeTarget = target as AnyActor & {
+    logic?: { isInternalEventType?: (eventType: string) => boolean };
     _lastSourceRef?: AnyActor;
     _send(event: AnyEventObject): void;
   };
+  // The same guard local delivery has always applied: internal events may
+  // only originate from the actor itself, whichever runtime delivers them.
+  if (
+    source !== target &&
+    runtimeTarget.logic?.isInternalEventType?.(event.type)
+  ) {
+    throw new Error(
+      `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
+    );
+  }
   runtimeTarget._lastSourceRef = source;
   runtimeTarget._send(event);
 }

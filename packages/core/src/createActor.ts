@@ -110,7 +110,11 @@ function executeExecutableEffects(
 }
 
 function encodeAddressSegment(id: string): string {
-  return id.includes('/') ? id.replaceAll('/', '%2F') : id;
+  // Escape the escape character first so encoding stays injective: the ids
+  // 'a/b' and 'a%2Fb' must not produce the same address.
+  return id.includes('/') || id.includes('%')
+    ? id.replaceAll('%', '%25').replaceAll('/', '%2F')
+    : id;
 }
 
 function createActorRef(

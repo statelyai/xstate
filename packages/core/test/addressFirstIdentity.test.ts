@@ -814,3 +814,69 @@ describe('review findings: seventh round', () => {
     expect(listener!.address).toBe('order/xstate.listener:0');
   });
 });
+
+describe('review findings: eighth round', () => {
+  it('address encoding stays injective for ids containing % and /', () => {
+    const machine = createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: (_: any, enq: any) => {
+        // Without escaping '%', these two ids would collide on the same
+        // address 'order/a%2Fb'.
+        enq.spawn(workerMachine, { id: 'a/b' });
+        enq.spawn(workerMachine, { id: 'a%2Fb' });
+      },
+      states: { a: {} }
+    });
+
+    const actor = createActor(machine).start();
+    const children = actor.getSnapshot().children;
+    expect(children['a/b']!.address).toBe('order/a%2Fb');
+    expect(children['a%2Fb']!.address).toBe('order/a%252Fb');
+  });
+
+  it('persisting an inline child by address fails loudly', () => {
+    const machine = createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: (_: any, enq: any) => {
+        enq.spawn(workerMachine);
+      },
+      states: { a: {} }
+    });
+
+    const actor = createActor(machine).start();
+    // By-address persistence needs a registered source key to restore from;
+    // an inline child has none, so persisting must fail, not restore.
+    expect(() =>
+      actor.getPersistedSnapshot({
+        embedChildren: false,
+        __unsafeAllowInlineActors: true
+      } as never)
+    ).toThrow(/requires a registered source key/);
+  });
+
+  it('drops the legacy _nextActorId field on restore', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }: any, enq: any) => {
+        enq.spawn(actors.worker);
+      },
+      states: { a: {} }
+    });
+
+    const actor = createActor(machine).start();
+    const persisted = actor.getPersistedSnapshot() as any;
+    actor.stop();
+    // Simulate a snapshot persisted before per-snapshot counters existed.
+    persisted._nextActorId = 42;
+
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    const repersisted = restored.getPersistedSnapshot() as any;
+    expect('_nextActorId' in repersisted).toBe(false);
+    expect(repersisted._nextActorIds).toEqual({ worker: 1 });
+  });
+});

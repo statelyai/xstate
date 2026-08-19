@@ -7,8 +7,7 @@ import { getSnapshotActorRef } from '../snapshotActorRef.ts';
 import {
   getRootActorId,
   RUNTIME_OPERATIONS,
-  type ActorSystemRuntime,
-  type AnyActorSystem
+  type ActorSystemRuntime
 } from '../system.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
@@ -297,15 +296,30 @@ export function createDurable<TLogic extends AnyActorLogic>(
   function wrapRuntime(
     runtime: Partial<ActorSystemRuntime>,
     localDeliveryFallback: boolean,
-    // When given, operations neither this runtime nor the adapter implements
+    // When set, operations neither this runtime nor the adapter implements
     // keep the behavior they would have had without a per-effect runtime,
-    // instead of crashing the effect that uses them.
-    fallbackSystem?: AnyActorSystem
+    // running against the operation's own actor's system (per-system timer
+    // bookkeeping must land on that system, not the root's). Safe from
+    // re-entrant dispatch: that system's installed runtime lacks these
+    // operations by construction, so the call falls through to local
+    // behavior.
+    fallBackToActorSystem = false
   ): Partial<ActorSystemRuntime> {
     const wrapped: Partial<ActorSystemRuntime> = {};
     for (const operation of RUNTIME_OPERATIONS) {
       const impl = (runtime[operation] ??
-        fallbackSystem?.[operation]?.bind(fallbackSystem)) as
+        (fallBackToActorSystem
+          ? (...args: unknown[]) => {
+              const owner = (
+                operation === 'spawnActor' ? args[1] : args[0]
+              ) as AnyActor;
+              return (
+                owner.system[operation] as (
+                  ...args: unknown[]
+                ) => void | PromiseLike<void>
+              )(...args);
+            }
+          : undefined)) as
         | ((...args: unknown[]) => void | PromiseLike<void>)
         | undefined;
       if (impl) {
@@ -315,6 +329,17 @@ export function createDurable<TLogic extends AnyActorLogic>(
       }
     }
     wrapped.sendEvent = (source, target, event) => {
+      if (
+        !currentBatch &&
+        target.address === rootAddress &&
+        !runtime.sendEvent
+      ) {
+        // The root actor is inert; delivering locally would enqueue into a
+        // mailbox that never runs, silently losing the event.
+        throw new Error(
+          `A root-addressed event ("${event.type}") was produced while the durable loop was parked, but the adapter has no sendEvent to receive it. Implement sendEvent and enqueue root-addressed events in the host's mailbox.`
+        );
+      }
       if (currentBatch && target.address === rootAddress) {
         // Only the execution's own effects produce captured root events; a
         // root-addressed send while the loop is parked is an ordinary host
@@ -340,14 +365,11 @@ export function createDurable<TLogic extends AnyActorLogic>(
     ? wrapRuntime(systemRuntime, true)
     : undefined;
 
-  let executionSystem: AnyActorSystem | undefined;
-
   function installSystemRuntime<TSnapshot>(snapshot: TSnapshot): TSnapshot {
     if (wrappedSystemRuntime) {
       const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
       if (ref) {
         ref.system.runtime = wrappedSystemRuntime;
-        executionSystem ??= ref.system;
       }
       // Children restored outside this execution (rehydrated actors and
       // remote handles) may carry a system created before this install.
@@ -384,6 +406,11 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
     },
     async executeEffects(effects) {
+      if (currentBatch) {
+        throw new Error(
+          'executeEffects calls must not overlap: await the previous call before starting the next batch.'
+        );
+      }
       const batch: Batch = {
         rootEvents: [],
         failures: [],
@@ -411,7 +438,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
             ? wrapRuntime(
                 { ...systemRuntime, ...perEffectRuntime },
                 hasSystemRuntime,
-                executionSystem
+                true
               )
             : fallbackRuntime;
           if (effect.kind === 'action') {

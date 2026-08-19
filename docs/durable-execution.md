@@ -98,20 +98,32 @@ and resolves only when every transitively initiated operation has been
 accepted (a failed operation rejects it, and a failed call discards its
 batch), so "effects executed" means "safe to checkpoint and suspend". Hosts
 whose step or activity model forbids concurrent entries can rely on that
-ordering, including for the operations a stop cascade initiates.
+ordering, including for the operations a stop cascade initiates. Calls to
+`executeEffects` themselves must not overlap; starting a new batch before the
+previous call settles throws. A rejected batch may be retried, but retries
+re-run every operation in it — including local delivery to co-located
+children — so a retried batch can re-deliver events the first attempt already
+delivered. Hosts that retry need idempotent operations, keyed by the effect
+ID.
 
 Because every handoff queues, a runtime operation must never await another
 runtime operation of the same execution through the actor system — it would
 wait behind itself. The `deliverEvent`, `stopActor` and `terminateActor`
 helpers exported from `xstate` expose the local behaviors and are always safe
-to call directly.
+to call directly. An implemented runtime operation replaces the local
+behavior entirely, including its bookkeeping — a `stopActor` that only journals
+must call the `stopActor` helper for the local stop cascade, and a `sendEvent`
+that routes locally must call `deliverEvent`. When a remote runtime can
+deliver the same completion more than once (retries, replays), the host is
+responsible for deduplicating before handing it to the execution.
 
 Events addressed to the root actor do not reach `sendEvent` during
 `executeEffects`: the execution captures them and resolves them from that
 call as `{ event, source }` records for the loop to process before
 suspending. While the loop is parked in `waitForEvent()`, a root-addressed
 event reaches `sendEvent` like any other target and belongs in the host's
-mailbox.
+mailbox; if the adapter implements no `sendEvent`, producing one there throws,
+since delivering it locally to the inert root would silently lose it.
 
 A per-effect `runtime(metadata, effect)` factory is available for hosts that
 key operations by effect ID; it overrides the adapter's runtime operations
@@ -129,8 +141,10 @@ subtree — with the runtime that owns it; the option applies to the whole
 tree, not per placement boundary. Restoring an address-only child produces a
 location-transparent handle: sends route through the system runtime, its
 snapshot exposes lifecycle only (a full snapshot is the last value an actor
-published, which only co-located actors observe), and completion staleness
-for it is the owning runtime's responsibility. A restored handle keeps its
+published, which only co-located actors observe), `subscribe` and `on` are
+inert (observation is co-location), and completion staleness for it is the
+owning runtime's responsibility. Persisting a handle from the referencing
+side throws — its state lives with the runtime that owns it. A restored handle keeps its
 persisted address verbatim — the owning runtime's identity for the child.
 
 `durable.getActorRef(snapshot)` returns the root actor reference behind a

@@ -618,6 +618,13 @@ export function getPersistedSnapshot<
     // state is the co-locating runtime's whole-tree checkpoint capability;
     // remote handles never embed — their state lives with another runtime.
     const embed = embedChildren && !isRemoteActorRef(child);
+    if (!embed && typeof child.src !== 'string') {
+      // Fail where it is actionable: a by-address reference without a
+      // registered source key could be persisted but never restored.
+      throw new Error(
+        `Unable to persist child '${id}' by address: it requires a registered source key.`
+      );
+    }
     childrenJson[id as keyof typeof childrenJson] = {
       address: child.address,
       // The explicit marker disambiguates a by-address reference from a child

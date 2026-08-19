@@ -1,4 +1,10 @@
-import { deliverEvent, setup, type AnyActor } from '../src/index.ts';
+import {
+  createCallbackLogic,
+  createMachine,
+  deliverEvent,
+  setup,
+  type AnyActor
+} from '../src/index.ts';
 import { createDurable } from '../src/durable/index.ts';
 
 const workerMachine = setup({}).createMachine({
@@ -568,5 +574,58 @@ describe('review findings: seventh round', () => {
     await durable.executeEffects(effects);
     const child = snapshot.children['worker:0'] as AnyActor;
     expect(child.getSnapshot().status).toBe('active');
+  });
+});
+
+describe('review findings: eighth round', () => {
+  it('rejects overlapping executeEffects calls', async () => {
+    const durable = createDurable(orderMachine, {
+      executeAction: () => {},
+      spawnActor: () => {},
+      startActor: () => {},
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [, effects] = durable.initialTransition();
+    const first = durable.executeEffects(effects);
+    await expect(durable.executeEffects(effects)).rejects.toThrow(
+      'must not overlap'
+    );
+    await first;
+  });
+
+  it('a parked root-addressed event without a host sendEvent fails loudly', async () => {
+    let send: ((event: { type: string }) => void) | undefined;
+    const emitter = createCallbackLogic(({ sendBack }) => {
+      send = sendBack;
+    });
+    const machine = createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: (_: any, enq: any) => {
+        enq.spawn(emitter);
+      },
+      states: { a: {} }
+    });
+
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      // A runtime operation makes the adapter the system runtime, but there
+      // is no sendEvent to receive root-addressed events.
+      cancelTimer: () => {},
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [, effects] = durable.initialTransition();
+    await durable.executeEffects(effects);
+    // The loop is parked: delivering locally would enqueue into the inert
+    // root's mailbox and silently lose the event.
+    expect(() => send!({ type: 'LATE' })).toThrow(
+      /parked.*no sendEvent|no sendEvent to receive it/
+    );
   });
 });

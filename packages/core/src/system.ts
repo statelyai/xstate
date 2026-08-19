@@ -123,7 +123,7 @@ export function parseGeneratedActorId(
   id: string
 ): { prefix: string; index: number } | undefined {
   const separator = id.lastIndexOf(':');
-  if (separator <= 0) {
+  if (separator <= 0 || separator === id.length - 1) {
     return undefined;
   }
   const index = Number(id.slice(separator + 1));
@@ -564,21 +564,6 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void {
-    const runtimeTarget = target as AnyActor & {
-      logic?: { isInternalEventType?: (eventType: string) => boolean };
-      _lastSourceRef?: AnyActor;
-    };
-    const targetMachine = runtimeTarget.logic;
-    const isInternalEvent =
-      typeof targetMachine?.isInternalEventType === 'function' &&
-      targetMachine.isInternalEventType(event.type);
-
-    if (isInternalEvent && source !== target) {
-      throw new Error(
-        `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
-      );
-    }
-
     deliverEvent(source, target, event);
   }
 
