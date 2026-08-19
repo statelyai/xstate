@@ -1,4 +1,4 @@
-import { deliverEvent, setup } from '../src/index.ts';
+import { deliverEvent, setup, type AnyActor } from '../src/index.ts';
 import { createDurable } from '../src/durable/index.ts';
 
 const workerMachine = setup({}).createMachine({
@@ -536,5 +536,36 @@ describe('review findings: sixth round', () => {
     parked = false;
     const [, kickEffects] = durable.transition(snapshot, { type: 'KICK' });
     await expect(durable.executeEffects(kickEffects)).resolves.toBeDefined();
+  });
+});
+
+describe('review findings: seventh round', () => {
+  it('a per-effect runtime keeps local behavior for operations neither implements', async () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker);
+      },
+      states: { a: {} }
+    });
+
+    const durable = createDurable(machine, {
+      // Neither runtime implements spawnActor/startActor: adding a
+      // per-effect runtime for sendEvent must not break them.
+      sendEvent: () => {},
+      runtime: () => ({ sendEvent: () => {} }),
+      executeAction: () => {},
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [snapshot, effects] = durable.initialTransition();
+    await durable.executeEffects(effects);
+    const child = snapshot.children['worker:0'] as AnyActor;
+    expect(child.getSnapshot().status).toBe('active');
   });
 });

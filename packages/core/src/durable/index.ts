@@ -7,7 +7,8 @@ import { getSnapshotActorRef } from '../snapshotActorRef.ts';
 import {
   getRootActorId,
   RUNTIME_OPERATIONS,
-  type ActorSystemRuntime
+  type ActorSystemRuntime,
+  type AnyActorSystem
 } from '../system.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
@@ -309,11 +310,16 @@ export function createDurable<TLogic extends AnyActorLogic>(
 
   function wrapRuntime(
     runtime: Partial<ActorSystemRuntime>,
-    localDeliveryFallback: boolean
+    localDeliveryFallback: boolean,
+    // When given, operations neither this runtime nor the adapter implements
+    // keep the behavior they would have had without a per-effect runtime,
+    // instead of crashing the effect that uses them.
+    fallbackSystem?: AnyActorSystem
   ): Partial<ActorSystemRuntime> {
     const wrapped: Partial<ActorSystemRuntime> = {};
     for (const operation of RUNTIME_OPERATIONS) {
-      const impl = runtime[operation] as
+      const impl = (runtime[operation] ??
+        fallbackSystem?.[operation]?.bind(fallbackSystem)) as
         | ((...args: unknown[]) => void | PromiseLike<void>)
         | undefined;
       if (impl) {
@@ -348,11 +354,14 @@ export function createDurable<TLogic extends AnyActorLogic>(
     ? wrapRuntime(systemRuntime, true)
     : undefined;
 
+  let executionSystem: AnyActorSystem | undefined;
+
   function installSystemRuntime<TSnapshot>(snapshot: TSnapshot): TSnapshot {
     if (wrappedSystemRuntime) {
       const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
       if (ref) {
         ref.system.runtime = wrappedSystemRuntime;
+        executionSystem ??= ref.system;
       }
       // Children restored outside this execution (rehydrated actors and
       // remote handles) may carry a system created before this install.
@@ -415,7 +424,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
           const runtime = perEffectRuntime
             ? wrapRuntime(
                 { ...systemRuntime, ...perEffectRuntime },
-                hasSystemRuntime
+                hasSystemRuntime,
+                executionSystem
               )
             : fallbackRuntime;
           if (effect.kind === 'action') {

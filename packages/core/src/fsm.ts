@@ -34,6 +34,7 @@ export type FSMSnapshot<
   children: {};
   timers: Record<string, LogicalTimer>;
   _nextTimerId: number;
+  _nextActorIds?: Record<string, number>;
   _stateInput: Record<string, unknown> | undefined;
   machine: {
     id: string;
@@ -300,6 +301,9 @@ function cloneSnapshot<
     children: snapshot.children,
     timers: snapshot.timers,
     _nextTimerId: snapshot._nextTimerId,
+    // Carried across state changes: dropping these would let a later spawn
+    // reuse the id of a still-running child.
+    _nextActorIds: snapshot._nextActorIds,
     _stateInput: stateInput,
     machine: snapshot.machine
   } as FSMSnapshot<TContext, TState, TInput>;
@@ -322,6 +326,7 @@ function stopSnapshot<
     children: snapshot.children,
     timers: snapshot.timers,
     _nextTimerId: snapshot._nextTimerId,
+    _nextActorIds: snapshot._nextActorIds,
     _stateInput: snapshot._stateInput,
     machine: snapshot.machine
   } as FSMSnapshot<TContext, TState, TInput>;

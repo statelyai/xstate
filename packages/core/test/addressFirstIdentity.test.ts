@@ -1,5 +1,7 @@
 import {
   createActor,
+  createCallbackLogic,
+  createFSM,
   createMachine,
   deliverEvent,
   getEffectDescriptor,
@@ -672,25 +674,23 @@ describe('review findings: third round', () => {
 });
 
 describe('review findings: fourth round', () => {
-  it('rejects actor ids containing the address path delimiter in development', () => {
+  it('encodes the path delimiter in address segments', () => {
     const machine = setup({
       actors: { worker: workerMachine }
     }).createMachine({
       id: 'order',
-      initial: 'a',
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.worker, { id: 'bad/id' });
-      },
-      states: { a: {} }
+      initial: 'a/b',
+      states: { 'a/b': { invoke: { src: 'worker' } } }
     });
 
-    const actor = createActor(machine);
-    actor.subscribe({ error: () => {} });
-    actor.start();
-    expect(actor.getSnapshot().status).toBe('error');
-    expect(String((actor.getSnapshot() as { error?: unknown }).error)).toMatch(
-      /must not contain '\/'/
-    );
+    // A slash in a state name reaches the generated invoke id; the machine
+    // still starts, and the address stays an unambiguous path.
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().status).toBe('active');
+    const child = Object.values(actor.getSnapshot().children)[0] as AnyActor;
+    expect(child.id).toContain('/');
+    expect(child.address).toBe(`order/${child.id.replaceAll('/', '%2F')}`);
+    expect(child.address.split('/')).toHaveLength(2);
   });
 
   it('restoring a remote child without a registered source key fails loudly', () => {
@@ -758,5 +758,59 @@ describe('review findings: sixth round', () => {
       'worker:0',
       'worker:3'
     ]);
+  });
+});
+
+describe('review findings: seventh round', () => {
+  it('keeps id counters across state-function state changes', () => {
+    const fsm = createFSM({
+      initial: 'a',
+      states: {
+        a: {
+          entry: (_: any, enq: any) => {
+            enq.spawn(workerMachine);
+          },
+          on: { GO: { target: 'b' } }
+        },
+        // A state change that spawns nothing must not drop the counters.
+        b: { on: { GO2: { target: 'c' } } },
+        c: {
+          entry: (_: any, enq: any) => {
+            enq.spawn(workerMachine);
+          }
+        }
+      }
+    });
+
+    const actor = createActor(fsm).start();
+    actor.send({ type: 'GO' });
+    actor.send({ type: 'GO2' });
+    expect(Object.keys(actor.getSnapshot().children).sort()).toEqual([
+      'worker:0',
+      'worker:1'
+    ]);
+  });
+
+  it('gives internal helper actors their own id namespace', () => {
+    const emitter = createCallbackLogic(() => {});
+    const anonymous = createMachine({ initial: 'i', states: { i: {} } });
+    let listener: AnyActor | undefined;
+    const machine = createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: (_, enq) => {
+        const child = enq.spawn(emitter);
+        listener = enq.listen(child, 'E', () => ({ type: 'GOT' })) as AnyActor;
+        enq.spawn(anonymous);
+      },
+      states: { a: {} }
+    });
+
+    const actor = createActor(machine).start();
+    const childAddresses = Object.values(actor.getSnapshot().children).map(
+      (child) => (child as AnyActor).address
+    );
+    expect(childAddresses).not.toContain(listener!.address);
+    expect(listener!.address).toBe('order/xstate.listener:0');
   });
 });

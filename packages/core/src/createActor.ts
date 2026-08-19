@@ -109,6 +109,10 @@ function executeExecutableEffects(
   }
 }
 
+function encodeAddressSegment(id: string): string {
+  return id.includes('/') ? id.replaceAll('/', '%2F') : id;
+}
+
 function createActorRef(
   logic: AnyActorLogic,
   options: ActorOptions<AnyActorLogic>
@@ -196,13 +200,17 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
    * The deterministic logical address of this actor within its system: the
    * `/`-joined path of actor ids from the root. Stable across persistence and
    * restore, unlike `sessionId`, which identifies one incarnation.
+   *
+   * `/` separates segments, so an id containing one (a state name with a
+   * slash reaches its invoked child's id) is percent-encoded to keep the
+   * path unambiguous.
    */
   public get address(): string {
     // `id` and `_parent` never change after construction, so the whole chain
     // memoizes to O(1) amortized.
     return (this._address ??= this._parent
-      ? `${this._parent.address}/${this.id}`
-      : this.id);
+      ? `${this._parent.address}/${encodeAddressSegment(this.id)}`
+      : encodeAddressSegment(this.id));
   }
 
   /** The system to which this actor belongs. */

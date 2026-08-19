@@ -67,7 +67,8 @@ export function createListenerLogic<
           mapper(emittedEvent as TEmitted)
         );
       });
-    }
+    },
+    'xstate.listener'
   );
 }
 

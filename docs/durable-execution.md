@@ -66,8 +66,9 @@ Every actor has a deterministic logical `address`: the `/`-joined path of
 actor ids from the root. The root actor's address is the machine's `id`
 (`durable.rootAddress` reports it before any transition runs), and generated
 child ids are per-parent counters keyed by their actor source, such as
-`order/worker:0`. `/` is reserved as the path delimiter and must not appear
-in actor or machine ids. Addresses are stable across persistence and restore.
+`order/worker:0`. `/` separates segments, so an id containing one is
+percent-encoded (`%2F`) in the address and the path stays unambiguous.
+Addresses are stable across persistence and restore.
 
 `sessionId` identifies one incarnation of an address. A restored actor is a
 new incarnation: completion events carry the producing incarnation's

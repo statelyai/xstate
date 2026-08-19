@@ -1,4 +1,3 @@
-import isDevelopment from '#is-development';
 import type { InspectionEvent, SentRecord } from './inspection.ts';
 import {
   AnyEventObject,
@@ -178,11 +177,6 @@ export function resolveActorId(
   }
 ): string {
   if (requestedId !== undefined) {
-    if (isDevelopment && requestedId.includes('/')) {
-      throw new Error(
-        `Actor id '${requestedId}' must not contain '/': it is the address path delimiter.`
-      );
-    }
     const generated = parseGeneratedActorId(requestedId);
     if (generated) {
       bumpActorIdCounter(
