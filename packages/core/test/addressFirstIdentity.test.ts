@@ -761,3 +761,48 @@ describe('review findings: third round', () => {
     expect(Object.keys(restored.getSnapshot().children)).toEqual(['worker:1']);
   });
 });
+
+describe('review findings: same-step name resolution', () => {
+  it('string-id sendTo resolves an invoked child from the same step', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'idle',
+      states: {
+        idle: { on: { GO: { target: 'working' } } },
+        working: {
+          invoke: { id: 'w', src: 'worker' },
+          entry: (_, enq) => {
+            enq.sendTo('w', { type: 'PING' });
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+    const child = actor.getSnapshot().children.w as AnyActor;
+    expect(child.getSnapshot().value).toBe('pinged');
+  });
+
+  it('string-id sendTo resolves a context-factory child during initialization', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      context: ({ spawn }) => ({
+        ref: spawn(workerMachine, { id: 'w' })
+      }),
+      entry: (_, enq) => {
+        enq.sendTo('w', { type: 'PING' });
+      },
+      states: { a: {} }
+    });
+
+    const actor = createActor(machine).start();
+    const child = actor.getSnapshot().children.w as AnyActor;
+    expect(child.getSnapshot().value).toBe('pinged');
+  });
+});

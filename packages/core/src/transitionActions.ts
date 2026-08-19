@@ -327,6 +327,23 @@ export function beginSpawnAllocation(actorScope: AnyActorScope): void {
   });
 }
 
+/**
+ * Registers a child created outside `enq.spawn` (invokes, context-factory
+ * spawns) with the transition's allocation, so string-id `sendTo` resolves it
+ * within the same transition.
+ *
+ * @internal
+ */
+export function registerSpawnedChild(
+  actorScope: AnyActorScope,
+  id: string,
+  actor: AnyActor
+): void {
+  const allocation = spawnAllocations.get(actorScope);
+  allocation?.spawnedById.set(id, actor);
+  allocation?.removedIds.delete(id);
+}
+
 export function createTransitionEnqueue(
   actorScope: AnyActorScope,
   actions: any[],

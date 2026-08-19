@@ -55,7 +55,7 @@ const checkoutVersions = machineVersions([
       children: z.object({}),
       historyValue: z.object({}),
       timers: z.object({}),
-      _nextActorId: z.number().optional(),
+      _nextActorIds: z.record(z.string(), z.number()).optional(),
       _nextTimerId: z.number(),
       stateInputs: z.undefined().optional(),
       machine: z.object({

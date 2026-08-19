@@ -42,7 +42,8 @@ import {
 import {
   beginSpawnAllocation,
   createSpawnEffect,
-  resolveActionsWithContext
+  resolveActionsWithContext,
+  registerSpawnedChild
 } from './transitionActions.ts';
 import { AnyActorSystem } from './system.ts';
 import type {
@@ -1004,6 +1005,9 @@ export class StateMachine<
           ...nextState.children,
           ...children
         };
+        for (const [childId, child] of Object.entries(children)) {
+          registerSpawnedChild(actorScope, childId, child as AnyActor);
+        }
         // Record generated-shaped ids in the snapshot's own counters so the
         // allocation survives persistence: a freed id is never handed out
         // again after a restore or in a fresh replay process.

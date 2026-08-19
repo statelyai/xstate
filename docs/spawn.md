@@ -29,7 +29,7 @@ on: {
 
 | Option | Description |
 | --- | --- |
-| `id` | Identifier for the child, and its key in `snapshot.children`. Defaults to a generated id such as `x:1`. |
+| `id` | Identifier for the child, and its key in `snapshot.children`. Defaults to a deterministic generated id keyed by the actor source, such as `worker:0`. |
 | `input` | [Input](input-output.md) for the child. Required when its logic requires input. |
 | `registryKey` | Registers the child in the [actor registry](systems.md) under that key. |
 | `syncSnapshot` | When `true`, each child snapshot is sent to the parent as an `xstate.snapshot.actor` event. |
