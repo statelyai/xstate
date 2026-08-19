@@ -375,6 +375,21 @@ function getRegisteredSrcKey(
  * @internal
  */
 /**
+ * Internal helper actors (listeners, subscriptions) number their ids from
+ * system-level counters under `xstate.`-prefixed names; snapshot-owned
+ * children number from per-snapshot counters. The two spaces only stay
+ * collision-free because their prefixes are disjoint, so user sources must
+ * not enter the reserved namespace.
+ */
+function assertUnreservedPrefix(prefix: string): void {
+  if (isDevelopment && prefix.startsWith('xstate.')) {
+    throw new Error(
+      `Child actor ids with the "xstate." prefix are reserved for internal actors; rename the "${prefix}" source or logic id.`
+    );
+  }
+}
+
+/**
  * The next free index for a prefix. The parent snapshot's persisted counter
  * is always a floor, so a freed id is never handed out again — not even when
  * an explicit id reserved a lower one earlier in the transition.
@@ -405,6 +420,7 @@ export function allocateChildId(
     localAllocation ??
     createSpawnAllocation();
   const prefix = getActorIdPrefix(src);
+  assertUnreservedPrefix(prefix);
   const next = nextChildIndex(actorScope, allocation, prefix);
   allocation.counters.set(prefix, next + 1);
   return { id: `${prefix}:${next}`, counters: { [prefix]: next + 1 } };
@@ -426,6 +442,7 @@ export function reserveChildId(
   if (!generated) {
     return undefined;
   }
+  assertUnreservedPrefix(generated.prefix);
   const allocation =
     spawnAllocations.get(actorScope) ??
     localAllocation ??
