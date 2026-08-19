@@ -186,7 +186,7 @@ describe('restored children under a durable execution', () => {
 });
 
 describe('review findings: durable runtime edges', () => {
-  it('does not deadlock when a runtime operation awaits a nested operation', async () => {
+  it('serializes nested operations behind the running one', async () => {
     const machine = setup({
       actors: { worker: workerMachine }
     }).createMachine({
@@ -195,39 +195,40 @@ describe('review findings: durable runtime edges', () => {
       entry: ({ actors }, enq) => {
         enq.spawn(actors.worker);
       },
-      states: {
-        a: {
-          on: {
-            KICK: ({ children }, enq) => {
-              enq.sendTo(children['worker:0'], { type: 'PING' });
-            }
-          }
-        }
-      }
+      states: { a: {} }
     });
 
-    const operations: string[] = [];
+    const order: string[] = [];
+    let inFlight = false;
     const durable = createDurable(machine, {
       executeAction: () => {},
-      sendEvent: async (source, target, event) => {
-        // Awaiting a nested runtime operation must not deadlock the tail.
-        await target.system.scheduleTimer(target, 'nested', 5);
-        operations.push(`send:${target.address}:${event.type}`);
-        deliverEvent(source, target, event);
+      // startActor initiates a nested operation without awaiting it, the way
+      // a stop cascade does. Hosts with exclusive step models require that
+      // nested operation to wait for this one to finish.
+      startActor: async (actor) => {
+        expect(inFlight).toBe(false);
+        inFlight = true;
+        order.push('start');
+        void actor.system.scheduleTimer(actor, 'nested', 5);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        order.push('start:done');
+        inFlight = false;
       },
-      scheduleTimer: (_source, id) => {
-        operations.push(`timer:${id}`);
+      scheduleTimer: async (_source, id) => {
+        expect(inFlight).toBe(false);
+        inFlight = true;
+        order.push(`timer:${id}`);
+        await Promise.resolve();
+        inFlight = false;
       },
       waitForEvent: () => {
         throw new Error('host-driven loop');
       }
     });
 
-    let [snapshot, effects] = durable.initialTransition();
+    const [, effects] = durable.initialTransition();
     await durable.executeEffects(effects);
-    [snapshot, effects] = durable.transition(snapshot, { type: 'KICK' });
-    await durable.executeEffects(effects);
-    expect(operations).toEqual(['timer:nested', 'send:order/worker:0:PING']);
+    expect(order).toEqual(['start', 'start:done', 'timer:nested']);
   }, 2000);
 
   it('hands custom actions the system runtime when no per-effect runtime exists', async () => {

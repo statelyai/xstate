@@ -157,9 +157,8 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * Executes effects and resolves only when every runtime operation they
    * transitively initiated — including operations from live child actors
    * reacting to delivered events — has been accepted by the runtime; a
-   * failed operation rejects it. Top-level operations queue sequentially in
-   * initiation order, while an operation initiated while another is in
-   * flight executes immediately instead of queueing behind it.
+   * failed operation rejects it. Operations are handed to the runtime one at
+   * a time, in initiation order.
    *
    * Resolves with the events addressed to this execution's root actor that
    * were produced along the way, in order. Feed them back through
@@ -249,12 +248,12 @@ export function createDurable<TLogic extends AnyActorLogic>(
   }
   let currentBatch: Batch | undefined;
 
-  // Every inter-actor edge is an async handoff to the runtime: top-level
-  // operations queue sequentially (`operationTail`), while an operation
-  // initiated inside a running one executes inline — queueing it behind the
-  // tail would deadlock the parent operation that awaits it.
+  // Every inter-actor edge is an async handoff to the runtime, and every
+  // handoff queues behind the last one: hosts whose step or activity model
+  // forbids concurrent entries depend on that, and so does deterministic
+  // replay. An operation must therefore never await another operation of the
+  // same execution through the actor system — it would wait behind itself.
   let operationTail: Promise<unknown> = Promise.resolve();
-  let runningOperation = false;
 
   const track = (batch: Batch, operation: Promise<void>): Promise<void> => {
     batch.pending.add(operation);
@@ -272,20 +271,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
     batch: Batch,
     run: () => void | PromiseLike<void>
   ): PromiseLike<void> => {
-    if (runningOperation) {
-      return track(
-        batch,
-        Promise.resolve(run()).then(() => undefined)
-      );
-    }
-    const operation = operationTail.then(async () => {
-      runningOperation = true;
-      try {
-        await run();
-      } finally {
-        runningOperation = false;
-      }
-    });
+    const operation = operationTail.then(run).then(() => undefined);
     operationTail = operation.catch(() => {});
     return track(batch, operation);
   };

@@ -93,16 +93,18 @@ source keys — for journaling; payload fields such as `event` and `input` pass
 through by reference and are only as serializable as their values.
 
 Every inter-actor edge is an asynchronous handoff to the runtime.
-`executeEffects` queues top-level operations sequentially in initiation order
+`executeEffects` hands operations over one at a time, in initiation order,
 and resolves only when every transitively initiated operation has been
 accepted (a failed operation rejects it, and a failed call discards its
-batch), so "effects executed" means "safe to checkpoint and suspend". An
-operation initiated while another is in flight — typically from within that
-operation — executes immediately instead of queueing behind it. A runtime
-operation must not await another runtime operation of the same execution
-through the actor system; the `deliverEvent`, `stopActor` and
-`terminateActor` helpers exported from `xstate` expose the local behaviors
-and are always safe to call directly.
+batch), so "effects executed" means "safe to checkpoint and suspend". Hosts
+whose step or activity model forbids concurrent entries can rely on that
+ordering, including for the operations a stop cascade initiates.
+
+Because every handoff queues, a runtime operation must never await another
+runtime operation of the same execution through the actor system — it would
+wait behind itself. The `deliverEvent`, `stopActor` and `terminateActor`
+helpers exported from `xstate` expose the local behaviors and are always safe
+to call directly.
 
 Events addressed to the root actor do not reach `sendEvent` during
 `executeEffects`: the execution captures them and resolves them from that
