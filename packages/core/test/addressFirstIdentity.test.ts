@@ -723,3 +723,41 @@ describe('review findings: second round', () => {
     expect(again.children.w.syncSnapshot).toBe(true);
   });
 });
+
+describe('review findings: third round', () => {
+  it('context-spawn allocations persist so freed ids are not reused after restore', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      context: ({ spawn }) => ({
+        ref: spawn(workerMachine, { src: 'worker' } as never)
+      }),
+      states: {
+        a: {
+          on: {
+            STOP: ({ children }, enq) => {
+              enq.stop(children['worker:0']);
+            },
+            MORE: ({ actors }, enq) => {
+              enq.spawn(actors.worker);
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    expect(Object.keys(actor.getSnapshot().children)).toEqual(['worker:0']);
+    actor.send({ type: 'STOP' });
+    const persisted = actor.getPersistedSnapshot();
+    actor.stop();
+
+    // Fresh process: system counters are empty; the snapshot's own counters
+    // must prevent the freed id from being handed out again.
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    restored.send({ type: 'MORE' });
+    expect(Object.keys(restored.getSnapshot().children)).toEqual(['worker:1']);
+  });
+});

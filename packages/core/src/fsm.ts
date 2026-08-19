@@ -1,6 +1,7 @@
 import { XSTATE_INIT, XSTATE_STOP, XSTATE_TIMER } from './constants.ts';
 import { builtInActions } from './actions.ts';
 import {
+  beginSpawnAllocation,
   finalizeTransitionResult,
   deriveDeferredStarts,
   createSendToEffect,
@@ -794,6 +795,7 @@ export function createFSM<
   };
 
   const transition = ((...args: Parameters<typeof transitionCore>) => {
+    beginSpawnAllocation(args[2]);
     const [nextSnapshot, effects] = transitionCore(...args);
     return finalizeTransitionResult(args[2], args[0], [
       nextSnapshot,
@@ -806,6 +808,7 @@ export function createFSM<
     config,
     transition,
     initialTransition: (input, actorScope) => {
+      beginSpawnAllocation(actorScope);
       const context = resolveContext(config.context, input);
       const snapshot = createSnapshot(
         config.initial,

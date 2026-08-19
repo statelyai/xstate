@@ -330,3 +330,35 @@ describe('createFSM spawning', () => {
     expect(startCount).toBe(1);
   });
 });
+
+describe('createFSM spawn allocation', () => {
+  it('spawns in the transition function and entry of one step get distinct ids', () => {
+    const child = createCallbackLogic(() => {});
+    const namedChild = Object.assign(child, { id: 'job' });
+    const fsm = createFSM({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            GO: (_, enq) => {
+              enq.spawn(namedChild);
+              return { target: 'b' };
+            }
+          }
+        },
+        b: {
+          entry: (_, enq) => {
+            enq.spawn(namedChild);
+          }
+        }
+      }
+    });
+    const actor = createActor(fsm);
+    actor.start();
+    actor.send({ type: 'GO' });
+
+    const ids = Object.keys(actor.getSnapshot().children);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+  });
+});

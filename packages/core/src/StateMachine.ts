@@ -1004,6 +1004,20 @@ export class StateMachine<
           ...nextState.children,
           ...children
         };
+        // Record generated-shaped ids in the snapshot's own counters so the
+        // allocation survives persistence: a freed id is never handed out
+        // again after a restore or in a fresh replay process.
+        let counters = nextState._nextActorIds;
+        for (const childId of Object.keys(children)) {
+          const generated = /^(.*):(\d+)$/.exec(childId);
+          if (generated && Number.isSafeInteger(Number(generated[2]))) {
+            const floor = Number(generated[2]) + 1;
+            if ((counters?.[generated[1]] ?? 0) < floor) {
+              counters = { ...counters, [generated[1]]: floor };
+            }
+          }
+        }
+        nextState._nextActorIds = counters;
       }
       return nextState as SnapshotFrom<this>;
     }
