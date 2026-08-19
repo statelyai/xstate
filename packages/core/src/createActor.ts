@@ -1099,6 +1099,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     this.system._relay(undefined, this, event);
   }
 
+  /**
+   * Returns the actor's serializable logical identity: its `id`, `address`,
+   * and registered source key (when the actor was created from one).
+   */
   public toJSON() {
     return {
       xstate$$type: $$ACTOR_TYPE,

@@ -3010,6 +3010,12 @@ export type EnqueueObject<
 > = {
   cancel: (id: string) => void;
   raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
+  /**
+   * Spawns a child actor from the given logic. Without an explicit `id`, the
+   * child gets a deterministic src-keyed id (`worker:0`, `worker:1`, …)
+   * allocated from the parent snapshot's own counters, so ids replay
+   * identically and persist with the parent.
+   */
   spawn: <T extends AnyActorLogic>(
     logic: T,
     options?: {

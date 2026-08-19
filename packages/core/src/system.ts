@@ -141,17 +141,6 @@ export function resolveActorId(
     if (match) {
       const reservedId = Number(match[2]);
       if (Number.isSafeInteger(reservedId)) {
-        if (match[1] === 'x') {
-          // Legacy flat allocation; keep its counter reserved too.
-          const nextActorId = Math.max(
-            system._snapshot._nextActorId,
-            reservedId + 1
-          );
-          if (nextActorId !== system._snapshot._nextActorId) {
-            system._snapshot._nextActorId = nextActorId;
-            markSystemSnapshotDirty(system);
-          }
-        }
         bumpActorIdCounter(
           system,
           getActorIdCounterKey(options?.parent, match[1]),
@@ -300,7 +289,6 @@ export interface ActorSystem<
   /** @internal */
   _snapshot: {
     _scheduledTimers: Record<ScheduledTimerId, ScheduledTimer>;
-    _nextActorId: number;
     /** Deterministic generated-id counters keyed by `${parentAddress}|${srcPrefix}`. */
     _nextActorIds: Record<string, number>;
   };
@@ -404,7 +392,6 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       typeof options.snapshot === 'object' && options.snapshot !== null
         ? (options.snapshot as {
             scheduler?: Record<ScheduledTimerId, ScheduledTimer>;
-            _nextActorId?: number;
           })
         : undefined;
     this._clock = options.clock;
@@ -412,7 +399,6 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     this.createActorRef = options.createActorRef;
     this._snapshot = {
       _scheduledTimers: restoredSnapshot?.scheduler ?? emptyScheduledTimers,
-      _nextActorId: restoredSnapshot?._nextActorId ?? 0,
       // System-level counters are process-local backstops; per-actor
       // counters persist on each machine snapshot, and restored explicit ids
       // reserve their numbering here via `resolveActorId`.
@@ -636,6 +622,9 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     );
   }
 
+  // Unlike the other operations, spawn has no local work: local actors
+  // register with the system when they are constructed, so this only
+  // notifies a host runtime.
   public spawnActor(
     source: AnyActor | undefined,
     actor: AnyActor

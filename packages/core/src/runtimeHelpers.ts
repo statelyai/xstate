@@ -1,8 +1,8 @@
 import type { ActorTermination, AnyActor, AnyEventObject } from './types.ts';
 
 /**
- * Delivers an event directly to a target actor, bypassing any host runtime
- * override. Custom runtimes use this for the default local delivery behavior
+ * Delivers an event directly to a target actor, bypassing any installed host
+ * runtime. Custom runtimes use this for the default local delivery behavior
  * inside their own `sendEvent` implementations.
  *
  * @experimental

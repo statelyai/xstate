@@ -616,18 +616,10 @@ export function getPersistedSnapshot<
     // Children are referenced by their logical address. Embedding the child
     // state is the co-locating runtime's whole-tree checkpoint capability;
     // remote handles never embed — their state lives with another runtime.
-    if (child._remote === true || !embedChildren) {
-      childrenJson[id as keyof typeof childrenJson] = {
-        address: child.address,
-        src: child.src,
-        registryKey: child.registryKey,
-        syncSnapshot: child._syncSnapshot
-      };
-      continue;
-    }
+    const embed = embedChildren && child._remote !== true;
     childrenJson[id as keyof typeof childrenJson] = {
       address: child.address,
-      snapshot: child.getPersistedSnapshot(options),
+      ...(embed && { snapshot: child.getPersistedSnapshot(options) }),
       src: child.src,
       registryKey: child.registryKey,
       syncSnapshot: child._syncSnapshot
@@ -671,8 +663,6 @@ export function getPersistedSnapshot<
 
   const persisted: Record<string, unknown> = {
     ...jsonValues,
-    _nextActorId:
-      getSnapshotActorRef(snapshot)?.systemState.snapshot._nextActorId,
     context: persistContext(context) as any,
     children: childrenJson,
     timers: timersJson,

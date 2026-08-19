@@ -266,7 +266,7 @@ function getTransitionActionRecord(
 function pushSpawnedChild(
   actions: any[],
   actor: AnyActor,
-  id: string | undefined,
+  id: string,
   counters?: Record<string, number>
 ) {
   const action = pushBuiltInAction(
@@ -274,7 +274,7 @@ function pushSpawnedChild(
     builtInActions['@xstate.spawn'],
     actor
   );
-  action.childUpdate = { type: 'add', actor, id: id ?? actor.id, counters };
+  action.childUpdate = { type: 'add', actor, id, counters };
 }
 
 export function createTransitionEnqueue(
@@ -286,18 +286,19 @@ export function createTransitionEnqueue(
 ) {
   const spawnedById = new Map<string, AnyActor>();
   const spawnCounters = new Map<string, number>();
-  const resolveTargetId = (targetId: string): AnyActor | undefined => {
-    const spawned = spawnedById.get(targetId);
-    if (spawned) {
-      return spawned;
-    }
-    const children = (
-      actorScope.self.getSnapshot?.() as
-        | { children?: Record<string, AnyActor | undefined> }
-        | undefined
-    )?.children;
-    return children?.[targetId];
-  };
+  // Read the raw snapshot: getSnapshot() throws while the actor initializes,
+  // and entry actions run before any snapshot exists.
+  const getWorkingSnapshot = () =>
+    (
+      actorScope.self as {
+        _snapshot?: {
+          _nextActorIds?: Record<string, number>;
+          children?: Record<string, AnyActor | undefined>;
+        };
+      }
+    )._snapshot;
+  const resolveTargetId = (targetId: string): AnyActor | undefined =>
+    spawnedById.get(targetId) ?? getWorkingSnapshot()?.children?.[targetId];
   const props: Partial<EnqueueObject<any, any>> = {
     cancel: (id: string) => {
       pushBuiltInAction(
@@ -363,17 +364,7 @@ export function createTransitionEnqueue(
       let counters: Record<string, number> | undefined;
       if (id === undefined) {
         const prefix = getActorIdPrefix(src ?? logic);
-        // Read the raw snapshot: getSnapshot() throws while the actor
-        // initializes, and the initial transition spawns before any snapshot
-        // exists.
-        const parentSnapshot = (
-          actorScope.self as {
-            _snapshot?: {
-              _nextActorIds?: Record<string, number>;
-              children?: Record<string, unknown>;
-            };
-          }
-        )._snapshot;
+        const parentSnapshot = getWorkingSnapshot();
         const children = parentSnapshot?.children ?? {};
         let next =
           spawnCounters.get(prefix) ??
