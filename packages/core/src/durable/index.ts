@@ -154,9 +154,10 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
   /**
    * Executes effects and resolves only when every runtime operation they
    * transitively initiated — including operations from live child actors
-   * reacting to delivered events — has been accepted by the runtime.
-   * Operations are handed to the runtime strictly sequentially in initiation
-   * order.
+   * reacting to delivered events — has been accepted by the runtime; a
+   * failed operation rejects it. Top-level operations queue sequentially in
+   * initiation order, while an operation initiated while another is in
+   * flight executes immediately instead of queueing behind it.
    *
    * Resolves with the events addressed to this execution's root actor that
    * were produced along the way, in order. Feed them back through
