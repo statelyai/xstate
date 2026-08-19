@@ -398,3 +398,44 @@ describe('review findings: fourth round', () => {
     ]);
   });
 });
+
+describe('review findings: fifth round', () => {
+  it('a retried batch succeeds after a transient host operation failure', async () => {
+    let attempt = 0;
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker);
+      },
+      states: { a: {} }
+    });
+
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      systemRuntime: {
+        spawnActor: async () => {
+          attempt++;
+          if (attempt === 1) {
+            await Promise.resolve();
+            throw new Error('transient host failure');
+          }
+        },
+        startActor: () => {}
+      },
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [, effects] = durable.initialTransition();
+    await expect(durable.executeEffects(effects)).rejects.toThrow(
+      'transient host failure'
+    );
+    // A retrying host re-executes the same effects; the previous batch's
+    // failure must not be replayed.
+    await expect(durable.executeEffects(effects)).resolves.toEqual([]);
+  });
+});

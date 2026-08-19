@@ -388,9 +388,16 @@ export function createDurable<TLogic extends AnyActorLogic>(
         }
         await settle();
       } catch (error) {
-        // A failed batch must not leak its captured root events into a later
-        // call: a retrying host re-executes the effects and re-captures them.
+        // A failed batch must not leak its captured root events or its
+        // recorded operation failures into a later call: a retrying host
+        // re-executes the effects and re-captures them. Drain the operations
+        // still in flight first, so their rejections land in
+        // `operationFailures` before it is cleared.
+        while (pendingOperations.size) {
+          await Promise.allSettled([...pendingOperations]);
+        }
         capturedRootEvents.length = 0;
+        operationFailures.length = 0;
         throw error;
       }
       return capturedRootEvents.splice(0) as DurableRootEvent<

@@ -26,6 +26,18 @@ Store a machine version with each snapshot. Migrate or discard old snapshots whe
 
 Persisted snapshots record current state. Event sourcing records the events that produced it. Use event sourcing only when the event history itself is required.
 
+## Persist children by address
+
+By default a persisted snapshot embeds each child's persisted state, producing a whole-tree checkpoint. Pass `{ embedChildren: false }` to reference children by their logical address instead, leaving each child's state with the runtime that owns it.
+
+```ts
+const persisted = actor.getPersistedSnapshot({ embedChildren: false });
+```
+
+The option applies to the whole tree, not to a single placement boundary. Restoring an address-only child produces a location-transparent handle: sends to it route through the [system runtime](durable-execution.md), and its snapshot exposes lifecycle only, since a full snapshot is the last value an actor published and only co-located actors observe it.
+
+An actor's address is the `/`-joined path of actor ids from the root, such as `order/worker:0`. It is stable across persistence and restore, unlike `sessionId`, which identifies one incarnation. Generated child ids are recorded in each snapshot's `_nextActorIds`, so restored actors keep numbering where they left off.
+
 ## Migrate machine versions
 
 <!-- snapshot migration and event adaptation APIs from packages/core/src/machineVersions.ts -->
