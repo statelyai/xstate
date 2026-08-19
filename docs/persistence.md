@@ -34,11 +34,11 @@ Register lightweight schema descriptors for historical versions and retain an
 actual machine for each version that may be a target. Every entry must have the
 same stable `id` and its own `version`.
 
-Every entry satisfies one `MachineVersionDescriptor` contract:
-`{ id, version, snapshotSchema?, eventSchema? }`. Versioned machines expose
-`snapshotSchema` and `eventSchema` themselves, so `machineVersions()` uses the
-same schema path for machines and lightweight historical descriptors. It only
-checks whether an entry is executable when resolving `to`.
+Every lightweight entry satisfies `MachineVersionDescriptor`: `{ id, version }`
+plus at least one of `snapshotSchema` or `eventSchema`. Versioned machines expose
+both schemas themselves, so `machineVersions()` uses the same schema path for
+machines and historical descriptors. It only checks whether an entry is
+executable when resolving `to`.
 
 ```ts
 const checkoutVersions = machineVersions([

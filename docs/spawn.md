@@ -139,7 +139,12 @@ entry: (_, enq) => {
 };
 ```
 
-`enq.listen(...)` maps [emitted events](emitted-events.md), `enq.subscribeTo(...)` maps snapshots and outcomes. Both return an actor that can be stopped with `enq.stop(...)`, and both are available in `entry` and `exit` functions. See [listen and subscribe](listen-and-subscribe.md).
+<!-- enq.listen and enq.subscribeTo behavior from packages/core/src/stateUtils.ts and packages/core/src/transitionActions.ts -->
+
+`enq.listen(...)` maps [emitted events](emitted-events.md), while
+`enq.subscribeTo(...)` maps snapshots and outcomes. Both return an actor that
+can be stopped with `enq.stop(...)`, and both work in transition, `entry` and
+`exit` functions. See [listen and subscribe](listen-and-subscribe.md).
 
 `syncSnapshot: true` is the lower-level alternative: the parent then receives `xstate.snapshot.actor` events that it can handle with `matches: { actorId }`.
 
