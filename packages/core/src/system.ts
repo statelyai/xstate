@@ -225,7 +225,7 @@ export function bookSessionId(system: AnyActorSystem): string {
  * XState calculates pure transitions; a runtime executes their effects. The
  * built-in local runtime is one implementation at the same level as any
  * other: install a different one via `system.runtime` (for durable hosts,
- * through `createDurable`'s `systemRuntime`).
+ * through `createDurable`'s adapter runtime operations).
  */
 export interface ActorSystemRuntime {
   /** Publishes a newly created actor to the runtime. */
@@ -365,7 +365,7 @@ export interface ActorSystem<
    * keeping the built-in behavior.
    *
    * Durable hosts should provide this through `createDurable`'s
-   * `systemRuntime` rather than assigning it directly.
+   * adapter runtime operations rather than assigning it directly.
    */
   runtime?: Partial<ActorSystemRuntime>;
 }

@@ -78,7 +78,7 @@ export function createRemoteActorRef(
     },
     _send(event: AnyEventObject) {
       throw new Error(
-        `Remote actor '${options.address}' has no local mailbox to receive "${event.type}". Its state lives with another runtime; install a runtime that can reach it (via \`createDurable\`'s \`systemRuntime\`, or \`system.runtime\`) before sending, ${restoreHint}`
+        `Remote actor '${options.address}' has no local mailbox to receive "${event.type}". Its state lives with another runtime; install a runtime that can reach it (via \`createDurable\`'s adapter runtime operations, or \`system.runtime\`) before sending, ${restoreHint}`
       );
     },
     getSnapshot(): Snapshot<undefined> {

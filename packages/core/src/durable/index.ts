@@ -56,7 +56,26 @@ export interface DurableEffect<TEffect> extends DurableEffectMetadata {
   descriptor: EffectDescriptor;
 }
 
-export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
+/**
+ * A durable host adapter: the runtime operations that execute this
+ * execution's effects, plus the durable loop hooks.
+ *
+ * The runtime operations (`sendEvent`, `scheduleTimer`, …) are installed on
+ * the actor system of every snapshot the execution produces, including
+ * children created during transitions and actors rehydrated from restored
+ * snapshots. Operations initiated by live child actors (parent sends,
+ * timers, terminations) route to them without any per-actor wiring; omitted
+ * operations keep their default local behavior.
+ *
+ * Events addressed to this execution's root actor do not reach `sendEvent`
+ * during `executeEffects`: the execution captures them and resolves them
+ * from that call for the durable loop to process before suspending. While
+ * the loop is parked, a root-addressed event reaches `sendEvent` like any
+ * other target, so the host enqueues it in its own mailbox.
+ */
+export interface DurableExecutionAdapter<
+  TLogic extends AnyActorLogic
+> extends Partial<ActorSystemRuntime> {
   /**
    * Executes a custom action as a durable host step or activity. The host
    * should identify the action by `type` and memoize or deduplicate it using
@@ -68,29 +87,16 @@ export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
     runtime: Partial<ActorSystemRuntime>
   ): void | PromiseLike<void>;
   /**
-   * Creates the runtime used by one effect. Timers, messaging and
-   * child actors should be translated to equivalent host operations. The
-   * complete effect is provided for hosts that need serializable actor source,
-   * input, event or target data beyond the runtime method arguments.
+   * Creates the runtime used by one effect, for hosts that key operations by
+   * effect ID. Overrides the adapter's runtime operations
+   * operation-by-operation; operations it omits keep their behavior. The
+   * complete effect is provided for hosts that need serializable actor
+   * source, input, event or target data beyond the runtime method arguments.
    */
   runtime?(
     metadata: DurableEffectMetadata,
     effect: ExecutableActionObjectFromLogic<TLogic>
   ): Partial<ActorSystemRuntime>;
-  /**
-   * Runtime operations installed on the actor system of every snapshot this
-   * execution produces, including children created during transitions and
-   * actors rehydrated from restored snapshots. Operations initiated by live
-   * child actors (parent sends, timers, terminations) route here without any
-   * per-actor wiring; omitted operations keep their default local behavior.
-   *
-   * Events addressed to this execution's root actor do not reach `sendEvent`
-   * *during* `executeEffects`: the execution captures them and resolves them
-   * from that call for the durable loop to process before suspending. While
-   * the loop is parked, a root-addressed event reaches `sendEvent` like any
-   * other target, so the host enqueues it in its own mailbox.
-   */
-  systemRuntime?: Partial<ActorSystemRuntime>;
   /** Waits durably for the next event addressed to this execution. */
   waitForEvent(
     metadata: DurableWaitMetadata
@@ -217,6 +223,17 @@ export function createDurable<TLogic extends AnyActorLogic>(
 
   const rootAddress = getRootActorId(logic);
 
+  // The adapter's runtime operations, picked off the flat adapter shape.
+  const systemRuntime: Partial<ActorSystemRuntime> = {};
+  for (const operation of [...RUNTIME_OPERATIONS, 'sendEvent'] as const) {
+    const impl = adapter[operation];
+    if (impl) {
+      (systemRuntime as Record<string, unknown>)[operation] =
+        impl.bind(adapter);
+    }
+  }
+  const hasSystemRuntime = Object.keys(systemRuntime).length > 0;
+
   // One batch per `executeEffects` call. The wrapped runtime stays installed
   // on the actor system for the whole execution, so it also sees operations
   // initiated while the loop is parked in `waitForEvent()` (for example a
@@ -327,8 +344,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
     return wrapped;
   }
 
-  const wrappedSystemRuntime = adapter.systemRuntime
-    ? wrapRuntime(adapter.systemRuntime, true)
+  const wrappedSystemRuntime = hasSystemRuntime
+    ? wrapRuntime(systemRuntime, true)
     : undefined;
 
   function installSystemRuntime<TSnapshot>(snapshot: TSnapshot): TSnapshot {
@@ -382,7 +399,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
       // and through it the installed `systemRuntime`) apply; without any
       // runtime, the empty object makes unsupported operations throw instead
       // of silently running local behavior on a durable host.
-      const fallbackRuntime = adapter.systemRuntime ? undefined : {};
+      const fallbackRuntime = hasSystemRuntime ? undefined : {};
       try {
         for (const tagged of effects) {
           const { effect } = tagged;
@@ -397,8 +414,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
           // runtime's behavior.
           const runtime = perEffectRuntime
             ? wrapRuntime(
-                { ...adapter.systemRuntime, ...perEffectRuntime },
-                !!adapter.systemRuntime
+                { ...systemRuntime, ...perEffectRuntime },
+                hasSystemRuntime
               )
             : fallbackRuntime;
           if (effect.kind === 'action') {

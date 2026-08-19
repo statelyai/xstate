@@ -127,7 +127,7 @@ class InMemoryDurableHost implements DurableConformanceHarness {
         operations.push({ type: 'action', actionType: action.type });
         await action.exec(runtime);
       },
-      systemRuntime: actorRuntime,
+      ...actorRuntime,
       runtime: () => ({
         ...actorRuntime,
         terminateActor: (actor, termination) => {

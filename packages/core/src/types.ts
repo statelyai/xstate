@@ -3028,18 +3028,9 @@ export type EnqueueObject<
   emit: (emittedEvent: TEmittedEvent) => void;
   <T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): void;
   log: (...args: any[]) => void;
-  /**
-   * Sends an event to an actor reference, or to a child of this actor by its
-   * string id (resolved against children spawned in this transition first,
-   * then existing children).
-   */
-  sendTo: <
-    TActorRef extends { send: (...args: any[]) => void } | string | undefined
-  >(
+  sendTo: <TActorRef extends { send: (...args: any[]) => void } | undefined>(
     actorRef: TActorRef,
-    event: TActorRef extends string
-      ? AnyEventObject
-      : SendableEventFromActorRef<NoInfer<TActorRef>>,
+    event: SendableEventFromActorRef<NoInfer<TActorRef>>,
     options?: { id?: string; delay?: number }
   ) => void;
   stop: (actor?: AnyActor) => void;

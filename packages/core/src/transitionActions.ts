@@ -237,12 +237,7 @@ function applyChildUpdate(
   update: NonNullable<TransitionActionRecord['childUpdate']>,
   actorScope: AnyActorScope
 ): AnyMachineSnapshot {
-  const allocation = spawnAllocations.get(actorScope);
   if (update.type === 'add') {
-    // Keep string-id resolution in later action functions and microsteps in
-    // sync with the in-flight children (invokes included).
-    allocation?.spawnedById.set(update.id, update.actor);
-    allocation?.removedIds.delete(update.id);
     return {
       ...snapshot,
       children: { ...snapshot.children, [update.id]: update.actor },
@@ -261,8 +256,6 @@ function applyChildUpdate(
     if (children[key] === update.actor) {
       owned = true;
       delete children[key];
-      allocation?.spawnedById.delete(key);
-      allocation?.removedIds.add(key);
     }
   }
   if (!owned) {
@@ -310,18 +303,13 @@ function pushSpawnedChild(
  * microsteps of the same event.
  */
 interface SpawnAllocation {
-  spawnedById: Map<string, AnyActor>;
   counters: Map<string, number>;
-  /** Child ids removed during this transition, for string-id resolution. */
-  removedIds: Set<string>;
 }
 
 const spawnAllocations = new WeakMap<object, SpawnAllocation>();
 
 const createSpawnAllocation = (): SpawnAllocation => ({
-  spawnedById: new Map(),
-  counters: new Map(),
-  removedIds: new Set()
+  counters: new Map()
 });
 
 /**
@@ -449,23 +437,6 @@ export function takeSpawnAllocationCounters(
   return Object.fromEntries(counters);
 }
 
-/**
- * Registers a child created outside `enq.spawn` (invokes, context-factory
- * spawns) with the transition's allocation, so string-id `sendTo` resolves it
- * within the same transition.
- *
- * @internal
- */
-export function registerSpawnedChild(
-  actorScope: AnyActorScope,
-  id: string,
-  actor: AnyActor
-): void {
-  const allocation = spawnAllocations.get(actorScope);
-  allocation?.spawnedById.set(id, actor);
-  allocation?.removedIds.delete(id);
-}
-
 export function createTransitionEnqueue(
   actorScope: AnyActorScope,
   actions: any[],
@@ -476,16 +447,6 @@ export function createTransitionEnqueue(
   // Paths that never begin a transaction keep a per-enqueue scope.
   const localAllocation =
     spawnAllocations.get(actorScope) ?? createSpawnAllocation();
-  const { spawnedById, removedIds } = localAllocation;
-  // Resolution order: children spawned this transition win (enqueue-time),
-  // then removals recorded when their action applied hide the committed
-  // child, then the pre-transition snapshot. Within one action function a
-  // stop followed by a same-id respawn therefore resolves to the new child.
-  const resolveTargetId = (targetId: string): AnyActor | undefined =>
-    spawnedById.get(targetId) ??
-    (removedIds.has(targetId)
-      ? undefined
-      : getWorkingSnapshotOf(actorScope)?.children?.[targetId]);
   const props: Partial<EnqueueObject<any, any>> = {
     cancel: (id: string) => {
       pushBuiltInAction(
@@ -552,24 +513,14 @@ export function createTransitionEnqueue(
         id,
         parent: actorScope.self
       });
-      spawnedById.set(id, actor);
       pushSpawnedChild(actions, actor, id, counters);
       return actor;
     },
-    sendTo: ((
-      actorOrId: AnyActor | string | undefined,
-      event: EventObject,
-      options?: { id?: string; delay?: number }
-    ) => {
-      const actor =
-        typeof actorOrId === 'string' ? resolveTargetId(actorOrId) : actorOrId;
+    sendTo: (actor, event, options) => {
       if (!actor) {
         internalEvents.push(
           createErrorPlatformEvent('communication', {
-            message:
-              typeof actorOrId === 'string'
-                ? `Unable to send event to unknown child actor '${actorOrId}'`
-                : 'Unable to send event to an undefined actor',
+            message: 'Unable to send event to an undefined actor',
             event
           })
         );
@@ -583,7 +534,7 @@ export function createTransitionEnqueue(
         event,
         options
       );
-    }) as EnqueueObject<any, any>['sendTo'],
+    },
     stop: (actor) => {
       if (actor) {
         const action = pushBuiltInAction(

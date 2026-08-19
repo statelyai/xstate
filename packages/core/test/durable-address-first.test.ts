@@ -38,27 +38,25 @@ const orderMachine = setup({
   }
 });
 
-describe('durable execution with only systemRuntime', () => {
+describe('durable execution with only adapter runtime operations', () => {
   it('executes spawn effects without a per-effect runtime', async () => {
     const operations: string[] = [];
     const durable = createDurable(orderMachine, {
       executeAction: async (action) => {
         operations.push(`action:${action.type}`);
       },
-      systemRuntime: {
-        spawnActor: (_source, actor) => {
-          operations.push(`spawn:${actor.address}`);
-        },
-        startActor: (actor) => {
-          operations.push(`start:${actor.address}`);
-          actor.start();
-        },
-        sendEvent: (source, target, event) => {
-          operations.push(
-            `send:${source?.address}->${target.address}:${event.type}`
-          );
-          deliverEvent(source, target, event);
-        }
+      spawnActor: (_source, actor) => {
+        operations.push(`spawn:${actor.address}`);
+      },
+      startActor: (actor) => {
+        operations.push(`start:${actor.address}`);
+        actor.start();
+      },
+      sendEvent: (source, target, event) => {
+        operations.push(
+          `send:${source?.address}->${target.address}:${event.type}`
+        );
+        deliverEvent(source, target, event);
       },
       waitForEvent: () => {
         throw new Error('host-driven loop');
@@ -154,7 +152,9 @@ describe('restored children under a durable execution', () => {
     // Persist by address on one placement...
     const seed = createDurable(machine, {
       executeAction: () => {},
-      systemRuntime: {},
+      startActor: (actor) => {
+        actor.start();
+      },
       waitForEvent: () => {
         throw new Error('host-driven loop');
       }
@@ -169,10 +169,8 @@ describe('restored children under a durable execution', () => {
     const sent: string[] = [];
     const durable = createDurable(machine, {
       executeAction: () => {},
-      systemRuntime: {
-        sendEvent: (_source, target, event) => {
-          sent.push(`${target.address}:${event.type}`);
-        }
+      sendEvent: (_source, target, event) => {
+        sent.push(`${target.address}:${event.type}`);
       },
       waitForEvent: () => {
         throw new Error('host-driven loop');
@@ -211,16 +209,14 @@ describe('review findings: durable runtime edges', () => {
     const operations: string[] = [];
     const durable = createDurable(machine, {
       executeAction: () => {},
-      systemRuntime: {
-        sendEvent: async (source, target, event) => {
-          // Awaiting a nested runtime operation must not deadlock the tail.
-          await target.system.scheduleTimer(target, 'nested', 5);
-          operations.push(`send:${target.address}:${event.type}`);
-          deliverEvent(source, target, event);
-        },
-        scheduleTimer: (_source, id) => {
-          operations.push(`timer:${id}`);
-        }
+      sendEvent: async (source, target, event) => {
+        // Awaiting a nested runtime operation must not deadlock the tail.
+        await target.system.scheduleTimer(target, 'nested', 5);
+        operations.push(`send:${target.address}:${event.type}`);
+        deliverEvent(source, target, event);
+      },
+      scheduleTimer: (_source, id) => {
+        operations.push(`timer:${id}`);
       },
       waitForEvent: () => {
         throw new Error('host-driven loop');
@@ -256,10 +252,8 @@ describe('review findings: durable runtime edges', () => {
           type: 'X'
         });
       },
-      systemRuntime: {
-        sendEvent: (_source, target, event) => {
-          sent.push(`${(target as { address: string }).address}:${event.type}`);
-        }
+      sendEvent: (_source, target, event) => {
+        sent.push(`${(target as { address: string }).address}:${event.type}`);
       },
       waitForEvent: () => {
         throw new Error('host-driven loop');
@@ -287,13 +281,11 @@ describe('review findings: fourth round', () => {
 
     const durable = createDurable(machine, {
       executeAction: () => {},
-      systemRuntime: {
-        spawnActor: async () => {
-          await Promise.resolve();
-          throw new Error('host rejected the spawn');
-        },
-        startActor: () => {}
+      spawnActor: async () => {
+        await Promise.resolve();
+        throw new Error('host rejected the spawn');
       },
+      startActor: () => {},
       waitForEvent: () => {
         throw new Error('host-driven loop');
       }
@@ -336,10 +328,8 @@ describe('review findings: fourth round', () => {
           throw new Error('step failed');
         }
       },
-      systemRuntime: {
-        sendEvent: (source, target, event) => {
-          deliverEvent(source, target, event);
-        }
+      sendEvent: (source, target, event) => {
+        deliverEvent(source, target, event);
       },
       waitForEvent: () => {
         throw new Error('host-driven loop');
@@ -372,13 +362,11 @@ describe('review findings: fourth round', () => {
 
     const durable = createDurable(machine, {
       executeAction: () => {},
-      systemRuntime: {
-        spawnActor: (_source, actor) => {
-          operations.push(`system-spawn:${actor.address}`);
-        },
-        startActor: (actor) => {
-          operations.push(`system-start:${actor.address}`);
-        }
+      spawnActor: (_source, actor) => {
+        operations.push(`system-spawn:${actor.address}`);
+      },
+      startActor: (actor) => {
+        operations.push(`system-start:${actor.address}`);
       },
       // The per-effect runtime implements only sendEvent; spawn/start must
       // keep the system runtime's behavior.
@@ -415,16 +403,14 @@ describe('review findings: fifth round', () => {
 
     const durable = createDurable(machine, {
       executeAction: () => {},
-      systemRuntime: {
-        spawnActor: async () => {
-          attempt++;
-          if (attempt === 1) {
-            await Promise.resolve();
-            throw new Error('transient host failure');
-          }
-        },
-        startActor: () => {}
+      spawnActor: async () => {
+        attempt++;
+        if (attempt === 1) {
+          await Promise.resolve();
+          throw new Error('transient host failure');
+        }
       },
+      startActor: () => {},
       waitForEvent: () => {
         throw new Error('host-driven loop');
       }
@@ -456,16 +442,14 @@ describe('review findings: sixth round', () => {
 
     const durable = createDurable(machine, {
       executeAction: () => {},
-      systemRuntime: {
-        spawnActor: () => {},
-        startActor: (actor) => {
-          actor.start();
-        },
-        sendEvent: (_source, target, event) => {
-          sent.push(`${target.address}:${event.type}`);
-          if (target.address !== durable.rootAddress) {
-            deliverEvent(_source, target, event);
-          }
+      spawnActor: () => {},
+      startActor: (actor) => {
+        actor.start();
+      },
+      sendEvent: (_source, target, event) => {
+        sent.push(`${target.address}:${event.type}`);
+        if (target.address !== durable.rootAddress) {
+          deliverEvent(_source, target, event);
         }
       },
       waitForEvent: () => {
@@ -518,17 +502,15 @@ describe('review findings: sixth round', () => {
 
     const durable = createDurable(machine, {
       executeAction: () => {},
-      systemRuntime: {
-        spawnActor: () => {},
-        startActor: (actor) => {
-          actor.start();
-        },
-        sendEvent: async (source, target, event) => {
-          if (parked) {
-            throw new Error('host-owned delivery failed');
-          }
-          deliverEvent(source, target, event);
+      spawnActor: () => {},
+      startActor: (actor) => {
+        actor.start();
+      },
+      sendEvent: async (source, target, event) => {
+        if (parked) {
+          throw new Error('host-owned delivery failed');
         }
+        deliverEvent(source, target, event);
       },
       waitForEvent: () => {
         throw new Error('host-driven loop');

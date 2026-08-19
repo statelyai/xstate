@@ -1,8 +1,4 @@
-import {
-  allocateChildId,
-  registerSpawnedChild,
-  reserveChildId
-} from './transitionActions.ts';
+import { allocateChildId, reserveChildId } from './transitionActions.ts';
 import {
   ActorFromLogic,
   AnyActorLogic,
@@ -59,7 +55,6 @@ export function createSpawner(
       registryKey: options?.registryKey
     });
     spawnedChildren[actor.id] = actor;
-    registerSpawnedChild(actorScope, actor.id, actor);
     return actor;
   }) as Spawner;
 }

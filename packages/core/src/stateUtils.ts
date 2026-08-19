@@ -53,7 +53,6 @@ import {
 } from './utils.ts';
 import { builtInActions } from './actions.ts';
 import {
-  registerSpawnedChild,
   createEnqueueObject,
   createTerminationEffect,
   createTransitionEnqueue,
@@ -1850,7 +1849,6 @@ function microstep(
 
           if (invokeDef.id) {
             children[invokeDef.id] = actor;
-            registerSpawnedChild(actorScope, invokeDef.id, actor);
           }
         }
 

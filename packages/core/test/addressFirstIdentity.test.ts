@@ -209,52 +209,6 @@ describe('effect descriptors', () => {
   });
 });
 
-describe('string-id sendTo', () => {
-  it('resolves ids against existing children', () => {
-    const machine = setup({
-      actors: { worker: workerMachine }
-    }).createMachine({
-      id: 'order',
-      initial: 'a',
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.worker, { id: 'w' });
-      },
-      states: {
-        a: {
-          on: {
-            KICK: (_, enq) => {
-              enq.sendTo('w', { type: 'PING' });
-            }
-          }
-        }
-      }
-    });
-
-    const actor = createActor(machine).start();
-    actor.send({ type: 'KICK' });
-    const child = actor.getSnapshot().children.w as AnyActor;
-    expect(child.getSnapshot().value).toBe('pinged');
-  });
-
-  it('resolves ids of children spawned in the same transition', () => {
-    const machine = setup({
-      actors: { worker: workerMachine }
-    }).createMachine({
-      id: 'order',
-      initial: 'a',
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.worker, { id: 'w' });
-        enq.sendTo('w', { type: 'PING' });
-      },
-      states: { a: {} }
-    });
-
-    const actor = createActor(machine).start();
-    const child = actor.getSnapshot().children.w as AnyActor;
-    expect(child.getSnapshot().value).toBe('pinged');
-  });
-});
-
 describe('sessionId as incarnation id', () => {
   const invokeMachine = setup({
     actors: { worker: workerMachine }
@@ -522,32 +476,6 @@ describe('review findings: allocation across a macrostep', () => {
     expect(ids).toHaveLength(2);
     expect(new Set(ids).size).toBe(2);
   });
-
-  it('string-id sendTo resolves children spawned in an earlier microstep', () => {
-    const machine = setup({
-      actors: { worker: workerMachine }
-    }).createMachine({
-      id: 'order',
-      initial: 'a',
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.worker, { id: 'w' });
-        enq.raise({ type: 'SEND' });
-      },
-      states: {
-        a: {
-          on: {
-            SEND: (_, enq) => {
-              enq.sendTo('w', { type: 'PING' });
-            }
-          }
-        }
-      }
-    });
-
-    const actor = createActor(machine).start();
-    const child = actor.getSnapshot().children.w as AnyActor;
-    expect(child.getSnapshot().value).toBe('pinged');
-  });
 });
 
 describe('review findings: identity edge cases', () => {
@@ -671,41 +599,6 @@ describe('review findings: second round', () => {
     void persisted;
   });
 
-  it('string-id sendTo does not resolve children stopped earlier in the transition', () => {
-    const machine = setup({
-      actors: { worker: workerMachine }
-    }).createMachine({
-      id: 'order',
-      initial: 'a',
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.worker, { id: 'w' });
-      },
-      states: {
-        a: {
-          on: {
-            GO: ({ children }, enq) => {
-              enq.stop(children.w);
-              enq.raise({ type: 'SEND' });
-            },
-            SEND: (_, enq) => {
-              enq.sendTo('w', { type: 'PING' });
-            },
-            'xstate.error.communication': { target: 'errored' }
-          }
-        },
-        errored: {}
-      }
-    });
-
-    const actor = createActor(machine).start();
-    const child = actor.getSnapshot().children.w as AnyActor;
-    actor.send({ type: 'GO' });
-    // The stopped child is gone; the send surfaces a communication error
-    // instead of delivering to the stopped actor.
-    expect(actor.getSnapshot().value).toBe('errored');
-    expect(child.getSnapshot().value).toBe('idle');
-  });
-
   it('address-only restore keeps registryKey lookups and syncSnapshot', () => {
     const machine = setup({
       actors: { worker: workerMachine }
@@ -778,51 +671,6 @@ describe('review findings: third round', () => {
   });
 });
 
-describe('review findings: same-step name resolution', () => {
-  it('string-id sendTo resolves an invoked child from the same step', () => {
-    const machine = setup({
-      actors: { worker: workerMachine }
-    }).createMachine({
-      id: 'order',
-      initial: 'idle',
-      states: {
-        idle: { on: { GO: { target: 'working' } } },
-        working: {
-          invoke: { id: 'w', src: 'worker' },
-          entry: (_, enq) => {
-            enq.sendTo('w', { type: 'PING' });
-          }
-        }
-      }
-    });
-
-    const actor = createActor(machine).start();
-    actor.send({ type: 'GO' });
-    const child = actor.getSnapshot().children.w as AnyActor;
-    expect(child.getSnapshot().value).toBe('pinged');
-  });
-
-  it('string-id sendTo resolves a context-factory child during initialization', () => {
-    const machine = setup({
-      actors: { worker: workerMachine }
-    }).createMachine({
-      id: 'order',
-      initial: 'a',
-      context: ({ spawn }) => ({
-        ref: spawn(workerMachine, { id: 'w' })
-      }),
-      entry: (_, enq) => {
-        enq.sendTo('w', { type: 'PING' });
-      },
-      states: { a: {} }
-    });
-
-    const actor = createActor(machine).start();
-    const child = actor.getSnapshot().children.w as AnyActor;
-    expect(child.getSnapshot().value).toBe('pinged');
-  });
-});
-
 describe('review findings: fourth round', () => {
   it('rejects actor ids containing the address path delimiter in development', () => {
     const machine = setup({
@@ -868,36 +716,5 @@ describe('review findings: fourth round', () => {
     expect(() => machine.restoreSnapshot(persisted as never)).toThrow(
       /requires a registered source key/
     );
-  });
-
-  it('stop then same-id respawn resolves string sends to the new child', () => {
-    const machine = setup({
-      actors: { worker: workerMachine }
-    }).createMachine({
-      id: 'order',
-      initial: 'a',
-      entry: ({ actors }, enq) => {
-        enq.spawn(actors.worker, { id: 'w' });
-      },
-      states: {
-        a: {
-          on: {
-            SWAP: ({ children, actors }, enq) => {
-              enq.stop(children.w);
-              enq.spawn(actors.worker, { id: 'w' });
-              enq.sendTo('w', { type: 'PING' });
-            }
-          }
-        }
-      }
-    });
-
-    const actor = createActor(machine).start();
-    const oldChild = actor.getSnapshot().children.w as AnyActor;
-    actor.send({ type: 'SWAP' });
-    const newChild = actor.getSnapshot().children.w as AnyActor;
-    expect(newChild).not.toBe(oldChild);
-    expect(newChild.getSnapshot().value).toBe('pinged');
-    expect(oldChild.getSnapshot().value).toBe('idle');
   });
 });
