@@ -374,6 +374,22 @@ function getRegisteredSrcKey(
  *
  * @internal
  */
+/**
+ * The next free index for a prefix. The parent snapshot's persisted counter
+ * is always a floor, so a freed id is never handed out again — not even when
+ * an explicit id reserved a lower one earlier in the transition.
+ */
+function nextChildIndex(
+  actorScope: AnyActorScope,
+  allocation: SpawnAllocation,
+  prefix: string
+): number {
+  return Math.max(
+    allocation.counters.get(prefix) ?? 0,
+    getWorkingSnapshotOf(actorScope)?._nextActorIds?.[prefix] ?? 0
+  );
+}
+
 export function allocateChildId(
   actorScope: AnyActorScope,
   src: string | AnyActorLogic,
@@ -384,10 +400,7 @@ export function allocateChildId(
     localAllocation ??
     createSpawnAllocation();
   const prefix = getActorIdPrefix(src);
-  const next =
-    allocation.counters.get(prefix) ??
-    getWorkingSnapshotOf(actorScope)?._nextActorIds?.[prefix] ??
-    0;
+  const next = nextChildIndex(actorScope, allocation, prefix);
   allocation.counters.set(prefix, next + 1);
   return { id: `${prefix}:${next}`, counters: { [prefix]: next + 1 } };
 }
@@ -412,12 +425,14 @@ export function reserveChildId(
     spawnAllocations.get(actorScope) ??
     localAllocation ??
     createSpawnAllocation();
-  const floor = generated.index + 1;
-  allocation.counters.set(
-    generated.prefix,
-    Math.max(allocation.counters.get(generated.prefix) ?? 0, floor)
+  // The requested id is used as asked, but numbering continues from the
+  // highest reservation: an explicit low id never rewinds the counter.
+  const next = Math.max(
+    nextChildIndex(actorScope, allocation, generated.prefix),
+    generated.index + 1
   );
-  return { [generated.prefix]: floor };
+  allocation.counters.set(generated.prefix, next);
+  return { [generated.prefix]: next };
 }
 
 /**

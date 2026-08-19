@@ -364,6 +364,11 @@ export interface ActorSystem<
    * included — and may implement any subset of operations, with the rest
    * keeping the built-in behavior.
    *
+   * An operation that returns a promise owns its own failure handling: the
+   * paths that hand work to a runtime do not await it. `createDurable`
+   * tracks its adapter's operations and fails `executeEffects` when one
+   * rejects.
+   *
    * Durable hosts should provide this through `createDurable`'s
    * adapter runtime operations rather than assigning it directly.
    */
@@ -788,14 +793,16 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     source: AnyActor | undefined,
     target: AnyActor,
     event: AnyEventObject
-  ): void {
+  ): void | PromiseLike<void> {
     if (
       transitionEffectTargets.length &&
       transitionEffectTargets.includes(target)
     ) {
       throw transitionEffectSignal;
     }
-    this.sendEvent(source, target, event);
+    // Returned so callers that can observe a host runtime's asynchronous
+    // delivery do; the built-in runtime delivers synchronously.
+    return this.sendEvent(source, target, event);
   }
 
   public getSnapshot(): {

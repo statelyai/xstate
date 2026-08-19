@@ -718,3 +718,45 @@ describe('review findings: fourth round', () => {
     );
   });
 });
+
+describe('review findings: sixth round', () => {
+  it('an explicit low id does not lower later generated allocations', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker);
+        enq.spawn(actors.worker);
+        enq.spawn(actors.worker);
+      },
+      states: {
+        a: {
+          on: {
+            CLEAR: ({ children }, enq) => {
+              enq.stop(children['worker:0']);
+              enq.stop(children['worker:1']);
+              enq.stop(children['worker:2']);
+            },
+            REUSE: ({ actors }, enq) => {
+              // An explicit id the machine asks for by name, below the
+              // parent's persisted counter...
+              enq.spawn(actors.worker, { id: 'worker:0' });
+              // ...must not drag generated numbering back onto freed ids.
+              enq.spawn(actors.worker);
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'CLEAR' });
+    actor.send({ type: 'REUSE' });
+    expect(Object.keys(actor.getSnapshot().children).sort()).toEqual([
+      'worker:0',
+      'worker:3'
+    ]);
+  });
+});
