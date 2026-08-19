@@ -106,6 +106,14 @@ children — so a retried batch can re-deliver events the first attempt already
 delivered. Hosts that retry need idempotent operations, keyed by the effect
 ID.
 
+Delivery is at-most-once with pairwise sender-to-receiver ordering: for a
+given pair of actors, events sent from the first to the second are enqueued
+in send order, and an undeliverable event is dropped rather than retried.
+This matches the Erlang and Akka defaults. Ordering is not transitive across
+intermediaries. The durable path is stronger — the handoff queue serializes
+every operation of an execution globally. A host `sendEvent` that routes
+remotely is responsible for preserving pairwise ordering on its transport.
+
 Because every handoff queues, a runtime operation must never await another
 runtime operation of the same execution through the actor system — it would
 wait behind itself. The `deliverEvent`, `stopActor` and `terminateActor`
@@ -130,6 +138,19 @@ key operations by effect ID; it overrides the adapter's runtime operations
 operation-by-operation. With no runtime operations at all, unsupported
 operations throw instead of silently running local behavior on a durable
 host.
+
+## Determinism constraints
+
+Replay only reconstructs the same effects when every transition is a pure
+function of the snapshot and event. Code that runs during a transition — 
+guards, transition functions, `context` assigners, `input` factories — must
+not read the clock, generate random values, or reach external state:
+`Date.now()`, `Math.random()`, and `crypto.randomUUID()` all produce a
+different effect sequence on replay, and nothing detects the divergence.
+Perform such work inside journaled operations (the host's `executeAction`,
+where the recorded result replays), or derive values deterministically from
+what the snapshot already carries — addresses and effect IDs are stable
+across replays and make good seeds and idempotency keys.
 
 ## Checkpoints and placement
 

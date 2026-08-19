@@ -38,6 +38,8 @@ The option applies to the whole tree, not to a single placement boundary. Persis
 
 Persisted children changed shape in v6: each entry carries an `address` field and either an embedded `snapshot` or a `remote: true` marker. Snapshots persisted by earlier versions restore unchanged; migrate them with [`machineVersions`](#migrations) if you validate their shape.
 
+Restoring a persisted snapshot restarts each pending timer with its declared delay — a timer persisted partway through its delay fires its full delay after restore, extending the deadline. Durable hosts that need wall-clock deadlines persist the due time separately and take over timer scheduling through the [system runtime](durable-execution.md).
+
 An actor's address is the `/`-joined path of actor ids from the root, such as `order/worker:0`. It is stable across persistence and restore, unlike `sessionId`, which identifies one incarnation. Generated child ids are recorded in each snapshot's `_nextActorIds`, so restored actors keep numbering where they left off.
 
 ## Migrate machine versions

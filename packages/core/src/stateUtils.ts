@@ -53,6 +53,7 @@ import {
 } from './utils.ts';
 import { builtInActions } from './actions.ts';
 import {
+  assertChildIdFree,
   createEnqueueObject,
   createTerminationEffect,
   createTransitionEnqueue,
@@ -1239,9 +1240,19 @@ function getTransitionDomain(
     resolveTransition
   );
 
-  const { reenter } = resolveTransition(transition);
+  const { targets, reenter } = resolveTransition(transition);
+
+  // A history target that restores the source itself must exit and reenter
+  // the source (SCXML domain = the source's ancestor), unlike a plain
+  // non-reentering self-target: the enter set restores the stored
+  // configuration from outside the source, so the exit set must match or the
+  // source's invoked actors are re-created without being stopped.
+  const restoresSourceViaHistory =
+    targets?.some(isHistoryNode) &&
+    targetStates.some((target) => target === transition.source);
 
   if (
+    !restoresSourceViaHistory &&
     targetStates.every(
       (target) =>
         target === transition.source || isDescendant(target, transition.source)
@@ -1835,6 +1846,7 @@ function microstep(
                 })
               : invokeDef.input;
 
+          assertChildIdFree(actorScope, invokeDef.id);
           const actor = actorScope.system.createActorRef(logic, {
             ...invokeDef,
             input,

@@ -1,4 +1,8 @@
-import { allocateChildId, reserveChildId } from './transitionActions.ts';
+import {
+  allocateChildId,
+  assertChildIdFree,
+  reserveChildId
+} from './transitionActions.ts';
 import {
   ActorFromLogic,
   AnyActorLogic,
@@ -44,6 +48,7 @@ export function createSpawner(
     const id =
       options?.id ?? allocateChildId(actorScope, referencedSrc ?? src).id;
     if (options?.id !== undefined) {
+      assertChildIdFree(actorScope, options.id);
       reserveChildId(actorScope, options.id);
     }
     const actor = actorScope.system.createActorRef(src, {

@@ -925,3 +925,133 @@ describe('reserved id namespace', () => {
     expect(actor.getSnapshot().status).toBe('error');
   });
 });
+
+describe('unique child ids per parent', () => {
+  it('throws when an explicit spawn id is already claimed in the same transition', () => {
+    const machine = createMachine({
+      id: 'p',
+      initial: 'a',
+      entry: (_: any, enq: any) => {
+        enq.spawn(workerMachine, { id: 'dup' });
+        enq.spawn(workerMachine, { id: 'dup' });
+      },
+      states: { a: {} }
+    });
+    const actor = createActor(machine);
+    actor.subscribe({ error: () => {} });
+    actor.start();
+    expect(actor.getSnapshot().status).toBe('error');
+    expect(actor.getSnapshot().error).toMatchObject({
+      message: expect.stringMatching(/already in use by another child of 'p'/)
+    });
+  });
+
+  it('throws when an explicit spawn id collides with a live child', () => {
+    const machine = createMachine({
+      id: 'p',
+      initial: 'a',
+      entry: (_: any, enq: any) => {
+        enq.spawn(workerMachine, { id: 'dup' });
+      },
+      states: {
+        a: {
+          on: {
+            AGAIN: (_: any, enq: any) => {
+              enq.spawn(workerMachine, { id: 'dup' });
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+    actor.subscribe({ error: () => {} });
+    actor.start();
+    actor.send({ type: 'AGAIN' });
+    expect(actor.getSnapshot().status).toBe('error');
+  });
+
+  it('throws for duplicate invoke ids across parallel regions', () => {
+    const machine = setup({ actors: { worker: workerMachine } }).createMachine({
+      id: 'p',
+      type: 'parallel',
+      states: {
+        one: { invoke: { id: 'same', src: 'worker' } },
+        two: { invoke: { id: 'same', src: 'worker' } }
+      }
+    });
+    const actor = createActor(machine);
+    actor.subscribe({ error: () => {} });
+    actor.start();
+    expect(actor.getSnapshot().status).toBe('error');
+  });
+
+  it('allows stop-then-spawn of the same id in one transition', () => {
+    const machine = createMachine({
+      id: 'p',
+      initial: 'a',
+      entry: (_: any, enq: any) => {
+        enq.spawn(workerMachine, { id: 'w' });
+      },
+      states: {
+        a: {
+          on: {
+            RESTART: ({ children }: any, enq: any) => {
+              enq.stop(children.w);
+              enq.spawn(workerMachine, { id: 'w' });
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    const first = actor.getSnapshot().children.w;
+    actor.send({ type: 'RESTART' });
+    const second = actor.getSnapshot().children.w;
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(second).not.toBe(first);
+    expect(second!.address).toBe('p/w');
+  });
+
+  it('allows an invoke to restart with its id on reentry', () => {
+    const machine = setup({ actors: { worker: workerMachine } }).createMachine({
+      id: 'p',
+      initial: 'a',
+      states: {
+        a: {
+          invoke: { id: 'inv', src: 'worker' },
+          on: { REENTER: { target: 'a', reenter: true } }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    const first = actor.getSnapshot().children.inv;
+    actor.send({ type: 'REENTER' });
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(actor.getSnapshot().children.inv).not.toBe(first);
+  });
+});
+
+describe('history reentry stops the previous invoke', () => {
+  it('restoring the source through a history state exits it first', () => {
+    const machine = setup({ actors: { worker: workerMachine } }).createMachine({
+      id: 'p',
+      initial: 'running',
+      states: {
+        running: {
+          on: { PING: { target: 'refresh' } },
+          invoke: { id: 'inv', src: 'worker' }
+        },
+        refresh: { type: 'history', target: 'running' }
+      }
+    });
+    const actor = createActor(machine).start();
+    const first = actor.getSnapshot().children.inv as AnyActor;
+    actor.send({ type: 'PING' });
+    const second = actor.getSnapshot().children.inv as AnyActor;
+    expect(second).not.toBe(first);
+    // The previous incarnation must be stopped, not leaked at the same
+    // address as the new one.
+    expect(first.getSnapshot().status).toBe('stopped');
+    expect(second.getSnapshot().status).toBe('active');
+  });
+});

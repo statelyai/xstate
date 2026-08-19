@@ -304,12 +304,18 @@ function pushSpawnedChild(
  */
 interface SpawnAllocation {
   counters: Map<string, number>;
+  /** Explicit child ids claimed by spawns/invokes of this transition. */
+  explicitIds: Set<string>;
+  /** Ids of children stopped by this transition, freeing them for reuse. */
+  stoppedIds: Set<string>;
 }
 
 const spawnAllocations = new WeakMap<object, SpawnAllocation>();
 
 const createSpawnAllocation = (): SpawnAllocation => ({
-  counters: new Map()
+  counters: new Map(),
+  explicitIds: new Set(),
+  stoppedIds: new Set()
 });
 
 /**
@@ -424,6 +430,51 @@ export function allocateChildId(
   const next = nextChildIndex(actorScope, allocation, prefix);
   allocation.counters.set(prefix, next + 1);
   return { id: `${prefix}:${next}`, counters: { [prefix]: next + 1 } };
+}
+
+/**
+ * Requires an explicit child id to be unoccupied before a spawn or invoke
+ * claims it: an address must name at most one live actor. An id is occupied
+ * when a child of this parent already holds it and this transition has not
+ * stopped that child, or when an earlier spawn of this transition claimed it.
+ *
+ * @internal
+ */
+export function assertChildIdFree(
+  actorScope: AnyActorScope,
+  id: string,
+  localAllocation?: SpawnAllocation
+): void {
+  const allocation =
+    spawnAllocations.get(actorScope) ??
+    localAllocation ??
+    createSpawnAllocation();
+  if (
+    allocation.explicitIds.has(id) ||
+    (getWorkingSnapshotOf(actorScope)?.children?.[id] !== undefined &&
+      !allocation.stoppedIds.has(id))
+  ) {
+    throw new Error(
+      isDevelopment
+        ? `Cannot spawn child actor with id '${id}': the id is already in use by another child of '${actorScope.self.id}'. Stop the existing child before reusing its id.`
+        : `Child actor id '${id}' is already in use`
+    );
+  }
+  allocation.explicitIds.add(id);
+}
+
+/**
+ * Records that this transition stopped a child, freeing its id for a later
+ * spawn or invoke of the same transition (the invoke restart pattern).
+ *
+ * @internal
+ */
+function recordStoppedChild(actorScope: AnyActorScope, actor: AnyActor): void {
+  const allocation = spawnAllocations.get(actorScope);
+  if (allocation) {
+    allocation.stoppedIds.add(actor.id);
+    allocation.explicitIds.delete(actor.id);
+  }
 }
 
 /**
@@ -542,6 +593,7 @@ export function createTransitionEnqueue(
           localAllocation
         ));
       } else {
+        assertChildIdFree(actorScope, id, localAllocation);
         counters = reserveChildId(actorScope, id, localAllocation);
       }
       const actor = actorScope.system.createActorRef(logic, {
@@ -581,6 +633,7 @@ export function createTransitionEnqueue(
           actor
         );
         action.childUpdate = { type: 'remove', actor };
+        recordStoppedChild(actorScope, actor);
       }
     }
   };
