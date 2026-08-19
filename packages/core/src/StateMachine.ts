@@ -1322,6 +1322,7 @@ export class StateMachine<
         src: string | AnyActorLogic;
         snapshot?: Snapshot<unknown>;
         address?: string;
+        remote?: boolean;
         syncSnapshot?: boolean;
         registryKey?: string;
       }
@@ -1330,16 +1331,21 @@ export class StateMachine<
     for (const actorId of Object.keys(snapshotChildren)) {
       const actorData = snapshotChildren[actorId];
 
-      if (actorData.snapshot === undefined && actorData.address !== undefined) {
+      if (actorData.remote === true && actorData.address !== undefined) {
         // The child's state lives with another runtime; restore a
         // location-transparent handle constructed from its identity alone.
-        children[actorId] = createRemoteActorRef(resolvedActorScope.system, {
+        const handle = createRemoteActorRef(resolvedActorScope.system, {
           id: actorId,
           address: actorData.address,
           src: typeof actorData.src === 'string' ? actorData.src : actorId,
           parent: resolvedActorScope.self,
-          registryKey: actorData.registryKey
+          registryKey: actorData.registryKey,
+          syncSnapshot: actorData.syncSnapshot
         });
+        if (actorData.registryKey) {
+          resolvedActorScope.system._set(actorData.registryKey, handle);
+        }
+        children[actorId] = handle;
         continue;
       }
 

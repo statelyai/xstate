@@ -682,11 +682,13 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void | PromiseLike<void> {
+    // Record for the inspection `sent[]` facet regardless of which runtime
+    // delivers, so host runtimes keep inspection parity.
+    this._recordSent(source, target, event);
     const override = this.runtime?.sendEvent;
     if (override) {
       return override(source, target, event);
     }
-    this._recordSent(source, target, event);
     this._deliver(source, target, event);
   }
 
@@ -708,6 +710,13 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   ): void | PromiseLike<void> {
     const override = this.runtime?.scheduleTimer;
     if (override) {
+      // The local scheduler records delayed sends for inspection inside
+      // `schedule`; keep that parity for host runtimes.
+      const timer = source.getSnapshot()?.timers?.[id];
+      if (timer) {
+        const target = timer.target === 'self' ? source : timer.target;
+        this._recordSent(source, target, timer.event, delay, id);
+      }
       return override(source, id, delay);
     }
     this.schedule(source, id, delay);

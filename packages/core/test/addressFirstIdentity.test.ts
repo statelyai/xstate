@@ -1,6 +1,7 @@
 import {
   createActor,
   createMachine,
+  deliverEvent,
   getEffectDescriptor,
   initialTransition,
   setup,
@@ -405,6 +406,7 @@ describe('detached children (remote handles)', () => {
     }) as unknown as { children: Record<string, unknown> };
     expect(persisted.children.w).toEqual({
       address: 'order/w',
+      remote: true,
       src: 'worker',
       registryKey: undefined,
       syncSnapshot: false
@@ -568,5 +570,156 @@ describe('review findings: identity edge cases', () => {
       children: Record<string, { address: string; snapshot?: unknown }>;
     };
     expect(Object.values(again.children)[0]?.address).toMatch(/^order\//);
+  });
+});
+
+describe('review findings: second round', () => {
+  it('records sent[] inspection for sends delivered by a host runtime', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker, { id: 'w' });
+      },
+      states: {
+        a: {
+          on: {
+            KICK: ({ children }, enq) => {
+              enq.sendTo(children.w, { type: 'PING' });
+            }
+          }
+        }
+      }
+    });
+
+    const sent: string[] = [];
+    const actor = createActor(machine, {
+      inspect: (event) => {
+        if (event.type === '@xstate.transition') {
+          for (const record of event.sent) {
+            sent.push(`${record.targetId}:${record.event.type}`);
+          }
+        }
+      }
+    });
+    actor.system.runtime = {
+      sendEvent: (source, target, event) => {
+        deliverEvent(source, target, event);
+      }
+    };
+    actor.start();
+    actor.send({ type: 'KICK' });
+    expect(sent).toContain('w:PING');
+  });
+
+  it('explicit generated-shaped ids reserve numbering for live runs and replays', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker, { id: 'worker:5' });
+      },
+      states: {
+        a: {
+          on: {
+            MORE: ({ actors }, enq) => {
+              enq.spawn(actors.worker);
+            }
+          }
+        }
+      }
+    });
+
+    // Live run.
+    const live = createActor(machine).start();
+    live.send({ type: 'MORE' });
+    expect(Object.keys(live.getSnapshot().children).sort()).toEqual([
+      'worker:5',
+      'worker:6'
+    ]);
+    const persisted = live.getPersistedSnapshot();
+    live.stop();
+
+    // Pure replay from the checkpoint taken before MORE must allocate the
+    // same id even in a fresh process (fresh system counters).
+    const [initial] = initialTransition(machine);
+    const [afterMore] = transition(machine, initial, { type: 'MORE' });
+    expect(Object.keys(afterMore.children).sort()).toEqual([
+      'worker:5',
+      'worker:6'
+    ]);
+    void persisted;
+  });
+
+  it('string-id sendTo does not resolve children stopped earlier in the transition', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker, { id: 'w' });
+      },
+      states: {
+        a: {
+          on: {
+            GO: ({ children }, enq) => {
+              enq.stop(children.w);
+              enq.raise({ type: 'SEND' });
+            },
+            SEND: (_, enq) => {
+              enq.sendTo('w', { type: 'PING' });
+            },
+            'xstate.error.communication': { target: 'errored' }
+          }
+        },
+        errored: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    const child = actor.getSnapshot().children.w as AnyActor;
+    actor.send({ type: 'GO' });
+    // The stopped child is gone; the send surfaces a communication error
+    // instead of delivering to the stopped actor.
+    expect(actor.getSnapshot().value).toBe('errored');
+    expect(child.getSnapshot().value).toBe('idle');
+  });
+
+  it('address-only restore keeps registryKey lookups and syncSnapshot', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker, {
+          id: 'w',
+          registryKey: 'theWorker',
+          syncSnapshot: true
+        } as never);
+      },
+      states: { a: {} }
+    });
+
+    const actor = createActor(machine).start();
+    const persisted = actor.getPersistedSnapshot({ embedChildren: false });
+    actor.stop();
+
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    const handle = restored.system.get('theWorker' as never) as AnyActor;
+    expect(handle).toBeDefined();
+    expect(handle.address).toBe('order/w');
+
+    const again = restored.getPersistedSnapshot({
+      embedChildren: false
+    }) as unknown as {
+      children: Record<string, { syncSnapshot?: boolean }>;
+    };
+    expect(again.children.w.syncSnapshot).toBe(true);
   });
 });

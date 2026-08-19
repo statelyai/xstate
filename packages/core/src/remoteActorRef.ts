@@ -37,6 +37,7 @@ export function createRemoteActorRef(
     src: string;
     parent: AnyActor | undefined;
     registryKey?: string;
+    syncSnapshot?: boolean;
   }
 ): AnyActor {
   const handle = {
@@ -53,13 +54,15 @@ export function createRemoteActorRef(
     sessionId: undefined as unknown as string,
     system,
     _parent: options.parent,
-    _syncSnapshot: false,
+    // Round-trips through persistence; a remote handle cannot act on it
+    // locally.
+    _syncSnapshot: options.syncSnapshot ?? false,
     send(event: AnyEventObject) {
       void system.sendEvent(undefined, handle as unknown as AnyActor, event);
     },
     _send(event: AnyEventObject) {
       throw new Error(
-        `Remote actor '${options.address}' has no local mailbox; deliver "${event.type}" through a runtime that can reach it.`
+        `Remote actor '${options.address}' has no local mailbox to receive "${event.type}". Its state lives with another runtime; install a runtime that can reach it (via \`createDurable\`'s \`systemRuntime\`, or \`system.runtime\`) before sending, or restore this snapshot with embedded children on the runtime that owns them.`
       );
     },
     getSnapshot(): Snapshot<undefined> {

@@ -6,10 +6,12 @@ import type {
 } from './types.ts';
 
 /**
- * A JSON-safe view of an executable effect. Actor references are replaced by
- * their logical addresses and actor sources by their registered source keys,
- * so a durable host can journal, deduplicate, and route effects without
- * holding live actor references.
+ * A serializable view of an executable effect. Actor references are replaced
+ * by their logical addresses and actor sources by their registered source
+ * keys, so a durable host can journal, deduplicate, and route effects without
+ * holding live actor references. Payload fields (`event`, `input`, `params`,
+ * `output`, `error`) pass through by reference and are only as serializable
+ * as their values.
  *
  * @experimental
  */
@@ -91,9 +93,10 @@ function srcKeyOf(src: string | AnyActorLogic): string {
 }
 
 /**
- * Returns the JSON-safe descriptor for an executable effect: the same
+ * Returns the serializable descriptor for an executable effect: the same
  * discriminants (`kind`, `type`) with actor references replaced by logical
- * addresses and actor sources by source keys.
+ * addresses and actor sources by source keys. Payload fields pass through by
+ * reference.
  *
  * @experimental
  */

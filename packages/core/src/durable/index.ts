@@ -56,9 +56,9 @@ export interface DurableRootEvent<TEvent> {
 export interface DurableEffect<TEffect> extends DurableEffectMetadata {
   effect: TEffect;
   /**
-   * JSON-safe view of the effect: actor references replaced by logical
+   * Serializable view of the effect: actor references replaced by logical
    * addresses and actor sources by source keys, for journaling and
-   * deduplication.
+   * deduplication. Payload fields are only as serializable as their values.
    */
   descriptor: EffectDescriptor;
 }
@@ -223,18 +223,38 @@ export function createDurable<TLogic extends AnyActorLogic>(
   let operationTail: Promise<unknown> = Promise.resolve();
   const capturedRootEvents: DurableRootEvent<AnyEventObject>[] = [];
 
-  const handOff = (run: () => void | PromiseLike<void>): PromiseLike<void> => {
-    const operation = operationTail.then(run);
-    operationTail = operation.then(
-      () => undefined,
-      () => undefined
-    );
+  let runningOperation = false;
+
+  const track = (operation: Promise<void>): Promise<void> => {
     pendingOperations.add(operation);
     operation.then(
       () => pendingOperations.delete(operation),
       () => pendingOperations.delete(operation)
     );
     return operation;
+  };
+
+  const handOff = (run: () => void | PromiseLike<void>): PromiseLike<void> => {
+    if (runningOperation) {
+      // An operation initiated while another operation is running (for
+      // example a host `sendEvent` that awaits a nested timer) executes
+      // inline: queueing it behind the tail would deadlock the parent
+      // operation that awaits it.
+      return track(Promise.resolve(run()).then(() => undefined));
+    }
+    const operation = operationTail.then(async () => {
+      runningOperation = true;
+      try {
+        await run();
+      } finally {
+        runningOperation = false;
+      }
+    });
+    operationTail = operation.then(
+      () => undefined,
+      () => undefined
+    );
+    return track(operation);
   };
 
   const settle = async (): Promise<void> => {
@@ -333,7 +353,13 @@ export function createDurable<TLogic extends AnyActorLogic>(
             ? undefined
             : {};
         if (effect.kind === 'action') {
-          await adapter.executeAction(effect, metadata, runtime ?? {});
+          // Custom actions have no default-parameter fallback to the actor's
+          // system, so hand them the wrapped system runtime directly.
+          await adapter.executeAction(
+            effect,
+            metadata,
+            runtime ?? wrappedSystemRuntime ?? {}
+          );
         } else {
           await effect.exec(runtime);
         }

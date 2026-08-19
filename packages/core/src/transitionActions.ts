@@ -215,17 +215,36 @@ function pushBuiltInAction(actions: any[], action: any, ...args: any[]) {
   return actionRecord;
 }
 
+function mergeActorIdCounters(
+  current: Record<string, number> | undefined,
+  update: Record<string, number>
+): Record<string, number> {
+  const merged = { ...current };
+  for (const key of Object.keys(update)) {
+    merged[key] = Math.max(merged[key] ?? 0, update[key]);
+  }
+  return merged;
+}
+
 function applyChildUpdate(
   snapshot: AnyMachineSnapshot,
   update: NonNullable<TransitionActionRecord['childUpdate']>,
   actorScope: AnyActorScope
 ): AnyMachineSnapshot {
+  const allocation = spawnAllocations.get(actorScope);
   if (update.type === 'add') {
+    // Keep string-id resolution in later action functions and microsteps in
+    // sync with the in-flight children (invokes included).
+    allocation?.spawnedById.set(update.id, update.actor);
+    allocation?.removedIds.delete(update.id);
     return {
       ...snapshot,
       children: { ...snapshot.children, [update.id]: update.actor },
       ...(update.counters && {
-        _nextActorIds: { ...snapshot._nextActorIds, ...update.counters }
+        _nextActorIds: mergeActorIdCounters(
+          snapshot._nextActorIds,
+          update.counters
+        )
       })
     };
   }
@@ -236,6 +255,8 @@ function applyChildUpdate(
     if (children[key] === update.actor) {
       owned = true;
       delete children[key];
+      allocation?.spawnedById.delete(key);
+      allocation?.removedIds.add(key);
     }
   }
   if (!owned) {
@@ -285,6 +306,8 @@ function pushSpawnedChild(
 interface SpawnAllocation {
   spawnedById: Map<string, AnyActor>;
   counters: Map<string, number>;
+  /** Child ids removed during this transition, for string-id resolution. */
+  removedIds: Set<string>;
 }
 
 const spawnAllocations = new WeakMap<object, SpawnAllocation>();
@@ -299,7 +322,8 @@ const spawnAllocations = new WeakMap<object, SpawnAllocation>();
 export function beginSpawnAllocation(actorScope: AnyActorScope): void {
   spawnAllocations.set(actorScope, {
     spawnedById: new Map(),
-    counters: new Map()
+    counters: new Map(),
+    removedIds: new Set()
   });
 }
 
@@ -312,11 +336,14 @@ export function createTransitionEnqueue(
 ) {
   // Paths that never begin a transaction (e.g. FSM helpers) keep the
   // previous per-enqueue scope.
-  const { spawnedById, counters: spawnCounters } = spawnAllocations.get(
-    actorScope
-  ) ?? {
+  const {
+    spawnedById,
+    counters: spawnCounters,
+    removedIds
+  } = spawnAllocations.get(actorScope) ?? {
     spawnedById: new Map<string, AnyActor>(),
-    counters: new Map<string, number>()
+    counters: new Map<string, number>(),
+    removedIds: new Set<string>()
   };
   // Read the raw snapshot: getSnapshot() throws while the actor initializes,
   // and entry actions run before any snapshot exists.
@@ -330,7 +357,10 @@ export function createTransitionEnqueue(
       }
     )._snapshot;
   const resolveTargetId = (targetId: string): AnyActor | undefined =>
-    spawnedById.get(targetId) ?? getWorkingSnapshot()?.children?.[targetId];
+    spawnedById.get(targetId) ??
+    (removedIds.has(targetId)
+      ? undefined
+      : getWorkingSnapshot()?.children?.[targetId]);
   const props: Partial<EnqueueObject<any, any>> = {
     cancel: (id: string) => {
       pushBuiltInAction(
@@ -394,6 +424,20 @@ export function createTransitionEnqueue(
       // each actor's numbering is deterministic from its own persisted state.
       let id = options?.id;
       let counters: Record<string, number> | undefined;
+      if (id !== undefined) {
+        // An explicit id shaped like a generated one reserves its numbering
+        // in the parent snapshot, so live runs and pure replays allocate the
+        // same later ids even after this child is removed.
+        const reserved = /^(.*):(\d+)$/.exec(id);
+        if (reserved && Number.isSafeInteger(Number(reserved[2]))) {
+          const floor = Number(reserved[2]) + 1;
+          counters = { [reserved[1]]: floor };
+          spawnCounters.set(
+            reserved[1],
+            Math.max(spawnCounters.get(reserved[1]) ?? 0, floor)
+          );
+        }
+      }
       if (id === undefined) {
         const prefix = getActorIdPrefix(src ?? logic);
         const parentSnapshot = getWorkingSnapshot();

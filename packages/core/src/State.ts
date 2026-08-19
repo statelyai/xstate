@@ -619,7 +619,11 @@ export function getPersistedSnapshot<
     const embed = embedChildren && child._remote !== true;
     childrenJson[id as keyof typeof childrenJson] = {
       address: child.address,
-      ...(embed && { snapshot: child.getPersistedSnapshot(options) }),
+      // The explicit marker disambiguates a by-address reference from a child
+      // whose own persisted snapshot happens to be undefined.
+      ...(embed
+        ? { snapshot: child.getPersistedSnapshot(options) }
+        : { remote: true }),
       src: child.src,
       registryKey: child.registryKey,
       syncSnapshot: child._syncSnapshot

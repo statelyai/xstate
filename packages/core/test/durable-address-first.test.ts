@@ -186,3 +186,88 @@ describe('restored children under a durable execution', () => {
     expect(sent).toEqual(['order/worker:0:PING']);
   });
 });
+
+describe('review findings: durable runtime edges', () => {
+  it('does not deadlock when a runtime operation awaits a nested operation', async () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker);
+      },
+      states: {
+        a: {
+          on: {
+            KICK: ({ children }, enq) => {
+              enq.sendTo(children['worker:0'], { type: 'PING' });
+            }
+          }
+        }
+      }
+    });
+
+    const operations: string[] = [];
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      systemRuntime: {
+        sendEvent: async (source, target, event) => {
+          // Awaiting a nested runtime operation must not deadlock the tail.
+          await target.system.scheduleTimer(target, 'nested', 5);
+          operations.push(`send:${target.address}:${event.type}`);
+          deliverEvent(source, target, event);
+        },
+        scheduleTimer: (_source, id) => {
+          operations.push(`timer:${id}`);
+        }
+      },
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    let [snapshot, effects] = durable.initialTransition();
+    await durable.executeEffects(effects);
+    [snapshot, effects] = durable.transition(snapshot, { type: 'KICK' });
+    await durable.executeEffects(effects);
+    expect(operations).toEqual(['timer:nested', 'send:order/worker:0:PING']);
+  }, 2000);
+
+  it('hands custom actions the system runtime when no per-effect runtime exists', async () => {
+    const sent: string[] = [];
+    const machine = setup({
+      actions: {
+        notify: () => {}
+      }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actions }, enq) => {
+        enq(actions.notify);
+      },
+      states: { a: {} }
+    });
+
+    const durable = createDurable(machine, {
+      executeAction: async (_action, _metadata, runtime) => {
+        expect(typeof runtime.sendEvent).toBe('function');
+        await runtime.sendEvent!(undefined, { address: 'elsewhere' } as never, {
+          type: 'X'
+        });
+      },
+      systemRuntime: {
+        sendEvent: (_source, target, event) => {
+          sent.push(`${(target as { address: string }).address}:${event.type}`);
+        }
+      },
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [, effects] = durable.initialTransition();
+    await durable.executeEffects(effects);
+    expect(sent).toEqual(['elsewhere:X']);
+  });
+});

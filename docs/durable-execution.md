@@ -93,9 +93,16 @@ captures them and resolves them from `executeEffects` as `{ event, source }`
 records; process them through `transition()` before durably waiting, as the
 explicit loop above does.
 
-Each `DurableEffect` also carries a JSON-safe `descriptor` — the effect with
-actor references replaced by addresses and actor sources by source keys — for
-journaling and deduplication.
+Each `DurableEffect` also carries a serializable `descriptor` — the effect
+with actor references replaced by addresses and actor sources by source keys
+— for journaling and deduplication. Payload fields such as `event` and
+`input` pass through by reference and are only as serializable as their
+values.
+
+A runtime operation implementation must not await another runtime operation
+of the same execution through the actor system; operations initiated while
+one is running execute inline rather than queueing, and the `deliverEvent`,
+`stopActor` and `terminateActor` helpers are always safe to call directly.
 
 A per-effect `runtime(metadata, effect)` factory remains available for hosts
 that key operations by effect ID. With neither `systemRuntime` nor a
