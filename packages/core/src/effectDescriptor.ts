@@ -88,6 +88,8 @@ function addressOf(actor: AnyActor | undefined): string | undefined {
   return actor?.address;
 }
 
+// `src` is only a unique key for registered sources; anonymous inline logic
+// collapses to its logic id or 'x'. The `actor` address is the identity field.
 function srcKeyOf(src: string | AnyActorLogic): string {
   return typeof src === 'string' ? src : getActorIdPrefix(src);
 }

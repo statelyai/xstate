@@ -1,3 +1,4 @@
+import isDevelopment from '#is-development';
 import type { InspectionEvent, SentRecord } from './inspection.ts';
 import {
   AnyEventObject,
@@ -137,6 +138,15 @@ export function resolveActorId(
   }
 ): string {
   if (requestedId !== undefined) {
+    if (isDevelopment && requestedId.includes('/')) {
+      throw new Error(
+        `Actor id '${requestedId}' must not contain '/': it is the address path delimiter.`
+      );
+    }
+    // Any id ending in ':<n>' reserves numbering for that prefix. This is
+    // deliberately broader than ids a generated allocation could produce:
+    // over-reserving skips numbers, which is harmless, while under-reserving
+    // could collide.
     const match = /^(.*):(\d+)$/.exec(requestedId);
     if (match) {
       const reservedId = Number(match[2]);
@@ -554,11 +564,18 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
 
   public _unregister(actor: AnyActor): void {
     let changed: boolean;
+    // Remote handles have no sessionId and are never in the session map;
+    // their registry cleanup happens through the keyed-actor path below.
     if (actor === this._rootActor) {
       changed = this._getRootActor() !== undefined;
-      changed = (this._children?.delete(actor.sessionId!) ?? false) || changed;
+      changed =
+        (actor.sessionId !== undefined &&
+          (this._children?.delete(actor.sessionId) ?? false)) ||
+        changed;
     } else {
-      changed = this._children?.delete(actor.sessionId!) ?? false;
+      changed =
+        actor.sessionId !== undefined &&
+        (this._children?.delete(actor.sessionId) ?? false);
     }
     const registryKey = this._reverseKeyedActors?.get(actor);
 

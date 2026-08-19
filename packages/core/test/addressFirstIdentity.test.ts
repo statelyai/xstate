@@ -806,3 +806,82 @@ describe('review findings: same-step name resolution', () => {
     expect(child.getSnapshot().value).toBe('pinged');
   });
 });
+
+describe('review findings: fourth round', () => {
+  it('rejects actor ids containing the address path delimiter in development', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker, { id: 'bad/id' });
+      },
+      states: { a: {} }
+    });
+
+    const actor = createActor(machine);
+    actor.subscribe({ error: () => {} });
+    actor.start();
+    expect(actor.getSnapshot().status).toBe('error');
+    expect(String((actor.getSnapshot() as { error?: unknown }).error)).toMatch(
+      /must not contain '\/'/
+    );
+  });
+
+  it('restoring a remote child without a registered source key fails loudly', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker, { id: 'w' });
+      },
+      states: { a: {} }
+    });
+
+    const actor = createActor(machine).start();
+    const persisted = actor.getPersistedSnapshot({
+      embedChildren: false
+    }) as unknown as { children: Record<string, { src?: unknown }> };
+    actor.stop();
+    // Simulate a production-persisted inline child: non-string src.
+    persisted.children.w.src = {};
+
+    expect(() => machine.restoreSnapshot(persisted as never)).toThrow(
+      /requires a registered source key/
+    );
+  });
+
+  it('stop then same-id respawn resolves string sends to the new child', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker, { id: 'w' });
+      },
+      states: {
+        a: {
+          on: {
+            SWAP: ({ children, actors }, enq) => {
+              enq.stop(children.w);
+              enq.spawn(actors.worker, { id: 'w' });
+              enq.sendTo('w', { type: 'PING' });
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    const oldChild = actor.getSnapshot().children.w as AnyActor;
+    actor.send({ type: 'SWAP' });
+    const newChild = actor.getSnapshot().children.w as AnyActor;
+    expect(newChild).not.toBe(oldChild);
+    expect(newChild.getSnapshot().value).toBe('pinged');
+    expect(oldChild.getSnapshot().value).toBe('idle');
+  });
+});

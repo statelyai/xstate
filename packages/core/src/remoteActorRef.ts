@@ -27,6 +27,12 @@ const remoteSnapshot: Snapshot<undefined> = Object.freeze({
  * — and every send routes through the system's runtime; its state is not
  * synchronously readable.
  *
+ * The surface is deliberately minimal: it covers every member the runtime
+ * reaches for a restored child (send/_send, lifecycle via start/_stop and
+ * system.stopActor, persistence, subscribe/on as inert subscriptions).
+ * Members that only make sense for a co-located actor (public stop(),
+ * trigger, observable interop, _processingStatus) are intentionally absent.
+ *
  * @internal
  */
 export function createRemoteActorRef(

@@ -57,7 +57,11 @@ Every actor has a deterministic logical `address`: the `/`-joined path of
 actor ids from the root. The root actor's address is the machine's `id`
 (`durable.rootAddress` reports it before any transition runs), and generated
 child ids are per-parent counters keyed by their actor source, such as
-`order/worker:0`. Addresses are stable across persistence and restore.
+`order/worker:0`. `/` is reserved as the path delimiter and must not appear
+in actor or machine ids. Addresses are stable across persistence and
+restore; a restored remote handle keeps its persisted address verbatim — the
+owning runtime's identity for the child — even when the local parent chain
+differs.
 
 `sessionId` identifies one incarnation of an address. A restored actor is a
 new incarnation: completion events carry the producing incarnation's
@@ -84,14 +88,19 @@ exported from `xstate` expose those local behaviors for a runtime's own
 implementations to delegate to.
 
 Every inter-actor edge is an asynchronous handoff to the runtime.
-`executeEffects` hands operations over strictly sequentially in initiation
-order and resolves only when every transitively initiated operation has been
-accepted, so "effects executed" means "safe to checkpoint and suspend".
+`executeEffects` queues top-level operations sequentially in initiation order
+and resolves only when every transitively initiated operation has been
+accepted (a failed operation rejects it), so "effects executed" means "safe
+to checkpoint and suspend". An operation initiated while another is in
+flight — typically from within that operation — executes immediately instead
+of queueing behind it.
 
 Events addressed to the root actor never reach `sendEvent`. The execution
 captures them and resolves them from `executeEffects` as `{ event, source }`
 records; process them through `transition()` before durably waiting, as the
-explicit loop above does.
+explicit loop above does. This capture only covers operations the execution
+itself drives: deliveries the host originates while the loop is parked (a
+fired timer, an external message) belong in the host's own mailbox.
 
 Each `DurableEffect` also carries a serializable `descriptor` — the effect
 with actor references replaced by addresses and actor sources by source keys
@@ -105,17 +114,20 @@ one is running execute inline rather than queueing, and the `deliverEvent`,
 `stopActor` and `terminateActor` helpers are always safe to call directly.
 
 A per-effect `runtime(metadata, effect)` factory remains available for hosts
-that key operations by effect ID. With neither `systemRuntime` nor a
-per-effect runtime, unsupported runtime operations throw instead of silently
-running local behavior on a durable host.
+that key operations by effect ID; it overrides the system runtime
+operation-by-operation, and operations it omits keep the system runtime's
+behavior. With neither `systemRuntime` nor a per-effect runtime, unsupported
+runtime operations throw instead of silently running local behavior on a
+durable host.
 
 ## Checkpoints
 
 `getPersistedSnapshot(snapshot)` embeds each child's persisted state: the
 whole-tree checkpoint of a runtime that co-locates the tree.
 `getPersistedSnapshot(snapshot, { embedChildren: false })` instead references
-children by logical address, leaving each child's state with the runtime that
-owns it. Restoring an address-only child produces a location-transparent
+children by logical address, leaving each child's state — including its own
+subtree — with the runtime that owns it; the option applies to the whole
+tree, not per placement boundary. Restoring an address-only child produces a location-transparent
 handle: sends route through the system runtime, its snapshot exposes
 lifecycle only (a full snapshot is the last value an actor published, which
 only co-located actors observe), and completion staleness for it is the

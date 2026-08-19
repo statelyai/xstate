@@ -271,3 +271,130 @@ describe('review findings: durable runtime edges', () => {
     expect(sent).toEqual(['elsewhere:X']);
   });
 });
+
+describe('review findings: fourth round', () => {
+  it('a failed runtime operation rejects executeEffects even after settling early', async () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker);
+      },
+      states: { a: {} }
+    });
+
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      systemRuntime: {
+        spawnActor: async () => {
+          await Promise.resolve();
+          throw new Error('host rejected the spawn');
+        },
+        startActor: () => {}
+      },
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [, effects] = durable.initialTransition();
+    // Give the rejection time to settle (and leave the pending set) before
+    // executeEffects awaits it.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await expect(durable.executeEffects(effects)).rejects.toThrow(
+      'host rejected the spawn'
+    );
+  });
+
+  it('failed batches do not leak captured root events into later calls', async () => {
+    const machine = setup({
+      actors: { worker: workerMachine },
+      actions: { boom: () => {} }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors, actions }, enq) => {
+        enq.spawn(actors.worker);
+        enq(actions.boom);
+      },
+      states: {
+        a: {
+          on: {
+            KICK: ({ children }, enq) => {
+              enq.sendTo(children['worker:0'], { type: 'PING' });
+            }
+          }
+        }
+      }
+    });
+
+    const durable = createDurable(machine, {
+      executeAction: (action) => {
+        if (action.type === 'boom') {
+          throw new Error('step failed');
+        }
+      },
+      systemRuntime: {
+        sendEvent: (source, target, event) => {
+          deliverEvent(source, target, event);
+        }
+      },
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [snapshot, effects] = durable.initialTransition();
+    await expect(durable.executeEffects(effects)).rejects.toThrow(
+      'step failed'
+    );
+    // The child's WORKER-bound reply (none here) and any captured root events
+    // from the failed batch are gone; a fresh batch starts clean.
+    const [, kickEffects] = durable.transition(snapshot, { type: 'KICK' });
+    const rootEvents = await durable.executeEffects(kickEffects);
+    expect(rootEvents).toEqual([]);
+  });
+
+  it('a per-effect runtime falls back to the system runtime for omitted operations', async () => {
+    const operations: string[] = [];
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker);
+      },
+      states: { a: {} }
+    });
+
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      systemRuntime: {
+        spawnActor: (_source, actor) => {
+          operations.push(`system-spawn:${actor.address}`);
+        },
+        startActor: (actor) => {
+          operations.push(`system-start:${actor.address}`);
+        }
+      },
+      // The per-effect runtime implements only sendEvent; spawn/start must
+      // keep the system runtime's behavior.
+      runtime: () => ({
+        sendEvent: () => {}
+      }),
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [, effects] = durable.initialTransition();
+    await durable.executeEffects(effects);
+    expect(operations).toEqual([
+      'system-spawn:order/worker:0',
+      'system-start:order/worker:0'
+    ]);
+  });
+});

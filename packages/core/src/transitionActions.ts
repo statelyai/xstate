@@ -373,6 +373,10 @@ export function createTransitionEnqueue(
         };
       }
     )._snapshot;
+  // Resolution order: children spawned this transition win (enqueue-time),
+  // then removals recorded when their action applied hide the committed
+  // child, then the pre-transition snapshot. Within one action function a
+  // stop followed by a same-id respawn therefore resolves to the new child.
   const resolveTargetId = (targetId: string): AnyActor | undefined =>
     spawnedById.get(targetId) ??
     (removedIds.has(targetId)

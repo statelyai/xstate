@@ -224,12 +224,18 @@ export function createDurable<TLogic extends AnyActorLogic>(
   const capturedRootEvents: DurableRootEvent<AnyEventObject>[] = [];
 
   let runningOperation = false;
+  const operationFailures: unknown[] = [];
 
   const track = (operation: Promise<void>): Promise<void> => {
     pendingOperations.add(operation);
     operation.then(
       () => pendingOperations.delete(operation),
-      () => pendingOperations.delete(operation)
+      (error) => {
+        // Collect the failure so it reaches `executeEffects` even when the
+        // operation leaves the pending set before settle() samples it.
+        operationFailures.push(error);
+        pendingOperations.delete(operation);
+      }
     );
     return operation;
   };
@@ -259,7 +265,11 @@ export function createDurable<TLogic extends AnyActorLogic>(
 
   const settle = async (): Promise<void> => {
     while (pendingOperations.size) {
-      await Promise.all([...pendingOperations]);
+      await Promise.allSettled([...pendingOperations]);
+    }
+    if (operationFailures.length) {
+      const failures = operationFailures.splice(0);
+      throw failures[0];
     }
   };
 
@@ -340,31 +350,48 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
     },
     async executeEffects(effects) {
-      for (const { effect, descriptor: _descriptor, ...metadata } of effects) {
-        // With a `systemRuntime`, an absent per-effect runtime stays
-        // `undefined` so the effect's default parameter (the actor's system,
-        // and through it the installed `systemRuntime`) applies. Without
-        // either, the empty runtime makes unsupported operations throw
-        // instead of silently running local behavior on a durable host.
-        const perEffectRuntime = adapter.runtime?.(metadata, effect);
-        const runtime = perEffectRuntime
-          ? wrapRuntime(perEffectRuntime, { localDeliveryFallback: false })
-          : adapter.systemRuntime
-            ? undefined
-            : {};
-        if (effect.kind === 'action') {
-          // Custom actions have no default-parameter fallback to the actor's
-          // system, so hand them the wrapped system runtime directly.
-          await adapter.executeAction(
-            effect,
-            metadata,
-            runtime ?? wrappedSystemRuntime ?? {}
-          );
-        } else {
-          await effect.exec(runtime);
+      try {
+        for (const {
+          effect,
+          descriptor: _descriptor,
+          ...metadata
+        } of effects) {
+          // With a `systemRuntime`, an absent per-effect runtime stays
+          // `undefined` so the effect's default parameter (the actor's system,
+          // and through it the installed `systemRuntime`) applies. Without
+          // either, the empty runtime makes unsupported operations throw
+          // instead of silently running local behavior on a durable host.
+          const perEffectRuntime = adapter.runtime?.(metadata, effect);
+          // A per-effect runtime overrides the system runtime
+          // operation-by-operation; operations it omits keep the system
+          // runtime's behavior.
+          const runtime = perEffectRuntime
+            ? wrapRuntime(
+                { ...adapter.systemRuntime, ...perEffectRuntime },
+                { localDeliveryFallback: !!adapter.systemRuntime }
+              )
+            : adapter.systemRuntime
+              ? undefined
+              : {};
+          if (effect.kind === 'action') {
+            // Custom actions have no default-parameter fallback to the actor's
+            // system, so hand them the wrapped system runtime directly.
+            await adapter.executeAction(
+              effect,
+              metadata,
+              runtime ?? wrappedSystemRuntime ?? {}
+            );
+          } else {
+            await effect.exec(runtime);
+          }
         }
+        await settle();
+      } catch (error) {
+        // A failed batch must not leak its captured root events into a later
+        // call: a retrying host re-executes the effects and re-captures them.
+        capturedRootEvents.length = 0;
+        throw error;
       }
-      await settle();
       return capturedRootEvents.splice(0) as DurableRootEvent<
         EventFromLogic<TLogic>
       >[];

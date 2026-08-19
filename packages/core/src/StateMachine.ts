@@ -1350,12 +1350,21 @@ export class StateMachine<
       const actorData = snapshotChildren[actorId];
 
       if (actorData.remote === true && actorData.address !== undefined) {
+        if (typeof actorData.src !== 'string') {
+          // Fail loudly instead of fabricating a source key that hosts would
+          // route by.
+          throw new Error(
+            `Unable to restore remote child '${actorId}': a child referenced by address requires a registered source key.`
+          );
+        }
         // The child's state lives with another runtime; restore a
         // location-transparent handle constructed from its identity alone.
+        // The handle keeps its persisted address verbatim: the owning
+        // runtime's identity for the child wins over the local parent chain.
         const handle = createRemoteActorRef(resolvedActorScope.system, {
           id: actorId,
           address: actorData.address,
-          src: typeof actorData.src === 'string' ? actorData.src : actorId,
+          src: actorData.src,
           parent: resolvedActorScope.self,
           registryKey: actorData.registryKey,
           syncSnapshot: actorData.syncSnapshot
