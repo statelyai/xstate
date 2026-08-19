@@ -31,7 +31,9 @@ const remoteSnapshot: Snapshot<undefined> = Object.freeze({
  * reaches for a restored child (send/_send, lifecycle via start/_stop and
  * system.stopActor, persistence, subscribe/on as inert subscriptions).
  * Members that only make sense for a co-located actor (public stop(),
- * trigger, observable interop, _processingStatus) are intentionally absent.
+ * select(), trigger) throw a descriptive error rather than being absent, so
+ * calling one reports what went wrong instead of a bare TypeError. Observable
+ * interop and _processingStatus are omitted entirely.
  *
  * @internal
  */
@@ -79,6 +81,21 @@ export function createRemoteActorRef(
     },
     start() {},
     _stop() {},
+    stop() {
+      throw new Error(
+        `Cannot stop remote actor '${options.address}' directly: stopping is a co-located operation. Stop it through the system runtime that owns it (\`system.stopActor(ref)\`), or restore this snapshot with embedded children on the runtime that owns them.`
+      );
+    },
+    select() {
+      throw new Error(
+        `Cannot select from remote actor '${options.address}': its snapshot is not synchronously readable because its state lives with another runtime. Read it on the runtime that owns it, or restore this snapshot with embedded children there.`
+      );
+    },
+    get trigger(): never {
+      throw new Error(
+        `Remote actor '${options.address}' has no \`trigger\` shorthand: it requires a co-located actor. Use \`send(...)\`, which routes through the system runtime.`
+      );
+    },
     subscribe(): Subscription {
       return emptySubscription;
     },

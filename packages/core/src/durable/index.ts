@@ -91,9 +91,11 @@ export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
    * child actors (parent sends, timers, terminations) route here without any
    * per-actor wiring; omitted operations keep their default local behavior.
    *
-   * Events addressed to this execution's root actor never reach `sendEvent`:
-   * the execution captures them and resolves them from `executeEffects` for
-   * the durable loop to process before suspending.
+   * Events addressed to this execution's root actor do not reach `sendEvent`
+   * *during* `executeEffects`: the execution captures them and resolves them
+   * from that call for the durable loop to process before suspending. While
+   * the loop is parked, a root-addressed event reaches `sendEvent` like any
+   * other target, so the host enqueues it in its own mailbox.
    */
   systemRuntime?: Partial<ActorSystemRuntime>;
   /** Waits durably for the next event addressed to this execution. */
@@ -226,6 +228,13 @@ export function createDurable<TLogic extends AnyActorLogic>(
 
   let runningOperation = false;
   const operationFailures: unknown[] = [];
+  // True only while `executeEffects` is driving a batch. The wrapped runtime
+  // stays installed on the actor system for the whole execution, so it also
+  // sees operations initiated while the loop is parked in `waitForEvent()`
+  // (for example a live child reacting to a host-originated delivery). Those
+  // belong to the host's domain: they are neither captured nor tracked, so a
+  // parked-window failure cannot be attributed to an unrelated later batch.
+  let executingBatch = false;
 
   const track = (operation: Promise<void>): Promise<void> => {
     pendingOperations.add(operation);
@@ -286,20 +295,27 @@ export function createDurable<TLogic extends AnyActorLogic>(
       if (impl) {
         (wrapped as Record<string, unknown>)[operation] = (
           ...args: unknown[]
-        ) => handOff(() => impl(...args));
+        ) => (executingBatch ? handOff(() => impl(...args)) : impl(...args));
       }
     }
     wrapped.sendEvent = (source, target, event) => {
-      if (target.address === rootAddress) {
+      if (executingBatch && target.address === rootAddress) {
+        // Only the execution's own effects produce captured root events; a
+        // root-addressed send while the loop is parked is an ordinary host
+        // delivery that belongs in the host's mailbox.
         capturedRootEvents.push({ event, source });
         return;
       }
       const impl = runtime.sendEvent;
       if (impl) {
-        return handOff(() => impl(source, target, event));
+        return executingBatch
+          ? handOff(() => impl(source, target, event))
+          : impl(source, target, event);
       }
       if (options.localDeliveryFallback) {
-        return handOff(() => deliverEvent(source, target, event));
+        return executingBatch
+          ? handOff(() => deliverEvent(source, target, event))
+          : deliverEvent(source, target, event);
       }
       throw new TypeError(
         `The durable runtime does not support the sendEvent operation (target '${target.address}')`
@@ -351,6 +367,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
     },
     async executeEffects(effects) {
+      executingBatch = true;
       try {
         for (const {
           effect,
@@ -399,6 +416,11 @@ export function createDurable<TLogic extends AnyActorLogic>(
         capturedRootEvents.length = 0;
         operationFailures.length = 0;
         throw error;
+      } finally {
+        // Runs after `settle()` (and after the catch path's drain), so
+        // operations the batch initiated are still treated as in-batch while
+        // they finish.
+        executingBatch = false;
       }
       return capturedRootEvents.splice(0) as DurableRootEvent<
         EventFromLogic<TLogic>

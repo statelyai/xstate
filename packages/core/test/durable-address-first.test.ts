@@ -439,3 +439,120 @@ describe('review findings: fifth round', () => {
     await expect(durable.executeEffects(effects)).resolves.toEqual([]);
   });
 });
+
+describe('review findings: sixth round', () => {
+  it('root-bound events sent while the loop is parked reach the host runtime', async () => {
+    const sent: string[] = [];
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker);
+      },
+      states: { a: {} }
+    });
+
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      systemRuntime: {
+        spawnActor: () => {},
+        startActor: (actor) => {
+          actor.start();
+        },
+        sendEvent: (_source, target, event) => {
+          sent.push(`${target.address}:${event.type}`);
+          if (target.address !== durable.rootAddress) {
+            deliverEvent(_source, target, event);
+          }
+        }
+      },
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [snapshot, effects] = durable.initialTransition();
+    expect(await durable.executeEffects(effects)).toEqual([]);
+
+    // The loop is now parked. The host delivers an event to the live child,
+    // whose reply is addressed to the root: it must reach the host runtime's
+    // sendEvent (the host's mailbox), not the execution's capture buffer.
+    const worker = (snapshot as any).children['worker:0'];
+    durable.getActorRef(snapshot)!.system.runtime!.sendEvent!(
+      undefined,
+      worker,
+      { type: 'PING' }
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sent).toContain('order:WORKER.READY');
+
+    // A later, unrelated batch must not surface that host-owned delivery.
+    const [, nextEffects] = durable.transition(snapshot, {
+      type: 'WORKER.READY'
+    });
+    expect(await durable.executeEffects(nextEffects)).toEqual([]);
+  });
+
+  it('an operation that fails while the loop is parked does not fail the next batch', async () => {
+    let parked = false;
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker);
+      },
+      states: {
+        a: {
+          on: {
+            KICK: ({ children }, enq) => {
+              enq.sendTo(children['worker:0'], { type: 'PING' });
+            }
+          }
+        }
+      }
+    });
+
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      systemRuntime: {
+        spawnActor: () => {},
+        startActor: (actor) => {
+          actor.start();
+        },
+        sendEvent: async (source, target, event) => {
+          if (parked) {
+            throw new Error('host-owned delivery failed');
+          }
+          deliverEvent(source, target, event);
+        }
+      },
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [snapshot, effects] = durable.initialTransition();
+    await durable.executeEffects(effects);
+
+    // While parked, a host-initiated operation rejects. That failure belongs
+    // to the host, which awaits its own delivery chain.
+    parked = true;
+    const worker = (snapshot as any).children['worker:0'];
+    await expect(
+      durable.getActorRef(snapshot)!.system.runtime!.sendEvent!(
+        undefined,
+        worker,
+        { type: 'PING' }
+      )
+    ).rejects.toThrow('host-owned delivery failed');
+
+    // The next batch succeeds on its own merits.
+    parked = false;
+    const [, kickEffects] = durable.transition(snapshot, { type: 'KICK' });
+    await expect(durable.executeEffects(kickEffects)).resolves.toBeDefined();
+  });
+});

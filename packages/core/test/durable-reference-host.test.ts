@@ -71,8 +71,10 @@ class InMemoryDurableHost implements DurableConformanceHarness {
         // recorded through the per-effect runtime instead.
         terminateActor(actor, termination);
       },
-      // Root-bound events never reach sendEvent; the execution captures them
-      // and returns them from executeEffects.
+      // Root-bound events do not reach sendEvent during executeEffects; the
+      // execution captures them and returns them from that call. They only
+      // arrive here when the loop is parked, in which case the host enqueues
+      // them in its own inbox like any other external message.
       sendEvent: (
         source: AnyActor | undefined,
         target: AnyActor,
@@ -84,6 +86,10 @@ class InMemoryDurableHost implements DurableConformanceHarness {
           targetId: target.id,
           eventType: event.type
         });
+        if (target.address === rootAddress) {
+          enqueue(event);
+          return;
+        }
         deliverEvent(source, target, event);
       },
       emitEvent: () => {},

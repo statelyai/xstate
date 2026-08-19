@@ -95,12 +95,20 @@ to checkpoint and suspend". An operation initiated while another is in
 flight — typically from within that operation — executes immediately instead
 of queueing behind it.
 
-Events addressed to the root actor never reach `sendEvent`. The execution
-captures them and resolves them from `executeEffects` as `{ event, source }`
-records; process them through `transition()` before durably waiting, as the
-explicit loop above does. This capture only covers operations the execution
-itself drives: deliveries the host originates while the loop is parked (a
-fired timer, an external message) belong in the host's own mailbox.
+During `executeEffects`, events addressed to the root actor do not reach
+`sendEvent`. The execution captures them and resolves them from that call as
+`{ event, source }` records; process them through `transition()` before
+durably waiting, as the explicit loop above does.
+
+The capture is scoped to that call. While the loop is parked, a root-addressed
+event — a live child replying to its parent after the host delivered an event
+to it, for example — reaches the runtime's `sendEvent` like an event for any
+other target, and belongs in the host's own mailbox. A `systemRuntime` that
+implements `sendEvent` must therefore handle a target whose address is
+`durable.rootAddress` by enqueueing the event for the loop's next
+`transition()`. For the same reason, operations initiated while the loop is
+parked are not tracked by the execution: the host awaits its own delivery
+chains, and a failure there is not reported through a later `executeEffects`.
 
 Each `DurableEffect` also carries a serializable `descriptor` — the effect
 with actor references replaced by addresses and actor sources by source keys

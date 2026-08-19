@@ -437,6 +437,22 @@ describe('detached children (remote handles)', () => {
     expect(again.children.w.snapshot).toBeUndefined();
   });
 
+  it('co-located-only members throw a descriptive error on a remote handle', () => {
+    const actor = createActor(invokeMachine).start();
+    const persisted = actor.getPersistedSnapshot({ embedChildren: false });
+    actor.stop();
+
+    const restored = createActor(invokeMachine, {
+      snapshot: persisted
+    }).start();
+    const handle = restored.getSnapshot().children.w as AnyActor;
+
+    expect(() => handle.stop()).toThrow(/co-located/);
+    expect(() => handle.select((s) => s)).toThrow(/remote actor/i);
+    expect(() => handle.trigger).toThrow(/co-located/);
+    restored.stop();
+  });
+
   it('accepts completions for remote children from any incarnation', () => {
     const actor = createActor(invokeMachine).start();
     const persisted = actor.getPersistedSnapshot({
