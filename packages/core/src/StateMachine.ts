@@ -40,6 +40,7 @@ import {
   type TransitionSelectionResults
 } from './stateUtils.ts';
 import {
+  beginSpawnAllocation,
   createSpawnEffect,
   resolveActionsWithContext
 } from './transitionActions.ts';
@@ -587,6 +588,7 @@ export class StateMachine<
     if (usesInertScope) {
       setInertActorScopeSnapshot(resolvedActorScope, snapshot, false);
     }
+    beginSpawnAllocation(resolvedActorScope);
     const fastSnapshot = this._transitionFast(
       snapshot,
       event,
@@ -1083,6 +1085,7 @@ export class StateMachine<
     const usesInertScope = !actorScope;
     const resolvedActorScope = (actorScope ??
       createInertActorScope(this)) as NonNullable<typeof actorScope>;
+    beginSpawnAllocation(resolvedActorScope);
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
     const preInitialState = this._getPreInitialState(

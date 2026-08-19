@@ -454,3 +454,119 @@ describe('detached children (remote handles)', () => {
     expect(restored.getSnapshot().value).toBe('finished');
   });
 });
+
+describe('review findings: allocation across a macrostep', () => {
+  it('spawns of one source across microsteps get distinct ids', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker);
+        enq.raise({ type: 'AGAIN' });
+      },
+      states: {
+        a: {
+          on: {
+            AGAIN: ({ actors }, enq) => {
+              enq.spawn(actors.worker);
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    expect(Object.keys(actor.getSnapshot().children).sort()).toEqual([
+      'worker:0',
+      'worker:1'
+    ]);
+  });
+
+  it('context spawns and entry spawns of one source do not collide', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      context: ({ spawn }) => ({
+        ref: spawn(workerMachine)
+      }),
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker);
+      },
+      states: { a: {} }
+    });
+
+    const actor = createActor(machine).start();
+    const ids = Object.keys(actor.getSnapshot().children);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+  });
+
+  it('string-id sendTo resolves children spawned in an earlier microstep', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.worker, { id: 'w' });
+        enq.raise({ type: 'SEND' });
+      },
+      states: {
+        a: {
+          on: {
+            SEND: (_, enq) => {
+              enq.sendTo('w', { type: 'PING' });
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    const child = actor.getSnapshot().children.w as AnyActor;
+    expect(child.getSnapshot().value).toBe('pinged');
+  });
+});
+
+describe('review findings: identity edge cases', () => {
+  it('parentless actors of one machine in a shared system get distinct addresses', async () => {
+    const { createSystem } = await import('../src/index.ts');
+    const system = createSystem();
+    const machine = createMachine({
+      id: 'order',
+      initial: 'a',
+      states: { a: {} }
+    });
+    const first = system.createActor(machine);
+    const second = system.createActor(machine);
+    expect(first.address).toBe('order');
+    expect(second.address).not.toBe(first.address);
+  });
+
+  it('re-persisting a restored snapshot with a context-held remote child does not recurse', () => {
+    const machine = setup({
+      actors: { worker: workerMachine }
+    }).createMachine({
+      id: 'order',
+      initial: 'a',
+      context: ({ spawn }) => ({
+        ref: spawn(workerMachine, { src: 'worker' } as never)
+      }),
+      states: { a: {} }
+    });
+
+    const actor = createActor(machine).start();
+    const persisted = actor.getPersistedSnapshot({ embedChildren: false });
+    actor.stop();
+
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    const again = restored.getPersistedSnapshot() as unknown as {
+      children: Record<string, { address: string; snapshot?: unknown }>;
+    };
+    expect(Object.values(again.children)[0]?.address).toMatch(/^order\//);
+  });
+});

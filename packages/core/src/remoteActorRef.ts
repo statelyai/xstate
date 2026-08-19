@@ -21,11 +21,6 @@ const remoteSnapshot: Snapshot<undefined> = Object.freeze({
   error: undefined
 });
 
-/** @internal */
-export function isRemoteActorRef(actorRef: AnyActor): boolean {
-  return (actorRef as { _remote?: boolean })._remote === true;
-}
-
 /**
  * Creates a location-transparent handle to an actor whose state lives with
  * another runtime. The handle is constructed from identity alone — no lookup
@@ -46,6 +41,9 @@ export function createRemoteActorRef(
 ): AnyActor {
   const handle = {
     _remote: true as const,
+    // Self-reference so context persistence recognizes the handle as an
+    // actor reference instead of recursing into it.
+    ref: undefined as unknown as AnyActor,
     id: options.id,
     address: options.address,
     src: options.src,
@@ -85,5 +83,6 @@ export function createRemoteActorRef(
       return { address: options.address, src: options.src };
     }
   };
+  handle.ref = handle as unknown as AnyActor;
   return handle as unknown as AnyActor;
 }

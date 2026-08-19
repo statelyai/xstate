@@ -277,6 +277,32 @@ function pushSpawnedChild(
   action.childUpdate = { type: 'add', actor, id, counters };
 }
 
+/**
+ * Spawn-allocation state shared by every enqueue object of one transition, so
+ * generated ids stay unique and resolvable across action functions and
+ * microsteps of the same event.
+ */
+interface SpawnAllocation {
+  spawnedById: Map<string, AnyActor>;
+  counters: Map<string, number>;
+}
+
+const spawnAllocations = new WeakMap<object, SpawnAllocation>();
+
+/**
+ * Starts a fresh spawn-allocation transaction for one logical transition.
+ * Called at every transition boundary so pure replays from the same snapshot
+ * allocate identical ids.
+ *
+ * @internal
+ */
+export function beginSpawnAllocation(actorScope: AnyActorScope): void {
+  spawnAllocations.set(actorScope, {
+    spawnedById: new Map(),
+    counters: new Map()
+  });
+}
+
 export function createTransitionEnqueue(
   actorScope: AnyActorScope,
   actions: any[],
@@ -284,8 +310,14 @@ export function createTransitionEnqueue(
   actorSubscriptions = false,
   createActors = true
 ) {
-  const spawnedById = new Map<string, AnyActor>();
-  const spawnCounters = new Map<string, number>();
+  // Paths that never begin a transaction (e.g. FSM helpers) keep the
+  // previous per-enqueue scope.
+  const { spawnedById, counters: spawnCounters } = spawnAllocations.get(
+    actorScope
+  ) ?? {
+    spawnedById: new Map<string, AnyActor>(),
+    counters: new Map<string, number>()
+  };
   // Read the raw snapshot: getSnapshot() throws while the actor initializes,
   // and entry actions run before any snapshot exists.
   const getWorkingSnapshot = () =>
@@ -366,10 +398,18 @@ export function createTransitionEnqueue(
         const prefix = getActorIdPrefix(src ?? logic);
         const parentSnapshot = getWorkingSnapshot();
         const children = parentSnapshot?.children ?? {};
-        let next =
+        // The system counters are the floor for children the snapshot cannot
+        // see yet, such as context-created spawns during initialization.
+        const systemCounter =
+          actorScope.system._snapshot._nextActorIds[
+            `${actorScope.self.address}|${prefix}`
+          ] ?? 0;
+        let next = Math.max(
           spawnCounters.get(prefix) ??
-          parentSnapshot?._nextActorIds?.[prefix] ??
-          0;
+            parentSnapshot?._nextActorIds?.[prefix] ??
+            0,
+          systemCounter
+        );
         while (
           children[`${prefix}:${next}`] !== undefined ||
           spawnedById.has(`${prefix}:${next}`)

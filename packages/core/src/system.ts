@@ -147,15 +147,31 @@ export function resolveActorId(
           reservedId + 1
         );
       }
+    } else if (!options?.parent) {
+      // Reserve a restored root's bare name so a later parentless actor of
+      // the same logic in this system numbers past it.
+      bumpActorIdCounter(
+        system,
+        getActorIdCounterKey(undefined, requestedId),
+        1
+      );
     }
     return requestedId;
   }
 
   const prefix = getActorIdPrefix(options?.src);
   if (!options?.parent && prefix !== 'x') {
-    // A root actor is alone in its system; its id (and address root segment)
-    // is the logic's own name without a counter.
-    return prefix;
+    // The first parentless actor of a logic gets the logic's own name; later
+    // parentless actors of the same logic in a shared system get numbered so
+    // addresses stay unique.
+    const counterKey = getActorIdCounterKey(undefined, prefix);
+    const counter = system._snapshot._nextActorIds[counterKey] ?? 0;
+    system._snapshot._nextActorIds = {
+      ...system._snapshot._nextActorIds,
+      [counterKey]: counter + 1
+    };
+    markSystemSnapshotDirty(system);
+    return counter === 0 ? prefix : `${prefix}:${counter}`;
   }
   const counterKey = getActorIdCounterKey(options?.parent, prefix);
   const counter = system._snapshot._nextActorIds[counterKey] ?? 0;
