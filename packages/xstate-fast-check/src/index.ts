@@ -124,7 +124,7 @@ class StopPropertyCommand<
 }
 
 class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
-  declare public readonly kind?: FastCheckGeneratorKind;
+  public readonly kind?: FastCheckGeneratorKind;
 
   public constructor(private readonly options: FastCheckAdapterOptions) {}
 
