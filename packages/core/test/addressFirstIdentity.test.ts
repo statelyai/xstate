@@ -10,7 +10,8 @@ import {
   transition,
   type AnyActor,
   createAsyncLogic,
-  waitFor
+  waitFor,
+  SimulatedClock
 } from '../src';
 import { createDurable } from '../src/durable/index.ts';
 
@@ -1117,6 +1118,9 @@ describe('incarnation tokens on remote handles', () => {
       sessionId: 'runtime-b:3'
     } as never);
     expect(restored.getSnapshot().value).toBe('a');
+    // The stale completion must not remove the still-running child either:
+    // the parent keeps its handle until the real completion arrives.
+    expect(restored.getSnapshot().children.w).toBeDefined();
     restored.send({
       type: 'xstate.done.actor',
       actorId: 'w',
@@ -1386,5 +1390,114 @@ describe('runStep runtime operation', () => {
     await durable.executeEffects(effects);
     await Promise.resolve();
     expect(stepped).toEqual(['order/asyncWorker:0:warmup']);
+  });
+});
+
+describe('tenth round: review findings', () => {
+  it('a completed child frees its id for the transition handling its completion', () => {
+    const job = createMachine({
+      initial: 'working',
+      states: {
+        working: { on: { FINISH: { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+    const machine = createMachine({
+      id: 'sup',
+      initial: 'a',
+      entry: (_: any, enq: any) => {
+        enq.spawn(job, { id: 'job' });
+      },
+      states: {
+        a: {
+          on: {
+            KICK: ({ children }: any, enq: any) => {
+              enq.sendTo(children.job, { type: 'FINISH' });
+            },
+            // The supervisor pattern: respawn under the same name while
+            // handling the outgoing child's completion.
+            'xstate.done.actor': (_: any, enq: any) => {
+              enq.spawn(job, { id: 'job' });
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    const first = actor.getSnapshot().children.job;
+    actor.send({ type: 'KICK' });
+    expect(actor.getSnapshot().status).toBe('active');
+    const replacement = actor.getSnapshot().children.job as AnyActor;
+    expect(replacement).toBeDefined();
+    expect(replacement).not.toBe(first);
+    expect(replacement.getSnapshot().status).toBe('active');
+  });
+
+  it('restores under a custom clock with the declared delay', () => {
+    const machine = createMachine({
+      id: 'p',
+      initial: 'waiting',
+      states: {
+        waiting: { after: { 1000: { target: 'fired' } } },
+        fired: {}
+      }
+    });
+    vi.useFakeTimers();
+    let persisted: any;
+    try {
+      const actor = createActor(machine).start();
+      vi.advanceTimersByTime(600);
+      persisted = actor.getPersistedSnapshot();
+      actor.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+    const [timer] = Object.values(persisted.timers) as any[];
+    expect(typeof timer.startedAt).toBe('number');
+
+    // A wall-clock startedAt is meaningless under a simulated clock; the
+    // declared delay applies instead of firing instantly (or never).
+    const clock = new SimulatedClock();
+    const restored = createActor(machine, {
+      clock,
+      snapshot: persisted
+    }).start();
+    clock.increment(999);
+    expect(restored.getSnapshot().value).toBe('waiting');
+    clock.increment(1);
+    expect(restored.getSnapshot().value).toBe('fired');
+    restored.stop();
+  });
+
+  it('captures root events for machine ids containing address separators', async () => {
+    const worker = setup({}).createMachine({
+      id: 'worker',
+      initial: 'idle',
+      entry: ({ parent }: any, enq: any) => {
+        enq.sendTo(parent, { type: 'HELLO' });
+      },
+      states: { idle: {} }
+    });
+    const machine = setup({ actors: { worker } }).createMachine({
+      id: 'a/b',
+      initial: 'a',
+      entry: ({ actors }: any, enq: any) => {
+        enq.spawn(actors.worker);
+      },
+      states: { a: {} }
+    });
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      startActor: (actor: any) => {
+        actor.start();
+      },
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+    expect(durable.rootAddress).toBe('a%2Fb');
+    const [, effects] = durable.initialTransition();
+    const rootEvents = await durable.executeEffects(effects);
+    expect(rootEvents.map((r: any) => r.event.type)).toEqual(['HELLO']);
   });
 });

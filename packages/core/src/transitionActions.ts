@@ -449,11 +449,20 @@ export function assertChildIdFree(
     spawnAllocations.get(actorScope) ??
     localAllocation ??
     createSpawnAllocation();
-  if (
-    allocation.explicitIds.has(id) ||
-    (getWorkingSnapshotOf(actorScope)?.children?.[id] !== undefined &&
-      !allocation.stoppedIds.has(id))
-  ) {
+  const existing = getWorkingSnapshotOf(actorScope)?.children?.[id] as
+    | AnyActor
+    | undefined;
+  // A terminated child no longer occupies its id: it relayed its completion
+  // and is removed from `children` right after the transition handling it,
+  // so the supervisor pattern — respawn under the same name while handling
+  // the child's done/error event — must not conflict with the outgoing
+  // entry. Remote handles never expose a terminal status locally; the
+  // completion event that removes one is the owning runtime's business.
+  const occupied =
+    existing !== undefined &&
+    !allocation.stoppedIds.has(id) &&
+    existing.getSnapshot().status === 'active';
+  if (allocation.explicitIds.has(id) || occupied) {
     throw new Error(
       isDevelopment
         ? `Cannot spawn child actor with id '${id}': the id is already in use by another child of '${actorScope.self.id}'. Stop the existing child before reusing its id.`

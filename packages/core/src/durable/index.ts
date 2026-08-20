@@ -5,6 +5,7 @@ import {
 import { deliverEvent } from '../runtimeHelpers.ts';
 import { getSnapshotActorRef } from '../snapshotActorRef.ts';
 import {
+  encodeAddressSegment,
   getRootActorId,
   RUNTIME_OPERATIONS,
   type ActorSystemRuntime
@@ -228,7 +229,9 @@ export function createDurable<TLogic extends AnyActorLogic>(
     });
   };
 
-  const rootAddress = getRootActorId(logic);
+  // The root's address as the root actor reports it: root-event capture
+  // compares against `target.address`, which percent-encodes each segment.
+  const rootAddress = encodeAddressSegment(getRootActorId(logic));
   const machineId = (logic as { id?: string }).id ?? rootAddress;
   const machineVersion = (logic as { version?: string }).version;
 

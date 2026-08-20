@@ -2276,8 +2276,23 @@ export function macrostep(
     if (!actorId) {
       return;
     }
-    const child = nextSnapshot.children[actorId];
-    if (!child || (!isRemoteActorRef(child) && child.sessionId !== sessionId)) {
+    const child = nextSnapshot.children[actorId] as
+      | (AnyActor & { _incarnation?: string })
+      | undefined;
+    if (!child) {
+      return;
+    }
+    // The same staleness rule matchesActorSession applies to transition
+    // selection: a completion from a different incarnation must not remove
+    // the still-running child either.
+    if (isRemoteActorRef(child)) {
+      if (
+        child._incarnation !== undefined &&
+        child._incarnation !== sessionId
+      ) {
+        return;
+      }
+    } else if (child.sessionId !== sessionId) {
       return;
     }
 

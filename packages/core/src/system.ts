@@ -113,6 +113,20 @@ export function getActorIdPrefix(
 }
 
 /**
+ * Encodes one actor id as an address segment. `/` separates segments, so it
+ * is percent-encoded, and the escape character `%` is escaped first so the
+ * encoding stays injective: the ids 'a/b' and 'a%2Fb' must not produce the
+ * same address.
+ *
+ * @internal
+ */
+export function encodeAddressSegment(id: string): string {
+  return id.includes('/') || id.includes('%')
+    ? id.replaceAll('%', '%25').replaceAll('/', '%2F')
+    : id;
+}
+
+/**
  * Parses a generated-shaped actor id (`prefix:<n>`). This single definition is
  * the determinism contract for id reservation: live allocation, replay, and
  * restore must all agree on what counts as generated-shaped. Deliberately

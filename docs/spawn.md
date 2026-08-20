@@ -42,7 +42,7 @@ entry: ({ actors }, enq) => {
 };
 ```
 
-Spawning with an `id` that a live child already uses replaces that entry in `children`; the previous actor is left running and unreferenced. Generate ids from something stable, such as a file or participant id.
+Spawning with an `id` that a live child of the same parent already uses throws: an address names at most one live actor. Stop the existing child first — an id stopped earlier in the same transition is free to reuse, and a child that completed on its own frees its id for the transition handling its completion. Generate ids from something stable, such as a file or participant id.
 
 ## Where you can spawn
 

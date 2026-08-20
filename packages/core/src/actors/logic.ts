@@ -171,12 +171,6 @@ const effectStates = new WeakMap<
   Map<PropertyKey, { cleanup?: () => void }>
 >();
 
-export {
-  XSTATE_LOGIC_EFFECT_REJECT,
-  XSTATE_LOGIC_EFFECT_RESOLVE,
-  XSTATE_LOGIC_EFFECT_START
-};
-
 function getEffectState(self: AnyActorRef) {
   let state = effectStates.get(self);
   if (!state) {

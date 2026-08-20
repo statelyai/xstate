@@ -10,6 +10,7 @@ import {
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import {
+  encodeAddressSegment,
   AnyActorSystem,
   bookSessionId,
   Clock,
@@ -107,14 +108,6 @@ function executeExecutableEffects(
   for (const effect of effects) {
     actorScope.actionExecutor(effect);
   }
-}
-
-function encodeAddressSegment(id: string): string {
-  // Escape the escape character first so encoding stays injective: the ids
-  // 'a/b' and 'a%2Fb' must not produce the same address.
-  return id.includes('/') || id.includes('%')
-    ? id.replaceAll('%', '%25').replaceAll('/', '%2F')
-    : id;
 }
 
 function createActorRef(
@@ -902,17 +895,20 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
             >;
           }
         ).timers ?? {};
-      const now = this.system._clock.now?.() ?? Date.now();
+      // startedAt is only persisted from — and only meaningful under — the
+      // wall clock; a custom clock (a simulated clock, a monotonic counter)
+      // restores every timer with its declared delay. The clamp bounds
+      // remaining time by the declared delay in case the wall clock moved
+      // backwards between persist and restore.
+      const wallClock = !this.system._clock.now;
+      const now = Date.now();
       for (const timer of Object.values(timers)) {
         // A timer persisted from a live runtime carries its wall-clock start;
         // honor the absolute deadline instead of restarting the full delay.
-        // Remaining time can never exceed the declared delay, which also
-        // neutralizes a startedAt from a different clock domain (persisted
-        // under the wall clock, restored under a simulated one). Without a
-        // start (a pure-transition snapshot, or an older snapshot) the
-        // declared delay is all there is.
+        // Without a start (a pure-transition snapshot, or an older snapshot)
+        // the declared delay is all there is.
         const delay =
-          timer.startedAt !== undefined
+          wallClock && timer.startedAt !== undefined
             ? Math.min(
                 timer.delay,
                 Math.max(0, timer.startedAt + timer.delay - now)
