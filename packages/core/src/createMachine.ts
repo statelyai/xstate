@@ -21,6 +21,7 @@ import {
   InferChildren,
   InferOutput,
   InferEvents,
+  InferInternalEvents,
   Next_MachineConfig,
   Next_StateNodeConfig,
   ValidateDelayReferences,
@@ -106,6 +107,7 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
 export function createMachine<
   TContextSchema extends StandardSchemaV1,
   const TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  const TInternalEventSchemaMap extends Record<string, StandardSchemaV1>,
   TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
   TInputSchema extends StandardSchemaV1,
   const TOutputSchema extends StandardSchemaV1,
@@ -130,6 +132,7 @@ export function createMachine<
     Next_MachineConfig<
       TContextSchema,
       TEventSchemaMap,
+      TInternalEventSchemaMap,
       TEmittedSchemaMap,
       TInputSchema,
       TOutputSchema,
@@ -137,7 +140,8 @@ export function createMachine<
       TTagSchema,
       TChildrenSchemaMap,
       InferOutput<TContextSchema, MachineContext>,
-      InferEvents<TEventSchemaMap>,
+      | InferEvents<TEventSchemaMap>
+      | InferInternalEvents<TInternalEventSchemaMap>,
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -153,11 +157,15 @@ export function createMachine<
     } & ValidateTopLevelFinalOutputs<
       TSS,
       InferOutput<TContextSchema, MachineContext>,
-      InferEvents<TEventSchemaMap>
+      | InferEvents<TEventSchemaMap>
+      | InferInternalEvents<TInternalEventSchemaMap>
     >
 ): StateMachine<
   InferOutput<TContextSchema, MachineContext>,
-  | InferEvents<TEventSchemaMap>
+  | (
+      | InferEvents<TEventSchemaMap>
+      | InferInternalEvents<TInternalEventSchemaMap>
+    )
   | ([RoutableStateId<TSS>] extends [never]
       ? never
       : {
@@ -178,7 +186,8 @@ export function createMachine<
   TActionMap,
   TActorMap,
   TGuardMap,
-  DelayMapFromNames<TDelays, TDelayMap>
+  DelayMapFromNames<TDelays, TDelayMap>,
+  InferInternalEvents<TInternalEventSchemaMap>
 > & {
   states: TSS;
 } & MachineIdentity<TSS>;
@@ -202,6 +211,7 @@ export function createMachine<
     string,
     StandardSchemaV1
   >,
+  const TInternalEventSchemaMap extends Record<string, StandardSchemaV1> = {},
   _TEvent extends EventObject = EventObject,
   TActor extends ProvidedActor = ProvidedActor,
   TActionMap extends Sources['actions'] = Sources['actions'],
@@ -221,6 +231,7 @@ export function createMachine<
     Next_MachineConfig<
       StandardSchemaV1,
       TEventSchemaMap,
+      TInternalEventSchemaMap,
       TEmittedSchemaMap,
       TInputSchema,
       TOutputSchema,
@@ -228,7 +239,8 @@ export function createMachine<
       TTagSchema,
       TChildrenSchemaMap,
       WidenLiterals<TContext>,
-      InferEvents<TEventSchemaMap>,
+      | InferEvents<TEventSchemaMap>
+      | InferInternalEvents<TInternalEventSchemaMap>,
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -256,11 +268,15 @@ export function createMachine<
     } & ValidateTopLevelFinalOutputs<
       TSS,
       WidenLiterals<TContext>,
-      InferEvents<TEventSchemaMap>
+      | InferEvents<TEventSchemaMap>
+      | InferInternalEvents<TInternalEventSchemaMap>
     >
 ): StateMachine<
   WidenLiterals<TContext>,
-  | InferEvents<TEventSchemaMap>
+  | (
+      | InferEvents<TEventSchemaMap>
+      | InferInternalEvents<TInternalEventSchemaMap>
+    )
   | ([RoutableStateId<TSS>] extends [never]
       ? never
       : {
@@ -281,7 +297,8 @@ export function createMachine<
   TActionMap,
   TActorMap,
   TGuardMap,
-  DelayMapFromNames<TDelays, TDelayMap>
+  DelayMapFromNames<TDelays, TDelayMap>,
+  InferInternalEvents<TInternalEventSchemaMap>
 > & {
   states: TSS;
 } & MachineIdentity<TSS>;

@@ -7,6 +7,9 @@ describe('setup', () => {
       events: {
         INC: types<{ value: number }>()
       },
+      internalEvents: {
+        TICK: types<{ count: number }>()
+      },
       actions: {
         track: {
           params: types<{ key: string }>()

@@ -236,6 +236,30 @@ describe('runtime schema validation', () => {
     expect(guard).not.toHaveBeenCalled();
   });
 
+  it('validates separately declared internal event schemas', () => {
+    const machine = setup({
+      validator: standardSchemaValidator(),
+      schemas: {
+        events: { GO: z.object({}) },
+        internalEvents: { TICK: z.object({ count: z.number() }) }
+      }
+    }).createMachine({
+      initial: 'idle',
+      states: {
+        idle: { on: { TICK: { target: 'done' } } },
+        done: {}
+      }
+    });
+    const [snapshot] = initialTransition(machine);
+
+    expectValidationError(
+      getThrown(() =>
+        transition(machine, snapshot, { type: 'TICK', count: 'x' } as any)
+      ),
+      'event'
+    );
+  });
+
   it('is strict for unknown events by default and supports open protocols', () => {
     const create = (unknownEvents?: 'error' | 'ignore') =>
       setup({

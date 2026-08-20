@@ -17,6 +17,9 @@ const machine = setup({
     events: {
       increment: z.object({})
     },
+    internalEvents: {
+      tick: z.object({ count: z.number() })
+    },
     input: z.object({ initialCount: z.number() })
   }
 }).createMachine({
@@ -26,7 +29,8 @@ const machine = setup({
 });
 ```
 
-Schema event keys also create typed methods on `actor.trigger`.
+Public schema event keys create typed methods on `actor.trigger`; internal
+schema keys do not appear in the public trigger namespace.
 
 ```ts
 actor.trigger.increment();
@@ -63,6 +67,9 @@ const machine = setup({
     context: z.object({ count: z.number() }),
     events: {
       increment: z.object({ by: z.number() })
+    },
+    internalEvents: {
+      tick: z.object({ count: z.number() })
     }
   }
 }).createMachine({
@@ -70,7 +77,7 @@ const machine = setup({
 });
 ```
 
-The validator checks input and public events before calculation, then checks
+The validator checks input and public or internal events before calculation, then checks
 stable context, active state schemas, child slots, delayed raised events,
 emitted events and final output before effects run. Invalid values throw an
 `ActorValidationError`.
