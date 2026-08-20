@@ -99,3 +99,107 @@ describe('deterministic execution identity', () => {
     expect((replayed as { value?: unknown }).value).toBe('verifying');
   });
 });
+
+describe('runLogic: the async actor as the durable unit', () => {
+  const plainMachine = setup({
+    actors: {
+      score: createAsyncLogic({
+        id: 'score',
+        // A normal promise — no step vocabulary.
+        run: async ({ input }: { input: { total: number } }) =>
+          input.total > 1000 ? 0.9 : 0.1
+      })
+    }
+  }).createMachine({
+    id: 'order',
+    initial: 'verifying',
+    context: ({ input }: { input: { total: number } }) => ({
+      total: input.total
+    }),
+    states: {
+      verifying: {
+        invoke: {
+          id: 'fraud',
+          src: 'score',
+          input: ({ context }) => ({ total: context.total }),
+          onDone: { target: 'approved' }
+        }
+      },
+      approved: {}
+    }
+  });
+
+  it('a journaling host wraps the body once and replays the result', async () => {
+    const journal = new Map<string, unknown>();
+    let executions = 0;
+    const host = (executionId: string) =>
+      createDurable(plainMachine, {
+        executionId,
+        executeAction: () => {},
+        startActor: (actor) => {
+          actor.start();
+        },
+        runLogic: async (actor, exec) => {
+          if (journal.has(actor.address)) {
+            return journal.get(actor.address);
+          }
+          executions++;
+          const output = await exec();
+          journal.set(actor.address, output);
+          return output;
+        },
+        waitForEvent: () => {
+          throw new Error('host-driven loop');
+        }
+      });
+
+    const first = host('exec-1');
+    const [, e1] = first.initialTransition({ total: 1500 });
+    const [done1] = await first.executeEffects(e1);
+    expect(done1!.event.type).toMatch(/^xstate\.done\.actor/);
+    expect(executions).toBe(1);
+
+    // Crash → replay: the body does not re-run, and the journaled
+    // completion still matches the replayed child.
+    const second = host('exec-1');
+    const [s2, e2] = second.initialTransition({ total: 1500 });
+    await second.executeEffects(e2);
+    expect(executions).toBe(1);
+    const [replayed] = second.transition(s2 as never, done1!.event);
+    expect((replayed as { value?: unknown }).value).toBe('approved');
+  });
+
+  it('a remote-executor host ignores the closure and re-runs from (src, input)', async () => {
+    // The Temporal shape: the "activity worker" reconstructs the work from
+    // the actor's serializable identity alone — no closure crosses over.
+    const workerSide = {
+      score: async (input: { total: number }) =>
+        input.total > 1000 ? 0.9 : 0.1
+    };
+    const shipped: Array<{ src: unknown; input: unknown }> = [];
+    const durable = createDurable(plainMachine, {
+      executionId: 'exec-1',
+      executeAction: () => {},
+      startActor: (actor) => {
+        actor.start();
+      },
+      runLogic: async (actor) => {
+        const input = (actor.getSnapshot() as { input?: unknown }).input;
+        shipped.push({ src: actor.src, input });
+        expect(() => JSON.stringify({ src: actor.src, input })).not.toThrow();
+        return workerSide[actor.src as keyof typeof workerSide](
+          input as { total: number }
+        );
+      },
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [snapshot, effects] = durable.initialTransition({ total: 1500 });
+    const [done] = await durable.executeEffects(effects);
+    expect(shipped).toEqual([{ src: 'score', input: { total: 1500 } }]);
+    const [next] = durable.transition(snapshot as never, done!.event);
+    expect((next as { value?: unknown }).value).toBe('approved');
+  });
+});

@@ -257,7 +257,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
   for (const operation of [
     ...RUNTIME_OPERATIONS,
     'sendEvent',
-    'runStep'
+    'runStep',
+    'runLogic'
   ] as const) {
     const impl = adapter[operation];
     if (impl) {
@@ -368,6 +369,9 @@ export function createDurable<TLogic extends AnyActorLogic>(
     // deadlock with) the operations its own body initiates.
     if (runtime.runStep) {
       wrapped.runStep = runtime.runStep;
+    }
+    if (runtime.runLogic) {
+      wrapped.runLogic = runtime.runLogic;
     }
     wrapped.sendEvent = (source, target, event) => {
       if (

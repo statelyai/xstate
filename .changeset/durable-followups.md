@@ -12,4 +12,10 @@ const durable = createDurable(machine, {
 });
 ```
 
+The new `runLogic` runtime operation makes the invoked async actor the primary durable unit: a developer writes a normal promise and the host journals the whole body as one entry — wrapping the provided thunk in its own step primitive, or re-running the registered logic on a remote executor from the actor's serializable `(src, input)` identity alone. `enq.step` remains for opt-in finer granularity.
+
+```ts
+runLogic: (actor, exec) => ctx.run(actor.address, exec)
+```
+
 Durable-execution docs now also cover quiescing in-flight steps before registering a durable wait, the ordered-effect replay guarantee, and that `runStep`'s `exec` closure must run in-process.

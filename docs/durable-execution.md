@@ -39,8 +39,26 @@ const output = await durable.run(input);
 ```
 
 Runtime operations you omit keep their local behavior — spawned machine
-children run in this process, for example. Async-actor steps (`enq.step` in
-[actor logic](actor-logic.md)) route through the `runStep` operation:
+children run in this process, for example.
+
+The primary durable unit for async work is the actor itself: a developer
+writes a normal promise (`fromPromise`, `createAsyncLogic`) and invokes it;
+the `runLogic` operation hands the host the whole body as one journal
+entry. The actor's identity — `address`, string `src` key and serializable
+`input` — crosses any boundary, so a host either wraps the provided `exec`
+in its own step primitive, or ignores it entirely and re-runs the
+registered logic on a remote executor from `(src, input)` alone; the output
+flows back as the actor's ordinary completion event. No step vocabulary
+appears in the machine.
+
+```ts
+runLogic: (actor, exec) => ctx.run(actor.address, exec)          // in-process journal
+runLogic: (actor) => activities.runLogic(actor.src, actor.getSnapshot().input) // remote executor
+```
+
+For finer granularity — several independently-journaled awaits inside one
+actor — split into separate invoked actors, or reach for `enq.step`, which
+routes through the `runStep` operation:
 implement it to journal steps in the host's journal — a memoized result
 replays without re-running the step — and the built-in
 snapshot memoization steps aside. Unlike other operations, a step is an
@@ -51,10 +69,11 @@ from `xstate` exposes the built-in behavior. `exec` is a closure over live
 execution state: run it in this process and journal its result; it cannot be
 shipped to a remote executor.
 
-Because steps outlive `executeEffects`, a host whose wait is durable rather
-than in-process must quiesce before parking: track the promises your
-`runStep` returns and drain them (steps can start further steps, so drain to
-empty) before registering a durable wait. An in-flight step ends by
+Because logic bodies and steps outlive `executeEffects`, a host whose wait
+is durable rather than in-process must account for them before parking:
+either race its durable wait against the pending `runLogic`/`runStep`
+promises it created (the natural shape when they map to the engine's own
+step primitives), or drain them to empty first. An in-flight step ends by
 completing its actor, and that completion event cannot satisfy a durable
 wait that was already registered with the engine — the run deadlocks until
 its idle timeout. The in-process loop above needs none of this, because any

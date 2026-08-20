@@ -369,29 +369,37 @@ export function createAsyncLogic<
           }
         };
 
-        const resolvedPromise = Promise.resolve(
-          config.run(
-            {
-              input,
-              system,
-              self: self as any,
-              signal: controller.signal
-            },
-            {
-              emit: (event) => void runtime.emitEvent!(actorSelf, event),
-              // Steps route through the runtime: a durable host that
-              // implements `runStep` owns the step journal; otherwise the
-              // built-in behavior memoizes into this actor's own snapshot,
-              // self-sending through the same runtime as the other effects.
-              step: (key, exec) =>
-                runtime.runStep
-                  ? (Promise.resolve(
-                      runtime.runStep(actorSelf, key, exec)
-                    ) as Promise<any>)
-                  : runStep(actorSelf, key, exec, sendSelf)
-            }
-          )
-        );
+        const runBody = () =>
+          Promise.resolve(
+            config.run(
+              {
+                input,
+                system,
+                self: self as any,
+                signal: controller.signal
+              },
+              {
+                emit: (event) => void runtime.emitEvent!(actorSelf, event),
+                // Steps route through the runtime: a durable host that
+                // implements `runStep` owns the step journal; otherwise the
+                // built-in behavior memoizes into this actor's own snapshot,
+                // self-sending through the same runtime as the other effects.
+                step: (key, exec) =>
+                  runtime.runStep
+                    ? (Promise.resolve(
+                        runtime.runStep(actorSelf, key, exec)
+                      ) as Promise<any>)
+                    : runStep(actorSelf, key, exec, sendSelf)
+              }
+            )
+          );
+        // The whole body is one durable unit: a host that implements
+        // `runLogic` journals it by the actor's address — or re-runs the
+        // registered logic from (src, input) on a remote executor, ignoring
+        // the closure. The default runs it here, unjournaled.
+        const resolvedPromise = runtime.runLogic
+          ? Promise.resolve(runtime.runLogic(actorSelf, runBody))
+          : runBody();
 
         resolvedPromise.then(
           (response) => {
