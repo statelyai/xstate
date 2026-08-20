@@ -66,7 +66,11 @@ import {
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
 
-export const $$ACTOR_TYPE = 1;
+/**
+ * Marks a serialized object as an actor reference (`xstate$type` in JSON
+ * output and persisted context).
+ */
+export const ACTOR_REF_TYPE = 'actorRef';
 
 const emptyInspectionRecords = Object.freeze([]) as unknown as never[];
 
@@ -1131,7 +1135,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
    */
   public toJSON() {
     return {
-      xstate$$type: $$ACTOR_TYPE,
+      xstate$type: ACTOR_REF_TYPE,
       id: this.id,
       address: this.address,
       src: typeof this.src === 'string' ? this.src : undefined

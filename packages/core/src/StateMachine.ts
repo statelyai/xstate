@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { $$ACTOR_TYPE, createActor } from './createActor.ts';
+import { ACTOR_REF_TYPE, createActor } from './createActor.ts';
 import {
   createErrorPlatformEvent,
   createInitEvent,
@@ -1571,7 +1571,11 @@ export class StateMachine<
         const value: unknown = contextPart[key];
 
         if (value && typeof value === 'object') {
-          if ('xstate$$type' in value && value.xstate$$type === $$ACTOR_TYPE) {
+          if (
+            ('xstate$type' in value && value.xstate$type === ACTOR_REF_TYPE) ||
+            // The v5 marker, so old persisted context refs still revive.
+            ('xstate$$type' in value && value.xstate$$type === 1)
+          ) {
             contextPart[key] = children[(value as any).id];
             continue;
           }

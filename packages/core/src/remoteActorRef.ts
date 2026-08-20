@@ -1,4 +1,4 @@
-import { $$ACTOR_TYPE } from './createActor.ts';
+import { ACTOR_REF_TYPE } from './createActor.ts';
 import type { AnyActorSystem } from './system.ts';
 import type {
   AnyActor,
@@ -128,7 +128,7 @@ export function createRemoteActorRef(
     // one actor-reference marker whether a child is co-located or remote.
     toJSON() {
       return {
-        xstate$$type: $$ACTOR_TYPE,
+        xstate$type: ACTOR_REF_TYPE,
         id: options.id,
         address: options.address,
         src: options.src

@@ -1518,7 +1518,7 @@ describe('remote handle serialization', () => {
     const restored = createActor(machine, { snapshot: persisted }).start();
     const handle = restored.getSnapshot().children.w as AnyActor;
     expect(handle.toJSON!()).toEqual({
-      xstate$$type: 1,
+      xstate$type: 'actorRef',
       id: 'w',
       address: 'order/w',
       src: 'worker'
@@ -1526,7 +1526,7 @@ describe('remote handle serialization', () => {
     // JSON round-trip of the whole snapshot keeps the discriminant, so
     // tooling that detects actor references sees remote children too.
     const json = JSON.parse(JSON.stringify(restored.getSnapshot())) as any;
-    expect(json.children.w.xstate$$type).toBe(1);
+    expect(json.children.w.xstate$type).toBe('actorRef');
     restored.stop();
   });
 });

@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { $$ACTOR_TYPE } from './createActor.ts';
+import { ACTOR_REF_TYPE } from './createActor.ts';
 import { getStateValue } from './stateUtils.ts';
 import type {
   AnyMachineSnapshot,
@@ -727,7 +727,7 @@ function persistContext(contextPart: Record<string, unknown>) {
           ? (contextPart.slice() as typeof contextPart)
           : { ...contextPart };
         copy[key] = {
-          xstate$$type: $$ACTOR_TYPE,
+          xstate$type: ACTOR_REF_TYPE,
           id: (value as any as AnyActor).id
         };
       } else {
