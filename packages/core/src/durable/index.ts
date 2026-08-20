@@ -320,12 +320,12 @@ export function createDurable<TLogic extends AnyActorLogic>(
     // re-entrant dispatch: that system's installed runtime lacks these
     // operations by construction, so the call falls through to local
     // behavior.
-    fallBackToActorSystem = false
+    fallbackToActorSystem = false
   ): Partial<ActorSystemRuntime> {
     const wrapped: Partial<ActorSystemRuntime> = {};
     for (const operation of RUNTIME_OPERATIONS) {
       const impl = (runtime[operation] ??
-        (fallBackToActorSystem
+        (fallbackToActorSystem
           ? (...args: unknown[]) => {
               const owner = (
                 operation === 'spawnActor' ? args[1] : args[0]

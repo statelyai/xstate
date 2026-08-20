@@ -883,16 +883,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     if (this._restored) {
-      const timers: Record<
-        string,
-        { id: string; delay: number; startedAt?: number }
-      > =
+      type RestoredTimer = { id: string; delay: number; startedAt?: number };
+      const timers =
         (
           this._snapshot as unknown as {
-            timers?: Record<
-              string,
-              { id: string; delay: number; startedAt?: number }
-            >;
+            timers?: Record<string, RestoredTimer>;
           }
         ).timers ?? {};
       // startedAt is only persisted from — and only meaningful under — the

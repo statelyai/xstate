@@ -644,15 +644,15 @@ export function getPersistedSnapshot<
     };
   }
 
-  const snapshotActor = getSnapshotActorRef(snapshot)?.actor as
-    | (AnyActor & {
-        system?: {
-          _snapshot?: {
-            _scheduledTimers?: Record<string, { dueAt: number }>;
-          };
-        };
-      })
-    | undefined;
+  const snapshotActor = getSnapshotActorRef(snapshot)?.actor;
+  // Only the wall clock is stamped into persisted timers: a custom clock's
+  // readings (a simulated clock, a monotonic counter) are meaningless in any
+  // other process, and restoring them under the wall clock would fire every
+  // pending delay instantly. Pure-transition snapshots have no local
+  // schedule and persist no timestamp.
+  const scheduledTimers = snapshotActor?.system?._clock?.now
+    ? undefined
+    : snapshotActor?.system?._snapshot?._scheduledTimers;
   for (const id in timers) {
     const timer = timers[id];
     let event = timer.event;
@@ -682,17 +682,8 @@ export function getPersistedSnapshot<
     // A live runtime knows when the timer is due; persist the wall-clock
     // start (dueAt - declared delay) so restore can honor the absolute
     // deadline. Derived from dueAt, not the scheduling moment, so repeated
-    // persist/restore cycles keep the same deadline. Only the wall clock is
-    // stamped: a custom clock's readings (a simulated clock, a monotonic
-    // counter) are meaningless in any other process, and restoring them
-    // under the wall clock would fire every pending delay instantly.
-    // Pure-transition snapshots have no local schedule and persist no
-    // timestamp.
-    const scheduled = snapshotActor?.system?._clock?.now
-      ? undefined
-      : snapshotActor?.system?._snapshot?._scheduledTimers?.[
-          `${snapshotActor.sessionId}.${id}`
-        ];
+    // persist/restore cycles keep the same deadline.
+    const scheduled = scheduledTimers?.[`${snapshotActor!.sessionId}.${id}`];
     timersJson[id] = {
       id: timer.id,
       delay: timer.delay,

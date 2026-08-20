@@ -373,14 +373,6 @@ function getRegisteredSrcKey(
 }
 
 /**
- * Allocates the next generated child id for the transition's allocation
- * transaction, seeded from the parent snapshot's own persisted counters. This
- * is the single allocator for snapshot-owned children (`enq.spawn` and
- * context-factory spawns); a correct allocation cannot collide.
- *
- * @internal
- */
-/**
  * Internal helper actors (listeners, subscriptions) number their ids from
  * system-level counters under `xstate.`-prefixed names; snapshot-owned
  * children number from per-snapshot counters. The two spaces only stay
@@ -411,6 +403,14 @@ function nextChildIndex(
   );
 }
 
+/**
+ * Allocates the next generated child id for the transition's allocation
+ * transaction, seeded from the parent snapshot's own persisted counters. This
+ * is the single allocator for snapshot-owned children (`enq.spawn` and
+ * context-factory spawns); a correct allocation cannot collide.
+ *
+ * @internal
+ */
 export function allocateChildId(
   actorScope: AnyActorScope,
   src: string | AnyActorLogic,
