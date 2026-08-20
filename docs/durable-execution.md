@@ -39,7 +39,14 @@ const output = await durable.run(input);
 ```
 
 Runtime operations you omit keep their local behavior — spawned machine
-children run in this process, for example. Operations initiated by live child
+children run in this process, for example. Async-actor steps (`enq.step` in
+[actor logic](actor-logic.md)) route through the `runStep` operation:
+implement it to journal steps in the host's journal — a memoized result
+replays without re-running the step — and the built-in
+snapshot memoization steps aside. Unlike other operations, a step is an
+orchestration frame that may itself await runtime operations of the same
+execution, so it is never serialized behind them. The `runStep` helper
+exported from `xstate` exposes the built-in behavior. Operations initiated by live child
 actors (parent sends, timers, terminations) route to your implementations
 with no per-actor wiring. `run()` is convenience over the explicit loop:
 

@@ -18,7 +18,8 @@ import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
   deliverEvent,
   stopActor as stopActorLocally,
-  terminateActor as terminateActorLocally
+  terminateActor as terminateActorLocally,
+  runStep
 } from './runtimeHelpers.ts';
 
 interface ScheduledTimer {
@@ -254,6 +255,21 @@ export interface ActorSystemRuntime {
   /** Cancels one logical timer. */
   cancelTimer(source: AnyActor, id: string): void | PromiseLike<void>;
   /**
+   * Runs one keyed step of an async actor (`enq.step`). The default journals
+   * the result in the actor's own snapshot; a durable host implements this
+   * to journal steps in its own journal instead — memoized results replay
+   * without re-running `exec`.
+   *
+   * Unlike other runtime operations, a step is an orchestration frame that
+   * may itself await runtime operations, so implementations must not
+   * serialize it behind them.
+   */
+  runStep(
+    actor: AnyActor,
+    key: string,
+    exec: () => unknown | PromiseLike<unknown>
+  ): unknown | PromiseLike<unknown>;
+  /**
    * Reports an undeliverable event. Delivery stays at-most-once — this is
    * observability, not retry: the default logs in development and emits an
    * inspection event.
@@ -279,6 +295,9 @@ export const RUNTIME_OPERATIONS = [
   'cancelTimer',
   'cancelAllTimers',
   'deadLetter'
+  // `runStep` and `sendEvent` are deliberately absent: durable executions
+  // wire them separately, since a step awaits other runtime operations and
+  // root-addressed sends are captured per batch.
 ] as const satisfies readonly (keyof ActorSystemRuntime)[];
 
 type ScheduledTimerId = string & { __scheduledTimerId: never };
@@ -768,6 +787,18 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
         `Event "${event.type}" to actor "${target.id}" was not delivered (${reason}).`
       );
     }
+  }
+
+  public runStep(
+    actor: AnyActor,
+    key: string,
+    exec: () => unknown | PromiseLike<unknown>
+  ): unknown | PromiseLike<unknown> {
+    const override = this.runtime?.runStep;
+    if (override) {
+      return override(actor, key, exec);
+    }
+    return runStep(actor, key, exec);
   }
 
   public scheduleTimer(

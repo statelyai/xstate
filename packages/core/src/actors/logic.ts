@@ -1,4 +1,9 @@
-import { XSTATE_STOP } from '../constants.ts';
+import {
+  XSTATE_LOGIC_EFFECT_REJECT,
+  XSTATE_LOGIC_EFFECT_RESOLVE,
+  XSTATE_LOGIC_EFFECT_START,
+  XSTATE_STOP
+} from '../constants.ts';
 import { createInitEvent } from '../eventUtils.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import { ActorSystemRuntime, AnyActorSystem } from '../system.ts';
@@ -166,9 +171,11 @@ const effectStates = new WeakMap<
   Map<PropertyKey, { cleanup?: () => void }>
 >();
 
-export const XSTATE_LOGIC_EFFECT_RESOLVE = 'xstate.logic.effect.resolve';
-export const XSTATE_LOGIC_EFFECT_REJECT = 'xstate.logic.effect.reject';
-export const XSTATE_LOGIC_EFFECT_START = 'xstate.logic.effect.start';
+export {
+  XSTATE_LOGIC_EFFECT_REJECT,
+  XSTATE_LOGIC_EFFECT_RESOLVE,
+  XSTATE_LOGIC_EFFECT_START
+};
 
 function getEffectState(self: AnyActorRef) {
   let state = effectStates.get(self);

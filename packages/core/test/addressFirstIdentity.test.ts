@@ -8,8 +8,11 @@ import {
   initialTransition,
   setup,
   transition,
-  type AnyActor
+  type AnyActor,
+  createAsyncLogic,
+  waitFor
 } from '../src';
+import { createDurable } from '../src/durable/index.ts';
 
 const workerMachine = createMachine({
   id: 'worker',
@@ -1280,5 +1283,108 @@ describe('timer restore honors wall-clock deadlines', () => {
     // No local schedule ran, so replayed persists stay byte-deterministic;
     // restoring falls back to the declared delay.
     expect(timer.startedAt).toBeUndefined();
+  });
+});
+
+describe('runStep runtime operation', () => {
+  it('a host runStep owns the step journal instead of the snapshot', async () => {
+    const journal = new Map<string, unknown>();
+    const calls: string[] = [];
+    const logic = createAsyncLogic({
+      run: async (_: any, enq: any) => {
+        const a = await enq.step('a', async () => 1);
+        const b = await enq.step('b', async () => a + 1);
+        return b;
+      }
+    });
+    const actor = createActor(logic);
+    actor.system.runtime = {
+      runStep: async (_target: any, key: string, exec: () => any) => {
+        calls.push(key);
+        if (journal.has(key)) {
+          return journal.get(key);
+        }
+        const output = await exec();
+        journal.set(key, output);
+        return output;
+      }
+    };
+    actor.start();
+    const snapshot = await waitFor(actor, (s: any) => s.status === 'done');
+
+    expect(snapshot.output).toBe(2);
+    expect(calls).toEqual(['a', 'b']);
+    expect(journal.get('a')).toBe(1);
+    // The host replaced the built-in journal: nothing memoized locally.
+    expect((snapshot as any).effects?.a).toBeUndefined();
+    expect((snapshot as any).effects?.b).toBeUndefined();
+  });
+
+  it('a host runStep replays memoized results without re-running exec', async () => {
+    const journal = new Map<string, unknown>([['a', 41]]);
+    let executions = 0;
+    const logic = createAsyncLogic({
+      run: async (_: any, enq: any) => {
+        const a = await enq.step('a', async () => {
+          executions++;
+          return 1;
+        });
+        return a + 1;
+      }
+    });
+    const actor = createActor(logic);
+    actor.system.runtime = {
+      runStep: async (_target: any, key: string, exec: () => any) => {
+        if (journal.has(key)) {
+          return journal.get(key);
+        }
+        const output = await exec();
+        journal.set(key, output);
+        return output;
+      }
+    };
+    actor.start();
+    const snapshot = await waitFor(actor, (s: any) => s.status === 'done');
+    expect(snapshot.output).toBe(42);
+    expect(executions).toBe(0);
+  });
+
+  it('a durable adapter runStep receives the async child steps', async () => {
+    const stepped: string[] = [];
+    const asyncWorker = createAsyncLogic({
+      id: 'asyncWorker',
+      run: async (_: any, enq: any) => {
+        await enq.step('warmup', async () => 'ok');
+        return 'done';
+      }
+    });
+    const machine = setup({ actors: { asyncWorker } }).createMachine({
+      id: 'order',
+      initial: 'a',
+      entry: ({ actors }: any, enq: any) => {
+        enq.spawn(actors.asyncWorker);
+      },
+      states: { a: {} }
+    });
+
+    const durable = createDurable(machine, {
+      executeAction: (action: any, _meta: any, runtime: any) =>
+        action.exec(runtime),
+      startActor: (actor: any) => {
+        actor.start();
+      },
+      runStep: async (actor: any, key: string, exec: () => any) => {
+        stepped.push(`${actor.address}:${key}`);
+        return exec();
+      },
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [, effects] = durable.initialTransition();
+    await durable.executeEffects(effects);
+    await Promise.resolve();
+    expect(stepped).toEqual(['order/asyncWorker:0:warmup']);
   });
 });

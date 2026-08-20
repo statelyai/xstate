@@ -234,7 +234,11 @@ export function createDurable<TLogic extends AnyActorLogic>(
 
   // The adapter's runtime operations, picked off the flat adapter shape.
   const systemRuntime: Partial<ActorSystemRuntime> = {};
-  for (const operation of [...RUNTIME_OPERATIONS, 'sendEvent'] as const) {
+  for (const operation of [
+    ...RUNTIME_OPERATIONS,
+    'sendEvent',
+    'runStep'
+  ] as const) {
     const impl = adapter[operation];
     if (impl) {
       (systemRuntime as Record<string, unknown>)[operation] =
@@ -337,6 +341,13 @@ export function createDurable<TLogic extends AnyActorLogic>(
           ...args: unknown[]
         ) => dispatch(() => impl(...args));
       }
+    }
+    // A step is an orchestration frame: it may itself await runtime
+    // operations of this execution, so it passes through undispatched —
+    // queuing it on the operation tail would make it wait behind (and
+    // deadlock with) the operations its own body initiates.
+    if (runtime.runStep) {
+      wrapped.runStep = runtime.runStep;
     }
     wrapped.sendEvent = (source, target, event) => {
       if (

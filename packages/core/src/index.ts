@@ -178,7 +178,12 @@ export {
   getEffectDescriptor,
   type EffectDescriptor
 } from './effectDescriptor.ts';
-export { deliverEvent, stopActor, terminateActor } from './runtimeHelpers.ts';
+export {
+  deliverEvent,
+  runStep,
+  stopActor,
+  terminateActor
+} from './runtimeHelpers.ts';
 export { waitFor } from './waitFor.ts';
 
 declare global {

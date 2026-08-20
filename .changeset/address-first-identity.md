@@ -14,6 +14,7 @@ Actors now have deterministic, location-transparent identity.
 - Undeliverable events are reported through the new `deadLetter` runtime operation and a `@xstate.deadletter` inspection event. Delivery stays at-most-once — this is observability, not retry.
 - A persisted remote child entry round-trips an optional opaque `incarnation` token. XState never stamps one, but when a host does, completions from a different incarnation of the address are dropped and `sendTo` effect descriptors journal the target's token.
 - `createDurable` exposes `machineId` and `machineVersion` so hosts can pin an execution's journal to the machine version that produced it.
+- Async-actor steps (`enq.step`) route through the new `runStep` runtime operation. The built-in behavior memoizes results in the actor's own snapshot as before; a durable host implements `runStep` to own the step journal, replaying memoized results without re-running the step. The `runStep` helper export exposes the built-in behavior.
 - Timers persisted from a running actor carry their wall-clock start (`startedAt`); restoring the snapshot schedules the remaining time toward the original deadline (clamped to the declared delay), so a timer past due fires immediately instead of restarting its full delay. Pure-transition snapshots carry no timestamp and restart the declared delay.
 
 ```ts
