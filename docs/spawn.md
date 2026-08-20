@@ -29,7 +29,7 @@ on: {
 
 | Option | Description |
 | --- | --- |
-| `id` | Identifier for the child, and its key in `snapshot.children`. Defaults to a generated id such as `x:1`. |
+| `id` | Identifier for the child, and its key in `snapshot.children`. Defaults to a deterministic generated id keyed by the actor source, such as `worker:0`. |
 | `input` | [Input](input-output.md) for the child. Required when its logic requires input. |
 | `registryKey` | Registers the child in the [actor registry](systems.md) under that key. |
 | `syncSnapshot` | When `true`, each child snapshot is sent to the parent as an `xstate.snapshot.actor` event. |
@@ -42,7 +42,7 @@ entry: ({ actors }, enq) => {
 };
 ```
 
-Spawning with an `id` that a live child already uses replaces that entry in `children`; the previous actor is left running and unreferenced. Generate ids from something stable, such as a file or participant id.
+Spawning with an `id` that a live child of the same parent already uses throws: an address names at most one live actor. Stop the existing child first — an id stopped earlier in the same transition is free to reuse, and a child that completed on its own frees its id for the transition handling its completion. Generate ids from something stable, such as a file or participant id.
 
 ## Where you can spawn
 
@@ -139,7 +139,12 @@ entry: (_, enq) => {
 };
 ```
 
-`enq.listen(...)` maps [emitted events](emitted-events.md), `enq.subscribeTo(...)` maps snapshots and outcomes. Both return an actor that can be stopped with `enq.stop(...)`, and both are available in `entry` and `exit` functions. See [listen and subscribe](listen-and-subscribe.md).
+<!-- enq.listen and enq.subscribeTo behavior from packages/core/src/stateUtils.ts and packages/core/src/transitionActions.ts -->
+
+`enq.listen(...)` maps [emitted events](emitted-events.md), while
+`enq.subscribeTo(...)` maps snapshots and outcomes. Both return an actor that
+can be stopped with `enq.stop(...)`, and both work in transition, `entry` and
+`exit` functions. See [listen and subscribe](listen-and-subscribe.md).
 
 `syncSnapshot: true` is the lower-level alternative: the parent then receives `xstate.snapshot.actor` events that it can handle with `matches: { actorId }`.
 

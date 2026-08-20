@@ -5,7 +5,7 @@ import {
   createAsyncLogic,
   createObservableLogic,
   type AnyStateMachine,
-  type PersistedSnapshotFor,
+  type RestorablePersistedSnapshotFor,
   type Snapshot
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -501,7 +501,7 @@ describe('rehydration', () => {
   describe('persisted state value validation', () => {
     function restoreOnto<TLogic extends AnyStateMachine>(
       machine: TLogic,
-      snapshot: Snapshot<unknown> & Partial<PersistedSnapshotFor<TLogic>>
+      snapshot: Snapshot<unknown> & RestorablePersistedSnapshotFor<TLogic>
     ) {
       const restored = createActor(machine, { snapshot, input: undefined });
       restored.subscribe({ error: () => {} });

@@ -107,4 +107,18 @@ export interface TransitionInspectionEvent extends BaseInspectionEventProperties
  * - `@xstate.transition` — every transition facet: event, snapshot, source,
  *   microsteps, executed actions, and sent/scheduled events.
  */
-export type InspectionEvent = ActorInspectionEvent | TransitionInspectionEvent;
+/** Emitted when an event could not be delivered to its target actor. */
+export interface DeadLetterInspectionEvent extends BaseInspectionEventProperties {
+  type: '@xstate.deadletter';
+  /** The actor that sent the event, or `undefined` when sent externally. */
+  sourceRef: ActorRefLike | undefined;
+  /** The undelivered event. */
+  event: AnyEventObject;
+  /** Why the event was not delivered, such as `'stopped'`. */
+  reason: string;
+}
+
+export type InspectionEvent =
+  | ActorInspectionEvent
+  | TransitionInspectionEvent
+  | DeadLetterInspectionEvent;

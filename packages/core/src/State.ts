@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { $$ACTOR_TYPE } from './createActor.ts';
+import { ACTOR_REF_TYPE } from './createActor.ts';
 import { getStateValue } from './stateUtils.ts';
 import type {
   AnyMachineSnapshot,
@@ -29,6 +29,7 @@ import {
   getSnapshotActorRef,
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
+import { isRemoteActorRef } from './remoteActorRef.ts';
 
 const emptySnapshotRecord = Object.freeze({});
 
@@ -157,6 +158,8 @@ interface MachineSnapshotBase<
   _stateInputs: Record<string, Record<string, unknown>>;
   /** @internal */
   _nextTimerId: number;
+  /** @internal */
+  _nextActorIds?: Record<string, number>;
   /**
    * Whether the current state value is a subset of the given partial state
    * value.
@@ -482,6 +485,7 @@ export function createMachineSnapshot<
     historyValue: compactSnapshotRecord(config.historyValue),
     _stateInputs: compactSnapshotRecord(config._stateInputs),
     _nextTimerId: config._nextTimerId ?? 0,
+    _nextActorIds: config._nextActorIds,
     matches: machineSnapshotMatches as never,
     hasTag: machineSnapshotHasTag,
     can: machineSnapshotCan,
@@ -519,6 +523,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       historyValue: compactSnapshotRecord(configWithSnapshot.historyValue),
       _stateInputs: compactSnapshotRecord(configWithSnapshot._stateInputs),
       _nextTimerId: configWithSnapshot._nextTimerId ?? 0,
+      _nextActorIds: configWithSnapshot._nextActorIds,
       matches: machineSnapshotMatches as never,
       hasTag: machineSnapshotHasTag,
       can: machineSnapshotCan,
@@ -597,6 +602,9 @@ export function getPersistedSnapshot<
   const childrenJson: Record<string, unknown> = {};
   const timersJson: Record<string, unknown> = {};
 
+  const embedChildren =
+    (options as { embedChildren?: boolean } | undefined)?.embedChildren !==
+    false;
   for (const id in children) {
     const child = children[id] as any;
     if (
@@ -606,14 +614,45 @@ export function getPersistedSnapshot<
     ) {
       throw new Error('An inline child actor cannot be persisted.');
     }
+    // Children are referenced by their logical address. Embedding the child
+    // state is the co-locating runtime's whole-tree checkpoint capability;
+    // remote handles never embed — their state lives with another runtime.
+    const embed = embedChildren && !isRemoteActorRef(child);
+    if (!embed && typeof child.src !== 'string') {
+      // Fail where it is actionable: a by-address reference without a
+      // registered source key could be persisted but never restored.
+      throw new Error(
+        `Unable to persist child '${id}' by address: it requires a registered source key.`
+      );
+    }
     childrenJson[id as keyof typeof childrenJson] = {
-      snapshot: child.getPersistedSnapshot(options),
+      address: child.address,
+      // The explicit marker disambiguates a by-address reference from a child
+      // whose own persisted snapshot happens to be undefined.
+      ...(embed
+        ? { snapshot: child.getPersistedSnapshot(options) }
+        : {
+            remote: true,
+            // Round-trips verbatim: the host that owns the child injects the
+            // token; XState never stamps one (a local sessionId would make
+            // persisted snapshots nondeterministic across replays).
+            incarnation: child._incarnation
+          }),
       src: child.src,
       registryKey: child.registryKey,
       syncSnapshot: child._syncSnapshot
     };
   }
 
+  const snapshotActor = getSnapshotActorRef(snapshot)?.actor;
+  // Only the wall clock is stamped into persisted timers: a custom clock's
+  // readings (a simulated clock, a monotonic counter) are meaningless in any
+  // other process, and restoring them under the wall clock would fire every
+  // pending delay instantly. Pure-transition snapshots have no local
+  // schedule and persist no timestamp.
+  const scheduledTimers = snapshotActor?.system?._clock?.now
+    ? undefined
+    : snapshotActor?.system?._snapshot?._scheduledTimers;
   for (const id in timers) {
     const timer = timers[id];
     let event = timer.event;
@@ -640,19 +679,29 @@ export function getPersistedSnapshot<
         );
       }
     }
+    // A live runtime knows when the timer is due; persist the wall-clock
+    // start (dueAt - declared delay) so restore can honor the absolute
+    // deadline. Derived from dueAt, not the scheduling moment, so repeated
+    // persist/restore cycles keep the same deadline. Without a live schedule
+    // (a restored-but-never-started actor, a pure-transition snapshot) the
+    // timer's carried-in start — which only a wall-clock actor ever stamped —
+    // passes through, so re-persisting cannot push the deadline back.
+    const scheduled = scheduledTimers?.[`${snapshotActor!.sessionId}.${id}`];
+    const startedAt = scheduled
+      ? scheduled.dueAt - timer.delay
+      : timer.startedAt;
     timersJson[id] = {
       id: timer.id,
       delay: timer.delay,
       type: timer.type,
       event,
-      target
+      target,
+      ...(startedAt !== undefined && { startedAt })
     };
   }
 
   const persisted: Record<string, unknown> = {
     ...jsonValues,
-    _nextActorId:
-      getSnapshotActorRef(snapshot)?.systemState.snapshot._nextActorId,
     context: persistContext(context) as any,
     children: childrenJson,
     timers: timersJson,
@@ -684,7 +733,7 @@ function persistContext(contextPart: Record<string, unknown>) {
           ? (contextPart.slice() as typeof contextPart)
           : { ...contextPart };
         copy[key] = {
-          xstate$$type: $$ACTOR_TYPE,
+          xstate$type: ACTOR_REF_TYPE,
           id: (value as any as AnyActor).id
         };
       } else {

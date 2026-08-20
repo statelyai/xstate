@@ -1111,6 +1111,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   config: any;
   version?: string;
   schemas?: import('./types.v6.ts').AnyMachineSchemas;
+  snapshotSchema: import('./machineVersion.types.ts').MachineSnapshotSchema;
+  eventSchema: import('./machineVersion.types.ts').MachineEventSchema;
   provide(sources: any): AnyStateMachine;
   resolveState(config: any): any;
   /** @internal */
@@ -1576,6 +1578,13 @@ export interface StateConfig<
   _stateInputs?: Record<string, Record<string, unknown>>;
   /** @internal */
   _nextTimerId?: number;
+  /**
+   * Deterministic generated-child-id counters owned by this snapshot, keyed
+   * by src prefix.
+   *
+   * @internal
+   */
+  _nextActorIds?: Record<string, number>;
   machine?: StateMachine<
     TContext,
     TEvent,
@@ -1602,6 +1611,12 @@ export interface LogicalTimer {
   event: EventObject;
   /** `self` or the logical actor that will receive `event`. */
   target: 'self' | AnyActor;
+  /**
+   * The timer's wall-clock start, stamped at persist time by a running
+   * wall-clock actor and carried through restore so re-persisting keeps the
+   * original deadline.
+   */
+  startedAt?: number;
 }
 
 /** The logical input delivered to a timer's source when its runtime delay ends. */
@@ -1614,14 +1629,33 @@ declare const persistedSnapshotLogic: unique symbol;
 
 type PersistedSnapshotLogicIdentity<TLogic> = TLogic extends {
   readonly id: infer TId extends string;
-  readonly version: infer TVersion extends string;
 }
-  ? { readonly id: TId; readonly version: TVersion }
+  ? {
+      readonly id: TId;
+      readonly version: TLogic extends {
+        readonly version: infer TVersion extends string;
+      }
+        ? TVersion
+        : string;
+    }
   : never;
 
 /** A persisted snapshot tied to a versioned actor logic identity. */
 export type PersistedSnapshotFor<TLogic> = {
   readonly [persistedSnapshotLogic]: PersistedSnapshotLogicIdentity<TLogic>;
+};
+
+/**
+ * A persisted snapshot restorable into the given actor logic: any snapshot
+ * created by logic with the same machine `id` is accepted, regardless of
+ * version (version mismatches are handled at runtime, e.g. by `migrate`).
+ */
+export type RestorablePersistedSnapshotFor<TLogic> = {
+  readonly [persistedSnapshotLogic]: TLogic extends {
+    readonly id: infer TId extends string;
+  }
+    ? { readonly id: TId; readonly version: string }
+    : never;
 };
 
 export interface ActorOptions<TLogic extends AnyActorLogic> {
@@ -1683,7 +1717,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * @see https://stately.ai/docs/persistence
    */
   snapshot?: Snapshot<unknown> &
-    Partial<PersistedSnapshotFor<DoNotInfer<TLogic>>>;
+    Partial<RestorablePersistedSnapshotFor<DoNotInfer<TLogic>>>;
 
   /** @deprecated Use `snapshot` instead. */
   state?: Snapshot<unknown>;
@@ -1902,6 +1936,12 @@ export interface ActorRuntime<
 > {
   /** The unique identifier for this actor relative to its parent. */
   id: string;
+  /**
+   * The deterministic logical address of this actor within its system: the
+   * `/`-joined path of actor ids from the root. Stable across persistence and
+   * restore, unlike `sessionId`.
+   */
+  readonly address: string;
   /**
    * The globally unique process ID for this invocation.
    *
@@ -2976,6 +3016,12 @@ export type EnqueueObject<
 > = {
   cancel: (id: string) => void;
   raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
+  /**
+   * Spawns a child actor from the given logic. Without an explicit `id`, the
+   * child gets a deterministic src-keyed id (`worker:0`, `worker:1`, …)
+   * allocated from the parent snapshot's own counters, so ids replay
+   * identically and persist with the parent.
+   */
   spawn: <T extends AnyActorLogic>(
     logic: T,
     options?: {

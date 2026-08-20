@@ -87,9 +87,13 @@ export {
   type EventAdapterHandlers,
   type EventHistorySource,
   type MigrateSnapshotOptions,
+  type MachineEventSchema,
+  type MachineSnapshotSchema,
   type MachineVersionsOptions,
+  type MachineVersionDescriptor,
   type ParsedPersistedSnapshot,
   type PersistedMachineIdentity,
+  type PersistedMachineSnapshot,
   type PersistedSnapshotDataFrom,
   type PersistedSnapshotSource,
   type SnapshotMigrationHandlers,
@@ -124,6 +128,7 @@ export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export type {
   InspectionEvent,
   ActorInspectionEvent,
+  DeadLetterInspectionEvent,
   TransitionInspectionEvent,
   ActionRecord,
   SentRecord
@@ -169,6 +174,16 @@ export {
   executeEffects,
   isBuiltInExecutableAction
 } from './transitionActions.ts';
+export {
+  getEffectDescriptor,
+  type EffectDescriptor
+} from './effectDescriptor.ts';
+export {
+  deliverEvent,
+  runStep,
+  stopActor,
+  terminateActor
+} from './runtimeHelpers.ts';
 export { waitFor } from './waitFor.ts';
 
 declare global {
