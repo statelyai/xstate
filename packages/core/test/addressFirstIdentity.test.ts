@@ -1530,3 +1530,43 @@ describe('remote handle serialization', () => {
     restored.stop();
   });
 });
+
+describe('timer startedAt survives a restore that never starts', () => {
+  const timerMachine2 = createMachine({
+    id: 'p2',
+    initial: 'waiting',
+    states: {
+      waiting: { after: { 1000: { target: 'fired' } } },
+      fired: {}
+    }
+  });
+
+  it('re-persisting without a live schedule keeps the original deadline', () => {
+    vi.useFakeTimers();
+    try {
+      const actor = createActor(timerMachine2).start();
+      vi.advanceTimersByTime(600);
+      const persisted = actor.getPersistedSnapshot() as any;
+      actor.stop();
+      const originalStart = Object.values(persisted.timers as any)[0] as any;
+
+      // A restore → persist cycle with no local schedule (the durable-host
+      // shape: pure restore, re-persist) must not push the deadline back.
+      const restored = timerMachine2.restoreSnapshot(persisted as never);
+      const repersisted = timerMachine2.getPersistedSnapshot(restored) as any;
+      const carried = Object.values(repersisted.timers as any)[0] as any;
+      expect(carried.startedAt).toBe(originalStart.startedAt);
+
+      const resumed = createActor(timerMachine2, {
+        snapshot: repersisted
+      }).start();
+      vi.advanceTimersByTime(399);
+      expect(resumed.getSnapshot().value).toBe('waiting');
+      vi.advanceTimersByTime(1);
+      expect(resumed.getSnapshot().value).toBe('fired');
+      resumed.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

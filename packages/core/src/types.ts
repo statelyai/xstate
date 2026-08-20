@@ -1611,6 +1611,12 @@ export interface LogicalTimer {
   event: EventObject;
   /** `self` or the logical actor that will receive `event`. */
   target: 'self' | AnyActor;
+  /**
+   * The timer's wall-clock start, stamped at persist time by a running
+   * wall-clock actor and carried through restore so re-persisting keeps the
+   * original deadline.
+   */
+  startedAt?: number;
 }
 
 /** The logical input delivered to a timer's source when its runtime delay ends. */
