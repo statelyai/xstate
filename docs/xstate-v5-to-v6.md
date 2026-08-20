@@ -968,18 +968,15 @@ These exports have been **removed** from `xstate`:
 
 These exports have been **added**:
 
-- `setup` (reshaped - see §4) and `createSystem(...).setup(...)` for typed system registries
+- `setup` (reshaped - see §4) and `createSystem` for typed system registries
 - `createFSM` and its related `FSMActorLogic`/`FSMConfig`/`FSMSnapshot` types for flat, actor-compatible finite state machines
 - `createStateConfig`
 - `checkStateIn`
-- `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
+- `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
 - `TimeoutError`
 - Serialization surface (see §21): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON` types; machines serialize via `serializeMachine(machine)`
 - Config types (v6 shapes): `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `Sources`, `InferEvents`, `WidenLiterals`
-- `isBuiltInExecutableAction`
-- `executeEffects`
-- `ActorSystemRuntime`
-- `ActorTermination`
+- Runtime/effect surface: `executeEffects`, `isBuiltInExecutableAction`, `getEffectDescriptor`, `deliverEvent`, `runStep`, `stopActor`, `terminateActor`, and the related `EffectDescriptor`, `ActorSystemRuntime`, and `ActorTermination` types
 - Persistence/versioning surface: `machineVersions` and its related snapshot
   migration and event adaptation types
 - Executable effect types: `BaseExecutableActionObject`, `CustomExecutableActionObject`, `ExecutableActionObject`, `ExecutableActionObjectFromLogic`, `BuiltInExecutableActionObject`, `SpecialExecutableAction`, `StartExecutableActionObject`, `RaiseExecutableActionObject`, `SendToExecutableActionObject`, `CancelExecutableActionObject`, `StopExecutableActionObject`, `TerminateExecutableActionObject`
