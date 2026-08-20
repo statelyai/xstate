@@ -1571,11 +1571,7 @@ export class StateMachine<
         const value: unknown = contextPart[key];
 
         if (value && typeof value === 'object') {
-          if (
-            ('xstate$type' in value && value.xstate$type === ACTOR_REF_TYPE) ||
-            // The v5 marker, so old persisted context refs still revive.
-            ('xstate$$type' in value && value.xstate$$type === 1)
-          ) {
+          if ('xstate$type' in value && value.xstate$type === ACTOR_REF_TYPE) {
             contextPart[key] = children[(value as any).id];
             continue;
           }
