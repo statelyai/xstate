@@ -41,6 +41,8 @@ export type EffectDescriptor =
       type: '@xstate.sendTo';
       source: string;
       target: string;
+      /** The target's incarnation token, when the target is a remote handle that carries one. */
+      incarnation: string | undefined;
       event: unknown;
       id: string | undefined;
       delay: number | undefined;
@@ -145,6 +147,7 @@ export function getEffectDescriptor(
         type: '@xstate.sendTo',
         source: effect.source.address,
         target: effect.target.address,
+        incarnation: (effect.target as { _incarnation?: string })._incarnation,
         event: effect.event,
         id: effect.id,
         delay: effect.delay

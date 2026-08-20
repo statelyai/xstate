@@ -1055,3 +1055,139 @@ describe('history reentry stops the previous invoke', () => {
     expect(second.getSnapshot().status).toBe('active');
   });
 });
+
+describe('incarnation tokens on remote handles', () => {
+  const invokeMachine = setup({
+    actors: { worker: workerMachine }
+  }).createMachine({
+    id: 'order',
+    initial: 'a',
+    states: {
+      a: {
+        invoke: { id: 'w', src: 'worker', onDone: { target: 'finished' } }
+      },
+      finished: {}
+    }
+  });
+
+  function persistedWithIncarnation(incarnation: string) {
+    const actor = createActor(invokeMachine).start();
+    const persisted = actor.getPersistedSnapshot({
+      embedChildren: false
+    }) as any;
+    actor.stop();
+    persisted.children.w.incarnation = incarnation;
+    return persisted;
+  }
+
+  it('round-trips a host-supplied incarnation verbatim', () => {
+    const restored = createActor(invokeMachine, {
+      snapshot: persistedWithIncarnation('runtime-b:7')
+    }).start();
+    const handle = restored.getSnapshot().children.w as any;
+    expect(handle._incarnation).toBe('runtime-b:7');
+    const repersisted = restored.getPersistedSnapshot({
+      embedChildren: false
+    }) as any;
+    expect(repersisted.children.w.incarnation).toBe('runtime-b:7');
+    restored.stop();
+  });
+
+  it('never stamps a token itself', () => {
+    const actor = createActor(invokeMachine).start();
+    const persisted = actor.getPersistedSnapshot({
+      embedChildren: false
+    }) as any;
+    actor.stop();
+    // A local sessionId in the snapshot would break replay determinism.
+    expect(persisted.children.w.incarnation).toBeUndefined();
+  });
+
+  it('drops completions from a different incarnation when a token is present', () => {
+    const restored = createActor(invokeMachine, {
+      snapshot: persistedWithIncarnation('runtime-b:7')
+    }).start();
+    restored.send({
+      type: 'xstate.done.actor',
+      actorId: 'w',
+      output: undefined,
+      sessionId: 'runtime-b:3'
+    } as never);
+    expect(restored.getSnapshot().value).toBe('a');
+    restored.send({
+      type: 'xstate.done.actor',
+      actorId: 'w',
+      output: undefined,
+      sessionId: 'runtime-b:7'
+    } as never);
+    expect(restored.getSnapshot().value).toBe('finished');
+    restored.stop();
+  });
+
+  it('journals the target incarnation on sendTo descriptors', () => {
+    const machine = setup({ actors: { worker: workerMachine } }).createMachine({
+      id: 'order',
+      initial: 'a',
+      states: {
+        a: {
+          invoke: { id: 'w', src: 'worker' },
+          on: {
+            KICK: ({ children }, enq) => {
+              enq.sendTo(children.w!, { type: 'PING' });
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    const persisted = actor.getPersistedSnapshot({
+      embedChildren: false
+    }) as any;
+    actor.stop();
+    persisted.children.w.incarnation = 'runtime-b:7';
+
+    const restored = machine.restoreSnapshot(persisted as never);
+    const [, effects] = transition(machine, restored as never, {
+      type: 'KICK'
+    });
+    const descriptor = getEffectDescriptor(effects[0]!) as any;
+    expect(descriptor.type).toBe('@xstate.sendTo');
+    expect(descriptor.incarnation).toBe('runtime-b:7');
+  });
+});
+
+describe('dead letters', () => {
+  it('routes undeliverable events to the runtime deadLetter operation', () => {
+    const deadLetters: Array<{ target: string; type: string; reason: string }> =
+      [];
+    const machine = createMachine({ id: 'p', initial: 'a', states: { a: {} } });
+    const actor = createActor(machine);
+    actor.system.runtime = {
+      deadLetter: (_source: any, target: any, event: any, reason: string) => {
+        deadLetters.push({ target: target.address, type: event.type, reason });
+      }
+    };
+    actor.start();
+    actor.stop();
+    actor.send({ type: 'LATE' });
+    expect(deadLetters).toEqual([
+      { target: 'p', type: 'LATE', reason: 'stopped' }
+    ]);
+  });
+
+  it('emits a @xstate.deadletter inspection event', () => {
+    const seen: string[] = [];
+    const machine = createMachine({ id: 'p', initial: 'a', states: { a: {} } });
+    const actor = createActor(machine, {
+      inspect: (ev) => {
+        if (ev.type === '@xstate.deadletter') {
+          seen.push(`${ev.event.type}:${ev.reason}`);
+        }
+      }
+    });
+    actor.start();
+    actor.stop();
+    actor.send({ type: 'LATE' });
+    expect(seen).toEqual(['LATE:stopped']);
+  });
+});

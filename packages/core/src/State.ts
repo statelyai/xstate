@@ -631,7 +631,13 @@ export function getPersistedSnapshot<
       // whose own persisted snapshot happens to be undefined.
       ...(embed
         ? { snapshot: child.getPersistedSnapshot(options) }
-        : { remote: true }),
+        : {
+            remote: true,
+            // Round-trips verbatim: the host that owns the child injects the
+            // token; XState never stamps one (a local sessionId would make
+            // persisted snapshots nondeterministic across replays).
+            incarnation: child._incarnation
+          }),
       src: child.src,
       registryKey: child.registryKey,
       syncSnapshot: child._syncSnapshot

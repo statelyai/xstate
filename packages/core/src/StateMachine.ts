@@ -1337,6 +1337,7 @@ export class StateMachine<
         snapshot?: Snapshot<unknown>;
         address?: string;
         remote?: boolean;
+        incarnation?: string;
         syncSnapshot?: boolean;
         registryKey?: string;
       }
@@ -1363,7 +1364,8 @@ export class StateMachine<
           src: actorData.src,
           parent: resolvedActorScope.self,
           registryKey: actorData.registryKey,
-          syncSnapshot: actorData.syncSnapshot
+          syncSnapshot: actorData.syncSnapshot,
+          incarnation: actorData.incarnation
         });
         if (actorData.registryKey) {
           resolvedActorScope.system._set(actorData.registryKey, handle);

@@ -128,6 +128,14 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * can label mailboxes and wire messages without a snapshot.
    */
   readonly rootAddress: string;
+  /** The machine's id, for pinning a journal to the logic that produced it. */
+  readonly machineId: string;
+  /**
+   * The machine's declared `version`. Persist it with the execution and
+   * reject a worker whose machine version differs: a changed machine
+   * reorders effect ids, and memoized results silently misalign.
+   */
+  readonly machineVersion: string | undefined;
   /** Index assigned to the next transition. Persist this with checkpoints. */
   readonly nextTransitionIndex: number;
   initialTransition(
@@ -221,6 +229,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
   };
 
   const rootAddress = getRootActorId(logic);
+  const machineId = (logic as { id?: string }).id ?? rootAddress;
+  const machineVersion = (logic as { version?: string }).version;
 
   // The adapter's runtime operations, picked off the flat adapter shape.
   const systemRuntime: Partial<ActorSystemRuntime> = {};
@@ -391,6 +401,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
 
   const execution: DurableExecution<TLogic> = {
     rootAddress,
+    machineId,
+    machineVersion,
     get nextTransitionIndex() {
       return nextTransitionIndex;
     },

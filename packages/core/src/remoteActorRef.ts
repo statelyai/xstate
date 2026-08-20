@@ -54,6 +54,7 @@ export function createRemoteActorRef(
     parent: AnyActor | undefined;
     registryKey?: string;
     syncSnapshot?: boolean;
+    incarnation?: string;
   }
 ): AnyActor {
   const handle = {
@@ -66,8 +67,11 @@ export function createRemoteActorRef(
     src: options.src,
     registryKey: options.registryKey,
     // A remote handle does not know the child's incarnation; the runtime that
-    // owns the child is the authority on completion staleness.
+    // owns the child is the authority on completion staleness — unless the
+    // host supplied an incarnation token, which lets this side drop stale
+    // completions and lets journaled sends name the intended incarnation.
     sessionId: undefined as unknown as string,
+    _incarnation: options.incarnation,
     system,
     _parent: options.parent,
     // Round-trips through persistence verbatim (undefined stays undefined,

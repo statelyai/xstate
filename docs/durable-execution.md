@@ -28,6 +28,9 @@ const durable = createDurable(machine, {
   cancelTimer: (source, id) =>
     host.cancelTimer({ address: source.address, timerId: id }),
   executeAction: (action, { id }, runtime) =>
+    // Safe only when the action body performs plain external side effects.
+    // See "Journaling rules" before journaling `exec` on engines whose
+    // journaled step must not start another journaled operation.
     host.runAction(id, () => action.exec(runtime)),
   waitForEvent: ({ id }) => host.waitForEvent(id)
 });
@@ -55,7 +58,10 @@ while (state.status === 'active') {
 Checkpoint with `getPersistedSnapshot(state)` after `executeEffects`
 resolves, and persist `durable.nextTransitionIndex` alongside; pass it as
 `transitionIndex` when recreating the execution from a checkpoint instead of
-replaying from the beginning.
+replaying from the beginning. Persist `durable.machineId` and
+`durable.machineVersion` with the execution and reject a worker whose values
+differ: a changed machine reorders effect ids, and memoized results silently
+misalign.
 
 That is the whole integration. The rest of this page specifies the contract
 precisely.
@@ -73,7 +79,12 @@ Addresses are stable across persistence and restore.
 `sessionId` identifies one incarnation of an address. A restored actor is a
 new incarnation: completion events carry the producing incarnation's
 `sessionId`, and `transition()` drops completions from a previous incarnation
-of a local child.
+of a local child. For a remote child the owning runtime is the authority on
+staleness by default; a host that stores an opaque `incarnation` token on the
+persisted child entry gets the same guard on the referencing side — a
+completion whose `sessionId` differs from the token is dropped, and `sendTo`
+effect descriptors journal the target's token so a send replayed after the
+address was reincarnated is detectable.
 
 Correlate actors by address, not object identity. Actor references passed to
 runtime operations expose `address`, `id` and (for registered sources) a
@@ -109,8 +120,10 @@ ID.
 Delivery is at-most-once with pairwise sender-to-receiver ordering: for a
 given pair of actors, events sent from the first to the second are enqueued
 in send order, and an undeliverable event is dropped rather than retried.
-This matches the Erlang and Akka defaults. Ordering is not transitive across
-intermediaries. The durable path is stronger — the handoff queue serializes
+This matches the Erlang and Akka defaults. A dropped event is reported
+through the `deadLetter` runtime operation (and a `@xstate.deadletter`
+inspection event) — observability, not retry. Ordering is not transitive
+across intermediaries. The durable path is stronger — the handoff queue serializes
 every operation of an execution globally. A host `sendEvent` that routes
 remotely is responsible for preserving pairwise ordering on its transport.
 
@@ -132,6 +145,25 @@ suspending. While the loop is parked in `waitForEvent()`, a root-addressed
 event reaches `sendEvent` like any other target and belongs in the host's
 mailbox; if the adapter implements no `sendEvent`, producing one there throws,
 since delivering it locally to the inert root would silently lose it.
+
+### Journaling rules
+
+A journaled step's closure must contain only the external side effect —
+nothing that re-enters the engine's journal, and nothing that mutates local
+actors.
+
+- **Journaled operations must not nest.** On engines whose journaled step
+  cannot start another journaled operation (Restate's `ctx.run`, a Temporal
+  activity), an action body that uses its `runtime` argument from inside a
+  journaled closure fails or retries the invocation indefinitely. Journal
+  `action.exec(runtime)` only when the body is a plain external side effect;
+  otherwise run `exec` outside the journal and journal the host-native calls
+  the runtime operations make.
+- **Local actor mutations stay outside the journal.** A journaled closure is
+  skipped on replay: calling `deliverEvent`, `stopActor`, or starting an
+  actor inside one rebuilds a different actor tree than the recorded run —
+  silently, with no error. Re-run local mutations unjournaled on every
+  replay; journal only work that must not run twice.
 
 A per-effect `runtime(metadata, effect)` factory is available for hosts that
 key operations by effect ID; it overrides the adapter's runtime operations

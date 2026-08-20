@@ -1,3 +1,4 @@
+import isDevelopment from '#is-development';
 import type { InspectionEvent, SentRecord } from './inspection.ts';
 import {
   AnyEventObject,
@@ -252,6 +253,17 @@ export interface ActorSystemRuntime {
   ): void | PromiseLike<void>;
   /** Cancels one logical timer. */
   cancelTimer(source: AnyActor, id: string): void | PromiseLike<void>;
+  /**
+   * Reports an undeliverable event. Delivery stays at-most-once — this is
+   * observability, not retry: the default logs in development and emits an
+   * inspection event.
+   */
+  deadLetter(
+    source: AnyActor | undefined,
+    target: AnyActor,
+    event: AnyEventObject,
+    reason: string
+  ): void | PromiseLike<void>;
   /** Cancels all logical timers owned by an actor. */
   cancelAllTimers(source: AnyActor): void | PromiseLike<void>;
 }
@@ -265,7 +277,8 @@ export const RUNTIME_OPERATIONS = [
   'emitEvent',
   'scheduleTimer',
   'cancelTimer',
-  'cancelAllTimers'
+  'cancelAllTimers',
+  'deadLetter'
 ] as const satisfies readonly (keyof ActorSystemRuntime)[];
 
 type ScheduledTimerId = string & { __scheduledTimerId: never };
@@ -731,6 +744,30 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       return override(source, event);
     }
     (source as AnyActor & { _emit(value: EventObject): void })._emit(event);
+  }
+
+  public deadLetter(
+    source: AnyActor | undefined,
+    target: AnyActor,
+    event: AnyEventObject,
+    reason: string
+  ): void | PromiseLike<void> {
+    this._sendInspectionEvent({
+      type: '@xstate.deadletter',
+      actorRef: target,
+      sourceRef: source,
+      event,
+      reason
+    });
+    const override = this.runtime?.deadLetter;
+    if (override) {
+      return override(source, target, event, reason);
+    }
+    if (isDevelopment) {
+      console.warn(
+        `Event "${event.type}" to actor "${target.id}" was not delivered (${reason}).`
+      );
+    }
   }
 
   public scheduleTimer(

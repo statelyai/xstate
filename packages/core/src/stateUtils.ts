@@ -304,14 +304,22 @@ export function matchesActorSession(
   snapshot: AnyMachineSnapshot,
   actorId: string
 ): boolean {
-  return (
-    !snapshot.children[actorId] ||
-    !('sessionId' in event) ||
-    // For a remote handle the runtime that owns the child is the authority
-    // on incarnation staleness.
-    isRemoteActorRef(snapshot.children[actorId] as AnyActor) ||
-    snapshot.children[actorId]?.sessionId === event.sessionId
-  );
+  const child = snapshot.children[actorId] as
+    | (AnyActor & { _incarnation?: string })
+    | undefined;
+  if (!child || !('sessionId' in event)) {
+    return true;
+  }
+  if (isRemoteActorRef(child)) {
+    // Without a host-supplied incarnation token the runtime that owns the
+    // child is the authority on staleness; with one, a completion from a
+    // different incarnation of the same address is dropped here.
+    return (
+      child._incarnation === undefined ||
+      child._incarnation === (event as { sessionId?: string }).sessionId
+    );
+  }
+  return child.sessionId === (event as { sessionId?: string }).sessionId;
 }
 
 function normalizeLegacyInternalEvent(
