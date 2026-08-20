@@ -644,6 +644,15 @@ export function getPersistedSnapshot<
     };
   }
 
+  const snapshotActor = getSnapshotActorRef(snapshot)?.actor as
+    | (AnyActor & {
+        system?: {
+          _snapshot?: {
+            _scheduledTimers?: Record<string, { dueAt: number }>;
+          };
+        };
+      })
+    | undefined;
   for (const id in timers) {
     const timer = timers[id];
     let event = timer.event;
@@ -670,12 +679,22 @@ export function getPersistedSnapshot<
         );
       }
     }
+    // A live runtime knows when the timer is due; persist the wall-clock
+    // start (dueAt - declared delay) so restore can honor the absolute
+    // deadline. Derived from dueAt, not the scheduling moment, so repeated
+    // persist/restore cycles keep the same deadline. Pure-transition
+    // snapshots have no local schedule and persist no timestamp.
+    const scheduled =
+      snapshotActor?.system?._snapshot?._scheduledTimers?.[
+        `${snapshotActor.sessionId}.${id}`
+      ];
     timersJson[id] = {
       id: timer.id,
       delay: timer.delay,
       type: timer.type,
       event,
-      target
+      target,
+      ...(scheduled && { startedAt: scheduled.dueAt - timer.delay })
     };
   }
 

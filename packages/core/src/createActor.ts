@@ -890,14 +890,35 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     if (this._restored) {
-      const timers: Record<string, { id: string; delay: number }> =
+      const timers: Record<
+        string,
+        { id: string; delay: number; startedAt?: number }
+      > =
         (
           this._snapshot as unknown as {
-            timers?: Record<string, { id: string; delay: number }>;
+            timers?: Record<
+              string,
+              { id: string; delay: number; startedAt?: number }
+            >;
           }
         ).timers ?? {};
+      const now = this.system._clock.now?.() ?? Date.now();
       for (const timer of Object.values(timers)) {
-        this.system.scheduleTimer(this, timer.id, timer.delay);
+        // A timer persisted from a live runtime carries its wall-clock start;
+        // honor the absolute deadline instead of restarting the full delay.
+        // Remaining time can never exceed the declared delay, which also
+        // neutralizes a startedAt from a different clock domain (persisted
+        // under the wall clock, restored under a simulated one). Without a
+        // start (a pure-transition snapshot, or an older snapshot) the
+        // declared delay is all there is.
+        const delay =
+          timer.startedAt !== undefined
+            ? Math.min(
+                timer.delay,
+                Math.max(0, timer.startedAt + timer.delay - now)
+              )
+            : timer.delay;
+        this.system.scheduleTimer(this, timer.id, delay);
       }
       this._restored = false;
     }

@@ -108,7 +108,7 @@ const settled = await waitFor(
 
 ## Long delays across restarts
 
-Pending delayed transitions are part of the snapshot: `snapshot.timers` lists each one with its stable id, its declared delay and the event it will deliver, and no wall-clock timestamps. Restoring that snapshot restarts each timer with its full declared delay, so time that passed while no process was running is not counted. A three-day `after` restarted on every deploy never fires.
+Pending delayed transitions are part of the snapshot: `snapshot.timers` lists each one with its stable id, its declared delay and the event it will deliver. A snapshot persisted from a running actor also records each timer's wall-clock start (`startedAt`), and restoring it schedules the remaining time toward the original deadline — a timer already past due fires immediately, so a three-day `after` survives deploys. The deadline only holds while some process restores the actor and stays up; for timers that must fire with no process running, use a durable host that owns timer scheduling.
 
 For deadlines that must respect real time, persist the scheduled and due times next to the snapshot and have the host (a scheduler, a queue with a visibility timeout, or a cron job) deliver the event when it is due. Keep short delays such as debounces and retry backoffs inside the machine, where restarting the delay has little effect.
 

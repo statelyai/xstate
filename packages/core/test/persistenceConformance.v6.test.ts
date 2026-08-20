@@ -303,7 +303,9 @@ describe('#5331 logical timers restored', () => {
       target: 'self',
       event: { type: expect.stringMatching(/^xstate\.after/) }
     });
-    expect(timer).not.toHaveProperty('startedAt');
+    // Timers persisted from a live runtime carry their wall-clock start so
+    // restore can honor the absolute deadline; elapsed time stays derived.
+    expect(typeof timer.startedAt).toBe('number');
     expect(timer).not.toHaveProperty('elapsed');
 
     const clock2 = new SimulatedClock();

@@ -24,7 +24,7 @@ function getTimers(persisted: unknown): Record<string, any> {
 }
 
 describe('persisted logical timers', () => {
-  it('persists timer intent without runtime clock bookkeeping', () => {
+  it('persists timer intent with its wall-clock start', () => {
     const actor = createActor(createLightMachine(), {
       clock: new SimulatedClock()
     }).start();
@@ -41,7 +41,10 @@ describe('persisted logical timers', () => {
         delay: 1000,
         stateId: '(machine).green'
       },
-      target: 'self'
+      target: 'self',
+      // The runtime's own clock: restore honors the absolute deadline,
+      // clamped to the declared delay across clock domains.
+      startedAt: 0
     });
     expect(timer).not.toHaveProperty('scheduledAt');
     expect(timer).not.toHaveProperty('dueAt');

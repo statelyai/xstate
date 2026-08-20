@@ -1191,3 +1191,94 @@ describe('dead letters', () => {
     expect(seen).toEqual(['LATE:stopped']);
   });
 });
+
+describe('timer restore honors wall-clock deadlines', () => {
+  const timerMachine = createMachine({
+    id: 'p',
+    initial: 'waiting',
+    states: {
+      waiting: { after: { 1000: { target: 'fired' } } },
+      fired: {}
+    }
+  });
+
+  it('persists startedAt from a live runtime and resumes the remaining delay', () => {
+    vi.useFakeTimers();
+    try {
+      const actor = createActor(timerMachine).start();
+      vi.advanceTimersByTime(600);
+      const persisted = actor.getPersistedSnapshot() as any;
+      actor.stop();
+      const [timer] = Object.values(persisted.timers) as any[];
+      expect(timer.startedAt).toBe(Date.now() - 600);
+
+      const restored = createActor(timerMachine, {
+        snapshot: persisted
+      }).start();
+      vi.advanceTimersByTime(399);
+      expect(restored.getSnapshot().value).toBe('waiting');
+      vi.advanceTimersByTime(1);
+      expect(restored.getSnapshot().value).toBe('fired');
+      restored.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the same deadline across repeated persist/restore cycles', () => {
+    vi.useFakeTimers();
+    try {
+      const actor = createActor(timerMachine).start();
+      vi.advanceTimersByTime(300);
+      const first = actor.getPersistedSnapshot() as any;
+      actor.stop();
+
+      const second = createActor(timerMachine, { snapshot: first }).start();
+      vi.advanceTimersByTime(300);
+      const repersisted = second.getPersistedSnapshot() as any;
+      second.stop();
+      // startedAt stays anchored to the original deadline, not re-derived
+      // from the latest scheduling moment with the full declared delay.
+      const [timer] = Object.values(repersisted.timers) as any[];
+      expect(timer.startedAt + timer.delay).toBe(Date.now() + 400);
+
+      const third = createActor(timerMachine, {
+        snapshot: repersisted
+      }).start();
+      vi.advanceTimersByTime(400);
+      expect(third.getSnapshot().value).toBe('fired');
+      third.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a timer already past due fires immediately on restore', () => {
+    vi.useFakeTimers();
+    try {
+      const actor = createActor(timerMachine).start();
+      const persisted = actor.getPersistedSnapshot() as any;
+      actor.stop();
+      // Simulate a long gap while no process was running.
+      vi.advanceTimersByTime(5000);
+
+      const restored = createActor(timerMachine, {
+        snapshot: persisted
+      }).start();
+      vi.advanceTimersByTime(0);
+      expect(restored.getSnapshot().value).toBe('fired');
+      restored.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('pure-transition snapshots persist no timestamp', () => {
+    const [snapshot] = initialTransition(timerMachine);
+    const persisted = timerMachine.getPersistedSnapshot(snapshot) as any;
+    const [timer] = Object.values(persisted.timers) as any[];
+    // No local schedule ran, so replayed persists stay byte-deterministic;
+    // restoring falls back to the declared delay.
+    expect(timer.startedAt).toBeUndefined();
+  });
+});
