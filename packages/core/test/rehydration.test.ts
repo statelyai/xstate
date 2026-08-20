@@ -5,8 +5,8 @@ import {
   createAsyncLogic,
   createObservableLogic,
   type AnyStateMachine,
-  type Snapshot,
-  type RestorablePersistedSnapshotFor
+  type RestorablePersistedSnapshotFor,
+  type Snapshot
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { z } from 'zod';
@@ -499,12 +499,11 @@ describe('rehydration', () => {
   });
 
   describe('persisted state value validation', () => {
-    function restoreOnto(
-      machine: AnyStateMachine,
-      snapshot: Snapshot<unknown> &
-        Partial<RestorablePersistedSnapshotFor<AnyStateMachine>>
+    function restoreOnto<TLogic extends AnyStateMachine>(
+      machine: TLogic,
+      snapshot: Snapshot<unknown> & RestorablePersistedSnapshotFor<TLogic>
     ) {
-      const restored = createActor(machine, { snapshot });
+      const restored = createActor(machine, { snapshot, input: undefined });
       restored.subscribe({ error: () => {} });
       restored.start();
       return restored.getSnapshot();

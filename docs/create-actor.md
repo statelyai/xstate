@@ -47,6 +47,24 @@ const actor = createActor(machine, { input: { userId: 'u_1' } });
 
 There is no `systemId` option in v6. Use `registryKey`, which is typed against the machine's system registry.
 
+## Custom clocks
+
+<!-- Clock and ActorOptions.clock from packages/core/src/system.ts and packages/core/src/types.ts -->
+
+Provide `clock` to control delayed events and transitions. `setTimeout` and
+`clearTimeout` are required. Add `now()` when persisting and restoring timers so
+XState calculates remaining delays from the same time source.
+
+```ts
+const actor = createActor(machine, {
+  clock: {
+    now: () => currentTime,
+    setTimeout: (callback, delay) => schedule(callback, delay),
+    clearTimeout: (handle) => cancel(handle)
+  }
+});
+```
+
 ## Actor members
 
 | Member | Description |

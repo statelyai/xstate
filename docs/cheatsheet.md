@@ -138,6 +138,8 @@ See [guards](guards.md).
 
 ## Enqueue effects
 
+<!-- enqueue methods and supported call sites from packages/core/src/types.ts and packages/core/src/stateUtils.ts -->
+
 ```ts
 entry: ({ context, children, actions }, enq) => {
   enq(() => startEffect());              // any effect function
@@ -152,7 +154,8 @@ entry: ({ context, children, actions }, enq) => {
 };
 ```
 
-`enq.listen(...)` and `enq.subscribeTo(...)` are available in `entry` and `exit` only:
+`enq.listen(...)` and `enq.subscribeTo(...)` are available in transition,
+`entry` and `exit` functions:
 
 ```ts
 entry: (_, enq) => {
