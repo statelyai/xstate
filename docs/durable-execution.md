@@ -45,8 +45,20 @@ implement it to journal steps in the host's journal — a memoized result
 replays without re-running the step — and the built-in
 snapshot memoization steps aside. Unlike other operations, a step is an
 orchestration frame that may itself await runtime operations of the same
-execution, so it is never serialized behind them. The `runStep` helper
-exported from `xstate` exposes the built-in behavior. Operations initiated by live child
+execution, so it is never serialized behind them — and for the same reason
+`executeEffects` resolves without awaiting it. The `runStep` helper exported
+from `xstate` exposes the built-in behavior. `exec` is a closure over live
+execution state: run it in this process and journal its result; it cannot be
+shipped to a remote executor.
+
+Because steps outlive `executeEffects`, a host whose wait is durable rather
+than in-process must quiesce before parking: track the promises your
+`runStep` returns and drain them (steps can start further steps, so drain to
+empty) before registering a durable wait. An in-flight step ends by
+completing its actor, and that completion event cannot satisfy a durable
+wait that was already registered with the engine — the run deadlocks until
+its idle timeout. The in-process loop above needs none of this, because any
+later event resolves its wait. Operations initiated by live child
 actors (parent sends, timers, terminations) route to your implementations
 with no per-actor wiring. `run()` is convenience over the explicit loop:
 
@@ -86,7 +98,13 @@ Addresses are stable across persistence and restore.
 `sessionId` identifies one incarnation of an address. A restored actor is a
 new incarnation: completion events carry the producing incarnation's
 `sessionId`, and `transition()` drops completions from a previous incarnation
-of a local child. For a remote child the owning runtime is the authority on
+of a local child. Session ids embed a random per-process system id, so a
+host that journals the execution's own events (rather than only external
+ones) must pin `executionId` on the adapter: session ids become
+`<executionId>:<n>`, a deterministic function of actor-creation order, and a
+replayed execution re-creates the same ids — a journaled completion still
+matches the child the replay re-creates. Uniqueness across executions is the
+host's responsibility. For a remote child the owning runtime is the authority on
 staleness by default; a host that stores an opaque `incarnation` token on the
 persisted child entry gets the same guard on the referencing side — a
 completion whose `sessionId` differs from the token is dropped, and `sendTo`
@@ -105,7 +123,9 @@ the wire address with a host key outside the logical address.
 ordered effects with stable IDs such as `0:0` and `1:0`, and event waits with
 IDs such as `event:0`. Memoize or deduplicate each operation using that ID:
 replaying the same events from the beginning reconstructs the same snapshots,
-effects, waits and IDs. Each `DurableEffect` also carries a serializable
+effects, waits and IDs — not just the same resulting snapshot, but the same
+effects in the same order, which is what hosts that match journal entries
+positionally (Temporal, Restate) depend on. Each `DurableEffect` also carries a serializable
 `descriptor` — actor references replaced by addresses and actor sources by
 source keys — for journaling; payload fields such as `event` and `input` pass
 through by reference and are only as serializable as their values.

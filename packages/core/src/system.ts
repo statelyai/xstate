@@ -90,6 +90,39 @@ function createSystemId(): string {
 }
 
 /**
+ * The identity a durable execution pins on every system its transitions
+ * create. Shared across all transitions (and replays) of one execution, so
+ * session ids become a deterministic function of actor-creation order:
+ * `<executionId>:0`, `<executionId>:1`, … A replayed execution re-creates
+ * the same session ids, so journaled completion events (which carry the
+ * producing incarnation's `sessionId`) still match the children the replay
+ * re-creates.
+ */
+export interface ExecutionIdentity {
+  systemId: string;
+  nextSessionId: number;
+}
+
+let ambientExecutionIdentity: ExecutionIdentity | undefined;
+
+/** @internal Runs `fn` with systems it creates pinned to `identity`. */
+export function withExecutionIdentity<T>(
+  identity: ExecutionIdentity | undefined,
+  fn: () => T
+): T {
+  if (!identity) {
+    return fn();
+  }
+  const previous = ambientExecutionIdentity;
+  ambientExecutionIdentity = identity;
+  try {
+    return fn();
+  } finally {
+    ambientExecutionIdentity = previous;
+  }
+}
+
+/**
  * Derives the deterministic id prefix for a generated actor id from its actor
  * source: the registered source key when the source is a string, the logic's
  * own `id` otherwise, with `x` as the last-resort prefix.
@@ -429,7 +462,7 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
 }
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
-  public _identity = {
+  public _identity = ambientExecutionIdentity ?? {
     systemId: createSystemId(),
     nextSessionId: 0
   };
