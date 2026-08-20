@@ -1156,9 +1156,11 @@ transitions emit ordered cancellation effects for any remaining declarations.
 Persisted delayed sends preserve `self`, parent, and active-child relationships
 without rebinding stopped actors by ID.
 
-A locally rehydrated actor restarts each timer with its declared delay. Durable
-hosts that need wall-clock restoration persist `scheduledAt` / `dueAt`
-separately from the machine snapshot.
+A timer persisted from a running actor carries its wall-clock start
+(`startedAt`), and rehydrating schedules the remaining time toward the original
+deadline. Pure-transition snapshots carry no timestamp, so rehydrating one
+restarts each timer with its declared delay; durable hosts own timer
+scheduling through the system runtime.
 
 ### Terminal actor effects
 

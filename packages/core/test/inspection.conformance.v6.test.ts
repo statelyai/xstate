@@ -158,7 +158,7 @@ describe('v6 inspection protocol conformance', () => {
         expect(typeof e.id).toBe('string');
         expect(e.snapshot).toBeDefined();
         expect('src' in e).toBe(true);
-      } else {
+      } else if (e.type === '@xstate.transition') {
         // transition/microstep facets are arrays — always present, never absent
         expect(Array.isArray(e.actions)).toBe(true);
         expect(Array.isArray(e.sent)).toBe(true);

@@ -25,6 +25,7 @@ import {
   ExecutableActionObject
 } from './types';
 import {
+  beginSpawnAllocation,
   createSpawnEffect,
   finalizeTransitionResult
 } from './transitionActions.ts';
@@ -130,6 +131,7 @@ export function getMicrosteps<T extends AnyStateMachine>(
   event: EventFromLogic<T>
 ): Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]> {
   const actorScope = createInertActorScope(machine, snapshot);
+  beginSpawnAllocation(actorScope);
 
   const { microsteps } = macrostep(snapshot, event, actorScope, []);
 
@@ -154,6 +156,7 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
     : [input: InputFrom<T>]
 ): Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]> {
   const actorScope = createInertActorScope(machine);
+  beginSpawnAllocation(actorScope);
   const initEvent = createInitEvent(input);
   const internalQueue: AnyEventObject[] = [];
 

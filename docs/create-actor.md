@@ -77,9 +77,10 @@ const actor = createActor(machine, {
 | `on(type, handler)` | Listens for [emitted events](emitted-events.md). Use `'*'` for all of them. |
 | `select(selector, equalityFn?)` | Returns a readable of a derived value. See [selectors](selectors.md). |
 | `getSnapshot()` | Reads the current snapshot synchronously. |
-| `getPersistedSnapshot()` | Returns the serializable internal state. See [persistence](persistence.md). |
+| `getPersistedSnapshot(options?)` | Returns the serializable internal state. Pass `{ embedChildren: false }` to reference children by address instead of embedding their state. See [persistence](persistence.md). |
 | `system` | The [actor system](systems.md) this actor belongs to. |
-| `sessionId` | Unique session id, assigned per running actor. |
+| `sessionId` | Unique session id, assigned per running actor. A new one is assigned on every restore. |
+| `address` | The actor's logical address: the `/`-joined path of actor ids from the root, e.g. `order/worker:0`. Unlike `sessionId`, it is stable across persistence and restore. |
 | `id` | The actor's id. |
 | `src` | The logic this actor was created from. |
 | `ref` | The `ActorRef` view of this actor, safe to pass around. |

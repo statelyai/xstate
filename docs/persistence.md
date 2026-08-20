@@ -26,6 +26,22 @@ Store a machine version with each snapshot. Migrate or discard old snapshots whe
 
 Persisted snapshots record current state. Event sourcing records the events that produced it. Use event sourcing only when the event history itself is required.
 
+## Persist children by address
+
+By default a persisted snapshot embeds each child's persisted state, producing a whole-tree checkpoint. Pass `{ embedChildren: false }` to reference children by their logical address instead, leaving each child's state with the runtime that owns it.
+
+```ts
+const persisted = actor.getPersistedSnapshot({ embedChildren: false });
+```
+
+The option applies to the whole tree, not to a single placement boundary. Persisting by address requires each child to have a registered source key (a string `src`); inline actor logic cannot be referenced by address. Restoring an address-only child produces a location-transparent handle: sends to it route through the [system runtime](durable-execution.md), and its snapshot exposes lifecycle only, since a full snapshot is the last value an actor published and only co-located actors observe it. Install the system runtime before sending to a restored handle — without one, there is no route to the actor it references.
+
+Persisted children changed shape in v6: each entry carries an `address` field and either an embedded `snapshot` or a `remote: true` marker. A remote entry may also carry an opaque `incarnation` token, round-tripped verbatim: XState never stamps one, but a host that does gets stale-completion protection on the referencing side and the token on journaled `sendTo` descriptors. Snapshots persisted by earlier versions restore unchanged; migrate them with [`machineVersions`](#migrations) if you validate their shape.
+
+A timer persisted from a running actor carries its wall-clock start (`startedAt`), and restoring the snapshot schedules the remaining time toward the original deadline — a timer past due fires immediately. Snapshots produced by pure transitions carry no timestamp (they stay byte-deterministic across replays), so restoring one restarts each timer with its declared delay; durable hosts own timer scheduling through the [system runtime](durable-execution.md) instead.
+
+An actor's address is the `/`-joined path of actor ids from the root, such as `order/worker:0`. It is stable across persistence and restore, unlike `sessionId`, which identifies one incarnation. Generated child ids are recorded in each snapshot's `_nextActorIds`, so restored actors keep numbering where they left off.
+
 ## Migrate machine versions
 
 <!-- snapshot migration and event adaptation APIs from packages/core/src/machineVersions.ts -->
@@ -55,7 +71,7 @@ const checkoutVersions = machineVersions([
       children: z.object({}),
       historyValue: z.object({}),
       timers: z.object({}),
-      _nextActorId: z.number().optional(),
+      _nextActorIds: z.record(z.string(), z.number()).optional(),
       _nextTimerId: z.number(),
       stateInputs: z.undefined().optional(),
       machine: z.object({

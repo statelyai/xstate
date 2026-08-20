@@ -1,3 +1,4 @@
+import { isRemoteActorRef } from './remoteActorRef.ts';
 import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
@@ -52,6 +53,7 @@ import {
 } from './utils.ts';
 import { builtInActions } from './actions.ts';
 import {
+  assertChildIdFree,
   createEnqueueObject,
   createTerminationEffect,
   createTransitionEnqueue,
@@ -302,11 +304,22 @@ export function matchesActorSession(
   snapshot: AnyMachineSnapshot,
   actorId: string
 ): boolean {
-  return (
-    !snapshot.children[actorId] ||
-    !('sessionId' in event) ||
-    snapshot.children[actorId]?.sessionId === event.sessionId
-  );
+  const child = snapshot.children[actorId] as
+    | (AnyActor & { _incarnation?: string })
+    | undefined;
+  if (!child || !('sessionId' in event)) {
+    return true;
+  }
+  if (isRemoteActorRef(child)) {
+    // Without a host-supplied incarnation token the runtime that owns the
+    // child is the authority on staleness; with one, a completion from a
+    // different incarnation of the same address is dropped here.
+    return (
+      child._incarnation === undefined ||
+      child._incarnation === (event as { sessionId?: string }).sessionId
+    );
+  }
+  return child.sessionId === (event as { sessionId?: string }).sessionId;
 }
 
 function normalizeLegacyInternalEvent(
@@ -1235,9 +1248,19 @@ function getTransitionDomain(
     resolveTransition
   );
 
-  const { reenter } = resolveTransition(transition);
+  const { targets, reenter } = resolveTransition(transition);
+
+  // A history target that restores the source itself must exit and reenter
+  // the source (SCXML domain = the source's ancestor), unlike a plain
+  // non-reentering self-target: the enter set restores the stored
+  // configuration from outside the source, so the exit set must match or the
+  // source's invoked actors are re-created without being stopped.
+  const restoresSourceViaHistory =
+    targets?.some(isHistoryNode) &&
+    targetStates.some((target) => target === transition.source);
 
   if (
+    !restoresSourceViaHistory &&
     targetStates.every(
       (target) =>
         target === transition.source || isDescendant(target, transition.source)
@@ -1831,6 +1854,7 @@ function microstep(
                 })
               : invokeDef.input;
 
+          assertChildIdFree(actorScope, invokeDef.id);
           const actor = actorScope.system.createActorRef(logic, {
             ...invokeDef,
             input,
@@ -2252,8 +2276,23 @@ export function macrostep(
     if (!actorId) {
       return;
     }
-    const child = nextSnapshot.children[actorId];
-    if (!child || child.sessionId !== sessionId) {
+    const child = nextSnapshot.children[actorId] as
+      | (AnyActor & { _incarnation?: string })
+      | undefined;
+    if (!child) {
+      return;
+    }
+    // The same staleness rule matchesActorSession applies to transition
+    // selection: a completion from a different incarnation must not remove
+    // the still-running child either.
+    if (isRemoteActorRef(child)) {
+      if (
+        child._incarnation !== undefined &&
+        child._incarnation !== sessionId
+      ) {
+        return;
+      }
+    } else if (child.sessionId !== sessionId) {
       return;
     }
 

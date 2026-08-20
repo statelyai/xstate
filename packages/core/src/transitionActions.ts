@@ -8,7 +8,11 @@ import {
 } from './actors/subscription.ts';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
-import type { ActorSystemRuntime } from './system.ts';
+import {
+  getActorIdPrefix,
+  parseGeneratedActorId,
+  type ActorSystemRuntime
+} from './system.ts';
 import { isLazyActorScope, withActorScope } from './actorScope.ts';
 import { getEventOutput } from './utils.ts';
 import type {
@@ -16,6 +20,7 @@ import type {
   ActorTermination,
   AnyAction,
   AnyActor,
+  AnyActorLogic,
   AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
@@ -40,7 +45,12 @@ type TransitionActionRecord = {
   action: (...args: any[]) => any;
   args: any[];
   childUpdate?:
-    | { type: 'add'; actor: AnyActor; id: string }
+    | {
+        type: 'add';
+        actor: AnyActor;
+        id: string;
+        counters?: Record<string, number>;
+      }
     | { type: 'remove'; actor: AnyActor };
 };
 
@@ -210,6 +220,18 @@ function pushBuiltInAction(actions: any[], action: any, ...args: any[]) {
   return actionRecord;
 }
 
+/** @internal Max-merges generated-id counter records, copy-on-write. */
+export function mergeActorIdCounters(
+  current: Record<string, number> | undefined,
+  update: Record<string, number>
+): Record<string, number> {
+  const merged = { ...current };
+  for (const key of Object.keys(update)) {
+    merged[key] = Math.max(merged[key] ?? 0, update[key]);
+  }
+  return merged;
+}
+
 function applyChildUpdate(
   snapshot: AnyMachineSnapshot,
   update: NonNullable<TransitionActionRecord['childUpdate']>,
@@ -218,7 +240,13 @@ function applyChildUpdate(
   if (update.type === 'add') {
     return {
       ...snapshot,
-      children: { ...snapshot.children, [update.id]: update.actor }
+      children: { ...snapshot.children, [update.id]: update.actor },
+      ...(update.counters && {
+        _nextActorIds: mergeActorIdCounters(
+          snapshot._nextActorIds,
+          update.counters
+        )
+      })
     };
   }
 
@@ -258,14 +286,252 @@ function getTransitionActionRecord(
 function pushSpawnedChild(
   actions: any[],
   actor: AnyActor,
-  id: string | undefined
+  id: string,
+  counters?: Record<string, number>
 ) {
   const action = pushBuiltInAction(
     actions,
     builtInActions['@xstate.spawn'],
     actor
   );
-  action.childUpdate = { type: 'add', actor, id: id ?? actor.id };
+  action.childUpdate = { type: 'add', actor, id, counters };
+}
+
+/**
+ * Spawn-allocation state shared by every enqueue object of one transition, so
+ * generated ids stay unique and resolvable across action functions and
+ * microsteps of the same event.
+ */
+interface SpawnAllocation {
+  counters: Map<string, number>;
+  /** Explicit child ids claimed by spawns/invokes of this transition. */
+  explicitIds: Set<string>;
+  /** Ids of children stopped by this transition, freeing them for reuse. */
+  stoppedIds: Set<string>;
+}
+
+const spawnAllocations = new WeakMap<object, SpawnAllocation>();
+
+const createSpawnAllocation = (): SpawnAllocation => ({
+  counters: new Map(),
+  explicitIds: new Set(),
+  stoppedIds: new Set()
+});
+
+/**
+ * Starts a fresh spawn-allocation transaction for one logical transition.
+ * Called at every transition boundary so pure replays from the same snapshot
+ * allocate identical ids.
+ *
+ * @internal
+ */
+export function beginSpawnAllocation(actorScope: AnyActorScope): void {
+  spawnAllocations.set(actorScope, createSpawnAllocation());
+}
+
+// Read the raw snapshot: getSnapshot() throws while the actor initializes,
+// and entry actions run before any snapshot exists.
+function getWorkingSnapshotOf(actorScope: AnyActorScope):
+  | {
+      _nextActorIds?: Record<string, number>;
+      children?: Record<string, AnyActor | undefined>;
+    }
+  | undefined {
+  return (
+    actorScope.self as {
+      _snapshot?: {
+        _nextActorIds?: Record<string, number>;
+        children?: Record<string, AnyActor | undefined>;
+      };
+    }
+  )._snapshot;
+}
+
+const srcKeyCaches = new WeakMap<object, Map<unknown, string | undefined>>();
+
+function getRegisteredSrcKey(
+  actorScope: AnyActorScope,
+  logic: AnyActorLogic
+): string | undefined {
+  const registeredActors = (
+    actorScope.self as {
+      logic?: { sources?: { actors?: Record<string, unknown> } };
+    }
+  ).logic?.sources?.actors;
+  if (!registeredActors) {
+    return undefined;
+  }
+  let cache = srcKeyCaches.get(registeredActors);
+  if (!cache) {
+    cache = new Map();
+    for (const key of Object.keys(registeredActors)) {
+      cache.set(registeredActors[key], key);
+    }
+    srcKeyCaches.set(registeredActors, cache);
+  }
+  return cache.get(logic);
+}
+
+/**
+ * Internal helper actors (listeners, subscriptions) number their ids from
+ * system-level counters under `xstate.`-prefixed names; snapshot-owned
+ * children number from per-snapshot counters. The two spaces only stay
+ * collision-free because their prefixes are disjoint, so user sources must
+ * not enter the reserved namespace.
+ */
+function assertUnreservedPrefix(prefix: string): void {
+  if (isDevelopment && prefix.startsWith('xstate.')) {
+    throw new Error(
+      `Child actor ids with the "xstate." prefix are reserved for internal actors; rename the "${prefix}" source or logic id.`
+    );
+  }
+}
+
+/**
+ * The next free index for a prefix. The parent snapshot's persisted counter
+ * is always a floor, so a freed id is never handed out again — not even when
+ * an explicit id reserved a lower one earlier in the transition.
+ */
+function nextChildIndex(
+  actorScope: AnyActorScope,
+  allocation: SpawnAllocation,
+  prefix: string
+): number {
+  return Math.max(
+    allocation.counters.get(prefix) ?? 0,
+    getWorkingSnapshotOf(actorScope)?._nextActorIds?.[prefix] ?? 0
+  );
+}
+
+/**
+ * Allocates the next generated child id for the transition's allocation
+ * transaction, seeded from the parent snapshot's own persisted counters. This
+ * is the single allocator for snapshot-owned children (`enq.spawn` and
+ * context-factory spawns); a correct allocation cannot collide.
+ *
+ * @internal
+ */
+export function allocateChildId(
+  actorScope: AnyActorScope,
+  src: string | AnyActorLogic,
+  localAllocation?: SpawnAllocation
+): { id: string; counters: Record<string, number> } {
+  if (isDevelopment && !spawnAllocations.get(actorScope)) {
+    console.warn(
+      'A child id was generated outside a spawn-allocation transaction; ids may repeat across enqueue objects. Transition entry points must call beginSpawnAllocation().'
+    );
+  }
+  const allocation =
+    spawnAllocations.get(actorScope) ??
+    localAllocation ??
+    createSpawnAllocation();
+  const prefix = getActorIdPrefix(src);
+  assertUnreservedPrefix(prefix);
+  const next = nextChildIndex(actorScope, allocation, prefix);
+  allocation.counters.set(prefix, next + 1);
+  return { id: `${prefix}:${next}`, counters: { [prefix]: next + 1 } };
+}
+
+/**
+ * Requires an explicit child id to be unoccupied before a spawn or invoke
+ * claims it: an address must name at most one live actor. An id is occupied
+ * when a child of this parent already holds it and this transition has not
+ * stopped that child, or when an earlier spawn of this transition claimed it.
+ *
+ * @internal
+ */
+export function assertChildIdFree(
+  actorScope: AnyActorScope,
+  id: string,
+  localAllocation?: SpawnAllocation
+): void {
+  const allocation =
+    spawnAllocations.get(actorScope) ??
+    localAllocation ??
+    createSpawnAllocation();
+  const existing = getWorkingSnapshotOf(actorScope)?.children?.[id] as
+    | AnyActor
+    | undefined;
+  // A terminated child no longer occupies its id: it relayed its completion
+  // and is removed from `children` right after the transition handling it,
+  // so the supervisor pattern — respawn under the same name while handling
+  // the child's done/error event — must not conflict with the outgoing
+  // entry. Remote handles never expose a terminal status locally; the
+  // completion event that removes one is the owning runtime's business.
+  const occupied =
+    existing !== undefined &&
+    !allocation.stoppedIds.has(id) &&
+    existing.getSnapshot().status === 'active';
+  if (allocation.explicitIds.has(id) || occupied) {
+    throw new Error(
+      isDevelopment
+        ? `Cannot spawn child actor with id '${id}': the id is already in use by another child of '${actorScope.self.id}'. Stop the existing child before reusing its id.`
+        : `Child actor id '${id}' is already in use`
+    );
+  }
+  allocation.explicitIds.add(id);
+}
+
+/**
+ * Records that this transition stopped a child, freeing its id for a later
+ * spawn or invoke of the same transition (the invoke restart pattern).
+ *
+ * @internal
+ */
+function recordStoppedChild(actorScope: AnyActorScope, actor: AnyActor): void {
+  const allocation = spawnAllocations.get(actorScope);
+  if (allocation) {
+    allocation.stoppedIds.add(actor.id);
+    allocation.explicitIds.delete(actor.id);
+  }
+}
+
+/**
+ * Reserves an explicit generated-shaped id (`worker:5`) in the transaction
+ * and the parent snapshot, so live runs and pure replays allocate the same
+ * later ids even after this child is removed.
+ *
+ * @internal
+ */
+export function reserveChildId(
+  actorScope: AnyActorScope,
+  id: string,
+  localAllocation?: SpawnAllocation
+): Record<string, number> | undefined {
+  const generated = parseGeneratedActorId(id);
+  if (!generated) {
+    return undefined;
+  }
+  assertUnreservedPrefix(generated.prefix);
+  const allocation =
+    spawnAllocations.get(actorScope) ??
+    localAllocation ??
+    createSpawnAllocation();
+  // The requested id is used as asked, but numbering continues from the
+  // highest reservation: an explicit low id never rewinds the counter.
+  const next = Math.max(
+    nextChildIndex(actorScope, allocation, generated.prefix),
+    generated.index + 1
+  );
+  allocation.counters.set(generated.prefix, next);
+  return { [generated.prefix]: next };
+}
+
+/**
+ * The counters allocated so far in the transition's transaction, for
+ * committing into a snapshot built outside `applyChildUpdate` (the
+ * pre-initial snapshot with context-factory spawns).
+ *
+ * @internal
+ */
+export function takeSpawnAllocationCounters(
+  actorScope: AnyActorScope
+): Record<string, number> | undefined {
+  const counters = spawnAllocations.get(actorScope)?.counters;
+  if (!counters?.size) {
+    return undefined;
+  }
+  return Object.fromEntries(counters);
 }
 
 export function createTransitionEnqueue(
@@ -275,6 +541,9 @@ export function createTransitionEnqueue(
   actorSubscriptions = false,
   createActors = true
 ) {
+  // Paths that never begin a transaction keep a per-enqueue scope.
+  const localAllocation =
+    spawnAllocations.get(actorScope) ?? createSpawnAllocation();
   const props: Partial<EnqueueObject<any, any>> = {
     cancel: (id: string) => {
       pushBuiltInAction(
@@ -317,11 +586,32 @@ export function createTransitionEnqueue(
           id: options?.id ?? options?.registryKey ?? (logic as any).id
         } as AnyActor;
       }
+      // Recover the registered source key for setup-provided logic so the
+      // spawned child persists (and gets a deterministic id prefix) by key
+      // instead of by inline logic reference.
+      const src = getRegisteredSrcKey(actorScope, logic);
+      // Generated ids allocate from the parent snapshot's own counters
+      // through the transition's allocation transaction; explicit
+      // generated-shaped ids reserve their numbering the same way.
+      let id = options?.id;
+      let counters: Record<string, number> | undefined;
+      if (id === undefined) {
+        ({ id, counters } = allocateChildId(
+          actorScope,
+          src ?? logic,
+          localAllocation
+        ));
+      } else {
+        assertChildIdFree(actorScope, id, localAllocation);
+        counters = reserveChildId(actorScope, id, localAllocation);
+      }
       const actor = actorScope.system.createActorRef(logic, {
         ...options,
+        ...(src !== undefined && { src }),
+        id,
         parent: actorScope.self
       });
-      pushSpawnedChild(actions, actor, options?.id);
+      pushSpawnedChild(actions, actor, id, counters);
       return actor;
     },
     sendTo: (actor, event, options) => {
@@ -352,6 +642,7 @@ export function createTransitionEnqueue(
           actor
         );
         action.childUpdate = { type: 'remove', actor };
+        recordStoppedChild(actorScope, actor);
       }
     }
   };

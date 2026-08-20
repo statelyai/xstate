@@ -1,11 +1,13 @@
 import isDevelopment from '#is-development';
-import { $$ACTOR_TYPE, createActor } from './createActor.ts';
+import { ACTOR_REF_TYPE, createActor } from './createActor.ts';
 import {
   createErrorPlatformEvent,
   createInitEvent,
   createInvokeTimeoutEvent
 } from './eventUtils.ts';
 import { XSTATE_TIMER } from './constants.ts';
+import { parseGeneratedActorId } from './system.ts';
+import { createRemoteActorRef } from './remoteActorRef.ts';
 
 import { createSpawner } from './spawn.ts';
 import {
@@ -39,8 +41,11 @@ import {
   type TransitionSelectionResults
 } from './stateUtils.ts';
 import {
+  beginSpawnAllocation,
   createSpawnEffect,
-  resolveActionsWithContext
+  resolveActionsWithContext,
+  mergeActorIdCounters,
+  takeSpawnAllocationCounters
 } from './transitionActions.ts';
 import { AnyActorSystem } from './system.ts';
 import type {
@@ -586,6 +591,7 @@ export class StateMachine<
     if (usesInertScope) {
       setInertActorScopeSnapshot(resolvedActorScope, snapshot, false);
     }
+    beginSpawnAllocation(resolvedActorScope);
     const fastSnapshot = this._transitionFast(
       snapshot,
       event,
@@ -1001,6 +1007,17 @@ export class StateMachine<
           ...nextState.children,
           ...children
         };
+        // Commit the transaction counters so context-factory allocations
+        // persist with the snapshot: a freed id is never handed out again
+        // after a restore or in a fresh replay process. (The spawner already
+        // registered each child for string-id resolution.)
+        const counters = takeSpawnAllocationCounters(actorScope);
+        if (counters) {
+          nextState._nextActorIds = mergeActorIdCounters(
+            nextState._nextActorIds,
+            counters
+          );
+        }
       }
       return nextState as SnapshotFrom<this>;
     }
@@ -1082,6 +1099,7 @@ export class StateMachine<
     const usesInertScope = !actorScope;
     const resolvedActorScope = (actorScope ??
       createInertActorScope(this)) as NonNullable<typeof actorScope>;
+    beginSpawnAllocation(resolvedActorScope);
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
     const preInitialState = this._getPreInitialState(
@@ -1316,7 +1334,10 @@ export class StateMachine<
       string,
       {
         src: string | AnyActorLogic;
-        snapshot: Snapshot<unknown>;
+        snapshot?: Snapshot<unknown>;
+        address?: string;
+        remote?: boolean;
+        incarnation?: string;
         syncSnapshot?: boolean;
         registryKey?: string;
       }
@@ -1324,6 +1345,35 @@ export class StateMachine<
 
     for (const actorId of Object.keys(snapshotChildren)) {
       const actorData = snapshotChildren[actorId];
+
+      if (actorData.remote === true && actorData.address !== undefined) {
+        if (typeof actorData.src !== 'string') {
+          // Fail loudly instead of fabricating a source key that hosts would
+          // route by.
+          throw new Error(
+            `Unable to restore remote child '${actorId}': a child referenced by address requires a registered source key.`
+          );
+        }
+        // The child's state lives with another runtime; restore a
+        // location-transparent handle constructed from its identity alone.
+        // The handle keeps its persisted address verbatim: the owning
+        // runtime's identity for the child wins over the local parent chain.
+        const handle = createRemoteActorRef(resolvedActorScope.system, {
+          id: actorId,
+          address: actorData.address,
+          src: actorData.src,
+          parent: resolvedActorScope.self,
+          registryKey: actorData.registryKey,
+          syncSnapshot: actorData.syncSnapshot,
+          incarnation: actorData.incarnation
+        });
+        if (actorData.registryKey) {
+          resolvedActorScope.system._set(actorData.registryKey, handle);
+        }
+        children[actorId] = handle;
+        continue;
+      }
+
       const childState = actorData.snapshot;
       const src = actorData.src;
 
@@ -1461,13 +1511,37 @@ export class StateMachine<
       getAllStateNodes(getStateNodes(this.root, snapshotData.value))
     );
 
-    const { version: _persistedSnapshotVersion, ...persistedRest } =
-      snapshot as any;
+    const {
+      version: _persistedSnapshotVersion,
+      // The legacy system-wide counter: superseded by per-snapshot
+      // `_nextActorIds` plus the child-id fold below; dropped so old and new
+      // snapshots round-trip to the same shape.
+      _nextActorId: _legacyNextActorId,
+      ...persistedRest
+    } = snapshot as any;
+    // Fold generated-shaped child ids into the counters as a floor: snapshots
+    // persisted before per-actor counters (or hand-crafted ones) still must
+    // never reuse a live child's id.
+    let restoredCounters: Record<string, number> | undefined =
+      persistedRest._nextActorIds;
+    for (const childId of Object.keys(snapshotChildren)) {
+      const generated = parseGeneratedActorId(childId);
+      if (
+        generated &&
+        (restoredCounters?.[generated.prefix] ?? 0) <= generated.index
+      ) {
+        restoredCounters = {
+          ...restoredCounters,
+          [generated.prefix]: generated.index + 1
+        };
+      }
+    }
     const restoredSnapshot = createMachineSnapshot(
       {
         ...persistedRest,
         children,
         timers,
+        _nextActorIds: restoredCounters,
         _nodes: nodes,
         value: snapshotData.value,
         historyValue: revivedHistoryValue,
@@ -1497,7 +1571,7 @@ export class StateMachine<
         const value: unknown = contextPart[key];
 
         if (value && typeof value === 'object') {
-          if ('xstate$$type' in value && value.xstate$$type === $$ACTOR_TYPE) {
+          if ('xstate$type' in value && value.xstate$type === ACTOR_REF_TYPE) {
             contextPart[key] = children[(value as any).id];
             continue;
           }

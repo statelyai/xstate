@@ -11,67 +11,204 @@ This is for hosts that durably replay or checkpoint the execution loop. If your
 application instead restores an actor for each request, processes one event and
 saves its snapshot, use the [backend workflow](backend-workflows.md) pattern.
 
+## Write an adapter
+
+An adapter is the runtime operations that execute effects, plus two durable
+loop hooks: `executeAction` runs a custom action as a host step, and
+`waitForEvent` durably waits for the next event.
+
 ```ts
 import { createDurable } from 'xstate/durable';
 
 const durable = createDurable(machine, {
+  sendEvent: (source, target, event) =>
+    host.send(source?.address, target.address, event),
+  scheduleTimer: (source, id, delay) =>
+    host.schedule({ address: source.address, timerId: id, delay }),
+  cancelTimer: (source, id) =>
+    host.cancelTimer({ address: source.address, timerId: id }),
   executeAction: (action, { id }, runtime) =>
+    // Safe only when the action body performs plain external side effects.
+    // See "Journaling rules" before journaling `exec` on engines whose
+    // journaled step must not start another journaled operation.
     host.runAction(id, () => action.exec(runtime)),
-  runtime: ({ id: effectId }, effect) => ({
-    sendEvent: (_source, target, event) =>
-      host.send(effectId, target.id, event),
-    scheduleTimer: (source, id, delay) =>
-      host.schedule({ effectId, actorId: source.id, timerId: id, delay }),
-    cancelTimer: (source, id) =>
-      host.cancelTimer({ effectId, actorId: source.id, timerId: id })
-    // Map the remaining ActorSystemRuntime operations supported by the host.
-  }),
   waitForEvent: ({ id }) => host.waitForEvent(id)
 });
 
 const output = await durable.run(input);
 ```
 
-`run()` is convenience over the explicit transition loop:
+Runtime operations you omit keep their local behavior — spawned machine
+children run in this process, for example. Async-actor steps (`enq.step` in
+[actor logic](actor-logic.md)) route through the `runStep` operation:
+implement it to journal steps in the host's journal — a memoized result
+replays without re-running the step — and the built-in
+snapshot memoization steps aside. Unlike other operations, a step is an
+orchestration frame that may itself await runtime operations of the same
+execution, so it is never serialized behind them. The `runStep` helper
+exported from `xstate` exposes the built-in behavior. Operations initiated by live child
+actors (parent sends, timers, terminations) route to your implementations
+with no per-actor wiring. `run()` is convenience over the explicit loop:
 
 ```ts
 let [state, effects] = durable.initialTransition(input);
-await durable.executeEffects(effects);
+let rootEvents = await durable.executeEffects(effects);
 
 while (state.status === 'active') {
-  const event = await durable.waitForEvent();
+  const event =
+    rootEvents.shift()?.event ?? (await durable.waitForEvent());
   [state, effects] = durable.transition(state, event);
-  await durable.executeEffects(effects);
+  rootEvents.push(...(await durable.executeEffects(effects)));
 }
 ```
 
+Checkpoint with `getPersistedSnapshot(state)` after `executeEffects`
+resolves, and persist `durable.nextTransitionIndex` alongside; pass it as
+`transitionIndex` when recreating the execution from a checkpoint instead of
+replaying from the beginning. Persist `durable.machineId` and
+`durable.machineVersion` with the execution and reject a worker whose values
+differ: a changed machine reorders effect ids, and memoized results silently
+misalign.
+
+That is the whole integration. The rest of this page specifies the contract
+precisely.
+
+## Identity
+
+Every actor has a deterministic logical `address`: the `/`-joined path of
+actor ids from the root. The root actor's address is the machine's `id`
+(`durable.rootAddress` reports it before any transition runs), and generated
+child ids are per-parent counters keyed by their actor source, such as
+`order/worker:0`. `/` separates segments, so an id containing one is
+percent-encoded (`%2F`) in the address and the path stays unambiguous.
+Addresses are stable across persistence and restore.
+
+`sessionId` identifies one incarnation of an address. A restored actor is a
+new incarnation: completion events carry the producing incarnation's
+`sessionId`, and `transition()` drops completions from a previous incarnation
+of a local child. For a remote child the owning runtime is the authority on
+staleness by default; a host that stores an opaque `incarnation` token on the
+persisted child entry gets the same guard on the referencing side — a
+completion whose `sessionId` differs from the token is dropped, and `sendTo`
+effect descriptors journal the target's token so a send replayed after the
+address was reincarnated is detectable.
+
+Correlate actors by address, not object identity. Actor references passed to
+runtime operations expose `address`, `id` and (for registered sources) a
+string `src` key, and `JSON.stringify` on a reference produces that identity.
+To place several executions of the same machine on one transport, namespace
+the wire address with a host key outside the logical address.
+
+## The effect contract
+
 `initialTransition()` and `transition()` remain pure. The helper tags their
 ordered effects with stable IDs such as `0:0` and `1:0`, and event waits with
-IDs such as `event:0`. A durable host should memoize or deduplicate each
-operation using that ID. Replaying the same events from the beginning
-reconstructs the same snapshots, effects, waits and IDs.
+IDs such as `event:0`. Memoize or deduplicate each operation using that ID:
+replaying the same events from the beginning reconstructs the same snapshots,
+effects, waits and IDs. Each `DurableEffect` also carries a serializable
+`descriptor` — actor references replaced by addresses and actor sources by
+source keys — for journaling; payload fields such as `event` and `input` pass
+through by reference and are only as serializable as their values.
 
-The host runtime subsumes the local actor system. XState calculates transitions
-and stable operation IDs; the adapter maps those operations to durable host
-primitives:
+Every inter-actor edge is an asynchronous handoff to the runtime.
+`executeEffects` hands operations over one at a time, in initiation order,
+and resolves only when every transitively initiated operation has been
+accepted (a failed operation rejects it, and a failed call discards its
+batch), so "effects executed" means "safe to checkpoint and suspend". Hosts
+whose step or activity model forbids concurrent entries can rely on that
+ordering, including for the operations a stop cascade initiates. Calls to
+`executeEffects` themselves must not overlap; starting a new batch before the
+previous call settles throws. A rejected batch may be retried, but retries
+re-run every operation in it — including local delivery to co-located
+children — so a retried batch can re-deliver events the first attempt already
+delivered. Hosts that retry need idempotent operations, keyed by the effect
+ID.
 
-- Actions run through `executeAction()` with their stable effect ID and the
-  runtime returned by `runtime()`. External work should use the effect ID as an
-  idempotency key. A host may require actions to have registered `type` values
-  when its activity model cannot replay inline code.
-- Sends route through the host's actor or workflow identity.
-- Timers register host-managed delivery and return immediately. The host stamps
-  `dueAt` when it durably commits the timer; transition calculation never reads
-  wall-clock time.
-- Invoked or spawned actors use host child-workflow facilities when available.
-- Unsupported runtime operations throw.
+Delivery is at-most-once with pairwise sender-to-receiver ordering: for a
+given pair of actors, events sent from the first to the second are enqueued
+in send order, and an undeliverable event is dropped rather than retried.
+This matches the Erlang and Akka defaults. A dropped event is reported
+through the `deadLetter` runtime operation (and a `@xstate.deadletter`
+inspection event) — observability, not retry. Ordering is not transitive
+across intermediaries. The durable path is stronger — the handoff queue serializes
+every operation of an execution globally. A host `sendEvent` that routes
+remotely is responsible for preserving pairwise ordering on its transport.
 
-Custom actions are dispatched separately from actor-system effects. This keeps
-host operations such as timers and child workflows visible to runtimes that do
-not permit durable operations to be nested inside a generic activity. Both
-callbacks receive the complete effect metadata. `runtime()` creates the host
-runtime and receives the complete effect; `executeAction()` receives that
-runtime when it executes the action.
+Because every handoff queues, a runtime operation must never await another
+runtime operation of the same execution through the actor system — it would
+wait behind itself. The `deliverEvent`, `stopActor` and `terminateActor`
+helpers exported from `xstate` expose the local behaviors and are always safe
+to call directly. An implemented runtime operation replaces the local
+behavior entirely, including its bookkeeping — a `stopActor` that only journals
+must call the `stopActor` helper for the local stop cascade, and a `sendEvent`
+that routes locally must call `deliverEvent`. When a remote runtime can
+deliver the same completion more than once (retries, replays), the host is
+responsible for deduplicating before handing it to the execution.
+
+Events addressed to the root actor do not reach `sendEvent` during
+`executeEffects`: the execution captures them and resolves them from that
+call as `{ event, source }` records for the loop to process before
+suspending. While the loop is parked in `waitForEvent()`, a root-addressed
+event reaches `sendEvent` like any other target and belongs in the host's
+mailbox; if the adapter implements no `sendEvent`, producing one there throws,
+since delivering it locally to the inert root would silently lose it.
+
+### Journaling rules
+
+A journaled step's closure must contain only the external side effect —
+nothing that re-enters the engine's journal, and nothing that mutates local
+actors.
+
+- **Journaled operations must not nest.** On engines whose journaled step
+  cannot start another journaled operation (Restate's `ctx.run`, a Temporal
+  activity), an action body that uses its `runtime` argument from inside a
+  journaled closure fails or retries the invocation indefinitely. Journal
+  `action.exec(runtime)` only when the body is a plain external side effect;
+  otherwise run `exec` outside the journal and journal the host-native calls
+  the runtime operations make.
+- **Local actor mutations stay outside the journal.** A journaled closure is
+  skipped on replay: calling `deliverEvent`, `stopActor`, or starting an
+  actor inside one rebuilds a different actor tree than the recorded run —
+  silently, with no error. Re-run local mutations unjournaled on every
+  replay; journal only work that must not run twice.
+
+A per-effect `runtime(metadata, effect)` factory is available for hosts that
+key operations by effect ID; it overrides the adapter's runtime operations
+operation-by-operation. With no runtime operations at all, unsupported
+operations throw instead of silently running local behavior on a durable
+host.
+
+## Determinism constraints
+
+Replay only reconstructs the same effects when every transition is a pure
+function of the snapshot and event. Code that runs during a transition — 
+guards, transition functions, `context` assigners, `input` factories — must
+not read the clock, generate random values, or reach external state:
+`Date.now()`, `Math.random()`, and `crypto.randomUUID()` all produce a
+different effect sequence on replay, and nothing detects the divergence.
+Perform such work inside journaled operations (the host's `executeAction`,
+where the recorded result replays), or derive values deterministically from
+what the snapshot already carries — addresses and effect IDs are stable
+across replays and make good seeds and idempotency keys.
+
+## Checkpoints and placement
+
+`getPersistedSnapshot(snapshot)` embeds each child's persisted state: the
+whole-tree checkpoint of a runtime that co-locates the tree.
+`getPersistedSnapshot(snapshot, { embedChildren: false })` instead references
+children by logical address, leaving each child's state — including its own
+subtree — with the runtime that owns it; the option applies to the whole
+tree, not per placement boundary. Restoring an address-only child produces a
+location-transparent handle: sends route through the system runtime, its
+snapshot exposes lifecycle only (a full snapshot is the last value an actor
+published, which only co-located actors observe), `subscribe` and `on` are
+inert (observation is co-location), and completion staleness for it is the
+owning runtime's responsibility. Persisting a handle from the referencing
+side throws — its state lives with the runtime that owns it. A restored handle keeps its
+persisted address verbatim — the owning runtime's identity for the child.
+
+`durable.getActorRef(snapshot)` returns the root actor reference behind a
+snapshot this execution produced, for addressing and inspection.
 
 `run()` resolves with the machine output when the machine is done, throws the
 machine error when it fails, and throws `DurableExecutionCancelledError` when
@@ -80,22 +217,14 @@ calling a lower-level transition method before `run()`, causes
 `DurableExecutionResumeError`; resume with the persisted snapshot and the
 explicit transition loop instead.
 
-The helper does not prescribe storage, inboxes, retries or timer
-implementations. Hosts that restore from checkpoints instead of replaying from
-the beginning should persist `durable.nextTransitionIndex` after every
-transition, including transitions with no effects, and pass it as
-`transitionIndex` when recreating the durable execution.
-
 ## Host adapters
 
 XState does not ship adapters for specific workflow platforms. `createDurable`
 defines the contract; writing the adapter for a given host is your
-responsibility.
-
-A full integration needs host-native mappings for timers, messaging and child
-actors. Approximations break subtle semantics. For example, awaiting a sleep
-inline cannot implement a cancelable timer while also receiving intervening
-events.
+responsibility. A full integration needs host-native mappings for timers,
+messaging and child actors. Approximations break subtle semantics: for
+example, awaiting a sleep inline cannot implement a cancelable timer while
+also receiving intervening events.
 
 ## What next?
 
