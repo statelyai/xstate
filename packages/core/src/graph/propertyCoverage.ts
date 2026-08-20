@@ -22,7 +22,7 @@ export interface PropertyCoverageDimension {
   readonly unknown: readonly string[];
 }
 
-export interface PropertyGuardCoverageDimension extends PropertyCoverageDimension {
+interface PropertyGuardCoverageDimension extends PropertyCoverageDimension {
   readonly outcomes: Readonly<
     Record<string, { readonly passed: number; readonly failed: number }>
   >;
@@ -213,11 +213,11 @@ function stableSerialize(value: unknown): string {
   return JSON.stringify(value) ?? String(value);
 }
 
-export function getPropertyStateId(snapshot: Snapshot<unknown>): string {
+function getPropertyStateId(snapshot: Snapshot<unknown>): string {
   return stableSerialize((snapshot as { value?: unknown }).value ?? null);
 }
 
-export function getPropertyTransitionId(
+function getPropertyTransitionId(
   coverage: MutablePropertyCoverage,
   transition: AnyTransitionDefinition
 ): string {
