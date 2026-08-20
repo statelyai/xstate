@@ -1,3 +1,4 @@
+import { $$ACTOR_TYPE } from './createActor.ts';
 import type { AnyActorSystem } from './system.ts';
 import type {
   AnyActor,
@@ -123,8 +124,15 @@ export function createRemoteActorRef(
     _isRunning() {
       return false;
     },
+    // The same shape Actor.toJSON produces, so serialized snapshots carry
+    // one actor-reference marker whether a child is co-located or remote.
     toJSON() {
-      return { address: options.address, src: options.src };
+      return {
+        xstate$$type: $$ACTOR_TYPE,
+        id: options.id,
+        address: options.address,
+        src: options.src
+      };
     }
   };
   const ref = handle as unknown as AnyActor;

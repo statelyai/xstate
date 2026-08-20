@@ -1501,3 +1501,32 @@ describe('tenth round: review findings', () => {
     expect(rootEvents.map((r: any) => r.event.type)).toEqual(['HELLO']);
   });
 });
+
+describe('remote handle serialization', () => {
+  it('serializes with the same actor-reference marker as a co-located actor', () => {
+    const machine = setup({ actors: { worker: workerMachine } }).createMachine({
+      id: 'order',
+      initial: 'a',
+      states: {
+        a: { invoke: { id: 'w', src: 'worker' } }
+      }
+    });
+    const actor = createActor(machine).start();
+    const persisted = actor.getPersistedSnapshot({ embedChildren: false });
+    actor.stop();
+
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    const handle = restored.getSnapshot().children.w as AnyActor;
+    expect(handle.toJSON!()).toEqual({
+      xstate$$type: 1,
+      id: 'w',
+      address: 'order/w',
+      src: 'worker'
+    });
+    // JSON round-trip of the whole snapshot keeps the discriminant, so
+    // tooling that detects actor references sees remote children too.
+    const json = JSON.parse(JSON.stringify(restored.getSnapshot())) as any;
+    expect(json.children.w.xstate$$type).toBe(1);
+    restored.stop();
+  });
+});
