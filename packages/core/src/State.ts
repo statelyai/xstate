@@ -633,10 +633,12 @@ export function getPersistedSnapshot<
         ? { snapshot: child.getPersistedSnapshot(options) }
         : {
             remote: true,
-            // Round-trips verbatim: the host that owns the child injects the
-            // token; XState never stamps one (a local sessionId would make
-            // persisted snapshots nondeterministic across replays).
-            incarnation: child._incarnation
+            // A remote handle's sessionId IS the host-supplied incarnation
+            // token, round-tripped verbatim. A local child persisted by
+            // address never stamps its own sessionId: that value is this
+            // incarnation's, not a durable identity, and it would make
+            // persisted snapshots nondeterministic across replays.
+            incarnation: isRemoteActorRef(child) ? child.sessionId : undefined
           }),
       src: child.src,
       registryKey: child.registryKey,

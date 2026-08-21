@@ -1089,7 +1089,8 @@ describe('incarnation tokens on remote handles', () => {
       snapshot: persistedWithIncarnation('runtime-b:7')
     }).start();
     const handle = restored.getSnapshot().children.w as any;
-    expect(handle._incarnation).toBe('runtime-b:7');
+    // The token IS the handle's sessionId: one incarnation identity, one field.
+    expect(handle.sessionId).toBe('runtime-b:7');
     const repersisted = restored.getPersistedSnapshot({
       embedChildren: false
     }) as any;

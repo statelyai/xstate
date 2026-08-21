@@ -139,11 +139,13 @@ ones) must pin `executionId` on the adapter: session ids become
 replayed execution re-creates the same ids — a journaled completion still
 matches the child the replay re-creates. Uniqueness across executions is the
 host's responsibility. For a remote child the owning runtime is the authority on
-staleness by default; a host that stores an opaque `incarnation` token on the
-persisted child entry gets the same guard on the referencing side — a
-completion whose `sessionId` differs from the token is dropped, and `sendTo`
-effect descriptors journal the target's token so a send replayed after the
-address was reincarnated is detectable.
+staleness by default; a host that stores an opaque `incarnation` token on
+the persisted child entry gets the same guard on the referencing side. The
+token is the owner's `sessionId` for the child and the restored handle
+carries it as its own `sessionId` — one incarnation identity, one rule: a
+ref that knows its incarnation compares it, one that does not defers to the
+owner. `sendTo` effect descriptors journal the target's token so a send
+replayed after the address was reincarnated is detectable.
 
 Correlate actors by address, not object identity. Actor references passed to
 runtime operations expose `address`, `id` and (for registered sources) a
