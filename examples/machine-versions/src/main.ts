@@ -1,4 +1,4 @@
-import { createActor, createMachine, machineVersions } from 'xstate';
+import { createActor, machineVersions, setup } from 'xstate';
 import { createInspector } from '@statelyai/sdk';
 import { z } from 'zod';
 
@@ -37,19 +37,17 @@ const checkoutV1 = {
 } as const;
 
 /** Version 2 is the machine that runs today. It stores cents, not dollars. */
-const checkoutV2 = createMachine({
-  id: 'checkout',
-  version: '2',
-  // `createMachine` rather than `setup()`: a version declared through
-  // `setup().createMachine()` widens to `string`, which loses the literal
-  // that `machineVersions` matches migrations and adapters against.
+const checkoutV2 = setup({
   schemas: {
     context: z.object({ items: z.number(), cents: z.number() }),
     events: {
       addItem: z.object({ cents: z.number() }),
       checkout: z.object({})
     }
-  },
+  }
+}).createMachine({
+  id: 'checkout',
+  version: '2',
   context: { items: 0, cents: 0 },
   initial: 'cart',
   states: {

@@ -21,10 +21,7 @@ pnpm start
 
 Version 1 of the checkout stored whole dollars and only exists as a schema. Version 2 stores cents and is the machine that runs. The demo migrates a stored v1 snapshot into v2 and keeps running it, shows the v1 schema rejecting corrupt historical data, folds a three-event v1 history into one v2 event, and shows that a schema-only version cannot be a migration target.
 
-Two things worth knowing:
-
-- A `snapshotSchema` describes the whole persisted contract, not just context. The migration must return a snapshot the target machine can validate, including `output` and `error`.
-- Version 2 uses `createMachine` rather than `setup().createMachine()`. A `version` declared through `setup()` currently widens to `string`, and `machineVersions` matches migrations and adapters against the literal version type, so the callbacks lose their typing.
+One thing worth knowing: a `snapshotSchema` describes the whole persisted contract, not just context. The migration must return a snapshot the target machine can validate, including `output` and `error`.
 
 ## Inspect it
 
