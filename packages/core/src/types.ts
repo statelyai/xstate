@@ -697,13 +697,19 @@ type EventTypeMatchesDescriptor<
 type IsInternalEventType<
   TEventType extends string,
   TDescriptors extends string
-> = true extends (
-  TDescriptors extends any
-    ? EventTypeMatchesDescriptor<TEventType, TDescriptors>
-    : never
-)
-  ? true
-  : false;
+> =
+  // Descriptors that collapsed to broad `string` (an untyped machine's
+  // config) cannot classify anything: without the guard they would match
+  // every event type and reduce the sendable events to `never`.
+  string extends TDescriptors
+    ? false
+    : true extends (
+          TDescriptors extends any
+            ? EventTypeMatchesDescriptor<TEventType, TDescriptors>
+            : never
+        )
+      ? true
+      : false;
 
 type ExcludeInternalEvents<
   TEvent extends EventObject,

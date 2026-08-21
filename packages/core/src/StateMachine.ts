@@ -194,6 +194,33 @@ type ProvidedActors<
     : never;
 };
 
+// Declaration merging keeps the type-only marker zero-emit: a `declare`
+// class field is rejected by the build's babel pipeline, and a plain field
+// would emit an undefined property per instance. Merging requires type
+// parameters identical to the class's, so most are necessarily unused here.
+/* oxlint-disable no-unused-vars */
+export interface StateMachine<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TStateValue extends StateValue,
+  TTag extends string,
+  TInput,
+  TOutput,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TConfig extends StateSchema,
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays'],
+  TInternalEvent extends EventObject = never
+> {
+  /** @internal Type-only marker for the actor's internal event protocol. */
+  readonly _internalEventType: TInternalEvent;
+}
+/* oxlint-enable no-unused-vars */
+
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -226,9 +253,6 @@ export class StateMachine<
   AnyActorSystem,
   TEmitted
 > {
-  /** @internal Type-only marker for the actor's internal event protocol. */
-  declare readonly _internalEventType: TInternalEvent;
-
   /** The machine's own version. */
   public version?: string;
 
