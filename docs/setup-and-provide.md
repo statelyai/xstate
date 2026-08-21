@@ -9,7 +9,8 @@ description: Declare typed sources with setup(...) and swap implementations with
 const orderSetup = setup({
   schemas: {
     context: z.object({ total: z.number() }),
-    events: { submit: z.object({}) }
+    events: { submit: z.object({}) },
+    internalEvents: { recalculate: z.object({}) }
   },
   actions: {
     logTotal: (params: { total: number }) => console.log(params.total)

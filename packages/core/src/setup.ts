@@ -53,6 +53,7 @@ import {
   Sources,
   InferOutput,
   InferEvents,
+  InferInternalEvents,
   Next_MachineConfig,
   Next_InvokeConfig,
   Next_StateNodeConfig,
@@ -124,7 +125,11 @@ type ValidateSchemaMap<TMap> =
 
 type ValidateSetupSchemas<TSchemas> = TSchemas extends SetupSchemas
   ? {
-      [K in keyof TSchemas]: K extends 'events' | 'emitted' | 'children'
+      [K in keyof TSchemas]: K extends
+        | 'events'
+        | 'internalEvents'
+        | 'emitted'
+        | 'children'
         ? ValidateSchemaMap<TSchemas[K]>
         : K extends 'context' | 'input' | 'output'
           ? TSchemas[K] extends StandardSchemaV1
@@ -228,6 +233,7 @@ type SetupExtensionConfig<
 type InlineMachineSchemas<
   TContextSchema,
   TEventSchemaMap,
+  TInternalEventSchemaMap,
   TEmittedSchemaMap,
   TActionSchemaMap,
   TGuardSchemaMap,
@@ -239,6 +245,7 @@ type InlineMachineSchemas<
 > = {
   context?: TContextSchema;
   events?: TEventSchemaMap;
+  internalEvents?: TInternalEventSchemaMap;
   emitted?: TEmittedSchemaMap;
   actions?: TActionSchemaMap;
   guards?: TGuardSchemaMap;
@@ -366,6 +373,7 @@ export type { SetupStateSchemas };
 export type SetupSchemas = {
   context?: StandardSchemaV1;
   events?: Record<string, StandardSchemaV1>;
+  internalEvents?: Record<string, StandardSchemaV1>;
   actions?: ActionSchemas;
   guards?: GuardSchemas;
   emitted?: Record<string, StandardSchemaV1>;
@@ -393,7 +401,7 @@ type SetupSchema<
 
 type SetupSchemaMap<
   TSchemas,
-  TKey extends 'events' | 'emitted' | 'children'
+  TKey extends 'events' | 'internalEvents' | 'emitted' | 'children'
 > = TKey extends keyof TSchemas
   ? TSchemas[TKey] extends Record<string, StandardSchemaV1>
     ? TSchemas[TKey]
@@ -425,7 +433,7 @@ type SetupOrConfigSchema<
 
 type SetupOrConfigSchemaMap<
   TSchemas,
-  TKey extends 'events' | 'emitted' | 'children',
+  TKey extends 'events' | 'internalEvents' | 'emitted' | 'children',
   TConfigSchemaMap extends Record<string, StandardSchemaV1>
 > = [SetupSchemaMap<TSchemas, TKey>] extends [never]
   ? TConfigSchemaMap
@@ -572,12 +580,27 @@ type SetupContextRequired<TSchemas, TContextSchema extends StandardSchemaV1> = [
     : true
   : true;
 
-type SetupEvents<
+type SetupPublicEvents<
   TSchemas,
   TEventSchemaMap extends Record<string, StandardSchemaV1>
 > = [SetupSchemaMap<TSchemas, 'events'>] extends [never]
   ? InferEvents<TEventSchemaMap>
   : InferEvents<SetupSchemaMap<TSchemas, 'events'>>;
+
+type SetupInternalEvents<
+  TSchemas,
+  TInternalEventSchemaMap extends Record<string, StandardSchemaV1>
+> = [SetupSchemaMap<TSchemas, 'internalEvents'>] extends [never]
+  ? InferInternalEvents<TInternalEventSchemaMap>
+  : InferInternalEvents<SetupSchemaMap<TSchemas, 'internalEvents'>>;
+
+type SetupEvents<
+  TSchemas,
+  TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TInternalEventSchemaMap extends Record<string, StandardSchemaV1> = {}
+> =
+  | SetupPublicEvents<TSchemas, TEventSchemaMap>
+  | SetupInternalEvents<TSchemas, TInternalEventSchemaMap>;
 
 type SetupTags<TSchemas, TTagSchema extends StandardSchemaV1> = [
   SetupSchema<TSchemas, 'tags'>
@@ -831,6 +854,7 @@ type SetupMachineConfig<
   TSchemas extends SetupSchemas,
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TInternalEventSchemaMap extends Record<string, StandardSchemaV1>,
   TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
@@ -858,6 +882,7 @@ type SetupMachineConfig<
   Next_MachineConfig<
     SetupOrConfigSchema<TSchemas, 'context', TContextSchema>,
     SetupOrConfigSchemaMap<TSchemas, 'events', TEventSchemaMap>,
+    SetupOrConfigSchemaMap<TSchemas, 'internalEvents', TInternalEventSchemaMap>,
     SetupOrConfigSchemaMap<TSchemas, 'emitted', TEmittedSchemaMap>,
     SetupOrConfigSchema<TSchemas, 'input', TInputSchema>,
     SetupOrConfigSchema<TSchemas, 'output', TOutputSchema>,
@@ -1845,6 +1870,7 @@ export interface SetupReturn<
       string,
       StandardSchemaV1
     >,
+    const TInternalEventSchemaMap extends Record<string, StandardSchemaV1> = {},
     TEmittedSchemaMap extends Record<string, StandardSchemaV1> = Record<
       string,
       StandardSchemaV1
@@ -1878,6 +1904,7 @@ export interface SetupReturn<
       TSchemas,
       TContextSchema,
       TEventSchemaMap,
+      TInternalEventSchemaMap,
       TEmittedSchemaMap,
       TInputSchema,
       TOutputSchema,
@@ -1885,7 +1912,7 @@ export interface SetupReturn<
       TTagSchema,
       TChildrenSchemaMap,
       SetupContext<TSchemas, TContextSchema>,
-      SetupEvents<TSchemas, TEventSchemaMap>,
+      SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>,
       Cast<
         MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -1916,6 +1943,7 @@ export interface SetupReturn<
       TSchemas,
       TContextSchema,
       TEventSchemaMap,
+      TInternalEventSchemaMap,
       TEmittedSchemaMap,
       TInputSchema,
       TOutputSchema,
@@ -1923,7 +1951,7 @@ export interface SetupReturn<
       TTagSchema,
       TChildrenSchemaMap,
       SetupContext<TSchemas, TContextSchema>,
-      SetupEvents<TSchemas, TEventSchemaMap>,
+      SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>,
       Cast<
         MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -1953,6 +1981,7 @@ export interface SetupReturn<
     config: {
       schemas?: {
         events?: TEventSchemaMap;
+        internalEvents?: TInternalEventSchemaMap;
         context?: TContextSchema;
         emitted?: TEmittedSchemaMap;
         actions?: TActionSchemaMap;
@@ -1967,6 +1996,7 @@ export interface SetupReturn<
             InlineMachineSchemas<
               TContextSchema,
               TEventSchemaMap,
+              TInternalEventSchemaMap,
               TEmittedSchemaMap,
               TActionSchemaMap,
               TGuardSchemaMap,
@@ -1999,7 +2029,7 @@ export interface SetupReturn<
       >
   ): StateMachine<
     SetupContext<TSchemas, TContextSchema>,
-    | SetupEvents<TSchemas, TEventSchemaMap>
+    | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
     | ([RoutableStateId<Cast<TConfig, StateSchema>>] extends [never]
         ? never
         : {
@@ -2039,7 +2069,8 @@ export interface SetupReturn<
     DelayMapFromNames<
       TSetupDelays | TDelays,
       MergeSourceMaps<TSetupDelayMap, TDelayMap>
-    >
+    >,
+    SetupInternalEvents<TSchemas, TInternalEventSchemaMap>
   > &
     MachineIdentity<TConfig>;
 
@@ -2309,7 +2340,7 @@ export const setup = function setupImplementation<
     ) {
       return setup(
         mergeSetupConfigs(config, extension as AnySetupConfig) as any
-      ) as SetupReturn<
+      ) as unknown as SetupReturn<
         MergeSourceMaps<TStates, TExtendStates>,
         MergeSourceMaps<TSchemas, TExtendSchemas>,
         MergeSourceMaps<TActionMap, TExtendActionMap>,
@@ -2455,6 +2486,7 @@ function mergeSchemas(
     ...left,
     ...right,
     events: mergeMaps(left?.events, right?.events),
+    internalEvents: mergeMaps(left?.internalEvents, right?.internalEvents),
     actions: mergeMaps(left?.actions, right?.actions),
     guards: mergeMaps(left?.guards, right?.guards),
     emitted: mergeMaps(left?.emitted, right?.emitted),

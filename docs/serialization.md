@@ -24,7 +24,7 @@ Use machine-as-data for cases such as:
 
 ## What survives serialization
 
-States, transitions, targets, serialized action objects, guard references, string actor `src` names, `after` delays, `timeout`/`onTimeout`, `meta`, `description`, `tags`, `output`, `context` values, `internalEvents`, `version`, and any other JSON-safe data on the config all survive.
+States, transitions, targets, serialized action objects, guard references, string actor `src` names, `after` delays, `timeout`/`onTimeout`, `meta`, `description`, `tags`, `output`, `context` values, the legacy top-level `internalEvents` list, `version`, and any other JSON-safe data on the config all survive.
 
 Inline functions become code expressions:
 
@@ -41,6 +41,7 @@ These values are omitted rather than serialized:
 
 - actor logic objects, including inline `invoke.src` logic (the whole `invoke` is dropped when its `src` cannot be named)
 - runtime schemas such as Zod schemas in `schemas`
+- `schemas.internalEvents` declarations; restore those schemas when reviving if runtime validation is needed
 - root `actions`, `guards`, `actors` and `delays` sources that are functions
 - class instances, `Date`s, `bigint` and `symbol` values, including inside arrays
 

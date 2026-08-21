@@ -16,6 +16,7 @@ import { XSTATE_TIMER } from './constants.ts';
 import { toObserver } from './utils.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
+  assertEventCanBeSent,
   deliverEvent,
   stopActor as stopActorLocally,
   terminateActor as terminateActorLocally,
@@ -758,6 +759,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void | PromiseLike<void> {
+    assertEventCanBeSent(source, target, event);
     // Record for the inspection `sent[]` facet regardless of which runtime
     // delivers, so host runtimes keep inspection parity.
     this._recordSent(source, target, event);
