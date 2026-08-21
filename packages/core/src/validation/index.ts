@@ -10,6 +10,7 @@ import type {
   AnyStateMachine,
   ExecutableActionObject
 } from '../types.ts';
+import { matchesEventDescriptor } from '../utils.ts';
 
 const actorValidationErrorSymbol = Symbol.for('xstate.actorValidationError');
 
@@ -91,6 +92,7 @@ interface ActorSchemas {
   input?: StandardSchemaV1;
   output?: StandardSchemaV1;
   events?: Record<string, StandardSchemaV1>;
+  internalEvents?: Record<string, StandardSchemaV1>;
   emitted?: Record<string, StandardSchemaV1>;
 }
 
@@ -141,15 +143,19 @@ export function standardSchemaValidator(
     eventOrigin: ActorValidationEventOrigin
   ) => {
     const schemas = getSchemas(logic);
-    if (
-      !schemas?.events ||
-      event.type.startsWith('xstate.') ||
-      event.type.startsWith('@xstate.')
-    ) {
+    if (event.type.startsWith('xstate.') || event.type.startsWith('@xstate.')) {
+      return undefined;
+    }
+    const eventSchemas = schemas?.events;
+    const internalEventSchemas = schemas?.internalEvents;
+    const schema =
+      findEventSchema(internalEventSchemas, event.type) ??
+      findEventSchema(eventSchemas, event.type);
+    if (!eventSchemas && !internalEventSchemas) {
       return undefined;
     }
     return checkTarget({
-      schema: schemas.events[event.type],
+      schema,
       value: getPayload(event),
       boundary: 'event',
       logicId: getLogicId(logic),
@@ -333,6 +339,24 @@ function getSchemas(logic: AnyActorLogic): ActorSchemas | undefined {
     return logic.schemas;
   }
   return (logic.config as { schemas?: ActorSchemas } | undefined)?.schemas;
+}
+
+function findEventSchema(
+  schemas: Record<string, StandardSchemaV1> | undefined,
+  eventType: string
+): StandardSchemaV1 | undefined {
+  if (!schemas) {
+    return undefined;
+  }
+
+  if (Object.hasOwn(schemas, eventType)) {
+    return schemas[eventType];
+  }
+
+  const descriptor = Object.keys(schemas).find((key) =>
+    matchesEventDescriptor(eventType, key)
+  );
+  return descriptor === undefined ? undefined : schemas[descriptor];
 }
 
 function getLogicId(logic: AnyActorLogic): string | undefined {

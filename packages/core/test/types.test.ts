@@ -337,6 +337,83 @@ describe('Raise events', () => {
 });
 
 describe('internalEvents', () => {
+  it('infers separate public and internal event schemas', () => {
+    const machine = createMachine({
+      schemas: {
+        events: {
+          start: z.object({}),
+          'change.value': z.object({ value: z.string() })
+        },
+        internalEvents: {
+          tick: z.object({ count: z.number() }),
+          'change.*': z.object({ value: z.string() })
+        }
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            start: (_, enq) => {
+              enq.raise({ type: 'tick', count: 1 });
+              enq.raise({ type: 'change.value', value: 'ready' });
+            },
+            tick: ({ event }) => {
+              ((_count: number) => {})(event.count);
+            },
+            'change.value': ({ event }) => {
+              ((_value: string) => {})(event.value);
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+
+    actor.send({ type: 'start' });
+    actor.trigger.start();
+
+    function _expectInternalEventsRejected(a: typeof actor) {
+      // @ts-expect-error internal events are not part of the public protocol
+      a.send({ type: 'tick', count: 1 });
+      // @ts-expect-error internal wildcard takes precedence over public overlap
+      a.send({ type: 'change.value', value: 'ready' });
+      // @ts-expect-error internal events are not part of the public protocol
+      a.trigger.tick({ count: 1 });
+      // @ts-expect-error internal events are not part of the public protocol
+      a.trigger['change.value']({ value: 'ready' });
+    }
+    void _expectInternalEventsRejected;
+  });
+
+  it('supports separate event schemas declared in setup', () => {
+    const machine = setup({
+      schemas: {
+        events: { start: z.object({}) },
+        internalEvents: { tick: z.object({ count: z.number() }) }
+      }
+    }).createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            start: (_, enq) => enq.raise({ type: 'tick', count: 1 }),
+            tick: ({ event }) => {
+              ((_count: number) => {})(event.count);
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+    actor.send({ type: 'start' });
+
+    function _expectInternalEventRejected(a: typeof actor) {
+      // @ts-expect-error internal events are not part of the public protocol
+      a.send({ type: 'tick', count: 1 });
+    }
+    void _expectInternalEventRejected;
+  });
+
   it('should allow raising internal and external events', () => {
     const machine = createMachine({
       schemas: {
@@ -2894,7 +2971,7 @@ describe('invoke', () => {
     const decorateSetup = <const TConfig extends AnySetupConfig>(
       config: TConfig
     ): SetupReturnFromConfig<TConfig> & { extra: true } => {
-      const s = setup(config) as SetupReturnFromConfig<TConfig>;
+      const s = setup(config) as unknown as SetupReturnFromConfig<TConfig>;
 
       return Object.assign(s, { extra: true as const });
     };

@@ -33,7 +33,7 @@ description: Terms used throughout the XState documentation.
 
 **Input**: Data provided when an actor is created, or to a state via a transition's `input`.
 
-**Internal event**: An event listed in `internalEvents` that can be raised inside the machine but rejected when sent from outside the actor.
+**Internal event**: An event declared in `schemas.internalEvents` that is fully typed inside the machine but rejected by the public actor event protocol. The legacy top-level `internalEvents` list is supported for migration.
 
 **Invoked actor**: A child actor whose lifecycle belongs to a state.
 
