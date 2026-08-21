@@ -1238,7 +1238,7 @@ interface Next_RegularStateNodeConfig<
    */
   onDone?: Next_TransitionConfigOrTarget<
     TContext,
-    DoneStateEvent,
+    DoneStateEvent<TChildOutput>,
     TEvent,
     TEmitted,
     TActionMap,
