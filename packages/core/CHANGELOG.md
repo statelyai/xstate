@@ -1,5 +1,11 @@
 # xstate
 
+## 6.0.0-alpha.44
+
+### Minor Changes
+
+- 7156ad5: Add setup state-local output schemas for typed final-state output and nested completion contracts.
+
 ## 6.0.0-alpha.43
 
 ### Patch Changes
