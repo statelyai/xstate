@@ -1,4 +1,4 @@
-import { createActor, createMachine } from '../src';
+import { createActor, createMachine, type ActorRefFrom } from '../src';
 import z from 'zod';
 
 describe('internalEvents', () => {
@@ -134,4 +134,18 @@ describe('internalEvents', () => {
     ).toThrow('Internal event "change.value" cannot be sent to actor');
     expect(actor.getSnapshot().value).toBe('idle');
   });
+});
+
+it('an untyped machine keeps its sendable events (type-level)', () => {
+  // Broad TConfig collapses internal-event descriptors to `string`; that
+  // must classify nothing rather than everything (send would become never).
+  const machine = createMachine({
+    initial: 'a',
+    states: { a: { on: { NEXT: { target: 'a' } } } }
+  });
+  const actor = createActor(machine).start();
+  actor.send({ type: 'NEXT' });
+  const ref: ActorRefFrom<typeof machine> = actor;
+  ref.send({ type: 'NEXT' });
+  actor.stop();
 });

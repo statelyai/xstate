@@ -226,8 +226,12 @@ export class StateMachine<
   AnyActorSystem,
   TEmitted
 > {
-  /** @internal Type-only marker for the actor's internal event protocol. */
-  declare readonly _internalEventType: TInternalEvent;
+  /**
+   * @internal Type-only marker for the actor's internal event protocol. Not
+   * `declare` (the build's babel pipeline rejects declare class fields); the
+   * one `undefined` property this emits per machine instance is inert.
+   */
+  readonly _internalEventType!: TInternalEvent;
 
   /** The machine's own version. */
   public version?: string;

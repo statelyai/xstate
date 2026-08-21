@@ -54,7 +54,7 @@ The same rule applies to writes the workflow makes. Pass an idempotency key to t
 
 ## Durable steps
 
-Async logic that runs several external calls can record each one on the snapshot with `enq.step(...)`:
+Async logic that runs several external calls can record each one on the snapshot with `enq.step(...)` — this page's pattern is hostless durability, where the snapshot is the journal, and `enq.step` is built for it (on a [durable host](durable-execution.md), write plain promise actors instead):
 
 ```ts
 const fulfillOrder = createAsyncLogic({

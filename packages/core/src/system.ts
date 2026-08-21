@@ -91,6 +91,39 @@ function createSystemId(): string {
 }
 
 /**
+ * The identity a durable execution pins on every system its transitions
+ * create. Shared across all transitions (and replays) of one execution, so
+ * session ids become a deterministic function of actor-creation order:
+ * `<executionId>:0`, `<executionId>:1`, … A replayed execution re-creates
+ * the same session ids, so journaled completion events (which carry the
+ * producing incarnation's `sessionId`) still match the children the replay
+ * re-creates.
+ */
+export interface ExecutionIdentity {
+  systemId: string;
+  nextSessionId: number;
+}
+
+let ambientExecutionIdentity: ExecutionIdentity | undefined;
+
+/** @internal Runs `fn` with systems it creates pinned to `identity`. */
+export function withExecutionIdentity<T>(
+  identity: ExecutionIdentity | undefined,
+  fn: () => T
+): T {
+  if (!identity) {
+    return fn();
+  }
+  const previous = ambientExecutionIdentity;
+  ambientExecutionIdentity = identity;
+  try {
+    return fn();
+  } finally {
+    ambientExecutionIdentity = previous;
+  }
+}
+
+/**
  * Derives the deterministic id prefix for a generated actor id from its actor
  * source: the registered source key when the source is a string, the logic's
  * own `id` otherwise, with `x` as the last-resort prefix.
@@ -270,6 +303,21 @@ export interface ActorSystemRuntime {
   /** Cancels one logical timer. */
   cancelTimer(source: AnyActor, id: string): void | PromiseLike<void>;
   /**
+   * Runs an async actor's entire body as one durable unit. The actor is the
+   * natural journal entry: its identity — `address`, string `src` key and
+   * serializable `input` — crosses any boundary, so a host can wrap `exec`
+   * in its own step primitive, or ignore `exec` entirely and re-run the
+   * registered logic on a remote executor from `(src, input)` alone. The
+   * default runs the body in this process, unjournaled.
+   *
+   * Like `runStep`, this is an orchestration frame: it may span external
+   * events and must never be serialized behind other runtime operations.
+   */
+  runLogic(
+    actor: AnyActor,
+    exec: () => PromiseLike<unknown>
+  ): PromiseLike<unknown>;
+  /**
    * Runs one keyed step of an async actor (`enq.step`). The default journals
    * the result in the actor's own snapshot; a durable host implements this
    * to journal steps in its own journal instead — memoized results replay
@@ -310,9 +358,10 @@ export const RUNTIME_OPERATIONS = [
   'cancelTimer',
   'cancelAllTimers',
   'deadLetter'
-  // `runStep` and `sendEvent` are deliberately absent: durable executions
-  // wire them separately, since a step awaits other runtime operations and
-  // root-addressed sends are captured per batch.
+  // `runLogic`, `runStep` and `sendEvent` are deliberately absent: durable
+  // executions wire them separately, since logic bodies and steps await
+  // other runtime operations and root-addressed sends are captured per
+  // batch.
 ] as const satisfies readonly (keyof ActorSystemRuntime)[];
 
 type ScheduledTimerId = string & { __scheduledTimerId: never };
@@ -430,7 +479,7 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
 }
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
-  public _identity = {
+  public _identity = ambientExecutionIdentity ?? {
     systemId: createSystemId(),
     nextSessionId: 0
   };
@@ -815,6 +864,17 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       return override(actor, key, exec);
     }
     return runStep(actor, key, exec);
+  }
+
+  public runLogic(
+    actor: AnyActor,
+    exec: () => PromiseLike<unknown>
+  ): PromiseLike<unknown> {
+    const override = this.runtime?.runLogic;
+    if (override) {
+      return override(actor, exec);
+    }
+    return exec();
   }
 
   public scheduleTimer(

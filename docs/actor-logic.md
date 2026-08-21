@@ -50,7 +50,7 @@ const chargeCard = createAsyncLogic({
 });
 ```
 
-`enq.emit(event)` emits an event that observers read with `actor.on(...)`. Check a failure with `error instanceof TimeoutError`, which is exported from `xstate`. `enq.step(key, exec)` runs durable work through the system runtime's `runStep` operation. By default XState records each step's outcome on the snapshot under `effects[key]`, and a restored actor replays a recorded result instead of running the step again, so a resumed run does not charge the card twice; concurrent calls with the same key wait for the first one. A [durable host](durable-execution.md) that implements `runStep` journals steps in its own journal instead. Durable step semantics are experimental.
+`enq.emit(event)` emits an event that observers read with `actor.on(...)`. Check a failure with `error instanceof TimeoutError`, which is exported from `xstate`. `enq.step(key, exec)` is hostless durability: the snapshot is the journal. Each step's outcome is recorded on the snapshot under `effects[key]`, and a restored actor replays a recorded result instead of running the step again — persist the snapshot to `localStorage` and a checkout flow survives a page reload without charging the card twice; persist it per request and a backend workflow resumes mid-function. `effects[key]` statuses also make per-step progress readable from the snapshot, and concurrent calls with the same key wait for the first one. On a [durable host](durable-execution.md), do not use `enq.step` — write a normal promise actor and let the host's `runLogic` journal it; the host's journal replaces the snapshot's. Durable step semantics are experimental.
 
 Choose logic by lifecycle:
 

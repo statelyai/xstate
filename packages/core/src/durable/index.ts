@@ -6,6 +6,7 @@ import { deliverEvent } from '../runtimeHelpers.ts';
 import { getSnapshotActorRef } from '../snapshotActorRef.ts';
 import {
   encodeAddressSegment,
+  withExecutionIdentity,
   getRootActorId,
   RUNTIME_OPERATIONS,
   type ActorSystemRuntime
@@ -104,6 +105,16 @@ export interface DurableExecutionAdapter<
   ): EventFromLogic<TLogic> | PromiseLike<EventFromLogic<TLogic>>;
   /** Index assigned to the first transition. Defaults to `0`. */
   transitionIndex?: number;
+  /**
+   * Pins this execution's actor identity. Session ids become
+   * `<executionId>:<n>`, a deterministic function of actor-creation order, so
+   * a replay re-creates the same session ids and journaled completion events
+   * (which carry the producing incarnation's `sessionId`) still match the
+   * children the replay re-creates. Without it, session ids embed a random
+   * per-process system id and journaled internal events go stale across
+   * replays. Uniqueness across executions is the host's responsibility.
+   */
+  executionId?: string;
 }
 
 export class DurableExecutionCancelledError extends Error {
@@ -234,13 +245,20 @@ export function createDurable<TLogic extends AnyActorLogic>(
   const rootAddress = encodeAddressSegment(getRootActorId(logic));
   const machineId = (logic as { id?: string }).id ?? rootAddress;
   const machineVersion = (logic as { version?: string }).version;
+  // One identity object for the whole execution: session numbering continues
+  // across this execution's transitions, and a replay (a fresh createDurable
+  // with the same executionId) re-numbers identically.
+  const executionIdentity = adapter.executionId
+    ? { systemId: adapter.executionId, nextSessionId: 0 }
+    : undefined;
 
   // The adapter's runtime operations, picked off the flat adapter shape.
   const systemRuntime: Partial<ActorSystemRuntime> = {};
   for (const operation of [
     ...RUNTIME_OPERATIONS,
     'sendEvent',
-    'runStep'
+    'runStep',
+    'runLogic'
   ] as const) {
     const impl = adapter[operation];
     if (impl) {
@@ -352,6 +370,9 @@ export function createDurable<TLogic extends AnyActorLogic>(
     if (runtime.runStep) {
       wrapped.runStep = runtime.runStep;
     }
+    if (runtime.runLogic) {
+      wrapped.runLogic = runtime.runLogic;
+    }
     wrapped.sendEvent = (source, target, event) => {
       if (
         !currentBatch &&
@@ -421,11 +442,16 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return nextTransitionIndex;
     },
     initialTransition(...args) {
-      const [snapshot, effects] = initialTransition(logic, ...args);
+      const [snapshot, effects] = withExecutionIdentity(executionIdentity, () =>
+        initialTransition(logic, ...args)
+      );
       return [installSystemRuntime(snapshot), tagEffects(effects)];
     },
     transition(snapshot, event) {
-      const [nextSnapshot, effects] = transition(logic, snapshot, event);
+      const [nextSnapshot, effects] = withExecutionIdentity(
+        executionIdentity,
+        () => transition(logic, snapshot, event)
+      );
       return [installSystemRuntime(nextSnapshot), tagEffects(effects)];
     },
     getActorRef(snapshot) {
