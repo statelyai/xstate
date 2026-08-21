@@ -337,6 +337,83 @@ describe('Raise events', () => {
 });
 
 describe('internalEvents', () => {
+  it('infers separate public and internal event schemas', () => {
+    const machine = createMachine({
+      schemas: {
+        events: {
+          start: z.object({}),
+          'change.value': z.object({ value: z.string() })
+        },
+        internalEvents: {
+          tick: z.object({ count: z.number() }),
+          'change.*': z.object({ value: z.string() })
+        }
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            start: (_, enq) => {
+              enq.raise({ type: 'tick', count: 1 });
+              enq.raise({ type: 'change.value', value: 'ready' });
+            },
+            tick: ({ event }) => {
+              ((_count: number) => {})(event.count);
+            },
+            'change.value': ({ event }) => {
+              ((_value: string) => {})(event.value);
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+
+    actor.send({ type: 'start' });
+    actor.trigger.start();
+
+    function _expectInternalEventsRejected(a: typeof actor) {
+      // @ts-expect-error internal events are not part of the public protocol
+      a.send({ type: 'tick', count: 1 });
+      // @ts-expect-error internal wildcard takes precedence over public overlap
+      a.send({ type: 'change.value', value: 'ready' });
+      // @ts-expect-error internal events are not part of the public protocol
+      a.trigger.tick({ count: 1 });
+      // @ts-expect-error internal events are not part of the public protocol
+      a.trigger['change.value']({ value: 'ready' });
+    }
+    void _expectInternalEventsRejected;
+  });
+
+  it('supports separate event schemas declared in setup', () => {
+    const machine = setup({
+      schemas: {
+        events: { start: z.object({}) },
+        internalEvents: { tick: z.object({ count: z.number() }) }
+      }
+    }).createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            start: (_, enq) => enq.raise({ type: 'tick', count: 1 }),
+            tick: ({ event }) => {
+              ((_count: number) => {})(event.count);
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+    actor.send({ type: 'start' });
+
+    function _expectInternalEventRejected(a: typeof actor) {
+      // @ts-expect-error internal events are not part of the public protocol
+      a.send({ type: 'tick', count: 1 });
+    }
+    void _expectInternalEventRejected;
+  });
+
   it('should allow raising internal and external events', () => {
     const machine = createMachine({
       schemas: {
@@ -872,6 +949,43 @@ describe('states', () => {
         bold: boldState
       }
     });
+  });
+
+  it('types snapshot.value structurally, including parallel states', () => {
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        bold: {
+          initial: 'off',
+          states: { off: {}, on: {} }
+        },
+        italic: {
+          initial: 'off',
+          states: { off: {}, on: {} }
+        }
+      }
+    });
+
+    const value = createActor(machine).getSnapshot().value;
+    value satisfies {
+      bold: 'off' | 'on';
+      italic: 'off' | 'on';
+    };
+    value.bold satisfies 'off' | 'on';
+    // @ts-expect-error - may also be 'on'
+    value.bold satisfies 'off';
+  });
+
+  it('types snapshot.value as a string union for flat machines', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: { a: {}, b: {} }
+    });
+
+    const value = createActor(machine).getSnapshot().value;
+    value satisfies 'a' | 'b';
+    // @ts-expect-error - c is not a state
+    value satisfies 'c';
   });
 
   // technically it wouldn't be a big problem accepting this, such transitions would just never be selected
@@ -2857,7 +2971,7 @@ describe('invoke', () => {
     const decorateSetup = <const TConfig extends AnySetupConfig>(
       config: TConfig
     ): SetupReturnFromConfig<TConfig> & { extra: true } => {
-      const s = setup(config) as SetupReturnFromConfig<TConfig>;
+      const s = setup(config) as unknown as SetupReturnFromConfig<TConfig>;
 
       return Object.assign(s, { extra: true as const });
     };

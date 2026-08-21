@@ -31,6 +31,36 @@ describe('type-only schemas (`types`)', () => {
     expect(actor.getSnapshot().context.count).toBe(0);
   });
 
+  it('preserves optional payload fields declared via types()', () => {
+    const machine = setup({
+      schemas: {
+        events: {
+          submit: types<{ email: string; referrer?: string }>()
+        }
+      }
+    }).createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            submit: ({ event }) => {
+              event.email satisfies string;
+              event.referrer satisfies string | undefined;
+              // @ts-expect-error - referrer may be undefined
+              event.referrer satisfies string;
+              return {};
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    // optional field must be omittable
+    actor.send({ type: 'submit', email: 'a@b.co' });
+    actor.send({ type: 'submit', email: 'a@b.co', referrer: 'x' });
+  });
+
   it('does not validate at runtime (identity passthrough)', () => {
     const schema = types<{ a: number }>();
     expect(isTypeSchema(schema)).toBe(true);

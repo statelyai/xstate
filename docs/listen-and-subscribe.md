@@ -3,7 +3,11 @@ title: Listen and subscribe to actors
 description: Turn another actor's events and snapshots into events for this machine.
 ---
 
-`enq.listen(...)` and `enq.subscribeTo(...)` wire another actor into the current machine. Both map what the other actor produces into an event this machine handles. They are available in `entry` and `exit` functions, not in transition functions.
+<!-- enq.listen and enq.subscribeTo behavior from packages/core/src/stateUtils.ts and packages/core/src/transitionActions.ts -->
+
+`enq.listen(...)` and `enq.subscribeTo(...)` wire another actor into the current
+machine. Both map what the other actor produces into an event this machine
+handles. Use them in transition, `entry` or `exit` functions.
 
 Use them for actors this machine does not [invoke](invoke.md): [spawned](spawn.md) children, children passed in through input, or long-lived actors from a [system](systems.md). Invoked actors already have `onDone`, `onError` and `onSnapshot`.
 

@@ -1,12 +1,10 @@
 {
   "title": "XState",
   "pages": [
-    "---Start---",
     "quick-start",
     "choose-xstate",
     "frameworks",
     "examples",
-    "---Learn---",
     "why-state-machines",
     "your-first-machine",
     "tutorial",
@@ -17,7 +15,6 @@
     "statecharts",
     "how-xstate-runs-machines",
     "modeling",
-    "---Build---",
     "async-requests",
     "retries-and-timeouts",
     "cancellation",
@@ -28,7 +25,6 @@
     "testing",
     "inspect-actor-systems",
     "troubleshooting",
-    "---Machine reference---",
     "configuration",
     "setup-and-provide",
     "states",
@@ -46,7 +42,6 @@
     "final-states",
     "history-states",
     "parallel-states",
-    "---Actor reference---",
     "create-actor",
     "snapshots",
     "selectors",
@@ -57,7 +52,6 @@
     "listen-and-subscribe",
     "systems",
     "lifecycle-and-errors",
-    "---Reference---",
     "typescript",
     "persistence",
     "serialization",
@@ -66,9 +60,7 @@
     "cheatsheet",
     "faq",
     "glossary",
-    "---Migrate---",
     "xstate-v5-to-v6",
-    "---Contribute---",
     "documentation"
   ]
 }

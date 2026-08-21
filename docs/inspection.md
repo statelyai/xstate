@@ -13,14 +13,15 @@ const actor = createActor(machine, {
 });
 ```
 
-Inspection emits two event types:
+Inspection emits three event types:
 
 | Type | Contains |
 | --- | --- |
 | `@xstate.actor` | Actor identity and parent information. |
 | `@xstate.transition` | The event, snapshot, source, target and microsteps. |
+| `@xstate.deadletter` | An event that could not be delivered. |
 
-Both event types carry `rootId`, the session ID of the root actor, and `actorRef`, the actor the event is about. Session IDs are unique across actors, so `rootId` identifies the system and `actorRef.sessionId` identifies an actor within it.
+Every event type carries `rootId`, the session ID of the root actor, and `actorRef`, the actor the event is about. Session IDs are unique across actors, so `rootId` identifies the system and `actorRef.sessionId` identifies an actor within it.
 
 `@xstate.actor` announces every created actor: the root actor and each spawned or invoked child. It is the only topology event, so an inspector can draw the actor graph before any transition occurs.
 
@@ -43,6 +44,14 @@ Both event types carry `rootId`, the session ID of the root actor, and `actorRef
 | `microsteps` | The microstep transition definitions taken. |
 | `actions` | The executed actions, as `{ type, params }`. |
 | `sent` | Events relayed to other actors, as `{ targetRef, targetId, event, delay, id }`. |
+
+`@xstate.deadletter` announces an undeliverable event, such as one sent to a stopped actor. Delivery is at-most-once, so this is observability, not retry.
+
+| Property | Description |
+| --- | --- |
+| `sourceRef` | The actor that sent the event, or `undefined` when sent externally. |
+| `event` | The undelivered event. |
+| `reason` | Why delivery failed, such as `'stopped'`. |
 
 Actor stop is derivable from `snapshot.status` on the actor's final `@xstate.transition` event, so there is no separate stop event. The v5 `@xstate.event`, `@xstate.snapshot`, `@xstate.action` and `@xstate.microstep` events are gone; `@xstate.transition` carries all of them.
 

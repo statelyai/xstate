@@ -9,7 +9,8 @@ description: Declare typed sources with setup(...) and swap implementations with
 const orderSetup = setup({
   schemas: {
     context: z.object({ total: z.number() }),
-    events: { submit: z.object({}) }
+    events: { submit: z.object({}) },
+    internalEvents: { recalculate: z.object({}) }
   },
   actions: {
     logTotal: (params: { total: number }) => console.log(params.total)
@@ -29,6 +30,28 @@ const orderMachine = orderSetup.createMachine({
 `setup(...)` also accepts `states`, where each state declares its own schemas. That is what types the `initial: { target, input }` form and transitions carrying [state input](state-input.md).
 
 Use `setup(...).extend(...)` to build a more specific setup from a shared one, merging schemas and sources.
+
+## Runtime validation
+
+<!-- runtime validation behavior from packages/core/src/setup.ts and packages/core/src/validation/index.ts -->
+
+Schemas provide type inference by default. Install `standardSchemaValidator()` to check actor inputs, events, snapshots and outputs at runtime:
+
+```ts
+import { setup } from 'xstate';
+import { standardSchemaValidator } from 'xstate/validation';
+import { z } from 'zod';
+
+const base = setup({
+  schemas: { input: z.object({ orderId: z.string() }) }
+});
+
+const validated = base.extend({
+  validator: standardSchemaValidator()
+});
+```
+
+Validation can be installed, replaced or disabled by a derived setup. Installing it checks inherited and new schemas for compatibility. Runtime validation is assertion-only, so schemas that transform one type into another are rejected; disable validation with `validator: undefined` when transformations are required.
 
 ## Sources on the machine
 

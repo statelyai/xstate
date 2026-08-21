@@ -52,6 +52,7 @@ import {
 } from './utils.ts';
 import { builtInActions } from './actions.ts';
 import {
+  assertChildIdFree,
   createEnqueueObject,
   createTerminationEffect,
   createTransitionEnqueue,
@@ -302,10 +303,16 @@ export function matchesActorSession(
   snapshot: AnyMachineSnapshot,
   actorId: string
 ): boolean {
+  const child = snapshot.children[actorId];
+  if (!child || !('sessionId' in event)) {
+    return true;
+  }
+  // One rule: a ref that knows its incarnation compares it; a remote handle
+  // without a host-supplied token (sessionId undefined) defers to the
+  // runtime that owns the child.
   return (
-    !snapshot.children[actorId] ||
-    !('sessionId' in event) ||
-    snapshot.children[actorId]?.sessionId === event.sessionId
+    child.sessionId === undefined ||
+    child.sessionId === (event as { sessionId?: string }).sessionId
   );
 }
 
@@ -1235,9 +1242,19 @@ function getTransitionDomain(
     resolveTransition
   );
 
-  const { reenter } = resolveTransition(transition);
+  const { targets, reenter } = resolveTransition(transition);
+
+  // A history target that restores the source itself must exit and reenter
+  // the source (SCXML domain = the source's ancestor), unlike a plain
+  // non-reentering self-target: the enter set restores the stored
+  // configuration from outside the source, so the exit set must match or the
+  // source's invoked actors are re-created without being stopped.
+  const restoresSourceViaHistory =
+    targets?.some(isHistoryNode) &&
+    targetStates.some((target) => target === transition.source);
 
   if (
+    !restoresSourceViaHistory &&
     targetStates.every(
       (target) =>
         target === transition.source || isDescendant(target, transition.source)
@@ -1831,6 +1848,7 @@ function microstep(
                 })
               : invokeDef.input;
 
+          assertChildIdFree(actorScope, invokeDef.id);
           const actor = actorScope.system.createActorRef(logic, {
             ...invokeDef,
             input,
@@ -2171,7 +2189,7 @@ export function getTransitionResult(
             actorScope,
             actions,
             internalEvents,
-            false,
+            true,
             options?.resolveActions ?? true
           )
         );
@@ -2253,7 +2271,13 @@ export function macrostep(
       return;
     }
     const child = nextSnapshot.children[actorId];
-    if (!child || child.sessionId !== sessionId) {
+    if (!child) {
+      return;
+    }
+    // The same staleness rule matchesActorSession applies to transition
+    // selection: a completion from a different incarnation must not remove
+    // the still-running child either.
+    if (child.sessionId !== undefined && child.sessionId !== sessionId) {
       return;
     }
 
@@ -2523,7 +2547,9 @@ function getTransitionEffectEnqueue() {
       raise: triggerTransitionEffect,
       spawn: triggerTransitionEffect,
       sendTo: triggerTransitionEffect,
-      stop: triggerTransitionEffect
+      stop: triggerTransitionEffect,
+      listen: triggerTransitionEffect,
+      subscribeTo: triggerTransitionEffect
     },
     triggerTransitionEffect
   ));

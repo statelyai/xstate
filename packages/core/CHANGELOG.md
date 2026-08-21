@@ -1,5 +1,237 @@
 # xstate
 
+## 6.0.0-alpha.43
+
+### Patch Changes
+
+- 39f8431: Durable executions can pin a deterministic identity: `createDurable(machine, { executionId, ... })` makes session ids `<executionId>:<n>`, a deterministic function of actor-creation order, so hosts that journal the execution's own events can replay them — a journaled completion event still matches the child a replay re-creates.
+  
+  ```ts
+  const durable = createDurable(machine, {
+    executionId: orderId,
+    executeAction,
+    waitForEvent
+  });
+  ```
+  
+  The new `runLogic` runtime operation makes the invoked async actor the primary durable unit: a developer writes a normal promise and the host journals the whole body as one entry — wrapping the provided thunk in its own step primitive, or re-running the registered logic on a remote executor from the actor's serializable `(src, input)` identity alone. `enq.step` remains for opt-in finer granularity.
+  
+  ```ts
+  runLogic: (actor, exec) => ctx.run(actor.address, exec)
+  ```
+  
+  A remote handle now carries its host-supplied incarnation token as its `sessionId` — one incarnation identity with one staleness rule (a ref that knows its incarnation compares it; one that does not defers to the owning runtime). The persisted `incarnation` field is unchanged.
+  
+  Docs reposition `enq.step` as the hostless-durability tool (the snapshot is the journal; durable hosts use plain promise actors + `runLogic`), document the portable-action rule (named function + serializable args ships to a remote executor; closures run in-process), and add a "Driving effects yourself" section: `createDurable` is sugar over the pure `transition()` APIs, and hosts may execute the effect objects themselves.
+  
+  Durable-execution docs now also cover quiescing in-flight steps before registering a durable wait, the ordered-effect replay guarantee, and that `runStep`'s `exec` closure must run in-process.
+
+## 6.0.0-alpha.42
+
+### Minor Changes
+
+- 9ca1707: Add separately declared internal event schemas with `schemas.internalEvents`. Internal events remain fully typed inside machines while staying out of the public actor event protocol. The existing top-level `internalEvents` list remains supported for migration.
+
+## 6.0.0-alpha.41
+
+### Minor Changes
+
+- 14cfdc3: Actors now have deterministic, location-transparent identity.
+  
+  - Every actor has a logical `address`: the `/`-joined path of actor ids from the root. Root actors are named after their logic's `id`, and children spawned without an explicit id get deterministic per-parent counters keyed by their actor source (`worker:0`, `worker:1`). Addresses are stable across persistence and restore; `sessionId` identifies one incarnation of an address, and completions from a previous incarnation of a local child are dropped.
+  - `enq.spawn(actors.x)` records the registered source key so spawned children persist by key.
+  - `getEffectDescriptor(effect)` returns a serializable view of any executable effect, with actor references replaced by addresses and actor sources by source keys (payload fields pass through by reference).
+  - A host runtime can be installed as `system.runtime`; the built-in local runtime is the default. The new `deliverEvent`, `stopActor` and `terminateActor` helpers expose the local behaviors for custom runtimes to delegate to.
+  - `createDurable` (from `xstate/durable`) adapters carry their runtime operations directly (`sendEvent`, `scheduleTimer`, …), and the execution installs them on every snapshot's actor system; it exposes `rootAddress` and `getActorRef(snapshot)`, tags every effect with a serializable `descriptor`, and `executeEffects` resolves only when every transitively initiated runtime operation has been accepted — returning the events addressed to the root actor for the durable loop. Breaking for existing adapters: during `executeEffects`, root-addressed events no longer reach any runtime `sendEvent` (including per-effect `runtime()` implementations) — drain them from the `executeEffects` result instead. While the loop is parked in `waitForEvent`, a root-addressed event reaches `sendEvent` like any other target, and the host should enqueue it in its own mailbox. Runtime objects are also wrapped before effects see them, so identity comparisons and extra non-runtime properties on the returned object are not preserved.
+  - `getPersistedSnapshot(snapshot, { embedChildren: false })` persists children by logical address, leaving each child's state with the runtime that owns it; restoring an address-only child produces a location-transparent handle whose sends route through the system runtime.
+  - Explicit child ids are unique per parent: spawning or invoking with an id already held by a live sibling throws (ids stopped earlier in the same transition stay reusable). Previously a duplicate id silently created a second running actor at the same address. A transition to a history state that restores its own source now exits and reenters the source, so its invoked actors restart instead of leaking.
+  - Undeliverable events are reported through the new `deadLetter` runtime operation and a `@xstate.deadletter` inspection event. Delivery stays at-most-once — this is observability, not retry.
+  - A persisted remote child entry round-trips an optional opaque `incarnation` token. XState never stamps one, but when a host does, completions from a different incarnation of the address are dropped and `sendTo` effect descriptors journal the target's token.
+  - `createDurable` exposes `machineId` and `machineVersion` so hosts can pin an execution's journal to the machine version that produced it.
+  - Async-actor steps (`enq.step`) route through the new `runStep` runtime operation. The built-in behavior memoizes results in the actor's own snapshot as before; a durable host implements `runStep` to own the step journal, replaying memoized results without re-running the step. The `runStep` helper export exposes the built-in behavior.
+  - Serialized actor references (`Actor.toJSON`, persisted context refs) carry `xstate$type: 'actorRef'` instead of the v5 `xstate$$type: 1` marker. Migrate v5-persisted context refs with `machineVersions` if you restore them.
+  - Timers persisted from a running actor carry their wall-clock start (`startedAt`); restoring the snapshot schedules the remaining time toward the original deadline (clamped to the declared delay), so a timer past due fires immediately instead of restarting its full delay. Pure-transition snapshots carry no timestamp and restart the declared delay.
+  
+  ```ts
+  const durable = createDurable(machine, {
+    sendEvent: (source, target, event) =>
+      host.send(source?.address, target.address, event),
+    executeAction: (action, { id }, runtime) =>
+      host.runAction(id, () => action.exec(runtime)),
+    waitForEvent: ({ id }) => host.waitForEvent(id)
+  });
+  ```
+
+## 6.0.0-alpha.40
+
+### Minor Changes
+
+- 107d0c2: Represent historical machine versions with Standard Schema snapshot and event
+  descriptors instead of retaining their executable machines. Versioned machines
+  expose the same `snapshotSchema` and `eventSchema` interface. Machine-backed
+  snapshot schemas default omitted history and timer records during migration.
+  
+  ```ts
+  const versions = machineVersions([
+    {
+      id: 'checkout',
+      version: '1',
+      snapshotSchema: checkoutV1Snapshot,
+      eventSchema: checkoutV1Event
+    },
+    checkoutV2
+  ]);
+  
+  const snapshot = await versions.migrateSnapshot(persisted, {
+    to: '2',
+    migrations: {
+      '1': (snapshot) => ({
+        ...snapshot,
+        context: { total: snapshot.context.count }
+      })
+    }
+  });
+  ```
+
+### Patch Changes
+
+- 2e77ff6: `actor.getPersistedSnapshot()` is now typed to the actor’s logic, so persist/restore round-trips through `createActor(logic, { snapshot })` no longer require a cast. Restoring a snapshot into a machine with a different `id` is a type error, while snapshots from other versions of the same machine remain assignable (for runtime migration via `migrate`).
+  
+  ```ts
+  const actor = createActor(machine).start();
+  const snapshot = actor.getPersistedSnapshot();
+  
+  // No cast needed:
+  const restored = createActor(machine, { snapshot }).start();
+  ```
+
+## 6.0.0-alpha.39
+
+### Patch Changes
+
+- 7a7e564: Fixed a bug where `enq.subscribeTo(…)` and `enq.listen(…)` silently did nothing when called inside a transition function. They now work the same as in `entry` actions:
+  
+  ```ts
+  const machine = createMachine({
+    on: {
+      start: (_, enq) => {
+        const child = enq.spawn(childLogic);
+        enq.subscribeTo(child, {
+          done: (output) => ({ type: 'childDone', output })
+        });
+      },
+      childDone: ({ event }) => {
+        // event.output is the child's output
+      }
+    }
+  });
+  ```
+- 4e6dbfd: Named imports from the root `xstate` entry (such as the actor logic creators and `SpecialTargets`) now work in all environments, including tools that load the package as CommonJS.
+  
+  ```ts
+  import { createAsyncLogic } from 'xstate'; // now works everywhere
+  ```
+- 20a52b9: Optional event payload fields declared with `types()` are now preserved instead of being made required:
+  
+  ```ts
+  const machine = setup({
+    schemas: {
+      events: {
+        submit: types<{ email: string; referrer?: string }>()
+      }
+    }
+  }).createMachine({
+    // ...
+  });
+  
+  // referrer can now be omitted
+  actor.send({ type: 'submit', email: 'a@b.co' });
+  ```
+  
+  Payloads inferred from validator libraries (e.g. Zod) are still wrapped in `Required<>`.
+- 20a52b9: `snapshot.value` is now structurally typed from the machine config instead of the generic `StateValue` type. Flat machines get a union of state keys, and parallel machines get an object type with a key per region:
+  
+  ```ts
+  const machine = createMachine({
+    type: 'parallel',
+    states: {
+      bold: { initial: 'off', states: { off: {}, on: {} } },
+      italic: { initial: 'off', states: { off: {}, on: {} } }
+    }
+  });
+  
+  const value = createActor(machine).getSnapshot().value;
+  // { bold: 'off' | 'on'; italic: 'off' | 'on' }
+  ```
+- 90a173a: Fixed `createSystem(...).setup(...)` to preserve runtime validator types alongside typed actor registries. Validated setups now reject unsupported transforming schemas and carry validation into derived setups.
+  
+  Runtime validation can now also be installed on a derived setup when its inherited schemas are compatible:
+  
+  ```ts
+  import { setup } from 'xstate';
+  import { standardSchemaValidator } from 'xstate/validation';
+  import { z } from 'zod';
+  
+  const validated = setup({
+    schemas: { input: z.object({ id: z.string() }) }
+  }).extend({ validator: standardSchemaValidator() });
+  ```
+
+## 6.0.0-alpha.38
+
+### Patch Changes
+
+- 8aaac46: Restoring a persisted snapshot whose state value references a state that no longer exists on the machine now throws a descriptive error, e.g.:
+  
+  ```
+  Persisted snapshot references state 'reviewing' which does not exist on machine 'order-approval'.
+  ```
+  
+  Nested state values report the full state path (e.g. `'active.reviewing'`), and parallel state regions are validated as well.
+
+## 6.0.0-alpha.37
+
+### Minor Changes
+
+- 86f7303: Add an experimental, host-neutral durable execution helper at `xstate/durable`.
+  It assigns stable IDs to effects and event waits from pure transitions while
+  leaving durable execution, timers, messaging and child actors to the host.
+  Hosts can read `nextTransitionIndex` after every transition for checkpointing.
+  
+  ```ts
+  const durable = createDurable(machine, adapter);
+  const output = await durable.run(input);
+  ```
+
+### Patch Changes
+
+- 6df07b8: Fixed `invoke.onDone` transition argument inference when actor logic is passed directly as `src` in a machine with two or more differently-typed registered actors. Previously, the transition function's arguments collapsed to `any` (`event.output` was unusable without annotations); now `event.output` is inferred from the invoked actor's output type.
+  
+  ```ts
+  const fetchUser = createAsyncLogic({ run: async () => ({ name: 'David' }) });
+  const fetchCount = createAsyncLogic({ run: async () => 42 });
+  
+  setup({
+    actors: { fetchUser, fetchCount }
+  }).createMachine({
+    initial: 'loading',
+    states: {
+      loading: {
+        invoke: {
+          src: fetchUser,
+          onDone: ({ event }) => {
+            event.output.name; // string
+            return { target: 'done' };
+          }
+        }
+      },
+      done: {}
+    }
+  });
+  ```
+  
+  Note: when actors are registered, invoking *unregistered* inline logic now only supports the object/target forms of `onDone` (not the transition function form). Register the actor to get fully-typed function-form transitions.
+
 ## 6.0.0-alpha.36
 
 ### Minor Changes

@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { setup } from '../src/index.ts';
+import {
+  type AnySetupConfig,
+  createCallbackLogic,
+  createSystem,
+  setup
+} from '../src/index.ts';
 import { standardSchemaValidator } from '../src/validation/index.ts';
 
 describe('runtime validation types', () => {
@@ -103,15 +108,83 @@ describe('runtime validation types', () => {
     });
   });
 
-  it('requires validation to be installed by the root setup', () => {
+  it('can install validation on a compatible derived setup', () => {
     const transforming = z.string().transform((value) => value.length);
-    const base = setup({ schemas: { input: transforming } });
+    setup().extend({ validator: standardSchemaValidator() });
+    const validated = setup({ schemas: { input: z.string() } }).extend({
+      validator: standardSchemaValidator()
+    });
 
     if (false) {
-      base.extend({
-        // @ts-expect-error - validation must be installed by the root setup
-        validator: standardSchemaValidator()
+      validated.createMachine({
+        schemas: {
+          // @ts-expect-error - derived validation applies to inline schemas
+          output: transforming
+        }
       });
     }
+
+    const incompatible = setup({ schemas: { input: transforming } });
+
+    if (false) {
+      // @ts-expect-error - inherited schema transforms cannot be validated
+      incompatible.extend({
+        validator: standardSchemaValidator()
+      });
+
+      const incompatibleState = setup({
+        states: {
+          loading: { schemas: { input: transforming } }
+        }
+      });
+      // @ts-expect-error - inherited state schema transforms cannot be validated
+      incompatibleState.extend({ validator: standardSchemaValidator() });
+    }
+  });
+
+  it('preserves runtime validation types through createSystem().setup()', () => {
+    const transforming = z.string().transform((value) => value.length);
+    const receiver = createCallbackLogic<{ type: 'HELLO' }>(() => {});
+    const system = createSystem({ registry: { receiver } });
+
+    if (false) {
+      system.setup({
+        validator: standardSchemaValidator(),
+        // @ts-expect-error - runtime validation does not apply schema transforms
+        schemas: { input: transforming }
+      });
+    }
+
+    const validated = system.setup({
+      validator: standardSchemaValidator()
+    });
+
+    if (false) {
+      validated.extend({
+        schemas: {
+          // @ts-expect-error - extended schemas inherit runtime validation
+          input: transforming
+        }
+      });
+    }
+
+    validated.extend({ validator: standardSchemaValidator() });
+
+    const setupFromConfig = <const TConfig extends AnySetupConfig>(
+      config: TConfig
+    ) => system.setup(config);
+    setupFromConfig({ validator: standardSchemaValidator() }).extend({
+      validator: standardSchemaValidator()
+    });
+
+    validated.createMachine({
+      on: {
+        TEST: ({ system }) => {
+          system.get('receiver')?.send({ type: 'HELLO' });
+          // @ts-expect-error - registry actor only accepts HELLO
+          system.get('receiver')?.send({ type: 'OTHER' });
+        }
+      }
+    });
   });
 });

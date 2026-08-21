@@ -45,13 +45,13 @@ Beyond simplifying the action/guard surface, v6 introduces a number of features 
 | Feature                                                                           | What it gives you                                                                                                                                                                                 |
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Inline function transitions](#1-inline-functions-replace-action-creators)        | Transitions and actions are plain functions; `enq` queues side effects.                                                                                                                           |
-| [Standard Schema definitions](#3-createmachine-schemas-replace-types)             | `schemas.context`/`events`/`input`/`output`/`emitted`/`meta`/`tags` accept Zod (or any [Standard Schema](https://standardschema.dev)) for TypeScript inference and runtime-readable metadata.     |
+| [Standard Schema definitions](#3-createmachine-schemas-replace-types)             | `schemas.context`/`events`/`internalEvents`/`input`/`output`/`emitted`/`meta`/`tags` accept Zod (or any [Standard Schema](https://standardschema.dev)) for TypeScript inference and runtime-readable metadata.     |
 | [State input](#5-state-input)                                                     | State nodes may declare a typed `input` payload that callers must provide on transition.                                                                                                          |
 | [`actor.trigger.X()`](#6-typed-actortrigger)                                      | Type-safe event dispatcher generated from `schemas.events` - no event-object boilerplate.                                                                                                         |
 | [`createAsyncLogic`](#7-async-actors-frompromise--createasynclogic)               | `fromPromise` rebuilt with `id`, `timeout`, `AbortSignal`, durable `enq.step()`, and event emission.                                                                                              |
 | [`createLogic`](#8-createlogic-stateful-actor-logic)                              | New stateful actor logic creator - like a small state machine defined as a single transition function with `enq`.                                                                                 |
 | [`enq.listen` / `enq.subscribeTo`](#9-enqlisten-and-enqsubscribeto)               | Declaratively wire child-actor emitted events or snapshot streams back to the parent.                                                                                                             |
-| [Internal events](#12-internal-events)                                            | `internalEvents: ['tick', 'change.*']` - events that can be raised inside the machine but rejected when sent from outside.                                                                        |
+| [Internal events](#12-internal-events)                                            | `schemas.internalEvents: { tick, 'change.*' }` - events that can be raised inside the machine but rejected by the public actor protocol.                                                          |
 | [Choice states](#13-choice-states)                                                | First-class `type: 'choice'` for declarative branch routing (replaces transient `always` chains).                                                                                                 |
 | [State timeouts](#14-state-and-async-timeouts)                                    | `timeout` + `onTimeout` per state - independent of `after`; auto-cancelled on exit.                                                                                                               |
 | [Duration strings](#14-state-and-async-timeouts)                                  | `'250ms'`, `'5s'` / `'1.5s'`, and ISO 8601 (`'PT1M30S'`, `'P1DT12H'`) accepted by state timeouts and async-logic timeouts.                                                                        |
@@ -378,6 +378,7 @@ const m = createMachine({
 schemas: {
   context:  ZodSchema,
   events:   { [eventType: string]: ZodSchema },        // map, not union
+  internalEvents: { [eventType: string]: ZodSchema },  // private event map
   actions:  { [actionType: string]: { params: ZodSchema } },
   guards:   { [guardType: string]: { params: ZodSchema } },
   emitted:  { [eventType: string]: ZodSchema },
@@ -391,11 +392,10 @@ schemas: {
 
 `events` and `emitted` are now **maps keyed by event type**, not unions. Each value is the schema for the event payload (excluding `type`).
 
-> **Note:** `schemas` drive **TypeScript inference only**. Runtime validation
-> of context/events/input against the schemas is **not** performed in this
-> release - do not rely on `schemas` to reject malformed events at runtime
-> (use `internalEvents` for inbound-event restriction, or validate at your
-> boundary).
+> **Note:** `schemas` drive TypeScript inference. Runtime validation is opt-in
+> through `standardSchemaValidator()` or the machine's event schema; ordinary
+> `actor.send(...)` calls do not automatically validate payloads. Internal
+> schemas also define the private event protocol.
 
 ### Machine output
 
@@ -824,18 +824,20 @@ on: {
 
 ## 12. Internal events
 
-Events listed in `internalEvents` can be **raised** internally but are **rejected** when sent from outside the actor. Wildcard patterns are supported.
+Events declared in `schemas.internalEvents` can be **raised** internally but
+are **rejected** by the public actor protocol. Wildcard patterns are supported.
 
 ```ts
 const machine = createMachine({
   schemas: {
     events: {
-      START: z.object({}),
+      START: z.object({})
+    },
+    internalEvents: {
       tick: z.object({}),
-      'change.value': z.object({ value: z.string() })
+      'change.*': z.object({ value: z.string() })
     }
   },
-  internalEvents: ['tick', 'change.*'] as const,
   initial: 'idle',
   states: {
     idle: {
@@ -853,6 +855,12 @@ const machine = createMachine({
 const actor = createActor(machine).start();
 actor.send({ type: 'tick' }); // throws: Internal event "tick" cannot be sent to actor "…" from outside.
 ```
+
+Raised, self-targeted and transition-handler event types include both schema
+maps. `actor.send(...)` and `actor.trigger` include only `schemas.events`.
+The previous top-level `internalEvents` descriptor list remains supported and
+deprecated; it can be migrated by moving each listed event's schema to
+`schemas.internalEvents`.
 
 ---
 
@@ -968,18 +976,15 @@ These exports have been **removed** from `xstate`:
 
 These exports have been **added**:
 
-- `setup` (reshaped - see §4) and `createSystem(...).setup(...)` for typed system registries
+- `setup` (reshaped - see §4) and `createSystem` for typed system registries
 - `createFSM` and its related `FSMActorLogic`/`FSMConfig`/`FSMSnapshot` types for flat, actor-compatible finite state machines
 - `createStateConfig`
 - `checkStateIn`
-- `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
+- `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
 - `TimeoutError`
 - Serialization surface (see §21): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON` types; machines serialize via `serializeMachine(machine)`
 - Config types (v6 shapes): `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `Sources`, `InferEvents`, `WidenLiterals`
-- `isBuiltInExecutableAction`
-- `executeEffects`
-- `ActorSystemRuntime`
-- `ActorTermination`
+- Runtime/effect surface: `executeEffects`, `isBuiltInExecutableAction`, `getEffectDescriptor`, `deliverEvent`, `runStep`, `stopActor`, `terminateActor`, and the related `EffectDescriptor`, `ActorSystemRuntime`, and `ActorTermination` types
 - Persistence/versioning surface: `machineVersions` and its related snapshot
   migration and event adaptation types
 - Executable effect types: `BaseExecutableActionObject`, `CustomExecutableActionObject`, `ExecutableActionObject`, `ExecutableActionObjectFromLogic`, `BuiltInExecutableActionObject`, `SpecialExecutableAction`, `StartExecutableActionObject`, `RaiseExecutableActionObject`, `SendToExecutableActionObject`, `CancelExecutableActionObject`, `StopExecutableActionObject`, `TerminateExecutableActionObject`
@@ -1114,13 +1119,20 @@ const persisted = actor.getPersistedSnapshot();
 
 Machines without a `version` produce snapshots with no `version` key.
 
-Keep old versioned machines when you need typed migration. `machineVersions()`
-parses stored snapshots with matching machine schemas and migrates raw snapshots
-directly to a retained target version. A `'*'` migration may asynchronously
-handle unknown snapshots without retaining old machines.
+Pass `{ id, version, snapshotSchema, eventSchema }` to retain Standard Schema
+contracts for a historical version without retaining its old executable machine.
+Either schema may be omitted when only one kind of historical data exists.
+`machineVersions()` infers exact snapshot migration and event adapter inputs from
+the corresponding schema. Targets must be backed by actual machines, which also
+remain supported directly as entries. A `'*'` handler may asynchronously handle
+unknown data.
 
-To migrate snapshots created before versioning was adopted, retain the old machine
-definition as a version and pass `{ unversioned: '<old-version>' }` to
+Versioned machines expose the same `snapshotSchema` and `eventSchema` fields as
+historical descriptors. `machineVersions()` therefore consumes one source
+interface; executable-machine detection is only used to constrain `to`.
+
+To migrate snapshots created before versioning was adopted, describe the old
+snapshot as a version and pass `{ unversioned: '<old-version>' }` to
 `machineVersions()`. This fallback applies only to snapshots without version
 metadata. `parseSnapshot()` rejects explicit unknown versions;
 `migrateSnapshot()` may handle them with `'*'`.
@@ -1130,6 +1142,8 @@ Event history adaptation is a separate operation. Use
 whole source history into target-version events. Exact retained-version
 adapters are typed; `'*'` receives unknown events. Adaptation validates target
 event schemas when available but does not replay events or create a snapshot.
+Descriptors with an `eventSchema` provide exact event adapters. The schema
+validates complete event objects rather than machine `schemas.events` payloads.
 
 ### Durable timers
 
@@ -1147,9 +1161,11 @@ transitions emit ordered cancellation effects for any remaining declarations.
 Persisted delayed sends preserve `self`, parent, and active-child relationships
 without rebinding stopped actors by ID.
 
-A locally rehydrated actor restarts each timer with its declared delay. Durable
-hosts that need wall-clock restoration persist `scheduledAt` / `dueAt`
-separately from the machine snapshot.
+A timer persisted from a running actor carries its wall-clock start
+(`startedAt`), and rehydrating schedules the remaining time toward the original
+deadline. Pure-transition snapshots carry no timestamp, so rehydrating one
+restarts each timer with its declared delay; durable hosts own timer
+scheduling through the system runtime.
 
 ### Terminal actor effects
 

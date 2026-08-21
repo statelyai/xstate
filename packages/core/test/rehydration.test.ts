@@ -3,7 +3,10 @@ import {
   createMachine,
   createActor,
   createAsyncLogic,
-  createObservableLogic
+  createObservableLogic,
+  type AnyStateMachine,
+  type RestorablePersistedSnapshotFor,
+  type Snapshot
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { z } from 'zod';
@@ -493,5 +496,168 @@ describe('rehydration', () => {
         .children.child.getSnapshot()
         .children.grandchild.getSnapshot().context.count
     ).toBe(1);
+  });
+
+  describe('persisted state value validation', () => {
+    function restoreOnto<TLogic extends AnyStateMachine>(
+      machine: TLogic,
+      snapshot: Snapshot<unknown> & RestorablePersistedSnapshotFor<TLogic>
+    ) {
+      const restored = createActor(machine, { snapshot, input: undefined });
+      restored.subscribe({ error: () => {} });
+      restored.start();
+      return restored.getSnapshot();
+    }
+
+    it('should error with a descriptive message when the persisted state value references a top-level state that no longer exists', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        initial: 'reviewing',
+        states: { reviewing: {}, approved: {} }
+      });
+      const actorRef = createActor(machine).start();
+      const snapshot = actorRef.getPersistedSnapshot();
+      actorRef.stop();
+
+      const renamedMachine = createMachine({
+        id: 'order-approval',
+        initial: 'awaitingApproval',
+        states: { awaitingApproval: {}, approved: {} }
+      });
+
+      expect(restoreOnto(renamedMachine, snapshot)).toMatchObject({
+        status: 'error',
+        error: expect.objectContaining({
+          message:
+            "Persisted snapshot references state 'reviewing' which does not exist on machine 'order-approval'."
+        })
+      });
+    });
+
+    it('should error with the full state path when a nested state no longer exists', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        initial: 'active',
+        states: {
+          active: {
+            initial: 'reviewing',
+            states: { reviewing: {}, done: {} }
+          }
+        }
+      });
+      const actorRef = createActor(machine).start();
+      const snapshot = actorRef.getPersistedSnapshot();
+      actorRef.stop();
+
+      const renamedMachine = createMachine({
+        id: 'order-approval',
+        initial: 'active',
+        states: {
+          active: {
+            initial: 'awaitingApproval',
+            states: { awaitingApproval: {}, done: {} }
+          }
+        }
+      });
+
+      expect(restoreOnto(renamedMachine, snapshot)).toMatchObject({
+        status: 'error',
+        error: expect.objectContaining({
+          message:
+            "Persisted snapshot references state 'active.reviewing' which does not exist on machine 'order-approval'."
+        })
+      });
+    });
+
+    it('should error when a parent of a nested state value no longer exists', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        initial: 'active',
+        states: {
+          active: {
+            initial: 'reviewing',
+            states: { reviewing: {} }
+          }
+        }
+      });
+      const actorRef = createActor(machine).start();
+      const snapshot = actorRef.getPersistedSnapshot();
+      actorRef.stop();
+
+      const renamedMachine = createMachine({
+        id: 'order-approval',
+        initial: 'running',
+        states: {
+          running: {
+            initial: 'reviewing',
+            states: { reviewing: {} }
+          }
+        }
+      });
+
+      expect(restoreOnto(renamedMachine, snapshot)).toMatchObject({
+        status: 'error',
+        error: expect.objectContaining({
+          message:
+            "Persisted snapshot references state 'active' which does not exist on machine 'order-approval'."
+        })
+      });
+    });
+
+    it('should error when a region of a parallel state value no longer exists', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        type: 'parallel',
+        states: {
+          review: { initial: 'reviewing', states: { reviewing: {} } },
+          payment: { initial: 'pending', states: { pending: {} } }
+        }
+      });
+      const actorRef = createActor(machine).start();
+      const snapshot = actorRef.getPersistedSnapshot();
+      actorRef.stop();
+
+      const renamedMachine = createMachine({
+        id: 'order-approval',
+        type: 'parallel',
+        states: {
+          review: {
+            initial: 'awaitingApproval',
+            states: { awaitingApproval: {} }
+          },
+          payment: { initial: 'pending', states: { pending: {} } }
+        }
+      });
+
+      expect(restoreOnto(renamedMachine, snapshot)).toMatchObject({
+        status: 'error',
+        error: expect.objectContaining({
+          message:
+            "Persisted snapshot references state 'review.reviewing' which does not exist on machine 'order-approval'."
+        })
+      });
+    });
+
+    it('should restore successfully when the persisted state value is valid', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        type: 'parallel',
+        states: {
+          review: { initial: 'reviewing', states: { reviewing: {} } },
+          payment: { initial: 'pending', states: { pending: {} } }
+        }
+      });
+      const actorRef = createActor(machine).start();
+      const snapshot = actorRef.getPersistedSnapshot();
+      actorRef.stop();
+
+      const restored = createActor(machine, { snapshot }).start();
+
+      expect(restored.getSnapshot().status).toBe('active');
+      expect(restored.getSnapshot().value).toEqual({
+        review: 'reviewing',
+        payment: 'pending'
+      });
+    });
   });
 });
