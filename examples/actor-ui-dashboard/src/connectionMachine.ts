@@ -33,8 +33,7 @@ export const connectionMachine = setup({
   },
   actors: { connect },
   guards: {
-    canRetry: ({ context }: { context: { attempt: number } }) =>
-      context.attempt < MAX_ATTEMPTS
+    canRetry: (attempt: number) => attempt < MAX_ATTEMPTS
   },
   delays: {
     backoff: ({ context }: { context: { attempt: number } }) =>
@@ -61,7 +60,7 @@ export const connectionMachine = setup({
         onError: ({ context, event, guards }) => {
           const lastError = (event.error as Error).message;
           const attempt = context.attempt + 1;
-          return guards.canRetry({ context: { attempt } })
+          return guards.canRetry(attempt)
             ? { target: 'backingOff', context: { attempt, lastError } }
             : { target: 'gaveUp', context: { attempt, lastError } };
         }

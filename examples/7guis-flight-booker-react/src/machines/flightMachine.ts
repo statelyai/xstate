@@ -19,10 +19,14 @@ export const flightBookerMachine = setup({
     })
   },
   guards: {
-    isValidDepartDate: ({ context }: { context: FlightData }) =>
-      context.departDate >= TODAY,
-    isValidReturnDate: ({ context }: { context: FlightData }) =>
-      context.departDate >= TODAY && context.returnDate > context.departDate
+    isValidDepartDate: (departDate: string) => departDate >= TODAY,
+    isValidReturnDate: ({
+      departDate,
+      returnDate
+    }: {
+      departDate: string;
+      returnDate: string;
+    }) => departDate >= TODAY && returnDate > departDate
   }
 }).createMachine({
   id: 'flightBookerMachine',
@@ -44,7 +48,7 @@ export const flightBookerMachine = setup({
           on: {
             CHANGE_TRIP_TYPE: { target: 'roundTrip' },
             BOOK_DEPART: ({ context, guards }) => {
-              if (guards.isValidDepartDate({ context })) {
+              if (guards.isValidDepartDate(context.departDate)) {
                 return { target: '#flightBookerMachine.booking' };
               }
             }
@@ -57,7 +61,7 @@ export const flightBookerMachine = setup({
               context: { returnDate: event.value }
             }),
             BOOK_RETURN: ({ context, guards }) => {
-              if (guards.isValidReturnDate({ context })) {
+              if (guards.isValidReturnDate(context)) {
                 return { target: '#flightBookerMachine.booking' };
               }
             }

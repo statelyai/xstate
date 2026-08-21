@@ -58,8 +58,7 @@ const provider = setup({
     }>()
   },
   guards: {
-    canRetry: ({ context }: { context: { attempt: number } }) =>
-      context.attempt < MAX_ATTEMPTS
+    canRetry: (attempt: number) => attempt < MAX_ATTEMPTS
   },
   delays: {
     backoff: ({ context }: { context: { attempt: number } }) =>
@@ -92,7 +91,7 @@ const provider = setup({
           const attempt = context.attempt + 1;
           const error = (event.error as Error).message;
           enq(log, `${context.provider}: attempt ${attempt} failed (${error})`);
-          return guards.canRetry({ context: { attempt } })
+          return guards.canRetry(attempt)
             ? { target: 'backingOff', context: { attempt, error } }
             : { target: 'exhausted', context: { attempt, error } };
         }

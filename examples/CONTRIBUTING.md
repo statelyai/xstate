@@ -12,12 +12,12 @@ An example teaches one thing. State it in the first line of the README, then bui
 
 ## Naming
 
-| Kind | Pattern | Example |
-| --- | --- | --- |
-| Frontend app | `domain-framework` | `auth-flow-react` |
-| Backend workflow pattern | `pattern-*` | `pattern-saga` |
-| `@xstate/store` example | `store-*` | `store-counter-react` |
-| AI agent example | `agent-*` | `agent-tool-loop` |
+| Kind                     | Pattern            | Example               |
+| ------------------------ | ------------------ | --------------------- |
+| Frontend app             | `domain-framework` | `auth-flow-react`     |
+| Backend workflow pattern | `pattern-*`        | `pattern-saga`        |
+| `@xstate/store` example  | `store-*`          | `store-counter-react` |
+| AI agent example         | `agent-*`          | `agent-tool-loop`     |
 
 Use lowercase kebab-case. The directory name, the `name` field in `package.json`, and the README title must match.
 
@@ -37,12 +37,12 @@ Depend on workspace packages, never on published versions:
 Pin the following framework and tooling versions. Do not introduce older majors.
 
 | Dependency | Version |
-| --- | --- |
-| React | 19 |
-| Vite | 7 |
-| Vue | 3.5 |
-| Svelte | 5 |
-| Express | 5 |
+| ---------- | ------- |
+| React      | 19      |
+| Vite       | 7       |
+| Vue        | 3.5     |
+| Svelte     | 5       |
+| Express    | 5       |
 
 Keep the dependency list minimal. Anything beyond the framework, XState, and the build tool needs a reason in the README.
 
@@ -69,23 +69,52 @@ const machine = setup({
     })
   },
   guards: {
-    // Guards (and `delays`) receive an args object. They do not yet get
-    // contextual typing from `schemas.context`, so annotate the parameter.
-    hasSession: ({ context }: { context: { user: User | null } }) =>
-      context.user !== null
+    // Guards are standalone functions: they take the narrowest params the
+    // rule needs, not the machine's context. Annotate the params — guards
+    // deliberately do not get contextual typing from `schemas.context`.
+    hasSession: (user: User | null) => user !== null
   }
 }).createMachine({
   /* ... */
 });
 ```
 
-Call them from a transition function with the same args object:
+Call them explicitly from a transition function, passing the values the rule needs:
 
 ```ts
 on: {
   submit: ({ context, guards }) => ({
-    target: guards.hasSession({ context }) ? 'dashboard' : 'login'
+    target: guards.hasSession(context.user) ? 'dashboard' : 'login'
   });
+}
+```
+
+Write a guard so its signature reads as a reusable function. When a rule needs several values, take a named param object rather than the whole context:
+
+```ts
+guards: {
+  hasStock: ({ available, quantity }: { available: number; quantity: number }) =>
+    available >= quantity;
+}
+```
+
+```ts
+on: {
+  addItem: ({ context, guards }) => {
+    if (!guards.hasStock(context)) return;
+    return { target: 'adding' };
+  };
+}
+```
+
+Avoid `({ context }: { context: WholeContext })` — a guard shaped like a callback of the machine's context is not reusable and is not the idiom.
+
+`delays` are different: a named delay function is called by the runtime with `{ context, event, stateNode }`, so it does take that args object.
+
+```ts
+delays: {
+  backoff: ({ context }: { context: { attempt: number } }) =>
+    100 * 2 ** (context.attempt - 1);
 }
 ```
 

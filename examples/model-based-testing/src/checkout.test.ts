@@ -22,16 +22,6 @@ const testModel = createTestModel(checkoutMachine, {
 
 const paths = testModel.getSimplePaths();
 
-/**
- * Event executors receive the event narrowed to its `type` only, so payloads
- * are read back through the machine's own event union.
- */
-type CheckoutEvent = Parameters<(typeof checkoutMachine)['transition']>[1];
-type EventOf<TType extends CheckoutEvent['type']> = Extract<
-  CheckoutEvent,
-  { type: TType }
->;
-
 describe('generated paths', () => {
   it('generates more than one path', () => {
     expect(paths.length).toBeGreaterThan(1);
@@ -49,9 +39,8 @@ describe('generated paths', () => {
         // event, payload included.
         events: {
           startCheckout: () => ui.startCheckout(),
-          submitAddress: ({ event }) =>
-            ui.enterAddress((event as EventOf<'submitAddress'>).zip),
-          pay: ({ event }) => ui.pay((event as EventOf<'pay'>).card),
+          submitAddress: ({ event }) => ui.enterAddress(event.zip),
+          pay: ({ event }) => ui.pay(event.card),
           back: () => ui.back(),
           retry: () => ui.retry()
         },

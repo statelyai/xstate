@@ -46,8 +46,7 @@ const jobMachine = setup({
   },
   actors: { runJob },
   guards: {
-    canRetry: ({ context }: { context: { attempts: number } }) =>
-      context.attempts < MAX_ATTEMPTS
+    canRetry: (attempts: number) => attempts < MAX_ATTEMPTS
   },
   delays: {
     backoff: ({ context }: { context: { attempts: number } }) =>
@@ -69,7 +68,7 @@ const jobMachine = setup({
           const error = (event.error as Error).message;
           const attempts = context.attempts + 1;
           enq(log, `  job ${context.job.id} attempt ${attempts}: ${error}`);
-          return guards.canRetry({ context: { attempts } })
+          return guards.canRetry(attempts)
             ? { target: 'backingOff', context: { attempts, error } }
             : { target: 'deadLetter', context: { attempts, error } };
         }

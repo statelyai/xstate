@@ -30,11 +30,8 @@ export const feedbackMachine = setup({
   },
   actors: { submitFeedback },
   guards: {
-    isComplete: ({
-      context
-    }: {
-      context: { rating: number; comment: string };
-    }) => context.rating > 0 && context.comment.trim().length > 0
+    isComplete: ({ rating, comment }: { rating: number; comment: string }) =>
+      rating > 0 && comment.trim().length > 0
   }
 }).createMachine({
   context: { rating: 0, comment: '', id: null },
@@ -47,7 +44,7 @@ export const feedbackMachine = setup({
         comment: ({ event }) => ({ context: { comment: event.comment } }),
         // v5: { guard: 'isComplete', target: 'submitting' }
         submit: ({ context, guards }) =>
-          guards.isComplete({ context }) ? { target: 'submitting' } : undefined
+          guards.isComplete(context) ? { target: 'submitting' } : undefined
       }
     },
     submitting: {

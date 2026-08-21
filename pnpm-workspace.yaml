@@ -50,4 +50,5 @@ overrides:
   yaml: 2.8.2
 
 patchedDependencies:
+  '@preconstruct/cli@2.8.13': patches/@preconstruct__cli@2.8.13.patch
   '@vue/test-utils@2.4.6': patches/@vue__test-utils@2.4.6.patch

@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "tsx --conditions=module ./main.ts",
+    "start": "tsx ./main.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

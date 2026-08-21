@@ -222,7 +222,7 @@ export interface TestParam<
   events?: {
     [TEventType in TEvent['type']]?: EventExecutor<
       TSnapshot,
-      { type: ExtractEvent<TEvent, TEventType>['type'] }
+      ExtractEvent<TEvent, TEventType>
     >;
   };
 }

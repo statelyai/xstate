@@ -1,13 +1,11 @@
-import { createActor, type Actor } from 'xstate';
+import { createActor, type PersistedSnapshotFrom } from 'xstate';
 import { ORDER_EVENTS, orderMachine, type OrderEvent } from './orderMachine';
 
 export interface Env {
   ORDER: DurableObjectNamespace;
 }
 
-type OrderSnapshot = ReturnType<
-  Actor<typeof orderMachine>['getPersistedSnapshot']
->;
+type OrderSnapshot = PersistedSnapshotFrom<typeof orderMachine>;
 
 /**
  * One Durable Object instance per order id. The object holds no in-memory

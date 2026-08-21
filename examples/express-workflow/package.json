@@ -3,7 +3,7 @@
   "name": "@xstate/example-express-workflow",
   "version": "1.0.0",
   "scripts": {
-    "start": "tsx --conditions=module index.ts",
+    "start": "tsx index.ts",
     "typecheck": "tsc --noEmit"
   },
   "license": "MIT",

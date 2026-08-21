@@ -97,10 +97,8 @@ const compareOffersMachine = setup({
   guards: {
     // Input arrives from outside the program, so it is checked before use.
     // A guard keeps the check declarative and reusable.
-    hasValidPrincipal: ({ context }: { context: { principal: number } }) =>
-      Number.isFinite(context.principal) &&
-      context.principal >= 1_000 &&
-      context.principal <= 1_000_000
+    hasValidPrincipal: (principal: number) =>
+      Number.isFinite(principal) && principal >= 1_000 && principal <= 1_000_000
   },
   actors: { loanQuoteMachine }
 }).createMachine({
@@ -113,7 +111,7 @@ const compareOffersMachine = setup({
   states: {
     validating: {
       always: ({ context, guards }) =>
-        guards.hasValidPrincipal({ context })
+        guards.hasValidPrincipal(context.principal)
           ? { target: 'quotingA' }
           : {
               target: 'rejected',

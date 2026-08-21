@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "tsx --conditions=module src/main.ts",
-    "serve": "tsx --conditions=module src/server.ts",
+    "start": "tsx src/main.ts",
+    "serve": "tsx src/server.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

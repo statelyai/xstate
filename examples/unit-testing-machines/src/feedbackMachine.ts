@@ -38,11 +38,8 @@ export const feedbackMachine = setup({
   },
   actors: { submitFeedback },
   guards: {
-    isComplete: ({
-      context
-    }: {
-      context: { rating: number; comment: string };
-    }) => context.rating > 0 && context.comment.trim().length > 0
+    isComplete: ({ rating, comment }: { rating: number; comment: string }) =>
+      rating > 0 && comment.trim().length > 0
   },
   delays: { retryAfter: RETRY_DELAY }
 }).createMachine({
@@ -56,7 +53,7 @@ export const feedbackMachine = setup({
         // A transition function replaces the v5 `guard` key: return a target
         // when the transition should be taken, and nothing when it should not.
         submit: ({ context, guards }) =>
-          guards.isComplete({ context }) ? { target: 'submitting' } : undefined
+          guards.isComplete(context) ? { target: 'submitting' } : undefined
       }
     },
     submitting: {

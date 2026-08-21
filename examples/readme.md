@@ -118,5 +118,10 @@ Features per example. `—` means not used or not determined.
 | actor-system                    | Node           | —      | —        | yes    | —     | —      | —           | —     | no  |
 | v5-to-v6-migration              | Node           | yes    | —        | yes    | —     | —      | —           | —     | no  |
 | actor-ui-dashboard              | Vanilla + Vite | yes    | —        | yes    | —     | yes    | —           | —     | yes |
+| durable-execution               | Node           | —      | —        | yes    | —     | yes    | yes         | —     | no  |
+| internal-events                 | Node           | —      | —        | —      | —     | yes    | —           | —     | no  |
+| actor-addresses                 | Node           | —      | —        | —      | yes   | —      | yes         | —     | no  |
+| machine-versions                | Node + Zod     | —      | —        | —      | —     | —      | yes         | —     | no  |
+| zod-schemas                     | Node + Zod     | —      | —        | yes    | —     | —      | —           | —     | no  |
 
 [`_shared/`](./_shared) is not an example. It holds the `actor-ui` dashboard that headless examples can use instead of writing their own UI.

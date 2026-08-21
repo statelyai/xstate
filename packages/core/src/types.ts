@@ -1671,10 +1671,58 @@ type PersistedSnapshotLogicIdentity<TLogic> = TLogic extends {
     }
   : never;
 
-/** A persisted snapshot tied to a versioned actor logic identity. */
+/**
+ * A persisted snapshot tied to a versioned actor logic identity.
+ *
+ * @remarks
+ * This is a _brand only_: it carries the machine `id`/`version` identity used
+ * to constrain which persisted snapshots may be restored into which logic, and
+ * says nothing about the snapshot's shape. To annotate a value produced by
+ * {@link Actor.getPersistedSnapshot}, use {@link PersistedSnapshotFrom}
+ * instead.
+ */
 export type PersistedSnapshotFor<TLogic> = {
   readonly [persistedSnapshotLogic]: PersistedSnapshotLogicIdentity<TLogic>;
 };
+
+/** The identity stamp persisted by a machine that declares a `version`. */
+export type PersistedMachineIdentity<
+  TMachine extends AnyStateMachine = AnyStateMachine
+> = {
+  id: TMachine['id'];
+  version: NonNullable<TMachine['version']>;
+};
+
+/**
+ * The persisted snapshot produced by `actor.getPersistedSnapshot()` for a given
+ * state machine:
+ *
+ * ```ts
+ * const persisted: PersistedSnapshotFrom<typeof machine> =
+ *   actor.getPersistedSnapshot();
+ * ```
+ *
+ * @remarks
+ * The `machine` identity field is only present for machines that declare a
+ * `version`; unversioned machines persist no identity stamp.
+ *
+ * Unlike {@link PersistedSnapshotFor}, which is only the restore-time identity
+ * brand, this describes the persisted snapshot's actual shape.
+ */
+export type PersistedSnapshotFrom<TMachine extends AnyStateMachine> =
+  Snapshot<unknown> &
+    PersistedSnapshotFor<TMachine> & {
+      context: ContextFrom<TMachine>;
+      [key: string]: unknown;
+    } & (undefined extends TMachine['version']
+      ? { machine?: PersistedMachineIdentity<TMachine> }
+      : { machine: PersistedMachineIdentity<TMachine> });
+
+/** The persisted snapshot produced by `actor.getPersistedSnapshot()`. */
+export type PersistedSnapshotOf<TLogic extends AnyActorLogic> =
+  TLogic extends AnyStateMachine
+    ? PersistedSnapshotFrom<TLogic>
+    : Snapshot<unknown> & PersistedSnapshotFor<TLogic>;
 
 /**
  * A persisted snapshot restorable into the given actor logic: any snapshot

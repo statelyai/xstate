@@ -96,8 +96,7 @@ const agent = setup({
     input: types<{ goal: string }>()
   },
   guards: {
-    underLimit: ({ context }: { context: { iterations: number } }) =>
-      context.iterations < MAX_ITERATIONS
+    underLimit: (iterations: number) => iterations < MAX_ITERATIONS
   },
   actors: { calculator, model, search, weather }
 }).createMachine({
@@ -129,7 +128,7 @@ const agent = setup({
               context: { iterations, answer: reply.answer }
             };
           }
-          if (!guards.underLimit({ context: { iterations } })) {
+          if (!guards.underLimit(iterations)) {
             return { target: 'stopped', context: { iterations } };
           }
           enq(log, `model thought: ${reply.thought}`);

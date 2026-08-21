@@ -72,8 +72,7 @@ const inventoryMachine = setup({
   },
   guards: {
     // Overselling guard: a reservation is only granted against real stock.
-    inStock: ({ context }: { context: { available: number } }) =>
-      context.available > 0
+    inStock: (available: number) => available > 0
   }
 }).createMachine({
   context: ({ input }) => ({
@@ -86,7 +85,7 @@ const inventoryMachine = setup({
     open: {
       on: {
         reserve: ({ context, event, guards }, enq) => {
-          if (!guards.inStock({ context })) {
+          if (!guards.inStock(context.available)) {
             enq(log, `denied ${event.customer}: out of stock`);
             return undefined;
           }

@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "tsx --conditions=module src/local.ts",
+    "start": "tsx src/local.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

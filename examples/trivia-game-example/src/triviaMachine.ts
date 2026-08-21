@@ -41,10 +41,15 @@ export const triviaMachine = setup({
     })
   },
   guards: {
-    isAnswerCorrect: (params: { context: TriviaContext; answer: number }) =>
-      params.answer === params.context.currentCharacter?.id,
-    hasLostGame: (context: TriviaContext) => context.lifes <= 0,
-    hasWonGame: (context: TriviaContext) => context.points >= 100
+    isAnswerCorrect: ({
+      answer,
+      correctId
+    }: {
+      answer: number;
+      correctId: number | undefined;
+    }) => answer === correctId,
+    hasLostGame: (lifes: number) => lifes <= 0,
+    hasWonGame: (points: number) => points >= 100
   },
   actions: {
     resetTriviaData: () => ({
@@ -158,8 +163,8 @@ export const triviaMachine = setup({
               on: {
                 'user.selectAnswer': ({ context, event, guards }) => ({
                   target: guards.isAnswerCorrect({
-                    context,
-                    answer: event.answer
+                    answer: event.answer,
+                    correctId: context.currentCharacter?.id
                   })
                     ? 'correctAnswer'
                     : 'incorrectAnswer'
@@ -171,8 +176,10 @@ export const triviaMachine = setup({
                 context: { points: context.points + 10 }
               }),
               always: ({ context, guards }) => {
-                if (guards.hasLostGame(context)) return { target: 'lostGame' };
-                if (guards.hasWonGame(context)) return { target: 'wonGame' };
+                if (guards.hasLostGame(context.lifes))
+                  return { target: 'lostGame' };
+                if (guards.hasWonGame(context.points))
+                  return { target: 'wonGame' };
               },
               on: { 'user.nextQuestion': { target: '#loadQuestionData' } }
             },
@@ -181,8 +188,10 @@ export const triviaMachine = setup({
                 context: { lifes: context.lifes - 1 }
               }),
               always: ({ context, guards }) => {
-                if (guards.hasLostGame(context)) return { target: 'lostGame' };
-                if (guards.hasWonGame(context)) return { target: 'wonGame' };
+                if (guards.hasLostGame(context.lifes))
+                  return { target: 'lostGame' };
+                if (guards.hasWonGame(context.points))
+                  return { target: 'wonGame' };
               },
               on: { 'user.nextQuestion': { target: '#loadQuestionData' } }
             },

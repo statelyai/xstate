@@ -53,13 +53,8 @@ const processorMachine = setup({
   },
   guards: {
     // Idempotency: the delivery id set in context is the dedupe key.
-    isDuplicate: ({
-      context
-    }: {
-      context: { seen: string[]; current: Delivery | null };
-    }) =>
-      context.current !== null &&
-      context.seen.includes(context.current.deliveryId)
+    isDuplicate: (seen: string[], deliveryId: string) =>
+      seen.includes(deliveryId)
   },
   actors: { handleEvent, verifySignature }
 }).createMachine({
@@ -87,7 +82,7 @@ const processorMachine = setup({
           `received ${context.current!.deliveryId} (${context.current!.event})`
         ),
       always: ({ context, guards }) =>
-        guards.isDuplicate({ context })
+        guards.isDuplicate(context.seen, context.current!.deliveryId)
           ? { target: 'settled' }
           : { target: 'verifying' }
     },

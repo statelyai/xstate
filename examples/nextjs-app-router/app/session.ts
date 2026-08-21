@@ -1,11 +1,13 @@
 import { cookies } from 'next/headers';
-import { createActor, type Actor, type SnapshotFrom } from 'xstate';
+import {
+  createActor,
+  type PersistedSnapshotFrom,
+  type SnapshotFrom
+} from 'xstate';
 import { checkoutMachine } from './checkoutMachine';
 
 type CheckoutSnapshot = SnapshotFrom<typeof checkoutMachine>;
-type PersistedCheckoutSnapshot = ReturnType<
-  Actor<typeof checkoutMachine>['getPersistedSnapshot']
->;
+type PersistedCheckoutSnapshot = PersistedSnapshotFrom<typeof checkoutMachine>;
 
 /**
  * Persistence stands in for a database. A module-level `Map` is enough to show

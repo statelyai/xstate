@@ -25,8 +25,7 @@ const limiterMachine = setup({
     events: { acquire: types<{ id: string }>() }
   },
   guards: {
-    hasToken: ({ context }: { context: { tokens: number } }) =>
-      context.tokens > 0
+    hasToken: (tokens: number) => tokens > 0
   },
   delays: { refill: REFILL_MS }
 }).createMachine({
@@ -57,7 +56,7 @@ const limiterMachine = setup({
       },
       on: {
         acquire: ({ context, event, guards }, enq) => {
-          if (guards.hasToken({ context })) {
+          if (guards.hasToken(context.tokens)) {
             enq(log, `granted ${event.id} (tokens left ${context.tokens - 1})`);
             return {
               context: {
