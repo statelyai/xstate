@@ -98,7 +98,8 @@ const agent = setup({
   guards: {
     underLimit: ({ context }: { context: { iterations: number } }) =>
       context.iterations < MAX_ITERATIONS
-  }
+  },
+  actors: { calculator, model, search, weather }
 }).createMachine({
   context: ({ input }) => ({
     goal: input.goal,
@@ -113,7 +114,7 @@ const agent = setup({
     // counts against the iteration budget.
     thinking: {
       invoke: {
-        src: model,
+        src: 'model',
         input: ({ context }) => ({
           goal: context.goal,
           observations: context.observations
@@ -143,7 +144,7 @@ const agent = setup({
     // instead of hiding the dispatch inside a function.
     calling_search: {
       invoke: {
-        src: search,
+        src: 'search',
         input: ({ context }) => ({ args: context.pending!.args }),
         onDone: ({ context, event }) => ({
           target: 'observing',
@@ -156,7 +157,7 @@ const agent = setup({
     },
     calling_calculator: {
       invoke: {
-        src: calculator,
+        src: 'calculator',
         input: ({ context }) => ({ args: context.pending!.args }),
         onDone: ({ context, event }) => ({
           target: 'observing',
@@ -169,7 +170,7 @@ const agent = setup({
     },
     calling_weather: {
       invoke: {
-        src: weather,
+        src: 'weather',
         input: ({ context }) => ({ args: context.pending!.args }),
         onDone: ({ context, event }) => ({
           target: 'observing',

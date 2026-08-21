@@ -59,7 +59,7 @@ const jobMachine = setup({
   states: {
     running: {
       invoke: {
-        src: runJob,
+        src: 'runJob',
         input: ({ context }) => ({ job: context.job }),
         onDone: ({ context }, enq) => {
           enq(log, `  job ${context.job.id} succeeded`);
@@ -101,8 +101,8 @@ const jobMachine = setup({
 
 /**
  * The pool pulls from the queue and keeps at most `CONCURRENCY` job actors
- * alive. Spawning happens in the `dispatching` entry action, which is where
- * `enq.subscribeTo` can wire each child's `done` back to the parent.
+ * alive. Everything in `pending` is spawned by the `working` entry action;
+ * re-entering `working` refills the pool as jobs settle.
  */
 const poolMachine = setup({
   schemas: {
@@ -122,10 +122,9 @@ const poolMachine = setup({
     active: 0,
     results: []
   }),
-  initial: 'dispatching',
+  initial: 'working',
   states: {
-    // Spawns everything in `pending`, then hands control back to `working`.
-    dispatching: {
+    working: {
       entry: ({ context }, enq) => {
         for (const job of context.pending) {
           enq(log, `dispatching ${job.id}`);
@@ -137,16 +136,13 @@ const poolMachine = setup({
             done: (result) => ({ type: 'jobSettled' as const, result })
           });
         }
+        return {
+          context: {
+            active: context.active + context.pending.length,
+            pending: []
+          }
+        };
       },
-      always: ({ context }) => ({
-        target: 'working',
-        context: {
-          active: context.active + context.pending.length,
-          pending: []
-        }
-      })
-    },
-    working: {
       on: {
         jobSettled: ({ context, event }) => {
           const results = [...context.results, event.result];
@@ -155,14 +151,20 @@ const poolMachine = setup({
           const pending = context.queue.slice(0, slots);
           const queue = context.queue.slice(pending.length);
 
+          // Re-entering `working` re-runs the entry action, which spawns
+          // whatever the refill put in `pending`.
           if (pending.length > 0) {
             return {
-              target: 'dispatching',
+              target: 'working' as const,
+              reenter: true,
               context: { results, active, pending, queue }
             };
           }
           return active === 0
-            ? { target: 'drained', context: { results, active, queue } }
+            ? {
+                target: 'drained' as const,
+                context: { results, active, queue }
+              }
             : { context: { results, active, queue } };
         }
       }

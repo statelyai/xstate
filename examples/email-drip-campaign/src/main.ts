@@ -38,7 +38,8 @@ const dripMachine = setup({
     },
     input: types<{ email: string }>()
   },
-  delays: { day1: 600, day3: 700 }
+  delays: { day1: 600, day3: 700 },
+  actors: { sendEmail }
 }).createMachine({
   context: ({ input }) => ({
     email: input.email,
@@ -63,7 +64,7 @@ const dripMachine = setup({
   states: {
     welcome: {
       invoke: {
-        src: sendEmail,
+        src: 'sendEmail',
         input: ({ context }) => ({ to: context.email, template: 'welcome' }),
         onDone: ({ context, event }) => ({
           target: 'waitingDay1',
@@ -76,7 +77,7 @@ const dripMachine = setup({
     },
     day1Tip: {
       invoke: {
-        src: sendEmail,
+        src: 'sendEmail',
         input: ({ context }) => ({ to: context.email, template: 'day1-tip' }),
         onDone: ({ context, event }) => ({
           target: 'waitingDay3',
@@ -95,7 +96,7 @@ const dripMachine = setup({
     },
     day3Upsell: {
       invoke: {
-        src: sendEmail,
+        src: 'sendEmail',
         input: ({ context }) => ({
           to: context.email,
           template: 'day3-upsell'
@@ -108,7 +109,7 @@ const dripMachine = setup({
     },
     day3Nudge: {
       invoke: {
-        src: sendEmail,
+        src: 'sendEmail',
         input: ({ context }) => ({ to: context.email, template: 'day3-nudge' }),
         onDone: ({ context, event }) => ({
           target: 'completed',

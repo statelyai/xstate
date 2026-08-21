@@ -91,7 +91,7 @@ export const paymentMachine = setup({
     },
     submitting: {
       invoke: {
-        src: submitPayment,
+        src: 'submitPayment',
         input: ({ context }) => ({
           amount: context.amount,
           idempotencyKey: context.idempotencyKey,

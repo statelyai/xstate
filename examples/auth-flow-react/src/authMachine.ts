@@ -89,7 +89,7 @@ export const authMachine = setup({
     },
     authenticating: {
       invoke: {
-        src: authenticate,
+        src: 'authenticate',
         input: ({ context }) => context.credentials!,
         onDone: ({ event }) => ({
           target: 'authenticated',
@@ -104,10 +104,10 @@ export const authMachine = setup({
     authenticated: {
       initial: 'idle',
       on: {
-        logout: {
-          target: 'loggedOut',
-          actions: () => ({ context: { session: null, error: null } })
-        },
+        logout: () => ({
+          target: 'loggedOut' as const,
+          context: { session: null, error: null }
+        }),
         expire: { target: 'sessionExpired' }
       },
       states: {
@@ -118,7 +118,7 @@ export const authMachine = setup({
         },
         refreshing: {
           invoke: {
-            src: refreshToken,
+            src: 'refreshToken',
             input: ({ context }) => ({ session: context.session! }),
             onDone: ({ event }) => ({
               target: 'idle',
@@ -138,10 +138,10 @@ export const authMachine = setup({
           target: 'loggedOut',
           context: { session: null, error: context.error }
         }),
-        logout: {
-          target: 'loggedOut',
-          actions: () => ({ context: { session: null, error: null } })
-        }
+        logout: () => ({
+          target: 'loggedOut' as const,
+          context: { session: null, error: null }
+        })
       }
     }
   }

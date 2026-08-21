@@ -58,7 +58,7 @@ export const feedMachine = setup({
     },
     loadingPage: {
       invoke: {
-        src: fetchPage,
+        src: 'fetchPage',
         input: ({ context }) => ({ page: context.page }),
         onDone: ({ context, event }) => ({
           // The next page is only requested once this one is appended

@@ -64,7 +64,8 @@ const provider = setup({
   delays: {
     backoff: ({ context }: { context: { attempt: number } }) =>
       100 * 2 ** (context.attempt - 1)
-  }
+  },
+  actors: { complete }
 }).createMachine({
   context: ({ input }) => ({
     provider: input.provider,
@@ -77,7 +78,7 @@ const provider = setup({
   states: {
     calling: {
       invoke: {
-        src: complete,
+        src: 'complete',
         input: ({ context }) => ({
           provider: context.provider,
           attempt: context.attempt + 1,
@@ -130,7 +131,8 @@ const router = setup({
       servedBy: ProviderName | null;
     }>(),
     input: types<{ prompt: string }>()
-  }
+  },
+  actors: { provider }
 }).createMachine({
   context: ({ input }) => ({
     prompt: input.prompt,
@@ -144,7 +146,7 @@ const router = setup({
     // order is visible in the chart instead of buried in a try/catch chain.
     usingPrimary: {
       invoke: {
-        src: provider,
+        src: 'provider',
         input: ({ context }) => ({
           provider: 'primary' as const,
           prompt: context.prompt
@@ -164,7 +166,7 @@ const router = setup({
     },
     usingSecondary: {
       invoke: {
-        src: provider,
+        src: 'provider',
         input: ({ context }) => ({
           provider: 'secondary' as const,
           prompt: context.prompt
@@ -188,7 +190,7 @@ const router = setup({
     },
     usingTertiary: {
       invoke: {
-        src: provider,
+        src: 'provider',
         input: ({ context }) => ({
           provider: 'tertiary' as const,
           prompt: context.prompt

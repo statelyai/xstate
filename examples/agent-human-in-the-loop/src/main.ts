@@ -49,14 +49,15 @@ const agent = setup({
     input: types<{ goal: string }>()
   },
   // The agent waits this long for a human before escalating.
-  delays: { reviewWindow: 1500 }
+  delays: { reviewWindow: 1500 },
+  actors: { execute, propose }
 }).createMachine({
   context: ({ input }) => ({ goal: input.goal, proposal: null, outcome: null }),
   initial: 'proposing',
   states: {
     proposing: {
       invoke: {
-        src: propose,
+        src: 'propose',
         input: ({ context }) => ({ goal: context.goal }),
         onDone: ({ event }, enq) => {
           enq(log, `proposed ${event.output.tool}(${event.output.args})`);
@@ -100,7 +101,7 @@ const agent = setup({
     },
     executing: {
       invoke: {
-        src: execute,
+        src: 'execute',
         input: ({ context }) => ({ proposal: context.proposal! }),
         onDone: ({ event }) => ({
           target: 'done',

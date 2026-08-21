@@ -37,7 +37,8 @@ const machine = setup({
     }>(),
     input: types<{ name: string }>()
   },
-  delays: { pollInterval: 500 }
+  delays: { pollInterval: 500 },
+  actors: { getJobStatus, submitJob }
 }).createMachine({
   context: ({ input }) => ({
     name: input.name,
@@ -49,7 +50,7 @@ const machine = setup({
   states: {
     submitting: {
       invoke: {
-        src: submitJob,
+        src: 'submitJob',
         input: ({ context }) => ({ name: context.name }),
         onDone: ({ event }) => ({
           target: 'polling',
@@ -63,7 +64,7 @@ const machine = setup({
     },
     checking: {
       invoke: {
-        src: getJobStatus,
+        src: 'getJobStatus',
         input: ({ context }) => ({ jobId: context.jobId! }),
         onDone: ({ context, event }) => {
           const status = event.output.status;

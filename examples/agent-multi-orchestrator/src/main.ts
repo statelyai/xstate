@@ -42,7 +42,8 @@ const worker = setup({
       failed: types<{ role: Role; reason: string }>()
     },
     input: types<{ role: Role }>()
-  }
+  },
+  actors: { think }
 }).createMachine({
   context: ({ input }) => ({ role: input.role, brief: '' }),
   initial: 'idle',
@@ -57,7 +58,7 @@ const worker = setup({
     },
     working: {
       invoke: {
-        src: think,
+        src: 'think',
         input: ({ context }) => ({ role: context.role, brief: context.brief }),
         onDone: ({ context, event }, enq) => {
           enq.emit({

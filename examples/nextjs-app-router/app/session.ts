@@ -1,15 +1,18 @@
 import { cookies } from 'next/headers';
-import { createActor, type SnapshotFrom } from 'xstate';
+import { createActor, type Actor, type SnapshotFrom } from 'xstate';
 import { checkoutMachine } from './checkoutMachine';
 
 type CheckoutSnapshot = SnapshotFrom<typeof checkoutMachine>;
+type PersistedCheckoutSnapshot = ReturnType<
+  Actor<typeof checkoutMachine>['getPersistedSnapshot']
+>;
 
 /**
  * Persistence stands in for a database. A module-level `Map` is enough to show
  * the shape: read snapshot, transition, write snapshot. It is per-process, so
  * it resets when the dev server restarts.
  */
-const sessions = new Map<string, CheckoutSnapshot>();
+const sessions = new Map<string, PersistedCheckoutSnapshot>();
 
 const COOKIE = 'checkout-session';
 
@@ -62,7 +65,7 @@ export function advanceCheckout(
   });
   actor.start();
   actor.send(event);
-  sessions.set(sessionId, actor.getPersistedSnapshot() as CheckoutSnapshot);
+  sessions.set(sessionId, actor.getPersistedSnapshot());
   const view = toView(actor.getSnapshot());
   actor.stop();
   return view;

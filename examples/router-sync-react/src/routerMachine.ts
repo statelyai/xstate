@@ -86,7 +86,7 @@ export const routerMachine = setup({
     path: window.location.pathname
   },
   initial: initial.route,
-  invoke: { src: history, input: {} },
+  invoke: { src: 'history', input: {} },
   on: {
     // The user clicked a link: the machine changes state and the URL follows.
     navigate: ({ event }, enq) => {

@@ -33,14 +33,15 @@ const orderMachine = setup({
     context: types<{ order: Order; problem: string | null }>(),
     input: types<{ order: Order }>(),
     output: types<{ id: string; status: string }>()
-  }
+  },
+  actors: { provisionOrder }
 }).createMachine({
   context: ({ input }) => ({ order: input.order, problem: null }),
   initial: 'provisioning',
   states: {
     provisioning: {
       invoke: {
-        src: provisionOrder,
+        src: 'provisionOrder',
         input: ({ context }) => ({ order: context.order }),
         onDone: { target: 'provisioned' },
         onError: ({ event }, enq) => {

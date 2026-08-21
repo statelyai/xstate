@@ -60,7 +60,8 @@ const processorMachine = setup({
     }) =>
       context.current !== null &&
       context.seen.includes(context.current.deliveryId)
-  }
+  },
+  actors: { handleEvent, verifySignature }
 }).createMachine({
   context: ({ input }) => ({
     inbox: input.inbox,
@@ -92,7 +93,7 @@ const processorMachine = setup({
     },
     verifying: {
       invoke: {
-        src: verifySignature,
+        src: 'verifySignature',
         input: ({ context }) => ({ delivery: context.current! }),
         onDone: { target: 'processing' },
         onError: ({ context }, enq) => {
@@ -115,7 +116,7 @@ const processorMachine = setup({
     },
     processing: {
       invoke: {
-        src: handleEvent,
+        src: 'handleEvent',
         input: ({ context }) => ({ delivery: context.current! }),
         onDone: ({ context, event }, enq) => {
           enq(

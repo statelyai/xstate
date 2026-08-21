@@ -111,7 +111,8 @@ const ragMachine = setup({
       citations: string[];
       grounded: boolean;
     }>()
-  }
+  },
+  actors: { generate, rerank, retrieve }
 }).createMachine({
   context: ({ input }) => ({
     question: input.question,
@@ -124,7 +125,7 @@ const ragMachine = setup({
   states: {
     retrieving: {
       invoke: {
-        src: retrieve,
+        src: 'retrieve',
         input: ({ context }) => ({ question: context.question }),
         // Empty retrieval is a first-class path, not an error: the pipeline
         // skips reranking and falls back to an ungrounded answer.
@@ -139,7 +140,7 @@ const ragMachine = setup({
     },
     reranking: {
       invoke: {
-        src: rerank,
+        src: 'rerank',
         input: ({ context }) => ({
           question: context.question,
           hits: context.hits
@@ -152,7 +153,7 @@ const ragMachine = setup({
     },
     generating: {
       invoke: {
-        src: generate,
+        src: 'generate',
         input: ({ context }) => ({
           question: context.question,
           hits: context.hits,

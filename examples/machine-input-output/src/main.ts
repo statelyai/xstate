@@ -101,7 +101,8 @@ const compareOffersMachine = setup({
       Number.isFinite(context.principal) &&
       context.principal >= 1_000 &&
       context.principal <= 1_000_000
-  }
+  },
+  actors: { loanQuoteMachine }
 }).createMachine({
   context: ({ input }) => ({
     principal: input.principal,
@@ -123,7 +124,7 @@ const compareOffersMachine = setup({
     },
     quotingA: {
       invoke: {
-        src: loanQuoteMachine,
+        src: 'loanQuoteMachine',
         // Each invocation parameterizes the same child differently.
         input: ({ context }) => ({
           ...OFFERS[0],
@@ -137,7 +138,7 @@ const compareOffersMachine = setup({
     },
     quotingB: {
       invoke: {
-        src: loanQuoteMachine,
+        src: 'loanQuoteMachine',
         input: ({ context }) => ({
           ...OFFERS[1],
           principal: context.principal
@@ -150,7 +151,7 @@ const compareOffersMachine = setup({
     },
     quotingC: {
       invoke: {
-        src: loanQuoteMachine,
+        src: 'loanQuoteMachine',
         input: ({ context }) => ({
           ...OFFERS[2],
           principal: context.principal

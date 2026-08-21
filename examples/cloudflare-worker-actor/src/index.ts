@@ -1,11 +1,13 @@
-import { createActor, type SnapshotFrom } from 'xstate';
+import { createActor, type Actor } from 'xstate';
 import { ORDER_EVENTS, orderMachine, type OrderEvent } from './orderMachine';
 
 export interface Env {
   ORDER: DurableObjectNamespace;
 }
 
-type OrderSnapshot = SnapshotFrom<typeof orderMachine>;
+type OrderSnapshot = ReturnType<
+  Actor<typeof orderMachine>['getPersistedSnapshot']
+>;
 
 /**
  * One Durable Object instance per order id. The object holds no in-memory
@@ -54,10 +56,7 @@ export class OrderActor implements DurableObject {
 
       // Persist before responding, so the reply never describes a state the
       // next request would not see.
-      await this.state.storage.put(
-        'snapshot',
-        actor.getPersistedSnapshot() as OrderSnapshot
-      );
+      await this.state.storage.put('snapshot', actor.getPersistedSnapshot());
     }
 
     const snapshot = actor.getSnapshot();

@@ -63,7 +63,8 @@ export const streamingMachine = setup({
     },
     input: types<{ prompt: string; failAfter: number | null }>()
   },
-  delays: { retryBackoff: 150 }
+  delays: { retryBackoff: 150 },
+  actors: { streamTokens }
 }).createMachine({
   context: ({ input }) => ({
     prompt: input.prompt,
@@ -77,7 +78,7 @@ export const streamingMachine = setup({
       entry: ({ context }, enq) =>
         enq(log, `requesting completion for "${context.prompt}"`),
       invoke: {
-        src: streamTokens,
+        src: 'streamTokens',
         input: ({ context }) => ({
           prompt: context.prompt,
           // Only the first attempt fails; the retry streams to completion.

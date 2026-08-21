@@ -39,7 +39,6 @@ const schedulerMachine = setup({
       tick: number;
       /** Names of schedules whose previous run has not finished. */
       running: string[];
-      due: Schedule[];
       skipped: string[];
       completed: string[];
     }>(),
@@ -55,7 +54,6 @@ const schedulerMachine = setup({
     schedules,
     tick: 0,
     running: [],
-    due: [],
     skipped: [],
     completed: []
   },
@@ -84,11 +82,27 @@ const schedulerMachine = setup({
           for (const name of skipped) {
             enq(log, `  skipped ${name}: previous run still active`);
           }
+          // Spawn each due run and route its completion back here.
+          for (const schedule of due) {
+            enq(log, `  starting ${schedule.name}`);
+            const child = enq.spawn(task, {
+              id: `${schedule.name}-${tick}`,
+              input: { name: schedule.name, durationMs: schedule.durationMs }
+            });
+            enq.subscribeTo(child, {
+              done: (output) => ({
+                type: 'runFinished' as const,
+                name: output.name
+              })
+            });
+          }
+          // `reenter: true` restarts the tick timer.
           return {
-            target: 'firing',
+            target: 'waiting' as const,
+            reenter: true,
             context: {
               tick,
-              due,
+              running: [...context.running, ...due.map((s) => s.name)],
               skipped: [...context.skipped, ...skipped]
             }
           };
@@ -106,32 +120,6 @@ const schedulerMachine = setup({
           };
         }
       }
-    },
-    // Spawning happens in an entry action, which is where `enq.subscribeTo`
-    // can route each run's completion back to the scheduler.
-    firing: {
-      entry: ({ context }, enq) => {
-        for (const schedule of context.due) {
-          enq(log, `  starting ${schedule.name}`);
-          const child = enq.spawn(task, {
-            id: `${schedule.name}-${context.tick}`,
-            input: { name: schedule.name, durationMs: schedule.durationMs }
-          });
-          enq.subscribeTo(child, {
-            done: (output) => ({
-              type: 'runFinished' as const,
-              name: output.name
-            })
-          });
-        }
-      },
-      always: ({ context }) => ({
-        target: 'waiting',
-        context: {
-          running: [...context.running, ...context.due.map((s) => s.name)],
-          due: []
-        }
-      })
     },
     paused: {
       entry: (_, enq) => enq(log, 'paused'),

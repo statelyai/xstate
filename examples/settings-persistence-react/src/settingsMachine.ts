@@ -130,7 +130,7 @@ export const settingsMachine = setup({
   entry: ({ context }, enq) => {
     enq(applyTheme, effectiveTheme(context));
   },
-  invoke: { src: systemTheme, input: {} },
+  invoke: { src: 'systemTheme', input: {} },
   on: {
     setTheme: ({ context, event }, enq) => {
       const next: Settings = { ...context, theme: event.theme };

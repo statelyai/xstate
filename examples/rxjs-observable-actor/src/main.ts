@@ -67,7 +67,7 @@ const machine = setup({
     // unsubscribes. The machine owns the subscription, not the stream.
     streaming: {
       invoke: {
-        src: sensorFeed,
+        src: 'sensorFeed',
         input: ({ context }) => ({ count: context.count, fail: context.fail }),
         // The observable completing and erroring are ordinary actor outcomes.
         onDone: { target: 'completed' },

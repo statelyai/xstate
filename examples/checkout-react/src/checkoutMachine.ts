@@ -118,7 +118,7 @@ export const checkoutMachine = setup({
     },
     confirming: {
       invoke: {
-        src: charge,
+        src: 'charge',
         input: ({ context }) => ({
           cardNumber: context.payment.cardNumber,
           total: total(context.cart)

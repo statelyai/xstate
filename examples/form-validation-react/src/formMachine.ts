@@ -67,7 +67,7 @@ export const formMachine = setup({
         },
         checking: {
           invoke: {
-            src: checkUsername,
+            src: 'checkUsername',
             input: ({ context }) => ({ username: context.username }),
             onDone: ({ event }) => ({
               target: event.output ? 'available' : 'taken'

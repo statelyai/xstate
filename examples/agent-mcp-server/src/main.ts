@@ -48,7 +48,8 @@ const sessionMachine = setup({
     events: { request: types<{ request: Request }>() },
     input: types<{ sessionId: string }>(),
     output: types<{ sessionId: string; handled: number }>()
-  }
+  },
+  actors: { callTool }
 }).createMachine({
   context: ({ input }) => ({
     sessionId: input.sessionId,
@@ -120,7 +121,7 @@ const sessionMachine = setup({
     // sessions are separate actors, so they never wait on each other.
     handlingTool: {
       invoke: {
-        src: callTool,
+        src: 'callTool',
         input: ({ context }) => ({
           name: context.pending!.params?.name,
           args: context.pending!.params?.arguments

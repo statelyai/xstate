@@ -41,7 +41,8 @@ export const kycMachine = setup({
       provideInfo: types<{ answer: string }>()
     },
     input: types<{ applicant: Applicant }>()
-  }
+  },
+  actors: { screenSanctions, verifyDocuments }
 }).createMachine({
   context: ({ input }) => ({
     applicant: input.applicant,
@@ -65,7 +66,7 @@ export const kycMachine = setup({
           states: {
             checking: {
               invoke: {
-                src: verifyDocuments,
+                src: 'verifyDocuments',
                 input: ({ context }) => ({ applicant: context.applicant }),
                 onDone: ({ event }) => ({
                   target: 'checked',
@@ -81,7 +82,7 @@ export const kycMachine = setup({
           states: {
             screening: {
               invoke: {
-                src: screenSanctions,
+                src: 'screenSanctions',
                 input: ({ context }) => ({ applicant: context.applicant }),
                 onDone: ({ event }) => ({
                   target: 'screened',

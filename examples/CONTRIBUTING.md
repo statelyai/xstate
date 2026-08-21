@@ -69,11 +69,24 @@ const machine = setup({
     })
   },
   guards: {
-    hasSession: (context: { user: User | null }) => context.user !== null
+    // Guards (and `delays`) receive an args object. They do not yet get
+    // contextual typing from `schemas.context`, so annotate the parameter.
+    hasSession: ({ context }: { context: { user: User | null } }) =>
+      context.user !== null
   }
 }).createMachine({
   /* ... */
 });
+```
+
+Call them from a transition function with the same args object:
+
+```ts
+on: {
+  submit: ({ context, guards }) => ({
+    target: guards.hasSession({ context }) ? 'dashboard' : 'login'
+  });
+}
 ```
 
 **Use the `create*Logic` actor creators.** The exported names in `xstate` are:

@@ -44,7 +44,8 @@ export const conversationMachine = setup({
     inactivity: 1200,
     // How long to wait after a message for the user to keep typing.
     endOfTurn: 200
-  }
+  },
+  actors: { respond, think }
 }).createMachine({
   context: { transcript: [], pendingReply: null },
   initial: 'idle',
@@ -88,7 +89,7 @@ export const conversationMachine = setup({
     thinking: {
       entry: (_, enq) => enq(log, 'agent is thinking...'),
       invoke: {
-        src: think,
+        src: 'think',
         input: ({ context }) => ({ transcript: context.transcript }),
         onDone: ({ event }) => ({
           target: 'responding',
@@ -116,7 +117,7 @@ export const conversationMachine = setup({
       entry: ({ context }, enq) =>
         enq(log, `agent starts responding: ${context.pendingReply}`),
       invoke: {
-        src: respond,
+        src: 'respond',
         input: ({ context }) => ({ reply: context.pendingReply! }),
         onDone: ({ context, event }, enq) => {
           enq(log, `agent finished: ${event.output.spoken}`);

@@ -75,6 +75,13 @@ const sagaMachine = setup({
       failure: string | null;
     }>(),
     input: types<{ order: Order }>()
+  },
+  actors: {
+    chargePayment,
+    refundPayment,
+    releaseInventory,
+    reserveInventory,
+    scheduleShipping
   }
 }).createMachine({
   context: ({ input }) => ({
@@ -89,7 +96,7 @@ const sagaMachine = setup({
     reservingInventory: {
       entry: ({ context }, enq) => enq(log, `saga ${context.order.id}: start`),
       invoke: {
-        src: reserveInventory,
+        src: 'reserveInventory',
         input: ({ context }) => ({ order: context.order }),
         onDone: ({ event }) => ({
           target: 'chargingPayment',
@@ -103,7 +110,7 @@ const sagaMachine = setup({
     },
     chargingPayment: {
       invoke: {
-        src: chargePayment,
+        src: 'chargePayment',
         input: ({ context }) => ({ order: context.order }),
         onDone: ({ event }) => ({
           target: 'schedulingShipping',
@@ -119,7 +126,7 @@ const sagaMachine = setup({
     },
     schedulingShipping: {
       invoke: {
-        src: scheduleShipping,
+        src: 'scheduleShipping',
         input: ({ context }) => ({ order: context.order }),
         onDone: ({ event }) => ({
           target: 'fulfilled',
@@ -135,7 +142,7 @@ const sagaMachine = setup({
     refundingPayment: {
       entry: (_, enq) => enq(log, '  compensating: refund'),
       invoke: {
-        src: refundPayment,
+        src: 'refundPayment',
         input: ({ context }) => ({ chargeId: context.chargeId! }),
         onDone: { target: 'releasingInventory' },
         onError: { target: 'compensationFailed' }
@@ -144,7 +151,7 @@ const sagaMachine = setup({
     releasingInventory: {
       entry: (_, enq) => enq(log, '  compensating: release reservation'),
       invoke: {
-        src: releaseInventory,
+        src: 'releaseInventory',
         input: ({ context }) => ({ reservationId: context.reservationId! }),
         onDone: { target: 'rolledBack' },
         onError: { target: 'compensationFailed' }

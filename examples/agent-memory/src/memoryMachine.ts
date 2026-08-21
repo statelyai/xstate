@@ -56,7 +56,8 @@ export const memoryMachine = setup({
       userMessage: types<{ text: string }>(),
       endSession: types<{}>()
     }
-  }
+  },
+  actors: { reply, summarize }
 }).createMachine({
   context: { summary: null, messages: [], compactions: 0 },
   initial: 'chatting',
@@ -80,7 +81,7 @@ export const memoryMachine = setup({
     },
     replying: {
       invoke: {
-        src: reply,
+        src: 'reply',
         input: ({ context }) => ({
           summary: context.summary,
           messages: context.messages
@@ -115,7 +116,7 @@ export const memoryMachine = setup({
     },
     summarizing: {
       invoke: {
-        src: summarize,
+        src: 'summarize',
         input: ({ context }) => ({
           summary: context.summary,
           messages: context.messages.slice(0, COMPACT_COUNT)

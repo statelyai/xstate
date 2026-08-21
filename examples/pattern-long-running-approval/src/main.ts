@@ -39,7 +39,8 @@ const machine = setup({
     events: { approve: types<{}>(), reject: types<{ reason: string }>() },
     input: types<{ request: string }>()
   },
-  delays: { reminderInterval: 700 }
+  delays: { reminderInterval: 700 },
+  actors: { notifyApprover, recordDecision }
 }).createMachine({
   context: ({ input }) => ({
     request: input.request,
@@ -50,7 +51,7 @@ const machine = setup({
   states: {
     notifying: {
       invoke: {
-        src: notifyApprover,
+        src: 'notifyApprover',
         input: ({ context }) => ({
           request: context.request,
           reminder: context.reminders
@@ -87,7 +88,7 @@ const machine = setup({
     },
     recording: {
       invoke: {
-        src: recordDecision,
+        src: 'recordDecision',
         input: ({ context }) => ({
           request: context.request,
           decision: context.decision!

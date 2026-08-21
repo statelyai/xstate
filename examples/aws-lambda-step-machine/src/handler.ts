@@ -1,5 +1,5 @@
 import type { Handler } from 'aws-lambda';
-import { createActor, type SnapshotFrom } from 'xstate';
+import { createActor, type Actor } from 'xstate';
 import {
   EXPENSE_EVENTS,
   expenseMachine,
@@ -29,7 +29,9 @@ export type StepResponse = {
  * A Lambda invocation is short-lived, so the actor is too: restore it from the
  * store, apply one event, persist the new snapshot, respond, stop.
  */
-export type ExpenseSnapshot = SnapshotFrom<typeof expenseMachine>;
+export type ExpenseSnapshot = ReturnType<
+  Actor<typeof expenseMachine>['getPersistedSnapshot']
+>;
 
 export function createStepHandler(
   store: SnapshotStore<ExpenseSnapshot>
@@ -47,13 +49,7 @@ export function createStepHandler(
     actor.send(request.event);
 
     const snapshot = actor.getSnapshot();
-    // `getPersistedSnapshot()` is typed as the generic `Snapshot<unknown>`,
-    // while `createActor({ snapshot })` wants this machine's snapshot type,
-    // so the store is typed by what it restores.
-    await store.put(
-      request.expenseId,
-      actor.getPersistedSnapshot() as ExpenseSnapshot
-    );
+    await store.put(request.expenseId, actor.getPersistedSnapshot());
     actor.stop();
 
     return {

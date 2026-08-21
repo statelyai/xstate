@@ -59,7 +59,6 @@ const inventoryMachine = setup({
   schemas: {
     context: types<{
       available: number;
-      pending: string | null;
       holds: Record<string, HoldRef>;
       settled: HoldOutcome[];
     }>(),
@@ -79,7 +78,6 @@ const inventoryMachine = setup({
 }).createMachine({
   context: ({ input }) => ({
     available: input.available,
-    pending: null,
     holds: {},
     settled: []
   }),
@@ -93,10 +91,17 @@ const inventoryMachine = setup({
             return undefined;
           }
           enq(log, `granted ${event.customer}: 1 unit held`);
+          // Spawn the hold and route its outcome back to the inventory.
+          const ref = enq.spawn(holdMachine, {
+            id: `hold-${event.customer}`,
+            input: { customer: event.customer }
+          });
+          enq.subscribeTo(ref, {
+            done: (outcome) => ({ type: 'holdSettled' as const, outcome })
+          });
           return {
-            target: 'granting',
             context: {
-              pending: event.customer,
+              holds: { ...context.holds, [event.customer]: ref },
               available: context.available - 1
             }
           };
@@ -123,24 +128,6 @@ const inventoryMachine = setup({
             : { context: { holds, settled, available } };
         }
       }
-    },
-    // Spawning happens in an entry action, which is where `enq.subscribeTo`
-    // can route the hold's outcome back to the inventory.
-    granting: {
-      entry: ({ context }, enq) => {
-        const customer = context.pending!;
-        const ref = enq.spawn(holdMachine, {
-          id: `hold-${customer}`,
-          input: { customer }
-        });
-        enq.subscribeTo(ref, {
-          done: (outcome) => ({ type: 'holdSettled' as const, outcome })
-        });
-        return {
-          context: { holds: { ...context.holds, [customer]: ref } }
-        };
-      },
-      always: { target: 'open', context: { pending: null } }
     },
     closed: {
       type: 'final',

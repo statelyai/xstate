@@ -126,7 +126,7 @@ export const signupMachine = setup({
     },
     submitting: {
       invoke: {
-        src: createAccount,
+        src: 'createAccount',
         input: ({ context }) => ({
           email: context.email,
           name: context.name,

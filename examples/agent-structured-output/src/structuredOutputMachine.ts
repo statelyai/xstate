@@ -66,7 +66,8 @@ export const structuredOutputMachine = setup({
       feedback: string | null;
     }>(),
     input: types<{ spec: string; alwaysInvalid?: boolean }>()
-  }
+  },
+  actors: { generate }
 }).createMachine({
   context: ({ input }) => ({
     spec: input.spec,
@@ -82,7 +83,7 @@ export const structuredOutputMachine = setup({
       entry: ({ context }, enq) =>
         enq(log, `generating (attempt ${context.attempt + 1})`),
       invoke: {
-        src: generate,
+        src: 'generate',
         input: ({ context }) => ({
           spec: context.spec,
           feedback: context.feedback,

@@ -63,7 +63,8 @@ const clientMachine = setup({
         BASE_BACKOFF_MS * 2 ** (context.attempt - 1) * (0.5 + Math.random() / 2)
       ),
     heartbeat: HEARTBEAT_MS
-  }
+  },
+  actors: { connect, ping }
 }).createMachine({
   context: {
     attempt: 0,
@@ -78,7 +79,7 @@ const clientMachine = setup({
       entry: ({ context }, enq) =>
         enq(log, `connecting (attempt ${context.attempt + 1})`),
       invoke: {
-        src: connect,
+        src: 'connect',
         input: ({ context }) => ({ attempt: context.attempt + 1 }),
         onDone: ({ context, event }, enq) => {
           enq(log, `connected as ${event.output.sessionId}`);
@@ -107,7 +108,7 @@ const clientMachine = setup({
     },
     pinging: {
       invoke: {
-        src: ping,
+        src: 'ping',
         input: ({ context }) => ({ sessionId: context.sessionId! }),
         onDone: ({ context }, enq) => {
           enq(log, `  pong from ${context.sessionId}`);
