@@ -238,4 +238,143 @@ describe('type-only schemas (`types`)', () => {
       output: ({ output }) => output
     });
   });
+
+  it('types final output from a setup state-local output schema', () => {
+    const s = setup({
+      states: {
+        done: {
+          schemas: {
+            output: types<{ status: 'ok' }>()
+          }
+        }
+      }
+    });
+
+    s.createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: ({}) => ({ status: 'ok' as const })
+        }
+      }
+    });
+
+    s.createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          // @ts-expect-error
+          output: { status: 'error' }
+        }
+      }
+    });
+  });
+
+  it('types nested onDone output from a setup state-local output schema', () => {
+    const s = setup({
+      states: {
+        workflow: {
+          schemas: {
+            output: types<{ receiptId: string }>()
+          },
+          states: {
+            done: {}
+          }
+        }
+      }
+    });
+
+    s.createMachine({
+      initial: 'workflow',
+      states: {
+        workflow: {
+          initial: 'done',
+          states: {
+            done: {
+              type: 'final',
+              output: { receiptId: 'receipt-1' }
+            }
+          },
+          onDone: ({ event }) => {
+            event.output.receiptId satisfies string;
+            // @ts-expect-error - the state-local output has no `status` field
+            event.output.status;
+            return { target: 'complete' };
+          }
+        },
+        complete: { type: 'final' }
+      }
+    });
+  });
+
+  it('types parallel aggregate output from a setup state-local output schema', () => {
+    const s = setup({
+      states: {
+        processing: {
+          schemas: {
+            output: types<{
+              upload: { url: string };
+              validate: { valid: boolean };
+            }>()
+          },
+          states: {
+            upload: {
+              states: {
+                done: {
+                  schemas: { output: types<{ url: string }>() }
+                }
+              }
+            },
+            validate: {
+              states: {
+                done: {
+                  schemas: { output: types<{ valid: boolean }>() }
+                }
+              }
+            }
+          }
+        },
+        complete: {}
+      }
+    });
+
+    s.createMachine({
+      initial: 'processing',
+      states: {
+        processing: {
+          type: 'parallel',
+          states: {
+            upload: {
+              initial: 'done',
+              states: {
+                done: {
+                  type: 'final',
+                  output: { url: '/file.png' }
+                }
+              }
+            },
+            validate: {
+              initial: 'done',
+              states: {
+                done: {
+                  type: 'final',
+                  output: { valid: true }
+                }
+              }
+            }
+          },
+          onDone: ({ event }) => {
+            event.output.upload.url satisfies string;
+            event.output.validate.valid satisfies boolean;
+            // @ts-expect-error - the aggregate has no top-level `url` field
+            event.output.url;
+            return { target: 'complete' };
+          }
+        },
+        complete: { type: 'final' }
+      }
+    });
+  });
 });

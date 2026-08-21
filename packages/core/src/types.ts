@@ -2610,6 +2610,7 @@ export type StateSchema = {
   route?: unknown;
   states?: Record<string, StateSchema>;
   contextSchema?: StandardSchemaV1;
+  outputSchema?: StandardSchemaV1;
   input?: unknown;
 
   // Other types
