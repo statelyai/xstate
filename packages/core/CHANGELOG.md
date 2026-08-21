@@ -1,5 +1,11 @@
 # xstate
 
+## 6.0.0-alpha.42
+
+### Minor Changes
+
+- 9ca1707: Add separately declared internal event schemas with `schemas.internalEvents`. Internal events remain fully typed inside machines while staying out of the public actor event protocol. The existing top-level `internalEvents` list remains supported for migration.
+
 ## 6.0.0-alpha.41
 
 ### Minor Changes
