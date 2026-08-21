@@ -56,9 +56,24 @@ runLogic: (actor, exec) => ctx.run(actor.address, exec)          // in-process j
 runLogic: (actor) => activities.runLogic(actor.src, actor.getSnapshot().input) // remote executor
 ```
 
-For finer granularity — several independently-journaled awaits inside one
-actor — split into separate invoked actors, or reach for `enq.step`, which
-routes through the `runStep` operation:
+Custom actions follow the same rule — durability crosses a boundary as
+declared identity plus serializable data, never as a closure. An action
+enqueued as a named function with serializable arguments
+(`enq(notifyApprover, context.orderId)`) carries `(type, args)` in its
+descriptor, so a remote-executor host can dispatch it worker-side and ignore
+`exec`, exactly like `runLogic`. An action enqueued as an inline closure
+(`enq(() => …)`) has no portable identity: it runs in this process, journaled
+by its effect ID. Work heavy enough to deserve an activity is usually an
+actor, not an action.
+
+For finer granularity — several independently-journaled awaits — split into
+separate invoked actors: each actor is its own journal entry, and the states
+between them make the progress visible. Do not reach for `enq.step` on a
+durable host; it is the [hostless durability](actor-logic.md) tool — the
+snapshot is its journal — and on a durable host it only duplicates what
+`runLogic` already provides. When restored snapshots that carry step results
+do run under a durable host, `enq.step` routes through the `runStep`
+operation:
 implement it to journal steps in the host's journal — a memoized result
 replays without re-running the step — and the built-in
 snapshot memoization steps aside. Unlike other operations, a step is an
@@ -255,6 +270,26 @@ it stops. It only starts fresh executions. A nonzero `transitionIndex`, or
 calling a lower-level transition method before `run()`, causes
 `DurableExecutionResumeError`; resume with the persisted snapshot and the
 explicit transition loop instead.
+
+## Driving effects yourself
+
+`createDurable` is sugar over the pure APIs: its `initialTransition` and
+`transition` call the exported `initialTransition(logic, input)` and
+`transition(logic, snapshot, event)` directly, adding only stable-ID tags on
+the effects and the runtime installation. `createActor` is the built-in
+in-process runtime over the same pure relations; `createDurable` is the
+journaled one.
+
+Effects are plain objects — each has a serializable `descriptor` and an
+`exec(runtime)` method — so a host may take `[snapshot, effects]` from the
+pure APIs and execute them entirely its own way. Dropping `executeEffects`
+means providing its four services yourself: transitive settlement (an
+effect's operations trigger further operations; "executed" must mean the
+whole cascade was accepted before checkpointing), root-event capture
+(children's sends to the root must surface instead of queuing on an inert
+mailbox), ordered handoff to the runtime, and batch failure discard for
+retries. Engines with native equivalents for some of these may prefer their
+own; everyone else should stay on `executeEffects`.
 
 ## Host adapters
 
