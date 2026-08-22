@@ -67,12 +67,12 @@ export function createRemoteActorRef(
     address: options.address,
     src: options.src,
     registryKey: options.registryKey,
-    // A remote handle does not know the child's incarnation; the runtime that
-    // owns the child is the authority on completion staleness — unless the
-    // host supplied an incarnation token, which lets this side drop stale
-    // completions and lets journaled sends name the intended incarnation.
-    sessionId: undefined as unknown as string,
-    _incarnation: options.incarnation,
+    // The host-supplied incarnation token, when present: the owner's
+    // sessionId for this child, letting this side drop stale completions and
+    // journaled sends name the intended incarnation. Without one the handle
+    // does not know the child's incarnation and the owning runtime is the
+    // authority on staleness.
+    sessionId: options.incarnation as string,
     system,
     _parent: options.parent,
     // Round-trips through persistence verbatim (undefined stays undefined,

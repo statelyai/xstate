@@ -52,6 +52,31 @@ export type InferOutput<T extends StandardSchemaV1, U> = Compute<
 >;
 
 /**
+ * Extracts the machine output type from the config's `output` property: the
+ * return type of an output mapper, or the type of a static output value.
+ * Falls back to `TFallback` when the config declares no `output`.
+ */
+export type OutputFromConfig<TConfig, TFallback> = TConfig extends {
+  output: infer TOutput;
+}
+  ? TOutput extends (...args: never[]) => infer TResult
+    ? TResult
+    : TOutput
+  : TFallback;
+
+/**
+ * The machine's output type when no output schema is declared in `setup()`: a
+ * declared `schemas.output` is authoritative, otherwise the output type is
+ * inferred from the config's `output` property.
+ */
+export type SchemaOrConfigOutput<
+  TOutputSchema extends StandardSchemaV1,
+  TConfig
+> = StandardSchemaV1 extends TOutputSchema
+  ? OutputFromConfig<TConfig, InferOutput<TOutputSchema, unknown>>
+  : InferOutput<TOutputSchema, unknown>;
+
+/**
  * Event payloads from schemas (e.g. Zod) are often inferred as optional in
  * output types. Wrapping in Required<> ensures properties defined in the schema
  * are required on the event. Type-only schemas created with the `types()`
@@ -72,11 +97,26 @@ export type InferEvents<
           ? { type: K }
           : string extends keyof O
             ? [O[string]] extends [never]
-              ? { type: K }
-              : NormalizeEventPayload<TEventSchemaMap[K], O> & { type: K }
-            : NormalizeEventPayload<TEventSchemaMap[K], O> & { type: K }
+              ? { type: EventTypeFromSchemaKey<K> }
+              : NormalizeEventPayload<TEventSchemaMap[K], O> & {
+                  type: EventTypeFromSchemaKey<K>;
+                }
+            : NormalizeEventPayload<TEventSchemaMap[K], O> & {
+                type: EventTypeFromSchemaKey<K>;
+              }
     : never;
 }>;
+
+/** Infers internal events only from explicitly declared schema keys. */
+export type InferInternalEvents<
+  TEventSchemaMap extends Record<string, StandardSchemaV1>
+> = string extends keyof TEventSchemaMap ? never : InferEvents<TEventSchemaMap>;
+
+type EventTypeFromSchemaKey<TKey extends string> = TKey extends '*'
+  ? string
+  : TKey extends `${infer TLeading}.*`
+    ? `${TLeading}.${string}`
+    : TKey;
 
 /**
  * Keeps a type-only schema's payload verbatim; applies Required<> to payloads
@@ -213,6 +253,7 @@ export interface MachineOptions {
 type MachineSchemas<
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TInternalEventSchemaMap extends Record<string, StandardSchemaV1>,
   TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
@@ -221,6 +262,7 @@ type MachineSchemas<
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>
 > = {
   events?: TEventSchemaMap;
+  internalEvents?: TInternalEventSchemaMap;
   actions?: ActionSchemas;
   guards?: GuardSchemas;
   context?: TContextSchema;
@@ -236,6 +278,7 @@ export type AnyMachineSchemas = MachineSchemas<
   StandardSchemaV1,
   Record<string, StandardSchemaV1>,
   Record<string, StandardSchemaV1>,
+  Record<string, StandardSchemaV1>,
   StandardSchemaV1,
   StandardSchemaV1,
   StandardSchemaV1,
@@ -246,6 +289,7 @@ export type AnyMachineSchemas = MachineSchemas<
 export type Next_MachineConfig<
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TInternalEventSchemaMap extends Record<string, StandardSchemaV1>,
   TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
@@ -253,7 +297,9 @@ export type Next_MachineConfig<
   TTagSchema extends StandardSchemaV1,
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext = InferOutput<TContextSchema, MachineContext>,
-  TEvent extends EventObject = InferEvents<TEventSchemaMap>,
+  TEvent extends EventObject =
+    | InferEvents<TEventSchemaMap>
+    | InferInternalEvents<TInternalEventSchemaMap>,
   TChildren extends Record<string, AnyActorRef | undefined> =
     InferChildren<TChildrenSchemaMap>,
   TDelays extends string = string,
@@ -269,7 +315,7 @@ export type Next_MachineConfig<
 > = (DistributiveOmit<
   Next_StateNodeConfig<
     TContext,
-    DoNotInfer<InferEvents<TEventSchemaMap>>,
+    DoNotInfer<TEvent>,
     DoNotInfer<TDelays>,
     DoNotInfer<StandardSchemaV1.InferOutput<TTagSchema> & string>,
     DoNotInfer<StandardSchemaV1.InferOutput<TOutputSchema>>,
@@ -287,12 +333,12 @@ export type Next_MachineConfig<
   >,
   'output' | 'schemas'
 > & {
-  internalEvents?: readonly InternalEventDescriptorFor<
-    InferEvents<TEventSchemaMap>
-  >[];
+  /** @deprecated Declare private event schemas in `schemas.internalEvents`. */
+  internalEvents?: readonly InternalEventDescriptorFor<TEvent>[];
   schemas?: MachineSchemas<
     TContextSchema,
     TEventSchemaMap,
+    TInternalEventSchemaMap,
     TEmittedSchemaMap,
     TInputSchema,
     TOutputSchema,
@@ -1217,7 +1263,7 @@ interface Next_RegularStateNodeConfig<
    */
   onDone?: Next_TransitionConfigOrTarget<
     TContext,
-    DoneStateEvent,
+    DoneStateEvent<TChildOutput>,
     TEvent,
     TEmitted,
     TActionMap,

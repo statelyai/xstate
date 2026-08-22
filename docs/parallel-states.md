@@ -127,7 +127,7 @@ Common uses: a media player with independent playback, volume and subtitle regio
 
 ## TypeScript
 
-Region keys are inferred from `states`, so `snapshot.value` and `matches` are typed against the real region structure and a misspelled region is a type error. `onDone` on a parallel state receives a done event whose `output` is an object keyed by region, with each region's final output type.
+Region keys are inferred from `states`, so `snapshot.value` and `matches` are typed against the real region structure and a misspelled region is a type error. `onDone` on a parallel state receives a done event whose `output` is an object keyed by region. With `setup({ states })`, declare the aggregate explicitly with the parallel state's `schemas.output` when the region contract needs to be available before the machine config is written.
 
 ## Parallel states cheatsheet
 

@@ -9,7 +9,8 @@ description: Declare typed sources with setup(...) and swap implementations with
 const orderSetup = setup({
   schemas: {
     context: z.object({ total: z.number() }),
-    events: { submit: z.object({}) }
+    events: { submit: z.object({}) },
+    internalEvents: { recalculate: z.object({}) }
   },
   actions: {
     logTotal: (params: { total: number }) => console.log(params.total)
@@ -27,6 +28,30 @@ const orderMachine = orderSetup.createMachine({
 ```
 
 `setup(...)` also accepts `states`, where each state declares its own schemas. That is what types the `initial: { target, input }` form and transitions carrying [state input](state-input.md).
+
+State schemas can also declare `schemas.output` for the value emitted when that
+state completes. Final-state `output` functions and the parent state's `onDone`
+event use that local type. For a parallel state, declare the aggregate object on
+the parallel state itself:
+
+```ts
+const uploadSetup = setup({
+  states: {
+    processing: {
+      schemas: {
+        output: types<{
+          upload: { url: string };
+          scan: { safe: boolean };
+        }>()
+      }
+    }
+  }
+});
+```
+
+These local output schemas currently provide TypeScript contracts. Runtime
+validation still checks the machine's stable terminal output at the existing
+result boundary; it does not validate transient nested completion values.
 
 Use `setup(...).extend(...)` to build a more specific setup from a shared one, merging schemas and sources.
 

@@ -1,4 +1,3 @@
-import { isRemoteActorRef } from './remoteActorRef.ts';
 import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
@@ -305,22 +304,17 @@ export function matchesActorSession(
   snapshot: AnyMachineSnapshot,
   actorId: string
 ): boolean {
-  const child = snapshot.children[actorId] as
-    | (AnyActor & { _incarnation?: string })
-    | undefined;
+  const child = snapshot.children[actorId];
   if (!child || !('sessionId' in event)) {
     return true;
   }
-  if (isRemoteActorRef(child)) {
-    // Without a host-supplied incarnation token the runtime that owns the
-    // child is the authority on staleness; with one, a completion from a
-    // different incarnation of the same address is dropped here.
-    return (
-      child._incarnation === undefined ||
-      child._incarnation === (event as { sessionId?: string }).sessionId
-    );
-  }
-  return child.sessionId === (event as { sessionId?: string }).sessionId;
+  // One rule: a ref that knows its incarnation compares it; a remote handle
+  // without a host-supplied token (sessionId undefined) defers to the
+  // runtime that owns the child.
+  return (
+    child.sessionId === undefined ||
+    child.sessionId === (event as { sessionId?: string }).sessionId
+  );
 }
 
 function normalizeLegacyInternalEvent(
@@ -2285,23 +2279,14 @@ export function macrostep(
     if (!actorId) {
       return;
     }
-    const child = nextSnapshot.children[actorId] as
-      | (AnyActor & { _incarnation?: string })
-      | undefined;
+    const child = nextSnapshot.children[actorId];
     if (!child) {
       return;
     }
     // The same staleness rule matchesActorSession applies to transition
     // selection: a completion from a different incarnation must not remove
     // the still-running child either.
-    if (isRemoteActorRef(child)) {
-      if (
-        child._incarnation !== undefined &&
-        child._incarnation !== sessionId
-      ) {
-        return;
-      }
-    } else if (child.sessionId !== sessionId) {
+    if (child.sessionId !== undefined && child.sessionId !== sessionId) {
       return;
     }
 

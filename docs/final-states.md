@@ -125,7 +125,7 @@ Because of this, transitions declared on a top-level final state are unreachable
 
 ## TypeScript
 
-`output` on a final state and on the machine root are typed against `schemas.output`. The root mapper's `output` argument is typed as the completing state's output. `onDone` handlers receive `DoneStateEvent`, whose `output` is the completed state's output and whose `stateId` is a string. See [input and output](input-output.md).
+`output` on a final state and on the machine root are typed against `schemas.output`. Without `schemas.output`, the machine's output type is inferred from the root `output`: the mapper's return type, or the static value's type. With `setup({ states })`, a state can additionally declare `schemas.output` for its own completion value; its parent's `onDone` receives that local type. The root mapper's `output` argument is typed as the completing state's output. `onDone` handlers receive `DoneStateEvent`, whose `output` is the completed state's output and whose `stateId` is a string. See [input and output](input-output.md).
 
 ## Final states cheatsheet
 

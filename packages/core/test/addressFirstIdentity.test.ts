@@ -1089,7 +1089,8 @@ describe('incarnation tokens on remote handles', () => {
       snapshot: persistedWithIncarnation('runtime-b:7')
     }).start();
     const handle = restored.getSnapshot().children.w as any;
-    expect(handle._incarnation).toBe('runtime-b:7');
+    // The token IS the handle's sessionId: one incarnation identity, one field.
+    expect(handle.sessionId).toBe('runtime-b:7');
     const repersisted = restored.getPersistedSnapshot({
       embedChildren: false
     }) as any;
@@ -1497,8 +1498,9 @@ describe('tenth round: review findings', () => {
     });
     expect(durable.rootAddress).toBe('a%2Fb');
     const [, effects] = durable.initialTransition();
-    const rootEvents = await durable.executeEffects(effects);
-    expect(rootEvents.map((r: any) => r.event.type)).toEqual(['HELLO']);
+    await durable.executeEffects(effects);
+    const hello = await durable.waitForEvent();
+    expect(hello.type).toBe('HELLO');
   });
 });
 

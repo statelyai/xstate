@@ -697,13 +697,19 @@ type EventTypeMatchesDescriptor<
 type IsInternalEventType<
   TEventType extends string,
   TDescriptors extends string
-> = true extends (
-  TDescriptors extends any
-    ? EventTypeMatchesDescriptor<TEventType, TDescriptors>
-    : never
-)
-  ? true
-  : false;
+> =
+  // Descriptors that collapsed to broad `string` (an untyped machine's
+  // config) cannot classify anything: without the guard they would match
+  // every event type and reduce the sendable events to `never`.
+  string extends TDescriptors
+    ? false
+    : true extends (
+          TDescriptors extends any
+            ? EventTypeMatchesDescriptor<TEventType, TDescriptors>
+            : never
+        )
+      ? true
+      : false;
 
 type ExcludeInternalEvents<
   TEvent extends EventObject,
@@ -713,6 +719,31 @@ type ExcludeInternalEvents<
     ? never
     : TEvent
   : never;
+
+type InternalEventDescriptorsFromConfig<
+  TEvent extends EventObject,
+  TConfig
+> = TConfig extends { internalEvents?: readonly EventDescriptor<TEvent>[] }
+  ? TConfig['internalEvents'] extends readonly (infer TDesc)[]
+    ? Extract<TDesc, string>
+    : never
+  : never;
+
+type InternalEventTypes<TInternalEvent extends EventObject> =
+  TInternalEvent extends any ? TInternalEvent['type'] : never;
+
+type SendableEventFromMachine<
+  TEvent extends EventObject,
+  TInternalEvent extends EventObject,
+  TConfig
+> =
+  IsAny<TInternalEvent> extends true
+    ? TEvent
+    : ExcludeInternalEvents<
+        TEvent,
+        | InternalEventTypes<TInternalEvent>
+        | InternalEventDescriptorsFromConfig<TEvent, TConfig>
+      >;
 
 export type IsLiteralString<T extends string> = string extends T ? false : true;
 
@@ -1852,7 +1883,11 @@ export interface Subscribable<T> extends InteropSubscribable<T> {
 type EventDescriptorMatches<
   TEventType extends string,
   TNormalizedDescriptor
-> = TEventType extends TNormalizedDescriptor ? true : false;
+> = TEventType extends TNormalizedDescriptor
+  ? true
+  : TNormalizedDescriptor extends TEventType
+    ? true
+    : false;
 
 export type ExtractEvent<
   TEvent extends EventObject,
@@ -1957,6 +1992,8 @@ export interface ActorRuntime<
   toJSON?: () => any;
   _parent?: any;
   system: any;
+  /** @internal Emits the transition inspection event for `snapshot`. */
+  _inspectTransition(snapshot: TSnapshot, event: EventObject): void;
   /** @internal */
   _processingStatus: ProcessingStatus;
   /** @internal */
@@ -2019,47 +2056,24 @@ export type ActorRefFrom<T> =
     infer _TActionMap,
     infer _TActorMap,
     infer _TGuardMap,
-    infer _TDelayMap
+    infer _TDelayMap,
+    infer TInternalEvent
   >
-    ? TConfig extends {
-        internalEvents?: readonly EventDescriptor<TEvent>[];
-      }
-      ? ActorRef<
-          MachineSnapshot<
-            TContext,
-            TEvent,
-            TChildren,
-            TStateValue,
-            TTag,
-            TOutput,
-            TMeta,
-            any //TStateSchema
-          >,
+    ? ActorRef<
+        MachineSnapshot<
+          TContext,
           TEvent,
-          TEmitted,
-          ExcludeInternalEvents<
-            TEvent,
-            TConfig['internalEvents'] extends readonly EventDescriptor<TEvent>[]
-              ? TConfig['internalEvents'] extends readonly (infer TDesc)[]
-                ? Extract<TDesc, string>
-                : never
-              : never
-          >
-        >
-      : ActorRef<
-          MachineSnapshot<
-            TContext,
-            TEvent,
-            TChildren,
-            TStateValue,
-            TTag,
-            TOutput,
-            TMeta,
-            any //TStateSchema
-          >,
-          TEvent,
-          TEmitted
-        >
+          TChildren,
+          TStateValue,
+          TTag,
+          TOutput,
+          TMeta,
+          any //TStateSchema
+        >,
+        TEvent,
+        TEmitted,
+        SendableEventFromMachine<TEvent, TInternalEvent, TConfig>
+      >
     : T extends Promise<infer U>
       ? ActorRefFrom<AsyncActorLogic<U>>
       : T extends ActorLogic<
@@ -2087,20 +2101,10 @@ export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
     infer _TActionMap,
     infer _TActorMap,
     infer _TGuardMap,
-    infer _TDelayMap
+    infer _TDelayMap,
+    infer TInternalEvent
   >
-    ? TConfig extends {
-        internalEvents?: readonly EventDescriptor<TEvent>[];
-      }
-      ? ExcludeInternalEvents<
-          TEvent,
-          TConfig['internalEvents'] extends readonly EventDescriptor<TEvent>[]
-            ? TConfig['internalEvents'] extends readonly (infer TDesc)[]
-              ? Extract<TDesc, string>
-              : never
-            : never
-        >
-      : TEvent
+    ? SendableEventFromMachine<TEvent, TInternalEvent, TConfig>
     : EventFromLogic<TLogic>;
 
 type OpaqueMachineSnapshot<TSnapshot extends Snapshot<unknown>> =
@@ -2608,6 +2612,7 @@ export type StateSchema = {
   route?: unknown;
   states?: Record<string, StateSchema>;
   contextSchema?: StandardSchemaV1;
+  outputSchema?: StandardSchemaV1;
   input?: unknown;
 
   // Other types

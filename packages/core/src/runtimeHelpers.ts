@@ -84,13 +84,30 @@ export function deliverEvent(
   target: AnyActor,
   event: AnyEventObject
 ): void {
+  assertEventCanBeSent(source, target, event);
   const runtimeTarget = target as AnyActor & {
     logic?: { isInternalEventType?: (eventType: string) => boolean };
     _lastSourceRef?: AnyActor;
     _send(event: AnyEventObject): void;
   };
-  // The same guard local delivery has always applied: internal events may
-  // only originate from the actor itself, whichever runtime delivers them.
+
+  runtimeTarget._lastSourceRef = source;
+  runtimeTarget._send(event);
+}
+
+/**
+ * Ensures internal events cannot cross an actor boundary from an external
+ * sender. Host runtimes must call this before taking ownership of delivery.
+ */
+export function assertEventCanBeSent(
+  source: AnyActor | undefined,
+  target: AnyActor,
+  event: AnyEventObject
+): void {
+  const runtimeTarget = target as AnyActor & {
+    logic?: { isInternalEventType?: (eventType: string) => boolean };
+  };
+
   if (
     source !== target &&
     runtimeTarget.logic?.isInternalEventType?.(event.type)
@@ -99,8 +116,6 @@ export function deliverEvent(
       `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
     );
   }
-  runtimeTarget._lastSourceRef = source;
-  runtimeTarget._send(event);
 }
 
 /**

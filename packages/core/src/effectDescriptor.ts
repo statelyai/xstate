@@ -1,3 +1,4 @@
+import { isRemoteActorRef } from './remoteActorRef.ts';
 import { getActorIdPrefix } from './system.ts';
 import type { ExecutableActionObject } from './types.ts';
 
@@ -147,7 +148,9 @@ export function getEffectDescriptor(
         type: '@xstate.sendTo',
         source: effect.source.address,
         target: effect.target.address,
-        incarnation: (effect.target as { _incarnation?: string })._incarnation,
+        incarnation: isRemoteActorRef(effect.target)
+          ? effect.target.sessionId
+          : undefined,
         event: effect.event,
         id: effect.id,
         delay: effect.delay

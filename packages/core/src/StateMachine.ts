@@ -98,6 +98,24 @@ import type { PersistedMachineSnapshot } from './machineVersion.types.ts';
 
 const STATE_IDENTIFIER = '#';
 
+function findEventSchema(
+  schemas: Record<string, StandardSchemaV1> | undefined,
+  eventType: string
+): StandardSchemaV1 | undefined {
+  if (!schemas) {
+    return undefined;
+  }
+
+  if (Object.hasOwn(schemas, eventType)) {
+    return schemas[eventType];
+  }
+
+  const descriptor = Object.keys(schemas).find((key) =>
+    matchesEventDescriptor(eventType, key)
+  );
+  return descriptor === undefined ? undefined : schemas[descriptor];
+}
+
 let emptyCanActor: AnyActor | undefined;
 let emptyCanActorScope: AnyActorScope | undefined;
 
@@ -190,7 +208,8 @@ export class StateMachine<
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
-  TDelayMap extends Sources['delays']
+  TDelayMap extends Sources['delays'],
+  TInternalEvent extends EventObject = never
 > implements ActorLogic<
   MachineSnapshot<
     TContext,
@@ -207,6 +226,13 @@ export class StateMachine<
   AnyActorSystem,
   TEmitted
 > {
+  /**
+   * @internal Type-only marker for the actor's internal event protocol. Not
+   * `declare` (the build's babel pipeline rejects declare class fields); the
+   * one `undefined` property this emits per machine instance is inert.
+   */
+  readonly _internalEventType!: TInternalEvent;
+
   /** The machine's own version. */
   public version?: string;
 
@@ -241,6 +267,7 @@ export class StateMachine<
   constructor(
     /** The raw config used to create the machine. */
     public config: Next_MachineConfig<
+      any,
       any,
       any,
       any,
@@ -377,14 +404,18 @@ export class StateMachine<
           }
           const event = value as EventObject;
           const eventSchemas = this.schemas?.events;
+          const internalEventSchemas = this.schemas?.internalEvents;
           const isFrameworkEvent =
             event.type.startsWith('xstate.') ||
             event.type.startsWith('@xstate.');
           const schema =
-            eventSchemas && Object.hasOwn(eventSchemas, event.type)
-              ? eventSchemas[event.type]
-              : undefined;
-          if (eventSchemas && !schema && !isFrameworkEvent) {
+            findEventSchema(internalEventSchemas, event.type) ??
+            findEventSchema(eventSchemas, event.type);
+          if (
+            (eventSchemas || internalEventSchemas) &&
+            !schema &&
+            !isFrameworkEvent
+          ) {
             return {
               issues: [
                 {
@@ -408,7 +439,10 @@ export class StateMachine<
         }
       }
     };
-    this.internalEventDescriptors = this.config.internalEvents ?? [];
+    this.internalEventDescriptors = [
+      ...Object.keys(this.schemas?.internalEvents ?? {}),
+      ...(this.config.internalEvents ?? [])
+    ];
     this.options = {
       maxIterations: Infinity,
       ...this.config.options
