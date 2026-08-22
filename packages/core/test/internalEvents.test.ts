@@ -1,4 +1,4 @@
-import { createActor, createMachine, type ActorRefFrom } from '../src';
+import { createActor, createMachine, setup, type ActorRefFrom } from '../src';
 import z from 'zod';
 
 describe('internalEvents', () => {
@@ -133,6 +133,51 @@ describe('internalEvents', () => {
       )
     ).toThrow('Internal event "change.value" cannot be sent to actor');
     expect(actor.getSnapshot().value).toBe('idle');
+  });
+
+  it('contextually types function-form handlers for setup-declared internal events', () => {
+    const machine = setup({
+      schemas: {
+        events: {
+          approve: z.object({})
+        },
+        internalEvents: {
+          itemShipped: z.object({ sku: z.string() })
+        }
+      }
+    }).createMachine({
+      context: ({ input }: { input: { orderId: string } }) => ({
+        orderId: input.orderId,
+        shipped: [] as string[]
+      }),
+      initial: 'open',
+      states: {
+        open: {},
+        done: { type: 'final' }
+      },
+      on: {
+        itemShipped: ({ context, event }) => {
+          context.shipped satisfies string[];
+          event satisfies { type: 'itemShipped'; sku: string };
+          return {
+            context: { shipped: [...context.shipped, event.sku] },
+            target: context.shipped.length > 0 ? 'done' : undefined
+          };
+        },
+        approve: ({ context, event }) => {
+          context.orderId satisfies string;
+          event satisfies { type: 'approve' };
+        }
+      }
+    });
+
+    const actor = createActor(machine, {
+      input: { orderId: 'o1' }
+    }).start();
+
+    expect(() => actor.send({ type: 'itemShipped', sku: 'a' } as any)).toThrow(
+      'Internal event "itemShipped" cannot be sent to actor'
+    );
   });
 });
 
