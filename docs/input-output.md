@@ -42,6 +42,22 @@ Actors that run indefinitely may never produce output.
 
 Declare input and output schemas when they cross actor boundaries.
 
+The output type is inferred from the root `output` when `schemas.output` is not declared. A declared `schemas.output` is authoritative and the root `output` is checked against it.
+
+```ts
+const machine = setup({}).createMachine({
+  context: { shipped: ['sku-1'] },
+  initial: 'done',
+  states: { done: { type: 'final' } },
+  output: ({ context }) => ({
+    status: 'shipped' as const,
+    skus: context.shipped
+  })
+});
+
+// OutputFrom<typeof machine> is { status: 'shipped'; skus: string[] }
+```
+
 ## Input and output cheatsheet
 
 ```ts

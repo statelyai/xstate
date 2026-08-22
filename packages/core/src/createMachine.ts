@@ -20,6 +20,7 @@ import {
   DelayMapFromNames,
   InferChildren,
   InferOutput,
+  SchemaOrConfigOutput,
   InferEvents,
   InferInternalEvents,
   Next_MachineConfig,
@@ -179,7 +180,7 @@ export function createMachine<
   StateValueFromStateSchema<TSS>,
   TTag & string,
   TInput,
-  InferOutput<TOutputSchema, unknown>,
+  SchemaOrConfigOutput<TOutputSchema, TSS>,
   WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
   InferOutput<TMetaSchema, MetaObject>, // TMeta
   TSS, // TStateSchema
@@ -290,7 +291,7 @@ export function createMachine<
   StateValueFromStateSchema<TSS>,
   TTag & string,
   TInput,
-  InferOutput<TOutputSchema, unknown>,
+  SchemaOrConfigOutput<TOutputSchema, TSS>,
   WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
   InferOutput<TMetaSchema, MetaObject>, // TMeta
   TSS, // TStateSchema

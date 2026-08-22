@@ -238,6 +238,11 @@ export function durableExecutionConformance({
         await execution.send({ type: 'SEND' });
 
         await expect(execution.result).resolves.toBe('communicated');
+        // Only the parent→child PING is a host operation. The child's PONG
+        // is addressed to the root: the execution captures and retains it,
+        // and the loop takes it through `waitForEvent()` — the host's own
+        // sendEvent never sees it (that the result resolved proves it was
+        // applied).
         expect(
           execution.operations.filter(({ type }) => type === 'event.send')
         ).toEqual([
@@ -245,11 +250,6 @@ export function durableExecutionConformance({
             sourceId: 'x:0',
             targetId: 'worker',
             eventType: 'PING'
-          }),
-          expect.objectContaining({
-            sourceId: 'worker',
-            targetId: 'x:0',
-            eventType: 'PONG'
           })
         ]);
       });
