@@ -1573,7 +1573,8 @@ describe('spawnChild action', () => {
         enq.spawn(actors.child);
         enq.spawn(
           // @ts-expect-error
-          actors.other
+          actors.other,
+          {} as any
         );
       }
     });
@@ -2038,6 +2039,7 @@ describe('spawnChild action', () => {
       //   return {};
       // })
       entry: ({ actors }, enq) => {
+        // @ts-expect-error required actor input is missing
         enq.spawn(actors.child);
       }
     });
@@ -2087,7 +2089,8 @@ describe('spawner in assign', () => {
       entry: ({ actors }, enq) => {
         enq.spawn(
           // @ts-expect-error
-          actors.other
+          actors.other,
+          {} as any
         );
         return {};
       }
@@ -2587,6 +2590,7 @@ describe('spawner in assign', () => {
       //   return {};
       // })
       entry: ({ actors }, enq) => {
+        // @ts-expect-error required actor input is missing
         enq.spawn(actors.child);
       }
     });

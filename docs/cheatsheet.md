@@ -149,7 +149,7 @@ entry: ({ context, children, actions }, enq) => {
   enq.sendTo(children.worker, { type: 'ping' });
   enq.emit({ type: 'opened' });
   enq.log(context.total, 'total');
-  const child = enq.spawn(uploadLogic, { id: 'upload', input: { file } });
+  const child = enq.spawn('upload', { id: 'upload', input: { file } });
   enq.stop(child);
 };
 ```

@@ -1714,7 +1714,7 @@ type StateTransitionFunction<
     delays: TDelayMap;
     input: TInput;
   } & OutputArg<TExpressionEvent>,
-  enq: EnqueueObject<TEvent, TEmitted, TSystemRegistry>
+  enq: EnqueueObject<TEvent, TEmitted, TSystemRegistry, TActorMap>
 ) => StateTransitionResult<
   TStateSchemas,
   TContext,
