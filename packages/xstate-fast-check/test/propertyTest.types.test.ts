@@ -73,7 +73,16 @@ it('infers machine and TestModel property APIs', () => {
             generate: fc.record({ value: fc.integer({ max: -1 }) }),
             when: ({ event }) => event.value < 0
           }
-        ]
+        ],
+        RESET: {
+          case: 'from-model-state',
+          generate: fc.nat(),
+          resolve: ({ snapshot, generated }) => {
+            expectTypeOf(snapshot.context.count).toEqualTypeOf<number>();
+            expectTypeOf(generated).toEqualTypeOf<unknown>();
+            return snapshot.context.count >= 0 ? {} : undefined;
+          }
+        }
       },
       invariant: () => {}
     });

@@ -226,6 +226,76 @@ describe('advanced property testing', () => {
     ).rejects.toThrow('Property event case "same" is duplicated for "GO"');
   });
 
+  it('shrinks symbolic references resolved from earlier model state', async () => {
+    const machine = createMachine({
+      id: 'symbolic-resources',
+      schemas: {
+        context: types<{ ids: string[]; used?: string }>(),
+        events: {
+          CREATE: types<{ id: string }>(),
+          USE: types<{ id: string }>()
+        }
+      },
+      context: { ids: [] },
+      on: {
+        CREATE: ({ context, event }) => ({
+          context: { ...context, ids: [...context.ids, event.id] }
+        }),
+        USE: ({ context, event }) => ({
+          context: { ...context, used: event.id }
+        })
+      }
+    });
+    let failure!: PropertyTestFailure;
+
+    try {
+      await propertyTest(machine, {
+        adapter: fastCheckAdapter({ seed: 19, numRuns: 500, maxCommands: 5 }),
+        events: {
+          CREATE: fc.constant({ id: 'created' }),
+          USE: {
+            case: 'existing-resource',
+            generate: fc.nat(),
+            resolve: ({ snapshot, generated }) => {
+              if (!snapshot.context.ids.length) {
+                return undefined;
+              }
+              const index = (generated as number) % snapshot.context.ids.length;
+              return { id: snapshot.context.ids[index] };
+            }
+          }
+        },
+        invariant: ({ event }) => {
+          if (event?.type === 'USE') {
+            throw new Error('capture symbolic trace');
+          }
+        }
+      });
+    } catch (error) {
+      failure = error as PropertyTestFailure;
+    }
+
+    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure.trace.events).toEqual([
+      { type: 'CREATE', id: 'created' },
+      { type: 'USE', id: 'created' }
+    ]);
+    expect(failure.fixture?.timeline.map((entry) => entry.command)).toEqual([
+      expect.objectContaining({ event: { type: 'CREATE', id: 'created' } }),
+      expect.objectContaining({ event: { type: 'USE', id: 'created' } })
+    ]);
+
+    await expect(
+      replayPropertyTest(machine, failure.fixture!, {
+        invariant: ({ event }) => {
+          if (event?.type === 'USE') {
+            throw new Error('portable replay');
+          }
+        }
+      })
+    ).rejects.toBeInstanceOf(PropertyTestFailure);
+  });
+
   it('covers dynamic definitions while keeping their outcomes unknown', async () => {
     const machine = createMachine({
       id: 'dynamic',

@@ -29,24 +29,25 @@ class EventPropertyCommand<
   false
 > {
   public constructor(
-    public readonly event: TEvent,
+    public readonly type: string,
+    public readonly generated: unknown,
     public readonly caseId: string
   ) {}
 
   public check(
     runner: Readonly<PropertyScenarioRunner<TSnapshot, TEvent>>
   ): boolean {
-    return runner.canRun(this.event, this.caseId);
+    return runner.canRunGenerated(this.type, this.generated, this.caseId);
   }
 
   public async run(
     runner: PropertyScenarioRunner<TSnapshot, TEvent>
   ): Promise<void> {
-    await runner.run(this.event, this.caseId);
+    await runner.runGenerated(this.type, this.generated, this.caseId);
   }
 
   public toString(): string {
-    return JSON.stringify(this.event);
+    return `${this.type}(${JSON.stringify(this.generated)})`;
   }
 }
 
@@ -142,8 +143,7 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
       >
     >[] = request.events.map(({ type, caseId, generator }) =>
       (generator as fc.Arbitrary<unknown>).map(
-        (payload) =>
-          new EventPropertyCommand(request.createEvent(type, payload), caseId)
+        (generated) => new EventPropertyCommand(type, generated, caseId)
       )
     );
     for (const command of request.commands) {

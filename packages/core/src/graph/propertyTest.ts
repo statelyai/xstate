@@ -325,7 +325,33 @@ export interface PropertyEventDescriptor<
     readonly snapshot: TSnapshot;
     readonly event: TEvent;
   }) => boolean;
+  readonly resolve?: never;
 }
+
+export interface PropertyResolvedEventDescriptor<
+  TGenerator,
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  readonly generate: TGenerator;
+  readonly case?: string;
+  /** Resolves a shrinkable symbolic value against the current model snapshot. */
+  readonly resolve: (context: {
+    readonly snapshot: TSnapshot;
+    readonly generated: unknown;
+  }) => EventPayload<TEvent> | undefined;
+  readonly when?: (context: {
+    readonly snapshot: TSnapshot;
+    readonly event: TEvent;
+  }) => boolean;
+}
+
+type AnyPropertyEventDescriptor<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> =
+  | PropertyEventDescriptor<unknown, TSnapshot, TEvent>
+  | PropertyResolvedEventDescriptor<unknown, TSnapshot, TEvent>;
 
 type PropertyEventGenerator<
   TSnapshot extends Snapshot<unknown>,
@@ -335,6 +361,11 @@ type PropertyEventGenerator<
   | PropertyGenerator<TKind, EventPayload<TEvent>>
   | PropertyEventDescriptor<
       PropertyGenerator<TKind, EventPayload<TEvent>>,
+      TSnapshot,
+      TEvent
+    >
+  | PropertyResolvedEventDescriptor<
+      PropertyGenerator<TKind, unknown>,
       TSnapshot,
       TEvent
     >;
@@ -483,7 +514,7 @@ export class PropertyScenarioRunner<
     temporal: readonly PropertyTemporal<TSnapshot, TEvent>[],
     private readonly eventDescriptors: ReadonlyMap<
       string,
-      PropertyEventDescriptor<unknown, TSnapshot, TEvent>
+      AnyPropertyEventDescriptor<TSnapshot, TEvent>
     >,
     private readonly coverage: MutablePropertyCoverage
   ) {
@@ -545,10 +576,26 @@ export class PropertyScenarioRunner<
   }
 
   public canRun(event: TEvent, caseId: string): boolean {
+    return this.canRunResolved(event, caseId);
+  }
+
+  public canRunGenerated(
+    type: string,
+    generated: unknown,
+    caseId: string
+  ): boolean {
+    return this.canRunResolved(
+      this.resolveGeneratedEvent(type, generated, caseId),
+      caseId
+    );
+  }
+
+  private canRunResolved(event: TEvent | undefined, caseId: string): boolean {
     this.recordGeneratedCommand();
     recordPropertyEventCase(this.coverage, caseId, 'generated');
     const descriptor = this.eventDescriptors.get(caseId);
     const canRun =
+      !!event &&
       this.snapshot.status === 'active' &&
       (descriptor?.when?.({ snapshot: this.snapshot, event }) ?? true);
     if (!canRun) {
@@ -558,6 +605,21 @@ export class PropertyScenarioRunner<
       recordPropertyEventCase(this.coverage, caseId, 'applicable');
     }
     return canRun;
+  }
+
+  private resolveGeneratedEvent(
+    type: string,
+    generated: unknown,
+    caseId: string
+  ): TEvent | undefined {
+    const descriptor = this.eventDescriptors.get(caseId);
+    const payload =
+      descriptor && 'resolve' in descriptor && descriptor.resolve
+        ? descriptor.resolve({ snapshot: this.snapshot, generated })
+        : generated;
+    return payload === undefined
+      ? undefined
+      : ({ ...(payload as object), type } as TEvent);
   }
 
   public canRunCommand(applicable: boolean): boolean {
@@ -579,6 +641,20 @@ export class PropertyScenarioRunner<
       true,
       caseId
     );
+  }
+
+  public async runGenerated(
+    type: string,
+    generated: unknown,
+    caseId: string
+  ): Promise<void> {
+    const event = this.resolveGeneratedEvent(type, generated, caseId);
+    if (!event) {
+      throw new Error(
+        `Property event case ${caseId} became inapplicable before execution`
+      );
+    }
+    await this.run(event, caseId);
   }
 
   public async replay(command: PropertyCommand<TEvent>): Promise<void> {
@@ -1223,8 +1299,7 @@ export async function propertyTest<
       : new TestModel(source as ActorLogic<any, any, any>);
   const eventDescriptors = new Map<
     string,
-    PropertyEventDescriptor<
-      unknown,
+    AnyPropertyEventDescriptor<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
     >
@@ -1233,16 +1308,17 @@ export async function propertyTest<
     ([type, configured]) => {
       const cases = Array.isArray(configured) ? configured : [configured];
       return cases.map((eventCase) => {
-        const descriptor =
-          eventCase &&
-          typeof eventCase === 'object' &&
-          ('when' in eventCase || 'case' in eventCase)
-            ? (eventCase as PropertyEventDescriptor<
-                unknown,
-                SnapshotFromSource<TSource>,
-                EventFromSource<TSource>
-              >)
-            : { generate: eventCase };
+        const descriptor: AnyPropertyEventDescriptor<
+          SnapshotFromSource<TSource>,
+          EventFromSource<TSource>
+        > = eventCase &&
+        typeof eventCase === 'object' &&
+        ('when' in eventCase || 'case' in eventCase || 'resolve' in eventCase)
+          ? (eventCase as AnyPropertyEventDescriptor<
+              SnapshotFromSource<TSource>,
+              EventFromSource<TSource>
+            >)
+          : { generate: eventCase };
         const caseName = descriptor.case ?? 'default';
         if (!caseName) {
           throw new Error(

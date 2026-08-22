@@ -55,6 +55,28 @@ events: {
 }
 ```
 
+For commands that must reference current model resources, generate a shrinkable
+symbolic value and resolve it against the pure snapshot. Returning `undefined`
+makes that generated command inapplicable:
+
+```ts
+events: {
+  USE_ACCOUNT: {
+    case: 'existing-account',
+    generate: fc.nat(),
+    resolve: ({ snapshot, generated }) => {
+      const accounts = snapshot.context.accountIds;
+      if (!accounts.length) return undefined;
+      return { accountId: accounts[(generated as number) % accounts.length] };
+    }
+  }
+}
+```
+
+FastCheck shrinks the symbolic value and command sequence. XState resolves and
+records concrete events, so portable fixtures do not depend on FastCheck or the
+resolver.
+
 `propertyTest()` may receive a machine or `createTestModel(machine)`. Existing
 shortest or simple paths can establish deterministic frontiers while FastCheck
 shrinks only the continuation:
