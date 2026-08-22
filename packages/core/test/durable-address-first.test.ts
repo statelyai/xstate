@@ -116,6 +116,30 @@ describe('durable effect descriptors', () => {
       src: 'worker'
     });
   });
+
+  it('retains an explicitly selected source when aliases share logic', () => {
+    const shared = createMachine({});
+    const machine = setup({
+      actors: { first: shared, second: shared }
+    }).createMachine({
+      id: 'aliases',
+      entry: (_, enq) => {
+        enq.spawn('second', { id: 'worker' });
+      }
+    });
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [, effects] = durable.initialTransition();
+    expect(
+      effects.find(({ descriptor }) => descriptor.type === '@xstate.spawn')
+        ?.descriptor
+    ).toMatchObject({ actor: 'aliases/worker', src: 'second' });
+  });
 });
 
 describe('durable rootAddress', () => {

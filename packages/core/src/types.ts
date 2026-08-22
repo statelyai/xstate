@@ -592,7 +592,7 @@ export type TransitionConfigFunction<
     TGuardMap,
     TDelayMap
   > & { input: TInput },
-  enq: EnqueueObject<TEvent, TEmitted>
+  enq: EnqueueObject<TEvent, TEmitted, SystemRegistry, TActorMap>
 ) => {
   target?: string | string[];
   // target?: keyof TSS['states'];
@@ -3014,28 +3014,57 @@ export interface SubscribeToMappers<
   error?: (error: unknown) => TMappedEvent;
 }
 
+type EnqueueSpawnOptions<
+  TLogic extends AnyActorLogic,
+  TSystemRegistry extends SystemRegistry
+> = {
+  input?: InputFrom<TLogic>;
+  id?: string;
+  syncSnapshot?: boolean;
+  registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
+};
+
+type EnqueueSpawnArgs<
+  TLogic extends AnyActorLogic,
+  TSystemRegistry extends SystemRegistry
+> = ConditionalRequired<
+  [
+    options?: EnqueueSpawnOptions<TLogic, TSystemRegistry> & {
+      [K in RequiredLogicInput<TLogic>]: unknown;
+    }
+  ],
+  IsNotNever<RequiredLogicInput<TLogic>>
+>;
+
+type EnqueueSpawner<
+  TActorMap extends Sources['actors'],
+  TSystemRegistry extends SystemRegistry
+> = {
+  <TSource extends keyof TActorMap & string>(
+    src: TSource,
+    ...[options]: EnqueueSpawnArgs<TActorMap[TSource], TSystemRegistry>
+  ): ActorFromLogic<TActorMap[TSource]>;
+  <TLogic extends AnyActorLogic>(
+    logic: TLogic,
+    ...[options]: EnqueueSpawnArgs<TLogic, TSystemRegistry>
+  ): ActorFromLogic<TLogic>;
+};
+
 export type EnqueueObject<
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
-  TSystemRegistry extends SystemRegistry = SystemRegistry
+  TSystemRegistry extends SystemRegistry = SystemRegistry,
+  TActorMap extends Sources['actors'] = Sources['actors']
 > = {
   cancel: (id: string) => void;
   raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
   /**
-   * Spawns a child actor from the given logic. Without an explicit `id`, the
-   * child gets a deterministic src-keyed id (`worker:0`, `worker:1`, …)
-   * allocated from the parent snapshot's own counters, so ids replay
-   * identically and persist with the parent.
+   * Spawns a child actor from a registered source key or logic. Without an
+   * explicit `id`, the child gets a deterministic src-keyed id (`worker:0`,
+   * `worker:1`, …) allocated from the parent snapshot's own counters, so ids
+   * replay identically and persist with the parent.
    */
-  spawn: <T extends AnyActorLogic>(
-    logic: T,
-    options?: {
-      input?: InputFrom<T>;
-      id?: string;
-      syncSnapshot?: boolean;
-      registryKey?: RegistryKeyForLogic<T, TSystemRegistry>;
-    }
-  ) => ActorFromLogic<T>;
+  spawn: EnqueueSpawner<TActorMap, TSystemRegistry>;
   emit: (emittedEvent: TEmittedEvent) => void;
   <T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): void;
   log: (...args: any[]) => void;
@@ -3115,7 +3144,7 @@ export type Action<
     system?: AnyActorSystem;
     params: TParams;
   },
-  enqueue: EnqueueObject<TEvent, TEmittedEvent>
+  enqueue: EnqueueObject<TEvent, TEmittedEvent, SystemRegistry, TActorMap>
 ) => {
   context?: Partial<_TCtx>;
   children?: Record<string, AnyActor | undefined>;

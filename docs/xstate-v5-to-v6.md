@@ -189,7 +189,7 @@ The second argument is the action queue. It buffers side effects so the transiti
 | `enq.emit(event)`               | Emit an event observable via `actor.on(...)`                                       |
 | `enq.log(...args)`              | Log via the configured logger (replaces v5 `log`)                                  |
 | `enq.sendTo(ref, event, opts?)` | Send an event to another actor (replaces v5 `sendTo` / `sendParent` / `forwardTo`) |
-| `enq.spawn(logic, opts?)`       | Spawn a child actor; `opts.registryKey` registers it in a typed system registry    |
+| `enq.spawn(source, opts?)`      | Spawn from actor logic or a typed registered name; `opts.registryKey` registers it in a typed system registry |
 | `enq.stop(ref?)`                | Stop a spawned child or listener (replaces v5 `stopChild`)                         |
 | `enq.listen(ref, type, mapper)` | Subscribe to a child's emitted events; remap → parent (returns a stoppable ref)    |
 | `enq.subscribeTo(ref, mappers)` | Subscribe to a child's snapshot stream (returns a stoppable ref)                   |
@@ -768,9 +768,9 @@ invoke: {
 }
 ```
 
-String IDs still work for `invoke.src` when the actor is registered on `createMachine({ actors: { ... } })` directly or supplied via `machine.provide({ actors: { ... } })`. Spawning accepts actor logic, not a string ID.
+String IDs work for `invoke.src` and transition spawning when the actor is registered on `createMachine({ actors: { ... } })` directly or supplied via `machine.provide({ actors: { ... } })`. `enq.spawn('worker')` is checked against that actor map and retains exactly that source identity. The context initializer's `spawn` continues to accept actor logic.
 
-Invoked children always persist and rehydrate: inline `invoke.src` logic receives a synthetic source identity resolved back through the machine config. Both `spawn(actors.worker)` in a context initializer and `enq.spawn(actors.worker)` in a transition retain the registered source key and persist. `provide(...)` may replace the implementation under that key. Raw inline logic that is not registered has no reconstructable source identity, so `getPersistedSnapshot()` throws while such a spawned child exists.
+Invoked children always persist and rehydrate: inline `invoke.src` logic receives a synthetic source identity resolved back through the machine config. `spawn(actors.worker)` in a context initializer and both `enq.spawn(actors.worker)` and `enq.spawn('worker')` in a transition retain a registered source key and persist. `provide(...)` may replace the implementation under that key. When multiple keys share a logic value, the string form preserves the selected key; the logic form uses the first registered key. Raw inline logic that is not registered has no reconstructable source identity, so `getPersistedSnapshot()` throws while such a spawned child exists.
 
 `invoke.src` may also be a **function** resolving to logic or to a registered name: `src: ({ actors, context, event, self }) => actors.fetchUser`.
 

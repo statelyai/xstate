@@ -348,22 +348,35 @@ function getWorkingSnapshotOf(actorScope: AnyActorScope):
   )._snapshot;
 }
 
-function getRegisteredSrcKey(
-  actorScope: AnyActorScope,
-  logic: AnyActorLogic
-): string | undefined {
-  const registeredActors = (
+function getRegisteredActors(
+  actorScope: AnyActorScope
+): Record<string, AnyActorLogic> | undefined {
+  return (
     actorScope.self as {
-      logic?: { sources?: { actors?: Record<string, unknown> } };
+      logic?: { sources?: { actors?: Record<string, AnyActorLogic> } };
     }
   ).logic?.sources?.actors;
-  if (!registeredActors) {
-    return undefined;
+}
+
+function resolveTransitionSpawnSource(
+  actorScope: AnyActorScope,
+  source: string | AnyActorLogic
+): { logic: AnyActorLogic; src: string | undefined } {
+  const registeredActors = getRegisteredActors(actorScope);
+  if (typeof source === 'string') {
+    const logic = registeredActors?.[source];
+    if (!logic) {
+      throw new Error(`Actor source '${source}' is not provided`);
+    }
+    return { logic, src: source };
   }
-  return resolveRegisteredActorSource(
-    registeredActors as Record<string, AnyActorLogic>,
-    logic
-  );
+  if (!registeredActors) {
+    return { logic: source, src: undefined };
+  }
+  return {
+    logic: source,
+    src: resolveRegisteredActorSource(registeredActors, source)
+  };
 }
 
 /**
@@ -573,17 +586,14 @@ export function createTransitionEnqueue(
         internalEvents.push(raisedEvent);
       }
     },
-    spawn: (logic, options) => {
+    spawn: (source: string | AnyActorLogic, options: any) => {
+      const { logic, src } = resolveTransitionSpawnSource(actorScope, source);
       if (!createActors) {
         // TODO: replace this speculative placeholder with a typed inert actor ref.
         return {
-          id: options?.id ?? options?.registryKey ?? (logic as any).id
+          id: options?.id ?? options?.registryKey ?? src ?? (logic as any).id
         } as AnyActor;
       }
-      // Recover the registered source key for setup-provided logic so the
-      // spawned child persists (and gets a deterministic id prefix) by key
-      // instead of by inline logic reference.
-      const src = getRegisteredSrcKey(actorScope, logic);
       // Generated ids allocate from the parent snapshot's own counters
       // through the transition's allocation transaction; explicit
       // generated-shaped ids reserve their numbering the same way.

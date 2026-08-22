@@ -34,8 +34,8 @@ describe('#5077 re-persistability of children', () => {
     const parent = createMachine({
       actors: { child },
       on: {
-        spawn: ({ actors }, enq) => {
-          enq.spawn(actors.child, { id: 'myChild' });
+        spawn: (_, enq) => {
+          enq.spawn('child', { id: 'myChild' });
         },
         ping: ({ children }, enq) => {
           enq.sendTo(children.myChild, { type: 'inc' });
@@ -65,8 +65,8 @@ describe('#5077 re-persistability of children', () => {
     const parent = createMachine({
       actors: {} as { child: typeof child },
       on: {
-        spawn: ({ actors }, enq) => {
-          enq.spawn(actors.child, { id: 'myChild' });
+        spawn: (_, enq) => {
+          enq.spawn('child', { id: 'myChild' });
         }
       }
     }).provide({ actors: { child } });
@@ -85,8 +85,8 @@ describe('#5077 re-persistability of children', () => {
       .extend({ actors: { child } })
       .createMachine({
         on: {
-          spawn: ({ actors }, enq) => {
-            enq.spawn(actors.child, { id: 'myChild' });
+          spawn: (_, enq) => {
+            enq.spawn('child', { id: 'myChild' });
           }
         }
       });
@@ -96,6 +96,62 @@ describe('#5077 re-persistability of children', () => {
 
     expect(roundTrip(actor.getPersistedSnapshot()).children.myChild.src).toBe(
       'child'
+    );
+  });
+
+  it('preserves the explicitly selected source when duplicate registrations later diverge', () => {
+    const shared = createMachine({
+      context: { count: 0 },
+      on: {
+        inc: ({ context }) => ({ context: { count: context.count + 1 } })
+      }
+    });
+    const replacement = createMachine({
+      context: { count: 0 },
+      on: {
+        inc: ({ context }) => ({ context: { count: context.count + 10 } })
+      }
+    });
+    const parent = createMachine({
+      actors: { first: shared, second: shared },
+      on: {
+        spawn: (_, enq) => {
+          enq.spawn('second', { id: 'worker' });
+        },
+        ping: ({ children }, enq) => {
+          enq.sendTo(children.worker, { type: 'inc' });
+        }
+      }
+    });
+
+    const actor = createActor(parent).start();
+    actor.send({ type: 'spawn' });
+    const persisted = roundTrip(actor.getPersistedSnapshot());
+    expect(persisted.children.worker.src).toBe('second');
+    actor.stop();
+
+    const migratedParent = parent.provide({ actors: { second: replacement } });
+    const restored = createActor(migratedParent, {
+      snapshot: persisted
+    }).start();
+    restored.send({ type: 'ping' });
+    expect(
+      (restored.getSnapshot().children as any).worker.getSnapshot().context
+        .count
+    ).toBe(10);
+  });
+
+  it('throws immediately when a declared actor source has no implementation', () => {
+    const child = createMachine({});
+    const parent = createMachine({
+      actors: {} as { child: typeof child },
+      entry: (_, enq) => {
+        enq.spawn('child');
+      }
+    });
+
+    expect(() => getInitialSnapshot(parent)).toThrow(
+      "Actor source 'child' is not provided"
     );
   });
 
@@ -483,6 +539,35 @@ describe('#5228 restore errors surface', () => {
 
     expect(restored.getSnapshot().status).toBe('active');
     expect(restored.getSnapshot().context).toEqual({ total: 5 });
+  });
+
+  it('preserves an explicit child source through parent snapshot migration', () => {
+    const shared = createMachine({ context: { implementation: 'shared' } });
+    const secondV2 = createMachine({
+      context: { implementation: 'second-v2' }
+    });
+    const machineV1 = createMachine({
+      version: '1',
+      actors: { first: shared, second: shared },
+      entry: (_, enq) => {
+        enq.spawn('second', { id: 'worker' });
+      }
+    });
+    const machineV2 = createMachine({
+      version: '2',
+      migrate: (persisted: any) => ({ ...persisted, version: '2' }),
+      actors: { first: shared, second: secondV2 }
+    });
+
+    const persisted = roundTrip(
+      createActor(machineV1).start().getPersistedSnapshot()
+    );
+    expect(persisted.children.worker.src).toBe('second');
+
+    const restored = createActor(machineV2, { snapshot: persisted }).start();
+    expect((restored.getSnapshot().children as any).worker.logic).toBe(
+      secondV2
+    );
   });
 });
 

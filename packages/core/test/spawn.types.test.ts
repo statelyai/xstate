@@ -2,17 +2,21 @@ import { z } from 'zod';
 import {
   createLogic,
   createMachine,
+  setup,
   type ActorRefFromLogic,
   type Spawner
 } from '../src';
 
 describe('spawn inside machine', () => {
   it('input is required when defined in actor', () => {
-    const childMachine = createMachine({
-      // types: { input: {} as { value: number } }
-      schemas: {
-        input: z.object({ value: z.number() })
-      }
+    const childMachine = createLogic<
+      { value: number },
+      string,
+      { type: 'PING'; value: string },
+      { value: number }
+    >({
+      context: ({ input }) => input,
+      run: ({ context }) => ({ context })
     });
     createMachine({
       // types: {} as { context: { ref: ActorRefFrom<typeof childMachine> } },
@@ -46,12 +50,57 @@ describe('spawn inside machine', () => {
         });
         childRef satisfies ActorRefFromLogic<typeof childMachine>;
 
-        // Registered actor logic is the authored spawn form; source-key
-        // strings are intentionally unsupported.
-        // @ts-expect-error
-        enq.spawn('child', { input: { value: 42 } });
+        const childRefBySource = enq.spawn('child', {
+          input: { value: 42 }
+        });
+        childRefBySource satisfies ActorRefFromLogic<typeof childMachine>;
+        childRefBySource.send({ type: 'PING', value: 'ok' });
+        childRefBySource.getSnapshot().context.value satisfies number;
+        childRefBySource.getSnapshot().output satisfies string | undefined;
+
+        // @ts-expect-error input is required by the selected actor source
+        enq.spawn('child');
+        // @ts-expect-error input is typed from the selected actor source
+        enq.spawn('child', { input: { value: 'wrong' } });
+        // @ts-expect-error arbitrary strings are not actor sources
+        enq.spawn('other', { input: { value: 42 } });
       }
     });
+
+    setup({}).createMachine({
+      entry: (_, enq) => {
+        // @ts-expect-error arbitrary strings are not actor sources
+        enq.spawn('other');
+      }
+    });
+  });
+
+  it('types string sources added through provide and extend', () => {
+    const childMachine = createMachine({
+      schemas: {
+        input: z.object({ value: z.number() }),
+        events: { PING: z.object({ value: z.string() }) }
+      }
+    });
+
+    createMachine({
+      actors: {} as { child: typeof childMachine },
+      entry: (_, enq) => {
+        const child = enq.spawn('child', { input: { value: 42 } });
+        child.trigger.PING({ value: 'ok' });
+        child satisfies ActorRefFromLogic<typeof childMachine>;
+      }
+    }).provide({ actors: { child: childMachine } });
+
+    setup()
+      .extend({ actors: { child: childMachine } })
+      .createMachine({
+        entry: (_, enq) => {
+          const child = enq.spawn('child', { input: { value: 42 } });
+          child.trigger.PING({ value: 'ok' });
+          child satisfies ActorRefFromLogic<typeof childMachine>;
+        }
+      });
   });
 
   it('input is not required when not defined in actor', () => {

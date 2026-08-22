@@ -2,17 +2,17 @@
 'xstate': patch
 ---
 
-Registered actor logic spawned from a transition retains its source key for persistence and restoration:
+Transition spawning accepts typed registered actor names so durable source identity can be explicit:
 
 ```ts
 const machine = createMachine({
   actors: { worker },
   on: {
-    start: ({ actors }, enq) => {
-      enq.spawn(actors.worker, { id: 'worker' });
+    start: (_, enq) => {
+      enq.spawn('worker', { id: 'worker' });
     }
   }
 });
 ```
 
-When several source keys share one logic value, context and transition spawning now consistently persist the first registered key. Persisting an unregistered inline child also throws consistently in production and development.
+The name determines required input and the returned actor reference type. It is resolved immediately and persisted exactly, so duplicate names may share one logic value and later diverge safely. Logic-value spawning remains supported and uses the first matching registered key; unregistered inline children cannot be persisted.
