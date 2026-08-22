@@ -165,6 +165,67 @@ describe('advanced property testing', () => {
     );
   });
 
+  it('tracks multiple named behavioral cases for one event type', async () => {
+    const machine = createMachine({
+      schemas: {
+        events: { UPDATE: types<{ value: number }>() }
+      },
+      on: { UPDATE: {} }
+    });
+
+    const result = await propertyTest(machine, {
+      adapter: fastCheckAdapter({ seed: 7, numRuns: 100, maxCommands: 3 }),
+      events: {
+        UPDATE: [
+          {
+            case: 'positive',
+            generate: fc.constant({ value: 1 })
+          },
+          {
+            case: 'negative-disabled',
+            generate: fc.constant({ value: -1 }),
+            when: () => false
+          }
+        ]
+      },
+      invariant: () => {}
+    });
+
+    const positive =
+      result.coverage.eventCases[
+        JSON.stringify(['event-case', 'UPDATE', 'positive'])
+      ];
+    const disabled =
+      result.coverage.eventCases[
+        JSON.stringify(['event-case', 'UPDATE', 'negative-disabled'])
+      ];
+    expect(positive.generated).toBeGreaterThan(0);
+    expect(positive.executed).toBe(positive.applicable);
+    expect(disabled.generated).toBeGreaterThan(0);
+    expect(disabled.executed).toBe(0);
+    expect(disabled.ignored).toBe(disabled.generated);
+  });
+
+  it('rejects duplicate named cases for one event type', async () => {
+    const machine = createMachine({
+      schemas: { events: { GO: types<{}>() } },
+      on: { GO: {} }
+    });
+
+    await expect(
+      propertyTest(machine, {
+        adapter: fastCheckAdapter(),
+        events: {
+          GO: [
+            { case: 'same', generate: fc.constant({}) },
+            { case: 'same', generate: fc.constant({}) }
+          ]
+        },
+        invariant: () => {}
+      })
+    ).rejects.toThrow('Property event case "same" is duplicated for "GO"');
+  });
+
   it('covers dynamic definitions while keeping their outcomes unknown', async () => {
     const machine = createMachine({
       id: 'dynamic',

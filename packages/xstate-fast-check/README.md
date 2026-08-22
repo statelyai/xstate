@@ -36,15 +36,22 @@ await propertyTest(machine, {
 
 Event-map keys supply each event's `type`; arbitraries generate payloads only.
 Each keyed arbitrary is reported as the stable `default` case for that event.
-Use a descriptor to name a behavioral case or make it state-aware:
+Use descriptors to name several behavioral cases for the same event or limit
+when each is applicable:
 
 ```ts
 events: {
-  INC: {
-    case: 'positive',
-    generate: fc.record({ value: fc.integer({ min: 1 }) }),
-    when: ({ snapshot }) => snapshot.matches('active')
-  }
+  INC: [
+    {
+      case: 'positive',
+      generate: fc.record({ value: fc.integer({ min: 1 }) }),
+      when: ({ snapshot }) => snapshot.matches('active')
+    },
+    {
+      case: 'negative',
+      generate: fc.record({ value: fc.integer({ max: -1 }) })
+    }
+  ]
 }
 ```
 

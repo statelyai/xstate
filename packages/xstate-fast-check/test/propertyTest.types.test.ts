@@ -60,6 +60,24 @@ it('infers machine and TestModel property APIs', () => {
       }
     });
 
+    void propertyTest(machine, {
+      adapter: fastCheckAdapter(),
+      events: {
+        INC: [
+          {
+            case: 'positive',
+            generate: fc.record({ value: fc.nat() })
+          },
+          {
+            case: 'negative',
+            generate: fc.record({ value: fc.integer({ max: -1 }) }),
+            when: ({ event }) => event.value < 0
+          }
+        ]
+      },
+      invariant: () => {}
+    });
+
     void propertyTest(createTestModel(machine), {
       adapter: fastCheckAdapter(),
       events: { INC: fc.record({ value: fc.integer() }) },

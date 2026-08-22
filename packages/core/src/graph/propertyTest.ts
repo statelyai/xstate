@@ -327,18 +327,30 @@ export interface PropertyEventDescriptor<
   }) => boolean;
 }
 
+type PropertyEventGenerator<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TKind extends PropertyGeneratorKind
+> =
+  | PropertyGenerator<TKind, EventPayload<TEvent>>
+  | PropertyEventDescriptor<
+      PropertyGenerator<TKind, EventPayload<TEvent>>,
+      TSnapshot,
+      TEvent
+    >;
+
 export type PropertyEventGenerators<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TKind extends PropertyGeneratorKind
 > = {
   [TType in EventType<TEvent>]?:
-    | PropertyGenerator<TKind, EventPayload<EventForType<TEvent, TType>>>
-    | PropertyEventDescriptor<
-        PropertyGenerator<TKind, EventPayload<EventForType<TEvent, TType>>>,
+    | PropertyEventGenerator<TSnapshot, EventForType<TEvent, TType>, TKind>
+    | readonly PropertyEventGenerator<
         TSnapshot,
-        EventForType<TEvent, TType>
-      >;
+        EventForType<TEvent, TType>,
+        TKind
+      >[];
 };
 
 export type PropertyTemporalPredicate<
@@ -535,7 +547,7 @@ export class PropertyScenarioRunner<
   public canRun(event: TEvent, caseId: string): boolean {
     this.recordGeneratedCommand();
     recordPropertyEventCase(this.coverage, caseId, 'generated');
-    const descriptor = this.eventDescriptors.get(event.type);
+    const descriptor = this.eventDescriptors.get(caseId);
     const canRun =
       this.snapshot.status === 'active' &&
       (descriptor?.when?.({ snapshot: this.snapshot, event }) ?? true);
@@ -1217,25 +1229,37 @@ export async function propertyTest<
       EventFromSource<TSource>
     >
   >();
-  const events = Object.entries(options.events).map(([type, configured]) => {
-    const descriptor =
-      configured &&
-      typeof configured === 'object' &&
-      ('when' in configured || 'case' in configured)
-        ? (configured as PropertyEventDescriptor<
-            unknown,
-            SnapshotFromSource<TSource>,
-            EventFromSource<TSource>
-          >)
-        : { generate: configured };
-    const caseName = descriptor.case ?? 'default';
-    if (!caseName) {
-      throw new Error(`Property event case for "${type}" must not be empty`);
+  const events = Object.entries(options.events).flatMap(
+    ([type, configured]) => {
+      const cases = Array.isArray(configured) ? configured : [configured];
+      return cases.map((eventCase) => {
+        const descriptor =
+          eventCase &&
+          typeof eventCase === 'object' &&
+          ('when' in eventCase || 'case' in eventCase)
+            ? (eventCase as PropertyEventDescriptor<
+                unknown,
+                SnapshotFromSource<TSource>,
+                EventFromSource<TSource>
+              >)
+            : { generate: eventCase };
+        const caseName = descriptor.case ?? 'default';
+        if (!caseName) {
+          throw new Error(
+            `Property event case for "${type}" must not be empty`
+          );
+        }
+        const caseId = getPropertyEventCaseId(type, caseName);
+        if (eventDescriptors.has(caseId)) {
+          throw new Error(
+            `Property event case "${caseName}" is duplicated for "${type}"`
+          );
+        }
+        eventDescriptors.set(caseId, descriptor);
+        return { type, caseId, generator: descriptor.generate };
+      });
     }
-    const caseId = getPropertyEventCaseId(type, caseName);
-    eventDescriptors.set(type, descriptor);
-    return { type, caseId, generator: descriptor.generate };
-  });
+  );
   const commands: PropertyGeneratedCommand[] = [];
   for (const type of ['advance', 'checkpoint', 'stop'] as const) {
     const generator = options.commands?.[type];
