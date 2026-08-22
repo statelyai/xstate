@@ -98,15 +98,18 @@ with no per-actor wiring. `run()` is convenience over the explicit loop:
 
 ```ts
 let [state, effects] = durable.initialTransition(input);
-let rootEvents = await durable.executeEffects(effects);
+await durable.executeEffects(effects);
 
 while (state.status === 'active') {
-  const event =
-    rootEvents.shift()?.event ?? (await durable.waitForEvent());
-  [state, effects] = durable.transition(state, event);
-  rootEvents.push(...(await durable.executeEffects(effects)));
+  [state, effects] = durable.transition(state, await durable.waitForEvent());
+  await durable.executeEffects(effects);
 }
 ```
+
+`waitForEvent()` first hands out the root-addressed events prior
+`executeEffects` batches captured (an invoked actor completing, a child
+reporting up), and only when none are queued defers to the adapter's durable
+wait.
 
 Checkpoint with `getPersistedSnapshot(state)` after `executeEffects`
 resolves, and persist `durable.nextTransitionIndex` alongside; pass it as
@@ -202,9 +205,9 @@ deliver the same completion more than once (retries, replays), the host is
 responsible for deduplicating before handing it to the execution.
 
 Events addressed to the root actor do not reach `sendEvent` during
-`executeEffects`: the execution captures them and resolves them from that
-call as `{ event, source }` records for the loop to process before
-suspending. While the loop is parked in `waitForEvent()`, a root-addressed
+`executeEffects`: the execution captures and retains them, and
+`waitForEvent()` hands them out — in capture order — before deferring to the
+adapter. While the loop is parked in the adapter's wait, a root-addressed
 event reaches `sendEvent` like any other target and belongs in the host's
 mailbox; if the adapter implements no `sendEvent`, producing one there throws,
 since delivering it locally to the inert root would silently lose it.
@@ -265,6 +268,18 @@ persisted address verbatim — the owning runtime's identity for the child.
 
 `durable.getActorRef(snapshot)` returns the root actor reference behind a
 snapshot this execution produced, for addressing and inspection.
+`durable.getActorRef(snapshot, address)` resolves a logical address against
+the snapshot's live actor tree instead — the tool for hosts whose mailbox
+stores addresses as strings and must deliver to the actor behind one —
+returning `undefined` when no live actor has that address (a timer firing
+for an actor that already completed).
+
+`createDurable(logic, adapter, { inspect })` observes the execution's
+inspection events — the `@xstate.actor` / `@xstate.transition` protocol,
+across the whole live actor tree, including transitions computed by the pure
+path. This is host observability, not part of the durable contract: use it
+for operation logs, tracing and test instrumentation, and keep the adapter
+itself pure physics.
 
 `run()` resolves with the machine output when the machine is done, throws the
 machine error when it fails, and throws `DurableExecutionCancelledError` when
@@ -287,11 +302,12 @@ Effects are plain objects — each has a serializable `descriptor` and an
 pure APIs and execute them entirely its own way. Dropping `executeEffects`
 means providing its four services yourself: transitive settlement (an
 effect's operations trigger further operations; "executed" must mean the
-whole cascade was accepted before checkpointing), root-event capture
-(children's sends to the root must surface instead of queuing on an inert
-mailbox), ordered handoff to the runtime, and batch failure discard for
-retries. Engines with native equivalents for some of these may prefer their
-own; everyone else should stay on `executeEffects`.
+whole cascade was accepted before checkpointing), root-event capture and
+replay into `transition()` (children's sends to the root must surface
+instead of queuing on an inert mailbox), ordered handoff to the runtime, and
+batch failure discard for retries. Engines with native equivalents for some
+of these may prefer their own; everyone else should stay on
+`executeEffects`.
 
 ## Host adapters
 

@@ -1992,6 +1992,8 @@ export interface ActorRuntime<
   toJSON?: () => any;
   _parent?: any;
   system: any;
+  /** @internal Emits the transition inspection event for `snapshot`. */
+  _inspectTransition(snapshot: TSnapshot, event: EventObject): void;
   /** @internal */
   _processingStatus: ProcessingStatus;
   /** @internal */

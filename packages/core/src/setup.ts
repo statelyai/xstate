@@ -58,6 +58,7 @@ import {
   Next_InvokeConfig,
   Next_StateNodeConfig,
   Next_TransitionConfigOrTarget,
+  OutputFromConfig,
   ValidateHistoryDefaults,
   ValidateStateTargets,
   WithDefault
@@ -619,6 +620,33 @@ type SetupOutput<TSchemas, TOutputSchema extends StandardSchemaV1> = [
 ] extends [never]
   ? InferOutput<TOutputSchema, unknown>
   : InferOutput<SetupSchema<TSchemas, 'output'>, unknown>;
+
+/**
+ * Whether an output schema was declared, either in `setup({ schemas })` or in
+ * the machine config's own `schemas.output`. A declared schema is always
+ * authoritative for the machine's output type.
+ */
+type HasOutputSchema<TSchemas, TOutputSchema extends StandardSchemaV1> = [
+  SetupSchema<TSchemas, 'output'>
+] extends [never]
+  ? StandardSchemaV1 extends TOutputSchema
+    ? false
+    : true
+  : true;
+
+/**
+ * The machine's output type. A declared output schema wins; otherwise the type
+ * is inferred from the config's `output` property (a mapper's return type, or
+ * the static value's type).
+ */
+type SetupOrConfigOutput<
+  TSchemas,
+  TOutputSchema extends StandardSchemaV1,
+  TConfig
+> =
+  HasOutputSchema<TSchemas, TOutputSchema> extends true
+    ? SetupOutput<TSchemas, TOutputSchema>
+    : OutputFromConfig<TConfig, SetupOutput<TSchemas, TOutputSchema>>;
 
 type SetupEmitted<
   TSchemas,
@@ -2087,7 +2115,7 @@ export interface SetupReturn<
     [SetupSchema<TSchemas, 'input'>] extends [never]
       ? TInput
       : SetupInput<TSchemas, TInputSchema>,
-    SetupOutput<TSchemas, TOutputSchema>,
+    SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig>,
     SetupEmitted<TSchemas, TEmittedSchemaMap>,
     SetupMeta<TSchemas, TMetaSchema>,
     MergeStateSchema<

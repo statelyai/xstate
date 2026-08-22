@@ -1498,8 +1498,9 @@ describe('tenth round: review findings', () => {
     });
     expect(durable.rootAddress).toBe('a%2Fb');
     const [, effects] = durable.initialTransition();
-    const rootEvents = await durable.executeEffects(effects);
-    expect(rootEvents.map((r: any) => r.event.type)).toEqual(['HELLO']);
+    await durable.executeEffects(effects);
+    const hello = await durable.waitForEvent();
+    expect(hello.type).toBe('HELLO');
   });
 });
 

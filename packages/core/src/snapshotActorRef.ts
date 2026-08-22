@@ -1,3 +1,4 @@
+import { hasAmbientInspector } from './inspectionAmbient.ts';
 import type { AnyActor, Snapshot } from './types.ts';
 
 /** Snapshot-scoped actor identity and system view. @internal */
@@ -90,6 +91,7 @@ export function createSnapshotSystem(
   children: Record<string, AnyActor | undefined>,
   baseState?: SnapshotSystemState
 ): AnyActor['system'] {
+  const forwardInspection = hasAmbientInspector();
   const registeredActors = copyRegisteredActors(baseSystem, baseState);
   const keyedActors = new Map<PropertyKey, AnyActor | undefined>(
     baseState?.keyedActors ?? getKeyedActors(baseSystem)
@@ -130,10 +132,18 @@ export function createSnapshotSystem(
     },
     get: (registryKey: PropertyKey) => keyedActors.get(registryKey),
     getAll: () => Object.fromEntries(keyedActors),
-    // Pure transition resolution must not leak topology inspection events into
-    // a live runtime system.
-    _hasInspectionObservers: () => false,
-    _sendInspectionEvent: () => {}
+    // Pure transition resolution must not leak topology inspection events
+    // into a live runtime system — planning branches stay silent. The one
+    // exception is a durable execution's own transitions (marked by the
+    // ambient inspector at creation time): there the pure path IS the
+    // execution, so inspection forwards to the base system's observers.
+    _hasInspectionObservers: forwardInspection
+      ? () => baseSystem._hasInspectionObservers?.() ?? false
+      : () => false,
+    _sendInspectionEvent: forwardInspection
+      ? (event: Parameters<AnyActor['system']['_sendInspectionEvent']>[0]) =>
+          baseSystem._sendInspectionEvent(event)
+      : () => {}
   });
 
   for (const [registryKey, actor] of keyedActors) {
