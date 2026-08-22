@@ -37,6 +37,21 @@ describe('spawn inside machine', () => {
         }
       }
     });
+
+    createMachine({
+      actors: { child: childMachine },
+      entry: ({ actors }, enq) => {
+        const childRef = enq.spawn(actors.child, {
+          input: { value: 42 }
+        });
+        childRef satisfies ActorRefFromLogic<typeof childMachine>;
+
+        // Registered actor logic is the authored spawn form; source-key
+        // strings are intentionally unsupported.
+        // @ts-expect-error
+        enq.spawn('child', { input: { value: 42 } });
+      }
+    });
   });
 
   it('input is not required when not defined in actor', () => {

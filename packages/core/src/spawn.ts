@@ -3,6 +3,7 @@ import {
   assertChildIdFree,
   reserveChildId
 } from './transitionActions.ts';
+import { resolveRegisteredActorSource } from './actorSource.ts';
 import {
   ActorFromLogic,
   AnyActorLogic,
@@ -39,9 +40,7 @@ export function createSpawner(
   spawnedChildren: Record<string, AnyActorRef>
 ): Spawner {
   return ((src, options) => {
-    const referencedSrc = Object.entries(actors).find(
-      ([, logic]) => logic === src
-    )?.[0];
+    const referencedSrc = resolveRegisteredActorSource(actors, src);
     // Generated ids come from the same transaction allocator as `enq.spawn`,
     // so context-factory allocations persist with the snapshot and never
     // collide with later spawns.

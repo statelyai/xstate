@@ -770,7 +770,7 @@ invoke: {
 
 String IDs still work for `invoke.src` when the actor is registered on `createMachine({ actors: { ... } })` directly or supplied via `machine.provide({ actors: { ... } })`. Spawning accepts actor logic, not a string ID.
 
-Persistence differs by API. Invoked children always persist and rehydrate: inline `invoke.src` logic receives a synthetic source identity resolved back through the machine config. Children spawned from a `context: ({ spawn }) => ...` initializer resolve registered logic back to its source name and persist. Children spawned with `enq.spawn(...)` currently have no source identity — `getPersistedSnapshot()` throws `An inline child actor cannot be persisted.` in development, even for registered logic. Prefer `invoke` when a child must survive persistence.
+Invoked children always persist and rehydrate: inline `invoke.src` logic receives a synthetic source identity resolved back through the machine config. Both `spawn(actors.worker)` in a context initializer and `enq.spawn(actors.worker)` in a transition retain the registered source key and persist. `provide(...)` may replace the implementation under that key. Raw inline logic that is not registered has no reconstructable source identity, so `getPersistedSnapshot()` throws while such a spawned child exists.
 
 `invoke.src` may also be a **function** resolving to logic or to a registered name: `src: ({ actors, context, event, self }) => actors.fetchUser`.
 

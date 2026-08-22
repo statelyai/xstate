@@ -150,20 +150,27 @@ can be stopped with `enq.stop(...)`, and both work in transition, `entry` and
 
 ## Persistence
 
-Children spawned in the context initializer from logic registered in `actors` are persisted and restored with the parent snapshot:
+<!-- registered spawn source persistence behavior from packages/core/src/spawn.ts, packages/core/src/transitionActions.ts, and packages/core/src/StateMachine.ts -->
+
+Children spawned from logic registered in `actors` are persisted and restored with the parent snapshot. This works in the context initializer and in transition functions:
 
 ```ts
 const machine = createMachine({
   actors: { connection },
   context: ({ spawn, actors }) => ({
     connection: spawn(actors.connection, { id: 'connection' })
-  })
+  }),
+  on: {
+    reconnect: ({ actors }, enq) => {
+      enq.spawn(actors.connection, { id: 'replacement' });
+    }
+  }
 });
 ```
 
-The child records `src: 'connection'`, which `createActor(machine, { snapshot })` resolves back to the registered logic. Restoring a snapshot whose child source is not registered fails instead of silently dropping the child.
+Each child records `src: 'connection'`, which `createActor(machine, { snapshot })` resolves back to the currently registered logic. `provide(...)` may replace that implementation under the same source key. Restoring a snapshot whose child source is not registered fails instead of silently dropping the child.
 
-> **Warning:** Children created with `enq.spawn(...)` are stored by logic value, not by source name, so they cannot be persisted. `getPersistedSnapshot()` throws `An inline child actor cannot be persisted.` in development while such a child is running. Invoke the child, or spawn it in the context initializer, when the machine must be persisted.
+Register persistent child logic in `actors`. Spawning inline logic that is not registered works while the parent is running, but `getPersistedSnapshot()` throws `An inline child actor cannot be persisted.` while that child exists. Several source keys may share one logic object; when that value is spawned, the first registered key is its persisted source identity.
 
 ## TypeScript
 

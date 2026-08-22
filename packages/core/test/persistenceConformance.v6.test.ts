@@ -14,6 +14,7 @@ import {
   createActor,
   createMachine,
   getInitialSnapshot,
+  setup,
   SimulatedClock
 } from '../src/index.ts';
 
@@ -23,6 +24,81 @@ function roundTrip(persisted: unknown): any {
 }
 
 describe('#5077 re-persistability of children', () => {
+  it('a transition-spawned registered child survives a JSON round-trip and re-persists', () => {
+    const child = createMachine({
+      context: { count: 0 },
+      on: {
+        inc: ({ context }) => ({ context: { count: context.count + 1 } })
+      }
+    });
+    const parent = createMachine({
+      actors: { child },
+      on: {
+        spawn: ({ actors }, enq) => {
+          enq.spawn(actors.child, { id: 'myChild' });
+        },
+        ping: ({ children }, enq) => {
+          enq.sendTo(children.myChild, { type: 'inc' });
+        }
+      }
+    });
+
+    const actor = createActor(parent).start();
+    actor.send({ type: 'spawn' });
+    const persisted = roundTrip(actor.getPersistedSnapshot());
+    expect(persisted.children.myChild.src).toBe('child');
+    actor.stop();
+
+    const restored = createActor(parent, { snapshot: persisted }).start();
+    restored.send({ type: 'ping' });
+    expect(
+      (restored.getSnapshot().children as any).myChild.getSnapshot().context
+        .count
+    ).toBe(1);
+    expect(
+      roundTrip(restored.getPersistedSnapshot()).children.myChild.src
+    ).toBe('child');
+  });
+
+  it('a provided actor retains its registered source when transition-spawned', () => {
+    const child = createMachine({});
+    const parent = createMachine({
+      actors: {} as { child: typeof child },
+      on: {
+        spawn: ({ actors }, enq) => {
+          enq.spawn(actors.child, { id: 'myChild' });
+        }
+      }
+    }).provide({ actors: { child } });
+
+    const actor = createActor(parent).start();
+    actor.send({ type: 'spawn' });
+
+    expect(roundTrip(actor.getPersistedSnapshot()).children.myChild.src).toBe(
+      'child'
+    );
+  });
+
+  it('an extended actor retains its registered source when transition-spawned', () => {
+    const child = createMachine({});
+    const parent = setup()
+      .extend({ actors: { child } })
+      .createMachine({
+        on: {
+          spawn: ({ actors }, enq) => {
+            enq.spawn(actors.child, { id: 'myChild' });
+          }
+        }
+      });
+
+    const actor = createActor(parent).start();
+    actor.send({ type: 'spawn' });
+
+    expect(roundTrip(actor.getPersistedSnapshot()).children.myChild.src).toBe(
+      'child'
+    );
+  });
+
   it('a spawned child survives a JSON round-trip, responds to events, and re-persists', () => {
     const child = createMachine({
       context: { count: 0 },

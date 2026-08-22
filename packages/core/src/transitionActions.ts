@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { assertSendToEvent, builtInActions } from './actions.ts';
+import { resolveRegisteredActorSource } from './actorSource.ts';
 import { listenerLogic, type ListenerInput } from './actors/listener.ts';
 import {
   subscriptionLogic,
@@ -347,8 +348,6 @@ function getWorkingSnapshotOf(actorScope: AnyActorScope):
   )._snapshot;
 }
 
-const srcKeyCaches = new WeakMap<object, Map<unknown, string | undefined>>();
-
 function getRegisteredSrcKey(
   actorScope: AnyActorScope,
   logic: AnyActorLogic
@@ -361,15 +360,10 @@ function getRegisteredSrcKey(
   if (!registeredActors) {
     return undefined;
   }
-  let cache = srcKeyCaches.get(registeredActors);
-  if (!cache) {
-    cache = new Map();
-    for (const key of Object.keys(registeredActors)) {
-      cache.set(registeredActors[key], key);
-    }
-    srcKeyCaches.set(registeredActors, cache);
-  }
-  return cache.get(logic);
+  return resolveRegisteredActorSource(
+    registeredActors as Record<string, AnyActorLogic>,
+    logic
+  );
 }
 
 /**
