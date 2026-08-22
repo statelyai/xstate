@@ -30,7 +30,7 @@ import {
   type PropertyExplorationFrontier,
   type PropertyExplorationSeed
 } from './propertyCoverage.ts';
-import type { StatePath } from './types.ts';
+import type { StatePath, Step, TestParam } from './types.ts';
 
 export type {
   PropertyCoverage,
@@ -240,6 +240,25 @@ export interface PropertySutSession<TEvent extends EventObject> {
   readonly dispose?: () => void | Promise<void>;
 }
 
+export interface PropertyTestModelSession<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  readonly params: TestParam<TSnapshot, TEvent>;
+  readonly dispose?: () => void | Promise<void>;
+}
+
+export interface PropertyTestModelExecution<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  readonly create: (
+    context: PropertySutContext<TSnapshot, TEvent>
+  ) =>
+    | PropertyTestModelSession<TSnapshot, TEvent>
+    | Promise<PropertyTestModelSession<TSnapshot, TEvent>>;
+}
+
 export interface PropertyReferenceContext<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -425,6 +444,9 @@ export class PropertyScenarioRunner<
   private finished = false;
   private sutSession: PropertySutSession<TEvent> | undefined;
   private referenceSession: PropertyReferenceSession<TEvent> | undefined;
+  private testModelSession:
+    | PropertyTestModelSession<TSnapshot, TEvent>
+    | undefined;
   private lastObservation: PropertyObservation | undefined;
   private generatedCommandCount = 0;
 
@@ -438,6 +460,10 @@ export class PropertyScenarioRunner<
     private readonly prefixEvents: readonly TEvent[],
     private readonly frontierId: string | undefined,
     private readonly sut: PropertySut<TSnapshot, TEvent> | undefined,
+    private readonly testModel: TestModel<TSnapshot, TEvent, unknown>,
+    private readonly testModelExecution:
+      | PropertyTestModelExecution<TSnapshot, TEvent>
+      | undefined,
     private readonly reference:
       | PropertyReferenceOracle<TSnapshot, TEvent>
       | undefined,
@@ -493,6 +519,9 @@ export class PropertyScenarioRunner<
     }
     if (this.sut) {
       this.sutSession = await this.sut.create(context);
+    }
+    if (this.testModelExecution) {
+      this.testModelSession = await this.testModelExecution.create(context);
     }
     await this.checkStable(undefined, snapshot, snapshot, effects);
     for (const event of this.prefixEvents) {
@@ -685,6 +714,7 @@ export class PropertyScenarioRunner<
   public async dispose(): Promise<void> {
     const errors: unknown[] = [];
     for (const dispose of [
+      this.testModelSession?.dispose,
       this.sutSession?.dispose,
       this.referenceSession?.dispose
     ]) {
@@ -696,6 +726,7 @@ export class PropertyScenarioRunner<
     }
     this.sutSession = undefined;
     this.referenceSession = undefined;
+    this.testModelSession = undefined;
     if (errors.length) {
       throw new AggregateError(errors, 'Property scenario disposal failed');
     }
@@ -792,6 +823,20 @@ export class PropertyScenarioRunner<
       activeStateIds: this.getActiveStateIds(snapshot)
     };
     this.timeline.push(entry);
+    if (sendToSut && this.testModelSession) {
+      try {
+        await this.testModel.testTransition(this.testModelSession.params, {
+          event,
+          state: snapshot
+        } satisfies Step<TSnapshot, TEvent>);
+      } catch (cause) {
+        this.fail(
+          `Test model event executor failed for ${JSON.stringify(event)}`,
+          cause,
+          this.stableStep
+        );
+      }
+    }
     const observation = await this.checkStable(
       event,
       previousSnapshot,
@@ -812,6 +857,19 @@ export class PropertyScenarioRunner<
     const step = this.stableStep++;
     const observation = compare ? await this.compareObservations() : undefined;
     this.lastObservation = observation;
+    if (this.testModelSession) {
+      try {
+        await this.testModel.testState(this.testModelSession.params, snapshot);
+      } catch (cause) {
+        this.fail(
+          `Test model state assertion failed after ${step} step${
+            step === 1 ? '' : 's'
+          }`,
+          cause,
+          step
+        );
+      }
+    }
     this.coverage.invariantChecks++;
     try {
       await this.invariant({
@@ -1069,6 +1127,7 @@ export interface PropertyTestOptions<
     readonly stop?: PropertyGenerator<TKind, Record<string, never>>;
   };
   readonly sut?: PropertySut<TSnapshot, TEvent>;
+  readonly test?: PropertyTestModelExecution<TSnapshot, TEvent>;
   readonly reference?: PropertyReferenceOracle<TSnapshot, TEvent>;
   readonly input?: TInput;
   readonly start?: {
@@ -1265,6 +1324,12 @@ export async function propertyTest<
           prefixEvents,
           frontierContext?.id,
           options.sut,
+          model as TestModel<
+            SnapshotFromSource<TSource>,
+            EventFromSource<TSource>,
+            unknown
+          >,
+          options.test,
           options.reference,
           options.invariant,
           options.temporal ?? [],
@@ -1390,6 +1455,10 @@ export async function replayPropertyTest<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
     >;
+    readonly test?: PropertyTestModelExecution<
+      SnapshotFromSource<TSource>,
+      EventFromSource<TSource>
+    >;
     readonly restoreSnapshot?: (
       snapshot: unknown
     ) => SnapshotFromSource<TSource>;
@@ -1442,6 +1511,12 @@ export async function replayPropertyTest<
     [],
     undefined,
     undefined,
+    model as TestModel<
+      SnapshotFromSource<TSource>,
+      EventFromSource<TSource>,
+      unknown
+    >,
+    options.test,
     options.reference,
     options.invariant,
     options.temporal ?? [],

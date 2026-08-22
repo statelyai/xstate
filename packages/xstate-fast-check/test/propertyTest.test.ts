@@ -52,6 +52,91 @@ describe('propertyTest with FastCheck', () => {
     }
   });
 
+  it('reuses TestModel executors and state assertions with a fresh session per run', async () => {
+    const model = createTestModel(counterMachine);
+    let created = 0;
+    let disposed = 0;
+    let active = 0;
+    let eventExecutions = 0;
+    let stateAssertions = 0;
+
+    await propertyTest(model, {
+      adapter: fastCheckAdapter({ seed: 42, numRuns: 5, maxCommands: 3 }),
+      events: {
+        INC: fc.constant({ value: 1 })
+      },
+      test: {
+        create: () => {
+          created++;
+          active++;
+          let count = 0;
+          return {
+            params: {
+              events: {
+                INC: ({ event }) => {
+                  eventExecutions++;
+                  count += event.value;
+                }
+              },
+              states: {
+                '*': (snapshot) => {
+                  stateAssertions++;
+                  expect(count).toBe(snapshot.context.count);
+                }
+              }
+            },
+            dispose: () => {
+              disposed++;
+              active--;
+            }
+          };
+        }
+      },
+      invariant: () => {}
+    });
+
+    expect(created).toBe(5);
+    expect(disposed).toBe(created);
+    expect(active).toBe(0);
+    expect(eventExecutions).toBeGreaterThan(0);
+    expect(stateAssertions).toBe(eventExecutions + created);
+  });
+
+  it('disposes TestModel sessions across failure shrinking', async () => {
+    const model = createTestModel(counterMachine);
+    let created = 0;
+    let disposed = 0;
+
+    const failure = await propertyTest(model, {
+      adapter: fastCheckAdapter({ seed: 12, numRuns: 20, maxCommands: 5 }),
+      events: { INC: fc.constant({ value: 1 }) },
+      test: {
+        create: () => {
+          created++;
+          return {
+            params: {
+              events: { INC: () => {} },
+              states: {
+                '*': (snapshot) => {
+                  expect(snapshot.context.count).toBe(0);
+                }
+              }
+            },
+            dispose: () => {
+              disposed++;
+            }
+          };
+        }
+      },
+      invariant: () => {}
+    }).catch((error) => error);
+
+    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure.trace.events).toEqual([{ type: 'INC', value: 1 }]);
+    expect(created).toBeGreaterThan(1);
+    expect(disposed).toBe(created);
+  });
+
   it('shrinks failures and exposes replay metadata', async () => {
     const run = () =>
       propertyTest(counterMachine, {

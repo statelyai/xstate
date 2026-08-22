@@ -67,6 +67,29 @@ await propertyTest(model, {
 });
 ```
 
+Use `test.create` to reuse the model-testing event executors and state
+assertions. It creates a fresh session for every generated run and shrink
+attempt, and always disposes it:
+
+```ts
+await propertyTest(createTestModel(machine), {
+  adapter: fastCheckAdapter(),
+  events,
+  test: {
+    create: () => ({
+      params: {
+        events: { INC: ({ event }) => actor.send(event) },
+        states: {
+          active: (snapshot) => expect(renderedCount()).toBe(snapshot.context.count)
+        }
+      },
+      dispose: () => actor.stop()
+    })
+  },
+  invariant
+});
+```
+
 <!-- propertyTest coverage fields from packages/core/src/graph/propertyCoverage.ts -->
 
 Coverage reports stable state-node, configuration, event-type, transition,
