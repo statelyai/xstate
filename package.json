@@ -91,6 +91,7 @@
     "oxfmt": "^0.61.0",
     "oxlint": "^1.76.0",
     "oxlint-tsgolint": "^7.0.2001",
+    "pako": "2.1.0",
     "synckit": "^0.8.8",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "vitest": "^3.2.7"

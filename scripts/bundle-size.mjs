@@ -20,7 +20,6 @@
 
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
-import { gzipSync } from 'node:zlib';
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -31,6 +30,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // dependency chain root -> vitest -> vite -> esbuild (Node resolves through
 // the .pnpm symlinks to real paths).
 const rootRequire = createRequire(join(root, 'package.json'));
+// Node links against different zlib versions across platforms and releases.
+// A pinned JS implementation keeps exact gzip thresholds reproducible.
+const { gzip } = rootRequire('pako');
 const viteRequire = createRequire(rootRequire.resolve('vitest'));
 const esbuild = createRequire(viteRequire.resolve('vite'))('esbuild');
 const preconstructRequire = createRequire(
@@ -542,9 +544,9 @@ try {
     }
     results[name] = {
       minified: code.byteLength,
-      gzipped: gzipSync(code, { level: 9 }).byteLength,
+      gzipped: gzip(code, { level: 9 }).byteLength,
       terserMinified: terserCode.byteLength,
-      terserGzipped: gzipSync(terserCode, { level: 9 }).byteLength,
+      terserGzipped: gzip(terserCode, { level: 9 }).byteLength,
       capabilities: profile.capabilities
     };
     if (why) {
