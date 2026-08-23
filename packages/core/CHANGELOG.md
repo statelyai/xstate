@@ -1,5 +1,54 @@
 # xstate
 
+## 6.0.0-alpha.47
+
+### Minor Changes
+
+- 72938f8: Guard and delay source functions are now contextually typed from `schemas` — in `setup({ ... })`, `.extend({ ... })`, and `createMachine({ ... })` — so inline functions get typed `context` and `event` without hand annotations:
+  
+  ```ts
+  const s = setup({
+    schemas: {
+      context: z.object({ count: z.number() }),
+      events: { INC: z.object({ by: z.number() }) }
+    },
+    guards: {
+      // context: { count: number }, event: { type: 'INC'; by: number }
+      isPositive: ({ context }) => context.count > 0,
+      // additional params after the args object are free-form
+      isAbove: ({ context }, threshold: number) => context.count > threshold
+    },
+    delays: {
+      backoff: ({ context }) => context.count * 100
+    }
+  });
+  ```
+  
+  Guard sources receive the transition args object first (`{ context, event, self, parent, value, children }`), followed by any caller-supplied params — matching how the runtime invokes referenced guards. Delay sources receive `{ context, event, stateNode }`.
+  
+  Additionally, `enq.stop(...)`, `enq.listen(...)`, and `enq.subscribeTo(...)` now accept any `ActorRef` (such as values typed with `ActorRefFrom<typeof machine>`), instead of requiring the full actor instance type returned by `enq.spawn(...)`.
+
+### Patch Changes
+
+- 6ecc2df: Document durable timer semantics for event-journal hosts.
+- fc7454f: Restoring an externally migrated live snapshot now treats its `machine` property as a runtime association rather than persisted version metadata. Persisted snapshots continue validating their nested `{ id, version }` identity and legacy top-level `version` together.
+  
+  `getNextTransitions(snapshot)` returns an empty array for completed or errored snapshots.
+  
+  Setup-created machines whose input schema accepts `undefined` no longer require a meaningless `input` property when other actor options are provided, including after `machine.provide(...)`.
+  
+  Durable adapters can implement `enqueueRootEvent` when the host owns only the execution root's mailbox, without overriding delivery for co-located actors:
+  
+  ```ts
+  const durable = createDurable(machine, {
+    enqueueRootEvent: (_source, event) => host.enqueue(event),
+    executeAction,
+    waitForEvent
+  });
+  ```
+  
+  Implement `sendEvent` only when the host owns routing for every target; use `deliverEvent` for co-located delivery. Durable replay guidance now explicitly covers inline entry and exit callbacks.
+
 ## 6.0.0-alpha.46
 
 ### Patch Changes
