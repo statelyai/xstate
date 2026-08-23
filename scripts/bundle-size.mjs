@@ -1,19 +1,25 @@
 // Bundle-size benchmark for the `xstate` package.
 //
-// Measures min+gzip size of representative entry profiles bundled from the local build
-// (`packages/core/dist`), compares them against the thresholds in
+// Measures min+gzip size of representative entry profiles bundled from source,
+// compares them against the thresholds in
 // scripts/bundle-size.thresholds.json, and exits non-zero on regression.
 //
 // Usage:
 //   node scripts/bundle-size.mjs            # measure + check thresholds
 //   node scripts/bundle-size.mjs --update   # rewrite thresholds to current sizes
-//   node scripts/bundle-size.mjs --why      # per-module byte attribution (from src)
+//   node scripts/bundle-size.mjs --why      # per-module byte attribution
+//   node scripts/bundle-size.mjs --dist     # diagnose the latest local build
+//   node scripts/bundle-size.mjs --json     # machine-readable results
+//   node scripts/bundle-size.mjs --profile=minimal-machine
+//   node scripts/bundle-size.mjs --verify   # execute every bundled profile
 //
-// Requires `preconstruct build` to have run first (CI does this).
+// Source is canonical so the gate cannot accidentally measure stale build
+// artifacts. `--dist` requires `preconstruct build` to have run first.
 // esbuild is resolved through vite's dependency graph so this script adds no
 // new dependency to the repo.
 
 import { createRequire } from 'node:module';
+import { spawnSync } from 'node:child_process';
 import { gzipSync } from 'node:zlib';
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -31,7 +37,9 @@ const esbuild = createRequire(viteRequire.resolve('vite'))('esbuild');
 // Each profile is source code for a hypothetical app entry; what survives
 // tree-shaking is what users actually pay for.
 const PROFILES = {
-  'minimal-machine': `
+  'minimal-machine': {
+    capabilities: ['flat', 'actor'],
+    source: `
     import { createMachine, createActor } from 'xstate';
     const machine = createMachine({
       initial: 'inactive',
@@ -43,8 +51,11 @@ const PROFILES = {
     const actor = createActor(machine).start();
     actor.send({ type: 'toggle' });
     console.log(actor.getSnapshot().value);
-  `,
-  'minimal-fsm': `
+  `
+  },
+  'minimal-fsm': {
+    capabilities: ['fsm', 'actor'],
+    source: `
     import { createFSM, createActor } from 'xstate';
     const machine = createFSM({
       initial: 'inactive',
@@ -56,8 +67,266 @@ const PROFILES = {
     const actor = createActor(machine).start();
     actor.send({ type: 'toggle' });
     console.log(actor.getSnapshot().value);
-  `,
-  'machine-and-actors': `
+  `
+  },
+  'custom-logic-actor': {
+    capabilities: ['actor'],
+    source: `
+    import { createActor } from 'xstate';
+    const initialSnapshot = {
+      status: 'active',
+      output: undefined,
+      error: undefined,
+      context: 0
+    };
+    const logic = {
+      initialTransition: () => [initialSnapshot, []],
+      transition: (snapshot, event) => [
+        { ...snapshot, context: event.value },
+        []
+      ],
+      getInitialSnapshot: () => initialSnapshot,
+      getPersistedSnapshot: (snapshot) => snapshot
+    };
+    const actor = createActor(logic).start();
+    actor.send({ type: 'set', value: 1 });
+    console.log(actor.getSnapshot().context);
+  `
+  },
+  'machine-construction': {
+    capabilities: ['flat', 'construction'],
+    source: `
+    import { createMachine } from 'xstate';
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: { on: { toggle: 'active' } },
+        active: { on: { toggle: 'inactive' } }
+      }
+    });
+    console.log(machine.id);
+  `
+  },
+  'pure-machine': {
+    capabilities: ['flat', 'pure-transition'],
+    source: `
+    import { createMachine, initialTransition, transition } from 'xstate';
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: { on: { toggle: 'active' } },
+        active: { on: { toggle: 'inactive' } }
+      }
+    });
+    const [initialSnapshot] = initialTransition(machine);
+    const [nextSnapshot] = transition(machine, initialSnapshot, {
+      type: 'toggle'
+    });
+    console.log(nextSnapshot.value);
+  `
+  },
+  compound: {
+    capabilities: ['compound', 'actor'],
+    source: `
+    import { createMachine, createActor } from 'xstate';
+    const machine = createMachine({
+      initial: 'parent',
+      states: {
+        parent: {
+          initial: 'inactive',
+          states: {
+            inactive: { on: { toggle: 'active' } },
+            active: {}
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'toggle' });
+    console.log(actor.getSnapshot().value);
+  `
+  },
+  parallel: {
+    capabilities: ['parallel', 'actor'],
+    source: `
+    import { createMachine, createActor } from 'xstate';
+    const machine = createMachine({
+      type: 'parallel',
+      states: {
+        left: {
+          initial: 'inactive',
+          states: { inactive: { on: { left: 'active' } }, active: {} }
+        },
+        right: {
+          initial: 'inactive',
+          states: { inactive: { on: { right: 'active' } }, active: {} }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'left' });
+    console.log(actor.getSnapshot().value);
+  `
+  },
+  history: {
+    capabilities: ['compound', 'history', 'actor'],
+    source: `
+    import { createMachine, createActor } from 'xstate';
+    const machine = createMachine({
+      id: 'history-machine',
+      initial: 'active',
+      states: {
+        active: {
+          initial: 'first',
+          states: {
+            history: { type: 'history', target: 'first' },
+            first: { on: { next: 'second' } },
+            second: {}
+          },
+          on: { leave: 'inactive' }
+        },
+        inactive: { on: { restore: '#history-machine.active.history' } }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'next' });
+    actor.send({ type: 'leave' });
+    actor.send({ type: 'restore' });
+    console.log(actor.getSnapshot().value);
+  `
+  },
+  final: {
+    capabilities: ['final', 'actor'],
+    source: `
+    import { createMachine, createActor } from 'xstate';
+    const machine = createMachine({
+      initial: 'working',
+      states: {
+        working: { on: { finish: 'done' } },
+        done: { type: 'final', output: { result: 'ok' } }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'finish' });
+    console.log(actor.getSnapshot().output);
+  `
+  },
+  eventless: {
+    capabilities: ['eventless', 'guard', 'actor'],
+    source: `
+    import { createMachine, createActor } from 'xstate';
+    const machine = createMachine({
+      context: { ready: true },
+      initial: 'checking',
+      states: {
+        checking: {
+          always: {
+            guard: ({ context }) => context.ready,
+            target: 'ready'
+          }
+        },
+        ready: {}
+      }
+    });
+    const actor = createActor(machine).start();
+    console.log(actor.getSnapshot().value);
+  `
+  },
+  actionful: {
+    capabilities: ['action', 'context', 'actor'],
+    source: `
+    import { createMachine, createActor } from 'xstate';
+    const machine = createMachine({
+      context: { count: 0 },
+      on: {
+        increment: ({ context }, enq) => {
+          enq(() => console.log('incremented'));
+          return { context: { count: context.count + 1 } };
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'increment' });
+    console.log(actor.getSnapshot().context.count);
+  `
+  },
+  invoked: {
+    capabilities: ['invoke', 'async-logic', 'actor'],
+    source: `
+    import { createMachine, createActor, createAsyncLogic } from 'xstate';
+    const request = createAsyncLogic({ run: async () => 'ok' });
+    const machine = createMachine({
+      initial: 'loading',
+      states: {
+        loading: {
+          invoke: {
+            src: request,
+            onDone: ({ event }) => ({
+              target: 'done',
+              context: { result: event.output }
+            })
+          }
+        },
+        done: {}
+      }
+    });
+    const actor = createActor(machine).start();
+    console.log(actor.getSnapshot().value);
+  `
+  },
+  delayed: {
+    capabilities: ['delay', 'actor'],
+    source: `
+    import { createMachine, createActor } from 'xstate';
+    const machine = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: { after: { 1000: 'done' } },
+        done: {}
+      }
+    });
+    const actor = createActor(machine).start();
+    console.log(actor.getSnapshot().value);
+  `
+  },
+  persisted: {
+    capabilities: ['persistence', 'restore', 'actor'],
+    source: `
+    import { createMachine, createActor } from 'xstate';
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: { on: { toggle: 'active' } },
+        active: {}
+      }
+    });
+    const actor = createActor(machine).start();
+    const persisted = actor.getPersistedSnapshot();
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    console.log(restored.getSnapshot().value);
+  `
+  },
+  inspected: {
+    capabilities: ['inspection', 'actor'],
+    source: `
+    import { createMachine, createActor } from 'xstate';
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: { on: { toggle: 'active' } },
+        active: {}
+      }
+    });
+    const actor = createActor(machine, {
+      inspect: (event) => console.log(event.type)
+    }).start();
+    actor.send({ type: 'toggle' });
+    console.log(actor.getSnapshot().value);
+  `
+  },
+  'machine-and-actors': {
+    capabilities: ['invoke', 'async-logic', 'actor'],
+    source: `
     import { createMachine, createActor, createAsyncLogic } from 'xstate';
     const fetchUser = createAsyncLogic({
       run: ({ input }) => fetch('/u/' + input.id).then((r) => r.json())
@@ -84,8 +353,11 @@ const PROFILES = {
     });
     const actor = createActor(machine).start();
     console.log(actor.getSnapshot().value);
-  `,
-  'validated-machine': `
+  `
+  },
+  'validated-machine': {
+    capabilities: ['validation', 'actor'],
+    source: `
     import { setup, createActor } from 'xstate';
     import { standardSchemaValidator } from 'xstate/validation';
     const countSchema = {
@@ -106,21 +378,38 @@ const PROFILES = {
     const actor = createActor(machine).start();
     actor.send({ type: 'increment', count: 1 });
     console.log(actor.getSnapshot().context.count);
-  `,
-  'kitchen-sink': `
+  `
+  },
+  'kitchen-sink': {
+    capabilities: ['all-exports'],
+    source: `
     export * from 'xstate';
   `
+  }
 };
 
 const args = process.argv.slice(2);
 const update = args.includes('--update');
 const why = args.includes('--why');
+const json = args.includes('--json');
+const useDist = args.includes('--dist');
+const verify = args.includes('--verify');
+const profileArg = args.find((arg) => arg.startsWith('--profile='));
+const selectedProfile = profileArg?.slice('--profile='.length);
 const thresholdsPath = join(root, 'scripts', 'bundle-size.thresholds.json');
 
-// `--why` bundles from src (per-module attribution; dist chunks are too
-// coarse). Dev-only branches are folded the way the prod dist build does it,
-// so the totals track the dist profiles closely.
-const whyPlugin = {
+if (selectedProfile && !PROFILES[selectedProfile]) {
+  throw new Error(`Unknown profile: ${selectedProfile}`);
+}
+if (update && selectedProfile) {
+  throw new Error('--update cannot be combined with --profile');
+}
+if (update && useDist) {
+  throw new Error('--update cannot be combined with --dist');
+}
+
+// Dev-only branches are folded the way the production dist build does it.
+const sourcePlugin = {
   name: 'fold-is-development',
   setup(build) {
     build.onResolve({ filter: /^#is-development$/ }, () => ({
@@ -143,9 +432,12 @@ const results = {};
 const workDir = mkdtempSync(join(tmpdir(), 'xstate-size-'));
 
 try {
-  for (const [name, source] of Object.entries(PROFILES)) {
+  for (const [name, profile] of Object.entries(PROFILES)) {
+    if (selectedProfile && name !== selectedProfile) {
+      continue;
+    }
     const entry = join(workDir, `${name}.js`);
-    writeFileSync(entry, source);
+    writeFileSync(entry, profile.source);
     const built = await esbuild.build({
       entryPoints: [entry],
       bundle: true,
@@ -153,23 +445,37 @@ try {
       format: 'esm',
       write: false,
       metafile: why,
-      // Resolve 'xstate' to the locally built package (or src for --why).
+      // Source is canonical. Dist is an explicit post-build diagnostic only.
       alias: {
-        'xstate/validation': why
-          ? join(root, 'packages', 'core', 'src', 'validation', 'index.ts')
-          : join(root, 'packages', 'core', 'validation'),
-        xstate: why
-          ? join(root, 'packages', 'core', 'src', 'index.ts')
-          : join(root, 'packages', 'core')
+        'xstate/validation': useDist
+          ? join(root, 'packages', 'core', 'validation')
+          : join(root, 'packages', 'core', 'src', 'validation', 'index.ts'),
+        xstate: useDist
+          ? join(root, 'packages', 'core')
+          : join(root, 'packages', 'core', 'src', 'index.ts')
       },
       conditions: ['module'],
-      plugins: why ? [whyPlugin] : [],
+      plugins: useDist ? [] : [sourcePlugin],
       external: []
     });
     const code = built.outputFiles[0].contents;
+    if (verify) {
+      const executable = join(workDir, `${name}.mjs`);
+      writeFileSync(executable, code);
+      const execution = spawnSync(process.execPath, [executable], {
+        encoding: 'utf8',
+        timeout: 5_000
+      });
+      if (execution.status !== 0) {
+        throw new Error(
+          `Profile "${name}" failed to execute:\n${execution.stderr || execution.stdout}`
+        );
+      }
+    }
     results[name] = {
       minified: code.byteLength,
-      gzipped: gzipSync(code, { level: 9 }).byteLength
+      gzipped: gzipSync(code, { level: 9 }).byteLength,
+      capabilities: profile.capabilities
     };
     if (why) {
       console.log(`\n${name} — minified bytes per module:`);
@@ -192,21 +498,57 @@ try {
 
 const kb = (n) => `${(n / 1024).toFixed(2)} kB`;
 
-console.log('xstate bundle size (min+gzip), built from packages/core/dist:\n');
-for (const [name, { minified, gzipped }] of Object.entries(results)) {
+if (json) {
+  console.log(JSON.stringify({ source: useDist ? 'dist' : 'src', results }));
+} else {
   console.log(
-    `  ${name.padEnd(20)} min ${kb(minified).padStart(10)}   gz ${kb(gzipped).padStart(9)}`
+    `xstate bundle size (min+gzip), bundled from ${useDist ? 'packages/core/dist' : 'packages/core/src'}:\n`
   );
+  const nameWidth = Math.max(
+    ...Object.keys(results).map((name) => name.length)
+  );
+  for (const [name, { minified, gzipped }] of Object.entries(results)) {
+    console.log(
+      `  ${name.padEnd(nameWidth)} min ${kb(minified).padStart(10)}   gz ${kb(gzipped).padStart(9)}`
+    );
+  }
+
+  if (!selectedProfile && results['minimal-machine']) {
+    const baseline = results['minimal-machine'].gzipped;
+    console.log(
+      '\nWhole-profile gzip deltas from minimal-machine (not additive):'
+    );
+    for (const [name, result] of Object.entries(results)) {
+      if (name === 'minimal-machine') {
+        continue;
+      }
+      const delta = result.gzipped - baseline;
+      const sign = delta >= 0 ? '+' : '';
+      console.log(
+        `  ${name.padEnd(nameWidth)} ${`${sign}${delta} B`.padStart(9)}  ${result.capabilities.join(', ')}`
+      );
+    }
+  }
 }
 
 if (update) {
   const thresholds = {};
   for (const [name, { gzipped }] of Object.entries(results)) {
-    // 3% headroom over current size so unrelated PRs don't flake.
-    thresholds[name] = { maxGzipBytes: Math.ceil(gzipped * 1.03) };
+    // The source bundle is deterministic. Require every increase to be
+    // reviewed and explicitly accepted rather than hiding it in headroom.
+    thresholds[name] = { maxGzipBytes: gzipped };
   }
   writeFileSync(thresholdsPath, JSON.stringify(thresholds, null, 2) + '\n');
   console.log(`\nThresholds updated: ${thresholdsPath}`);
+  process.exit(0);
+}
+
+if (useDist) {
+  if (!json) {
+    console.log(
+      '\nDist is diagnostic only; source thresholds were not checked.'
+    );
+  }
   process.exit(0);
 }
 

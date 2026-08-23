@@ -6,6 +6,10 @@ runs:
       run: pnpm build
       shell: bash
 
+    - name: Core bundle size
+      run: pnpm bench:size -- --verify
+      shell: bash
+
     - name: Oxlint
       run: pnpm lint
       shell: bash
