@@ -64,7 +64,7 @@ export interface CancelJSON {
   id: string;
 }
 
-export interface LogJSON {
+interface LogJSON {
   type: '@xstate.log';
   args: any[];
 }
@@ -2513,7 +2513,11 @@ export function createMachineFromConfig(
                   '$.context'
                 ) as MachineContext)
               : {}),
-            ...(args.input && typeof args.input === 'object' ? args.input : {}),
+            ...(json._scxmlDataIds?.length &&
+            args.input &&
+            typeof args.input === 'object'
+              ? args.input
+              : {}),
             ...(json._scxmlDataIds?.length &&
             args.input &&
             typeof args.input === 'object'
