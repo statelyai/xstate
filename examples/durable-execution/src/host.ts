@@ -163,9 +163,9 @@ export async function runOnHost<TLogic extends AnyActorLogic>(options: {
   } else {
     [snapshot, effects] = (durable.initialTransition as () => any)();
     rootAddress = durable.getActorRef(snapshot)?.address;
-    for (const { event } of await durable.executeEffects(effects)) {
-      mailbox.push(event);
-    }
+    // Root-addressed events are retained by the execution and handed out by
+    // `waitForEvent()`, so the host only executes the batch.
+    await durable.executeEffects(effects);
     transitions++;
   }
 
@@ -180,9 +180,7 @@ export async function runOnHost<TLogic extends AnyActorLogic>(options: {
     }
     const event = await durable.waitForEvent();
     [snapshot, effects] = durable.transition(snapshot, event);
-    for (const { event: rootEvent } of await durable.executeEffects(effects)) {
-      mailbox.push(rootEvent);
-    }
+    await durable.executeEffects(effects);
     transitions++;
   }
 
