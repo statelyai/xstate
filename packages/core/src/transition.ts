@@ -239,6 +239,9 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
 export function getNextTransitions(
   state: AnyMachineSnapshot
 ): AnyTransitionDefinition[] {
+  if (state.status !== 'active') {
+    return [];
+  }
   const potentialTransitions: AnyTransitionDefinition[] = [];
   const atomicStates = state.nodes.filter(isAtomicStateNode);
   const visited = new Set();

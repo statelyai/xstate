@@ -153,29 +153,32 @@ export type ActionArgs<
 };
 
 export type InputFrom<T> =
-  T extends StateMachine<
-    infer _TContext,
+  // Resolve the actor-logic contract first. Setup-created machines intersect
+  // StateMachine with literal identity metadata; inferring StateMachine's
+  // generic parameters through that intersection widens optional input.
+  T extends ActorLogic<
+    infer _TSnapshot,
     infer _TEvent,
-    infer _TChildren,
-    infer _TStateValue,
-    infer _TTag,
     infer TInput,
-    infer _TOutput,
-    infer _TEmitted,
-    infer _TMeta,
-    infer _TStateSchema,
-    infer _TActionMap,
-    infer _TActorMap,
-    infer _TGuardMap,
-    infer _TDelayMap
+    infer _TSystem,
+    infer _TEmitted
   >
     ? TInput
-    : T extends ActorLogic<
-          infer _TSnapshot,
+    : T extends StateMachine<
+          infer _TContext,
           infer _TEvent,
+          infer _TChildren,
+          infer _TStateValue,
+          infer _TTag,
           infer TInput,
-          infer _TSystem,
-          infer _TEmitted
+          infer _TOutput,
+          infer _TEmitted,
+          infer _TMeta,
+          infer _TStateSchema,
+          infer _TActionMap,
+          infer _TActorMap,
+          infer _TGuardMap,
+          infer _TDelayMap
         >
       ? TInput
       : never;
