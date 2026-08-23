@@ -21,8 +21,7 @@ loop hooks: `executeAction` runs a custom action as a host step, and
 import { createDurable } from 'xstate/durable';
 
 const durable = createDurable(machine, {
-  sendEvent: (source, target, event) =>
-    host.send(source?.address, target.address, event),
+  enqueueRootEvent: (_source, event) => host.enqueue(event),
   scheduleTimer: (source, id, delay) =>
     host.schedule({ address: source.address, timerId: id, delay }),
   cancelTimer: (source, id) =>
@@ -40,6 +39,13 @@ const output = await durable.run(input);
 
 Runtime operations you omit keep their local behavior — spawned machine
 children run in this process, for example.
+
+`enqueueRootEvent` is the narrow hook most co-located hosts need: it receives
+events sent to the execution root while the loop is parked. Implement
+`sendEvent` only when the host owns routing for every target. That override
+replaces local delivery completely; call `deliverEvent(source, target, event)`
+for co-located targets instead of `target.send(event)`, which re-enters the
+runtime.
 
 The primary durable unit for async work is the actor itself: a developer
 writes a normal promise (`fromPromise`, `createAsyncLogic`) and invokes it;
@@ -208,9 +214,10 @@ Events addressed to the root actor do not reach `sendEvent` during
 `executeEffects`: the execution captures and retains them, and
 `waitForEvent()` hands them out — in capture order — before deferring to the
 adapter. While the loop is parked in the adapter's wait, a root-addressed
-event reaches `sendEvent` like any other target and belongs in the host's
-mailbox; if the adapter implements no `sendEvent`, producing one there throws,
-since delivering it locally to the inert root would silently lose it.
+event reaches `enqueueRootEvent`, or `sendEvent` when the adapter implements
+the broader routing override, and belongs in the host's mailbox. Producing one
+without either hook throws, since delivering it locally to the inert root
+would silently lose it.
 
 ### Journaling rules
 
@@ -240,15 +247,30 @@ host.
 ## Determinism constraints
 
 Replay only reconstructs the same effects when every transition is a pure
-function of the snapshot and event. Code that runs during a transition — 
-guards, transition functions, `context` assigners, `input` factories — must
-not read the clock, generate random values, or reach external state:
+function of the snapshot and event. Inline `entry` and `exit` callbacks run
+during transition calculation too, so a direct side effect there runs again
+whenever a durable host folds the event history. Guards, transition functions,
+`context` assigners, `input` factories, and inline entry/exit callbacks must
+not read the clock, generate random values, mutate external state, or perform
+I/O:
 `Date.now()`, `Math.random()`, and `crypto.randomUUID()` all produce a
 different effect sequence on replay, and nothing detects the divergence.
 Perform such work inside journaled operations (the host's `executeAction`,
 where the recorded result replays), or derive values deterministically from
 what the snapshot already carries — addresses and effect IDs are stable
 across replays and make good seeds and idempotency keys.
+
+```ts
+// Wrong: runs during every replay fold.
+entry: () => {
+  analytics.track('entered');
+}
+
+// Right: describes an effect for the durable host to execute or replay.
+entry: ({ context }, enq) => {
+  enq(notifyApprover, context.orderId);
+}
+```
 
 ## Checkpoints and placement
 

@@ -5081,6 +5081,21 @@ describe('input', () => {
     createActor(machine);
   });
 
+  it('should not require input when a setup input schema accepts undefined', () => {
+    const machine = setup({
+      schemas: {
+        input: types<{} | null | undefined>()
+      }
+    }).createMachine({
+      context: {},
+      initial: 'active',
+      states: { active: {} }
+    });
+
+    createActor(machine, { inspect: () => {} });
+    createActor(machine.provide({}), { inspect: () => {} });
+  });
+
   it('should create actors from provided no-event setup machines', () => {
     const child = createMachine({});
     const machine = setup({

@@ -1323,7 +1323,17 @@ export class StateMachine<
     const usesInertScope = !actorScope;
     const resolvedActorScope = (actorScope ??
       createInertActorScope(this)) as NonNullable<typeof actorScope>;
-    const persistedMachine = (snapshot as any).machine;
+    const snapshotMachine = (snapshot as any).machine;
+    // A live machine snapshot carries its producing machine so helpers such as
+    // `matches()` can resolve state nodes. That runtime association is not the
+    // persisted `{ id, version }` identity written by getPersistedSnapshot().
+    const persistedMachine =
+      snapshotMachine &&
+      typeof snapshotMachine === 'object' &&
+      typeof snapshotMachine.transition === 'function' &&
+      'root' in snapshotMachine
+        ? undefined
+        : snapshotMachine;
     const legacyPersistedVersion: string | undefined = (snapshot as any)
       .version;
     const persistedVersion: string | undefined =
