@@ -30,4 +30,5 @@ cd examples/nextjs-app-router && pnpm build
 
 ## Inspect it
 
-Not wired up: the checkout actor is created and stopped inside a server action, so there is no long-lived actor to stream. The page renders the machine's state and context on every request. To inspect the same machine live, run it under Node with [`@statelyai/sdk`](https://stately.ai/docs/inspector).
+`@statelyai/sdk` is wired up in `app/HelpToggle.tsx`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live client actor. The per-request server actors in `app/session.ts` are inspected too, but only when `INSPECT=1` is set, since a server process would otherwise open a relay connection on every request.
+

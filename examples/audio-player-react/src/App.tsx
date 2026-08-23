@@ -1,9 +1,14 @@
 import { useActor } from '@xstate/react';
 import './App.css';
 import { playlistMachine, tracks } from './playlistMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function App() {
-  const [state, send] = useActor(playlistMachine);
+  const [state, send] = useActor(playlistMachine, {
+    inspect: inspector.inspect
+  });
   const { index, elapsed, shuffle } = state.context;
   const track = tracks[index];
 

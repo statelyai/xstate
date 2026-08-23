@@ -1,12 +1,17 @@
 import { useActor } from '@xstate/react';
 import './App.css';
 import { videoMachine } from './videoMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 const format = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 
 function App() {
-  const [state, send] = useActor(videoMachine);
+  const [state, send] = useActor(videoMachine, {
+    inspect: inspector.inspect
+  });
   const { currentTime, duration } = state.context;
 
   return (

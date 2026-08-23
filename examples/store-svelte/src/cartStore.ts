@@ -1,4 +1,7 @@
 import { createStore } from '@xstate/store';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 export type CartItem = { id: string; name: string; price: number; qty: number };
 
@@ -30,3 +33,5 @@ export const cartStore = createStore({
     clear: () => ({ items: [] as CartItem[] })
   }
 });
+
+cartStore.inspect(inspector.inspect);

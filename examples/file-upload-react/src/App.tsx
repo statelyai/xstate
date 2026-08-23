@@ -1,13 +1,18 @@
 import { useActorRef, useSelector } from '@xstate/react';
 import { uploadsMachine, UploadStatus } from './uploadsMachine';
 import { Upload } from './Upload';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 import './App.css';
 
 const countBy = (statuses: Record<string, UploadStatus>, of: UploadStatus) =>
   Object.values(statuses).filter((status) => status === of).length;
 
 export default function App() {
-  const uploadsRef = useActorRef(uploadsMachine);
+  const uploadsRef = useActorRef(uploadsMachine, {
+    inspect: inspector.inspect
+  });
   const uploads = useSelector(uploadsRef, (s) => s.context.uploads);
   const summary = useSelector(uploadsRef, ({ context }) => ({
     uploading: countBy(context.statuses, 'uploading'),

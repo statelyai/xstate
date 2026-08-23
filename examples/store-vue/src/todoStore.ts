@@ -1,4 +1,7 @@
 import { createStore } from '@xstate/store';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 export type Todo = { id: string; text: string; done: boolean };
 export type Filter = 'all' | 'active' | 'done';
@@ -33,3 +36,5 @@ export const todoStore = createStore({
     })
   }
 });
+
+todoStore.inspect(inspector.inspect);

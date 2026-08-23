@@ -1,11 +1,15 @@
 import { Todos } from './Todos';
 import { createActorContext } from '@xstate/react';
 import { todosMachine } from './todosMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 const persistedSnapshot = JSON.parse(localStorage.getItem('todos') || 'null');
 
 export const TodosContext = createActorContext(todosMachine, {
-  snapshot: persistedSnapshot ?? undefined
+  snapshot: persistedSnapshot ?? undefined,
+  inspect: inspector.inspect
 });
 
 function App() {

@@ -1,6 +1,10 @@
 import './App.css';
+import { useEffect } from 'react';
 import { createStore } from '@xstate/store';
 import { useSelector, useStore } from '@xstate/store-react';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 /** One store shared by every component that reads it. */
 const globalStore = createStore({
@@ -12,6 +16,8 @@ const globalStore = createStore({
     reset: () => ({ count: 0 })
   }
 });
+
+globalStore.inspect(inspector.inspect);
 
 function GlobalCounter() {
   const count = useSelector(globalStore, (s) => s.context.count);
@@ -38,6 +44,9 @@ function LocalCounter({ initialCount }: { initialCount: number }) {
     }
   });
   const count = useSelector(store, (s) => s.context.count);
+
+  // `useStore` creates the store during render, so it is inspected in an effect.
+  useEffect(() => store.inspect(inspector.inspect).unsubscribe, [store]);
 
   return (
     <div className="card">

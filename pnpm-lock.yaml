@@ -93,6 +93,9 @@ importers:
 
   examples/7guis-cells-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -124,6 +127,9 @@ importers:
 
   examples/7guis-circles-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -155,6 +161,9 @@ importers:
 
   examples/7guis-counter-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -214,6 +223,9 @@ importers:
 
   examples/7guis-crud-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -245,6 +257,9 @@ importers:
 
   examples/7guis-flight-booker-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -276,6 +291,9 @@ importers:
 
   examples/7guis-temperature-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -335,6 +353,9 @@ importers:
 
   examples/7guis-timer-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -417,6 +438,9 @@ importers:
 
   examples/actor-ui-dashboard:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate-examples/actor-ui':
         specifier: workspace:*
         version: link:../_shared/actor-ui
@@ -655,6 +679,9 @@ importers:
 
   examples/audio-player-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -686,6 +713,9 @@ importers:
 
   examples/auth-flow-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -801,6 +831,9 @@ importers:
 
   examples/checkout-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -921,6 +954,9 @@ importers:
 
   examples/drag-and-drop-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1044,6 +1080,9 @@ importers:
 
   examples/file-upload-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1075,6 +1114,9 @@ importers:
 
   examples/form-validation-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1140,6 +1182,9 @@ importers:
 
   examples/friends-list-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1187,6 +1232,9 @@ importers:
 
   examples/infinite-scroll-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1322,6 +1370,9 @@ importers:
 
   examples/modal-manager-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1422,6 +1473,9 @@ importers:
 
   examples/nextjs-app-router:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1453,6 +1507,9 @@ importers:
 
   examples/notifications-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1484,6 +1541,9 @@ importers:
 
   examples/onboarding-tour-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1648,6 +1708,9 @@ importers:
 
   examples/payment-retry-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1817,6 +1880,9 @@ importers:
 
   examples/router-sync-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1889,6 +1955,9 @@ importers:
 
   examples/search-autocomplete-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1920,6 +1989,9 @@ importers:
 
   examples/settings-persistence-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1951,6 +2023,9 @@ importers:
 
   examples/signup-wizard-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -1982,6 +2057,9 @@ importers:
 
   examples/snake-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -2029,6 +2107,9 @@ importers:
 
   examples/store-atoms:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/store':
         specifier: workspace:*
         version: link:../../packages/xstate-store
@@ -2060,6 +2141,9 @@ importers:
 
   examples/store-counter-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/store':
         specifier: workspace:*
         version: link:../../packages/xstate-store
@@ -2109,6 +2193,9 @@ importers:
 
   examples/store-svelte:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/store':
         specifier: workspace:*
         version: link:../../packages/xstate-store
@@ -2140,6 +2227,9 @@ importers:
 
   examples/store-tic-tac-toe:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/store':
         specifier: workspace:*
         version: link:../../packages/xstate-store
@@ -2189,6 +2279,9 @@ importers:
 
   examples/store-undo-redo:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/store':
         specifier: workspace:*
         version: link:../../packages/xstate-store
@@ -2220,6 +2313,9 @@ importers:
 
   examples/store-vue:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/store':
         specifier: workspace:*
         version: link:../../packages/xstate-store
@@ -2245,6 +2341,9 @@ importers:
 
   examples/tic-tac-toe-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -2344,6 +2443,9 @@ importers:
 
   examples/todomvc-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -2475,6 +2577,9 @@ importers:
 
   examples/trivia-game-example:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -2530,6 +2635,9 @@ importers:
 
   examples/undo-redo-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react
@@ -2612,6 +2720,9 @@ importers:
 
   examples/video-player-react:
     dependencies:
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/react':
         specifier: workspace:*
         version: link:../../packages/xstate-react

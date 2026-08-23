@@ -19,8 +19,5 @@ pnpm dev
 
 ## Inspect it
 
-`@xstate/store` stores are not actors, so the [Stately Inspector](https://stately.ai/registry/inspect) does not apply here. Log transitions instead:
+`@statelyai/sdk` is wired up in `src/todoStore.ts` with `todoStore.inspect(inspector.inspect)`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live store. Store snapshots and the events that produced them are sent to Stately's hosted relay.
 
-```ts
-todoStore.subscribe((snapshot) => console.log(snapshot.context));
-```

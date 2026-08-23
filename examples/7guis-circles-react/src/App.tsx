@@ -2,12 +2,17 @@ import type { MouseEvent } from 'react';
 import { useActor } from '@xstate/react';
 import './App.css';
 import { circlesMachine } from './circlesMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 const WIDTH = 480;
 const HEIGHT = 320;
 
 function App() {
-  const [state, send] = useActor(circlesMachine);
+  const [state, send] = useActor(circlesMachine, {
+    inspect: inspector.inspect
+  });
   const { past, circles, future, selectedId } = state.context;
   const adjusting = state.matches('adjusting');
   const selected = circles.find((circle) => circle.id === selectedId) ?? null;

@@ -1,9 +1,14 @@
 import { useActor } from '@xstate/react';
 import './App.css';
 import { COLUMNS, ROWS, cellsMachine } from './cellsMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function App() {
-  const [state, send] = useActor(cellsMachine);
+  const [state, send] = useActor(cellsMachine, {
+    inspect: inspector.inspect
+  });
   const { values, editing, draft } = state.context;
 
   return (

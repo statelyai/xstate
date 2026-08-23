@@ -3,6 +3,9 @@ import './App.css';
 import { notificationsMachine } from './notificationsMachine';
 import { ToastKind } from './toastMachine';
 import { Toast } from './Toast';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 const messages: Record<ToastKind, string> = {
   info: 'Sync finished.',
@@ -11,7 +14,9 @@ const messages: Record<ToastKind, string> = {
 };
 
 function App() {
-  const [state, send] = useActor(notificationsMachine);
+  const [state, send] = useActor(notificationsMachine, {
+    inspect: inspector.inspect
+  });
   const { visible, queue } = state.context;
 
   return (

@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "@xstate/react": "workspace:*",
     "axios": "^1.13.6",
     "bootstrap": "^5.3.8",

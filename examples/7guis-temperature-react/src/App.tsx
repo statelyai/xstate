@@ -1,9 +1,14 @@
 import './App.css';
 import { useActor } from '@xstate/react';
 import { temperatureMachine } from './temperatureMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function App() {
-  const [state, send] = useActor(temperatureMachine);
+  const [state, send] = useActor(temperatureMachine, {
+    inspect: inspector.inspect
+  });
 
   const { tempC, tempF } = state.context;
 

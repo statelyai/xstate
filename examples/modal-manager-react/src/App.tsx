@@ -3,6 +3,9 @@ import { useEffect } from 'react';
 import './App.css';
 import { Dialog } from './Dialog';
 import { modalMachine, ModalId } from './modalMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 const titles: Record<ModalId, string> = {
   sheet: 'Share this project',
@@ -11,7 +14,9 @@ const titles: Record<ModalId, string> = {
 };
 
 function App() {
-  const [state, send] = useActor(modalMachine);
+  const [state, send] = useActor(modalMachine, {
+    inspect: inspector.inspect
+  });
   const { stack } = state.context;
 
   const open = (modal: ModalId) =>

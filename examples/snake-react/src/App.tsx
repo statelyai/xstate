@@ -1,9 +1,14 @@
 import { useEffect } from 'react';
 import { useActor } from '@xstate/react';
 import { type Dir, getGamObjectAtPos, snakeMachine } from './snakeMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function App() {
-  const [current, send] = useActor(snakeMachine);
+  const [current, send] = useActor(snakeMachine, {
+    inspect: inspector.inspect
+  });
   const { gridSize, score, highScore } = current.context;
   const isGameOver = current.matches('Game Over');
 

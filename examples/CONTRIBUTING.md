@@ -148,7 +148,7 @@ Every example needs a `README.md` with these sections, in this order:
    pnpm dev # or `pnpm start` for backend examples
    ```
 
-5. **Inspect it** — how to view the running actors in the [Stately Inspector](https://stately.ai/docs/inspector). For browser examples, note that `@statelyai/sdk` is wired up. For headless examples, document the `INSPECT=1` flag (see below).
+5. **Inspect it** — how to view the running actors in the [Stately Inspector](https://stately.ai/docs/inspector). Name the file the inspector is wired up in. For headless examples, document the `INSPECT=1` flag (see below). If the example genuinely has no actor or store to inspect, say why.
 
 Keep the README under a page. Explanation of the concept belongs in the docs; the README points at it.
 
@@ -166,7 +166,7 @@ Inspection uses [`@statelyai/sdk`](https://stately.ai/docs/inspector), which wor
 
 `createInspector()` connects to Stately's hosted relay at `wss://sky.stately.ai` and opens the hosted inspector in your default browser. Machine definitions, snapshots, events, and actor topology are sent to that relay, so keep an example's data uninteresting, and pass a self-hosted `url` if you need it to stay on your own infrastructure.
 
-Browser examples may create the inspector unconditionally:
+Every example that starts an actor or creates a store must wire the inspector up in its own source — a README snippet is not enough. Browser examples create the inspector unconditionally:
 
 ```ts
 import { createInspector } from '@statelyai/sdk';
@@ -174,6 +174,20 @@ import { createInspector } from '@statelyai/sdk';
 const inspector = createInspector();
 
 const actor = createActor(machine, { inspect: inspector.inspect });
+```
+
+Framework hooks take the same `inspect` option, since they forward their options to `createActor`:
+
+```ts
+const [state, send] = useActor(machine, { inspect: inspector.inspect });
+const actorRef = useActorRef(machine, { inspect: inspector.inspect });
+export const Ctx = createActorContext(machine, { inspect: inspector.inspect });
+```
+
+`@xstate/store` stores are not created with `createActor`, so subscribe the inspector to the store instead:
+
+```ts
+store.inspect(inspector.inspect);
 ```
 
 Headless examples — backend workflows, `pattern-*`, and `agent-*` — must put it behind an environment flag so the default run has no external dependency, and must destroy the inspector when the demo ends so the process can exit:
@@ -206,5 +220,5 @@ Headless examples may also render their actors with the shared dashboard in [`ex
 - [ ] Machine is built with `setup()`; actors use `create*Logic`.
 - [ ] Source is under 300 lines and teaches one concept.
 - [ ] `README.md` has all five sections.
-- [ ] Inspection works, and headless examples gate it behind `INSPECT=1`.
+- [ ] Every actor and store the example starts is wired to the inspector in source, and headless examples gate it behind `INSPECT=1`.
 - [ ] The example is added to the coverage matrix in [`readme.md`](./readme.md).

@@ -20,19 +20,7 @@ pnpm dev
 
 ## Inspect it
 
-This example does not bundle an inspector. To watch the actor live, add [`@statelyai/sdk`](https://stately.ai/docs/inspector) and pass it to the hook:
-
-```ts
-import { createInspector } from '@statelyai/sdk';
-
-const inspector = createInspector();
-
-const [state, send] = useActor(flightBookerMachine, {
-  inspect: inspector.inspect
-});
-```
-
-The same `inspect` option can be passed to `FlightContext.Provider` via its `options` prop. Then open https://stately.ai/registry/inspect.
+`@statelyai/sdk` is wired up in `src/machines/flightMachine.ts`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.
 
 ## Notes
 

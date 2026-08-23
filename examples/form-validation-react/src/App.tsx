@@ -1,5 +1,8 @@
 import { useActor } from '@xstate/react';
 import { formMachine } from './formMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 const USERNAME_STATUS = {
   pristine: '',
@@ -12,7 +15,9 @@ const USERNAME_STATUS = {
 type UsernameState = keyof typeof USERNAME_STATUS;
 
 export default function App() {
-  const [state, send] = useActor(formMachine);
+  const [state, send] = useActor(formMachine, {
+    inspect: inspector.inspect
+  });
 
   const usernameStates = [
     'debouncing',

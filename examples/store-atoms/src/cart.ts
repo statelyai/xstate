@@ -1,4 +1,7 @@
 import { createAtom, createStore } from '@xstate/store';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 export interface Item {
   id: string;
@@ -56,3 +59,5 @@ export const discountAtom = createAtom(() =>
 export const totalAtom = createAtom(
   () => (subtotalAtom.get() - discountAtom.get()) * (1 + taxRateAtom.get())
 );
+
+cartStore.inspect(inspector.inspect);

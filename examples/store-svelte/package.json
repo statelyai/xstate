@@ -10,6 +10,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "@xstate/store": "workspace:*",
     "@xstate/store-svelte": "workspace:*"
   },

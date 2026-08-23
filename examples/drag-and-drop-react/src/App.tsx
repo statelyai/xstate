@@ -1,10 +1,15 @@
 import { useEffect } from 'react';
 import { useActor } from '@xstate/react';
 import { dragMachine } from './dragMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 import './App.css';
 
 export default function App() {
-  const [state, send] = useActor(dragMachine);
+  const [state, send] = useActor(dragMachine, {
+    inspect: inspector.inspect
+  });
   const { items, sourceIndex, targetIndex, offsetY } = state.context;
   const isDragging = state.matches('dragging');
 

@@ -1,9 +1,14 @@
 import { useActor } from '@xstate/react';
 import './App.css';
 import { searchMachine } from './searchMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function App() {
-  const [state, send] = useActor(searchMachine);
+  const [state, send] = useActor(searchMachine, {
+    inspect: inspector.inspect
+  });
   const { query, results, highlighted, selected, errorMessage } = state.context;
 
   return (

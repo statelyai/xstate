@@ -5,6 +5,10 @@ import {
   type SnapshotFrom
 } from 'xstate';
 import { checkoutMachine } from './checkoutMachine';
+import { createInspector } from '@statelyai/sdk';
+
+/** Server-side actors are inspected only when `INSPECT=1` is set. */
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 type CheckoutSnapshot = SnapshotFrom<typeof checkoutMachine>;
 type PersistedCheckoutSnapshot = PersistedSnapshotFrom<typeof checkoutMachine>;
@@ -49,7 +53,8 @@ function toView(snapshot: CheckoutSnapshot): CheckoutView {
 
 export function readCheckout(sessionId: string): CheckoutView {
   const actor = createActor(checkoutMachine, {
-    snapshot: sessions.get(sessionId)
+    snapshot: sessions.get(sessionId),
+    inspect: inspector?.inspect
   });
   actor.start();
   const view = toView(actor.getSnapshot());
@@ -63,7 +68,8 @@ export function advanceCheckout(
   event: { type: 'addItem' | 'pay' | 'reset' }
 ): CheckoutView {
   const actor = createActor(checkoutMachine, {
-    snapshot: sessions.get(sessionId)
+    snapshot: sessions.get(sessionId),
+    inspect: inspector?.inspect
   });
   actor.start();
   actor.send(event);

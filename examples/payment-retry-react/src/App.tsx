@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { useActor } from '@xstate/react';
 import { paymentMachine, MAX_ATTEMPTS } from './paymentMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 export default function App() {
-  const [state, send] = useActor(paymentMachine);
+  const [state, send] = useActor(paymentMachine, {
+    inspect: inspector.inspect
+  });
   const [failures, setFailures] = useState(2);
   const { amount, idempotencyKey, attempt, receipt, error } = state.context;
 

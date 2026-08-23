@@ -1,8 +1,13 @@
 import { useActor } from '@xstate/react';
 import { ITEMS, routerMachine, type RouteName } from './routerMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 export default function App() {
-  const [state, send] = useActor(routerMachine);
+  const [state, send] = useActor(routerMachine, {
+    inspect: inspector.inspect
+  });
   const { itemId, path } = state.context;
 
   function link(label: string, route: RouteName, id: string | null = null) {

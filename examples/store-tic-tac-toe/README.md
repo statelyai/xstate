@@ -18,4 +18,5 @@ pnpm dev
 
 ## Inspect it
 
-The inspector is not wired up in this example. To view the store in the [Stately Inspector](https://stately.ai/registry/inspect), add `@statelyai/sdk` and call `store.inspect(createInspector().inspect)` in `src/store.ts`.
+`@statelyai/sdk` is wired up in `src/store.ts` with `gameStore.inspect(inspector.inspect)`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live store. Store snapshots and the events that produced them are sent to Stately's hosted relay.
+

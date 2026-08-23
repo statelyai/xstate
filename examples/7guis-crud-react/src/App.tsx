@@ -1,9 +1,14 @@
 import { useActor } from '@xstate/react';
 import './App.css';
 import { crudMachine, matchesFilter } from './crudMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function App() {
-  const [state, send] = useActor(crudMachine);
+  const [state, send] = useActor(crudMachine, {
+    inspect: inspector.inspect
+  });
   const { entries, selectedId, filter, nameDraft, surnameDraft } =
     state.context;
   const visible = entries.filter((entry) => matchesFilter(entry, filter));

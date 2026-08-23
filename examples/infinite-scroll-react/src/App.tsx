@@ -1,10 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { useActorRef, useSelector } from '@xstate/react';
 import { feedMachine } from './feedMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 import './App.css';
 
 export default function App() {
-  const feedRef = useActorRef(feedMachine);
+  const feedRef = useActorRef(feedMachine, {
+    inspect: inspector.inspect
+  });
   const state = useSelector(feedRef, (s) => s);
   const sentinelRef = useRef<HTMLDivElement>(null);
 

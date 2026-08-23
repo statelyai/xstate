@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useActor } from '@xstate/react';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 import {
   accountErrors,
   profileErrors,
@@ -10,7 +13,9 @@ import {
 const ROLES: Role[] = ['developer', 'designer', 'manager'];
 
 export default function App() {
-  const [state, send] = useActor(signupMachine);
+  const [state, send] = useActor(signupMachine, {
+    inspect: inspector.inspect
+  });
   // Only show validation messages once the user has tried to advance.
   const [tried, setTried] = useState(false);
 

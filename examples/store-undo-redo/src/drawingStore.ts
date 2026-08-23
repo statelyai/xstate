@@ -1,5 +1,8 @@
 import { createStore } from '@xstate/store';
 import { undoRedo } from '@xstate/store/undo';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 export interface Dot {
   x: number;
@@ -45,3 +48,5 @@ export interface UndoRedoHistory {
 export function historyOf(snapshot: object): UndoRedoHistory {
   return snapshot as UndoRedoHistory;
 }
+
+drawingStore.inspect(inspector.inspect);

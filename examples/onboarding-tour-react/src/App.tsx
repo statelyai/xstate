@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { useActor } from '@xstate/react';
 import { tourMachine, steps, STORAGE_KEY } from './tourMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function Tour({ onReset }: { onReset: () => void }) {
-  const [state, send] = useActor(tourMachine);
+  const [state, send] = useActor(tourMachine, {
+    inspect: inspector.inspect
+  });
 
   const running = state.matches('running');
   const step = steps[state.context.step];

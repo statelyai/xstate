@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "@xstate/react": "workspace:*",
     "classnames": "^2.5.1",
     "react": "^19.2.4",

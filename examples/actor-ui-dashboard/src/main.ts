@@ -2,13 +2,18 @@ import { mountActorUI } from '@xstate-examples/actor-ui';
 import { createActor } from 'xstate';
 import { connectionMachine } from './connectionMachine.ts';
 import { orderMachine } from './orderMachine.ts';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 const panels = document.querySelector<HTMLDivElement>('#panels')!;
 
 const panel = () => panels.appendChild(document.createElement('div'));
 
-const orderActor = createActor(orderMachine);
-const connectionActor = createActor(connectionMachine);
+const orderActor = createActor(orderMachine, { inspect: inspector.inspect });
+const connectionActor = createActor(connectionMachine, {
+  inspect: inspector.inspect
+});
 
 // The dashboard renders the actor's snapshot and its event log, so neither
 // machine needs any UI code of its own. `events` is passed explicitly here

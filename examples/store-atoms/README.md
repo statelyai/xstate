@@ -29,4 +29,5 @@ pnpm dev
 
 ## Inspect it
 
-Atoms and stores are not actors, so the [Stately Inspector](https://stately.ai/registry/inspect) does not show them. To inspect the store's events, pass an `inspect` observer to `createStore`; see the [inspection docs](https://stately.ai/docs/inspector).
+`@statelyai/sdk` is wired up in `src/cart.ts` with `cartStore.inspect(inspector.inspect)`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live store. Store snapshots and the events that produced them are sent to Stately's hosted relay.
+

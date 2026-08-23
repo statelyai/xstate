@@ -34,4 +34,5 @@ Click `addItem` a few times, then `checkout`. Charges over $500 are declined, wh
 
 ## Inspect it
 
-The dashboard's own event log and context view are the inspector here. For the full [Stately Inspector](https://stately.ai/docs/inspector), add [`@statelyai/sdk`](https://stately.ai/docs/inspector) and pass `createInspector().inspect` as the `inspect` option when the actors are created.
+`@statelyai/sdk` is wired up in `src/main.ts`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.
+

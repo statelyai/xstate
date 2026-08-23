@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "@xstate/react": "workspace:*",
     "next": "^15.5.4",
     "react": "^19.2.0",

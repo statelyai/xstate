@@ -1,6 +1,9 @@
 import { useActor } from '@xstate/react';
 import React from 'react';
 import { ticTacToeMachine, type Player } from './ticTacToeMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 import './styles.css';
 
 function range(start: number, end: number) {
@@ -25,7 +28,9 @@ const Tile: React.FC<{
 };
 
 export default function App() {
-  const [state, send] = useActor(ticTacToeMachine);
+  const [state, send] = useActor(ticTacToeMachine, {
+    inspect: inspector.inspect
+  });
 
   return (
     <div className="game">

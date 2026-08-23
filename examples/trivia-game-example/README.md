@@ -25,22 +25,7 @@ pnpm dev
 
 ## Inspect it
 
-This example does not bundle an inspector. To add one:
-
-```bash
-pnpm add @statelyai/sdk
-```
-
-```ts
-import { createInspector } from '@statelyai/sdk';
-
-const inspector = createInspector();
-
-// then pass it as the second argument
-const [state, send] = useActor(machine, { inspect: inspector.inspect });
-```
-
-See https://stately.ai/registry/inspect and https://stately.ai/docs/inspector.
+`@statelyai/sdk` is wired up in `src/context/AppContext.tsx`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.
 
 ## Notes
 

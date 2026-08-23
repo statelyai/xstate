@@ -1,9 +1,14 @@
 import { useActor } from '@xstate/react';
 import './App.css';
 import { editorMachine } from './editorMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function App() {
-  const [state, send] = useActor(editorMachine);
+  const [state, send] = useActor(editorMachine, {
+    inspect: inspector.inspect
+  });
   const { past, present, future } = state.context;
 
   return (

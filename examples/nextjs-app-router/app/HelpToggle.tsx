@@ -2,6 +2,9 @@
 
 import { useMachine } from '@xstate/react';
 import { setup, types } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 /**
  * A local UI machine, running in the browser with `@xstate/react`. It never
@@ -22,7 +25,9 @@ const helpMachine = setup({
 });
 
 export function HelpToggle() {
-  const [snapshot, send] = useMachine(helpMachine);
+  const [snapshot, send] = useMachine(helpMachine, {
+    inspect: inspector.inspect
+  });
 
   return (
     <section>

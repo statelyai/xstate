@@ -1,11 +1,16 @@
 import { useActor } from '@xstate/react';
 import './App.css';
 import { MAX_DURATION, MIN_DURATION, timerMachine } from './timerMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 const seconds = (ms: number) => (ms / 1000).toFixed(1);
 
 function App() {
-  const [state, send] = useActor(timerMachine);
+  const [state, send] = useActor(timerMachine, {
+    inspect: inspector.inspect
+  });
   const { elapsed, duration } = state.context;
   const progress = duration === 0 ? 1 : Math.min(elapsed / duration, 1);
 

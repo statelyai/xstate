@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { useActor } from '@xstate/react';
 import { authMachine } from './authMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 export default function App() {
-  const [state, send] = useActor(authMachine);
+  const [state, send] = useActor(authMachine, {
+    inspect: inspector.inspect
+  });
   const [email, setEmail] = useState('ada@example.com');
   const [password, setPassword] = useState('lovelace');
 

@@ -1,5 +1,8 @@
 import { useActor } from '@xstate/react';
 import { checkoutMachine, total, type CartItem } from './checkoutMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 const CATALOG: CartItem[] = [
   { id: 'tea', name: 'Loose leaf tea', price: 12 },
@@ -8,7 +11,9 @@ const CATALOG: CartItem[] = [
 ];
 
 export default function App() {
-  const [state, send] = useActor(checkoutMachine);
+  const [state, send] = useActor(checkoutMachine, {
+    inspect: inspector.inspect
+  });
   const { cart, shipping, payment, receipt, error } = state.context;
 
   if (state.matches('done') && receipt) {

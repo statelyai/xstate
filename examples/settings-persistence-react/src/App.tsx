@@ -1,4 +1,7 @@
 import { useActor } from '@xstate/react';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 import {
   effectiveTheme,
   settingsMachine,
@@ -9,7 +12,9 @@ import {
 const THEMES: ThemePreference[] = ['light', 'dark', 'system'];
 
 export default function App() {
-  const [state, send] = useActor(settingsMachine);
+  const [state, send] = useActor(settingsMachine, {
+    inspect: inspector.inspect
+  });
   const { theme, density, reducedMotion, systemDark } = state.context;
 
   return (

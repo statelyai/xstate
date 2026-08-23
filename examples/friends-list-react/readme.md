@@ -21,17 +21,7 @@ pnpm dev
 
 ## Inspect it
 
-This example does not bundle an inspector. To watch the actors live, add [`@statelyai/sdk`](https://stately.ai/docs/inspector) and pass it to the hook:
-
-```ts
-import { createInspector } from '@statelyai/sdk';
-
-const inspector = createInspector();
-
-const [state, send] = useActor(friendsMachine, { inspect: inspector.inspect });
-```
-
-Spawned children are inspected along with their parent. Then open https://stately.ai/registry/inspect.
+`@statelyai/sdk` is wired up in `src/App.tsx`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.
 
 ## Notes
 

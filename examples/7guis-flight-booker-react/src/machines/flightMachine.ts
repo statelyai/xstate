@@ -1,6 +1,9 @@
 import { setup, types, createAsyncLogic } from 'xstate';
 import { createActorContext } from '@xstate/react';
 import { TODAY, TOMORROW, sleep } from '../utils';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 export const flightBookerMachine = setup({
   schemas: {
@@ -82,4 +85,6 @@ export const flightBookerMachine = setup({
   }
 });
 
-export default createActorContext(flightBookerMachine);
+export default createActorContext(flightBookerMachine, {
+  inspect: inspector.inspect
+});
