@@ -28,6 +28,30 @@ function toScxmlEventName(eventType: string): string {
     : eventType;
 }
 
+function matchesScxmlEventDescriptor(
+  descriptor: string,
+  event: EventObject
+): boolean {
+  if (descriptor === '*') return true;
+  if (descriptor.endsWith('.*')) {
+    const prefix = descriptor.slice(0, -2);
+    return event.type === prefix || event.type.startsWith(`${prefix}.`);
+  }
+  if (descriptor.startsWith('xstate.done.actor.')) {
+    return (
+      event.type === 'xstate.done.actor' &&
+      (event as any).actorId === descriptor.slice('xstate.done.actor.'.length)
+    );
+  }
+  if (descriptor.startsWith('xstate.done.state.')) {
+    return (
+      event.type === 'xstate.done.state' &&
+      (event as any).stateId === descriptor.slice('xstate.done.state.'.length)
+    );
+  }
+  return event.type === descriptor || event.type.startsWith(`${descriptor}.`);
+}
+
 export interface RaiseJSON {
   type: '@xstate.raise';
   event: EventObject;
@@ -43,6 +67,12 @@ export interface CancelJSON {
 export interface LogJSON {
   type: '@xstate.log';
   args: any[];
+}
+
+export interface ScxmlLogJSON {
+  type: 'scxml.log';
+  label?: string;
+  expr?: string;
 }
 
 interface EmitJSON {
@@ -70,8 +100,10 @@ export interface ScxmlRaiseJSON {
   /** Expression to evaluate for event type */
   eventexpr?: string;
   /** Params with expressions to evaluate */
-  params?: Array<{ name: string; expr: string }>;
+  params?: Array<{ name: string; expr?: string; location?: string }>;
+  namelist?: string[];
   id?: string;
+  idlocation?: string;
   delay?: number;
   /** Expression for delay */
   delayexpr?: string;
@@ -79,12 +111,27 @@ export interface ScxmlRaiseJSON {
   target?: string;
   /** Expression for target */
   targetexpr?: string;
+  processorType?: string;
+  content?: ScxmlContentJSON;
+}
+
+export interface ScxmlXmlJSON {
+  name: string;
+  attributes?: Record<string, string>;
+  children?: ScxmlXmlJSON[];
+}
+
+export interface ScxmlContentJSON {
+  expr?: string;
+  text?: string;
+  xml?: ScxmlXmlJSON;
 }
 
 interface ScxmlScriptJSON {
   type: 'scxml.script';
   /** The script code to execute */
   code: string;
+  global?: boolean;
 }
 
 export interface ScxmlForeachJSON {
@@ -106,6 +153,14 @@ export interface ScxmlDonedataJSON {
   contentText?: string;
 }
 
+export interface ScxmlDataJSON {
+  id: string;
+  expr?: string;
+  content?: string;
+  src?: string;
+  xml?: ScxmlXmlJSON;
+}
+
 /**
  * Isolated executable-content block. Errors in nested actions stop this block
  * but do not propagate to the surrounding action list. Used to model SCXML's
@@ -113,6 +168,22 @@ export interface ScxmlDonedataJSON {
  */
 interface ScxmlBlockJSON {
   type: 'scxml.block';
+  actions: ActionJSON[];
+}
+
+interface ScxmlDatamodelJSON {
+  type: 'scxml.datamodel';
+  data: ScxmlDataJSON[];
+}
+
+interface ScxmlForwardJSON {
+  type: 'scxml.forward';
+  invokeId: string;
+}
+
+interface ScxmlFinalizeJSON {
+  type: 'scxml.finalize';
+  invokeId: string;
   actions: ActionJSON[];
 }
 
@@ -149,7 +220,11 @@ export type ActionJSON =
   | ScxmlIfJSON
   | ScxmlForeachJSON
   | ScxmlCancelJSON
+  | ScxmlLogJSON
   | ScxmlBlockJSON
+  | ScxmlDatamodelJSON
+  | ScxmlForwardJSON
+  | ScxmlFinalizeJSON
   | ExpressionJSON
   | CodeJSON;
 
@@ -192,6 +267,11 @@ export interface InvokeJSON {
   onSnapshot?: TransitionConfigJSON | TransitionConfigJSON[];
   timeout?: number | string | ResolvableJSON;
   onTimeout?: TransitionConfigJSON | TransitionConfigJSON[];
+  /** @internal SCXML invocation input expressions. */
+  _scxmlInput?: {
+    namelist?: string[];
+    params?: Array<{ name: string; expr?: string; location?: string }>;
+  };
 }
 
 export interface TransitionJSON {
@@ -204,6 +284,12 @@ export interface TransitionJSON {
   reenter?: boolean;
   meta?: MetaObject;
   input?: unknown;
+  /** @internal Strict semantics for transitions produced by the SCXML converter. */
+  _scxml?: {
+    type?: 'internal' | 'external';
+    eventDescriptors?: string[];
+    finalize?: Array<{ invokeId: string; actions: ActionJSON[] }>;
+  };
 }
 
 type TransitionConfigJSON = TransitionJSON | ResolvableJSON;
@@ -247,10 +333,21 @@ export interface StateNodeJSON {
   output?: unknown;
   context?: Record<string, unknown>;
   _scxmlDonedata?: ScxmlDonedataJSON;
+  /** @internal Initial transition emitted by the SCXML converter. */
+  _scxmlInitial?: {
+    targets: string[];
+    actions?: ActionJSON[];
+  };
+  /** @internal Executable content on an SCXML history default transition. */
+  _scxmlHistoryActions?: ActionJSON[];
+  /** @internal Datamodel declarations initialized on entry. */
+  _scxmlData?: ScxmlDataJSON[];
 }
 export interface MachineJSON extends StateNodeJSON {
   '@exprLang'?: string;
   version?: string;
+  /** @internal All declared SCXML datamodel identifiers. */
+  _scxmlDataIds?: string[];
   actions?: Record<string, ActionJSON | ActionJSON[]>;
   guards?: Record<string, { when: ConditionJSON }>;
   actors?: Record<string, unknown>;
@@ -746,8 +843,50 @@ function assertMachineJSON(
   assertStateNode(json, '$');
 }
 
-let _scxmlSessionId = 'session_scxml';
-let _scxmlMachineName = '';
+const SCXML_SYSTEM_VARIABLES = new Set([
+  '_sessionid',
+  '_name',
+  '_ioprocessors',
+  '_event',
+  '_xstateScxmlInputKeys'
+]);
+const scxmlScriptEnvironments = new WeakMap<
+  AnyActorRef,
+  { declarations: string[] }
+>();
+const scxmlMachineNames = new WeakMap<AnyActorRef, string>();
+const scxmlIoProcessors = new WeakMap<AnyActorRef, object>();
+const scxmlEvents = new WeakMap<object, object>();
+const scxmlEnteringStates = new WeakMap<AnyActorRef, string[]>();
+
+function getScxmlIoProcessors(self: AnyActorRef, sessionId: string): object {
+  let processors = scxmlIoProcessors.get(self);
+  if (!processors) {
+    const processor = { location: `#_scxml_${sessionId}` };
+    processors = {
+      scxml: processor,
+      'http://www.w3.org/TR/scxml/#SCXMLEventProcessor': processor
+    };
+    scxmlIoProcessors.set(self, processors);
+  }
+  return processors;
+}
+
+function getFunctionDeclarations(code: string): string[] {
+  const declarations: string[] = [];
+  const pattern = /\bfunction\s+[$_a-zA-Z][$_a-zA-Z0-9]*\s*\([^)]*\)\s*\{/g;
+  for (const match of code.matchAll(pattern)) {
+    let depth = 1;
+    let index = match.index! + match[0].length;
+    while (index < code.length && depth) {
+      if (code[index] === '{') depth++;
+      if (code[index] === '}') depth--;
+      index++;
+    }
+    declarations.push(code.slice(match.index, index));
+  }
+  return declarations;
+}
 
 /** Evaluates an SCXML expression with context variables available via `with`. */
 function evaluateExpr(
@@ -756,9 +895,18 @@ function evaluateExpr(
   event: AnyEventObject | null,
   self?: AnyActorRef
 ): unknown {
+  const normalizedExpr = expr.replace(/;+\s*$/, '');
+  const sessionId = (self as any)?.sessionId ?? 'session_scxml';
+  const machineName = self
+    ? (scxmlMachineNames.get(self) ?? '(machine)')
+    : '(machine)';
+  const dataContext = Object.fromEntries(
+    Object.entries(context).filter(([key]) => !SCXML_SYSTEM_VARIABLES.has(key))
+  );
   const fnBody = `
+${self ? (scxmlScriptEnvironments.get(self)?.declarations.join('\n') ?? '') : ''}
 with (context) {
-  return (${expr});
+  return (${normalizedExpr});
 }
   `.trim();
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
@@ -773,10 +921,17 @@ with (context) {
   );
   const In = (stateId: string) => {
     if (!self) return false;
+    const sanitized = stateId.replace(/\./g, '$');
+    if (
+      scxmlEnteringStates
+        .get(self)
+        ?.some((id) => id === sanitized || id.endsWith('.' + sanitized))
+    ) {
+      return true;
+    }
     try {
       const snap = (self as any).getSnapshot?.();
       if (snap?.nodes) {
-        const sanitized = stateId.replace(/\./g, '$');
         return snap.nodes.some(
           (node: any) =>
             node.id === sanitized || node.id.endsWith('.' + sanitized)
@@ -787,7 +942,7 @@ with (context) {
     }
     return false;
   };
-  const SCXML_ORIGIN = `#_scxml_${_scxmlSessionId}`;
+  const SCXML_ORIGIN = `#_scxml_${sessionId}`;
   const SCXML_ORIGIN_TYPE = 'http://www.w3.org/TR/scxml/#SCXMLEventProcessor';
   const isExternal = event && (event as any)._scxmlExternal;
   const isInitEvent = event && event.type === '@xstate.init';
@@ -802,30 +957,38 @@ with (context) {
     event.type.startsWith('xstate.done.');
   const explicitType =
     event && ((event as any)._scxmlEventType as string | undefined);
-  const scxmlEvent =
-    event && !isInitEvent
-      ? {
-          name:
-            ((event as any)._scxmlEventName as string | undefined) ??
-            toScxmlEventName(event.type),
-          type: explicitType || (isExternal ? 'external' : 'internal'),
-          sendid: (event as any)._scxmlSendId as string | undefined,
-          origin: isExternal ? SCXML_ORIGIN : undefined,
-          origintype: isExternal ? SCXML_ORIGIN_TYPE : undefined,
-          invokeid: (event as any)._scxmlInvokeId as string | undefined,
-          data: isDoneEvent
-            ? (event as any).output
-            : (event as any)._scxmlEventData !== undefined
-              ? (event as any)._scxmlEventData
-              : event
-        }
-      : undefined;
+  let scxmlEvent: object | undefined;
+  if (event && !isInitEvent) {
+    scxmlEvent = scxmlEvents.get(event);
+    if (!scxmlEvent) {
+      scxmlEvent = {
+        name:
+          ((event as any)._scxmlEventName as string | undefined) ??
+          toScxmlEventName(event.type),
+        type: explicitType || (isExternal ? 'external' : 'internal'),
+        sendid: (event as any)._scxmlSendId as string | undefined,
+        origin: isExternal ? SCXML_ORIGIN : undefined,
+        origintype: isExternal ? SCXML_ORIGIN_TYPE : undefined,
+        invokeid:
+          ((event as any)._scxmlInvokeId as string | undefined) ??
+          ((event as any).actorId as string | undefined),
+        data: isDoneEvent
+          ? (event as any).output
+          : (event as any)._scxmlEventData !== undefined
+            ? (event as any)._scxmlEventData
+            : event
+      };
+      scxmlEvents.set(event, scxmlEvent);
+    }
+  }
   const result = fn(
-    context,
+    dataContext,
     scxmlEvent,
-    _scxmlSessionId,
-    _scxmlMachineName,
-    { scxml: { location: `#_scxml_${_scxmlSessionId}` } },
+    sessionId,
+    machineName,
+    self
+      ? getScxmlIoProcessors(self, sessionId)
+      : { scxml: { location: `#_scxml_${sessionId}` } },
     In
   );
 
@@ -835,29 +998,89 @@ with (context) {
 /** Executes an SCXML script block and returns updated context values. */
 function executeScript(
   context: MachineContext,
-  code: string
+  code: string,
+  self: AnyActorRef,
+  global: boolean
 ): Record<string, unknown> {
   // Create a proxy to track which properties are modified
   const updates: Record<string, unknown> = {};
   const contextKeys = Object.keys(context);
+  const mutableContextKeys = contextKeys.filter(
+    (key) => !SCXML_SYSTEM_VARIABLES.has(key)
+  );
 
   // Build variable declarations and reassignment capture
-  const varDeclarations = contextKeys
-    .map((k) => `let ${k} = context.${k};`)
+  const varDeclarations = mutableContextKeys
+    .map((k) => `var ${k} = context.${k};`)
     .join('\n');
-  const captureUpdates = contextKeys
+  const captureUpdates = mutableContextKeys
     .map((k) => `updates.${k} = ${k};`)
     .join('\n');
+  const codeWithoutComments = code.replace(/\/\/.*$/gm, '');
+  const declarations = getFunctionDeclarations(code);
+  const codeWithoutFunctions = declarations.reduce(
+    (source, declaration) => source.replace(declaration, ''),
+    codeWithoutComments
+  );
+  const declaredVariables = global
+    ? [
+        ...codeWithoutFunctions.matchAll(/\bvar\s+([$_a-zA-Z][$_a-zA-Z0-9]*)/g)
+      ].map((match) => match[1])
+    : [];
+  const captureVariables = declaredVariables
+    .filter(
+      (name) => !contextKeys.includes(name) && !SCXML_SYSTEM_VARIABLES.has(name)
+    )
+    .map((name) => `updates.${name} = ${name};`)
+    .join('\n');
+  const environment = scxmlScriptEnvironments.get(self) ?? {
+    declarations: []
+  };
+  scxmlScriptEnvironments.set(self, environment);
+  for (const declaration of declarations) {
+    if (!environment.declarations.includes(declaration)) {
+      environment.declarations.push(declaration);
+    }
+  }
 
   const fnBody = `
 ${varDeclarations}
+${environment.declarations.join('\n')}
 ${code}
 ${captureUpdates}
+${captureVariables}
 return updates;
   `;
+  const sessionId = (self as any).sessionId;
+  const machineName = scxmlMachineNames.get(self) ?? '(machine)';
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  const fn = new Function('context', 'updates', fnBody);
-  return fn(context, updates);
+  const fn = new Function(
+    'context',
+    'updates',
+    '_sessionid',
+    '_name',
+    '_ioprocessors',
+    fnBody
+  );
+  return fn(
+    context,
+    updates,
+    sessionId,
+    machineName,
+    getScxmlIoProcessors(self, sessionId)
+  );
+}
+
+function createScxmlDomElement(element: ScxmlXmlJSON): any {
+  const children = (element.children ?? []).map(createScxmlDomElement);
+  return {
+    tagName: element.name,
+    getAttribute: (name: string) => element.attributes?.[name] ?? null,
+    getElementsByTagName: (name: string): any[] => [
+      ...(element.name === name ? [createScxmlDomElement(element)] : []),
+      ...children.flatMap((child: any) => child.getElementsByTagName(name))
+    ]
+  };
 }
 
 export function createMachineFromConfig(
@@ -871,6 +1094,7 @@ export function createMachineFromConfig(
   );
   const { evaluateResolvable, resolveValue, makeScope, getDurationConfig } =
     expressionResolver;
+  const sendCounters = new WeakMap<AnyActorRef, number>();
 
   type ResolvedCondition = ((args: any) => boolean) | undefined;
 
@@ -973,10 +1197,38 @@ export function createMachineFromConfig(
   // functions to re-execute all transition actions from scratch when parallel
   // targetless transitions coexist with targeted transitions.
   let contextBeforeTargetless: MachineContext | null = null;
+  let targetlessEvent: AnyEventObject | null = null;
   // Platform errors collected during transition selection (e.g., failing
   // <transition cond>). Drained by the next state's entry into the internal
   // event queue so they're processed before any external events.
   const pendingPlatformErrors: Array<Record<string, unknown>> = [];
+  const scxmlDonedataValues = new WeakMap<AnyActorRef, Map<string, unknown>>();
+
+  function evaluateDonedataValue(
+    donedata: ScxmlDonedataJSON,
+    context: MachineContext,
+    event: AnyEventObject,
+    self: AnyActorRef
+  ): unknown {
+    if (donedata.params?.length) {
+      const out: Record<string, unknown> = {};
+      for (const param of donedata.params) {
+        out[param.name] = evaluateExpr(context, param.expr, event, self);
+      }
+      return out;
+    }
+    if (donedata.contentExpr !== undefined) {
+      return evaluateExpr(context, donedata.contentExpr, event, self);
+    }
+    if (donedata.contentText !== undefined) {
+      try {
+        return evaluateExpr(context, donedata.contentText, event, self);
+      } catch {
+        return donedata.contentText;
+      }
+    }
+    return undefined;
+  }
 
   function getMissingGuardMessage(type: string, guards: Record<string, any>) {
     return `Guard '${type}' is not implemented in machine '${json.id ?? '(machine)'}'. Available guards: ${
@@ -1002,8 +1254,17 @@ export function createMachineFromConfig(
     return (args: any) => (resolvedGuard!(args) ? routeConfig : undefined);
   }
 
-  function iterNode(node: StateNodeJSON, nodeKey?: string) {
-    const originalEntryActions = toActionArray(node.entry);
+  function iterNode(
+    node: StateNodeJSON,
+    nodeKey?: string,
+    ancestorIds: string[] = []
+  ) {
+    const originalEntryActions: ActionJSON[] = [
+      ...(node._scxmlData?.length
+        ? [{ type: 'scxml.datamodel' as const, data: node._scxmlData }]
+        : []),
+      ...toActionArray(node.entry)
+    ];
     const stateId = node.id || nodeKey;
 
     // Wrap entry to first execute any pending transition actions, then normal entry.
@@ -1014,6 +1275,10 @@ export function createMachineFromConfig(
       x,
       enq
     ) => {
+      scxmlMachineNames.set(x.self, json.id ?? '(machine)');
+      if (stateId) {
+        scxmlEnteringStates.set(x.self, [...ancestorIds, stateId]);
+      }
       // Drain any platform errors queued during transition selection (e.g.,
       // failing <transition cond="..."> evaluations). These must be raised
       // internally so they're processed before subsequent external events.
@@ -1038,6 +1303,7 @@ export function createMachineFromConfig(
       // in the same microstep — prevents stale data from previous events.
       if (
         contextBeforeTargetless &&
+        targetlessEvent === x.event &&
         allTransitionActions.length > 0 &&
         Object.keys(pendingTransitionActionsMap).length > 0
       ) {
@@ -1051,6 +1317,7 @@ export function createMachineFromConfig(
         }
         allTransitionActions.length = 0;
         contextBeforeTargetless = null;
+        targetlessEvent = null;
         // Clear per-target map since we re-processed everything
         for (const key of Object.keys(pendingTransitionActionsMap)) {
           delete pendingTransitionActionsMap[key];
@@ -1071,6 +1338,7 @@ export function createMachineFromConfig(
         }
         // Clear stale targetless data from previous microsteps
         contextBeforeTargetless = null;
+        targetlessEvent = null;
         allTransitionActions.length = 0;
       }
 
@@ -1083,15 +1351,58 @@ export function createMachineFromConfig(
         }
       }
 
+      if (node._scxmlDonedata && stateId) {
+        let values = scxmlDonedataValues.get(x.self);
+        if (!values) {
+          values = new Map();
+          scxmlDonedataValues.set(x.self, values);
+        }
+        try {
+          values.set(
+            stateId,
+            evaluateDonedataValue(
+              node._scxmlDonedata,
+              context ?? x.context,
+              x.event,
+              x.self
+            )
+          );
+        } catch (err) {
+          values.set(stateId, undefined);
+          raiseErrorExecution(
+            { enq, self: x.self, errored: false },
+            'donedata',
+            err
+          );
+        }
+      }
+
+      scxmlEnteringStates.delete(x.self);
       return { context };
     };
 
     const nodeConfig: any = {
       id: node.id,
-      initial: node.initial,
+      initial: node._scxmlInitial
+        ? {
+            target: node._scxmlInitial.targets,
+            to: node._scxmlInitial.actions
+              ? (x: any, enq: any) => ({
+                  ...executeActions(node._scxmlInitial!.actions!, x, enq),
+                  target: node._scxmlInitial!.targets
+                })
+              : undefined
+          }
+        : node.initial,
       type: node.type,
       history: node.history,
       target: node.target,
+      _scxmlHistoryActions: node._scxmlHistoryActions
+        ? (x: any, enq: any) => ({
+            ...executeActions(node._scxmlHistoryActions!, x, enq),
+            target: node.target
+          })
+        : undefined,
       description: node.description,
       tags: node.tags,
       input: node.input,
@@ -1099,7 +1410,11 @@ export function createMachineFromConfig(
       states: node.states
         ? Object.entries(node.states).reduce(
             (acc, [key, value]) => {
-              acc[key] = iterNode(value, key);
+              acc[key] = iterNode(
+                value,
+                key,
+                stateId ? [...ancestorIds, stateId] : ancestorIds
+              );
               return acc;
             },
             {} as Record<
@@ -1153,7 +1468,7 @@ export function createMachineFromConfig(
       invoke: node.invoke ? iterInvokeConfigs(node.invoke) : undefined,
       meta: node.meta,
       output: node._scxmlDonedata
-        ? makeDonedataOutput(node._scxmlDonedata)
+        ? makeDonedataOutput(stateId!)
         : isResolvable(node.output)
           ? ({ context, event, self }: any) =>
               evaluateResolvable(
@@ -1168,47 +1483,8 @@ export function createMachineFromConfig(
     return nodeConfig;
   }
 
-  function makeDonedataOutput(donedata: ScxmlDonedataJSON) {
-    return ({ context, event, self }: any) => {
-      try {
-        if (donedata.params && donedata.params.length) {
-          const out: Record<string, unknown> = {};
-          for (const param of donedata.params) {
-            out[param.name] = evaluateExpr(context, param.expr, event, self);
-          }
-          return out;
-        }
-        if (donedata.contentExpr !== undefined) {
-          return evaluateExpr(context, donedata.contentExpr, event, self);
-        }
-        if (donedata.contentText !== undefined) {
-          // Try parsing as a JS expression (number/object/array literals);
-          // fall back to the raw string.
-          try {
-            return evaluateExpr(context, donedata.contentText, event, self);
-          } catch {
-            return donedata.contentText;
-          }
-        }
-      } catch (err) {
-        // Per SCXML, donedata expression errors raise error.execution and
-        // result in undefined event.data. Queue for the next entry to drain.
-        const message =
-          err instanceof Error
-            ? err.message
-            : typeof err === 'string'
-              ? err
-              : 'unknown error';
-        pendingPlatformErrors.push({
-          tagname: 'donedata',
-          message,
-          line: NaN,
-          column: NaN,
-          reason: message
-        });
-      }
-      return undefined;
-    };
+  function makeDonedataOutput(stateId: string) {
+    return ({ self }: any) => scxmlDonedataValues.get(self)?.get(stateId);
   }
 
   function iterInvokeConfigs(invokes: InvokeJSON | InvokeJSON[]): any {
@@ -1229,8 +1505,25 @@ export function createMachineFromConfig(
         src,
         id: inv.id,
         registryKey: inv.registryKey,
-        input:
-          inv.input !== undefined
+        input: inv._scxmlInput
+          ? ({ context, event, self }: any) => {
+              const input: Record<string, unknown> = {};
+              for (const name of inv._scxmlInput!.namelist ?? []) {
+                if (!(name in context)) {
+                  throw new ReferenceError(`${name} is not defined`);
+                }
+                input[name] = context[name];
+              }
+              for (const param of inv._scxmlInput!.params ?? []) {
+                input[param.name] = param.expr
+                  ? evaluateExpr(context, param.expr, event, self)
+                  : param.location
+                    ? evaluateExpr(context, param.location, event, self)
+                    : undefined;
+              }
+              return input;
+            }
+          : inv.input !== undefined
             ? (args: any) =>
                 resolveValue(
                   inv.input,
@@ -1260,7 +1553,8 @@ export function createMachineFromConfig(
   function raiseErrorExecution(
     state: ExecState,
     tagname: string,
-    err: unknown
+    err: unknown,
+    sendId?: string
   ) {
     const message =
       err instanceof Error
@@ -1268,30 +1562,33 @@ export function createMachineFromConfig(
         : typeof err === 'string'
           ? err
           : 'unknown error';
-    state.enq.raise({
+    const errorEvent = {
       type: 'xstate.error.execution',
       error: {
         tagname,
         message,
-        line: NaN,
-        column: NaN,
+        line: 0,
+        column: 0,
         reason: message
       },
       _scxmlEventType: 'platform',
       _scxmlEventName: 'error.execution',
+      ...(sendId ? { _scxmlSendId: sendId } : {}),
       _scxmlEventData: {
         tagname,
         message,
-        line: NaN,
-        column: NaN,
+        line: 0,
+        column: 0,
         reason: message
       }
-    } as AnyEventObject);
+    } as AnyEventObject;
+    state.enq.raise(errorEvent);
     state.errored = true;
   }
 
   interface ExecState {
     enq: any;
+    self: AnyActorRef;
     errored: boolean;
   }
 
@@ -1336,7 +1633,11 @@ export function createMachineFromConfig(
     parentState?: ExecState,
     stack: string[] = []
   ): { context: MachineContext | undefined; errored: boolean } {
-    const state: ExecState = parentState ?? { enq, errored: false };
+    const state: ExecState = parentState ?? {
+      enq,
+      self: x.self,
+      errored: false
+    };
     let context: MachineContext | undefined;
     for (const action of actions) {
       if (state.errored) break;
@@ -1418,6 +1719,46 @@ export function createMachineFromConfig(
           default:
             throw new Error(`Unknown built-in action: ${(action as any).type}`);
         }
+      } else if (action.type === 'scxml.finalize') {
+        const finalize = action as ScxmlFinalizeJSON;
+        const invokeId =
+          (x.event as any)._scxmlInvokeId ?? (x.event as any).actorId;
+        if (invokeId === finalize.invokeId) {
+          const result = executeActions(
+            finalize.actions,
+            { ...x, context: { ...x.context, ...context } },
+            enq,
+            state
+          );
+          if (result.context) {
+            context = result.context;
+          }
+        }
+      } else if (action.type === 'scxml.forward') {
+        const child = x.children?.[(action as ScxmlForwardJSON).invokeId];
+        if (child) {
+          enq.sendTo(child, {
+            ...x.event,
+            _scxmlExternal: true
+          });
+        }
+      } else if (action.type === 'scxml.log') {
+        const scxmlAction = action as ScxmlLogJSON;
+        try {
+          const value = scxmlAction.expr
+            ? evaluateExpr(
+                { ...x.context, ...context },
+                scxmlAction.expr,
+                x.event,
+                x.self
+              )
+            : undefined;
+          enq.log(
+            ...(scxmlAction.label ? [scxmlAction.label, value] : [value])
+          );
+        } catch (err) {
+          raiseErrorExecution(state, 'log', err);
+        }
       } else if (action.type === 'scxml.assign') {
         const scxmlAction = action as ScxmlAssignJSON;
         const mergedContext = { ...x.context, ...context };
@@ -1433,19 +1774,105 @@ export function createMachineFromConfig(
           raiseErrorExecution(state, 'assign', err);
           continue;
         }
-        // Per SCXML, assigning to a location that doesn't exist on the
-        // datamodel is an error. Allow setting an own property via context;
-        // detect deep paths (a.b.c) which we don't support.
-        if (scxmlAction.location.includes('.')) {
+        if (SCXML_SYSTEM_VARIABLES.has(scxmlAction.location.split('.')[0])) {
           raiseErrorExecution(
             state,
             'assign',
-            new Error(`Invalid assign location: ${scxmlAction.location}`)
+            new Error(
+              `Cannot assign to SCXML system variable: ${scxmlAction.location}`
+            )
           );
+          continue;
+        }
+        if (scxmlAction.location.includes('.')) {
+          const path = scxmlAction.location.split('.');
+          const root = path.shift()!;
+          let target = mergedContext[root];
+          if (!target || typeof target !== 'object') {
+            raiseErrorExecution(
+              state,
+              'assign',
+              new Error(`Invalid assign location: ${scxmlAction.location}`)
+            );
+            continue;
+          }
+          const clonedRoot = Array.isArray(target)
+            ? [...target]
+            : { ...target };
+          target = clonedRoot;
+          for (const segment of path.slice(0, -1)) {
+            const child = (target as Record<string, unknown>)[segment];
+            if (!child || typeof child !== 'object') {
+              raiseErrorExecution(
+                state,
+                'assign',
+                new Error(`Invalid assign location: ${scxmlAction.location}`)
+              );
+              break;
+            }
+            const clonedChild = Array.isArray(child)
+              ? [...child]
+              : { ...child };
+            (target as Record<string, unknown>)[segment] = clonedChild;
+            target = clonedChild;
+          }
+          if (state.errored) continue;
+          (target as Record<string, unknown>)[path.at(-1)!] = value;
+          context ??= {};
+          context[root] = clonedRoot;
           continue;
         }
         context ??= {};
         context[scxmlAction.location] = value;
+      } else if (action.type === 'scxml.datamodel') {
+        const scxmlAction = action as ScxmlDatamodelJSON;
+        context ??= {};
+        for (const data of scxmlAction.data) {
+          if (
+            Array.isArray(x.context._xstateScxmlInputKeys) &&
+            x.context._xstateScxmlInputKeys.includes(data.id)
+          ) {
+            continue;
+          }
+          if (data.src) {
+            raiseErrorExecution(
+              state,
+              'data',
+              new Error(`Unresolved data resource: ${data.src}`)
+            );
+            break;
+          }
+          if (data.expr !== undefined) {
+            try {
+              context[data.id] = evaluateExpr(
+                { ...x.context, ...context },
+                data.expr,
+                x.event,
+                x.self
+              );
+            } catch (err) {
+              raiseErrorExecution(state, 'data', err);
+              break;
+            }
+          } else if (data.content !== undefined) {
+            try {
+              context[data.id] = evaluateExpr(
+                { ...x.context, ...context },
+                data.content,
+                x.event,
+                x.self
+              );
+            } catch {
+              context[data.id] = data.content.replace(/\s+/g, ' ').trim();
+            }
+          } else if (data.xml) {
+            context[data.id] = createScxmlDomElement(data.xml);
+          } else {
+            if (x.context[data.id] === undefined) {
+              context[data.id] = undefined;
+            }
+          }
+        }
       } else if (action.type === 'scxml.raise') {
         const scxmlAction = action as ScxmlRaiseJSON;
         const mergedContext = { ...x.context, ...context };
@@ -1455,6 +1882,17 @@ export function createMachineFromConfig(
         let target: string | undefined;
         let delay: number | undefined;
         try {
+          if (
+            scxmlAction.processorType &&
+            ![
+              'scxml',
+              'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'
+            ].includes(scxmlAction.processorType)
+          ) {
+            throw new Error(
+              `Unsupported send type: ${scxmlAction.processorType}`
+            );
+          }
           eventType = scxmlAction.eventexpr
             ? (evaluateExpr(
                 mergedContext,
@@ -1469,15 +1907,65 @@ export function createMachineFromConfig(
             type: eventType,
             _scxmlEventName: toScxmlEventName(eventType)
           };
-          if (scxmlAction.params) {
-            for (const param of scxmlAction.params) {
-              eventData[param.name] = evaluateExpr(
+          const payload: Record<string, unknown> = {};
+          if (scxmlAction.namelist) {
+            for (const name of scxmlAction.namelist) {
+              payload[name] = evaluateExpr(
                 mergedContext,
-                param.expr,
+                name,
                 x.event,
                 x.self
               );
             }
+          }
+          if (scxmlAction.params) {
+            for (const param of scxmlAction.params) {
+              payload[param.name] = evaluateExpr(
+                mergedContext,
+                param.expr ?? param.location!,
+                x.event,
+                x.self
+              );
+            }
+          }
+          if (scxmlAction.content) {
+            const content = scxmlAction.content;
+            let contentValue: unknown;
+            if (content.expr !== undefined) {
+              contentValue = evaluateExpr(
+                mergedContext,
+                content.expr,
+                x.event,
+                x.self
+              );
+            } else if (content.xml) {
+              contentValue = createScxmlDomElement(content.xml);
+            } else {
+              const text = content.text?.replace(/\s+/g, ' ').trim() ?? '';
+              try {
+                contentValue = evaluateExpr(
+                  mergedContext,
+                  text,
+                  x.event,
+                  x.self
+                );
+              } catch {
+                contentValue = text;
+              }
+            }
+            eventData._scxmlEventData = contentValue;
+          } else if (Object.keys(payload).length) {
+            Object.assign(eventData, payload);
+            eventData._scxmlEventData = payload;
+          }
+
+          if (scxmlAction.idlocation) {
+            const nextId = (sendCounters.get(x.self) ?? 0) + 1;
+            sendCounters.set(x.self, nextId);
+            const generatedId = `${x.self.sessionId}.send.${nextId}`;
+            context ??= {};
+            context[scxmlAction.idlocation] = generatedId;
+            eventData._scxmlSendId = generatedId;
           }
 
           target = scxmlAction.targetexpr
@@ -1509,6 +1997,12 @@ export function createMachineFromConfig(
 
         const isInternalTarget = target === '#_internal';
         const isParentTarget = target === '#_parent';
+        if (!isInternalTarget) {
+          (eventData as any)._scxmlExternal = true;
+        }
+        if (isParentTarget) {
+          (eventData as any)._scxmlInvokeId = x.self.id;
+        }
 
         // Validate target. SCXML targets must be '#_internal', '#_parent',
         // or '#_<id>'. A bare string without the '#_' prefix is invalid and
@@ -1521,12 +2015,16 @@ export function createMachineFromConfig(
           raiseErrorExecution(
             state,
             'send',
-            new Error(`Invalid send target: ${target}`)
+            new Error(`Invalid send target: ${target}`),
+            eventData._scxmlSendId as string | undefined
           );
           continue;
         }
         // Attach send id so _event.sendid can be read in expressions.
-        if (scxmlAction.id !== undefined) {
+        if (
+          scxmlAction.id !== undefined &&
+          eventData._scxmlSendId === undefined
+        ) {
           (eventData as any)._scxmlSendId = scxmlAction.id;
         }
         // Resolve target at runtime: parent, child, or self
@@ -1550,7 +2048,7 @@ export function createMachineFromConfig(
             enq.sendTo(childRef, eventData as AnyEventObject);
           } else if (
             childId.startsWith('scxml_') &&
-            childId !== `scxml_${_scxmlSessionId}`
+            childId !== `scxml_${x.self.sessionId}`
           ) {
             const message = `Unable to dispatch event to target: ${target}`;
             enq.raise({
@@ -1616,7 +2114,12 @@ export function createMachineFromConfig(
         const scxmlAction = action as ScxmlScriptJSON;
         const mergedContext = { ...x.context, ...context };
         try {
-          const updatedContext = executeScript(mergedContext, scxmlAction.code);
+          const updatedContext = executeScript(
+            mergedContext,
+            scxmlAction.code,
+            x.self,
+            scxmlAction.global ?? false
+          );
           context ??= {};
           Object.assign(context, updatedContext);
         } catch (err) {
@@ -1761,6 +2264,30 @@ export function createMachineFromConfig(
     return (x, enq) => executeActions(actions, x, enq);
   }
 
+  function getFinalizedGuardContext(
+    context: MachineContext,
+    event: AnyEventObject,
+    self: AnyActorRef,
+    finalizers: NonNullable<TransitionJSON['_scxml']>['finalize']
+  ): MachineContext {
+    const invokeId = (event as any)._scxmlInvokeId ?? (event as any).actorId;
+    const finalized = { ...context };
+    for (const finalizer of finalizers ?? []) {
+      if (finalizer.invokeId !== invokeId) continue;
+      for (const action of finalizer.actions) {
+        if (!('type' in action) || action.type !== 'scxml.assign') continue;
+        const assignAction = action as ScxmlAssignJSON;
+        finalized[assignAction.location] = evaluateExpr(
+          finalized,
+          assignAction.expr,
+          event,
+          self
+        );
+      }
+    }
+    return finalized;
+  }
+
   function getTransitionConfig(
     transition: TransitionConfigJSON | TransitionConfigJSON[]
   ): any {
@@ -1782,7 +2309,24 @@ export function createMachineFromConfig(
       }
       const target = Array.isArray(t.target) ? t.target[0] : t.target;
       const targetConfig = t.target;
-      const guard = resolveCondition(t.guard, 'guard', '$.transition.guard');
+      const resolvedGuard = resolveCondition(
+        t.guard,
+        'guard',
+        '$.transition.guard'
+      );
+      const guard =
+        resolvedGuard && t._scxml?.finalize?.length
+          ? (args: any) =>
+              resolvedGuard({
+                ...args,
+                context: getFinalizedGuardContext(
+                  args.context,
+                  args.event,
+                  args.self,
+                  t._scxml!.finalize
+                )
+              })
+          : resolvedGuard;
       const resolveTransitionContext = (x: any) =>
         t.context
           ? (resolveValue(
@@ -1796,12 +2340,20 @@ export function createMachineFromConfig(
         t.input !== undefined
           ? resolveValue(t.input, 'input', makeScope(x), '$.transition.input')
           : undefined;
+      const eventMatcher = t._scxml?.eventDescriptors
+        ? (event: EventObject) =>
+            t._scxml!.eventDescriptors!.some((descriptor) =>
+              matchesScxmlEventDescriptor(descriptor, event)
+            )
+        : undefined;
 
       // No guard and no actions: simple static config
       if (!guard && !t.actions?.length) {
         if (t.context) {
           return {
             matches: t.matches,
+            _scxml: t._scxml,
+            _eventMatcher: eventMatcher,
             to: (x: any) => ({
               target: targetConfig,
               context: resolveTransitionContext(x),
@@ -1814,6 +2366,8 @@ export function createMachineFromConfig(
         }
         return {
           matches: t.matches,
+          _scxml: t._scxml,
+          _eventMatcher: eventMatcher,
           target: targetConfig,
           description: t.description,
           reenter: t.reenter,
@@ -1827,6 +2381,8 @@ export function createMachineFromConfig(
         if (t.context) {
           return {
             matches: t.matches,
+            _scxml: t._scxml,
+            _eventMatcher: eventMatcher,
             guard,
             to: (x: any) => ({
               target: targetConfig,
@@ -1840,6 +2396,8 @@ export function createMachineFromConfig(
         }
         return {
           matches: t.matches,
+          _scxml: t._scxml,
+          _eventMatcher: eventMatcher,
           target: targetConfig,
           guard,
           description: t.description,
@@ -1855,6 +2413,8 @@ export function createMachineFromConfig(
       if (!target) {
         return {
           matches: t.matches,
+          _scxml: t._scxml,
+          _eventMatcher: eventMatcher,
           guard,
           description: t.description,
           reenter: t.reenter,
@@ -1869,6 +2429,7 @@ export function createMachineFromConfig(
               }
               // Save pre-transition context for parallel override
               contextBeforeTargetless ??= x.context;
+              targetlessEvent ??= x.event;
               // Execute immediately (fallback for non-parallel case)
               const result = executeActions(t.actions, x, enq);
               if (result.context) {
@@ -1886,6 +2447,8 @@ export function createMachineFromConfig(
       // Map by target state ID so parallel transitions each get their own actions.
       return {
         matches: t.matches,
+        _scxml: t._scxml,
+        _eventMatcher: eventMatcher,
         guard,
         description: t.description,
         reenter: t.reenter,
@@ -1935,15 +2498,30 @@ export function createMachineFromConfig(
   assertMachineJSON(json, resolvedSources, expressionResolver);
 
   const rootNodeConfig = iterNode(json);
-  const contextConfig = json.context
-    ? {
-        context: (args: any) =>
-          resolveValue(json.context, 'context', args, '$.context')
-      }
-    : {};
-
-  _scxmlMachineName = json.id || '';
-  _scxmlSessionId = 'session_scxml';
+  const contextConfig =
+    json.context || json._scxmlDataIds?.length
+      ? {
+          context: (args: any) => ({
+            ...Object.fromEntries(
+              (json._scxmlDataIds ?? []).map((id) => [id, undefined])
+            ),
+            ...(json.context
+              ? (resolveValue(
+                  json.context,
+                  'context',
+                  args,
+                  '$.context'
+                ) as MachineContext)
+              : {}),
+            ...(args.input && typeof args.input === 'object' ? args.input : {}),
+            ...(json._scxmlDataIds?.length &&
+            args.input &&
+            typeof args.input === 'object'
+              ? { _xstateScxmlInputKeys: Object.keys(args.input) }
+              : {})
+          })
+        }
+      : {};
 
   const machine = createMachine({
     ...rootNodeConfig,

@@ -318,6 +318,11 @@ export interface TransitionConfig<
   >;
   meta?: TMeta;
   description?: string;
+  /** @internal Strict semantics for transitions produced by the SCXML converter. */
+  _scxml?: {
+    type?: 'internal' | 'external';
+    eventDescriptors?: string[];
+  };
 }
 
 export interface InitialTransitionConfig<
@@ -1560,6 +1565,7 @@ export type InitialTransitionDefinition = {
         context: MachineContext;
         event: EventObject;
       }) => Record<string, unknown>);
+  to?: ((...args: any[]) => any) | undefined;
 };
 
 export type TransitionDefinitionMap<

@@ -24,19 +24,19 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.initial).toBe('idle');
+      expect(json._scxmlInitial?.targets).toEqual(['#idle']);
       expect(toPortableJSON(json.states)).toMatchInlineSnapshot(`
         {
           "idle": {
             "id": "idle",
             "on": {
-              "START": {
-                "reenter": true,
-                "target": [
-                  "#running",
-                ],
-              },
-              "START.*": {
+              "*": {
+                "_scxml": {
+                  "eventDescriptors": [
+                    "START",
+                  ],
+                  "type": "external",
+                },
                 "reenter": true,
                 "target": [
                   "#running",
@@ -47,13 +47,13 @@ describe('SCXML to XState conversion', () => {
           "running": {
             "id": "running",
             "on": {
-              "STOP": {
-                "reenter": true,
-                "target": [
-                  "#idle",
-                ],
-              },
-              "STOP.*": {
+              "*": {
+                "_scxml": {
+                  "eventDescriptors": [
+                    "STOP",
+                  ],
+                  "type": "external",
+                },
                 "reenter": true,
                 "target": [
                   "#idle",
@@ -117,19 +117,19 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.states!.parent.initial).toBe('child1');
+      expect(json.states!.parent._scxmlInitial?.targets).toEqual(['#child1']);
       expect(toPortableJSON(json.states!.parent.states)).toMatchInlineSnapshot(`
         {
           "child1": {
             "id": "child1",
             "on": {
-              "NEXT": {
-                "reenter": true,
-                "target": [
-                  "#child2",
-                ],
-              },
-              "NEXT.*": {
+              "*": {
+                "_scxml": {
+                  "eventDescriptors": [
+                    "NEXT",
+                  ],
+                  "type": "external",
+                },
                 "reenter": true,
                 "target": [
                   "#child2",
@@ -140,13 +140,13 @@ describe('SCXML to XState conversion', () => {
           "child2": {
             "id": "child2",
             "on": {
-              "EXIT": {
-                "reenter": true,
-                "target": [
-                  "#outside",
-                ],
-              },
-              "EXIT.*": {
+              "*": {
+                "_scxml": {
+                  "eventDescriptors": [
+                    "EXIT",
+                  ],
+                  "type": "external",
+                },
                 "reenter": true,
                 "target": [
                   "#outside",
@@ -188,19 +188,23 @@ describe('SCXML to XState conversion', () => {
           "initial": "region1",
           "states": {
             "region1": {
+              "_scxmlInitial": {
+                "targets": [
+                  "#a",
+                ],
+              },
               "id": "region1",
-              "initial": "a",
               "states": {
                 "a": {
                   "id": "a",
                   "on": {
-                    "TO_B": {
-                      "reenter": true,
-                      "target": [
-                        "#b",
-                      ],
-                    },
-                    "TO_B.*": {
+                    "*": {
+                      "_scxml": {
+                        "eventDescriptors": [
+                          "TO_B",
+                        ],
+                        "type": "external",
+                      },
                       "reenter": true,
                       "target": [
                         "#b",
@@ -214,19 +218,23 @@ describe('SCXML to XState conversion', () => {
               },
             },
             "region2": {
+              "_scxmlInitial": {
+                "targets": [
+                  "#x",
+                ],
+              },
               "id": "region2",
-              "initial": "x",
               "states": {
                 "x": {
                   "id": "x",
                   "on": {
-                    "TO_Y": {
-                      "reenter": true,
-                      "target": [
-                        "#y",
-                      ],
-                    },
-                    "TO_Y.*": {
+                    "*": {
+                      "_scxml": {
+                        "eventDescriptors": [
+                          "TO_Y",
+                        ],
+                        "type": "external",
+                      },
                       "reenter": true,
                       "target": [
                         "#y",
@@ -261,16 +269,21 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.context)).toMatchInlineSnapshot(`
-        {
-          "count": 0,
-          "items": [
-            1,
-            2,
-            3,
-          ],
-          "name": "test",
-        }
+      expect(toPortableJSON(json._scxmlData)).toMatchInlineSnapshot(`
+        [
+          {
+            "expr": "0",
+            "id": "count",
+          },
+          {
+            "expr": "'test'",
+            "id": "name",
+          },
+          {
+            "expr": "[1, 2, 3]",
+            "id": "items",
+          },
+        ]
       `);
     });
   });
@@ -289,8 +302,14 @@ describe('SCXML to XState conversion', () => {
       const json = toMachineJSON(scxml);
 
       // SCXML events get .* suffix for prefix matching
-      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+      expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
         {
+          "_scxml": {
+            "eventDescriptors": [
+              "GO",
+            ],
+            "type": "external",
+          },
           "reenter": true,
           "target": [
             "#b",
@@ -313,29 +332,40 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.states!.idle.on!['CHECK.*']))
-        .toMatchInlineSnapshot(`
-        [
-          {
-            "guard": {
-              "params": {
-                "expr": "count > 3",
+      expect(toPortableJSON(json.states!.idle.on!['*'])).toMatchInlineSnapshot(`
+          [
+            {
+              "_scxml": {
+                "eventDescriptors": [
+                  "CHECK",
+                ],
+                "type": "external",
               },
-              "type": "scxml.cond",
+              "guard": {
+                "params": {
+                  "expr": "count > 3",
+                },
+                "type": "scxml.cond",
+              },
+              "reenter": true,
+              "target": [
+                "#high",
+              ],
             },
-            "reenter": true,
-            "target": [
-              "#high",
-            ],
-          },
-          {
-            "reenter": true,
-            "target": [
-              "#low",
-            ],
-          },
-        ]
-      `);
+            {
+              "_scxml": {
+                "eventDescriptors": [
+                  "CHECK",
+                ],
+                "type": "external",
+              },
+              "reenter": true,
+              "target": [
+                "#low",
+              ],
+            },
+          ]
+        `);
     });
 
     it('should convert In() guards', () => {
@@ -351,8 +381,14 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+      expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
         {
+          "_scxml": {
+            "eventDescriptors": [
+              "GO",
+            ],
+            "type": "external",
+          },
           "guard": {
             "params": {
               "stateId": "#b",
@@ -383,23 +419,28 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.states!.a.on!['TRIGGER.*']))
-        .toMatchInlineSnapshot(`
-        {
-          "actions": [
-            {
-              "event": {
-                "type": "RAISED",
-              },
-              "type": "@xstate.raise",
+      expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
+          {
+            "_scxml": {
+              "eventDescriptors": [
+                "TRIGGER",
+              ],
+              "type": "external",
             },
-          ],
-          "reenter": true,
-          "target": [
-            "#b",
-          ],
-        }
-      `);
+            "actions": [
+              {
+                "event": {
+                  "type": "RAISED",
+                },
+                "type": "@xstate.raise",
+              },
+            ],
+            "reenter": true,
+            "target": [
+              "#b",
+            ],
+          }
+        `);
     });
 
     it('should convert log actions', () => {
@@ -420,11 +461,9 @@ describe('SCXML to XState conversion', () => {
           {
             "actions": [
               {
-                "args": [
-                  "info",
-                  "'entered state a'",
-                ],
-                "type": "@xstate.log",
+                "expr": "'entered state a'",
+                "label": "info",
+                "type": "scxml.log",
               },
             ],
             "type": "scxml.block",
@@ -446,9 +485,13 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.states!.a.on!['CANCEL.*']))
-        .toMatchInlineSnapshot(`
+      expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
           {
+            "_scxml": {
+              "eventDescriptors": [
+                "CANCEL",
+              ],
+            },
             "actions": [
               {
                 "id": "delayed1",
@@ -479,10 +522,8 @@ describe('SCXML to XState conversion', () => {
           {
             "actions": [
               {
-                "args": [
-                  "'entering a'",
-                ],
-                "type": "@xstate.log",
+                "expr": "'entering a'",
+                "type": "scxml.log",
               },
             ],
             "type": "scxml.block",
@@ -509,10 +550,8 @@ describe('SCXML to XState conversion', () => {
           {
             "actions": [
               {
-                "args": [
-                  "'exiting a'",
-                ],
-                "type": "@xstate.log",
+                "expr": "'exiting a'",
+                "type": "scxml.log",
               },
             ],
             "type": "scxml.block",
@@ -538,6 +577,9 @@ describe('SCXML to XState conversion', () => {
       expect(toPortableJSON(json.states!.a.always)).toMatchInlineSnapshot(`
         [
           {
+            "_scxml": {
+              "type": "external",
+            },
             "reenter": true,
             "target": [
               "#b",
@@ -560,15 +602,21 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.states!.parent.on!['EXTERNAL.*']))
+      expect(toPortableJSON(json.states!.parent.on!['*']))
         .toMatchInlineSnapshot(`
-        {
-          "reenter": true,
-          "target": [
-            "#parent",
-          ],
-        }
-      `);
+          {
+            "_scxml": {
+              "eventDescriptors": [
+                "EXTERNAL",
+              ],
+              "type": "external",
+            },
+            "reenter": true,
+            "target": [
+              "#parent",
+            ],
+          }
+        `);
     });
 
     it('should not mark internal transitions with reenter', () => {
@@ -582,9 +630,16 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(
-        toPortableJSON(json.states!.parent.on!['INTERNAL.*'])
-      ).toMatchInlineSnapshot(`{}`);
+      expect(toPortableJSON(json.states!.parent.on!['*']))
+        .toMatchInlineSnapshot(`
+        {
+          "_scxml": {
+            "eventDescriptors": [
+              "INTERNAL",
+            ],
+          },
+        }
+      `);
     });
   });
 
@@ -602,9 +657,13 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.states!.a.on!['TRIGGER.*']))
-        .toMatchInlineSnapshot(`
+      expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
           {
+            "_scxml": {
+              "eventDescriptors": [
+                "TRIGGER",
+              ],
+            },
             "actions": [
               {
                 "event": "INTERNAL_EVENT",
@@ -629,9 +688,13 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.states!.a.on!['TRIGGER.*']))
-        .toMatchInlineSnapshot(`
+      expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
           {
+            "_scxml": {
+              "eventDescriptors": [
+                "TRIGGER",
+              ],
+            },
             "actions": [
               {
                 "delay": 500,
@@ -659,25 +722,14 @@ describe('SCXML to XState conversion', () => {
 
       expect(toPortableJSON(json.states!.idle.on)).toMatchInlineSnapshot(`
         {
-          "RESUME": {
-            "reenter": true,
-            "target": [
-              "#active",
-            ],
-          },
-          "RESUME.*": {
-            "reenter": true,
-            "target": [
-              "#active",
-            ],
-          },
-          "START": {
-            "reenter": true,
-            "target": [
-              "#active",
-            ],
-          },
-          "START.*": {
+          "*": {
+            "_scxml": {
+              "eventDescriptors": [
+                "START",
+                "RESUME",
+              ],
+              "type": "external",
+            },
             "reenter": true,
             "target": [
               "#active",
@@ -752,8 +804,13 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+      expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
         {
+          "_scxml": {
+            "eventDescriptors": [
+              "GO",
+            ],
+          },
           "actions": [
             {
               "delay": 100,
@@ -778,8 +835,13 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+      expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
         {
+          "_scxml": {
+            "eventDescriptors": [
+              "GO",
+            ],
+          },
           "actions": [
             {
               "delay": 2000,
@@ -804,8 +866,13 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+      expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
         {
+          "_scxml": {
+            "eventDescriptors": [
+              "GO",
+            ],
+          },
           "actions": [
             {
               "delay": 1500,
@@ -830,8 +897,13 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(toPortableJSON(json.states!.a.on!['GO.*'])).toMatchInlineSnapshot(`
+      expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
         {
+          "_scxml": {
+            "eventDescriptors": [
+              "GO",
+            ],
+          },
           "actions": [
             {
               "delay": 1500,
@@ -858,19 +930,19 @@ describe('SCXML to XState conversion', () => {
       const json = toMachineJSON(scxml);
 
       // Dots are replaced with $
-      expect(json.initial).toBe('state$one');
+      expect(json._scxmlInitial?.targets).toEqual(['#state$one']);
       expect(toPortableJSON(json.states)).toMatchInlineSnapshot(`
         {
           "state$one": {
             "id": "state$one",
             "on": {
-              "GO": {
-                "reenter": true,
-                "target": [
-                  "#state$two",
-                ],
-              },
-              "GO.*": {
+              "*": {
+                "_scxml": {
+                  "eventDescriptors": [
+                    "GO",
+                  ],
+                  "type": "external",
+                },
                 "reenter": true,
                 "target": [
                   "#state$two",
@@ -896,12 +968,16 @@ describe('SCXML to XState conversion', () => {
 
       const json = toMachineJSON(scxml);
 
-      expect(json.initial).toBe('foo$bar');
+      expect(json._scxmlInitial?.targets).toEqual(['#foo$bar']);
       expect(toPortableJSON(json.states)).toMatchInlineSnapshot(`
         {
           "foo$bar": {
+            "_scxmlInitial": {
+              "targets": [
+                "#baz$qux",
+              ],
+            },
             "id": "foo$bar",
-            "initial": "baz$qux",
             "states": {
               "baz$qux": {
                 "id": "baz$qux",

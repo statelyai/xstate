@@ -7,7 +7,12 @@ import {
   AnyStateMachine,
   createActor
 } from '../src/index.ts';
-import { toMachine, sanitizeStateId, toMachineJSON } from '../src/scxml';
+import {
+  SCXMLConversionOptions,
+  toMachine,
+  sanitizeStateId,
+  toMachineJSON
+} from '../src/scxml';
 import { getStateNodes } from '../src/stateUtils';
 
 const TEST_FRAMEWORK = path.dirname(
@@ -67,11 +72,11 @@ const testGroups: Record<string, string[]> = {
     'test2',
     'test2b',
     'test3',
-    // 'test3b', // a reentering transition contained in one parallel region reenters only that region, so it doesn't conflict with (and get preempted by) sibling-region transitions as strict SCXML external-transition domains would require
+    'test3b',
     'test4',
     'test5',
     'test6',
-    // 'test6b', // same deviation as test3b
+    'test6b',
     'test7',
     'test8',
     'test9',
@@ -293,7 +298,7 @@ const testGroups: Record<string, string[]> = {
     'test503.txml',
     'test504.txml',
     'test505.txml',
-    // 'test506.txml', // `reenter` semantics in v5 are different from SCXML type="internal"/"external" transitions, we respect `reenter` on all state types, not just on compound states
+    'test506.txml',
     // 'test509.txml', // Basic HTTP Event I/O processor not implemented
     // 'test510.txml', // Basic HTTP Event I/O processor not implemented
     // 'test518.txml', // Basic HTTP Event I/O processor not implemented
@@ -308,7 +313,7 @@ const testGroups: Record<string, string[]> = {
     // 'test530.txml', // <content expr="..."> dynamic invoke content not implemented
     // 'test531.txml', // Basic HTTP Event I/O processor not implemented
     // 'test532.txml', // Basic HTTP Event I/O processor not implemented
-    // 'test533.txml', // we allow `reenter: false` to not leave the source state even if that source state is not compound
+    'test533.txml',
     // 'test534.txml', // Basic HTTP Event I/O processor not implemented
     // 'test550.txml', // non-root datamodel with early binding not implemented yet
     // 'test551.txml', // non-root datamodel with early binding not implemented yet
@@ -338,6 +343,55 @@ const overrides: Record<string, string[]> = {
   ]
 };
 
+const manualTests = new Set([
+  'w3c-ecma/test230.txml',
+  'w3c-ecma/test250.txml',
+  'w3c-ecma/test307.txml',
+  'w3c-ecma/test313.txml',
+  'w3c-ecma/test314.txml'
+]);
+const deviations = new Set(['w3c-ecma/test201.txml']);
+const runnableTests: string[] = [];
+const testRoot = path.join(TEST_FRAMEWORK, 'test');
+
+for (const testGroupName of fs.readdirSync(testRoot)) {
+  const testGroupPath = path.join(testRoot, testGroupName);
+  if (!fs.statSync(testGroupPath).isDirectory()) {
+    continue;
+  }
+
+  for (const fileName of fs.readdirSync(testGroupPath)) {
+    if (!fileName.endsWith('.json')) {
+      continue;
+    }
+
+    const testName = fileName.slice(0, -'.json'.length);
+    if (
+      !fs.existsSync(path.join(testGroupPath, `${testName}.scxml`)) &&
+      !fs.existsSync(path.join(testGroupPath, `${testName}.txml.scxml`))
+    ) {
+      continue;
+    }
+
+    const testId = `${testGroupName}/${testName}`;
+    runnableTests.push(testId);
+    if (manualTests.has(testId) || deviations.has(testId)) {
+      continue;
+    }
+
+    const tests = (testGroups[testGroupName] ??= []);
+    if (!tests.includes(testName)) {
+      tests.push(testName);
+    }
+  }
+}
+
+for (const [testGroupName, tests] of Object.entries(testGroups)) {
+  testGroups[testGroupName] = tests.filter(
+    (testName) => !manualTests.has(`${testGroupName}/${testName}`)
+  );
+}
+
 interface SCIONTest {
   initialConfiguration: string[];
   events: Array<{
@@ -345,14 +399,39 @@ interface SCIONTest {
     event: { name: string };
     nextConfiguration: string[];
   }>;
+  legacySemantics?: SCIONTest;
+}
+
+function getAtomicStateIds(
+  machine: AnyStateMachine,
+  snapshot: AnyMachineSnapshot
+): string[] {
+  return [
+    ...new Set(
+      getStateNodes(machine.root, snapshot.value)
+        .filter((stateNode) => !Object.keys(stateNode.states).length)
+        .map((stateNode) => stateNode.id)
+    )
+  ].sort();
+}
+
+function expectConfiguration(
+  machine: AnyStateMachine,
+  snapshot: AnyMachineSnapshot,
+  expectedConfiguration: string[]
+): void {
+  expect(getAtomicStateIds(machine, snapshot)).toEqual(
+    expectedConfiguration.map(sanitizeStateId).sort()
+  );
 }
 
 async function runW3TestToCompletion(
   name: string,
   scxmlDefinition: string,
-  test: SCIONTest
+  test: SCIONTest,
+  options: SCXMLConversionOptions
 ): Promise<void> {
-  const machine = toMachine(scxmlDefinition);
+  const machine = toMachine(scxmlDefinition, options);
 
   const { resolve, reject, promise } = Promise.withResolvers<void>();
   let nextState: AnyMachineSnapshot;
@@ -393,14 +472,15 @@ async function runW3TestToCompletion(
 async function runTestToCompletion(
   name: string,
   scxmlDefinition: string,
-  test: SCIONTest
+  test: SCIONTest,
+  options: SCXMLConversionOptions
 ): Promise<void> {
-  toMachineJSON(scxmlDefinition);
+  toMachineJSON(scxmlDefinition, options);
 
-  const machine = toMachine(scxmlDefinition);
+  const machine = toMachine(scxmlDefinition, options);
 
   if (!test.events.length && test.initialConfiguration[0] === 'pass') {
-    await runW3TestToCompletion(name, scxmlDefinition, test);
+    await runW3TestToCompletion(name, scxmlDefinition, test, options);
     return;
   }
 
@@ -448,12 +528,25 @@ async function runTestToCompletion(
     return;
   }
 
+  // The generated W3C tests validate themselves by reaching pass/fail. Their
+  // JSON scripts model the remote test protocol and can expose a transient
+  // pre-external-queue configuration that is not observable after actor.start().
+  // The supplemental SCION fixtures, however, use initialConfiguration as a
+  // direct statechart assertion.
+  if (!name.startsWith('w3c-ecma/')) {
+    expectConfiguration(machine, nextState, test.initialConfiguration);
+  }
+
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {
       return;
     }
     if (after) {
-      (actor.clock as SimulatedClock).increment(after);
+      // Advance in small steps so a delayed event can schedule another delay
+      // relative to its actual due time, rather than the end of one large jump.
+      for (let elapsed = 0; elapsed < after; elapsed++) {
+        (actor.clock as SimulatedClock).increment(1);
+      }
     }
     if (done) {
       return;
@@ -463,13 +556,41 @@ async function runTestToCompletion(
       `${event.name} -> ${JSON.stringify(actor.getSnapshot().value)} ${JSON.stringify(actor.getSnapshot().context)}`
     );
 
-    const stateIds = getStateNodes(machine.root, nextState.value).map(
-      (stateNode) => stateNode.id
-    );
-
-    expect(stateIds).toContain(sanitizeStateId(nextConfiguration[0]));
+    expectConfiguration(machine, nextState, nextConfiguration);
   });
 }
+
+describe('SCXML corpus classification', () => {
+  it('classifies every runnable fixture exactly once', () => {
+    const automatedTests = new Set(
+      Object.entries(testGroups).flatMap(([testGroupName, tests]) =>
+        tests.map((testName) => `${testGroupName}/${testName}`)
+      )
+    );
+
+    expect(
+      runnableTests.filter(
+        (testId) =>
+          Number(automatedTests.has(testId)) +
+            Number(manualTests.has(testId)) +
+            Number(deviations.has(testId)) !==
+          1
+      )
+    ).toEqual([]);
+  });
+
+  describe('manual evidence required', () => {
+    for (const testId of manualTests) {
+      it.todo(testId);
+    }
+  });
+
+  describe.skip('explicit protocol deviation', () => {
+    for (const testId of deviations) {
+      it(testId, () => {});
+    }
+  });
+});
 
 describe('scxml', () => {
   const onlyTests: string[] = [
@@ -493,10 +614,15 @@ describe('scxml', () => {
         overrides[testGroupName].indexOf(testName) !== -1
           ? `./fixtures/scxml/${testGroupName}/${testName}.scxml`
           : `${TEST_FRAMEWORK}/test/${testGroupName}/${testName}.scxml`;
-      const scxmlDefinition = fs.readFileSync(
-        path.resolve(__dirname, scxmlSource),
-        { encoding: 'utf-8' }
-      );
+      const scxmlPath = path.resolve(__dirname, scxmlSource);
+      const scxmlDefinition = fs.readFileSync(scxmlPath, { encoding: 'utf-8' });
+      const conversionOptions: SCXMLConversionOptions = {
+        resolveResource: (src) =>
+          fs.readFileSync(
+            path.resolve(path.dirname(scxmlPath), src.replace(/^file:/, '')),
+            'utf-8'
+          )
+      };
       const scxmlTest = JSON.parse(
         fs.readFileSync(
           path.resolve(
@@ -506,13 +632,18 @@ describe('scxml', () => {
           { encoding: 'utf-8' }
         )
       ) as SCIONTest;
+      const expectedTest =
+        testGroupName === 'more-parallel' && testName.startsWith('test10')
+          ? scxmlTest.legacySemantics!
+          : scxmlTest;
 
       execTest(`${testGroupName}/${testName}`, async () => {
         try {
           await runTestToCompletion(
             `${testGroupName}/${testName}`,
             scxmlDefinition,
-            scxmlTest
+            expectedTest,
+            conversionOptions
           );
         } catch (e) {
           // console.log(JSON.stringify(machine.config, null, 2));
