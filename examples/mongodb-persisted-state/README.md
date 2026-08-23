@@ -1,38 +1,41 @@
-# Persistent State Storage and Hydration with MongoDB
+# mongodb-persisted-state
 
-## What it is
+## What it teaches
 
-This example demonstrates how to hook the MongoDB client into your running state machine for persistence.
-Specifically, it connects to a running instance of a MongoDB service, saves a snapshot of the Actor's state in the DB, and retrieves it whenever the Actor receives an event.
-The Actor is bound to a single record in the database, and will only ever update that record.
-If one doesn't already exist, like in the case of a first run, we create the state file in the database.
-This is particularly useful for working through long-running stateful flows, or flows where the underlying compute is not promised to be consistent.
+Persisting an actor snapshot to MongoDB after every transition and restoring it on the next run, so a workflow survives the process exiting.
 
-> [!IMPORTANT]
->
-> This example is intended to be used as a starting point. It is not production-ready. For example, when connecting to the MongoDB client, all strings should be URI-encoded when authenticating to MongoDB. Check out [MongoDB's Node driver docs](https://www.mongodb.com/docs/drivers/node/current/fundamentals/authentication/mechanisms/) for more details.
+## XState features used
 
-## Prerequisites
+- `setup()`
+- Persistence: `actor.getPersistedSnapshot()` and the `snapshot` actor option
+- Nested, parallel and final states with `onDone`
+- `machine.events` plus `snapshot.can(...)` to list the events available now
 
-To get this sample working, you'll need the following:
+## Run it
 
-- A live [MongoDB database deployment](https://www.mongodb.com/docs/atlas/create-connect-deployments/). There is no need to explicitly create the collections in the deployment. If they don't exist, the MongoClient will create them on your behalf.
-- A connection string to the running database. This is obtained by selecting the Connect option if you're using MongoDB's Atlas service
+Start MongoDB:
 
-## Running the sample
-
-1. Open a terminal in this folder and run `yarn install`. This will install the beta version of XState v5, the proper Node.JS driver for MongoDB, and `ts-node` for running this sample in your terminal.
-
-2. Replace the following line with your own connection string, or load it in as an environment variable:
-
-```ts
-const uri = '<your mongodb connection string>';
+```bash
+docker run --rm -d -p 27017:27017 --name xstate-mongo mongo:7
 ```
 
-3. Run the following command in the terminal to start the project:
+Then:
 
-```
-yarn ts-node --esm ./main.ts
+```bash
+pnpm install
+MONGODB_URI=mongodb://localhost:27017 pnpm start
 ```
 
-And that's it! Feel free to send the machine events, killing the program between events, and restarting it to ensure it hydrates properly. Be sure to check your Mongo DB collection for changes!
+`MONGODB_URI` defaults to `mongodb://localhost:27017`. The `donut-maker` database and its `donuts` collection are created on the first write. Type an event name (for example `NEXT`) and press enter; stop the process and start it again to see the workflow resume.
+
+The actor is bound to a single document, which it upserts. Writes go through `TaskQueue` so that snapshots are stored in transition order.
+
+The `start` script passes `--conditions=module` so that Node resolves `xstate` to this repo's source.
+
+> This example is a starting point, not production code. Among other things, URI credentials must be encoded — see [MongoDB's Node driver docs](https://www.mongodb.com/docs/drivers/node/current/fundamentals/authentication/mechanisms/).
+
+`donutMachine.ts` is a copy of the machine in [`../persisted-donut-maker`](../persisted-donut-maker), so each example stays runnable on its own. Keep the two files in sync.
+
+## Inspect it
+
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

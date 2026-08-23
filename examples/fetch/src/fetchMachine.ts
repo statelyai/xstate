@@ -1,25 +1,27 @@
-import { createMachine, createAsyncLogic } from 'xstate';
-import { getGreeting } from '.';
-import { z } from 'zod';
-export const fetchMachine = createMachine({
-  types: {
-    context: {} as {
+import { createAsyncLogic, setup, types } from 'xstate';
+import { getGreeting } from './getGreeting';
+
+export const fetchMachine = setup({
+  schemas: {
+    context: types<{
       name: string;
-      data: {
-        greeting: string;
-      } | null;
+      data: { greeting: string } | null;
+    }>(),
+    events: {
+      FETCH: types<{}>(),
+      RETRY: types<{}>()
     }
   },
   actors: {
-    fetchUser: createAsyncLogic({
+    fetchGreeting: createAsyncLogic({
       schemas: {
-        input: z.custom<{
-          name: string;
-        }>()
+        input: types<{ name: string }>()
       },
       run: ({ input }) => getGreeting(input.name)
     })
-  },
+  }
+}).createMachine({
+  id: 'fetch',
   initial: 'idle',
   context: {
     name: 'World',
@@ -28,35 +30,27 @@ export const fetchMachine = createMachine({
   states: {
     idle: {
       on: {
-        FETCH: 'loading'
+        FETCH: { target: 'loading' }
       }
     },
     loading: {
       invoke: {
-        src: 'fetchUser',
+        src: 'fetchGreeting',
         input: ({ context }) => ({ name: context.name }),
-        onDone: ({ context, event, guards, actions }, enq) => {
-          return {
-            target: 'success',
-            context: {
-              ...context,
-              data: (({ event }) => event.output)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        },
-        onError: 'failure'
+        onDone: ({ context, event }) => ({
+          target: 'success',
+          context: { ...context, data: event.output }
+        }),
+        onError: { target: 'failure' }
       }
     },
     success: {},
     failure: {
       after: {
-        1000: 'loading'
+        1000: { target: 'loading' }
       },
       on: {
-        RETRY: 'loading'
+        RETRY: { target: 'loading' }
       }
     }
   }

@@ -1,0 +1,19 @@
+{
+  "name": "@xstate/example-email-drip-campaign",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
+    "xstate": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.35",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  }
+}

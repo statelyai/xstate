@@ -42,7 +42,7 @@ import type {
   EventFromLogic,
   SendableEventFromLogic,
   InputFrom,
-  PersistedSnapshotFor,
+  PersistedSnapshotOf,
   Snapshot,
   SnapshotFrom,
   AnyTransitionDefinition,
@@ -1165,14 +1165,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
      * owns it. Defaults to `true`.
      */
     embedChildren?: boolean;
-  }): Snapshot<unknown> & PersistedSnapshotFor<TLogic>;
-  public getPersistedSnapshot(
-    options?: unknown
-  ): Snapshot<unknown> & PersistedSnapshotFor<TLogic> {
+  }): PersistedSnapshotOf<TLogic>;
+  public getPersistedSnapshot(options?: unknown): PersistedSnapshotOf<TLogic> {
     return this.logic.getPersistedSnapshot(
       this._snapshot,
       options
-    ) as Snapshot<unknown> & PersistedSnapshotFor<TLogic>;
+    ) as PersistedSnapshotOf<TLogic>;
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TLogic>> {

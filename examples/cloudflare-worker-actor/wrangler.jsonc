@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "xstate-example-cloudflare-worker-actor",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-09",
+  "durable_objects": {
+    "bindings": [{ "name": "ORDER", "class_name": "OrderActor" }]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["OrderActor"]
+    }
+  ]
+}

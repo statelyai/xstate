@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { useMachine } from '@xstate/vue';
+import { useActor } from '@xstate/vue';
 import { feedbackMachine } from './feedbackMachine';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { createInspector } from '@statelyai/sdk';
 
-const { inspect } = createBrowserInspector({
-  // Comment out the line below to start the inspector
-  autoStart: false
-});
+const inspector = createInspector();
 
-const { snapshot, send } = useMachine(feedbackMachine, {
-  inspect
+const { snapshot, send } = useActor(feedbackMachine, {
+  inspect: inspector.inspect
 });
 </script>
 

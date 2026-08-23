@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { RMCharacter } from '../../common/types';
-import { append, sortBy, prop } from 'ramda';
 import { Button } from '../styled/Button';
 import { Option } from '../styled/Option';
 import { TriviaMachineContext } from '../../context/AppContext';
@@ -8,57 +7,46 @@ import { TriviaMachineContext } from '../../context/AppContext';
 const GuessOptions = () => {
   const context = TriviaMachineContext.useSelector((state) => state.context);
   const triviaActorRef = TriviaMachineContext.useActorRef();
+  const [revealAnswer, setRevealAnswer] = useState(false);
+
+  const { currentCharacter, randomCharacters, hasLoaded } = context;
+
   const generateQuestions = (): RMCharacter[] => {
-    if (context.hasLoaded && context.randomCharacters.length > 0) {
-      const randomOptions: RMCharacter[] = context.randomCharacters
-        .filter(
-          (character: RMCharacter) =>
-            character.id !== context.currentCharacter!.id
-        )
-        .map((character: RMCharacter) => {
-          return character;
-        });
-      const sortById = sortBy(prop('id'));
-      return sortById(append(context.currentCharacter!, randomOptions));
-    } else {
+    if (!hasLoaded || !currentCharacter || randomCharacters.length === 0) {
       return [];
     }
+    const others = randomCharacters.filter(
+      (character) => character.id !== currentCharacter.id
+    );
+    return [...others, currentCharacter].sort((a, b) => a.id - b.id);
   };
 
-  const [revealAnswer, setRevealAnswer] = useState<boolean>(false);
-
-  const itemVariant = (character: number) => {
-    if (revealAnswer && context.hasLoaded) {
-      if (character === context.currentCharacter!.id) {
-        return 'success';
-      }
-      return 'danger';
-    }
+  const itemVariant = (id: number): 'success' | 'danger' | undefined => {
+    if (!revealAnswer || !currentCharacter) return undefined;
+    return id === currentCharacter.id ? 'success' : 'danger';
   };
 
   return (
     <div>
       <h2 className="text-center py-4">Who's this?</h2>
-      {context.hasLoaded && (
+      {hasLoaded && (
         <div className="text-center">
           <fieldset disabled={revealAnswer}>
-            {generateQuestions().map((character: RMCharacter) => {
-              return (
-                <Option
-                  key={character.id}
-                  variant={itemVariant(character.id)}
-                  onClick={() => {
-                    triviaActorRef.send({
-                      type: 'user.selectAnswer',
-                      answer: character.id
-                    });
-                    setRevealAnswer(true);
-                  }}
-                >
-                  {character.name}
-                </Option>
-              );
-            })}
+            {generateQuestions().map((character) => (
+              <Option
+                key={character.id}
+                $variant={itemVariant(character.id)}
+                onClick={() => {
+                  triviaActorRef.send({
+                    type: 'user.selectAnswer',
+                    answer: character.id
+                  });
+                  setRevealAnswer(true);
+                }}
+              >
+                {character.name}
+              </Option>
+            ))}
           </fieldset>
           <Button
             className="mt-3"
@@ -66,7 +54,7 @@ const GuessOptions = () => {
               setRevealAnswer(false);
               triviaActorRef.send({ type: 'user.nextQuestion' });
             }}
-            primary
+            $primary
           >
             NEXT
           </Button>

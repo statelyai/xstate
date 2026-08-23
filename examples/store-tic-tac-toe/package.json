@@ -1,5 +1,5 @@
 {
-  "name": "store-tic-tac-toe",
+  "name": "@xstate/example-store-tic-tac-toe",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "@xstate/store": "workspace:*",
     "@xstate/store-react": "workspace:*",
     "react": "^19.2.4",
@@ -24,8 +25,8 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.26",
     "globals": "^16.5.0",
-    "typescript": "~5.8.3",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^6.4.1"
+    "vite": "^7.1.14"
   }
 }

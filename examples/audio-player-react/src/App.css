@@ -1,0 +1,79 @@
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  position: relative;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  display: grid;
+  place-items: center;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(26rem, 90vw);
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+.tracks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tracks li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: #f2f3f7;
+}
+
+.tracks li.current {
+  background: #dce0ea;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+button {
+  appearance: none;
+  background: #311bf6;
+  color: white;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  font-weight: bold;
+}
+
+.state {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #4a4f68;
+}

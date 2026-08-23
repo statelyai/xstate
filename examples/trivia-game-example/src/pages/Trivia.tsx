@@ -1,18 +1,18 @@
-import React from 'react';
+import type { ErrorInfo } from 'react';
 import { Col, Container, Row } from 'react-bootstrap';
+import { ErrorBoundary } from 'react-error-boundary';
 import QuestionNumber from '../components/game/QuestionNumber';
 import LifesCounter from '../components/game/LifesCounter';
 import GameTitle from '../components/layout/GameTitle';
 import PointCounter from '../components/game/PointCounter';
 import GamePanel from '../components/game/GamePanel';
-import { ErrorBoundary } from 'react-error-boundary';
 import DisplayError from '../components/layout/DisplayError';
 
-const errorHandler = (error: Error, info: { componentStack: string }) => {
-  console.log(error, info);
+const errorHandler = (error: unknown, info: ErrorInfo) => {
+  console.error(error, info);
 };
 
-const Trivia: React.FC = () => {
+const Trivia = () => {
   return (
     <>
       <GameTitle />

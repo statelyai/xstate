@@ -1,10 +1,10 @@
 import React from 'react';
 import { useSelector } from '@xstate/react';
 import { friendMachine } from './friendMachine';
-import { ActorRefFrom } from 'xstate';
+import { ActorFromLogic } from 'xstate';
 
 export const Friend: React.FC<{
-  friendRef: ActorRefFrom<typeof friendMachine>;
+  friendRef: ActorFromLogic<typeof friendMachine>;
   onRemove: () => void;
 }> = ({ friendRef, onRemove }) => {
   const state = useSelector(friendRef, (s) => s);

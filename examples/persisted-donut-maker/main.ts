@@ -1,40 +1,44 @@
-import { __unsafe_getAllOwnEventDescriptors, createActor } from 'xstate';
-import { promises as fs } from 'fs';
+import { promises as fs } from 'node:fs';
+import { createInterface } from 'node:readline';
+import { createActor } from 'xstate';
 import { donutMachine } from './donutMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
 const FILENAME = './persisted-state.json';
 
-let restoredState;
+let restoredSnapshot;
 try {
-  restoredState = JSON.parse(await fs.readFile(FILENAME, 'utf8'));
-} catch (e) {
+  restoredSnapshot = JSON.parse(await fs.readFile(FILENAME, 'utf8'));
+} catch {
   console.log('No persisted state found.');
-  restoredState = undefined;
 }
 
 const actor = createActor(donutMachine, {
-  state: restoredState
+  snapshot: restoredSnapshot,
+  inspect: inspector?.inspect
 });
+
+const bold = (value: string) => `\x1b[1m${value}\x1b[0m`;
 
 actor.subscribe({
   next(snapshot) {
-    const nextEvents = __unsafe_getAllOwnEventDescriptors(snapshot);
+    // Events the machine declares, narrowed to the ones the current
+    // snapshot can actually take.
+    const nextEvents = donutMachine.events.filter(
+      (type) => !type.startsWith('done.') && snapshot.can({ type })
+    );
+
     console.log(
       'Current state:',
-      // the current state, bolded
-      `\x1b[1m${JSON.stringify(snapshot.value)}\x1b[0m\n`,
+      `${bold(JSON.stringify(snapshot.value))}\n`,
       'Next events:',
-      // the next events, each of them bolded
-      nextEvents
-        .filter((event) => !event.startsWith('done.'))
-        .map((event) => `\n  \x1b[1m${event}\x1b[0m`)
-        .join(''),
+      nextEvents.map((type) => `\n  ${bold(type)}`).join(''),
       '\nEnter the next event to send:'
     );
 
-    // save persisted state to json file
-    const persistedState = actor.getPersistedSnapshot();
-    fs.writeFile(FILENAME, JSON.stringify(persistedState));
+    fs.writeFile(FILENAME, JSON.stringify(actor.getPersistedSnapshot()));
   },
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
@@ -43,7 +47,10 @@ actor.subscribe({
 
 actor.start();
 
-process.stdin.on('data', (data) => {
-  const eventType = data.toString().trim();
-  actor.send({ type: eventType });
-});
+const input = createInterface({ input: process.stdin });
+
+for await (const line of input) {
+  actor.send({ type: line.trim() });
+}
+
+inspector?.destroy();

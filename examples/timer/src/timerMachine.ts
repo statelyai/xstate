@@ -1,58 +1,49 @@
-import { createMachine, createCallbackLogic } from 'xstate';
+import { createCallbackLogic, setup, types } from 'xstate';
 
-export const timerMachine = createMachine({
+export const timerMachine = setup({
+  schemas: {
+    context: types<{ seconds: number }>(),
+    events: {
+      start: types<{}>(),
+      stop: types<{}>(),
+      reset: types<{}>(),
+      minute: types<{}>(),
+      second: types<{}>(),
+      TICK: types<{}>()
+    }
+  },
   actors: {
     ticks: createCallbackLogic(({ sendBack }) => {
       const interval = setInterval(() => {
         sendBack({ type: 'TICK' });
       }, 1000);
+
       return () => clearInterval(interval);
     })
-  },
-  types: {} as {
-    events:
-      | { type: 'start' }
-      | { type: 'stop' }
-      | { type: 'reset' }
-      | { type: 'minute' }
-      | { type: 'second' }
-      | { type: 'TICK' };
-  },
+  }
+}).createMachine({
+  id: 'timer',
+  initial: 'stopped',
   context: {
     seconds: 0
   },
-  initial: 'stopped',
   states: {
     stopped: {
       on: {
-        start: ({ context, event, guards, actions }, enq) => {
-          if (!(({ context }) => context.seconds > 0)({ context, event })) {
+        start: ({ context }) => {
+          // Can only start a timer that has time on it
+          if (context.seconds === 0) {
             return;
           }
+
           return { target: 'running' };
         },
-        minute: ({ context, event, guards, actions }, enq) => {
-          return {
-            context: {
-              ...context,
-              seconds: (({ context }) => context.seconds + 60)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        },
-        second: ({ context, event, guards, actions }, enq) => {
-          return {
-            context: {
-              ...context,
-              seconds: (({ context }) => context.seconds + 1)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        }
+        minute: ({ context }) => ({
+          context: { ...context, seconds: context.seconds + 60 }
+        }),
+        second: ({ context }) => ({
+          context: { ...context, seconds: context.seconds + 1 }
+        })
       }
     },
     running: {
@@ -60,32 +51,26 @@ export const timerMachine = createMachine({
         src: 'ticks'
       },
       on: {
-        stop: 'stopped',
-        TICK: ({ context, event, guards, actions }, enq) => {
-          return {
-            context: {
-              ...context,
-              seconds: (({ context }) => context.seconds - 1)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        }
+        stop: { target: 'stopped' },
+        TICK: ({ context }) => ({
+          context: { ...context, seconds: context.seconds - 1 }
+        })
       },
-      always: ({ context, event, guards, actions }, enq) => {
-        if (!(({ context }) => context.seconds === 0)({ context, event })) {
+      always: ({ context }) => {
+        if (context.seconds > 0) {
           return;
         }
+
         return { target: 'stopped' };
       }
     }
   },
   on: {
-    reset: ({ context, event, guards, actions }, enq) => {
-      if (!(({ context }) => context.seconds > 0)({ context, event })) {
+    reset: ({ context }) => {
+      if (context.seconds === 0) {
         return;
       }
+
       return { context: { ...context, seconds: 0 } };
     }
   }
