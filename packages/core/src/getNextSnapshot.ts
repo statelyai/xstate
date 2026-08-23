@@ -185,6 +185,10 @@ function createMaterializedInertActorScope<T extends AnyActorLogic>(
   );
   if (previousSelf?._parent) {
     self._parent = previousSelf._parent;
+    // `address` memoizes on first read assuming `_parent` is final; nothing
+    // reads it between construction and this assignment, but drop any memo so
+    // a future construction-time read cannot pin a root-shaped address.
+    (self as unknown as { _address?: string })._address = undefined;
   }
   if (currentSnapshot) {
     (self as any)._snapshot = currentSnapshot;

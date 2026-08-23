@@ -15,7 +15,15 @@ import {
 } from './types.ts';
 import { XSTATE_TIMER } from './constants.ts';
 import { toObserver } from './utils.ts';
+import { getAmbientInspector } from './inspectionAmbient.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
+import {
+  rejectUndeliverableEvent,
+  deliverEvent,
+  stopActor as stopActorLocally,
+  terminateActor as terminateActorLocally,
+  runStep
+} from './runtimeHelpers.ts';
 
 interface ScheduledTimer {
   id: string;
@@ -84,30 +92,177 @@ function createSystemId(): string {
   return `${systemIdPrefix}:${(nextSystemId++).toString(36)}`;
 }
 
+/**
+ * The identity a durable execution pins on every system its transitions
+ * create. Shared across all transitions (and replays) of one execution, so
+ * session ids become a deterministic function of actor-creation order:
+ * `<executionId>:0`, `<executionId>:1`, … A replayed execution re-creates
+ * the same session ids, so journaled completion events (which carry the
+ * producing incarnation's `sessionId`) still match the children the replay
+ * re-creates.
+ */
+export interface ExecutionIdentity {
+  systemId: string;
+  nextSessionId: number;
+}
+
+let ambientExecutionIdentity: ExecutionIdentity | undefined;
+
+/** @internal Runs `fn` with systems it creates pinned to `identity`. */
+export function withExecutionIdentity<T>(
+  identity: ExecutionIdentity | undefined,
+  fn: () => T
+): T {
+  if (!identity) {
+    return fn();
+  }
+  const previous = ambientExecutionIdentity;
+  ambientExecutionIdentity = identity;
+  try {
+    return fn();
+  } finally {
+    ambientExecutionIdentity = previous;
+  }
+}
+
+export {
+  hasAmbientInspector,
+  withSystemInspector
+} from './inspectionAmbient.ts';
+
+/**
+ * Derives the deterministic id prefix for a generated actor id from its actor
+ * source: the registered source key when the source is a string, the logic's
+ * own `id` otherwise, with `x` as the last-resort prefix.
+ *
+ * @internal
+ */
+export function getActorIdPrefix(
+  src: string | AnyActorLogic | undefined
+): string {
+  if (typeof src === 'string') {
+    return src;
+  }
+  const logicId = (src as { id?: unknown } | undefined)?.id;
+  // Anonymous machines get the placeholder id '(machine)'; only named logic
+  // earns a named id prefix.
+  return typeof logicId === 'string' &&
+    logicId.length &&
+    logicId !== '(machine)'
+    ? logicId
+    : 'x';
+}
+
+/**
+ * Encodes one actor id as an address segment. `/` separates segments, so it
+ * is percent-encoded, and the escape character `%` is escaped first so the
+ * encoding stays injective: the ids 'a/b' and 'a%2Fb' must not produce the
+ * same address.
+ *
+ * @internal
+ */
+export function encodeAddressSegment(id: string): string {
+  return id.includes('/') || id.includes('%')
+    ? id.replaceAll('%', '%25').replaceAll('/', '%2F')
+    : id;
+}
+
+/**
+ * Parses a generated-shaped actor id (`prefix:<n>`). This single definition is
+ * the determinism contract for id reservation: live allocation, replay, and
+ * restore must all agree on what counts as generated-shaped. Deliberately
+ * broader than ids a generated allocation could produce — over-reserving
+ * skips numbers, which is harmless, while under-reserving could collide.
+ *
+ * @internal
+ */
+export function parseGeneratedActorId(
+  id: string
+): { prefix: string; index: number } | undefined {
+  const separator = id.lastIndexOf(':');
+  if (separator <= 0 || separator === id.length - 1) {
+    return undefined;
+  }
+  const index = Number(id.slice(separator + 1));
+  return Number.isSafeInteger(index) && index >= 0
+    ? { prefix: id.slice(0, separator), index }
+    : undefined;
+}
+
+/**
+ * The id (and address root segment) of the first parentless actor of a logic:
+ * the logic's own name, or `x:0` for anonymous logic.
+ *
+ * @internal
+ */
+export function getRootActorId(
+  src: string | AnyActorLogic | undefined
+): string {
+  const prefix = getActorIdPrefix(src);
+  return prefix === 'x' ? 'x:0' : prefix;
+}
+
+function getActorIdCounterKey(
+  parent: AnyActor | undefined,
+  prefix: string
+): string {
+  return `${parent ? parent.address : ''}|${prefix}`;
+}
+
+function bumpActorIdCounter(
+  system: AnyActorSystem,
+  counterKey: string,
+  next: number
+): void {
+  const counters = system._snapshot._nextActorIds;
+  if ((counters[counterKey] ?? 0) >= next) {
+    return;
+  }
+  // Copy-on-write: snapshot systems share this record by shallow `_snapshot`
+  // copies, so branches must not observe each other's allocations.
+  system._snapshot._nextActorIds = { ...counters, [counterKey]: next };
+  markSystemSnapshotDirty(system);
+}
+
 /** @internal */
 export function resolveActorId(
   system: AnyActorSystem,
-  requestedId: string | undefined
+  requestedId: string | undefined,
+  options?: {
+    parent?: AnyActor;
+    src?: string | AnyActorLogic;
+  }
 ): string {
   if (requestedId !== undefined) {
-    const match = /^x:(\d+)$/.exec(requestedId);
-    const reservedId = match ? Number(match[1]) : undefined;
-    if (reservedId !== undefined && Number.isSafeInteger(reservedId)) {
-      const nextActorId = Math.max(
-        system._snapshot._nextActorId,
-        reservedId + 1
+    const generated = parseGeneratedActorId(requestedId);
+    if (generated) {
+      bumpActorIdCounter(
+        system,
+        getActorIdCounterKey(options?.parent, generated.prefix),
+        generated.index + 1
       );
-      if (nextActorId !== system._snapshot._nextActorId) {
-        system._snapshot._nextActorId = nextActorId;
-        markSystemSnapshotDirty(system);
-      }
+    } else if (!options?.parent) {
+      // Reserve a restored root's bare name so a later parentless actor of
+      // the same logic in this system numbers past it.
+      bumpActorIdCounter(
+        system,
+        getActorIdCounterKey(undefined, requestedId),
+        1
+      );
     }
     return requestedId;
   }
 
-  const id = `x:${system._snapshot._nextActorId++}`;
-  markSystemSnapshotDirty(system);
-  return id;
+  const prefix = getActorIdPrefix(options?.src);
+  const counterKey = getActorIdCounterKey(options?.parent, prefix);
+  const counter = system._snapshot._nextActorIds[counterKey] ?? 0;
+  bumpActorIdCounter(system, counterKey, counter + 1);
+  // The first parentless actor of a logic gets the logic's own name; later
+  // parentless actors of the same logic in a shared system get numbered so
+  // addresses stay unique.
+  return !options?.parent && prefix !== 'x' && counter === 0
+    ? prefix
+    : `${prefix}:${counter}`;
 }
 
 /** @internal */
@@ -118,17 +273,36 @@ export function bookSessionId(system: AnyActorSystem): string {
 /**
  * Runtime operations used to execute effects.
  *
- * An external interpreter can override these operations while the default actor
- * system provides the local in-memory implementation.
+ * XState calculates pure transitions; a runtime executes their effects. The
+ * built-in local runtime is one implementation at the same level as any
+ * other: install a different one via `system.runtime` (for durable hosts,
+ * through `createDurable`'s adapter runtime operations).
  */
-/** Why an event was rejected at the delivery boundary. */
-export type EventRejectionReason = 'invalidEvent' | 'internalEvent';
+/**
+ * Why an event was not delivered: `'invalidEvent'` (payload failed its
+ * declared schema), `'internalEvent'` (an internal event type sent from
+ * outside its owning actor) or `'stopped'` (the target actor already
+ * stopped). Hosts may report additional reasons.
+ */
+export type EventRejectionReason =
+  | 'invalidEvent'
+  | 'internalEvent'
+  | 'stopped'
+  | (string & {});
+
+/** Extra detail attached to a dead letter. */
+export interface DeadLetterDetail {
+  /** Standard Schema issues for `invalidEvent` rejections. */
+  issues?: readonly StandardSchemaV1.Issue[];
+  /** The underlying error describing the rejection. */
+  error?: Error;
+}
 
 /**
  * Describes an event that was rejected at the delivery boundary instead of
  * being delivered to its target actor (a dead letter).
  */
-export interface EventRejection {
+export interface EventRejection extends DeadLetterDetail {
   /** The event that was rejected. */
   event: AnyEventObject;
   /** The actor the event was addressed to. */
@@ -140,10 +314,6 @@ export interface EventRejection {
   /** Whether the event came from outside the system or from another actor. */
   eventOrigin: 'external' | 'actor';
   reason: EventRejectionReason;
-  /** Standard Schema issues for `invalidEvent` rejections. */
-  issues?: readonly StandardSchemaV1.Issue[];
-  /** The underlying error describing the rejection. */
-  error: Error;
 }
 
 export interface ActorSystemRuntime {
@@ -169,8 +339,6 @@ export interface ActorSystemRuntime {
   ): void | PromiseLike<void>;
   /** Publishes an emitted event. */
   emitEvent(source: AnyActor, event: EventObject): void | PromiseLike<void>;
-  /** Reports an event rejected at the delivery boundary (a dead letter). */
-  rejectEvent(rejection: EventRejection): void | PromiseLike<void>;
   /** Schedules a logical timer. */
   scheduleTimer(
     source: AnyActor,
@@ -179,9 +347,70 @@ export interface ActorSystemRuntime {
   ): void | PromiseLike<void>;
   /** Cancels one logical timer. */
   cancelTimer(source: AnyActor, id: string): void | PromiseLike<void>;
+  /**
+   * Runs an async actor's entire body as one durable unit. The actor is the
+   * natural journal entry: its identity — `address`, string `src` key and
+   * serializable `input` — crosses any boundary, so a host can wrap `exec`
+   * in its own step primitive, or ignore `exec` entirely and re-run the
+   * registered logic on a remote executor from `(src, input)` alone. The
+   * default runs the body in this process, unjournaled.
+   *
+   * Like `runStep`, this is an orchestration frame: it may span external
+   * events and must never be serialized behind other runtime operations.
+   */
+  runLogic(
+    actor: AnyActor,
+    exec: () => PromiseLike<unknown>
+  ): PromiseLike<unknown>;
+  /**
+   * Runs one keyed step of an async actor (`enq.step`). The default journals
+   * the result in the actor's own snapshot; a durable host implements this
+   * to journal steps in its own journal instead — memoized results replay
+   * without re-running `exec`.
+   *
+   * Unlike other runtime operations, a step is an orchestration frame that
+   * may itself await runtime operations, so implementations must not
+   * serialize it behind them.
+   */
+  runStep(
+    actor: AnyActor,
+    key: string,
+    exec: () => unknown | PromiseLike<unknown>
+  ): unknown | PromiseLike<unknown>;
+  /**
+   * Reports an undeliverable event. Delivery stays at-most-once — this is
+   * observability, not retry: the default logs in development, emits an
+   * inspection event and calls the root actor's `onRejectedEvent` hook.
+   * `detail` carries validation issues and the underlying error for events
+   * rejected at the delivery boundary.
+   */
+  deadLetter(
+    source: AnyActor | undefined,
+    target: AnyActor,
+    event: AnyEventObject,
+    reason: EventRejectionReason,
+    detail?: DeadLetterDetail
+  ): void | PromiseLike<void>;
   /** Cancels all logical timers owned by an actor. */
   cancelAllTimers(source: AnyActor): void | PromiseLike<void>;
 }
+
+/** @internal Every operation of `ActorSystemRuntime`, for runtime wrappers. */
+export const RUNTIME_OPERATIONS = [
+  'spawnActor',
+  'startActor',
+  'stopActor',
+  'terminateActor',
+  'emitEvent',
+  'scheduleTimer',
+  'cancelTimer',
+  'cancelAllTimers',
+  'deadLetter'
+  // `runLogic`, `runStep` and `sendEvent` are deliberately absent: durable
+  // executions wire them separately, since logic bodies and steps await
+  // other runtime operations and root-addressed sends are captured per
+  // batch.
+] as const satisfies readonly (keyof ActorSystemRuntime)[];
 
 type ScheduledTimerId = string & { __scheduledTimerId: never };
 
@@ -257,13 +486,31 @@ export interface ActorSystem<
   /** @internal */
   _snapshot: {
     _scheduledTimers: Record<ScheduledTimerId, ScheduledTimer>;
-    _nextActorId: number;
+    /** Deterministic generated-id counters keyed by `${parentAddress}|${srcPrefix}`. */
+    _nextActorIds: Record<string, number>;
   };
   /** @internal */
   _snapshotVersion: number;
   start: () => void;
   _clock: Clock;
   _logger: (...args: any[]) => void;
+  /**
+   * The runtime executing this system's effects. When unset, the built-in
+   * local in-memory runtime runs them; `createActor(machine).start()` is just
+   * that built-in runtime. A host runtime installed here applies to every
+   * actor in the system — snapshot-scoped views and children created later
+   * included — and may implement any subset of operations, with the rest
+   * keeping the built-in behavior.
+   *
+   * An operation that returns a promise owns its own failure handling: the
+   * paths that hand work to a runtime do not await it. `createDurable`
+   * tracks its adapter's operations and fails `executeEffects` when one
+   * rejects.
+   *
+   * Durable hosts should provide this through `createDurable`'s
+   * adapter runtime operations rather than assigning it directly.
+   */
+  runtime?: Partial<ActorSystemRuntime>;
 }
 
 export type AnyActorSystem = ActorSystem<any>;
@@ -271,6 +518,7 @@ export type AnyActorSystem = ActorSystem<any>;
 // These optional lazy fields intentionally have no emitted initializers.
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 interface RuntimeSystem<T extends ActorSystemInfo> {
+  runtime?: Partial<ActorSystemRuntime>;
   _children?: Map<string, AnyActor>;
   _keyedActors?: Map<keyof T['actors'], AnyActor | undefined>;
   _reverseKeyedActors?: WeakMap<AnyActor, keyof T['actors']>;
@@ -280,7 +528,7 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
 }
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
-  public _identity = {
+  public _identity = ambientExecutionIdentity ?? {
     systemId: createSystemId(),
     nextSessionId: 0
   };
@@ -349,15 +597,21 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       typeof options.snapshot === 'object' && options.snapshot !== null
         ? (options.snapshot as {
             scheduler?: Record<ScheduledTimerId, ScheduledTimer>;
-            _nextActorId?: number;
           })
         : undefined;
     this._clock = options.clock;
     this._logger = options.logger;
     this.createActorRef = options.createActorRef;
+    const ambientInspector = getAmbientInspector();
+    if (ambientInspector) {
+      this.inspect(ambientInspector);
+    }
     this._snapshot = {
       _scheduledTimers: restoredSnapshot?.scheduler ?? emptyScheduledTimers,
-      _nextActorId: restoredSnapshot?._nextActorId ?? 0
+      // System-level counters are process-local backstops; per-actor
+      // counters persist on each machine snapshot, and restored explicit ids
+      // reserve their numbering here via `resolveActorId`.
+      _nextActorIds: {}
     };
   }
 
@@ -461,33 +715,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void {
-    const runtimeTarget = target as AnyActor & {
-      logic?: { isInternalEventType?: (eventType: string) => boolean };
-      _lastSourceRef?: AnyActor;
-    };
-    const targetMachine = runtimeTarget.logic;
-    const isInternalEvent =
-      typeof targetMachine?.isInternalEventType === 'function' &&
-      targetMachine.isInternalEventType(event.type);
-
-    if (isInternalEvent && source !== target) {
-      this.rejectEvent({
-        event,
-        targetRef: target,
-        targetId: target.id,
-        sourceRef: source,
-        eventOrigin: source ? 'actor' : 'external',
-        reason: 'internalEvent',
-        error: new Error(
-          `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
-        )
-      });
-      return;
-    }
-
-    // remember the last source for unified transition inspect event
-    runtimeTarget._lastSourceRef = source;
-    target._send(event);
+    deliverEvent(source, target, event);
   }
 
   public _register(sessionId: string, actor: AnyActor): string {
@@ -502,11 +730,18 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
 
   public _unregister(actor: AnyActor): void {
     let changed: boolean;
+    // Remote handles have no sessionId and are never in the session map;
+    // their registry cleanup happens through the keyed-actor path below.
     if (actor === this._rootActor) {
       changed = this._getRootActor() !== undefined;
-      changed = (this._children?.delete(actor.sessionId!) ?? false) || changed;
+      changed =
+        (actor.sessionId !== undefined &&
+          (this._children?.delete(actor.sessionId) ?? false)) ||
+        changed;
     } else {
-      changed = this._children?.delete(actor.sessionId!) ?? false;
+      changed =
+        actor.sessionId !== undefined &&
+        (this._children?.delete(actor.sessionId) ?? false);
     }
     const registryKey = this._reverseKeyedActors?.get(actor);
 
@@ -586,68 +821,164 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     );
   }
 
-  public spawnActor(): void {}
+  // Unlike the other operations, spawn has no local work: local actors
+  // register with the system when they are constructed, so this only
+  // notifies a host runtime.
+  public spawnActor(
+    source: AnyActor | undefined,
+    actor: AnyActor
+  ): void | PromiseLike<void> {
+    return this.runtime?.spawnActor?.(source, actor);
+  }
 
-  public startActor(actor: AnyActor): void {
+  public startActor(actor: AnyActor): void | PromiseLike<void> {
+    const override = this.runtime?.startActor;
+    if (override) {
+      return override(actor);
+    }
     actor.start();
   }
 
-  public stopActor(actor: AnyActor): void {
-    (actor as AnyActor & { _stop(): void })._stop();
+  public stopActor(actor: AnyActor): void | PromiseLike<void> {
+    const override = this.runtime?.stopActor;
+    if (override) {
+      return override(actor);
+    }
+    stopActorLocally(actor);
   }
 
-  public terminateActor(actor: AnyActor, termination: ActorTermination): void {
-    (
-      actor as AnyActor & { _terminate(value: ActorTermination): void }
-    )._terminate(termination);
+  public terminateActor(
+    actor: AnyActor,
+    termination: ActorTermination
+  ): void | PromiseLike<void> {
+    const override = this.runtime?.terminateActor;
+    if (override) {
+      return override(actor, termination);
+    }
+    terminateActorLocally(actor, termination);
   }
 
   public sendEvent(
     source: AnyActor | undefined,
     target: AnyActor,
     event: AnyEventObject
-  ): void {
+  ): void | PromiseLike<void> {
+    if (rejectUndeliverableEvent(source, target, event)) {
+      return;
+    }
+    // Record for the inspection `sent[]` facet regardless of which runtime
+    // delivers, so host runtimes keep inspection parity.
     this._recordSent(source, target, event);
+    const override = this.runtime?.sendEvent;
+    if (override) {
+      return override(source, target, event);
+    }
     this._deliver(source, target, event);
   }
 
-  public emitEvent(source: AnyActor, event: EventObject): void {
+  public emitEvent(
+    source: AnyActor,
+    event: EventObject
+  ): void | PromiseLike<void> {
+    const override = this.runtime?.emitEvent;
+    if (override) {
+      return override(source, event);
+    }
     (source as AnyActor & { _emit(value: EventObject): void })._emit(event);
   }
 
-  public rejectEvent(rejection: EventRejection): void {
+  public deadLetter(
+    source: AnyActor | undefined,
+    target: AnyActor,
+    event: AnyEventObject,
+    reason: EventRejectionReason,
+    detail?: DeadLetterDetail
+  ): void | PromiseLike<void> {
+    this._sendInspectionEvent({
+      type: '@xstate.deadletter',
+      actorRef: target,
+      sourceRef: source,
+      event,
+      reason,
+      issues: detail?.issues,
+      error: detail?.error
+    });
+    this._onRejectedEvent?.({
+      event,
+      targetRef: target,
+      targetId: target.id,
+      sourceRef: source,
+      eventOrigin: source ? 'actor' : 'external',
+      reason,
+      issues: detail?.issues,
+      error: detail?.error
+    });
+    const override = this.runtime?.deadLetter;
+    if (override) {
+      return override(source, target, event, reason, detail);
+    }
     if (isDevelopment) {
       console.warn(
-        `Event "${rejection.event.type}" was rejected${
-          rejection.targetId === undefined
-            ? ''
-            : ` by actor "${rejection.targetId}"`
-        }: ${rejection.error.message}`
+        `Event "${event.type}" to actor "${target.id}" was not delivered (${reason}).`
       );
     }
-    this._sendInspectionEvent({
-      type: '@xstate.event.rejected',
-      actorRef: rejection.targetRef ?? this._rootActor,
-      event: rejection.event,
-      targetId: rejection.targetId,
-      sourceRef: rejection.sourceRef,
-      eventOrigin: rejection.eventOrigin,
-      reason: rejection.reason,
-      issues: rejection.issues,
-      error: rejection.error
-    });
-    this._onRejectedEvent?.(rejection);
   }
 
-  public scheduleTimer(source: AnyActor, id: string, delay: number): void {
+  public runStep(
+    actor: AnyActor,
+    key: string,
+    exec: () => unknown | PromiseLike<unknown>
+  ): unknown | PromiseLike<unknown> {
+    const override = this.runtime?.runStep;
+    if (override) {
+      return override(actor, key, exec);
+    }
+    return runStep(actor, key, exec);
+  }
+
+  public runLogic(
+    actor: AnyActor,
+    exec: () => PromiseLike<unknown>
+  ): PromiseLike<unknown> {
+    const override = this.runtime?.runLogic;
+    if (override) {
+      return override(actor, exec);
+    }
+    return exec();
+  }
+
+  public scheduleTimer(
+    source: AnyActor,
+    id: string,
+    delay: number
+  ): void | PromiseLike<void> {
+    const override = this.runtime?.scheduleTimer;
+    if (override) {
+      // The local scheduler records delayed sends for inspection inside
+      // `schedule`; keep that parity for host runtimes.
+      const timer = source.getSnapshot()?.timers?.[id];
+      if (timer) {
+        const target = timer.target === 'self' ? source : timer.target;
+        this._recordSent(source, target, timer.event, delay, id);
+      }
+      return override(source, id, delay);
+    }
     this.schedule(source, id, delay);
   }
 
-  public cancelTimer(source: AnyActor, id: string): void {
+  public cancelTimer(source: AnyActor, id: string): void | PromiseLike<void> {
+    const override = this.runtime?.cancelTimer;
+    if (override) {
+      return override(source, id);
+    }
     this.cancel(source, id);
   }
 
-  public cancelAllTimers(source: AnyActor): void {
+  public cancelAllTimers(source: AnyActor): void | PromiseLike<void> {
+    const override = this.runtime?.cancelAllTimers;
+    if (override) {
+      return override(source);
+    }
     this.cancelAll(source);
   }
 
@@ -655,14 +986,16 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     source: AnyActor | undefined,
     target: AnyActor,
     event: AnyEventObject
-  ): void {
+  ): void | PromiseLike<void> {
     if (
       transitionEffectTargets.length &&
       transitionEffectTargets.includes(target)
     ) {
       throw transitionEffectSignal;
     }
-    this.sendEvent(source, target, event);
+    // Returned so callers that can observe a host runtime's asynchronous
+    // delivery do; the built-in runtime delivers synchronously.
+    return this.sendEvent(source, target, event);
   }
 
   public getSnapshot(): {

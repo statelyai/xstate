@@ -9,7 +9,8 @@ description: Declare typed sources with setup(...) and swap implementations with
 const orderSetup = setup({
   schemas: {
     context: z.object({ total: z.number() }),
-    events: { submit: z.object({}) }
+    events: { submit: z.object({}) },
+    internalEvents: { recalculate: z.object({}) }
   },
   actions: {
     logTotal: (params: { total: number }) => console.log(params.total)
@@ -27,6 +28,30 @@ const orderMachine = orderSetup.createMachine({
 ```
 
 `setup(...)` also accepts `states`, where each state declares its own schemas. That is what types the `initial: { target, input }` form and transitions carrying [state input](state-input.md).
+
+State schemas can also declare `schemas.output` for the value emitted when that
+state completes. Final-state `output` functions and the parent state's `onDone`
+event use that local type. For a parallel state, declare the aggregate object on
+the parallel state itself:
+
+```ts
+const uploadSetup = setup({
+  states: {
+    processing: {
+      schemas: {
+        output: types<{
+          upload: { url: string };
+          scan: { safe: boolean };
+        }>()
+      }
+    }
+  }
+});
+```
+
+These local output schemas currently provide TypeScript contracts. Runtime
+validation still checks the machine's stable terminal output at the existing
+result boundary; it does not validate transient nested completion values.
 
 Use `setup(...).extend(...)` to build a more specific setup from a shared one, merging schemas and sources.
 
@@ -56,7 +81,7 @@ Validation can be installed, replaced or disabled by a derived setup. Installing
 
 Where a validation failure surfaces depends on which side of the delivery boundary produced the invalid value:
 
-- **Events arriving from outside the actor** — from `actor.send` or from another actor — are rejected at the boundary when their payload fails its schema, or when the event type is undeclared and `unknownEvents` is `'error'`. The event is never delivered: the actor does not transition, does not error, and no API throws. The rejection is reported to the `onRejectedEvent` dead-letter hook on `createActor` options, to [inspection](inspection.md) observers as a `@xstate.event.rejected` event, and as a development-mode console warning. In pure `transition(...)` calls, the snapshot is returned unchanged together with a `@xstate.rejectEvent` effect carrying the rejection.
+- **Events arriving from outside the actor** — from `actor.send` or from another actor — are rejected at the boundary when their payload fails its schema, or when the event type is undeclared and `unknownEvents` is `'error'`. The event is never delivered: the actor does not transition, does not error, and no API throws. The rejection is reported to the `onRejectedEvent` dead-letter hook on `createActor` options, to [inspection](inspection.md) observers as a `@xstate.deadletter` event, and as a development-mode console warning. In pure `transition(...)` calls, the snapshot is returned unchanged together with a `@xstate.deadLetter` effect carrying the rejection.
 - **Values the actor produces itself** — input, context, output, emitted events and delayed raised events — error the actor when they fail their schema, and pure `transition(...)`/`initialTransition(...)` throw an `ActorValidationError`. These are machine bugs.
 
 ## Sources on the machine
@@ -81,8 +106,9 @@ Named sources arrive as typed maps on the arguments of every transition function
 ```ts
 idle: {
   on: {
-    submit: ({ context, actions, guards }, enq) => {
-      if (!guards.isReady()) return;
+    submit: (args, enq) => {
+      const { actions } = args;
+      if (!args.guards.isReady(args)) return;
       actions.notify({ msg: 'Charging' });
       enq(actions.notify, { msg: 'Queued' });
       return { target: 'charging' };
@@ -91,7 +117,7 @@ idle: {
 }
 ```
 
-Named actions and guards are called with their params. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
+Named actions are called with their params. Named guards receive the transition arguments object first, then any params. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
 
 ```ts
 setup({

@@ -103,29 +103,28 @@ export interface TransitionInspectionEvent extends BaseInspectionEventProperties
 }
 
 /**
- * Announces an event that was rejected at the delivery boundary instead of
- * being delivered to its target actor (a dead letter).
+ * Emitted when an event could not be delivered to its target actor (a dead
+ * letter): a send to a stopped actor, an invalid external event payload, or
+ * an internal event type sent from outside its owning actor.
  *
- * A rejection is not an actor error: the target actor keeps running and its
- * snapshot is unchanged. Rejections cover invalid external event payloads and
- * internal event types sent from outside the owning actor.
+ * A dead letter is not an actor error: the target actor's snapshot is
+ * unchanged.
  */
-export interface EventRejectedInspectionEvent extends BaseInspectionEventProperties {
-  type: '@xstate.event.rejected';
-  /** The event that was rejected. */
-  event: AnyEventObject;
-  /** The `id` of the target actor, if known. */
-  targetId: string | undefined;
-  /** The actor that sent the event, or `undefined` for an external send. */
+export interface DeadLetterInspectionEvent extends BaseInspectionEventProperties {
+  type: '@xstate.deadletter';
+  /** The actor that sent the event, or `undefined` when sent externally. */
   sourceRef: ActorRefLike | undefined;
-  /** Whether the event came from outside the system or from another actor. */
-  eventOrigin: 'external' | 'actor';
-  /** Why the event was rejected. */
+  /** The undelivered event. */
+  event: AnyEventObject;
+  /**
+   * Why the event was not delivered: `'stopped'`, `'invalidEvent'` or
+   * `'internalEvent'`.
+   */
   reason: EventRejectionReason;
-  /** Standard Schema issues for `invalidEvent` rejections. */
+  /** Standard Schema issues for `'invalidEvent'` dead letters. */
   issues?: readonly StandardSchemaV1.Issue[];
-  /** The underlying error describing the rejection. */
-  error: Error;
+  /** The underlying error describing a delivery-boundary rejection. */
+  error?: Error;
 }
 
 /**
@@ -134,10 +133,9 @@ export interface EventRejectedInspectionEvent extends BaseInspectionEventPropert
  * - `@xstate.actor` — actor topology (identity + parent), drawable up front.
  * - `@xstate.transition` — every transition facet: event, snapshot, source,
  *   microsteps, executed actions, and sent/scheduled events.
- * - `@xstate.event.rejected` — events rejected at the delivery boundary (dead
- *   letters).
+ * - `@xstate.deadletter` — events that could not be delivered.
  */
 export type InspectionEvent =
   | ActorInspectionEvent
   | TransitionInspectionEvent
-  | EventRejectedInspectionEvent;
+  | DeadLetterInspectionEvent;

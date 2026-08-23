@@ -106,15 +106,14 @@ on: {
 // named guards
 const machine = createMachine({
   guards: {
-    hasStock: ({ available, quantity }: { available: number; quantity: number }) =>
-      available >= quantity
+    hasStock: ({ context }) => context.available >= context.quantity
   },
   initial: 'browsing',
   states: {
     browsing: {
       on: {
-        addItem: ({ context, guards }) => {
-          if (!guards.hasStock(context)) return;
+        addItem: (args) => {
+          if (!args.guards.hasStock(args)) return;
           return { target: 'adding' };
         }
       }
@@ -138,6 +137,8 @@ See [guards](guards.md).
 
 ## Enqueue effects
 
+<!-- enqueue methods and supported call sites from packages/core/src/types.ts and packages/core/src/stateUtils.ts -->
+
 ```ts
 entry: ({ context, children, actions }, enq) => {
   enq(() => startEffect());              // any effect function
@@ -147,12 +148,13 @@ entry: ({ context, children, actions }, enq) => {
   enq.sendTo(children.worker, { type: 'ping' });
   enq.emit({ type: 'opened' });
   enq.log(context.total, 'total');
-  const child = enq.spawn(uploadLogic, { id: 'upload', input: { file } });
+  const child = enq.spawn('upload', { id: 'upload', input: { file } });
   enq.stop(child);
 };
 ```
 
-`enq.listen(...)` and `enq.subscribeTo(...)` are available in `entry` and `exit` only:
+`enq.listen(...)` and `enq.subscribeTo(...)` are available in transition,
+`entry` and `exit` functions:
 
 ```ts
 entry: (_, enq) => {
@@ -393,8 +395,8 @@ on: { reset: { target: ['playback.stopped', 'volume.audible'] } }
 // choice state: pass-through branch point, must resolve to a target
 routing: {
   type: 'choice',
-  choice: ({ context, guards }) => {
-    if (guards.isVip(context)) return { target: 'vipFlow' };
+  choice: (args) => {
+    if (args.guards.isVip(args)) return { target: 'vipFlow' };
     return { target: 'standardFlow' };
   }
 }
@@ -420,8 +422,13 @@ See [final](final-states.md), [history](history-states.md), [parallel](parallel-
 
 ```ts
 createMachine({
-  schemas: { events: { start: z.object({}), tick: z.object({}) } },
-  internalEvents: ['tick', 'change.*'] as const,
+  schemas: {
+    events: { start: z.object({}) },
+    internalEvents: {
+      tick: z.object({}),
+      'change.*': z.object({ value: z.string() })
+    }
+  },
   initial: 'idle',
   states: {
     idle: {
@@ -435,7 +442,8 @@ createMachine({
 });
 ```
 
-Listed types can be raised inside the machine but throw when sent from outside. See [internal events](internal-events.md).
+Types declared in `schemas.internalEvents` can be raised inside the machine
+but throw when sent from outside. See [internal events](internal-events.md).
 
 ## Setup and provide
 

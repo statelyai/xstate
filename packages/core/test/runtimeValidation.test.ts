@@ -10,7 +10,7 @@ import {
   createMachine,
   createSystem,
   createObservableLogic,
-  type EventRejection,
+  type DeadLetterExecutableActionObject,
   initialTransition,
   setup,
   transition,
@@ -32,12 +32,11 @@ function getThrown(fn: () => void): unknown {
 
 function getRejection(
   result: [unknown, ReadonlyArray<{ kind?: string; type?: string }>]
-): EventRejection | undefined {
-  const effect = result[1].find(
+): DeadLetterExecutableActionObject | undefined {
+  return result[1].find(
     (effect) =>
-      effect.kind === 'builtin' && effect.type === '@xstate.rejectEvent'
-  );
-  return (effect as { rejection?: EventRejection } | undefined)?.rejection;
+      effect.kind === 'builtin' && effect.type === '@xstate.deadLetter'
+  ) as DeadLetterExecutableActionObject | undefined;
 }
 
 function expectValidationError(
@@ -246,11 +245,34 @@ describe('runtime schema validation', () => {
     const rejection = getRejection(result);
     expect(rejection).toMatchObject({
       event: { type: 'GO', count: 'x' },
-      eventOrigin: 'external',
       reason: 'invalidEvent'
     });
-    expectValidationError(rejection!.error, 'event');
+    expectValidationError(rejection!.detail!.error, 'event');
     expect(guard).not.toHaveBeenCalled();
+  });
+
+  it('validates separately declared internal event schemas', () => {
+    const machine = setup({
+      validator: standardSchemaValidator(),
+      schemas: {
+        events: { GO: z.object({}) },
+        internalEvents: { TICK: z.object({ count: z.number() }) }
+      }
+    }).createMachine({
+      initial: 'idle',
+      states: {
+        idle: { on: { TICK: { target: 'done' } } },
+        done: {}
+      }
+    });
+    const [snapshot] = initialTransition(machine);
+
+    const result = transition(machine, snapshot, {
+      type: 'TICK',
+      count: 'x'
+    } as any);
+    expect(result[0]).toBe(snapshot);
+    expectValidationError(getRejection(result)!.detail!.error, 'event');
   });
 
   it('is strict for unknown events by default and supports open protocols', () => {
@@ -267,7 +289,7 @@ describe('runtime schema validation', () => {
     } as any);
     expect(strictResult[0]).toBe(strictSnapshot);
     expectValidationError(
-      getRejection(strictResult)!.error,
+      getRejection(strictResult)!.detail!.error,
       'event',
       'unknownEvent'
     );
@@ -402,13 +424,12 @@ describe('runtime schema validation', () => {
 
     expect(actor.getSnapshot().status).toBe('active');
     const rejected = inspection.find(
-      (event) => event.type === '@xstate.event.rejected'
+      (event) => event.type === '@xstate.deadletter'
     );
     expect(rejected).toBeDefined();
     expect(rejected).toMatchObject({
       event: { type: 'GO', value: 'x' },
-      targetId: actor.id,
-      eventOrigin: 'external',
+      sourceRef: undefined,
       reason: 'invalidEvent'
     });
     expectValidationError(rejected.error, 'event');
@@ -666,7 +687,8 @@ describe('runtime schema validation', () => {
     }).createMachine({});
     const [snapshot] = initialTransition(asyncMachine);
     expectValidationError(
-      getRejection(transition(asyncMachine, snapshot, { type: 'GO' }))!.error,
+      getRejection(transition(asyncMachine, snapshot, { type: 'GO' }))!.detail!
+        .error,
       'event',
       'asyncValidationUnsupported'
     );
@@ -686,7 +708,7 @@ describe('runtime schema validation', () => {
     expectValidationError(
       getRejection(
         transition(rejectingMachine, rejectingSnapshot, { type: 'GO' })
-      )!.error,
+      )!.detail!.error,
       'event',
       'asyncValidationUnsupported'
     );

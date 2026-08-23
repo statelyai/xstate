@@ -62,11 +62,11 @@ describe('event boundary: reject and report', () => {
     expect(rejections[0].issues?.length).toBeGreaterThan(0);
 
     const rejected = inspection.find(
-      (event) => event.type === '@xstate.event.rejected'
+      (event) => event.type === '@xstate.deadletter'
     );
     expect(rejected).toMatchObject({
       event: { type: 'GO', count: 'oops' },
-      eventOrigin: 'external',
+      sourceRef: undefined,
       reason: 'invalidEvent'
     });
 
@@ -112,7 +112,7 @@ describe('event boundary: reject and report', () => {
       const actor = createActor(createValidatedMachine()).start();
       actor.send({ type: 'GO', count: 'oops' } as any);
       expect(warn).toHaveBeenCalledTimes(1);
-      expect(warn.mock.calls[0][0]).toMatch('Event "GO" was rejected');
+      expect(warn.mock.calls[0][0]).toMatch('Event "GO" to actor');
     } finally {
       warn.mockRestore();
     }
@@ -155,14 +155,8 @@ describe('event boundary: reject and report', () => {
     expect(effects).toHaveLength(1);
     expect(effects[0]).toMatchObject({
       kind: 'builtin',
-      type: '@xstate.rejectEvent'
-    });
-    const { rejection } = effects[0] as unknown as {
-      rejection: EventRejection;
-    };
-    expect(rejection).toMatchObject({
+      type: '@xstate.deadLetter',
       event: { type: 'GO', count: 'oops' },
-      eventOrigin: 'external',
       reason: 'invalidEvent'
     });
   });
@@ -210,26 +204,19 @@ describe('event boundary: reject and report', () => {
   });
 
   describe('durable execution', () => {
-    it('journals rejections through onRejectedEvent and keeps replay total', async () => {
+    it('journals rejections through the deadLetter runtime operation and keeps replay total', async () => {
       const machine = createValidatedMachine();
       const queue: AnyEventObject[] = [
         { type: 'GO', count: 'poisoned' },
         { type: 'GO', count: 1 },
         { type: 'FINISH' }
       ];
-      const rejected: Array<{
-        rejection: EventRejection;
-        transitionIndex: number;
-      }> = [];
+      const rejected: Array<{ event: AnyEventObject; reason: string }> = [];
 
       const execution = createDurable(machine, {
         executeAction: () => {},
-        runtime: () => ({ terminateActor: () => {} }),
-        onRejectedEvent: (rejection, metadata) => {
-          rejected.push({
-            rejection,
-            transitionIndex: metadata.transitionIndex
-          });
+        deadLetter: (_source, _target, event, reason) => {
+          rejected.push({ event, reason });
         },
         waitForEvent: () => queue.shift() as any
       });
@@ -238,9 +225,8 @@ describe('event boundary: reject and report', () => {
 
       expect(queue).toHaveLength(0);
       expect(rejected).toHaveLength(1);
-      expect(rejected[0].rejection).toMatchObject({
+      expect(rejected[0]).toMatchObject({
         event: { type: 'GO', count: 'poisoned' },
-        eventOrigin: 'external',
         reason: 'invalidEvent'
       });
     });
@@ -263,10 +249,10 @@ describe('event boundary: reject and report', () => {
       expect(first).toBe(snapshot);
       expect(second).toBe(snapshot);
       expect(firstEffects[0].effect).toMatchObject({
-        type: '@xstate.rejectEvent'
+        type: '@xstate.deadLetter'
       });
       expect(secondEffects[0].effect).toMatchObject({
-        type: '@xstate.rejectEvent'
+        type: '@xstate.deadLetter'
       });
       // no throw anywhere: replay stays total with poisoned queued events
     });

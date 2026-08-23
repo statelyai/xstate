@@ -106,10 +106,10 @@ describe('SpecialExecutableAction', () => {
           noop(action.output);
           noop(action.error);
           break;
-        case '@xstate.rejectEvent':
-          noop(action.rejection.event);
-          noop(action.rejection.reason);
-          noop(action.rejection.error);
+        case '@xstate.deadLetter':
+          noop(action.event);
+          noop(action.reason);
+          noop(action.detail);
           break;
         default: {
           const _exhaustive: never = action;
@@ -343,6 +343,83 @@ describe('Raise events', () => {
 });
 
 describe('internalEvents', () => {
+  it('infers separate public and internal event schemas', () => {
+    const machine = createMachine({
+      schemas: {
+        events: {
+          start: z.object({}),
+          'change.value': z.object({ value: z.string() })
+        },
+        internalEvents: {
+          tick: z.object({ count: z.number() }),
+          'change.*': z.object({ value: z.string() })
+        }
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            start: (_, enq) => {
+              enq.raise({ type: 'tick', count: 1 });
+              enq.raise({ type: 'change.value', value: 'ready' });
+            },
+            tick: ({ event }) => {
+              ((_count: number) => {})(event.count);
+            },
+            'change.value': ({ event }) => {
+              ((_value: string) => {})(event.value);
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+
+    actor.send({ type: 'start' });
+    actor.trigger.start();
+
+    function _expectInternalEventsRejected(a: typeof actor) {
+      // @ts-expect-error internal events are not part of the public protocol
+      a.send({ type: 'tick', count: 1 });
+      // @ts-expect-error internal wildcard takes precedence over public overlap
+      a.send({ type: 'change.value', value: 'ready' });
+      // @ts-expect-error internal events are not part of the public protocol
+      a.trigger.tick({ count: 1 });
+      // @ts-expect-error internal events are not part of the public protocol
+      a.trigger['change.value']({ value: 'ready' });
+    }
+    void _expectInternalEventsRejected;
+  });
+
+  it('supports separate event schemas declared in setup', () => {
+    const machine = setup({
+      schemas: {
+        events: { start: z.object({}) },
+        internalEvents: { tick: z.object({ count: z.number() }) }
+      }
+    }).createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            start: (_, enq) => enq.raise({ type: 'tick', count: 1 }),
+            tick: ({ event }) => {
+              ((_count: number) => {})(event.count);
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine);
+    actor.send({ type: 'start' });
+
+    function _expectInternalEventRejected(a: typeof actor) {
+      // @ts-expect-error internal events are not part of the public protocol
+      a.send({ type: 'tick', count: 1 });
+    }
+    void _expectInternalEventRejected;
+  });
+
   it('should allow raising internal and external events', () => {
     const machine = createMachine({
       schemas: {
@@ -1507,7 +1584,8 @@ describe('spawnChild action', () => {
         enq.spawn(actors.child);
         enq.spawn(
           // @ts-expect-error
-          actors.other
+          actors.other,
+          {} as any
         );
       }
     });
@@ -1972,6 +2050,7 @@ describe('spawnChild action', () => {
       //   return {};
       // })
       entry: ({ actors }, enq) => {
+        // @ts-expect-error required actor input is missing
         enq.spawn(actors.child);
       }
     });
@@ -2021,7 +2100,8 @@ describe('spawner in assign', () => {
       entry: ({ actors }, enq) => {
         enq.spawn(
           // @ts-expect-error
-          actors.other
+          actors.other,
+          {} as any
         );
         return {};
       }
@@ -2521,6 +2601,7 @@ describe('spawner in assign', () => {
       //   return {};
       // })
       entry: ({ actors }, enq) => {
+        // @ts-expect-error required actor input is missing
         enq.spawn(actors.child);
       }
     });
@@ -2905,7 +2986,7 @@ describe('invoke', () => {
     const decorateSetup = <const TConfig extends AnySetupConfig>(
       config: TConfig
     ): SetupReturnFromConfig<TConfig> & { extra: true } => {
-      const s = setup(config) as SetupReturnFromConfig<TConfig>;
+      const s = setup(config) as unknown as SetupReturnFromConfig<TConfig>;
 
       return Object.assign(s, { extra: true as const });
     };
@@ -5011,6 +5092,21 @@ describe('input', () => {
     createActor(machine);
   });
 
+  it('should not require input when a setup input schema accepts undefined', () => {
+    const machine = setup({
+      schemas: {
+        input: types<{} | null | undefined>()
+      }
+    }).createMachine({
+      context: {},
+      initial: 'active',
+      states: { active: {} }
+    });
+
+    createActor(machine, { inspect: () => {} });
+    createActor(machine.provide({}), { inspect: () => {} });
+  });
+
   it('should create actors from provided no-event setup machines', () => {
     const child = createMachine({});
     const machine = setup({
@@ -5121,7 +5217,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5138,8 +5234,8 @@ describe('guards', () => {
         //     }
         //   }
         // }
-        EV: ({ guards }) => {
-          if (guards.isGreaterThan({ count: 10 })) {
+        EV: (args) => {
+          if (args.guards.isGreaterThan(args, { count: 10 })) {
             return {};
           }
         }
@@ -5160,7 +5256,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5203,7 +5299,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5219,9 +5315,9 @@ describe('guards', () => {
         //     }
         //   }
         // }
-        EV: ({ guards }) => {
+        EV: (args) => {
           if (
-            guards.isGreaterThan({
+            args.guards.isGreaterThan(args, {
               // @ts-expect-error
               count: 'bar'
             })
@@ -5246,7 +5342,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5260,11 +5356,11 @@ describe('guards', () => {
         //     params: {}
         //   }
         // }
-        EV: ({ guards }) => {
+        EV: (args) => {
           if (
-            guards
+            args.guards
               // @ts-expect-error
-              .isGreaterThan()
+              .isGreaterThan(args)
           ) {
             return {};
           }
@@ -5286,8 +5382,8 @@ describe('guards', () => {
       //     | { type: 'plainGuard'; params?: { foo: string } };
       // },
       guards: {
-        plainGuard: (params?: { foo: string }) => true,
-        isGreaterThan: (params: { count: number }) => {
+        plainGuard: (_args, params?: { foo: string }) => true,
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5300,8 +5396,8 @@ describe('guards', () => {
         //     type: 'plainGuard'
         //   }
         // }
-        EV: ({ guards }) => {
-          if (guards.plainGuard()) {
+        EV: (args) => {
+          if (args.guards.plainGuard(args)) {
             return {};
           }
         }
@@ -5322,7 +5418,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // }
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5331,7 +5427,7 @@ describe('guards', () => {
       }
     }).provide({
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5344,7 +5440,7 @@ describe('guards', () => {
   it('should not allow a provided guard outside of the defined ones', () => {
     const machine = createMachine({
       guards: {
-        isGreaterThan: (_params: { count: number }) => {
+        isGreaterThan: (_args, _params: { count: number }) => {
           return true;
         },
         plainGuard: () => true
@@ -5370,7 +5466,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5384,8 +5480,8 @@ describe('guards', () => {
         //     params: () => ({ count: 100 })
         //   }
         // }
-        FOO: ({ guards }) => {
-          if (guards.isGreaterThan({ count: 100 })) {
+        FOO: (args) => {
+          if (args.guards.isGreaterThan(args, { count: 100 })) {
             return {};
           }
         }
@@ -5406,7 +5502,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5421,9 +5517,9 @@ describe('guards', () => {
         //     params: () => ({ count: 'bazinga' })
         //   }
         // }
-        FOO: ({ guards }) => {
+        FOO: (args) => {
           if (
-            guards.isGreaterThan({
+            args.guards.isGreaterThan(args, {
               // @ts-expect-error
               count: 'bazinga'
             })
@@ -5456,7 +5552,7 @@ describe('guards', () => {
         })
       },
       guards: {
-        isGreaterThan: ({ count }: { count: number }) => {
+        isGreaterThan: (_args, { count }: { count: number }) => {
           return true;
         }
       },
@@ -5475,8 +5571,8 @@ describe('guards', () => {
         //     }
         //   }
         // }
-        FOO: ({ guards }) => {
-          if (guards.isGreaterThan({ count: 100 })) {
+        FOO: (args) => {
+          if (args.guards.isGreaterThan(args, { count: 100 })) {
             return {};
           }
           return {};

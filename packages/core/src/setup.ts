@@ -46,6 +46,8 @@ import { InspectionEvent } from './inspection.ts';
 import {
   ActionSchemas,
   DelayMapFromNames,
+  DelaySourceMap,
+  GuardSourceMap,
   GuardSchemas,
   InferChildren,
   InferActions,
@@ -53,10 +55,12 @@ import {
   Sources,
   InferOutput,
   InferEvents,
+  InferInternalEvents,
   Next_MachineConfig,
   Next_InvokeConfig,
   Next_StateNodeConfig,
   Next_TransitionConfigOrTarget,
+  OutputFromConfig,
   ValidateHistoryDefaults,
   ValidateStateTargets,
   WithDefault
@@ -74,12 +78,63 @@ export type SetupConfig<
     | undefined
 > = {
   validator?: TValidator;
-  schemas?: TSchemas & SetupSchemas;
+  schemas?: TSchemas;
   states?: TStates;
   actions?: TActionMap;
   actors?: TActorMap;
-  guards?: TGuardMap;
-  delays?: TDelayMap;
+  guards?: TGuardMap & SetupGuardSources<NoInfer<TSchemas>>;
+  delays?: TDelayMap & SetupDelaySources<NoInfer<TSchemas>>;
+};
+
+/**
+ * Contextual types for guard/delay source maps passed to `setup()`, derived
+ * from the same call's `schemas` (context/events). These intersect the
+ * inferred source-map type parameters so inline functions get typed args
+ * without hand-annotating.
+ */
+type SetupGuardSources<TSchemas> = GuardSourceMap<
+  SetupContext<TSchemas, StandardSchemaV1>,
+  SetupEvents<TSchemas, Record<string, StandardSchemaV1>>
+>;
+
+type SetupDelaySources<TSchemas> = DelaySourceMap<
+  SetupContext<TSchemas, StandardSchemaV1>,
+  SetupEvents<TSchemas, Record<string, StandardSchemaV1>>
+>;
+
+/**
+ * Contextual companion for the whole-config `setup()` overload: gives inline
+ * `guards`/`delays` functions typed args from the config's own `schemas`.
+ */
+type SetupSourceCompanions<TSchemas> = {
+  guards?: SetupGuardSources<TSchemas>;
+  delays?: SetupDelaySources<TSchemas>;
+};
+
+type MergeRecord<TBase, TExtend> = Omit<TBase, keyof TExtend> & TExtend;
+
+/**
+ * Mirrors the runtime `mergeSchemas`: scalar schema keys (`context`, `input`,
+ * ...) are overridden whole, while map-valued keys (`events`, `emitted`,
+ * `children`, `actions`, `guards`) are merged entry-by-entry with extension
+ * entries winning, so base-declared entries stay visible to extension sources.
+ */
+type MergedSetupSchemas<TBaseSchemas, TExtendSchemas> = {
+  [K in keyof TBaseSchemas | keyof TExtendSchemas]: K extends
+    | 'events'
+    | 'emitted'
+    | 'children'
+    | 'actions'
+    | 'guards'
+    ? MergeRecord<
+        K extends keyof TBaseSchemas ? NonNullable<TBaseSchemas[K]> : {},
+        K extends keyof TExtendSchemas ? NonNullable<TExtendSchemas[K]> : {}
+      >
+    : K extends keyof TExtendSchemas
+      ? TExtendSchemas[K]
+      : K extends keyof TBaseSchemas
+        ? TBaseSchemas[K]
+        : never;
 };
 
 export type AnySetupConfig = SetupConfig<
@@ -124,7 +179,11 @@ type ValidateSchemaMap<TMap> =
 
 type ValidateSetupSchemas<TSchemas> = TSchemas extends SetupSchemas
   ? {
-      [K in keyof TSchemas]: K extends 'events' | 'emitted' | 'children'
+      [K in keyof TSchemas]: K extends
+        | 'events'
+        | 'internalEvents'
+        | 'emitted'
+        | 'children'
         ? ValidateSchemaMap<TSchemas[K]>
         : K extends 'context' | 'input' | 'output'
           ? TSchemas[K] extends StandardSchemaV1
@@ -211,9 +270,17 @@ type SetupExtensionConfig<
     TExtendGuardMap,
     TExtendDelayMap
   >,
-  'validator'
-> &
-  ExtendValidatorConfig<TExtendValidator> &
+  'validator' | 'guards' | 'delays'
+> & {
+  guards?: TExtendGuardMap &
+    SetupGuardSources<
+      NoInfer<MergedSetupSchemas<TBaseSchemas, TExtendSchemas>>
+    >;
+  delays?: TExtendDelayMap &
+    SetupDelaySources<
+      NoInfer<MergedSetupSchemas<TBaseSchemas, TExtendSchemas>>
+    >;
+} & ExtendValidatorConfig<TExtendValidator> &
   RuntimeValidationCompatibility<
     NoInfer<TBaseSchemas>,
     NoInfer<TBaseStates>,
@@ -228,6 +295,7 @@ type SetupExtensionConfig<
 type InlineMachineSchemas<
   TContextSchema,
   TEventSchemaMap,
+  TInternalEventSchemaMap,
   TEmittedSchemaMap,
   TActionSchemaMap,
   TGuardSchemaMap,
@@ -239,6 +307,7 @@ type InlineMachineSchemas<
 > = {
   context?: TContextSchema;
   events?: TEventSchemaMap;
+  internalEvents?: TInternalEventSchemaMap;
   emitted?: TEmittedSchemaMap;
   actions?: TActionSchemaMap;
   guards?: TGuardSchemaMap;
@@ -366,6 +435,7 @@ export type { SetupStateSchemas };
 export type SetupSchemas = {
   context?: StandardSchemaV1;
   events?: Record<string, StandardSchemaV1>;
+  internalEvents?: Record<string, StandardSchemaV1>;
   actions?: ActionSchemas;
   guards?: GuardSchemas;
   emitted?: Record<string, StandardSchemaV1>;
@@ -376,7 +446,7 @@ export type SetupSchemas = {
   children?: Record<string, StandardSchemaV1>;
 };
 
-/** State schema with optional schemas.input and nested states */
+/** State schema with optional input/output schemas and nested states */
 export interface SetupStateSchema {
   schemas?: SetupStateSchemas;
   states?: Record<string, SetupStateSchema>;
@@ -393,7 +463,7 @@ type SetupSchema<
 
 type SetupSchemaMap<
   TSchemas,
-  TKey extends 'events' | 'emitted' | 'children'
+  TKey extends 'events' | 'internalEvents' | 'emitted' | 'children'
 > = TKey extends keyof TSchemas
   ? TSchemas[TKey] extends Record<string, StandardSchemaV1>
     ? TSchemas[TKey]
@@ -425,7 +495,7 @@ type SetupOrConfigSchema<
 
 type SetupOrConfigSchemaMap<
   TSchemas,
-  TKey extends 'events' | 'emitted' | 'children',
+  TKey extends 'events' | 'internalEvents' | 'emitted' | 'children',
   TConfigSchemaMap extends Record<string, StandardSchemaV1>
 > = [SetupSchemaMap<TSchemas, TKey>] extends [never]
   ? TConfigSchemaMap
@@ -572,12 +642,27 @@ type SetupContextRequired<TSchemas, TContextSchema extends StandardSchemaV1> = [
     : true
   : true;
 
-type SetupEvents<
+type SetupPublicEvents<
   TSchemas,
   TEventSchemaMap extends Record<string, StandardSchemaV1>
 > = [SetupSchemaMap<TSchemas, 'events'>] extends [never]
   ? InferEvents<TEventSchemaMap>
   : InferEvents<SetupSchemaMap<TSchemas, 'events'>>;
+
+type SetupInternalEvents<
+  TSchemas,
+  TInternalEventSchemaMap extends Record<string, StandardSchemaV1>
+> = [SetupSchemaMap<TSchemas, 'internalEvents'>] extends [never]
+  ? InferInternalEvents<TInternalEventSchemaMap>
+  : InferInternalEvents<SetupSchemaMap<TSchemas, 'internalEvents'>>;
+
+type SetupEvents<
+  TSchemas,
+  TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TInternalEventSchemaMap extends Record<string, StandardSchemaV1> = {}
+> =
+  | SetupPublicEvents<TSchemas, TEventSchemaMap>
+  | SetupInternalEvents<TSchemas, TInternalEventSchemaMap>;
 
 type SetupTags<TSchemas, TTagSchema extends StandardSchemaV1> = [
   SetupSchema<TSchemas, 'tags'>
@@ -596,6 +681,33 @@ type SetupOutput<TSchemas, TOutputSchema extends StandardSchemaV1> = [
 ] extends [never]
   ? InferOutput<TOutputSchema, unknown>
   : InferOutput<SetupSchema<TSchemas, 'output'>, unknown>;
+
+/**
+ * Whether an output schema was declared, either in `setup({ schemas })` or in
+ * the machine config's own `schemas.output`. A declared schema is always
+ * authoritative for the machine's output type.
+ */
+type HasOutputSchema<TSchemas, TOutputSchema extends StandardSchemaV1> = [
+  SetupSchema<TSchemas, 'output'>
+] extends [never]
+  ? StandardSchemaV1 extends TOutputSchema
+    ? false
+    : true
+  : true;
+
+/**
+ * The machine's output type. A declared output schema wins; otherwise the type
+ * is inferred from the config's `output` property (a mapper's return type, or
+ * the static value's type).
+ */
+type SetupOrConfigOutput<
+  TSchemas,
+  TOutputSchema extends StandardSchemaV1,
+  TConfig
+> =
+  HasOutputSchema<TSchemas, TOutputSchema> extends true
+    ? SetupOutput<TSchemas, TOutputSchema>
+    : OutputFromConfig<TConfig, SetupOutput<TSchemas, TOutputSchema>>;
 
 type SetupEmitted<
   TSchemas,
@@ -699,6 +811,21 @@ type StateInput<TStateSchema extends SetupStateSchema> =
       : undefined
     : undefined;
 
+/** Extracts the completion output type from a state schema. */
+type StateOutput<
+  TStateSchema extends SetupStateSchema,
+  TFallback
+> = TStateSchema['schemas'] extends { output: infer TOutputSchema }
+  ? TOutputSchema extends StandardSchemaV1
+    ? StandardSchemaV1.InferOutput<TOutputSchema>
+    : TFallback
+  : TFallback;
+
+type StateCompletionOutput<TStateSchema extends SetupStateSchema> = StateOutput<
+  TStateSchema,
+  unknown
+>;
+
 type StateContext<
   TStateSchema extends SetupStateSchema,
   TFallbackContext extends MachineContext
@@ -753,6 +880,13 @@ type SetupStateSchemaToStateSchema<TSetupSchema extends SetupStateSchema> = {
       ? TContextSchema
       : undefined
     : undefined;
+  outputSchema: TSetupSchema['schemas'] extends {
+    output: infer TOutputSchema;
+  }
+    ? TOutputSchema extends StandardSchemaV1
+      ? TOutputSchema
+      : undefined
+    : undefined;
   states: TSetupSchema['states'] extends Record<string, SetupStateSchema>
     ? {
         [K in keyof TSetupSchema['states'] &
@@ -797,6 +931,19 @@ type StateSchemaContextSchema<
       : undefined
     : undefined;
 
+type StateSchemaOutputSchema<
+  TConfig extends StateSchema,
+  TSetup extends StateSchema
+> = TSetup extends { outputSchema: infer TOutputSchema }
+  ? TOutputSchema extends StandardSchemaV1
+    ? TOutputSchema
+    : undefined
+  : TConfig extends { outputSchema: infer TOutputSchema }
+    ? TOutputSchema extends StandardSchemaV1
+      ? TOutputSchema
+      : undefined
+    : undefined;
+
 type StateSchemaChild<
   TSetup extends StateSchema,
   K extends string
@@ -811,6 +958,7 @@ type MergeStateSchema<
   TSetup extends StateSchema
 > = Omit<TConfig, 'contextSchema' | 'input' | 'states'> & {
   contextSchema: StateSchemaContextSchema<TConfig, TSetup>;
+  outputSchema: StateSchemaOutputSchema<TConfig, TSetup>;
   input: StateSchemaInput<TConfig, TSetup>;
   states: TConfig extends { states: infer TStates }
     ? TStates extends Record<string, StateSchema>
@@ -831,6 +979,7 @@ type SetupMachineConfig<
   TSchemas extends SetupSchemas,
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TInternalEventSchemaMap extends Record<string, StandardSchemaV1>,
   TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
@@ -858,6 +1007,7 @@ type SetupMachineConfig<
   Next_MachineConfig<
     SetupOrConfigSchema<TSchemas, 'context', TContextSchema>,
     SetupOrConfigSchemaMap<TSchemas, 'events', TEventSchemaMap>,
+    SetupOrConfigSchemaMap<TSchemas, 'internalEvents', TInternalEventSchemaMap>,
     SetupOrConfigSchemaMap<TSchemas, 'emitted', TEmittedSchemaMap>,
     SetupOrConfigSchema<TSchemas, 'input', TInputSchema>,
     SetupOrConfigSchema<TSchemas, 'output', TOutputSchema>,
@@ -888,7 +1038,7 @@ type SetupMachineConfig<
 > & {
   actions?: TRootActionMap;
   actors?: TRootActorMap;
-  guards?: TRootGuardMap;
+  guards?: TRootGuardMap & GuardSourceMap<TContext, TEvent>;
   delays?: {
     [K in TRootDelays | number]?:
       | number
@@ -1037,7 +1187,7 @@ type StateNodeConfigWithNestedInput<
       TEvent,
       TDelays,
       TTag,
-      TOutput,
+      StateOutput<TStateSchema, TOutput>,
       TEmitted,
       TMeta,
       TChildren,
@@ -1047,7 +1197,8 @@ type StateNodeConfigWithNestedInput<
       TDelayMap,
       StateInput<TStateSchema>,
       Record<string, unknown>,
-      TSystemRegistry
+      TSystemRegistry,
+      StateCompletionOutput<TStateSchema>
     >,
     | 'on'
     | 'always'
@@ -1125,7 +1276,7 @@ type StateNodeConfigWithNestedInput<
       TSiblingStateSchemas,
       StateContext<TStateSchema, TContext>,
       StateContextShape<TStateSchema, TContextShape>,
-      DoneStateEvent,
+      DoneStateEvent<StateCompletionOutput<TStateSchema>>,
       TEvent,
       TEmitted,
       TChildren,
@@ -1624,7 +1775,7 @@ type StateTransitionFunction<
     delays: TDelayMap;
     input: TInput;
   } & OutputArg<TExpressionEvent>,
-  enq: EnqueueObject<TEvent, TEmitted, TSystemRegistry>
+  enq: EnqueueObject<TEvent, TEmitted, TSystemRegistry, TActorMap>
 ) => StateTransitionResult<
   TStateSchemas,
   TContext,
@@ -1845,6 +1996,7 @@ export interface SetupReturn<
       string,
       StandardSchemaV1
     >,
+    const TInternalEventSchemaMap extends Record<string, StandardSchemaV1> = {},
     TEmittedSchemaMap extends Record<string, StandardSchemaV1> = Record<
       string,
       StandardSchemaV1
@@ -1878,6 +2030,7 @@ export interface SetupReturn<
       TSchemas,
       TContextSchema,
       TEventSchemaMap,
+      TInternalEventSchemaMap,
       TEmittedSchemaMap,
       TInputSchema,
       TOutputSchema,
@@ -1885,7 +2038,7 @@ export interface SetupReturn<
       TTagSchema,
       TChildrenSchemaMap,
       SetupContext<TSchemas, TContextSchema>,
-      SetupEvents<TSchemas, TEventSchemaMap>,
+      SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>,
       Cast<
         MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -1916,6 +2069,7 @@ export interface SetupReturn<
       TSchemas,
       TContextSchema,
       TEventSchemaMap,
+      TInternalEventSchemaMap,
       TEmittedSchemaMap,
       TInputSchema,
       TOutputSchema,
@@ -1923,7 +2077,7 @@ export interface SetupReturn<
       TTagSchema,
       TChildrenSchemaMap,
       SetupContext<TSchemas, TContextSchema>,
-      SetupEvents<TSchemas, TEventSchemaMap>,
+      SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>,
       Cast<
         MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -1953,6 +2107,7 @@ export interface SetupReturn<
     config: {
       schemas?: {
         events?: TEventSchemaMap;
+        internalEvents?: TInternalEventSchemaMap;
         context?: TContextSchema;
         emitted?: TEmittedSchemaMap;
         actions?: TActionSchemaMap;
@@ -1967,6 +2122,7 @@ export interface SetupReturn<
             InlineMachineSchemas<
               TContextSchema,
               TEventSchemaMap,
+              TInternalEventSchemaMap,
               TEmittedSchemaMap,
               TActionSchemaMap,
               TGuardSchemaMap,
@@ -1999,7 +2155,7 @@ export interface SetupReturn<
       >
   ): StateMachine<
     SetupContext<TSchemas, TContextSchema>,
-    | SetupEvents<TSchemas, TEventSchemaMap>
+    | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
     | ([RoutableStateId<Cast<TConfig, StateSchema>>] extends [never]
         ? never
         : {
@@ -2020,7 +2176,7 @@ export interface SetupReturn<
     [SetupSchema<TSchemas, 'input'>] extends [never]
       ? TInput
       : SetupInput<TSchemas, TInputSchema>,
-    SetupOutput<TSchemas, TOutputSchema>,
+    SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig>,
     SetupEmitted<TSchemas, TEmittedSchemaMap>,
     SetupMeta<TSchemas, TMetaSchema>,
     MergeStateSchema<
@@ -2039,7 +2195,8 @@ export interface SetupReturn<
     DelayMapFromNames<
       TSetupDelays | TDelays,
       MergeSourceMaps<TSetupDelayMap, TDelayMap>
-    >
+    >,
+    SetupInternalEvents<TSchemas, TInternalEventSchemaMap>
   > &
     MachineIdentity<TConfig>;
 
@@ -2193,6 +2350,7 @@ type SetupFunction<TSystemRegistry extends SystemRegistry = SystemRegistry> = {
   >;
   <const TConfig extends AnySetupConfig>(
     config: TConfig &
+      SetupSourceCompanions<SetupConfigSchemas<TConfig>> &
       RuntimeValidationConstraint<
         NoInfer<SetupConfigSchemas<TConfig>>,
         NoInfer<SetupConfigStates<TConfig>>,
@@ -2309,7 +2467,7 @@ export const setup = function setupImplementation<
     ) {
       return setup(
         mergeSetupConfigs(config, extension as AnySetupConfig) as any
-      ) as SetupReturn<
+      ) as unknown as SetupReturn<
         MergeSourceMaps<TStates, TExtendStates>,
         MergeSourceMaps<TSchemas, TExtendSchemas>,
         MergeSourceMaps<TActionMap, TExtendActionMap>,
@@ -2455,6 +2613,7 @@ function mergeSchemas(
     ...left,
     ...right,
     events: mergeMaps(left?.events, right?.events),
+    internalEvents: mergeMaps(left?.internalEvents, right?.internalEvents),
     actions: mergeMaps(left?.actions, right?.actions),
     guards: mergeMaps(left?.guards, right?.guards),
     emitted: mergeMaps(left?.emitted, right?.emitted),

@@ -266,7 +266,45 @@ describe('durable execution', () => {
 
     await durable.executeEffects(effects);
 
-    expect(providedRuntime).toBe(runtime);
+    const target = { address: 'elsewhere' } as never;
+    const event = { type: 'X' };
+    await (
+      providedRuntime as { sendEvent(...args: unknown[]): PromiseLike<void> }
+    ).sendEvent(undefined, target, event);
+    expect(runtime.sendEvent).toHaveBeenCalledWith(undefined, target, event);
+  });
+
+  it('routes parked root events through the dedicated mailbox hook', async () => {
+    const enqueueRootEvent = vi.fn();
+    let providedRuntime: unknown;
+    const logic = createLogic({
+      context: undefined,
+      run: ({ event }, enq) => {
+        if (event.type === '@xstate.init') {
+          enq.effect((effectRuntime) => {
+            providedRuntime = effectRuntime;
+          });
+        }
+      }
+    });
+    const durable = createDurable(logic, {
+      executeAction: async (effect, _metadata, effectRuntime) => {
+        await effect.exec(effectRuntime);
+      },
+      enqueueRootEvent,
+      waitForEvent: () => ({ type: 'unused' })
+    });
+    const [, effects] = durable.initialTransition(undefined);
+    await durable.executeEffects(effects);
+
+    const source = { id: 'child' } as never;
+    const target = { address: durable.rootAddress } as never;
+    const event = { type: 'CHILD_EVENT' };
+    await (
+      providedRuntime as { sendEvent(...args: unknown[]): PromiseLike<void> }
+    ).sendEvent(source, target, event);
+
+    expect(enqueueRootEvent).toHaveBeenCalledWith(source, event);
   });
 
   it('runs to completion and assigns stable IDs to event waits', async () => {

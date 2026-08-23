@@ -128,8 +128,8 @@ export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export type {
   InspectionEvent,
   ActorInspectionEvent,
+  DeadLetterInspectionEvent,
   TransitionInspectionEvent,
-  EventRejectedInspectionEvent,
   ActionRecord,
   SentRecord
 } from './inspection.ts';
@@ -143,6 +143,7 @@ export type {
   ActorSystem,
   ActorSystemRuntime,
   AnyActorSystem,
+  DeadLetterDetail,
   EventRejection,
   EventRejectionReason
 } from './system.ts';
@@ -176,6 +177,16 @@ export {
   executeEffects,
   isBuiltInExecutableAction
 } from './transitionActions.ts';
+export {
+  getEffectDescriptor,
+  type EffectDescriptor
+} from './effectDescriptor.ts';
+export {
+  deliverEvent,
+  runStep,
+  stopActor,
+  terminateActor
+} from './runtimeHelpers.ts';
 export { waitFor } from './waitFor.ts';
 
 declare global {

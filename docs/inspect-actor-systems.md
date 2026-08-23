@@ -21,7 +21,7 @@ const checkout = createActor(checkoutMachine, {
 
 ## 2. Log transitions readably
 
-Inspection emits three events: `@xstate.actor` when an actor is created, `@xstate.transition` when one takes a transition, and `@xstate.event.rejected` when an event is rejected at the delivery boundary. Filter to the type you need, then print the event that arrived and the state it produced.
+Inspection emits three events: `@xstate.actor` when an actor is created, `@xstate.transition` when one takes a transition, and `@xstate.deadletter` when an event could not be delivered. Filter to the type you need, then print the event that arrived and the state it produced.
 
 Transitions identify their actor by `actorRef.sessionId`, which is unique but not readable. `@xstate.actor` carries the actor's `id`, so keep a map of names as actors appear.
 

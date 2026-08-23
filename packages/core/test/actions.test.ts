@@ -3151,7 +3151,7 @@ describe('sendTo', () => {
     expect(spy2).toHaveBeenCalledTimes(0);
     expect(warnSpy).toHaveBeenCalledOnce();
     expect(warnSpy).toHaveBeenCalledWith(
-      `Event "PING" was sent to stopped actor "myChild (${stoppedChildSessionId})". This actor has already reached its final state, and will not transition.`
+      `Event "PING" to actor "myChild" was not delivered (stopped).`
     );
   });
   // TODO: need to fix stale value problem

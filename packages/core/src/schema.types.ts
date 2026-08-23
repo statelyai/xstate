@@ -8,6 +8,8 @@ export interface StandardSchemaV1<Input = unknown, Output = Input> {
 export type SetupStateSchemas = {
   context?: StandardSchemaV1;
   input?: StandardSchemaV1;
+  /** The output emitted when this state node completes. */
+  output?: StandardSchemaV1;
 };
 
 /** A type-only Standard Schema produced by {@link types}. */

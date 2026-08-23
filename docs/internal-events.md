@@ -3,23 +3,26 @@ title: Internal events
 description: Declare events that the machine may raise but no one may send in.
 ---
 
-`internalEvents` lists event types that the machine can raise to itself but that cannot be sent from outside the actor.
+Declare private event payload schemas in `schemas.internalEvents`. These events
+are part of the machine's internal event union, but are excluded from the
+public `actor.send(...)` and `actor.trigger` protocols.
 
 ```ts
 const machine = createMachine({
   schemas: {
     events: {
-      start: z.object({}),
-      tick: z.object({})
+      start: z.object({})
+    },
+    internalEvents: {
+      tick: z.object({ count: z.number() })
     }
   },
-  internalEvents: ['tick'] as const,
   initial: 'idle',
   states: {
     idle: {
       on: {
         start: (_, enq) => {
-          enq.raise({ type: 'tick' });
+          enq.raise({ type: 'tick', count: 1 });
         },
         tick: { target: 'done' }
       }
@@ -47,24 +50,33 @@ actor.send({ type: 'tick' });
 A rejected event never enters the machine. The rejection is reported three ways:
 
 - The `onRejectedEvent` dead-letter hook on `createActor` options receives an `EventRejection` object with the `event`, `targetId`, `sourceRef`, `eventOrigin` (`'external'` or `'actor'`), `reason` and `error`.
-- [Inspection](inspection.md) observers receive a `@xstate.event.rejected` inspection event with the same fields.
+- [Inspection](inspection.md) observers receive a `@xstate.deadletter` inspection event with the same fields.
 - In development mode, a console warning describes the rejection.
 
-Internal events are still ordinary events in every other respect. They need a schema entry, they appear in `on` handlers, and they are raised with `enq.raise` like any other event.
+Internal events are still ordinary events in every other respect. They appear
+in `on` handlers and are raised with `enq.raise` like any other event. They do
+not need a duplicate entry in `schemas.events`.
 
 ## Wildcard patterns
 
 Entries may use a `.`-segment wildcard, which covers every event type under that prefix.
 
 ```ts
-internalEvents: ['change.*'] as const
+schemas: {
+  internalEvents: {
+    'change.*': z.object({ value: z.string() })
+  }
+}
 ```
 
 With that in place, `change.value`, `change.status` and any other `change.*` event can be raised internally but is rejected from outside.
 
 ## What counts as "outside"
 
-The check compares the sender to the receiver. An actor raising or sending an event to itself is allowed. Anything else is rejected: `actor.send` from application code, a parent sending to a child, or a sibling actor.
+The check compares the sender to the receiver. An internally executed
+self-targeted effect such as `enq.raise(...)` or `enq.sendTo(self, ...)` is
+allowed. Anything else is rejected: `actor.send` from application code, a
+parent sending to a child, or a sibling actor.
 
 > **Warning:** a rejection is silent unless you observe it. It does not throw and it does not error the actor. Register `onRejectedEvent` or an inspection observer to detect rejected events. Treat internal events as a private surface, and if application code needs to reach that behavior, expose a public event that raises the internal one.
 
@@ -76,7 +88,22 @@ Use internal events for:
 
 ## TypeScript
 
-Declaring `internalEvents` with `as const` narrows the actor's send type: listed types, and types matched by a wildcard, are removed from what `actor.send` accepts, so an invalid send is a type error rather than a runtime rejection. The types must still exist in the events schema, and they remain fully typed inside the machine for `on` handlers, `enq.raise` and [transitions](transitions.md).
+The keys in `schemas.internalEvents` narrow the actor's public protocol: those
+types, and types matched by a wildcard, are removed from what `actor.send` and
+`actor.trigger` accept, so an invalid send is a type error rather than a
+runtime rejection. They remain fully typed inside the machine for `on`
+handlers, guards, actions, `enq.raise` and [transitions](transitions.md).
+
+The legacy top-level form remains supported for migration:
+
+```ts
+schemas: { events: { tick: z.object({}) } },
+internalEvents: ['tick'] as const
+```
+
+It is deprecated; move each listed event to `schemas.internalEvents`. The
+legacy list is useful when a machine's existing public event schemas are being
+split incrementally.
 
 ## Internal events cheatsheet
 
@@ -84,12 +111,13 @@ Declaring `internalEvents` with `as const` narrows the actor's send type: listed
 createMachine({
   schemas: {
     events: {
-      start: z.object({}),
+      start: z.object({})
+    },
+    internalEvents: {
       tick: z.object({}),
-      'change.value': z.object({ value: z.string() })
+      'change.*': z.object({ value: z.string() })
     }
   },
-  internalEvents: ['tick', 'change.*'] as const,
   initial: 'idle',
   states: {
     idle: {

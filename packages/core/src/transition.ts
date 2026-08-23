@@ -1,4 +1,5 @@
 import { createInitEvent } from './eventUtils';
+import { hasAmbientInspector } from './system';
 import {
   attachSnapshotActorRef,
   createInertActorScope,
@@ -25,9 +26,12 @@ import {
   ExecutableActionObject
 } from './types';
 import {
+  beginSpawnAllocation,
   createSpawnEffect,
   finalizeTransitionResult
 } from './transitionActions.ts';
+
+import type { EventObject } from './types';
 
 type MachineMicrostep = [AnyMachineSnapshot, ExecutableActionObject[]];
 
@@ -86,6 +90,7 @@ export function transition<T extends AnyActorLogic>(
     nextSnapshot === snapshot
       ? nextSnapshot
       : attachSnapshotActorRef(actorScope, nextSnapshot);
+  inspectPureTransition(actorScope, returnedSnapshot, event);
   return [returnedSnapshot, effects as ExecutableActionObjectFromLogic<T>[]];
 }
 
@@ -112,10 +117,31 @@ export function initialTransition<T extends AnyActorLogic>(
 
   setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
   const returnedSnapshot = attachSnapshotActorRef(actorScope, nextSnapshot);
+  inspectPureTransition(actorScope, returnedSnapshot, createInitEvent(input));
   return [
     returnedSnapshot,
     executableActions as ExecutableActionObjectFromLogic<T>[]
   ];
+}
+
+/**
+ * Emits the `@xstate.transition` inspection event for a snapshot produced by
+ * the pure transition path, where no live actor loop does it. Free unless an
+ * inspector is ambiently installed (a durable execution created with
+ * `inspect`): only then is the snapshot's actor ref materialized to emit.
+ */
+function inspectPureTransition(
+  actorScope: unknown,
+  snapshot: unknown,
+  event: EventObject
+): void {
+  if (!hasAmbientInspector()) {
+    return;
+  }
+  const self = (actorScope as { self?: AnyActor }).self;
+  if (self?.system._hasInspectionObservers?.()) {
+    self._inspectTransition(snapshot as never, event);
+  }
 }
 
 /**
@@ -130,6 +156,7 @@ export function getMicrosteps<T extends AnyStateMachine>(
   event: EventFromLogic<T>
 ): Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]> {
   const actorScope = createInertActorScope(machine, snapshot);
+  beginSpawnAllocation(actorScope);
 
   const { microsteps } = macrostep(snapshot, event, actorScope, []);
 
@@ -154,6 +181,7 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
     : [input: InputFrom<T>]
 ): Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]> {
   const actorScope = createInertActorScope(machine);
+  beginSpawnAllocation(actorScope);
   const initEvent = createInitEvent(input);
   const internalQueue: AnyEventObject[] = [];
 
@@ -211,6 +239,9 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
 export function getNextTransitions(
   state: AnyMachineSnapshot
 ): AnyTransitionDefinition[] {
+  if (state.status !== 'active') {
+    return [];
+  }
   const potentialTransitions: AnyTransitionDefinition[] = [];
   const atomicStates = state.nodes.filter(isAtomicStateNode);
   const visited = new Set();

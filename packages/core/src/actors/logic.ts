@@ -1,18 +1,23 @@
-import { XSTATE_STOP } from '../constants.ts';
+import {
+  XSTATE_LOGIC_EFFECT_REJECT,
+  XSTATE_LOGIC_EFFECT_RESOLVE,
+  XSTATE_LOGIC_EFFECT_START,
+  XSTATE_STOP
+} from '../constants.ts';
 import { createInitEvent } from '../eventUtils.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import {
   ActorSystemRuntime,
   AnyActorSystem,
-  type EventRejection
+  type DeadLetterDetail
 } from '../system.ts';
 import { assertValid } from '../validation.ts';
 import type { ActorLogicValidator } from '../validation.types.ts';
 import {
   finalizeTransitionResult,
   createCustomEffect,
+  createDeadLetterEffect,
   createEmitEffect,
-  createRejectEventEffect,
   createSendToEffect
 } from '../transitionActions.ts';
 import {
@@ -170,10 +175,6 @@ const effectStates = new WeakMap<
   AnyActorRef,
   Map<PropertyKey, { cleanup?: () => void }>
 >();
-
-export const XSTATE_LOGIC_EFFECT_RESOLVE = 'xstate.logic.effect.resolve';
-export const XSTATE_LOGIC_EFFECT_REJECT = 'xstate.logic.effect.reject';
-export const XSTATE_LOGIC_EFFECT_START = 'xstate.logic.effect.start';
 
 function getEffectState(self: AnyActorRef) {
   let state = effectStates.get(self);
@@ -479,16 +480,17 @@ export function createLogic<
         return [
           snapshot,
           [
-            createRejectEventEffect(actorScope, {
-              event,
-              targetRef: actorScope.self,
-              targetId: actorScope.self?.id,
+            createDeadLetterEffect(
+              actorScope,
               sourceRef,
-              eventOrigin,
-              issues: (error as { issues?: EventRejection['issues'] }).issues,
-              reason: 'invalidEvent',
-              error
-            })
+              event,
+              'invalidEvent',
+              {
+                issues: (error as { issues?: DeadLetterDetail['issues'] })
+                  .issues,
+                error
+              }
+            )
           ]
         ];
       }
