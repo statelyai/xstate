@@ -3076,7 +3076,7 @@ export type EnqueueObject<
     event: SendableEventFromActorRef<NoInfer<TActorRef>>,
     options?: { id?: string; delay?: number }
   ) => void;
-  stop: (actor?: AnyActor) => void;
+  stop: (actor?: AnyActorRef) => void;
   /**
    * Listen to emitted events from an actor. Returns a listener actor that can
    * be stopped via `enq.stop()`.
@@ -3087,7 +3087,7 @@ export type EnqueueObject<
    * @param mapper - Function to transform emitted events into machine events
    */
   listen: <TEmitted extends EventObject, TMappedEvent extends TEvent>(
-    actor: AnyActor,
+    actor: AnyActorRef,
     eventType: string,
     mapper: (event: TEmitted) => TMappedEvent
   ) => AnyActor;
@@ -3099,7 +3099,7 @@ export type EnqueueObject<
    * @param mappers - Object with done/error/snapshot mappers, or a single
    *   snapshot mapper function
    */
-  subscribeTo: <TActor extends AnyActor, TMappedEvent extends TEvent>(
+  subscribeTo: <TActor extends AnyActorRef, TMappedEvent extends TEvent>(
     actor: TActor,
     mappers:
       | SubscribeToMappers<

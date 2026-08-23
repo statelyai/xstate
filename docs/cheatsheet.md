@@ -106,15 +106,14 @@ on: {
 // named guards
 const machine = createMachine({
   guards: {
-    hasStock: ({ available, quantity }: { available: number; quantity: number }) =>
-      available >= quantity
+    hasStock: ({ context }) => context.available >= context.quantity
   },
   initial: 'browsing',
   states: {
     browsing: {
       on: {
-        addItem: ({ context, guards }) => {
-          if (!guards.hasStock(context)) return;
+        addItem: (args) => {
+          if (!args.guards.hasStock(args)) return;
           return { target: 'adding' };
         }
       }
@@ -396,8 +395,8 @@ on: { reset: { target: ['playback.stopped', 'volume.audible'] } }
 // choice state: pass-through branch point, must resolve to a target
 routing: {
   type: 'choice',
-  choice: ({ context, guards }) => {
-    if (guards.isVip(context)) return { target: 'vipFlow' };
+  choice: (args) => {
+    if (args.guards.isVip(args)) return { target: 'vipFlow' };
     return { target: 'standardFlow' };
   }
 }

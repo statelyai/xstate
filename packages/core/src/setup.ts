@@ -46,6 +46,8 @@ import { InspectionEvent } from './inspection.ts';
 import {
   ActionSchemas,
   DelayMapFromNames,
+  DelaySourceMap,
+  GuardSourceMap,
   GuardSchemas,
   InferChildren,
   InferActions,
@@ -76,12 +78,63 @@ export type SetupConfig<
     | undefined
 > = {
   validator?: TValidator;
-  schemas?: TSchemas & SetupSchemas;
+  schemas?: TSchemas;
   states?: TStates;
   actions?: TActionMap;
   actors?: TActorMap;
-  guards?: TGuardMap;
-  delays?: TDelayMap;
+  guards?: TGuardMap & SetupGuardSources<NoInfer<TSchemas>>;
+  delays?: TDelayMap & SetupDelaySources<NoInfer<TSchemas>>;
+};
+
+/**
+ * Contextual types for guard/delay source maps passed to `setup()`, derived
+ * from the same call's `schemas` (context/events). These intersect the
+ * inferred source-map type parameters so inline functions get typed args
+ * without hand-annotating.
+ */
+type SetupGuardSources<TSchemas> = GuardSourceMap<
+  SetupContext<TSchemas, StandardSchemaV1>,
+  SetupEvents<TSchemas, Record<string, StandardSchemaV1>>
+>;
+
+type SetupDelaySources<TSchemas> = DelaySourceMap<
+  SetupContext<TSchemas, StandardSchemaV1>,
+  SetupEvents<TSchemas, Record<string, StandardSchemaV1>>
+>;
+
+/**
+ * Contextual companion for the whole-config `setup()` overload: gives inline
+ * `guards`/`delays` functions typed args from the config's own `schemas`.
+ */
+type SetupSourceCompanions<TSchemas> = {
+  guards?: SetupGuardSources<TSchemas>;
+  delays?: SetupDelaySources<TSchemas>;
+};
+
+type MergeRecord<TBase, TExtend> = Omit<TBase, keyof TExtend> & TExtend;
+
+/**
+ * Mirrors the runtime `mergeSchemas`: scalar schema keys (`context`, `input`,
+ * ...) are overridden whole, while map-valued keys (`events`, `emitted`,
+ * `children`, `actions`, `guards`) are merged entry-by-entry with extension
+ * entries winning, so base-declared entries stay visible to extension sources.
+ */
+type MergedSetupSchemas<TBaseSchemas, TExtendSchemas> = {
+  [K in keyof TBaseSchemas | keyof TExtendSchemas]: K extends
+    | 'events'
+    | 'emitted'
+    | 'children'
+    | 'actions'
+    | 'guards'
+    ? MergeRecord<
+        K extends keyof TBaseSchemas ? NonNullable<TBaseSchemas[K]> : {},
+        K extends keyof TExtendSchemas ? NonNullable<TExtendSchemas[K]> : {}
+      >
+    : K extends keyof TExtendSchemas
+      ? TExtendSchemas[K]
+      : K extends keyof TBaseSchemas
+        ? TBaseSchemas[K]
+        : never;
 };
 
 export type AnySetupConfig = SetupConfig<
@@ -217,9 +270,17 @@ type SetupExtensionConfig<
     TExtendGuardMap,
     TExtendDelayMap
   >,
-  'validator'
-> &
-  ExtendValidatorConfig<TExtendValidator> &
+  'validator' | 'guards' | 'delays'
+> & {
+  guards?: TExtendGuardMap &
+    SetupGuardSources<
+      NoInfer<MergedSetupSchemas<TBaseSchemas, TExtendSchemas>>
+    >;
+  delays?: TExtendDelayMap &
+    SetupDelaySources<
+      NoInfer<MergedSetupSchemas<TBaseSchemas, TExtendSchemas>>
+    >;
+} & ExtendValidatorConfig<TExtendValidator> &
   RuntimeValidationCompatibility<
     NoInfer<TBaseSchemas>,
     NoInfer<TBaseStates>,
@@ -977,7 +1038,7 @@ type SetupMachineConfig<
 > & {
   actions?: TRootActionMap;
   actors?: TRootActorMap;
-  guards?: TRootGuardMap;
+  guards?: TRootGuardMap & GuardSourceMap<TContext, TEvent>;
   delays?: {
     [K in TRootDelays | number]?:
       | number
@@ -2289,6 +2350,7 @@ type SetupFunction<TSystemRegistry extends SystemRegistry = SystemRegistry> = {
   >;
   <const TConfig extends AnySetupConfig>(
     config: TConfig &
+      SetupSourceCompanions<SetupConfigSchemas<TConfig>> &
       RuntimeValidationConstraint<
         NoInfer<SetupConfigSchemas<TConfig>>,
         NoInfer<SetupConfigStates<TConfig>>,
