@@ -162,6 +162,47 @@ string `src` key, and `JSON.stringify` on a reference produces that identity.
 To place several executions of the same machine on one transport, namespace
 the wire address with a host key outside the logical address.
 
+## Durable timers
+
+<!-- logical timer snapshot and durable adapter timer operations from packages/core/src/types.ts, packages/core/src/system.ts, and packages/core/src/durable/index.ts -->
+
+`scheduleTimer(source, id, delay)` is the complete host-neutral scheduling
+contract. `source.address` and `id` identify the logical timer; both are stable
+when the same event journal is replayed. Persist an absolute deadline derived
+from `delay` when accepting the operation, then let the host's scheduler wake a
+new process. The serializable firing input is `{ type: 'xstate.timer', id }`.
+Journal that input before applying it. For a root timer, pass it to
+`durable.transition(snapshot, event)` after recreating the execution and
+replaying earlier journal entries.
+
+```ts
+scheduleTimer: (source, id, delay) => {
+  const event = { type: 'xstate.timer', id };
+  if (!journal.hasTimerFiring(source.address, id)) {
+    host.schedule({
+      address: source.address,
+      id,
+      dueAt: host.now() + delay,
+      event
+    });
+  }
+}
+```
+
+`snapshot.timers` is the public, per-actor set of pending logical timers. Each
+entry contains its deterministic `id`, declared `delay`, delivery type, event
+and logical target. It intentionally has no host deadline or remaining-time
+field: persist that bookkeeping atomically with accepting `scheduleTimer`.
+For a child timer, retain `source.address`; after restoring the tree,
+`durable.getActorRef(snapshot, address)` resolves the current timer source.
+
+When a state exits before its timer fires, the transition removes the entry
+from `snapshot.timers` and emits `cancelTimer(source, id)`. Stopping an actor
+routes `cancelAllTimers(source)` through the same adapter. These operations are
+installed across the live actor tree, including restored children, so host-side
+alarms can use `(source.address, id)` consistently. A stale firing input whose
+timer is no longer pending is ignored.
+
 ## The effect contract
 
 `initialTransition()` and `transition()` remain pure. The helper tags their
