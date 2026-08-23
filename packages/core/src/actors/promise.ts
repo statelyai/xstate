@@ -1,4 +1,5 @@
 import { parseDelayToMilliseconds } from '../delay.ts';
+import { runStep } from '../runtimeHelpers.ts';
 import { XSTATE_INIT } from '../constants.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
@@ -13,12 +14,7 @@ import {
   NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
-import {
-  XSTATE_LOGIC_EFFECT_REJECT,
-  XSTATE_LOGIC_EFFECT_RESOLVE,
-  XSTATE_LOGIC_EFFECT_START,
-  createLogic as createBaseLogic
-} from './logic.ts';
+import { createLogic as createBaseLogic } from './logic.ts';
 
 export type AsyncSnapshot<TOutput, TInput> = Snapshot<TOutput> & {
   input: TInput | undefined;
@@ -305,25 +301,6 @@ export function createAsyncLogic<
 ): AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string } {
   const config = asyncLogic;
 
-  function waitForEffect<TStepOutput>(
-    self: AsyncActorRef<TOutput>,
-    key: string
-  ): Promise<TStepOutput> {
-    return new Promise((resolve, reject) => {
-      const subscription = self.subscribe((snapshot) => {
-        const effect = snapshot.effects?.[key];
-
-        if (effect?.status === 'done') {
-          subscription.unsubscribe();
-          resolve(effect.output as TStepOutput);
-        } else if (effect?.status === 'error') {
-          subscription.unsubscribe();
-          reject(effect.error as Error);
-        }
-      });
-    });
-  }
-
   return createBaseLogic<
     undefined,
     TOutput,
@@ -392,56 +369,37 @@ export function createAsyncLogic<
           }
         };
 
-        const resolvedPromise = Promise.resolve(
-          config.run(
-            {
-              input,
-              system,
-              self: self as any,
-              signal: controller.signal
-            },
-            {
-              emit: (event) => void runtime.emitEvent!(actorSelf, event),
-              step: async (key, exec) => {
-                const effect = self.getSnapshot().effects?.[key];
-
-                if (effect?.status === 'done') {
-                  return effect.output as any;
-                }
-
-                if (effect?.status === 'error') {
-                  throw effect.error;
-                }
-
-                if (effect?.status === 'active') {
-                  return waitForEffect(self as any, key) as any;
-                }
-
-                sendSelf({
-                  type: XSTATE_LOGIC_EFFECT_START,
-                  key
-                });
-
-                try {
-                  const output = await exec();
-                  sendSelf({
-                    type: XSTATE_LOGIC_EFFECT_RESOLVE,
-                    key,
-                    output
-                  });
-                  return output;
-                } catch (error) {
-                  sendSelf({
-                    type: XSTATE_LOGIC_EFFECT_REJECT,
-                    key,
-                    error
-                  });
-                  throw error;
-                }
+        const runBody = () =>
+          Promise.resolve(
+            config.run(
+              {
+                input,
+                system,
+                self: self as any,
+                signal: controller.signal
+              },
+              {
+                emit: (event) => void runtime.emitEvent!(actorSelf, event),
+                // Steps route through the runtime: a durable host that
+                // implements `runStep` owns the step journal; otherwise the
+                // built-in behavior memoizes into this actor's own snapshot,
+                // self-sending through the same runtime as the other effects.
+                step: (key, exec) =>
+                  runtime.runStep
+                    ? (Promise.resolve(
+                        runtime.runStep(actorSelf, key, exec)
+                      ) as Promise<any>)
+                    : runStep(actorSelf, key, exec, sendSelf)
               }
-            }
-          )
-        );
+            )
+          );
+        // The whole body is one durable unit: a host that implements
+        // `runLogic` journals it by the actor's address — or re-runs the
+        // registered logic from (src, input) on a remote executor, ignoring
+        // the closure. The default runs it here, unjournaled.
+        const resolvedPromise = runtime.runLogic
+          ? Promise.resolve(runtime.runLogic(actorSelf, runBody))
+          : runBody();
 
         resolvedPromise.then(
           (response) => {

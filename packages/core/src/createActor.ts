@@ -10,6 +10,7 @@ import {
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import {
+  encodeAddressSegment,
   AnyActorSystem,
   bookSessionId,
   Clock,
@@ -65,7 +66,11 @@ import {
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
 
-export const $$ACTOR_TYPE = 1;
+/**
+ * Marks a serialized object as an actor reference (`xstate$type` in JSON
+ * output and persisted context).
+ */
+export const ACTOR_REF_TYPE = 'actorRef';
 
 const emptyInspectionRecords = Object.freeze([]) as unknown as never[];
 
@@ -191,6 +196,24 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** The globally unique process ID for this invocation. */
   public sessionId: string;
 
+  private _address?: string;
+  /**
+   * The deterministic logical address of this actor within its system: the
+   * `/`-joined path of actor ids from the root. Stable across persistence and
+   * restore, unlike `sessionId`, which identifies one incarnation.
+   *
+   * `/` separates segments, so an id containing one (a state name with a
+   * slash reaches its invoked child's id) is percent-encoded to keep the
+   * path unambiguous.
+   */
+  public get address(): string {
+    // `id` and `_parent` never change after construction, so the whole chain
+    // memoizes to O(1) amortized.
+    return (this._address ??= this._parent
+      ? `${this._parent.address}/${encodeAddressSegment(this.id)}`
+      : encodeAddressSegment(this.id));
+  }
+
   /** The system to which this actor belongs. */
   public system: AnyActorSystem;
 
@@ -269,7 +292,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     this.sessionId = resolvedOptions._sessionId ?? bookSessionId(this.system);
-    this.id = resolveActorId(this.system, id);
+    this.id = resolveActorId(this.system, id, {
+      parent,
+      src: resolvedOptions.src ?? logic
+    });
     this.logger = options?.logger ?? this.system._logger;
     this.clock = options?.clock ?? this.system._clock;
     this._parent = parent;
@@ -548,7 +574,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     this._inspectTransition(this._snapshot, event);
   }
 
-  private _inspectTransition(
+  /** @internal Emits the transition inspection event; used by the pure
+   * `transition()` path for snapshots driven outside a live actor. */
+  public _inspectTransition(
     snapshot: SnapshotFrom<TLogic>,
     event: EventObject
   ): void {
@@ -861,14 +889,33 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     if (this._restored) {
-      const timers: Record<string, { id: string; delay: number }> =
+      type RestoredTimer = { id: string; delay: number; startedAt?: number };
+      const timers =
         (
           this._snapshot as unknown as {
-            timers?: Record<string, { id: string; delay: number }>;
+            timers?: Record<string, RestoredTimer>;
           }
         ).timers ?? {};
+      // startedAt is only persisted from — and only meaningful under — the
+      // wall clock; a custom clock (a simulated clock, a monotonic counter)
+      // restores every timer with its declared delay. The clamp bounds
+      // remaining time by the declared delay in case the wall clock moved
+      // backwards between persist and restore.
+      const wallClock = !this.system._clock.now;
+      const now = Date.now();
       for (const timer of Object.values(timers)) {
-        this.system.scheduleTimer(this, timer.id, timer.delay);
+        // A timer persisted from a live runtime carries its wall-clock start;
+        // honor the absolute deadline instead of restarting the full delay.
+        // Without a start (a pure-transition snapshot, or an older snapshot)
+        // the declared delay is all there is.
+        const delay =
+          wallClock && timer.startedAt !== undefined
+            ? Math.min(
+                timer.delay,
+                Math.max(0, timer.startedAt + timer.delay - now)
+              )
+            : timer.delay;
+        this.system.scheduleTimer(this, timer.id, delay);
       }
       this._restored = false;
     }
@@ -1050,15 +1097,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** @internal */
   public _send(event: EventFromLogic<TLogic>) {
     if (this._processingStatus === ProcessingStatus.Stopped) {
-      // do nothing
-      if (isDevelopment) {
-        // TODO: circular serialization issues
-        // const eventString = ''; //JSON.stringify(event);
-
-        console.warn(
-          `Event "${event.type}" was sent to stopped actor "${this.id} (${this.sessionId})". This actor has already reached its final state, and will not transition.`
-        );
-      }
+      this.system.deadLetter(
+        this._lastSourceRef,
+        this as AnyActor,
+        event,
+        'stopped'
+      );
       return;
     }
 
@@ -1087,10 +1131,16 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     this.system._relay(undefined, this, event);
   }
 
+  /**
+   * Returns the actor's serializable logical identity: its `id`, `address`,
+   * and registered source key (when the actor was created from one).
+   */
   public toJSON() {
     return {
-      xstate$$type: $$ACTOR_TYPE,
-      id: this.id
+      xstate$type: ACTOR_REF_TYPE,
+      id: this.id,
+      address: this.address,
+      src: typeof this.src === 'string' ? this.src : undefined
     };
   }
 
@@ -1107,8 +1157,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
    * Can be restored with {@link ActorOptions.state}
    * @see https://stately.ai/docs/persistence
    */
-  public getPersistedSnapshot(): Snapshot<unknown> &
-    PersistedSnapshotFor<TLogic>;
+  public getPersistedSnapshot(options?: {
+    /**
+     * Whether persisted machine children embed their own persisted state
+     * (the co-locating runtime's whole-tree checkpoint) or are referenced by
+     * logical address only, leaving each child's state with the runtime that
+     * owns it. Defaults to `true`.
+     */
+    embedChildren?: boolean;
+  }): Snapshot<unknown> & PersistedSnapshotFor<TLogic>;
   public getPersistedSnapshot(
     options?: unknown
   ): Snapshot<unknown> & PersistedSnapshotFor<TLogic> {
@@ -1126,10 +1183,16 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
    * Read an actor’s snapshot synchronously.
    *
    * @remarks
-   * The snapshot represent an actor's last emitted value.
+   * The snapshot is the last value the actor published, not a query of its
+   * private state: the actor emits a snapshot when it transitions, and this
+   * returns that cached last emission. The read is coherent within one
+   * synchronous transition turn because event processing runs to completion;
+   * across asynchronous boundaries it may be stale, like any observed value.
    *
-   * When an actor receives an event, its internal state may change. An actor
-   * may emit a snapshot when a state transition occurs.
+   * Only co-located actors publish full snapshots. A location-transparent
+   * remote handle exposes lifecycle only ({ status, output?, error? }): while
+   * the handle exists among its parent's children the child is presumed
+   * `active`, and its terminal result arrives as a completion event.
    *
    * Note that some actors, such as callback actors generated with
    * `createCallbackLogic`, will not emit snapshots.

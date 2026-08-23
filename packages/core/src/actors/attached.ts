@@ -17,7 +17,12 @@ export function createAttachedLogic(
   attach: (
     input: any,
     scope: { self: AnyActor; system: AnyActorSystem }
-  ) => Subscription | undefined
+  ) => Subscription | undefined,
+  /**
+   * Names the logic so its generated actor ids get their own prefix, out of
+   * the id space that user sources allocate from.
+   */
+  id?: string
 ): any {
   const initialTransition = (input: unknown, _: unknown) =>
     [
@@ -31,6 +36,7 @@ export function createAttachedLogic(
     ] as const;
 
   return {
+    id,
     start: (state: any, { self, system }: any) => {
       // Don't attach if the target doesn't exist or is stopped.
       const target = state.input.actor;

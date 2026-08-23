@@ -592,7 +592,7 @@ export type TransitionConfigFunction<
     TGuardMap,
     TDelayMap
   > & { input: TInput },
-  enq: EnqueueObject<TEvent, TEmitted>
+  enq: EnqueueObject<TEvent, TEmitted, SystemRegistry, TActorMap>
 ) => {
   target?: string | string[];
   // target?: keyof TSS['states'];
@@ -697,13 +697,19 @@ type EventTypeMatchesDescriptor<
 type IsInternalEventType<
   TEventType extends string,
   TDescriptors extends string
-> = true extends (
-  TDescriptors extends any
-    ? EventTypeMatchesDescriptor<TEventType, TDescriptors>
-    : never
-)
-  ? true
-  : false;
+> =
+  // Descriptors that collapsed to broad `string` (an untyped machine's
+  // config) cannot classify anything: without the guard they would match
+  // every event type and reduce the sendable events to `never`.
+  string extends TDescriptors
+    ? false
+    : true extends (
+          TDescriptors extends any
+            ? EventTypeMatchesDescriptor<TEventType, TDescriptors>
+            : never
+        )
+      ? true
+      : false;
 
 type ExcludeInternalEvents<
   TEvent extends EventObject,
@@ -713,6 +719,31 @@ type ExcludeInternalEvents<
     ? never
     : TEvent
   : never;
+
+type InternalEventDescriptorsFromConfig<
+  TEvent extends EventObject,
+  TConfig
+> = TConfig extends { internalEvents?: readonly EventDescriptor<TEvent>[] }
+  ? TConfig['internalEvents'] extends readonly (infer TDesc)[]
+    ? Extract<TDesc, string>
+    : never
+  : never;
+
+type InternalEventTypes<TInternalEvent extends EventObject> =
+  TInternalEvent extends any ? TInternalEvent['type'] : never;
+
+type SendableEventFromMachine<
+  TEvent extends EventObject,
+  TInternalEvent extends EventObject,
+  TConfig
+> =
+  IsAny<TInternalEvent> extends true
+    ? TEvent
+    : ExcludeInternalEvents<
+        TEvent,
+        | InternalEventTypes<TInternalEvent>
+        | InternalEventDescriptorsFromConfig<TEvent, TConfig>
+      >;
 
 export type IsLiteralString<T extends string> = string extends T ? false : true;
 
@@ -1578,6 +1609,13 @@ export interface StateConfig<
   _stateInputs?: Record<string, Record<string, unknown>>;
   /** @internal */
   _nextTimerId?: number;
+  /**
+   * Deterministic generated-child-id counters owned by this snapshot, keyed
+   * by src prefix.
+   *
+   * @internal
+   */
+  _nextActorIds?: Record<string, number>;
   machine?: StateMachine<
     TContext,
     TEvent,
@@ -1604,6 +1642,12 @@ export interface LogicalTimer {
   event: EventObject;
   /** `self` or the logical actor that will receive `event`. */
   target: 'self' | AnyActor;
+  /**
+   * The timer's wall-clock start, stamped at persist time by a running
+   * wall-clock actor and carried through restore so re-persisting keeps the
+   * original deadline.
+   */
+  startedAt?: number;
 }
 
 /** The logical input delivered to a timer's source when its runtime delay ends. */
@@ -1839,7 +1883,11 @@ export interface Subscribable<T> extends InteropSubscribable<T> {
 type EventDescriptorMatches<
   TEventType extends string,
   TNormalizedDescriptor
-> = TEventType extends TNormalizedDescriptor ? true : false;
+> = TEventType extends TNormalizedDescriptor
+  ? true
+  : TNormalizedDescriptor extends TEventType
+    ? true
+    : false;
 
 export type ExtractEvent<
   TEvent extends EventObject,
@@ -1924,6 +1972,12 @@ export interface ActorRuntime<
   /** The unique identifier for this actor relative to its parent. */
   id: string;
   /**
+   * The deterministic logical address of this actor within its system: the
+   * `/`-joined path of actor ids from the root. Stable across persistence and
+   * restore, unlike `sessionId`.
+   */
+  readonly address: string;
+  /**
    * The globally unique process ID for this invocation.
    *
    * @remarks
@@ -1938,6 +1992,8 @@ export interface ActorRuntime<
   toJSON?: () => any;
   _parent?: any;
   system: any;
+  /** @internal Emits the transition inspection event for `snapshot`. */
+  _inspectTransition(snapshot: TSnapshot, event: EventObject): void;
   /** @internal */
   _processingStatus: ProcessingStatus;
   /** @internal */
@@ -2000,47 +2056,24 @@ export type ActorRefFrom<T> =
     infer _TActionMap,
     infer _TActorMap,
     infer _TGuardMap,
-    infer _TDelayMap
+    infer _TDelayMap,
+    infer TInternalEvent
   >
-    ? TConfig extends {
-        internalEvents?: readonly EventDescriptor<TEvent>[];
-      }
-      ? ActorRef<
-          MachineSnapshot<
-            TContext,
-            TEvent,
-            TChildren,
-            TStateValue,
-            TTag,
-            TOutput,
-            TMeta,
-            any //TStateSchema
-          >,
+    ? ActorRef<
+        MachineSnapshot<
+          TContext,
           TEvent,
-          TEmitted,
-          ExcludeInternalEvents<
-            TEvent,
-            TConfig['internalEvents'] extends readonly EventDescriptor<TEvent>[]
-              ? TConfig['internalEvents'] extends readonly (infer TDesc)[]
-                ? Extract<TDesc, string>
-                : never
-              : never
-          >
-        >
-      : ActorRef<
-          MachineSnapshot<
-            TContext,
-            TEvent,
-            TChildren,
-            TStateValue,
-            TTag,
-            TOutput,
-            TMeta,
-            any //TStateSchema
-          >,
-          TEvent,
-          TEmitted
-        >
+          TChildren,
+          TStateValue,
+          TTag,
+          TOutput,
+          TMeta,
+          any //TStateSchema
+        >,
+        TEvent,
+        TEmitted,
+        SendableEventFromMachine<TEvent, TInternalEvent, TConfig>
+      >
     : T extends Promise<infer U>
       ? ActorRefFrom<AsyncActorLogic<U>>
       : T extends ActorLogic<
@@ -2068,20 +2101,10 @@ export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
     infer _TActionMap,
     infer _TActorMap,
     infer _TGuardMap,
-    infer _TDelayMap
+    infer _TDelayMap,
+    infer TInternalEvent
   >
-    ? TConfig extends {
-        internalEvents?: readonly EventDescriptor<TEvent>[];
-      }
-      ? ExcludeInternalEvents<
-          TEvent,
-          TConfig['internalEvents'] extends readonly EventDescriptor<TEvent>[]
-            ? TConfig['internalEvents'] extends readonly (infer TDesc)[]
-              ? Extract<TDesc, string>
-              : never
-            : never
-        >
-      : TEvent
+    ? SendableEventFromMachine<TEvent, TInternalEvent, TConfig>
     : EventFromLogic<TLogic>;
 
 type OpaqueMachineSnapshot<TSnapshot extends Snapshot<unknown>> =
@@ -2589,6 +2612,7 @@ export type StateSchema = {
   route?: unknown;
   states?: Record<string, StateSchema>;
   contextSchema?: StandardSchemaV1;
+  outputSchema?: StandardSchemaV1;
   input?: unknown;
 
   // Other types
@@ -2990,22 +3014,57 @@ export interface SubscribeToMappers<
   error?: (error: unknown) => TMappedEvent;
 }
 
+type EnqueueSpawnOptions<
+  TLogic extends AnyActorLogic,
+  TSystemRegistry extends SystemRegistry
+> = {
+  input?: InputFrom<TLogic>;
+  id?: string;
+  syncSnapshot?: boolean;
+  registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
+};
+
+type EnqueueSpawnArgs<
+  TLogic extends AnyActorLogic,
+  TSystemRegistry extends SystemRegistry
+> = ConditionalRequired<
+  [
+    options?: EnqueueSpawnOptions<TLogic, TSystemRegistry> & {
+      [K in RequiredLogicInput<TLogic>]: unknown;
+    }
+  ],
+  IsNotNever<RequiredLogicInput<TLogic>>
+>;
+
+type EnqueueSpawner<
+  TActorMap extends Sources['actors'],
+  TSystemRegistry extends SystemRegistry
+> = {
+  <TSource extends keyof TActorMap & string>(
+    src: TSource,
+    ...[options]: EnqueueSpawnArgs<TActorMap[TSource], TSystemRegistry>
+  ): ActorFromLogic<TActorMap[TSource]>;
+  <TLogic extends AnyActorLogic>(
+    logic: TLogic,
+    ...[options]: EnqueueSpawnArgs<TLogic, TSystemRegistry>
+  ): ActorFromLogic<TLogic>;
+};
+
 export type EnqueueObject<
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
-  TSystemRegistry extends SystemRegistry = SystemRegistry
+  TSystemRegistry extends SystemRegistry = SystemRegistry,
+  TActorMap extends Sources['actors'] = Sources['actors']
 > = {
   cancel: (id: string) => void;
   raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
-  spawn: <T extends AnyActorLogic>(
-    logic: T,
-    options?: {
-      input?: InputFrom<T>;
-      id?: string;
-      syncSnapshot?: boolean;
-      registryKey?: RegistryKeyForLogic<T, TSystemRegistry>;
-    }
-  ) => ActorFromLogic<T>;
+  /**
+   * Spawns a child actor from a registered source key or logic. Without an
+   * explicit `id`, the child gets a deterministic src-keyed id (`worker:0`,
+   * `worker:1`, …) allocated from the parent snapshot's own counters, so ids
+   * replay identically and persist with the parent.
+   */
+  spawn: EnqueueSpawner<TActorMap, TSystemRegistry>;
   emit: (emittedEvent: TEmittedEvent) => void;
   <T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): void;
   log: (...args: any[]) => void;
@@ -3085,7 +3144,7 @@ export type Action<
     system?: AnyActorSystem;
     params: TParams;
   },
-  enqueue: EnqueueObject<TEvent, TEmittedEvent>
+  enqueue: EnqueueObject<TEvent, TEmittedEvent, SystemRegistry, TActorMap>
 ) => {
   context?: Partial<_TCtx>;
   children?: Record<string, AnyActor | undefined>;

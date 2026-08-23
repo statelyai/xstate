@@ -36,8 +36,8 @@ The root of a machine is a state node. It accepts everything a [state node](#sta
 | `onDone` | transition | Taken when a final child state is reached. See [final states](final-states.md). |
 | `onError` | transition | Taken on `xstate.error.*` raised below this node. See [errors](lifecycle-and-errors.md). |
 | `output` | value or `({ context, event }) => value` | [Output](input-output.md) produced on completion. |
-| `schemas` | `{ context, events, emitted, input, output, meta, tags, children, actions, guards }` | Standard Schema definitions. See [TypeScript](typescript.md). |
-| `internalEvents` | `readonly EventType[]` | Events the machine may raise but no one may send in. See [internal events](internal-events.md). |
+| `schemas` | `{ context, events, internalEvents, emitted, input, output, meta, tags, children, actions, guards }` | Standard Schema definitions. See [TypeScript](typescript.md). |
+| `internalEvents` | `readonly EventType[]` | Deprecated compatibility list for events declared in `schemas.events`; use `schemas.internalEvents` instead. See [internal events](internal-events.md). |
 | `actions` | `Record<string, (params, args) => void>` | Named action sources. See [setup and provide](setup-and-provide.md). |
 | `guards` | `Record<string, (params, args) => boolean>` | Named guard sources. See [guards](guards.md). |
 | `actors` | `Record<string, ActorLogic>` | Named actor logic sources. See [invoke](invoke.md). |

@@ -1,6 +1,7 @@
 import { XSTATE_INIT, XSTATE_STOP, XSTATE_TIMER } from './constants.ts';
 import { builtInActions } from './actions.ts';
 import {
+  beginSpawnAllocation,
   finalizeTransitionResult,
   deriveDeferredStarts,
   createSendToEffect,
@@ -33,6 +34,7 @@ export type FSMSnapshot<
   children: {};
   timers: Record<string, LogicalTimer>;
   _nextTimerId: number;
+  _nextActorIds?: Record<string, number>;
   _stateInput: Record<string, unknown> | undefined;
   machine: {
     id: string;
@@ -299,6 +301,9 @@ function cloneSnapshot<
     children: snapshot.children,
     timers: snapshot.timers,
     _nextTimerId: snapshot._nextTimerId,
+    // Carried across state changes: dropping these would let a later spawn
+    // reuse the id of a still-running child.
+    _nextActorIds: snapshot._nextActorIds,
     _stateInput: stateInput,
     machine: snapshot.machine
   } as FSMSnapshot<TContext, TState, TInput>;
@@ -321,6 +326,7 @@ function stopSnapshot<
     children: snapshot.children,
     timers: snapshot.timers,
     _nextTimerId: snapshot._nextTimerId,
+    _nextActorIds: snapshot._nextActorIds,
     _stateInput: snapshot._stateInput,
     machine: snapshot.machine
   } as FSMSnapshot<TContext, TState, TInput>;
@@ -794,6 +800,7 @@ export function createFSM<
   };
 
   const transition = ((...args: Parameters<typeof transitionCore>) => {
+    beginSpawnAllocation(args[2]);
     const [nextSnapshot, effects] = transitionCore(...args);
     return finalizeTransitionResult(args[2], args[0], [
       nextSnapshot,
@@ -806,6 +813,7 @@ export function createFSM<
     config,
     transition,
     initialTransition: (input, actorScope) => {
+      beginSpawnAllocation(actorScope);
       const context = resolveContext(config.context, input);
       const snapshot = createSnapshot(
         config.initial,
