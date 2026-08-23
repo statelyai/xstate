@@ -1,20 +1,20 @@
 import { XSTATE_INIT, XSTATE_STOP, XSTATE_TIMER } from './constants.ts';
-import { builtInActions } from './actions.ts';
 import {
-  beginSpawnAllocation,
-  finalizeTransitionResult,
-  deriveDeferredStarts,
-  createSendToEffect,
-  createTransitionEnqueue,
-  resolveActionsWithContext
-} from './transitionActions.ts';
+  appendFSMStarts,
+  beginFSMEffects,
+  createFSMEnqueue,
+  createFSMSendEffect,
+  finalizeFSMEffects,
+  resolveFSMEffects,
+  type FSMEffect
+} from './fsm/effects.ts';
 import { isLazyActorScope, withActorScope } from './actorScope.ts';
 import type {
   ActorLogic,
   ActorScope,
-  AnyAction,
+  AnyActor,
   AnyActorScope,
-  AnyEventObject,
+  EnqueueObject,
   EventObject,
   ExecutableActionObject,
   MachineContext,
@@ -72,7 +72,7 @@ type FSMAction<
   args: FSMArgs<TContext, TEvent, TState, TInput> & {
     input: Record<string, unknown> | undefined;
   },
-  enq: ReturnType<typeof createTransitionEnqueue>
+  enq: EnqueueObject<TEvent, EventObject>
 ) => void | { context?: FSMContextPatch<TContext> };
 
 type FSMGuard<
@@ -126,7 +126,7 @@ type FSMTransitionFunction<
   TInput
 > = (
   args: FSMArgs<TContext, TEvent, TState, TInput>,
-  enq: ReturnType<typeof createTransitionEnqueue>
+  enq: EnqueueObject<TEvent, EventObject>
 ) => void | false | FSMTarget<TContext>;
 
 type FSMTransition<
@@ -150,12 +150,16 @@ type FSMStateConfig<
   TState extends string,
   TInput
 > = {
+  type?: 'final';
   entry?:
     | FSMAction<TContext, TEvent, TState, TInput>
     | Array<FSMAction<TContext, TEvent, TState, TInput>>;
   exit?:
     | FSMAction<TContext, TEvent, TState, TInput>
     | Array<FSMAction<TContext, TEvent, TState, TInput>>;
+  always?:
+    | FSMTransition<TContext, TEvent, TState, TInput>
+    | Array<FSMTransition<TContext, TEvent, TState, TInput>>;
   on?: Record<
     string,
     | FSMTransition<TContext, TEvent, TState, TInput>
@@ -198,10 +202,7 @@ const emptySources = {
 };
 
 const emptyExecutableActions: ExecutableActionObject[] = [];
-const emptyRawActions: AnyAction[] = [];
-const builtInActionSet = new Set<(...args: any[]) => void>(
-  Object.values(builtInActions)
-);
+const emptyFSMActions: FSMAction<any, any, any, any>[] = [];
 
 function toArray<T>(value: T | T[] | undefined): T[] {
   return value === undefined ? [] : Array.isArray(value) ? value : [value];
@@ -332,6 +333,60 @@ function stopSnapshot<
   } as FSMSnapshot<TContext, TState, TInput>;
 }
 
+function cleanupFSM(
+  snapshot: FSMSnapshot<any, string, any>,
+  actorScope: AnyActorScope
+): [FSMSnapshot<any, string, any>, ExecutableActionObject[]] {
+  const effects: FSMEffect[] = [];
+  const enqueue = createFSMEnqueue(actorScope, effects, []);
+  for (const child of Object.values(snapshot.children) as AnyActor[]) {
+    enqueue.stop(child);
+  }
+  for (const id of Object.keys(snapshot.timers)) {
+    enqueue.cancel(id);
+  }
+  return resolveFSMEffects(snapshot, effects, actorScope);
+}
+
+function completeFinalState(
+  snapshot: FSMSnapshot<any, string, any>,
+  event: EventObject,
+  actorScope: AnyActorScope,
+  internalQueue: EventObject[],
+  states: Record<string, FSMStateConfig<any, any, string, any>>,
+  runStateActions: (
+    snapshot: FSMSnapshot<any, string, any>,
+    event: EventObject,
+    actorScope: AnyActorScope,
+    actions: FSMStateConfig<any, any, string, any>['entry'],
+    input: Record<string, unknown> | undefined,
+    queue: EventObject[]
+  ) => [FSMSnapshot<any, string, any>, ExecutableActionObject[]]
+): [FSMSnapshot<any, string, any>, ExecutableActionObject[]] {
+  const completed = {
+    ...snapshot,
+    status: 'done',
+    output: undefined,
+    error: undefined
+  } as FSMSnapshot<any, string, any>;
+  const [exited, exitEffects] = runStateActions(
+    completed,
+    event,
+    actorScope,
+    states[completed.value]?.exit,
+    completed._stateInput,
+    internalQueue
+  );
+  const [cleaned, cleanupEffects] = cleanupFSM(exited, actorScope);
+  return [cleaned, [...exitEffects, ...cleanupEffects]];
+}
+
+function invalidStringTarget(path: string, target: string): never {
+  throw new Error(
+    `Invalid transition for "${path}": use { target: "${target}" } instead of a string target.`
+  );
+}
+
 function assertNoStringTransitions(
   config: FSMConfig<any, any, string, any>
 ): void {
@@ -341,46 +396,18 @@ function assertNoStringTransitions(
     )) {
       for (const transition of toArray(transitionConfig)) {
         if (typeof transition === 'string') {
-          const target = transition as string;
-          throw new Error(
-            `Invalid transition for "${stateKey}.${eventType}": use { target: "${target}" } instead of a string target.`
-          );
+          invalidStringTarget(`${stateKey}.${eventType}`, transition as string);
+        }
+      }
+    }
+    if (stateConfig.always) {
+      for (const transition of toArray(stateConfig.always)) {
+        if (typeof transition === 'string') {
+          invalidStringTarget(`${stateKey}.always`, transition as string);
         }
       }
     }
   }
-}
-
-function resolveSimpleEnqueuedActions(
-  rawActions: AnyAction[]
-): ExecutableActionObject[] | undefined {
-  const executableActions: ExecutableActionObject[] = [];
-
-  for (const action of rawActions) {
-    if (
-      !action ||
-      typeof action !== 'object' ||
-      !('action' in action) ||
-      typeof action.action !== 'function' ||
-      builtInActionSet.has(action.action) ||
-      '_special' in action.action
-    ) {
-      return undefined;
-    }
-
-    executableActions.push({
-      kind: 'action',
-      type: action.action.name || '(anonymous)',
-      params: undefined,
-      args: action.args,
-      action: action.action,
-      exec() {
-        return this.action?.(...this.args);
-      }
-    });
-  }
-
-  return executableActions;
 }
 
 export function createFSM<
@@ -400,20 +427,51 @@ export function createFSM<
     snapshot: FSMSnapshot<TContext, string, TInput>,
     event: EventObject,
     actorScope: AnyActorScope,
-    rawActions: AnyAction[] | undefined
+    actionsConfig:
+      | FSMAction<TContext, TEvent, string, TInput>
+      | Array<FSMAction<TContext, TEvent, string, TInput>>
+      | undefined,
+    internalQueue: EventObject[]
   ): [FSMSnapshot<TContext, string, TInput>, ExecutableActionObject[]] => {
-    if (!rawActions?.length) {
+    if (!actionsConfig) {
       return [snapshot, emptyExecutableActions];
     }
-    const simpleExecutableActions = resolveSimpleEnqueuedActions(rawActions);
-    if (simpleExecutableActions) {
-      return [snapshot, simpleExecutableActions];
-    }
-    return resolveActionsWithContext(
-      snapshot as any,
-      event as AnyEventObject,
+    const effects: FSMEffect[] = [];
+    const enqueue = createFSMEnqueue<TEvent>(
       actorScope,
-      rawActions
+      effects,
+      internalQueue
+    );
+    let context = snapshot.context;
+    for (const action of toArray(actionsConfig)) {
+      const result = action(
+        withActorScope(
+          {
+            context,
+            event: event as TEvent,
+            input: snapshot._stateInput,
+            value: snapshot.value,
+            children: snapshot.children
+          },
+          actorScope
+        ) as any,
+        enqueue
+      );
+      if (result?.context) {
+        context = mergeContextPatch(context, result.context);
+      }
+    }
+    return resolveFSMEffects(
+      context === snapshot.context
+        ? snapshot
+        : cloneSnapshot(
+            snapshot,
+            snapshot.value,
+            context,
+            snapshot._stateInput
+          ),
+      effects,
+      actorScope
     ) as any;
   };
 
@@ -429,13 +487,8 @@ export function createFSM<
       return [snapshot, emptyExecutableActions];
     }
 
-    const actions: AnyAction[] = [];
-    const enq = createTransitionEnqueue(
-      actorScope,
-      actions,
-      internalQueue,
-      true
-    );
+    const actions: FSMEffect[] = [];
+    const enq = createFSMEnqueue<TEvent>(actorScope, actions, internalQueue);
     let context: TContext | undefined;
     const actionCount = Array.isArray(actionsConfig) ? actionsConfig.length : 1;
 
@@ -469,7 +522,7 @@ export function createFSM<
       context !== undefined
         ? cloneSnapshot(snapshot, snapshot.value, context, snapshot._stateInput)
         : snapshot;
-    return runActions(nextSnapshot, event, actorScope, actions);
+    return resolveFSMEffects(nextSnapshot, actions, actorScope) as any;
   };
 
   const selectTransition = (
@@ -482,7 +535,7 @@ export function createFSM<
     const transitionsConfig:
       | FSMTransition<TContext, TEvent, string, TInput>
       | Array<FSMTransition<TContext, TEvent, string, TInput>>
-      | undefined = state?.on?.[event.type];
+      | undefined = event.type === '' ? state?.always : state?.on?.[event.type];
 
     if (!transitionsConfig) {
       return undefined;
@@ -508,17 +561,16 @@ export function createFSM<
       );
 
       if (typeof transition === 'function') {
-        const actions: AnyAction[] = [];
-        const enq = createTransitionEnqueue(
+        const actions: FSMEffect[] = [];
+        const enq = createFSMEnqueue<TEvent>(
           actorScope,
           actions,
-          internalQueue,
-          true
+          internalQueue
         );
         const result = transition(args, enq);
         if (!result) {
           if (actions.length) {
-            return { actions };
+            return { effects: actions };
           }
           continue;
         }
@@ -526,7 +578,7 @@ export function createFSM<
           target: result.target,
           context: result.context,
           input: result.input,
-          actions
+          effects: actions
         };
       }
 
@@ -545,7 +597,7 @@ export function createFSM<
         actions:
           'actions' in transition && transition.actions
             ? toArray(transition.actions as any)
-            : emptyRawActions
+            : emptyFSMActions
       };
     }
 
@@ -566,18 +618,8 @@ export function createFSM<
       return [snapshot, []];
     }
     if (event.type === XSTATE_STOP) {
-      const actions: AnyAction[] = [];
-      const enqueue = createTransitionEnqueue(actorScope, actions, []);
-      for (const id of Object.keys(snapshot.timers)) {
-        enqueue.cancel(id);
-      }
-      const [withoutTimers, cancelEffects] = resolveActionsWithContext(
-        snapshot as any,
-        event,
-        actorScope,
-        actions
-      );
-      return [stopSnapshot(withoutTimers as any), cancelEffects] as any;
+      const [cleaned, cleanupEffects] = cleanupFSM(snapshot, actorScope);
+      return [stopSnapshot(cleaned), cleanupEffects] as any;
     }
     if (event.type === XSTATE_TIMER) {
       const timer = snapshot.timers[(event as any).id];
@@ -593,12 +635,13 @@ export function createFSM<
       const target = timer.target === 'self' ? actorScope.self : timer.target;
       return [
         nextSnapshot,
-        [createSendToEffect(actorScope, target, timer.event)]
+        [createFSMSendEffect(actorScope, target, timer.event)]
       ];
     }
 
     const stateConfig = config.states[snapshot.value];
-    const directTransition = stateConfig?.on?.[event.type];
+    const directTransition =
+      event.type === '' ? stateConfig?.always : stateConfig?.on?.[event.type];
     if (!directTransition) {
       return [snapshot, emptyExecutableActions];
     }
@@ -611,8 +654,15 @@ export function createFSM<
       typeof directTransition.input !== 'function'
     ) {
       const target = directTransition.target ?? snapshot.value;
+      const targetState = config.states[target];
       const stateChanged = target !== snapshot.value;
-      if (stateChanged && (stateConfig.exit || config.states[target]?.entry)) {
+      if (
+        targetState?.always ||
+        (stateChanged &&
+          (stateConfig.exit ||
+            targetState?.entry ||
+            targetState?.type === 'final'))
+      ) {
         // Exit/entry actions need the general path.
       } else {
         const hasContext = directTransition.context !== undefined;
@@ -687,7 +737,12 @@ export function createFSM<
       );
       if (result) {
         const target = result.target ?? snapshot.value;
-        if (!config.states[target]?.entry) {
+        const targetState = config.states[target];
+        if (
+          !targetState?.entry &&
+          !targetState?.always &&
+          targetState?.type !== 'final'
+        ) {
           const hasContext = result.context !== undefined;
           const hasInput = result.input !== undefined;
           const context =
@@ -736,6 +791,7 @@ export function createFSM<
       }
 
       const nextValue = selected.target ?? nextSnapshot.value;
+      const nextState = config.states[nextValue];
       const stateChanged = nextValue !== nextSnapshot.value;
 
       if (stateChanged) {
@@ -773,12 +829,19 @@ export function createFSM<
         );
       }
 
-      const [afterTransition, transitionActions] = runActions(
-        nextSnapshot,
-        nextEvent,
-        actorScope,
-        selected.actions
-      );
+      const transitionResult: [
+        FSMSnapshot<TContext, string, TInput>,
+        ExecutableActionObject[]
+      ] = selected.effects
+        ? resolveFSMEffects(nextSnapshot, selected.effects, actorScope)
+        : runActions(
+            nextSnapshot,
+            nextEvent,
+            actorScope,
+            selected.actions,
+            internalQueue
+          );
+      const [afterTransition, transitionActions] = transitionResult;
       nextSnapshot = afterTransition;
       executableActions.push(...transitionActions);
 
@@ -787,12 +850,29 @@ export function createFSM<
           nextSnapshot,
           nextEvent,
           actorScope,
-          config.states[nextValue]?.entry,
+          nextState?.entry,
           stateInput,
           internalQueue
         );
         nextSnapshot = entered;
         executableActions.push(...entryActions);
+      }
+
+      if (nextState?.type === 'final') {
+        const [completed, completionEffects] = completeFinalState(
+          nextSnapshot,
+          nextEvent,
+          actorScope,
+          internalQueue,
+          config.states,
+          runStateActions as any
+        );
+        nextSnapshot = completed;
+        executableActions.push(...completionEffects);
+        break;
+      }
+      if (nextState?.always) {
+        internalQueue.unshift({ type: '' });
       }
     }
 
@@ -800,11 +880,11 @@ export function createFSM<
   };
 
   const transition = ((...args: Parameters<typeof transitionCore>) => {
-    beginSpawnAllocation(args[2]);
+    beginFSMEffects(args[2], args[0]);
     const [nextSnapshot, effects] = transitionCore(...args);
-    return finalizeTransitionResult(args[2], args[0], [
+    return finalizeFSMEffects(args[2], args[0], [
       nextSnapshot,
-      [...effects, ...deriveDeferredStarts(effects)]
+      appendFSMStarts(effects)
     ]);
   }) as FSMActorLogic<TContext, TEvent, string, TInput>['transition'];
 
@@ -813,7 +893,7 @@ export function createFSM<
     config,
     transition,
     initialTransition: (input, actorScope) => {
-      beginSpawnAllocation(actorScope);
+      const initialState = config.states[config.initial];
       const context = resolveContext(config.context, input);
       const snapshot = createSnapshot(
         config.initial,
@@ -821,30 +901,47 @@ export function createFSM<
         input,
         machine as any
       );
+      beginFSMEffects(actorScope, snapshot);
       const internalQueue: EventObject[] = [];
       let [nextSnapshot, actions] = runStateActions(
         snapshot,
         { type: XSTATE_INIT },
         actorScope,
-        config.states[config.initial]?.entry,
+        initialState?.entry,
         undefined,
         internalQueue
       );
       if (!actions.length) {
         actions = [];
       }
-      while (internalQueue.length) {
-        const [raisedSnapshot, raisedActions] = transitionCore(
+      if (initialState?.type === 'final') {
+        const [completed, completionEffects] = completeFinalState(
           nextSnapshot,
-          internalQueue.shift()! as TEvent,
-          actorScope
+          { type: XSTATE_INIT },
+          actorScope,
+          internalQueue,
+          config.states,
+          runStateActions as any
         );
-        nextSnapshot = raisedSnapshot;
-        actions.push(...raisedActions);
+        nextSnapshot = completed;
+        actions.push(...completionEffects);
+      } else {
+        if (initialState?.always) {
+          internalQueue.unshift({ type: '' });
+        }
+        while (internalQueue.length) {
+          const [raisedSnapshot, raisedActions] = transitionCore(
+            nextSnapshot,
+            internalQueue.shift()! as TEvent,
+            actorScope
+          );
+          nextSnapshot = raisedSnapshot;
+          actions.push(...raisedActions);
+        }
       }
-      return finalizeTransitionResult(actorScope, undefined, [
+      return finalizeFSMEffects(actorScope, undefined, [
         nextSnapshot,
-        [...actions, ...deriveDeferredStarts(actions)]
+        appendFSMStarts(actions)
       ]);
     },
     getInitialSnapshot: (actorScope, input) =>

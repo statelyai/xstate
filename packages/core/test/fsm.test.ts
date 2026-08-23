@@ -3,6 +3,7 @@ import {
   createCallbackLogic,
   createFSM,
   initialTransition,
+  SimulatedClock,
   transition
 } from '../src';
 
@@ -57,6 +58,54 @@ describe('createFSM', () => {
     expect(next.value).toBe('b');
     expect(next.context.count).toBe(1);
     expect(actions).toHaveLength(1);
+  });
+
+  it('passes arguments and enqueue to object transition actions', () => {
+    const calls: string[] = [];
+    const fsm = createFSM({
+      initial: 'idle',
+      context: { count: 1 },
+      states: {
+        idle: {
+          on: {
+            run: {
+              actions: ({ context, event }, enq) => {
+                enq(() => calls.push(`${event.type}:${context.count}`));
+                return { context: { count: 2 } };
+              }
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(fsm).start();
+
+    actor.send({ type: 'run' });
+
+    expect(calls).toEqual(['run:1']);
+    expect(actor.getSnapshot().context).toEqual({ count: 2 });
+  });
+
+  it('drains raised events from object transition actions', () => {
+    const fsm = createFSM({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            start: {
+              actions: (_, enq) => enq.raise({ type: 'continue' })
+            },
+            continue: { target: 'ready' }
+          }
+        },
+        ready: {}
+      }
+    });
+    const actor = createActor(fsm).start();
+
+    actor.send({ type: 'start' });
+
+    expect(actor.getSnapshot().value).toBe('ready');
   });
 
   it('resolves mapper context on object transitions', () => {
@@ -229,6 +278,99 @@ describe('createFSM', () => {
 
     expect(actor.getSnapshot().context.count).toBe(1);
   });
+
+  it('stabilizes chained eventless transitions', () => {
+    const fsm = createFSM({
+      initial: 'checking',
+      context: { count: 0 },
+      states: {
+        checking: {
+          always: [
+            {
+              guard: ({ context }) => context.count < 2,
+              actions: ({ context }) => ({
+                context: { count: context.count + 1 }
+              })
+            },
+            { target: 'ready' }
+          ]
+        },
+        ready: {}
+      }
+    });
+
+    const [snapshot] = initialTransition(fsm);
+
+    expect(snapshot).toMatchObject({
+      status: 'active',
+      value: 'ready',
+      context: { count: 2 }
+    });
+  });
+
+  it('stabilizes eventless transitions after a fast-path event transition', () => {
+    const fsm = createFSM({
+      initial: 'checking',
+      context: { ready: false },
+      states: {
+        checking: {
+          always: {
+            guard: ({ context }) => context.ready,
+            target: 'ready'
+          },
+          on: {
+            enable: { context: { ready: true } }
+          }
+        },
+        ready: {}
+      }
+    });
+    const actor = createActor(fsm).start();
+
+    actor.send({ type: 'enable' });
+
+    expect(actor.getSnapshot().value).toBe('ready');
+  });
+
+  it('returns one terminal effect for an initially final state', () => {
+    const fsm = createFSM({
+      initial: 'done',
+      states: { done: { type: 'final' } }
+    });
+
+    const [snapshot, effects] = initialTransition(fsm);
+
+    expect(snapshot.status).toBe('done');
+    expect(
+      effects.filter((effect) => effect.type === '@xstate.terminate')
+    ).toHaveLength(1);
+  });
+
+  it('stops children and cancels timers on final completion', () => {
+    const stopped = vi.fn();
+    const child = createCallbackLogic(() => () => stopped());
+    const clock = new SimulatedClock();
+    const fsm = createFSM({
+      initial: 'active',
+      states: {
+        active: {
+          entry: (_, enq) => {
+            enq.spawn(child, { id: 'child' });
+            enq.raise({ type: 'later' }, { delay: 100, id: 'later' });
+          },
+          on: { finish: { target: 'done' } }
+        },
+        done: { type: 'final' }
+      }
+    });
+    const actor = createActor(fsm, { clock }).start();
+
+    actor.send({ type: 'finish' });
+
+    expect(actor.getSnapshot().children).toEqual({});
+    expect(actor.getSnapshot().timers).toEqual({});
+    expect(stopped).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('createFSM spawning', () => {
@@ -285,6 +427,40 @@ describe('createFSM spawning', () => {
 
     expect(receivedEvents).toHaveLength(1);
     expect(receivedEvents[0].type).toBe('CHILD_EMITTED');
+  });
+
+  it('attaches listeners from object transition actions', () => {
+    const receivedEvents: string[] = [];
+    let childRef: any;
+    const child = createCallbackLogic(({ receive, emit }) => {
+      receive(() => emit({ type: 'childEvent' }));
+    });
+    const fsm = createFSM({
+      initial: 'active',
+      states: {
+        active: {
+          entry: (_, enq) => {
+            childRef = enq.spawn(child, { id: 'child' });
+          },
+          on: {
+            attach: {
+              actions: (_, enq) => {
+                enq.listen(childRef, 'childEvent', () => ({ type: 'heard' }));
+              }
+            },
+            heard: ({ event }, enq) => {
+              enq(() => receivedEvents.push(event.type));
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(fsm).start();
+
+    actor.send({ type: 'attach' });
+    childRef.send({ type: 'trigger' });
+
+    expect(receivedEvents).toEqual(['heard']);
   });
 
   it('does not double-start a child spawned from a raise-drained transition', () => {
