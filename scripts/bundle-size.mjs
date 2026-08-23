@@ -24,6 +24,7 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzip } from 'pako';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // pnpm doesn't hoist esbuild to the root, so resolve it through the
@@ -32,7 +33,6 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const rootRequire = createRequire(join(root, 'package.json'));
 // Node links against different zlib versions across platforms and releases.
 // A pinned JS implementation keeps exact gzip thresholds reproducible.
-const { gzip } = rootRequire('pako');
 const viteRequire = createRequire(rootRequire.resolve('vitest'));
 const esbuild = createRequire(viteRequire.resolve('vite'))('esbuild');
 const preconstructRequire = createRequire(
