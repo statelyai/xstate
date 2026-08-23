@@ -13,14 +13,15 @@ const actor = createActor(machine, {
 });
 ```
 
-Inspection emits two event types:
+Inspection emits three event types:
 
 | Type | Contains |
 | --- | --- |
 | `@xstate.actor` | Actor identity and parent information. |
 | `@xstate.transition` | The event, snapshot, source, target and microsteps. |
+| `@xstate.event.rejected` | An event rejected at the delivery boundary. |
 
-Both event types carry `rootId`, the session ID of the root actor, and `actorRef`, the actor the event is about. Session IDs are unique across actors, so `rootId` identifies the system and `actorRef.sessionId` identifies an actor within it.
+All event types carry `rootId`, the session ID of the root actor, and `actorRef`, the actor the event is about. Session IDs are unique across actors, so `rootId` identifies the system and `actorRef.sessionId` identifies an actor within it.
 
 `@xstate.actor` announces every created actor: the root actor and each spawned or invoked child. It is the only topology event, so an inspector can draw the actor graph before any transition occurs.
 
@@ -44,6 +45,18 @@ Both event types carry `rootId`, the session ID of the root actor, and `actorRef
 | `actions` | The executed actions, as `{ type, params }`. |
 | `sent` | Events relayed to other actors, as `{ targetRef, targetId, event, delay, id }`. |
 
+`@xstate.event.rejected` announces an event that was rejected at the delivery boundary instead of being delivered: an invalid external event payload, or an [internal event](internal-events.md) type sent from outside its owning actor. A rejection is not an actor error; the target actor keeps running and its snapshot is unchanged.
+
+| Property | Description |
+| --- | --- |
+| `event` | The rejected event. |
+| `targetId` | The `id` of the target actor, if known. |
+| `sourceRef` | The actor that sent the event, or `undefined` for an external send. |
+| `eventOrigin` | `'external'` or `'actor'`. |
+| `reason` | `'invalidEvent'` or `'internalEvent'`. |
+| `issues` | Standard Schema issues for `'invalidEvent'` rejections. |
+| `error` | The underlying error. |
+
 Actor stop is derivable from `snapshot.status` on the actor's final `@xstate.transition` event, so there is no separate stop event. The v5 `@xstate.event`, `@xstate.snapshot`, `@xstate.action` and `@xstate.microstep` events are gone; `@xstate.transition` carries all of them.
 
 Use inspection for developer tools, logs and visualizers. Do not change application state from an inspector.
@@ -60,4 +73,5 @@ event.actorRef; // '@xstate.actor' and '@xstate.transition'
 event.parentRef, event.id, event.src, event.snapshot; // '@xstate.actor'
 event.event, event.snapshot, event.sourceRef, event.targetRef; // '@xstate.transition'
 event.microsteps, event.actions, event.sent; // '@xstate.transition'
+event.event, event.reason, event.issues, event.error; // '@xstate.event.rejected'
 ```

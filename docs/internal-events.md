@@ -29,16 +29,26 @@ const machine = createMachine({
 });
 ```
 
-Sending `start` raises `tick` internally and the machine transitions to `done`. Sending `tick` directly throws:
+Sending `start` raises `tick` internally and the machine transitions to `done`. Sending `tick` directly rejects the event at the delivery boundary:
 
 ```ts
-const actor = createActor(machine).start();
+const actor = createActor(machine, {
+  onRejectedEvent: (rejection) => {
+    rejection.event; // { type: 'tick' }
+    rejection.reason; // 'internalEvent'
+  }
+}).start();
 
 actor.send({ type: 'tick' });
-// Error: Internal event "tick" cannot be sent to actor "<actor id>" from outside.
+// The event is not delivered. `actor.send` does not throw and the actor
+// does not error; its state is unchanged.
 ```
 
-The actor's state is unchanged, because the throw happens before the event is delivered.
+A rejected event never enters the machine. The rejection is reported three ways:
+
+- The `onRejectedEvent` dead-letter hook on `createActor` options receives an `EventRejection` object with the `event`, `targetId`, `sourceRef`, `eventOrigin` (`'external'` or `'actor'`), `reason` and `error`.
+- [Inspection](inspection.md) observers receive a `@xstate.event.rejected` inspection event with the same fields.
+- In development mode, a console warning describes the rejection.
 
 Internal events are still ordinary events in every other respect. They need a schema entry, they appear in `on` handlers, and they are raised with `enq.raise` like any other event.
 
@@ -54,9 +64,9 @@ With that in place, `change.value`, `change.status` and any other `change.*` eve
 
 ## What counts as "outside"
 
-The check compares the sender to the receiver. An actor raising or sending an event to itself is allowed. Anything else throws: `actor.send` from application code, a parent sending to a child, or a sibling actor.
+The check compares the sender to the receiver. An actor raising or sending an event to itself is allowed. Anything else is rejected: `actor.send` from application code, a parent sending to a child, or a sibling actor.
 
-> **Warning:** the error is thrown synchronously at the call site, not routed to the actor's error handling. Treat internal events as a private surface, and if application code needs to reach that behavior, expose a public event that raises the internal one.
+> **Warning:** a rejection is silent unless you observe it. It does not throw and it does not error the actor. Register `onRejectedEvent` or an inspection observer to detect rejected events. Treat internal events as a private surface, and if application code needs to reach that behavior, expose a public event that raises the internal one.
 
 Use internal events for:
 
@@ -66,7 +76,7 @@ Use internal events for:
 
 ## TypeScript
 
-Declaring `internalEvents` with `as const` narrows the actor's send type: listed types, and types matched by a wildcard, are removed from what `actor.send` accepts, so an invalid send is a type error rather than a runtime throw. The types must still exist in the events schema, and they remain fully typed inside the machine for `on` handlers, `enq.raise` and [transitions](transitions.md).
+Declaring `internalEvents` with `as const` narrows the actor's send type: listed types, and types matched by a wildcard, are removed from what `actor.send` accepts, so an invalid send is a type error rather than a runtime rejection. The types must still exist in the events schema, and they remain fully typed inside the machine for `on` handlers, `enq.raise` and [transitions](transitions.md).
 
 ## Internal events cheatsheet
 

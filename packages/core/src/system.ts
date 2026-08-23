@@ -1,4 +1,6 @@
+import isDevelopment from '#is-development';
 import type { InspectionEvent, SentRecord } from './inspection.ts';
+import type { StandardSchemaV1 } from './schema.types.ts';
 import {
   AnyEventObject,
   ActorTermination,
@@ -119,6 +121,31 @@ export function bookSessionId(system: AnyActorSystem): string {
  * An external interpreter can override these operations while the default actor
  * system provides the local in-memory implementation.
  */
+/** Why an event was rejected at the delivery boundary. */
+export type EventRejectionReason = 'invalidEvent' | 'internalEvent';
+
+/**
+ * Describes an event that was rejected at the delivery boundary instead of
+ * being delivered to its target actor (a dead letter).
+ */
+export interface EventRejection {
+  /** The event that was rejected. */
+  event: AnyEventObject;
+  /** The actor the event was addressed to. */
+  targetRef: AnyActor | undefined;
+  /** The `id` of the target actor. */
+  targetId: string | undefined;
+  /** The actor that sent the event, or `undefined` for an external send. */
+  sourceRef: AnyActor | undefined;
+  /** Whether the event came from outside the system or from another actor. */
+  eventOrigin: 'external' | 'actor';
+  reason: EventRejectionReason;
+  /** Standard Schema issues for `invalidEvent` rejections. */
+  issues?: readonly StandardSchemaV1.Issue[];
+  /** The underlying error describing the rejection. */
+  error: Error;
+}
+
 export interface ActorSystemRuntime {
   /** Publishes a newly created actor to the runtime. */
   spawnActor(
@@ -142,6 +169,8 @@ export interface ActorSystemRuntime {
   ): void | PromiseLike<void>;
   /** Publishes an emitted event. */
   emitEvent(source: AnyActor, event: EventObject): void | PromiseLike<void>;
+  /** Reports an event rejected at the delivery boundary (a dead letter). */
+  rejectEvent(rejection: EventRejection): void | PromiseLike<void>;
   /** Schedules a logical timer. */
   scheduleTimer(
     source: AnyActor,
@@ -247,6 +276,7 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
   _reverseKeyedActors?: WeakMap<AnyActor, keyof T['actors']>;
   _inspectionObservers?: Set<Observer<InspectionEvent>>;
   _timerMap?: { [id: ScheduledTimerId]: number };
+  _onRejectedEvent?: (rejection: EventRejection) => void;
 }
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
@@ -311,8 +341,10 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       logger: (...args: any[]) => void;
       snapshot?: unknown;
       createActorRef: ActorSystem<T>['createActorRef'];
+      onRejectedEvent?: (rejection: EventRejection) => void;
     }
   ) {
+    this._onRejectedEvent = options.onRejectedEvent;
     const restoredSnapshot =
       typeof options.snapshot === 'object' && options.snapshot !== null
         ? (options.snapshot as {
@@ -439,9 +471,18 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       targetMachine.isInternalEventType(event.type);
 
     if (isInternalEvent && source !== target) {
-      throw new Error(
-        `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
-      );
+      this.rejectEvent({
+        event,
+        targetRef: target,
+        targetId: target.id,
+        sourceRef: source,
+        eventOrigin: source ? 'actor' : 'external',
+        reason: 'internalEvent',
+        error: new Error(
+          `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
+        )
+      });
+      return;
     }
 
     // remember the last source for unified transition inspect event
@@ -574,6 +615,30 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     (source as AnyActor & { _emit(value: EventObject): void })._emit(event);
   }
 
+  public rejectEvent(rejection: EventRejection): void {
+    if (isDevelopment) {
+      console.warn(
+        `Event "${rejection.event.type}" was rejected${
+          rejection.targetId === undefined
+            ? ''
+            : ` by actor "${rejection.targetId}"`
+        }: ${rejection.error.message}`
+      );
+    }
+    this._sendInspectionEvent({
+      type: '@xstate.event.rejected',
+      actorRef: rejection.targetRef ?? this._rootActor,
+      event: rejection.event,
+      targetId: rejection.targetId,
+      sourceRef: rejection.sourceRef,
+      eventOrigin: rejection.eventOrigin,
+      reason: rejection.reason,
+      issues: rejection.issues,
+      error: rejection.error
+    });
+    this._onRejectedEvent?.(rejection);
+  }
+
   public scheduleTimer(source: AnyActor, id: string, delay: number): void {
     this.schedule(source, id, delay);
   }
@@ -634,6 +699,7 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     logger: (...args: any[]) => void;
     snapshot?: unknown;
     createActorRef: ActorSystem<T>['createActorRef'];
+    onRejectedEvent?: (rejection: EventRejection) => void;
   }
 ): ActorSystem<T> {
   return new RuntimeSystem(rootActor, options);

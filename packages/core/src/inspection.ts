@@ -5,6 +5,8 @@ import {
   AnyTransitionDefinition,
   Snapshot
 } from './types.ts';
+import type { StandardSchemaV1 } from './schema.types.ts';
+import type { EventRejectionReason } from './system.ts';
 
 /**
  * A record of a single action executed during a transition.
@@ -101,10 +103,41 @@ export interface TransitionInspectionEvent extends BaseInspectionEventProperties
 }
 
 /**
- * A lossless, two-event inspection protocol:
+ * Announces an event that was rejected at the delivery boundary instead of
+ * being delivered to its target actor (a dead letter).
+ *
+ * A rejection is not an actor error: the target actor keeps running and its
+ * snapshot is unchanged. Rejections cover invalid external event payloads and
+ * internal event types sent from outside the owning actor.
+ */
+export interface EventRejectedInspectionEvent extends BaseInspectionEventProperties {
+  type: '@xstate.event.rejected';
+  /** The event that was rejected. */
+  event: AnyEventObject;
+  /** The `id` of the target actor, if known. */
+  targetId: string | undefined;
+  /** The actor that sent the event, or `undefined` for an external send. */
+  sourceRef: ActorRefLike | undefined;
+  /** Whether the event came from outside the system or from another actor. */
+  eventOrigin: 'external' | 'actor';
+  /** Why the event was rejected. */
+  reason: EventRejectionReason;
+  /** Standard Schema issues for `invalidEvent` rejections. */
+  issues?: readonly StandardSchemaV1.Issue[];
+  /** The underlying error describing the rejection. */
+  error: Error;
+}
+
+/**
+ * A lossless inspection protocol:
  *
  * - `@xstate.actor` — actor topology (identity + parent), drawable up front.
  * - `@xstate.transition` — every transition facet: event, snapshot, source,
  *   microsteps, executed actions, and sent/scheduled events.
+ * - `@xstate.event.rejected` — events rejected at the delivery boundary (dead
+ *   letters).
  */
-export type InspectionEvent = ActorInspectionEvent | TransitionInspectionEvent;
+export type InspectionEvent =
+  | ActorInspectionEvent
+  | TransitionInspectionEvent
+  | EventRejectedInspectionEvent;

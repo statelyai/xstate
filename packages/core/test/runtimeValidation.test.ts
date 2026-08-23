@@ -10,6 +10,7 @@ import {
   createMachine,
   createSystem,
   createObservableLogic,
+  type EventRejection,
   initialTransition,
   setup,
   transition,
@@ -27,6 +28,16 @@ function getThrown(fn: () => void): unknown {
   } catch (error) {
     return error;
   }
+}
+
+function getRejection(
+  result: [unknown, ReadonlyArray<{ kind?: string; type?: string }>]
+): EventRejection | undefined {
+  const effect = result[1].find(
+    (effect) =>
+      effect.kind === 'builtin' && effect.type === '@xstate.rejectEvent'
+  );
+  return (effect as { rejection?: EventRejection } | undefined)?.rejection;
 }
 
 function expectValidationError(
@@ -227,12 +238,18 @@ describe('runtime schema validation', () => {
     });
     const [snapshot] = initialTransition(machine);
 
-    expectValidationError(
-      getThrown(() =>
-        transition(machine, snapshot, { type: 'GO', count: 'x' } as any)
-      ),
-      'event'
-    );
+    const result = transition(machine, snapshot, {
+      type: 'GO',
+      count: 'x'
+    } as any);
+    expect(result[0]).toBe(snapshot);
+    const rejection = getRejection(result);
+    expect(rejection).toMatchObject({
+      event: { type: 'GO', count: 'x' },
+      eventOrigin: 'external',
+      reason: 'invalidEvent'
+    });
+    expectValidationError(rejection!.error, 'event');
     expect(guard).not.toHaveBeenCalled();
   });
 
@@ -245,19 +262,22 @@ describe('runtime schema validation', () => {
 
     const strict = create();
     const [strictSnapshot] = initialTransition(strict);
+    const strictResult = transition(strict, strictSnapshot, {
+      type: 'UNKNOWN'
+    } as any);
+    expect(strictResult[0]).toBe(strictSnapshot);
     expectValidationError(
-      getThrown(() =>
-        transition(strict, strictSnapshot, { type: 'UNKNOWN' } as any)
-      ),
+      getRejection(strictResult)!.error,
       'event',
       'unknownEvent'
     );
 
     const open = create('ignore');
     const [openSnapshot] = initialTransition(open);
-    expect(() =>
-      transition(open, openSnapshot, { type: 'UNKNOWN' } as any)
-    ).not.toThrow();
+    const openResult = transition(open, openSnapshot, {
+      type: 'UNKNOWN'
+    } as any);
+    expect(getRejection(openResult)).toBeUndefined();
   });
 
   it('validates stable root context after the macrostep', () => {
@@ -368,7 +388,7 @@ describe('runtime schema validation', () => {
     expect(() => initialTransition(create('ignore'))).not.toThrow();
   });
 
-  it('surfaces terminal validation failures through transition inspection', () => {
+  it('surfaces boundary rejections through inspection without erroring the actor', () => {
     const inspection: any[] = [];
     const machine = setup({
       validator: standardSchemaValidator(),
@@ -377,21 +397,28 @@ describe('runtime schema validation', () => {
     const actor = createActor(machine, {
       inspect: (event) => inspection.push(event)
     });
-    actor.subscribe({ error: () => {} });
     actor.start();
     actor.send({ type: 'GO', value: 'x' } as any);
 
-    const failure = inspection.find(
-      (event) =>
-        event.type === '@xstate.transition' &&
-        event.event.type === 'GO' &&
-        event.snapshot.status === 'error'
+    expect(actor.getSnapshot().status).toBe('active');
+    const rejected = inspection.find(
+      (event) => event.type === '@xstate.event.rejected'
     );
-    expect(failure).toBeDefined();
-    expectValidationError(failure.snapshot.error, 'event');
-    expect(failure.actions).toEqual([]);
-    expect(failure.sent).toEqual([]);
-    expect(failure.microsteps).toEqual([]);
+    expect(rejected).toBeDefined();
+    expect(rejected).toMatchObject({
+      event: { type: 'GO', value: 'x' },
+      targetId: actor.id,
+      eventOrigin: 'external',
+      reason: 'invalidEvent'
+    });
+    expectValidationError(rejected.error, 'event');
+    expect(
+      inspection.some(
+        (event) =>
+          event.type === '@xstate.transition' &&
+          event.snapshot.status === 'error'
+      )
+    ).toBe(false);
   });
 
   it('does not expose rejected macrostep facets through inspection', () => {
@@ -639,7 +666,7 @@ describe('runtime schema validation', () => {
     }).createMachine({});
     const [snapshot] = initialTransition(asyncMachine);
     expectValidationError(
-      getThrown(() => transition(asyncMachine, snapshot, { type: 'GO' })),
+      getRejection(transition(asyncMachine, snapshot, { type: 'GO' }))!.error,
       'event',
       'asyncValidationUnsupported'
     );
@@ -657,9 +684,9 @@ describe('runtime schema validation', () => {
     }).createMachine({});
     const [rejectingSnapshot] = initialTransition(rejectingMachine);
     expectValidationError(
-      getThrown(() =>
+      getRejection(
         transition(rejectingMachine, rejectingSnapshot, { type: 'GO' })
-      ),
+      )!.error,
       'event',
       'asyncValidationUnsupported'
     );

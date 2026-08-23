@@ -252,7 +252,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
           clock,
           logger,
           snapshot: resolvedOptions.snapshot ?? resolvedOptions.state,
-          createActorRef
+          createActorRef,
+          onRejectedEvent: resolvedOptions.onRejectedEvent
         }));
 
     if (

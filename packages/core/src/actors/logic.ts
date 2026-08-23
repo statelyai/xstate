@@ -1,13 +1,18 @@
 import { XSTATE_STOP } from '../constants.ts';
 import { createInitEvent } from '../eventUtils.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
-import { ActorSystemRuntime, AnyActorSystem } from '../system.ts';
+import {
+  ActorSystemRuntime,
+  AnyActorSystem,
+  type EventRejection
+} from '../system.ts';
 import { assertValid } from '../validation.ts';
 import type { ActorLogicValidator } from '../validation.types.ts';
 import {
   finalizeTransitionResult,
   createCustomEffect,
   createEmitEffect,
+  createRejectEventEffect,
   createSendToEffect
 } from '../transitionActions.ts';
 import {
@@ -461,14 +466,32 @@ export function createLogic<
 
   const transition = ((snapshot, event, actorScope) => {
     if (config.validator) {
-      assertValid(config.validator, {
+      const sourceRef = (actorScope.self as any)._lastSourceRef;
+      const eventOrigin = sourceRef ? 'actor' : 'external';
+      const error = config.validator.check({
         kind: 'event',
         logic,
         event,
-        eventOrigin: (actorScope.self as any)._lastSourceRef
-          ? 'actor'
-          : 'external'
+        eventOrigin
       });
+      if (error) {
+        // Boundary fault: rejected (never delivered), not an actor error.
+        return [
+          snapshot,
+          [
+            createRejectEventEffect(actorScope, {
+              event,
+              targetRef: actorScope.self,
+              targetId: actorScope.self?.id,
+              sourceRef,
+              eventOrigin,
+              issues: (error as { issues?: EventRejection['issues'] }).issues,
+              reason: 'invalidEvent',
+              error
+            })
+          ]
+        ];
+      }
     }
     const result = calculateTransition(snapshot, event, actorScope);
     if (config.validator) {

@@ -129,6 +129,7 @@ export type {
   InspectionEvent,
   ActorInspectionEvent,
   TransitionInspectionEvent,
+  EventRejectedInspectionEvent,
   ActionRecord,
   SentRecord
 } from './inspection.ts';
@@ -141,7 +142,9 @@ export { getStateNodes } from './stateUtils.ts';
 export type {
   ActorSystem,
   ActorSystemRuntime,
-  AnyActorSystem
+  AnyActorSystem,
+  EventRejection,
+  EventRejectionReason
 } from './system.ts';
 export { toPromise } from './toPromise.ts';
 export type * from './types.ts';

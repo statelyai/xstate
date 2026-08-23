@@ -39,10 +39,11 @@ import {
   type TransitionSelectionResults
 } from './stateUtils.ts';
 import {
+  createRejectEventEffect,
   createSpawnEffect,
   resolveActionsWithContext
 } from './transitionActions.ts';
-import { AnyActorSystem } from './system.ts';
+import { AnyActorSystem, type EventRejection } from './system.ts';
 import type {
   ActorLogic,
   ActorLogicTransitionResult,
@@ -572,19 +573,39 @@ export class StateMachine<
         this,
         snapshot as SnapshotFrom<this>
       )) as NonNullable<typeof actorScope>;
+    if (usesInertScope) {
+      setInertActorScopeSnapshot(resolvedActorScope, snapshot, false);
+    }
     if (this.validator) {
-      assertValid(this.validator, {
+      const sourceRef = actorScope && (actorScope.self as any)._lastSourceRef;
+      const eventOrigin = sourceRef ? 'actor' : 'external';
+      const error = this.validator.check({
         kind: 'event',
         logic: this,
         event,
-        eventOrigin:
-          actorScope && (actorScope.self as any)._lastSourceRef
-            ? 'actor'
-            : 'external'
+        eventOrigin
       });
-    }
-    if (usesInertScope) {
-      setInertActorScopeSnapshot(resolvedActorScope, snapshot, false);
+      if (error) {
+        // Boundary fault: an invalid event arriving from outside the machine
+        // is rejected (never delivered), not routed to the error channel. The
+        // snapshot is returned unchanged; the rejection is represented as an
+        // effect so hosts and the actor runtime can report it.
+        return [
+          snapshot,
+          [
+            createRejectEventEffect(resolvedActorScope, {
+              event,
+              targetRef: resolvedActorScope.self,
+              targetId: resolvedActorScope.self?.id,
+              sourceRef,
+              eventOrigin,
+              issues: (error as { issues?: EventRejection['issues'] }).issues,
+              reason: 'invalidEvent',
+              error
+            }) as ExecutableActionObjectFromLogic<this>
+          ]
+        ];
+      }
     }
     const fastSnapshot = this._transitionFast(
       snapshot,

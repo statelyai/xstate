@@ -8,7 +8,7 @@ import {
 } from './actors/subscription.ts';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
 import { createErrorPlatformEvent } from './eventUtils.ts';
-import type { ActorSystemRuntime } from './system.ts';
+import type { ActorSystemRuntime, EventRejection } from './system.ts';
 import { isLazyActorScope, withActorScope } from './actorScope.ts';
 import { getEventOutput } from './utils.ts';
 import type {
@@ -27,6 +27,7 @@ import type {
   ExecutableActionObject,
   MachineContext,
   RaiseExecutableActionObject,
+  RejectEventExecutableActionObject,
   SendToExecutableActionObject,
   Snapshot,
   SpecialExecutableAction,
@@ -70,6 +71,29 @@ export function createEmitEffect(
     type: event.type,
     source: actorScope.self,
     event,
+    params: undefined,
+    args: []
+  };
+}
+
+function execRejectEventEffect(
+  this: RejectEventExecutableActionObject,
+  runtime: EffectRuntime = this.source.system
+): void | PromiseLike<void> {
+  return runtime.rejectEvent!(this.rejection);
+}
+
+/** @internal Creates a rejected-event (dead letter) effect. */
+export function createRejectEventEffect(
+  actorScope: AnyActorScope,
+  rejection: EventRejection
+): RejectEventExecutableActionObject {
+  return {
+    kind: 'builtin',
+    type: '@xstate.rejectEvent',
+    exec: execRejectEventEffect,
+    source: actorScope.self,
+    rejection,
     params: undefined,
     args: []
   };

@@ -5,7 +5,12 @@ import { AsyncActorLogic } from './actors/promise.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
-import type { ActorSystemRuntime, AnyActorSystem, Clock } from './system.ts';
+import type {
+  ActorSystemRuntime,
+  AnyActorSystem,
+  Clock,
+  EventRejection
+} from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
 // oxlint-disable-next-line no-unused-vars
@@ -1797,6 +1802,16 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   inspect?:
     | Observer<InspectionEvent>
     | ((inspectionEvent: InspectionEvent) => void);
+
+  /**
+   * A dead-letter hook called whenever an event is rejected at the delivery
+   * boundary of this actor system — an invalid external event payload or an
+   * internal event type sent from outside its owning actor. Rejected events
+   * are never delivered and never error the target actor.
+   *
+   * Only observed when this actor is the root of its system.
+   */
+  onRejectedEvent?: (rejection: EventRejection) => void;
 }
 
 export type AnyActor = ActorInstance<any, any, any, any>;
@@ -2923,6 +2938,19 @@ export type TerminateExecutableActionObject = BaseExecutableActionObject & {
   args: Parameters<(typeof builtInActions)['@xstate.terminate']>;
 } & ActorTermination;
 
+/**
+ * An executable effect that reports an event rejected at the delivery boundary
+ * (a dead letter). The snapshot paired with this effect is unchanged.
+ */
+export interface RejectEventExecutableActionObject extends BaseExecutableActionObject {
+  kind: 'builtin';
+  type: '@xstate.rejectEvent';
+  /** The actor that rejected the event. */
+  source: AnyActor;
+  rejection: EventRejection;
+  args: [];
+}
+
 export type BuiltInExecutableActionObject = Values<{
   '@xstate.spawn': SpawnExecutableActionObject;
   '@xstate.start': StartExecutableActionObject;
@@ -2931,6 +2959,7 @@ export type BuiltInExecutableActionObject = Values<{
   '@xstate.cancel': CancelExecutableActionObject;
   '@xstate.stop': StopExecutableActionObject;
   '@xstate.terminate': TerminateExecutableActionObject;
+  '@xstate.rejectEvent': RejectEventExecutableActionObject;
 }>;
 
 export type SpecialExecutableAction = BuiltInExecutableActionObject;

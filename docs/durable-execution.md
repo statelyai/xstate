@@ -73,6 +73,30 @@ callbacks receive the complete effect metadata. `runtime()` creates the host
 runtime and receives the complete effect; `executeAction()` receives that
 runtime when it executes the action.
 
+## Rejected events
+
+When the machine declares a runtime validator, an external event whose payload
+fails its schema is rejected at the boundary: `transition()` returns the
+snapshot unchanged together with a `@xstate.rejectEvent` effect, and never
+throws. Replay stays total — replaying a poisoned queued event produces the
+same unchanged snapshot and the same rejection effect every time.
+
+`executeEffects()` routes rejection effects to the optional `onRejectedEvent`
+adapter hook instead of executing them, so the host can journal the dead letter
+and continue:
+
+```ts
+const durable = createDurable(machine, {
+  // ...
+  onRejectedEvent: (rejection, { id }) =>
+    host.journalDeadLetter(id, rejection.event, rejection.issues)
+});
+```
+
+Events the machine raises to itself are not boundary events. A delayed raised
+event that fails its schema throws from `transition()` and errors the
+execution; that is a machine bug.
+
 `run()` resolves with the machine output when the machine is done, throws the
 machine error when it fails, and throws `DurableExecutionCancelledError` when
 it stops. It only starts fresh executions. A nonzero `transitionIndex`, or

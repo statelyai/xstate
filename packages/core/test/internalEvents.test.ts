@@ -1,4 +1,4 @@
-import { createActor, createMachine } from '../src';
+import { createActor, createMachine, type EventRejection } from '../src';
 import z from 'zod';
 
 describe('internalEvents', () => {
@@ -52,12 +52,25 @@ describe('internalEvents', () => {
       }
     });
 
-    const actor = createActor(machine).start();
+    const rejections: EventRejection[] = [];
+    const actor = createActor(machine, {
+      onRejectedEvent: (rejection) => rejections.push(rejection)
+    }).start();
 
-    expect(() => actor.send({ type: 'tick' } as any)).toThrow(
+    actor.send({ type: 'tick' } as any);
+
+    expect(actor.getSnapshot().value).toBe('idle');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(rejections).toHaveLength(1);
+    expect(rejections[0]).toMatchObject({
+      event: { type: 'tick' },
+      targetId: actor.id,
+      eventOrigin: 'external',
+      reason: 'internalEvent'
+    });
+    expect(rejections[0].error.message).toMatch(
       'Internal event "tick" cannot be sent to actor'
     );
-    expect(actor.getSnapshot().value).toBe('idle');
   });
 
   it('rejects sending wildcard-matched internal events from outside', () => {
@@ -79,14 +92,21 @@ describe('internalEvents', () => {
       }
     });
 
-    const actor = createActor(machine).start();
+    const rejections: EventRejection[] = [];
+    const actor = createActor(machine, {
+      onRejectedEvent: (rejection) => rejections.push(rejection)
+    }).start();
 
-    expect(() =>
-      actor.send(
-        // @ts-expect-error
-        { type: 'change.value', value: 'x' }
-      )
-    ).toThrow('Internal event "change.value" cannot be sent to actor');
+    actor.send(
+      // @ts-expect-error
+      { type: 'change.value', value: 'x' }
+    );
+
     expect(actor.getSnapshot().value).toBe('idle');
+    expect(rejections).toHaveLength(1);
+    expect(rejections[0].reason).toBe('internalEvent');
+    expect(rejections[0].error.message).toMatch(
+      'Internal event "change.value" cannot be sent to actor'
+    );
   });
 });

@@ -1,4 +1,4 @@
-import type { ActorSystemRuntime } from '../system.ts';
+import type { ActorSystemRuntime, EventRejection } from '../system.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
   AnyActorLogic,
@@ -49,6 +49,17 @@ export interface DurableExecutionAdapter<TLogic extends AnyActorLogic> {
     metadata: DurableEffectMetadata,
     effect: ExecutableActionObjectFromLogic<TLogic>
   ): Partial<ActorSystemRuntime>;
+  /**
+   * A dead-letter hook called when a delivered event is rejected at the
+   * boundary — for example, an external event whose payload fails its declared
+   * schema. The transition that produced the rejection returns the snapshot
+   * unchanged, so the host can journal the rejection and continue; replay
+   * stays total even with poisoned queued events.
+   */
+  onRejectedEvent?(
+    rejection: EventRejection,
+    metadata: DurableEffectMetadata
+  ): void | PromiseLike<void>;
   /** Waits durably for the next event addressed to this execution. */
   waitForEvent(
     metadata: DurableWaitMetadata
@@ -151,6 +162,13 @@ export function createDurable<TLogic extends AnyActorLogic>(
     },
     async executeEffects(effects) {
       for (const { effect, ...metadata } of effects) {
+        if (
+          effect.kind === 'builtin' &&
+          effect.type === '@xstate.rejectEvent'
+        ) {
+          await adapter.onRejectedEvent?.(effect.rejection, metadata);
+          continue;
+        }
         const runtime = adapter.runtime?.(metadata, effect) ?? {};
         if (effect.kind === 'action') {
           await adapter.executeAction(effect, metadata, runtime);
