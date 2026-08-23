@@ -19,6 +19,23 @@ const machine = setup({ actors: { fraudCheck } }).createMachine({
   }
 });
 
+/**
+ * Takes the root events a settled batch retained: `waitForEvent()` hands them
+ * out until it defers to the adapter, whose host-driven stub throws.
+ */
+async function takeRootEvents(execution: {
+  waitForEvent(): Promise<unknown>;
+}): Promise<any[]> {
+  const events: any[] = [];
+  for (;;) {
+    try {
+      events.push(await execution.waitForEvent());
+    } catch {
+      return events;
+    }
+  }
+}
+
 function createHost(steps: Map<string, unknown>, executionId?: string) {
   return createDurable(machine, {
     executionId,
@@ -46,16 +63,16 @@ describe('deterministic execution identity', () => {
     const steps = new Map<string, unknown>();
     const first = createHost(steps, 'exec-1');
     const [s1, e1] = first.initialTransition();
-    const events1 = await first.executeEffects(e1);
+    await first.executeEffects(e1);
+    const events1 = await takeRootEvents(first);
 
     const second = createHost(steps, 'exec-1');
     const [s2, e2] = second.initialTransition();
-    const events2 = await second.executeEffects(e2);
+    await second.executeEffects(e2);
+    const events2 = await takeRootEvents(second);
 
-    expect(events1.map(({ event }) => event)).toEqual(
-      events2.map(({ event }) => event)
-    );
-    const sessionId = (events1[0]!.event as { sessionId?: string }).sessionId;
+    expect(events1).toEqual(events2);
+    const sessionId = (events1[0] as { sessionId?: string }).sessionId;
     expect(sessionId).toMatch(/^exec-1:/);
     void s1;
     void s2;
@@ -68,8 +85,9 @@ describe('deterministic execution identity', () => {
     // root and a journaling host records the event verbatim.
     const first = createHost(steps, 'exec-1');
     const [snapshot1, effects1] = first.initialTransition();
-    const [journaled] = await first.executeEffects(effects1);
-    expect(journaled!.event.type).toMatch(/^xstate\.done\.actor/);
+    await first.executeEffects(effects1);
+    const [journaled] = await takeRootEvents(first);
+    expect(journaled.type).toMatch(/^xstate\.done\.actor/);
 
     // Crash. Replay from the beginning in a "fresh process": same journal,
     // same executionId. The replayed step returns its memoized result, and
@@ -78,7 +96,7 @@ describe('deterministic execution identity', () => {
     const second = createHost(steps, 'exec-1');
     const [snapshot2, effects2] = second.initialTransition();
     await second.executeEffects(effects2);
-    const [replayed] = second.transition(snapshot2 as never, journaled!.event);
+    const [replayed] = second.transition(snapshot2 as never, journaled);
     expect((replayed as { value?: unknown }).value).toBe('approved');
     void snapshot1;
   });
@@ -87,12 +105,13 @@ describe('deterministic execution identity', () => {
     const steps = new Map<string, unknown>();
     const first = createHost(steps);
     const [, effects1] = first.initialTransition();
-    const [journaled] = await first.executeEffects(effects1);
+    await first.executeEffects(effects1);
+    const [journaled] = await takeRootEvents(first);
 
     const second = createHost(steps);
     const [snapshot2, effects2] = second.initialTransition();
     await second.executeEffects(effects2);
-    const [replayed] = second.transition(snapshot2 as never, journaled!.event);
+    const [replayed] = second.transition(snapshot2 as never, journaled);
     // The recorded sessionId embeds run 1's random system id, so the
     // completion is dropped as stale — the documented reason to pin
     // executionId on journaling hosts.
@@ -155,8 +174,9 @@ describe('runLogic: the async actor as the durable unit', () => {
 
     const first = host('exec-1');
     const [, e1] = first.initialTransition({ total: 1500 });
-    const [done1] = await first.executeEffects(e1);
-    expect(done1!.event.type).toMatch(/^xstate\.done\.actor/);
+    await first.executeEffects(e1);
+    const [done1] = await takeRootEvents(first);
+    expect(done1.type).toMatch(/^xstate\.done\.actor/);
     expect(executions).toBe(1);
 
     // Crash → replay: the body does not re-run, and the journaled
@@ -165,7 +185,7 @@ describe('runLogic: the async actor as the durable unit', () => {
     const [s2, e2] = second.initialTransition({ total: 1500 });
     await second.executeEffects(e2);
     expect(executions).toBe(1);
-    const [replayed] = second.transition(s2 as never, done1!.event);
+    const [replayed] = second.transition(s2 as never, done1);
     expect((replayed as { value?: unknown }).value).toBe('approved');
   });
 
@@ -197,9 +217,10 @@ describe('runLogic: the async actor as the durable unit', () => {
     });
 
     const [snapshot, effects] = durable.initialTransition({ total: 1500 });
-    const [done] = await durable.executeEffects(effects);
+    await durable.executeEffects(effects);
+    const [done] = await takeRootEvents(durable);
     expect(shipped).toEqual([{ src: 'score', input: { total: 1500 } }]);
-    const [next] = durable.transition(snapshot as never, done!.event);
+    const [next] = durable.transition(snapshot as never, done);
     expect((next as { value?: unknown }).value).toBe('approved');
   });
 });

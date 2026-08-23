@@ -52,6 +52,31 @@ export type InferOutput<T extends StandardSchemaV1, U> = Compute<
 >;
 
 /**
+ * Extracts the machine output type from the config's `output` property: the
+ * return type of an output mapper, or the type of a static output value.
+ * Falls back to `TFallback` when the config declares no `output`.
+ */
+export type OutputFromConfig<TConfig, TFallback> = TConfig extends {
+  output: infer TOutput;
+}
+  ? TOutput extends (...args: never[]) => infer TResult
+    ? TResult
+    : TOutput
+  : TFallback;
+
+/**
+ * The machine's output type when no output schema is declared in `setup()`: a
+ * declared `schemas.output` is authoritative, otherwise the output type is
+ * inferred from the config's `output` property.
+ */
+export type SchemaOrConfigOutput<
+  TOutputSchema extends StandardSchemaV1,
+  TConfig
+> = StandardSchemaV1 extends TOutputSchema
+  ? OutputFromConfig<TConfig, InferOutput<TOutputSchema, unknown>>
+  : InferOutput<TOutputSchema, unknown>;
+
+/**
  * Event payloads from schemas (e.g. Zod) are often inferred as optional in
  * output types. Wrapping in Required<> ensures properties defined in the schema
  * are required on the event. Type-only schemas created with the `types()`
@@ -1238,7 +1263,7 @@ interface Next_RegularStateNodeConfig<
    */
   onDone?: Next_TransitionConfigOrTarget<
     TContext,
-    DoneStateEvent,
+    DoneStateEvent<TChildOutput>,
     TEvent,
     TEmitted,
     TActionMap,

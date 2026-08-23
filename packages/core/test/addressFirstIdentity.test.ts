@@ -115,6 +115,39 @@ describe('deterministic actor ids', () => {
 });
 
 describe('actor addresses', () => {
+  it('uses the first registered source for transition-spawned aliases', () => {
+    const machine = setup({
+      actors: { first: workerMachine, second: workerMachine }
+    }).createMachine({
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.first, { id: 'one' });
+        enq.spawn(actors.second, { id: 'two' });
+      }
+    });
+
+    const [snapshot] = initialTransition(machine);
+    const persisted = machine.getPersistedSnapshot(snapshot) as any;
+    expect(persisted.children.one.src).toBe('first');
+    expect(persisted.children.two.src).toBe('first');
+  });
+
+  it('uses the first registered source for context-spawned aliases', () => {
+    const machine = setup({
+      actors: { first: workerMachine, second: workerMachine }
+    }).createMachine({
+      context: ({ actors, spawn }) => {
+        spawn(actors.first, { id: 'one' });
+        spawn(actors.second, { id: 'two' });
+        return {};
+      }
+    });
+
+    const [snapshot] = initialTransition(machine);
+    const persisted = machine.getPersistedSnapshot(snapshot) as any;
+    expect(persisted.children.one.src).toBe('first');
+    expect(persisted.children.two.src).toBe('first');
+  });
+
   it('addresses are the /-joined id path from the root', () => {
     const machine = setup({
       actors: { worker: workerMachine }
@@ -1498,8 +1531,9 @@ describe('tenth round: review findings', () => {
     });
     expect(durable.rootAddress).toBe('a%2Fb');
     const [, effects] = durable.initialTransition();
-    const rootEvents = await durable.executeEffects(effects);
-    expect(rootEvents.map((r: any) => r.event.type)).toEqual(['HELLO']);
+    await durable.executeEffects(effects);
+    const hello = await durable.waitForEvent();
+    expect(hello.type).toBe('HELLO');
   });
 });
 

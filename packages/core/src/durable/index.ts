@@ -7,10 +7,12 @@ import { getSnapshotActorRef } from '../snapshotActorRef.ts';
 import {
   encodeAddressSegment,
   withExecutionIdentity,
+  withSystemInspector,
   getRootActorId,
   RUNTIME_OPERATIONS,
   type ActorSystemRuntime
 } from '../system.ts';
+import type { InspectionEvent } from '../inspection.ts';
 import { initialTransition, transition } from '../transition.ts';
 import type {
   AnyActor,
@@ -70,10 +72,11 @@ export interface DurableEffect<TEffect> extends DurableEffectMetadata {
  * operations keep their default local behavior.
  *
  * Events addressed to this execution's root actor do not reach `sendEvent`
- * during `executeEffects`: the execution captures them and resolves them
- * from that call for the durable loop to process before suspending. While
- * the loop is parked, a root-addressed event reaches `sendEvent` like any
- * other target, so the host enqueues it in its own mailbox.
+ * during `executeEffects`: the execution captures and retains them, and the
+ * execution's `waitForEvent()` hands them out before deferring to this
+ * adapter. While the loop is parked, a root-addressed event reaches
+ * `sendEvent` like any other target, so the host enqueues it in its own
+ * mailbox.
  */
 export interface DurableExecutionAdapter<
   TLogic extends AnyActorLogic
@@ -99,10 +102,19 @@ export interface DurableExecutionAdapter<
     metadata: DurableEffectMetadata,
     effect: ExecutableActionObjectFromLogic<TLogic>
   ): Partial<ActorSystemRuntime>;
-  /** Waits durably for the next event addressed to this execution. */
+  /**
+   * Waits durably for the next event addressed to this execution. Typed to
+   * also accept plain event objects: an adapter written against
+   * `AnyActorLogic` (a generic host library) cannot produce
+   * `EventFromLogic<TLogic>`, and the events a host relays are runtime data
+   * anyway — the execution narrows at its own boundary.
+   */
   waitForEvent(
     metadata: DurableWaitMetadata
-  ): EventFromLogic<TLogic> | PromiseLike<EventFromLogic<TLogic>>;
+  ):
+    | EventFromLogic<TLogic>
+    | AnyEventObject
+    | PromiseLike<EventFromLogic<TLogic> | AnyEventObject>;
   /** Index assigned to the first transition. Defaults to `0`. */
   transitionIndex?: number;
   /**
@@ -133,6 +145,15 @@ export class DurableExecutionResumeError extends Error {
   }
 }
 
+/**
+ * The snapshot type a durable execution hands back: the logic's own snapshot,
+ * intersected with the base `Snapshot` union so the `status`/`output`/`error`
+ * discriminant stays visible even when `TLogic` is an unresolved type
+ * parameter (a generic host library), where `SnapshotFrom` alone is opaque.
+ */
+export type DurableSnapshot<TLogic extends AnyActorLogic> =
+  SnapshotFrom<TLogic> & Snapshot<OutputFrom<TLogic>>;
+
 export interface DurableExecution<TLogic extends AnyActorLogic> {
   /**
    * The logical address of this execution's root actor: the logic's own name,
@@ -155,14 +176,14 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
       ? [input?: InputFrom<TLogic>]
       : [input: InputFrom<TLogic>]
   ): [
-    snapshot: SnapshotFrom<TLogic>,
+    snapshot: DurableSnapshot<TLogic>,
     effects: DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
   ];
   transition(
     snapshot: SnapshotFrom<TLogic>,
     event: EventFromLogic<TLogic>
   ): [
-    snapshot: SnapshotFrom<TLogic>,
+    snapshot: DurableSnapshot<TLogic>,
     effects: DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
   ];
   /**
@@ -170,8 +191,16 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * for addressing and inspection. `undefined` for snapshots this execution
    * has not seen (for example a freshly deserialized checkpoint that has not
    * been passed through `transition()` yet).
+   *
+   * With an `address`, returns the live actor at that logical address in the
+   * snapshot's actor tree instead — the root itself, one of its transitive
+   * children, or `undefined` when no live actor has that address (for
+   * example a timer firing for an actor that already completed).
    */
-  getActorRef(snapshot: SnapshotFrom<TLogic>): AnyActor | undefined;
+  getActorRef(
+    snapshot: SnapshotFrom<TLogic>,
+    address?: string
+  ): AnyActor | undefined;
   /**
    * Executes effects and resolves only when every runtime operation they
    * transitively initiated — including operations from live child actors
@@ -179,14 +208,20 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * failed operation rejects it. Operations are handed to the runtime one at
    * a time, in initiation order.
    *
-   * Resolves with the events addressed to this execution's root actor that
-   * were produced along the way, in order. Feed them back through
-   * `transition()` (and execute their effects) before durably waiting for an
-   * external event; `run()` does this automatically.
+   * Events addressed to this execution's root actor that were produced along
+   * the way are retained, in order, and handed out by `waitForEvent()`
+   * before it defers to the adapter — so the drive loop is just
+   * `transition(snapshot, await waitForEvent())` + `executeEffects`.
    */
   executeEffects(
     effects: readonly DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
-  ): Promise<DurableRootEvent<EventFromLogic<TLogic>>[]>;
+  ): Promise<void>;
+  /**
+   * Resolves with the next event addressed to this execution's root actor:
+   * an event a prior `executeEffects` batch captured (an invoked actor
+   * completing, a child reporting up), or — once none are queued — whatever
+   * the adapter's durable wait produces.
+   */
   waitForEvent(): Promise<EventFromLogic<TLogic>>;
   run(
     ...[input]: undefined extends InputFrom<TLogic>
@@ -204,9 +239,20 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
  *
  * @experimental
  */
+export interface DurableExecutionOptions {
+  /**
+   * Observes the execution's inspection events — actor lifecycle, event
+   * routing, transitions — across the whole live actor tree. The host-side
+   * home for operation logs and instrumentation, so adapters stay pure
+   * physics.
+   */
+  inspect?: (inspectionEvent: InspectionEvent) => void;
+}
+
 export function createDurable<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  adapter: DurableExecutionAdapter<TLogic>
+  adapter: DurableExecutionAdapter<TLogic>,
+  options?: DurableExecutionOptions
 ): DurableExecution<TLogic> {
   let nextTransitionIndex = adapter.transitionIndex ?? 0;
   const startingTransitionIndex = nextTransitionIndex;
@@ -281,6 +327,10 @@ export function createDurable<TLogic extends AnyActorLogic>(
     pending: Set<Promise<void>>;
   }
   let currentBatch: Batch | undefined;
+
+  // Root-addressed events captured by settled batches, waiting for the drive
+  // loop to take them through `waitForEvent()`.
+  const pendingRootEvents: DurableRootEvent<AnyEventObject>[] = [];
 
   // Every inter-actor edge is an async handoff to the runtime, and every
   // handoff queues behind the last one: hosts whose step or activity model
@@ -410,11 +460,52 @@ export function createDurable<TLogic extends AnyActorLogic>(
     ? wrapRuntime(systemRuntime, true)
     : undefined;
 
+  // Depth-first walk of the live actor tree by logical address. Subtrees
+  // whose address is not a prefix of the target are pruned.
+  function findByAddress(
+    actor: AnyActor,
+    address: string
+  ): AnyActor | undefined {
+    if (actor.address === address) {
+      return actor;
+    }
+    if (!address.startsWith(`${actor.address}/`)) {
+      return undefined;
+    }
+    const children = (
+      actor.getSnapshot() as { children?: Record<string, AnyActor | undefined> }
+    ).children;
+    for (const child of Object.values(children ?? {})) {
+      const found = child && findByAddress(child, address);
+      if (found) {
+        return found;
+      }
+    }
+    return undefined;
+  }
+
+  const inspect = options?.inspect;
+
+  // Attaches the execution's inspector to a system that does not have it
+  // yet. Systems constructed inside a transition get it at construction (the
+  // ambient inspector); this covers systems materialized outside that window
+  // — a snapshot's system first touched here, or a restored child's foreign
+  // system. Observer presence doubles as the dedup check: this execution is
+  // the only thing attaching observers to its systems.
+  function wireInspection(system: AnyActor['system']): void {
+    if (inspect && !system._hasInspectionObservers?.()) {
+      system.inspect(inspect);
+    }
+  }
+
   function installSystemRuntime<TSnapshot>(snapshot: TSnapshot): TSnapshot {
-    if (wrappedSystemRuntime) {
+    if (wrappedSystemRuntime || inspect) {
       const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
       if (ref) {
-        ref.system.runtime = wrappedSystemRuntime;
+        if (wrappedSystemRuntime) {
+          ref.system.runtime = wrappedSystemRuntime;
+        }
+        wireInspection(ref.system);
       }
       // Children restored outside this execution (rehydrated actors and
       // remote handles) may carry a system created before this install.
@@ -426,7 +517,10 @@ export function createDurable<TLogic extends AnyActorLogic>(
           // Only restored/rehydrated children can carry a foreign system;
           // everything else shares the root's.
           if (child && child.system !== ref?.system) {
-            child.system.runtime = wrappedSystemRuntime;
+            if (wrappedSystemRuntime) {
+              child.system.runtime = wrappedSystemRuntime;
+            }
+            wireInspection(child.system);
           }
         }
       }
@@ -442,20 +536,27 @@ export function createDurable<TLogic extends AnyActorLogic>(
       return nextTransitionIndex;
     },
     initialTransition(...args) {
-      const [snapshot, effects] = withExecutionIdentity(executionIdentity, () =>
-        initialTransition(logic, ...args)
+      const [snapshot, effects] = withSystemInspector(inspect, () =>
+        withExecutionIdentity(executionIdentity, () =>
+          initialTransition(logic, ...args)
+        )
       );
       return [installSystemRuntime(snapshot), tagEffects(effects)];
     },
     transition(snapshot, event) {
-      const [nextSnapshot, effects] = withExecutionIdentity(
-        executionIdentity,
-        () => transition(logic, snapshot, event)
+      const [nextSnapshot, effects] = withSystemInspector(inspect, () =>
+        withExecutionIdentity(executionIdentity, () =>
+          transition(logic, snapshot, event)
+        )
       );
       return [installSystemRuntime(nextSnapshot), tagEffects(effects)];
     },
-    getActorRef(snapshot) {
-      return getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
+    getActorRef(snapshot, address) {
+      const root = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
+      if (!root || address === undefined) {
+        return root;
+      }
+      return findByAddress(root, address);
     },
     async executeEffects(effects) {
       if (currentBatch) {
@@ -506,7 +607,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
           }
         }
         await settle(batch);
-        return batch.rootEvents as DurableRootEvent<EventFromLogic<TLogic>>[];
+        pendingRootEvents.push(...batch.rootEvents);
       } catch (error) {
         // Drain before discarding so batch-initiated operations are not still
         // running when the retrying host re-executes the effects. The failed
@@ -523,10 +624,16 @@ export function createDurable<TLogic extends AnyActorLogic>(
       if (lastTransitionIndex === undefined) {
         throw new Error('Cannot wait for an event before the first transition');
       }
+      // Root-bound events produced while effects executed are handed out
+      // before durably waiting for an external event.
+      const queued = pendingRootEvents.shift();
+      if (queued) {
+        return queued.event as EventFromLogic<TLogic>;
+      }
       return adapter.waitForEvent({
         id: `event:${lastTransitionIndex}`,
         transitionIndex: lastTransitionIndex
-      });
+      }) as Promise<EventFromLogic<TLogic>>;
     },
     async run(...args) {
       if (
@@ -536,15 +643,12 @@ export function createDurable<TLogic extends AnyActorLogic>(
         throw new DurableExecutionResumeError();
       }
       let [snapshot, effects] = execution.initialTransition(...args);
-      const internalEvents = await execution.executeEffects(effects);
+      await execution.executeEffects(effects);
 
       while ((snapshot as Snapshot<OutputFrom<TLogic>>).status === 'active') {
-        // Root-bound events produced while effects executed are processed
-        // before durably waiting for an external event.
-        const event =
-          internalEvents.shift()?.event ?? (await execution.waitForEvent());
+        const event = await execution.waitForEvent();
         [snapshot, effects] = execution.transition(snapshot, event);
-        internalEvents.push(...(await execution.executeEffects(effects)));
+        await execution.executeEffects(effects);
       }
 
       const terminalSnapshot = snapshot as Snapshot<OutputFrom<TLogic>>;

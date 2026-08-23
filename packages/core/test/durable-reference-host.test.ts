@@ -148,31 +148,16 @@ class InMemoryDurableHost implements DurableConformanceHarness {
       }
     });
 
-    const rootId = () => durable.rootAddress;
-    const enqueueRootEvents = (
-      rootEvents: Awaited<ReturnType<typeof durable.executeEffects>>
-    ) => {
-      for (const { event, source } of rootEvents) {
-        operations.push({
-          type: 'event.send' as const,
-          sourceId: source?.id,
-          targetId: rootId(),
-          eventType: event.type
-        });
-        enqueue(event);
-      }
-    };
-
     const result = (async () => {
       let effects;
       [snapshot, effects] = durable.initialTransition(input as never);
       rootAddress = durable.getActorRef(snapshot)?.address;
-      enqueueRootEvents(await durable.executeEffects(effects));
+      await durable.executeEffects(effects);
 
       while ((snapshot as Snapshot<unknown>).status === 'active') {
         const event = await durable.waitForEvent();
         [snapshot, effects] = durable.transition(snapshot, event);
-        enqueueRootEvents(await durable.executeEffects(effects));
+        await durable.executeEffects(effects);
       }
 
       const terminal = snapshot as Snapshot<unknown>;

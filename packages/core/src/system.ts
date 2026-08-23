@@ -14,6 +14,7 @@ import {
 } from './types.ts';
 import { XSTATE_TIMER } from './constants.ts';
 import { toObserver } from './utils.ts';
+import { getAmbientInspector } from './inspectionAmbient.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
   assertEventCanBeSent,
@@ -122,6 +123,11 @@ export function withExecutionIdentity<T>(
     ambientExecutionIdentity = previous;
   }
 }
+
+export {
+  hasAmbientInspector,
+  withSystemInspector
+} from './inspectionAmbient.ts';
 
 /**
  * Derives the deterministic id prefix for a generated actor id from its actor
@@ -551,6 +557,10 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     this._clock = options.clock;
     this._logger = options.logger;
     this.createActorRef = options.createActorRef;
+    const ambientInspector = getAmbientInspector();
+    if (ambientInspector) {
+      this.inspect(ambientInspector);
+    }
     this._snapshot = {
       _scheduledTimers: restoredSnapshot?.scheduler ?? emptyScheduledTimers,
       // System-level counters are process-local backstops; per-actor

@@ -58,6 +58,7 @@ import {
   Next_InvokeConfig,
   Next_StateNodeConfig,
   Next_TransitionConfigOrTarget,
+  OutputFromConfig,
   ValidateHistoryDefaults,
   ValidateStateTargets,
   WithDefault
@@ -384,7 +385,7 @@ export type SetupSchemas = {
   children?: Record<string, StandardSchemaV1>;
 };
 
-/** State schema with optional schemas.input and nested states */
+/** State schema with optional input/output schemas and nested states */
 export interface SetupStateSchema {
   schemas?: SetupStateSchemas;
   states?: Record<string, SetupStateSchema>;
@@ -620,6 +621,33 @@ type SetupOutput<TSchemas, TOutputSchema extends StandardSchemaV1> = [
   ? InferOutput<TOutputSchema, unknown>
   : InferOutput<SetupSchema<TSchemas, 'output'>, unknown>;
 
+/**
+ * Whether an output schema was declared, either in `setup({ schemas })` or in
+ * the machine config's own `schemas.output`. A declared schema is always
+ * authoritative for the machine's output type.
+ */
+type HasOutputSchema<TSchemas, TOutputSchema extends StandardSchemaV1> = [
+  SetupSchema<TSchemas, 'output'>
+] extends [never]
+  ? StandardSchemaV1 extends TOutputSchema
+    ? false
+    : true
+  : true;
+
+/**
+ * The machine's output type. A declared output schema wins; otherwise the type
+ * is inferred from the config's `output` property (a mapper's return type, or
+ * the static value's type).
+ */
+type SetupOrConfigOutput<
+  TSchemas,
+  TOutputSchema extends StandardSchemaV1,
+  TConfig
+> =
+  HasOutputSchema<TSchemas, TOutputSchema> extends true
+    ? SetupOutput<TSchemas, TOutputSchema>
+    : OutputFromConfig<TConfig, SetupOutput<TSchemas, TOutputSchema>>;
+
 type SetupEmitted<
   TSchemas,
   TEmittedSchemaMap extends Record<string, StandardSchemaV1>
@@ -722,6 +750,21 @@ type StateInput<TStateSchema extends SetupStateSchema> =
       : undefined
     : undefined;
 
+/** Extracts the completion output type from a state schema. */
+type StateOutput<
+  TStateSchema extends SetupStateSchema,
+  TFallback
+> = TStateSchema['schemas'] extends { output: infer TOutputSchema }
+  ? TOutputSchema extends StandardSchemaV1
+    ? StandardSchemaV1.InferOutput<TOutputSchema>
+    : TFallback
+  : TFallback;
+
+type StateCompletionOutput<TStateSchema extends SetupStateSchema> = StateOutput<
+  TStateSchema,
+  unknown
+>;
+
 type StateContext<
   TStateSchema extends SetupStateSchema,
   TFallbackContext extends MachineContext
@@ -776,6 +819,13 @@ type SetupStateSchemaToStateSchema<TSetupSchema extends SetupStateSchema> = {
       ? TContextSchema
       : undefined
     : undefined;
+  outputSchema: TSetupSchema['schemas'] extends {
+    output: infer TOutputSchema;
+  }
+    ? TOutputSchema extends StandardSchemaV1
+      ? TOutputSchema
+      : undefined
+    : undefined;
   states: TSetupSchema['states'] extends Record<string, SetupStateSchema>
     ? {
         [K in keyof TSetupSchema['states'] &
@@ -820,6 +870,19 @@ type StateSchemaContextSchema<
       : undefined
     : undefined;
 
+type StateSchemaOutputSchema<
+  TConfig extends StateSchema,
+  TSetup extends StateSchema
+> = TSetup extends { outputSchema: infer TOutputSchema }
+  ? TOutputSchema extends StandardSchemaV1
+    ? TOutputSchema
+    : undefined
+  : TConfig extends { outputSchema: infer TOutputSchema }
+    ? TOutputSchema extends StandardSchemaV1
+      ? TOutputSchema
+      : undefined
+    : undefined;
+
 type StateSchemaChild<
   TSetup extends StateSchema,
   K extends string
@@ -834,6 +897,7 @@ type MergeStateSchema<
   TSetup extends StateSchema
 > = Omit<TConfig, 'contextSchema' | 'input' | 'states'> & {
   contextSchema: StateSchemaContextSchema<TConfig, TSetup>;
+  outputSchema: StateSchemaOutputSchema<TConfig, TSetup>;
   input: StateSchemaInput<TConfig, TSetup>;
   states: TConfig extends { states: infer TStates }
     ? TStates extends Record<string, StateSchema>
@@ -1062,7 +1126,7 @@ type StateNodeConfigWithNestedInput<
       TEvent,
       TDelays,
       TTag,
-      TOutput,
+      StateOutput<TStateSchema, TOutput>,
       TEmitted,
       TMeta,
       TChildren,
@@ -1072,7 +1136,8 @@ type StateNodeConfigWithNestedInput<
       TDelayMap,
       StateInput<TStateSchema>,
       Record<string, unknown>,
-      TSystemRegistry
+      TSystemRegistry,
+      StateCompletionOutput<TStateSchema>
     >,
     | 'on'
     | 'always'
@@ -1150,7 +1215,7 @@ type StateNodeConfigWithNestedInput<
       TSiblingStateSchemas,
       StateContext<TStateSchema, TContext>,
       StateContextShape<TStateSchema, TContextShape>,
-      DoneStateEvent,
+      DoneStateEvent<StateCompletionOutput<TStateSchema>>,
       TEvent,
       TEmitted,
       TChildren,
@@ -1649,7 +1714,7 @@ type StateTransitionFunction<
     delays: TDelayMap;
     input: TInput;
   } & OutputArg<TExpressionEvent>,
-  enq: EnqueueObject<TEvent, TEmitted, TSystemRegistry>
+  enq: EnqueueObject<TEvent, TEmitted, TSystemRegistry, TActorMap>
 ) => StateTransitionResult<
   TStateSchemas,
   TContext,
@@ -2050,7 +2115,7 @@ export interface SetupReturn<
     [SetupSchema<TSchemas, 'input'>] extends [never]
       ? TInput
       : SetupInput<TSchemas, TInputSchema>,
-    SetupOutput<TSchemas, TOutputSchema>,
+    SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig>,
     SetupEmitted<TSchemas, TEmittedSchemaMap>,
     SetupMeta<TSchemas, TMetaSchema>,
     MergeStateSchema<

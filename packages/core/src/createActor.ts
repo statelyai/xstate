@@ -574,7 +574,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     this._inspectTransition(this._snapshot, event);
   }
 
-  private _inspectTransition(
+  /** @internal Emits the transition inspection event; used by the pure
+   * `transition()` path for snapshots driven outside a live actor. */
+  public _inspectTransition(
     snapshot: SnapshotFrom<TLogic>,
     event: EventObject
   ): void {

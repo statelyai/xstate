@@ -77,18 +77,16 @@ describe('durable execution with only adapter runtime operations', () => {
     ]);
 
     [snapshot, effects] = durable.transition(snapshot, { type: 'KICK' });
-    const rootEvents = await durable.executeEffects(effects);
+    await durable.executeEffects(effects);
     // The child's reply was produced with no per-actor wiring, captured by
-    // the execution instead of reaching the host's sendEvent, and returned
-    // with its source for the durable loop.
+    // the execution instead of reaching the host's sendEvent, and retained:
+    // `waitForEvent()` hands it out before deferring to the adapter.
     expect(operations).toContain('send:order->order/worker:0:PING');
     expect(operations).not.toContain('send:order/worker:0->order:WORKER.READY');
-    expect(rootEvents).toEqual([
-      { event: { type: 'WORKER.READY' }, source: expect.anything() }
-    ]);
-    expect(rootEvents[0]!.source?.address).toBe('order/worker:0');
+    const reply = await durable.waitForEvent();
+    expect(reply).toEqual({ type: 'WORKER.READY' });
 
-    [snapshot] = durable.transition(snapshot, rootEvents[0]!.event);
+    [snapshot] = durable.transition(snapshot, reply);
     expect(snapshot.status).toBe('done');
   });
 });
@@ -117,6 +115,30 @@ describe('durable effect descriptors', () => {
       actor: 'order/worker:0',
       src: 'worker'
     });
+  });
+
+  it('retains an explicitly selected source when aliases share logic', () => {
+    const shared = createMachine({});
+    const machine = setup({
+      actors: { first: shared, second: shared }
+    }).createMachine({
+      id: 'aliases',
+      entry: (_, enq) => {
+        enq.spawn('second', { id: 'worker' });
+      }
+    });
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [, effects] = durable.initialTransition();
+    expect(
+      effects.find(({ descriptor }) => descriptor.type === '@xstate.spawn')
+        ?.descriptor
+    ).toMatchObject({ actor: 'aliases/worker', src: 'second' });
   });
 });
 
@@ -350,8 +372,10 @@ describe('review findings: fourth round', () => {
     // The child's WORKER-bound reply (none here) and any captured root events
     // from the failed batch are gone; a fresh batch starts clean.
     const [, kickEffects] = durable.transition(snapshot, { type: 'KICK' });
-    const rootEvents = await durable.executeEffects(kickEffects);
-    expect(rootEvents).toEqual([]);
+    await durable.executeEffects(kickEffects);
+    // Nothing was retained from the failed batch: `waitForEvent()` falls
+    // straight through to the adapter.
+    await expect(durable.waitForEvent()).rejects.toThrow('host-driven loop');
   });
 
   it('a per-effect runtime falls back to the system runtime for omitted operations', async () => {
@@ -429,7 +453,7 @@ describe('review findings: fifth round', () => {
     );
     // A retrying host re-executes the same effects; the previous batch's
     // failure must not be replayed.
-    await expect(durable.executeEffects(effects)).resolves.toEqual([]);
+    await expect(durable.executeEffects(effects)).resolves.toBeUndefined();
   });
 });
 
@@ -465,7 +489,7 @@ describe('review findings: sixth round', () => {
     });
 
     const [snapshot, effects] = durable.initialTransition();
-    expect(await durable.executeEffects(effects)).toEqual([]);
+    await durable.executeEffects(effects);
 
     // The loop is now parked. The host delivers an event to the live child,
     // whose reply is addressed to the root: it must reach the host runtime's
@@ -479,11 +503,13 @@ describe('review findings: sixth round', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(sent).toContain('order:WORKER.READY');
 
-    // A later, unrelated batch must not surface that host-owned delivery.
+    // A later, unrelated batch must not surface that host-owned delivery:
+    // nothing was retained, so `waitForEvent()` falls through to the adapter.
     const [, nextEffects] = durable.transition(snapshot, {
       type: 'WORKER.READY'
     });
-    expect(await durable.executeEffects(nextEffects)).toEqual([]);
+    await durable.executeEffects(nextEffects);
+    await expect(durable.waitForEvent()).rejects.toThrow('host-driven loop');
   });
 
   it('an operation that fails while the loop is parked does not fail the next batch', async () => {
@@ -542,7 +568,7 @@ describe('review findings: sixth round', () => {
     // The next batch succeeds on its own merits.
     parked = false;
     const [, kickEffects] = durable.transition(snapshot, { type: 'KICK' });
-    await expect(durable.executeEffects(kickEffects)).resolves.toBeDefined();
+    await expect(durable.executeEffects(kickEffects)).resolves.toBeUndefined();
   });
 });
 

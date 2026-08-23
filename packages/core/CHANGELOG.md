@@ -1,5 +1,71 @@
 # xstate
 
+## 6.0.0-alpha.46
+
+### Patch Changes
+
+- 30eb784: Transition spawning accepts typed registered actor names so durable source identity can be explicit:
+  
+  ```ts
+  const machine = createMachine({
+    actors: { worker },
+    on: {
+      start: (_, enq) => {
+        enq.spawn('worker', { id: 'worker' });
+      }
+    }
+  });
+  ```
+  
+  The name determines required input and the returned actor reference type. It is resolved immediately and persisted exactly, so duplicate names may share one logic value and later diverge safely. Logic-value spawning remains supported and uses the first matching registered key; unregistered inline children cannot be persisted.
+
+## 6.0.0-alpha.45
+
+### Patch Changes
+
+- e0dc812: Durable execution DX improvements:
+  
+  - The drive loop no longer routes root events by hand. `executeEffects` retains the root-addressed events it captures, and `execution.waitForEvent()` hands them out before deferring to the adapter, so the canonical loop is:
+  
+    ```ts
+    let [state, effects] = execution.initialTransition(input);
+    await execution.executeEffects(effects);
+  
+    while (state.status === 'active') {
+      [state, effects] = execution.transition(state, await execution.waitForEvent());
+      await execution.executeEffects(effects);
+    }
+    ```
+  
+    (`executeEffects` now resolves with `void`.)
+  
+  - `createDurable(logic, adapter, { inspect })` observes the execution's inspection events (`@xstate.actor` / `@xstate.transition`) across the whole live actor tree, including transitions computed by the pure path — the host-side home for operation logs and instrumentation.
+  - `execution.getActorRef(snapshot, address)` resolves a logical address against the snapshot's live actor tree, for hosts whose durable mailbox stores addresses as strings.
+  - Machine `output` types infer from the config's `output` function when no `schemas.output` schema is declared; a declared schema stays authoritative.
+  - `DurableSnapshot` keeps the `status`/`output`/`error` discriminant visible when `TLogic` is an unresolved type parameter, and adapter `waitForEvent` implementations may return plain event objects — generic host libraries no longer need casts.
+- e0dc812: A machine's output type is now inferred from its `output` config when no `schemas.output` is declared. A declared `schemas.output` stays authoritative.
+  
+  ```ts
+  const machine = setup({}).createMachine({
+    context: { shipped: ['sku-1'] },
+    initial: 'done',
+    states: { done: { type: 'final' } },
+    output: ({ context }) => ({
+      status: 'shipped' as const,
+      skus: context.shipped
+    })
+  });
+  
+  // OutputFrom<typeof machine> is now
+  // { status: 'shipped'; skus: string[] } instead of {}
+  ```
+
+## 6.0.0-alpha.44
+
+### Minor Changes
+
+- 7156ad5: Add setup state-local output schemas for typed final-state output and nested completion contracts.
+
 ## 6.0.0-alpha.43
 
 ### Patch Changes
