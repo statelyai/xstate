@@ -2,7 +2,7 @@
 
 ## What it teaches
 
-Guarded transitions plus an invoked async actor: nested states model one-way vs. return trips, guards reject invalid date ranges, and booking runs as an invoked actor with `onDone`/`onError`. This is [the 7GUIs flight booker task](https://eugenkiss.github.io/7guis/tasks#flight).
+Guarded transitions plus an invoked async actor: nested states model one-way vs. return trips, guards reject invalid date ranges, and booking runs as an invoked actor with `onDone`/`onError`. This is [the 7GUIs flight booker task](https://eugenkiss.github.io/7guis/tasks#flight), part of [the 7GUIs benchmark suite](https://eugenkiss.github.io/7guis/tasks).
 
 ## XState features used
 

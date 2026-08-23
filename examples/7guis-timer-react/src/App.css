@@ -1,0 +1,65 @@
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  position: relative;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  display: grid;
+  place-items: center;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  min-width: 20rem;
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #4a4f63;
+}
+
+progress {
+  width: 100%;
+  height: 1.25rem;
+}
+
+output {
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hint,
+.status {
+  font-size: 0.85rem;
+  color: #4a4f63;
+}
+
+button {
+  appearance: none;
+  background: #311bf6;
+  color: white;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  font-weight: bold;
+}

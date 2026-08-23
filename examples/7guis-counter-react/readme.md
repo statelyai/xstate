@@ -2,7 +2,7 @@
 
 ## What it teaches
 
-The smallest possible machine with context: a single event whose transition function returns updated context. This is [the 7GUIs counter task](https://eugenkiss.github.io/7guis/tasks#counter).
+The smallest possible machine with context: a single event whose transition function returns updated context. This is [the 7GUIs counter task](https://eugenkiss.github.io/7guis/tasks#counter), part of [the 7GUIs benchmark suite](https://eugenkiss.github.io/7guis/tasks).
 
 ## XState features used
 

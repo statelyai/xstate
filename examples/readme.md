@@ -22,11 +22,15 @@ Features per example. `—` means not used or not determined.
 
 | Example                         | Framework      | Guards | Parallel | Invoke | Spawn | Delays | Persistence | Store | UI  |
 | ------------------------------- | -------------- | ------ | -------- | ------ | ----- | ------ | ----------- | ----- | --- |
+| 7guis-cells-react               | React          | yes    | —        | —      | —     | —      | —           | —     | yes |
+| 7guis-circles-react             | React          | yes    | —        | —      | —     | —      | —           | —     | yes |
 | 7guis-counter-react             | React          | —      | —        | —      | —     | —      | —           | —     | yes |
 | 7guis-counter-vue               | Vue            | —      | —        | —      | —     | —      | —           | —     | yes |
+| 7guis-crud-react                | React          | yes    | —        | —      | —     | —      | —           | —     | yes |
 | 7guis-flight-booker-react       | React          | yes    | —        | yes    | —     | —      | —           | —     | yes |
 | 7guis-temperature-react         | React          | —      | —        | —      | —     | —      | —           | —     | yes |
 | 7guis-temperature-vue           | Vue            | —      | —        | —      | —     | —      | —           | —     | yes |
+| 7guis-timer-react               | React          | yes    | —        | yes    | —     | —      | —           | —     | yes |
 | agent-chatbot-conversation      | Node           | —      | —        | yes    | —     | yes    | —           | —     | no  |
 | agent-memory                    | Node           | —      | —        | yes    | —     | —      | —           | —     | no  |
 | agent-streaming-response        | Node           | —      | —        | yes    | —     | yes    | —           | —     | no  |

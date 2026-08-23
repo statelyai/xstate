@@ -2,7 +2,7 @@
 
 ## What it teaches
 
-Two-way derived state: a single machine keeps the Celsius and Fahrenheit fields in sync, so each event recomputes both values from one input. This is [the 7GUIs temperature converter task](https://eugenkiss.github.io/7guis/tasks#temp).
+Two-way derived state: a single machine keeps the Celsius and Fahrenheit fields in sync, so each event recomputes both values from one input. This is [the 7GUIs temperature converter task](https://eugenkiss.github.io/7guis/tasks#temp), part of [the 7GUIs benchmark suite](https://eugenkiss.github.io/7guis/tasks).
 
 ## XState features used
 
