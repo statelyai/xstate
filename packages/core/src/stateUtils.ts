@@ -814,7 +814,8 @@ function resolveHistoryDefaultTransition(
     target,
     source: stateNode,
     reenter: false,
-    eventType: '' as any
+    eventType: '' as any,
+    to: (stateNode.config as any)._historyDefaultTransition
   };
 }
 
@@ -833,7 +834,9 @@ function getInitialStateNodes(stateNode: AnyStateNode) {
     }
     set.add(descStateNode);
     if (descStateNode.type === 'compound') {
-      iter(descStateNode.initial.target![0]);
+      for (const target of descStateNode.initial.target ?? []) {
+        iter(target);
+      }
     } else if (descStateNode.type === 'parallel') {
       for (const child of getChildren(descStateNode)) {
         iter(child);
@@ -1244,6 +1247,28 @@ function getTransitionDomain(
 
   const { targets, reenter } = resolveTransition(transition);
 
+  if (transition._transitionDomain) {
+    if (
+      transition._transitionDomain === 'internal' &&
+      transition.source.type === 'compound' &&
+      targetStates.every((target) => isDescendant(target, transition.source))
+    ) {
+      return transition.source;
+    }
+
+    const [head, ...tail] = targetStates.concat(transition.source);
+    for (const ancestor of getProperAncestors(head, undefined)) {
+      if (
+        ancestor.type === 'compound' &&
+        tail.every((stateNode) => isDescendant(stateNode, ancestor))
+      ) {
+        return ancestor;
+      }
+    }
+
+    return;
+  }
+
   // A history target that restores the source itself must exit and reenter
   // the source (SCXML domain = the source's ancestor), unlike a plain
   // non-reentering self-target: the enter set restores the stored
@@ -1328,14 +1353,35 @@ export function initialMicrostep(
   initEvent: AnyEventObject,
   internalQueue: AnyEventObject[]
 ): Microstep {
+  const initialStateNodes = [...getInitialStateNodes(root)];
+  const statesForDefaultEntry = new Set<AnyStateNode>();
+  const collectDefaultEntryStates = (stateNode: AnyStateNode): void => {
+    if (stateNode.type === 'compound') {
+      statesForDefaultEntry.add(stateNode);
+      for (const target of stateNode.initial.target ?? []) {
+        collectDefaultEntryStates(target);
+      }
+    } else if (stateNode.type === 'parallel') {
+      for (const child of getChildren(stateNode)) {
+        collectDefaultEntryStates(child);
+      }
+    }
+  };
+  collectDefaultEntryStates(root);
   return microstep(
     [
       {
-        target: [...getInitialStateNodes(root)],
+        target: initialStateNodes.filter(
+          (stateNode) =>
+            !initialStateNodes.some(
+              (other) => other !== stateNode && isDescendant(other, stateNode)
+            )
+        ),
         source: root,
         reenter: true,
         eventType: null as any,
-        toJSON: null as any
+        toJSON: null as any,
+        _statesForDefaultEntry: [...statesForDefaultEntry]
       } as AnyTransitionDefinition
     ],
     preInitialState,
@@ -1654,6 +1700,10 @@ function microstep(
       // in other words, those are states for which initial actions should be executed
       // when we target `#deep_child` initial actions of its ancestors shouldn't be executed
       const statesForDefaultEntry = new Set<AnyStateNode>();
+      const historyDefaultsByParent = new Map<
+        AnyStateNode,
+        AnyTransitionDefinition[]
+      >();
       const addAncestorStatesToEnter = (
         ancestors: AnyStateNode[],
         reentrancyDomain: AnyStateNode | undefined
@@ -1690,6 +1740,11 @@ function microstep(
           } else {
             const historyDefaultTransition =
               resolveHistoryDefaultTransition(stateNode);
+            const historyParent = stateNode.parent!;
+            statesForDefaultEntry.add(historyParent);
+            const defaults = historyDefaultsByParent.get(historyParent) ?? [];
+            defaults.push(historyDefaultTransition);
+            historyDefaultsByParent.set(historyParent, defaults);
             const { targets } = getCurrentTransitionResult(
               historyDefaultTransition
             );
@@ -1714,19 +1769,24 @@ function microstep(
         }
 
         if (stateNode.type === 'compound') {
-          const [initialState] = getCurrentTransitionResult(
-            stateNode.initial
-          ).targets!;
+          const initialStates =
+            getCurrentTransitionResult(stateNode.initial).targets ?? [];
 
-          if (!isHistoryNode(initialState)) {
-            statesToEnter.add(initialState);
-            statesForDefaultEntry.add(initialState);
+          for (const initialState of initialStates) {
+            if (!isHistoryNode(initialState)) {
+              statesToEnter.add(initialState);
+            }
           }
-          addDescendantStatesToEnter(initialState);
-          addAncestorStatesToEnter(
-            getProperAncestors(initialState, stateNode),
-            undefined
-          );
+          statesForDefaultEntry.add(stateNode);
+          for (const initialState of initialStates) {
+            addDescendantStatesToEnter(initialState);
+          }
+          for (const initialState of initialStates) {
+            addAncestorStatesToEnter(
+              getProperAncestors(initialState, stateNode),
+              undefined
+            );
+          }
           return;
         }
 
@@ -1786,7 +1846,10 @@ function microstep(
       }
 
       if (isInitial) {
-        statesForDefaultEntry.add(currentSnapshot.machine.root);
+        for (const stateNode of (filteredTransitions[0] as any)
+          ._statesForDefaultEntry ?? [currentSnapshot.machine.root]) {
+          statesForDefaultEntry.add(stateNode);
+        }
       }
 
       const stateInputMap: Record<string, Record<string, unknown>> = {
@@ -1897,20 +1960,39 @@ function microstep(
         }
 
         if (statesForDefaultEntry.has(stateNodeToEnter)) {
-          const { actions: initialActions, input: initialInput } =
-            getTransitionResult(
-              stateNodeToEnter.initial,
+          const defaultTransitions = [
+            stateNodeToEnter.initial,
+            ...(historyDefaultsByParent.get(stateNodeToEnter) ?? [])
+          ].filter(Boolean);
+          for (const defaultTransition of defaultTransitions) {
+            const {
+              actions: initialActions,
+              context: initialContext,
+              input: initialInput,
+              internalEvents: initialInternalEvents
+            } = getTransitionResult(
+              defaultTransition,
               nextState,
               event,
               actorScope
             );
-          if (initialActions) {
-            actions.push(...initialActions);
-          }
-          if (initialInput && stateNodeToEnter.initial?.target) {
-            for (const targetNode of stateNodeToEnter.initial.target) {
-              stateInputMap[targetNode.id] = initialInput;
-              stateInputsChanged = true;
+            if (initialActions) {
+              actions.push(...initialActions);
+            }
+            if (initialInternalEvents?.length) {
+              internalQueue.push(...initialInternalEvents);
+            }
+            if (initialContext !== undefined) {
+              nextState.context = mergeContextPatch(
+                nextState.context,
+                initialContext
+              );
+            }
+            if (initialInput && defaultTransition.target) {
+              for (const targetNode of defaultTransition.target) {
+                stateInputMap[targetNode.id] = initialInput;
+                stateInputsChanged = true;
+              }
             }
           }
         }

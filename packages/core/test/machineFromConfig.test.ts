@@ -90,6 +90,20 @@ describe('createMachineFromConfig ', () => {
     const [nextState2] = transition(machine, nextState, { type: 'NEXT' });
     expect(nextState2.value).toEqual('c');
   });
+
+  it('does not merge actor input into native JSON machine context', () => {
+    const machine = createMachineFromConfig({
+      context: { count: 0 },
+      initial: 'idle',
+      states: { idle: {} }
+    });
+    const actor = createActor(machine, {
+      input: { count: 5, extra: true }
+    }).start();
+
+    expect(actor.getSnapshot().context).toEqual({ count: 0 });
+  });
+
   it('should handle raise actions', () => {
     const machine = createMachineFromConfig({
       initial: 'a',

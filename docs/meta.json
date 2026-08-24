@@ -55,6 +55,7 @@
     "typescript",
     "persistence",
     "serialization",
+    "scxml",
     "inspection",
     "utilities",
     "cheatsheet",

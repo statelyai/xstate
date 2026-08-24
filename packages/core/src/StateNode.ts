@@ -634,27 +634,41 @@ function formatTransitions<
 
 function formatInitialTransition(
   stateNode: AnyStateNode,
-  _target: string | { target: string; input?: any } | undefined
+  _target:
+    | string
+    | { target: string | string[]; input?: any; to?: (...args: any[]) => any }
+    | undefined
 ): InitialTransitionDefinition {
   const targetString =
     typeof _target === 'object' && _target !== null ? _target.target : _target;
   const input =
     typeof _target === 'object' && _target !== null ? _target.input : undefined;
-  const resolvedTarget =
-    typeof targetString === 'string'
-      ? stateNode.states[targetString]
-      : undefined;
-  if (!resolvedTarget && targetString) {
+  const to =
+    typeof _target === 'object' && _target !== null ? _target.to : undefined;
+  const targetStrings = Array.isArray(targetString)
+    ? targetString
+    : targetString
+      ? [targetString]
+      : [];
+  const resolvedTargets = targetStrings.map((target) =>
+    target.startsWith('#')
+      ? stateNode.machine.getStateNodeById(target.slice(1))
+      : stateNode.states[target]
+  );
+  if (resolvedTargets.some((target) => !target)) {
     throw new Error(
       isDevelopment
-        ? `Initial state node "${targetString}" not found on parent state node #${stateNode.id}`
-        : `Initial state "${targetString}" not found on "#${stateNode.id}"`
+        ? `Initial state node "${targetStrings.find((_, index) => !resolvedTargets[index])}" not found on parent state node #${stateNode.id}`
+        : `Initial state not found on "#${stateNode.id}"`
     );
   }
   const transition: InitialTransitionDefinition = {
     source: stateNode,
-    target: resolvedTarget ? [resolvedTarget] : undefined,
-    input
+    target: resolvedTargets.length
+      ? (resolvedTargets as AnyStateNode[])
+      : undefined,
+    input,
+    to
   };
 
   return transition;

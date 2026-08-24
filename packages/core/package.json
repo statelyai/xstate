@@ -37,6 +37,20 @@
       "import": "./dist/xstate-graph.cjs.mjs",
       "default": "./dist/xstate-graph.cjs.js"
     },
+    "./scxml": {
+      "types": {
+        "import": "./dist/xstate-scxml.cjs.mjs",
+        "default": "./dist/xstate-scxml.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-scxml.development.esm.js",
+        "import": "./dist/xstate-scxml.development.cjs.mjs",
+        "default": "./dist/xstate-scxml.development.cjs.js"
+      },
+      "module": "./dist/xstate-scxml.esm.js",
+      "import": "./dist/xstate-scxml.cjs.mjs",
+      "default": "./dist/xstate-scxml.cjs.js"
+    },
     "./actors": {
       "types": {
         "import": "./dist/xstate-actors.cjs.mjs",
@@ -100,6 +114,7 @@
     "guards",
     "dev",
     "graph",
+    "scxml",
     "validation",
     "durable",
     "bin"
@@ -121,6 +136,9 @@
   },
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "license": "MIT",
+  "dependencies": {
+    "saxes": "^6.0.0"
+  },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
@@ -130,7 +148,6 @@
     "ajv": "^8.12.0",
     "pkg-up": "^3.1.0",
     "rxjs": "^7.8.1",
-    "xml-js": "^1.6.11",
     "zod": "^3.25.51"
   },
   "preconstruct": {
@@ -139,6 +156,7 @@
       "./index.ts",
       "./actors/index.ts",
       "./graph/index.ts",
+      "./scxml/index.ts",
       "./validation/index.ts",
       "./durable/index.ts"
     ]

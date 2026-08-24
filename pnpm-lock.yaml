@@ -1379,6 +1379,10 @@ importers:
         version: 0.31.4(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(supports-color@5.5.0)(terser@5.49.0)
 
   packages/core:
+    dependencies:
+      saxes:
+        specifier: ^6.0.0
+        version: 6.0.0
     devDependencies:
       '@scion-scxml/test-framework':
         specifier: ^2.0.15
@@ -1392,9 +1396,6 @@ importers:
       rxjs:
         specifier: ^7.8.1
         version: 7.8.2
-      xml-js:
-        specifier: ^1.6.11
-        version: 1.6.11
       zod:
         specifier: ^3.25.51
         version: 3.25.76
@@ -6770,12 +6771,12 @@ packages:
   eslint@8.57.1:
     resolution: {integrity: sha512-ypowyDxpVSYpkXr9WPv2PAZCtNip1Mv5KTW0SCurXv/9iOpcrH9PaqUElksqEB6pChqHGDRCFTyrZlGhnLNGiA==, tarball: https://registry.npmjs.org/eslint/-/eslint-8.57.1.tgz}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
-    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
 
   eslint@9.39.5:
     resolution: {integrity: sha512-DgZS62aPLXKlnxILS/AYCoRvHaZeXceIzlXPkkGGzJWSow1aEk0lbTlxUSlyjC8jcaKxAdOnTDz+o1JFSBsyjw==, tarball: https://registry.npmjs.org/eslint/-/eslint-9.39.5.tgz}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -10068,9 +10069,6 @@ packages:
   sax@1.2.4:
     resolution: {integrity: sha512-NqVDv9TpANUjFm0N8uM5GxL36UgKi9/atZw+x7YFnQ8ckwFGKrl4xX4yWtrey3UJm5nP1kUbnYgLopqWNSRhWw==, tarball: https://registry.npmjs.org/sax/-/sax-1.2.4.tgz}
 
-  sax@1.4.1:
-    resolution: {integrity: sha512-+aWOz7yVScEGoKNd4PA10LZ8sk0A/z5+nXQG5giUO5rprX9jgYsTdov9qCchZiPIZezbZH+jRut8nPodFAX4Jg==, tarball: https://registry.npmjs.org/sax/-/sax-1.4.1.tgz}
-
   saxes@3.1.11:
     resolution: {integrity: sha512-Ydydq3zC+WYDJK1+gRxRapLIED9PWeSuuS41wqyoRmzvhhh9nc+QQrVMKJYzJFULazeGhzSV0QleN2wD3boh2g==, tarball: https://registry.npmjs.org/saxes/-/saxes-3.1.11.tgz}
     engines: {node: '>=8'}
@@ -11540,10 +11538,6 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
-
-  xml-js@1.6.11:
-    resolution: {integrity: sha512-7rVi2KMfwfWFl+GpPg6m80IVMWXLRjO+PxTq7V2CDhoGak0wzYzFgUY2m4XJ47OGdXd8eLE8EmwfAmdjw7lC1g==, tarball: https://registry.npmjs.org/xml-js/-/xml-js-1.6.11.tgz}
-    hasBin: true
 
   xml-name-validator@3.0.0:
     resolution: {integrity: sha512-A5CUptxDsvxKJEU3yO6DuWBSJz/qizqzJKOMIfUJHETbBw/sFaDxgd6fxm1ewUaM0jZ444Fc5vC5ROYurg/4Pw==, tarball: https://registry.npmjs.org/xml-name-validator/-/xml-name-validator-3.0.0.tgz}
@@ -21653,8 +21647,6 @@ snapshots:
 
   sax@1.2.4: {}
 
-  sax@1.4.1: {}
-
   saxes@3.1.11:
     dependencies:
       xmlchars: 2.2.0
@@ -23358,10 +23350,6 @@ snapshots:
   ws@7.5.13: {}
 
   ws@8.18.3: {}
-
-  xml-js@1.6.11:
-    dependencies:
-      sax: 1.4.1
 
   xml-name-validator@3.0.0: {}
 
