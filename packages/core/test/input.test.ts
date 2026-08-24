@@ -61,6 +61,28 @@ describe('input', () => {
     expect(snapshot.status).toBe('error');
   });
 
+  it('should retain the machine snapshot interface when resolving input throws', () => {
+    const machine = createMachine({
+      types: {} as {
+        input: { greeting: string };
+        context: { message: string };
+      },
+      context: ({ input }) => ({
+        message: `Hello, ${input.greeting}`
+      }),
+      initial: 'saving',
+      states: {
+        saving: {}
+      }
+    });
+
+    // @ts-expect-error Missing input deliberately exercises initialization.
+    const snapshot = createActor(machine).getSnapshot();
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.matches('saving')).toBe(true);
+  });
+
   it('should be a type error if input is not expected yet provided', () => {
     const machine = createMachine({
       context: { count: 42 }

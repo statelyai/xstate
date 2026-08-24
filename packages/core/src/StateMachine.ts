@@ -3,6 +3,7 @@ import { assign } from './actions.ts';
 import { $$ACTOR_TYPE, createActor } from './createActor.ts';
 import { createInitEvent } from './eventUtils.ts';
 import {
+  cloneMachineSnapshot,
   createMachineSnapshot,
   getPersistedSnapshot,
   MachineSnapshot
@@ -438,27 +439,43 @@ export class StateMachine<
   > {
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
-    const preInitialState = this._getPreInitialState(
-      actorScope,
-      initEvent,
-      internalQueue
-    );
-    const [nextState] = initialMicrostep(
-      this.root,
-      preInitialState,
-      actorScope,
-      initEvent,
-      internalQueue
-    );
+    let snapshot = createMachineSnapshot(
+      {
+        context:
+          typeof this.config.context !== 'function' && this.config.context
+            ? this.config.context
+            : ({} as TContext),
+        _nodes: [this.root],
+        children: {},
+        status: 'active'
+      },
+      this
+    ) as ReturnType<typeof this._getPreInitialState>;
 
-    const { snapshot: macroState } = macrostep(
-      nextState,
-      initEvent as AnyEventObject,
-      actorScope,
-      internalQueue
-    );
+    try {
+      snapshot = this._getPreInitialState(actorScope, initEvent, internalQueue);
+      const [nextState] = initialMicrostep(
+        this.root,
+        snapshot,
+        actorScope,
+        initEvent,
+        internalQueue
+      );
 
-    return macroState as SnapshotFrom<this>;
+      const { snapshot: macroState } = macrostep(
+        nextState,
+        initEvent as AnyEventObject,
+        actorScope,
+        internalQueue
+      );
+
+      return macroState as SnapshotFrom<this>;
+    } catch (error) {
+      return cloneMachineSnapshot(snapshot, {
+        status: 'error',
+        error
+      }) as SnapshotFrom<this>;
+    }
   }
 
   public start(
