@@ -343,13 +343,6 @@ const overrides: Record<string, string[]> = {
   ]
 };
 
-const manualTests = new Set([
-  'w3c-ecma/test230.txml',
-  'w3c-ecma/test250.txml',
-  'w3c-ecma/test307.txml',
-  'w3c-ecma/test313.txml',
-  'w3c-ecma/test314.txml'
-]);
 const deviations = new Set(['w3c-ecma/test201.txml']);
 const runnableTests: string[] = [];
 const testRoot = path.join(TEST_FRAMEWORK, 'test');
@@ -375,7 +368,7 @@ for (const testGroupName of fs.readdirSync(testRoot)) {
 
     const testId = `${testGroupName}/${testName}`;
     runnableTests.push(testId);
-    if (manualTests.has(testId) || deviations.has(testId)) {
+    if (deviations.has(testId)) {
       continue;
     }
 
@@ -384,12 +377,6 @@ for (const testGroupName of fs.readdirSync(testRoot)) {
       tests.push(testName);
     }
   }
-}
-
-for (const [testGroupName, tests] of Object.entries(testGroups)) {
-  testGroups[testGroupName] = tests.filter(
-    (testName) => !manualTests.has(`${testGroupName}/${testName}`)
-  );
 }
 
 interface SCIONTest {
@@ -572,17 +559,10 @@ describe('SCXML corpus classification', () => {
       runnableTests.filter(
         (testId) =>
           Number(automatedTests.has(testId)) +
-            Number(manualTests.has(testId)) +
             Number(deviations.has(testId)) !==
           1
       )
     ).toEqual([]);
-  });
-
-  describe('manual evidence required', () => {
-    for (const testId of manualTests) {
-      it.todo(testId);
-    }
   });
 
   describe.skip('explicit protocol deviation', () => {
