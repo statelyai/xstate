@@ -100,7 +100,7 @@ export function deliverEvent(
  * Returns the boundary error preventing this delivery, if any: an internal
  * event type cannot cross an actor boundary from an external sender.
  */
-export function getEventBoundaryError(
+function getEventBoundaryError(
   source: AnyActor | undefined,
   target: AnyActor,
   event: AnyEventObject

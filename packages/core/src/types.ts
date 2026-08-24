@@ -1772,7 +1772,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *
    * @remarks
    * If a callback function is provided, it can accept an inspection event
-   * argument. The inspection protocol has two event types:
+   * argument. The inspection protocol has three event types:
    *
    * - `@xstate.actor` - An actor ref was created in the system (announces actor
    *   topology: identity + parent).
@@ -1780,6 +1780,11 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *   transition with flat, always-present fields: `event`, `snapshot`,
    *   `sourceRef`, `microsteps`, executed `actions`, and `sent`/scheduled
    *   events.
+   * - `@xstate.deadletter` - An event could not be delivered: the target actor
+   *   stopped, the payload failed its declared schema, or an internal event
+   *   type was sent from outside its owning actor. Carries the `event`,
+   *   `sourceRef`, `reason`, and — for boundary rejections — `issues` and
+   *   `error`.
    *
    * @example
    *
