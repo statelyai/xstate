@@ -59,6 +59,29 @@ describe('xstate/fsm', () => {
     }
   );
 
+  it('stops the specialized actor from an action while events remain queued', () => {
+    let stopRoot = () => {};
+    const logic = createFSM({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            stop: (_, enq) => {
+              enq.raise({ type: 'queued' });
+              enq(stopRoot);
+            },
+            queued: {}
+          }
+        }
+      }
+    });
+    const actor = createFSMActor(logic).start();
+    stopRoot = () => actor.stop();
+
+    expect(() => actor.send({ type: 'stop' })).not.toThrow();
+    expect(actor.getSnapshot().status).toBe('stopped');
+  });
+
   it.each([
     ['specialized', createFSMActor],
     ['full', createFullActor]

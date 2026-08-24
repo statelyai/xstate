@@ -252,7 +252,10 @@ export class FSMActor<TLogic extends AnyActorLogic> {
 
     this._processing = true;
     let event: EventFromLogic<TLogic> | undefined;
-    while ((event = this._queue.shift())) {
+    while (
+      this._processingStatus === FSMActorStatus.Running &&
+      (event = this._queue?.shift())
+    ) {
       try {
         const [snapshot, effects] = this.logic.transition(
           this._snapshot,
