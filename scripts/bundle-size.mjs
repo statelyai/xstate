@@ -12,6 +12,7 @@
 //   node scripts/bundle-size.mjs --dist     # diagnose the latest local build
 //   node scripts/bundle-size.mjs --json     # machine-readable results
 //   node scripts/bundle-size.mjs --profile=minimal-machine
+//   node scripts/bundle-size.mjs --xstate-root=/path/to/packages/core
 //   node scripts/bundle-size.mjs --verify   # execute every bundled profile
 //
 // Source is canonical so the gate cannot accidentally measure stale build
@@ -511,12 +512,15 @@ try {
       console.log(`\n${name} — minified bytes per module:`);
       const inputs = Object.values(built.metafile.outputs)[0].inputs;
       const rows = Object.entries(inputs)
-        .map(([file, { bytesInOutput }]) => [
-          file.startsWith(coreSourceRoot)
-            ? file.slice(coreSourceRoot.length + 1)
-            : file,
-          bytesInOutput
-        ])
+        .map(([file, { bytesInOutput }]) => {
+          const absoluteFile = resolve(root, file);
+          return [
+            absoluteFile.startsWith(coreSourceRoot)
+              ? absoluteFile.slice(coreSourceRoot.length + 1)
+              : file,
+            bytesInOutput
+          ];
+        })
         .filter(([, bytes]) => bytes > 0)
         .sort((a, b) => b[1] - a[1]);
       for (const [file, bytes] of rows) {
