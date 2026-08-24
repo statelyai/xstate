@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "cockatiel": "^3.2.1",
-    "xstate": "^5.28.0"
+    "xstate": "workspace:*",
+    "zod": "^3.25.76"
   }
 }

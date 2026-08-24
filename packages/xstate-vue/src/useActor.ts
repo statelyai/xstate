@@ -30,7 +30,7 @@ export function useActor<TLogic extends AnyActorLogic>(
 };
 export function useActor(
   actorLogic: AnyActorLogic,
-  options: ActorOptions<AnyActorLogic> = {}
+  options: ActorOptions<any> = {}
 ) {
   if (
     isDevelopment &&

@@ -3,6 +3,8 @@ description: ''
 runs:
   using: 'composite'
   steps:
+    # No `version` input on purpose: action-setup reads the pnpm version from the
+    # root `packageManager` field, keeping CI and local on the same pinned version.
     - name: Check out repository
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:

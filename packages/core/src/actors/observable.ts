@@ -1,14 +1,22 @@
-import { XSTATE_STOP } from '../constants';
+import { XSTATE_INIT, XSTATE_STOP } from '../constants';
+import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
+import { assertValid } from '../validation.ts';
+import type { ActorLogicValidator } from '../validation.types.ts';
 import {
   ActorLogic,
+  ActorFromLogic,
   ActorRefFromLogic,
+  AnyActor,
+  AnyEventObject,
   EventObject,
   NonReducibleUnknown,
   Snapshot,
   Subscribable,
   Subscription
 } from '../types';
+import { createLogic as createBaseLogic } from './logic.ts';
+import { finalizeTransitionResult } from '../transitionActions.ts';
 
 const XSTATE_OBSERVABLE_NEXT = 'xstate.observable.next';
 const XSTATE_OBSERVABLE_ERROR = 'xstate.observable.error';
@@ -20,6 +28,12 @@ export type ObservableSnapshot<
 > = Snapshot<undefined> & {
   context: TContext | undefined;
   input: TInput | undefined;
+  effects?: Record<
+    string,
+    | { status: 'active' }
+    | { status: 'done'; output?: unknown }
+    | { status: 'error'; error: unknown }
+  >;
   _subscription: Subscription | undefined;
 };
 
@@ -36,14 +50,15 @@ export type ObservableActorLogic<
 >;
 
 /**
- * Represents an actor created by `fromObservable` or `fromEventObservable`.
+ * Represents an actor created by `createObservableLogic` or
+ * `createEventObservableLogic`.
  *
  * The type of `self` within the actor's logic.
  *
  * @example
  *
  * ```ts
- * import { fromObservable, createActor } from 'xstate';
+ * import { createObservableLogic, createActor } from 'xstate';
  * import { interval } from 'rxjs';
  *
  * // The type of the value observed by the actor's logic.
@@ -53,23 +68,89 @@ export type ObservableActorLogic<
  *
  * // Actor logic that observes a number incremented every `input.period`
  * // milliseconds (default: 1_000).
- * const logic = fromObservable<Context, Input>(({ input, self }) => {
- *   self;
- *   // ^? ObservableActorRef<Event, Input>
+ * const logic = createObservableLogic<Context, Input>(
+ *   ({ input, self }) => {
+ *     self;
+ *     // ^? ObservableActor<Event, Input>
  *
- *   return interval(input.period ?? 1_000);
- * });
+ *     return interval(input.period ?? 1_000);
+ *   }
+ * );
  *
  * const actor = createActor(logic, { input: { period: 2_000 } });
- * //    ^? ObservableActorRef<Event, Input>
+ * //    ^? ObservableActor<Event, Input>
  * ```
  *
- * @see {@link fromObservable}
- * @see {@link fromEventObservable}
+ * @see {@link createObservableLogic}
+ * @see {@link createEventObservableLogic}
  */
 export type ObservableActorRef<TContext> = ActorRefFromLogic<
   ObservableActorLogic<TContext, any>
 >;
+
+type ObservableActor<
+  TContext,
+  TInput extends NonReducibleUnknown = any,
+  TEmitted extends EventObject = EventObject
+> = ActorFromLogic<ObservableActorLogic<TContext, TInput, TEmitted>>;
+
+export type ObservableLogicFunction<
+  TContext,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+> = ({
+  input,
+  system,
+  self,
+  emit
+}: {
+  input: TInput;
+  system: AnyActorSystem;
+  self: ObservableActor<TContext, TInput, TEmitted>;
+  emit: (emitted: TEmitted) => void;
+}) => Subscribable<TContext>;
+
+export interface ObservableLogicConfig<
+  TContext,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject,
+  TInputSchema extends StandardSchemaV1 = StandardSchemaV1
+> {
+  validator?: ActorLogicValidator;
+  schemas?: {
+    input?: TInputSchema;
+  };
+  run: ObservableLogicFunction<TContext, TInput, TEmitted>;
+}
+
+export type EventObservableLogicFunction<
+  TEvent extends EventObject,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+> = ({
+  input,
+  system,
+  self,
+  emit
+}: {
+  input: TInput;
+  system: AnyActorSystem;
+  self: ObservableActor<TEvent, TInput, TEmitted>;
+  emit: (emitted: TEmitted) => void;
+}) => Subscribable<TEvent>;
+
+export interface EventObservableLogicConfig<
+  TEvent extends EventObject,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject,
+  TInputSchema extends StandardSchemaV1 = StandardSchemaV1
+> {
+  validator?: ActorLogicValidator;
+  schemas?: {
+    input?: TInputSchema;
+  };
+  run: EventObservableLogicFunction<TEvent, TInput, TEmitted>;
+}
 
 /**
  * Observable actor logic is described by an observable stream of values. Actors
@@ -84,10 +165,10 @@ export type ObservableActorRef<TContext> = ActorRefFromLogic<
  * @example
  *
  * ```ts
- * import { fromObservable, createActor } from 'xstate';
+ * import { createObservableLogic, createActor } from 'xstate';
  * import { interval } from 'rxjs';
  *
- * const logic = fromObservable((obj) => interval(1000));
+ * const logic = createObservableLogic((obj) => interval(1000));
  *
  * const actor = createActor(logic);
  *
@@ -115,111 +196,137 @@ export type ObservableActorRef<TContext> = ActorRefFromLogic<
  * @see {@link https://rxjs.dev} for documentation on RxJS Observable and observable creators.
  * @see {@link Subscribable} interface in XState, which is based on and compatible with RxJS Observable.
  */
-export function fromObservable<
+export function createObservableLogic<
+  TContext,
+  const TInputSchema extends StandardSchemaV1,
+  TEmitted extends EventObject = EventObject
+>(
+  config: ObservableLogicConfig<
+    TContext,
+    StandardSchemaV1.InferOutput<TInputSchema>,
+    TEmitted,
+    TInputSchema
+  > & { schemas: { input: TInputSchema } }
+): ObservableActorLogic<
+  TContext,
+  StandardSchemaV1.InferOutput<TInputSchema>,
+  TEmitted
+>;
+export function createObservableLogic<
   TContext,
   TInput extends NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  observableCreator: ({
-    input,
-    system,
-    self
-  }: {
-    input: TInput;
-    system: AnyActorSystem;
-    self: ObservableActorRef<TContext>;
-    emit: (emitted: TEmitted) => void;
-  }) => Subscribable<TContext>
+  config: ObservableLogicConfig<TContext, TInput, TEmitted> & {
+    schemas?: undefined;
+  }
+): ObservableActorLogic<TContext, TInput, TEmitted>;
+export function createObservableLogic<
+  TContext,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  observableCreator: ObservableLogicFunction<TContext, TInput, TEmitted>
+): ObservableActorLogic<TContext, TInput, TEmitted>;
+export function createObservableLogic<
+  TContext,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  observableCreatorOrConfig:
+    | ObservableLogicFunction<TContext, TInput, TEmitted>
+    | ObservableLogicConfig<TContext, TInput, TEmitted>
 ): ObservableActorLogic<TContext, TInput, TEmitted> {
-  // TODO: add event types
-  const logic: ObservableActorLogic<TContext, TInput, TEmitted> = {
-    config: observableCreator,
-    transition: (snapshot, event) => {
-      if (snapshot.status !== 'active') {
-        return snapshot;
-      }
+  const observableCreator =
+    typeof observableCreatorOrConfig === 'function'
+      ? observableCreatorOrConfig
+      : observableCreatorOrConfig.run;
+  const schemas =
+    typeof observableCreatorOrConfig === 'function'
+      ? undefined
+      : observableCreatorOrConfig.schemas;
+  const validator =
+    typeof observableCreatorOrConfig === 'function'
+      ? undefined
+      : observableCreatorOrConfig.validator;
 
+  return createBaseLogic<
+    TContext | undefined,
+    undefined,
+    { type: string; [k: string]: unknown },
+    TInput,
+    TEmitted
+  >({
+    validator,
+    schemas,
+    context: undefined,
+    run: (args, enq) => {
+      const { event, input, self, system } = args;
       switch (event.type) {
         case XSTATE_OBSERVABLE_NEXT: {
-          const newSnapshot = {
-            ...snapshot,
+          return {
             context: event.data as TContext
           };
-          return newSnapshot;
         }
         case XSTATE_OBSERVABLE_ERROR:
           return {
-            ...snapshot,
             status: 'error',
             error: (event as any).data,
-            input: undefined,
-            _subscription: undefined
+            input: undefined as TInput | undefined,
+            effects: {
+              observable: { status: 'error', error: (event as any).data }
+            }
           };
         case XSTATE_OBSERVABLE_COMPLETE:
           return {
-            ...snapshot,
             status: 'done',
-            input: undefined,
-            _subscription: undefined
+            input: undefined as TInput | undefined,
+            effects: {
+              observable: { status: 'done' }
+            }
           };
-        case XSTATE_STOP:
-          snapshot._subscription!.unsubscribe();
-          return {
-            ...snapshot,
-            status: 'stopped',
-            input: undefined,
-            _subscription: undefined
-          };
-        default:
-          return snapshot;
       }
-    },
-    getInitialSnapshot: (_, input) => {
-      return {
-        status: 'active',
-        output: undefined,
-        error: undefined,
-        context: undefined,
-        input,
-        _subscription: undefined
-      };
-    },
-    start: (state, { self, system, emit }) => {
-      if (state.status === 'done') {
-        // Do not restart a completed observable
+
+      if (event.type !== XSTATE_INIT) {
         return;
       }
-      state._subscription = observableCreator({
-        input: state.input!,
-        system,
-        self,
-        emit
-      }).subscribe({
-        next: (value) => {
-          system._relay(self, self, {
-            type: XSTATE_OBSERVABLE_NEXT,
-            data: value
-          });
-        },
-        error: (err) => {
-          system._relay(self, self, {
-            type: XSTATE_OBSERVABLE_ERROR,
-            data: err
-          });
-        },
-        complete: () => {
-          system._relay(self, self, { type: XSTATE_OBSERVABLE_COMPLETE });
-        }
-      });
-    },
-    getPersistedSnapshot: ({ _subscription, ...state }) => state,
-    restoreSnapshot: (state) => ({
-      ...(state as any),
-      _subscription: undefined
-    })
-  };
 
-  return logic;
+      enq.effect((runtime = system) => {
+        const actorSelf = self as unknown as AnyActor;
+        const sendSelf = (event: AnyEventObject) =>
+          void runtime.sendEvent!(actorSelf, actorSelf, event);
+        const subscription = observableCreator({
+          input,
+          system,
+          self: self as any,
+          emit: ((event: TEmitted) =>
+            void runtime.emitEvent!(actorSelf, event)) as (
+            emitted: TEmitted
+          ) => void
+        }).subscribe({
+          next: (value) => {
+            sendSelf({
+              type: XSTATE_OBSERVABLE_NEXT,
+              data: value
+            });
+          },
+          error: (err) => {
+            sendSelf({
+              type: XSTATE_OBSERVABLE_ERROR,
+              data: err
+            });
+          },
+          complete: () => {
+            sendSelf({
+              type: XSTATE_OBSERVABLE_COMPLETE
+            });
+          }
+        });
+
+        return () => subscription.unsubscribe();
+      });
+    }
+  }) as unknown as ObservableActorLogic<TContext, TInput, TEmitted>;
 }
 
 /**
@@ -239,7 +346,7 @@ export function fromObservable<
  *
  * ```ts
  * import {
- *   fromEventObservable,
+ *   createEventObservableLogic,
  *   Subscribable,
  *   EventObject,
  *   createMachine,
@@ -247,7 +354,7 @@ export function fromObservable<
  * } from 'xstate';
  * import { fromEvent } from 'rxjs';
  *
- * const mouseClickLogic = fromEventObservable(
+ * const mouseClickLogic = createEventObservableLogic(
  *   () => fromEvent(document.body, 'click') as Subscribable<EventObject>
  * );
  *
@@ -273,69 +380,126 @@ export function fromObservable<
  *   It should return a {@link Subscribable}, which is compatible with an RxJS
  *   Observable, although RxJS is not required to create them.
  */
-export function fromEventObservable<
+export function createEventObservableLogic<
+  TEvent extends EventObject,
+  const TInputSchema extends StandardSchemaV1,
+  TEmitted extends EventObject = EventObject
+>(
+  config: EventObservableLogicConfig<
+    TEvent,
+    StandardSchemaV1.InferOutput<TInputSchema>,
+    TEmitted,
+    TInputSchema
+  > & { schemas: { input: TInputSchema } }
+): ObservableActorLogic<
+  TEvent,
+  StandardSchemaV1.InferOutput<TInputSchema>,
+  TEmitted
+>;
+export function createEventObservableLogic<
   TEvent extends EventObject,
   TInput extends NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  lazyObservable: ({
-    input,
-    system,
-    self,
-    emit
-  }: {
-    input: TInput;
-    system: AnyActorSystem;
-    self: ObservableActorRef<TEvent>;
-    emit: (emitted: TEmitted) => void;
-  }) => Subscribable<TEvent>
+  config: EventObservableLogicConfig<TEvent, TInput, TEmitted> & {
+    schemas?: undefined;
+  }
+): ObservableActorLogic<TEvent, TInput, TEmitted>;
+export function createEventObservableLogic<
+  TEvent extends EventObject,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  lazyObservable: EventObservableLogicFunction<TEvent, TInput, TEmitted>
+): ObservableActorLogic<TEvent, TInput, TEmitted>;
+export function createEventObservableLogic<
+  TEvent extends EventObject,
+  TInput extends NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  lazyObservableOrConfig:
+    | EventObservableLogicFunction<TEvent, TInput, TEmitted>
+    | EventObservableLogicConfig<TEvent, TInput, TEmitted>
 ): ObservableActorLogic<TEvent, TInput, TEmitted> {
+  const lazyObservable =
+    typeof lazyObservableOrConfig === 'function'
+      ? lazyObservableOrConfig
+      : lazyObservableOrConfig.run;
+  const validator =
+    typeof lazyObservableOrConfig === 'function'
+      ? undefined
+      : lazyObservableOrConfig.validator;
+
   // TODO: event types
   const logic: ObservableActorLogic<TEvent, TInput, TEmitted> = {
-    config: lazyObservable,
-    transition: (state, event) => {
+    config: lazyObservableOrConfig,
+    validator,
+    transition: (state, event, actorScope) => {
       if (state.status !== 'active') {
-        return state;
+        return [state, []];
       }
 
       switch (event.type) {
         case XSTATE_OBSERVABLE_ERROR:
-          return {
-            ...state,
-            status: 'error',
-            error: (event as any).data,
-            input: undefined,
-            _subscription: undefined
-          };
+          return finalizeTransitionResult(
+            actorScope,
+            state as ObservableSnapshot<TEvent, TInput>,
+            [
+              {
+                ...state,
+                status: 'error',
+                error: (event as any).data,
+                input: undefined,
+                _subscription: undefined
+              } as ObservableSnapshot<TEvent, TInput>,
+              []
+            ]
+          );
         case XSTATE_OBSERVABLE_COMPLETE:
-          return {
-            ...state,
-            status: 'done',
-            input: undefined,
-            _subscription: undefined
-          };
+          return finalizeTransitionResult(
+            actorScope,
+            state as ObservableSnapshot<TEvent, TInput>,
+            [
+              {
+                ...state,
+                status: 'done',
+                input: undefined,
+                _subscription: undefined
+              } as ObservableSnapshot<TEvent, TInput>,
+              []
+            ]
+          );
         case XSTATE_STOP:
           state._subscription!.unsubscribe();
-          return {
-            ...state,
-            status: 'stopped',
-            input: undefined,
-            _subscription: undefined
-          };
+          return [
+            {
+              ...state,
+              status: 'stopped',
+              input: undefined,
+              _subscription: undefined
+            },
+            []
+          ];
         default:
-          return state;
+          return [state, []];
       }
     },
-    getInitialSnapshot: (_, input) => {
-      return {
+    initialTransition: (input, _) => {
+      if (validator) {
+        assertValid(validator, { kind: 'input', logic, input });
+      }
+      const snapshot = {
         status: 'active',
         output: undefined,
         error: undefined,
         context: undefined,
         input,
         _subscription: undefined
-      };
+      } as ObservableSnapshot<TEvent, TInput>;
+      return [snapshot, []];
     },
+    getInitialSnapshot: (actorScope, input) =>
+      logic.initialTransition(input, actorScope)[0],
     start: (state, { self, system, emit }) => {
       if (state.status === 'done') {
         // Do not restart a completed observable
@@ -346,7 +510,9 @@ export function fromEventObservable<
         input: state.input!,
         system,
         self,
-        emit
+        emit: (event) => {
+          void emit(event);
+        }
       }).subscribe({
         next: (value) => {
           if (self._parent) {

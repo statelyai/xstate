@@ -1,14 +1,14 @@
+import z from 'zod';
 import {
   ActorLogic,
   ActorRefFrom,
   ContextFrom,
   EventFrom,
-  MachineImplementationsFrom,
+  MachineSourcesFrom,
   Snapshot,
   SnapshotFrom,
   StateValueFrom,
   TagsFrom,
-  assign,
   createActor,
   createMachine
 } from '../src/index.ts';
@@ -16,8 +16,13 @@ import {
 describe('ContextFrom', () => {
   it('should return context of a machine', () => {
     const machine = createMachine({
-      types: {
-        context: {} as { counter: number }
+      // types: {
+      //   context: {} as { counter: number }
+      // },
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
       },
       context: {
         counter: 0
@@ -43,11 +48,18 @@ describe('ContextFrom', () => {
 describe('EventFrom', () => {
   it('should return events for a machine', () => {
     const machine = createMachine({
-      types: {
-        events: {} as
-          | { type: 'UPDATE_NAME'; value: string }
-          | { type: 'UPDATE_AGE'; value: number }
-          | { type: 'ANOTHER_EVENT' }
+      // types: {
+      //   events: {} as
+      //     | { type: 'UPDATE_NAME'; value: string }
+      //     | { type: 'UPDATE_AGE'; value: number }
+      //     | { type: 'ANOTHER_EVENT' }
+      // }
+      schemas: {
+        events: {
+          UPDATE_NAME: z.object({ value: z.string() }),
+          UPDATE_AGE: z.object({ value: z.number() }),
+          ANOTHER_EVENT: z.object({})
+        }
       }
     });
 
@@ -64,75 +76,77 @@ describe('EventFrom', () => {
     });
   });
 
-  it('should return events for an interpreter', () => {
+  it('should return events for an actor', () => {
     const machine = createMachine({
-      types: {
-        events: {} as
-          | { type: 'UPDATE_NAME'; value: string }
-          | { type: 'UPDATE_AGE'; value: number }
-          | { type: 'ANOTHER_EVENT' }
+      schemas: {
+        events: {
+          UPDATE_NAME: z.object({ value: z.string() }),
+          UPDATE_AGE: z.object({ value: z.number() }),
+          ANOTHER_EVENT: z.object({})
+        }
       }
     });
 
-    const service = createActor(machine);
+    const actor = createActor(machine);
 
-    type InterpreterEvent = EventFrom<typeof service>;
+    type ActorEvent = EventFrom<typeof actor>;
 
-    const acceptInterpreterEvent = (_event: InterpreterEvent) => {};
+    const acceptActorEvent = (_event: ActorEvent) => {};
 
-    acceptInterpreterEvent({ type: 'UPDATE_NAME', value: 'test' });
-    acceptInterpreterEvent({ type: 'UPDATE_AGE', value: 12 });
-    acceptInterpreterEvent({ type: 'ANOTHER_EVENT' });
-    acceptInterpreterEvent({
+    acceptActorEvent({ type: 'UPDATE_NAME', value: 'test' });
+    acceptActorEvent({ type: 'UPDATE_AGE', value: 12 });
+    acceptActorEvent({ type: 'ANOTHER_EVENT' });
+    acceptActorEvent({
       // @ts-expect-error
       type: 'UNKNOWN_EVENT'
     });
   });
 });
 
-describe('MachineImplementationsFrom', () => {
-  it('should return implementations for a machine', () => {
+describe('MachineSourcesFrom', () => {
+  it('should return sources for a machine', () => {
     const machine = createMachine({
       context: {
         count: 100
       },
-      types: {
-        events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
-      }
-    });
-
-    const acceptMachineImplementations = (
-      _options: MachineImplementationsFrom<typeof machine>
-    ) => {};
-
-    acceptMachineImplementations({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        }),
+        events: {
+          FOO: z.object({}),
+          BAR: z.object({ value: z.string() })
+        }
+      },
       actions: {
         foo: () => {}
       }
     });
-    acceptMachineImplementations({
+
+    const acceptMachineSources = (
+      _options: MachineSourcesFrom<typeof machine>
+    ) => {};
+
+    acceptMachineSources({
       actions: {
-        foo: assign(() => ({}))
-      }
+        foo: () => {}
+      },
+      actors: {},
+      guards: {},
+      delays: {}
     });
-    acceptMachineImplementations({
-      actions: {
-        foo: assign(({ context }) => {
-          ((_accept: number) => {})(context.count);
-          return {};
-        })
-      }
-    });
-    acceptMachineImplementations({
-      actions: {
-        foo: assign(({ event }) => {
-          ((_accept: 'FOO' | 'BAR') => {})(event.type);
-          return {};
-        })
-      }
-    });
+
     // @ts-expect-error
-    acceptMachineImplementations(100);
+    acceptMachineSources(100);
+  });
+
+  it('should reject an action that returns an arbitrary (non-void/assignment) value', () => {
+    createMachine({
+      actions: {
+        // @ts-expect-error an action must return void or { context?, children? }
+        foo: () => 'hello'
+      }
+    });
   });
 });
 
@@ -150,8 +164,13 @@ describe('SnapshotFrom', () => {
   it('should return state type from a service that has concrete event type', () => {
     const service = createActor(
       createMachine({
-        types: {
-          events: {} as { type: 'FOO' }
+        // types: {
+        //   events: {} as { type: 'FOO' }
+        // }
+        schemas: {
+          events: {
+            FOO: z.object({})
+          }
         }
       })
     );
@@ -175,6 +194,11 @@ describe('SnapshotFrom', () => {
 
   it('should return state from a machine with context', () => {
     const machine = createMachine({
+      schemas: {
+        context: z.object({
+          counter: z.number()
+        })
+      },
       context: {
         counter: 0
       }
@@ -191,12 +215,20 @@ describe('SnapshotFrom', () => {
 describe('ActorRefFrom', () => {
   it('should return `ActorRef` based on actor logic', () => {
     const logic: ActorLogic<Snapshot<undefined>, { type: 'TEST' }> = {
-      transition: (state) => state,
+      transition: (state) => [state, []],
       getInitialSnapshot: () => ({
         status: 'active',
         output: undefined,
         error: undefined
       }),
+      initialTransition: () => [
+        {
+          status: 'active',
+          output: undefined,
+          error: undefined
+        },
+        []
+      ],
       getPersistedSnapshot: (s) => s
     };
 

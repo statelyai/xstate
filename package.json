@@ -5,7 +5,8 @@
   "workspaces": {
     "packages": [
       "packages/*",
-      "scripts/*"
+      "scripts/*",
+      "examples/*"
     ]
   },
   "preconstruct": {
@@ -24,10 +25,16 @@
       "distInRoot": true
     }
   },
+  "manypkg": {
+    "ignoredRules": [
+      "EXTERNAL_MISMATCH"
+    ]
+  },
   "scripts": {
     "preinstall": "node ./scripts/ensure-pnpm.js",
     "postinstall": "manypkg check && preconstruct dev",
     "build": "preconstruct build",
+    "watch": "preconstruct watch",
     "update:examples": "pnpm update:examples:deps && pnpm update:examples:links",
     "update:examples:deps": "node ./scripts/update-example-deps.js",
     "update:examples:links": "node ./scripts/update-example-links.js",
@@ -41,8 +48,13 @@
     "test:watch": "vitest",
     "test:core": "vitest run --project xstate",
     "test:core:watch": "vitest --project xstate",
+    "test:core:coverage": "vitest run --project xstate --coverage --coverage.provider=istanbul --coverage.include=packages/core/src/**/*.ts --coverage.exclude=**/*.test.ts",
     "test:store": "vitest run --project @xstate/store*",
     "test:store:watch": "vitest --project @xstate/store*",
+    "bench:size": "node scripts/bundle-size.mjs",
+    "bench:size:update": "node scripts/bundle-size.mjs --update",
+    "bench:core-runtime": "node scripts/bench-core-runtime.mjs",
+    "bench:type-errors": "node scripts/type-error-quality.mjs",
     "changeset": "changeset",
     "release": "changeset publish",
     "version": "changeset version"
@@ -63,17 +75,17 @@
     "@babel/preset-env": "^7.29.7",
     "@babel/preset-react": "^7.29.7",
     "@babel/preset-typescript": "^7.29.7",
-    "@changesets/changelog-github": "^1.0.0",
     "@changesets/cli": "^3.0.0",
     "@manypkg/cli": "^0.21.4",
     "@preconstruct/cli": "^2.8.13",
     "@types/node": "25.2.1",
     "@typescript/native": "npm:typescript@^7.0.2",
+    "@vitest/coverage-istanbul": "3.2.7",
     "babel-preset-solid": "^1.9.12",
     "eslint-plugin-jsdoc": "^63.3.2",
     "happy-dom": "^17.6.3",
     "husky": "^3.1.0",
-    "knip": "^5.88.1",
+    "knip": "6.27.0",
     "lint-staged": "^16.4.0",
     "oxfmt": "^0.61.0",
     "oxlint": "^1.76.0",
@@ -90,15 +102,5 @@
   "lint-staged": {
     "!(CLAUDE).{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc,json5,md,mdx,css,scss,less,yml,yaml,html}": "oxfmt --write"
   },
-  "pnpm": {
-    "overrides": {
-      "@types/node": "25.2.1",
-      "stylus": "0.55.0",
-      "vite": "5.4.21"
-    },
-    "patchedDependencies": {
-      "@vue/test-utils@2.4.6": "patches/@vue__test-utils@2.4.6.patch"
-    }
-  },
-  "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531"
+  "packageManager": "pnpm@11.8.0+sha512.c1f5e7c4cb241c8f174b743851d82f42b802324afc8b0f116b96adb15aa06664948dde36960a3ba1079ba5b4b29dd0140135b94b5b5f5263592249d68e555f26"
 }

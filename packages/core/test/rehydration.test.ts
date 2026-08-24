@@ -2,12 +2,14 @@ import { BehaviorSubject } from 'rxjs';
 import {
   createMachine,
   createActor,
-  fromPromise,
-  fromObservable,
-  assign,
-  sendTo
+  createAsyncLogic,
+  createObservableLogic,
+  type AnyStateMachine,
+  type RestorablePersistedSnapshotFor,
+  type Snapshot
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { z } from 'zod';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -16,7 +18,7 @@ describe('rehydration', () => {
         initial: 'a',
         states: {
           a: {
-            tags: 'foo'
+            tags: ['foo']
           }
         }
       });
@@ -35,11 +37,13 @@ describe('rehydration', () => {
     it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
       const machine = createMachine({
-        exit: () => actual.push('root'),
+        // exit: () => actual.push('root'),
+        exit: (_, enq) => enq(() => actual.push('root')),
         initial: 'a',
         states: {
           a: {
-            exit: () => actual.push('a')
+            // exit: () => actual.push('a')
+            exit: (_, enq) => enq(() => actual.push('a'))
           }
         }
       });
@@ -58,9 +62,10 @@ describe('rehydration', () => {
     it('should get correct result back from `can` immediately', () => {
       const machine = createMachine({
         on: {
-          FOO: {
-            actions: () => {}
-          }
+          // FOO: {
+          //   actions: () => {}
+          // }
+          FOO: (_, enq) => enq(() => {})
         }
       });
 
@@ -82,10 +87,10 @@ describe('rehydration', () => {
         initial: 'inactive',
         states: {
           inactive: {
-            on: { NEXT: 'active' }
+            on: { NEXT: { target: 'active' } }
           },
           active: {
-            tags: 'foo'
+            tags: ['foo']
           }
         }
       });
@@ -103,14 +108,16 @@ describe('rehydration', () => {
     it('should not call exit actions when machine gets stopped immediately', () => {
       const actual: string[] = [];
       const machine = createMachine({
-        exit: () => actual.push('root'),
+        // exit: () => actual.push('root'),
+        exit: (_, enq) => enq(() => actual.push('root')),
         initial: 'inactive',
         states: {
           inactive: {
-            on: { NEXT: 'active' }
+            on: { NEXT: { target: 'active' } }
           },
           active: {
-            exit: () => actual.push('active')
+            // exit: () => actual.push('active')
+            exit: (_, enq) => enq(() => actual.push('active'))
           }
         }
       });
@@ -159,7 +166,7 @@ describe('rehydration', () => {
   it('should not replay actions when starting from a persisted state', () => {
     const entrySpy = vi.fn();
     const machine = createMachine({
-      entry: entrySpy
+      entry: () => entrySpy()
     });
 
     const actor = createActor(machine).start();
@@ -181,11 +188,11 @@ describe('rehydration', () => {
       states: {
         a: {
           invoke: {
-            src: fromPromise(() => Promise.resolve(11)),
-            onDone: 'b'
+            src: createAsyncLogic({ run: () => Promise.resolve(11) }),
+            onDone: { target: 'b' }
           },
           on: {
-            NEXT: 'c'
+            NEXT: { target: 'c' }
           }
         },
         b: {},
@@ -211,21 +218,17 @@ describe('rehydration', () => {
   });
 
   it('a rehydrated active child should be registered in the system', () => {
-    const machine = createMachine(
-      {
-        context: ({ spawn }) => {
-          spawn('foo', {
-            systemId: 'mySystemId'
-          });
-          return {};
-        }
+    const machine = createMachine({
+      actors: {
+        foo: createMachine({})
       },
-      {
-        actors: {
-          foo: createMachine({})
-        }
+      context: ({ spawn, actors }) => {
+        spawn(actors.foo, {
+          registryKey: 'mySystemId'
+        });
+        return {};
       }
-    );
+    });
 
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
@@ -239,21 +242,17 @@ describe('rehydration', () => {
   });
 
   it('a rehydrated done child should not be registered in the system', () => {
-    const machine = createMachine(
-      {
-        context: ({ spawn }) => {
-          spawn('foo', {
-            systemId: 'mySystemId'
-          });
-          return {};
-        }
+    const machine = createMachine({
+      actors: {
+        foo: createMachine({ type: 'final' })
       },
-      {
-        actors: {
-          foo: createMachine({ type: 'final' })
-        }
+      context: ({ spawn, actors }) => {
+        spawn(actors.foo, {
+          registryKey: 'mySystemId'
+        });
+        return {};
       }
-    );
+    });
 
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
@@ -269,26 +268,20 @@ describe('rehydration', () => {
   it('a rehydrated done child should not re-notify the parent about its completion', () => {
     const spy = vi.fn();
 
-    const machine = createMachine(
-      {
-        context: ({ spawn }) => {
-          spawn('foo', {
-            systemId: 'mySystemId'
-          });
-          return {};
-        },
-        on: {
-          '*': {
-            actions: spy
-          }
-        }
+    const machine = createMachine({
+      actors: {
+        foo: createMachine({ type: 'final' })
       },
-      {
-        actors: {
-          foo: createMachine({ type: 'final' })
-        }
+      context: ({ spawn, actors }) => {
+        spawn(actors.foo, {
+          registryKey: 'mySystemId'
+        });
+        return {};
+      },
+      on: {
+        '*': (_, enq) => enq(spy)
       }
-    );
+    });
 
     const actor = createActor(machine).start();
     const persistedState = actor.getPersistedSnapshot();
@@ -304,18 +297,14 @@ describe('rehydration', () => {
   });
 
   it('should be possible to persist a rehydrated actor that got its children rehydrated', () => {
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'foo'
-        }
+    const machine = createMachine({
+      actors: {
+        foo: createAsyncLogic({ run: () => Promise.resolve(42) })
       },
-      {
-        actors: {
-          foo: fromPromise(() => Promise.resolve(42))
-        }
+      invoke: {
+        src: 'foo'
       }
-    );
+    });
 
     const actor = createActor(machine).start();
 
@@ -334,7 +323,7 @@ describe('rehydration', () => {
       initial: 'foo',
       states: {
         foo: {
-          on: { NEXT: 'bar' }
+          on: { NEXT: { target: 'bar' } }
         },
         bar: {
           type: 'final'
@@ -357,18 +346,14 @@ describe('rehydration', () => {
   });
 
   it('should error on a rehydrated error state', async () => {
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'failure'
-        }
-      },
-      {
-        actors: {
-          failure: fromPromise(() => Promise.reject(new Error('failure')))
-        }
+    const failure = createAsyncLogic({
+      run: () => Promise.reject(new Error('failure'))
+    });
+    const machine = createMachine({
+      invoke: {
+        src: failure
       }
-    );
+    });
 
     const actorRef = createActor(machine);
     actorRef.subscribe({ error: function preventUnhandledErrorListener() {} });
@@ -391,22 +376,15 @@ describe('rehydration', () => {
 
   it(`shouldn't re-notify the parent about the error when rehydrating`, async () => {
     const spy = vi.fn();
-
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'failure',
-          onError: {
-            actions: spy
-          }
-        }
-      },
-      {
-        actors: {
-          failure: fromPromise(() => Promise.reject(new Error('failure')))
-        }
+    const failure = createAsyncLogic({
+      run: () => Promise.reject(new Error('failure'))
+    });
+    const machine = createMachine({
+      invoke: {
+        src: failure,
+        onError: (_, enq) => enq(spy)
       }
-    );
+    });
 
     const actorRef = createActor(machine);
     actorRef.start();
@@ -425,34 +403,23 @@ describe('rehydration', () => {
 
   it('should continue syncing snapshots', () => {
     const subject = new BehaviorSubject(0);
-    const subjectLogic = fromObservable(() => subject);
+    const subjectLogic = createObservableLogic(() => subject);
 
     const spy = vi.fn();
 
-    const machine = createMachine(
-      {
-        types: {} as {
-          actors: {
-            src: 'service';
-            logic: typeof subjectLogic;
-          };
-        },
-
-        invoke: [
-          {
-            src: 'service',
-            onSnapshot: {
-              actions: [({ event }) => spy(event.snapshot.context)]
-            }
-          }
-        ]
+    const machine = createMachine({
+      actors: {
+        service: subjectLogic
       },
-      {
-        actors: {
-          service: subjectLogic
+      invoke: [
+        {
+          src: 'service',
+          onSnapshot: ({ event }, enq) => {
+            enq(spy, event.snapshot.context);
+          }
         }
-      }
-    );
+      ]
+    });
 
     createActor(machine, {
       snapshot: createActor(machine).getPersistedSnapshot()
@@ -468,57 +435,54 @@ describe('rehydration', () => {
 
   it('should be able to rehydrate an actor deep in the tree', () => {
     const grandchild = createMachine({
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       context: {
         count: 0
       },
       on: {
-        INC: {
-          actions: assign({
-            count: ({ context }) => context.count + 1
-          })
+        INC: ({ context }) => ({
+          context: {
+            count: context.count + 1
+          }
+        })
+      }
+    });
+    const child = createMachine({
+      invoke: {
+        src: grandchild,
+        id: 'grandchild'
+      },
+      on: {
+        // INC: {
+        //   actions: sendTo('grandchild', {
+        //     type: 'INC'
+        //   })
+        // }
+        INC: ({ children }, enq) => {
+          enq.sendTo(children.grandchild, { type: 'INC' });
         }
       }
     });
-    const child = createMachine(
-      {
-        invoke: {
-          src: 'grandchild',
-          id: 'grandchild'
-        },
-        on: {
-          INC: {
-            actions: sendTo('grandchild', {
-              type: 'INC'
-            })
-          }
-        }
+    const machine = createMachine({
+      invoke: {
+        src: child,
+        id: 'child'
       },
-      {
-        actors: {
-          grandchild
+      on: {
+        // INC: {
+        //   actions: sendTo('child', {
+        //     type: 'INC'
+        //   })
+        // }
+        INC: ({ children }, enq) => {
+          enq.sendTo(children.child, { type: 'INC' });
         }
       }
-    );
-    const machine = createMachine(
-      {
-        invoke: {
-          src: 'child',
-          id: 'child'
-        },
-        on: {
-          INC: {
-            actions: sendTo('child', {
-              type: 'INC'
-            })
-          }
-        }
-      },
-      {
-        actors: {
-          child
-        }
-      }
-    );
+    });
 
     const actorRef = createActor(machine).start();
     actorRef.send({ type: 'INC' });
@@ -532,5 +496,168 @@ describe('rehydration', () => {
         .children.child.getSnapshot()
         .children.grandchild.getSnapshot().context.count
     ).toBe(1);
+  });
+
+  describe('persisted state value validation', () => {
+    function restoreOnto<TLogic extends AnyStateMachine>(
+      machine: TLogic,
+      snapshot: Snapshot<unknown> & RestorablePersistedSnapshotFor<TLogic>
+    ) {
+      const restored = createActor(machine, { snapshot, input: undefined });
+      restored.subscribe({ error: () => {} });
+      restored.start();
+      return restored.getSnapshot();
+    }
+
+    it('should error with a descriptive message when the persisted state value references a top-level state that no longer exists', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        initial: 'reviewing',
+        states: { reviewing: {}, approved: {} }
+      });
+      const actorRef = createActor(machine).start();
+      const snapshot = actorRef.getPersistedSnapshot();
+      actorRef.stop();
+
+      const renamedMachine = createMachine({
+        id: 'order-approval',
+        initial: 'awaitingApproval',
+        states: { awaitingApproval: {}, approved: {} }
+      });
+
+      expect(restoreOnto(renamedMachine, snapshot)).toMatchObject({
+        status: 'error',
+        error: expect.objectContaining({
+          message:
+            "Persisted snapshot references state 'reviewing' which does not exist on machine 'order-approval'."
+        })
+      });
+    });
+
+    it('should error with the full state path when a nested state no longer exists', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        initial: 'active',
+        states: {
+          active: {
+            initial: 'reviewing',
+            states: { reviewing: {}, done: {} }
+          }
+        }
+      });
+      const actorRef = createActor(machine).start();
+      const snapshot = actorRef.getPersistedSnapshot();
+      actorRef.stop();
+
+      const renamedMachine = createMachine({
+        id: 'order-approval',
+        initial: 'active',
+        states: {
+          active: {
+            initial: 'awaitingApproval',
+            states: { awaitingApproval: {}, done: {} }
+          }
+        }
+      });
+
+      expect(restoreOnto(renamedMachine, snapshot)).toMatchObject({
+        status: 'error',
+        error: expect.objectContaining({
+          message:
+            "Persisted snapshot references state 'active.reviewing' which does not exist on machine 'order-approval'."
+        })
+      });
+    });
+
+    it('should error when a parent of a nested state value no longer exists', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        initial: 'active',
+        states: {
+          active: {
+            initial: 'reviewing',
+            states: { reviewing: {} }
+          }
+        }
+      });
+      const actorRef = createActor(machine).start();
+      const snapshot = actorRef.getPersistedSnapshot();
+      actorRef.stop();
+
+      const renamedMachine = createMachine({
+        id: 'order-approval',
+        initial: 'running',
+        states: {
+          running: {
+            initial: 'reviewing',
+            states: { reviewing: {} }
+          }
+        }
+      });
+
+      expect(restoreOnto(renamedMachine, snapshot)).toMatchObject({
+        status: 'error',
+        error: expect.objectContaining({
+          message:
+            "Persisted snapshot references state 'active' which does not exist on machine 'order-approval'."
+        })
+      });
+    });
+
+    it('should error when a region of a parallel state value no longer exists', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        type: 'parallel',
+        states: {
+          review: { initial: 'reviewing', states: { reviewing: {} } },
+          payment: { initial: 'pending', states: { pending: {} } }
+        }
+      });
+      const actorRef = createActor(machine).start();
+      const snapshot = actorRef.getPersistedSnapshot();
+      actorRef.stop();
+
+      const renamedMachine = createMachine({
+        id: 'order-approval',
+        type: 'parallel',
+        states: {
+          review: {
+            initial: 'awaitingApproval',
+            states: { awaitingApproval: {} }
+          },
+          payment: { initial: 'pending', states: { pending: {} } }
+        }
+      });
+
+      expect(restoreOnto(renamedMachine, snapshot)).toMatchObject({
+        status: 'error',
+        error: expect.objectContaining({
+          message:
+            "Persisted snapshot references state 'review.reviewing' which does not exist on machine 'order-approval'."
+        })
+      });
+    });
+
+    it('should restore successfully when the persisted state value is valid', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        type: 'parallel',
+        states: {
+          review: { initial: 'reviewing', states: { reviewing: {} } },
+          payment: { initial: 'pending', states: { pending: {} } }
+        }
+      });
+      const actorRef = createActor(machine).start();
+      const snapshot = actorRef.getPersistedSnapshot();
+      actorRef.stop();
+
+      const restored = createActor(machine, { snapshot }).start();
+
+      expect(restored.getSnapshot().status).toBe('active');
+      expect(restored.getSnapshot().value).toEqual({
+        review: 'reviewing',
+        payment: 'pending'
+      });
+    });
   });
 });

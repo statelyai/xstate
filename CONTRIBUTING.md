@@ -14,22 +14,18 @@ Please read [our code of conduct](https://github.com/statelyai/xstate/blob/main/
 
 ## Environment
 
-<!-- runtime and package manager versions matching .node-version and package.json#packageManager -->
-
-- Use Node 24.16.0.
-- Enable Corepack and run `pnpm install`. The repository pins pnpm 9.15.9.
+- Ensure you have a recent version of Node.
+- Run `corepack enable` once so the pnpm version pinned in `packageManager` is used automatically.
+- Run `pnpm i` to install all needed dev dependencies.
 
 ## Making changes
 
 Pull requests are encouraged. If you want to add a feature or fix a bug:
 
-<!-- contributor verification commands matching package.json#scripts -->
-
 1. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and [clone](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) the [repository](https://github.com/statelyai/xstate).
 1. [Create a separate branch](https://docs.github.com/en/desktop/contributing-and-collaborating-using-github-desktop/managing-branches) for your changes.
 1. Make your changes, and write tests that validate your change and/or fix.
 1. Run `pnpm test` (for all packages) or `pnpm test:core` (for only changes to core XState).
-1. Run `pnpm lint` and `pnpm format:check`.
 1. Run `pnpm typecheck` to make sure that there are no type errors.
 1. Create a changeset by running `pnpm changeset`. [More about changesets](https://github.com/atlassian/changesets).
 1. Push your branch and open a PR 🚀

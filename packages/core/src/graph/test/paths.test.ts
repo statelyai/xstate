@@ -1,5 +1,4 @@
 import {
-  assign,
   createMachine,
   getInitialSnapshot,
   getNextSnapshot
@@ -12,18 +11,18 @@ const multiPathMachine = createMachine({
   states: {
     a: {
       on: {
-        EVENT: 'b'
+        EVENT: { target: 'b' }
       }
     },
     b: {
       on: {
-        EVENT: 'c'
+        EVENT: { target: 'c' }
       }
     },
     c: {
       on: {
-        EVENT: 'd',
-        EVENT_2: 'e'
+        EVENT: { target: 'd' },
+        EVENT_2: { target: 'e' }
       }
     },
     d: {},
@@ -39,7 +38,7 @@ describe('testModel.testPaths(...)', () => {
         states: {
           a: {
             on: {
-              EVENT: 'b'
+              EVENT: { target: 'b' }
             }
           },
           b: {}
@@ -79,12 +78,12 @@ describe('testModel.testPaths(...)', () => {
         states: {
           a: {
             on: {
-              EVENT: 'b'
+              EVENT: { target: 'b' }
             }
           },
           b: {
             on: {
-              EVENT: 'c'
+              EVENT: { target: 'c' }
             }
           },
           c: {}
@@ -122,22 +121,23 @@ describe('testModel.testPaths(...)', () => {
       const machine = createMachine({
         id: 'guarded-test-model',
         initial: 'start',
-        context: { allowed: false },
+        context: { allowed: false as boolean },
         states: {
           start: {
-            on: { NEXT: 'idle' }
+            on: { NEXT: { target: 'idle' } }
           },
           idle: {
             on: {
-              PROCEED: {
-                target: 'done',
-                guard: ({ context }) => context.allowed
+              PROCEED: ({ context }) => {
+                if (context.allowed) {
+                  return { target: 'done' };
+                }
               },
-              ALLOW: {
-                actions: assign({
+              ALLOW: () => ({
+                context: {
                   allowed: true
-                })
-              }
+                }
+              })
             }
           },
           done: {
@@ -154,7 +154,7 @@ describe('testModel.testPaths(...)', () => {
       });
 
       expect(paths.map((path) => path.description)).toEqual([
-        'Reaches state "done"({"allowed":true}): xstate.init → NEXT → ALLOW → PROCEED'
+        'Reaches state "done"({"allowed":true}): @xstate.init → NEXT → ALLOW → PROCEED'
       ]);
     });
   });
@@ -167,8 +167,8 @@ describe('path.description', () => {
     const paths = model.getShortestPaths();
 
     expect(paths.map((path) => path.description)).toEqual([
-      'Reaches state "d": xstate.init → EVENT → EVENT → EVENT',
-      'Reaches state "e": xstate.init → EVENT → EVENT → EVENT_2'
+      'Reaches state "d": @xstate.init → EVENT → EVENT → EVENT',
+      'Reaches state "e": @xstate.init → EVENT → EVENT → EVENT_2'
     ]);
   });
 });
@@ -180,14 +180,14 @@ describe('transition coverage', () => {
       states: {
         a: {
           on: {
-            NEXT: 'b',
-            END: 'b'
+            NEXT: { target: 'b' },
+            END: { target: 'b' }
           }
         },
         b: {
           on: {
-            PREV: 'a',
-            RESTART: 'a'
+            PREV: { target: 'a' },
+            RESTART: { target: 'a' }
           }
         }
       }
@@ -199,51 +199,52 @@ describe('transition coverage', () => {
 
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       [
-        "Reaches state "a": xstate.init → NEXT → PREV",
-        "Reaches state "a": xstate.init → NEXT → RESTART",
-        "Reaches state "b": xstate.init → END",
+        "Reaches state "a": @xstate.init → NEXT → PREV",
+        "Reaches state "a": @xstate.init → NEXT → RESTART",
+        "Reaches state "b": @xstate.init → END",
       ]
     `);
   });
 
   it('transition coverage should consider guarded transitions', () => {
-    const machine = createMachine(
-      {
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              NEXT: [{ guard: 'valid', target: 'b' }, { target: 'b' }]
+    function valid(value: number): boolean {
+      return value > 10;
+    }
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            // NEXT: [{ guard: 'valid', target: 'b' }, { target: 'b' }]
+            NEXT: ({ event }) => {
+              if (valid((event as any).value)) {
+                return { target: 'b' };
+              }
+              return { target: 'b' };
             }
-          },
-          b: {}
-        }
-      },
-      {
-        guards: {
-          valid: ({ event }) => {
-            return event.value > 10;
           }
-        }
+        },
+        b: {}
       }
-    );
+    });
 
     const model = createTestModel(machine);
 
     const paths = model.getShortestPaths({
       events: [
-        { type: 'NEXT', value: 0 },
-        { type: 'NEXT', value: 100 },
-        { type: 'NEXT', value: 1000 }
+        { type: 'NEXT', value: 0 } as any,
+        { type: 'NEXT', value: 100 } as any,
+        { type: 'NEXT', value: 1000 } as any
       ]
     });
 
     // { value: 1000 } already covered by first guarded transition
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       [
-        "Reaches state "b": xstate.init → NEXT ({"value":0}) → NEXT ({"value":0})",
-        "Reaches state "b": xstate.init → NEXT ({"value":100})",
-        "Reaches state "b": xstate.init → NEXT ({"value":1000})",
+        "Reaches state "b": @xstate.init → NEXT ({"value":0}) → NEXT ({"value":0})",
+        "Reaches state "b": @xstate.init → NEXT ({"value":100})",
+        "Reaches state "b": @xstate.init → NEXT ({"value":1000})",
       ]
     `);
   });
@@ -254,18 +255,18 @@ describe('transition coverage', () => {
       states: {
         a: {
           on: {
-            GO_TO_B: 'b',
-            GO_TO_C: 'c'
+            GO_TO_B: { target: 'b' },
+            GO_TO_C: { target: 'c' }
           }
         },
         b: {
           on: {
-            GO_TO_A: 'a'
+            GO_TO_A: { target: 'a' }
           }
         },
         c: {
           on: {
-            GO_TO_A: 'a'
+            GO_TO_A: { target: 'a' }
           }
         }
       }
@@ -276,8 +277,8 @@ describe('transition coverage', () => {
     const paths = model.getShortestPaths();
 
     expect(paths.map((p) => p.description)).toEqual([
-      `Reaches state "a": xstate.init → GO_TO_B → GO_TO_A`,
-      `Reaches state "a": xstate.init → GO_TO_C → GO_TO_A`
+      `Reaches state "a": @xstate.init → GO_TO_B → GO_TO_A`,
+      `Reaches state "a": @xstate.init → GO_TO_C → GO_TO_A`
     ]);
   });
 });
@@ -288,12 +289,12 @@ describe('getShortestPathsTo', () => {
     states: {
       open: {
         on: {
-          CLOSE: 'closed'
+          CLOSE: { target: 'closed' }
         }
       },
       closed: {
         on: {
-          OPEN: 'open'
+          OPEN: { target: 'open' }
         }
       }
     }
@@ -321,12 +322,18 @@ describe('getShortestPathsFrom', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b', OTHER: 'b', TO_C: 'c', TO_D: 'd', TO_E: 'e' }
+          on: {
+            NEXT: { target: 'b' },
+            OTHER: { target: 'b' },
+            TO_C: { target: 'c' },
+            TO_D: { target: 'd' },
+            TO_E: { target: 'e' }
+          }
         },
         b: {
           on: {
-            TO_C: 'c',
-            TO_D: 'd'
+            TO_C: { target: 'c' },
+            TO_D: { target: 'd' }
           }
         },
         c: {},
@@ -360,12 +367,18 @@ describe('getShortestPathsFrom', () => {
         initial: 'a',
         states: {
           a: {
-            on: { NEXT: 'b', OTHER: 'b', TO_C: 'c', TO_D: 'd', TO_E: 'e' }
+            on: {
+              NEXT: { target: 'b' },
+              OTHER: { target: 'b' },
+              TO_C: { target: 'c' },
+              TO_D: { target: 'd' },
+              TO_E: { target: 'e' }
+            }
           },
           b: {
             on: {
-              TO_C: 'c',
-              TO_D: 'd'
+              TO_C: { target: 'c' },
+              TO_D: { target: 'd' }
             }
           },
           c: {},

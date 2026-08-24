@@ -14,6 +14,6 @@
     "vite-node": "^0.31.4"
   },
   "dependencies": {
-    "xstate": "^5.28.0"
+    "xstate": "workspace:*"
   }
 }

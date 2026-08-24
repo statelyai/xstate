@@ -1,6 +1,47 @@
+import { vi } from 'vitest';
 import { createActor, createMachine, SimulatedClock } from '../src';
 
 describe('clock', () => {
+  it('uses the injected clock time for scheduled timer metadata', () => {
+    const clock = new SimulatedClock();
+    clock.set(1_000);
+    const actor = createActor(
+      createMachine({
+        initial: 'waiting',
+        states: {
+          waiting: { after: { 100: { target: 'done' } } },
+          done: {}
+        }
+      }),
+      { clock }
+    ).start();
+
+    expect(
+      Object.values(actor.system.getSnapshot()._scheduledTimers)[0]
+    ).toMatchObject({ scheduledAt: 1_000, dueAt: 1_100 });
+  });
+
+  it('uses the injected clock time when restoring scheduled timers', () => {
+    const clock = new SimulatedClock();
+    clock.set(1_000);
+    const setTimeoutSpy = vi.spyOn(clock, 'setTimeout');
+    const actor = createActor(createMachine({}), { clock });
+
+    actor.system._snapshot._scheduledTimers = {
+      restored: {
+        source: actor,
+        id: 'restored',
+        delay: 100,
+        scheduledAt: 950,
+        dueAt: 1_050
+      }
+    } as any;
+
+    actor.start();
+
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 50);
+  });
+
   it('system clock should be default clock for actors (invoked from machine)', () => {
     const clock = new SimulatedClock();
 
@@ -12,7 +53,7 @@ describe('clock', () => {
           states: {
             a: {
               after: {
-                10_000: 'b'
+                10_000: { target: 'b' }
               }
             },
             b: {}

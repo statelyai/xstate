@@ -3,7 +3,6 @@ import {
   Actor,
   ActorOptions,
   AnyStateMachine,
-  EventFromLogic,
   SnapshotFrom,
   type ConditionalRequired,
   type IsNotNever,
@@ -24,7 +23,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   >
 ): {
   snapshot: Ref<SnapshotFrom<TMachine>>;
-  send: (event: EventFromLogic<TMachine>) => void;
+  send: Actor<TMachine>['send'];
   actorRef: Actor<TMachine>;
 } {
   return useActor(machine, options);

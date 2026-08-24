@@ -1,82 +1,84 @@
 import { createMachine, createActor } from 'xstate';
 
 // https://github.com/serverlessworkflow/specification/tree/main/examples#monitor-patient-vital-signs-example
-export const workflow = createMachine(
-  {
-    id: 'patientVitalsWorkflow',
-    types: {
-      input: {} as {
-        patientId: string;
-      },
-      context: {} as {
-        patientId: string;
-      },
-      events: {} as
-        | {
-            type: 'org.monitor.highBodyTemp';
-            source: 'monitoringSource';
-            id: string;
-            time: string;
-            patientId: string;
-            data: { value: string };
-          }
-        | {
-            type: 'org.monitor.highBloodPressure';
-            source: 'monitoringSource';
-            id: string;
-            time: string;
-            patientId: string;
-            data: { value: string };
-          }
-        | {
-            type: 'org.monitor.highRespirationRate';
-            source: 'monitoringSource';
-            id: string;
-            time: string;
-            patientId: string;
-            data: { value: string };
-          }
+export const workflow = createMachine({
+  id: 'patientVitalsWorkflow',
+  types: {
+    input: {} as {
+      patientId: string;
     },
-    context: ({ input }) => ({
-      patientId: input.patientId
-    }),
-    initial: 'MonitorVitals',
-    states: {
-      MonitorVitals: {
-        on: {
-          'org.monitor.highBodyTemp': {
-            actions: 'sendTylenolOrder'
-          },
-          'org.monitor.highBloodPressure': {
-            actions: 'callNurse'
-          },
-          'org.monitor.highRespirationRate': {
-            actions: 'callPulmonologist'
-          }
+    context: {} as {
+      patientId: string;
+    },
+    events: {} as
+      | {
+          type: 'org.monitor.highBodyTemp';
+          source: 'monitoringSource';
+          id: string;
+          time: string;
+          patientId: string;
+          data: { value: string };
+        }
+      | {
+          type: 'org.monitor.highBloodPressure';
+          source: 'monitoringSource';
+          id: string;
+          time: string;
+          patientId: string;
+          data: { value: string };
+        }
+      | {
+          type: 'org.monitor.highRespirationRate';
+          source: 'monitoringSource';
+          id: string;
+          time: string;
+          patientId: string;
+          data: { value: string };
+        }
+  },
+  context: ({ input }) => ({
+    patientId: input.patientId
+  }),
+  initial: 'MonitorVitals',
+  states: {
+    MonitorVitals: {
+      on: {
+        'org.monitor.highBodyTemp': (
+          { context, event, guards, actions },
+          enq
+        ) => {
+          enq((actionArgs) => actions['sendTylenolOrder'](actionArgs as any));
+        },
+        'org.monitor.highBloodPressure': (
+          { context, event, guards, actions },
+          enq
+        ) => {
+          enq((actionArgs) => actions['callNurse'](actionArgs as any));
+        },
+        'org.monitor.highRespirationRate': (
+          { context, event, guards, actions },
+          enq
+        ) => {
+          enq((actionArgs) => actions['callPulmonologist'](actionArgs as any));
         }
       }
     }
   },
-  {
-    actions: {
-      sendTylenolOrder: ({ context }) => {
-        console.log(
-          'Executing sendTylenolOrder for patient:',
-          context.patientId
-        );
-      },
-      callNurse: ({ context }) => {
-        console.log('Executing callNurse for patient:', context.patientId);
-      },
-      callPulmonologist: ({ context }) => {
-        console.log(
-          'Executing callPulmonologist for patient:',
-          context.patientId
-        );
-      }
+  actions: {
+    sendTylenolOrder: ({ context }) => {
+      console.log('Executing sendTylenolOrder for patient:', context.patientId);
+    },
+    callNurse: ({ context }) => {
+      console.log('Executing callNurse for patient:', context.patientId);
+    },
+    callPulmonologist: ({ context }) => {
+      console.log(
+        'Executing callPulmonologist for patient:',
+        context.patientId
+      );
     }
   }
-);
+});
 
 const actor = createActor(workflow, {
   input: {

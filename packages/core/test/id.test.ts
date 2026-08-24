@@ -2,8 +2,9 @@ import { testAll } from './utils';
 import {
   createMachine,
   createActor,
-  getNextSnapshot,
-  getInitialSnapshot
+  transition,
+  initialTransition,
+  getNextSnapshot
 } from '../src/index.ts';
 
 const idMachine = createMachine({
@@ -16,18 +17,18 @@ const idMachine = createMachine({
         foo: {
           id: 'A_foo',
           on: {
-            NEXT: '#A_bar'
+            NEXT: { target: '#A_bar' }
           }
         },
         bar: {
           id: 'A_bar',
           on: {
-            NEXT: '#B_foo'
+            NEXT: { target: '#B_foo' }
           }
         }
       },
       on: {
-        NEXT_DOT_RESOLVE: '#B.bar'
+        NEXT_DOT_RESOLVE: { target: '#B.bar' }
       }
     },
     B: {
@@ -37,14 +38,14 @@ const idMachine = createMachine({
         foo: {
           id: 'B_foo',
           on: {
-            NEXT: '#B_bar',
-            NEXT_DOT: '#B.dot'
+            NEXT: { target: '#B_bar' },
+            NEXT_DOT: { target: '#B.dot' }
           }
         },
         bar: {
           id: 'B_bar',
           on: {
-            NEXT: '#A_foo'
+            NEXT: { target: '#A_foo' }
           }
         },
         dot: {}
@@ -77,7 +78,7 @@ describe('State node IDs', () => {
     const machine = createMachine({
       initial: 'foo',
       on: {
-        ACTION: '#bar.qux.quux'
+        ACTION: { target: '#bar.qux.quux' }
       },
       states: {
         foo: {
@@ -120,8 +121,8 @@ describe('State node IDs', () => {
       states: {
         start: {
           on: {
-            escaped: 'foo\\.bar',
-            unescaped: 'foo.bar'
+            escaped: { target: 'foo\\.bar' },
+            unescaped: { target: 'foo.bar' }
           }
         },
         'foo.bar': {},
@@ -134,14 +135,14 @@ describe('State node IDs', () => {
       }
     });
 
-    const initialState = getInitialSnapshot(machine);
-    const escapedState = getNextSnapshot(machine, initialState, {
+    const [initialState] = initialTransition(machine);
+    const [escapedState] = transition(machine, initialState, {
       type: 'escaped'
     });
 
     expect(escapedState.value).toEqual('foo.bar');
 
-    const unescapedState = getNextSnapshot(machine, initialState, {
+    const [unescapedState] = transition(machine, initialState, {
       type: 'unescaped'
     });
     expect(unescapedState.value).toEqual({ foo: 'bar' });
@@ -153,8 +154,8 @@ describe('State node IDs', () => {
       states: {
         start: {
           on: {
-            escaped: '#foo\\.bar',
-            unescaped: '#foo.bar'
+            escaped: { target: '#foo\\.bar' },
+            unescaped: { target: '#foo.bar' }
           }
         },
         stateWithDot: {
@@ -170,14 +171,14 @@ describe('State node IDs', () => {
       }
     });
 
-    const initialState = getInitialSnapshot(machine);
-    const escapedState = getNextSnapshot(machine, initialState, {
+    const [initialState] = initialTransition(machine);
+    const [escapedState] = transition(machine, initialState, {
       type: 'escaped'
     });
 
     expect(escapedState.value).toEqual('stateWithDot');
 
-    const unescapedState = getNextSnapshot(machine, initialState, {
+    const [unescapedState] = transition(machine, initialState, {
       type: 'unescaped'
     });
     expect(unescapedState.value).toEqual({ foo: 'bar' });
@@ -189,7 +190,7 @@ describe('State node IDs', () => {
       states: {
         start: {
           on: {
-            EV: '#some\\\\.thing'
+            EV: { target: '#some\\\\.thing' }
           }
         },
         foo: {
@@ -206,8 +207,8 @@ describe('State node IDs', () => {
       }
     });
 
-    const initialState = getInitialSnapshot(machine);
-    const escapedState = getNextSnapshot(machine, initialState, {
+    const [initialState] = initialTransition(machine);
+    const [escapedState] = transition(machine, initialState, {
       type: 'EV'
     });
 

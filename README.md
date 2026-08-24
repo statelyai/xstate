@@ -11,7 +11,9 @@
   <br />
 </p>
 
-XState is a state management and orchestration solution for JavaScript and TypeScript apps. It has _zero_ dependencies, and is useful for frontend and backend application logic.
+<!-- runtime dependencies and public entry points from packages/core/package.json -->
+
+XState is a state management and orchestration solution for JavaScript and TypeScript apps. The main `xstate` entry point has _zero_ runtime dependencies; the optional `xstate/scxml` entry point uses an XML parser. XState is useful for frontend and backend application logic.
 
 It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
 
@@ -20,6 +22,10 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 ---
 
 📖 [Read the documentation](https://stately.ai/docs)
+
+<!-- documentation sections from docs/meta.json -->
+
+[Start](docs/quick-start.md) · [Learn](docs/why-state-machines.md) · [Build](docs/async-requests.md) · [Reference](docs/configuration.md) · [Migrate](docs/xstate-v5-to-v6.md)
 
 ➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
 
@@ -129,46 +135,43 @@ Get started by forking one of these templates on CodeSandbox:
 
 ## Super quick start
 
+<!-- install command matching packages/core/package.json#version and example matching the XState v6 API -->
+
 ```bash
-npm install xstate
+npm install xstate@alpha
 ```
 
 ```ts
-import { createMachine, createActor, assign } from 'xstate';
+import { createActor, createMachine } from 'xstate';
 
-// State machine
-const toggleMachine = createMachine({
-  id: 'toggle',
-  initial: 'inactive',
-  context: {
-    count: 0
-  },
+const playerMachine = createMachine({
+  initial: 'stopped',
   states: {
-    inactive: {
+    stopped: {
+      on: { play: { target: 'playing' } }
+    },
+    playing: {
       on: {
-        TOGGLE: { target: 'active' }
+        pause: { target: 'paused' },
+        stop: { target: 'stopped' }
       }
     },
-    active: {
-      entry: assign({ count: ({ context }) => context.count + 1 }),
+    paused: {
       on: {
-        TOGGLE: { target: 'inactive' }
+        play: { target: 'playing' },
+        stop: { target: 'stopped' }
       }
     }
   }
 });
 
-// Actor (instance of the machine logic, like a store)
-const toggleActor = createActor(toggleMachine);
-toggleActor.subscribe((state) => console.log(state.value, state.context));
-toggleActor.start();
-// => logs 'inactive', { count: 0 }
+const player = createActor(playerMachine).start();
 
-toggleActor.send({ type: 'TOGGLE' });
-// => logs 'active', { count: 1 }
+player.send({ type: 'pause' });
+console.log(player.getSnapshot().value); // 'stopped'
 
-toggleActor.send({ type: 'TOGGLE' });
-// => logs 'inactive', { count: 1 }
+player.send({ type: 'play' });
+console.log(player.getSnapshot().value); // 'playing'
 ```
 
 ---

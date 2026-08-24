@@ -4,6 +4,7 @@ export * from '@xstate/store';
 import { createEffect, createSignal, onCleanup, type Accessor } from 'solid-js';
 import {
   createStore,
+  isAtom,
   type AnyAtom,
   type AnyAtomConfig,
   type AtomConfig,
@@ -18,7 +19,7 @@ import {
   type ValueFromAtomConfig
 } from '@xstate/store';
 
-function defaultCompare<T>(a: T | undefined, b: T) {
+function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
 
@@ -61,18 +62,9 @@ type AtomConfigInput<TInput> = undefined extends TInput
   ? [input?: TInput]
   : [input: TInput];
 
-function isAtom(value: unknown): value is AnyAtom {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as any).get === 'function' &&
-    typeof (value as any).subscribe === 'function'
-  );
-}
-
 function useSelectorWithCompare<TSnapshot, T>(
   selector: (snapshot: TSnapshot) => T,
-  compare: (a: T | undefined, b: T) => boolean
+  compare: (a: T, b: T) => boolean
 ): (snapshot: TSnapshot) => T {
   let previous: T | undefined;
 
@@ -120,7 +112,7 @@ function useSelectorWithCompare<TSnapshot, T>(
 export function useSelector<TSnapshot, T>(
   store: Readable<TSnapshot>,
   selector: (snapshot: TSnapshot) => T,
-  compare: (a: T | undefined, b: T) => boolean = defaultCompare
+  compare: (a: T, b: T) => boolean = defaultCompare
 ): () => T {
   const selectorWithCompare = useSelectorWithCompare(selector, compare);
   const [selectedValue, setSelectedValue] = createSignal(

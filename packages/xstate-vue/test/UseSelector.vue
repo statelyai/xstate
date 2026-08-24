@@ -10,7 +10,7 @@
 
 <script lang="ts">
 import { defineComponent, onRenderTracked } from 'vue';
-import { assign, createMachine } from 'xstate';
+import { createMachine } from 'xstate';
 import { useActorRef, useSelector } from '../src/index.ts';
 
 const machine = createMachine({
@@ -23,12 +23,12 @@ const machine = createMachine({
     active: {}
   },
   on: {
-    OTHER: {
-      actions: assign({ other: ({ context }) => context.other + 1 })
-    },
-    INCREMENT: {
-      actions: assign({ count: ({ context }) => context.count + 1 })
-    }
+    OTHER: ({ context }) => ({
+      context: { other: context.other + 1 }
+    }),
+    INCREMENT: ({ context }) => ({
+      context: { count: context.count + 1 }
+    })
   }
 });
 

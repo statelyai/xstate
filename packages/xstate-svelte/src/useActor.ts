@@ -3,7 +3,6 @@ import {
   Actor,
   ActorOptions,
   AnyActorLogic,
-  EventFromLogic,
   SnapshotFrom,
   type ConditionalRequired,
   type IsNotNever,
@@ -23,7 +22,7 @@ export function useActor<TLogic extends AnyActorLogic>(
   >
 ): {
   snapshot: Readable<SnapshotFrom<TLogic>>;
-  send: (event: EventFromLogic<TLogic>) => void;
+  send: Actor<TLogic>['send'];
   actorRef: Actor<TLogic>;
 } {
   const actorRef = useActorRef(logic, options);

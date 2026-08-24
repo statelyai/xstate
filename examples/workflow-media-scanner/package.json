@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@xstate/example-workflow-media-scanner",
   "version": "1.0.0",
   "main": "index.js",
@@ -14,6 +15,7 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "winston": "^3.19.0",
-    "xstate": "^5.28.0"
+    "xstate": "workspace:*",
+    "zod": "^3.25.76"
   }
 }

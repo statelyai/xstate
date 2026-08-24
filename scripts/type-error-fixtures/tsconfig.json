@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "module": "esnext",
+    "target": "es2020",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noErrorTruncation": false,
+    "paths": {
+      "xstate": ["../../packages/core/src/index.ts"],
+      "zod": ["../../packages/core/node_modules/zod/index.d.ts"]
+    }
+  },
+  "include": ["./*.ts", "../../packages/core/src/**/*"]
+}

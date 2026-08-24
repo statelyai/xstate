@@ -1,43 +1,53 @@
-import { assign, createMachine, setup } from '../../index.ts';
+import z from 'zod';
+import { createMachine } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {
-    type Events =
-      | { type: 'CLICK_BAD' }
-      | { type: 'CLICK_GOOD' }
-      | { type: 'CLOSE' }
-      | { type: 'ESC' }
-      | { type: 'SUBMIT'; value: string };
     const feedbackMachine = createMachine({
       id: 'feedback',
-      types: {
-        events: {} as Events
+      // types: {
+      //   events: {} as Events
+      // },
+      schemas: {
+        events: {
+          CLICK_BAD: z.object({}),
+          CLICK_GOOD: z.object({}),
+          SUBMIT: z.object({ value: z.string() }),
+          CLOSE: z.object({}),
+          ESC: z.object({})
+        }
       },
       initial: 'question',
       states: {
         question: {
           on: {
-            CLICK_GOOD: 'thanks',
-            CLICK_BAD: 'form',
-            CLOSE: 'closed',
-            ESC: 'closed'
+            CLICK_GOOD: { target: 'thanks' },
+            CLICK_BAD: { target: 'form' },
+            CLOSE: { target: 'closed' },
+            ESC: { target: 'closed' }
           }
         },
         form: {
           on: {
-            SUBMIT: [
-              {
-                target: 'thanks',
-                guard: ({ event }) => !!event.value.length
-              },
-              {
-                target: '.invalid'
+            // SUBMIT: [
+            //   {
+            //     target: 'thanks',
+            //     guard: ({ event }) => !!event.value.length
+            //   },
+            //   {
+            //     target: '.invalid'
+            //   }
+            // ],
+            SUBMIT: ({ event }) => {
+              if (event.value.length > 0) {
+                return { target: 'thanks' };
               }
-            ],
-            CLOSE: 'closed',
-            ESC: 'closed'
+              return { target: '.invalid' };
+            },
+            CLOSE: { target: 'closed' },
+            ESC: { target: 'closed' }
           },
           initial: 'valid',
           states: {
@@ -47,8 +57,8 @@ describe('events', () => {
         },
         thanks: {
           on: {
-            CLOSE: 'closed',
-            ESC: 'closed'
+            CLOSE: { target: 'closed' },
+            ESC: { target: 'closed' }
           }
         },
         closed: {
@@ -72,7 +82,7 @@ describe('events', () => {
       initial: 'idle',
       states: {
         idle: {
-          on: { ACTIVATE: 'active' }
+          on: { ACTIVATE: { target: 'active' } }
         },
         active: {}
       }
@@ -88,9 +98,17 @@ describe('events', () => {
   it('should allow for dynamic generation of cases based on state', async () => {
     const values = [1, 2, 3];
     const testMachine = createMachine({
-      types: {} as {
-        context: { values: number[] };
-        events: { type: 'EVENT'; value: number };
+      // types: {} as {
+      //   context: { values: number[] };
+      //   events: { type: 'EVENT'; value: number };
+      // },
+      schemas: {
+        context: z.object({
+          values: z.array(z.number())
+        }),
+        events: {
+          EVENT: z.object({ value: z.number() })
+        }
       },
       initial: 'a',
       context: {
@@ -99,11 +117,20 @@ describe('events', () => {
       states: {
         a: {
           on: {
-            EVENT: [
-              { guard: ({ event }) => event.value === 1, target: 'b' },
-              { guard: ({ event }) => event.value === 2, target: 'c' },
-              { guard: ({ event }) => event.value === 3, target: 'd' }
-            ]
+            // EVENT: [
+            //   { guard: ({ event }) => event.value === 1, target: 'b' },
+            //   { guard: ({ event }) => event.value === 2, target: 'c' },
+            //   { guard: ({ event }) => event.value === 3, target: 'd' }
+            // ]
+            EVENT: ({ event }) => {
+              if (event.value === 1) {
+                return { target: 'b' };
+              }
+              if (event.value === 2) {
+                return { target: 'c' };
+              }
+              return { target: 'd' };
+            }
           }
         },
         b: {},
@@ -153,16 +180,23 @@ describe('events', () => {
 describe('state limiting', () => {
   it('should limit states with filter option', () => {
     const machine = createMachine({
-      types: {} as { context: { count: number } },
+      // types: {} as { context: { count: number } },
+      schemas: {
+        context: z.object({
+          count: z.number()
+        })
+      },
       initial: 'counting',
       context: { count: 0 },
       states: {
         counting: {
           on: {
-            INC: {
-              actions: assign({
-                count: ({ context }) => context.count + 1
-              })
+            INC: ({ context }) => {
+              return {
+                context: {
+                  count: context.count + 1
+                }
+              };
             }
           }
         }
@@ -184,15 +218,22 @@ describe('state limiting', () => {
 // https://github.com/statelyai/xstate/issues/1935
 it('prevents infinite recursion based on a provided limit', () => {
   const machine = createMachine({
-    types: {} as { context: { count: number } },
+    // types: {} as { context: { count: number } },
+    schemas: {
+      context: z.object({
+        count: z.number()
+      })
+    },
     id: 'machine',
     context: {
       count: 0
     },
     on: {
-      TOGGLE: {
-        actions: assign({ count: ({ context }) => context.count + 1 })
-      }
+      TOGGLE: ({ context }) => ({
+        context: {
+          count: context.count + 1
+        }
+      })
     }
   });
 
@@ -213,7 +254,7 @@ describe('test model options', () => {
         states: {
           inactive: {
             on: {
-              NEXT: 'active'
+              NEXT: { target: 'active' }
             }
           },
           active: {}
@@ -240,7 +281,7 @@ it('tests transitions', async () => {
     initial: 'first',
     states: {
       first: {
-        on: { NEXT: 'second' }
+        on: { NEXT: { target: 'second' } }
       },
       second: {}
     }
@@ -268,7 +309,7 @@ it('Event in event executor should contain payload from case', async () => {
     initial: 'first',
     states: {
       first: {
-        on: { NEXT: 'second' }
+        on: { NEXT: { target: 'second' } }
       },
       second: {}
     }
@@ -279,7 +320,7 @@ it('Event in event executor should contain payload from case', async () => {
   const nonSerializableData = () => 42;
 
   const model = createTestModel(machine, {
-    events: [{ type: 'NEXT', payload: 10, fn: nonSerializableData }]
+    events: [{ type: 'NEXT', payload: 10, fn: nonSerializableData } as any]
   });
 
   const paths = model.getShortestPaths({
@@ -313,7 +354,7 @@ describe('state tests', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {}
       }
@@ -343,7 +384,7 @@ describe('state tests', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b', OTHER: 'c' }
+          on: { NEXT: { target: 'b' }, OTHER: { target: 'c' } }
         },
         b: {},
         c: {}
@@ -374,7 +415,7 @@ describe('state tests', () => {
       initial: 'a',
       states: {
         a: {
-          on: { NEXT: 'b' }
+          on: { NEXT: { target: 'b' } }
         },
         b: {
           initial: 'b1',
@@ -413,26 +454,31 @@ describe('state tests', () => {
   });
 
   it('should test with input', () => {
-    const machine = setup({
-      types: {
-        input: {} as {
-          name: string;
-        },
-        context: {} as {
-          name: string;
-        }
-      }
-    }).createMachine({
+    const machine = createMachine({
+      schemas: {
+        input: z.object({
+          name: z.string()
+        }),
+        context: z.object({
+          name: z.string()
+        })
+      },
       context: (x) => ({
         name: x.input.name
       }),
       initial: 'checking',
       states: {
         checking: {
-          always: [
-            { guard: (x) => x.context.name.length > 3, target: 'longName' },
-            { target: 'shortName' }
-          ]
+          // always: [
+          //   { guard: (x) => x.context.name.length > 3, target: 'longName' },
+          //   { target: 'shortName' }
+          // ]
+          always: ({ context }) => {
+            if (context.name.length > 3) {
+              return { target: 'longName' };
+            }
+            return { target: 'shortName' };
+          }
         },
         longName: {},
         shortName: {}

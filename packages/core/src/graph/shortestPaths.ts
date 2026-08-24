@@ -1,4 +1,9 @@
-import { AnyActorLogic, EventFromLogic, InputFrom } from '../index.ts';
+import {
+  AnyActorLogic,
+  EventFromLogic,
+  InputFrom,
+  SnapshotFrom
+} from '../index.ts';
 import { getAdjacencyMap } from './adjacency.ts';
 import { alterPath } from './alterPath.ts';
 import { resolveTraversalOptions } from './graph.ts';
@@ -14,12 +19,12 @@ import { createMockActorScope } from './actorScope.ts';
 export function getShortestPaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<
-    ReturnType<TLogic['transition']>,
+    SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     InputFrom<TLogic>
   >
-): Array<StatePath<ReturnType<TLogic['transition']>, EventFromLogic<TLogic>>> {
-  type TInternalState = ReturnType<TLogic['transition']>;
+): Array<StatePath<SnapshotFrom<TLogic>, EventFromLogic<TLogic>>> {
+  type TInternalState = SnapshotFrom<TLogic>;
   type TEvent = EventFromLogic<TLogic>;
 
   const resolvedOptions = resolveTraversalOptions(logic, options);

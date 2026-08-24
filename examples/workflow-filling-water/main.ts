@@ -1,4 +1,4 @@
-import { assign, createMachine, createActor } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 
 // https://github.com/serverlessworkflow/specification/blob/main/examples/README.md#filling-a-glass-of-water
 export const workflow = createMachine({
@@ -25,9 +25,16 @@ export const workflow = createMachine({
   states: {
     CheckIfFull: {
       always: [
-        {
-          target: 'AddWater',
-          guard: ({ context }) => context.counts.current < context.counts.max
+        ({ context, event, guards, actions }, enq) => {
+          if (
+            !(({ context }) => context.counts.current < context.counts.max)({
+              context,
+              event
+            })
+          ) {
+            return;
+          }
+          return { target: 'AddWater' };
         },
         {
           target: 'GlassFull'
@@ -36,14 +43,17 @@ export const workflow = createMachine({
     },
     AddWater: {
       after: {
-        500: {
-          actions: assign({
-            counts: ({ context }) => ({
-              ...context.counts,
-              current: context.counts.current + 1
-            })
-          }),
-          target: 'CheckIfFull'
+        500: ({ context, event, guards, actions }, enq) => {
+          return {
+            target: 'CheckIfFull',
+            context: {
+              ...context,
+              counts: (({ context }) => ({
+                ...context.counts,
+                current: context.counts.current + 1
+              }))({ context: context, event: event })
+            }
+          };
         }
       }
     },

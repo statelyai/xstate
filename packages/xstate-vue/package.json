@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "5.0.1",
+  "version": "6.0.0-alpha.1",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -64,7 +64,6 @@
   "devDependencies": {
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^5.1.2",
-    "vite": "^5.4.21",
     "vue": "3.5.27",
     "xstate": "workspace:^"
   }

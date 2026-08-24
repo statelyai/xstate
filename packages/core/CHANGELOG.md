@@ -1,5 +1,2110 @@
 # xstate
 
+## 6.0.0-alpha.47
+
+### Minor Changes
+
+- 72938f8: Guard and delay source functions are now contextually typed from `schemas` — in `setup({ ... })`, `.extend({ ... })`, and `createMachine({ ... })` — so inline functions get typed `context` and `event` without hand annotations:
+  
+  ```ts
+  const s = setup({
+    schemas: {
+      context: z.object({ count: z.number() }),
+      events: { INC: z.object({ by: z.number() }) }
+    },
+    guards: {
+      // context: { count: number }, event: { type: 'INC'; by: number }
+      isPositive: ({ context }) => context.count > 0,
+      // additional params after the args object are free-form
+      isAbove: ({ context }, threshold: number) => context.count > threshold
+    },
+    delays: {
+      backoff: ({ context }) => context.count * 100
+    }
+  });
+  ```
+  
+  Guard sources receive the transition args object first (`{ context, event, self, parent, value, children }`), followed by any caller-supplied params — matching how the runtime invokes referenced guards. Delay sources receive `{ context, event, stateNode }`.
+  
+  Additionally, `enq.stop(...)`, `enq.listen(...)`, and `enq.subscribeTo(...)` now accept any `ActorRef` (such as values typed with `ActorRefFrom<typeof machine>`), instead of requiring the full actor instance type returned by `enq.spawn(...)`.
+
+### Patch Changes
+
+- 6ecc2df: Document durable timer semantics for event-journal hosts.
+- fc7454f: Restoring an externally migrated live snapshot now treats its `machine` property as a runtime association rather than persisted version metadata. Persisted snapshots continue validating their nested `{ id, version }` identity and legacy top-level `version` together.
+  
+  `getNextTransitions(snapshot)` returns an empty array for completed or errored snapshots.
+  
+  Setup-created machines whose input schema accepts `undefined` no longer require a meaningless `input` property when other actor options are provided, including after `machine.provide(...)`.
+  
+  Durable adapters can implement `enqueueRootEvent` when the host owns only the execution root's mailbox, without overriding delivery for co-located actors:
+  
+  ```ts
+  const durable = createDurable(machine, {
+    enqueueRootEvent: (_source, event) => host.enqueue(event),
+    executeAction,
+    waitForEvent
+  });
+  ```
+  
+  Implement `sendEvent` only when the host owns routing for every target; use `deliverEvent` for co-located delivery. Durable replay guidance now explicitly covers inline entry and exit callbacks.
+
+## 6.0.0-alpha.46
+
+### Patch Changes
+
+- 30eb784: Transition spawning accepts typed registered actor names so durable source identity can be explicit:
+  
+  ```ts
+  const machine = createMachine({
+    actors: { worker },
+    on: {
+      start: (_, enq) => {
+        enq.spawn('worker', { id: 'worker' });
+      }
+    }
+  });
+  ```
+  
+  The name determines required input and the returned actor reference type. It is resolved immediately and persisted exactly, so duplicate names may share one logic value and later diverge safely. Logic-value spawning remains supported and uses the first matching registered key; unregistered inline children cannot be persisted.
+
+## 6.0.0-alpha.45
+
+### Patch Changes
+
+- e0dc812: Durable execution DX improvements:
+  
+  - The drive loop no longer routes root events by hand. `executeEffects` retains the root-addressed events it captures, and `execution.waitForEvent()` hands them out before deferring to the adapter, so the canonical loop is:
+  
+    ```ts
+    let [state, effects] = execution.initialTransition(input);
+    await execution.executeEffects(effects);
+  
+    while (state.status === 'active') {
+      [state, effects] = execution.transition(state, await execution.waitForEvent());
+      await execution.executeEffects(effects);
+    }
+    ```
+  
+    (`executeEffects` now resolves with `void`.)
+  
+  - `createDurable(logic, adapter, { inspect })` observes the execution's inspection events (`@xstate.actor` / `@xstate.transition`) across the whole live actor tree, including transitions computed by the pure path — the host-side home for operation logs and instrumentation.
+  - `execution.getActorRef(snapshot, address)` resolves a logical address against the snapshot's live actor tree, for hosts whose durable mailbox stores addresses as strings.
+  - Machine `output` types infer from the config's `output` function when no `schemas.output` schema is declared; a declared schema stays authoritative.
+  - `DurableSnapshot` keeps the `status`/`output`/`error` discriminant visible when `TLogic` is an unresolved type parameter, and adapter `waitForEvent` implementations may return plain event objects — generic host libraries no longer need casts.
+- e0dc812: A machine's output type is now inferred from its `output` config when no `schemas.output` is declared. A declared `schemas.output` stays authoritative.
+  
+  ```ts
+  const machine = setup({}).createMachine({
+    context: { shipped: ['sku-1'] },
+    initial: 'done',
+    states: { done: { type: 'final' } },
+    output: ({ context }) => ({
+      status: 'shipped' as const,
+      skus: context.shipped
+    })
+  });
+  
+  // OutputFrom<typeof machine> is now
+  // { status: 'shipped'; skus: string[] } instead of {}
+  ```
+
+## 6.0.0-alpha.44
+
+### Minor Changes
+
+- 7156ad5: Add setup state-local output schemas for typed final-state output and nested completion contracts.
+
+## 6.0.0-alpha.43
+
+### Patch Changes
+
+- 39f8431: Durable executions can pin a deterministic identity: `createDurable(machine, { executionId, ... })` makes session ids `<executionId>:<n>`, a deterministic function of actor-creation order, so hosts that journal the execution's own events can replay them — a journaled completion event still matches the child a replay re-creates.
+  
+  ```ts
+  const durable = createDurable(machine, {
+    executionId: orderId,
+    executeAction,
+    waitForEvent
+  });
+  ```
+  
+  The new `runLogic` runtime operation makes the invoked async actor the primary durable unit: a developer writes a normal promise and the host journals the whole body as one entry — wrapping the provided thunk in its own step primitive, or re-running the registered logic on a remote executor from the actor's serializable `(src, input)` identity alone. `enq.step` remains for opt-in finer granularity.
+  
+  ```ts
+  runLogic: (actor, exec) => ctx.run(actor.address, exec)
+  ```
+  
+  A remote handle now carries its host-supplied incarnation token as its `sessionId` — one incarnation identity with one staleness rule (a ref that knows its incarnation compares it; one that does not defers to the owning runtime). The persisted `incarnation` field is unchanged.
+  
+  Docs reposition `enq.step` as the hostless-durability tool (the snapshot is the journal; durable hosts use plain promise actors + `runLogic`), document the portable-action rule (named function + serializable args ships to a remote executor; closures run in-process), and add a "Driving effects yourself" section: `createDurable` is sugar over the pure `transition()` APIs, and hosts may execute the effect objects themselves.
+  
+  Durable-execution docs now also cover quiescing in-flight steps before registering a durable wait, the ordered-effect replay guarantee, and that `runStep`'s `exec` closure must run in-process.
+
+## 6.0.0-alpha.42
+
+### Minor Changes
+
+- 9ca1707: Add separately declared internal event schemas with `schemas.internalEvents`. Internal events remain fully typed inside machines while staying out of the public actor event protocol. The existing top-level `internalEvents` list remains supported for migration.
+
+## 6.0.0-alpha.41
+
+### Minor Changes
+
+- 14cfdc3: Actors now have deterministic, location-transparent identity.
+  
+  - Every actor has a logical `address`: the `/`-joined path of actor ids from the root. Root actors are named after their logic's `id`, and children spawned without an explicit id get deterministic per-parent counters keyed by their actor source (`worker:0`, `worker:1`). Addresses are stable across persistence and restore; `sessionId` identifies one incarnation of an address, and completions from a previous incarnation of a local child are dropped.
+  - `enq.spawn(actors.x)` records the registered source key so spawned children persist by key.
+  - `getEffectDescriptor(effect)` returns a serializable view of any executable effect, with actor references replaced by addresses and actor sources by source keys (payload fields pass through by reference).
+  - A host runtime can be installed as `system.runtime`; the built-in local runtime is the default. The new `deliverEvent`, `stopActor` and `terminateActor` helpers expose the local behaviors for custom runtimes to delegate to.
+  - `createDurable` (from `xstate/durable`) adapters carry their runtime operations directly (`sendEvent`, `scheduleTimer`, …), and the execution installs them on every snapshot's actor system; it exposes `rootAddress` and `getActorRef(snapshot)`, tags every effect with a serializable `descriptor`, and `executeEffects` resolves only when every transitively initiated runtime operation has been accepted — returning the events addressed to the root actor for the durable loop. Breaking for existing adapters: during `executeEffects`, root-addressed events no longer reach any runtime `sendEvent` (including per-effect `runtime()` implementations) — drain them from the `executeEffects` result instead. While the loop is parked in `waitForEvent`, a root-addressed event reaches `sendEvent` like any other target, and the host should enqueue it in its own mailbox. Runtime objects are also wrapped before effects see them, so identity comparisons and extra non-runtime properties on the returned object are not preserved.
+  - `getPersistedSnapshot(snapshot, { embedChildren: false })` persists children by logical address, leaving each child's state with the runtime that owns it; restoring an address-only child produces a location-transparent handle whose sends route through the system runtime.
+  - Explicit child ids are unique per parent: spawning or invoking with an id already held by a live sibling throws (ids stopped earlier in the same transition stay reusable). Previously a duplicate id silently created a second running actor at the same address. A transition to a history state that restores its own source now exits and reenters the source, so its invoked actors restart instead of leaking.
+  - Undeliverable events are reported through the new `deadLetter` runtime operation and a `@xstate.deadletter` inspection event. Delivery stays at-most-once — this is observability, not retry.
+  - A persisted remote child entry round-trips an optional opaque `incarnation` token. XState never stamps one, but when a host does, completions from a different incarnation of the address are dropped and `sendTo` effect descriptors journal the target's token.
+  - `createDurable` exposes `machineId` and `machineVersion` so hosts can pin an execution's journal to the machine version that produced it.
+  - Async-actor steps (`enq.step`) route through the new `runStep` runtime operation. The built-in behavior memoizes results in the actor's own snapshot as before; a durable host implements `runStep` to own the step journal, replaying memoized results without re-running the step. The `runStep` helper export exposes the built-in behavior.
+  - Serialized actor references (`Actor.toJSON`, persisted context refs) carry `xstate$type: 'actorRef'` instead of the v5 `xstate$$type: 1` marker. Migrate v5-persisted context refs with `machineVersions` if you restore them.
+  - Timers persisted from a running actor carry their wall-clock start (`startedAt`); restoring the snapshot schedules the remaining time toward the original deadline (clamped to the declared delay), so a timer past due fires immediately instead of restarting its full delay. Pure-transition snapshots carry no timestamp and restart the declared delay.
+  
+  ```ts
+  const durable = createDurable(machine, {
+    sendEvent: (source, target, event) =>
+      host.send(source?.address, target.address, event),
+    executeAction: (action, { id }, runtime) =>
+      host.runAction(id, () => action.exec(runtime)),
+    waitForEvent: ({ id }) => host.waitForEvent(id)
+  });
+  ```
+
+## 6.0.0-alpha.40
+
+### Minor Changes
+
+- 107d0c2: Represent historical machine versions with Standard Schema snapshot and event
+  descriptors instead of retaining their executable machines. Versioned machines
+  expose the same `snapshotSchema` and `eventSchema` interface. Machine-backed
+  snapshot schemas default omitted history and timer records during migration.
+  
+  ```ts
+  const versions = machineVersions([
+    {
+      id: 'checkout',
+      version: '1',
+      snapshotSchema: checkoutV1Snapshot,
+      eventSchema: checkoutV1Event
+    },
+    checkoutV2
+  ]);
+  
+  const snapshot = await versions.migrateSnapshot(persisted, {
+    to: '2',
+    migrations: {
+      '1': (snapshot) => ({
+        ...snapshot,
+        context: { total: snapshot.context.count }
+      })
+    }
+  });
+  ```
+
+### Patch Changes
+
+- 2e77ff6: `actor.getPersistedSnapshot()` is now typed to the actor’s logic, so persist/restore round-trips through `createActor(logic, { snapshot })` no longer require a cast. Restoring a snapshot into a machine with a different `id` is a type error, while snapshots from other versions of the same machine remain assignable (for runtime migration via `migrate`).
+  
+  ```ts
+  const actor = createActor(machine).start();
+  const snapshot = actor.getPersistedSnapshot();
+  
+  // No cast needed:
+  const restored = createActor(machine, { snapshot }).start();
+  ```
+
+## 6.0.0-alpha.39
+
+### Patch Changes
+
+- 7a7e564: Fixed a bug where `enq.subscribeTo(…)` and `enq.listen(…)` silently did nothing when called inside a transition function. They now work the same as in `entry` actions:
+  
+  ```ts
+  const machine = createMachine({
+    on: {
+      start: (_, enq) => {
+        const child = enq.spawn(childLogic);
+        enq.subscribeTo(child, {
+          done: (output) => ({ type: 'childDone', output })
+        });
+      },
+      childDone: ({ event }) => {
+        // event.output is the child's output
+      }
+    }
+  });
+  ```
+- 4e6dbfd: Named imports from the root `xstate` entry (such as the actor logic creators and `SpecialTargets`) now work in all environments, including tools that load the package as CommonJS.
+  
+  ```ts
+  import { createAsyncLogic } from 'xstate'; // now works everywhere
+  ```
+- 20a52b9: Optional event payload fields declared with `types()` are now preserved instead of being made required:
+  
+  ```ts
+  const machine = setup({
+    schemas: {
+      events: {
+        submit: types<{ email: string; referrer?: string }>()
+      }
+    }
+  }).createMachine({
+    // ...
+  });
+  
+  // referrer can now be omitted
+  actor.send({ type: 'submit', email: 'a@b.co' });
+  ```
+  
+  Payloads inferred from validator libraries (e.g. Zod) are still wrapped in `Required<>`.
+- 20a52b9: `snapshot.value` is now structurally typed from the machine config instead of the generic `StateValue` type. Flat machines get a union of state keys, and parallel machines get an object type with a key per region:
+  
+  ```ts
+  const machine = createMachine({
+    type: 'parallel',
+    states: {
+      bold: { initial: 'off', states: { off: {}, on: {} } },
+      italic: { initial: 'off', states: { off: {}, on: {} } }
+    }
+  });
+  
+  const value = createActor(machine).getSnapshot().value;
+  // { bold: 'off' | 'on'; italic: 'off' | 'on' }
+  ```
+- 90a173a: Fixed `createSystem(...).setup(...)` to preserve runtime validator types alongside typed actor registries. Validated setups now reject unsupported transforming schemas and carry validation into derived setups.
+  
+  Runtime validation can now also be installed on a derived setup when its inherited schemas are compatible:
+  
+  ```ts
+  import { setup } from 'xstate';
+  import { standardSchemaValidator } from 'xstate/validation';
+  import { z } from 'zod';
+  
+  const validated = setup({
+    schemas: { input: z.object({ id: z.string() }) }
+  }).extend({ validator: standardSchemaValidator() });
+  ```
+
+## 6.0.0-alpha.38
+
+### Patch Changes
+
+- 8aaac46: Restoring a persisted snapshot whose state value references a state that no longer exists on the machine now throws a descriptive error, e.g.:
+  
+  ```
+  Persisted snapshot references state 'reviewing' which does not exist on machine 'order-approval'.
+  ```
+  
+  Nested state values report the full state path (e.g. `'active.reviewing'`), and parallel state regions are validated as well.
+
+## 6.0.0-alpha.37
+
+### Minor Changes
+
+- 86f7303: Add an experimental, host-neutral durable execution helper at `xstate/durable`.
+  It assigns stable IDs to effects and event waits from pure transitions while
+  leaving durable execution, timers, messaging and child actors to the host.
+  Hosts can read `nextTransitionIndex` after every transition for checkpointing.
+  
+  ```ts
+  const durable = createDurable(machine, adapter);
+  const output = await durable.run(input);
+  ```
+
+### Patch Changes
+
+- 6df07b8: Fixed `invoke.onDone` transition argument inference when actor logic is passed directly as `src` in a machine with two or more differently-typed registered actors. Previously, the transition function's arguments collapsed to `any` (`event.output` was unusable without annotations); now `event.output` is inferred from the invoked actor's output type.
+  
+  ```ts
+  const fetchUser = createAsyncLogic({ run: async () => ({ name: 'David' }) });
+  const fetchCount = createAsyncLogic({ run: async () => 42 });
+  
+  setup({
+    actors: { fetchUser, fetchCount }
+  }).createMachine({
+    initial: 'loading',
+    states: {
+      loading: {
+        invoke: {
+          src: fetchUser,
+          onDone: ({ event }) => {
+            event.output.name; // string
+            return { target: 'done' };
+          }
+        }
+      },
+      done: {}
+    }
+  });
+  ```
+  
+  Note: when actors are registered, invoking *unregistered* inline logic now only supports the object/target forms of `onDone` (not the transition function form). Register the actor to get fully-typed function-form transitions.
+
+## 6.0.0-alpha.36
+
+### Minor Changes
+
+- af31f22: Add `machineVersions().adaptEvents()` for adapting complete event histories
+  between machine versions. Exact retained-version adapters infer source and
+  target event types, while an async `'*'` adapter can handle unknown histories.
+  
+  ```ts
+  const events = await versions.adaptEvents(storedEvents, {
+    from: { id: 'checkout', version: '1' },
+    to: '2',
+    adapters: {
+      '1': (events) => events.map(toV2Event)
+    }
+  });
+  ```
+
+## 6.0.0-alpha.35
+
+### Patch Changes
+
+- db0a16c: Reduce actor runtime memory usage and improve actor startup performance.
+
+## 6.0.0-alpha.34
+
+### Patch Changes
+
+- faa0f19: Improve the performance and memory usage of pure transitions that only update machine context.
+
+## 6.0.0-alpha.33
+
+### Minor Changes
+
+- 44aae13: Migrate persisted snapshots directly from `unknown` values with
+  `machineVersions().migrateSnapshot()`. Exact version handlers are typed from
+  retained machines, while `'*'` handles unversioned, unrecognized, or
+  shape-detected snapshots. All migration handlers may be asynchronous.
+
+  ```ts
+  const versions = machineVersions([checkoutV1, checkoutV2]);
+  const snapshot = await versions.migrateSnapshot(persisted, {
+    to: "2",
+    migrations: {
+      "1": async (snapshot) => migrateV1(snapshot),
+      "*": async (snapshot, source) => migrateUnknown(snapshot, source),
+    },
+  });
+  ```
+
+## 6.0.0-alpha.32
+
+### Patch Changes
+
+- e41f339: Improve state machine actor throughput for event bursts, child delivery, and compound and parallel machines.
+
+## 6.0.0-alpha.31
+
+### Patch Changes
+
+- 085adc8: Reduce retained memory for idle actors and actor families.
+
+## 6.0.0-alpha.30
+
+### Minor Changes
+
+- 5982c32: Custom clocks may now provide `now()` so scheduled and restored timers use the same time source:
+
+  ```ts
+  createActor(machine, {
+    clock: {
+      now: () => currentTime,
+      setTimeout: (callback, delay) => schedule(callback, delay),
+      clearTimeout: (handle) => cancel(handle),
+    },
+  });
+  ```
+
+### Patch Changes
+
+- 67fddcf: Improve transition and actor runtime performance.
+
+## 6.0.0-alpha.29
+
+### Minor Changes
+
+- 52f23be: Add opt-in runtime Standard Schema validation through `setup({ validator })`. The standard validator is available from the separate `xstate/validation` entrypoint:
+
+  ```ts
+  import { setup } from "xstate";
+  import { standardSchemaValidator } from "xstate/validation";
+  import { z } from "zod";
+
+  const machine = setup({
+    validator: standardSchemaValidator(),
+    schemas: {
+      events: {
+        increment: z.object({ by: z.number() }),
+      },
+    },
+  }).createMachine({});
+  ```
+
+  Validation covers machine input and incoming public events before calculation. It validates stable context, active state input and context contracts, final output, child slots, delayed raised-event timers, and emitted events before returning a completed macrostep. Validation asserts runtime values without applying schema transformations.
+
+  Derived setups inherit validation unless they explicitly replace it or disable it with `validator: undefined`.
+
+  The same validator can be installed on `createLogic()`, async, callback, and observable logic configurations. Those actors validate their existing input and output schema boundaries.
+
+  Named action and guard parameters, immediate raised events, static meta and tags, persistence, restoration, and `snapshot.can()` are not validation boundaries in this initial release.
+
+## 6.0.0-alpha.28
+
+### Minor Changes
+
+- cded0df: Add typed helpers for migrating persisted snapshots between retained machine versions.
+
+  ```ts
+  const versions = machineVersions([checkoutV1, checkoutV2]);
+  const source = await versions.parseSnapshot(persisted);
+  const snapshot = await migrateSnapshot(source, checkoutV2, {
+    "1": (snapshot) => ({
+      ...snapshot,
+      context: { total: snapshot.context.count },
+    }),
+  });
+
+  createActor(checkoutV2, { snapshot }).start();
+  ```
+
+  Existing unversioned snapshots can be assigned to an explicitly retained version
+  before migration:
+
+  ```ts
+  const versions = machineVersions([checkoutV0, checkoutV1], {
+    unversioned: "0",
+  });
+  ```
+
+## 6.0.0-alpha.27
+
+### Major Changes
+
+- 7656e70: Require history states to declare a non-empty default target. Authored literal
+  transition targets are now checked against the machine topology, and illegal
+  SCXML multi-target configurations are rejected when the machine is created.
+
+  Add a default target to every history state:
+
+  ```ts
+  createMachine({
+    initial: "active",
+    states: {
+      active: {
+        initial: "idle",
+        states: {
+          idle: {},
+          history: {
+            type: "history",
+            target: "idle",
+          },
+        },
+      },
+    },
+  });
+  ```
+
+## 6.0.0-alpha.26
+
+### Patch Changes
+
+- d46fbd2: Delayed transitions (`onTimeout` and `after`) and error transitions (`onError`) in machines created with `setup({ states })` now type the `context` patch against the **target** state's context schema, matching the behavior of `on:` transitions. Previously, a cross-state context patch that was valid at runtime failed to typecheck:
+
+  ```ts
+  const machine = setup({
+    schemas: {
+      context: z.object({ reason: z.union([z.literal("timeout"), z.null()]) }),
+    },
+    states: {
+      running: { schemas: { context: z.object({ reason: z.null() }) } },
+      expired: {
+        schemas: { context: z.object({ reason: z.literal("timeout") }) },
+      },
+    },
+  }).createMachine({
+    context: { reason: null },
+    initial: "running",
+    states: {
+      running: {
+        timeout: 5000,
+        // Previously a type error; now checked against `expired`'s context
+        onTimeout: () => ({
+          target: "expired",
+          context: { reason: "timeout" as const },
+        }),
+      },
+      expired: { type: "final" },
+    },
+  });
+  ```
+
+- d9d9e29: Per-state schemas declared in `setup({ states })` are now available on the compiled machine's state nodes via `machine.states.X.schemas`, so tooling (e.g. per-state snapshot validators) can be derived from the machine alone. Previously they were only accessible on the setup return value.
+
+  ```ts
+  import { setup, types } from "xstate";
+
+  const machine = setup({
+    states: {
+      running: {
+        schemas: { context: types<{ startedAt: number }>() },
+      },
+    },
+  }).createMachine({
+    initial: "running",
+    states: {
+      running: {},
+    },
+  });
+
+  machine.states.running.schemas?.context; // the schema declared in setup
+  ```
+
+- 7da1486: Transition arrays are no longer accepted by the v6 `createMachine(...)` authoring API. Use a transition function to select among targets:
+
+  ```ts
+  createMachine({
+    always: ({ context }) => {
+      if (context.hour < 12) return { target: "morning" };
+      return { target: "afternoon" };
+    },
+  });
+  ```
+
+  Serialized transition arrays remain supported by `createMachineFromConfig(...)`.
+
+## 6.0.0-alpha.25
+
+### Major Changes
+
+- 8341eb3: Actor logic maps are named `actors` again. The aggregate `Implementations` type, `MachineImplementationsFrom` helper, and `machine.implementations` property are now `Sources`, `MachineSourcesFrom`, and `machine.sources`.
+
+### Patch Changes
+
+- 6dc0cbd: Actor `sessionId`s are now globally unique across actor systems.
+
+## 6.0.0-alpha.24
+
+### Patch Changes
+
+- 1b5900a: Machine snapshots now remove a child after processing that child's matching done or error event. Terminal actor events include a `sessionId` so a delayed event from an older child incarnation cannot remove a replacement with the same actor ID.
+
+  ```ts
+  const child = snapshot.children.job;
+
+  const [nextSnapshot] = transition(machine, snapshot, {
+    type: "xstate.done.actor",
+    actorId: "job",
+    sessionId: child.sessionId,
+    output: result,
+  });
+
+  nextSnapshot.children.job; // undefined
+  ```
+
+  Persisted child session identities and the actor ID allocator are restored across JSON round-trips. Restoring a persisted child whose registered actor source is unavailable now produces an error snapshot instead of silently omitting the child.
+
+  ```ts
+  // `persisted` contains a child whose registered source is not provided.
+  const restored = createActor(machineWithoutChildSource, {
+    snapshot: persisted,
+  });
+
+  restored.getSnapshot().status; // 'error'
+  ```
+
+  Internal actor, state-completion, delayed, and timeout events now use stable category types. Their identity is carried in event payload fields and can be selected with `matches`:
+
+  ```ts
+  const machine = createMachine({
+    // ...
+    on: {
+      "xstate.done.actor": {
+        matches: { actorId: "job" },
+        target: "complete",
+      },
+    },
+  });
+
+  // Generated events use payload identity:
+  // { type: 'xstate.done.actor', actorId: 'job', sessionId, output }
+  // { type: 'xstate.done.state', stateId, output }
+  // { type: 'xstate.after', stateId, delay }
+  // { type: 'xstate.timeout', stateId }
+  // { type: 'xstate.timeout.actor', actorId, sessionId }
+  ```
+
+## 6.0.0-alpha.23
+
+### Patch Changes
+
+- 42ce5c6: Spawning registered actor logic from a machine context now preserves its actor source identity when persisting and rehydrating the child.
+
+  ```ts
+  createMachine({
+    actors: { child },
+    context: ({ spawn, actors }) => {
+      spawn(actors.child);
+      return {};
+    },
+  });
+  ```
+
+## 6.0.0-alpha.22
+
+### Major Changes
+
+- 025b616: Pure transitions now return every effect needed to interpret actor logic in execution order. This includes actor spawning, starting and stopping, event delivery, emitted events, timers, custom effects, and actor termination. `createActor(...)` executes the same effects through the default actor system.
+
+  Each effect exposes `exec(runtime?)`. Omitting the runtime uses the effect's XState actor system; supplying an `ActorSystemRuntime` delegates execution to a custom host. `executeEffects(...)` executes and awaits the effects sequentially:
+
+  ```ts
+  let [snapshot, effects] = machine.initialTransition(input);
+  await executeEffects(effects, runtime);
+
+  while (snapshot.status === "active") {
+    const event = await dequeue();
+    [snapshot, effects] = machine.transition(snapshot, event);
+    await executeEffects(effects, runtime);
+  }
+  ```
+
+  `ActorSystemRuntime` defines operations for spawning, starting, stopping and terminating actors; sending and emitting events; and scheduling or cancelling timers. No runtime or `actorScope` argument is required by `machine.initialTransition(...)`, `machine.transition(...)`, or `machine.restoreSnapshot(...)`.
+
+  Leaving an invoking state emits `@xstate.stop` with the stopped actor and its ID. Stops are also exposed by `getMicrosteps(...)` and `getInitialMicrosteps(...)`. Effect ordering matches `createActor(...)`: exit actions run before timer cancellation and child stopping; reentry produces stop, spawn, then start; and terminal machines stop children before terminating.
+
+  When logic first reaches `done` or `error`, it emits a final `@xstate.terminate` effect. Custom runtimes implement `terminateActor(actor, termination)` to publish the terminal result, close the actor, clean up its runtime resources, and notify its parent.
+
+  Pending delayed deliveries are declared in `snapshot.timers`. A runtime schedules the timer ID and sends `{ type: 'xstate.timer', id }` to its source when due; XState then removes the timer and emits the actual raise or send effect. Runtime-specific deadlines and timer handles remain outside the snapshot.
+
+  Hand-written actor logic and `createLogic(...)` now return executable effects from both initial and subsequent transitions. `ActorLogic.executeEffects` has been removed. `ActorLogic.start(snapshot, scope, options?)` receives `options.restored`, allowing logic to distinguish restoration from a fresh start.
+
+## 6.0.0-alpha.21
+
+### Minor Changes
+
+- cb2af9b: Allow `setup({ states })` to declare schemas for only the states that need them. Other machine states use the machine's root context type.
+
+  Transition context updates now use the root context as the fallback when the target state has no context schema, allowing narrowed states to transition back to wider states.
+
+  ```ts
+  const machine = setup({
+    states: {
+      complete: {
+        schemas: { context: z.object({ result: z.string() }) },
+      },
+    },
+  }).createMachine({
+    initial: "planning",
+    states: {
+      planning: {},
+      complete: {},
+    },
+  });
+  ```
+
+### Patch Changes
+
+- d280d55: Final state `output` mappers now receive the state's `input`.
+
+  ```ts
+  LOAD: ({ event }) => ({
+    target: 'done',
+    input: { userId: event.userId }
+  })
+
+  // ...
+
+  done: {
+    type: 'final',
+    output: ({ input }) => ({
+      userId: input.userId
+    })
+  }
+  ```
+
+  Previously, `input` was unavailable in final `output` mappers. Now it is forwarded the same way as for `entry` / `exit` actions.
+
+## 6.0.0-alpha.20
+
+### Major Changes
+
+- 401cbfd: Actor creation and startup are now separate effects in the array returned from `transition(...)` and `initialTransition(...)`. Creating an actor (`enq.spawn`, `enq.listen`, `enq.subscribeTo`, and `invoke`) emits a `@xstate.spawn` effect at the position where it was authored, while starting it is deferred to a `@xstate.start` effect appended to the end of the array. Listener/subscription starts run before child starts, each group in authored order.
+
+  This fixes a timing issue where `enq.listen` and `enq.subscribeTo` could miss events emitted synchronously while their target actor was starting up. Because the listener/subscription is now started before its target, those early events are captured:
+
+  ```ts
+  entry: (_, enq) => {
+    const child = enq.spawn(childLogic);
+    // Now receives events emitted synchronously during child's startup
+    enq.listen(child, "ready", () => ({ type: "CHILD_READY" }));
+  };
+  ```
+
+  The fix holds both in the interpreter and for consumers that execute the effects array manually in order (for example serverless or manual executors).
+
+  Other consequences:
+  - Invoked actors now start after the state's entry actions have run, instead of before them.
+  - A stopped actor can no longer be restarted with `.start()`, including the root actor — `actor.stop(); actor.start()` is now a no-op. As a result, an actor that is spawned and stopped within the same macrostep (or an invoke whose state is entered and exited within one macrostep) never starts.
+  - For code inspecting the effects array: spawn metadata (`logic`, `src`, `input`) now lives on the `@xstate.spawn` effect, while `@xstate.start` carries only `{ actor, id }`.
+
+### Patch Changes
+
+- 376d885: State `input` attached to a state now survives `getPersistedSnapshot()` → restore. Previously the input was dropped on persistence, so a restored actor lost the input for its active states (read via `snapshot.getInputs()`).
+
+  ```ts
+  const machine = setup({
+    states: {
+      loading: {
+        schemas: { input: z.object({ userId: z.string() }) },
+      },
+    },
+  }).createMachine({
+    initial: "idle",
+    states: {
+      idle: {
+        on: { LOAD: { target: "loading", input: { userId: "u1" } } },
+      },
+      loading: {},
+    },
+  });
+
+  const actor = createActor(machine).start();
+  actor.send({ type: "LOAD" });
+
+  const persisted = actor.getPersistedSnapshot();
+  const restored = createActor(machine, { snapshot: persisted }).start();
+
+  restored.getSnapshot().getInputs(); // { '(machine).loading': { userId: 'u1' } }
+  ```
+
+  The persisted snapshot only includes a `stateInputs` field when at least one active state has an input, so machines that don't use state input persist to an unchanged snapshot.
+
+## 6.0.0-alpha.19
+
+### Patch Changes
+
+- 5649f6f: State input is now available in `on`, `after`, `timeout`, and `onTimeout` handlers (previously only `entry`/`exit` received it).
+
+  ```ts
+  const machine = setup({
+    states: {
+      active: {
+        schemas: { input: z.object({ duration: z.number() }) },
+      },
+    },
+  }).createMachine({
+    initial: "idle",
+    states: {
+      idle: {
+        on: {
+          activate: ({ event }) => ({
+            target: "active",
+            input: { duration: event.duration },
+          }),
+        },
+      },
+      active: {
+        timeout: ({ input }) => input.duration,
+        onTimeout: ({ input }) => ({ target: "idle" }),
+        after: {
+          1000: ({ input }) => ({ target: "idle" }),
+        },
+        on: {
+          ping: ({ input }, enq) => {},
+        },
+      },
+    },
+  });
+  ```
+
+## 6.0.0-alpha.18
+
+### Major Changes
+
+- 95a7aca: `extend(...)` now merges `actions` and `guards` schema maps instead of replacing the base setup schemas. Previously, only `events`, `emitted`, and `children` were merged.
+
+  ```ts
+  import { setup, types } from "xstate";
+
+  const machine = setup({
+    schemas: {
+      actions: {
+        track: { params: types<{ key: string }>() },
+      },
+      guards: {
+        hasAccess: { params: types<{ role: string }>() },
+      },
+    },
+  })
+    .extend({
+      schemas: {
+        actions: {
+          notify: { params: types<{ message: string }>() },
+        },
+        guards: {
+          canReset: { params: types<{ reason: string }>() },
+        },
+      },
+    })
+    .createMachine({
+      // Both base and extended actions/guards are available
+      entry: ({ actions }, enq) => {
+        enq(actions.track({ key: "init" }));
+        enq(actions.notify({ message: "started" }));
+      },
+      on: {
+        RESET: ({ guards }) => {
+          if (
+            guards.hasAccess({ role: "admin" }) &&
+            guards.canReset({ reason: "manual" })
+          ) {
+            return { target: ".idle" };
+          }
+        },
+      },
+    });
+  ```
+
+### Minor Changes
+
+- b3ef4e7: `setup(...)` now exposes the schemas defined in its configuration, making them accessible for external use.
+
+  ```ts
+  import { setup, types } from "xstate";
+
+  const s = setup({
+    schemas: {
+      context: types<{ count: number }>(),
+      events: {
+        inc: types<{ by: number }>(),
+      },
+      emitted: {
+        changed: types<{ value: number }>(),
+      },
+    },
+  });
+
+  s.schemas.context;
+  s.schemas.events.inc;
+  s.schemas.emitted.changed;
+  ```
+
+## 6.0.0-alpha.17
+
+### Minor Changes
+
+- d000747: Add `@xstate/codemod` and the `xstate migrate` command for migrating v5 sources to v6:
+
+  ```sh
+  npx xstate migrate "src/**/*.ts"
+  # or preview without writing:
+  npx xstate migrate "src/**/*.ts" --dry
+  ```
+
+  Automated transforms:
+  - renames `interpret` → `createActor`, `Interpreter` → `Actor`, `fromCallback`/`fromObservable`/`fromEventObservable` → `createCallbackLogic`/`createObservableLogic`/`createEventObservableLogic`
+  - wraps string transition targets into object form (`on: { EVT: 'a' }` → `on: { EVT: { target: 'a' } }`), including `after`, `always`, and invoke `onDone`/`onError`
+  - converts `types: {} as {...}` to `schemas` with `types<T>()`, including inline event unions to the `schemas.events` map
+
+  Usages that need structural rewrites (`assign`, `raise`, `sendTo`, `enqueueActions`, `fromPromise`, guard combinators, …) are detected and reported with file:line and a v6 replacement hint instead of being transformed.
+
+### Patch Changes
+
+- 4a74afb: Invoked actors now observe the latest parent snapshot when they start synchronously during a transition.
+- aa9e5af: Populate `snapshot.output` from a reached top-level final state's `output` when no root machine `output` is defined.
+
+  ```ts
+  const machine = createMachine({
+    initial: "working",
+    states: {
+      working: {
+        on: { done: { target: "success" } },
+      },
+      success: {
+        type: "final",
+        output: { status: "ok" },
+      },
+    },
+  });
+  ```
+
+  When both a top-level final state and the root machine define `output`, the final state output is passed to the root output mapper as `output`.
+
+- d000747: Pure transition functions (`initialTransition`, `transition`, and the deprecated `getInitialSnapshot`/`getNextSnapshot`) no longer run the logic's initialization twice. Previously the internal inert actor scope eagerly computed an initial snapshot, so init-time side effects such as `context` factories executed once extra with `undefined` input.
+- d000747: Parallel-state transitions no longer disturb sibling regions:
+  - A transition targeting a state inside one region no longer exits and resets sibling regions (#5214). Its domain narrows to the region that contains all of its targets:
+
+    ```ts
+    const machine = createMachine({
+      id: "p",
+      type: "parallel",
+      on: {
+        ARCHIVE: { target: "#p.phase.archive" },
+      },
+      states: {
+        phase: { initial: "inquiry", states: { inquiry: {}, archive: {} } },
+        mode: { initial: "new", states: { new: {}, edit: {} } },
+      },
+    });
+    // sending ARCHIVE now leaves `mode` in its current state
+    ```
+
+  - A cross-region transition (source in one region, target in another) now only exits the region containing its targets. The source region and other sibling regions stay in their current states:
+
+    ```ts
+    // from Operation.Waiting:
+    on: {
+      TOGGLE_MODE: {
+        target: "#Demo";
+      } // in the Mode region
+    }
+    // sending TOGGLE_MODE enters Mode.Demo without exiting Operation
+    ```
+
+    Use `reenter: true` to opt into exiting the full transition domain.
+
+  - A `reenter: true` transition contained within one region exits and reenters only that region — sibling regions no longer re-run their entry actions (#5162).
+  - A transition sourced in a `final` state now yields to a conflicting transition from a live sibling region instead of preempting it, so a done region no longer swallows events its siblings can still handle (#4793).
+
+## 6.0.0-alpha.16
+
+### Minor Changes
+
+- e410f24: Add state-level `onError` transitions for handling `xstate.error.*` events.
+
+  State `onError` catches actor, execution, and communication errors while the state is active. The caught error is available on `event.error`.
+
+  ```ts
+  const machine = createMachine({
+    initial: "active",
+    states: {
+      active: {
+        onError: ({ event }) => ({
+          target: "failed",
+          context: {
+            message:
+              event.error instanceof Error
+                ? event.error.message
+                : String(event.error),
+          },
+        }),
+      },
+      failed: {},
+    },
+  });
+  ```
+
+### Patch Changes
+
+- f6edec7: Allow machines with no external events to be used anywhere `AnyActorLogic` or `AnyStateMachine` is expected.
+
+  ```ts
+  const machine = setup({
+    schemas: {
+      events: {},
+    },
+  }).createMachine({});
+
+  const logic: AnyActorLogic = machine;
+  const anyMachine: AnyStateMachine = machine;
+  ```
+
+  Machines with empty event schemas still reject external events sent to their actors.
+
+## 6.0.0-alpha.15
+
+### Patch Changes
+
+- 37d3254: Setup-bound invoke transition callbacks now validate target state context requirements for `onDone`, `onError`, `onSnapshot`, and `onTimeout`. `onDone` also infers output from the invoked actor logic.
+
+  ```ts
+  import { createAsyncLogic, setup } from "xstate";
+  import { z } from "zod";
+
+  const machine = setup({
+    actors: {
+      loadUser: createAsyncLogic({
+        run: async () => ({ name: "Ada" }),
+      }),
+    },
+    states: {
+      loading: {},
+      success: {
+        schemas: {
+          context: z.object({
+            user: z.object({ name: z.string() }),
+          }),
+        },
+      },
+    },
+  }).createMachine({
+    context: {},
+    initial: "loading",
+    states: {
+      loading: {
+        invoke: {
+          src: "loadUser",
+          // Type-safe return value for invoke callbacks
+          onDone: ({ event }) => ({
+            target: "success",
+            context: { user: event.output },
+          }),
+        },
+      },
+      success: {},
+    },
+  });
+  ```
+
+## 6.0.0-alpha.14
+
+### Minor Changes
+
+- c0c21d0: Add a path-bound overload to `setup(...).createStateConfig(path, config)`.
+
+  When a state declares its own input schema, the anonymous `createStateConfig(config)` form types `input` as a broad union across all states. This makes the resulting config incompatible with the specific state it's meant for — assigning it inside `createMachine` produces a type error because the input types don't match.
+
+  The new `createStateConfig(path, config)` overload binds the config to a specific setup-declared state by dotted path (e.g. `'loading'` or `'parent.child'`). The addressed state's own input schema is used inside `entry`/`exit` args, and bare transition targets are validated against the state's siblings.
+
+  ```ts
+  const s = setup({
+    states: {
+      idle: {},
+      active: {
+        schemas: { input: z.object({ userId: z.string() }) }
+      }
+    }
+  });
+
+  // Before: anonymous form — `input` is typed broadly, and assigning this
+  // config to the `active` state in createMachine fails with a type error.
+  const active = s.createStateConfig({
+    entry: ({ input }) => {
+      // input is not narrowed to { userId: string }
+    }
+  });
+
+  // After: path-bound form — `input` is narrowed to `active`'s own schema.
+  const active = s.createStateConfig('active', {
+    entry: ({ input }) => {
+      input.userId; // string
+    }
+  });
+
+  // Works for nested states too:
+  const child = s.createStateConfig('parent.child', { ... });
+  ```
+
+### Patch Changes
+
+- 8e3cce6: Fix `snapshot.matches(...)` narrowing so repeated checks like `snapshot.matches('loaded') || snapshot.matches('failed')` compile correctly, and make `StateFrom<typeof machine>` preserve the machine's concrete state value.
+- 0c2a6e5: Fix function-syntax transitions not passing `input` to target state entry actions.
+
+  ```ts
+  on: {
+    FETCH: ({ context, event }) => ({
+      target: "fetching",
+      input: { url: event.url, token: context.authToken },
+    });
+  }
+  ```
+
+  Previously, `input` returned from function-syntax transitions was silently ignored. Now it is correctly forwarded to the target state's `entry` action.
+
+## 6.0.0-alpha.13
+
+### Minor Changes
+
+- bdc54dd: Added `createFSM(...)` for flat, actor-compatible finite state machines.
+
+  ```ts
+  import { createActor, createFSM } from "xstate";
+
+  const toggleLogic = createFSM({
+    initial: "inactive",
+    context: { count: 0 },
+    states: {
+      inactive: {
+        on: {
+          toggle: {
+            target: "active",
+            context: { count: 1 },
+          },
+        },
+      },
+      active: {
+        on: {
+          toggle: ({ context }, enq) => {
+            enq(() => console.log("toggled"));
+
+            return {
+              target: "inactive",
+              context: { count: context.count + 1 },
+            };
+          },
+        },
+      },
+    },
+  });
+
+  const actor = createActor(toggleLogic).start();
+
+  actor.send({ type: "toggle" });
+  ```
+
+  `createFSM(...)` supports XState-style object transitions, function transitions, `enq` actions, initial input, state `input`, entry actions, and exit actions. Plain string targets are intentionally not supported; use object targets such as `{ target: 'active' }`.
+
+  Simple FSM transitions preserve immutable public snapshots while using structural sharing and a lighter transition path for common `{ target }`, `{ context }`, and `{ target, context }` transitions.
+
+### Patch Changes
+
+- e297115: Object transition configs now support dynamic context patches with a `context` mapper.
+
+  ```ts
+  onDone: {
+    target: 'done',
+    context: ({ context, output }) => ({
+      answer: output,
+      memory: [...context.memory, output]
+    })
+  }
+  ```
+
+## 6.0.0-alpha.12
+
+### Patch Changes
+
+- 4d9ba1c: Spawning a child with `enq.spawn(...)` from a transition function now creates and starts the child actor exactly once for the committed transition.
+
+  ```ts
+  const machine = createMachine({
+    on: {
+      spawn: (_, enq) => {
+        enq.spawn(childMachine, { registryKey: "child" });
+      },
+    },
+  });
+  ```
+
+- 6798cb1: `serializeMachine(...)` and `createMachineFromConfig(...)` now represent inline functions (guards, actions, transitions, delays, route functions) as `{ '@code': string, '@lang': 'ts' }`. Non-portable values such as actor logic, runtime schemas, class instances, symbols, and bigints are omitted from the serialized JSON.
+
+  ```ts
+  import { serializeMachine } from "xstate";
+
+  serializeMachine(machine);
+  // inline functions → { '@code': '() => true', '@lang': 'ts' }
+  ```
+
+  Type-only refinements: `void` and `undefined` are accepted as type-only schemas, async logic output is inferred from an input-only schema, actions/guards can be typed via `schemas`, and `trigger` is correctly typed on spawned actors.
+
+## 6.0.0-alpha.11
+
+### Patch Changes
+
+- 57e8d85: Machines that declare `schemas.output` now type-check top-level final state
+  `output` values against the machine output type.
+
+  ```ts
+  createMachine({
+    schemas: {
+      output: types<{ status: "ok" }>(),
+    },
+    initial: "done",
+    states: {
+      done: {
+        type: "final",
+        output: { status: "ok" },
+      },
+    },
+    output: ({ event }) => event.output,
+  });
+  ```
+
+## 6.0.0-alpha.10
+
+### Patch Changes
+
+- 86b43ea: Export setup system helper types used by public machine types.
+
+  This avoids inferred machine types referring to internal declaration paths when
+  `setup(...)` includes a typed system registry.
+
+## 6.0.0-alpha.9
+
+### Minor Changes
+
+- 54205cc: Export setup helper types for libraries that return or decorate setup-bound objects while preserving native `setup(...).createMachine(...)` typing.
+
+  ```ts
+  import {
+    setup,
+    type AnySetupConfig,
+    type SetupReturnFromConfig,
+  } from "xstate";
+
+  function decorateSetup<const TConfig extends AnySetupConfig>(
+    config: TConfig,
+  ): SetupReturnFromConfig<TConfig> & { extra: true } {
+    const s = setup(config) as SetupReturnFromConfig<TConfig>;
+
+    return Object.assign(s, { extra: true as const });
+  }
+  ```
+
+### Patch Changes
+
+- 54205cc: Empty Standard Schema event objects now infer as type-only events, so `{ type: 'SEND' }` is accepted for an empty `SEND` payload schema while non-empty schemas still require their payload fields.
+- 54205cc: Registered invoke `onDone` callbacks now receive the invoked actor's output type, and `machine.provide({ actors })` accepts compatible actor sources with sound input/output variance.
+
+## 6.0.0-alpha.8
+
+### Patch Changes
+
+- 667d1c7: Done transitions now receive `output` directly in callback arguments.
+
+  ```ts
+  invoke: {
+    src: fetchUser,
+    onDone: ({ output }) => {
+      output.name;
+    }
+  }
+  ```
+
+  The direct `output` value is only provided for XState done events, such as
+  `xstate.done.actor.*` and `xstate.done.state.*`.
+
+## 6.0.0-alpha.7
+
+### Major Changes
+
+- 89895f9: Add `createSystem({ registry })` for declaring typed actor registry keys and creating actors in that system.
+
+  Registry keys are assigned with `registryKey` on invokes, spawned actors, and root actors created from the system. Registry keys are checked against the declared registry when using `createSystem`.
+
+  ```ts
+  const system = createSystem({
+    registry: {
+      receiver: receiverLogic,
+    },
+  });
+
+  const machine = system.setup().createMachine({
+    invoke: {
+      src: receiverLogic,
+      registryKey: "receiver",
+    },
+  });
+
+  const actor = system.createActor(machine).start();
+
+  system.get("receiver")?.send({ type: "HELLO" });
+  ```
+
+### Patch Changes
+
+- 89895f9: Static transition config objects may now include a shallow `context` patch.
+
+  ```ts
+  createMachine({
+    context: { draftAnyway: false, count: 0 },
+    initial: "idle",
+    states: {
+      idle: {
+        on: {
+          DRAFT_ANYWAY: {
+            target: "drafting",
+            context: { draftAnyway: true },
+          },
+        },
+      },
+      drafting: {},
+    },
+  });
+  ```
+
+  The patch is shallow-merged with the current context, just like `context` returned from a transition function. Setup-typed machines still require any keys needed by the target state's narrowed context.
+
+## 6.0.0-alpha.6
+
+### Patch Changes
+
+- ecd97db: State transition functions now type `enq` with the machine's events and emitted events.
+
+  ```ts
+  setup({
+    schemas: {
+      events: {
+        go: types<{}>(),
+      },
+    },
+  }).createMachine({
+    states: {
+      active: {
+        on: {
+          go: (_args, enq) => {
+            enq.raise({ type: "go" });
+          },
+        },
+      },
+    },
+  });
+  ```
+
+- 4b5b14f: Transition functions may now return only a target when the target state's context is compatible with the current context.
+
+  ```ts
+  setup({
+    schemas: {
+      context: types<{ count: number }>(),
+      events: {
+        next: types<{}>(),
+      },
+    },
+  }).createMachine({
+    context: { count: 0 },
+    initial: "idle",
+    states: {
+      idle: {
+        on: {
+          next: () => ({ target: "done" }),
+        },
+      },
+      done: {},
+    },
+  });
+  ```
+
+## 6.0.0-alpha.5
+
+### Major Changes
+
+- 297f851: String target shorthand is no longer accepted for transition configs. Use the object form with `target` instead:
+
+  ```ts
+  createMachine({
+    initial: "idle",
+    states: {
+      idle: {
+        on: {
+          start: { target: "active" },
+        },
+      },
+      active: {},
+    },
+  });
+  ```
+
+## 6.0.0-alpha.4
+
+### Major Changes
+
+- c3f7a9d: Actor logic now returns effects from both regular and initial transitions.
+
+  Hand-written actor logic should return `[snapshot, effects]` from `transition(...)` and provide `initialTransition(...)` for creating the initial `[snapshot, effects]` tuple. `getInitialSnapshot(...)` remains available for snapshot-only reads.
+
+  ```ts
+  const logic = {
+    transition: (snapshot, event) => [snapshot, []],
+    initialTransition: (input, _scope) => [
+      {
+        status: "active",
+        output: undefined,
+        error: undefined,
+        input,
+      },
+      [],
+    ],
+    getInitialSnapshot: (scope, input) =>
+      logic.initialTransition(input, scope)[0],
+  };
+  ```
+
+  `transition(...)` and `initialTransition(...)` continue to return `[snapshot, actions]` for machine logic.
+
+  `fromStore(...)` effects now run after the actor snapshot is committed, so effect callbacks read the updated snapshot from `enqueue.getSnapshot()`.
+
+- 309b106: Add `schemas.children` for explicitly typing child actor refs by child ID. Declared child refs type `children.someId`, child snapshots, and invoke configs so `invoke: { id: 'someId', src }` must match the declared child actor contract.
+- fa2bbf0: Built-in executable effects returned from `transition(...)` and `initialTransition(...)` are now easier to inspect declaratively.
+
+  Use `isBuiltInExecutableAction(effect)` to narrow an executable effect to XState's built-in effect union, then switch on `effect.type` to access stable, named metadata fields:
+
+  ```ts
+  const [snapshot, effects] = initialTransition(machine);
+
+  for (const effect of effects) {
+    if (!isBuiltInExecutableAction(effect)) {
+      continue;
+    }
+
+    switch (effect.type) {
+      case "@xstate.start":
+        effect.id;
+        effect.logic;
+        effect.src;
+        effect.input;
+        break;
+
+      case "@xstate.sendTo":
+        effect.target;
+        effect.event;
+        effect.delay;
+        break;
+
+      case "@xstate.raise":
+        effect.event;
+        effect.delay;
+        break;
+    }
+  }
+  ```
+
+  The built-in stop effect is now exposed as `@xstate.stop`, matching `@xstate.start`.
+
+## 6.0.0-alpha.3
+
+### Minor Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`0a883ad`](https://github.com/statelyai/xstate/commit/0a883ad8827f21faed58079179d51cd6ec662b55) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Expose `machine.schemas` as a public runtime-readable schema contract.
+
+  ```ts
+  const machine = createMachine({
+    schemas: {
+      context: z.object({ count: z.number() }),
+      events: {
+        inc: z.object({ by: z.number() }),
+      },
+    },
+    context: { count: 0 },
+  });
+
+  machine.schemas?.events?.inc;
+  ```
+
+### Patch Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`d95287b`](https://github.com/statelyai/xstate/commit/d95287bc9a05cca56ff3c887c321e64721a137ed) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Serialize function implementations as portable code expressions.
+
+  Functions in guards, actions, delays, and inline machine config now serialize as:
+
+  ```ts
+  { '@type': 'code', lang: 'ts', expr: '() => true' }
+  ```
+
+  Values that cannot be represented as code or JSON still serialize with explicit `$unserializable` markers.
+
+## 6.0.0-alpha.2
+
+### Patch Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`d6a537e`](https://github.com/statelyai/xstate/commit/d6a537eeb078be3256ac269102e28a8aad2f5403) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed a bug where an invoked actor's `input` (and a dynamic `src` function) received the context from _before_ the transition that entered the invoking state, rather than the updated context. Now, when a transition updates context and targets a state that invokes an actor, the actor's `input` sees the updated context — consistent with that state's `entry` actions.
+
+  ```ts
+  const machine = createMachine({
+    context: { value: 0 },
+    initial: "idle",
+    states: {
+      idle: {
+        on: {
+          start: () => ({ target: "active", context: { value: 100 } }),
+        },
+      },
+      active: {
+        invoke: {
+          src: asyncLogic,
+          // now receives { value: 100 } instead of { value: 0 }
+          input: ({ context }) => ({ val: context.value }),
+        },
+      },
+    },
+  });
+  ```
+
+## 6.0.0-alpha.1
+
+### Major Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Invoked and spawned actors are no longer started directly by `actor.start()`. They now start as part of the transition that creates them (via an internal deferred start action), the same way other entry effects run.
+
+  The user-visible consequence: a child that fails synchronously while starting now surfaces that failure through the invoking state's `onError` transition instead of throwing out of `actor.start()`:
+
+  ```ts
+  const machine = createMachine({
+    initial: "loading",
+    states: {
+      loading: {
+        invoke: {
+          src: createAsyncLogic({
+            run: () => {
+              throw new Error("boom"); // sync failure on start
+            },
+          }),
+          onError: "failed",
+        },
+      },
+      failed: {},
+    },
+  });
+
+  const actor = createActor(machine).start(); // does not throw
+  actor.getSnapshot().value; // 'failed'
+  ```
+
+  Restored (rehydrated) children that were active when a snapshot was persisted are still restarted on `actor.start()`, so persistence behavior is unchanged.
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actions, guards, and transitions are now plain inline functions, and the v5 action/guard creators are removed.
+
+  Removed exports: `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, and the guard creators `and`, `or`, `not`, `stateIn`.
+
+  Instead, a transition/action/guard is a function `(args, enq) => ...`:
+  - Update context by **returning** a full `{ context }` patch (no more `assign`).
+  - Perform side effects through the `enq` enqueue object: `enq.raise`, `enq.sendTo`, `enq.emit`, `enq.log`, `enq.cancel`, `enq.spawn`, `enq.stop`, plus `enq(fn, ...args)` for arbitrary effects.
+  - Guards are just functions that return a boolean (or `undefined`/`false` to block).
+
+  ```diff
+  - import { assign, raise, sendTo, and, not } from 'xstate';
+
+    const machine = createMachine({
+      context: { count: 0 },
+      on: {
+  -     INC: {
+  -       guard: and([not('isMax'), 'isReady']),
+  -       actions: assign({ count: ({ context }) => context.count + 1 })
+  -     }
+  +     INC: ({ context, guards }) => {
+  +       if (guards.isMax(context) || !guards.isReady(context)) return;
+  +       return { context: { count: context.count + 1 } };
+  +     }
+      }
+    });
+  ```
+
+  The `stateIn` guard is replaced by checking the snapshot directly — use `snapshot.matches(...)` inside a transition function:
+
+  ```ts
+  on: {
+    CHECK: ({ self }) => {
+      if (self.getSnapshot().matches({ b: "b2" })) {
+        return { target: "a2" };
+      }
+    };
+  }
+  ```
+
+  For matching by state **id** (the `'#id'` form, which `matches()` doesn't resolve), the exported `checkStateIn(snapshot, '#id')` helper is also available.
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Remove the deprecated `interpret` function and `Interpreter` type. Use `createActor(...)` and `Actor` (or `ActorRefFrom<...>`) instead.
+
+  ```diff
+  - import { interpret, type Interpreter } from 'xstate';
+  - const actor = interpret(machine);
+  + import { createActor, type Actor } from 'xstate';
+  + const actor = createActor(machine);
+  ```
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `schemas` is now the way to type a machine, replacing v5's `types: {} as {...}`. Each `schemas` field accepts any [Standard Schema](https://standardschema.dev) (Zod, Valibot, …) for both type inference and (where supported) runtime validation, or `types<T>()` for types only.
+
+  Notably, `schemas.events` is a **map** of event-type → payload schema, inferred into a discriminated union keyed by `type`:
+
+  ```ts
+  import { createMachine } from "xstate";
+  import { z } from "zod";
+
+  const machine = createMachine({
+    schemas: {
+      context: z.object({ count: z.number() }),
+      events: {
+        inc: z.object({ by: z.number() }),
+        reset: z.object({}),
+      },
+      input: z.object({ start: z.number() }),
+      output: z.object({ total: z.number() }),
+      emitted: { changed: z.object({ count: z.number() }) },
+      tags: z.union([z.literal("busy"), z.literal("idle")]),
+      meta: z.object({ label: z.string() }),
+    },
+    context: ({ input }) => ({ count: input.start }),
+    initial: "active",
+    states: {
+      active: {
+        on: {
+          inc: ({ context, event }) => ({
+            context: { count: context.count + event.by },
+          }),
+        },
+      },
+    },
+  });
+  ```
+
+  - `context` → context type (literal initial values are widened, so updates typecheck).
+  - `events` → `{ type: 'inc'; by: number } | { type: 'reset' }`; payloads are typed on `event` in every transition/action/guard function.
+  - `input` → typed `createActor(machine, { input })` and the `context` initializer argument.
+  - `output` → typed `snapshot.output`.
+  - `emitted` → typed `actor.on('changed', (ev) => ev.count)`.
+  - `tags` → constrains `snapshot.hasTag(...)`.
+  - `meta` → typed state `meta`.
+
+  `actors`, `actions`, `guards`, and `delays` are top-level config keys (now inline functions), not `schemas` keys.
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`96aee67`](https://github.com/statelyai/xstate/commit/96aee679d4bd8041eb25df6bda2d9eef2ab7169f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Separate concrete actors from actor refs in public types. `ActorRef` now represents the consumer-facing contract for sending events, reading published snapshots, and listening to emitted events with `actorRef.on(...)`; concrete `Actor` instances provide lifecycle and runtime capabilities and still satisfy actor ref contracts.
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `setup(...)` no longer registers implementations. It now takes only `{ schemas?, states? }` and returns `{ createMachine, createStateConfig, states }`.
+
+  In v5, `setup({ schemas, actors, actions, guards, delays })` registered named implementations and returned action creators (`assign`, `sendTo`, `raise`, …). In v6, actions/guards/actors/delays are plain inline functions, so `setup` no longer accepts or returns them. Its job is now machine- and state-level typing: it validates state keys, `initial`, and transition `target`s against the declared `states`, and types per-state `input`/`context`.
+
+  ```ts
+  const { createMachine, createStateConfig } = setup({
+    schemas: {
+      context: types<{ count: number }>(),
+      events: { INC: types<{ value: number }>() },
+    },
+    states: {
+      idle: {},
+      loading: { schemas: { input: z.object({ userId: z.string() }) } },
+    },
+  });
+  ```
+
+  `setup().createMachine()` merges setup `schemas` with config `schemas`. Bare `createMachine({ schemas })` infers the same machine-level types without the state-key checks.
+
+### Minor Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `actor.trigger` — a typed event-sender proxy. `actor.trigger.EVENT(payload)` is shorthand for `actor.send({ type: 'EVENT', ...payload })`:
+
+  ```ts
+  actor.trigger.NEXT();
+  actor.trigger.INC({ by: 5 });
+  ```
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Machine JSON revival now preserves more of the serialized machine definition, including delayed transitions, state timeouts, state tags, state output, invoke input, invoke completion transitions, invoke timeouts, and source maps passed to `createMachineFromConfig`.
+
+  ```ts
+  const machine = createMachineFromConfig(
+    {
+      initial: "loading",
+      states: {
+        loading: {
+          invoke: {
+            src: "loadUser",
+            input: { userId: "42" },
+            onDone: { target: "done" },
+            timeout: 5000,
+            onTimeout: { target: "timedOut" },
+          },
+        },
+        done: {},
+        timedOut: {},
+      },
+    },
+    {
+      actors: { loadUser },
+    },
+  );
+  ```
+
+  The migration codemod now reports manual review notes for known non-rename migrations such as `fromPromise(...)`, `return assign(...)`, object-form actions/guards, and legacy `types: {}` schema declarations.
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `createLogic` and `createAsyncLogic` gain a durable-effect enqueue API on their `run` function's second argument (`enq`).
+  - **`enq.effect(key?, fn)`** registers a side effect that runs once per key (an unnamed effect runs every transition) and is cleaned up when the actor stops.
+  - **`enq.step(key, asyncFn)`** (async logic) is an `await`-able step whose result is memoized into the persisted snapshot under `snapshot.effects[key]`. A rehydrated actor replays `run` but skips steps that already completed, so long-running async logic is resumable across persistence.
+
+  ```ts
+  const logic = createAsyncLogic({
+    run: async (_, enq) => {
+      const user = await enq.step("fetchUser", () => fetchUser());
+      const order = await enq.step("createOrder", () => createOrder(user.id));
+      return order.id;
+    },
+  });
+
+  // snapshot.effects.fetchUser === { status: 'done', output: { id: 1 } }
+  ```
+
+  A pending step can also be resolved externally by sending `{ type: 'xstate.logic.effect.resolve', key, output }`. The `LogicEnqueue`, `LogicEffect`, and `LogicEffectState` types are exported.
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add timeouts and duration-string delays.
+  - **State-level `timeout` / `onTimeout`** — declare a timeout on a state that transitions when the duration elapses (and is cancelled if the state is exited first):
+
+    ```ts
+    states: {
+      waiting: {
+        timeout: 1000,
+        onTimeout: 'escalated'
+      },
+      escalated: {}
+    }
+    ```
+
+  - **`createAsyncLogic` `timeout`** — async logic can time out; when it does, the run's `AbortSignal` is aborted and the actor errors with a `TimeoutError` (exported from `xstate`):
+
+    ```ts
+    const logic = createAsyncLogic({
+      timeout: "10ms",
+      run: ({ signal }) => fetch("/slow", { signal }),
+    });
+    ```
+
+  - **Invoke-level `timeout` / `onTimeout`** — an invocation can race a timeout: if the invoked actor doesn't complete in time, the `onTimeout` transition is taken; if it settles first (or the state is exited), the timeout is cancelled. `timeout` accepts a number, a duration string, a referenced delay, or a function `({ context, event }) => duration`. Both state- and invoke-level `timeout` throw at construction if declared without a matching `onTimeout`.
+
+    ```ts
+    working: {
+      invoke: {
+        src: fetchReport,
+        timeout: ({ context }) => context.slaMs,
+        onTimeout: 'timedOut',
+        onDone: 'done'
+      }
+    }
+    ```
+
+  - **Duration-string delays** — delays (including `after` and `timeout`) accept human-readable strings like `'10ms'` and `'5s'`, as well as ISO-8601 durations like `'PT2M'`, in addition to numbers:
+
+    ```ts
+    waiting: {
+      after: {
+        '5s': 'timedOut'
+      }
+    }
+    ```
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`d9079cd`](https://github.com/statelyai/xstate/commit/d9079cd8586b4be4154dbfc296219b391f1cd85c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Logic creators now accept Standard Schemas for type inference.
+
+  `createLogic(...)` and `createAsyncLogic(...)` accept `schemas.input` and
+  `schemas.output`:
+
+  ```ts
+  const loadUser = createAsyncLogic({
+    schemas: {
+      input: z.object({ userId: z.string() }),
+      output: z.object({ name: z.string() }),
+    },
+    run: async ({ input }) => {
+      input.userId; // string
+
+      return {
+        name: "David",
+      };
+    },
+  });
+  ```
+
+  The schemas are type-only for now. Runtime validation will be added later as an opt-in behavior.
+
+  `createCallbackLogic(...)`, `createObservableLogic(...)`, and `createEventObservableLogic(...)` also accept `schemas.input` with object-form config:
+
+  ```ts
+  const logic = createCallbackLogic({
+    schemas: {
+      input: z.object({ userId: z.string() }),
+    },
+    run: ({ input }) => {
+      input.userId; // string
+    },
+  });
+  ```
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `createStateConfig(...)` — author a standalone, fully-typed state node config (with `schemas`) that can be composed into a machine, mirroring how `setup(...).createMachine(...)` infers types.
+
+  ```ts
+  import { createStateConfig } from "xstate";
+
+  const loading = createStateConfig({
+    on: {
+      RESOLVE: "success",
+    },
+  });
+  ```
+
+  This is the building block for authoring machines as plain data: a `createStateConfig` node is a typed, serializable config object you compose into a machine — useful for data-first / JSON-driven state machines (round-tripping with `serializeMachine`/`createMachineFromConfig`) while keeping per-state schema typing.
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `enq.listen` and `enq.subscribeTo` for subscribing to other actors from inside transition/action functions.
+  - **`enq.listen(ref, eventType, mapper)`** subscribes to events emitted by another actor (supports wildcards like `'data.*'`) and relays a mapped event back to the current actor.
+  - **`enq.subscribeTo(ref, mappers)`** subscribes to another actor's snapshot/`done`/`error` (pass `{ snapshot, done, error }`, or a single function as snapshot shorthand). It also accepts an atom, in which case the mapper receives the atom's current value.
+
+  Both return a stoppable child ref (`enq.stop(ref)`) and are torn down automatically when the parent stops. The underlying logic creators `createListenerLogic` and `createSubscriptionLogic` are exported.
+
+  ```ts
+  entry: (_, enq) => {
+    const child = enq.spawn(childLogic, { id: "child" });
+    enq.listen(child, "data.*", (ev) => ({ type: "DATA", value: ev.value }));
+    enq.subscribeTo(child, {
+      done: (output) => ({ type: "CHILD_DONE", output }),
+    });
+  };
+  ```
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `internalEvents`: a list of event types that may be raised from within the machine (e.g. via `enq.raise(...)`) but are rejected when sent to the actor from the outside.
+
+  ```ts
+  const machine = createMachine({
+    internalEvents: ["tick"] as const,
+    initial: "idle",
+    states: {
+      idle: {
+        on: {
+          start: (_, enq) => {
+            enq.raise({ type: "tick" }); // allowed internally
+          },
+          tick: "running",
+        },
+      },
+      running: {},
+    },
+  });
+
+  // actor.send({ type: 'tick' }) from outside is rejected
+  ```
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`021cc56`](https://github.com/statelyai/xstate/commit/021cc563e75d2e4d130c34e2d274565c2df6ec76) Thanks [@davidkpiano](https://github.com/davidkpiano)! - State-level `schemas.context` now narrows context types for state actions, transition functions, and snapshots checked with `snapshot.matches(...)`.
+
+  ```ts
+  const machine = setup({
+    states: {
+      idle: {
+        schemas: { context: z.object({ user: z.null() }) },
+      },
+      success: {
+        schemas: { context: z.object({ user: z.string() }) },
+      },
+    },
+  }).createMachine({
+    schemas: {
+      context: z.object({ user: z.string().nullable() }),
+      events: {
+        LOAD: z.object({}),
+      },
+    },
+    initial: "idle",
+    context: { user: null },
+    states: {
+      idle: {
+        on: {
+          LOAD: () => ({
+            target: "success",
+            context: { user: "Ada" },
+          }),
+        },
+      },
+      success: {
+        entry: ({ context }) => {
+          context.user; // string
+        },
+      },
+    },
+  });
+
+  const actor = createActor(machine).start();
+  const snapshot = actor.getSnapshot();
+
+  if (snapshot.matches("success")) {
+    snapshot.context.user; // string
+  }
+  ```
+
+  State-level `schemas.input` is also supported: input supplied on a transition or `initial` (`{ target, input }`) is typed in that state's entry/exit and transition functions via `({ input })`, read from a snapshot with `snapshot.getInputs()` (keyed by state node id), and typed recursively for nested states.
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`52970ea`](https://github.com/statelyai/xstate/commit/52970ea75489305fd7bf1223f9b413770cd6d925) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `choice` states — a state that immediately routes to a target via a resolver function, returning the first matching transition config.
+
+  ```ts
+  const machine = createMachine({
+    context: { userStatus: "vip" },
+    initial: "routing",
+    states: {
+      routing: {
+        type: "choice",
+        choice: ({ context }) => {
+          if (context.userStatus === "vip") return { target: "vipFlow" };
+          return { target: "standardFlow" };
+        },
+      },
+      vipFlow: {},
+      standardFlow: {},
+    },
+  });
+  ```
+
+  A choice state must declare a `choice` function and must resolve to a target, and may not declare `entry`/`exit`/`on`/`after`/`invoke` — these throw at construction.
+
+## 6.0.0-alpha.0
+
+### Major Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`54b0f8b`](https://github.com/statelyai/xstate/commit/54b0f8b22679721d567ca7e2b7074e86a41de6ef) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Remove the legacy `from*` actor logic creators in favor of the `create*Logic` names. These are same-signature renames (except `fromPromise`, removed earlier in favor of config-based `createAsyncLogic`):
+
+  | Removed               | Use instead                              |
+  | --------------------- | ---------------------------------------- |
+  | `fromCallback`        | `createCallbackLogic` (same args)        |
+  | `fromObservable`      | `createObservableLogic` (same args)      |
+  | `fromEventObservable` | `createEventObservableLogic` (same args) |
+  | `fromTransition`      | `createTransitionLogic` (same args)      |
+
+  ```diff
+  - import { fromCallback, fromTransition } from 'xstate';
+  + import { createCallbackLogic, createTransitionLogic } from 'xstate';
+
+  - const listener = fromCallback(({ sendBack, receive }) => { ... });
+  + const listener = createCallbackLogic(({ sendBack, receive }) => { ... });
+
+  - const counter = fromTransition((count, event) => count + 1, 0);
+  + const counter = createTransitionLogic((count, event) => count + 1, 0);
+  ```
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`8b309a1`](https://github.com/statelyai/xstate/commit/8b309a17415b4522a99a374753731471b8784dd5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Spawned actors, persistence, and machine-as-data fixes:
+  - `enq.spawn(logic, { id })` now registers the child on `snapshot.children` (and `enq.stop(ref)` removes it), so spawned actors are observable via `children` and survive persistence — matching invoked actors:
+
+    ```ts
+    entry: (_, enq) => {
+      enq.spawn(childLogic, { id: 'child' });
+    },
+    on: {
+      ping: ({ children }, enq) => {
+        enq.sendTo(children.child, { type: 'PING' });
+      }
+    }
+    ```
+
+  - Invoked actors registered by name keep their logical `src` (e.g. `'fetchUser'`) in persisted snapshots instead of a positional id, and rehydrated children are started again on `actor.start()`.
+  - Machines are serializable again: `serializeMachine(machine)` returns the JSON-safe definition. Inline functions, actor logic, and runtime schemas appear as explicit `{ "$unserializable": ... }` markers. `createMachineFromConfig(json)` is also exported from `xstate` and round-trips losslessly with `serializeMachine`:
+
+    ```ts
+    import { createMachineFromConfig, serializeMachine } from "xstate";
+
+    const revived = createMachineFromConfig(
+      JSON.parse(JSON.stringify(serializeMachine(machine))),
+    );
+    ```
+
+  - Type fixes: context inferred from a literal initial value is widened (`context: { count: 0 }` infers `{ count: number }`, so context updates typecheck); `invoke.input` accepts a static value (not just a function); `onDone` exposes `event.output`. The v6 config types are exported: `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `MachineJSON`, and friends.
+
+### Minor Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`6031736`](https://github.com/statelyai/xstate/commit/6031736fb13fee88439cdbbc329f7b23f7387a63) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The inspection protocol is now both **simpler (2 event types)** and **lossless**. Every facet the previous 6-event protocol carried is preserved, but with flat, always-present payloads so you never narrow on an absent field.
+  - `@xstate.actor` — the single topology event, emitted once per actor (root and every spawned/invoked child). Carries `actorRef`, `parentRef`, `id`, `src`, and the initial `snapshot`, so the actor graph is drawable before any transitions occur. Actor _stop_ is derivable from `snapshot.status` on the final transition.
+  - `@xstate.transition` — carries every transition facet: `event`, `snapshot`, `sourceRef`, `microsteps`, plus the executed `actions` and the events `sent` to other actors (each with `targetRef`/`targetId`, `event`, and `delay`/`id` for scheduled sends). These arrays are **always present** (empty, not absent), so you can read `event.actions` / `event.sent` / `event.microsteps` directly.
+
+  The concrete event interfaces `ActorInspectionEvent` and `TransitionInspectionEvent` (and the `ActionRecord` / `SentRecord` payload types) are exported alongside the `InspectionEvent` union, which remains a discriminated union on `type`. This is a superset of what `@statelyai/inspect` consumes.
+
+  Atoms can also be used directly with `enq.subscribeTo(atom, ...)`; the mapper receives the atom's current value. The new `isAtom(value)` helper is exported for atom detection.
+
+  ```ts
+  const actor = createActor(machine, {
+    inspect: (ev) => {
+      if (ev.type === "@xstate.actor") {
+        // topology: ev.actorRef, ev.parentRef, ev.id, ev.src, ev.snapshot
+      } else if (ev.type === "@xstate.transition") {
+        ev.event; // the event that caused the transition
+        ev.snapshot; // resulting snapshot
+        ev.actions; // ActionRecord[] — executed actions (always present)
+        ev.sent; // SentRecord[] — relayed/scheduled events (always present)
+        ev.microsteps; // microstep transitions (always present)
+      }
+    },
+  });
+  ```
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`54b0f8b`](https://github.com/statelyai/xstate/commit/54b0f8b22679721d567ca7e2b7074e86a41de6ef) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Persistence hardening: pending timers, snapshot versioning, and route guard safety.
+  - **Pending timers are explicit in machine snapshots.** Delayed transitions and sends are represented by deterministic declarations in `snapshot.timers`. Timer firing arrives at the source as `{ type: 'xstate.timer', id }`; consuming it removes the declaration and produces the real delivery effect.
+
+    Reaching a final state or explicitly stopping a machine emits ordered cancellation effects for every remaining timer and clears those declarations. Persisted delayed sends preserve `self`, parent, and active-child relationships without rebinding a stopped actor to a replacement that happens to share its ID.
+
+    ```ts
+    const [snapshot] = machine.initialTransition(input);
+    snapshot.timers;
+    ```
+
+    Snapshots contain no wall-clock timestamps or native timeout handles. The runtime owns that bookkeeping through `scheduleTimer(source, id, delay)` and `cancelTimer(source, id)`. A locally restored actor restarts each timer with its declared delay; durable runtimes can persist timing data separately.
+
+    The previous `PendingEffect` type and `ActorOptions.timers` restore strategy are removed. Timing restoration policy now belongs to the runtime rather than the machine snapshot.
+
+  - **Persisted snapshots are versioned.** `machine.version` is stamped onto persisted snapshots; restoring a snapshot whose version doesn't match throws unless the machine config provides a `migrate` function:
+
+    ```ts
+    const machine = createMachine({
+      version: "2",
+      migrate: (persisted, fromVersion) => ({
+        ...persisted,
+        version: "2",
+        context: upgradeContext(persisted.context),
+      }),
+      // ...
+    });
+    ```
+
+  - **Routes are transition functions.** Consistent with `on`/`choice`, a route is now authored as a function that acts as its guard and resolver — returning `undefined`/`false` blocks the route; returning `true` or a config object (optionally with a `context` update and `input`/`reenter`/`meta`) allows it:
+
+    ```ts
+    profile: {
+      id: 'profile',
+      route: ({ context, guards }) => {
+        if (!guards.isLoggedIn(context)) return;
+        return { context: { ...context, visits: context.visits + 1 } };
+      }
+    }
+    ```
+
+    The object form (without `guard`) remains for static routes; object-form `guard` references (strings) are only produced by the JSON layer (`createMachineFromConfig`) and now fail loudly when unimplemented instead of silently allowing the route. Routes are also included in `serializeMachine(machine)` output.
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`d11c72d`](https://github.com/statelyai/xstate/commit/d11c72df0d83cfa5fc4445995b85e79a601c1c9e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add atom APIs to XState and make actors readable by atoms.
+
+  ```ts
+  import { createActor, createAtom, fromTransition } from "xstate";
+
+  const actor = createActor(
+    fromTransition((count: number, event: { type: "inc" }) => count + 1, 0),
+  ).start();
+
+  const count = createAtom(() => actor.get().context);
+  ```
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`46692e3`](https://github.com/statelyai/xstate/commit/46692e3c51ed6c830a01361ef74653949d5259d6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `types<T>()` for type-only schemas — declare machine types without a runtime schema library.
+
+  `schemas` fields accept any [Standard Schema](https://standardschema.dev) (Zod, Valibot, …) for runtime validation _and_ inference. When you only want types, `types<T>()` provides the inference with no runtime validation (it's a Standard Schema whose validation is the identity function):
+
+  ```ts
+  import { createMachine, types } from "xstate";
+
+  const machine = createMachine({
+    schemas: {
+      context: types<{ count: number }>(),
+      events: {
+        inc: types<{ by: number }>(),
+        reset: types<{}>(),
+      },
+    },
+    context: { count: 0 },
+    initial: "active",
+    states: {
+      active: {
+        on: {
+          inc: ({ context, event }) => ({
+            context: { count: context.count + event.by },
+          }),
+        },
+      },
+    },
+  });
+  ```
+
+  This is the v6 replacement for v5's `types: {} as { ... }` — same "types only, no runtime cost" intent, now living in `schemas` alongside real schemas. `isTypeSchema(value)` is also exported.
+
+### Patch Changes
+
+- [#5543](https://github.com/statelyai/xstate/pull/5543) [`8b309a1`](https://github.com/statelyai/xstate/commit/8b309a17415b4522a99a374753731471b8784dd5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Reduce bundle size: a minimal machine + actor now costs ~14.8 kB min+gzip (was ~16.8 kB), with no API changes.
+  - Apps that don't use atoms no longer bundle the reactive system — actors notify subscribers directly, and atom↔actor reactivity (`createAtom(() => actor.get())`) is wired up lazily on first atom use.
+  - Machine serialization (`machine.toJSON()`) and the internal listener/subscription actor logic are significantly smaller.
+  - Long diagnostic error messages are now development-only; production builds throw the same errors with shorter messages.
+
 ## 5.32.5
 
 ### Patch Changes
@@ -14,22 +2119,22 @@
 
   ```ts
   const machine = createMachine({
-    initial: 'off',
+    initial: "off",
     states: {
-      off: { on: { GO: 'on.hist' } },
+      off: { on: { GO: "on.hist" } },
       on: {
-        type: 'parallel',
+        type: "parallel",
         states: {
-          regA: { initial: 'a1', states: { a1: {}, a2: {} } },
-          regB: { initial: 'b1', states: { b1: {}, b2: {} } },
-          hist: { type: 'history', history: 'deep' }
-        }
-      }
-    }
+          regA: { initial: "a1", states: { a1: {}, a2: {} } },
+          regB: { initial: "b1", states: { b1: {}, b2: {} } },
+          hist: { type: "history", history: "deep" },
+        },
+      },
+    },
   });
 
   const actor = createActor(machine).start();
-  actor.send({ type: 'GO' });
+  actor.send({ type: "GO" });
   actor.getSnapshot().value; // { on: { regA: 'a1', regB: 'b1' } }
   ```
 
@@ -45,15 +2150,15 @@
 
   ```ts
   const machine = createMachine({
-    initial: 'idle',
+    initial: "idle",
     states: {
       idle: {
         invoke: {
           src: fromPromise(async () => 42),
-          systemId: 'myActor' // previously caused: "Actor with system ID 'myActor' already exists"
-        }
-      }
-    }
+          systemId: "myActor", // previously caused: "Actor with system ID 'myActor' already exists"
+        },
+      },
+    },
   });
 
   // Now works correctly — returns [snapshot, actions] without throwing
@@ -91,17 +2196,17 @@
   ```ts
   const machine = setup({
     guards: {
-      isReady: ({ context }) => context.ready
-    }
+      isReady: ({ context }) => context.ready,
+    },
   }).createMachine({
     states: {
       review: {
-        id: 'review',
+        id: "review",
         route: {
-          guard: 'isReady'
-        }
-      }
-    }
+          guard: "isReady",
+        },
+      },
+    },
   });
   ```
 
@@ -112,14 +2217,14 @@
 - [#5429](https://github.com/statelyai/xstate/pull/5429) [`9d9c1fe`](https://github.com/statelyai/xstate/commit/9d9c1fe9df43936aa6ab43a4694645a6966ace12) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `mapState(snapshot, mapper)` to map a snapshot to values based on active state(s).
 
   ```ts
-  import { mapState } from 'xstate';
+  import { mapState } from "xstate";
 
   const results = mapState(snapshot, {
     states: {
-      loading: { map: () => 'Loading...' },
+      loading: { map: () => "Loading..." },
       success: { map: (snap) => snap.context.data },
-      error: { map: (snap) => snap.context.error.message }
-    }
+      error: { map: (snap) => snap.context.error.message },
+    },
   });
 
   console.log(results);
@@ -137,8 +2242,8 @@
   const machine = createMachine({
     // ... machine config
     options: {
-      maxIterations: 1000 // set a limit to enable infinite loop detection
-    }
+      maxIterations: 1000, // set a limit to enable infinite loop detection
+    },
   });
   ```
 
@@ -154,12 +2259,12 @@
   such as when you only want to explore events that currently pass guards:
 
   ```ts
-  import { createTestModel } from 'xstate/graph';
+  import { createTestModel } from "xstate/graph";
 
   const model = createTestModel(machine);
 
   const paths = model.getSimplePaths({
-    filterEvents: (state, event) => state.can(event)
+    filterEvents: (state, event) => state.can(event),
   });
   ```
 
@@ -190,24 +2295,24 @@
 
   ```ts
   const machine = setup({}).createMachine({
-    id: 'app',
-    initial: 'home',
+    id: "app",
+    initial: "home",
     states: {
-      home: { id: 'home', route: {} },
+      home: { id: "home", route: {} },
       dashboard: {
-        initial: 'overview',
+        initial: "overview",
         states: {
-          overview: { id: 'overview', route: {} },
-          settings: { id: 'settings', route: {} }
-        }
-      }
-    }
+          overview: { id: "overview", route: {} },
+          settings: { id: "settings", route: {} },
+        },
+      },
+    },
   });
 
   const actor = createActor(machine).start();
 
   // Route directly to deeply nested state from anywhere
-  actor.send({ type: 'xstate.route', to: '#settings' });
+  actor.send({ type: "xstate.route", to: "#settings" });
   ```
 
   Routes support guards for conditional navigation:
@@ -232,23 +2337,23 @@
 - [#5457](https://github.com/statelyai/xstate/pull/5457) [`287b51e`](https://github.com/statelyai/xstate/commit/287b51eb80abc521f8c35fa73df177a0b9dfd3bc) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `getInitialMicrosteps(…)` and `getMicrosteps(…)` functions that return an array of `[snapshot, actions]` tuples for each microstep in a transition.
 
   ```ts
-  import { createMachine, getInitialMicrosteps, getMicrosteps } from 'xstate';
+  import { createMachine, getInitialMicrosteps, getMicrosteps } from "xstate";
 
   const machine = createMachine({
-    initial: 'a',
+    initial: "a",
     states: {
       a: {
-        entry: () => console.log('enter a'),
+        entry: () => console.log("enter a"),
         on: {
-          NEXT: 'b'
-        }
+          NEXT: "b",
+        },
       },
       b: {
-        entry: () => console.log('enter b'),
-        always: 'c'
+        entry: () => console.log("enter b"),
+        always: "c",
       },
-      c: {}
-    }
+      c: {},
+    },
   });
 
   // Get microsteps from initial transition
@@ -259,7 +2364,7 @@
 
   // Get microsteps from a transition
   const microsteps = getMicrosteps(machine, initialMicrosteps[0][0], {
-    type: 'NEXT'
+    type: "NEXT",
   });
   // Returns: [
   //  [snapshotB, [entryActionB]],
@@ -268,8 +2373,8 @@
 
   // Each microstep is a tuple of [snapshot, actions]
   for (const [snapshot, actions] of microsteps) {
-    console.log('State:', snapshot.value);
-    console.log('Actions:', actions.length);
+    console.log("State:", snapshot.value);
+    console.log("Actions:", actions.length);
   }
   ```
 
@@ -280,7 +2385,7 @@
 - [#5406](https://github.com/statelyai/xstate/pull/5406) [`703c3a1`](https://github.com/statelyai/xstate/commit/703c3a109c824f2334ede31d8428e923d2727e6e) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `getNextTransitions(state)` utility to get all transitions available from current `state`.
 
   ```ts
-  import { getNextTransitions } from 'xstate';
+  import { getNextTransitions } from "xstate";
 
   // ...
 
@@ -306,7 +2411,7 @@
 
   ```ts
   // Matches any event with a type that starts with `FEEDBACK.`
-  assertEvent(event, 'FEEDBACK.*');
+  assertEvent(event, "FEEDBACK.*");
   ```
 
 ### Patch Changes
@@ -320,35 +2425,35 @@
 - [#5371](https://github.com/statelyai/xstate/pull/5371) [`b8ec3b1`](https://github.com/statelyai/xstate/commit/b8ec3b153fbacae078c03cd07678271e0456679a) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `setup.extend()` method to incrementally extend machine setup configurations with additional actions, guards, and delays. This enables composable and reusable machine setups where extended actions, guards, and delays can reference base actions, guards, and delays and support chaining multiple extensions:
 
   ```ts
-  import { setup, not, and } from 'xstate';
+  import { setup, not, and } from "xstate";
 
   const baseSetup = setup({
     guards: {
       isAuthenticated: () => true,
-      hasPermission: () => false
-    }
+      hasPermission: () => false,
+    },
   });
 
   const extendedSetup = baseSetup.extend({
     guards: {
       // Type-safe guard references
-      isUnauthenticated: not('isAuthenticated'),
-      canAccess: and(['isAuthenticated', 'hasPermission'])
-    }
+      isUnauthenticated: not("isAuthenticated"),
+      canAccess: and(["isAuthenticated", "hasPermission"]),
+    },
   });
 
   // Both base and extended guards are available
   extendedSetup.createMachine({
     on: {
       LOGIN: {
-        guard: 'isAuthenticated',
-        target: 'authenticated'
+        guard: "isAuthenticated",
+        target: "authenticated",
       },
       LOGOUT: {
-        guard: 'isUnauthenticated',
-        target: 'unauthenticated'
-      }
-    }
+        guard: "isUnauthenticated",
+        target: "unauthenticated",
+      },
+    },
   });
   ```
 
@@ -365,9 +2470,9 @@
     invoke: [
       {
         src: childMachine,
-        systemId: 'test'
-      }
-    ]
+        systemId: "test",
+      },
+    ],
   });
   const system = createActor(machine);
 
@@ -381,7 +2486,7 @@
 - [#5379](https://github.com/statelyai/xstate/pull/5379) [`98f9ddd`](https://github.com/statelyai/xstate/commit/98f9ddde939320fb698ef382f6712a0753d55ca5) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Make `actor.systemId` public:
 
   ```ts
-  const actor = createActor(machine, { systemId: 'test' });
+  const actor = createActor(machine, { systemId: "test" });
   actor.systemId; // 'test'
   ```
 
@@ -403,9 +2508,9 @@
       context: {
         count: number;
       };
-      events: { type: 'inc'; value: number } | { type: 'TEST' };
-      emitted: { type: 'PING' };
-    }
+      events: { type: "inc"; value: number } | { type: "TEST" };
+      emitted: { type: "PING" };
+    },
   });
 
   // Custom action
@@ -415,10 +2520,10 @@
 
   // Type-bound built-ins (no wrapper needed)
   const increment = machineSetup.assign({
-    count: ({ context }) => context.count + 1
+    count: ({ context }) => context.count + 1,
   });
-  const raiseTest = machineSetup.raise({ type: 'TEST' });
-  const ping = machineSetup.emit({ type: 'PING' });
+  const raiseTest = machineSetup.raise({ type: "TEST" });
+  const ping = machineSetup.emit({ type: "PING" });
   const batch = machineSetup.enqueueActions(({ enqueue, check }) => {
     if (check(() => true)) {
       enqueue(increment);
@@ -427,7 +2532,7 @@
 
   const machine = machineSetup.createMachine({
     context: { count: 0 },
-    entry: [action, increment, raiseTest, ping, batch]
+    entry: [action, increment, raiseTest, ping, batch],
   });
   ```
 
@@ -455,12 +2560,12 @@
   });
 
   const machine = lightMachineSetup.createMachine({
-    initial: 'green',
+    initial: "green",
     states: {
       green,
       yellow,
-      red
-    }
+      red,
+    },
   });
   ```
 
@@ -471,9 +2576,9 @@
 - [#5351](https://github.com/statelyai/xstate/pull/5351) [`71387ff`](https://github.com/statelyai/xstate/commit/71387ff0af86715fe233c33236fe6e6a8746e56f) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix: Emit callback errors no longer crash the actor
 
   ```ts
-  actor.on('event', () => {
+  actor.on("event", () => {
     // Will no longer crash the actor
-    throw new Error('oops');
+    throw new Error("oops");
   });
   ```
 
@@ -490,16 +2595,16 @@
 - [#5287](https://github.com/statelyai/xstate/pull/5287) [`e07a7cd8462473188a0fb646a965e61be1ce6ae3`](https://github.com/statelyai/xstate/commit/e07a7cd8462473188a0fb646a965e61be1ce6ae3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The graph and model-based testing utilities from @xstate/graph (and @xstate/test previously) were moved to the core `xstate` package.
 
   ```ts
-  import { createMachine } from 'xstate';
-  import { getShortestPaths } from 'xstate/graph';
+  import { createMachine } from "xstate";
+  import { getShortestPaths } from "xstate/graph";
 
   const machine = createMachine({
     // ...
   });
 
   const paths = getShortestPaths(machine, {
-    fromState: 'a',
-    toState: 'b'
+    fromState: "a",
+    toState: "b",
   });
   ```
 
@@ -529,7 +2634,7 @@
 
   ```ts
   const childMachine = createMachine({
-    types: { input: {} as { value: number } }
+    types: { input: {} as { value: number } },
   });
 
   const machine = createMachine({
@@ -538,9 +2643,9 @@
       ref: spawn(
         childMachine,
         // Input is now required!
-        { input: { value: 42 } }
-      )
-    })
+        { input: { value: 42 } },
+      ),
+    }),
   });
   ```
 
@@ -551,7 +2656,7 @@
 - [#4954](https://github.com/statelyai/xstate/pull/4954) [`8c4b70652acaef2702f32435362e4755679a516d`](https://github.com/statelyai/xstate/commit/8c4b70652acaef2702f32435362e4755679a516d) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added a new `transition` function that takes an actor logic, a snapshot, and an event, and returns a tuple containing the next snapshot and the actions to execute. This function is a pure function and does not execute the actions itself. It can be used like this:
 
   ```ts
-  import { transition } from 'xstate';
+  import { transition } from "xstate";
 
   const [nextState, actions] = transition(actorLogic, currentState, event);
   // Execute actions as needed
@@ -560,7 +2665,7 @@
   Added a new `initialTransition` function that takes an actor logic and an optional input, and returns a tuple containing the initial snapshot and the actions to execute from the initial transition. This function is also a pure function and does not execute the actions itself. It can be used like this:
 
   ```ts
-  import { initialTransition } from 'xstate';
+  import { initialTransition } from "xstate";
 
   const [initialState, actions] = initialTransition(actorLogic, input);
   // Execute actions as needed
@@ -590,47 +2695,47 @@
 
   ```ts
   const machine = setup({}).createMachine({
-    initial: 'green',
+    initial: "green",
     states: {
       green: {},
       yellow: {},
       red: {
-        initial: 'walk',
+        initial: "walk",
         states: {
           walk: {},
           wait: {},
-          stop: {}
-        }
+          stop: {},
+        },
       },
       emergency: {
-        type: 'parallel',
+        type: "parallel",
         states: {
           main: {
-            initial: 'blinking',
+            initial: "blinking",
             states: {
-              blinking: {}
-            }
+              blinking: {},
+            },
           },
           cross: {
-            initial: 'blinking',
+            initial: "blinking",
             states: {
-              blinking: {}
-            }
-          }
-        }
-      }
-    }
+              blinking: {},
+            },
+          },
+        },
+      },
+    },
   });
 
   const actor = createActor(machine).start();
 
   const stateValue = actor.getSnapshot().value;
 
-  if (stateValue === 'green') {
+  if (stateValue === "green") {
     // ...
-  } else if (stateValue === 'yellow') {
+  } else if (stateValue === "yellow") {
     // ...
-  } else if ('red' in stateValue) {
+  } else if ("red" in stateValue) {
     stateValue;
     // {
     //   red: "walk" | "wait" | "stop";
@@ -651,7 +2756,7 @@
 - [#5054](https://github.com/statelyai/xstate/pull/5054) [`853f6daa0b`](https://github.com/statelyai/xstate/commit/853f6daa0b58bab6ea4153043f9efcfb18d18172) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `CallbackLogicFunction` type (previously `InvokeCallback`) is now exported. This is the callback function that you pass into `fromCallback(callbackLogicFn)` to create an actor from a callback function.
 
   ```ts
-  import { type CallbackLogicFunction } from 'xstate';
+  import { type CallbackLogicFunction } from "xstate";
 
   // ...
   ```
@@ -692,23 +2797,23 @@
   const machine = setup({
     // ...
   }).createMachine({
-    id: 'root',
-    initial: 'parentState',
+    id: "root",
+    initial: "parentState",
     states: {
       parentState: {
         meta: {},
-        initial: 'childState',
+        initial: "childState",
         states: {
           childState: {
-            meta: {}
+            meta: {},
           },
           stateWithId: {
-            id: 'state with id',
-            meta: {}
-          }
-        }
-      }
-    }
+            id: "state with id",
+            meta: {},
+          },
+        },
+      },
+    },
   });
 
   const actor = createActor(machine);
@@ -717,15 +2822,15 @@
 
   // Auto-completed keys:
   metaValues.root;
-  metaValues['root.parentState'];
-  metaValues['root.parentState.childState'];
-  metaValues['state with id'];
+  metaValues["root.parentState"];
+  metaValues["root.parentState.childState"];
+  metaValues["state with id"];
 
   // @ts-expect-error
-  metaValues['root.parentState.stateWithId'];
+  metaValues["root.parentState.stateWithId"];
 
   // @ts-expect-error
-  metaValues['unknown state'];
+  metaValues["unknown state"];
   ```
 
 ### Patch Changes
@@ -741,12 +2846,12 @@
 - [#4981](https://github.com/statelyai/xstate/pull/4981) [`c4ae156b2`](https://github.com/statelyai/xstate/commit/c4ae156b278779e898aeb8d86b089de2cf959683) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added `sendParent` to the `enqueueActions` feature. This allows users to enqueue actions that send events to the parent actor within the `enqueueActions` block.
 
   ```js
-  import { createMachine, enqueueActions } from 'xstate';
+  import { createMachine, enqueueActions } from "xstate";
 
   const childMachine = createMachine({
     entry: enqueueActions(({ enqueue }) => {
-      enqueue.sendParent({ type: 'CHILD_READY' });
-    })
+      enqueue.sendParent({ type: "CHILD_READY" });
+    }),
   });
   ```
 
@@ -760,10 +2865,10 @@
   - `CallbackActorRef`: actor created by [`fromCallback`](https://stately.ai/docs/actors#fromcallback)
 
     ```ts
-    import { fromCallback, createActor } from 'xstate';
+    import { fromCallback, createActor } from "xstate";
 
     /** The events the actor receives. */
-    type Event = { type: 'someEvent' };
+    type Event = { type: "someEvent" };
     /** The actor's input. */
     type Input = { name: string };
 
@@ -773,22 +2878,22 @@
       // ^? CallbackActorRef<Event, Input>
 
       receive((event) => {
-        if (event.type === 'someEvent') {
+        if (event.type === "someEvent") {
           console.log(`${input.name}: received "someEvent" event`);
           // logs 'myActor: received "someEvent" event'
         }
       });
     });
 
-    const actor = createActor(logic, { input: { name: 'myActor' } });
+    const actor = createActor(logic, { input: { name: "myActor" } });
     //    ^? CallbackActorRef<Event, Input>
     ```
 
   - `ObservableActorRef`: actor created by [`fromObservable`](https://stately.ai/docs/actors#fromobservable) and [`fromEventObservable`](https://stately.ai/docs/actors#fromeventobservable)
 
     ```ts
-    import { fromObservable, createActor } from 'xstate';
-    import { interval } from 'rxjs';
+    import { fromObservable, createActor } from "xstate";
+    import { interval } from "rxjs";
 
     /** The type of the value observed by the actor's logic. */
     type Context = number;
@@ -813,7 +2918,7 @@
   - `PromiseActorRef`: actor created by [`fromPromise`](https://stately.ai/docs/actors#actors-as-promises)
 
     ```ts
-    import { fromPromise, createActor } from 'xstate';
+    import { fromPromise, createActor } from "xstate";
 
     /** The actor's resolved output. */
     type Output = string;
@@ -830,14 +2935,14 @@
       return url;
     });
 
-    const actor = createActor(logic, { input: { message: 'hello world' } });
+    const actor = createActor(logic, { input: { message: "hello world" } });
     //    ^? PromiseActorRef<Output, Input>
     ```
 
   - `TransitionActorRef`: actor created by [`fromTransition`](https://stately.ai/docs/actors#fromtransition)
 
     ```ts
-    import { fromTransition, createActor, type AnyActorSystem } from 'xstate';
+    import { fromTransition, createActor, type AnyActorSystem } from "xstate";
 
     /** The actor's stored context. */
     type Context = {
@@ -847,7 +2952,7 @@
       step: number;
     };
     /** The events the actor receives. */
-    type Event = { type: 'increment' };
+    type Event = { type: "increment" };
     /** The actor's input. */
     type Input = { step?: number };
 
@@ -860,10 +2965,10 @@
         actorScope.self;
         //         ^? TransitionActorRef<Context, Event>
 
-        if (event.type === 'increment') {
+        if (event.type === "increment") {
           return {
             ...state,
-            count: state.count + state.step
+            count: state.count + state.step,
           };
         }
         return state;
@@ -874,9 +2979,9 @@
 
         return {
           count: 0,
-          step: input.step ?? 1
+          step: input.step ?? 1,
         };
-      }
+      },
     );
 
     const actor = createActor(logic, { input: { step: 10 } });
@@ -900,14 +3005,14 @@
 
   // Inspection events will be logged
   actor.start();
-  actor.send({ type: 'anEvent' });
+  actor.send({ type: "anEvent" });
 
   // ...
 
   sub.unsubscribe();
 
   // Will no longer log inspection events
-  actor.send({ type: 'someEvent' });
+  actor.send({ type: "someEvent" });
   ```
 
 - [#4942](https://github.com/statelyai/xstate/pull/4942) [`9caaa1f70`](https://github.com/statelyai/xstate/commit/9caaa1f7039f2f50096afd3885560dd40f6f17c0) Thanks [@boneskull](https://github.com/boneskull)! - `DoneActorEvent` and `ErrorActorEvent` now contain property `actorId`, which refers to the ID of the actor the event refers to.
@@ -920,8 +3025,8 @@
   const logic = fromPromise(async ({ emit }) => {
     // ...
     emit({
-      type: 'emitted',
-      msg: 'hello'
+      type: "emitted",
+      msg: "hello",
     });
     // ...
   });
@@ -933,8 +3038,8 @@
   const logic = fromTransition((state, event, { emit }) => {
     // ...
     emit({
-      type: 'emitted',
-      msg: 'hello'
+      type: "emitted",
+      msg: "hello",
     });
     // ...
     return state;
@@ -948,8 +3053,8 @@
     // ...
 
     emit({
-      type: 'emitted',
-      msg: 'hello'
+      type: "emitted",
+      msg: "hello",
     });
 
     // ...
@@ -962,8 +3067,8 @@
   const logic = fromCallback(({ emit }) => {
     // ...
     emit({
-      type: 'emitted',
-      msg: 'hello'
+      type: "emitted",
+      msg: "hello",
     });
     // ...
   });
@@ -986,7 +3091,7 @@
 - [#4905](https://github.com/statelyai/xstate/pull/4905) [`dbeafeb25`](https://github.com/statelyai/xstate/commit/dbeafeb25eed63ee1d2b027f10bc63d9937ab073) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now use a wildcard to listen for _any_ emitted event from an actor:
 
   ```ts
-  actor.on('*', (emitted) => {
+  actor.on("*", (emitted) => {
     console.log(emitted); // Any emitted event
   });
   ```
@@ -999,7 +3104,7 @@
 
   ```ts
   const logic = fromPromise(({ signal }) =>
-    fetch('https://api.example.com', { signal })
+    fetch("https://api.example.com", { signal }),
   );
   ```
 
@@ -1017,7 +3122,7 @@
       assign({
         // ...
       });
-    }
+    },
   });
   ```
 
@@ -1032,17 +3137,17 @@
     types: {
       meta: {} as {
         layout: string;
-      }
-    }
+      },
+    },
   }).createMachine({
-    initial: 'home',
+    initial: "home",
     states: {
       home: {
         meta: {
-          layout: 'full'
-        }
-      }
-    }
+          layout: "full",
+        },
+      },
+    },
   });
 
   const actor = createActor(machine).start();
@@ -1063,15 +3168,15 @@
     actors: {
       existingActor: fromPromise(async () => {
         // ...
-      })
-    }
+      }),
+    },
   }).createMachine({
     invoke: {
       src: fromPromise(async () => {
         // Inline actor
-      })
+      }),
       // ...
-    }
+    },
   });
   ```
 
@@ -1082,14 +3187,14 @@
 - [#4822](https://github.com/statelyai/xstate/pull/4822) [`f7f1fbbf3`](https://github.com/statelyai/xstate/commit/f7f1fbbf3d56af9fcffe6ef9a37ab5953a90ca72) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `clock` and `logger` specified in the `options` object of `createActor(logic, options)` will now propagate to all actors created within the same actor system.
 
   ```ts
-  import { setup, log, createActor } from 'xstate';
+  import { setup, log, createActor } from "xstate";
 
   const childMachine = setup({
     // ...
   }).createMachine({
     // ...
     // Uses custom logger from root actor
-    entry: log('something')
+    entry: log("something"),
   });
 
   const parentMachine = setup({
@@ -1097,14 +3202,14 @@
   }).createMachine({
     // ...
     invoke: {
-      src: childMachine
-    }
+      src: childMachine,
+    },
   });
 
   const actor = createActor(parentMachine, {
     logger: (...args) => {
       // custom logger for args
-    }
+    },
   });
 
   actor.start();
@@ -1123,28 +3228,28 @@
 - [#4746](https://github.com/statelyai/xstate/pull/4746) [`b570ba20d`](https://github.com/statelyai/xstate/commit/b570ba20d7350819cbaf6740ff00a2bad5ffedfe) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The new `emit(…)` action creator emits events that can be received by listeners. Actors are now event emitters.
 
   ```ts
-  import { emit } from 'xstate';
+  import { emit } from "xstate";
 
   const machine = createMachine({
     // ...
     on: {
       something: {
         actions: emit({
-          type: 'emitted',
-          some: 'data'
-        })
-      }
-    }
+          type: "emitted",
+          some: "data",
+        }),
+      },
+    },
     // ...
   });
 
   const actor = createActor(machine).start();
 
-  actor.on('emitted', (event) => {
+  actor.on("emitted", (event) => {
     console.log(event);
   });
 
-  actor.send({ type: 'something' });
+  actor.send({ type: "something" });
   // logs:
   // {
   //   type: 'emitted',
@@ -1188,24 +3293,24 @@
 
   ```ts
   const machine = createMachine({
-    initial: 'a',
+    initial: "a",
     states: {
       a: {
         on: {
-          event: 'b'
-        }
+          event: "b",
+        },
       },
       b: {
-        entry: 'someAction',
-        always: 'c'
+        entry: "someAction",
+        always: "c",
       },
-      c: {}
-    }
+      c: {},
+    },
   });
 
   const actor = createActor(machine, {
     inspect: (inspEvent) => {
-      if (inspEvent.type === '@xstate.microstep') {
+      if (inspEvent.type === "@xstate.microstep") {
         console.log(inspEvent.snapshot);
         // logs:
         // { value: 'a', … }
@@ -1215,17 +3320,17 @@
         console.log(inspEvent.event);
         // logs:
         // { type: 'event', … }
-      } else if (inspEvent.type === '@xstate.action') {
+      } else if (inspEvent.type === "@xstate.action") {
         console.log(inspEvent.action);
         // logs:
         // { type: 'someAction', … }
       }
-    }
+    },
   });
 
   actor.start();
 
-  actor.send({ type: 'event' });
+  actor.send({ type: "event" });
   ```
 
 ## 5.6.2
@@ -1235,13 +3340,13 @@
 - [#4731](https://github.com/statelyai/xstate/pull/4731) [`960cdcbcb`](https://github.com/statelyai/xstate/commit/960cdcbcb88eb565bba2f03f3eeceff6001576d9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now import `getInitialSnapshot(…)` from `xstate` directly, which is useful for getting a mock of the initial snapshot when interacting with machines (or other actor logic) without `createActor(…)`:
 
   ```ts
-  import { getInitialSnapshot } from 'xstate';
-  import { someMachine } from './someMachine';
+  import { getInitialSnapshot } from "xstate";
+  import { someMachine } from "./someMachine";
 
   // Returns the initial snapshot (state) of the machine
   const initialSnapshot = getInitialSnapshot(
     someMachine,
-    { name: 'Mateusz' } // optional input
+    { name: "Mateusz" }, // optional input
   );
   ```
 
@@ -1292,13 +3397,13 @@
   If the `snapshot` is `undefined`, the initial snapshot of the `actorLogic` is used.
 
   ```ts
-  import { getNextSnapshot } from 'xstate';
-  import { trafficLightMachine } from './trafficLightMachine.ts';
+  import { getNextSnapshot } from "xstate";
+  import { trafficLightMachine } from "./trafficLightMachine.ts";
 
   const nextSnapshot = getNextSnapshot(
     trafficLightMachine, // actor logic
     undefined, // snapshot (or initial state if undefined)
-    { type: 'TIMER' }
+    { type: "TIMER" },
   ); // event object
 
   console.log(nextSnapshot.value);
@@ -1307,7 +3412,7 @@
   const nextSnapshot2 = getNextSnapshot(
     trafficLightMachine, // actor logic
     nextSnapshot, // snapshot
-    { type: 'TIMER' }
+    { type: "TIMER" },
   ); // event object
 
   console.log(nextSnapshot2.value);
@@ -1334,9 +3439,9 @@
   setup({/* ... */}).createMachine({
     context: ({ spawn, self }) => {
       return {
-        childRef: spawn('child', { input: { parent: self } })
+        childRef: spawn("child", { input: { parent: self } }),
       };
-    }
+    },
   });
   ```
 
@@ -1394,14 +3499,14 @@
 - [#4198](https://github.com/statelyai/xstate/pull/4198) [`ca58904ad`](https://github.com/statelyai/xstate/commit/ca58904ade8047ac9969838d2932b31846ac479c) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Introduce `toPromise(actor)`, which creates a promise from an `actor` that resolves with the actor snapshot's `output` when done, or rejects with the actor snapshot's `error` when it fails.
 
   ```ts
-  import { createMachine, createActor, toPromise } from 'xstate';
+  import { createMachine, createActor, toPromise } from "xstate";
 
   const machine = createMachine({
     // ...
     states: {
       // ...
-      done: { type: 'final', output: 42 }
-    }
+      done: { type: "final", output: 42 },
+    },
   });
 
   const actor = createActor(machine);
@@ -1453,7 +3558,7 @@
   createMachine({
     types: {} as {
       context: { count: number };
-    }
+    },
     // Missing context property
   });
 
@@ -1463,8 +3568,8 @@
       context: { count: number };
     },
     context: {
-      count: 0
-    }
+      count: 0,
+    },
   });
   ```
 
@@ -1491,8 +3596,8 @@
 
   ```js
   const lightMachine = createMachine({
-    id: 'light',
-    initial: 'green',
+    id: "light",
+    initial: "green",
     states: {
       green: {},
       yellow: {},
@@ -1501,10 +3606,10 @@
         // initial: 'walk',
         states: {
           walk: {},
-          wait: {}
-        }
-      }
-    }
+          wait: {},
+        },
+      },
+    },
   });
   ```
 
@@ -1517,15 +3622,15 @@
 - d3d6149c7: IDs for delayed events are no longer derived from event types so this won't work automatically:
 
   ```ts
-  entry: raise({ type: 'TIMER' }, { delay: 200 });
-  exit: cancel('TIMER');
+  entry: raise({ type: "TIMER" }, { delay: 200 });
+  exit: cancel("TIMER");
   ```
 
   Please use explicit IDs:
 
   ```ts
-  entry: raise({ type: 'TIMER' }, { delay: 200, id: 'myTimer' });
-  exit: cancel('myTimer');
+  entry: raise({ type: "TIMER" }, { delay: 200, id: "myTimer" });
+  exit: cancel("myTimer");
   ```
 
 - d3d6149c7: Removed `State#toStrings` method.
@@ -1535,7 +3640,7 @@
   const machine = createMachine({
     // This will produce the TS error:
     // "Type 'string' is not assignable to type 'object | undefined'"
-    context: 'some string'
+    context: "some string",
   });
   ```
 
@@ -1549,8 +3654,8 @@
     invoke: {
       src: emailMachine,
       // Registers `emailMachine` as `emailer` on the system
-      systemId: 'emailer'
-    }
+      systemId: "emailer",
+    },
   });
   ```
 
@@ -1559,8 +3664,8 @@
     // ...
     entry: assign({
       emailer: (ctx, ev, { spawn }) =>
-        spawn(emailMachine, { systemId: 'emailer' })
-    })
+        spawn(emailMachine, { systemId: "emailer" }),
+    }),
   });
   ```
 
@@ -1571,10 +3676,10 @@
     // ...
     entry: sendTo(
       (ctx, ev, { system }) => {
-        return system.get('emailer');
+        return system.get("emailer");
       },
-      { type: 'SEND_EMAIL', subject: 'Hello', body: 'World' }
-    )
+      { type: "SEND_EMAIL", subject: "Hello", body: "World" },
+    ),
   });
   ```
 
@@ -1627,7 +3732,7 @@
   // Now a snapshot object with { status, output, error, context }
   const promiseActorSnapshot = promiseActor.getSnapshot();
 
-  if (promiseActorSnapshot.status === 'done') {
+  if (promiseActorSnapshot.status === "done") {
     console.log(promiseActorSnapshot.output); // 42
   }
   ```
@@ -1649,7 +3754,7 @@
   // ...
 
   const restoredActor = createActor(machine, {
-    snapshot: persistedSnapshot
+    snapshot: persistedSnapshot,
   }).start();
   ```
 
@@ -1657,13 +3762,13 @@
   - Dev tools integration has been simplified, and Redux dev tools support is no longer the default. It can be included from `xstate/devTools/redux`:
 
   ```js
-  import { createActor } from 'xstate';
-  import { createReduxDevTools } from 'xstate/devTools/redux';
+  import { createActor } from "xstate";
+  import { createReduxDevTools } from "xstate/devTools/redux";
 
   const service = createActor(someMachine, {
     devTools: createReduxDevTools({
       // Redux Dev Tools options
-    })
+    }),
   });
   ```
 
@@ -1671,7 +3776,7 @@
 
   ```js
   const service = createActor(someMachine, {
-    devTools: true // attaches via window.__xstate__.register(service)
+    devTools: true, // attaches via window.__xstate__.register(service)
   });
   ```
 
@@ -1679,7 +3784,7 @@
 
   ```js
   const myCustomDevTools = (actorRef) => {
-    console.log('Got a actorRef!');
+    console.log("Got a actorRef!");
 
     actorRef.subscribe((state) => {
       // ...
@@ -1687,7 +3792,7 @@
   };
 
   const actorRef = createActor(someMachine, {
-    devTools: myCustomDevTools
+    devTools: myCustomDevTools,
   });
   ```
 
@@ -1795,19 +3900,19 @@
   - `not(guard1)` returns `true` if a single guard evaluates to `false`, otherwise `true`
 
   ```js
-  import { and, or, not } from 'xstate/guards';
+  import { and, or, not } from "xstate/guards";
 
   const someMachine = createMachine({
     // ...
     on: {
       EVENT: {
-        target: 'somewhere',
+        target: "somewhere",
         guard: and([
-          'stringGuard',
-          or([{ type: 'anotherGuard' }, not(() => false)])
-        ])
-      }
-    }
+          "stringGuard",
+          or([{ type: "anotherGuard" }, not(() => false)]),
+        ]),
+      },
+    },
   });
   ```
 
@@ -1857,9 +3962,9 @@
         createMachine({
           // ...
         }),
-        { systemId: 'actorRef' }
-      )
-    })
+        { systemId: "actorRef" },
+      ),
+    }),
   });
   ```
 
@@ -1887,18 +3992,18 @@
   ```js
   const greetMachine = createMachine({
     context: ({ input }) => ({
-      greeting: `Hello ${input.name}!`
+      greeting: `Hello ${input.name}!`,
     }),
     entry: (_, event) => {
       event.type; // 'xstate.init'
       event.input; // { name: 'David' }
-    }
+    },
     // ...
   });
 
   const actor = createActor(greetMachine, {
     // Pass input data to the machine
-    input: { name: 'David' }
+    input: { name: "David" },
   }).start();
   ```
 
@@ -2050,16 +4155,16 @@
 
   ```ts
   createMachine({
-    initial: 'a',
+    initial: "a",
     states: {
       a: {
         after: {
-          10000: 'b',
-          noon: 'c'
-        }
-      }
+          10000: "b",
+          noon: "c",
+        },
+      },
       // ...
-    }
+    },
   });
   ```
 
@@ -2068,7 +4173,7 @@
 - d3d6149c7: The `createEmptyActor()` function has been added to make it easier to create actors that do nothing ("empty" actors). This is useful for testing, or for some integrations such as `useActor(actor)` in `@xstate/react` that require an actor:
 
   ```jsx
-  import { createEmptyActor } from 'xstate';
+  import { createEmptyActor } from "xstate";
 
   const SomeComponent = (props) => {
     // props.actor may be undefined
@@ -2162,7 +4267,7 @@
   assign((ctx, ev, { spawn }) => {
     return {
       ...ctx,
-      actorRef: spawn(promiseActor)
+      actorRef: spawn(promiseActor),
     };
   });
   ```
@@ -2170,7 +4275,7 @@
   In addition to that, you can now `spawn` actors defined in your implementations object, in the same way that you were already able to do that with `invoke`. To do that just reference the defined actor like this:
 
   ```js
-  spawn('promiseActor');
+  spawn("promiseActor");
   ```
 
 - d3d6149c7: `State` class has been removed and replaced by `MachineSnapshot` object. They largely have the same properties and methods. On of the main noticeable results of this change is that you can no longer check `state instanceof State`.
@@ -2199,9 +4304,9 @@
     //   ]
     // }),
     enqueueActions(({ enqueue }) => {
-      enqueue('action1');
-      enqueue('action2');
-    })
+      enqueue("action1");
+      enqueue("action2");
+    }),
   ];
   ```
 
@@ -2214,11 +4319,11 @@
     //   }
     // ]),
     enqueueActions(({ enqueue, check }) => {
-      if (check('someGuard')) {
-        enqueue('action1');
-        enqueue('action2');
+      if (check("someGuard")) {
+        enqueue("action1");
+        enqueue("action2");
       }
-    })
+    }),
   ];
   ```
 
@@ -2286,21 +4391,21 @@
   const machine = createMachine({
     types: {} as {
       actors: {
-        src: 'fetchData'; // src name (inline behaviors ideally inferred)
-        id: 'fetch1' | 'fetch2'; // possible ids (optional)
+        src: "fetchData"; // src name (inline behaviors ideally inferred)
+        id: "fetch1" | "fetch2"; // possible ids (optional)
         logic: typeof fetcher;
       };
     },
     invoke: {
-      src: 'fetchData', // strongly typed
-      id: 'fetch2', // strongly typed
+      src: "fetchData", // strongly typed
+      id: "fetch2", // strongly typed
       onDone: {
         actions: ({ event }) => {
           event.output; // strongly typed as { result: string }
-        }
+        },
       },
-      input: { foo: 'hello' } // strongly typed
-    }
+      input: { foo: "hello" }, // strongly typed
+    },
   });
   ```
 
@@ -2346,26 +4451,26 @@
 
   ```ts
   const machine = createMachine({
-    initial: 'started',
+    initial: "started",
     states: {
       started: {
         // ...
       },
       finished: {
-        type: 'final'
+        type: "final",
         // moved to the top level
         //
         // output: {
         //   status: 200
         // }
-      }
+      },
     },
     // This will be the final output of the machine
     // present on `snapshot.output` and in the done events received by the parent
     // when the machine reaches the top-level final state ("finished")
     output: {
-      status: 200
-    }
+      status: 200,
+    },
   });
   ```
 
@@ -2434,15 +4539,15 @@
   const machine = createMachine({
     context: ({ spawn }) => ({
       // This will be persisted
-      ref: spawn('reducer', { id: 'child' })
+      ref: spawn("reducer", { id: "child" }),
 
       // This cannot be persisted:
       // ref: spawn(fromTransition((s) => s, { count: 42 }), { id: 'child' })
-    })
+    }),
   }).provide({
     actors: {
-      reducer: fromTransition((s) => s, { count: 42 })
-    }
+      reducer: fromTransition((s) => s, { count: 42 }),
+    },
   });
   ```
 
@@ -2481,7 +4586,7 @@
     actor.subscribe({
       error: (error) => {
         // handle error
-      }
+      },
     });
     ```
   - If an observer does not have an error handler, the error will be thrown in a clear stack so bug tracking services can collect it.
@@ -2489,7 +4594,7 @@
 - d3d6149c7: You can now `spawnChild(...)` actors directly outside of `assign(...)` action creators:
 
   ```ts
-  import { createMachine, spawnChild } from 'xstate';
+  import { createMachine, spawnChild } from "xstate";
 
   const listenerMachine = createMachine({
     // ...
@@ -2498,16 +4603,16 @@
   const parentMachine = createMachine({
     // ...
     on: {
-      'listener.create': {
-        entry: spawnChild(listenerMachine, { id: 'listener' })
-      }
-    }
+      "listener.create": {
+        entry: spawnChild(listenerMachine, { id: "listener" }),
+      },
+    },
     // ...
   });
 
   const actor = createActor(parentMachine).start();
 
-  actor.send({ type: 'listener.create' });
+  actor.send({ type: "listener.create" });
 
   actor.getSnapshot().children.listener; // ActorRefFrom<typeof listenerMachine>
   ```
@@ -2519,27 +4624,27 @@
   createMachine({
     types: {} as {
       events:
-        | { type: 'mouse.click.up'; direction: 'up' }
-        | { type: 'mouse.click.down'; direction: 'down' }
-        | { type: 'mouse.move' }
-        | { type: 'keypress' };
+        | { type: "mouse.click.up"; direction: "up" }
+        | { type: "mouse.click.down"; direction: "down" }
+        | { type: "mouse.move" }
+        | { type: "keypress" };
     },
     on: {
-      'mouse.click.*': {
+      "mouse.click.*": {
         actions: ({ event }) => {
           event.type;
           // 'mouse.click.up' | 'mouse.click.down'
           event.direction;
           // 'up' | 'down'
-        }
+        },
       },
-      'mouse.*': {
+      "mouse.*": {
         actions: ({ event }) => {
           event.type;
           // 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
-        }
-      }
-    }
+        },
+      },
+    },
   });
   ```
 
@@ -2550,14 +4655,14 @@
   createMachine({
     types: {} as {
       actions:
-        { type: 'greet'; params: { surname: string } } | { type: 'poke' };
+        { type: "greet"; params: { surname: string } } | { type: "poke" };
     },
     entry: {
-      type: 'greet',
+      type: "greet",
       params: ({ context }) => ({
-        surname: 'Doe'
-      })
-    }
+        surname: "Doe",
+      }),
+    },
   });
   ```
 
@@ -2567,12 +4672,12 @@
   const machine = setup({
     types: {} as {
       children: {
-        myId: 'actorKey';
+        myId: "actorKey";
       };
     },
     actors: {
-      actorKey: child
-    }
+      actorKey: child,
+    },
   }).createMachine({});
 
   const actorRef = createActor(machine).start();
@@ -2587,13 +4692,13 @@
     types: {} as {
       guards:
         | {
-            type: 'isGreaterThan';
+            type: "isGreaterThan";
             params: {
               count: number;
             };
           }
-        | { type: 'plainGuard' };
-    }
+        | { type: "plainGuard" };
+    },
     // ...
   });
   ```
@@ -2603,8 +4708,8 @@
   ```ts
   createMachine({
     types: {} as {
-      tags: 'pending' | 'success' | 'error';
-    }
+      tags: "pending" | "success" | "error";
+    },
     // ...
   });
   ```
@@ -2658,17 +4763,17 @@
     {
       // ...
       entry: {
-        type: 'greet',
-        params: { message: 'hello' }
-      }
+        type: "greet",
+        params: { message: "hello" },
+      },
     },
     {
       actions: {
         greet: (_, params) => {
           params.message; // 'hello'
-        }
-      }
-    }
+        },
+      },
+    },
   );
   ```
 
@@ -2685,16 +4790,16 @@
     context: ({ input }) => ({
       // Strongly-typed input!
       emailSubject: input.subject,
-      emailBody: input.message.trim()
-    })
+      emailBody: input.message.trim(),
+    }),
   });
 
   const emailActor = interpret(emailMachine, {
     input: {
       // Strongly-typed input!
-      subject: 'Hello, world!',
-      message: 'This is a test.'
-    }
+      subject: "Hello, world!",
+      message: "This is a test.",
+    },
   }).start();
   ```
 
@@ -2720,19 +4825,19 @@
       on: {
         EVENT: {
           guard: {
-            type: 'isGreaterThan',
-            params: { value: 10 }
-          }
-        }
-      }
+            type: "isGreaterThan",
+            params: { value: 10 },
+          },
+        },
+      },
     },
     {
       guards: {
         isGreaterThan: (_, params) => {
           params.value; // 10
-        }
-      }
-    }
+        },
+      },
+    },
   );
   ```
 
@@ -2742,7 +4847,7 @@
   - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received event
 
   ```ts
-  import { createMachine } from 'xstate';
+  import { createMachine } from "xstate";
 
   const machine = createMachine({
     // ...
@@ -2750,22 +4855,22 @@
 
   const actor = createActor(machine, {
     inspect: (inspectionEvent) => {
-      if (inspectionEvent.type === '@xstate.actor') {
+      if (inspectionEvent.type === "@xstate.actor") {
         console.log(inspectionEvent.actorRef);
       }
 
-      if (inspectionEvent.type === '@xstate.event') {
+      if (inspectionEvent.type === "@xstate.event") {
         console.log(inspectionEvent.sourceRef);
         console.log(inspectionEvent.targetRef);
         console.log(inspectionEvent.event);
       }
 
-      if (inspectionEvent.type === '@xstate.snapshot') {
+      if (inspectionEvent.type === "@xstate.snapshot") {
         console.log(inspectionEvent.actorRef);
         console.log(inspectionEvent.event);
         console.log(inspectionEvent.snapshot);
       }
-    }
+    },
   });
   ```
 
@@ -2778,31 +4883,31 @@
     entry: enqueueActions(({ context, event, enqueue, check }) => {
       // assign action
       enqueue.assign({
-        count: context.count + 1
+        count: context.count + 1,
       });
 
       // Conditional actions (replaces choose(...))
       if (event.someOption) {
-        enqueue.sendTo('someActor', { type: 'blah', thing: context.thing });
+        enqueue.sendTo("someActor", { type: "blah", thing: context.thing });
 
         // other actions
-        enqueue('namedAction');
+        enqueue("namedAction");
         // with params
-        enqueue({ type: 'greet', params: { message: 'hello' } });
+        enqueue({ type: "greet", params: { message: "hello" } });
       } else {
         // inline
-        enqueue(() => console.log('hello'));
+        enqueue(() => console.log("hello"));
 
         // even built-in actions
       }
 
       // Use check(...) to conditionally enqueue actions based on a guard
-      if (check({ type: 'someGuard' })) {
+      if (check({ type: "someGuard" })) {
         // ...
       }
 
       // no return
-    })
+    }),
   });
   ```
 
@@ -2812,20 +4917,20 @@
   ```ts
   createMachine({
     types: {} as {
-      actions: { type: 'greet'; params: { name: string } };
+      actions: { type: "greet"; params: { name: string } };
     },
     entry: [
       {
-        type: 'greet',
+        type: "greet",
         params: {
-          name: 'David'
-        }
+          name: "David",
+        },
       },
       // @ts-expect-error
-      { type: 'greet' },
+      { type: "greet" },
       // @ts-expect-error
-      { type: 'unknownAction' }
-    ]
+      { type: "unknownAction" },
+    ],
     // ...
   });
   ```
@@ -2843,10 +4948,10 @@
   const machine = createMachine({
     types: {} as {
       output: {
-        result: 'pass' | 'fail';
+        result: "pass" | "fail";
         score: number;
       };
-    }
+    },
     // ...
   });
 
@@ -2868,7 +4973,7 @@
 - d3d6149c7: You can now use the `setup({ ... }).createMachine({ ... })` function to setup implementations for `actors`, `actions`, `guards`, and `delays` that will be used in the created machine:
 
   ```ts
-  import { setup, createMachine } from 'xstate';
+  import { setup, createMachine } from "xstate";
 
   const fetchUser = fromPromise(async ({ input }) => {
     const response = await fetch(`/user/${input.id}`);
@@ -2878,33 +4983,33 @@
 
   const machine = setup({
     actors: {
-      fetchUser
+      fetchUser,
     },
     actions: {
-      clearUser: assign({ user: undefined })
+      clearUser: assign({ user: undefined }),
     },
     guards: {
-      isUserAdmin: (_, params) => params.user.role === 'admin'
-    }
+      isUserAdmin: (_, params) => params.user.role === "admin",
+    },
   }).createMachine({
     // ...
     invoke: {
       // Strongly typed!
-      src: 'fetchUser',
+      src: "fetchUser",
       input: ({ context }) => ({ id: context.userId }),
       onDone: {
         guard: {
-          type: 'isUserAdmin',
-          params: ({ context }) => ({ user: context.user })
+          type: "isUserAdmin",
+          params: ({ context }) => ({ user: context.user }),
         },
-        target: 'success',
-        actions: assign({ user: ({ event }) => event.output })
+        target: "success",
+        actions: assign({ user: ({ event }) => event.output }),
       },
       onError: {
-        target: 'failure',
-        actions: 'clearUser'
-      }
-    }
+        target: "failure",
+        actions: "clearUser",
+      },
+    },
   });
   ```
 
@@ -2913,8 +5018,8 @@
   ```ts
   createMachine({
     types: {} as {
-      delays: 'one second' | 'one minute';
-    }
+      delays: "one second" | "one minute";
+    },
     // ...
   });
   ```
@@ -2937,7 +5042,7 @@
 
   ```ts
   createMachine({
-    on: [{ event: 'FOO', target: '#id' }]
+    on: [{ event: "FOO", target: "#id" }],
     // ...
   });
   ```
@@ -2947,8 +5052,8 @@
   ```ts
   createMachine({
     on: {
-      FOO: '#id'
-    }
+      FOO: "#id",
+    },
     // ...
   });
   ```
@@ -3013,9 +5118,9 @@
     //   ]
     // }),
     enqueueActions(({ enqueue }) => {
-      enqueue('action1');
-      enqueue('action2');
-    })
+      enqueue("action1");
+      enqueue("action2");
+    }),
   ];
   ```
 
@@ -3028,11 +5133,11 @@
     //   }
     // ]),
     enqueueActions(({ enqueue, check }) => {
-      if (check('someGuard')) {
-        enqueue('action1');
-        enqueue('action2');
+      if (check("someGuard")) {
+        enqueue("action1");
+        enqueue("action2");
       }
-    })
+    }),
   ];
   ```
 
@@ -3052,31 +5157,31 @@
     entry: enqueueActions(({ context, event, enqueue, check }) => {
       // assign action
       enqueue.assign({
-        count: context.count + 1
+        count: context.count + 1,
       });
 
       // Conditional actions (replaces choose(...))
       if (event.someOption) {
-        enqueue.sendTo('someActor', { type: 'blah', thing: context.thing });
+        enqueue.sendTo("someActor", { type: "blah", thing: context.thing });
 
         // other actions
-        enqueue('namedAction');
+        enqueue("namedAction");
         // with params
-        enqueue({ type: 'greet', params: { message: 'hello' } });
+        enqueue({ type: "greet", params: { message: "hello" } });
       } else {
         // inline
-        enqueue(() => console.log('hello'));
+        enqueue(() => console.log("hello"));
 
         // even built-in actions
       }
 
       // Use check(...) to conditionally enqueue actions based on a guard
-      if (check({ type: 'someGuard' })) {
+      if (check({ type: "someGuard" })) {
         // ...
       }
 
       // no return
-    })
+    }),
   });
   ```
 
@@ -3115,22 +5220,22 @@
 - [#4488](https://github.com/statelyai/xstate/pull/4488) [`9ca3c3dcf`](https://github.com/statelyai/xstate/commit/9ca3c3dcf25aba67aab5b6390766c273e9eba766) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `spawn(...)` action creator has been renamed to `spawnChild(...)` to avoid confusion.
 
   ```ts
-  import { spawnChild, assign } from 'xstate';
+  import { spawnChild, assign } from "xstate";
 
   const childMachine = createMachine({
     on: {
       someEvent: {
         actions: [
           // spawnChild(...) instead of spawn(...)
-          spawnChild('someSrc'),
+          spawnChild("someSrc"),
 
           // spawn() is used inside of assign()
           assign({
-            anotherRef: ({ spawn }) => spawn('anotherSrc')
-          })
-        ]
-      }
-    }
+            anotherRef: ({ spawn }) => spawn("anotherSrc"),
+          }),
+        ],
+      },
+    },
   });
   ```
 
@@ -3150,12 +5255,12 @@
   const machine = setup({
     types: {} as {
       children: {
-        myId: 'actorKey';
+        myId: "actorKey";
       };
     },
     actors: {
-      actorKey: child
-    }
+      actorKey: child,
+    },
   }).createMachine({});
 
   const actorRef = createActor(machine).start();
@@ -3188,7 +5293,7 @@
 - [#4353](https://github.com/statelyai/xstate/pull/4353) [`a3a11c84e`](https://github.com/statelyai/xstate/commit/a3a11c84e30c86afd63e47c77a46a61d926291d1) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now use the `setup({ ... }).createMachine({ ... })` function to setup implementations for `actors`, `actions`, `guards`, and `delays` that will be used in the created machine:
 
   ```ts
-  import { setup, createMachine } from 'xstate';
+  import { setup, createMachine } from "xstate";
 
   const fetchUser = fromPromise(async ({ input }) => {
     const response = await fetch(`/user/${input.id}`);
@@ -3198,33 +5303,33 @@
 
   const machine = setup({
     actors: {
-      fetchUser
+      fetchUser,
     },
     actions: {
-      clearUser: assign({ user: undefined })
+      clearUser: assign({ user: undefined }),
     },
     guards: {
-      isUserAdmin: (_, params) => params.user.role === 'admin'
-    }
+      isUserAdmin: (_, params) => params.user.role === "admin",
+    },
   }).createMachine({
     // ...
     invoke: {
       // Strongly typed!
-      src: 'fetchUser',
+      src: "fetchUser",
       input: ({ context }) => ({ id: context.userId }),
       onDone: {
         guard: {
-          type: 'isUserAdmin',
-          params: ({ context }) => ({ user: context.user })
+          type: "isUserAdmin",
+          params: ({ context }) => ({ user: context.user }),
         },
-        target: 'success',
-        actions: assign({ user: ({ event }) => event.output })
+        target: "success",
+        actions: assign({ user: ({ event }) => event.output }),
       },
       onError: {
-        target: 'failure',
-        actions: 'clearUser'
-      }
-    }
+        target: "failure",
+        actions: "clearUser",
+      },
+    },
   });
   ```
 
@@ -3254,17 +5359,17 @@
   createMachine(
     {
       invoke: {
-        src: 'child'
-      }
+        src: "child",
+      },
     },
     {
       actors: {
         child: {
           src: childMachine,
-          input: 'foo'
-        }
-      }
-    }
+          input: "foo",
+        },
+      },
+    },
   );
   ```
 
@@ -3308,11 +5413,11 @@
         // This event is for the root actor
       }
 
-      if (event.type === '@xstate.event') {
+      if (event.type === "@xstate.event") {
         // previously event.targetRef
         event.actorRef;
       }
-    }
+    },
   });
   ```
 
@@ -3341,7 +5446,7 @@
 - [#4329](https://github.com/statelyai/xstate/pull/4329) [`41f5a7dc5`](https://github.com/statelyai/xstate/commit/41f5a7dc59a2cd946dff937664de2fa14780b007) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now `spawn(...)` actors directly outside of `assign(...)` action creators:
 
   ```ts
-  import { createMachine, spawn } from 'xstate';
+  import { createMachine, spawn } from "xstate";
 
   const listenerMachine = createMachine({
     // ...
@@ -3350,16 +5455,16 @@
   const parentMachine = createMachine({
     // ...
     on: {
-      'listener.create': {
-        entry: spawn(listenerMachine, { id: 'listener' })
-      }
-    }
+      "listener.create": {
+        entry: spawn(listenerMachine, { id: "listener" }),
+      },
+    },
     // ...
   });
 
   const actor = createActor(parentMachine).start();
 
-  actor.send({ type: 'listener.create' });
+  actor.send({ type: "listener.create" });
 
   actor.getSnapshot().children.listener; // ActorRefFrom<typeof listenerMachine>
   ```
@@ -3371,17 +5476,17 @@
     {
       // ...
       entry: {
-        type: 'greet',
-        params: { message: 'hello' }
-      }
+        type: "greet",
+        params: { message: "hello" },
+      },
     },
     {
       actions: {
         greet: (_, params) => {
           params.message; // 'hello'
-        }
-      }
-    }
+        },
+      },
+    },
   );
   ```
 
@@ -3394,19 +5499,19 @@
       on: {
         EVENT: {
           guard: {
-            type: 'isGreaterThan',
-            params: { value: 10 }
-          }
-        }
-      }
+            type: "isGreaterThan",
+            params: { value: 10 },
+          },
+        },
+      },
     },
     {
       guards: {
         isGreaterThan: (_, params) => {
           params.value; // 10
-        }
-      }
-    }
+        },
+      },
+    },
   );
   ```
 
@@ -3464,16 +5569,16 @@
 
   ```ts
   createMachine({
-    initial: 'a',
+    initial: "a",
     states: {
       a: {
         after: {
-          10000: 'b',
-          noon: 'c'
-        }
-      }
+          10000: "b",
+          noon: "c",
+        },
+      },
       // ...
-    }
+    },
   });
   ```
 
@@ -3483,15 +5588,15 @@
   const machine = createMachine({
     context: ({ spawn }) => ({
       // This will be persisted
-      ref: spawn('reducer', { id: 'child' })
+      ref: spawn("reducer", { id: "child" }),
 
       // This cannot be persisted:
       // ref: spawn(fromTransition((s) => s, { count: 42 }), { id: 'child' })
-    })
+    }),
   }).provide({
     actors: {
-      reducer: fromTransition((s) => s, { count: 42 })
-    }
+      reducer: fromTransition((s) => s, { count: 42 }),
+    },
   });
   ```
 
@@ -3520,8 +5625,8 @@
     InspectedActorEvent,
     InspectedEventEvent,
     InspectedSnapshotEvent,
-    InspectionEvent
-  } from 'xstate';
+    InspectionEvent,
+  } from "xstate";
   ```
 
 ## 5.0.0-beta.33
@@ -3534,7 +5639,7 @@
   - `@xstate.snapshot` - An actor ref emitted a snapshot due to a received event
 
   ```ts
-  import { createMachine } from 'xstate';
+  import { createMachine } from "xstate";
 
   const machine = createMachine({
     // ...
@@ -3542,22 +5647,22 @@
 
   const actor = createActor(machine, {
     inspect: (inspectionEvent) => {
-      if (inspectionEvent.type === '@xstate.actor') {
+      if (inspectionEvent.type === "@xstate.actor") {
         console.log(inspectionEvent.actorRef);
       }
 
-      if (inspectionEvent.type === '@xstate.event') {
+      if (inspectionEvent.type === "@xstate.event") {
         console.log(inspectionEvent.sourceRef);
         console.log(inspectionEvent.targetRef);
         console.log(inspectionEvent.event);
       }
 
-      if (inspectionEvent.type === '@xstate.snapshot') {
+      if (inspectionEvent.type === "@xstate.snapshot") {
         console.log(inspectionEvent.actorRef);
         console.log(inspectionEvent.event);
         console.log(inspectionEvent.snapshot);
       }
-    }
+    },
   });
   ```
 
@@ -3581,26 +5686,26 @@
 
   ```ts
   const machine = createMachine({
-    initial: 'started',
+    initial: "started",
     states: {
       started: {
         // ...
       },
       finished: {
-        type: 'final'
+        type: "final",
         // moved to the top level
         //
         // output: {
         //   status: 200
         // }
-      }
+      },
     },
     // This will be the final output of the machine
     // present on `snapshot.output` and in the done events received by the parent
     // when the machine reaches the top-level final state ("finished")
     output: {
-      status: 200
-    }
+      status: 200,
+    },
   });
   ```
 
@@ -3665,7 +5770,7 @@
   // Now a snapshot object with { status, output, error, context }
   const promiseActorSnapshot = promiseActor.getSnapshot();
 
-  if (promiseActorSnapshot.status === 'done') {
+  if (promiseActorSnapshot.status === "done") {
     console.log(promiseActorSnapshot.output); // 42
   }
   ```
@@ -3697,8 +5802,8 @@
     type CallbackActorLogic,
     type ObservableActorLogic,
     type PromiseActorLogic,
-    type TransitionActorLogic
-  } from 'xstate';
+    type TransitionActorLogic,
+  } from "xstate";
   ```
 
 - [#4222](https://github.com/statelyai/xstate/pull/4222) [`41822f05e`](https://github.com/statelyai/xstate/commit/41822f05e46c2b439a69fac48872a4a6efe65739) Thanks [@Andarist](https://github.com/Andarist)! - `spawn` can now benefit from the actor types. Its arguments are strongly-typed based on them.
@@ -3726,14 +5831,14 @@
   createMachine({
     types: {} as {
       actions:
-        { type: 'greet'; params: { surname: string } } | { type: 'poke' };
+        { type: "greet"; params: { surname: string } } | { type: "poke" };
     },
     entry: {
-      type: 'greet',
+      type: "greet",
       params: ({ context }) => ({
-        surname: 'Doe'
-      })
-    }
+        surname: "Doe",
+      }),
+    },
   });
   ```
 
@@ -3747,27 +5852,27 @@
   createMachine({
     types: {} as {
       events:
-        | { type: 'mouse.click.up'; direction: 'up' }
-        | { type: 'mouse.click.down'; direction: 'down' }
-        | { type: 'mouse.move' }
-        | { type: 'keypress' };
+        | { type: "mouse.click.up"; direction: "up" }
+        | { type: "mouse.click.down"; direction: "down" }
+        | { type: "mouse.move" }
+        | { type: "keypress" };
     },
     on: {
-      'mouse.click.*': {
+      "mouse.click.*": {
         actions: ({ event }) => {
           event.type;
           // 'mouse.click.up' | 'mouse.click.down'
           event.direction;
           // 'up' | 'down'
-        }
+        },
       },
-      'mouse.*': {
+      "mouse.*": {
         actions: ({ event }) => {
           event.type;
           // 'mouse.click.up' | 'mouse.click.down' | 'mouse.move'
-        }
-      }
-    }
+        },
+      },
+    },
   });
   ```
 
@@ -3780,8 +5885,8 @@
   ```ts
   createMachine({
     types: {} as {
-      tags: 'pending' | 'success' | 'error';
-    }
+      tags: "pending" | "success" | "error";
+    },
     // ...
   });
   ```
@@ -3793,8 +5898,8 @@
   ```ts
   createMachine({
     types: {} as {
-      delays: 'one second' | 'one minute';
-    }
+      delays: "one second" | "one minute";
+    },
     // ...
   });
   ```
@@ -3810,13 +5915,13 @@
     types: {} as {
       guards:
         | {
-            type: 'isGreaterThan';
+            type: "isGreaterThan";
             params: {
               count: number;
             };
           }
-        | { type: 'plainGuard' };
-    }
+        | { type: "plainGuard" };
+    },
     // ...
   });
   ```
@@ -3836,20 +5941,20 @@
   ```ts
   createMachine({
     types: {} as {
-      actions: { type: 'greet'; params: { name: string } };
+      actions: { type: "greet"; params: { name: string } };
     },
     entry: [
       {
-        type: 'greet',
+        type: "greet",
         params: {
-          name: 'David'
-        }
+          name: "David",
+        },
       },
       // @ts-expect-error
-      { type: 'greet' },
+      { type: "greet" },
       // @ts-expect-error
-      { type: 'unknownAction' }
-    ]
+      { type: "unknownAction" },
+    ],
     // ...
   });
   ```
@@ -3860,10 +5965,10 @@
   const machine = createMachine({
     types: {} as {
       output: {
-        result: 'pass' | 'fail';
+        result: "pass" | "fail";
         score: number;
       };
-    }
+    },
     // ...
   });
 
@@ -3906,7 +6011,7 @@
     actor.subscribe({
       error: (error) => {
         // handle error
-      }
+      },
     });
     ```
   - If an observer does not have an error handler, the error will be thrown in a clear stack so bug tracking services can collect it.
@@ -3924,16 +6029,16 @@
     context: ({ input }) => ({
       // Strongly-typed input!
       emailSubject: input.subject,
-      emailBody: input.message.trim()
-    })
+      emailBody: input.message.trim(),
+    }),
   });
 
   const emailActor = interpret(emailMachine, {
     input: {
       // Strongly-typed input!
-      subject: 'Hello, world!',
-      message: 'This is a test.'
-    }
+      subject: "Hello, world!",
+      message: "This is a test.",
+    },
   }).start();
   ```
 
@@ -3949,21 +6054,21 @@
   const machine = createMachine({
     types: {} as {
       actors: {
-        src: 'fetchData'; // src name (inline behaviors ideally inferred)
-        id: 'fetch1' | 'fetch2'; // possible ids (optional)
+        src: "fetchData"; // src name (inline behaviors ideally inferred)
+        id: "fetch1" | "fetch2"; // possible ids (optional)
         logic: typeof fetcher;
       };
     },
     invoke: {
-      src: 'fetchData', // strongly typed
-      id: 'fetch2', // strongly typed
+      src: "fetchData", // strongly typed
+      id: "fetch2", // strongly typed
       onDone: {
         actions: ({ event }) => {
           event.output; // strongly typed as { result: string }
-        }
+        },
       },
-      input: { foo: 'hello' } // strongly typed
-    }
+      input: { foo: "hello" }, // strongly typed
+    },
   });
   ```
 
@@ -3982,7 +6087,7 @@
 - [#4159](https://github.com/statelyai/xstate/pull/4159) [`8bfbb8531`](https://github.com/statelyai/xstate/commit/8bfbb85316d305dc33b00b6e6170652fa248b20b) Thanks [@Andarist](https://github.com/Andarist)! - The `cancel` action was added to the main export:
 
   ```ts
-  import { cancel } from 'xstate';
+  import { cancel } from "xstate";
   ```
 
 ## 5.0.0-beta.19
@@ -3996,7 +6101,7 @@
   createMachine({
     types: {} as {
       context: { count: number };
-    }
+    },
     // Missing context property
   });
 
@@ -4006,8 +6111,8 @@
       context: { count: number };
     },
     context: {
-      count: 0
-    }
+      count: 0,
+    },
   });
   ```
 
@@ -4051,15 +6156,15 @@
 - [#4127](https://github.com/statelyai/xstate/pull/4127) [`cdaddc266`](https://github.com/statelyai/xstate/commit/cdaddc2667f9021cd9452206aab1227d5a5c229c) Thanks [@Andarist](https://github.com/Andarist)! - IDs for delayed events are no longer derived from event types so this won't work automatically:
 
   ```ts
-  entry: raise({ type: 'TIMER' }, { delay: 200 });
-  exit: cancel('TIMER');
+  entry: raise({ type: "TIMER" }, { delay: 200 });
+  exit: cancel("TIMER");
   ```
 
   Please use explicit IDs:
 
   ```ts
-  entry: raise({ type: 'TIMER' }, { delay: 200, id: 'myTimer' });
-  exit: cancel('myTimer');
+  entry: raise({ type: "TIMER" }, { delay: 200, id: "myTimer" });
+  exit: cancel("myTimer");
   ```
 
 - [#4127](https://github.com/statelyai/xstate/pull/4127) [`cdaddc266`](https://github.com/statelyai/xstate/commit/cdaddc2667f9021cd9452206aab1227d5a5c229c) Thanks [@Andarist](https://github.com/Andarist)! - All builtin action creators (`assign`, `sendTo`, etc) are now returning _functions_. They exact shape of those is considered an implementation detail of XState and users are meant to only pass around the returned values.
@@ -4070,7 +6175,7 @@
 
   ```ts
   createMachine({
-    on: [{ event: 'FOO', target: '#id' }]
+    on: [{ event: "FOO", target: "#id" }],
     // ...
   });
   ```
@@ -4080,8 +6185,8 @@
   ```ts
   createMachine({
     on: {
-      FOO: '#id'
-    }
+      FOO: "#id",
+    },
     // ...
   });
   ```
@@ -4107,25 +6212,25 @@
   ```ts
   const machine = createMachine(
     {
-      initial: 'home',
+      initial: "home",
       states: {
         home: {
           on: {
             NEXT: {
-              target: 'success',
-              guard: 'hasSelection'
-            }
-          }
+              target: "success",
+              guard: "hasSelection",
+            },
+          },
         },
-        success: {}
-      }
+        success: {},
+      },
     },
     {
       guards: {
         // `hasSelection` is a guard object that references the `stateIn` guard
-        hasSelection: stateIn('selected')
-      }
-    }
+        hasSelection: stateIn("selected"),
+      },
+    },
   );
   ```
 
@@ -4136,7 +6241,7 @@
 - [#4098](https://github.com/statelyai/xstate/pull/4098) [`ae7691811`](https://github.com/statelyai/xstate/commit/ae7691811d0ac92294532ce1e5ede3898ecffbc7) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `log`, `pure`, `choose`, and `stop` actions were added to the main export:
 
   ```ts
-  import { log, pure, choose, stop } from 'xstate';
+  import { log, pure, choose, stop } from "xstate";
   ```
 
 ## 5.0.0-beta.14
@@ -4191,9 +6296,9 @@
         createMachine({
           // ...
         }),
-        { systemId: 'actorRef' }
-      )
-    })
+        { systemId: "actorRef" },
+      ),
+    }),
   });
   ```
 
@@ -4279,7 +6384,7 @@
 - [#3968](https://github.com/statelyai/xstate/pull/3968) [`eecb31b8f`](https://github.com/statelyai/xstate/commit/eecb31b8f43efc4580887ad850336ea74cfba537) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createEmptyActor()` function has been added to make it easier to create actors that do nothing ("empty" actors). This is useful for testing, or for some integrations such as `useActor(actor)` in `@xstate/react` that require an actor:
 
   ```jsx
-  import { createEmptyActor } from 'xstate';
+  import { createEmptyActor } from "xstate";
 
   const SomeComponent = (props) => {
     // props.actor may be undefined
@@ -4413,8 +6518,8 @@
     invoke: {
       src: emailMachine,
       // Registers `emailMachine` as `emailer` on the system
-      key: 'emailer'
-    }
+      key: "emailer",
+    },
   });
   ```
 
@@ -4422,8 +6527,8 @@
   const machine = createMachine({
     // ...
     entry: assign({
-      emailer: (ctx, ev, { spawn }) => spawn(emailMachine, { key: 'emailer' })
-    })
+      emailer: (ctx, ev, { spawn }) => spawn(emailMachine, { key: "emailer" }),
+    }),
   });
   ```
 
@@ -4434,10 +6539,10 @@
     // ...
     entry: sendTo(
       (ctx, ev, { system }) => {
-        return system.get('emailer');
+        return system.get("emailer");
       },
-      { type: 'SEND_EMAIL', subject: 'Hello', body: 'World' }
-    )
+      { type: "SEND_EMAIL", subject: "Hello", body: "World" },
+    ),
   });
   ```
 
@@ -4483,7 +6588,7 @@
   // ...
 
   const restoredActor = interpret(machine, {
-    state: persistedState
+    state: persistedState,
   }).start();
   ```
 
@@ -4511,18 +6616,18 @@
   ```js
   const greetMachine = createMachine({
     context: ({ input }) => ({
-      greeting: `Hello ${input.name}!`
+      greeting: `Hello ${input.name}!`,
     }),
     entry: (_, event) => {
       event.type; // 'xstate.init'
       event.input; // { name: 'David' }
-    }
+    },
     // ...
   });
 
   const actor = interpret(greetMachine, {
     // Pass input data to the machine
-    input: { name: 'David' }
+    input: { name: "David" },
   }).start();
   ```
 
@@ -4603,11 +6708,11 @@
   ```ts
   const machine = createMachine({
     // `tags` attached to machine via typegen
-    tsTypes: {} as import('./machine.typegen').Typegen0,
-    tags: ['a', 'b'],
+    tsTypes: {} as import("./machine.typegen").Typegen0,
+    tags: ["a", "b"],
     states: {
-      idle: { tags: 'c' }
-    }
+      idle: { tags: "c" },
+    },
   });
 
   type Tags = TagsFrom<typeof machine>; // 'a' | 'b' | 'c'
@@ -4617,10 +6722,10 @@
 
   ```ts
   const machine = createMachine({
-    tags: ['a', 'b'],
+    tags: ["a", "b"],
     states: {
-      idle: { tags: 'c' }
-    }
+      idle: { tags: "c" },
+    },
   });
 
   type Tags = TagsFrom<typeof machine>; // string
@@ -4649,7 +6754,7 @@
   ```ts
   actions: assign({
     counter: 0,
-    delta: (ctx, ev) => ev.delta
+    delta: (ctx, ev) => ev.delta,
   });
   ```
 
@@ -4748,14 +6853,14 @@
   ```ts
   const machine = createMachine(
     {
-      entry: ['doStuff']
+      entry: ["doStuff"],
     },
     {
       actions: {
-        doStuff: pure(() => ['someAction']),
-        someAction: () => console.log('executed by doStuff')
-      }
-    }
+        doStuff: pure(() => ["someAction"]),
+        someAction: () => console.log("executed by doStuff"),
+      },
+    },
   );
   ```
 
@@ -4770,7 +6875,7 @@
 - [#3588](https://github.com/statelyai/xstate/pull/3588) [`a4c8ead99`](https://github.com/statelyai/xstate/commit/a4c8ead9963f5e9097896ba0fdc1cdcc0acfd621) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The actions `raise` and `sendTo` can now be imported directly from `xstate`:
 
   ```js
-  import { raise, sendTo } from 'xstate';
+  import { raise, sendTo } from "xstate";
 
   // ...
   ```
@@ -4880,8 +6985,8 @@
 
   ```js
   const lightMachine = createMachine({
-    id: 'light',
-    initial: 'green',
+    id: "light",
+    initial: "green",
     states: {
       green: {},
       yellow: {},
@@ -4890,10 +6995,10 @@
         // initial: 'walk',
         states: {
           walk: {},
-          wait: {}
-        }
-      }
-    }
+          wait: {},
+        },
+      },
+    },
   });
   ```
 
@@ -4909,7 +7014,7 @@
   const machine = createMachine({
     // This will produce the TS error:
     // "Type 'string' is not assignable to type 'object | undefined'"
-    context: 'some string'
+    context: "some string",
   });
   ```
 
@@ -4942,13 +7047,13 @@
   - Dev tools integration has been simplified, and Redux dev tools support is no longer the default. It can be included from `xstate/devTools/redux`:
 
   ```js
-  import { interpret } from 'xstate';
-  import { createReduxDevTools } from 'xstate/devTools/redux';
+  import { interpret } from "xstate";
+  import { createReduxDevTools } from "xstate/devTools/redux";
 
   const service = interpret(someMachine, {
     devTools: createReduxDevTools({
       // Redux Dev Tools options
-    })
+    }),
   });
   ```
 
@@ -4956,7 +7061,7 @@
 
   ```js
   const service = interpret(someMachine, {
-    devTools: true // attaches via window.__xstate__.register(service)
+    devTools: true, // attaches via window.__xstate__.register(service)
   });
   ```
 
@@ -4964,7 +7069,7 @@
 
   ```js
   const myCustomDevTools = (service) => {
-    console.log('Got a service!');
+    console.log("Got a service!");
 
     service.subscribe((state) => {
       // ...
@@ -4972,7 +7077,7 @@
   };
 
   const service = interpret(someMachine, {
-    devTools: myCustomDevTools
+    devTools: myCustomDevTools,
   });
   ```
 
@@ -5019,19 +7124,19 @@
   - `not(guard1)` returns `true` if a single guard evaluates to `false`, otherwise `true`
 
   ```js
-  import { and, or, not } from 'xstate/guards';
+  import { and, or, not } from "xstate/guards";
 
   const someMachine = createMachine({
     // ...
     on: {
       EVENT: {
-        target: 'somewhere',
+        target: "somewhere",
         guard: and([
-          'stringGuard',
-          or([{ type: 'anotherGuard' }, not(() => false)])
-        ])
-      }
-    }
+          "stringGuard",
+          or([{ type: "anotherGuard" }, not(() => false)]),
+        ]),
+      },
+    },
   });
   ```
 
@@ -5195,7 +7300,7 @@
   assign((ctx, ev, { spawn }) => {
     return {
       ...ctx,
-      actorRef: spawn(promiseActor)
+      actorRef: spawn(promiseActor),
     };
   });
   ```
@@ -5203,7 +7308,7 @@
   In addition to that, you can now `spawn` actors defined in your implementations object, in the same way that you were already able to do that with `invoke`. To do that just reference the defined actor like this:
 
   ```js
-  spawn('promiseActor');
+  spawn("promiseActor");
   ```
 
 - [#2869](https://github.com/statelyai/xstate/pull/2869) [`9437c3de9`](https://github.com/statelyai/xstate/commit/9437c3de912c2a38c04798cbb94f267a1e5db3f8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `service.batch(events)` method is no longer available.
@@ -5344,13 +7449,13 @@
   Example usage:
 
   ```js
-  import { waitFor } from 'xstate/lib/waitFor';
+  import { waitFor } from "xstate/lib/waitFor";
 
   // This will
   const loggedInState = await waitFor(
     loginService,
-    (state) => state.hasTag('loggedIn'),
-    { timeout: Infinity }
+    (state) => state.hasTag("loggedIn"),
+    { timeout: Infinity },
   );
   ```
 
@@ -5377,16 +7482,16 @@
   Example usage:
 
   ```js
-  import { waitFor } from 'xstate/lib/waitFor';
+  import { waitFor } from "xstate/lib/waitFor";
 
   // ...
   const loginService = interpret(loginMachine).start();
 
   const loggedInState = await waitFor(loginService, (state) =>
-    state.hasTag('loggedIn')
+    state.hasTag("loggedIn"),
   );
 
-  loggedInState.hasTag('loggedIn'); // true
+  loggedInState.hasTag("loggedIn"); // true
   ```
 
 - [#3200](https://github.com/statelyai/xstate/pull/3200) [`56c0a36`](https://github.com/statelyai/xstate/commit/56c0a36f222195d0b18edd7a72d5429a213b3808) Thanks [@Andarist](https://github.com/Andarist)! - Subscribing to a stopped interpreter will now always immediately emit its state and call a completion callback.
@@ -5420,12 +7525,12 @@
   ```ts
   const machine = createMachine({
     // this encodes that we still expect `myAction` to be provided
-    tsTypes: {} as Typegen0
+    tsTypes: {} as Typegen0,
   });
   const service: InterpreterFrom<typeof machine> = machine.withConfig({
     actions: {
-      myAction: () => {}
-    }
+      myAction: () => {},
+    },
   });
   ```
 
@@ -5482,7 +7587,7 @@
 - [#3040](https://github.com/statelyai/xstate/pull/3040) [`18dc2b3e2`](https://github.com/statelyai/xstate/commit/18dc2b3e2c49527b2155063490bb7295f1f06043) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `AnyState` and `AnyStateMachine` types are now available, which can be used to express any state and state machine, respectively:
 
   ```ts
-  import type { AnyState, AnyStateMachine } from 'xstate';
+  import type { AnyState, AnyStateMachine } from "xstate";
 
   // A function that takes in any state machine
   function visualizeMachine(machine: AnyStateMachine) {
@@ -5497,12 +7602,12 @@
 - [#3042](https://github.com/statelyai/xstate/pull/3042) [`e53396f08`](https://github.com/statelyai/xstate/commit/e53396f083091db26c117000ce6ec070914360e9) Thanks [@suerta-git](https://github.com/suerta-git)! - Added the `AnyStateConfig` type, which represents any `StateConfig<...>`:
 
   ```ts
-  import type { AnyStateConfig } from 'xstate';
-  import { State } from 'xstate';
+  import type { AnyStateConfig } from "xstate";
+  import { State } from "xstate";
 
   // Retrieving the state config from localStorage
   const stateConfig: AnyStateConfig = JSON.parse(
-    localStorage.getItem('app-state')
+    localStorage.getItem("app-state"),
   );
 
   // Use State.create() to restore state from config object with correct type
@@ -5520,11 +7625,11 @@
   ```js
   // Persisting a state
   someService.subscribe((state) => {
-    localStorage.setItem('some-state', JSON.stringify(state));
+    localStorage.setItem("some-state", JSON.stringify(state));
   });
 
   // Restoring a state
-  const stateJson = localStorage.getItem('some-state');
+  const stateJson = localStorage.getItem("some-state");
 
   // No need to convert `stateJson` object to a state!
   const someService = interpret(someMachine).start(stateJson);
@@ -5565,7 +7670,7 @@
 
   ```ts
   const machine = createMachine({
-    tsTypes: {}
+    tsTypes: {},
   });
   ```
 
@@ -5578,13 +7683,13 @@
 - [#2962](https://github.com/statelyai/xstate/pull/2962) [`32520650b`](https://github.com/statelyai/xstate/commit/32520650b7d6b43e416b896054033432aaede5d5) Thanks [@mattpocock](https://github.com/mattpocock)! - Added `t()`, which can be used to provide types for `schema` attributes in machine configs:
 
   ```ts
-  import { t, createMachine } from 'xstate';
+  import { t, createMachine } from "xstate";
 
   const machine = createMachine({
     schema: {
       context: t<{ value: number }>(),
-      events: t<{ type: 'EVENT_1' } | { type: 'EVENT_2' }>()
-    }
+      events: t<{ type: "EVENT_1" } | { type: "EVENT_2" }>(),
+    },
   });
   ```
 
@@ -5612,36 +7717,36 @@
 
   ```js
   createMachine({
-    id: 'test',
-    initial: 'p',
+    id: "test",
+    initial: "p",
     states: {
       p: {
-        type: 'parallel',
+        type: "parallel",
         states: {
           // Before this change, both invoke IDs would be 'someSource',
           // which is incorrect.
           a: {
             invoke: {
-              src: 'someSource'
+              src: "someSource",
               // generated invoke ID: 'test.p.a:invocation[0]'
-            }
+            },
           },
           b: {
             invoke: {
-              src: 'someSource'
+              src: "someSource",
               // generated invoke ID: 'test.p.b:invocation[0]'
-            }
-          }
-        }
-      }
-    }
+            },
+          },
+        },
+      },
+    },
   });
   ```
 
 - [#2925](https://github.com/statelyai/xstate/pull/2925) [`239b4666a`](https://github.com/statelyai/xstate/commit/239b4666ac302d80c028fef47c6e8ab7e0ae2757) Thanks [@devanfarrell](https://github.com/devanfarrell)! - The `sendTo(actorRef, event)` action creator introduced in `4.27.0`, which was not accessible from the package exports, can now be used just like other actions:
 
   ```js
-  import { actions } from 'xstate';
+  import { actions } from "xstate";
 
   const { sendTo } = actions;
   ```
@@ -5689,15 +7794,15 @@
     states: {
       active: {
         // ...
-        description: 'The task is in progress',
+        description: "The task is in progress",
         on: {
           DEACTIVATE: {
             // ...
-            description: 'Deactivates the task'
-          }
-        }
-      }
-    }
+            description: "Deactivates the task",
+          },
+        },
+      },
+    },
   });
   ```
 
@@ -5716,8 +7821,8 @@
 - [#2740](https://github.com/statelyai/xstate/pull/2740) [`707cb981f`](https://github.com/statelyai/xstate/commit/707cb981fdb8a5c75cacb7e9bfa5c7e5a1cc1c88) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with tags being missed on a service state after starting that service using a state value, like this:
 
   ```js
-  const service = interpret(machine).start('active');
-  service.state.hasTag('foo'); // this should now return a correct result
+  const service = interpret(machine).start("active");
+  service.state.hasTag("foo"); // this should now return a correct result
   ```
 
 - [#2691](https://github.com/statelyai/xstate/pull/2691) [`a72806035`](https://github.com/statelyai/xstate/commit/a728060353c9cb9bdb0cd37aacf793498a8750c8) Thanks [@davidkpiano](https://github.com/statelyai)! - Meta data can now be specified for `invoke` configs in the `invoke.meta` property:
@@ -5728,12 +7833,12 @@
     invoke: {
       src: (ctx, e) => findUser(ctx.userId),
       meta: {
-        summary: 'Finds user',
-        updatedAt: '2021-09-...',
-        version: '4.12.2'
+        summary: "Finds user",
+        updatedAt: "2021-09-...",
+        version: "4.12.2",
         // other descriptive meta properties
-      }
-    }
+      },
+    },
   });
   ```
 
@@ -5768,9 +7873,9 @@
     { foo: 100 },
     {
       events: {
-        BAR: () => ({})
-      }
-    }
+        BAR: () => ({}),
+      },
+    },
   );
 
   model.createMachine({
@@ -5778,8 +7883,8 @@
     entry: (ctx) => {},
     exit: assign({
       // `ctx` was of type `unknown`
-      foo: (ctx) => 42
-    })
+      foo: (ctx) => 42,
+    }),
   });
   ```
 
@@ -5797,30 +7902,30 @@
 
   ```js
   const machine = createMachine({
-    initial: 'inactive',
+    initial: "inactive",
     states: {
       inactive: {
         on: {
-          TOGGLE: 'active'
-        }
+          TOGGLE: "active",
+        },
       },
       active: {
         on: {
-          DO_SOMETHING: { actions: ['something'] }
-        }
-      }
-    }
+          DO_SOMETHING: { actions: ["something"] },
+        },
+      },
+    },
   });
 
   const state = machine.initialState;
 
-  state.can('TOGGLE'); // true
-  state.can('DO_SOMETHING'); // false
+  state.can("TOGGLE"); // true
+  state.can("DO_SOMETHING"); // false
 
   // Also takes in full event objects:
   state.can({
-    type: 'DO_SOMETHING',
-    data: 42
+    type: "DO_SOMETHING",
+    data: 42,
   }); // false
   ```
 
@@ -5839,14 +7944,14 @@
   const model = createModel(
     {},
     {
-      events: {}
-    }
+      events: {},
+    },
   );
 
   model.createMachine({
     // These actions will cause TS to not compile
-    entry: 'someAction',
-    exit: { type: 'someObjectAction' }
+    entry: "someAction",
+    exit: { type: "someObjectAction" },
   });
   ```
 
@@ -5899,12 +8004,12 @@
   ```ts
   createMachine({
     context: {/* ... */}, // ✅ This is allowed
-    initial: 'inner',
+    initial: "inner",
     states: {
       inner: {
-        context: {/* ... */} // ❌ This will no longer compile
-      }
-    }
+        context: {/* ... */}, // ❌ This will no longer compile
+      },
+    },
   });
   ```
 
@@ -5916,7 +8021,7 @@
 
   ```js
   const copy = machine.withContext(() => ({
-    ref: spawn(() => {})
+    ref: spawn(() => {}),
   }));
   ```
 
@@ -5932,7 +8037,7 @@
 
   ```ts
   // `state.context` became `any` erroneously
-  if (state.matches('inactive')) {
+  if (state.matches("inactive")) {
     console.log(state.context.count);
   }
   ```
@@ -5952,9 +8057,9 @@
       assign({ count: (ctx) => ctx.count + 1 }),
       (ctx) => console.log(ctx.count), // 1
       assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count) // 2
+      (ctx) => console.log(ctx.count), // 2
     ],
-    preserveActionOrder: true
+    preserveActionOrder: true,
   });
 
   // With `.preserveActionOrder: false` (default)
@@ -5965,8 +8070,8 @@
       assign({ count: (ctx) => ctx.count + 1 }),
       (ctx) => console.log(ctx.count), // 2
       assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count) // 2
-    ]
+      (ctx) => console.log(ctx.count), // 2
+    ],
     // preserveActionOrder: false
   });
   ```
@@ -5980,13 +8085,13 @@
   ```ts
   const machine = createMachine({
     context: () => ({
-      someRef: spawn(someExistingRef, 'something')
+      someRef: spawn(someExistingRef, "something"),
     }),
     on: {
       SOME_EVENT: {
-        actions: send('AN_EVENT', { to: 'something' })
-      }
-    }
+        actions: send("AN_EVENT", { to: "something" }),
+      },
+    },
   });
   ```
 
@@ -6010,14 +8115,14 @@
 - [`432b60f7`](https://github.com/statelyai/xstate/commit/432b60f7bcbcee9510e0d86311abbfd75b1a674e) [#2280](https://github.com/statelyai/xstate/pull/2280) Thanks [@davidkpiano](https://github.com/statelyai)! - Actors can now be invoked/spawned from reducers using the `fromReducer(...)` behavior creator:
 
   ```ts
-  import { fromReducer } from 'xstate/lib/behaviors';
+  import { fromReducer } from "xstate/lib/behaviors";
 
-  type CountEvent = { type: 'INC' } | { type: 'DEC' };
+  type CountEvent = { type: "INC" } | { type: "DEC" };
 
   const countReducer = (count: number, event: CountEvent): number => {
-    if (event.type === 'INC') {
+    if (event.type === "INC") {
       return count + 1;
-    } else if (event.type === 'DEC') {
+    } else if (event.type === "DEC") {
       return count - 1;
     }
 
@@ -6026,17 +8131,17 @@
 
   const countMachine = createMachine({
     invoke: {
-      id: 'count',
-      src: () => fromReducer(countReducer, 0)
+      id: "count",
+      src: () => fromReducer(countReducer, 0),
     },
     on: {
       INC: {
-        actions: forwardTo('count')
+        actions: forwardTo("count"),
       },
       DEC: {
-        actions: forwardTo('count')
-      }
-    }
+        actions: forwardTo("count"),
+      },
+    },
   });
   ```
 
@@ -6045,8 +8150,8 @@
   ```ts
   const machine = createMachine<{ ref: ActorRef<SomeEvent> }>({
     context: () => ({
-      ref: spawn(anotherMachine, 'some-id') // spawn immediately!
-    })
+      ref: spawn(anotherMachine, "some-id"), // spawn immediately!
+    }),
     // ...
   });
   ```
@@ -6066,7 +8171,7 @@
   ```ts
   interface ActorRef<
     TEvent extends EventObject,
-    TEmitted = any
+    TEmitted = any,
   > extends Subscribable<TEmitted> {
     send: (event: TEvent) => void;
     id: string;
@@ -6074,7 +8179,7 @@
     subscribe(
       next: (value: T) => void,
       error?: (error: any) => void,
-      complete?: () => void
+      complete?: () => void,
     ): Subscription;
     getSnapshot: () => TEmitted | undefined;
   }
@@ -6094,10 +8199,10 @@
   const machine = createMachine<typeof someModel>({
     // missing context - will give a TS error!
     // context: someModel.initialContext,
-    initial: 'somewhere',
+    initial: "somewhere",
     states: {
-      somewhere: {}
-    }
+      somewhere: {},
+    },
   });
   ```
 
@@ -6106,7 +8211,7 @@
   ```ts
   invoke: () => (sendBack, receive) => {
     // Will now be constrained to events that the parent machine can receive
-    sendBack({ type: 'SOME_EVENT' });
+    sendBack({ type: "SOME_EVENT" });
   };
   ```
 
@@ -6152,16 +8257,16 @@
   ```js
   const machine = createMachine({
     context: {
-      promiseRef: null
+      promiseRef: null,
     },
-    initial: 'pending',
+    initial: "pending",
     states: {
       pending: {
         entry: assign({
-          promiseRef: () => spawn(fetch(/* ... */), 'some-promise')
-        })
-      }
-    }
+          promiseRef: () => spawn(fetch(/* ... */), "some-promise"),
+        }),
+      },
+    },
   });
 
   const service = interpret(machine)
@@ -6206,25 +8311,25 @@
 
   ```js
   const machine = createMachine({
-    initial: 'green',
+    initial: "green",
     states: {
       green: {
-        tags: 'go' // single tag
+        tags: "go", // single tag
       },
       yellow: {
-        tags: 'go'
+        tags: "go",
       },
       red: {
-        tags: ['stop', 'other'] // multiple tags
-      }
-    }
+        tags: ["stop", "other"], // multiple tags
+      },
+    },
   });
   ```
 
   You can query whether a state has a tag via `state.hasTag(tag)`:
 
   ```js
-  const canGo = state.hasTag('go');
+  const canGo = state.hasTag("go");
   // => `true` if in 'green' or 'red' state
   ```
 
@@ -6245,9 +8350,9 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: (ctx) => ctx.value + 1 })
-      }
-    }
+        actions: assign({ value: (ctx) => ctx.value + 1 }),
+      },
+    },
   });
   ```
 
@@ -6281,23 +8386,23 @@
     schema: {
       // Example in JSON Schema (anything can be used)
       context: {
-        type: 'object',
+        type: "object",
         properties: {
-          foo: { type: 'string' },
-          bar: { type: 'number' },
+          foo: { type: "string" },
+          bar: { type: "number" },
           baz: {
-            type: 'object',
+            type: "object",
             properties: {
-              one: { type: 'string' }
-            }
-          }
-        }
+              one: { type: "string" },
+            },
+          },
+        },
       },
       events: {
-        FOO: { type: 'object' },
-        BAR: { type: 'object' }
-      }
-    }
+        FOO: { type: "object" },
+        BAR: { type: "object" },
+      },
+    },
     // ...
   });
   ```
@@ -6305,15 +8410,15 @@
   Additionally, the new `createSchema()` identity function allows any schema "metadata" to be represented by a specific type, which makes type inference easier without having to specify generic types:
 
   ```ts
-  import { createSchema, createMachine } from 'xstate';
+  import { createSchema, createMachine } from "xstate";
 
   // Both `context` and `events` are inferred in the rest of the machine!
   const machine = createMachine({
     schema: {
       context: createSchema<{ count: number }>(),
       // No arguments necessary
-      events: createSchema<{ type: 'FOO' } | { type: 'BAR' }>()
-    }
+      events: createSchema<{ type: "FOO" } | { type: "BAR" }>(),
+    },
     // ...
   });
   ```
@@ -6321,40 +8426,40 @@
 - [`5febfe83`](https://github.com/statelyai/xstate/commit/5febfe83a7e5e866c0a4523ea4f86a966af7c50f) [#1955](https://github.com/statelyai/xstate/pull/1955) Thanks [@davidkpiano](https://github.com/statelyai)! - Event creators can now be modeled inside of the 2nd argument of `createModel()`, and types for both `context` and `events` will be inferred properly in `createMachine()` when given the `typeof model` as the first generic parameter.
 
   ```ts
-  import { createModel } from 'xstate/lib/model';
+  import { createModel } from "xstate/lib/model";
 
   const userModel = createModel(
     // initial context
     {
-      name: 'David',
-      age: 30
+      name: "David",
+      age: 30,
     },
     // creators (just events for now)
     {
       events: {
         updateName: (value: string) => ({ value }),
         updateAge: (value: number) => ({ value }),
-        anotherEvent: () => ({}) // no payload
-      }
-    }
+        anotherEvent: () => ({}), // no payload
+      },
+    },
   );
 
   const machine = createMachine<typeof userModel>({
     context: userModel.initialContext,
-    initial: 'active',
+    initial: "active",
     states: {
       active: {
         on: {
           updateName: {/* ... */},
-          updateAge: {/* ... */}
-        }
-      }
-    }
+          updateAge: {/* ... */},
+        },
+      },
+    },
   });
 
   const nextState = machine.transition(
     undefined,
-    userModel.events.updateName('David')
+    userModel.events.updateName("David"),
   );
   ```
 
@@ -6533,30 +8638,30 @@
 
   ```js
   const child = createMachine({
-    initial: 'bar',
+    initial: "bar",
     context: {},
     states: {
       bar: {
         entry: assign({
           promise: () => {
-            return spawn(() => Promise.resolve('answer'));
-          }
-        })
-      }
-    }
+            return spawn(() => Promise.resolve("answer"));
+          },
+        }),
+      },
+    },
   });
 
   const parent = createMachine({
-    initial: 'foo',
+    initial: "foo",
     states: {
       foo: {
         invoke: {
           src: child,
-          onDone: 'end'
-        }
+          onDone: "end",
+        },
       },
-      end: { type: 'final' }
-    }
+      end: { type: "final" },
+    },
   });
 
   interpret(parent).start();
@@ -6575,28 +8680,28 @@
   ```js
   const machine = createMachine(
     {
-      initial: 'searching',
+      initial: "searching",
       states: {
         searching: {
           invoke: {
             src: {
-              type: 'search',
-              endpoint: 'example.com'
-            }
+              type: "search",
+              endpoint: "example.com",
+            },
             // ...
-          }
+          },
           // ...
-        }
-      }
+        },
+      },
     },
     {
       services: {
         search: (context, event, { src }) => {
           console.log(src);
           // => { endpoint: 'example.com' }
-        }
-      }
-    }
+        },
+      },
+    },
   );
   ```
 
@@ -6737,13 +8842,13 @@
   ```js
   entry: [
     choose([
-      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
+      { cond: (ctx) => ctx > 100, actions: raise("TOGGLE") },
       {
-        cond: 'hasMagicBottle',
-        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
+        cond: "hasMagicBottle",
+        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))],
       },
-      { actions: ['fallbackAction'] }
-    ])
+      { actions: ["fallbackAction"] },
+    ]),
   ];
   ```
 

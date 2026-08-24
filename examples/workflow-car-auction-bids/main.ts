@@ -1,4 +1,4 @@
-import { assign, createMachine, createActor } from 'xstate';
+import { createMachine, createActor } from 'xstate';
 
 interface Bid {
   carid: string;
@@ -11,53 +11,55 @@ interface Bid {
 }
 
 // https://github.com/serverlessworkflow/specification/tree/main/examples#handle-car-auction-bids-example
-export const workflow = createMachine(
-  {
-    id: 'handleCarAuctionBid',
-    description: 'Store a single bid whole the car auction is active',
-    initial: 'StoreCarAuctionBid',
-    types: {} as {
-      context: {
-        bids: Bid[];
-      };
-      events: {
-        type: 'CarBidEvent';
-        bid: Bid;
-      };
-    },
+export const workflow = createMachine({
+  id: 'handleCarAuctionBid',
+  description: 'Store a single bid whole the car auction is active',
+  initial: 'StoreCarAuctionBid',
+  types: {} as {
     context: {
-      bids: []
-    },
-    states: {
-      StoreCarAuctionBid: {
-        on: {
-          CarBidEvent: {
-            actions: assign({
-              bids: ({ context, event }) => [...context.bids, event.bid]
-            })
-          }
-        },
-        after: {
-          BiddingDelay: 'BiddingEnded'
+      bids: Bid[];
+    };
+    events: {
+      type: 'CarBidEvent';
+      bid: Bid;
+    };
+  },
+  context: {
+    bids: []
+  },
+  states: {
+    StoreCarAuctionBid: {
+      on: {
+        CarBidEvent: ({ context, event, guards, actions }, enq) => {
+          return {
+            context: {
+              ...context,
+              bids: (({ context, event }) => [...context.bids, event.bid])({
+                context: context,
+                event: event
+              })
+            }
+          };
         }
       },
-      BiddingEnded: {
-        type: 'final',
-        output: ({ context }) => ({
-          // highest bid
-          winningBid: context.bids.reduce((prev, current) =>
-            prev.amount > current.amount ? prev : current
-          )
-        })
+      after: {
+        BiddingDelay: 'BiddingEnded'
       }
+    },
+    BiddingEnded: {
+      type: 'final',
+      output: ({ context }) => ({
+        // highest bid
+        winningBid: context.bids.reduce((prev, current) =>
+          prev.amount > current.amount ? prev : current
+        )
+      })
     }
   },
-  {
-    delays: {
-      BiddingDelay: 3000
-    }
+  delays: {
+    BiddingDelay: 3000
   }
-);
+});
 
 const actor = createActor(workflow, {
   inspect: (inspEv) => {

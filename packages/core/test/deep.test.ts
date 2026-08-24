@@ -12,7 +12,7 @@ describe('deep transitions', () => {
           FAIL: {},
           A: {
             on: {
-              A_EVENT: '#root.DONE'
+              A_EVENT: { target: '#root.DONE' }
             },
             initial: 'B',
             states: {
@@ -61,7 +61,7 @@ describe('deep transitions', () => {
             states: {
               B: {
                 on: {
-                  B_EVENT: '#root.DONE'
+                  B_EVENT: { target: '#root.DONE' }
                 },
                 initial: 'C',
                 states: {
@@ -110,7 +110,7 @@ describe('deep transitions', () => {
                 states: {
                   C: {
                     on: {
-                      C_EVENT: '#root.DONE'
+                      C_EVENT: { target: '#root.DONE' }
                     },
                     initial: 'D',
                     states: {
@@ -159,7 +159,7 @@ describe('deep transitions', () => {
                     states: {
                       D: {
                         on: {
-                          D_EVENT: '#root.DONE'
+                          D_EVENT: { target: '#root.DONE' }
                         }
                       }
                     }
@@ -194,7 +194,7 @@ describe('deep transitions', () => {
         id: 'deep',
         initial: 'A',
         on: {
-          MACHINE_EVENT: '#deep.DONE'
+          MACHINE_EVENT: { target: '#deep.DONE' }
         },
         states: {
           DONE: {},
@@ -242,7 +242,7 @@ describe('deep transitions', () => {
         states: {
           A: {
             on: {
-              A_S: '#root.P.Q.R.S'
+              A_S: { target: '#root.P.Q.R.S' }
             },
             initial: 'B',
             states: {
@@ -314,7 +314,7 @@ describe('deep transitions', () => {
                     states: {
                       D: {
                         on: {
-                          D_P: '#deep.P'
+                          D_P: { target: '#deep.P' }
                         }
                       }
                     }
@@ -370,7 +370,7 @@ describe('deep transitions', () => {
         states: {
           A: {
             on: {
-              A_P: '#root.P'
+              A_P: { target: '#root.P' }
             },
             initial: 'B',
             states: {
@@ -443,7 +443,7 @@ describe('deep transitions', () => {
                     states: {
                       D: {
                         on: {
-                          D_S: '#root.P.Q.R.S'
+                          D_S: { target: '#root.P.Q.R.S' }
                         }
                       }
                     }

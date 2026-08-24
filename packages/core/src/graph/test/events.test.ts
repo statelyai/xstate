@@ -12,7 +12,7 @@ describe('events', () => {
         states: {
           a: {
             on: {
-              EVENT: 'b'
+              EVENT: { target: 'b' }
             }
           },
           b: {}
@@ -40,7 +40,7 @@ describe('events', () => {
         states: {
           a: {
             on: {
-              EVENT: 'b'
+              EVENT: { target: 'b' }
             }
           },
           b: {}

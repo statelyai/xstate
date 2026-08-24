@@ -24,7 +24,6 @@ import {
   ActorLogic,
   Snapshot,
   isMachineSnapshot,
-  __unsafe_getAllOwnEventDescriptors,
   AnyActorRef,
   AnyEventObject,
   AnyStateMachine,
@@ -37,6 +36,7 @@ import {
   InputFrom
 } from '../index.ts';
 import { deduplicatePaths } from './deduplicatePaths.ts';
+import { getAllOwnEvents, matchesEvent } from '../utils.ts';
 import {
   createShortestPathsGen,
   createSimplePathsGen
@@ -448,22 +448,26 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     },
     stateMatcher: (state, key) => {
       return key.startsWith('#')
-        ? (state as any)._nodes.includes(machine.getStateNodeById(key))
+        ? (state as any).nodes.includes(machine.getStateNodeById(key))
         : (state as any).matches(key);
     },
     events: (state) => {
       const events =
         typeof getEvents === 'function' ? getEvents(state) : (getEvents ?? []);
 
-      return __unsafe_getAllOwnEventDescriptors(state).flatMap(
-        (eventType: string) => {
-          if (events.some((e) => (e as EventObject).type === eventType)) {
-            return events.filter((e) => (e as EventObject).type === eventType);
-          }
-
-          return [{ type: eventType } as any]; // TODO: fix types
+      return getAllOwnEvents(state).flatMap((defaultEvent: AnyEventObject) => {
+        if (
+          events.some((event) =>
+            matchesEvent(event as EventObject, defaultEvent)
+          )
+        ) {
+          return events.filter((event) =>
+            matchesEvent(event as EventObject, defaultEvent)
+          );
         }
-      );
+
+        return [defaultEvent as any];
+      });
     },
     ...otherOptions
   });

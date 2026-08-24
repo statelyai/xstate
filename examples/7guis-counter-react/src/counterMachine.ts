@@ -1,4 +1,4 @@
-import { createMachine, assign } from 'xstate';
+import { createMachine } from 'xstate';
 
 interface CounterContext {
   count: number;
@@ -16,8 +16,16 @@ export const counterMachine = createMachine({
   id: 'counter',
   context: { count: 0 },
   on: {
-    INCREMENT: {
-      actions: assign({ count: ({ context }) => context.count + 1 })
+    INCREMENT: ({ context, event, guards, actions }, enq) => {
+      return {
+        context: {
+          ...context,
+          count: (({ context }) => context.count + 1)({
+            context: context,
+            event: event
+          })
+        }
+      };
     }
   }
 });

@@ -1,4 +1,8 @@
-import type { ActorLogic } from 'xstate';
+import type {
+  ActorLogic,
+  ActorSystemRuntime,
+  ExecutableActionObject
+} from 'xstate';
 import {
   createStoreTransition,
   TransitionsFromEventPayloadMap
@@ -259,52 +263,74 @@ export function fromStore(config: {
 }): StoreLogic<any, any, any, any> {
   const initialContext = config.context;
   const transition = createStoreTransition(config.on);
+  const initialTransition: StoreLogic<
+    any,
+    any,
+    any,
+    any
+  >['initialTransition'] = (input: unknown, _: unknown) => [
+    {
+      status: 'active',
+      context:
+        typeof initialContext === 'function'
+          ? initialContext(input)
+          : initialContext,
+      output: undefined,
+      error: undefined
+    },
+    []
+  ];
 
   return {
     transition: (snapshot, event, actorScope) => {
       const [nextSnapshot, effects] = transition(snapshot, event);
 
-      // The actor only commits `nextSnapshot` after this function returns, so
-      // synchronous effects must read it directly; effects that run later
-      // (after an `await`) read the latest committed snapshot from the actor.
-      // This matches `createStore`, where `currentSnapshot` is updated before
-      // effects run.
-      let committed = false;
-      const effectEnqueue = {
-        send: (event: EventObject) => actorScope.self.send(event),
-        trigger: new Proxy({} as any, {
-          get: (_, eventType: string) => {
-            return (payload: any) =>
-              actorScope.self.send({ type: eventType, ...payload });
+      return [
+        nextSnapshot,
+        effects.map<ExecutableActionObject>((effect) => {
+          if (typeof effect === 'function') {
+            const action = (
+              system: Partial<ActorSystemRuntime> = actorScope.self.system
+            ) => {
+              const send = (event: EventObject) =>
+                void system.sendEvent!(actorScope.self, actorScope.self, event);
+              return effect({
+                send,
+                trigger: new Proxy({} as any, {
+                  get: (_, eventType: string) => {
+                    return (payload: any) =>
+                      send({ type: eventType, ...payload });
+                  }
+                }),
+                getSnapshot: () => actorScope.self.getSnapshot()
+              });
+            };
+            return {
+              kind: 'action',
+              type: 'effect',
+              action,
+              params: undefined,
+              args: [],
+              exec: action
+            };
           }
-        }),
-        getSnapshot: () =>
-          committed ? actorScope.self.getSnapshot() : nextSnapshot
-      };
-
-      for (const effect of effects) {
-        if (typeof effect === 'function') {
-          effect(effectEnqueue);
-        } else {
-          actorScope.emit(effect);
-        }
-      }
-
-      committed = true;
-
-      return nextSnapshot;
+          return {
+            kind: 'emit',
+            type: effect.type,
+            source: actorScope.self,
+            event: effect,
+            params: undefined,
+            args: [],
+            exec: (
+              system: Partial<ActorSystemRuntime> = actorScope.self.system
+            ) => system.emitEvent!(actorScope.self, effect)
+          };
+        })
+      ];
     },
-    getInitialSnapshot: (_, input: unknown) => {
-      return {
-        status: 'active',
-        context:
-          typeof initialContext === 'function'
-            ? initialContext(input)
-            : initialContext,
-        output: undefined,
-        error: undefined
-      };
-    },
+    initialTransition,
+    getInitialSnapshot: (actorScope, input: unknown) =>
+      initialTransition(input, actorScope)[0],
     getPersistedSnapshot: (s: Snapshot<unknown>) => s,
     restoreSnapshot: (s: Snapshot<unknown>) => s as StoreSnapshot<any>
   };

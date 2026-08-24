@@ -24,10 +24,10 @@ const toggleMachine = createMachine({
   initial: 'inactive',
   states: {
     inactive: {
-      on: { TOGGLE: 'active' }
+      on: { TOGGLE: { target: 'active' } }
     },
     active: {
-      on: { TOGGLE: 'inactive' }
+      on: { TOGGLE: { target: 'inactive' } }
     }
   }
 });

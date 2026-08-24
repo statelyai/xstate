@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@statelyai/inspect": "^0.4.0",
-    "@xstate/store": "^3.17.1",
-    "@xstate/store-react": "^1.0.1",
+    "@xstate/store": "workspace:*",
+    "@xstate/store-react": "workspace:*",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },

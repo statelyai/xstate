@@ -1,0 +1,17 @@
+{
+  "minimal-machine": {
+    "maxGzipBytes": 15458
+  },
+  "minimal-fsm": {
+    "maxGzipBytes": 7392
+  },
+  "machine-and-actors": {
+    "maxGzipBytes": 16561
+  },
+  "validated-machine": {
+    "maxGzipBytes": 21574
+  },
+  "kitchen-sink": {
+    "maxGzipBytes": 23667
+  }
+}

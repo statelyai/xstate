@@ -1,0 +1,45 @@
+{
+  "name": "@xstate/codemod",
+  "version": "0.1.0-alpha.0",
+  "description": "Codemods for migrating XState source between versions (v5 → v6)",
+  "keywords": [
+    "xstate",
+    "codemod",
+    "migration",
+    "ts-morph"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-codemod#readme",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "xstate-codemod": "./bin/codemod.js"
+  },
+  "exports": {
+    ".": "./dist/xstate-codemod.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "dependencies": {
+    "ts-morph": "^24.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.2"
+  },
+  "preconstruct": {
+    "umdName": "XStateCodemod",
+    "entrypoints": [
+      "./index.ts"
+    ]
+  }
+}

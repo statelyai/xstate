@@ -1,39 +1,72 @@
 import { createActor } from '../createActor.ts';
-import type { ActorRef, AnyEventObject, Snapshot } from '../types.ts';
-import { fromTransition } from './transition.ts';
+import type { ActorFromLogic } from '../types.ts';
+import { createLogic } from './logic.ts';
 export {
-  fromCallback,
+  createCallbackLogic,
   type CallbackActorLogic,
   type CallbackActorRef,
+  type CallbackLogicConfig,
   type CallbackSnapshot,
   type CallbackLogicFunction
 } from './callback.ts';
 export {
-  fromEventObservable,
-  fromObservable,
+  createObservableLogic,
+  createEventObservableLogic,
+  type EventObservableLogicConfig,
+  type EventObservableLogicFunction,
   type ObservableActorLogic,
   type ObservableActorRef,
+  type ObservableLogicConfig,
+  type ObservableLogicFunction,
   type ObservableSnapshot
 } from './observable.ts';
 export {
-  fromPromise,
-  type PromiseActorLogic,
-  type PromiseActorRef,
-  type PromiseSnapshot
+  createLogic,
+  type LogicActorLogic,
+  type LogicActorRef,
+  type LogicArgs,
+  type LogicConfig,
+  type LogicEffect,
+  type LogicEffectState,
+  type LogicEnqueue,
+  type LogicFunction,
+  type LogicPatch,
+  type LogicSnapshot
+} from './logic.ts';
+export {
+  createAsyncLogic,
+  type AsyncActorLogic,
+  type AsyncActorRef,
+  type AsyncSnapshot,
+  type LogicArgs as AsyncLogicArgs,
+  type LogicConfig as AsyncLogicConfig,
+  type LogicEnqueue as AsyncLogicEnqueue,
+  type LogicFunction as AsyncLogicFunction,
+  TimeoutError
 } from './promise.ts';
 export {
-  fromTransition,
-  type TransitionActorLogic,
-  type TransitionActorRef,
-  type TransitionSnapshot
-} from './transition.ts';
+  createListenerLogic,
+  listenerLogic,
+  type ListenerActorLogic,
+  type ListenerActorRef,
+  type ListenerSnapshot,
+  type ListenerInput
+} from './listener.ts';
+export {
+  createSubscriptionLogic,
+  subscriptionLogic,
+  type SubscriptionActorLogic,
+  type SubscriptionActorRef,
+  type SubscriptionSnapshot,
+  type SubscriptionInput,
+  type SubscriptionMappers
+} from './subscription.ts';
 
-const emptyLogic = fromTransition((_) => undefined, undefined);
+const emptyLogic = /* #__PURE__ */ createLogic<undefined, undefined>({
+  context: undefined,
+  run: () => undefined
+});
 
-export function createEmptyActor(): ActorRef<
-  Snapshot<undefined>,
-  AnyEventObject,
-  AnyEventObject
-> {
+export function createEmptyActor(): ActorFromLogic<typeof emptyLogic> {
   return createActor(emptyLogic);
 }

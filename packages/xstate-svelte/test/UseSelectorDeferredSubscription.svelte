@@ -1,24 +1,19 @@
 <script lang="ts">
-  import { createActor, createMachine, assign } from 'xstate';
+  import { createActor, createMachine } from 'xstate';
   import { get } from 'svelte/store';
   import { useActorRef, useSelector } from '../src/index.ts';
 
   const machine = createMachine({
     initial: 'idle',
-    types: {
-      context: {} as {
-        count: number;
-      }
-    },
     context: {
       count: 0
     },
     states: {
       idle: {
         on: {
-          INCREMENT: {
-            actions: assign({ count: ({ context: { count } }) => count + 1 })
-          }
+          INCREMENT: ({ context }) => ({
+            context: { ...context, count: context.count + 1 }
+          })
         }
       }
     }
