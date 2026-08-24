@@ -1236,11 +1236,18 @@ no JSON representation.
 
 ### SCXML
 
-- `toMachineJSON(scxml)` - parse SCXML XML to a plain JSON machine config
-- `toMachine(scxml)` - parse SCXML XML directly to a `StateMachine`
+`createMachineFromSCXML(scxml)` creates an XState machine from an SCXML
+document. Import it from the opt-in `xstate/scxml` entry point so the XML parser
+does not become part of the main `xstate` module graph.
 
-These remain **repo-internal** and are not exported from `xstate` (they pull in
-an XML parser).
+```ts
+import { createMachineFromSCXML } from 'xstate/scxml';
+
+const machine = createMachineFromSCXML(scxml);
+```
+
+SCXML uses a private compiler representation rather than `MachineJSON`. See
+[SCXML](scxml.md) for resource resolution and usage.
 
 ---
 
