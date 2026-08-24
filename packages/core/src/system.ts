@@ -475,7 +475,7 @@ export type AnyActorSystem = ActorSystem<any>;
 
 // These optional lazy fields intentionally have no emitted initializers.
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging
-interface RuntimeSystem<T extends ActorSystemInfo> {
+export interface RuntimeSystem<T extends ActorSystemInfo> {
   runtime?: Partial<ActorSystemRuntime>;
   _children?: Map<string, AnyActor>;
   _keyedActors?: Map<keyof T['actors'], AnyActor | undefined>;
@@ -484,7 +484,9 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
   _timerMap?: { [id: ScheduledTimerId]: number };
 }
 
-class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
+export class RuntimeSystem<
+  T extends ActorSystemInfo
+> implements ActorSystem<T> {
   public _identity = ambientExecutionIdentity ?? {
     systemId: createSystemId(),
     nextSessionId: 0
@@ -963,16 +965,4 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       );
     }
   }
-}
-
-export function createRuntimeSystem<T extends ActorSystemInfo>(
-  rootActor: AnyActor,
-  options: {
-    clock: Clock;
-    logger: (...args: any[]) => void;
-    snapshot?: unknown;
-    createActorRef: ActorSystem<T>['createActorRef'];
-  }
-): ActorSystem<T> {
-  return new RuntimeSystem(rootActor, options);
 }

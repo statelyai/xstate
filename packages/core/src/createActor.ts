@@ -14,7 +14,7 @@ import {
   AnyActorSystem,
   bookSessionId,
   Clock,
-  createRuntimeSystem,
+  RuntimeSystem,
   resolveActorId
 } from './system.ts';
 
@@ -112,13 +112,6 @@ function executeExecutableEffects(
   for (const effect of effects) {
     actorScope.actionExecutor(effect);
   }
-}
-
-function createActorRef(
-  logic: AnyActorLogic,
-  options: ActorOptions<AnyActorLogic>
-): AnyActor {
-  return new Actor(logic, options);
 }
 
 /**
@@ -271,11 +264,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     this.system = parent
       ? parent.system
       : (resolvedOptions._systemRef?.current ??
-        createRuntimeSystem(this, {
+        new RuntimeSystem(this, {
           clock,
           logger,
           snapshot: resolvedOptions.snapshot ?? resolvedOptions.state,
-          createActorRef
+          createActorRef: createActor
         }));
 
     if (
