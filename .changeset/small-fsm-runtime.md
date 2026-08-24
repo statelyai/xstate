@@ -3,11 +3,11 @@
 ---
 
 Add the self-contained `xstate/fsm` entry point for compact flat finite state
-machines. It exports `createFSM`, `createFSMActor`, and a specialized
-`createActor` alias without including the full statechart actor runtime.
+machines. It exports `createFSM` and `createFSMActor` without including the full
+statechart actor runtime.
 
 ```ts
-import { createActor, createFSM } from 'xstate/fsm';
+import { createFSM, createFSMActor } from 'xstate/fsm';
 
 const logic = createFSM({
   initial: 'inactive',
@@ -17,7 +17,7 @@ const logic = createFSM({
   }
 });
 
-const actor = createActor(logic).start();
+const actor = createFSMActor(logic).start();
 ```
 
 The FSM runtime also supports guarded transitions, context, actions, eventless

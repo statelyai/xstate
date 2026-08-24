@@ -74,7 +74,7 @@ const PROFILES = {
   'fsm-entrypoint-actor': {
     capabilities: ['fsm', 'actor', 'subpath'],
     source: `
-    import { createFSM, createActor } from 'xstate/fsm';
+    import { createFSM, createFSMActor } from 'xstate/fsm';
     const logic = createFSM({
       initial: 'inactive',
       states: {
@@ -82,7 +82,7 @@ const PROFILES = {
         active: { on: { toggle: { target: 'inactive' } } }
       }
     });
-    const actor = createActor(logic).start();
+    const actor = createFSMActor(logic).start();
     actor.send({ type: 'toggle' });
     console.log(actor.getSnapshot().value);
   `

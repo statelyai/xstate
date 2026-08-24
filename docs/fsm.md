@@ -10,7 +10,7 @@ specialized actor does not pull in the full statechart runtime.
 <!-- public exports from packages/core/src/fsm/index.ts; configuration surface from packages/core/src/fsm.ts -->
 
 ```ts
-import { createActor, createFSM } from 'xstate/fsm';
+import { createFSM, createFSMActor } from 'xstate/fsm';
 
 const toggleLogic = createFSM({
   initial: 'inactive',
@@ -30,15 +30,14 @@ const toggleLogic = createFSM({
   }
 });
 
-const toggle = createActor(toggleLogic).start();
+const toggle = createFSMActor(toggleLogic).start();
 toggle.send({ type: 'toggle' });
 console.log(toggle.getSnapshot().value); // 'active'
 ```
 
-`createActor` from `xstate/fsm` is an alias for `createFSMActor`. It creates an
-actor compatible with XState actor references. The root `createActor` from
-`xstate` is unchanged and can also run logic returned by `createFSM`, but it
-includes the full actor runtime.
+`createFSMActor` creates an actor compatible with XState actor references. The
+root `createActor` from `xstate` can also run logic returned by `createFSM`, but
+it includes the full actor runtime.
 
 ## Supported configuration
 

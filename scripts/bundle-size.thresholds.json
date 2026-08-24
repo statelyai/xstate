@@ -6,7 +6,7 @@
     "maxGzipBytes": 4376
   },
   "fsm-entrypoint-actor": {
-    "maxGzipBytes": 5980
+    "maxGzipBytes": 5981
   },
   "minimal-machine": {
     "maxGzipBytes": 25025

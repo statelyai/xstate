@@ -1,8 +1,4 @@
-export {
-  createFSMActor,
-  createFSMActor as createActor,
-  FSMActor
-} from './createFSMActor.ts';
+export { createFSMActor, FSMActor } from './createFSMActor.ts';
 export {
   createFSM,
   type FSMActorLogic,

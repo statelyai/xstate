@@ -1,11 +1,13 @@
-import { createActor, createFSM, createFSMActor } from '../src/fsm/index.ts';
+import * as fsm from '../src/fsm/index.ts';
+import { createFSM, createFSMActor } from '../src/fsm/index.ts';
 import { createActor as createFullActor } from '../src/createActor.ts';
 import { createCallbackLogic } from '../src/actors/callback.ts';
 import type { AnyActor } from '../src/types.ts';
 
 describe('xstate/fsm', () => {
-  it('exports createActor as the specialized FSM actor creator', () => {
-    expect(createActor).toBe(createFSMActor);
+  it('only exports the explicitly specialized actor creator', () => {
+    expect(fsm.createFSMActor).toBe(createFSMActor);
+    expect(fsm).not.toHaveProperty('createActor');
   });
 
   it('creates and runs a flat state machine actor', () => {

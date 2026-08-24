@@ -301,7 +301,11 @@ function runWorker() {
   const scenario = getArg('scenario');
   const mode = getArg('mode');
   const iterations = Number(getArg('iterations'));
-  const api = createRequire(import.meta.url)(modulePath);
+  const loaded = createRequire(import.meta.url)(modulePath);
+  const api = {
+    ...loaded,
+    createActor: loaded.createFSMActor ?? loaded.createActor
+  };
 
   if (memoryScenarios.has(scenario)) {
     return measureMemory(scenario, api);

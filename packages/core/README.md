@@ -21,7 +21,7 @@ runtime and a specialized actor:
 <!-- public exports from packages/core/src/fsm/index.ts; exact capabilities documented in docs/fsm.md -->
 
 ```ts
-import { createActor, createFSM } from 'xstate/fsm';
+import { createFSM, createFSMActor } from 'xstate/fsm';
 
 const logic = createFSM({
   initial: 'inactive',
@@ -31,7 +31,7 @@ const logic = createFSM({
   }
 });
 
-const actor = createActor(logic).start();
+const actor = createFSMActor(logic).start();
 ```
 
 See the [exact supported surface](https://stately.ai/docs/fsm). Use the root `xstate`
