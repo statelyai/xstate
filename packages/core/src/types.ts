@@ -1537,6 +1537,8 @@ export interface TransitionDefinition<
   eventType: EventDescriptor<TEvent>;
   /** @internal Additional runtime matching for generated transitions. */
   _eventMatcher?: (event: EventObject, snapshot: AnyMachineSnapshot) => boolean;
+  /** @internal Timer cancelled after this generated transition is selected. */
+  _cancelTimeoutId?: string;
   to?: ((...args: any[]) => any) | undefined;
   input?:
     | Record<string, unknown>

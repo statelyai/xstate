@@ -2128,6 +2128,7 @@ export function getTransitionResult(
     reenter?: AnyTransitionDefinition['reenter'];
     input?: AnyTransitionDefinition['input'];
     context?: AnyTransitionDefinition['context'];
+    _cancelTimeoutId?: string;
   },
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
@@ -2181,18 +2182,23 @@ export function getTransitionResult(
   if (transition.to) {
     const actions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
+    const enqueue = createTransitionEnqueue(
+      actorScope,
+      actions,
+      internalEvents,
+      true,
+      options?.resolveActions ?? true
+    );
     const res = options?.selectionResult?.reusable
       ? options.selectionResult.result
-      : transition.to(
-          getTransitionArgs(),
-          createTransitionEnqueue(
-            actorScope,
-            actions,
-            internalEvents,
-            true,
-            options?.resolveActions ?? true
-          )
-        );
+      : transition.to(getTransitionArgs(), enqueue);
+
+    if (
+      transition._cancelTimeoutId &&
+      (res !== undefined || actions.length || internalEvents.length)
+    ) {
+      enqueue.cancel(transition._cancelTimeoutId);
+    }
 
     const targets = res?.target
       ? resolveTarget(transition.source, toArray(res.target) as string[])
@@ -2232,11 +2238,19 @@ export function getTransitionResult(
       ? transition.context(getTransitionArgs())
       : transition.context;
 
+  let actions: AnyAction[] | undefined;
+  if (transition._cancelTimeoutId) {
+    actions = [];
+    createTransitionEnqueue(actorScope, actions, []).cancel(
+      transition._cancelTimeoutId
+    );
+  }
+
   return {
     targets: transition.target as AnyStateNode[] | undefined,
     context: resolvedContext,
     reenter: transition.reenter,
-    actions: undefined,
+    actions,
     internalEvents: undefined,
     input: resolvedInput
   };

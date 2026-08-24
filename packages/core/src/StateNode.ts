@@ -491,57 +491,16 @@ function formatTransitions<
       matches: { actorId },
       _eventMatcher: (event: EventObject, snapshot: AnyMachineSnapshot) =>
         matchesActorSession(event, snapshot, actorId),
-      to: (_args: any, enq: any) => {
-        enq.cancel(timeoutEventId);
-        return {};
-      }
+      _cancelTimeoutId: timeoutEventId
     } as AnyTransitionConfig);
   const formatInvokeCompletionTransition = (
     descriptor: string,
     transitionConfig: AnyTransitionConfig,
     timeoutEventId: string
   ): AnyTransitionDefinition => {
-    const { target, to, reenter, ...rest } = transitionConfig;
-
     return formatTransition(stateNode, descriptor, {
-      ...rest,
-      reenter,
-      to: (args: any, enq: any) => {
-        if (to) {
-          let didEnqueue = false;
-          const trackingEnqueue = new Proxy(enq, {
-            apply(target, thisArg, argArray) {
-              didEnqueue = true;
-              return Reflect.apply(target, thisArg, argArray);
-            },
-            get(target, prop, receiver) {
-              const value = Reflect.get(target, prop, receiver);
-
-              if (typeof value !== 'function') {
-                return value;
-              }
-
-              return (...argArray: any[]) => {
-                didEnqueue = true;
-                return value.apply(target, argArray);
-              };
-            }
-          });
-          const result = to(args, trackingEnqueue);
-
-          if (result !== undefined || didEnqueue) {
-            enq.cancel(timeoutEventId);
-          }
-
-          return result;
-        }
-
-        enq.cancel(timeoutEventId);
-        return {
-          target,
-          reenter
-        };
-      }
+      ...transitionConfig,
+      _cancelTimeoutId: timeoutEventId
     } as AnyTransitionConfig);
   };
   for (const invokeDef of stateNode.invoke) {
