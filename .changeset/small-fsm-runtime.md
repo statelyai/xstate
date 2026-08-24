@@ -22,4 +22,6 @@ const actor = createFSMActor(logic).start();
 
 The FSM runtime also supports guarded transitions, context, actions, eventless
 transitions, final states, child actors, delayed events, and snapshot
-persistence.
+persistence for state, context, and self-directed timers. Live inline children
+and timers targeting other actors are rejected at the persistence boundary
+because the compact runtime has no registered actor-source registry.

@@ -264,6 +264,95 @@ describe('xstate/fsm', () => {
   it.each([
     ['specialized', createFSMActor],
     ['full', createFullActor]
+  ] as const)(
+    'restores only the remaining wall-clock delay in the %s actor',
+    (_, create) => {
+      let now = 1_000;
+      const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
+      let restoredDelay: number | undefined;
+      const logic = createFSM({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            on: {
+              schedule: (_, enq) => {
+                enq.raise({ type: 'elapsed' }, { id: 'wake', delay: 100 });
+              },
+              elapsed: { target: 'ready' }
+            }
+          },
+          ready: {}
+        }
+      });
+      const source = create(logic, {
+        clock: { setTimeout: () => 1, clearTimeout() {} }
+      }).start();
+      source.send({ type: 'schedule' });
+      now += 90;
+      const persisted = JSON.parse(
+        JSON.stringify(source.getPersistedSnapshot())
+      );
+
+      const restored = create(logic, {
+        snapshot: persisted,
+        clock: {
+          setTimeout(_: () => void, delay: number) {
+            restoredDelay = delay;
+            return 2;
+          },
+          clearTimeout() {}
+        }
+      }).start();
+
+      source.stop();
+      restored.stop();
+      dateNow.mockRestore();
+      expect(persisted).toMatchObject({
+        children: {},
+        timers: {
+          wake: { target: 'self', startedAt: 1_000 }
+        }
+      });
+      expect(restoredDelay).toBe(10);
+    }
+  );
+
+  it.each([
+    ['specialized', createFSMActor],
+    ['full', createFullActor]
+  ] as const)(
+    'starts a wall-clock deadline when the %s actor starts',
+    (_, create) => {
+      let now = 1_000;
+      const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
+      const logic = createFSM({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            entry: (_, enq) => {
+              enq.raise({ type: 'elapsed' }, { id: 'wake', delay: 100 });
+            }
+          }
+        }
+      });
+      const actor = create(logic, {
+        clock: { setTimeout: () => 1, clearTimeout() {} }
+      });
+      now += 50;
+
+      actor.start();
+
+      expect(actor.getPersistedSnapshot()).toMatchObject({
+        timers: { wake: { startedAt: 1_050 } }
+      });
+      actor.stop();
+      dateNow.mockRestore();
+    }
+  );
+
+  it.each([
+    ['specialized', createFSMActor],
+    ['full', createFullActor]
   ] as const)('spawns and starts children in the %s actor', (_, create) => {
     let starts = 0;
     const child = createCallbackLogic(() => {
@@ -285,6 +374,169 @@ describe('xstate/fsm', () => {
     expect(Object.keys(actor.getSnapshot().children)).toEqual(['child']);
     expect(starts).toBe(1);
   });
+
+  it.each([
+    ['specialized', createFSMActor],
+    ['full', createFullActor]
+  ] as const)(
+    'rejects persisting an inline child from the %s actor',
+    (_, create) => {
+      const child = createCallbackLogic(() => {});
+      const logic = createFSM({
+        initial: 'active',
+        states: {
+          active: {
+            entry: (_, enq) => {
+              enq.spawn(child, { id: 'child' });
+            }
+          }
+        }
+      });
+      const actor = create(logic).start();
+
+      expect(() => actor.getPersistedSnapshot()).toThrow(
+        'FSM child persistence requires registered sources.'
+      );
+      actor.stop();
+    }
+  );
+
+  it.each([
+    ['specialized', createFSMActor],
+    ['full', createFullActor]
+  ] as const)(
+    'rejects restoring serialized child references in the %s actor',
+    (_, create) => {
+      const logic = createFSM({
+        initial: 'active',
+        states: { active: {} }
+      });
+      const source = create(logic);
+      const persisted = source.getPersistedSnapshot() as any;
+      persisted.children = {
+        child: { xstate$type: 'actorRef', id: 'child' }
+      };
+
+      const restored = create(logic, { snapshot: persisted });
+      const errors: unknown[] = [];
+      restored.subscribe({ error: (error) => errors.push(error) });
+      restored.start();
+
+      expect(restored.getSnapshot()).toMatchObject({
+        status: 'error',
+        error: {
+          message: 'FSM child persistence requires registered sources.'
+        }
+      });
+      expect(errors).toEqual([
+        expect.objectContaining({
+          message: 'FSM child persistence requires registered sources.'
+        })
+      ]);
+      source.stop();
+    }
+  );
+
+  it.each([
+    ['specialized', createFSMActor],
+    ['full', createFullActor]
+  ] as const)(
+    'rejects persisting a timer with an external target from the %s actor',
+    (_, create) => {
+      const target = createFSMActor(
+        createFSM({ initial: 'idle', states: { idle: {} } })
+      ).start();
+      const logic = createFSM({
+        initial: 'active',
+        states: {
+          active: {
+            on: {
+              schedule: (_, enq) => {
+                enq.sendTo(
+                  target,
+                  { type: 'ping' },
+                  { id: 'external', delay: 100 }
+                );
+              }
+            }
+          }
+        }
+      });
+      const actor = create(logic).start();
+      actor.send({ type: 'schedule' });
+
+      expect(() => actor.getPersistedSnapshot()).toThrow(
+        "FSM timer 'external' must target self to be persisted."
+      );
+      actor.stop();
+      target.stop();
+    }
+  );
+
+  it.each([
+    ['specialized', createFSMActor],
+    ['full', createFullActor]
+  ] as const)(
+    'rejects restoring a serialized external timer target in the %s actor',
+    (_, create) => {
+      const logic = createFSM({
+        initial: 'active',
+        states: { active: {} }
+      });
+      const source = create(logic);
+      const persisted = source.getPersistedSnapshot() as any;
+      persisted.timers = {
+        external: {
+          id: 'external',
+          delay: 100,
+          type: '@xstate.sendTo',
+          event: { type: 'ping' },
+          target: { xstate$type: 'actorRef', id: 'target' }
+        }
+      };
+      const restored = create(logic, { snapshot: persisted });
+      const errors: unknown[] = [];
+      restored.subscribe({ error: (error) => errors.push(error) });
+
+      restored.start();
+
+      expect(errors).toEqual([
+        expect.objectContaining({
+          message: "FSM timer 'external' must target self to be persisted."
+        })
+      ]);
+      source.stop();
+    }
+  );
+
+  it.each([
+    ['specialized', createFSMActor],
+    ['full', createFullActor]
+  ] as const)(
+    'starts then stops a child spawned by an initially final %s actor',
+    (_, create) => {
+      const calls: string[] = [];
+      const child = createCallbackLogic(() => {
+        calls.push('start');
+        return () => calls.push('stop');
+      });
+      const logic = createFSM({
+        initial: 'done',
+        states: {
+          done: {
+            type: 'final',
+            entry: (_, enq) => {
+              enq.spawn(child, { id: 'child' });
+            }
+          }
+        }
+      });
+
+      create(logic).start();
+
+      expect(calls).toEqual(['start', 'stop']);
+    }
+  );
 
   it.each([
     ['specialized', createFSMActor],

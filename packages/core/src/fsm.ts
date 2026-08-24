@@ -204,6 +204,20 @@ const emptySources = {
 const emptyExecutableActions: ExecutableActionObject[] = [];
 const emptyFSMActions: FSMAction<any, any, any, any>[] = [];
 
+function assertPersistableFSM(
+  children: Record<string, unknown>,
+  timers: Record<string, LogicalTimer>
+) {
+  if (Object.keys(children).length) {
+    throw new Error('FSM child persistence requires registered sources.');
+  }
+  for (const id in timers) {
+    if (timers[id].target !== 'self') {
+      throw new Error(`FSM timer '${id}' must target self to be persisted.`);
+    }
+  }
+}
+
 function toArray<T>(value: T | T[] | undefined): T[] {
   return value === undefined ? [] : Array.isArray(value) ? value : [value];
 }
@@ -717,6 +731,9 @@ export function createFSM<
         ];
       }
     }
+    let selectedTransition:
+      | Exclude<ReturnType<typeof selectTransition>, undefined>
+      | undefined;
     if (
       typeof directTransition === 'function' &&
       directTransition.length < 2 &&
@@ -735,39 +752,46 @@ export function createFSM<
         ),
         undefined as any
       );
-      if (result) {
-        const target = result.target ?? snapshot.value;
-        const targetState = config.states[target];
-        if (
-          !targetState?.entry &&
-          !targetState?.always &&
-          targetState?.type !== 'final'
-        ) {
-          const hasContext = result.context !== undefined;
-          const hasInput = result.input !== undefined;
-          const context =
-            hasContext && result.context
-              ? mergeContextPatch(snapshot.context, result.context)
-              : snapshot.context;
-          if (
-            target === snapshot.value &&
-            context === snapshot.context &&
-            !hasInput &&
-            snapshot._stateInput === undefined
-          ) {
-            return [snapshot, emptyExecutableActions];
-          }
-          return [
-            cloneSnapshot(
-              snapshot,
-              target,
-              context,
-              hasInput ? resolveInput(result.input, context, event) : undefined
-            ),
-            emptyExecutableActions
-          ];
-        }
+      if (!result) {
+        return [snapshot, emptyExecutableActions];
       }
+      const target = result.target ?? snapshot.value;
+      const targetState = config.states[target];
+      if (
+        !targetState?.entry &&
+        !targetState?.always &&
+        targetState?.type !== 'final'
+      ) {
+        const hasContext = result.context !== undefined;
+        const hasInput = result.input !== undefined;
+        const context =
+          hasContext && result.context
+            ? mergeContextPatch(snapshot.context, result.context)
+            : snapshot.context;
+        if (
+          target === snapshot.value &&
+          context === snapshot.context &&
+          !hasInput &&
+          snapshot._stateInput === undefined
+        ) {
+          return [snapshot, emptyExecutableActions];
+        }
+        return [
+          cloneSnapshot(
+            snapshot,
+            target,
+            context,
+            hasInput ? resolveInput(result.input, context, event) : undefined
+          ),
+          emptyExecutableActions
+        ];
+      }
+      selectedTransition = {
+        target: result.target,
+        context: result.context,
+        input: result.input,
+        actions: emptyFSMActions
+      };
     }
 
     let nextSnapshot: FSMSnapshot<TContext, string, TInput> = snapshot;
@@ -780,12 +804,10 @@ export function createFSM<
         throw new Error('FSM microstep count exceeded 1000');
       }
       const nextEvent = internalQueue.shift() as TEvent;
-      const selected = selectTransition(
-        nextSnapshot,
-        nextEvent,
-        actorScope,
-        internalQueue
-      );
+      const selected =
+        selectedTransition ??
+        selectTransition(nextSnapshot, nextEvent, actorScope, internalQueue);
+      selectedTransition = undefined;
       if (!selected) {
         continue;
       }
@@ -946,11 +968,24 @@ export function createFSM<
     },
     getInitialSnapshot: (actorScope, input) =>
       logic.initialTransition(input, actorScope)[0],
-    getPersistedSnapshot: ({ machine: _, ...snapshot }) => snapshot,
-    restoreSnapshot: (snapshot) => ({
-      ...(snapshot as FSMSnapshot<TContext, string, TInput>),
-      machine: machine as any
-    })
+    getPersistedSnapshot: (currentSnapshot) => {
+      const { machine: _, children, ...snapshot } = currentSnapshot;
+      assertPersistableFSM(children, snapshot.timers);
+      return { ...snapshot, children: {} };
+    },
+    restoreSnapshot: (snapshot) => {
+      const persisted = snapshot as FSMSnapshot<TContext, string, TInput>;
+      const children = persisted.children ?? {};
+      const timers = persisted.timers ?? {};
+      assertPersistableFSM(children, timers);
+      const restored = {
+        ...persisted,
+        children: {},
+        timers,
+        machine: machine as any
+      };
+      return restored;
+    }
   };
 
   return logic;

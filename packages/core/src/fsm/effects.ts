@@ -54,11 +54,16 @@ function execute(
     case '@xstate.terminate':
       return runtime.terminateActor(this.actor, this);
     case '@xstate.raise':
-      return runtime.scheduleTimer(this.source, this.id, this.delay ?? 0);
-    case '@xstate.sendTo':
-      return this.delay === undefined
-        ? runtime.sendEvent(this.source, this.target, this.event)
-        : runtime.scheduleTimer(this.source, this.id, this.delay);
+    case '@xstate.sendTo': {
+      if (this.delay === undefined) {
+        return runtime.sendEvent(this.source, this.target, this.event);
+      }
+      const timer = this.source.getSnapshot().timers[this.id];
+      if (timer && !runtime._clock.now) {
+        timer.startedAt = Date.now();
+      }
+      return runtime.scheduleTimer(this.source, this.id, this.delay);
+    }
     case '@xstate.cancel':
       return runtime.cancelTimer(this.source, this.id);
     case '@xstate.emit':
@@ -316,9 +321,21 @@ export function resolveFSMEffects<
 }
 
 export function appendFSMStarts(effects: ExecutableActionObject[]) {
+  const ordered: ExecutableActionObject[] = [];
   const attached: ExecutableActionObject[] = [];
   const children: ExecutableActionObject[] = [];
   for (const current of effects as FSMEffect[]) {
+    if (current.type === '@xstate.stop') {
+      for (const starts of [attached, children]) {
+        const index = starts.findIndex(
+          (start) => (start as any).actor === (current as any).actor
+        );
+        if (index !== -1) {
+          ordered.push(starts.splice(index, 1)[0]);
+        }
+      }
+    }
+    ordered.push(current);
     if (current.type !== '@xstate.spawn') {
       continue;
     }
@@ -333,7 +350,7 @@ export function appendFSMStarts(effects: ExecutableActionObject[]) {
       : children
     ).push(start);
   }
-  return [...effects, ...attached, ...children];
+  return ordered.concat(attached, children);
 }
 
 export function createFSMSendEffect(

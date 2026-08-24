@@ -53,8 +53,14 @@ it includes the full actor runtime.
 - target `input` passed to the target state's entry and exit actions
 - `enq(...)`, `raise`, `sendTo`, `cancel`, `emit`, `log`, `spawn`, `stop`,
   `listen` and `subscribeTo`
-- delayed raised and sent events, child actors, and persistence/restoration of
-  FSM state, context and pending timers
+- delayed raised and sent events, and child actors
+- JSON persistence/restoration of FSM state, context and pending self-directed
+  timers; wall-clock timers retain their original deadline
+
+Because `createFSM` has no registered actor-source registry, snapshots with live
+inline children cannot be persisted or restored. A pending timer targeting
+another actor is rejected for the same reason; use the full runtime when child
+topology or cross-actor timers must survive restoration.
 
 Targets must use object syntax such as `{ target: 'active' }`. Plain string
 targets are rejected so the compact API has one unambiguous transition shape.

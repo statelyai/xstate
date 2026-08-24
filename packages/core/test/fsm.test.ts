@@ -60,6 +60,57 @@ describe('createFSM', () => {
     expect(actions).toHaveLength(1);
   });
 
+  it('evaluates a function transition once when its target has entry actions', () => {
+    const transition = vi.fn(() => ({ target: 'b' }));
+    const fsm = createFSM({
+      initial: 'a',
+      states: {
+        a: { on: { next: transition } },
+        b: { entry: () => {} }
+      }
+    });
+    const actor = createActor(fsm).start();
+
+    actor.send({ type: 'next' });
+
+    expect(transition).toHaveBeenCalledTimes(1);
+  });
+
+  it('evaluates a function transition once when its target has an eventless transition', () => {
+    const transition = vi.fn(() => ({ target: 'b' }));
+    const fsm = createFSM({
+      initial: 'a',
+      states: {
+        a: { on: { next: transition } },
+        b: { always: { target: 'c' } },
+        c: {}
+      }
+    });
+    const actor = createActor(fsm).start();
+
+    actor.send({ type: 'next' });
+
+    expect(transition).toHaveBeenCalledTimes(1);
+    expect(actor.getSnapshot().value).toBe('c');
+  });
+
+  it('evaluates a function transition once when its target is final', () => {
+    const transition = vi.fn(() => ({ target: 'done' }));
+    const fsm = createFSM({
+      initial: 'active',
+      states: {
+        active: { on: { finish: transition } },
+        done: { type: 'final' }
+      }
+    });
+    const actor = createActor(fsm).start();
+
+    actor.send({ type: 'finish' });
+
+    expect(transition).toHaveBeenCalledTimes(1);
+    expect(actor.getSnapshot().status).toBe('done');
+  });
+
   it('passes arguments and enqueue to object transition actions', () => {
     const calls: string[] = [];
     const fsm = createFSM({

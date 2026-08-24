@@ -23,7 +23,9 @@ const timerMaps = new WeakMap<object, Map<string, any>>();
 const registryMaps = new WeakMap<object, Map<string, FSMActor<any>>>();
 
 class FSMSystem {
-  constructor(private clock: NonNullable<ActorOptions<any>['clock']>) {}
+  constructor(
+    public readonly _clock: NonNullable<ActorOptions<any>['clock']>
+  ) {}
 
   createActorRef(logic: AnyActorLogic, options: ActorOptions<any>) {
     return new FSMActor(logic, options);
@@ -55,7 +57,7 @@ class FSMSystem {
     }
     actorTimers.set(
       id,
-      this.clock.setTimeout(() => {
+      this._clock.setTimeout(() => {
         actorTimers!.delete(id);
         source._send({ type: 'xstate.timer', id } as any);
       }, delay)
@@ -65,14 +67,14 @@ class FSMSystem {
     const actorTimers = timerMaps.get(source);
     const timeout = actorTimers?.get(id);
     if (timeout !== undefined) {
-      this.clock.clearTimeout(timeout);
+      this._clock.clearTimeout(timeout);
       actorTimers!.delete(id);
     }
   }
   cancelAllTimers(source: FSMActor<any>) {
     const actorTimers = timerMaps.get(source);
     for (const timeout of actorTimers?.values() ?? []) {
-      this.clock.clearTimeout(timeout);
+      this._clock.clearTimeout(timeout);
     }
     actorTimers?.clear();
   }
@@ -219,8 +221,16 @@ export class FSMActor<TLogic extends AnyActorLogic> {
       for (const timer of Object.values(timers) as Array<{
         id: string;
         delay: number;
+        startedAt?: number;
       }>) {
-        this.system.scheduleTimer(this, timer.id, timer.delay);
+        const delay =
+          !this.system._clock.now && timer.startedAt !== undefined
+            ? Math.min(
+                timer.delay,
+                Math.max(0, timer.startedAt + timer.delay - Date.now())
+              )
+            : timer.delay;
+        this.system.scheduleTimer(this, timer.id, delay);
       }
       this._restored = false;
     }

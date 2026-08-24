@@ -1,18 +1,18 @@
 {
   "fsm-logic": {
-    "maxGzipBytes": 4368
+    "maxGzipBytes": 4624
   },
   "fsm-entrypoint-logic": {
-    "maxGzipBytes": 4376
+    "maxGzipBytes": 4625
   },
   "fsm-entrypoint-actor": {
-    "maxGzipBytes": 5981
+    "maxGzipBytes": 6277
   },
   "minimal-machine": {
     "maxGzipBytes": 25025
   },
   "minimal-fsm": {
-    "maxGzipBytes": 10256
+    "maxGzipBytes": 10488
   },
   "custom-logic-actor": {
     "maxGzipBytes": 6398
@@ -60,6 +60,6 @@
     "maxGzipBytes": 26666
   },
   "kitchen-sink": {
-    "maxGzipBytes": 39887
+    "maxGzipBytes": 40118
   }
 }
