@@ -23,7 +23,7 @@ import { spawnSync } from 'node:child_process';
 import { gzipSync } from 'node:zlib';
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -396,7 +396,24 @@ const useDist = args.includes('--dist');
 const verify = args.includes('--verify');
 const profileArg = args.find((arg) => arg.startsWith('--profile='));
 const selectedProfile = profileArg?.slice('--profile='.length);
+const xstateRootArg = args.find((arg) => arg.startsWith('--xstate-root='));
+const localCoreRoot = join(root, 'packages', 'core');
+const coreRoot = resolve(
+  xstateRootArg?.slice('--xstate-root='.length) ?? localCoreRoot
+);
+const coreSourceRoot = join(coreRoot, 'src');
+const isComparator = coreRoot !== localCoreRoot;
+const packageMetadata = JSON.parse(
+  readFileSync(join(coreRoot, 'package.json'), 'utf8')
+);
 const thresholdsPath = join(root, 'scripts', 'bundle-size.thresholds.json');
+const buildSettings = {
+  bundler: `esbuild@${esbuild.version}`,
+  target: 'esnext',
+  format: 'esm',
+  minify: true,
+  gzipLevel: 9
+};
 
 if (selectedProfile && !PROFILES[selectedProfile]) {
   throw new Error(`Unknown profile: ${selectedProfile}`);
@@ -407,15 +424,24 @@ if (update && selectedProfile) {
 if (update && useDist) {
   throw new Error('--update cannot be combined with --dist');
 }
+if (update && isComparator) {
+  throw new Error('--update cannot be combined with --xstate-root');
+}
+if (useDist && isComparator) {
+  throw new Error('--dist cannot be combined with --xstate-root');
+}
 
 // Dev-only branches are folded the way the production dist build does it.
 const sourcePlugin = {
   name: 'fold-is-development',
   setup(build) {
     build.onResolve({ filter: /^#is-development$/ }, () => ({
-      path: join(root, 'packages', 'core', 'src', 'false.ts')
+      path: join(coreSourceRoot, 'false.ts')
     }));
-    build.onLoad({ filter: /packages\/core\/src\/.*\.ts$/ }, async (args) => {
+    build.onLoad({ filter: /\.ts$/ }, async (args) => {
+      if (!args.path.startsWith(coreSourceRoot)) {
+        return undefined;
+      }
       const { readFile } = await import('node:fs/promises');
       let src = await readFile(args.path, 'utf8');
       src = src.replace(
@@ -442,17 +468,16 @@ try {
       entryPoints: [entry],
       bundle: true,
       minify: true,
-      format: 'esm',
+      target: buildSettings.target,
+      format: buildSettings.format,
       write: false,
       metafile: why,
       // Source is canonical. Dist is an explicit post-build diagnostic only.
       alias: {
         'xstate/validation': useDist
-          ? join(root, 'packages', 'core', 'validation')
-          : join(root, 'packages', 'core', 'src', 'validation', 'index.ts'),
-        xstate: useDist
-          ? join(root, 'packages', 'core')
-          : join(root, 'packages', 'core', 'src', 'index.ts')
+          ? join(coreRoot, 'validation')
+          : join(coreSourceRoot, 'validation', 'index.ts'),
+        xstate: useDist ? coreRoot : join(coreSourceRoot, 'index.ts')
       },
       conditions: ['module'],
       plugins: useDist ? [] : [sourcePlugin],
@@ -474,7 +499,7 @@ try {
     }
     results[name] = {
       minified: code.byteLength,
-      gzipped: gzipSync(code, { level: 9 }).byteLength,
+      gzipped: gzipSync(code, { level: buildSettings.gzipLevel }).byteLength,
       capabilities: profile.capabilities
     };
     if (why) {
@@ -482,7 +507,9 @@ try {
       const inputs = Object.values(built.metafile.outputs)[0].inputs;
       const rows = Object.entries(inputs)
         .map(([file, { bytesInOutput }]) => [
-          file.replace(/^.*packages\/core\/src\//, ''),
+          file.startsWith(coreSourceRoot)
+            ? file.slice(coreSourceRoot.length + 1)
+            : file,
           bytesInOutput
         ])
         .filter(([, bytes]) => bytes > 0)
@@ -499,10 +526,17 @@ try {
 const kb = (n) => `${(n / 1024).toFixed(2)} kB`;
 
 if (json) {
-  console.log(JSON.stringify({ source: useDist ? 'dist' : 'src', results }));
+  console.log(
+    JSON.stringify({
+      package: `${packageMetadata.name}@${packageMetadata.version}`,
+      source: useDist ? 'dist' : 'src',
+      settings: buildSettings,
+      results
+    })
+  );
 } else {
   console.log(
-    `xstate bundle size (min+gzip), bundled from ${useDist ? 'packages/core/dist' : 'packages/core/src'}:\n`
+    `${packageMetadata.name}@${packageMetadata.version} bundle size (min+gzip), bundled from ${useDist ? 'dist' : 'src'} with ${buildSettings.bundler}:\n`
   );
   const nameWidth = Math.max(
     ...Object.keys(results).map((name) => name.length)
@@ -543,10 +577,10 @@ if (update) {
   process.exit(0);
 }
 
-if (useDist) {
+if (useDist || isComparator) {
   if (!json) {
     console.log(
-      '\nDist is diagnostic only; source thresholds were not checked.'
+      `\n${useDist ? 'Dist' : 'Comparator'} is diagnostic only; source thresholds were not checked.`
     );
   }
   process.exit(0);
