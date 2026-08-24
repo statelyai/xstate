@@ -1,5 +1,17 @@
 # xstate
 
+## 6.0.0-alpha.48
+
+### Patch Changes
+
+- 7601447: Add `createMachineFromSCXML(...)` through the `xstate/scxml` entry point. Converted machines follow strict SCXML behavior for transition selection, executable content, datamodel evaluation, invocation, event metadata, and completion.
+  
+  ```ts
+  import { createMachineFromSCXML } from 'xstate/scxml';
+  
+  const machine = createMachineFromSCXML(scxml);
+  ```
+
 ## 6.0.0-alpha.47
 
 ### Minor Changes
