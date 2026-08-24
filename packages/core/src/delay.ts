@@ -8,15 +8,9 @@ export function parseDurationToMilliseconds(
     return parseInt(millisecondsMatch[1], 10);
   }
 
-  const secondsMatch = normalizedDuration.match(/^(\d*)(\.?)(\d*)s$/i);
+  const secondsMatch = normalizedDuration.match(/^(\d*\.?\d*)s$/i);
   if (secondsMatch) {
-    const wholePart = secondsMatch[1] ? parseInt(secondsMatch[1], 10) : 0;
-    const hasDecimal = !!secondsMatch[2];
-    const fracPart = secondsMatch[3]
-      ? parseInt(secondsMatch[3].padEnd(3, '0').slice(0, 3), 10)
-      : 0;
-
-    return wholePart * 1000 + (hasDecimal ? fracPart : 0);
+    return Math.floor((parseFloat(secondsMatch[1]) || 0) * 1000);
   }
 
   const iso8601DurationMatch = normalizedDuration.match(
