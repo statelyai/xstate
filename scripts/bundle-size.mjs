@@ -8,6 +8,7 @@
 //   node scripts/bundle-size.mjs            # measure + check thresholds
 //   node scripts/bundle-size.mjs --update   # rewrite thresholds to current sizes
 //   node scripts/bundle-size.mjs --why      # per-module byte attribution
+//   node scripts/bundle-size.mjs --symbols  # retained-symbol byte attribution
 //   node scripts/bundle-size.mjs --dist     # diagnose the latest local build
 //   node scripts/bundle-size.mjs --json     # machine-readable results
 //   node scripts/bundle-size.mjs --profile=minimal-machine
@@ -391,6 +392,7 @@ const PROFILES = {
 const args = process.argv.slice(2);
 const update = args.includes('--update');
 const why = args.includes('--why');
+const symbols = args.includes('--symbols');
 const json = args.includes('--json');
 const useDist = args.includes('--dist');
 const verify = args.includes('--verify');
@@ -429,6 +431,9 @@ if (update && isComparator) {
 }
 if (useDist && isComparator) {
   throw new Error('--dist cannot be combined with --xstate-root');
+}
+if (json && (why || symbols)) {
+  throw new Error('--json cannot be combined with attribution flags');
 }
 
 // Dev-only branches are folded the way the production dist build does it.
@@ -516,6 +521,81 @@ try {
         .sort((a, b) => b[1] - a[1]);
       for (const [file, bytes] of rows) {
         console.log(`  ${String(bytes).padStart(8)}  ${file}`);
+      }
+    }
+    if (symbols) {
+      const attributionBuild = await esbuild.build({
+        entryPoints: [entry],
+        bundle: true,
+        minifyIdentifiers: false,
+        minifySyntax: true,
+        minifyWhitespace: true,
+        target: buildSettings.target,
+        format: buildSettings.format,
+        write: false,
+        alias: {
+          'xstate/validation': useDist
+            ? join(coreRoot, 'validation')
+            : join(coreSourceRoot, 'validation', 'index.ts'),
+          xstate: useDist ? coreRoot : join(coreSourceRoot, 'index.ts')
+        },
+        conditions: ['module'],
+        plugins: useDist ? [] : [sourcePlugin],
+        external: []
+      });
+      const typescript = rootRequire('typescript');
+      const attributionCode = attributionBuild.outputFiles[0].text;
+      const sourceFile = typescript.createSourceFile(
+        `${name}.js`,
+        attributionCode,
+        typescript.ScriptTarget.Latest,
+        true,
+        typescript.ScriptKind.JS
+      );
+      const retainedSymbols = [];
+      const addSymbol = (symbol, node) => {
+        retainedSymbols.push({ symbol, bytes: node.end - node.pos });
+      };
+      const addClassMembers = (className, classNode) => {
+        for (const member of classNode.members) {
+          const memberName = typescript.isConstructorDeclaration(member)
+            ? 'constructor'
+            : (member.name?.getText(sourceFile) ?? '<static>');
+          addSymbol(`${className}.${memberName}`, member);
+        }
+      };
+      for (const statement of sourceFile.statements) {
+        if (typescript.isFunctionDeclaration(statement) && statement.name) {
+          addSymbol(statement.name.text, statement);
+          continue;
+        }
+        if (typescript.isClassDeclaration(statement) && statement.name) {
+          addClassMembers(statement.name.text, statement);
+          continue;
+        }
+        if (!typescript.isVariableStatement(statement)) {
+          continue;
+        }
+        for (const declaration of statement.declarationList.declarations) {
+          const symbol = declaration.name.getText(sourceFile);
+          if (
+            declaration.initializer &&
+            typescript.isClassExpression(declaration.initializer)
+          ) {
+            addClassMembers(symbol, declaration.initializer);
+          } else {
+            addSymbol(symbol, declaration);
+          }
+        }
+      }
+      console.log(
+        `\n${name} — largest retained symbols (readable minified bytes):`
+      );
+      for (const { symbol, bytes } of retainedSymbols
+        .filter(({ bytes }) => bytes >= 40)
+        .sort((left, right) => right.bytes - left.bytes)
+        .slice(0, 80)) {
+        console.log(`  ${String(bytes).padStart(8)}  ${symbol}`);
       }
     }
   }
