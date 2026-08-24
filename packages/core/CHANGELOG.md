@@ -1,5 +1,11 @@
 # xstate
 
+## 5.32.6
+
+### Patch Changes
+
+- [#5678](https://github.com/statelyai/xstate/pull/5678) [`397b425`](https://github.com/statelyai/xstate/commit/397b42536f53b899e6914219ac829616d5100823) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Machine snapshots now retain their machine-specific methods when initialization fails, so methods such as `snapshot.matches(...)` remain available on error snapshots.
+
 ## 5.32.5
 
 ### Patch Changes
