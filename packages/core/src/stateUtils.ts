@@ -815,7 +815,7 @@ function resolveHistoryDefaultTransition(
     source: stateNode,
     reenter: false,
     eventType: '' as any,
-    to: (stateNode.config as any)._scxmlHistoryActions
+    to: (stateNode.config as any)._historyDefaultTransition
   };
 }
 
@@ -1247,9 +1247,9 @@ function getTransitionDomain(
 
   const { targets, reenter } = resolveTransition(transition);
 
-  if (transition._scxml?.type) {
+  if (transition._transitionDomain) {
     if (
-      transition._scxml.type === 'internal' &&
+      transition._transitionDomain === 'internal' &&
       transition.source.type === 'compound' &&
       targetStates.every((target) => isDescendant(target, transition.source))
     ) {

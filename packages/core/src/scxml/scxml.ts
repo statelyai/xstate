@@ -1,20 +1,15 @@
 /**
- * @internal
- *
- * SCXML conversion utilities. This module is NOT part of the public API: it is
- * not re-exported from `index.ts` and there is no `xstate/scxml` entry point.
- * It exists solely to support the SCXML/SCION conformance and conversion test
- * suites (`test/scxml.test.ts`, `test/conversion.test.ts`). Do not import it
- * from public-facing code, and do not rely on it externally — it may change or
- * be removed without a breaking-change notice.
+ * SCXML machine creation and conversion utilities for the `xstate/scxml`
+ * entry point. Only createMachineFromSCXML and SCXMLConversionOptions are
+ * public; the compiler representation remains internal.
  */
-import { Element as XMLElement, xml2js } from 'xml-js';
+import { SaxesParser } from 'saxes';
 import {
   ActionJSON,
   CancelJSON,
   GuardJSON,
   InvokeJSON,
-  MachineJSON,
+  ScxmlIR,
   RaiseJSON,
   ScxmlCancelJSON,
   ScxmlContentJSON,
@@ -26,10 +21,52 @@ import {
   ScxmlXmlJSON,
   StateNodeJSON,
   TransitionJSON,
-  createMachineFromConfig
-} from './createMachineFromConfig.ts';
-import { parseDelayToMilliseconds } from './delay.ts';
-import { AnyStateMachine, SpecialTargets } from './types.ts';
+  createMachineFromSCXMLConfig
+} from './runtime.ts';
+import { parseDelayToMilliseconds } from '../delay.ts';
+import { AnyStateMachine, SpecialTargets } from '../types.ts';
+
+interface XMLElement {
+  type?: 'element' | 'text' | 'cdata' | 'comment';
+  name?: string;
+  attributes?: Record<string, string>;
+  elements?: XMLElement[];
+  text?: string;
+  cdata?: string;
+}
+
+function parseXml(xml: string): XMLElement {
+  const root: XMLElement = { elements: [] };
+  const stack = [root];
+  const append = (element: XMLElement) =>
+    stack[stack.length - 1].elements!.push(element);
+  const parser = new SaxesParser();
+
+  parser.on('opentag', (tag) => {
+    const attributes = { ...tag.attributes };
+    const element: XMLElement = {
+      type: 'element',
+      name: tag.name,
+      ...(Object.keys(attributes).length ? { attributes } : undefined),
+      elements: []
+    };
+    append(element);
+    stack.push(element);
+  });
+  parser.on('closetag', () => {
+    const element = stack.pop()!;
+    if (!element.elements?.length) {
+      delete element.elements;
+    }
+  });
+  parser.on('text', (text) => {
+    if (text.trim()) append({ type: 'text', text });
+  });
+  parser.on('cdata', (cdata) => append({ type: 'cdata', cdata }));
+  parser.on('comment', (text) => append({ type: 'comment', text }));
+  parser.write(xml).close();
+  return root;
+}
 
 export function sanitizeStateId(id: string) {
   return id.replace(/\./g, '$');
@@ -253,7 +290,7 @@ function mapAction(
         }
       }
 
-      const isInternal = target === SpecialTargets.Internal;
+      const isInternal = target === String(SpecialTargets.Internal);
       const resolvedDelay = delay ? delayToMs(delay) : undefined;
 
       // Any send with a special target (except internal), params, or expressions
@@ -443,7 +480,7 @@ function getDataDescriptors(
           if (resolvedSource !== undefined) {
             try {
               resourceXml = normalizeElementNames(
-                xml2js(resolvedSource) as XMLElement
+                parseXml(resolvedSource)
               ).elements?.find((child) => child.name);
             } catch {
               resourceXml = undefined;
@@ -727,14 +764,10 @@ function toStateNodeJSON(
       );
     }
 
-    const content = element.elements?.find(
-      (el) => el.name === 'content'
-    ) as XMLElement;
+    const content = element.elements?.find((el) => el.name === 'content');
 
     // Convert nested SCXML content to a machine JSON
-    const nestedScxml = content?.elements?.find(
-      (el) => el.name === 'scxml'
-    ) as XMLElement;
+    const nestedScxml = content?.elements?.find((el) => el.name === 'scxml');
 
     const findEntryAssignment = (location: string) =>
       onEntryElements
@@ -744,19 +777,19 @@ function toStateNodeJSON(
             child.name === 'assign' && child.attributes?.location === location
         );
 
-    let _nestedMachineJSON: MachineJSON | undefined;
+    let _nestedScxmlIR: ScxmlIR | undefined;
     if (nestedScxml) {
-      // Create a wrapper that looks like xml2js output: { elements: [scxmlElement] }
+      // Create a wrapper that looks like parser output: { elements: [scxmlElement] }
       const wrapper: XMLElement = { elements: [nestedScxml] };
-      _nestedMachineJSON = scxmlToMachineJSON(wrapper, options);
+      _nestedScxmlIR = compileScxmlElement(wrapper, options);
     } else if (element.attributes?.src) {
       const source = resolveResource(
         options,
         String(element.attributes.src),
         'invoke'
       );
-      _nestedMachineJSON = scxmlToMachineJSON(
-        normalizeElementNames(xml2js(source) as XMLElement),
+      _nestedScxmlIR = compileScxmlElement(
+        normalizeElementNames(parseXml(source)),
         options
       );
     } else if (element.attributes?.srcexpr) {
@@ -767,11 +800,9 @@ function toStateNodeJSON(
         /^(['"])(.*)\1$/s
       )?.[2];
       if (assignedSource) {
-        _nestedMachineJSON = scxmlToMachineJSON(
+        _nestedScxmlIR = compileScxmlElement(
           normalizeElementNames(
-            xml2js(
-              resolveResource(options, assignedSource, 'invoke')
-            ) as XMLElement
+            parseXml(resolveResource(options, assignedSource, 'invoke'))
           ),
           options
         );
@@ -782,7 +813,7 @@ function toStateNodeJSON(
         (child) => child.name === 'scxml'
       );
       if (assignedScxml) {
-        _nestedMachineJSON = scxmlToMachineJSON(
+        _nestedScxmlIR = compileScxmlElement(
           { elements: [assignedScxml] },
           options
         );
@@ -819,14 +850,14 @@ function toStateNodeJSON(
     return {
       id: invokeId,
       src: 'scxml.nested',
-      _nestedMachineJSON,
+      _nestedScxmlIR,
       ...((params.length || namelist.length) && {
         _scxmlInput: {
           ...(params.length ? { params } : undefined),
           ...(namelist.length ? { namelist } : undefined)
         }
       })
-    } as InvokeJSON & { _nestedMachineJSON?: MachineJSON };
+    } as InvokeJSON & { _nestedScxmlIR?: ScxmlIR };
   });
 
   const autoForwardIds = invokeElements.flatMap((element, index) =>
@@ -917,13 +948,16 @@ function toStateNodeJSON(
   };
 }
 
-function scxmlToMachineJSON(
+function compileScxmlElement(
   scxmlJson: XMLElement,
   options: SCXMLConversionOptions
-): MachineJSON {
+): ScxmlIR {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
-  ) as XMLElement;
+  );
+  if (!machineElement) {
+    throw new Error('SCXML document must contain an <scxml> root element.');
+  }
 
   const binding =
     machineElement.attributes?.binding === 'late' ? 'late' : 'early';
@@ -962,21 +996,26 @@ function scxmlToMachineJSON(
 
 /**
  * Converts an SCXML string to a JSON representation that can be used with
- * createMachineFromConfig.
+ * the SCXML runtime compiler.
  */
-export function toMachineJSON(
+export function compileSCXML(
   xml: string,
   options: SCXMLConversionOptions = {}
-): MachineJSON {
-  const json = normalizeElementNames(xml2js(xml) as XMLElement);
-  return scxmlToMachineJSON(json, options);
+): ScxmlIR {
+  const json = normalizeElementNames(parseXml(xml));
+  return compileScxmlElement(json, options);
 }
 
-/** Converts an SCXML string to an XState machine. */
-export function toMachine(
+/**
+ * Creates an XState machine from an SCXML document.
+ *
+ * Expressions and external resources are evaluated using SCXML semantics.
+ * Only create machines from trusted SCXML because ECMAScript expressions and
+ * script elements execute JavaScript in the current environment.
+ */
+export function createMachineFromSCXML(
   xml: string,
   options: SCXMLConversionOptions = {}
 ): AnyStateMachine {
-  const machineJSON = toMachineJSON(xml, options);
-  return createMachineFromConfig(machineJSON);
+  return createMachineFromSCXMLConfig(compileSCXML(xml, options));
 }

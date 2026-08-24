@@ -13,7 +13,8 @@ import {
   setup
 } from '../src';
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
-import { toMachineJSON } from '../src/scxml';
+import { createMachineFromSCXMLConfig } from '../src/scxml/runtime';
+import { compileSCXML } from '../src/scxml/scxml';
 import z from 'zod';
 
 // mocked reportUnhandledError due to unknown issue with vitest and global error
@@ -1262,7 +1263,7 @@ describe('error handling', () => {
 
   it('state onError catches SCXML error.communication from failed sends', () => {
     const errorSpy = vi.fn();
-    const json = toMachineJSON(`
+    const json = compileSCXML(`
       <scxml xmlns="http://www.w3.org/2005/07/scxml" initial="active" version="1.0" datamodel="ecmascript">
         <state id="active">
           <onentry>
@@ -1283,7 +1284,7 @@ describe('error handling', () => {
       ]
     };
 
-    const machine = createMachineFromConfig(json, {
+    const machine = createMachineFromSCXMLConfig(json, {
       actions: {
         captureError: (event) => {
           errorSpy({

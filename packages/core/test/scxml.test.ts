@@ -9,10 +9,10 @@ import {
 } from '../src/index.ts';
 import {
   SCXMLConversionOptions,
-  toMachine,
+  createMachineFromSCXML,
   sanitizeStateId,
-  toMachineJSON
-} from '../src/scxml';
+  compileSCXML
+} from '../src/scxml/scxml';
 import { getStateNodes } from '../src/stateUtils';
 
 const TEST_FRAMEWORK = path.dirname(
@@ -431,7 +431,7 @@ async function runW3TestToCompletion(
   test: SCIONTest,
   options: SCXMLConversionOptions
 ): Promise<void> {
-  const machine = toMachine(scxmlDefinition, options);
+  const machine = createMachineFromSCXML(scxmlDefinition, options);
 
   const { resolve, reject, promise } = Promise.withResolvers<void>();
   let nextState: AnyMachineSnapshot;
@@ -475,9 +475,9 @@ async function runTestToCompletion(
   test: SCIONTest,
   options: SCXMLConversionOptions
 ): Promise<void> {
-  toMachineJSON(scxmlDefinition, options);
+  compileSCXML(scxmlDefinition, options);
 
-  const machine = toMachine(scxmlDefinition, options);
+  const machine = createMachineFromSCXML(scxmlDefinition, options);
 
   if (!test.events.length && test.initialConfiguration[0] === 'pass') {
     await runW3TestToCompletion(name, scxmlDefinition, test, options);

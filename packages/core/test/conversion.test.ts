@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { toMachine, toMachineJSON } from '../src/scxml';
+import { createMachineFromSCXML } from '../src/scxml';
+import { compileSCXML } from '../src/scxml/scxml';
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
 import { initialTransition, transition } from '../src/transition';
 import { createMachine } from '../src';
@@ -9,7 +10,7 @@ function toPortableJSON<T>(value: T): T {
 }
 
 describe('SCXML to XState conversion', () => {
-  describe('toMachineJSON - basic state machine', () => {
+  describe('compileSCXML - basic state machine', () => {
     it('should convert a simple state machine with initial state', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="idle">
@@ -22,7 +23,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(json._scxmlInitial?.targets).toEqual(['#idle']);
       expect(toPortableJSON(json.states)).toMatchInlineSnapshot(`
@@ -73,7 +74,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(json.initial).toBe('first');
     });
@@ -88,7 +89,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.done)).toMatchInlineSnapshot(`
         {
@@ -99,7 +100,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - nested states', () => {
+  describe('compileSCXML - nested states', () => {
     it('should convert nested compound states', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parent">
@@ -115,7 +116,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(json.states!.parent._scxmlInitial?.targets).toEqual(['#child1']);
       expect(toPortableJSON(json.states!.parent.states)).toMatchInlineSnapshot(`
@@ -159,7 +160,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - parallel states', () => {
+  describe('compileSCXML - parallel states', () => {
     it('should convert parallel states', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parallel">
@@ -180,7 +181,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.parallel)).toMatchInlineSnapshot(`
         {
@@ -254,7 +255,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - datamodel (context)', () => {
+  describe('compileSCXML - datamodel (context)', () => {
     it('should convert datamodel to context', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="idle">
@@ -267,7 +268,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json._scxmlData)).toMatchInlineSnapshot(`
         [
@@ -288,7 +289,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - transitions', () => {
+  describe('compileSCXML - transitions', () => {
     it('should convert transitions with targets', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
@@ -299,7 +300,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       // SCXML events get .* suffix for prefix matching
       expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
@@ -330,7 +331,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.idle.on!['*'])).toMatchInlineSnapshot(`
           [
@@ -379,7 +380,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
         {
@@ -404,7 +405,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - actions', () => {
+  describe('compileSCXML - actions', () => {
     it('should convert raise actions', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
@@ -417,7 +418,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
           {
@@ -454,7 +455,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.entry)).toMatchInlineSnapshot(`
         [
@@ -483,7 +484,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
           {
@@ -503,7 +504,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - entry and exit actions', () => {
+  describe('compileSCXML - entry and exit actions', () => {
     it('should convert onentry actions', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
@@ -515,7 +516,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.entry)).toMatchInlineSnapshot(`
         [
@@ -543,7 +544,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.exit)).toMatchInlineSnapshot(`
         [
@@ -561,7 +562,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - eventless transitions (always)', () => {
+  describe('compileSCXML - eventless transitions (always)', () => {
     it('should convert eventless transitions to always', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
@@ -572,7 +573,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.always)).toMatchInlineSnapshot(`
         [
@@ -590,7 +591,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - internal vs external transitions', () => {
+  describe('compileSCXML - internal vs external transitions', () => {
     it('should mark external transitions with reenter: true', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parent">
@@ -600,7 +601,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.parent.on!['*']))
         .toMatchInlineSnapshot(`
@@ -628,7 +629,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.parent.on!['*']))
         .toMatchInlineSnapshot(`
@@ -643,7 +644,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - send actions', () => {
+  describe('compileSCXML - send actions', () => {
     it('should convert send with target="#_internal" as raise', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
@@ -655,7 +656,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
           {
@@ -686,7 +687,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
           {
@@ -707,7 +708,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - multiple events per transition', () => {
+  describe('compileSCXML - multiple events per transition', () => {
     it('should handle multiple events on a single transition', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="idle">
@@ -718,7 +719,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.idle.on)).toMatchInlineSnapshot(`
         {
@@ -740,7 +741,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - history states', () => {
+  describe('compileSCXML - history states', () => {
     it('should convert shallow history states', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="parent">
@@ -754,7 +755,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.parent.states!.hist))
         .toMatchInlineSnapshot(`
@@ -777,7 +778,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.parent.states!.deepHist))
         .toMatchInlineSnapshot(`
@@ -790,7 +791,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - delay parsing', () => {
+  describe('compileSCXML - delay parsing', () => {
     it('should parse millisecond delays', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="a">
@@ -802,7 +803,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
         {
@@ -833,7 +834,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
         {
@@ -864,7 +865,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
         {
@@ -895,7 +896,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(toPortableJSON(json.states!.a.on!['*'])).toMatchInlineSnapshot(`
         {
@@ -916,7 +917,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - state ID sanitization', () => {
+  describe('compileSCXML - state ID sanitization', () => {
     it('should sanitize state IDs with dots', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="state.one">
@@ -927,7 +928,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       // Dots are replaced with $
       expect(json._scxmlInitial?.targets).toEqual(['#state$one']);
@@ -966,7 +967,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(json._scxmlInitial?.targets).toEqual(['#foo$bar']);
       expect(toPortableJSON(json.states)).toMatchInlineSnapshot(`
@@ -989,7 +990,7 @@ describe('SCXML to XState conversion', () => {
     });
   });
 
-  describe('toMachineJSON - state IDs', () => {
+  describe('compileSCXML - state IDs', () => {
     it('should set id on root state', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" name="myMachine" initial="idle">
@@ -997,7 +998,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(json.id).toBe('myMachine');
     });
@@ -1012,7 +1013,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(json.states!.a.id).toBe('a');
       expect(json.states!.b.id).toBe('b');
@@ -1027,7 +1028,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(json.states!.parent.id).toBe('parent');
       expect(json.states!.parent.states!.child.id).toBe('child');
@@ -1043,7 +1044,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(json.states!.parent.states!.hist.id).toBe('hist');
     });
@@ -1058,13 +1059,13 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const json = toMachineJSON(scxml);
+      const json = compileSCXML(scxml);
 
       expect(json.states!.complete.id).toBe('complete');
     });
   });
 
-  describe('toMachine - creates machine from SCXML', () => {
+  describe('createMachineFromSCXML', () => {
     it('should create a machine with correct structure', () => {
       const scxml = `
         <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="idle">
@@ -1075,7 +1076,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const machine = toMachine(scxml);
+      const machine = createMachineFromSCXML(scxml);
 
       expect(machine.root).toBeDefined();
       expect(machine.root.states.idle).toBeDefined();
@@ -1092,7 +1093,7 @@ describe('SCXML to XState conversion', () => {
         </scxml>
       `;
 
-      const machine = toMachine(scxml);
+      const machine = createMachineFromSCXML(scxml);
 
       const [snapshot] = initialTransition(machine);
 

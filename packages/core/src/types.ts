@@ -318,11 +318,8 @@ export interface TransitionConfig<
   >;
   meta?: TMeta;
   description?: string;
-  /** @internal Strict semantics for transitions produced by the SCXML converter. */
-  _scxml?: {
-    type?: 'internal' | 'external';
-    eventDescriptors?: string[];
-  };
+  /** @internal Overrides transition-domain selection for compiled formats. */
+  _transitionDomain?: 'internal' | 'external';
 }
 
 export interface InitialTransitionConfig<
