@@ -17,7 +17,7 @@ Please read [our code of conduct](https://github.com/statelyai/xstate/blob/main/
 <!-- runtime and package manager versions matching .node-version and package.json#packageManager -->
 
 - Use Node 24.16.0.
-- Enable Corepack and run `pnpm install`. The repository pins pnpm 9.15.9.
+- Enable Corepack and run `pnpm install`. The repository pins pnpm 10.34.5.
 
 ## Making changes
 

@@ -91,6 +91,15 @@
     "!(CLAUDE).{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc,json5,md,mdx,css,scss,less,yml,yaml,html}": "oxfmt --write"
   },
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "esbuild",
+      "husky",
+      "lmdb",
+      "msgpackr-extract",
+      "svelte-preprocess",
+      "vue-demi"
+    ],
     "overrides": {
       "@types/node": "25.2.1",
       "stylus": "0.55.0",
@@ -100,5 +109,5 @@
       "@vue/test-utils@2.4.6": "patches/@vue__test-utils@2.4.6.patch"
     }
   },
-  "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531"
+  "packageManager": "pnpm@10.34.5+sha512.a4ee05f2f73658255bd6a89859c065a45c28a57daefae2c893a168ee2b73168c37b91e83e57ea67654ad03f03031746430e8bce38e362e042605fb8abc80192e"
 }
