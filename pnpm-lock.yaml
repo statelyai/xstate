@@ -11,7 +11,7 @@ overrides:
 
 patchedDependencies:
   '@vue/test-utils@2.4.6':
-    hash: drgml7uwcocw5qdowdzbfcfg3e
+    hash: c6febd94304e3a020e9bc9b25d5afa0394e9b011f6328d19dc10b24617742f43
     path: patches/@vue__test-utils@2.4.6.patch
 
 importers:
@@ -8984,7 +8984,7 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.27.6
       '@testing-library/dom': 9.3.4
-      '@vue/test-utils': 2.4.6(patch_hash=drgml7uwcocw5qdowdzbfcfg3e)
+      '@vue/test-utils': 2.4.6(patch_hash=c6febd94304e3a020e9bc9b25d5afa0394e9b011f6328d19dc10b24617742f43)
       vue: 3.5.27(typescript@7.0.2)
     optionalDependencies:
       '@vue/compiler-sfc': 3.5.29
@@ -9305,7 +9305,7 @@ snapshots:
   '@vue/shared@3.5.29':
     optional: true
 
-  '@vue/test-utils@2.4.6(patch_hash=drgml7uwcocw5qdowdzbfcfg3e)':
+  '@vue/test-utils@2.4.6(patch_hash=c6febd94304e3a020e9bc9b25d5afa0394e9b011f6328d19dc10b24617742f43)':
     dependencies:
       js-beautify: 1.15.4
       vue-component-type-helpers: 2.2.12
