@@ -26,6 +26,7 @@
     "inspect-actor-systems",
     "troubleshooting",
     "configuration",
+    "fsm",
     "setup-and-provide",
     "states",
     "transitions",

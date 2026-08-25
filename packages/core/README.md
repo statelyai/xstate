@@ -17,6 +17,29 @@ XState is a state management and orchestration solution for JavaScript and TypeS
 
 It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
 
+For flat finite state machines, `xstate/fsm` provides a self-contained compact
+runtime and a specialized actor:
+
+<!-- public exports from packages/core/src/fsm/index.ts; exact capabilities documented in docs/fsm.md -->
+
+```ts
+import { createFSM, createFSMActor } from 'xstate/fsm';
+
+const logic = createFSM({
+  initial: 'inactive',
+  states: {
+    inactive: { on: { toggle: { target: 'active' } } },
+    active: { on: { toggle: { target: 'inactive' } } }
+  }
+});
+
+const actor = createFSMActor(logic).start();
+```
+
+See the [exact supported surface](https://stately.ai/docs/fsm). Use the root `xstate`
+entry point for compound or parallel statecharts, invocation, named sources,
+schemas, serialization and inspection.
+
 ### ✨ Create state machines visually in Stately Studio → [state.new](https://state.new)
 
 ---

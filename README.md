@@ -41,7 +41,10 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 Pick based on what you need:
 
+<!-- package choices from packages/core/src/index.ts, packages/core/src/fsm/index.ts, and packages/xstate-store/src/index.ts -->
+
 - **[`@xstate/store`](#xstate-store)**: simple event-based state management. <1kb, great TypeScript inference, similar in spirit to Redux/Zustand. Start here if you just need a store.
+- **[`xstate/fsm`](docs/fsm.md)**: compact flat finite state machines with an actor-compatible, self-contained runtime.
 - **[`xstate`](#super-quick-start)**: state machines, statecharts, actors, effects, and orchestration for complex app logic.
 
 They work great together, but you don't need one to use the other.

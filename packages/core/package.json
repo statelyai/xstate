@@ -23,6 +23,20 @@
       "import": "./dist/xstate.cjs.mjs",
       "default": "./dist/xstate.cjs.js"
     },
+    "./fsm": {
+      "types": {
+        "import": "./dist/xstate-fsm.cjs.mjs",
+        "default": "./dist/xstate-fsm.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-fsm.development.esm.js",
+        "import": "./dist/xstate-fsm.development.cjs.mjs",
+        "default": "./dist/xstate-fsm.development.cjs.js"
+      },
+      "module": "./dist/xstate-fsm.esm.js",
+      "import": "./dist/xstate-fsm.cjs.mjs",
+      "default": "./dist/xstate-fsm.cjs.js"
+    },
     "./graph": {
       "types": {
         "import": "./dist/xstate-graph.cjs.mjs",
@@ -117,6 +131,7 @@
     "scxml",
     "validation",
     "durable",
+    "fsm",
     "bin"
   ],
   "keywords": [
@@ -158,7 +173,8 @@
       "./graph/index.ts",
       "./scxml/index.ts",
       "./validation/index.ts",
-      "./durable/index.ts"
+      "./durable/index.ts",
+      "./fsm/index.ts"
     ]
   }
 }

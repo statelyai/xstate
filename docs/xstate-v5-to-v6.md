@@ -991,6 +991,10 @@ These exports have been **added**:
 - `ActorLogic.start(snapshot, scope, options?)` receives `options.restored` so logic can distinguish restoration from a fresh start.
 - `actor.select(selector)` - derived, subscribable views
 
+The `xstate/fsm` subpath exports `createFSM` with a self-contained specialized
+`createActor` (also named `createFSMActor`). See [compact finite state
+machines](fsm.md) for its exact supported surface.
+
 ---
 
 ## 17. Removed packages
