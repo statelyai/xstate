@@ -112,6 +112,12 @@ function resolveSendTo(
         : snapshot.children[resolvedTarget];
     }
     if (!targetActorRef) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+      if (resolvedTarget === SpecialTargets.Parent) {
+        // sendParent is documented as sending to the parent "if it exists".
+        // When there is no parent actor, silently skip rather than error.
+        return [snapshot, undefined, undefined];
+      }
       throw new Error(
         `Unable to send event to actor '${resolvedTarget}' from machine '${snapshot.machine.id}'.`
       );
@@ -136,13 +142,18 @@ function resolveSendTo(
 function retryResolveSendTo(
   _: AnyActorScope,
   snapshot: AnyMachineSnapshot,
-  params: {
-    to: AnyActorRef;
-    event: EventObject;
-    id: string | undefined;
-    delay: number | undefined;
-  }
+  params:
+    | {
+        to: AnyActorRef;
+        event: EventObject;
+        id: string | undefined;
+        delay: number | undefined;
+      }
+    | undefined
 ) {
+  if (!params) {
+    return;
+  }
   if (typeof params.to === 'string') {
     params.to = snapshot.children[params.to];
   }
@@ -150,13 +161,18 @@ function retryResolveSendTo(
 
 function executeSendTo(
   actorScope: AnyActorScope,
-  params: {
-    to: AnyActorRef;
-    event: EventObject;
-    id: string | undefined;
-    delay: number | undefined;
-  }
+  params:
+    | {
+        to: AnyActorRef;
+        event: EventObject;
+        id: string | undefined;
+        delay: number | undefined;
+      }
+    | undefined
 ) {
+  if (!params) {
+    return;
+  }
   // this forms an outgoing events queue
   // thanks to that the recipient actors are able to read the *updated* snapshot value of the sender
   actorScope.defer(() => {
