@@ -1,0 +1,45 @@
+{
+  "name": "@xstate/effect",
+  "version": "0.1.0-alpha.1",
+  "type": "module",
+  "description": "Effect integration for XState",
+  "keywords": [
+    "xstate",
+    "effect",
+    "state machine",
+    "statechart"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://stately.ai/docs",
+  "license": "MIT",
+  "exports": {
+    ".": "./dist/xstate-effect.js",
+    "./package.json": "./package.json"
+  },
+  "types": "dist/xstate-effect.cjs.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "scripts": {},
+  "peerDependencies": {
+    "effect": "4.0.0-rc.112",
+    "xstate": "workspace:^"
+  },
+  "devDependencies": {
+    "effect": "4.0.0-rc.112",
+    "xstate": "workspace:^"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "./index.ts"
+    ]
+  }
+}

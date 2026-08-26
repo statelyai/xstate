@@ -453,7 +453,18 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       const saveExecutingCustomAction = executingCustomAction;
       try {
         executingCustomAction = true;
-        void action.exec();
+        const result = action.exec();
+        if (
+          result &&
+          typeof (result as PromiseLike<unknown>).then === 'function'
+        ) {
+          void Promise.resolve(result).catch((err) => {
+            if (this._processingStatus === ProcessingStatus.Stopped) {
+              return;
+            }
+            this._recoverOrError(err);
+          });
+        }
       } finally {
         executingCustomAction = saveExecutingCustomAction;
       }

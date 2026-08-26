@@ -203,6 +203,18 @@ export type OutputFrom<T> =
       ? (TSnapshot & { status: 'done' })['output']
       : never;
 
+type ErrorFromSnapshot<TSnapshot> = TSnapshot extends { error: infer TError }
+  ? Exclude<TError, undefined>
+  : unknown;
+
+export type ErrorFrom<T> = T extends {
+  transition: (snapshot: infer TSnapshot, ...args: any[]) => any;
+}
+  ? ErrorFromSnapshot<TSnapshot>
+  : T extends ActorRef<infer TSnapshot, infer _TEvent, infer _TEmitted>
+    ? ErrorFromSnapshot<TSnapshot>
+    : never;
+
 export type NoRequiredParams<T extends ParameterizedObject> = T extends any
   ? undefined extends T['params']
     ? T['type']
