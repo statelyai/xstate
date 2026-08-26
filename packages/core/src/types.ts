@@ -5,7 +5,14 @@ import { AsyncActorLogic } from './actors/promise.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
-import type { ActorSystemRuntime, AnyActorSystem, Clock } from './system.ts';
+import type {
+  ActorSystemRuntime,
+  AnyActorSystem,
+  Clock,
+  DeadLetterDetail,
+  EventRejection,
+  EventRejectionReason
+} from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
 // oxlint-disable-next-line no-unused-vars
@@ -1768,7 +1775,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *
    * @remarks
    * If a callback function is provided, it can accept an inspection event
-   * argument. The inspection protocol has two event types:
+   * argument. The inspection protocol has three event types:
    *
    * - `@xstate.actor` - An actor ref was created in the system (announces actor
    *   topology: identity + parent).
@@ -1776,6 +1783,11 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *   transition with flat, always-present fields: `event`, `snapshot`,
    *   `sourceRef`, `microsteps`, executed `actions`, and `sent`/scheduled
    *   events.
+   * - `@xstate.deadletter` - An event could not be delivered: the target actor
+   *   stopped, the payload failed its declared schema, or an internal event
+   *   type was sent from outside its owning actor. Carries the `event`,
+   *   `sourceRef`, `reason`, and — for boundary rejections — `issues` and
+   *   `error`.
    *
    * @example
    *
@@ -1847,6 +1859,16 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   inspect?:
     | Observer<InspectionEvent>
     | ((inspectionEvent: InspectionEvent) => void);
+
+  /**
+   * A dead-letter hook called whenever an event is rejected at the delivery
+   * boundary of this actor system — an invalid external event payload or an
+   * internal event type sent from outside its owning actor. Rejected events
+   * are never delivered and never error the target actor.
+   *
+   * Only observed when this actor is the root of its system.
+   */
+  onRejectedEvent?: (rejection: EventRejection) => void;
 }
 
 export type AnyActor = ActorInstance<any, any, any, any>;
@@ -2953,6 +2975,25 @@ export type TerminateExecutableActionObject = BaseExecutableActionObject & {
   args: Parameters<(typeof builtInActions)['@xstate.terminate']>;
 } & ActorTermination;
 
+/**
+ * An executable effect that reports an event rejected at the delivery boundary
+ * (a dead letter). The snapshot paired with this effect is unchanged.
+ */
+export interface DeadLetterExecutableActionObject extends BaseExecutableActionObject {
+  kind: 'builtin';
+  type: '@xstate.deadLetter';
+  /** The actor that sent the event, or `undefined` for an external send. */
+  source: AnyActor | undefined;
+  /** The actor that rejected the event. */
+  target: AnyActor;
+  /** The rejected event. */
+  event: AnyEventObject;
+  /** Why the event was rejected, such as `'invalidEvent'`. */
+  reason: EventRejectionReason;
+  detail?: DeadLetterDetail;
+  args: [];
+}
+
 export type BuiltInExecutableActionObject = Values<{
   '@xstate.spawn': SpawnExecutableActionObject;
   '@xstate.start': StartExecutableActionObject;
@@ -2961,6 +3002,7 @@ export type BuiltInExecutableActionObject = Values<{
   '@xstate.cancel': CancelExecutableActionObject;
   '@xstate.stop': StopExecutableActionObject;
   '@xstate.terminate': TerminateExecutableActionObject;
+  '@xstate.deadLetter': DeadLetterExecutableActionObject;
 }>;
 
 export type SpecialExecutableAction = BuiltInExecutableActionObject;

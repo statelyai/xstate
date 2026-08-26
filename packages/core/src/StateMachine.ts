@@ -42,12 +42,13 @@ import {
 } from './stateUtils.ts';
 import {
   beginSpawnAllocation,
+  createDeadLetterEffect,
   createSpawnEffect,
   resolveActionsWithContext,
   mergeActorIdCounters,
   takeSpawnAllocationCounters
 } from './transitionActions.ts';
-import { AnyActorSystem } from './system.ts';
+import { AnyActorSystem, type DeadLetterDetail } from './system.ts';
 import type {
   ActorLogic,
   ActorLogicTransitionResult,
@@ -621,19 +622,40 @@ export class StateMachine<
         this,
         snapshot as SnapshotFrom<this>
       )) as NonNullable<typeof actorScope>;
+    if (usesInertScope) {
+      setInertActorScopeSnapshot(resolvedActorScope, snapshot, false);
+    }
     if (this.validator) {
-      assertValid(this.validator, {
+      const sourceRef = actorScope && (actorScope.self as any)._lastSourceRef;
+      const eventOrigin = sourceRef ? 'actor' : 'external';
+      const error = this.validator.check({
         kind: 'event',
         logic: this,
         event,
-        eventOrigin:
-          actorScope && (actorScope.self as any)._lastSourceRef
-            ? 'actor'
-            : 'external'
+        eventOrigin
       });
-    }
-    if (usesInertScope) {
-      setInertActorScopeSnapshot(resolvedActorScope, snapshot, false);
+      if (error) {
+        // Boundary fault: an invalid event arriving from outside the machine
+        // is rejected (never delivered), not routed to the error channel. The
+        // snapshot is returned unchanged; the rejection is represented as an
+        // effect so hosts and the actor runtime can report it.
+        return [
+          snapshot,
+          [
+            createDeadLetterEffect(
+              resolvedActorScope,
+              sourceRef,
+              event,
+              'invalidEvent',
+              {
+                issues: (error as { issues?: DeadLetterDetail['issues'] })
+                  .issues,
+                error
+              }
+            ) as ExecutableActionObjectFromLogic<this>
+          ]
+        ];
+      }
     }
     beginSpawnAllocation(resolvedActorScope);
     const fastSnapshot = this._transitionFast(

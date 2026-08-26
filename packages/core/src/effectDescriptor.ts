@@ -72,6 +72,16 @@ export type EffectDescriptor =
       error: unknown;
     }
   | {
+      kind: 'builtin';
+      type: '@xstate.deadLetter';
+      source: string | undefined;
+      target: string;
+      event: unknown;
+      reason: string;
+      issues: unknown;
+      error: unknown;
+    }
+  | {
       kind: 'emit';
       type: string;
       source: string;
@@ -180,6 +190,17 @@ export function getEffectDescriptor(
         status: effect.status,
         output: effect.output,
         error: effect.error
+      };
+    case '@xstate.deadLetter':
+      return {
+        kind: 'builtin',
+        type: '@xstate.deadLetter',
+        source: effect.source?.address,
+        target: effect.target.address,
+        event: effect.event,
+        reason: effect.reason,
+        issues: effect.detail?.issues,
+        error: effect.detail?.error
       };
   }
 }

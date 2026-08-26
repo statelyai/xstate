@@ -30,6 +30,7 @@ import {
   createLogic,
   createMachine,
   createSystem,
+  type EventRejection,
   initialTransition,
   isBuiltInExecutableAction,
   setup,
@@ -104,6 +105,11 @@ describe('SpecialExecutableAction', () => {
           noop(action.status);
           noop(action.output);
           noop(action.error);
+          break;
+        case '@xstate.deadLetter':
+          noop(action.event);
+          noop(action.reason);
+          noop(action.detail);
           break;
         default: {
           const _exhaustive: never = action;
@@ -452,24 +458,29 @@ describe('internalEvents', () => {
       }
     });
 
-    const actor = createActor(machine);
+    const rejections: EventRejection[] = [];
+    const actor = createActor(machine, {
+      onRejectedEvent: (rejection) => rejections.push(rejection)
+    });
 
     actor.send({ type: 'foo' });
 
-    expect(() => actor.send({ type: 'tick' } as any)).toThrow(
-      'Internal event "tick" cannot be sent to actor'
-    );
-    expect(() =>
-      actor.send({ type: 'change.value', value: 'blocked' } as any)
-    ).toThrow('Internal event "change.value" cannot be sent to actor');
+    actor.send({ type: 'tick' } as any);
+    actor.send({ type: 'change.value', value: 'blocked' } as any);
 
     actor.trigger.foo();
-    expect(() => (actor.trigger as any).tick()).toThrow(
-      'Internal event "tick" cannot be sent to actor'
-    );
-    expect(() =>
-      (actor.trigger as any)['change.value']({ value: 'blocked' })
-    ).toThrow('Internal event "change.value" cannot be sent to actor');
+    (actor.trigger as any).tick();
+    (actor.trigger as any)['change.value']({ value: 'blocked' });
+
+    expect(rejections.map((rejection) => rejection.event.type)).toEqual([
+      'tick',
+      'change.value',
+      'tick',
+      'change.value'
+    ]);
+    expect(
+      rejections.every((rejection) => rejection.reason === 'internalEvent')
+    ).toBe(true);
 
     function _expectSendRejected(a: typeof actor) {
       // @ts-expect-error internal events are not sendable from outside

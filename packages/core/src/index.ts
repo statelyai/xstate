@@ -142,7 +142,10 @@ export { getStateNodes } from './stateUtils.ts';
 export type {
   ActorSystem,
   ActorSystemRuntime,
-  AnyActorSystem
+  AnyActorSystem,
+  DeadLetterDetail,
+  EventRejection,
+  EventRejectionReason
 } from './system.ts';
 export { toPromise } from './toPromise.ts';
 export type * from './types.ts';

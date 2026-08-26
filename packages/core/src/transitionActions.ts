@@ -12,7 +12,9 @@ import { createErrorPlatformEvent } from './eventUtils.ts';
 import {
   getActorIdPrefix,
   parseGeneratedActorId,
-  type ActorSystemRuntime
+  type ActorSystemRuntime,
+  type DeadLetterDetail,
+  type EventRejectionReason
 } from './system.ts';
 import { isLazyActorScope, withActorScope } from './actorScope.ts';
 import { getEventOutput } from './utils.ts';
@@ -33,6 +35,7 @@ import type {
   ExecutableActionObject,
   MachineContext,
   RaiseExecutableActionObject,
+  DeadLetterExecutableActionObject,
   SendToExecutableActionObject,
   Snapshot,
   SpecialExecutableAction,
@@ -81,6 +84,41 @@ export function createEmitEffect(
     type: event.type,
     source: actorScope.self,
     event,
+    params: undefined,
+    args: []
+  };
+}
+
+function execDeadLetterEffect(
+  this: DeadLetterExecutableActionObject,
+  runtime: EffectRuntime = this.target.system
+): void | PromiseLike<void> {
+  return runtime.deadLetter!(
+    this.source,
+    this.target,
+    this.event,
+    this.reason,
+    this.detail
+  );
+}
+
+/** @internal Creates a dead-letter effect for a boundary-rejected event. */
+export function createDeadLetterEffect(
+  actorScope: AnyActorScope,
+  source: AnyActor | undefined,
+  event: AnyEventObject,
+  reason: EventRejectionReason,
+  detail?: DeadLetterDetail
+): DeadLetterExecutableActionObject {
+  return {
+    kind: 'builtin',
+    type: '@xstate.deadLetter',
+    exec: execDeadLetterEffect,
+    source,
+    target: actorScope.self,
+    event,
+    reason,
+    detail,
     params: undefined,
     args: []
   };

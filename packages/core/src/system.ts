@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import type { InspectionEvent, SentRecord } from './inspection.ts';
+import type { StandardSchemaV1 } from './schema.types.ts';
 import {
   AnyEventObject,
   ActorTermination,
@@ -17,7 +18,7 @@ import { toObserver } from './utils.ts';
 import { getAmbientInspector } from './inspectionAmbient.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
-  assertEventCanBeSent,
+  rejectUndeliverableEvent,
   deliverEvent,
   stopActor as stopActorLocally,
   terminateActor as terminateActorLocally,
@@ -277,6 +278,44 @@ export function bookSessionId(system: AnyActorSystem): string {
  * other: install a different one via `system.runtime` (for durable hosts,
  * through `createDurable`'s adapter runtime operations).
  */
+/**
+ * Why an event was not delivered: `'invalidEvent'` (payload failed its
+ * declared schema), `'internalEvent'` (an internal event type sent from
+ * outside its owning actor) or `'stopped'` (the target actor already
+ * stopped). Hosts may report additional reasons.
+ */
+export type EventRejectionReason =
+  | 'invalidEvent'
+  | 'internalEvent'
+  | 'stopped'
+  | (string & {});
+
+/** Extra detail attached to a dead letter. */
+export interface DeadLetterDetail {
+  /** Standard Schema issues for `invalidEvent` rejections. */
+  issues?: readonly StandardSchemaV1.Issue[];
+  /** The underlying error describing the rejection. */
+  error?: Error;
+}
+
+/**
+ * Describes an event that was rejected at the delivery boundary instead of
+ * being delivered to its target actor (a dead letter).
+ */
+export interface EventRejection extends DeadLetterDetail {
+  /** The event that was rejected. */
+  event: AnyEventObject;
+  /** The actor the event was addressed to. */
+  targetRef: AnyActor | undefined;
+  /** The `id` of the target actor. */
+  targetId: string | undefined;
+  /** The actor that sent the event, or `undefined` for an external send. */
+  sourceRef: AnyActor | undefined;
+  /** Whether the event came from outside the system or from another actor. */
+  eventOrigin: 'external' | 'actor';
+  reason: EventRejectionReason;
+}
+
 export interface ActorSystemRuntime {
   /** Publishes a newly created actor to the runtime. */
   spawnActor(
@@ -340,14 +379,17 @@ export interface ActorSystemRuntime {
   ): unknown | PromiseLike<unknown>;
   /**
    * Reports an undeliverable event. Delivery stays at-most-once — this is
-   * observability, not retry: the default logs in development and emits an
-   * inspection event.
+   * observability, not retry: the default logs in development, emits an
+   * inspection event and calls the root actor's `onRejectedEvent` hook.
+   * `detail` carries validation issues and the underlying error for events
+   * rejected at the delivery boundary.
    */
   deadLetter(
     source: AnyActor | undefined,
     target: AnyActor,
     event: AnyEventObject,
-    reason: string
+    reason: EventRejectionReason,
+    detail?: DeadLetterDetail
   ): void | PromiseLike<void>;
   /** Cancels all logical timers owned by an actor. */
   cancelAllTimers(source: AnyActor): void | PromiseLike<void>;
@@ -482,6 +524,7 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
   _reverseKeyedActors?: WeakMap<AnyActor, keyof T['actors']>;
   _inspectionObservers?: Set<Observer<InspectionEvent>>;
   _timerMap?: { [id: ScheduledTimerId]: number };
+  _onRejectedEvent?: (rejection: EventRejection) => void;
 }
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
@@ -546,8 +589,10 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       logger: (...args: any[]) => void;
       snapshot?: unknown;
       createActorRef: ActorSystem<T>['createActorRef'];
+      onRejectedEvent?: (rejection: EventRejection) => void;
     }
   ) {
+    this._onRejectedEvent = options.onRejectedEvent;
     const restoredSnapshot =
       typeof options.snapshot === 'object' && options.snapshot !== null
         ? (options.snapshot as {
@@ -818,7 +863,9 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void | PromiseLike<void> {
-    assertEventCanBeSent(source, target, event);
+    if (rejectUndeliverableEvent(source, target, event)) {
+      return;
+    }
     // Record for the inspection `sent[]` facet regardless of which runtime
     // delivers, so host runtimes keep inspection parity.
     this._recordSent(source, target, event);
@@ -844,18 +891,31 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     source: AnyActor | undefined,
     target: AnyActor,
     event: AnyEventObject,
-    reason: string
+    reason: EventRejectionReason,
+    detail?: DeadLetterDetail
   ): void | PromiseLike<void> {
     this._sendInspectionEvent({
       type: '@xstate.deadletter',
       actorRef: target,
       sourceRef: source,
       event,
-      reason
+      reason,
+      issues: detail?.issues,
+      error: detail?.error
+    });
+    this._onRejectedEvent?.({
+      event,
+      targetRef: target,
+      targetId: target.id,
+      sourceRef: source,
+      eventOrigin: source ? 'actor' : 'external',
+      reason,
+      issues: detail?.issues,
+      error: detail?.error
     });
     const override = this.runtime?.deadLetter;
     if (override) {
-      return override(source, target, event, reason);
+      return override(source, target, event, reason, detail);
     }
     if (isDevelopment) {
       console.warn(
@@ -972,6 +1032,7 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     logger: (...args: any[]) => void;
     snapshot?: unknown;
     createActorRef: ActorSystem<T>['createActorRef'];
+    onRejectedEvent?: (rejection: EventRejection) => void;
   }
 ): ActorSystem<T> {
   return new RuntimeSystem(rootActor, options);

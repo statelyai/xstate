@@ -344,6 +344,33 @@ path. This is host observability, not part of the durable contract: use it
 for operation logs, tracing and test instrumentation, and keep the adapter
 itself pure physics.
 
+## Rejected events
+
+When the machine declares a runtime validator, an external event whose payload
+fails its schema is rejected at the boundary: `transition()` returns the
+snapshot unchanged together with a `@xstate.deadLetter` effect, and never
+throws. Replay stays total — replaying a poisoned queued event produces the
+same unchanged snapshot and the same rejection effect every time.
+
+The effect executes through the `deadLetter` runtime operation, so a host
+journals rejections by implementing `deadLetter` on the adapter like any other
+runtime operation:
+
+```ts
+const durable = createDurable(machine, {
+  // ...
+  deadLetter: (_source, _target, event, reason, detail) =>
+    host.journalDeadLetter(event, reason, detail?.issues)
+});
+```
+
+Without an adapter `deadLetter`, the effect falls back to the local behavior:
+a `@xstate.deadletter` inspection event and a development-mode warning.
+
+Events the machine raises to itself are not boundary events. A delayed raised
+event that fails its schema throws from `transition()` and errors the
+execution; that is a machine bug.
+
 `run()` resolves with the machine output when the machine is done, throws the
 machine error when it fails, and throws `DurableExecutionCancelledError` when
 it stops. It only starts fresh executions. A nonzero `transitionIndex`, or

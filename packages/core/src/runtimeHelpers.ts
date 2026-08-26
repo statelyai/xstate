@@ -84,9 +84,10 @@ export function deliverEvent(
   target: AnyActor,
   event: AnyEventObject
 ): void {
-  assertEventCanBeSent(source, target, event);
+  if (rejectUndeliverableEvent(source, target, event)) {
+    return;
+  }
   const runtimeTarget = target as AnyActor & {
-    logic?: { isInternalEventType?: (eventType: string) => boolean };
     _lastSourceRef?: AnyActor;
     _send(event: AnyEventObject): void;
   };
@@ -96,14 +97,14 @@ export function deliverEvent(
 }
 
 /**
- * Ensures internal events cannot cross an actor boundary from an external
- * sender. Host runtimes must call this before taking ownership of delivery.
+ * Returns the boundary error preventing this delivery, if any: an internal
+ * event type cannot cross an actor boundary from an external sender.
  */
-export function assertEventCanBeSent(
+function getEventBoundaryError(
   source: AnyActor | undefined,
   target: AnyActor,
   event: AnyEventObject
-): void {
+): Error | undefined {
   const runtimeTarget = target as AnyActor & {
     logic?: { isInternalEventType?: (eventType: string) => boolean };
   };
@@ -112,10 +113,33 @@ export function assertEventCanBeSent(
     source !== target &&
     runtimeTarget.logic?.isInternalEventType?.(event.type)
   ) {
-    throw new Error(
+    return new Error(
       `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
     );
   }
+  return undefined;
+}
+
+/**
+ * Rejects an event that must not cross the delivery boundary — an internal
+ * event type sent from outside its owning actor — by reporting it as a dead
+ * letter. Returns `true` when the event was rejected and must not be
+ * delivered. Host runtimes must call this before taking ownership of
+ * delivery.
+ */
+export function rejectUndeliverableEvent(
+  source: AnyActor | undefined,
+  target: AnyActor,
+  event: AnyEventObject
+): boolean {
+  const error = getEventBoundaryError(source, target, event);
+  if (error) {
+    void target.system.deadLetter(source, target, event, 'internalEvent', {
+      error
+    });
+    return true;
+  }
+  return false;
 }
 
 /**
