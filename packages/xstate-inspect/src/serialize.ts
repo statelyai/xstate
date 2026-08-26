@@ -27,7 +27,7 @@ export function stringifyState(
   const { machine, _nodes: nodes, tags, ...snapshotToStringify } = snapshot;
   return selectivelyStringify(
     { ...snapshotToStringify, tags: Array.from(tags) },
-    ['context'],
+    ['context', 'event'],
     replacer
   );
 }
