@@ -45,7 +45,6 @@ it('can update context', () => {
     context: { count: 0, greeting: 'hello' },
     on: {
       inc: (ctx) => ({
-        ...ctx,
         count: ctx.count + 1
       }),
       updateBoth: () => ({

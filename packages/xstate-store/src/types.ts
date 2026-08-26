@@ -158,6 +158,71 @@ export type StoreEffect<TEmitted extends EventObject> =
   | ((enq?: StoreEffectEnqueue<any, any>) => void)
   | TEmitted;
 
+export type StoreContextUpdate<TContext extends StoreContext> =
+  IsAny<TContext> extends true
+    ? TContext
+    : IsUnion<TContext> extends true
+      ? StoreUnionContextUpdate<TContext>
+      : Partial<TContext>;
+
+type StoreUnionContextUpdate<
+  TContext extends StoreContext,
+  TFullContext extends StoreContext = TContext
+> =
+  | TFullContext
+  | Partial<Pick<TFullContext, SafeStoreContextUpdateKeys<TFullContext>>>
+  | (TContext extends any
+      ? StoreContextPatchForVariant<TFullContext, TContext>
+      : never);
+
+type StoreContextPatchForVariant<
+  TFullContext extends StoreContext,
+  TVariant extends StoreContext
+> = Compute<
+  Partial<TVariant> &
+    Pick<
+      TVariant,
+      Extract<
+        RequiredStoreContextUpdateKeys<TFullContext, TVariant>,
+        keyof TVariant
+      >
+    >
+>;
+
+type RequiredStoreContextUpdateKeys<TContext, TTargetContext> = {
+  [K in keyof TTargetContext]-?: K extends keyof TContext
+    ? [TContext[K]] extends [TTargetContext[K]]
+      ? never
+      : K
+    : K;
+}[keyof TTargetContext];
+
+type SafeStoreContextUpdateKeys<
+  TContext extends StoreContext,
+  TFullContext extends StoreContext = TContext
+> = {
+  [K in keyof TContext & keyof TFullContext]-?: false extends (
+    TContext extends any
+      ? Compute<Omit<TContext, K> & Pick<TFullContext, K>> extends TFullContext
+        ? true
+        : false
+      : never
+  )
+    ? never
+    : K;
+}[keyof TContext & keyof TFullContext];
+
+type IsAny<T> = 0 extends 1 & T ? true : false;
+
+type IsUnion<T, U = T> =
+  IsAny<T> extends true
+    ? false
+    : T extends any
+      ? [U] extends [T]
+        ? false
+        : true
+      : false;
+
 export type StoreAssigner<
   TContext extends StoreContext,
   TEvent extends EventObject,
@@ -167,7 +232,7 @@ export type StoreAssigner<
   context: TContext,
   event: TEvent,
   enq: EnqueueObject<TContext, TEmitted, TEventPayloadMap>
-) => TContext | void;
+) => StoreContextUpdate<TContext> | void;
 
 export type StoreProducerAssigner<
   TContext extends StoreContext,
