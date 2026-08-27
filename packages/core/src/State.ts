@@ -448,6 +448,37 @@ function collectTags(stateNodes: Array<AnyStateNode>): Set<string> {
   return tags;
 }
 
+function createSnapshotObject(
+  config: StateConfig<any, any>,
+  machine: AnyStateMachine,
+  nodes: AnyStateNode[],
+  value: StateValue,
+  tags: Set<string>
+) {
+  return {
+    status: config.status as never,
+    output: config.output,
+    error: config.error,
+    machine,
+    context: config.context,
+    nodes,
+    value,
+    tags,
+    children: compactSnapshotRecord(config.children),
+    timers: compactSnapshotRecord(config.timers),
+    historyValue: compactSnapshotRecord(config.historyValue),
+    _stateInputs: compactSnapshotRecord(config._stateInputs),
+    _nextTimerId: config._nextTimerId ?? 0,
+    _nextActorIds: config._nextActorIds,
+    matches: machineSnapshotMatches as never,
+    hasTag: machineSnapshotHasTag,
+    can: machineSnapshotCan,
+    getMeta: machineSnapshotGetMeta,
+    getInputs: machineSnapshotGetInputs,
+    toJSON: machineSnapshotToJSON
+  };
+}
+
 export function createMachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -470,29 +501,23 @@ export function createMachineSnapshot<
   TMeta,
   TStateSchema
 > {
-  const snapshot = {
-    status: config.status as never,
-    output: config.output,
-    error: config.error,
+  const nodes = config._nodes;
+  const snapshot = createSnapshotObject(
+    config,
     machine,
-    context: config.context,
-    nodes: config._nodes,
-    value: (config.value ??
-      getStateValue(machine.root, config._nodes)) as never,
-    tags: collectTags(config._nodes),
-    children: compactSnapshotRecord(config.children) as TChildren,
-    timers: compactSnapshotRecord(config.timers),
-    historyValue: compactSnapshotRecord(config.historyValue),
-    _stateInputs: compactSnapshotRecord(config._stateInputs),
-    _nextTimerId: config._nextTimerId ?? 0,
-    _nextActorIds: config._nextActorIds,
-    matches: machineSnapshotMatches as never,
-    hasTag: machineSnapshotHasTag,
-    can: machineSnapshotCan,
-    getMeta: machineSnapshotGetMeta,
-    getInputs: machineSnapshotGetInputs,
-    toJSON: machineSnapshotToJSON
-  };
+    nodes,
+    config.value ?? getStateValue(machine.root, nodes),
+    collectTags(nodes)
+  ) as unknown as MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    undefined,
+    TMeta,
+    TStateSchema
+  >;
   if (actorRef) {
     setSnapshotActorRef(snapshot, actorRef);
   }
@@ -509,28 +534,13 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
   } as StateConfig<any, any>;
 
   if ((config._nodes ?? snapshot.nodes) === snapshot.nodes) {
-    const clonedSnapshot = {
-      status: configWithSnapshot.status as never,
-      output: configWithSnapshot.output,
-      error: configWithSnapshot.error,
-      machine: snapshot.machine,
-      context: configWithSnapshot.context,
-      nodes: snapshot.nodes,
-      value: snapshot.value,
-      tags: snapshot.tags,
-      children: compactSnapshotRecord(configWithSnapshot.children),
-      timers: compactSnapshotRecord(configWithSnapshot.timers),
-      historyValue: compactSnapshotRecord(configWithSnapshot.historyValue),
-      _stateInputs: compactSnapshotRecord(configWithSnapshot._stateInputs),
-      _nextTimerId: configWithSnapshot._nextTimerId ?? 0,
-      _nextActorIds: configWithSnapshot._nextActorIds,
-      matches: machineSnapshotMatches as never,
-      hasTag: machineSnapshotHasTag,
-      can: machineSnapshotCan,
-      getMeta: machineSnapshotGetMeta,
-      getInputs: machineSnapshotGetInputs,
-      toJSON: machineSnapshotToJSON
-    } as unknown as TState;
+    const clonedSnapshot = createSnapshotObject(
+      configWithSnapshot,
+      snapshot.machine,
+      snapshot.nodes,
+      snapshot.value,
+      snapshot.tags
+    ) as unknown as TState;
     copySnapshotActorRef(snapshot, clonedSnapshot);
     return clonedSnapshot;
   }
