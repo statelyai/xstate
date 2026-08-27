@@ -66,7 +66,6 @@ import { transitionEffectSignal, transitionEffectTargets } from './system.ts';
 import { isInertActorScope } from './getNextSnapshot.ts';
 import {
   getActorScopeParent,
-  isLazyActorScope,
   withActorSelfAndParent,
   withActorScope
 } from './actorScope.ts';
@@ -1405,30 +1404,11 @@ function microstep(
         return [actions, updatedContext, internalEvents];
       }
 
-      // For 1-argument actions, wrap them to include input
-      // Preserve _special flag if present (for entry/exit actions)
-      const wrappedAction = Object.assign(
-        (args: any, enqueue: any) =>
-          transitionFn(
-            isLazyActorScope(actorScope)
-              ? withActorScope(
-                  {
-                    context: args.context,
-                    event: args.event,
-                    output: args.output,
-                    children: args.children,
-                    actions: args.actions,
-                    actors: args.actors,
-                    input
-                  },
-                  actorScope
-                )
-              : { ...args, input },
-            enqueue
-          ),
-        '_special' in transitionFn ? { _special: true } : {}
-      );
-      return [[wrappedAction], undefined, undefined];
+      return [
+        [{ action: transitionFn, args: [], input }],
+        undefined,
+        undefined
+      ];
     };
 
     let nextState = currentSnapshot;
