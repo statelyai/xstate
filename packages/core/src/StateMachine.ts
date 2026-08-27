@@ -58,6 +58,7 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
+  AnyStateMachine,
   AnyMachineSnapshot,
   AnyTransitionDefinition,
   Equals,
@@ -163,6 +164,109 @@ function getEmptyCanActorScope(): AnyActorScope {
     actionExecutor: () => {}
   };
   return emptyCanActorScope;
+}
+
+const collectEffects = (
+  microsteps: ReadonlyArray<
+    readonly [unknown, ReadonlyArray<ExecutableActionObject>]
+  >
+) => microsteps.flatMap(([, actions]) => actions);
+
+function attachPureActorRef<TSnapshot extends AnyMachineSnapshot>(
+  snapshot: TSnapshot,
+  actorScope: AnyActorScope,
+  skipInitializingActor = false
+): TSnapshot {
+  if (isInertActorScope(actorScope)) {
+    return snapshot;
+  }
+  if (
+    skipInitializingActor &&
+    (
+      actorScope.self as AnyActor & {
+        _actorScope?: AnyActorScope;
+        _snapshot?: unknown;
+      }
+    )._actorScope === actorScope &&
+    (actorScope.self as AnyActor & { _snapshot?: unknown })._snapshot ===
+      undefined
+  ) {
+    return snapshot;
+  }
+  setSnapshotActorRef(snapshot, actorScope.self, actorScope.system);
+  return snapshot;
+}
+
+function transitionFast<TSnapshot extends AnyMachineSnapshot>(
+  machine: AnyStateMachine,
+  snapshot: TSnapshot,
+  event: EventObject,
+  actorScope: AnyActorScope
+): TSnapshot | undefined {
+  if (
+    snapshot.status !== 'active' ||
+    typeof snapshot.value !== 'string' ||
+    machine.root.always?.length
+  ) {
+    return;
+  }
+  const sourceNode = machine.root.states[snapshot.value];
+  if (
+    !sourceNode ||
+    sourceNode.type !== 'atomic' ||
+    sourceNode.exit ||
+    sourceNode.invoke.length ||
+    sourceNode.always?.length ||
+    sourceNode.after?.length
+  ) {
+    return;
+  }
+  const transitions = sourceNode.transitions.get(event.type);
+  if (transitions?.length !== 1) {
+    return;
+  }
+  const selected = transitions[0];
+  if (
+    selected.guard ||
+    selected.actions ||
+    selected.to ||
+    selected.reenter ||
+    selected.input ||
+    typeof selected.context === 'function' ||
+    (selected.target && selected.target.length !== 1)
+  ) {
+    return;
+  }
+  const targetNode = selected.target?.[0] ?? sourceNode;
+  const stateChanged = targetNode !== sourceNode;
+  if (
+    targetNode.parent !== machine.root ||
+    targetNode.type !== 'atomic' ||
+    (stateChanged &&
+      (targetNode.entry ||
+        targetNode.invoke.length ||
+        targetNode.always?.length ||
+        targetNode.after?.length))
+  ) {
+    return;
+  }
+  const context =
+    selected.context !== undefined
+      ? { ...snapshot.context, ...selected.context }
+      : snapshot.context;
+  if (
+    !isInertActorScope(actorScope) &&
+    (actorScope.system._hasInspectionObservers?.() ?? true)
+  ) {
+    const collectedMicrosteps =
+      ((actorScope.self as any)._collectedMicrosteps as any[]) || [];
+    collectedMicrosteps.push(selected);
+    (actorScope.self as any)._collectedMicrosteps = collectedMicrosteps;
+  }
+  return cloneMachineSnapshot(snapshot, {
+    ...(context !== snapshot.context ? { context } : {}),
+    ...(stateChanged ? { _nodes: [machine.root, targetNode] } : {})
+  }) as TSnapshot;
 }
 
 type CompatibleProvidedActorSource<
@@ -628,11 +732,9 @@ export class StateMachine<
       }
     }
     beginSpawnAllocation(resolvedActorScope);
-    const fastSnapshot = this._transitionFast(
-      snapshot,
-      event,
-      resolvedActorScope
-    );
+    const fastSnapshot = isDevelopment
+      ? transitionFast(this, snapshot, event, resolvedActorScope)
+      : undefined;
     if (fastSnapshot) {
       if (usesInertScope) {
         setInertActorScopeSnapshot(resolvedActorScope, fastSnapshot, false);
@@ -640,7 +742,7 @@ export class StateMachine<
       const returnedSnapshot =
         usesInertScope && fastSnapshot !== snapshot
           ? attachSnapshotActorRef(resolvedActorScope, fastSnapshot)
-          : this._attachPureActorRef(fastSnapshot, resolvedActorScope);
+          : attachPureActorRef(fastSnapshot, resolvedActorScope);
       if (this.validator) {
         assertValid(this.validator, {
           kind: 'result',
@@ -666,8 +768,10 @@ export class StateMachine<
       ? nextSnapshot === snapshot
         ? nextSnapshot
         : attachSnapshotActorRef(resolvedActorScope, nextSnapshot)
-      : this._attachPureActorRef(nextSnapshot, resolvedActorScope);
-    const effects = this._collectEffects(microsteps);
+      : attachPureActorRef(nextSnapshot, resolvedActorScope);
+    const effects = collectEffects(
+      microsteps
+    ) as ExecutableActionObjectFromLogic<this>[];
     if (this.validator) {
       assertValid(this.validator, {
         kind: 'result',
@@ -689,139 +793,6 @@ export class StateMachine<
       >,
       effects
     ];
-  }
-
-  private _collectEffects(
-    microsteps: ReadonlyArray<
-      readonly [unknown, ReadonlyArray<ExecutableActionObject>]
-    >
-  ): ExecutableActionObjectFromLogic<this>[] {
-    return microsteps.flatMap(
-      ([, actions]) => actions
-    ) as ExecutableActionObjectFromLogic<this>[];
-  }
-
-  private _attachPureActorRef<TSnapshot extends AnyMachineSnapshot>(
-    snapshot: TSnapshot,
-    actorScope: AnyActorScope,
-    skipInitializingActor = false
-  ): TSnapshot {
-    if (isInertActorScope(actorScope)) {
-      return snapshot;
-    }
-    if (
-      skipInitializingActor &&
-      (
-        actorScope.self as AnyActor & {
-          _actorScope?: AnyActorScope;
-          _snapshot?: unknown;
-        }
-      )._actorScope === actorScope &&
-      (actorScope.self as AnyActor & { _snapshot?: unknown })._snapshot ===
-        undefined
-    ) {
-      return snapshot;
-    }
-    setSnapshotActorRef(snapshot, actorScope.self, actorScope.system);
-    return snapshot;
-  }
-
-  private _transitionFast(
-    snapshot: MachineSnapshot<
-      TContext,
-      TEvent,
-      TChildren,
-      TStateValue,
-      TTag,
-      TOutput,
-      TMeta,
-      TConfig
-    >,
-    event: TEvent,
-    actorScope: ActorScope<typeof snapshot, TEvent, AnyActorSystem, TEmitted>
-  ):
-    | MachineSnapshot<
-        TContext,
-        TEvent,
-        TChildren,
-        TStateValue,
-        TTag,
-        TOutput,
-        TMeta,
-        TConfig
-      >
-    | undefined {
-    if (
-      snapshot.status !== 'active' ||
-      typeof snapshot.value !== 'string' ||
-      this.root.always?.length
-    ) {
-      return undefined;
-    }
-
-    const sourceNode = this.root.states[snapshot.value];
-    if (
-      !sourceNode ||
-      sourceNode.type !== 'atomic' ||
-      sourceNode.exit ||
-      sourceNode.invoke.length ||
-      sourceNode.always?.length ||
-      sourceNode.after?.length
-    ) {
-      return undefined;
-    }
-
-    const transitions = sourceNode.transitions.get(event.type);
-    if (transitions?.length !== 1) {
-      return undefined;
-    }
-
-    const selected = transitions[0];
-    if (
-      selected.guard ||
-      selected.actions ||
-      selected.to ||
-      selected.reenter ||
-      selected.input ||
-      typeof selected.context === 'function' ||
-      (selected.target && selected.target.length !== 1)
-    ) {
-      return undefined;
-    }
-
-    const targetNode = selected.target?.[0] ?? sourceNode;
-    const stateChanged = targetNode !== sourceNode;
-    if (
-      targetNode.parent !== this.root ||
-      targetNode.type !== 'atomic' ||
-      (stateChanged &&
-        (targetNode.entry ||
-          targetNode.invoke.length ||
-          targetNode.always?.length ||
-          targetNode.after?.length))
-    ) {
-      return undefined;
-    }
-
-    const context =
-      selected.context !== undefined
-        ? ({ ...snapshot.context, ...selected.context } as TContext)
-        : snapshot.context;
-
-    if (
-      !isInertActorScope(actorScope) &&
-      (actorScope.system._hasInspectionObservers?.() ?? true)
-    ) {
-      const collectedMicrosteps =
-        ((actorScope.self as any)._collectedMicrosteps as any[]) || [];
-      collectedMicrosteps.push(selected);
-      (actorScope.self as any)._collectedMicrosteps = collectedMicrosteps;
-    }
-
-    return cloneMachineSnapshot(snapshot, {
-      ...(context !== snapshot.context ? { context } : {}),
-      ...(stateChanged ? { _nodes: [this.root, targetNode] } : {})
-    });
   }
 
   /**
@@ -1159,8 +1130,10 @@ export class StateMachine<
       }
       const returnedSnapshot = usesInertScope
         ? attachSnapshotActorRef(resolvedActorScope, macroState)
-        : this._attachPureActorRef(macroState, resolvedActorScope, true);
-      const effects = this._collectEffects(microsteps);
+        : attachPureActorRef(macroState, resolvedActorScope, true);
+      const effects = collectEffects(
+        microsteps
+      ) as ExecutableActionObjectFromLogic<this>[];
       if (this.validator) {
         assertValid(this.validator, {
           kind: 'result',
@@ -1633,6 +1606,6 @@ export class StateMachine<
       return attachSnapshotActorRef(resolvedActorScope, restoredSnapshot);
     }
 
-    return this._attachPureActorRef(restoredSnapshot, resolvedActorScope);
+    return attachPureActorRef(restoredSnapshot, resolvedActorScope);
   }
 }
