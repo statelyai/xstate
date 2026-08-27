@@ -388,19 +388,23 @@ function scheduleDelayedEvent(
     input?: Record<string, unknown>;
   }) => any
 ) {
-  const oldEntry = stateNode.entry;
-  stateNode.entry = (x: any, enq: any) => {
-    enq.raise(resolveEvent(x) as any, {
+  const append = (
+    key: 'entry' | 'exit',
+    effect: (x: any, enq: any) => void
+  ) => {
+    const previous = stateNode[key];
+    stateNode[key] = (x: any, enq: any) => {
+      effect(x, enq);
+      return typeof previous === 'function' ? previous(x, enq) : undefined;
+    };
+  };
+  append('entry', (x, enq) =>
+    enq.raise(resolveEvent(x), {
       id: timerId,
       delay: resolveScheduledDelay(x)
-    });
-    return typeof oldEntry === 'function' ? oldEntry(x, enq) : undefined;
-  };
-  const oldExit = stateNode.exit;
-  stateNode.exit = (_: any, enq: any) => {
-    enq.cancel(timerId);
-    return typeof oldExit === 'function' ? oldExit(_, enq) : undefined;
-  };
+    })
+  );
+  append('exit', (_, enq) => enq.cancel(timerId));
 }
 
 /** All delayed transitions from the config. */
@@ -435,14 +439,7 @@ export function getDelayedTransitions(
   }
 
   const delayedTransitions: Array<
-    AnyTransitionConfig & {
-      event: string;
-      delay: any;
-      _eventMatcher?: (
-        event: EventObject,
-        snapshot: AnyMachineSnapshot
-      ) => boolean;
-    }
+    DelayedTransitionDefinition<MachineContext, EventObject>
   > = [];
 
   const addDelayedTransitions = (
@@ -464,20 +461,19 @@ export function getDelayedTransitions(
     );
     const { type: eventType, ...eventPattern } = event;
     for (const transition of toTransitionConfigArray(transitions as any)) {
+      for (const key in eventPattern) {
+        if (eventPattern[key] === undefined) {
+          delete eventPattern[key];
+        }
+      }
       delayedTransitions.push({
-        ...transition,
-        matches: {
-          ...transition.matches,
-          ...Object.fromEntries(
-            Object.entries(eventPattern).filter(
-              ([, value]) => value !== undefined
-            )
-          )
-        },
-        event: eventType,
-        delay,
-        _eventMatcher: eventMatcher
-      });
+        ...formatTransition(stateNode, eventType, {
+          ...transition,
+          matches: { ...transition.matches, ...eventPattern },
+          _eventMatcher: eventMatcher
+        } as AnyTransitionConfig),
+        delay
+      } as DelayedTransitionDefinition<MachineContext, EventObject>);
     }
   };
 
@@ -520,14 +516,7 @@ export function getDelayedTransitions(
     );
   }
 
-  return delayedTransitions.map((delayedTransition) => ({
-    ...formatTransition(
-      stateNode,
-      delayedTransition.event,
-      delayedTransition as AnyTransitionConfig
-    ),
-    delay: delayedTransition.delay
-  }));
+  return delayedTransitions;
 }
 
 export function formatTransition(

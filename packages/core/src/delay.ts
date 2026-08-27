@@ -5,18 +5,11 @@ export function parseDurationToMilliseconds(
 
   const millisecondsMatch = normalizedDuration.match(/^(\d+)ms$/i);
   if (millisecondsMatch) {
-    return parseInt(millisecondsMatch[1], 10);
+    return +millisecondsMatch[1];
   }
 
-  const secondsMatch = normalizedDuration.match(/^(\d*)(\.?)(\d*)s$/i);
-  if (secondsMatch) {
-    const wholePart = secondsMatch[1] ? parseInt(secondsMatch[1], 10) : 0;
-    const hasDecimal = !!secondsMatch[2];
-    const fracPart = secondsMatch[3]
-      ? parseInt(secondsMatch[3].padEnd(3, '0').slice(0, 3), 10)
-      : 0;
-
-    return wholePart * 1000 + (hasDecimal ? fracPart : 0);
+  if (/^\d*\.?\d*s$/i.test(normalizedDuration)) {
+    return Math.floor((parseFloat(normalizedDuration) || 0) * 1000);
   }
 
   const iso8601DurationMatch = normalizedDuration.match(
@@ -27,20 +20,18 @@ export function parseDurationToMilliseconds(
     return undefined;
   }
 
-  const { weeks, days, hours, minutes, seconds } = iso8601DurationMatch.groups;
-  if (!weeks && !days && !hours && !minutes && !seconds) {
+  const groups = iso8601DurationMatch.groups;
+  const units = ['weeks', 'days', 'hours', 'minutes', 'seconds'] as const;
+  if (!units.some((unit) => groups[unit])) {
     return undefined;
   }
 
-  const toNumber = (value: string | undefined) =>
-    value ? Number(value.replace(',', '.')) : 0;
-
-  return (
-    toNumber(weeks) * 7 * 24 * 60 * 60 * 1000 +
-    toNumber(days) * 24 * 60 * 60 * 1000 +
-    toNumber(hours) * 60 * 60 * 1000 +
-    toNumber(minutes) * 60 * 1000 +
-    toNumber(seconds) * 1000
+  return units.reduce(
+    (total, unit, index) =>
+      total +
+      +(groups[unit]?.replace(',', '.') ?? 0) *
+        [604_800_000, 86_400_000, 3_600_000, 60_000, 1000][index],
+    0
   );
 }
 

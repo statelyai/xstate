@@ -55,31 +55,20 @@ export const transitionEffectSignal = new Error('Transition effect');
 export const transitionEffectTargets: AnyActor[] = [];
 
 function createSystemIdPrefix(): string {
-  let crypto: Crypto | undefined;
   try {
-    crypto = globalThis.crypto;
+    const values = new Uint32Array(4);
+    globalThis.crypto.getRandomValues(values);
+    return Array.from(values, (value) =>
+      value.toString(36).padStart(7, '0')
+    ).join('');
+  } catch {
+    // Try randomUUID next.
+  }
+
+  try {
+    return globalThis.crypto.randomUUID().replaceAll('-', '');
   } catch {
     // Use the process-local fallback below.
-  }
-
-  if (crypto?.getRandomValues) {
-    try {
-      const values = new Uint32Array(4);
-      crypto.getRandomValues(values);
-      return Array.from(values, (value) =>
-        value.toString(36).padStart(7, '0')
-      ).join('');
-    } catch {
-      // Try randomUUID next.
-    }
-  }
-
-  if (crypto?.randomUUID) {
-    try {
-      return crypto.randomUUID().replaceAll('-', '');
-    } catch {
-      // Use the process-local fallback below.
-    }
   }
 
   return `xstate-${Date.now().toString(36)}-${Math.random()

@@ -984,13 +984,17 @@ export function resolveActionsWithContext(
     );
 
     const isInline = typeof action === 'function';
+    const objectAction =
+      typeof action === 'object' && action !== null ? action : undefined;
     const actionRecord = getTransitionActionRecord(action);
 
     const resolvedAction = isInline ? action : actionRecord?.action;
+    const actionType =
+      resolvedAction?.name || (objectAction as any)?.type || '(anonymous)';
 
     let actionParams = undefined;
 
-    if (typeof action === 'object' && action !== null) {
+    if (objectAction) {
       const {
         type: _,
         childUpdate: _childUpdate,
@@ -1011,12 +1015,7 @@ export function resolveActionsWithContext(
       executableActions.push({
         kind: 'action',
         exec: execCustomEffect,
-        type:
-          typeof action === 'object'
-            ? 'action' in action && typeof action.action === 'function'
-              ? (action.action.name ?? '(anonymous)')
-              : ((action as any).type ?? '(anonymous)')
-            : action.name || '(anonymous)',
+        type: actionType,
         params:
           actionRecord && 'input' in actionRecord ? undefined : actionParams,
         args: [],
@@ -1060,15 +1059,10 @@ export function resolveActionsWithContext(
       continue;
     }
 
-    const builtInFields =
-      typeof action === 'object' &&
-      action !== null &&
-      'action' in action &&
-      typeof action.action === 'function'
-        ? getBuiltInActionFields(action.action, action.args)
-        : undefined;
-    const isEmittedEvent =
-      typeof action === 'object' && action !== null && !actionRecord;
+    const builtInFields = actionRecord
+      ? getBuiltInActionFields(actionRecord.action, actionRecord.args)
+      : undefined;
+    const isEmittedEvent = !!objectAction && !actionRecord;
 
     const executableAction = {
       kind: builtInFields
@@ -1076,20 +1070,15 @@ export function resolveActionsWithContext(
         : isEmittedEvent
           ? ('emit' as const)
           : ('action' as const),
-      type:
-        typeof action === 'object'
-          ? 'action' in action && typeof action.action === 'function'
-            ? (action.action.name ?? '(anonymous)')
-            : (action as AnyEventObject).type
-          : action.name || '(anonymous)',
+      type: actionType,
       params: builtInFields ? undefined : actionParams,
-      args: typeof action === 'object' && 'action' in action ? action.args : [],
+      args: actionRecord?.args ?? [],
       ...(builtInFields
         ? {}
         : isEmittedEvent
           ? { source: actorScope.self, event: action }
           : {
-              action: actionRecord?.action ?? (isInline ? action : undefined)
+              action: resolvedAction
             }),
       ...(!builtInFields
         ? { exec: isEmittedEvent ? execEmitEffect : execCustomEffect }
