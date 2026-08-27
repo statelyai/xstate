@@ -16,7 +16,7 @@ import {
   type DeadLetterDetail,
   type EventRejectionReason
 } from './system.ts';
-import { isLazyActorScope, withActorScope } from './actorScope.ts';
+import { withActorScope } from './actorScope.ts';
 import { getEventOutput } from './utils.ts';
 import type {
   Action,
@@ -744,11 +744,10 @@ function getBuiltInActionFields(
   action: (...args: any[]) => void,
   args: unknown[]
 ): Partial<SpecialExecutableAction> | undefined {
+  const [scope, first, second, third] = args as any[];
   switch (action) {
     case builtInActions['@xstate.spawn']: {
-      const [actor] = args as Parameters<
-        (typeof builtInActions)['@xstate.spawn']
-      >;
+      const actor = scope as AnyActor;
       return {
         kind: 'builtin',
         exec: execSpawnEffect,
@@ -761,60 +760,41 @@ function getBuiltInActionFields(
       };
     }
     case builtInActions['@xstate.raise']: {
-      const [, event, options] = args as Parameters<
-        (typeof builtInActions)['@xstate.raise']
-      >;
       return {
         kind: 'builtin',
         exec: execRaiseEffect,
-        source: (
-          args as Parameters<(typeof builtInActions)['@xstate.raise']>
-        )[0].self,
-        event,
-        id: options?.id,
-        delay: options?.delay
+        source: scope.self,
+        event: first,
+        id: second?.id,
+        delay: second?.delay
       };
     }
     case builtInActions['@xstate.sendTo']: {
-      const [, target, event, options] = args as Parameters<
-        (typeof builtInActions)['@xstate.sendTo']
-      >;
       return {
         kind: 'builtin',
         exec: execSendToEffect,
-        source: (
-          args as Parameters<(typeof builtInActions)['@xstate.sendTo']>
-        )[0].self,
-        target,
-        event,
-        id: options?.id,
-        delay: options?.delay
+        source: scope.self,
+        target: first,
+        event: second,
+        id: third?.id,
+        delay: third?.delay
       };
     }
     case builtInActions['@xstate.cancel']: {
-      const [, id] = args as Parameters<
-        (typeof builtInActions)['@xstate.cancel']
-      >;
       return {
         kind: 'builtin',
         exec: execCancelEffect,
-        source: (
-          args as Parameters<(typeof builtInActions)['@xstate.cancel']>
-        )[0].self,
-        id
+        source: scope.self,
+        id: first
       };
     }
     case builtInActions['@xstate.stop']: {
-      const [, actor] = args as Parameters<
-        (typeof builtInActions)['@xstate.stop']
-      >;
       return {
         kind: 'builtin',
         exec: execStopEffect,
-        source: (args as Parameters<(typeof builtInActions)['@xstate.stop']>)[0]
-          .self,
-        actor,
-        id: actor.id
+        source: scope.self,
+        actor: first,
+        id: first.id
       };
     }
     default:
@@ -841,18 +821,11 @@ export function createSpawnEffect(
 ): SpawnExecutableActionObject {
   const args: Parameters<(typeof builtInActions)['@xstate.spawn']> = [actor];
   return {
-    kind: 'builtin',
-    exec: execSpawnEffect,
+    ...getBuiltInActionFields(builtInActions['@xstate.spawn'], args),
     type: XSTATE_SPAWN,
-    source: actor._parent,
     params: undefined,
-    args,
-    actor,
-    id: actor.id,
-    logic: (actor as any).logic,
-    src: actor.src,
-    input: (actor as any).options?.input
-  };
+    args
+  } as SpawnExecutableActionObject;
 }
 
 /** @internal Creates an immediate actor-to-actor delivery effect. */
@@ -997,29 +970,17 @@ export function resolveActionsWithContext(
   const executableActions: ExecutableActionObject[] = [];
 
   for (const action of actions) {
-    const actionArgs = isLazyActorScope(actorScope)
-      ? withActorScope(
-          {
-            context: intermediateSnapshot.context,
-            event,
-            output: getEventOutput(event),
-            children: intermediateSnapshot.children,
-            actions: currentSnapshot.machine.sources.actions,
-            actors: currentSnapshot.machine.sources.actors
-          },
-          actorScope
-        )
-      : {
-          context: intermediateSnapshot.context,
-          event,
-          output: getEventOutput(event),
-          self: actorScope.self,
-          system: actorScope.system,
-          parent: actorScope.self._parent,
-          children: intermediateSnapshot.children,
-          actions: currentSnapshot.machine.sources.actions,
-          actors: currentSnapshot.machine.sources.actors
-        };
+    const actionArgs = withActorScope(
+      {
+        context: intermediateSnapshot.context,
+        event,
+        output: getEventOutput(event),
+        children: intermediateSnapshot.children,
+        actions: currentSnapshot.machine.sources.actions,
+        actors: currentSnapshot.machine.sources.actors
+      },
+      actorScope
+    );
 
     const isInline = typeof action === 'function';
     const actionRecord = getTransitionActionRecord(action);
