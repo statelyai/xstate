@@ -2301,7 +2301,7 @@ export function macrostep(
     if (
       !isInertActorScope(actorScope) &&
       (event.type === XSTATE_INIT ||
-        (actorScope.system._hasInspectionObservers?.() ?? true))
+        actorScope.system._hasInspectionObservers())
     ) {
       const collectedMicrosteps =
         ((actorScope.self as any)._collectedMicrosteps as any[]) || [];

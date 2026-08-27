@@ -61,10 +61,7 @@ import {
 } from './types.ts';
 import { toObserver } from './utils.ts';
 import { finalizeTransitionResult } from './transitionActions.ts';
-import {
-  refreshSnapshotActorRefRoot,
-  setSnapshotActorRef
-} from './snapshotActorRef.ts';
+import { setSnapshotActorRef } from './snapshotActorRef.ts';
 
 /**
  * Marks a serialized object as an actor reference (`xstate$type` in JSON
@@ -362,7 +359,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     // Announce actor topology: emitted once for every actor (root and every
     // spawned/invoked child) so the actor graph can be drawn before any
     // transitions occur. This is the only place actor identity is announced.
-    if (this.system._hasInspectionObservers?.() ?? true) {
+    if (this.system._hasInspectionObservers()) {
       this.system._sendInspectionEvent({
         type: '@xstate.actor',
         actorRef: this,
@@ -379,41 +376,41 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
   private _restored = false;
 
-  /** @internal */
-  public _getLogger(): ActorScope<
-    SnapshotFrom<TLogic>,
-    EventFromLogic<TLogic>
-  >['logger'] {
-    return this.logger;
-  }
-
   private get self(): Actor<TLogic> {
     return this;
   }
 
   private get defer(): (fn: () => void) => void {
     const defer = (fn: () => void) => this._defer(fn);
-    Object.defineProperty(this, 'defer', { value: defer });
+    if (isDevelopment) {
+      Object.defineProperty(this, 'defer', { value: defer });
+    }
     return defer;
   }
 
   private get stopChild(): (child: AnyActor) => void {
     const stopChild = (child: AnyActor) => this._stopChild(child);
-    Object.defineProperty(this, 'stopChild', { value: stopChild });
+    if (isDevelopment) {
+      Object.defineProperty(this, 'stopChild', { value: stopChild });
+    }
     return stopChild;
   }
 
   private get emit(): (event: EmittedFrom<TLogic>) => void | PromiseLike<void> {
     const emit = (event: EmittedFrom<TLogic>) =>
       this.system.emitEvent(this, event);
-    Object.defineProperty(this, 'emit', { value: emit });
+    if (isDevelopment) {
+      Object.defineProperty(this, 'emit', { value: emit });
+    }
     return emit;
   }
 
   private get actionExecutor(): (action: ExecutableActionObject) => void {
     const actionExecutor = (action: ExecutableActionObject) =>
       this._executeAction(action);
-    Object.defineProperty(this, 'actionExecutor', { value: actionExecutor });
+    if (isDevelopment) {
+      Object.defineProperty(this, 'actionExecutor', { value: actionExecutor });
+    }
     return actionExecutor;
   }
 
@@ -444,7 +441,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     const exec = () => {
       // Record every executed action for the '@xstate.transition' inspection
       // event's `actions[]` facet (replaces the v5 '@xstate.action' event).
-      if (this.system._hasInspectionObservers?.() ?? true) {
+      if (this.system._hasInspectionObservers()) {
         (this._collectedActions ??= []).push({
           type: action.type,
           params: action.params
@@ -581,7 +578,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     snapshot: SnapshotFrom<TLogic>,
     event: EventObject
   ): void {
-    if (this.system._hasInspectionObservers?.() ?? true) {
+    if (this.system._hasInspectionObservers()) {
       this.system._sendInspectionEvent({
         type: '@xstate.transition',
         actorRef: this,
@@ -868,26 +865,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       }
     }
 
-    if (
-      !this._restored &&
-      !this._deferred?.length &&
-      !this.observers?.size &&
-      !(this.system._hasInspectionObservers?.() ?? true)
-    ) {
-      // Starting changes the registered system view associated with the
-      // snapshot, even when there is nothing to publish or execute.
-      if (!refreshSnapshotActorRefRoot(this._snapshot, this, this.system)) {
-        this._setSnapshot(this._snapshot);
-      }
-      this._collectedMicrosteps = undefined;
-      this._collectedActions = undefined;
-      this._collectedSent = undefined;
-    } else {
-      this.update(
-        this._snapshot,
-        createInitEvent(this.options.input) as unknown as EventFromLogic<TLogic>
-      );
-    }
+    this.update(
+      this._snapshot,
+      createInitEvent(this.options.input) as unknown as EventFromLogic<TLogic>
+    );
 
     if (this._restored) {
       type RestoredTimer = { id: string; delay: number; startedAt?: number };

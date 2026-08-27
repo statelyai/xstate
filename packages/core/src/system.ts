@@ -459,7 +459,7 @@ export interface ActorSystem<
       | ((inspectionEvent: InspectionEvent) => void)
   ) => Subscription;
   /** @internal Avoids collecting inspection-only transition metadata. */
-  _hasInspectionObservers?: () => boolean;
+  _hasInspectionObservers: () => boolean;
   /** @internal */
   _sendInspectionEvent: (
     event: HomomorphicOmit<InspectionEvent, 'rootId'>
@@ -547,10 +547,6 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     return children;
   }
 
-  public set children(children: Map<string, AnyActor>) {
-    this._children = children;
-  }
-
   public _getRootActor(): AnyActor | undefined {
     return this._rootActor._isRunning() ? this._rootActor : undefined;
   }
@@ -563,16 +559,8 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     return (this._keyedActors ??= new Map());
   }
 
-  public set keyedActors(actors: Map<keyof T['actors'], AnyActor | undefined>) {
-    this._keyedActors = actors;
-  }
-
   public get reverseKeyedActors(): WeakMap<AnyActor, keyof T['actors']> {
     return (this._reverseKeyedActors ??= new WeakMap());
-  }
-
-  public set reverseKeyedActors(actors: WeakMap<AnyActor, keyof T['actors']>) {
-    this._reverseKeyedActors = actors;
   }
 
   /** @internal Avoids materializing the receptionist for empty systems. */
@@ -675,7 +663,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       delete this._snapshot._scheduledTimers[scheduledTimerId];
       markSystemSnapshotDirty(this);
 
-      this._deliver(source, source, { type: XSTATE_TIMER, id });
+      deliverEvent(source, source, { type: XSTATE_TIMER, id });
     }, delay);
 
     (this._timerMap ??= {})[scheduledTimerId] = timeout;
@@ -706,16 +694,6 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
         this.cancel(actor, scheduledTimer.id);
       }
     }
-  }
-
-  // Delivers an event to the target actor. Used by both `_relay` (which also
-  // records the send) and the scheduler's timer (which already recorded it).
-  private _deliver(
-    source: AnyActor | undefined,
-    target: AnyActor,
-    event: AnyEventObject
-  ): void {
-    deliverEvent(source, target, event);
   }
 
   public _register(sessionId: string, actor: AnyActor): string {
@@ -873,7 +851,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     if (override) {
       return override(source, target, event);
     }
-    this._deliver(source, target, event);
+    deliverEvent(source, target, event);
   }
 
   public emitEvent(

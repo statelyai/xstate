@@ -139,7 +139,7 @@ function inspectPureTransition(
     return;
   }
   const self = (actorScope as { self?: AnyActor }).self;
-  if (self?.system._hasInspectionObservers?.()) {
+  if (self?.system._hasInspectionObservers()) {
     self._inspectTransition(snapshot as never, event);
   }
 }

@@ -80,9 +80,9 @@ export function createSnapshotSystem(
   );
   const reverseKeyedActors = new WeakMap<AnyActor, PropertyKey>();
   const system: AnyActor['system'] = Object.assign(Object.create(baseSystem), {
-    children: registeredActors,
-    keyedActors,
-    reverseKeyedActors,
+    _children: registeredActors,
+    _keyedActors: keyedActors,
+    _reverseKeyedActors: reverseKeyedActors,
     _snapshot: { ...(baseState?.snapshot ?? baseSystem._snapshot) },
     _snapshotVersion: baseState?.sourceVersion ?? baseSystem._snapshotVersion,
     _register: (sessionId: string, actor: AnyActor) => {
@@ -120,7 +120,7 @@ export function createSnapshotSystem(
     // ambient inspector at creation time): there the pure path IS the
     // execution, so inspection forwards to the base system's observers.
     _hasInspectionObservers: forwardInspection
-      ? () => baseSystem._hasInspectionObservers?.() ?? false
+      ? () => baseSystem._hasInspectionObservers()
       : () => false,
     _sendInspectionEvent: forwardInspection
       ? (event: Parameters<AnyActor['system']['_sendInspectionEvent']>[0]) =>

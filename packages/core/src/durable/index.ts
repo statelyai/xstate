@@ -512,7 +512,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
   // system. Observer presence doubles as the dedup check: this execution is
   // the only thing attaching observers to its systems.
   function wireInspection(system: AnyActor['system']): void {
-    if (inspect && !system._hasInspectionObservers?.()) {
+    if (inspect && !system._hasInspectionObservers()) {
       system.inspect(inspect);
     }
   }
