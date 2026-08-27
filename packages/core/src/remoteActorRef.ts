@@ -1,4 +1,3 @@
-import { ACTOR_REF_TYPE } from './createActor.ts';
 import type { AnyActorSystem } from './system.ts';
 import type {
   AnyActor,
@@ -8,9 +7,8 @@ import type {
 } from './types.ts';
 
 const emptySubscription: Subscription = { unsubscribe() {} };
-
-const restoreHint =
-  'or restore this snapshot with embedded children on the runtime that owns them.';
+const noop = () => {};
+const subscribe = () => emptySubscription;
 
 /** @internal */
 export function isRemoteActorRef(actorRef: AnyActor): boolean {
@@ -58,6 +56,11 @@ export function createRemoteActorRef(
     incarnation?: string;
   }
 ): AnyActor {
+  const fail = (): never => {
+    throw new Error(
+      `'${options.address}' is a remote actor; this requires a co-located actor.`
+    );
+  };
   const handle = {
     _remote: true as const,
     // Self-reference so context persistence recognizes the handle as an
@@ -82,45 +85,31 @@ export function createRemoteActorRef(
     send(event: AnyEventObject) {
       void system.sendEvent(undefined, ref, event);
     },
-    _send(event: AnyEventObject) {
-      throw new Error(
-        `Remote actor '${options.address}' has no local mailbox to receive "${event.type}". Its state lives with another runtime; install a runtime that can reach it (via \`createDurable\`'s adapter runtime operations, or \`system.runtime\`) before sending, ${restoreHint}`
-      );
+    _send(_event: AnyEventObject) {
+      fail();
     },
     getSnapshot(): Snapshot<undefined> {
       return remoteSnapshot;
     },
     getPersistedSnapshot(): never {
-      throw new Error(
-        `Cannot persist remote actor '${options.address}' from here: its state lives with the runtime that owns it. Persist it there, ${restoreHint}`
-      );
+      return fail();
     },
-    start() {},
-    _stop() {},
+    start: noop,
+    _stop: noop,
     stop() {
-      throw new Error(
-        `Cannot stop remote actor '${options.address}' directly: stopping is a co-located operation. Stop it through the system runtime that owns it (\`system.stopActor(ref)\`), ${restoreHint}`
-      );
+      fail();
     },
     select() {
-      throw new Error(
-        `Cannot select from remote actor '${options.address}': its snapshot is not synchronously readable because its state lives with another runtime. Read it on the runtime that owns it, ${restoreHint}`
-      );
+      fail();
     },
     get trigger(): never {
-      throw new Error(
-        `Remote actor '${options.address}' has no \`trigger\` shorthand: it requires a co-located actor. Use \`send(...)\`, which routes through the system runtime.`
-      );
+      return fail();
     },
     // Observation is a co-location capability: a remote handle never emits,
     // so subscriptions are inert rather than errors — generic observers may
     // attach to any ref.
-    subscribe(): Subscription {
-      return emptySubscription;
-    },
-    on(): Subscription {
-      return emptySubscription;
-    },
+    subscribe,
+    on: subscribe,
     _isRunning() {
       return false;
     },
@@ -128,7 +117,7 @@ export function createRemoteActorRef(
     // one actor-reference marker whether a child is co-located or remote.
     toJSON() {
       return {
-        xstate$type: ACTOR_REF_TYPE,
+        xstate$type: 'actorRef',
         id: options.id,
         address: options.address,
         src: options.src

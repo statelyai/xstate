@@ -143,57 +143,50 @@ export function createCustomEffect(
 function execSpawnEffect(
   this: SpawnExecutableActionObject,
   runtime: EffectRuntime = this.actor.system
-): void | PromiseLike<void> {
+) {
   return runtime.spawnActor!(this.source, this.actor);
 }
-
 function execStartEffect(
   this: StartExecutableActionObject,
   runtime: EffectRuntime = this.actor.system
-): void | PromiseLike<void> {
+) {
   return runtime.startActor!(this.actor);
 }
-
 function execStopEffect(
   this: StopExecutableActionObject,
   runtime: EffectRuntime = this.source.system
-): void | PromiseLike<void> {
+) {
   return runtime.stopActor!(this.actor);
 }
-
 function execTerminateEffect(
   this: TerminateExecutableActionObject,
   runtime: EffectRuntime = this.actor.system
-): void | PromiseLike<void> {
+) {
   const termination: ActorTermination =
     this.status === 'done'
       ? { status: 'done', output: this.output, error: undefined }
       : { status: 'error', output: undefined, error: this.error };
   return runtime.terminateActor!(this.actor, termination);
 }
-
 function execRaiseEffect(
   this: RaiseExecutableActionObject,
   runtime: EffectRuntime = this.source.system
-): void | PromiseLike<void> {
+) {
   return runtime.scheduleTimer!(this.source, this.id!, this.delay ?? 0);
 }
-
 function execSendToEffect(
   this: SendToExecutableActionObject,
   runtime: EffectRuntime = this.source.system
-): void | PromiseLike<void> {
+) {
   assertSendToEvent(this.event);
-  if (this.delay !== undefined) {
-    return runtime.scheduleTimer!(this.source, this.id!, this.delay);
-  }
-  return runtime.sendEvent!(this.source, this.target, this.event);
+  return this.delay === undefined
+    ? runtime.sendEvent!(this.source, this.target, this.event)
+    : runtime.scheduleTimer!(this.source, this.id!, this.delay);
 }
-
 function execCancelEffect(
   this: CancelExecutableActionObject,
   runtime: EffectRuntime = this.source.system
-): void | PromiseLike<void> {
+) {
   return runtime.cancelTimer!(this.source, this.id);
 }
 
