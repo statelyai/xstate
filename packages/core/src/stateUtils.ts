@@ -268,24 +268,21 @@ export function isInFinalState(
 
 export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
+const internalEventAliases = [
+  ['xstate.done.actor', 'xstate.done.actor.', 'actorId'],
+  ['xstate.error.actor', 'xstate.error.actor.', 'actorId'],
+  ['xstate.snapshot.actor', 'xstate.snapshot.', 'actorId'],
+  ['xstate.done.state', 'xstate.done.state.', 'stateId'],
+  ['xstate.timeout.actor', 'xstate.timeout.actor.', 'actorId'],
+  ['xstate.timeout', 'xstate.timeout.', 'stateId']
+] as const;
+
 function getLegacyEventType(event: EventObject): string | undefined {
-  switch (event.type) {
-    case 'xstate.done.actor':
-    case 'xstate.error.actor':
-      return `${event.type}.${(event as any).actorId}`;
-    case 'xstate.snapshot.actor':
-      return `xstate.snapshot.${(event as any).actorId}`;
-    case 'xstate.done.state':
-      return `xstate.done.state.${(event as any).stateId}`;
-    case 'xstate.after':
-      return `xstate.after.${(event as any).delay}.${(event as any).stateId}`;
-    case 'xstate.timeout':
-      return `xstate.timeout.${(event as any).stateId}`;
-    case 'xstate.timeout.actor':
-      return `xstate.timeout.actor.${(event as any).actorId}`;
-    default:
-      return undefined;
+  if (event.type === 'xstate.after') {
+    return `xstate.after.${(event as any).delay}.${(event as any).stateId}`;
   }
+  const alias = internalEventAliases.find(([type]) => type === event.type);
+  return alias && `${alias[1]}${(event as any)[alias[2]]}`;
 }
 
 function getEventTypeAliases(event: EventObject): string[] {
@@ -321,44 +318,20 @@ function normalizeLegacyInternalEvent(
   machine: AnyStateMachine
 ): EventObject {
   if (
-    event.type === 'xstate.done.actor' ||
-    event.type === 'xstate.error.actor' ||
-    event.type === 'xstate.snapshot.actor' ||
-    event.type === 'xstate.done.state' ||
     event.type === 'xstate.after' ||
-    event.type === 'xstate.timeout' ||
-    event.type === 'xstate.timeout.actor'
+    internalEventAliases.some(([type]) => type === event.type)
   ) {
     return event;
   }
 
-  const normalizeWithId = (
-    prefix: string,
-    type: string,
-    idKey: 'actorId' | 'stateId'
-  ) =>
-    event.type.startsWith(prefix)
-      ? {
-          ...event,
-          type,
-          [idKey]: (event as any)[idKey] ?? event.type.slice(prefix.length)
-        }
-      : undefined;
-
-  const normalized =
-    normalizeWithId('xstate.done.actor.', 'xstate.done.actor', 'actorId') ??
-    normalizeWithId('xstate.error.actor.', 'xstate.error.actor', 'actorId') ??
-    normalizeWithId('xstate.snapshot.', 'xstate.snapshot.actor', 'actorId') ??
-    normalizeWithId('xstate.done.state.', 'xstate.done.state', 'stateId') ??
-    normalizeWithId(
-      'xstate.timeout.actor.',
-      'xstate.timeout.actor',
-      'actorId'
-    ) ??
-    normalizeWithId('xstate.timeout.', 'xstate.timeout', 'stateId');
-
-  if (normalized) {
-    return normalized;
+  for (const [type, prefix, idKey] of internalEventAliases) {
+    if (event.type.startsWith(prefix)) {
+      return {
+        ...event,
+        type,
+        [idKey]: (event as any)[idKey] ?? event.type.slice(prefix.length)
+      };
+    }
   }
 
   const afterPrefix = 'xstate.after.';
@@ -462,72 +435,6 @@ export function getDelayedTransitions(
     }
   }
 
-  // Every delayed transition — `after`, state-level `timeout`/`onTimeout`, and
-  // invoke-level `timeout`/`onTimeout` — has the same shape: an event raised on
-  // entry (and cancelled on exit) plus a transition that catches it. They
-  // differ only in the event raised, the transition(s) caught, and whether the
-  // delay resolves against the machine's `delays` map (invoke timeouts do not).
-  //
-  // `xstate.timeout` is a dedicated event category so a state-level `timeout`
-  // cannot collide with an explicit `after` entry on the same state. Invoke
-  // timeouts are scheduled on the enclosing state; completion transitions
-  // cancel the timer separately, so it clears even when the parent stays active.
-  const sources: Array<{
-    event: AnyEventObject;
-    timerId: string;
-    resolveEvent?: (args: any) => AnyEventObject;
-    eventMatcher?: (
-      event: EventObject,
-      snapshot: AnyMachineSnapshot
-    ) => boolean;
-    delay: any;
-    transitions: unknown;
-    fromDelaysMap: boolean;
-  }> = [];
-
-  if (afterConfig) {
-    for (const key of Object.keys(afterConfig)) {
-      const delay = Number.isNaN(+key) ? key : +key;
-      sources.push({
-        event: createAfterEvent(delay, stateNode.id),
-        timerId: createAfterEventId(delay, stateNode.id),
-        delay,
-        transitions: afterConfig[key],
-        fromDelaysMap: true
-      });
-    }
-  }
-
-  if (timeoutConfig !== undefined && onTimeoutConfig) {
-    sources.push({
-      event: createTimeoutEvent(stateNode.id),
-      timerId: createTimeoutEventId(stateNode.id),
-      delay: timeoutConfig,
-      transitions: onTimeoutConfig,
-      fromDelaysMap: true
-    });
-  }
-
-  for (const invokeDef of invokeDefs) {
-    sources.push({
-      event: createInvokeTimeoutEvent(invokeDef.id),
-      timerId: createInvokeTimeoutEventId(invokeDef.id),
-      resolveEvent: ({ children }: any) =>
-        createInvokeTimeoutEvent(
-          invokeDef.id,
-          children[invokeDef.id]?.sessionId
-        ),
-      eventMatcher: (event, snapshot) =>
-        matchesActorSession(event, snapshot, invokeDef.id),
-      delay: invokeDef.timeout!,
-      transitions: invokeDef.onTimeout,
-      fromDelaysMap: false
-    });
-  }
-
-  // `delay` here is the raw config value, retained only as metadata on the
-  // transition definition — the live delay is resolved at runtime in the
-  // scheduled entry action, so no eager resolution is needed.
   const delayedTransitions: Array<
     AnyTransitionConfig & {
       event: string;
@@ -539,26 +446,22 @@ export function getDelayedTransitions(
     }
   > = [];
 
-  for (const {
-    event,
-    timerId,
-    resolveEvent,
-    eventMatcher,
-    delay,
-    transitions,
-    fromDelaysMap
-  } of sources) {
-    scheduleDelayedEvent(
-      stateNode,
-      timerId,
-      resolveEvent ?? (() => event),
-      (x) =>
-        resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
-          context: x.context,
-          event: x.event,
-          stateNode,
-          input: x.input
-        })
+  const addDelayedTransitions = (
+    event: AnyEventObject,
+    timerId: string,
+    delay: any,
+    transitions: unknown,
+    fromDelaysMap: boolean,
+    resolveEvent: (args: any) => AnyEventObject = () => event,
+    eventMatcher?: (event: EventObject, snapshot: AnyMachineSnapshot) => boolean
+  ) => {
+    scheduleDelayedEvent(stateNode, timerId, resolveEvent, (x) =>
+      resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
+        context: x.context,
+        event: x.event,
+        stateNode,
+        input: x.input
+      })
     );
     const { type: eventType, ...eventPattern } = event;
     for (const transition of toTransitionConfigArray(transitions as any)) {
@@ -577,6 +480,45 @@ export function getDelayedTransitions(
         _eventMatcher: eventMatcher
       });
     }
+  };
+
+  if (afterConfig) {
+    for (const key of Object.keys(afterConfig)) {
+      const delay = Number.isNaN(+key) ? key : +key;
+      addDelayedTransitions(
+        createAfterEvent(delay, stateNode.id),
+        createAfterEventId(delay, stateNode.id),
+        delay,
+        afterConfig[key],
+        true
+      );
+    }
+  }
+
+  if (timeoutConfig !== undefined && onTimeoutConfig) {
+    addDelayedTransitions(
+      createTimeoutEvent(stateNode.id),
+      createTimeoutEventId(stateNode.id),
+      timeoutConfig,
+      onTimeoutConfig,
+      true
+    );
+  }
+
+  for (const invokeDef of invokeDefs) {
+    addDelayedTransitions(
+      createInvokeTimeoutEvent(invokeDef.id),
+      createInvokeTimeoutEventId(invokeDef.id),
+      invokeDef.timeout,
+      invokeDef.onTimeout,
+      false,
+      ({ children }: any) =>
+        createInvokeTimeoutEvent(
+          invokeDef.id,
+          children[invokeDef.id]?.sessionId
+        ),
+      (event, snapshot) => matchesActorSession(event, snapshot, invokeDef.id)
+    );
   }
 
   return delayedTransitions.map((delayedTransition) => ({
@@ -689,56 +631,41 @@ function assertLegalTargetSet(
  */
 export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
   const routeTransitions: AnyTransitionDefinition[] = [];
-  const collectRoutes = (states: Record<string, AnyStateNode>) => {
-    Object.values(states).forEach((sn) => {
-      if (sn.config.route && sn.config.id) {
-        const routeId = sn.config.id;
-        const routeConfig = sn.config.route;
-        const routeMatches = ({ event }: { event: any }) =>
-          event.to === `#${routeId}`;
+  for (const stateNode of rootStateNode.machine.idMap.values()) {
+    const routeConfig = stateNode.config.route;
+    const routeId = stateNode.config.id;
+    if (stateNode === rootStateNode || !routeConfig || !routeId) {
+      continue;
+    }
+    const routeMatches = ({ event }: { event: any }) =>
+      event.to === `#${routeId}`;
 
-        if (typeof routeConfig === 'function') {
-          // Transition-style route: the function is the guard and resolver.
-          // Returning undefined/false blocks the route; returning true or a
-          // config object allows it.
-          routeTransitions.push(
-            formatTransition(rootStateNode, 'xstate.route', {
-              guard: routeMatches,
-              to: (args: any) => {
-                const result = routeConfig(args);
-                if (!result) {
-                  return undefined;
-                }
-                return {
-                  ...(result === true ? {} : result),
-                  target: `#${routeId}`
-                };
+    let transition: AnyTransitionConfig;
+    if (typeof routeConfig === 'function') {
+      transition = {
+        guard: routeMatches,
+        to: (args: any) => {
+          const result = routeConfig(args);
+          return result
+            ? {
+                ...(result === true ? {} : result),
+                target: `#${routeId}`
               }
-            } as AnyTransitionConfig)
-          );
-          if (sn.states) {
-            collectRoutes(sn.states);
-          }
-          return;
+            : undefined;
         }
-
-        const { guard: _guard, ...routeOptions } = routeConfig as any;
-        const transition: AnyTransitionConfig = {
-          ...routeOptions,
-          guard: routeMatches,
-          target: `#${routeId}`
-        };
-
-        routeTransitions.push(
-          formatTransition(rootStateNode, 'xstate.route', transition)
-        );
-      }
-      if (sn.states) {
-        collectRoutes(sn.states);
-      }
-    });
-  };
-  collectRoutes(rootStateNode.states);
+      } as AnyTransitionConfig;
+    } else {
+      const { guard: _guard, ...routeOptions } = routeConfig as any;
+      transition = {
+        ...routeOptions,
+        guard: routeMatches,
+        target: `#${routeId}`
+      };
+    }
+    routeTransitions.push(
+      formatTransition(rootStateNode, 'xstate.route', transition)
+    );
+  }
   if (routeTransitions.length > 0) {
     rootStateNode.transitions.set('xstate.route', routeTransitions as any);
   }
@@ -1152,14 +1079,6 @@ function createTransitionResultResolver(
     | Map<ResolvableTransition, ReturnType<typeof getTransitionResult>>
     | undefined;
   return (transition) => {
-    if (!transition.to) {
-      return getTransitionResult(transition, snapshot, event, actorScope, {
-        resolveActions,
-        selectionResult: selectionResults?.get(
-          transition as AnyTransitionDefinition
-        )
-      });
-    }
     let result = cache?.get(transition);
     if (!result) {
       result = getTransitionResult(transition, snapshot, event, actorScope, {
@@ -1168,7 +1087,9 @@ function createTransitionResultResolver(
           transition as AnyTransitionDefinition
         )
       });
-      (cache ??= new Map()).set(transition, result);
+      if (transition.to) {
+        (cache ??= new Map()).set(transition, result);
+      }
     }
     return result;
   };
@@ -1462,33 +1383,19 @@ function microstep(
           true
         );
 
-        const args = isLazyActorScope(actorScope)
-          ? withActorScope(
-              {
-                context,
-                event,
-                children,
-                actions: currentSnapshot.machine.sources.actions,
-                actors: currentSnapshot.machine.sources.actors,
-                guards: currentSnapshot.machine.sources.guards,
-                delays: currentSnapshot.machine.sources.delays,
-                input
-              },
-              actorScope
-            )
-          : {
-              context,
-              event,
-              parent: actorScope.self._parent,
-              self: actorScope.self,
-              children,
-              system: actorScope.system,
-              actions: currentSnapshot.machine.sources.actions,
-              actors: currentSnapshot.machine.sources.actors,
-              guards: currentSnapshot.machine.sources.guards,
-              delays: currentSnapshot.machine.sources.delays,
-              input
-            };
+        const args = withActorScope(
+          {
+            context,
+            event,
+            children,
+            actions: currentSnapshot.machine.sources.actions,
+            actors: currentSnapshot.machine.sources.actors,
+            guards: currentSnapshot.machine.sources.guards,
+            delays: currentSnapshot.machine.sources.delays,
+            input
+          },
+          actorScope
+        );
         const res = transitionFn(args, enqueue);
 
         if (res?.context !== undefined) {
@@ -2228,37 +2135,21 @@ export function getTransitionResult(
 } {
   let transitionArgs: any;
   const getTransitionArgs = () =>
-    (transitionArgs ??= isLazyActorScope(actorScope)
-      ? withActorScope(
-          {
-            context: snapshot.context,
-            event,
-            output: getEventOutput(event),
-            value: snapshot.value,
-            children: snapshot.children,
-            actions: snapshot.machine.sources.actions,
-            actors: snapshot.machine.sources.actors,
-            guards: snapshot.machine.sources.guards,
-            delays: snapshot.machine.sources.delays,
-            input: getStateInput(snapshot, transition.source.id)
-          },
-          actorScope
-        )
-      : {
-          context: snapshot.context,
-          event,
-          output: getEventOutput(event),
-          value: snapshot.value,
-          children: snapshot.children,
-          system: actorScope.system,
-          parent: actorScope.self._parent,
-          self: actorScope.self,
-          actions: snapshot.machine.sources.actions,
-          actors: snapshot.machine.sources.actors,
-          guards: snapshot.machine.sources.guards,
-          delays: snapshot.machine.sources.delays,
-          input: getStateInput(snapshot, transition.source.id)
-        });
+    (transitionArgs ??= withActorScope(
+      {
+        context: snapshot.context,
+        event,
+        output: getEventOutput(event),
+        value: snapshot.value,
+        children: snapshot.children,
+        actions: snapshot.machine.sources.actions,
+        actors: snapshot.machine.sources.actors,
+        guards: snapshot.machine.sources.guards,
+        delays: snapshot.machine.sources.delays,
+        input: getStateInput(snapshot, transition.source.id)
+      },
+      actorScope
+    ));
 
   if (transition.to) {
     const actions: AnyAction[] = [];
@@ -2685,25 +2576,39 @@ function evaluateTransitionFunction(
   return { enabled: res !== undefined, result: res, reusable: true };
 }
 
+function resolveCleanupActions<T>(
+  snapshot: AnyMachineSnapshot,
+  event: AnyEventObject,
+  actorScope: AnyActorScope,
+  items: T[],
+  enqueueItem: (
+    enqueue: ReturnType<typeof createTransitionEnqueue>,
+    item: T
+  ) => void
+): [AnyMachineSnapshot, ExecutableActionObject[]] {
+  if (!items.length) {
+    return [snapshot, []];
+  }
+  const actions: AnyAction[] = [];
+  const enqueue = createTransitionEnqueue(actorScope, actions, []);
+  for (const item of items) {
+    enqueueItem(enqueue, item);
+  }
+  return resolveActionsWithContext(snapshot, event, actorScope, actions);
+}
+
 function stopChildren(
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope
 ): [AnyMachineSnapshot, ExecutableActionObject[]] {
-  let children: AnyActor[];
-  if (
-    !snapshot.children ||
-    (children = Object.values(snapshot.children).filter(Boolean) as AnyActor[])
-      .length === 0
-  ) {
-    return [snapshot, []];
-  }
-  const actions: AnyAction[] = [];
-  const enqueue = createTransitionEnqueue(actorScope, actions, []);
-  for (const child of children) {
-    enqueue.stop(child);
-  }
-  return resolveActionsWithContext(snapshot, event, actorScope, actions);
+  return resolveCleanupActions(
+    snapshot,
+    event,
+    actorScope,
+    Object.values(snapshot.children ?? {}).filter(Boolean) as AnyActor[],
+    (enqueue, child) => enqueue.stop(child)
+  );
 }
 
 function cancelTimers(
@@ -2711,16 +2616,13 @@ function cancelTimers(
   event: AnyEventObject,
   actorScope: AnyActorScope
 ): [AnyMachineSnapshot, ExecutableActionObject[]] {
-  const timerIds = Object.keys(snapshot.timers);
-  if (!timerIds.length) {
-    return [snapshot, []];
-  }
-  const actions: AnyAction[] = [];
-  const enqueue = createTransitionEnqueue(actorScope, actions, []);
-  for (const id of timerIds) {
-    enqueue.cancel(id);
-  }
-  return resolveActionsWithContext(snapshot, event, actorScope, actions);
+  return resolveCleanupActions(
+    snapshot,
+    event,
+    actorScope,
+    Object.keys(snapshot.timers),
+    (enqueue, id) => enqueue.cancel(id)
+  );
 }
 
 function selectEventlessTransitions(

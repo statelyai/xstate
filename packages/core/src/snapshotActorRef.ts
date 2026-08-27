@@ -25,9 +25,12 @@ function copyRegisteredActors(
   system: AnyActor['system'],
   state?: SnapshotSystemState
 ): Map<string, AnyActor> {
-  const children = new Map(
-    state?.children ??
-      (system._peekChildren ? system._peekChildren() : system.children)
+  const children = new Map<string, AnyActor>(
+    (state?.children ??
+      (system._peekChildren ? system._peekChildren() : system.children)) as Map<
+      string,
+      AnyActor
+    >
   );
   const root = !state && system._getRootActor?.();
   if (root?.sessionId) {
@@ -222,7 +225,7 @@ export function refreshSnapshotActorRefRoot(
   ) {
     return false;
   }
-  ref.systemState.children.set(actor.sessionId, actor);
+  ref.systemState.children.set(actor.sessionId!, actor);
   ref.systemState.sourceVersion = sourceVersion;
   return true;
 }
