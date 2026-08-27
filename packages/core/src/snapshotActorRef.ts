@@ -11,8 +11,8 @@ interface SnapshotSystemState {
   children: Map<string, AnyActor>;
   keyedActors: Map<PropertyKey, AnyActor | undefined>;
   snapshot: AnyActor['system']['_snapshot'];
-  sourceSystem: AnyActor['system'];
-  sourceVersion: number;
+  y: AnyActor['system'];
+  v: number;
 }
 
 const snapshotActorRefs = new WeakMap<
@@ -84,7 +84,7 @@ export function createSnapshotSystem(
     _keyedActors: keyedActors,
     _reverseKeyedActors: reverseKeyedActors,
     _snapshot: { ...(baseState?.snapshot ?? baseSystem._snapshot) },
-    _snapshotVersion: baseState?.sourceVersion ?? baseSystem._snapshotVersion,
+    _snapshotVersion: baseState?.v ?? baseSystem._snapshotVersion,
     _register: (sessionId: string, actor: AnyActor) => {
       registeredActors.set(sessionId, actor);
       markSystemSnapshotDirty(system);
@@ -215,18 +215,18 @@ export function refreshSnapshotActorRefRoot(
   system: AnyActor['system']
 ): boolean {
   const ref = peekSnapshotActorRef(snapshot);
-  const sourceVersion = system._snapshotVersion;
+  const v = system._snapshotVersion;
   if (
     ref?.actor !== actor ||
-    ref.systemState.sourceSystem !== system ||
-    ref.systemState.sourceVersion + 1 !== sourceVersion ||
+    ref.systemState.y !== system ||
+    ref.systemState.v + 1 !== v ||
     system._getRootActor?.() !== actor ||
     system._peekChildren?.()
   ) {
     return false;
   }
   ref.systemState.children.set(actor.sessionId!, actor);
-  ref.systemState.sourceVersion = sourceVersion;
+  ref.systemState.v = v;
   return true;
 }
 
@@ -246,15 +246,15 @@ export function setSnapshotActorRef(
   if (!ownRef) {
     snapshotActorRefs.delete(snapshot);
   }
-  const sourceVersion = baseSystem._snapshotVersion;
+  const v = baseSystem._snapshotVersion;
   const previousRef = previousSnapshot
     ? getSnapshotActorRef(previousSnapshot)
     : undefined;
   const reusableRef = previousRef?.actor === actor ? previousRef : ownRef;
   if (
     reusableRef?.actor === actor &&
-    reusableRef.systemState.sourceSystem === baseSystem &&
-    reusableRef.systemState.sourceVersion === sourceVersion
+    reusableRef.systemState.y === baseSystem &&
+    reusableRef.systemState.v === v
   ) {
     snapshotActorRefs.set(snapshot, reusableRef);
     return;
@@ -286,8 +286,8 @@ export function setSnapshotActorRef(
       children,
       keyedActors,
       snapshot: { ...baseSystem._snapshot },
-      sourceSystem: baseSystem,
-      sourceVersion
+      y: baseSystem,
+      v
     }
   } satisfies SnapshotActorRef);
 }

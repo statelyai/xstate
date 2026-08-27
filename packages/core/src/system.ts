@@ -513,10 +513,11 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
   _reverseKeyedActors?: WeakMap<AnyActor, keyof T['actors']>;
   _inspectionObservers?: Set<Observer<InspectionEvent>>;
   _timerMap?: { [id: ScheduledTimerId]: number };
-  _onRejectedEvent?: (rejection: EventRejection) => void;
 }
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
+  ra: AnyActor;
+  ore?: (rejection: EventRejection) => void;
   public _identity = ambientExecutionIdentity ?? {
     systemId: createSystemId(),
     nextSessionId: 0
@@ -531,13 +532,13 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   public get children(): Map<string, AnyActor> {
     const children = (this._children ??= new Map());
     if (this._getRootActor()) {
-      children.set(this._rootActor.sessionId, this._rootActor);
+      children.set(this.ra.sessionId, this.ra);
     }
     return children;
   }
 
   public _getRootActor(): AnyActor | undefined {
-    return this._rootActor._isRunning() ? this._rootActor : undefined;
+    return this.ra._isRunning() ? this.ra : undefined;
   }
 
   public _peekChildren(): Map<string, AnyActor> | undefined {
@@ -560,7 +561,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   }
 
   constructor(
-    private _rootActor: AnyActor,
+    rootActor: AnyActor,
     options: {
       clock: Clock;
       logger: (...args: any[]) => void;
@@ -569,7 +570,8 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       onRejectedEvent?: (rejection: EventRejection) => void;
     }
   ) {
-    this._onRejectedEvent = options.onRejectedEvent;
+    this.ra = rootActor;
+    this.ore = options.onRejectedEvent;
     const restoredSnapshot =
       typeof options.snapshot === 'object' && options.snapshot !== null
         ? (options.snapshot as {
@@ -595,7 +597,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   // Records a send on the *sender's* transition for the `sent[]` inspection
   // facet. Captures the send when it is initiated (including delayed sends that
   // may never deliver), keyed to the source actor's in-flight transition.
-  private _recordSent(
+  rs(
     source: AnyActor | undefined,
     target: AnyActor,
     event: AnyEventObject,
@@ -627,7 +629,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     const timer = source.getSnapshot()?.timers?.[id];
     if (timer) {
       const target = timer.target === 'self' ? source : timer.target;
-      this._recordSent(source, target, timer.event, delay, id);
+      this.rs(source, target, timer.event, delay, id);
     }
 
     const scheduledAt = this._clock.now?.() ?? Date.now();
@@ -686,7 +688,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   }
 
   public _register(sessionId: string, actor: AnyActor): string {
-    if (actor === this._rootActor) {
+    if (actor === this.ra) {
       this._children?.set(sessionId, actor);
     } else {
       (this._children ??= new Map()).set(sessionId, actor);
@@ -699,7 +701,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     let changed: boolean;
     // Remote handles have no sessionId and are never in the session map;
     // their registry cleanup happens through the keyed-actor path below.
-    if (actor === this._rootActor) {
+    if (actor === this.ra) {
       changed = this._getRootActor() !== undefined;
       changed =
         (actor.sessionId !== undefined &&
@@ -781,7 +783,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     }
     const resolvedInspectionEvent: InspectionEvent = {
       ...event,
-      rootId: this._rootActor.sessionId!
+      rootId: this.ra.sessionId!
     };
     this._inspectionObservers.forEach((observer) =>
       observer.next?.(resolvedInspectionEvent)
@@ -835,7 +837,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     }
     // Record for the inspection `sent[]` facet regardless of which runtime
     // delivers, so host runtimes keep inspection parity.
-    this._recordSent(source, target, event);
+    this.rs(source, target, event);
     const override = this.runtime?.sendEvent;
     if (override) {
       return override(source, target, event);
@@ -870,7 +872,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       issues: detail?.issues,
       error: detail?.error
     });
-    this._onRejectedEvent?.({
+    this.ore?.({
       event,
       targetRef: target,
       targetId: target.id,
@@ -926,7 +928,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       const timer = source.getSnapshot()?.timers?.[id];
       if (timer) {
         const target = timer.target === 'self' ? source : timer.target;
-        this._recordSent(source, target, timer.event, delay, id);
+        this.rs(source, target, timer.event, delay, id);
       }
       return override(source, id, delay);
     }

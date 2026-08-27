@@ -31,8 +31,8 @@ export function setInertActorScopeSnapshot<T>(
   const lazyState = getLazyInertActorState(actorScope);
   if (lazyState) {
     lazyState.snapshot = snapshot;
-    if (lazyState.materialized) {
-      (lazyState.materialized.self as any)._snapshot = snapshot;
+    if (lazyState.m) {
+      (lazyState.m.self as any)._snapshot = snapshot;
     }
   } else {
     (actorScope.self as any)._snapshot = snapshot;
@@ -68,10 +68,10 @@ export function attachSnapshotActorRef<TSnapshot>(
     return getSnapshotActorRef(snapshot as Snapshot<unknown>)!;
   };
   if (lazyState) {
-    if (lazyState.materialized) {
-      lazyState.identityProvider = create;
+    if (lazyState.m) {
+      lazyState.ip = create;
     } else {
-      lazyState.identityProvider ??= create;
+      lazyState.ip ??= create;
     }
   }
   setLazySnapshotActorRef(snapshot as Snapshot<unknown>, create);
@@ -80,13 +80,13 @@ export function attachSnapshotActorRef<TSnapshot>(
 
 type LazyInertActorState = {
   snapshot: unknown;
-  materialized?: AnyActorScope;
-  sourceRef?: () => SnapshotActorRef;
-  sourceChildren: Record<string, AnyActor | undefined>;
-  identityProvider?: () => SnapshotActorRef;
+  m?: AnyActorScope;
+  sr?: () => SnapshotActorRef;
+  sc: Record<string, AnyActor | undefined>;
+  ip?: () => SnapshotActorRef;
   parent?: AnyActor;
-  parentKnown: boolean;
-  materialize: () => AnyActorScope;
+  pk: boolean;
+  mz: () => AnyActorScope;
 };
 
 const lazyInertActorState = Symbol();
@@ -103,7 +103,7 @@ function getLazyInertActorState(
 }
 
 function materializeInertActorScope(actorScope: AnyActorScope): AnyActorScope {
-  return getLazyInertActorState(actorScope)!.materialize();
+  return getLazyInertActorState(actorScope)!.mz();
 }
 
 const lazyInertActorScopePrototype = {
@@ -111,7 +111,7 @@ const lazyInertActorScopePrototype = {
   get _parent() {
     const actorScope = this as AnyActorScope;
     const state = getLazyInertActorState(actorScope)!;
-    return state.parentKnown
+    return state.pk
       ? state.parent
       : materializeInertActorScope(actorScope).self._parent;
   },
@@ -153,20 +153,20 @@ export function setInertActorMaterializationObserver(
 
 function createMaterializedInertActorScope<T extends AnyActorLogic>(
   actorLogic: T,
-  sourceRef: (() => SnapshotActorRef) | undefined,
-  sourceChildren: Record<string, AnyActor | undefined>,
+  sr: (() => SnapshotActorRef) | undefined,
+  sc: Record<string, AnyActor | undefined>,
   currentSnapshot: SnapshotFrom<T> | undefined,
   sourceSelf?: AnyActor
 ): AnyActorScope {
   inertActorMaterializationObserver?.();
-  const snapshotRef = sourceRef?.();
+  const snapshotRef = sr?.();
   const previousSelf = sourceSelf ?? snapshotRef?.actor;
   const baseSystem = previousSelf?.system;
   const system =
     previousSelf && baseSystem
       ? createSnapshotSystem(
           baseSystem,
-          sourceChildren,
+          sc,
           sourceSelf ? undefined : snapshotRef?.systemState
         )
       : undefined;
@@ -221,40 +221,34 @@ export function createInertActorScope<T extends AnyActorLogic>(
     snapshot && typeof snapshot === 'object'
       ? peekSnapshotActorRef(snapshot as Snapshot<unknown>)
       : undefined;
-  const sourceRef =
-    sourceState?.identityProvider ??
+  const sr =
+    sourceState?.ip ??
     (snapshot && typeof snapshot === 'object'
       ? getSnapshotActorRefProvider(snapshot as Snapshot<unknown>)
       : undefined);
   const state = {
     snapshot,
-    sourceRef,
-    sourceChildren: isMachineSnapshot(snapshot)
-      ? (snapshot as any).children
-      : {},
-    identityProvider: sourceState?.identityProvider ?? sourceRef,
+    sr,
+    sc: isMachineSnapshot(snapshot) ? (snapshot as any).children : {},
+    ip: sourceState?.ip ?? sr,
     parent:
       sourceSelf?._parent ??
       sourceState?.parent ??
       eagerSourceRef?.actor._parent,
-    parentKnown:
-      !!sourceSelf ||
-      !!sourceState?.parentKnown ||
-      !!eagerSourceRef ||
-      !snapshot
+    pk: !!sourceSelf || !!sourceState?.pk || !!eagerSourceRef || !snapshot
   } as LazyInertActorState;
-  state.materialize = () =>
-    (state.materialized ??= createMaterializedInertActorScope(
+  state.mz = () =>
+    (state.m ??= createMaterializedInertActorScope(
       actorLogic,
-      state.sourceRef,
-      state.sourceChildren,
+      state.sr,
+      state.sc,
       state.snapshot as SnapshotFrom<T>,
       sourceSelf
     ));
-  if (!state.identityProvider && !snapshot) {
+  if (!state.ip && !snapshot) {
     const identitySnapshot = {} as Snapshot<unknown>;
-    const identitySourceRef = state.sourceRef;
-    const identitySourceChildren = state.sourceChildren;
+    const identitySourceRef = state.sr;
+    const identitySourceChildren = state.sc;
     let identityScope: AnyActorScope | undefined;
     let identityRef: SnapshotActorRef | undefined;
     const getIdentityScope = () =>
@@ -265,14 +259,14 @@ export function createInertActorScope<T extends AnyActorLogic>(
         undefined,
         sourceSelf
       ));
-    state.materialize = () => {
+    state.mz = () => {
       const scope = getIdentityScope();
       if (state.snapshot !== undefined) {
         (scope.self as any)._snapshot = state.snapshot;
       }
-      return (state.materialized = scope);
+      return (state.m = scope);
     };
-    state.identityProvider = () => {
+    state.ip = () => {
       if (identityRef) {
         return identityRef;
       }

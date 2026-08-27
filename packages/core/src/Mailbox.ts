@@ -4,23 +4,23 @@ interface MailboxItem<T> {
 }
 
 export class Mailbox<T> {
-  private _active: boolean = false;
-  private _current: MailboxItem<T> | null = null;
-  private _last: MailboxItem<T> | null = null;
+  private a: boolean = false;
+  private c: MailboxItem<T> | null = null;
+  private l: MailboxItem<T> | null = null;
 
   constructor(private _process: (ev: T) => void) {}
 
   public start() {
-    this._active = true;
-    this.flush();
+    this.a = true;
+    this.f();
   }
 
   public clear(): void {
-    // we can't set _current to null because we might be currently processing
+    // we can't set c to null because we might be currently processing
     // and enqueue following clear shouldn't start processing the enqueued item immediately
-    if (this._current) {
-      this._current.next = null;
-      this._last = this._current;
+    if (this.c) {
+      this.c.next = null;
+      this.l = this.c;
     }
   }
 
@@ -30,28 +30,28 @@ export class Mailbox<T> {
       next: null
     };
 
-    if (this._current) {
-      this._last!.next = enqueued;
-      this._last = enqueued;
+    if (this.c) {
+      this.l!.next = enqueued;
+      this.l = enqueued;
       return;
     }
 
-    this._current = enqueued;
-    this._last = enqueued;
+    this.c = enqueued;
+    this.l = enqueued;
 
-    if (this._active) {
-      this.flush();
+    if (this.a) {
+      this.f();
     }
   }
 
-  private flush() {
-    while (this._current) {
+  private f() {
+    while (this.c) {
       // atm the given _process is responsible for implementing proper try/catch handling
       // we assume here that this won't throw in a way that can affect this mailbox
-      const consumed = this._current;
+      const consumed = this.c;
       this._process(consumed.value);
-      this._current = consumed.next;
+      this.c = consumed.next;
     }
-    this._last = null;
+    this.l = null;
   }
 }

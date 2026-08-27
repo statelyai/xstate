@@ -1362,7 +1362,7 @@ export class StateMachine<
       }
     > = snapshotData.children;
 
-    for (const actorId of Object.keys(snapshotChildren)) {
+    for (const actorId in snapshotChildren) {
       const actorData = snapshotChildren[actorId];
 
       if (actorData.remote === true && actorData.address !== undefined) {
@@ -1467,7 +1467,7 @@ export class StateMachine<
         return {};
       }
       const revived: HistoryValue = {};
-      for (const key of Object.keys(historyValue)) {
+      for (const key in historyValue) {
         const arr = historyValue[key];
 
         for (const item of arr) {
@@ -1477,7 +1477,7 @@ export class StateMachine<
             resolved = item;
           } else {
             try {
-              resolved = this.root.machine.getStateNodeById(item.id);
+              resolved = this.getStateNodeById(item.id);
             } catch {
               if (isDevelopment) {
                 console.warn(`Could not resolve StateNode for id: ${item.id}`);
@@ -1503,25 +1503,26 @@ export class StateMachine<
       node: AnyStateNode,
       path: string[]
     ): void => {
-      const missingStateError = (statePath: string[]) =>
-        new Error(
-          `Persisted snapshot references state '${statePath.join('.')}' which does not exist on machine '${this.id}'.`
-        );
-      if (typeof stateValue === 'string') {
-        if (!node.states[stateValue]) {
-          throw missingStateError(path.concat(stateValue));
+      const validateChild = (key: string) => {
+        const childNode = node.states[key];
+        const childPath = [...path, key];
+        if (!childNode) {
+          throw new Error(
+            `Persisted snapshot references state '${childPath.join('.')}' which does not exist on machine '${this.id}'.`
+          );
         }
+        return [childNode, childPath] as const;
+      };
+      if (typeof stateValue === 'string') {
+        validateChild(stateValue);
         return;
       }
       if (!stateValue || typeof stateValue !== 'object') {
         return;
       }
-      for (const key of Object.keys(stateValue)) {
-        const childNode = node.states[key];
-        if (!childNode) {
-          throw missingStateError(path.concat(key));
-        }
-        validateStateValue(stateValue[key]!, childNode, path.concat(key));
+      for (const key in stateValue) {
+        const [childNode, childPath] = validateChild(key);
+        validateStateValue(stateValue[key]!, childNode, childPath);
       }
     };
     validateStateValue(snapshotData.value, this.root, []);
@@ -1543,7 +1544,7 @@ export class StateMachine<
     // never reuse a live child's id.
     let restoredCounters: Record<string, number> | undefined =
       persistedRest._nextActorIds;
-    for (const childId of Object.keys(snapshotChildren)) {
+    for (const childId in snapshotChildren) {
       const generated = parseGeneratedActorId(childId);
       if (
         generated &&
@@ -1586,7 +1587,7 @@ export class StateMachine<
         return;
       }
       seen.add(contextPart);
-      for (const key of Object.keys(contextPart)) {
+      for (const key in contextPart) {
         const value: unknown = contextPart[key];
 
         if (value && typeof value === 'object') {

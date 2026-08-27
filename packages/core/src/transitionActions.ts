@@ -49,7 +49,7 @@ type TransitionActionRecord = {
   action: (...args: any[]) => any;
   args: any[];
   input?: Record<string, unknown>;
-  childUpdate?:
+  u?:
     | {
         type: 'add';
         actor: AnyActor;
@@ -267,7 +267,7 @@ export function mergeActorIdCounters(
 
 function applyChildUpdate(
   snapshot: AnyMachineSnapshot,
-  update: NonNullable<TransitionActionRecord['childUpdate']>,
+  update: NonNullable<TransitionActionRecord['u']>,
   actorScope: AnyActorScope
 ): AnyMachineSnapshot {
   if (update.type === 'add') {
@@ -327,7 +327,7 @@ function pushSpawnedChild(
     builtInActions['@xstate.spawn'],
     actor
   );
-  action.childUpdate = { type: 'add', actor, id, counters };
+  action.u = { type: 'add', actor, id, counters };
 }
 
 /**
@@ -336,19 +336,19 @@ function pushSpawnedChild(
  * microsteps of the same event.
  */
 interface SpawnAllocation {
-  counters: Map<string, number>;
+  c: Map<string, number>;
   /** Explicit child ids claimed by spawns/invokes of this transition. */
-  explicitIds: Set<string>;
+  e: Set<string>;
   /** Ids of children stopped by this transition, freeing them for reuse. */
-  stoppedIds: Set<string>;
+  s: Set<string>;
 }
 
 const spawnAllocations = new WeakMap<object, SpawnAllocation>();
 
 const createSpawnAllocation = (): SpawnAllocation => ({
-  counters: new Map(),
-  explicitIds: new Set(),
-  stoppedIds: new Set()
+  c: new Map(),
+  e: new Set(),
+  s: new Set()
 });
 
 /**
@@ -437,7 +437,7 @@ function nextChildIndex(
   prefix: string
 ): number {
   return Math.max(
-    allocation.counters.get(prefix) ?? 0,
+    allocation.c.get(prefix) ?? 0,
     getWorkingSnapshotOf(actorScope)?._nextActorIds?.[prefix] ?? 0
   );
 }
@@ -467,7 +467,7 @@ export function allocateChildId(
   const prefix = getActorIdPrefix(src);
   assertUnreservedPrefix(prefix);
   const next = nextChildIndex(actorScope, allocation, prefix);
-  allocation.counters.set(prefix, next + 1);
+  allocation.c.set(prefix, next + 1);
   return { id: `${prefix}:${next}`, counters: { [prefix]: next + 1 } };
 }
 
@@ -499,16 +499,16 @@ export function assertChildIdFree(
   // completion event that removes one is the owning runtime's business.
   const occupied =
     existing !== undefined &&
-    !allocation.stoppedIds.has(id) &&
+    !allocation.s.has(id) &&
     existing.getSnapshot().status === 'active';
-  if (allocation.explicitIds.has(id) || occupied) {
+  if (allocation.e.has(id) || occupied) {
     throw new Error(
       isDevelopment
         ? `Cannot spawn child actor with id '${id}': the id is already in use by another child of '${actorScope.self.id}'. Stop the existing child before reusing its id.`
         : `Child actor id '${id}' is already in use`
     );
   }
-  allocation.explicitIds.add(id);
+  allocation.e.add(id);
 }
 
 /**
@@ -520,8 +520,8 @@ export function assertChildIdFree(
 function recordStoppedChild(actorScope: AnyActorScope, actor: AnyActor): void {
   const allocation = spawnAllocations.get(actorScope);
   if (allocation) {
-    allocation.stoppedIds.add(actor.id);
-    allocation.explicitIds.delete(actor.id);
+    allocation.s.add(actor.id);
+    allocation.e.delete(actor.id);
   }
 }
 
@@ -552,7 +552,7 @@ export function reserveChildId(
     nextChildIndex(actorScope, allocation, generated.prefix),
     generated.index + 1
   );
-  allocation.counters.set(generated.prefix, next);
+  allocation.c.set(generated.prefix, next);
   return { [generated.prefix]: next };
 }
 
@@ -566,7 +566,7 @@ export function reserveChildId(
 export function takeSpawnAllocationCounters(
   actorScope: AnyActorScope
 ): Record<string, number> | undefined {
-  const counters = spawnAllocations.get(actorScope)?.counters;
+  const counters = spawnAllocations.get(actorScope)?.c;
   if (!counters?.size) {
     return undefined;
   }
@@ -680,7 +680,7 @@ export function createTransitionEnqueue(
           actorScope,
           actorInstance
         );
-        action.childUpdate = { type: 'remove', actor: actorInstance };
+        action.u = { type: 'remove', actor: actorInstance };
         recordStoppedChild(actorScope, actorInstance);
       }
     }
@@ -995,29 +995,24 @@ export function resolveActionsWithContext(
     let actionParams = undefined;
 
     if (objectAction) {
-      const {
-        type: _,
-        childUpdate: _childUpdate,
-        ...emittedEventParams
-      } = action as any;
+      const { type: _, u: _u, ...emittedEventParams } = action as any;
       actionParams = emittedEventParams;
     }
 
-    if (actionRecord?.childUpdate) {
+    if (actionRecord?.u) {
       intermediateSnapshot = applyChildUpdate(
         intermediateSnapshot,
-        actionRecord.childUpdate,
+        actionRecord.u,
         actorScope
       );
     }
 
-    if (resolvedAction && '_special' in resolvedAction) {
+    if (resolvedAction && actionRecord && 'input' in actionRecord) {
       executableActions.push({
         kind: 'action',
         exec: execCustomEffect,
         type: actionType,
-        params:
-          actionRecord && 'input' in actionRecord ? undefined : actionParams,
+        params: undefined,
         args: [],
         action: undefined
       });
@@ -1033,9 +1028,7 @@ export function resolveActionsWithContext(
       >;
 
       const res = specialAction(
-        actionRecord && 'input' in actionRecord
-          ? Object.assign(actionArgs, { input: actionRecord.input })
-          : (actionArgs as any),
+        Object.assign(actionArgs, { input: actionRecord.input }) as any,
         emptyEnqueueObject
       );
 

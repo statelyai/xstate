@@ -146,7 +146,7 @@ export class StateNode<
   public after!: Array<DelayedTransitionDefinition<any, any>>;
   public events!: Array<EventDescriptor<any>>;
   public ownEvents!: Array<EventDescriptor<any>>;
-  private _candidateCache?: Map<string, AnyTransitionDefinition[]>;
+  private cc?: Map<string, AnyTransitionDefinition[]>;
 
   constructor(
     /** The raw config used to create the machine. */
@@ -209,16 +209,6 @@ export class StateNode<
 
     this.entry = this.config.entry as AnyAction | undefined;
     this.exit = this.config.exit as AnyAction | undefined;
-
-    if (this.entry) {
-      // @ts-expect-error _special is an internal marker not on the Action type
-      this.entry._special = true;
-    }
-
-    if (this.exit) {
-      // @ts-expect-error _special is an internal marker not on the Action type
-      this.exit._special = true;
-    }
 
     this.meta = this.config.meta;
     this.output =
@@ -304,10 +294,10 @@ export class StateNode<
     selectionResults?: TransitionSelectionResults
   ): Array<AnyTransitionDefinition> | undefined {
     const descriptorKey = getEventDescriptorKey(event);
-    let candidates = this._candidateCache?.get(descriptorKey);
+    let candidates = this.cc?.get(descriptorKey);
     if (!candidates) {
       candidates = getCandidates(this, event);
-      (this._candidateCache ??= new Map()).set(descriptorKey, candidates);
+      (this.cc ??= new Map()).set(descriptorKey, candidates);
     }
 
     for (const candidate of candidates) {
