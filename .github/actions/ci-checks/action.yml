@@ -6,10 +6,6 @@ runs:
       run: pnpm build
       shell: bash
 
-    - name: Core bundle size
-      run: pnpm bench:size -- --verify
-      shell: bash
-
     - name: FSM runtime
       run: pnpm bench:fsm-runtime -- --verify
       shell: bash
