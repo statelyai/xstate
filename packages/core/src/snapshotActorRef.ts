@@ -129,22 +129,20 @@ export function createSnapshotSystem(
   });
 
   for (const [registryKey, actor] of keyedActors) {
-    if (!actor) {
-      continue;
+    if (actor) {
+      reverseKeyedActors.set(actor, registryKey);
     }
-    reverseKeyedActors.set(actor, registryKey);
   }
   for (const actor of Object.values(children)) {
-    if (!actor) {
-      continue;
-    }
-    if (actor.sessionId) {
-      registeredActors.set(actor.sessionId, actor);
-    }
-    const registryKey = actor.registryKey;
-    if (registryKey) {
-      keyedActors.set(registryKey, actor);
-      reverseKeyedActors.set(actor, registryKey);
+    if (actor) {
+      if (actor.sessionId) {
+        registeredActors.set(actor.sessionId, actor);
+      }
+      const registryKey = actor.registryKey;
+      if (registryKey) {
+        keyedActors.set(registryKey, actor);
+        reverseKeyedActors.set(actor, registryKey);
+      }
     }
   }
 
@@ -156,9 +154,6 @@ export function getSnapshotActorRef(
   snapshot: Snapshot<unknown>
 ): SnapshotActorRef | undefined {
   const value = snapshotActorRefs.get(snapshot);
-  if (!value) {
-    return undefined;
-  }
   if (typeof value !== 'function') {
     return value;
   }
@@ -199,13 +194,11 @@ export function setLazySnapshotActorRef(
 export function copySnapshotActorRef(
   source: Snapshot<unknown>,
   target: Snapshot<unknown>
-): boolean {
+): void {
   const value = snapshotActorRefs.get(source);
   if (value) {
     snapshotActorRefs.set(target, value);
-    return true;
   }
-  return false;
 }
 
 /** Refreshes the only topology change made by an otherwise idle root start. */
@@ -266,18 +259,17 @@ export function setSnapshotActorRef(
     ? new Map(baseKeyedActors)
     : emptyKeyedActors;
   for (const child of Object.values(getSnapshotChildren(snapshot))) {
-    if (!child) {
-      continue;
-    }
-    if (child.sessionId) {
-      children.set(child.sessionId, child);
-    }
-    const registryKey = child.registryKey;
-    if (registryKey) {
-      if (keyedActors === emptyKeyedActors) {
-        keyedActors = new Map();
+    if (child) {
+      if (child.sessionId) {
+        children.set(child.sessionId, child);
       }
-      keyedActors.set(registryKey, child);
+      const registryKey = child.registryKey;
+      if (registryKey) {
+        if (keyedActors === emptyKeyedActors) {
+          keyedActors = new Map();
+        }
+        keyedActors.set(registryKey, child);
+      }
     }
   }
   snapshotActorRefs.set(snapshot, {
