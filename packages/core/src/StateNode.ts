@@ -215,21 +215,16 @@ export class StateNode<
       this.type === 'final' || !this.parent ? this.config.output : undefined;
     this.tags = toArray(config.tags).slice();
     this.invoke = toArray(this.config.invoke).map((invokeConfig, i) => {
-      const { src, registryKey } = invokeConfig;
+      const { src } = invokeConfig;
       const invokeId = createInvokeId(this.id, i);
-      const resolvedId = invokeConfig.id ?? invokeId;
       // Referenced (string) actors keep their logical name so persisted
       // snapshots reference `src: 'fetchUser'` rather than a positional id;
       // only inline logic gets the synthetic source name.
-      const sourceName =
-        typeof src === 'string' ? src : `xstate.invoke.${invokeId}`;
-
       return {
         ...invokeConfig,
-        src: sourceName,
+        src: typeof src === 'string' ? src : `xstate.invoke.${invokeId}`,
         logic: src,
-        id: resolvedId,
-        registryKey
+        id: invokeConfig.id ?? invokeId
       } as AnyInvokeDefinition;
     });
   }
@@ -296,8 +291,10 @@ export class StateNode<
     const descriptorKey = getEventDescriptorKey(event);
     let candidates = this.cc?.get(descriptorKey);
     if (!candidates) {
-      candidates = getCandidates(this, event);
-      (this.cc ??= new Map()).set(descriptorKey, candidates);
+      (this.cc ??= new Map()).set(
+        descriptorKey,
+        (candidates = getCandidates(this, event))
+      );
     }
 
     for (const candidate of candidates) {
@@ -373,29 +370,28 @@ function formatChoiceTransitions(
   stateNode: AnyStateNode
 ): AnyTransitionDefinition[] {
   const choice = (stateNode.config as any).choice;
-  const validateChoiceResult = (result: any): AnyTransitionConfig => {
-    if (!result || result.target === undefined) {
-      throw new Error(
-        isDevelopment
-          ? `Choice state "${stateNode.id}" must resolve to a target.`
-          : `Choice "${stateNode.id}" has no target`
-      );
-    }
-    if (isDevelopment) {
-      for (const key of ['actions', 'to'] as const) {
-        if (result[key] !== undefined) {
-          throw new Error(
-            `Choice state "${stateNode.id}" cannot declare \`${key}\` on a choice.`
-          );
-        }
-      }
-    }
-    return result;
-  };
-
   return [
     formatTransition(stateNode, NULL_EVENT, {
-      to: (args: any) => validateChoiceResult(choice(args))
+      to: (args: any) => {
+        const result = choice(args);
+        if (!result || result.target === undefined) {
+          throw new Error(
+            isDevelopment
+              ? `Choice state "${stateNode.id}" must resolve to a target.`
+              : `Choice "${stateNode.id}" has no target`
+          );
+        }
+        if (isDevelopment) {
+          for (const key of ['actions', 'to'] as const) {
+            if (result[key] !== undefined) {
+              throw new Error(
+                `Choice state "${stateNode.id}" cannot declare \`${key}\` on a choice.`
+              );
+            }
+          }
+        }
+        return result;
+      }
     } as AnyTransitionConfig)
   ];
 }
@@ -404,14 +400,7 @@ function mapTransitionConfigs<T>(
   transitionsConfig: unknown,
   mapper: (transition: AnyTransitionConfig) => T
 ): T[] {
-  const transitionConfigs = toTransitionConfigArray(transitionsConfig as any);
-  const transitions = new Array<T>(transitionConfigs.length);
-
-  for (let i = 0; i < transitionConfigs.length; i++) {
-    transitions[i] = mapper(transitionConfigs[i]);
-  }
-
-  return transitions;
+  return toTransitionConfigArray(transitionsConfig as any).map(mapper);
 }
 
 function formatTransitions<
@@ -428,10 +417,12 @@ function formatTransitions<
     descriptor: string,
     additions: AnyTransitionDefinition[]
   ) => {
-    transitions.set(descriptor, [
-      ...(transitions.get(descriptor) ?? []),
-      ...additions
-    ]);
+    const existing = transitions.get(descriptor);
+    if (existing) {
+      existing.push(...additions);
+    } else {
+      transitions.set(descriptor, additions);
+    }
   };
   if (stateNode.config.on) {
     for (const descriptor of Object.keys(stateNode.config.on)) {
@@ -610,14 +601,7 @@ function formatTransitions<
     }
   }
   for (const delayedTransition of stateNode.after) {
-    let existing = transitions.get(delayedTransition.eventType);
-    if (!existing) {
-      existing = [];
-      transitions.set(delayedTransition.eventType, existing);
-    }
-    existing.push(
-      delayedTransition as TransitionDefinition<TContext, AnyEventObject>
-    );
+    addTransitions(delayedTransition.eventType, [delayedTransition]);
   }
   return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
 }
@@ -629,12 +613,13 @@ function formatInitialTransition(
     | { target: string | string[]; input?: any; to?: (...args: any[]) => any }
     | undefined
 ): InitialTransitionDefinition {
-  const targetString =
-    typeof _target === 'object' && _target !== null ? _target.target : _target;
-  const input =
-    typeof _target === 'object' && _target !== null ? _target.input : undefined;
-  const to =
-    typeof _target === 'object' && _target !== null ? _target.to : undefined;
+  const initialConfig =
+    typeof _target === 'object' && _target !== null ? _target : undefined;
+  const targetString = initialConfig
+    ? initialConfig.target
+    : (_target as string | undefined);
+  const input = initialConfig?.input;
+  const to = initialConfig?.to;
   const targetStrings = Array.isArray(targetString)
     ? targetString
     : targetString
