@@ -83,7 +83,7 @@ export function createRemoteActorRef(
     // locally.
     _syncSnapshot: options.syncSnapshot,
     send(event: AnyEventObject) {
-      void system.sendEvent(undefined, ref, event);
+      void system.sendEvent(undefined, handle as unknown as AnyActor, event);
     },
     _send(_event: AnyEventObject) {
       fail();
@@ -124,7 +124,6 @@ export function createRemoteActorRef(
       };
     }
   };
-  const ref = handle as unknown as AnyActor;
-  handle.ref = ref;
-  return ref;
+  handle.ref = handle as unknown as AnyActor;
+  return handle as unknown as AnyActor;
 }
