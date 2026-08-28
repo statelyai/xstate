@@ -407,10 +407,6 @@ const emptyScheduledTimers = Object.freeze(
   {}
 ) as ActorSystem<any>['_snapshot']['_scheduledTimers'];
 
-function createScheduledTimerId(actor: AnyActor, id: string): ScheduledTimerId {
-  return `${actor.sessionId}.${id}` as ScheduledTimerId;
-}
-
 export interface ActorSystem<
   T extends ActorSystemInfo
 > extends ActorSystemRuntime {
@@ -610,8 +606,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     const inspectionSource = source as AnyActor & {
       _collectedSent?: SentRecord[];
     };
-    const collected = (inspectionSource._collectedSent ??= []);
-    collected.push({
+    (inspectionSource._collectedSent ??= []).push({
       targetRef: target,
       targetId: target.id,
       event,
@@ -621,8 +616,8 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   }
 
   public schedule(source: AnyActor, id: string, delay: number): void {
-    const existingId = createScheduledTimerId(source, id);
-    if (this._timerMap?.[existingId] !== undefined) {
+    const scheduledTimerId = `${source.sessionId}.${id}` as ScheduledTimerId;
+    if (this._timerMap?.[scheduledTimerId] !== undefined) {
       this.cancel(source, id);
     }
 
@@ -640,7 +635,6 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       scheduledAt,
       dueAt: scheduledAt + delay
     };
-    const scheduledTimerId = createScheduledTimerId(source, id);
     if (this._snapshot._scheduledTimers === emptyScheduledTimers) {
       this._snapshot._scheduledTimers = {};
     }
@@ -661,7 +655,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   }
 
   public cancel(source: AnyActor, id: string): void {
-    const scheduledTimerId = createScheduledTimerId(source, id);
+    const scheduledTimerId = `${source.sessionId}.${id}` as ScheduledTimerId;
     const timeout = this._timerMap?.[scheduledTimerId];
 
     if (this._timerMap) {
@@ -733,9 +727,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   }
 
   public getAll(): Partial<T['actors']> {
-    return Object.fromEntries(this._keyedActors?.entries() ?? []) as Partial<
-      T['actors']
-    >;
+    return Object.fromEntries(this._keyedActors ?? []) as Partial<T['actors']>;
   }
 
   public _set<K extends keyof T['actors']>(
@@ -810,10 +802,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
 
   public stopActor(actor: AnyActor): void | PromiseLike<void> {
     const override = this.runtime?.stopActor;
-    if (override) {
-      return override(actor);
-    }
-    stopActorLocally(actor);
+    return override ? override(actor) : stopActorLocally(actor);
   }
 
   public terminateActor(
@@ -821,10 +810,9 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     termination: ActorTermination
   ): void | PromiseLike<void> {
     const override = this.runtime?.terminateActor;
-    if (override) {
-      return override(actor, termination);
-    }
-    terminateActorLocally(actor, termination);
+    return override
+      ? override(actor, termination)
+      : terminateActorLocally(actor, termination);
   }
 
   public sendEvent(
@@ -850,10 +838,9 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     event: EventObject
   ): void | PromiseLike<void> {
     const override = this.runtime?.emitEvent;
-    if (override) {
-      return override(source, event);
-    }
-    (source as AnyActor & { _emit(value: EventObject): void })._emit(event);
+    return override
+      ? override(source, event)
+      : (source as AnyActor & { _emit(value: EventObject): void })._emit(event);
   }
 
   public deadLetter(
@@ -899,10 +886,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     exec: () => unknown | PromiseLike<unknown>
   ): unknown | PromiseLike<unknown> {
     const override = this.runtime?.runStep;
-    if (override) {
-      return override(actor, key, exec);
-    }
-    return runStep(actor, key, exec);
+    return override ? override(actor, key, exec) : runStep(actor, key, exec);
   }
 
   public runLogic(
@@ -910,10 +894,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     exec: () => PromiseLike<unknown>
   ): PromiseLike<unknown> {
     const override = this.runtime?.runLogic;
-    if (override) {
-      return override(actor, exec);
-    }
-    return exec();
+    return override ? override(actor, exec) : exec();
   }
 
   public scheduleTimer(
@@ -937,18 +918,12 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
 
   public cancelTimer(source: AnyActor, id: string): void | PromiseLike<void> {
     const override = this.runtime?.cancelTimer;
-    if (override) {
-      return override(source, id);
-    }
-    this.cancel(source, id);
+    return override ? override(source, id) : this.cancel(source, id);
   }
 
   public cancelAllTimers(source: AnyActor): void | PromiseLike<void> {
     const override = this.runtime?.cancelAllTimers;
-    if (override) {
-      return override(source);
-    }
-    this.cancelAll(source);
+    return override ? override(source) : this.cancelAll(source);
   }
 
   public _relay(
