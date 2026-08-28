@@ -564,7 +564,7 @@ function serializeHistoryValue(
   for (const key in historyValue) {
     const value = historyValue[key];
     if (Array.isArray(value)) {
-      result[key] = value.map((item) => ({ id: item.id }));
+      result[key] = value.map(({ id }) => ({ id }));
     }
   }
 
@@ -634,7 +634,7 @@ export function getPersistedSnapshot<
         `Unable to persist child '${id}' by address: it requires a registered source key.`
       );
     }
-    childrenJson[id as keyof typeof childrenJson] = {
+    childrenJson[id] = {
       address: child.address,
       // The explicit marker disambiguates a by-address reference from a child
       // whose own persisted snapshot happens to be undefined.
@@ -680,9 +680,7 @@ export function getPersistedSnapshot<
       )?.[0];
       if (childId) {
         target = childId;
-      } else if (
-        timer.target === getSnapshotActorRef(snapshot)?.actor._parent
-      ) {
+      } else if (timer.target === snapshotActor?._parent) {
         target = { type: 'parent' };
       } else {
         throw new Error(
@@ -734,15 +732,19 @@ export function getPersistedSnapshot<
   return persisted as Snapshot<unknown>;
 }
 
+function copyContext(context: Record<string, unknown>) {
+  return (
+    Array.isArray(context) ? context.slice() : { ...context }
+  ) as typeof context;
+}
+
 function persistContext(contextPart: Record<string, unknown>) {
   let copy: typeof contextPart | undefined;
   for (const key in contextPart) {
     const value = contextPart[key];
     if (value && typeof value === 'object') {
       if ('sessionId' in value && 'send' in value && 'ref' in value) {
-        copy ??= Array.isArray(contextPart)
-          ? (contextPart.slice() as typeof contextPart)
-          : { ...contextPart };
+        copy ??= copyContext(contextPart);
         copy[key] = {
           xstate$type: ACTOR_REF_TYPE,
           id: (value as any as AnyActor).id
@@ -750,9 +752,7 @@ function persistContext(contextPart: Record<string, unknown>) {
       } else {
         const result = persistContext(value as typeof contextPart);
         if (result !== value) {
-          copy ??= Array.isArray(contextPart)
-            ? (contextPart.slice() as typeof contextPart)
-            : { ...contextPart };
+          copy ??= copyContext(contextPart);
           copy[key] = result;
         }
       }
