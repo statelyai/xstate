@@ -63,15 +63,12 @@ export function withActorScope<T extends object>(
     parent: AnyActor | undefined;
   } {
   if (!isLazyActorScope(actorScope)) {
-    const actorArgs = args as T &
-      Pick<AnyActorScope, 'self' | 'system'> & {
-        parent: AnyActor | undefined;
-      };
     const self = actorScope.self;
-    actorArgs.self = self;
-    actorArgs.system = actorScope.system;
-    actorArgs.parent = self._parent;
-    return actorArgs;
+    return Object.assign(args, {
+      self,
+      system: actorScope.system,
+      parent: self._parent
+    });
   }
   Object.defineProperties(args, {
     self: { enumerable: true, get: () => actorScope.self },
