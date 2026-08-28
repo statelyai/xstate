@@ -821,11 +821,14 @@ export function getStateNodeByPath(
  */
 export function getStateNodes(
   stateNode: AnyStateNode,
-  stateValue: StateValue
+  stateValue: StateValue,
+  onMissing?: (path: string[]) => never,
+  path: string[] = []
 ): Array<AnyStateNode> {
   if (typeof stateValue === 'string') {
     const childStateNode = stateNode.states[stateValue];
     if (!childStateNode) {
+      onMissing?.([...path, stateValue]);
       throw new Error(
         `State '${stateValue}' does not exist on '${stateNode.id}'`
       );
@@ -841,14 +844,22 @@ export function getStateNodes(
   ];
 
   for (let i = 0; i < childStateKeys.length; i++) {
-    const subStateNode = getStateNode(stateNode, childStateKeys[i]);
+    const key = childStateKeys[i];
+    if (!stateNode.states[key]) {
+      onMissing?.([...path, key]);
+    }
+    const subStateNode = getStateNode(stateNode, key);
     childStateNodes[i] = subStateNode;
     allStateNodes.push(subStateNode);
   }
 
   for (let i = 0; i < childStateKeys.length; i++) {
+    const key = childStateKeys[i];
     allStateNodes.push(
-      ...getStateNodes(childStateNodes[i], stateValue[childStateKeys[i]]!)
+      ...getStateNodes(childStateNodes[i], stateValue[key]!, onMissing, [
+        ...path,
+        key
+      ])
     );
   }
 

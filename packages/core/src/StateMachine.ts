@@ -102,6 +102,8 @@ import type { PersistedMachineSnapshot } from './machineVersion.types.ts';
 
 const STATE_IDENTIFIER = '#';
 const schemaIssue = (message: string) => ({ issues: [{ message }] });
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object';
 const standardSchema = (validate: (value: unknown) => any) => ({
   '~standard': { version: 1 as const, vendor: 'xstate', validate }
 });
@@ -118,10 +120,11 @@ function findEventSchema(
     return schemas[eventType];
   }
 
-  const descriptor = Object.keys(schemas).find((key) =>
-    matchesEventDescriptor(eventType, key)
-  );
-  return descriptor === undefined ? undefined : schemas[descriptor];
+  for (const descriptor in schemas) {
+    if (matchesEventDescriptor(eventType, descriptor)) {
+      return schemas[descriptor];
+    }
+  }
 }
 
 let emptyCanActor: AnyActor | undefined;
@@ -195,6 +198,33 @@ function attachPureActorRef<TSnapshot extends AnyMachineSnapshot>(
   }
   setSnapshotActorRef(snapshot, actorScope.self, actorScope.system);
   return snapshot;
+}
+
+function finalizeMachineTransition(
+  machine: AnyStateMachine,
+  actorScope: AnyActorScope,
+  usesInertScope: boolean,
+  snapshot: AnyMachineSnapshot,
+  effects: ExecutableActionObject[],
+  previousSnapshot?: AnyMachineSnapshot
+) {
+  if (usesInertScope) {
+    setInertActorScopeSnapshot(actorScope, snapshot, false);
+  }
+  const returnedSnapshot = usesInertScope
+    ? snapshot === previousSnapshot
+      ? snapshot
+      : attachSnapshotActorRef(actorScope, snapshot)
+    : attachPureActorRef(snapshot, actorScope, previousSnapshot === undefined);
+  if (machine.validator) {
+    assertValid(machine.validator, {
+      kind: 'result',
+      logic: machine,
+      snapshot: returnedSnapshot,
+      effects
+    });
+  }
+  return [returnedSnapshot, effects];
 }
 
 function transitionFast<TSnapshot extends AnyMachineSnapshot>(
@@ -421,7 +451,7 @@ export class StateMachine<
     this.version = this.config.version;
     this.schemas = this.config.schemas;
     this.snapshotSchema = standardSchema(async (value) => {
-      if (value === null || typeof value !== 'object') {
+      if (!isObject(value)) {
         return schemaIssue('Expected a persisted snapshot.');
       }
       const snapshot: Record<string, unknown> = {
@@ -453,11 +483,7 @@ export class StateMachine<
         return schemaIssue('Persisted snapshot has invalid status.');
       }
       for (const key of ['children', 'historyValue', 'timers'] as const) {
-        if (
-          snapshot[key] === null ||
-          typeof snapshot[key] !== 'object' ||
-          Array.isArray(snapshot[key])
-        ) {
+        if (!isObject(snapshot[key]) || Array.isArray(snapshot[key])) {
           return schemaIssue(`Persisted snapshot has invalid '${key}'.`);
         }
       }
@@ -479,11 +505,7 @@ export class StateMachine<
       };
     });
     this.eventSchema = standardSchema(async (value) => {
-      if (
-        value === null ||
-        typeof value !== 'object' ||
-        typeof (value as EventObject).type !== 'string'
-      ) {
+      if (!isObject(value) || typeof (value as EventObject).type !== 'string') {
         return schemaIssue('Expected an event object.');
       }
       const event = value as EventObject;
@@ -511,7 +533,7 @@ export class StateMachine<
       if (result.issues) {
         return result;
       }
-      if (result.value === null || typeof result.value !== 'object') {
+      if (!isObject(result.value)) {
         return schemaIssue('Expected an event payload.');
       }
       return { value: { ...result.value, type } as TEvent };
@@ -573,28 +595,17 @@ export class StateMachine<
       [K in keyof TDelayMap]?: DelaySourceMap<TContext, TEvent>[string];
     };
   }): this {
-    const { actions, guards, actors, delays } = this.sources;
+    const mergedSources: Sources = {} as Sources;
+    for (const kind of ['actions', 'guards', 'actors', 'delays'] as const) {
+      mergedSources[kind] = {
+        ...this.sources[kind],
+        ...sources[kind]
+      } as any;
+    }
 
     const provided = new StateMachine(
       this.config,
-      {
-        actions: {
-          ...actions,
-          ...sources.actions
-        } as Sources['actions'],
-        guards: {
-          ...guards,
-          ...sources.guards
-        } as Sources['guards'],
-        actors: {
-          ...actors,
-          ...sources.actors
-        } as Sources['actors'],
-        delays: {
-          ...delays,
-          ...sources.delays
-        } as Sources['delays']
-      },
+      mergedSources,
       this.validator
     ) as unknown as this;
     // Providing sources does not change the serializable definition.
@@ -736,22 +747,26 @@ export class StateMachine<
       ? transitionFast(this, snapshot, event, resolvedActorScope)
       : undefined;
     if (fastSnapshot) {
-      if (usesInertScope) {
-        setInertActorScopeSnapshot(resolvedActorScope, fastSnapshot, false);
-      }
-      const returnedSnapshot =
-        usesInertScope && fastSnapshot !== snapshot
-          ? attachSnapshotActorRef(resolvedActorScope, fastSnapshot)
-          : attachPureActorRef(fastSnapshot, resolvedActorScope);
-      if (this.validator) {
-        assertValid(this.validator, {
-          kind: 'result',
-          logic: this,
-          snapshot: returnedSnapshot,
-          effects: []
-        });
-      }
-      return [returnedSnapshot, []];
+      return finalizeMachineTransition(
+        this,
+        resolvedActorScope,
+        usesInertScope,
+        fastSnapshot,
+        [],
+        snapshot
+      ) as ActorLogicTransitionResult<
+        MachineSnapshot<
+          TContext,
+          TEvent,
+          TChildren,
+          TStateValue,
+          TTag,
+          TOutput,
+          TMeta,
+          TConfig
+        >,
+        ExecutableActionObjectFromLogic<this>
+      >;
     }
 
     const { snapshot: nextSnapshot, microsteps } = macrostep(
@@ -761,27 +776,18 @@ export class StateMachine<
       []
     );
 
-    if (usesInertScope) {
-      setInertActorScopeSnapshot(resolvedActorScope, nextSnapshot, false);
-    }
-    const returnedSnapshot = usesInertScope
-      ? nextSnapshot === snapshot
-        ? nextSnapshot
-        : attachSnapshotActorRef(resolvedActorScope, nextSnapshot)
-      : attachPureActorRef(nextSnapshot, resolvedActorScope);
     const effects = collectEffects(
       microsteps
     ) as ExecutableActionObjectFromLogic<this>[];
-    if (this.validator) {
-      assertValid(this.validator, {
-        kind: 'result',
-        logic: this,
-        snapshot: returnedSnapshot,
-        effects
-      });
-    }
-    return [
-      returnedSnapshot as MachineSnapshot<
+    return finalizeMachineTransition(
+      this,
+      resolvedActorScope,
+      usesInertScope,
+      nextSnapshot,
+      effects,
+      snapshot
+    ) as ActorLogicTransitionResult<
+      MachineSnapshot<
         TContext,
         TEvent,
         TChildren,
@@ -791,8 +797,8 @@ export class StateMachine<
         TMeta,
         TConfig
       >,
-      effects
-    ];
+      ExecutableActionObjectFromLogic<this>
+    >;
   }
 
   /**
@@ -828,13 +834,18 @@ export class StateMachine<
     >
   > {
     const { microsteps } = macrostep(snapshot, event, actorScope, []);
-    const snapshots = new Array(microsteps.length);
-
-    for (let i = 0; i < microsteps.length; i++) {
-      snapshots[i] = microsteps[i][0];
-    }
-
-    return snapshots;
+    return microsteps.map((microstep) => microstep[0]) as Array<
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TMeta,
+        TConfig
+      >
+    >;
   }
 
   public getTransitionData(
@@ -1121,29 +1132,17 @@ export class StateMachine<
       microsteps: ReadonlyArray<
         readonly [unknown, ReadonlyArray<ExecutableActionObject>]
       >
-    ): ActorLogicTransitionResult<
-      SnapshotFrom<this>,
-      ExecutableActionObjectFromLogic<this>
-    > => {
-      if (usesInertScope) {
-        setInertActorScopeSnapshot(resolvedActorScope, macroState, false);
-      }
-      const returnedSnapshot = usesInertScope
-        ? attachSnapshotActorRef(resolvedActorScope, macroState)
-        : attachPureActorRef(macroState, resolvedActorScope, true);
-      const effects = collectEffects(
-        microsteps
-      ) as ExecutableActionObjectFromLogic<this>[];
-      if (this.validator) {
-        assertValid(this.validator, {
-          kind: 'result',
-          logic: this,
-          snapshot: returnedSnapshot,
-          effects
-        });
-      }
-      return [returnedSnapshot as SnapshotFrom<this>, effects];
-    };
+    ) =>
+      finalizeMachineTransition(
+        this,
+        resolvedActorScope,
+        usesInertScope,
+        macroState,
+        collectEffects(microsteps)
+      ) as ActorLogicTransitionResult<
+        SnapshotFrom<this>,
+        ExecutableActionObjectFromLogic<this>
+      >;
 
     try {
       const [nextState, initialActions] = initialMicrostep(
@@ -1303,8 +1302,7 @@ export class StateMachine<
     // `matches()` can resolve state nodes. That runtime association is not the
     // persisted `{ id, version }` identity written by getPersistedSnapshot().
     const persistedMachine =
-      snapshotMachine &&
-      typeof snapshotMachine === 'object' &&
+      isObject(snapshotMachine) &&
       typeof snapshotMachine.transition === 'function' &&
       'root' in snapshotMachine
         ? undefined
@@ -1432,7 +1430,8 @@ export class StateMachine<
         target: string | { type: 'parent' };
       }
     > = snapshotData.timers ?? {};
-    for (const [id, timer] of Object.entries(persistedTimers)) {
+    for (const id in persistedTimers) {
+      const timer = persistedTimers[id];
       let event = timer.event;
       if (event.type === 'xstate.timeout.actor') {
         const actorId = (event as AnyEventObject).actorId as string;
@@ -1457,22 +1456,15 @@ export class StateMachine<
       timers[id] = { ...timer, event, target };
     }
 
-    const reviveHistoryValue = (
-      historyValue: Record<
-        string,
-        ({ id: string } | StateNode<TContext, TEvent>)[]
-      >
-    ): HistoryValue => {
-      if (!historyValue || typeof historyValue !== 'object') {
-        return {};
-      }
-      const revived: HistoryValue = {};
-      for (const key in historyValue) {
-        const arr = historyValue[key];
-
-        for (const item of arr) {
+    const revivedHistoryValue: HistoryValue = {};
+    const persistedHistory = snapshotData.historyValue;
+    if (isObject(persistedHistory)) {
+      for (const key in persistedHistory) {
+        for (const item of persistedHistory[key] as (
+          | { id: string }
+          | StateNode<TContext, TEvent>
+        )[]) {
           let resolved: StateNode<TContext, TEvent> | undefined;
-
           if (item instanceof StateNode) {
             resolved = item;
           } else {
@@ -1484,51 +1476,21 @@ export class StateMachine<
               }
             }
           }
-
-          if (!resolved) {
-            continue;
+          if (resolved) {
+            (revivedHistoryValue[key] ??= []).push(resolved);
           }
-
-          revived[key] ??= [];
-          revived[key].push(resolved);
         }
       }
-      return revived;
-    };
-
-    const revivedHistoryValue = reviveHistoryValue(snapshotData.historyValue);
-
-    const validateStateValue = (
-      stateValue: StateValue,
-      node: AnyStateNode,
-      path: string[]
-    ): void => {
-      const validateChild = (key: string) => {
-        const childNode = node.states[key];
-        const childPath = [...path, key];
-        if (!childNode) {
-          throw new Error(
-            `Persisted snapshot references state '${childPath.join('.')}' which does not exist on machine '${this.id}'.`
-          );
-        }
-        return [childNode, childPath] as const;
-      };
-      if (typeof stateValue === 'string') {
-        validateChild(stateValue);
-        return;
-      }
-      if (!stateValue || typeof stateValue !== 'object') {
-        return;
-      }
-      for (const key in stateValue) {
-        const [childNode, childPath] = validateChild(key);
-        validateStateValue(stateValue[key]!, childNode, childPath);
-      }
-    };
-    validateStateValue(snapshotData.value, this.root, []);
+    }
 
     const nodes = Array.from(
-      getAllStateNodes(getStateNodes(this.root, snapshotData.value))
+      getAllStateNodes(
+        getStateNodes(this.root, snapshotData.value, (path) => {
+          throw new Error(
+            `Persisted snapshot references state '${path.join('.')}' which does not exist on machine '${this.id}'.`
+          );
+        })
+      )
     );
 
     const {
@@ -1590,7 +1552,7 @@ export class StateMachine<
       for (const key in contextPart) {
         const value: unknown = contextPart[key];
 
-        if (value && typeof value === 'object') {
+        if (isObject(value)) {
           if ('xstate$type' in value && value.xstate$type === ACTOR_REF_TYPE) {
             contextPart[key] = children[(value as any).id];
             continue;
