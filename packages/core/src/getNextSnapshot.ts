@@ -161,15 +161,13 @@ function createMaterializedInertActorScope<T extends AnyActorLogic>(
   inertActorMaterializationObserver?.();
   const snapshotRef = sr?.();
   const previousSelf = sourceSelf ?? snapshotRef?.actor;
-  const baseSystem = previousSelf?.system;
-  const system =
-    previousSelf && baseSystem
-      ? createSnapshotSystem(
-          baseSystem,
-          sc,
-          sourceSelf ? undefined : snapshotRef?.systemState
-        )
-      : undefined;
+  const system = previousSelf
+    ? createSnapshotSystem(
+        previousSelf.system,
+        sc,
+        sourceSelf ? undefined : snapshotRef?.systemState
+      )
+    : undefined;
   const self = createActor(
     actorLogic as AnyActorLogic,
     {
