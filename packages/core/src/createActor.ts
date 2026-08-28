@@ -99,23 +99,12 @@ function safeCall<T>(fn: ((arg: T) => void) | undefined, arg?: T) {
 }
 
 function executeExecutableEffects(
-  effects: readonly ExecutableActionObject[] | undefined,
+  effects: readonly ExecutableActionObject[],
   actorScope: ActorScope<any, any, any, any>
 ): void {
-  if (!effects?.length) {
-    return;
-  }
-
   for (const effect of effects) {
     actorScope.actionExecutor(effect);
   }
-}
-
-function createActorRef(
-  logic: AnyActorLogic,
-  options: ActorOptions<AnyActorLogic>
-): AnyActor {
-  return new Actor(logic, options);
 }
 
 /**
@@ -171,13 +160,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     SendableEventFromLogic<TLogic>
   >;
   // TODO: add typings for system
-  private _actorScope: ActorScope<
+  private get _actorScope(): ActorScope<
     SnapshotFrom<TLogic>,
     EventFromLogic<TLogic>,
     AnyActorSystem,
     EmittedFrom<TLogic>,
     SendableEventFromLogic<TLogic>
-  >;
+  > {
+    return this as unknown as typeof this._actorScope;
+  }
 
   /** @internal */
   public _lastSourceRef?: AnyActor;
@@ -220,7 +211,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     return (this._trigger ??= new Proxy({} as Actor<TLogic>['trigger'], {
       get: (_, eventType: string) => {
         return (payload?: Record<PropertyKey, unknown>) => {
-          this.send({
+          this.s({
             ...payload,
             type: eventType
           } as SendableEventFromLogic<TLogic>);
@@ -264,24 +255,22 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
     const { clock, logger, parent, syncSnapshot, id, registryKey, inspect } =
       resolvedOptions;
+    const persistedState = resolvedOptions.snapshot ?? resolvedOptions.state;
+    const systemRef = resolvedOptions._systemRef;
 
     this.system = parent
       ? parent.system
-      : (resolvedOptions._systemRef?.current ??
+      : (systemRef?.current ??
         createRuntimeSystem(this, {
           clock,
           logger,
-          snapshot: resolvedOptions.snapshot ?? resolvedOptions.state,
-          createActorRef,
+          snapshot: persistedState,
+          createActorRef: createActor,
           onRejectedEvent: resolvedOptions.onRejectedEvent
         }));
 
-    if (
-      !parent &&
-      resolvedOptions._systemRef &&
-      !resolvedOptions._systemRef.current
-    ) {
-      resolvedOptions._systemRef.current = this.system;
+    if (!parent && systemRef && !systemRef.current) {
+      systemRef.current = this.system;
     }
 
     if (inspect && !parent) {
@@ -302,22 +291,17 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       typeof defaultOptions;
     this.src = resolvedOptions.src ?? logic;
     this.ref = this;
-    this._actorScope = this as unknown as typeof this._actorScope;
-
     if (registryKey) {
       this.registryKey = registryKey;
       this.system._set(registryKey, this);
     }
 
-    // prepare to collect initial microsteps during initialTransition
-    this._collectedMicrosteps = undefined;
-    const persistedState = options?.snapshot ?? options?.state;
     this.r = persistedState !== undefined;
     try {
       if (persistedState) {
         this.ss(
           this.logic.restoreSnapshot
-            ? this.logic.restoreSnapshot(persistedState, this._actorScope)
+            ? this.logic.restoreSnapshot(persistedState, this as any)
             : persistedState
         );
       } else if (options?._inert) {
@@ -326,9 +310,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         // init-time side effects (context factories, entry) a second time.
       } else {
         const [snapshot, effects] = finalizeTransitionResult(
-          this._actorScope,
+          this as any,
           undefined,
-          this.logic.initialTransition(this.options?.input, this._actorScope)
+          this.logic.initialTransition(this.options.input, this as any)
         );
         this.ss(snapshot);
         this.ie = effects.length ? effects : undefined;
@@ -374,7 +358,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   // array of functions to defer
   d: Array<() => void> | undefined;
 
-  r = false;
+  r: boolean;
 
   private get self(): Actor<TLogic> {
     return this;
@@ -499,12 +483,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
     try {
       const [nextSnapshot, effects] = finalizeTransitionResult(
-        this._actorScope,
+        this as any,
         snapshot,
-        this.logic.transition(snapshot, errorEvent, this._actorScope)
+        this.logic.transition(snapshot, errorEvent, this as any)
       );
       this.ss(nextSnapshot);
-      executeExecutableEffects(effects, this._actorScope);
+      executeExecutableEffects(effects, this as any);
       this.u(nextSnapshot, errorEvent);
       return true;
     } catch {
@@ -519,15 +503,14 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   u(snapshot: SnapshotFrom<TLogic>, event: EventObject): void {
-    // Update state
+    // Re-associate after effects: effects can change system topology.
     this.ss(snapshot);
 
     // Execute deferred effects
     const deferred = this.d;
     for (let i = 0; i < (deferred?.length ?? 0); i++) {
-      const deferredFn = deferred![i];
       try {
-        deferredFn();
+        deferred![i]();
       } catch (err) {
         // this error can only be caught when executing *initial* actions
         // it's the only time when we call actions provided by the user through those deferreds
@@ -547,15 +530,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       deferred.length = 0;
     }
 
-    switch ((this._snapshot as Snapshot<unknown>).status) {
-      case 'active':
-        this.n(snapshot);
-        break;
-      case 'done':
-      case 'error':
-        // Terminal lifecycle is represented by the ordered
-        // `@xstate.terminate` effect returned by the actor logic.
-        break;
+    if ((this._snapshot as Snapshot<unknown>).status === 'active') {
+      this.n(snapshot);
     }
     this._inspectTransition(this._snapshot, event);
   }
@@ -586,16 +562,16 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   fi(): boolean {
-    if (!this.ie?.length) {
+    const effects = this.ie;
+    if (!effects?.length) {
       return true;
     }
+    this.ie = undefined;
     this.fd = true;
     try {
-      executeExecutableEffects(this.ie, this._actorScope);
-      this.ie = undefined;
+      executeExecutableEffects(effects, this as any);
       return true;
     } catch (err) {
-      this.ie = undefined;
       if (this.d) {
         this.d.length = 0;
       }
@@ -687,18 +663,14 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     if (this._processingStatus !== ProcessingStatus.Stopped) {
       (this.observers ??= new Set()).add(observer);
     } else {
-      switch ((this._snapshot as Snapshot<unknown>).status) {
-        case 'done':
-          safeCall(observer.complete);
-          break;
-        case 'error': {
-          const err = (this._snapshot as Snapshot<unknown>).error;
-          if (!observer.error) {
-            reportUnhandledError(err);
-          } else {
-            safeCall(observer.error, err);
-          }
-          break;
+      const snapshot = this._snapshot as Snapshot<unknown>;
+      if (snapshot.status === 'done') {
+        safeCall(observer.complete);
+      } else if (snapshot.status === 'error') {
+        if (!observer.error) {
+          reportUnhandledError(snapshot.error);
+        } else {
+          safeCall(observer.error, snapshot.error);
         }
       }
     }
@@ -770,12 +742,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
   /** Starts the Actor from the initial state */
   public start(): this {
-    if (this._processingStatus === ProcessingStatus.Running) {
-      // Do not restart the service if it is already started
-      return this;
-    }
-
-    if (this._processingStatus === ProcessingStatus.Stopped) {
+    if (this._processingStatus !== ProcessingStatus.NotStarted) {
       return this;
     }
 
@@ -843,7 +810,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
     if (this.logic.start) {
       try {
-        this.logic.start(this._snapshot, this._actorScope, {
+        this.logic.start(this._snapshot, this as any, {
           restored: this.r
         });
       } catch (err) {
@@ -897,13 +864,13 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   p(event: EventFromLogic<TLogic>) {
-    let nextState: ActorLogicTransitionResult<SnapshotFrom<TLogic>> | undefined;
+    let nextState!: ActorLogicTransitionResult<SnapshotFrom<TLogic>>;
     let caughtError;
     try {
       nextState = finalizeTransitionResult(
-        this._actorScope,
+        this as any,
         this._snapshot,
-        this.logic.transition(this._snapshot, event, this._actorScope)
+        this.logic.transition(this._snapshot, event, this as any)
       );
     } catch (err) {
       // we wrap it in a box so we can rethrow it later even if falsy value gets caught here
@@ -919,16 +886,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       }
       return;
     }
-    if (!nextState) {
-      return;
-    }
-
     let snapshot = this._snapshot;
     try {
       const [nextSnapshot, effects] = nextState;
       snapshot = nextSnapshot;
       this.ss(snapshot);
-      executeExecutableEffects(effects, this._actorScope);
+      executeExecutableEffects(effects, this as any);
       this.u(snapshot, event);
     } catch (err) {
       if (!this.re(err, snapshot)) {
@@ -949,10 +912,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       this.eventListeners?.get(event.type),
       this.eventListeners?.get('*')
     ]) {
-      if (listeners) {
-        for (const handler of listeners) {
-          safeCall(handler, event);
-        }
+      for (const handler of listeners ?? emptyInspectionRecords) {
+        safeCall(handler, event);
       }
     }
   }
@@ -974,9 +935,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       }
       return;
     }
-    if (termination.status === 'error') {
-      this.e(termination.error);
-    }
+    this.e(termination.error);
   }
 
   /** @internal */
@@ -1013,11 +972,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
   e(err: unknown): void {
     this.sp();
-    if (!this.observers?.size) {
-      if (!this._parent) {
-        reportUnhandledError(err);
-      }
-    } else {
+    if (this.observers?.size) {
       let reportError = false;
 
       for (const observer of this.observers) {
@@ -1029,6 +984,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       if (reportError) {
         reportUnhandledError(err);
       }
+    } else if (!this._parent) {
+      reportUnhandledError(err);
     }
     this.eventListeners?.clear();
 
