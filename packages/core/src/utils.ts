@@ -10,7 +10,6 @@ import type {
   AnyStateMachine,
   AnyTransitionConfig,
   AnyTransitionConfigFunction,
-  ErrorEvent,
   EventObject,
   InvokeConfig,
   MachineContext,
@@ -66,7 +65,7 @@ export function checkStateIn(
 }
 
 export function toStatePath(stateId: string | string[]): string[] {
-  if (isArray(stateId)) {
+  if (Array.isArray(stateId)) {
     return stateId;
   }
 
@@ -132,35 +131,11 @@ export function pathToStateValue(statePath: string[]): StateValue {
   return value;
 }
 
-export function mapValues<P, O extends Record<string, unknown>>(
-  collection: O,
-  iteratee: (item: O[keyof O], key: keyof O, collection: O, i: number) => P
-): { [key in keyof O]: P };
-export function mapValues(
-  collection: Record<string, unknown>,
-  iteratee: (
-    item: unknown,
-    key: string,
-    collection: Record<string, unknown>,
-    i: number
-  ) => unknown
-) {
-  const result: Record<string, unknown> = {};
-
-  const collectionKeys = Object.keys(collection);
-  for (let i = 0; i < collectionKeys.length; i++) {
-    const key = collectionKeys[i];
-    result[key] = iteratee(collection[key], key, collection, i);
-  }
-
-  return result;
-}
-
 function toArrayStrict<T>(value: readonly T[] | T): readonly T[] {
-  if (isArray(value)) {
+  if (Array.isArray(value)) {
     return value;
   }
-  return [value];
+  return [value as T];
 }
 
 export function toArray<T>(value: readonly T[] | T | undefined): readonly T[] {
@@ -227,26 +202,15 @@ export function resolveOutput<
 export function getEventOutput<TEvent extends EventObject>(
   event: TEvent
 ): OutputArg<TEvent>['output'] {
-  if (isDoneEvent(event)) {
+  if (
+    event.type === 'xstate.done.actor' ||
+    event.type === 'xstate.done.state'
+  ) {
     const doneEvent = event as unknown as EventObject & { output: unknown };
     return doneEvent.output as OutputArg<TEvent>['output'];
   }
 
   return undefined as OutputArg<TEvent>['output'];
-}
-
-function isDoneEvent(event: EventObject): boolean {
-  return (
-    event.type === 'xstate.done.actor' || event.type === 'xstate.done.state'
-  );
-}
-
-function isArray(value: any): value is readonly any[] {
-  return Array.isArray(value);
-}
-
-export function isErrorEvent(event: AnyEventObject): event is ErrorEvent {
-  return event.type.startsWith('xstate.error.');
 }
 
 export function toTransitionConfigArray(
@@ -297,10 +261,6 @@ export function toObserver<T>(
       self
     )
   };
-}
-
-export function createInvokeId(stateNodeId: string, index: number): string {
-  return `${index}.${stateNodeId}`;
 }
 
 export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
@@ -394,11 +354,7 @@ export function matchesEventDescriptor(
   eventType: string,
   descriptor: string
 ): boolean {
-  if (descriptor === eventType) {
-    return true;
-  }
-
-  if (descriptor === WILDCARD) {
+  if (descriptor === eventType || descriptor === WILDCARD) {
     return true;
   }
 

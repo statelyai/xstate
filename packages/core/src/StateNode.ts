@@ -34,12 +34,7 @@ import type {
   AnyMachineSnapshot,
   AnyInvokeDefinition
 } from './types.ts';
-import {
-  createInvokeId,
-  mapValues,
-  toArray,
-  toTransitionConfigArray
-} from './utils.ts';
+import { toArray, toTransitionConfigArray } from './utils.ts';
 
 const EMPTY_OBJECT = {};
 const CHOICE_CONFIG_KEYS = [
@@ -178,19 +173,7 @@ export class StateNode<
     this.machine.idMap.set(this.id, this);
 
     this.states = (
-      this.config.states
-        ? mapValues(
-            this.config.states,
-            (stateConfig: AnyStateNodeConfig, key) => {
-              const stateNode = new StateNode(stateConfig, {
-                _parent: this,
-                _key: key,
-                _machine: this.machine
-              });
-              return stateNode;
-            }
-          )
-        : EMPTY_OBJECT
+      this.config.states ? createStateNodes(this) : EMPTY_OBJECT
     ) as StateNodesConfig<TContext, TEvent>;
 
     if (this.type === 'compound' && !this.config.initial) {
@@ -216,7 +199,7 @@ export class StateNode<
     this.tags = toArray(config.tags).slice();
     this.invoke = toArray(this.config.invoke).map((invokeConfig, i) => {
       const { src } = invokeConfig;
-      const invokeId = createInvokeId(this.id, i);
+      const invokeId = `${i}.${this.id}`;
       // Referenced (string) actors keep their logical name so persisted
       // snapshots reference `src: 'fetchUser'` rather than a positional id;
       // only inline logic gets the synthetic source name.
@@ -314,6 +297,18 @@ export class StateNode<
 
     return undefined;
   }
+}
+
+function createStateNodes(parent: AnyStateNode): StateNodesConfig<any, any> {
+  const states: StateNodesConfig<any, any> = {};
+  for (const key of Object.keys(parent.config.states!)) {
+    states[key] = new StateNode(parent.config.states![key], {
+      _parent: parent,
+      _key: key,
+      _machine: parent.machine
+    });
+  }
+  return states;
 }
 
 function validateStateNodeConfig(stateNode: AnyStateNode) {

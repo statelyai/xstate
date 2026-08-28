@@ -19,7 +19,6 @@ import {
 } from './constants.ts';
 import {
   getEventOutput,
-  isErrorEvent,
   matchesEvent,
   matchesEventDescriptor
 } from './utils.ts';
@@ -2337,7 +2336,7 @@ export function macrostep(
   // Determine the next state based on the next microstep
   if (nextEvent.type !== XSTATE_INIT && nextEvent.type !== XSTATE_TIMER) {
     const currentEvent = nextEvent;
-    const isErr = isErrorEvent(currentEvent);
+    const isErr = currentEvent.type.startsWith('xstate.error.');
     const selectionResults: TransitionSelectionResults = new Map();
 
     const transitions = nextSnapshot.machine.getTransitionData(
@@ -2363,7 +2362,7 @@ export function macrostep(
       // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
       nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
         status: 'error',
-        error: currentEvent.error
+        error: (currentEvent as AnyEventObject).error
       });
       addMicrostep([nextSnapshot, []], []);
       removeTerminatedChild(currentEvent);
