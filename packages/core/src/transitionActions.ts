@@ -302,20 +302,6 @@ function applyChildUpdate(
   return { ...snapshot, children };
 }
 
-function getTransitionActionRecord(
-  action: AnyAction
-): TransitionActionRecord | undefined {
-  if (
-    typeof action === 'object' &&
-    action !== null &&
-    'action' in action &&
-    typeof action.action === 'function'
-  ) {
-    return action as TransitionActionRecord;
-  }
-  return undefined;
-}
-
 function pushSpawnedChild(
   actions: any[],
   actor: AnyActor,
@@ -419,7 +405,7 @@ function resolveTransitionSpawnSource(
  * not enter the reserved namespace.
  */
 function assertUnreservedPrefix(prefix: string): void {
-  if (isDevelopment && prefix.startsWith('xstate.')) {
+  if (prefix.startsWith('xstate.')) {
     throw new Error(
       `Child actor ids with the "xstate." prefix are reserved for internal actors; rename the "${prefix}" source or logic id.`
     );
@@ -465,7 +451,9 @@ export function allocateChildId(
     localAllocation ??
     createSpawnAllocation();
   const prefix = getActorIdPrefix(src);
-  assertUnreservedPrefix(prefix);
+  if (isDevelopment) {
+    assertUnreservedPrefix(prefix);
+  }
   const next = nextChildIndex(actorScope, allocation, prefix);
   allocation.c.set(prefix, next + 1);
   return { id: `${prefix}:${next}`, counters: { [prefix]: next + 1 } };
@@ -541,7 +529,9 @@ export function reserveChildId(
   if (!generated) {
     return undefined;
   }
-  assertUnreservedPrefix(generated.prefix);
+  if (isDevelopment) {
+    assertUnreservedPrefix(generated.prefix);
+  }
   const allocation =
     spawnAllocations.get(actorScope) ??
     localAllocation ??
@@ -898,24 +888,24 @@ export function finalizeTransitionResult<
   previousSnapshot: TSnapshot | undefined,
   [nextSnapshot, effects]: [TSnapshot, TEffect[]]
 ): [TSnapshot, Array<TEffect | TerminateExecutableActionObject>] {
-  const becameTerminal =
-    nextSnapshot.status === 'done' || nextSnapshot.status === 'error';
-  const wasTerminal =
-    previousSnapshot?.status === 'done' || previousSnapshot?.status === 'error';
-  const hasTerminationEffect = effects.some(
-    (effect) =>
-      typeof effect === 'object' &&
-      effect !== null &&
-      'type' in effect &&
-      effect.type === XSTATE_TERMINATE
-  );
-
-  return becameTerminal && !wasTerminal && !hasTerminationEffect
-    ? [
-        nextSnapshot,
-        [...effects, createTerminationEffect(actorScope, nextSnapshot)]
-      ]
-    : [nextSnapshot, effects];
+  if (
+    (nextSnapshot.status === 'done' || nextSnapshot.status === 'error') &&
+    previousSnapshot?.status !== 'done' &&
+    previousSnapshot?.status !== 'error' &&
+    !effects.some(
+      (effect) =>
+        typeof effect === 'object' &&
+        effect !== null &&
+        'type' in effect &&
+        effect.type === XSTATE_TERMINATE
+    )
+  ) {
+    return [
+      nextSnapshot,
+      [...effects, createTerminationEffect(actorScope, nextSnapshot)]
+    ];
+  }
+  return [nextSnapshot, effects];
 }
 
 /**
@@ -986,18 +976,16 @@ export function resolveActionsWithContext(
     const isInline = typeof action === 'function';
     const objectAction =
       typeof action === 'object' && action !== null ? action : undefined;
-    const actionRecord = getTransitionActionRecord(action);
+    const actionRecord =
+      objectAction &&
+      'action' in objectAction &&
+      typeof objectAction.action === 'function'
+        ? (objectAction as TransitionActionRecord)
+        : undefined;
 
     const resolvedAction = isInline ? action : actionRecord?.action;
     const actionType =
       resolvedAction?.name || (objectAction as any)?.type || '(anonymous)';
-
-    let actionParams = undefined;
-
-    if (objectAction) {
-      const { type: _, u: _u, ...emittedEventParams } = action as any;
-      actionParams = emittedEventParams;
-    }
 
     if (actionRecord?.u) {
       intermediateSnapshot = applyChildUpdate(
@@ -1055,7 +1043,12 @@ export function resolveActionsWithContext(
     const builtInFields = actionRecord
       ? getBuiltInActionFields(actionRecord.action, actionRecord.args)
       : undefined;
-    const isEmittedEvent = !!objectAction && !actionRecord;
+    const isEmittedEvent = objectAction && !actionRecord;
+    let actionParams;
+    if (objectAction && !builtInFields) {
+      const { type: _, u: _u, ...params } = action as any;
+      actionParams = params;
+    }
 
     const executableAction = {
       kind: builtInFields
