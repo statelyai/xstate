@@ -2,13 +2,9 @@ import isDevelopment from '#is-development';
 import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import {
-  createAfterEvent,
-  createAfterEventId,
   createDoneStateEvent,
   createInvokeTimeoutEvent,
-  createInvokeTimeoutEventId,
-  createTimeoutEvent,
-  createTimeoutEventId
+  createInvokeTimeoutEventId
 } from './eventUtils.ts';
 import {
   XSTATE_INIT,
@@ -480,8 +476,8 @@ export function getDelayedTransitions(
     for (const key of Object.keys(afterConfig)) {
       const delay = Number.isNaN(+key) ? key : +key;
       addDelayedTransitions(
-        createAfterEvent(delay, stateNode.id),
-        createAfterEventId(delay, stateNode.id),
+        { type: 'xstate.after', delay, stateId: stateNode.id },
+        `xstate.after.${delay}.${stateNode.id}`,
         delay,
         afterConfig[key],
         true
@@ -491,8 +487,8 @@ export function getDelayedTransitions(
 
   if (timeoutConfig !== undefined && onTimeoutConfig) {
     addDelayedTransitions(
-      createTimeoutEvent(stateNode.id),
-      createTimeoutEventId(stateNode.id),
+      { type: 'xstate.timeout', stateId: stateNode.id },
+      `xstate.timeout.${stateNode.id}`,
       timeoutConfig,
       onTimeoutConfig,
       true

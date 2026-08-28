@@ -1,45 +1,11 @@
 import { XSTATE_INIT } from './constants.ts';
 import {
   ActorTimeoutEvent,
-  AfterEvent,
   DoneActorEvent,
   DoneStateEvent,
   ErrorActorEvent,
-  ErrorPlatformEvent,
-  TimeoutEvent
+  ErrorPlatformEvent
 } from './types.ts';
-
-/**
- * Returns an event that represents an implicit event that is sent after the
- * specified `delay`.
- *
- * @param delayRef The delay in milliseconds
- * @param id The state node ID where this event is handled
- */
-export function createAfterEvent(
-  delayRef: number | string,
-  id: string
-): AfterEvent {
-  return { type: 'xstate.after', delay: delayRef, stateId: id };
-}
-
-export function createAfterEventId(delayRef: number | string, id: string) {
-  return `xstate.after.${delayRef}.${id}`;
-}
-
-/**
- * Returns an event that represents an implicit state-level timeout. Fired when
- * a state's `timeout` duration elapses without the state being exited.
- *
- * @param id The state node ID where this timeout is configured
- */
-export function createTimeoutEvent(id: string): TimeoutEvent {
-  return { type: 'xstate.timeout', stateId: id };
-}
-
-export function createTimeoutEventId(id: string) {
-  return `xstate.timeout.${id}`;
-}
 
 /**
  * Returns an event that represents an implicit invoke-level timeout. Fired when
