@@ -12,10 +12,6 @@ type StepEffects = Record<
   | { status: 'error'; error: unknown }
 >;
 
-function getStepEffect(actor: AnyActor, key: string) {
-  return (actor.getSnapshot() as { effects?: StepEffects }).effects?.[key];
-}
-
 function waitForStep<TStepOutput>(
   actor: AnyActor,
   key: string
@@ -50,7 +46,9 @@ export async function runStep<TStepOutput>(
   sendSelf: (event: AnyEventObject) => void = (event) =>
     void actor.system.sendEvent(actor, actor, event)
 ): Promise<TStepOutput> {
-  const effect = getStepEffect(actor, key);
+  const effect = (actor.getSnapshot() as { effects?: StepEffects }).effects?.[
+    key
+  ];
   if (effect?.status === 'done') {
     return effect.output as TStepOutput;
   }
@@ -97,30 +95,6 @@ export function deliverEvent(
 }
 
 /**
- * Returns the boundary error preventing this delivery, if any: an internal
- * event type cannot cross an actor boundary from an external sender.
- */
-function getEventBoundaryError(
-  source: AnyActor | undefined,
-  target: AnyActor,
-  event: AnyEventObject
-): Error | undefined {
-  const runtimeTarget = target as AnyActor & {
-    logic?: { isInternalEventType?: (eventType: string) => boolean };
-  };
-
-  if (
-    source !== target &&
-    runtimeTarget.logic?.isInternalEventType?.(event.type)
-  ) {
-    return new Error(
-      `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
-    );
-  }
-  return undefined;
-}
-
-/**
  * Rejects an event that must not cross the delivery boundary — an internal
  * event type sent from outside its owning actor — by reporting it as a dead
  * letter. Returns `true` when the event was rejected and must not be
@@ -132,8 +106,17 @@ export function rejectUndeliverableEvent(
   target: AnyActor,
   event: AnyEventObject
 ): boolean {
-  const error = getEventBoundaryError(source, target, event);
-  if (error) {
+  if (
+    source !== target &&
+    (
+      target as AnyActor & {
+        logic?: { isInternalEventType?: (eventType: string) => boolean };
+      }
+    ).logic?.isInternalEventType?.(event.type)
+  ) {
+    const error = new Error(
+      `Internal event "${event.type}" cannot be sent to actor "${target.id}" from outside.`
+    );
     void target.system.deadLetter(source, target, event, 'internalEvent', {
       error
     });
