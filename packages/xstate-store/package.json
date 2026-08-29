@@ -14,6 +14,7 @@
     "./undo": "./dist/xstate-store-undo.js",
     ".": "./dist/xstate-store.js",
     "./reset": "./dist/xstate-store-reset.js",
+    "./webmcp": "./dist/xstate-store-webmcp.js",
     "./persist": "./dist/xstate-store-persist.js",
     "./validate": "./dist/xstate-store-validate.js",
     "./package.json": "./package.json"
@@ -24,7 +25,8 @@
     "undo",
     "persist",
     "reset",
-    "validate"
+    "validate",
+    "webmcp"
   ],
   "repository": {
     "type": "git",
@@ -54,7 +56,8 @@
       "./undo.ts",
       "./persist.ts",
       "./reset.ts",
-      "./validate.ts"
+      "./validate.ts",
+      "./webmcp.ts"
     ]
   }
 }

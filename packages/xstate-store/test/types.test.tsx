@@ -5,6 +5,7 @@ import {
   fromStore,
   type StoreSchemas
 } from '../src/index.ts';
+import { attachWebMCP } from '../src/webmcp.ts';
 import { z } from 'zod';
 
 describe('emitted', () => {
@@ -516,5 +517,37 @@ describe('fromStore schemas', () => {
 
     // @ts-expect-error
     snapshot.context.label satisfies number;
+  });
+
+  it('accepts exact and wildcard WebMCP event descriptors', () => {
+    const store = createStore({
+      context: {},
+      schemas: {
+        events: {
+          'todo.add': z
+            .object({ title: z.string() })
+            .describe('Add a todo item.'),
+          'todo.remove': z
+            .object({ id: z.number() })
+            .describe('Remove a todo item.')
+        }
+      },
+      on: {
+        'todo.add': (context) => context,
+        'todo.remove': (context) => context
+      }
+    });
+
+    attachWebMCP(store, { events: 'todo.add' });
+    attachWebMCP(store, { events: 'todo.*' });
+    attachWebMCP(store, { events: ['todo.add', '*'] });
+
+    if (false) {
+      // @ts-expect-error
+      attachWebMCP(store, { events: 'todo*' });
+
+      // @ts-expect-error
+      attachWebMCP(store, { events: 'todo.*.nested' });
+    }
   });
 });

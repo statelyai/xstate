@@ -375,6 +375,34 @@ const donutStore = createStore({
 });
 ```
 
+<!-- WebMCP adapter API from src/webmcp.ts -->
+
+## WebMCP
+
+Use the optional WebMCP adapter to expose selected schema-backed store events
+as browser-managed tools:
+
+```ts
+import { attachWebMCP } from '@xstate/store/webmcp';
+
+const webMCP = attachWebMCP(donutStore, {
+  events: ['todo.add', 'todo.*']
+});
+
+await webMCP.start();
+webMCP.stop();
+```
+
+Event schemas must have a description and implement [Standard JSON Schema](https://standardschema.dev/json-schema), or you can provide a `toJSONSchema` converter. The adapter uses the schema's input JSON Schema and validates tool input before sending the concrete event to the store.
+
+Descriptors support exact event types, `'*'` for all schema-backed events, and
+trailing token wildcards such as `'todo.*'`. A trailing wildcard matches the
+prefix event and all of its descendants, just like XState event descriptors.
+Wildcards expand to individual tools; they are never registered as a tool name.
+
+The event allowlist is required. Use `'*'` only when every schema-backed event
+is safe to expose to browser agents.
+
 ## Effects and Side Effects
 
 You can enqueue effects in state transitions using the `enqueue` argument:
