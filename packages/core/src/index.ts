@@ -62,8 +62,14 @@ export {
 export { createMachine, createStateConfig } from './createMachine.ts';
 export {
   createFSM,
-  type FSMActorLogic,
+  type FSM,
+  type FSMArgs,
   type FSMConfig,
+  type FSMContextPatch,
+  type FSMStateConfig,
+  type FSMTransition,
+  type FSMTransitionConfig,
+  type FSMTransitionFunction,
   type FSMSnapshot
 } from './fsm.ts';
 export { createMachineFromConfig } from './createMachineFromConfig.ts';

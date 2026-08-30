@@ -1,7 +1,16 @@
-export { createFSMActor, FSMActor } from './createFSMActor.ts';
+export { types } from '../schema.types.ts';
 export {
   createFSM,
-  type FSMActorLogic,
+  setup,
+  type FSM,
+  type FSMArgs,
   type FSMConfig,
-  type FSMSnapshot
+  type FSMContextPatch,
+  type FSMStateConfig,
+  type FSMTransition,
+  type FSMTransitionConfig,
+  type FSMTransitionFunction,
+  type FSMSnapshot,
+  type FSMSetupConfig,
+  type FSMSetupReturn
 } from '../fsm.ts';

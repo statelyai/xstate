@@ -1,82 +1,121 @@
 ---
 title: Compact finite state machines
-description: Build and run flat, actor-compatible state machines with xstate/fsm.
+description: Build tiny, typed, flat state machines with xstate/fsm.
 ---
 
-Use `xstate/fsm` when a flat finite state machine is enough and bundle size or
-runtime overhead matters. It is a self-contained entry point: importing its
-specialized actor does not pull in the full statechart runtime.
+Use `xstate/fsm` when a plain switch statement would work, but you want a
+declarative transition table, type-safe events, and a machine definition that
+can be visualized or upgraded to a full XState machine later.
 
 <!-- public exports from packages/core/src/fsm/index.ts; configuration surface from packages/core/src/fsm.ts -->
 
-```ts
-import { createFSM, createFSMActor } from 'xstate/fsm';
+Without schemas, the API is just a pure transition table:
 
-const toggleLogic = createFSM({
+```ts
+import { createFSM } from 'xstate/fsm';
+
+const machine = createFSM({
   initial: 'inactive',
-  context: { changes: 0 },
   states: {
-    inactive: {
-      on: {
-        toggle: {
-          target: 'active',
-          context: ({ context }) => ({ changes: context.changes + 1 })
-        }
-      }
-    },
-    active: {
-      on: { toggle: { target: 'inactive' } }
+    inactive: { on: { toggle: 'active' } },
+    active: { on: { toggle: 'inactive' } }
+  }
+});
+
+let state = machine.initialState;
+state = machine.transition(state, { type: 'toggle' });
+console.log(state.value); // 'active'
+```
+
+For typed context and event payloads, use the canonical v6 setup shape:
+
+```ts
+import { setup, types } from 'xstate/fsm';
+
+const app = setup({
+  schemas: {
+    context: types<{ count: number }>(),
+    events: {
+      increment: types<{ by: number }>(),
+      reset: types<{}>()
     }
   }
 });
 
-const toggle = createFSMActor(toggleLogic).start();
-toggle.send({ type: 'toggle' });
-console.log(toggle.getSnapshot().value); // 'active'
+const machine = app.createFSM({
+  initial: 'idle',
+  context: { count: 0 },
+  states: {
+    idle: {
+      on: {
+        increment: ({ context, event }) => ({
+          context: { count: context.count + event.by }
+        }),
+        reset: { context: { count: 0 } }
+      }
+    }
+  }
+});
 ```
 
-`createFSMActor` creates an actor compatible with XState actor references. The
-root `createActor` from `xstate` can also run logic returned by `createFSM`, but
-it includes the full actor runtime.
+Declare per-state context schemas when the snapshot should be a discriminated
+union:
 
-## Supported configuration
+```ts
+type User = { id: string };
 
-`createFSM(...)` supports:
+const app = setup({
+  schemas: { events: { resolve: types<{ user: User }>() } },
+  states: {
+    loading: { schemas: { context: types<{ status: 'loading' }>() } },
+    loaded: {
+      schemas: {
+        context: types<{ status: 'loaded'; user: User }>()
+      }
+    }
+  }
+});
 
-- flat named states, an `initial` state, initial `context` and actor `input`
-- object transitions, transition functions, guarded transition arrays and
-  context patches
-- `entry`, `exit` and transition actions, including the `(args, enq)` effect
-  API
-- eventless `always` transitions and top-level final states, whose output is
-  `undefined`
-- target `input` passed to the target state's entry and exit actions
-- `enq(...)`, `raise`, `sendTo`, `cancel`, `emit`, `log`, `spawn`, `stop`,
-  `listen` and `subscribeTo`
-- delayed raised and sent events, and child actors
-- JSON persistence/restoration of FSM state, context and pending self-directed
-  timers; wall-clock timers retain their original deadline
+const machine = app.createFSM({
+  initial: 'loading',
+  context: { status: 'loading' },
+  states: {
+    loading: {
+      on: {
+        resolve: ({ event }) => ({
+          target: 'loaded',
+          context: { status: 'loaded' as const, user: event.user }
+        })
+      }
+    },
+    loaded: {}
+  }
+});
 
-Because `createFSM` has no registered actor-source registry, snapshots with live
-inline children cannot be persisted or restored. A pending timer targeting
-another actor is rejected for the same reason; use the full runtime when child
-topology or cross-actor timers must survive restoration.
+const state = machine.transition(machine.initialState, {
+  type: 'resolve',
+  user: { id: '1' }
+});
 
-Targets must use object syntax such as `{ target: 'active' }`. Plain string
-targets are rejected so the compact API has one unambiguous transition shape.
+if (state.value === 'loaded') {
+  state.context.user.id; // typed as string
+}
+```
 
-## Actor behavior
+`createFSM` is pure. It does not create or run actors:
 
-The specialized actor provides `start`, `stop`, `send`, `subscribe`, `on`,
-`select`, `trigger`, `getSnapshot`, `getPersistedSnapshot`, actor identity and
-system registration. It preserves mailbox and reentrant-send ordering, starts
-spawned children, restores pending timers, completes on final states and reports
-transition or effect errors to observers.
+- `machine.initialState` is the initial `{ value, context }`.
+- `machine.transition(state, event)` returns the next state.
+- Missing transitions return the current state unchanged.
+- A transition can be a state name, `{ target, context }`, or a function that
+  receives `{ context, event }` and returns `{ target, context }`. Return
+  `undefined` from a function for no transition.
+- Context updates are shallow patches.
+- `types<T>()` adds types without runtime validation. Setup schema values are
+  ignored by the FSM runtime; state `schemas.input` is accepted for upgrade
+  compatibility but no input is consumed by this pure API.
 
-## Use the full runtime when
-
-Import `createMachine` and `createActor` from `xstate` when you need compound,
-parallel, history, choice or route states; invocation and machine-level delayed
-transitions; named sources and `setup`; schemas; serialization; inspection; or
-final-state output and versioned durable snapshot migration. Those features are
-intentionally outside the `createFSM` contract.
+The package intentionally has no actions, guards, effects, actors, timers,
+hierarchical or parallel states, persistence, or eventless transitions. Use
+`createMachine` and `createActor` from `xstate` when the state machine needs
+those statechart or runtime features.
