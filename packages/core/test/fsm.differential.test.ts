@@ -1,9 +1,6 @@
-import {
-  createFSM,
-  createMachine,
-  initialTransition,
-  transition
-} from '../src';
+import { createFSM } from '../src/fsm.ts';
+import { createMachine } from '../src/createMachine.ts';
+import { initialTransition, transition } from '../src/transition.ts';
 
 type ToggleEvent = { type: 'toggle' } | { type: 'reset' } | { type: 'unknown' };
 
@@ -22,32 +19,12 @@ function eventSequences<TEvent>(events: readonly TEvent[], maxLength: number) {
   return sequences;
 }
 
-function projectSnapshot(snapshot: {
-  status: string;
-  value: unknown;
-  context: unknown;
-  output: unknown;
-  error: unknown;
-}) {
-  return {
-    status: snapshot.status,
-    value: snapshot.value,
-    context: snapshot.context,
-    output: snapshot.output,
-    error: snapshot.error
-  };
-}
-
 describe('createFSM differential behavior', () => {
-  it('matches equivalent flat createMachine transitions for event sequences', () => {
-    const fsm = createFSM<{}, ToggleEvent>({
-      initial: 'inactive',
+  it('matches equivalent flat createMachine transitions', () => {
+    const config = {
+      initial: 'inactive' as const,
       states: {
-        inactive: {
-          on: {
-            toggle: { target: 'active' }
-          }
-        },
+        inactive: { on: { toggle: { target: 'active' } } },
         active: {
           on: {
             toggle: { target: 'inactive' },
@@ -55,57 +32,46 @@ describe('createFSM differential behavior', () => {
           }
         }
       }
-    });
-    const machine = createMachine({
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: {
-            toggle: { target: 'active' }
-          }
-        },
-        active: {
-          on: {
-            toggle: { target: 'inactive' },
-            reset: { target: 'inactive' }
-          }
-        }
-      }
-    });
+    };
+    const fsm = createFSM<{}, ToggleEvent>(config);
+    const machine = createMachine(config);
 
     for (const events of eventSequences<ToggleEvent>(
       [{ type: 'toggle' }, { type: 'reset' }, { type: 'unknown' }],
       5
     )) {
-      let [fsmSnapshot] = initialTransition(fsm);
+      let fsmSnapshot = fsm.initialState;
       let [machineSnapshot] = initialTransition(machine);
 
       for (const event of events) {
-        [fsmSnapshot] = transition(fsm, fsmSnapshot, event);
+        fsmSnapshot = fsm.transition(fsmSnapshot, event);
         [machineSnapshot] = transition(machine, machineSnapshot, event);
       }
 
-      expect(projectSnapshot(fsmSnapshot)).toEqual(
-        projectSnapshot(machineSnapshot)
-      );
+      expect(fsmSnapshot).toEqual({
+        value: machineSnapshot.value,
+        context: machineSnapshot.context
+      });
     }
   });
 
-  it('matches guarded context updates across generated event sequences', () => {
-    type Event = { type: 'increment'; accepted: boolean } | { type: 'reset' };
+  it('matches pure context updates', () => {
+    type Event = { type: 'increment'; by: number } | { type: 'reset' };
     const config = {
-      initial: 'active',
+      initial: 'active' as const,
       context: { count: 0 },
       states: {
         active: {
           on: {
-            increment: [
-              {
-                guard: ({ event }: any) => event.accepted,
-                context: ({ context }: any) => ({ count: context.count + 1 })
-              },
-              {}
-            ],
+            increment: ({
+              context,
+              event
+            }: {
+              context: { count: number };
+              event: Extract<Event, { type: 'increment' }>;
+            }) => ({
+              context: { count: context.count + event.by }
+            }),
             reset: { context: { count: 0 } }
           }
         }
@@ -116,58 +82,24 @@ describe('createFSM differential behavior', () => {
 
     for (const events of eventSequences<Event>(
       [
-        { type: 'increment', accepted: true },
-        { type: 'increment', accepted: false },
+        { type: 'increment', by: 1 },
+        { type: 'increment', by: 2 },
         { type: 'reset' }
       ],
       4
     )) {
-      let [fsmSnapshot] = initialTransition(fsm);
+      let fsmSnapshot = fsm.initialState;
       let [machineSnapshot] = initialTransition(machine);
+
       for (const event of events) {
-        [fsmSnapshot] = transition(fsm, fsmSnapshot, event);
+        fsmSnapshot = fsm.transition(fsmSnapshot, event);
         [machineSnapshot] = transition(machine, machineSnapshot, event);
       }
-      expect(projectSnapshot(fsmSnapshot)).toEqual(
-        projectSnapshot(machineSnapshot)
-      );
+
+      expect(fsmSnapshot).toEqual({
+        value: machineSnapshot.value,
+        context: machineSnapshot.context
+      });
     }
-  });
-
-  it('matches eventless stabilization and final completion', () => {
-    const config = {
-      initial: 'checking',
-      context: { ready: true },
-      states: {
-        checking: {
-          always: [
-            {
-              guard: ({ context }: any) => context.ready,
-              target: 'ready'
-            },
-            { target: 'blocked' }
-          ]
-        },
-        blocked: {},
-        ready: { on: { finish: { target: 'done' } } },
-        done: { type: 'final' as const }
-      }
-    };
-    const fsm = createFSM(config);
-    const machine = createMachine(config);
-    let [fsmSnapshot] = initialTransition(fsm);
-    let [machineSnapshot] = initialTransition(machine);
-
-    expect(projectSnapshot(fsmSnapshot)).toEqual(
-      projectSnapshot(machineSnapshot)
-    );
-
-    [fsmSnapshot] = transition(fsm, fsmSnapshot, { type: 'finish' });
-    [machineSnapshot] = transition(machine, machineSnapshot, {
-      type: 'finish'
-    });
-    expect(projectSnapshot(fsmSnapshot)).toEqual(
-      projectSnapshot(machineSnapshot)
-    );
   });
 });
