@@ -205,6 +205,42 @@ describe('setup', () => {
     expect(machine.states.parent.states.right.schemas?.input).toBe(rightInput);
   });
 
+  it('uses extension state metadata while preserving base descendants', () => {
+    const s = setup({
+      states: {
+        parent: {
+          type: 'compound',
+          id: 'base-parent',
+          initial: 'left',
+          states: { left: {} }
+        }
+      }
+    }).extend({
+      states: {
+        parent: {
+          type: 'compound',
+          id: 'extension-parent',
+          initial: 'right',
+          states: { right: {} }
+        }
+      }
+    });
+
+    s.states.parent.type satisfies 'compound';
+    s.states.parent.id satisfies 'extension-parent';
+    s.states.parent.initial satisfies 'right';
+    s.states.parent.states?.left;
+    s.states.parent.states?.right;
+
+    const machine = s.createMachine({
+      initial: 'parent',
+      states: { parent: { states: { left: {}, right: {} } } }
+    });
+
+    expect(machine.states.parent.id).toBe('extension-parent');
+    expect(machine.states.parent.config.initial).toBe('right');
+  });
+
   it('extends sources', () => {
     const calls: string[] = [];
 

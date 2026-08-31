@@ -408,6 +408,35 @@ describe('setup state contracts', () => {
       });
     }
 
+    historyWithInputTarget.createMachine({
+      initial: 'parent',
+      states: {
+        parent: {
+          states: {
+            idle: {},
+            hist: { target: 'idle' },
+            loaded: {}
+          }
+        }
+      }
+    });
+
+    if (false as boolean) {
+      historyWithInputTarget.createMachine({
+        initial: 'parent',
+        states: {
+          parent: {
+            states: {
+              idle: {},
+              // @ts-expect-error - authored history targets still require input
+              hist: { target: 'loaded' },
+              loaded: {}
+            }
+          }
+        }
+      });
+    }
+
     const historyWithNestedInitialInputs = setup({
       states: {
         parent: {
@@ -839,6 +868,63 @@ describe('setup state contracts', () => {
     }
 
     expect(true).toBe(true);
+  });
+
+  it('resolves root IDs from nested state transitions', () => {
+    const s = setup({
+      schemas: { events: { GO: types<{}>() } },
+      states: {
+        one: {
+          type: 'compound',
+          initial: 'idle',
+          states: { idle: {} }
+        },
+        two: {
+          type: 'compound',
+          initial: 'idle',
+          states: {
+            idle: {},
+            done: {
+              id: 'two-done',
+              schemas: { input: types<{ token: string }>() }
+            }
+          }
+        }
+      }
+    });
+
+    s.createStateConfig('one.idle', {
+      on: { GO: { target: '#two-done', input: { token: 'ready' } } }
+    });
+
+    const machine = s.createMachine({
+      initial: 'one',
+      states: {
+        one: {
+          states: {
+            idle: {
+              on: {
+                GO: { target: '#two-done', input: { token: 'ready' } }
+              }
+            }
+          }
+        },
+        two: {
+          states: { idle: {}, done: {} }
+        }
+      }
+    });
+
+    if (false as boolean) {
+      s.createStateConfig('one.idle', {
+        on: {
+          // @ts-expect-error - root IDs must be declared in the setup tree
+          GO: { target: '#missing', input: { token: 'ready' } }
+        }
+      });
+    }
+
+    expect(machine.states.two.states.done.id).toBe('two-done');
   });
 
   it('passes state input to invoke input callbacks', () => {
