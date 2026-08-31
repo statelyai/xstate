@@ -1907,6 +1907,7 @@ function microstep(
                   self: actorScope.self,
                   context: nextState.context,
                   event,
+                  input: stateInputMap[stateNodeToEnter.id],
                   output: getEventOutput(event)
                 })
               : invokeDef.input;

@@ -408,13 +408,30 @@ actor.send({ type: 'xstate.route', to: '#review' });
 
 // state input: schema in setup(...), value on the transition
 const s = setup({
-  states: { loading: { schemas: { input: z.object({ id: z.string() }) } } }
+  states: {
+    loading: { schemas: { input: z.object({ id: z.string() }) } },
+    active: {
+      type: 'parallel',
+      states: { playback: {}, volume: {} }
+    }
+  }
 });
 s.createMachine({
   initial: { target: 'loading', input: { id: 'a1' } },
-  states: { loading: { entry: ({ input }) => input.id } }
+  states: {
+    loading: { entry: ({ input }) => input.id },
+    active: {
+      states: {
+        playback: { initial: 'playing', states: { playing: {} } },
+        volume: { initial: 'audible', states: { audible: {} } }
+      }
+    }
+  }
 });
 ```
+
+State contracts without structural metadata remain permissive, so existing
+`setup(...)` machines do not need to add `type` or `initial` declarations.
 
 See [final](final-states.md), [history](history-states.md), [parallel](parallel-states.md), [choice](choice-states.md), [route](route-states.md) and [state input](state-input.md).
 

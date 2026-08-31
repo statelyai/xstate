@@ -442,10 +442,12 @@ type InvokeInputArgs<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
-  TChildren extends Record<string, AnyActorRef | undefined>
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TInput = undefined
 > = {
   context: TContext;
   event: TEvent;
+  input: TInput;
   self: ActorSelf<
     MachineSnapshot<
       TContext,
@@ -568,7 +570,8 @@ type InlineChildInvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TInput = undefined
 > = Values<{
   [K in keyof TChildren & string]: Omit<
     Next_InvokeConfigBase<
@@ -599,7 +602,7 @@ type InlineChildInvokeConfig<
     src: LogicForChildRef<TChildren[K]>;
     input?:
       | ((
-          args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+          args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren, TInput>
         ) => unknown)
       | NonReducibleUnknown;
   };
@@ -615,7 +618,8 @@ type InlineInvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TInput = undefined
 > =
   HasExplicitChildren<TChildren> extends true
     ? InlineChildInvokeConfig<
@@ -628,7 +632,8 @@ type InlineInvokeConfig<
         TGuardMap,
         TDelayMap,
         TMeta,
-        TSystemRegistry
+        TSystemRegistry,
+        TInput
       >
     : Omit<
         Next_InvokeConfigBase<
@@ -658,7 +663,13 @@ type InlineInvokeConfig<
         src: AnyActorLogic;
         input?:
           | ((
-              args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+              args: InvokeInputArgs<
+                TContext,
+                TEvent,
+                TEmitted,
+                TChildren,
+                TInput
+              >
             ) => unknown)
           | NonReducibleUnknown;
       };
@@ -683,7 +694,8 @@ export type Next_InvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TSystemRegistry extends SystemRegistry = SystemRegistry
+  TSystemRegistry extends SystemRegistry = SystemRegistry,
+  TInput = undefined
 > = string extends keyof TActorMap
   ? // No registered actor sources (permissive map): `src`/`input` cannot be
     // correlated. A mapped type over `string` would also defer resolution and
@@ -699,7 +711,8 @@ export type Next_InvokeConfig<
         TGuardMap,
         TDelayMap,
         TMeta,
-        TSystemRegistry
+        TSystemRegistry,
+        TInput
       >
     : Next_InvokeConfigBase<
         TContext,
@@ -721,7 +734,13 @@ export type Next_InvokeConfig<
             ) => string | AnyActorLogic);
         input?:
           | ((
-              args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+              args: InvokeInputArgs<
+                TContext,
+                TEvent,
+                TEmitted,
+                TChildren,
+                TInput
+              >
             ) => unknown)
           | NonReducibleUnknown;
       }
@@ -743,7 +762,13 @@ export type Next_InvokeConfig<
             id?: ChildIdForLogic<TActorMap[K], TChildren>;
             input?:
               | ((
-                  args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+                  args: InvokeInputArgs<
+                    TContext,
+                    TEvent,
+                    TEmitted,
+                    TChildren,
+                    TInput
+                  >
                 ) => InputFrom<TActorMap[K]>)
               | InputFrom<TActorMap[K]>;
           } & (
@@ -770,7 +795,8 @@ export type Next_InvokeConfig<
           TGuardMap,
           TDelayMap,
           TMeta,
-          TSystemRegistry
+          TSystemRegistry,
+          TInput
         >;
 
 interface Next_InvokeConfigBase<
@@ -1201,7 +1227,8 @@ interface Next_RegularStateNodeConfig<
       TGuardMap,
       TDelayMap,
       TMeta,
-      TSystemRegistry
+      TSystemRegistry,
+      TInput
     >
   >;
   /** The mapping of event types to their potential transition(s). */

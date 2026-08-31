@@ -432,6 +432,15 @@ type ValidateRegistryKeys<
 
 export type { SetupStateSchemas };
 
+/** State node types that can be declared in a setup state contract. */
+export type SetupStateType =
+  | 'atomic'
+  | 'compound'
+  | 'parallel'
+  | 'final'
+  | 'history'
+  | 'choice';
+
 export type SetupSchemas = {
   context?: StandardSchemaV1;
   events?: Record<string, StandardSchemaV1>;
@@ -446,8 +455,20 @@ export type SetupSchemas = {
   children?: Record<string, StandardSchemaV1>;
 };
 
-/** State schema with optional input/output schemas and nested states */
+/**
+ * State schema with optional input/output schemas, structural metadata, and
+ * nested states.
+ *
+ * Structural fields are contracts/defaults for `createMachine(...)`; machine
+ * behavior remains authored in the machine config.
+ */
 export interface SetupStateSchema {
+  type?: SetupStateType;
+  id?: string;
+  initial?: string;
+  history?: 'shallow' | 'deep' | true;
+  target?: string | readonly [string, ...string[]];
+  route?: true;
   schemas?: SetupStateSchemas;
   states?: Record<string, SetupStateSchema>;
 }
@@ -516,7 +537,102 @@ type SetupStateTarget<TStateSchemas extends Record<string, SetupStateSchema>> =
     ? string
     : [SetupStateKeys<TStateSchemas>] extends [never]
       ? string
-      : SetupStateKeys<TStateSchemas> | `.${string}` | `#${string}`;
+      : StatePaths<TStateSchemas> | `.${string}` | `#${string}`;
+
+type KnownSetupStateTarget<
+  TStateSchemas extends Record<string, SetupStateSchema>
+> =
+  string extends StatePaths<TStateSchemas>
+    ? never
+    :
+        | (StatePaths<TStateSchemas> & string)
+        | `.${StatePaths<RelativeSetupStateSchemas<TStateSchemas>> & string}`
+        | `#${SetupStateIds<TStateSchemas> & string}`;
+
+declare const strictSetupStateTargets: unique symbol;
+declare const relativeSetupStateSchemas: unique symbol;
+
+type StrictSetupStateSchemas<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TRelativeStateSchemas extends Record<string, SetupStateSchema> = Record<
+    string,
+    SetupStateSchema
+  >
+> = TStateSchemas & {
+  readonly [strictSetupStateTargets]: true;
+  readonly [relativeSetupStateSchemas]: TRelativeStateSchemas;
+};
+
+type RelativeSetupStateSchemas<
+  TStateSchemas extends Record<string, SetupStateSchema>
+> = TStateSchemas extends {
+  readonly [relativeSetupStateSchemas]: infer TRelativeStateSchemas extends
+    Record<string, SetupStateSchema>;
+}
+  ? TRelativeStateSchemas
+  : TStateSchemas;
+
+type UnknownSetupStateTarget<
+  TStateSchemas extends Record<string, SetupStateSchema>
+> = TStateSchemas extends { readonly [strictSetupStateTargets]: true }
+  ? never
+  : Exclude<
+      SetupStateTarget<TStateSchemas>,
+      KnownSetupStateTarget<TStateSchemas>
+    >;
+
+type SetupStateTransitionSchemas<
+  TSiblingStateSchemas extends Record<string, SetupStateSchema>,
+  TStateSchema extends SetupStateSchema
+> =
+  TStateSchema['states'] extends Record<string, SetupStateSchema>
+    ? TStateSchema extends { type: SetupStateType }
+      ? StrictSetupStateSchemas<TSiblingStateSchemas, TStateSchema['states']>
+      : TSiblingStateSchemas
+    : TSiblingStateSchemas;
+
+type SetupStateChildSchemas<TStateSchema extends SetupStateSchema> =
+  TStateSchema['states'] extends Record<string, SetupStateSchema>
+    ? TStateSchema['states']
+    : Record<string, SetupStateSchema>;
+
+type SetupStateIds<TStateSchemas extends Record<string, SetupStateSchema>> = {
+  [K in keyof TStateSchemas & string]: TStateSchemas[K] extends {
+    id: infer TId extends string;
+  }
+    ? TId
+    : TStateSchemas[K]['states'] extends Record<string, SetupStateSchema>
+      ? SetupStateIds<TStateSchemas[K]['states']>
+      : never;
+}[keyof TStateSchemas & string];
+
+type SetupStateSchemaAtTarget<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TTarget extends string
+> = (
+  TTarget extends `.${infer TPath}`
+    ? ResolveStatePath<RelativeSetupStateSchemas<TStateSchemas>, TPath>
+    : TTarget extends `#${infer TId}`
+      ? SetupStateSchemaAtId<TStateSchemas, TId>
+      : ResolveStatePath<TStateSchemas, TTarget>
+) extends infer TStateSchema
+  ? TStateSchema extends SetupStateSchema
+    ? TStateSchema
+    : never
+  : never;
+
+type SetupStateSchemaAtId<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TId extends string
+> = {
+  [K in keyof TStateSchemas & string]: TStateSchemas[K] extends {
+    id: TId;
+  }
+    ? TStateSchemas[K]
+    : TStateSchemas[K]['states'] extends Record<string, SetupStateSchema>
+      ? SetupStateSchemaAtId<TStateSchemas[K]['states'], TId>
+      : never;
+}[keyof TStateSchemas & string];
 
 type StateSchemasWithKeys<
   TStateSchemas extends Record<string, SetupStateSchema>,
@@ -863,9 +979,611 @@ type WithNestedStates<TConfig, TNestedStates> = TConfig extends {
   ? TConfig
   : Omit<TConfig, 'states'> & { states?: TNestedStates };
 
+type HasStateInputSchema<TStateSchema extends SetupStateSchema> =
+  TStateSchema['schemas'] extends { input: infer TInputSchema }
+    ? TInputSchema extends StandardSchemaV1
+      ? true
+      : false
+    : false;
+
+type RequiresStateInput<TStateSchema extends SetupStateSchema> =
+  HasStateInputSchema<TStateSchema> extends true
+    ? undefined extends StateInput<TStateSchema>
+      ? false
+      : true
+    : false;
+
+type HasRequiredStateInput<TStates extends Record<string, SetupStateSchema>> =
+  true extends {
+    [K in keyof TStates]: RequiresStateInput<TStates[K]>;
+  }[keyof TStates]
+    ? true
+    : false;
+
+type SetupStateSchemaForChild<
+  TStateSchema extends SetupStateSchema,
+  TTarget extends string
+> = TStateSchema['states'] extends infer TStates extends Record<
+  string,
+  SetupStateSchema
+>
+  ? TTarget extends keyof TStates & string
+    ? TStates[TTarget]
+    : {}
+  : {};
+
+type SetupStateInputConfig<
+  TStateSchema extends SetupStateSchema,
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TInputArgs extends { context: TContext; event: TEvent } = {
+    context: TContext;
+    event: TEvent;
+  }
+> =
+  HasStateInputSchema<TStateSchema> extends true
+    ? undefined extends StateInput<TStateSchema>
+      ? {
+          input?:
+            | StateInput<TStateSchema>
+            | ((args: TInputArgs) => StateInput<TStateSchema>);
+        }
+      : {
+          input:
+            | StateInput<TStateSchema>
+            | ((args: TInputArgs) => StateInput<TStateSchema>);
+        }
+    : {
+        input?:
+          | Record<string, unknown>
+          | ((args: TInputArgs) => Record<string, unknown>);
+      };
+
+type SetupTargetInput<TStateSchema extends SetupStateSchema> =
+  HasStateInputSchema<TStateSchema> extends true
+    ? Exclude<StateInput<TStateSchema>, undefined>
+    : Record<string, unknown>;
+
+type SetupUnionToIntersection<T> = (
+  T extends any ? (value: T) => void : never
+) extends (value: infer I) => void
+  ? I
+  : never;
+
+type SetupTargetArrayInput<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TTargets extends readonly string[]
+> = SetupUnionToIntersection<
+  SetupTargetInputForTarget<TStateSchemas, TTargets[number]>
+>;
+
+type SetupTargetInputForTarget<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TTarget extends string
+> =
+  SetupStateSchemaAtTarget<TStateSchemas, TTarget> extends infer TStateSchema
+    ? TStateSchema extends SetupStateSchema
+      ? SetupTargetInput<TStateSchema>
+      : Record<string, unknown>
+    : Record<string, unknown>;
+
+type SetupTargetArrayRequiresInput<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TTargets extends readonly string[]
+> = true extends {
+  [K in TTargets[number]]: RequiresStateInput<
+    SetupStateSchemaAtTarget<TStateSchemas, K>
+  >;
+}[TTargets[number]]
+  ? true
+  : false;
+
+type SetupTargetArrayInputConfig<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TTargets extends readonly string[]
+> =
+  SetupTargetArrayRequiresInput<TStateSchemas, TTargets> extends true
+    ? {
+        input:
+          | SetupTargetArrayInput<TStateSchemas, TTargets>
+          | ((args: any) => SetupTargetArrayInput<TStateSchemas, TTargets>);
+      }
+    : {
+        input?:
+          | SetupTargetArrayInput<TStateSchemas, TTargets>
+          | ((args: any) => SetupTargetArrayInput<TStateSchemas, TTargets>);
+      };
+
+/**
+ * The runtime applies one transition input to every target in a target set.
+ * Keep the array's input correlated to its literal targets by requiring the
+ * intersection of their direct input types. Widened string arrays remain
+ * permissive for compatibility.
+ */
+type SetupTargetArrayInputConstraint<
+  TTransition,
+  TStateSchemas extends Record<string, SetupStateSchema>
+> = [TTransition] extends [{ target: infer TTargets extends readonly string[] }]
+  ? string extends TTargets[number]
+    ? unknown
+    : [TTargets[number]] extends [never]
+      ? unknown
+      : Exclude<
+            TTargets[number],
+            KnownSetupStateTarget<TStateSchemas>
+          > extends never
+        ? SetupTargetArrayInputConfig<TStateSchemas, TTargets>
+        : unknown
+  : unknown;
+
+type SetupTransitionValueTargetArrayInputConstraint<
+  TValue,
+  TStateSchemas extends Record<string, SetupStateSchema>
+> = [TValue] extends [readonly unknown[]]
+  ? {
+      [K in keyof TValue]: TValue[K] &
+        SetupTransitionValueTargetArrayInputConstraint<
+          TValue[K],
+          TStateSchemas
+        >;
+    }
+  : SetupTargetArrayInputConstraint<TValue, TStateSchemas>;
+
+type SetupTransitionMapTargetArrayInputConstraint<
+  TValue,
+  TStateSchemas extends Record<string, SetupStateSchema>
+> = [TValue] extends [Record<string, unknown>]
+  ? {
+      [K in keyof TValue]?: TValue[K] &
+        SetupTransitionValueTargetArrayInputConstraint<
+          TValue[K],
+          TStateSchemas
+        >;
+    }
+  : unknown;
+
+type SetupTransitionPropertyTargetArrayInputConstraint<
+  TConfig,
+  TKey extends PropertyKey,
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TIsMap extends boolean = false
+> = TKey extends keyof TConfig
+  ? {
+      [K in TKey]?: TConfig[K] &
+        (TIsMap extends true
+          ? SetupTransitionMapTargetArrayInputConstraint<
+              TConfig[K],
+              TStateSchemas
+            >
+          : SetupTransitionValueTargetArrayInputConstraint<
+              TConfig[K],
+              TStateSchemas
+            >);
+    }
+  : unknown;
+
+type SetupInvokeTargetArrayInputConstraint<
+  TInvoke,
+  TStateSchemas extends Record<string, SetupStateSchema>
+> = [TInvoke] extends [readonly unknown[]]
+  ? {
+      [K in keyof TInvoke]: TInvoke[K] &
+        SetupInvokeTargetArrayInputConstraint<TInvoke[K], TStateSchemas>;
+    }
+  : [TInvoke] extends [Record<string, unknown>]
+    ? SetupTransitionPropertyTargetArrayInputConstraint<
+        TInvoke,
+        'onDone',
+        TStateSchemas
+      > &
+        SetupTransitionPropertyTargetArrayInputConstraint<
+          TInvoke,
+          'onError',
+          TStateSchemas
+        > &
+        SetupTransitionPropertyTargetArrayInputConstraint<
+          TInvoke,
+          'onSnapshot',
+          TStateSchemas
+        > &
+        SetupTransitionPropertyTargetArrayInputConstraint<
+          TInvoke,
+          'onTimeout',
+          TStateSchemas
+        >
+    : unknown;
+
+type SetupStateNodeTargetArrayInputConstraint<
+  TConfig,
+  TSiblingStateSchemas extends Record<string, SetupStateSchema>,
+  TStateSchema extends SetupStateSchema,
+  TChildStateSchemas extends Record<string, SetupStateSchema>
+> = SetupTransitionPropertyTargetArrayInputConstraint<
+  TConfig,
+  'on',
+  SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
+  true
+> &
+  SetupTransitionPropertyTargetArrayInputConstraint<
+    TConfig,
+    'always',
+    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+  > &
+  SetupTransitionPropertyTargetArrayInputConstraint<
+    TConfig,
+    'after',
+    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
+    true
+  > &
+  SetupTransitionPropertyTargetArrayInputConstraint<
+    TConfig,
+    'onDone',
+    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+  > &
+  SetupTransitionPropertyTargetArrayInputConstraint<
+    TConfig,
+    'onError',
+    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+  > &
+  SetupTransitionPropertyTargetArrayInputConstraint<
+    TConfig,
+    'onTimeout',
+    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+  > &
+  SetupTransitionPropertyTargetArrayInputConstraint<
+    TConfig,
+    'choice',
+    SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+  > &
+  (TConfig extends { invoke: infer TInvoke }
+    ? {
+        invoke?: TConfig['invoke'] &
+          SetupInvokeTargetArrayInputConstraint<
+            TInvoke,
+            SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>
+          >;
+      }
+    : unknown) &
+  (TConfig extends {
+    states: infer TChildren extends Record<string, unknown>;
+  }
+    ? {
+        states?: {
+          [K in keyof TChildren]?: TChildren[K] &
+            SetupStateNodeTargetArrayInputConstraint<
+              TChildren[K],
+              TChildStateSchemas,
+              K extends keyof TChildStateSchemas
+                ? TChildStateSchemas[K]
+                : SetupStateSchema,
+              SetupStateChildSchemas<
+                K extends keyof TChildStateSchemas
+                  ? TChildStateSchemas[K]
+                  : SetupStateSchema
+              >
+            >;
+        };
+      }
+    : unknown);
+
+type ValidateSetupTargetArrayInputs<
+  TConfig,
+  TRootStateSchemas extends Record<string, SetupStateSchema>
+> = SetupStateNodeTargetArrayInputConstraint<
+  TConfig,
+  TRootStateSchemas,
+  SetupStateSchema,
+  TRootStateSchemas
+>;
+
+type SetupInitialTransitionConfig<
+  TStateSchema extends SetupStateSchema,
+  TTarget extends string,
+  TConfig,
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> =
+  Extract<
+    SetupConfigInitial<TConfig>,
+    { target: TTarget }
+  > extends infer TInitial
+    ? [TInitial] extends [never]
+      ? { target: TTarget } & SetupStateInputConfig<
+          SetupStateSchemaForChild<TStateSchema, TTarget>,
+          TContext,
+          TEvent
+        >
+      : Omit<TInitial, 'target' | 'input'> & {
+          target: TTarget;
+        } & SetupStateInputConfig<
+            SetupStateSchemaForChild<TStateSchema, TTarget>,
+            TContext,
+            TEvent
+          >
+    : never;
+
+type SetupConfigInitial<TConfig> = TConfig extends {
+  initial?: infer TInitial;
+}
+  ? NonNullable<TInitial>
+  : never;
+
+type SetupInitialTransition<
+  TStateSchema extends SetupStateSchema,
+  TTarget extends string = string,
+  TConfig = unknown,
+  TContext extends MachineContext = MachineContext,
+  TEvent extends EventObject = EventObject
+> =
+  | (RequiresStateInput<
+      SetupStateSchemaForChild<TStateSchema, TTarget>
+    > extends true
+      ? never
+      : TTarget)
+  | SetupInitialTransitionConfig<
+      TStateSchema,
+      TTarget,
+      TConfig,
+      TContext,
+      TEvent
+    >;
+
+type SetupInitialTransitionForStates<
+  TStateSchema extends SetupStateSchema,
+  TConfig,
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> = TStateSchema['states'] extends infer TStates extends Record<
+  string,
+  SetupStateSchema
+>
+  ? {
+      [K in keyof TStates & string]: SetupInitialTransition<
+        TStateSchema,
+        K,
+        TConfig,
+        TContext,
+        TEvent
+      >;
+    }[keyof TStates & string]
+  : never;
+
+type SetupStateInitial<
+  TStateSchema extends SetupStateSchema,
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> = TStateSchema extends { initial: infer TInitial extends string }
+  ? RequiresStateInput<
+      SetupStateSchemaForChild<TStateSchema, TInitial>
+    > extends true
+    ? {
+        initial: SetupInitialTransition<
+          TStateSchema,
+          TInitial,
+          unknown,
+          TContext,
+          TEvent
+        >;
+      }
+    : {
+        initial?: SetupInitialTransition<
+          TStateSchema,
+          TInitial,
+          unknown,
+          TContext,
+          TEvent
+        >;
+      }
+  : TStateSchema['states'] extends Record<string, SetupStateSchema>
+    ? HasRequiredStateInput<TStateSchema['states']> extends true
+      ? {
+          initial: SetupInitialTransitionForStates<
+            TStateSchema,
+            unknown,
+            TContext,
+            TEvent
+          >;
+        }
+      : {
+          initial:
+            | string
+            | {
+                target: string;
+                input?: Record<string, unknown>;
+              };
+        }
+    : {
+        initial:
+          | string
+          | {
+              target: string;
+              input?: Record<string, unknown>;
+            };
+      };
+
+type SetupStateNodeContract<
+  TStateSchema extends SetupStateSchema,
+  TConfig,
+  TContext extends MachineContext = MachineContext,
+  TEvent extends EventObject = EventObject,
+  TSiblingStateSchemas extends Record<string, SetupStateSchema> = Record<
+    string,
+    SetupStateSchema
+  >
+> = TStateSchema extends { type: infer TType }
+  ? TType extends 'atomic'
+    ? Omit<TConfig, 'type' | 'states' | 'initial' | 'history' | 'target'> & {
+        type?: 'atomic';
+        states?: never;
+        initial?: never;
+        history?: never;
+        target?: never;
+      }
+    : TType extends 'compound'
+      ? Omit<TConfig, 'type' | 'initial'> &
+          ({ type?: 'compound' } & SetupStateChildrenContract<
+            TStateSchema,
+            TConfig
+          > &
+            SetupStateInitial<TStateSchema, TContext, TEvent>)
+      : TType extends 'parallel'
+        ? Omit<TConfig, 'type' | 'initial'> & {
+            type?: 'parallel';
+            initial?: never;
+            states: NonNullable<
+              TConfig extends { states?: infer TStates } ? TStates : unknown
+            >;
+          }
+        : TType extends 'final'
+          ? Omit<
+              TConfig,
+              | 'type'
+              | 'states'
+              | 'initial'
+              | 'history'
+              | 'target'
+              | 'invoke'
+              | 'on'
+              | 'always'
+              | 'after'
+              | 'timeout'
+              | 'onTimeout'
+              | 'onDone'
+              | 'onError'
+            > & {
+              type?: 'final';
+              states?: never;
+              initial?: never;
+              history?: never;
+              target?: never;
+              invoke?: never;
+              on?: never;
+              always?: never;
+              after?: never;
+              timeout?: never;
+              onTimeout?: never;
+              onDone?: never;
+              onError?: never;
+            }
+          : TType extends 'history'
+            ? SetupHistoryStateContract<
+                TStateSchema,
+                TConfig,
+                TSiblingStateSchemas
+              >
+            : TType extends 'choice'
+              ? Omit<
+                  TConfig,
+                  | 'type'
+                  | 'states'
+                  | 'initial'
+                  | 'history'
+                  | 'target'
+                  | 'invoke'
+                  | 'on'
+                  | 'entry'
+                  | 'exit'
+                  | 'onDone'
+                  | 'onError'
+                  | 'after'
+                  | 'timeout'
+                  | 'onTimeout'
+                  | 'always'
+                > & {
+                  type?: 'choice';
+                  choice: Extract<
+                    TConfig,
+                    { choice: (...args: any[]) => any }
+                  > extends { choice: infer TChoice }
+                    ? TChoice
+                    : (...args: any[]) => any;
+                  states?: never;
+                  initial?: never;
+                  history?: never;
+                  target?: never;
+                  invoke?: never;
+                  on?: never;
+                  entry?: never;
+                  exit?: never;
+                  onDone?: never;
+                  onError?: never;
+                  after?: never;
+                  timeout?: never;
+                  onTimeout?: never;
+                  always?: never;
+                }
+              : TStateSchema extends { history: unknown }
+                ? SetupHistoryStateContract<
+                    TStateSchema,
+                    TConfig,
+                    TSiblingStateSchemas
+                  >
+                : TConfig
+  : TConfig;
+
+type SetupHistoryStateContract<
+  TStateSchema extends SetupStateSchema,
+  TConfig,
+  TSiblingStateSchemas extends Record<string, SetupStateSchema>
+> = Omit<TConfig, 'type' | 'states' | 'initial' | 'target'> & {
+  type?: 'history';
+  states?: never;
+  initial?: never;
+} & (TStateSchema extends {
+    target: infer TTarget extends string | readonly string[];
+  }
+    ? HistoryTargetRequiresInput<TSiblingStateSchemas, TTarget> extends true
+      ? never
+      : { target?: TTarget }
+    : { target: string | [string, ...string[]] });
+
+type SetupStateChildrenContract<
+  TStateSchema extends SetupStateSchema,
+  TConfig
+> = TStateSchema extends {
+  states: Record<string, SetupStateSchema>;
+}
+  ? {
+      states: NonNullable<
+        TConfig extends { states?: infer TStates } ? TStates : unknown
+      >;
+    }
+  : {};
+
+type HistoryTargetRequiresInput<
+  TSiblingStateSchemas extends Record<string, SetupStateSchema>,
+  TTarget extends string | readonly string[]
+> = TTarget extends readonly (infer TTargets extends string)[]
+  ? true extends {
+      [K in TTargets]: RequiresStateInput<
+        SetupStateSchemaAtTarget<TSiblingStateSchemas, K>
+      >;
+    }[TTargets]
+    ? true
+    : false
+  : TTarget extends string
+    ? RequiresStateInput<
+        SetupStateSchemaAtTarget<TSiblingStateSchemas, TTarget>
+      >
+    : false;
+
 type DistributiveOmit<T, K extends keyof any> = T extends any
   ? Omit<T, K>
   : never;
+
+type SetupStateSchemaMetadata<TSetupSchema extends SetupStateSchema> =
+  (TSetupSchema extends { type: infer TType } ? { type: TType } : {}) &
+    (TSetupSchema extends { id: infer TId } ? { id: TId } : {}) &
+    (TSetupSchema extends { initial: infer TInitial }
+      ? { initial: TInitial }
+      : {}) &
+    (TSetupSchema extends { history: infer THistory }
+      ? { history: THistory }
+      : {}) &
+    (TSetupSchema extends { target: infer TTarget }
+      ? { target: TTarget }
+      : {}) &
+    (TSetupSchema extends { route: infer TRoute } ? { route: TRoute } : {});
 
 /**
  * Converts SetupStateSchema to StateSchema with input types included. This
@@ -893,7 +1611,7 @@ type SetupStateSchemaToStateSchema<TSetupSchema extends SetupStateSchema> = {
           string]: SetupStateSchemaToStateSchema<TSetupSchema['states'][K]>;
       }
     : undefined;
-};
+} & SetupStateSchemaMetadata<TSetupSchema>;
 
 /** Converts the root setup states config to a StateSchema. */
 type SetupStatesToStateSchema<
@@ -953,6 +1671,67 @@ type StateSchemaChild<
     : EmptyStateSchema
   : EmptyStateSchema;
 
+type StateSchemaMetadataField<
+  TConfig extends StateSchema,
+  TSetup extends StateSchema,
+  TKey extends keyof StateSchema
+> =
+  TSetup extends Record<TKey, infer TValue>
+    ? { [K in TKey]: TValue }
+    : TConfig extends Record<TKey, infer TValue>
+      ? { [K in TKey]: TValue }
+      : {};
+
+type MergeStateSchemaMetadata<
+  TConfig extends StateSchema,
+  TSetup extends StateSchema
+> = StateSchemaMetadataField<TConfig, TSetup, 'id'> &
+  StateSchemaMetadataField<TConfig, TSetup, 'route'> &
+  StateSchemaMetadataField<TConfig, TSetup, 'type'> &
+  StateSchemaMetadataField<TConfig, TSetup, 'initial'> &
+  StateSchemaMetadataField<TConfig, TSetup, 'history'> &
+  StateSchemaMetadataField<TConfig, TSetup, 'target'>;
+
+type StateConfigMetadataField<
+  TConfig,
+  TSetup extends StateSchema,
+  TKey extends keyof StateSchema
+> =
+  TConfig extends Record<TKey, infer TValue>
+    ? { [K in TKey]: TValue }
+    : TSetup extends Record<TKey, infer TValue>
+      ? { [K in TKey]: TValue }
+      : {};
+
+/** Adds setup-declared topology to authored config for structural validation. */
+type MergeSetupConfigState<TConfig, TSetup extends StateSchema> = Omit<
+  TConfig,
+  'id' | 'route' | 'type' | 'initial' | 'history' | 'target' | 'states'
+> &
+  StateConfigMetadataField<TConfig, TSetup, 'id'> &
+  StateConfigMetadataField<TConfig, TSetup, 'route'> &
+  StateConfigMetadataField<TConfig, TSetup, 'type'> &
+  StateConfigMetadataField<TConfig, TSetup, 'initial'> &
+  StateConfigMetadataField<TConfig, TSetup, 'history'> &
+  StateConfigMetadataField<TConfig, TSetup, 'target'> &
+  (TConfig extends { states: infer TStates }
+    ? TStates extends Record<string, unknown>
+      ? {
+          states: {
+            [K in keyof TStates & string]: MergeSetupConfigState<
+              TStates[K],
+              StateSchemaChild<TSetup, K>
+            >;
+          };
+        }
+      : { states: TStates }
+    : {});
+
+type MergeSetupConfig<
+  TConfig,
+  TStates extends Record<string, SetupStateSchema>
+> = MergeSetupConfigState<TConfig, SetupStatesToStateSchema<TStates>>;
+
 type MergeStateSchema<
   TConfig extends StateSchema,
   TSetup extends StateSchema
@@ -970,7 +1749,7 @@ type MergeStateSchema<
         }
       : undefined
     : undefined;
-};
+} & MergeStateSchemaMetadata<TConfig, TSetup>;
 
 /** Machine config with typed state input */
 type SetupMachineConfig<
@@ -1053,7 +1832,7 @@ type SetupMachineConfig<
         }) => number);
   };
   initial?:
-    | TStateKeys
+    | SetupInitialStateKey<TStateSchemas, TStateKeys>
     | InitialTransitionWithInput<TStateSchemas, TContext, TEvent>
     | undefined;
   on?: StateTransitions<
@@ -1098,7 +1877,8 @@ type SetupMachineConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TSystemRegistry
+      TSystemRegistry,
+      SetupInput<TSchemas, TInputSchema>
     >
   >;
   states?: StatesWithInput<
@@ -1163,7 +1943,7 @@ type StatesWithInput<
 };
 
 /** State node config that recursively applies typed input for nested states */
-type StateNodeConfigWithNestedInput<
+type StateNodeConfigWithNestedInputBase<
   TSiblingStateSchemas extends Record<string, SetupStateSchema>,
   TStateSchema extends SetupStateSchema,
   TContext extends MachineContext,
@@ -1181,7 +1961,7 @@ type StateNodeConfigWithNestedInput<
   TDelayMap extends Sources['delays'],
   TSystemRegistry extends SystemRegistry
 > = WithNestedStates<
-  Omit<
+  DistributiveOmit<
     Next_StateNodeConfig<
       StateContext<TStateSchema, TContext>,
       TEvent,
@@ -1225,8 +2005,9 @@ type StateNodeConfigWithNestedInput<
               input?: Record<string, unknown>;
             }
           | undefined;
+  } & {
     on?: StateTransitions<
-      TSiblingStateSchemas,
+      SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
       StateContext<TStateSchema, TContext>,
       StateContextShape<TStateSchema, TContextShape>,
       TEvent,
@@ -1241,7 +2022,7 @@ type StateNodeConfigWithNestedInput<
       StateInput<TStateSchema>
     >;
     always?: StateTransitionConfigOrTarget<
-      TSiblingStateSchemas,
+      SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
       StateContext<TStateSchema, TContext>,
       StateContextShape<TStateSchema, TContextShape>,
       TEvent,
@@ -1258,7 +2039,7 @@ type StateNodeConfigWithNestedInput<
     >;
     invoke?: SingleOrArray<
       SetupInvokeConfig<
-        TSiblingStateSchemas,
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
         StateContext<TStateSchema, TContext>,
         StateContextShape<TStateSchema, TContextShape>,
         TEvent,
@@ -1269,11 +2050,12 @@ type StateNodeConfigWithNestedInput<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TSystemRegistry
+        TSystemRegistry,
+        StateInput<TStateSchema>
       >
     >;
     onDone?: StateTransitionConfigOrTarget<
-      TSiblingStateSchemas,
+      SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
       StateContext<TStateSchema, TContext>,
       StateContextShape<TStateSchema, TContextShape>,
       DoneStateEvent<StateCompletionOutput<TStateSchema>>,
@@ -1289,7 +2071,7 @@ type StateNodeConfigWithNestedInput<
       StateInput<TStateSchema>
     >;
     onError?: StateTransitionConfigOrTarget<
-      TSiblingStateSchemas,
+      SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
       StateContext<TStateSchema, TContext>,
       StateContextShape<TStateSchema, TContextShape>,
       ErrorEvent,
@@ -1305,7 +2087,7 @@ type StateNodeConfigWithNestedInput<
       StateInput<TStateSchema>
     >;
     onTimeout?: StateTransitionConfigOrTarget<
-      TSiblingStateSchemas,
+      SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
       StateContext<TStateSchema, TContext>,
       StateContextShape<TStateSchema, TContextShape>,
       TimeoutEvent,
@@ -1322,7 +2104,7 @@ type StateNodeConfigWithNestedInput<
     >;
     after?: {
       [K in NoInfer<TDelays> | number]?: StateTransitionConfigOrTarget<
-        TSiblingStateSchemas,
+        SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
         StateContext<TStateSchema, TContext>,
         StateContextShape<TStateSchema, TContextShape>,
         AfterEvent,
@@ -1377,6 +2159,48 @@ type StateNodeConfigWithNestedInput<
           TSystemRegistry
         >;
       }
+>;
+
+type StateNodeConfigWithNestedInput<
+  TSiblingStateSchemas extends Record<string, SetupStateSchema>,
+  TStateSchema extends SetupStateSchema,
+  TContext extends MachineContext,
+  TContextShape,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TDelays extends string,
+  TTag extends string,
+  TOutput,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays'],
+  TSystemRegistry extends SystemRegistry
+> = SetupStateNodeContract<
+  TStateSchema,
+  StateNodeConfigWithNestedInputBase<
+    TSiblingStateSchemas,
+    TStateSchema,
+    TContext,
+    TContextShape,
+    TEvent,
+    TChildren,
+    TDelays,
+    TTag,
+    TOutput,
+    TEmitted,
+    TMeta,
+    TActionMap,
+    TActorMap,
+    TGuardMap,
+    TDelayMap,
+    TSystemRegistry
+  >,
+  TContext,
+  TEvent,
+  TSiblingStateSchemas
 >;
 
 type StateTransitions<
@@ -1440,7 +2264,8 @@ type SetupInvokeConfig<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TStateInput = undefined
 > =
   Next_InvokeConfig<
     TContext,
@@ -1452,7 +2277,8 @@ type SetupInvokeConfig<
     TGuardMap,
     TDelayMap,
     TMeta,
-    TSystemRegistry
+    TSystemRegistry,
+    TStateInput
   > extends infer TInvoke
     ? TInvoke extends any
       ? DistributiveOmit<
@@ -1825,59 +2651,72 @@ type StateTransitionResult<
       meta?: TMeta;
     }
   | {
-      [K in keyof TStateSchemas & string]: {
+      [K in KnownSetupStateTarget<TStateSchemas>]: {
         target: K;
         reenter?: boolean;
         meta?: TMeta;
-        input?:
-          | StateInput<TStateSchemas[K]>
-          | ((
-              args: {
-                context: TContext;
-                event: EventObject;
-              } & OutputArg<EventObject>
-            ) => StateInput<TStateSchemas[K]>);
-      } & ([TContextShape] extends [
-        StateContextShape<TStateSchemas[K], TContextShape>
-      ]
-        ? {
-            context?: StateTransitionContext<
-              TAllowContextMapper,
-              TContext,
-              TContextShape,
-              StateContextShape<TStateSchemas[K], TContextShape>,
-              StateContext<TStateSchemas[K], TContext>,
-              TExpressionEvent,
-              TChildren,
-              TActionMap,
-              TActorMap,
-              TGuardMap,
-              TDelayMap,
-              TSystemRegistry
-            >;
-          }
-        : {
-            context: StateTransitionContext<
-              TAllowContextMapper,
-              TContext,
-              TContextShape,
-              StateContextShape<TStateSchemas[K], TContextShape>,
-              StateContext<TStateSchemas[K], TContext>,
-              TExpressionEvent,
-              TChildren,
-              TActionMap,
-              TActorMap,
-              TGuardMap,
-              TDelayMap,
-              TSystemRegistry
-            >;
-          });
-    }[keyof TStateSchemas & string]
+      } & SetupStateInputConfig<
+        SetupStateSchemaAtTarget<TStateSchemas, K>,
+        TContext,
+        TExpressionEvent,
+        {
+          context: TContext;
+          event: TExpressionEvent;
+        } & OutputArg<TExpressionEvent>
+      > &
+        ([TContextShape] extends [
+          StateContextShape<
+            SetupStateSchemaAtTarget<TStateSchemas, K>,
+            TContextShape
+          >
+        ]
+          ? {
+              context?: StateTransitionContext<
+                TAllowContextMapper,
+                TContext,
+                TContextShape,
+                StateContextShape<
+                  SetupStateSchemaAtTarget<TStateSchemas, K>,
+                  TContextShape
+                >,
+                StateContext<
+                  SetupStateSchemaAtTarget<TStateSchemas, K>,
+                  TContext
+                >,
+                TExpressionEvent,
+                TChildren,
+                TActionMap,
+                TActorMap,
+                TGuardMap,
+                TDelayMap,
+                TSystemRegistry
+              >;
+            }
+          : {
+              context: StateTransitionContext<
+                TAllowContextMapper,
+                TContext,
+                TContextShape,
+                StateContextShape<
+                  SetupStateSchemaAtTarget<TStateSchemas, K>,
+                  TContextShape
+                >,
+                StateContext<
+                  SetupStateSchemaAtTarget<TStateSchemas, K>,
+                  TContext
+                >,
+                TExpressionEvent,
+                TChildren,
+                TActionMap,
+                TActorMap,
+                TGuardMap,
+                TDelayMap,
+                TSystemRegistry
+              >;
+            });
+    }[KnownSetupStateTarget<TStateSchemas>]
   | {
-      target: Exclude<
-        SetupStateTarget<TStateSchemas>,
-        keyof TStateSchemas & string
-      >;
+      target: UnknownSetupStateTarget<TStateSchemas>;
       context?: StateTransitionContext<
         TAllowContextMapper,
         TContext,
@@ -1921,6 +2760,19 @@ type RequiredContextKeys<TCurrentContext, TTargetContext> = {
 }[keyof TTargetContext];
 
 /** Initial transition with typed input based on target state */
+type SetupInitialStateKey<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TStateKeys extends string
+> = {
+  [K in TStateKeys]: K extends keyof TStateSchemas
+    ? TStateSchemas[K] extends { type: SetupStateType }
+      ? RequiresStateInput<TStateSchemas[K]> extends true
+        ? never
+        : K
+      : K
+    : K;
+}[TStateKeys];
+
 type InitialTransitionWithInput<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
@@ -1928,13 +2780,7 @@ type InitialTransitionWithInput<
 > = {
   [K in keyof TStateSchemas & string]: {
     target: K;
-    input?:
-      | StateInput<TStateSchemas[K]>
-      | ((args: {
-          context: TContext;
-          event: TEvent;
-        }) => StateInput<TStateSchemas[K]>);
-  };
+  } & SetupStateInputConfig<TStateSchemas[K], TContext, TEvent>;
 }[keyof TStateSchemas & string];
 
 /** Return type of setup() */
@@ -2146,8 +2992,9 @@ export interface SetupReturn<
         TValidator
       > &
       ValidateSetupDelayReferences<TConfig, TSetupDelays> &
-      ValidateHistoryDefaults<TConfig> &
-      ValidateStateTargets<TConfig> &
+      ValidateHistoryDefaults<MergeSetupConfig<TConfig, TStates>> &
+      ValidateStateTargets<MergeSetupConfig<TConfig, TStates>> &
+      NoInfer<ValidateSetupTargetArrayInputs<TConfig, TStates>> &
       ValidateRegistryKeys<
         TConfig,
         TSystemRegistry,
@@ -2156,11 +3003,23 @@ export interface SetupReturn<
   ): StateMachine<
     SetupContext<TSchemas, TContextSchema>,
     | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
-    | ([RoutableStateId<Cast<TConfig, StateSchema>>] extends [never]
+    | ([
+        RoutableStateId<
+          MergeStateSchema<
+            Cast<TConfig, StateSchema>,
+            SetupStatesToStateSchema<TStates>
+          >
+        >
+      ] extends [never]
         ? never
         : {
             type: 'xstate.route';
-            to: RoutableStateId<Cast<TConfig, StateSchema>>;
+            to: RoutableStateId<
+              MergeStateSchema<
+                Cast<TConfig, StateSchema>,
+                SetupStatesToStateSchema<TStates>
+              >
+            >;
           }),
     Cast<
       MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
@@ -2208,7 +3067,10 @@ export interface SetupReturn<
   createStateConfig<
     const TPath extends StatePaths<TStates>,
     const TConfig extends SetupStateNodeConfig<
-      ResolveStateSiblings<TStates, TPath>,
+      StrictSetupStateSchemas<
+        ResolveStateSiblings<TStates, TPath>,
+        SetupStateChildSchemas<ResolveStatePath<TStates, TPath>>
+      >,
       ResolveStatePath<TStates, TPath>,
       TSchemas,
       TSetupActionMap,
@@ -2219,7 +3081,18 @@ export interface SetupReturn<
     >
   >(
     path: TPath,
-    config: TConfig
+    config: TConfig &
+      NoInfer<
+        SetupStateNodeTargetArrayInputConstraint<
+          TConfig,
+          StrictSetupStateSchemas<
+            ResolveStateSiblings<TStates, TPath>,
+            SetupStateChildSchemas<ResolveStatePath<TStates, TPath>>
+          >,
+          ResolveStatePath<TStates, TPath>,
+          SetupStateChildSchemas<ResolveStatePath<TStates, TPath>>
+        >
+      >
   ): TConfig;
 
   /** Creates a state node config with the setup configuration */
@@ -2644,10 +3517,27 @@ function mergeStateSchemas(
       const schemas = mergeMaps(configState.schemas, setupState.schemas);
       const states = mergeStateSchemas(configState.states, setupState.states);
 
+      const structuralFields = [
+        'type',
+        'id',
+        'initial',
+        'history',
+        'target',
+        'route'
+      ] as const;
+      const structural = Object.fromEntries(
+        structuralFields.flatMap((field) =>
+          configState[field] === undefined && setupState[field] !== undefined
+            ? [[field, setupState[field]]]
+            : []
+        )
+      );
+
       return [
         key,
         {
           ...configState,
+          ...structural,
           ...(schemas ? { schemas } : undefined),
           ...(states ? { states } : undefined)
         }
