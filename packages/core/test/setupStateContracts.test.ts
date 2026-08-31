@@ -13,6 +13,8 @@ describe('setup state contracts', () => {
               type: 'compound',
               initial: 'stopped',
               states: {
+                // Preserved local autocomplete probe (no target selected):
+                // always: { target: }
                 stopped: {},
                 playing: {}
               }
@@ -647,6 +649,46 @@ describe('setup state contracts', () => {
         active: {}
       }
     });
+
+    expect(true).toBe(true);
+  });
+
+  it('narrows relative targets for atomic states', () => {
+    const s = setup({
+      states: {
+        active: {},
+        inactive: {}
+      }
+    });
+
+    s.createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            SELF: { target: '.' },
+            TO_ACTIVE: { target: 'active' },
+            TO_INACTIVE: { target: 'inactive' }
+          }
+        },
+        inactive: {}
+      }
+    });
+
+    if (false) {
+      s.createMachine({
+        initial: 'active',
+        states: {
+          active: {
+            on: {
+              // @ts-expect-error - an atomic state has no relative children
+              EVENT: { target: '.inactive' }
+            }
+          },
+          inactive: {}
+        }
+      });
+    }
 
     expect(true).toBe(true);
   });

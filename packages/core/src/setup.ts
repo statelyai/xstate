@@ -532,12 +532,26 @@ type SetupStateKey<TStateSchemas extends Record<string, SetupStateSchema>> =
       ? string
       : SetupStateKeys<TStateSchemas>;
 
-type SetupStateTarget<TStateSchemas extends Record<string, SetupStateSchema>> =
+type SetupRelativeStateTarget<
+  TStateSchemas extends Record<string, SetupStateSchema>
+> =
   string extends SetupStateKeys<TStateSchemas>
-    ? string
+    ? `.${string}`
     : [SetupStateKeys<TStateSchemas>] extends [never]
+      ? '.'
+      : '.' | `.${StatePaths<TStateSchemas> & string}`;
+
+type SetupStateTarget<TStateSchemas extends Record<string, SetupStateSchema>> =
+  TStateSchemas extends { readonly [strictSetupStateTargets]: true }
+    ?
+        | StatePaths<TStateSchemas>
+        | SetupRelativeStateTarget<RelativeSetupStateSchemas<TStateSchemas>>
+        | `#${string}`
+    : string extends SetupStateKeys<TStateSchemas>
       ? string
-      : StatePaths<TStateSchemas> | `.${string}` | `#${string}`;
+      : [SetupStateKeys<TStateSchemas>] extends [never]
+        ? string
+        : StatePaths<TStateSchemas> | `.${string}` | `#${string}`;
 
 type KnownSetupStateTarget<
   TStateSchemas extends Record<string, SetupStateSchema>
@@ -546,7 +560,7 @@ type KnownSetupStateTarget<
     ? never
     :
         | (StatePaths<TStateSchemas> & string)
-        | `.${StatePaths<RelativeSetupStateSchemas<TStateSchemas>> & string}`
+        | SetupRelativeStateTarget<RelativeSetupStateSchemas<TStateSchemas>>
         | `#${SetupStateIds<RootSetupStateSchemas<TStateSchemas>> & string}`;
 
 declare const strictSetupStateTargets: unique symbol;
@@ -607,11 +621,18 @@ type SetupStateTransitionSchemas<
   TSiblingStateSchemas extends Record<string, SetupStateSchema>,
   TStateSchema extends SetupStateSchema
 > =
-  TStateSchema['states'] extends Record<string, SetupStateSchema>
-    ? TStateSchema extends { type: SetupStateType }
-      ? StrictSetupStateSchemas<TSiblingStateSchemas, TStateSchema['states']>
-      : TSiblingStateSchemas
-    : TSiblingStateSchemas;
+  string extends SetupStateKeys<TSiblingStateSchemas>
+    ? TSiblingStateSchemas
+    : keyof SetupStateSchema extends keyof TStateSchema
+      ? TSiblingStateSchemas
+      : TStateSchema['states'] extends Record<string, SetupStateSchema>
+        ? TStateSchema extends { type: SetupStateType }
+          ? StrictSetupStateSchemas<
+              TSiblingStateSchemas,
+              TStateSchema['states']
+            >
+          : TSiblingStateSchemas
+        : StrictSetupStateSchemas<TSiblingStateSchemas, {}>;
 
 type SetupStateChildSchemas<TStateSchema extends SetupStateSchema> =
   TStateSchema['states'] extends Record<string, SetupStateSchema>
