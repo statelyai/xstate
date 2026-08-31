@@ -32,7 +32,7 @@ For typed context and event payloads, use the canonical v6 setup shape:
 ```ts
 import { setup, types } from 'xstate/fsm';
 
-const app = setup({
+const machineSetup = setup({
   schemas: {
     context: types<{ count: number }>(),
     events: {
@@ -42,7 +42,7 @@ const app = setup({
   }
 });
 
-const machine = app.createFSM({
+const machine = machineSetup.createFSM({
   initial: 'idle',
   context: { count: 0 },
   states: {
@@ -64,7 +64,7 @@ union:
 ```ts
 type User = { id: string };
 
-const app = setup({
+const machineSetup = setup({
   schemas: { events: { resolve: types<{ user: User }>() } },
   states: {
     loading: { schemas: { context: types<{ status: 'loading' }>() } },
@@ -76,7 +76,7 @@ const app = setup({
   }
 });
 
-const machine = app.createFSM({
+const machine = machineSetup.createFSM({
   initial: 'loading',
   context: { status: 'loading' },
   states: {
@@ -99,6 +99,8 @@ const state = machine.transition(machine.initialState, {
 
 if (state.value === 'loaded') {
   state.context.user.id; // typed as string
+} else {
+  state.context.status; // typed as 'loading'
 }
 ```
 

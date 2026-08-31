@@ -24,11 +24,11 @@ describe('createFSM differential behavior', () => {
     const config = {
       initial: 'inactive' as const,
       states: {
-        inactive: { on: { toggle: 'active' } },
+        inactive: { on: { toggle: { target: 'active' } } },
         active: {
           on: {
-            toggle: 'inactive',
-            reset: 'inactive'
+            toggle: { target: 'inactive' },
+            reset: { target: 'inactive' }
           }
         }
       }
