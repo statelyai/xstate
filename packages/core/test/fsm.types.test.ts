@@ -56,6 +56,12 @@ describe('createFSM types', () => {
     });
     void invalidTarget;
 
+    // @ts-expect-error declared context cannot be omitted
+    createFSM<Context, Event, { idle: unknown; done: unknown }>({
+      initial: 'idle',
+      states: { idle: {}, done: {} }
+    });
+
     // @ts-expect-error unknown event
     machine.transition(machine.initialState, { type: 'unknown' });
     // @ts-expect-error event payload must be a string

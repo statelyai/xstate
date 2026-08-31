@@ -70,6 +70,13 @@ export type FSMStateConfig<
   on?: FSMOn<TContext, TEvent, TState, TTransitionContext>;
 };
 
+type FSMContextConfig<TContext extends MachineContext> =
+  string extends keyof TContext
+    ? { context?: TContext }
+    : keyof TContext extends never
+      ? { context?: TContext }
+      : { context: TContext };
+
 export type FSMConfig<
   TContext extends MachineContext = {},
   TEvent extends EventObject = EventObject,
@@ -77,9 +84,8 @@ export type FSMConfig<
 > = {
   id?: string;
   initial: TState;
-  context?: TContext;
   states: { [K in TState]: FSMStateConfig<TContext, TEvent, TState> };
-};
+} & FSMContextConfig<TContext>;
 
 type FSMConfigForStates<
   TContext extends MachineContext,
@@ -126,10 +132,15 @@ export type FSM<
 type FSMSetupSchemas = Pick<SetupSchemas, 'context' | 'events'>;
 type FSMSetupStates = Record<string, SetupStateSchema>;
 
+type FSMSchemaContext<TSchema extends StandardSchemaV1> =
+  StandardSchemaV1.InferOutput<TSchema> extends MachineContext
+    ? StandardSchemaV1.InferOutput<TSchema>
+    : MachineContext;
+
 type FSMSetupContext<TSchemas extends FSMSetupSchemas> = TSchemas extends {
   context: infer TSchema extends StandardSchemaV1;
 }
-  ? StandardSchemaV1.InferOutput<TSchema> & MachineContext
+  ? FSMSchemaContext<TSchema>
   : MachineContext;
 
 type FSMSetupEvents<TSchemas extends FSMSetupSchemas> = TSchemas extends {
@@ -145,7 +156,7 @@ type FSMStateContext<
   ? TSchemas extends {
       context?: infer TSchema extends StandardSchemaV1;
     }
-    ? StandardSchemaV1.InferOutput<TSchema> & MachineContext
+    ? FSMSchemaContext<TSchema>
     : TGlobalContext
   : TGlobalContext;
 
@@ -161,19 +172,110 @@ type FSMContextFromStates<
       >;
     }[keyof TStates & string];
 
+type FSMSetupStateContext<
+  TState extends string,
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext
+> = TState extends keyof TStates
+  ? FSMStateContext<TStates[TState], TGlobalContext>
+  : TGlobalContext;
+
 type FSMSetupSnapshot<
   TStates extends FSMSetupStates,
   TGlobalContext extends MachineContext,
   TMachineStates extends Record<string, unknown>
+> = [keyof TStates] extends [never]
+  ? FSMSnapshot<TGlobalContext, keyof TMachineStates & string>
+  : {
+      [K in keyof TMachineStates & string]: {
+        value: K;
+        context: FSMSetupStateContext<K, TStates, TGlobalContext>;
+      };
+    }[keyof TMachineStates & string];
+
+type FSMSetupTargetTransitionConfig<
+  TSourceContext extends MachineContext,
+  TTarget extends string,
+  TTargetContext extends MachineContext
+> = [TSourceContext] extends [TTargetContext]
+  ? { target: TTarget; context?: FSMContextPatch<TSourceContext> }
+  : {
+      target: TTarget;
+      context: TTargetContext;
+    };
+
+type FSMSetupTransitionConfig<
+  TSourceContext extends MachineContext,
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext
+> =
+  | { target?: undefined; context?: FSMContextPatch<TSourceContext> }
+  | {
+      [TTarget in keyof TStates & string]: FSMSetupTargetTransitionConfig<
+        TSourceContext,
+        TTarget,
+        FSMSetupStateContext<TTarget, TStates, TGlobalContext>
+      >;
+    }[keyof TStates & string];
+
+type FSMSetupStringTransition<
+  TSourceContext extends MachineContext,
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext
 > = {
-  [K in keyof TMachineStates & string]: {
-    value: K;
-    context: FSMStateContext<
-      K extends keyof TStates ? TStates[K] : {},
-      TGlobalContext
+  [TTarget in keyof TStates & string]: [TSourceContext] extends [
+    FSMSetupStateContext<TTarget, TStates, TGlobalContext>
+  ]
+    ? TTarget
+    : never;
+}[keyof TStates & string];
+
+type FSMSetupTransitionFunction<
+  TSourceContext extends MachineContext,
+  TEvent extends EventObject,
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext
+> = (
+  args: FSMArgs<TSourceContext, TEvent>
+) =>
+  | FSMSetupTransitionConfig<TSourceContext, TStates, TGlobalContext>
+  | undefined;
+
+type FSMSetupTransition<
+  TSourceContext extends MachineContext,
+  TEvent extends EventObject,
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext,
+  TMachineStates extends Record<string, unknown>
+> = [keyof TStates] extends [never]
+  ? FSMTransition<TSourceContext, TEvent, keyof TMachineStates & string>
+  :
+      | FSMSetupStringTransition<TSourceContext, TStates, TGlobalContext>
+      | FSMSetupTransitionConfig<TSourceContext, TStates, TGlobalContext>
+      | FSMSetupTransitionFunction<
+          TSourceContext,
+          TEvent,
+          TStates,
+          TGlobalContext
+        >;
+
+type FSMSetupStateConfig<
+  TSourceContext extends MachineContext,
+  TEvent extends EventObject,
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext,
+  TMachineStates extends Record<string, unknown>
+> = {
+  on?: {
+    [TType in TEvent['type'] & string]?: FSMSetupTransition<
+      TSourceContext,
+      EventForType<TEvent, TType>,
+      TStates,
+      TGlobalContext,
+      TMachineStates
     >;
   };
-}[keyof TMachineStates & string];
+};
 
 type FSMSetupMachineConfig<
   TSchemas extends FSMSetupSchemas,
@@ -182,19 +284,19 @@ type FSMSetupMachineConfig<
 > = {
   id?: string;
   initial: keyof TMachineStates & string;
-  context?: NoInfer<FSMContextFromStates<TStates, FSMSetupContext<TSchemas>>>;
   states: {
-    [K in keyof TMachineStates]: FSMStateConfig<
+    [K in keyof TMachineStates]: FSMSetupStateConfig<
       FSMStateContext<
         K extends keyof TStates ? TStates[K] : {},
         FSMSetupContext<TSchemas>
       >,
       FSMSetupEvents<TSchemas>,
-      keyof TMachineStates & string,
-      FSMContextFromStates<TStates, FSMSetupContext<TSchemas>>
+      TStates,
+      FSMSetupContext<TSchemas>,
+      TMachineStates
     >;
   };
-};
+} & FSMContextConfig<FSMContextFromStates<TStates, FSMSetupContext<TSchemas>>>;
 
 export type FSMSetupConfig<
   TSchemas extends FSMSetupSchemas = {},
@@ -208,12 +310,7 @@ export type FSMSetupReturn<
   TSchemas extends FSMSetupSchemas,
   TStates extends FSMSetupStates
 > = {
-  createFSM<
-    const TMachineStates extends Record<string, unknown> = Record<
-      string,
-      unknown
-    >
-  >(
+  createFSM<const TMachineStates extends Record<string, unknown>>(
     config: FSMSetupMachineConfig<TSchemas, TStates, TMachineStates>
   ): FSM<
     FSMContextFromStates<TStates, FSMSetupContext<TSchemas>>,
@@ -241,7 +338,13 @@ export function createFSM<
   const TStates extends Record<string, unknown> = Record<string, unknown>
 >(
   config: FSMConfigForStates<TContext, TEvent, TStates>
-): FSM<TContext, TEvent, keyof TStates & string> {
+): FSM<
+  TContext,
+  TEvent,
+  keyof TStates & string,
+  FSMSnapshot<TContext, keyof TStates & string>,
+  FSMConfigForStates<TContext, TEvent, TStates>
+> {
   type TState = keyof TStates & string;
   const initialState: FSMSnapshot<TContext, TState> = {
     value: config.initial,
@@ -279,9 +382,17 @@ export function createFSM<
       }
 
       const contextPatch = result.context;
-      const context = contextPatch
-        ? { ...snapshot.context, ...contextPatch }
-        : snapshot.context;
+      let context = snapshot.context;
+      if (contextPatch !== undefined) {
+        const nextContext = { ...snapshot.context, ...contextPatch };
+        if (
+          Object.keys(contextPatch).some(
+            (key) => nextContext[key] !== snapshot.context[key]
+          )
+        ) {
+          context = nextContext;
+        }
+      }
       const value = result.target ?? snapshot.value;
 
       if (value === snapshot.value && context === snapshot.context) {

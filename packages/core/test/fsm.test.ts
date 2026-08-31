@@ -43,10 +43,24 @@ describe('createFSM', () => {
     expect(next).toEqual({ value: 'ready', context: { count: 2 } });
   });
 
+  it('preserves snapshot identity for no-op context patches', () => {
+    const machine = createFSM<{ count: number }, { type: 'noop' }>({
+      context: { count: 0 },
+      initial: 'idle',
+      states: {
+        idle: { on: { noop: { context: { count: 0 } } } }
+      }
+    });
+
+    expect(machine.transition(machine.initialState, { type: 'noop' })).toBe(
+      machine.initialState
+    );
+  });
+
   it('ignores inherited event names', () => {
     const machine = createFSM({
       initial: 'idle',
-      states: { idle: {} }
+      states: { idle: { on: { ping: 'idle' } } }
     });
 
     expect(

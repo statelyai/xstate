@@ -11,7 +11,9 @@ describe('xstate/fsm setup', () => {
         context: types<LoadingContext | LoadedContext>(),
         events: {
           resolve: types<{ user: User }>(),
-          reset: types<{}>()
+          reset: types<{}>(),
+          retry: types<{}>(),
+          load: types<{}>()
         }
       },
       states: {
@@ -33,7 +35,15 @@ describe('xstate/fsm setup', () => {
                 user: event.user
               }
             }),
-            reset: { context: { status: 'loading' as const } }
+            reset: { context: { status: 'loading' as const } },
+            retry: 'loading',
+            load: {
+              target: 'loaded',
+              context: {
+                status: 'loaded' as const,
+                user: { id: 'static' }
+              }
+            }
           }
         },
         loaded: {
@@ -45,6 +55,23 @@ describe('xstate/fsm setup', () => {
           }
         }
       }
+    });
+
+    expect(machine.initialState).toEqual({
+      value: 'loading',
+      context: { status: 'loading' }
+    });
+
+    expect(machine.transition(machine.initialState, { type: 'retry' })).toEqual(
+      {
+        value: 'loading',
+        context: { status: 'loading' }
+      }
+    );
+
+    expect(machine.transition(machine.initialState, { type: 'load' })).toEqual({
+      value: 'loaded',
+      context: { status: 'loaded', user: { id: 'static' } }
     });
 
     const next = machine.transition(machine.initialState, {
@@ -67,5 +94,65 @@ describe('xstate/fsm setup', () => {
     machine.transition(machine.initialState, { type: 'unknown' });
     // @ts-expect-error event payload must match its schema
     machine.transition(machine.initialState, { type: 'resolve', user: 1 });
+  });
+
+  it('requires context when entering a state with a different schema', () => {
+    const app = setup({
+      states: {
+        loading: { schemas: { context: types<LoadingContext>() } },
+        loaded: { schemas: { context: types<LoadedContext>() } }
+      }
+    });
+
+    // @ts-expect-error a declared context schema makes initial context required
+    app.createFSM({
+      initial: 'loading',
+      states: { loading: {}, loaded: {} }
+    });
+
+    app.createFSM({
+      initial: 'loading',
+      context: { status: 'loading' },
+      states: {
+        loading: {
+          on: {
+            // @ts-expect-error a string target cannot retain incompatible context
+            finish: 'loaded'
+          }
+        },
+        loaded: {}
+      }
+    });
+
+    app.createFSM({
+      initial: 'loading',
+      context: { status: 'loading' },
+      states: {
+        loading: {
+          on: {
+            // @ts-expect-error target context is missing the required user
+            finish: {
+              target: 'loaded',
+              context: { status: 'loaded' }
+            }
+          }
+        },
+        loaded: {}
+      }
+    });
+
+    app.createFSM({
+      initial: 'loading',
+      context: { status: 'loading' },
+      states: {
+        loading: {
+          on: {
+            // @ts-expect-error function transitions must provide target context
+            finish: () => ({ target: 'loaded' })
+          }
+        },
+        loaded: {}
+      }
+    });
   });
 });

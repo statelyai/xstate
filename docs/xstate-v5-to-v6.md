@@ -977,7 +977,7 @@ These exports have been **removed** from `xstate`:
 These exports have been **added**:
 
 - `setup` (reshaped - see §4) and `createSystem` for typed system registries
-- `createFSM` and its related `FSMConfig`/`FSMSnapshot` types for tiny, pure flat finite state machines
+- `createFSM` and its related types for tiny, pure flat finite state machines: `FSM`, `FSMArgs`, `FSMConfig`, `FSMContextPatch`, `FSMSnapshot`, `FSMStateConfig`, `FSMTransition`, `FSMTransitionConfig`, `FSMTransitionFunction`
 - `createStateConfig`
 - `checkStateIn`
 - `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
