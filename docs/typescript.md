@@ -30,9 +30,10 @@ const machine = setup({
 ```
 
 Structural state contracts are checked only when declared. For example,
-`type: 'parallel'` forbids `initial`, while `type: 'compound'` requires one;
-the machine config may provide those defaults through `setup(...)`. Existing
-setups that declare only schemas keep their permissive machine-config typing.
+`type: 'parallel'` forbids `initial`, while `type: 'compound'` requires one.
+`setup(...)` can supply those defaults, so the machine config may omit them.
+Existing setups that declare only schemas keep their permissive machine-config
+typing.
 
 Public schema event keys create typed methods on `actor.trigger`; internal
 schema keys do not appear in the public trigger namespace.
