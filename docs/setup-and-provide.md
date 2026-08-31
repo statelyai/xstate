@@ -41,6 +41,10 @@ When a structural contract declares child states, `createMachine(...)` still
 provides those child configs; setup supplies their contracts and defaults, not
 their runtime behavior.
 
+When setup is extended, repeated state names merge recursively. Extension
+fields and schemas win conflicts, while descendants declared only by the base
+or extension are preserved.
+
 Input requirements follow entry semantics. A transition that targets a
 composite state supplies that state's input, while the composite state's
 `initial` supplies input for its newly entered child. A parallel state follows

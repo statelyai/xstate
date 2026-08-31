@@ -596,15 +596,23 @@ type SetupStateChildSchemas<TStateSchema extends SetupStateSchema> =
     ? TStateSchema['states']
     : Record<string, SetupStateSchema>;
 
-type SetupStateIds<TStateSchemas extends Record<string, SetupStateSchema>> = {
-  [K in keyof TStateSchemas & string]: TStateSchemas[K] extends {
-    id: infer TId extends string;
-  }
-    ? TId
-    : TStateSchemas[K]['states'] extends Record<string, SetupStateSchema>
-      ? SetupStateIds<TStateSchemas[K]['states']>
-      : never;
-}[keyof TStateSchemas & string];
+type SetupStateIds<TStateSchemas extends Record<string, SetupStateSchema>> =
+  | {
+      [K in keyof TStateSchemas & string]: TStateSchemas[K] extends {
+        id: infer TId extends string;
+      }
+        ? TId
+        : never;
+    }[keyof TStateSchemas & string]
+  | {
+      [K in keyof TStateSchemas &
+        string]: TStateSchemas[K]['states'] extends Record<
+        string,
+        SetupStateSchema
+      >
+        ? SetupStateIds<TStateSchemas[K]['states']>
+        : never;
+    }[keyof TStateSchemas & string];
 
 type SetupStateSchemaAtTarget<
   TStateSchemas extends Record<string, SetupStateSchema>,
@@ -1108,12 +1116,14 @@ type SetupTargetArrayInputConstraint<
     ? unknown
     : [TTargets[number]] extends [never]
       ? unknown
-      : Exclude<
-            TTargets[number],
-            KnownSetupStateTarget<TStateSchemas>
-          > extends never
-        ? SetupTargetArrayInputConfig<TStateSchemas, TTargets>
-        : unknown
+      : string extends StatePaths<TStateSchemas>
+        ? unknown
+        : Exclude<
+              TTargets[number],
+              KnownSetupStateTarget<TStateSchemas>
+            > extends never
+          ? SetupTargetArrayInputConfig<TStateSchemas, TTargets>
+          : never
   : unknown;
 
 type SetupTransitionValueTargetArrayInputConstraint<
@@ -1676,9 +1686,9 @@ type StateSchemaMetadataField<
   TSetup extends StateSchema,
   TKey extends keyof StateSchema
 > =
-  TSetup extends Record<TKey, infer TValue>
+  TConfig extends Record<TKey, infer TValue>
     ? { [K in TKey]: TValue }
-    : TConfig extends Record<TKey, infer TValue>
+    : TSetup extends Record<TKey, infer TValue>
       ? { [K in TKey]: TValue }
       : {};
 
@@ -3474,6 +3484,56 @@ function mergeMaps<TLeft, TRight>(
   return left || right ? ({ ...left, ...right } as TLeft & TRight) : undefined;
 }
 
+function mergeSetupStateSchemas(
+  left: Record<string, SetupStateSchema> | undefined,
+  right: Record<string, SetupStateSchema> | undefined
+): Record<string, SetupStateSchema> | undefined {
+  if (!left && !right) {
+    return undefined;
+  }
+
+  if (!left) {
+    return right;
+  }
+
+  if (!right) {
+    return left;
+  }
+
+  return Object.fromEntries(
+    Array.from(new Set([...Object.keys(left), ...Object.keys(right)])).map(
+      (key) => {
+        const leftState = left[key];
+        const rightState = right[key];
+
+        if (!leftState) {
+          return [key, rightState];
+        }
+
+        if (!rightState) {
+          return [key, leftState];
+        }
+
+        const schemas = mergeSchemas(leftState.schemas, rightState.schemas);
+        const states = mergeSetupStateSchemas(
+          leftState.states,
+          rightState.states
+        );
+
+        return [
+          key,
+          {
+            ...leftState,
+            ...rightState,
+            ...(schemas ? { schemas } : undefined),
+            ...(states ? { states } : undefined)
+          }
+        ];
+      }
+    )
+  );
+}
+
 function mergeSchemas(
   left: SetupSchemas | undefined,
   right: SetupSchemas | undefined
@@ -3554,7 +3614,7 @@ function mergeSetupConfigs<
     ...base,
     ...extension,
     schemas: mergeSchemas(base.schemas, extension.schemas),
-    states: mergeMaps(base.states, extension.states),
+    states: mergeSetupStateSchemas(base.states, extension.states),
     actions: mergeMaps(base.actions, extension.actions),
     actors: mergeMaps(base.actors, extension.actors),
     guards: mergeMaps(base.guards, extension.guards),

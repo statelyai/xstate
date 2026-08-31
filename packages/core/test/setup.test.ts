@@ -164,6 +164,47 @@ describe('setup', () => {
     expect(machine.states.done.schemas).toBeUndefined();
   });
 
+  it('deep-merges repeated nested state contracts through extend', () => {
+    const leftInput = types<{ left: number }>();
+    const rightInput = types<{ right: boolean }>();
+
+    const s = setup({
+      states: {
+        parent: {
+          type: 'compound',
+          initial: 'left',
+          states: {
+            left: { schemas: { input: leftInput } }
+          }
+        }
+      }
+    }).extend({
+      states: {
+        parent: {
+          states: {
+            right: { schemas: { input: rightInput } }
+          }
+        }
+      }
+    });
+
+    expect(s.states.parent.states?.left.schemas?.input).toBe(leftInput);
+    expect(s.states.parent.states?.right.schemas?.input).toBe(rightInput);
+
+    const machine = s.createMachine({
+      initial: 'parent',
+      states: {
+        parent: {
+          initial: { target: 'left', input: { left: 1 } },
+          states: { left: {}, right: {} }
+        }
+      }
+    });
+
+    expect(machine.states.parent.states.left.schemas?.input).toBe(leftInput);
+    expect(machine.states.parent.states.right.schemas?.input).toBe(rightInput);
+  });
+
   it('extends sources', () => {
     const calls: string[] = [];
 

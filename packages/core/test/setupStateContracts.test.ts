@@ -1112,4 +1112,128 @@ describe('setup state contracts', () => {
 
     expect(actor.getSnapshot().value).toBe('home');
   });
+
+  it('uses the authored machine ID when it overrides a setup ID', () => {
+    const machine = setup({
+      states: { home: { id: 'setup-home', route: true } }
+    }).createMachine({
+      initial: 'home',
+      states: { home: { id: 'machine-home' as const } }
+    });
+
+    expect(machine.states.home.id).toBe('machine-home');
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'xstate.route', to: '#machine-home' });
+
+    if (false as boolean) {
+      actor.send({
+        type: 'xstate.route',
+        // @ts-expect-error - the setup ID is overridden by the machine ID
+        to: '#setup-home'
+      });
+    }
+
+    expect(actor.getSnapshot().value).toBe('home');
+  });
+
+  it('keeps descendant IDs in strict target contracts when parents have IDs', () => {
+    const s = setup({
+      schemas: {
+        events: {
+          TO_LEFT: types<{}>(),
+          TO_BOTH: types<{}>()
+        }
+      },
+      states: {
+        idle: {},
+        active: {
+          type: 'parallel',
+          id: 'active-state',
+          states: {
+            left: {
+              type: 'compound',
+              initial: 'ready',
+              states: {
+                ready: {
+                  id: 'left-ready',
+                  schemas: { input: types<{ leftId: number }>() }
+                }
+              }
+            },
+            right: {
+              type: 'compound',
+              initial: 'ready',
+              states: {
+                ready: {
+                  id: 'right-ready',
+                  schemas: { input: types<{ rightId: boolean }>() }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    s.createStateConfig('idle', {
+      on: {
+        TO_LEFT: { target: '#left-ready', input: { leftId: 1 } },
+        TO_BOTH: {
+          target: ['#left-ready', '#right-ready'],
+          input: { leftId: 1, rightId: true }
+        }
+      }
+    });
+
+    const machine = s.createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            TO_LEFT: { target: '#left-ready', input: { leftId: 1 } },
+            TO_BOTH: {
+              target: ['#left-ready', '#right-ready'],
+              input: { leftId: 1, rightId: true }
+            }
+          }
+        },
+        active: {
+          states: {
+            left: {
+              initial: { target: 'ready', input: { leftId: 1 } },
+              states: { ready: {} }
+            },
+            right: {
+              initial: { target: 'ready', input: { rightId: true } },
+              states: { ready: {} }
+            }
+          }
+        }
+      }
+    });
+
+    if (false as boolean) {
+      s.createStateConfig('idle', {
+        on: {
+          // @ts-expect-error - the descendant ID must be known
+          TO_LEFT: { target: '#missing', input: { leftId: 1 } }
+        }
+      });
+
+      s.createStateConfig('idle', {
+        on: {
+          // @ts-expect-error - the descendant ID must be known in the target set
+          TO_BOTH: {
+            target: ['#left-ready', '#missing'],
+            input: { leftId: 1, rightId: true }
+          }
+        }
+      });
+    }
+
+    expect(machine.states.active.states.left.states.ready.id).toBe(
+      'left-ready'
+    );
+  });
 });
