@@ -525,6 +525,21 @@ type SetupOrConfigSchemaMap<
 type SetupStateKeys<TStateSchemas extends Record<string, SetupStateSchema>> =
   keyof TStateSchemas & string;
 
+type HasExplicitSetupStateContracts<
+  TStateSchemas extends Record<string, SetupStateSchema>
+> = string extends keyof TStateSchemas
+  ? false
+  : [keyof TStateSchemas] extends [never]
+    ? false
+    : true;
+
+type UncheckedSetupStateSchema = {
+  schemas?: never;
+  states?: never;
+};
+
+type UncheckedSetupStateSchemas = Record<string, UncheckedSetupStateSchema>;
+
 type SetupStateKey<TStateSchemas extends Record<string, SetupStateSchema>> =
   string extends SetupStateKeys<TStateSchemas>
     ? string
@@ -1378,6 +1393,17 @@ type ValidateSetupTargetArrayInputs<
   TRootStateSchemas
 >;
 
+type ValidateSetupStateContracts<
+  TConfig,
+  TStateSchemas extends Record<string, SetupStateSchema>
+> =
+  HasExplicitSetupStateContracts<TStateSchemas> extends true
+    ? ValidateSetupHistoryInputs<TConfig, TStateSchemas> &
+        ValidateHistoryDefaults<MergeSetupConfig<TConfig, TStateSchemas>> &
+        ValidateStateTargets<MergeSetupConfig<TConfig, TStateSchemas>> &
+        NoInfer<ValidateSetupTargetArrayInputs<TConfig, TStateSchemas>>
+    : unknown;
+
 type SetupInitialTransitionConfig<
   TStateSchema extends SetupStateSchema,
   TTarget extends string,
@@ -1898,8 +1924,19 @@ type MergeStateSchema<
     : undefined;
 } & MergeStateSchemaMetadata<TConfig, TSetup>;
 
-/** Machine config with typed state input */
-type SetupMachineConfig<
+type SetupMachineStateSchema<
+  TConfig,
+  TStateSchemas extends Record<string, SetupStateSchema>
+> =
+  HasExplicitSetupStateContracts<TStateSchemas> extends true
+    ? MergeStateSchema<
+        Cast<TConfig, StateSchema>,
+        SetupStatesToStateSchema<TStateSchemas>
+      >
+    : Cast<TConfig, StateSchema>;
+
+/** Machine config without setup-declared state contracts. */
+type SetupMachineConfigBase<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TStateKeys extends string,
   TSchemas extends SetupSchemas,
@@ -1979,11 +2016,14 @@ type SetupMachineConfig<
         }) => number);
   };
   initial?:
-    | SetupInitialStateKey<TStateSchemas, TStateKeys>
-    | InitialTransitionWithInput<TStateSchemas, TContext, TEvent>
+    | string
+    | {
+        target: string;
+        input?: unknown;
+      }
     | undefined;
   on?: StateTransitions<
-    TStateSchemas,
+    UncheckedSetupStateSchemas,
     TContext,
     SetupContextShape<TSchemas, TContextSchema, TContext>,
     TEvent,
@@ -1997,7 +2037,7 @@ type SetupMachineConfig<
     TSystemRegistry
   >;
   always?: StateTransitionConfigOrTarget<
-    TStateSchemas,
+    UncheckedSetupStateSchemas,
     TContext,
     SetupContextShape<TSchemas, TContextSchema, TContext>,
     TEvent,
@@ -2013,7 +2053,7 @@ type SetupMachineConfig<
   >;
   invoke?: SingleOrArray<
     SetupInvokeConfig<
-      TStateSchemas,
+      UncheckedSetupStateSchemas,
       TContext,
       SetupContextShape<TSchemas, TContextSchema, TContext>,
       TEvent,
@@ -2029,8 +2069,8 @@ type SetupMachineConfig<
     >
   >;
   states?: StatesWithInput<
-    TStateSchemas,
-    TStateSchemas,
+    UncheckedSetupStateSchemas,
+    UncheckedSetupStateSchemas,
     TContext,
     SetupContextShape<TSchemas, TContextSchema, TContext>,
     TEvent,
@@ -2048,6 +2088,175 @@ type SetupMachineConfig<
     TStateKeys
   >;
 };
+
+/** Machine config with typed state input */
+type SetupMachineConfig<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TStateKeys extends string,
+  TSchemas extends SetupSchemas,
+  TContextSchema extends StandardSchemaV1,
+  TEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TInternalEventSchemaMap extends Record<string, StandardSchemaV1>,
+  TEmittedSchemaMap extends Record<string, StandardSchemaV1>,
+  TInputSchema extends StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1,
+  TMetaSchema extends StandardSchemaV1,
+  TTagSchema extends StandardSchemaV1,
+  TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TDelays extends string,
+  TTag extends string,
+  TEmitted extends EventObject,
+  TMeta extends MetaObject,
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays'],
+  TSystemRegistry extends SystemRegistry,
+  TContextRequired extends boolean,
+  TRootDelays extends string = TDelays,
+  TRootActionMap extends Sources['actions'] = TActionMap,
+  TRootActorMap extends Sources['actors'] = TActorMap,
+  TRootGuardMap extends Sources['guards'] = TGuardMap
+> =
+  HasExplicitSetupStateContracts<TStateSchemas> extends true
+    ? Omit<
+        SetupMachineConfigBase<
+          TStateSchemas,
+          TStateKeys,
+          TSchemas,
+          TContextSchema,
+          TEventSchemaMap,
+          TInternalEventSchemaMap,
+          TEmittedSchemaMap,
+          TInputSchema,
+          TOutputSchema,
+          TMetaSchema,
+          TTagSchema,
+          TChildrenSchemaMap,
+          TContext,
+          TEvent,
+          TChildren,
+          TDelays,
+          TTag,
+          TEmitted,
+          TMeta,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TSystemRegistry,
+          TContextRequired,
+          TRootDelays,
+          TRootActionMap,
+          TRootActorMap,
+          TRootGuardMap
+        >,
+        'states' | 'initial' | 'on' | 'always' | 'invoke'
+      > & {
+        initial?:
+          | SetupInitialStateKey<TStateSchemas, TStateKeys>
+          | InitialTransitionWithInput<TStateSchemas, TContext, TEvent>
+          | undefined;
+        on?: StateTransitions<
+          TStateSchemas,
+          TContext,
+          SetupContextShape<TSchemas, TContextSchema, TContext>,
+          TEvent,
+          TEmitted,
+          TChildren,
+          TMeta,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TSystemRegistry
+        >;
+        always?: StateTransitionConfigOrTarget<
+          TStateSchemas,
+          TContext,
+          SetupContextShape<TSchemas, TContextSchema, TContext>,
+          TEvent,
+          TEvent,
+          TEmitted,
+          TChildren,
+          TMeta,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TSystemRegistry
+        >;
+        invoke?: SingleOrArray<
+          SetupInvokeConfig<
+            TStateSchemas,
+            TContext,
+            SetupContextShape<TSchemas, TContextSchema, TContext>,
+            TEvent,
+            TEmitted,
+            TChildren,
+            TMeta,
+            TActionMap,
+            TActorMap,
+            TGuardMap,
+            TDelayMap,
+            TSystemRegistry,
+            SetupInput<TSchemas, TInputSchema>
+          >
+        >;
+        states?: StatesWithInput<
+          TStateSchemas,
+          TStateSchemas,
+          TContext,
+          SetupContextShape<TSchemas, TContextSchema, TContext>,
+          TEvent,
+          TChildren,
+          TDelays,
+          TTag,
+          SetupOutput<TSchemas, TOutputSchema>,
+          TEmitted,
+          TMeta,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TSystemRegistry,
+          TStateKeys
+        >;
+      }
+    : SetupMachineConfigBase<
+        TStateSchemas,
+        TStateKeys,
+        TSchemas,
+        TContextSchema,
+        TEventSchemaMap,
+        TInternalEventSchemaMap,
+        TEmittedSchemaMap,
+        TInputSchema,
+        TOutputSchema,
+        TMetaSchema,
+        TTagSchema,
+        TChildrenSchemaMap,
+        TContext,
+        TEvent,
+        TChildren,
+        TDelays,
+        TTag,
+        TEmitted,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TContextRequired,
+        TRootDelays,
+        TRootActionMap,
+        TRootActorMap,
+        TRootGuardMap
+      >;
 
 /** States config type that provides typed input for known states */
 type StatesWithInput<
@@ -3142,10 +3351,7 @@ export interface SetupReturn<
         TValidator
       > &
       ValidateSetupDelayReferences<TConfig, TSetupDelays> &
-      ValidateSetupHistoryInputs<TConfig, TStates> &
-      ValidateHistoryDefaults<MergeSetupConfig<TConfig, TStates>> &
-      ValidateStateTargets<MergeSetupConfig<TConfig, TStates>> &
-      NoInfer<ValidateSetupTargetArrayInputs<TConfig, TStates>> &
+      ValidateSetupStateContracts<TConfig, TStates> &
       ValidateRegistryKeys<
         TConfig,
         TSystemRegistry,
@@ -3154,34 +3360,19 @@ export interface SetupReturn<
   ): StateMachine<
     SetupContext<TSchemas, TContextSchema>,
     | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
-    | ([
-        RoutableStateId<
-          MergeStateSchema<
-            Cast<TConfig, StateSchema>,
-            SetupStatesToStateSchema<TStates>
-          >
-        >
-      ] extends [never]
+    | ([RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>] extends [
+        never
+      ]
         ? never
         : {
             type: 'xstate.route';
-            to: RoutableStateId<
-              MergeStateSchema<
-                Cast<TConfig, StateSchema>,
-                SetupStatesToStateSchema<TStates>
-              >
-            >;
+            to: RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>;
           }),
     Cast<
       MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
       Record<string, AnyActorRef | undefined>
     >,
-    StateValueFromStateSchema<
-      MergeStateSchema<
-        Cast<TConfig, StateSchema>,
-        SetupStatesToStateSchema<TStates>
-      >
-    >,
+    StateValueFromStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
     TTag & string,
     [SetupSchema<TSchemas, 'input'>] extends [never]
       ? TInput
@@ -3189,10 +3380,7 @@ export interface SetupReturn<
     SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig>,
     SetupEmitted<TSchemas, TEmittedSchemaMap>,
     SetupMeta<TSchemas, TMetaSchema>,
-    MergeStateSchema<
-      Cast<TConfig, StateSchema>,
-      SetupStatesToStateSchema<TStates>
-    >,
+    SetupMachineStateSchema<TConfig, TStates>,
     MergeSourceMaps<
       SetupActions<TSchemas, TSetupActionMap>,
       MergeSourceMaps<InferActions<TActionSchemaMap>, TActionMap>
