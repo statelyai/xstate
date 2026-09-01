@@ -105,7 +105,7 @@ export type ValidateEffectSetupStates<TStates> = {
     : TStates[K];
 };
 
-export type ToStandardSetupStateSchema<TStateSchema> =
+type ToStandardSetupStateSchema<TStateSchema> =
   TStateSchema extends EffectSetupStateSchema
     ? {
         [K in keyof TStateSchema]: K extends 'schemas'
