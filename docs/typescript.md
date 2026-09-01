@@ -3,7 +3,7 @@ title: TypeScript
 description: Define schemas and derive XState types.
 ---
 
-Define schemas with `setup(...)`. XState infers context, events, input and output from them.
+Define schemas with `setup(...)`. XState infers context, events, input and output from them. State contracts can additionally declare state-node structure and defaults, including `type`, `initial`, `history`, `target` and `id`.
 
 Enable TypeScript's `strict` mode. Keep schemas next to actor logic so runtime validation and inferred types describe the same contract.
 
@@ -28,6 +28,12 @@ const machine = setup({
   states: { active: {} }
 });
 ```
+
+Structural state contracts are checked only when declared. For example,
+`type: 'parallel'` forbids `initial`, while `type: 'compound'` requires one.
+`setup(...)` can supply those defaults, so the machine config may omit them.
+Existing setups that declare only schemas keep their permissive machine-config
+typing.
 
 Public schema event keys create typed methods on `actor.trigger`; internal
 schema keys do not appear in the public trigger namespace.

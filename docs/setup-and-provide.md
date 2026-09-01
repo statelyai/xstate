@@ -29,6 +29,35 @@ const orderMachine = orderSetup.createMachine({
 
 `setup(...)` also accepts `states`, where each state declares its own schemas. That is what types the `initial: { target, input }` form and transitions carrying [state input](state-input.md).
 
+State contracts can also declare structural metadata: `type`, `initial`,
+`history`, `target`, and `id` (plus `route: true` for a routable state).
+`createMachine(...)` may omit those defaults, and the resulting state value and
+state-node metadata retain their types. Declaring a state `type` also checks
+its compatible machine shape: compound states need an `initial`, parallel
+states do not accept one, history states need a non-empty `target`, and final
+or choice states cannot define child-state behavior. Setups that only declare
+`schemas` remain permissive for compatibility with existing machine configs.
+When a structural contract declares child states, `createMachine(...)` still
+provides those child configs; setup supplies their contracts and defaults, not
+their runtime behavior.
+
+When setup is extended, repeated state names merge recursively. Extension
+fields and schemas win conflicts, while descendants declared only by the base
+or extension are preserved.
+
+Input requirements follow entry semantics. A transition that targets a
+composite state supplies that state's input, while the composite state's
+`initial` supplies input for its newly entered child. A parallel state follows
+the same rule independently for each region, so every region with an
+input-bearing initial child needs an object-form `initial` transition. The
+path overload of `createStateConfig(...)` resolves relative targets such as
+`.child` and `.foo.grandchild` against the setup tree and types their input.
+
+History defaults do not have an input field. Therefore a setup history state
+cannot default directly to a state with required input; target a composite or
+parallel state whose normal initial transitions construct the required child
+inputs instead.
+
 State schemas can also declare `schemas.output` for the value emitted when that
 state completes. Final-state `output` functions and the parent state's `onDone`
 event use that local type. For a parallel state, declare the aggregate object on

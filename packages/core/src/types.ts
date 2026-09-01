@@ -1506,6 +1506,7 @@ export type Mapper<
   args: {
     context: _TCtx;
     event: TExpressionEvent;
+    input?: Record<string, unknown>;
     self: ActorSelf<
       MachineSnapshot<
         _TCtx & MachineContext,
@@ -2642,6 +2643,7 @@ export type StateSchema = {
   contextSchema?: StandardSchemaV1;
   outputSchema?: StandardSchemaV1;
   input?: unknown;
+  initial?: unknown;
 
   // Other types
   // Needed because TS treats objects with all optional properties as a "weak" object
