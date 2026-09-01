@@ -62,8 +62,14 @@ export {
 export { createMachine, createStateConfig } from './createMachine.ts';
 export {
   createFSM,
-  type FSMActorLogic,
+  type FSM,
+  type FSMArgs,
   type FSMConfig,
+  type FSMContextPatch,
+  type FSMStateConfig,
+  type FSMTransition,
+  type FSMTransitionConfig,
+  type FSMTransitionFunction,
   type FSMSnapshot
 } from './fsm.ts';
 export { createMachineFromConfig } from './createMachineFromConfig.ts';
@@ -142,7 +148,10 @@ export { getStateNodes } from './stateUtils.ts';
 export type {
   ActorSystem,
   ActorSystemRuntime,
-  AnyActorSystem
+  AnyActorSystem,
+  DeadLetterDetail,
+  EventRejection,
+  EventRejectionReason
 } from './system.ts';
 export { toPromise } from './toPromise.ts';
 export type * from './types.ts';

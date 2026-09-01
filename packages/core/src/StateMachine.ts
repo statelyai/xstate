@@ -42,12 +42,13 @@ import {
 } from './stateUtils.ts';
 import {
   beginSpawnAllocation,
+  createDeadLetterEffect,
   createSpawnEffect,
   resolveActionsWithContext,
   mergeActorIdCounters,
   takeSpawnAllocationCounters
 } from './transitionActions.ts';
-import { AnyActorSystem } from './system.ts';
+import { AnyActorSystem, type DeadLetterDetail } from './system.ts';
 import type {
   ActorLogic,
   ActorLogicTransitionResult,
@@ -82,6 +83,8 @@ import type {
 } from './types.ts';
 import {
   AnyMachineSchemas,
+  DelaySourceMap,
+  GuardSourceMap,
   Sources,
   Next_MachineConfig,
   MachineOptions
@@ -485,8 +488,16 @@ export class StateMachine<
   >(sources: {
     actions?: Partial<TActionMap>;
     actors?: TProvidedActorMap & ProvidedActors<TActorMap, TProvidedActorMap>;
-    guards?: Partial<TGuardMap>;
-    delays?: Partial<TDelayMap>;
+    // Mapped over the known names (not an index signature) so unknown source
+    // names are still rejected, while entries keep typed args/return values.
+    guards?: Partial<TGuardMap> & {
+      [K in keyof TGuardMap]?: GuardSourceMap<TContext, TEvent>[string];
+    };
+    // Delays are widened to `number | fn` per entry (not Partial<TDelayMap>)
+    // so a fixed delay can be swapped for a computed one and vice versa.
+    delays?: {
+      [K in keyof TDelayMap]?: DelaySourceMap<TContext, TEvent>[string];
+    };
   }): this {
     const { actions, guards, actors, delays } = this.sources;
 
@@ -611,19 +622,40 @@ export class StateMachine<
         this,
         snapshot as SnapshotFrom<this>
       )) as NonNullable<typeof actorScope>;
+    if (usesInertScope) {
+      setInertActorScopeSnapshot(resolvedActorScope, snapshot, false);
+    }
     if (this.validator) {
-      assertValid(this.validator, {
+      const sourceRef = actorScope && (actorScope.self as any)._lastSourceRef;
+      const eventOrigin = sourceRef ? 'actor' : 'external';
+      const error = this.validator.check({
         kind: 'event',
         logic: this,
         event,
-        eventOrigin:
-          actorScope && (actorScope.self as any)._lastSourceRef
-            ? 'actor'
-            : 'external'
+        eventOrigin
       });
-    }
-    if (usesInertScope) {
-      setInertActorScopeSnapshot(resolvedActorScope, snapshot, false);
+      if (error) {
+        // Boundary fault: an invalid event arriving from outside the machine
+        // is rejected (never delivered), not routed to the error channel. The
+        // snapshot is returned unchanged; the rejection is represented as an
+        // effect so hosts and the actor runtime can report it.
+        return [
+          snapshot,
+          [
+            createDeadLetterEffect(
+              resolvedActorScope,
+              sourceRef,
+              event,
+              'invalidEvent',
+              {
+                issues: (error as { issues?: DeadLetterDetail['issues'] })
+                  .issues,
+                error
+              }
+            ) as ExecutableActionObjectFromLogic<this>
+          ]
+        ];
+      }
     }
     beginSpawnAllocation(resolvedActorScope);
     const fastSnapshot = this._transitionFast(
@@ -1326,7 +1358,17 @@ export class StateMachine<
     const usesInertScope = !actorScope;
     const resolvedActorScope = (actorScope ??
       createInertActorScope(this)) as NonNullable<typeof actorScope>;
-    const persistedMachine = (snapshot as any).machine;
+    const snapshotMachine = (snapshot as any).machine;
+    // A live machine snapshot carries its producing machine so helpers such as
+    // `matches()` can resolve state nodes. That runtime association is not the
+    // persisted `{ id, version }` identity written by getPersistedSnapshot().
+    const persistedMachine =
+      snapshotMachine &&
+      typeof snapshotMachine === 'object' &&
+      typeof snapshotMachine.transition === 'function' &&
+      'root' in snapshotMachine
+        ? undefined
+        : snapshotMachine;
     const legacyPersistedVersion: string | undefined = (snapshot as any)
       .version;
     const persistedVersion: string | undefined =

@@ -5,7 +5,14 @@ import { AsyncActorLogic } from './actors/promise.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
-import type { ActorSystemRuntime, AnyActorSystem, Clock } from './system.ts';
+import type {
+  ActorSystemRuntime,
+  AnyActorSystem,
+  Clock,
+  DeadLetterDetail,
+  EventRejection,
+  EventRejectionReason
+} from './system.ts';
 
 // this is needed to make JSDoc `@link` work properly
 // oxlint-disable-next-line no-unused-vars
@@ -153,29 +160,32 @@ export type ActionArgs<
 };
 
 export type InputFrom<T> =
-  T extends StateMachine<
-    infer _TContext,
+  // Resolve the actor-logic contract first. Setup-created machines intersect
+  // StateMachine with literal identity metadata; inferring StateMachine's
+  // generic parameters through that intersection widens optional input.
+  T extends ActorLogic<
+    infer _TSnapshot,
     infer _TEvent,
-    infer _TChildren,
-    infer _TStateValue,
-    infer _TTag,
     infer TInput,
-    infer _TOutput,
-    infer _TEmitted,
-    infer _TMeta,
-    infer _TStateSchema,
-    infer _TActionMap,
-    infer _TActorMap,
-    infer _TGuardMap,
-    infer _TDelayMap
+    infer _TSystem,
+    infer _TEmitted
   >
     ? TInput
-    : T extends ActorLogic<
-          infer _TSnapshot,
+    : T extends StateMachine<
+          infer _TContext,
           infer _TEvent,
+          infer _TChildren,
+          infer _TStateValue,
+          infer _TTag,
           infer TInput,
-          infer _TSystem,
-          infer _TEmitted
+          infer _TOutput,
+          infer _TEmitted,
+          infer _TMeta,
+          infer _TStateSchema,
+          infer _TActionMap,
+          infer _TActorMap,
+          infer _TGuardMap,
+          infer _TDelayMap
         >
       ? TInput
       : never;
@@ -315,6 +325,8 @@ export interface TransitionConfig<
   >;
   meta?: TMeta;
   description?: string;
+  /** @internal Overrides transition-domain selection for compiled formats. */
+  _transitionDomain?: 'internal' | 'external';
 }
 
 export interface InitialTransitionConfig<
@@ -592,7 +604,7 @@ export type TransitionConfigFunction<
     TGuardMap,
     TDelayMap
   > & { input: TInput },
-  enq: EnqueueObject<TEvent, TEmitted>
+  enq: EnqueueObject<TEvent, TEmitted, SystemRegistry, TActorMap>
 ) => {
   target?: string | string[];
   // target?: keyof TSS['states'];
@@ -1557,6 +1569,7 @@ export type InitialTransitionDefinition = {
         context: MachineContext;
         event: EventObject;
       }) => Record<string, unknown>);
+  to?: ((...args: any[]) => any) | undefined;
 };
 
 export type TransitionDefinitionMap<
@@ -1762,7 +1775,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *
    * @remarks
    * If a callback function is provided, it can accept an inspection event
-   * argument. The inspection protocol has two event types:
+   * argument. The inspection protocol has three event types:
    *
    * - `@xstate.actor` - An actor ref was created in the system (announces actor
    *   topology: identity + parent).
@@ -1770,6 +1783,11 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *   transition with flat, always-present fields: `event`, `snapshot`,
    *   `sourceRef`, `microsteps`, executed `actions`, and `sent`/scheduled
    *   events.
+   * - `@xstate.deadletter` - An event could not be delivered: the target actor
+   *   stopped, the payload failed its declared schema, or an internal event
+   *   type was sent from outside its owning actor. Carries the `event`,
+   *   `sourceRef`, `reason`, and — for boundary rejections — `issues` and
+   *   `error`.
    *
    * @example
    *
@@ -1841,6 +1859,16 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   inspect?:
     | Observer<InspectionEvent>
     | ((inspectionEvent: InspectionEvent) => void);
+
+  /**
+   * A dead-letter hook called whenever an event is rejected at the delivery
+   * boundary of this actor system — an invalid external event payload or an
+   * internal event type sent from outside its owning actor. Rejected events
+   * are never delivered and never error the target actor.
+   *
+   * Only observed when this actor is the root of its system.
+   */
+  onRejectedEvent?: (rejection: EventRejection) => void;
 }
 
 export type AnyActor = ActorInstance<any, any, any, any>;
@@ -2947,6 +2975,25 @@ export type TerminateExecutableActionObject = BaseExecutableActionObject & {
   args: Parameters<(typeof builtInActions)['@xstate.terminate']>;
 } & ActorTermination;
 
+/**
+ * An executable effect that reports an event rejected at the delivery boundary
+ * (a dead letter). The snapshot paired with this effect is unchanged.
+ */
+export interface DeadLetterExecutableActionObject extends BaseExecutableActionObject {
+  kind: 'builtin';
+  type: '@xstate.deadLetter';
+  /** The actor that sent the event, or `undefined` for an external send. */
+  source: AnyActor | undefined;
+  /** The actor that rejected the event. */
+  target: AnyActor;
+  /** The rejected event. */
+  event: AnyEventObject;
+  /** Why the event was rejected, such as `'invalidEvent'`. */
+  reason: EventRejectionReason;
+  detail?: DeadLetterDetail;
+  args: [];
+}
+
 export type BuiltInExecutableActionObject = Values<{
   '@xstate.spawn': SpawnExecutableActionObject;
   '@xstate.start': StartExecutableActionObject;
@@ -2955,6 +3002,7 @@ export type BuiltInExecutableActionObject = Values<{
   '@xstate.cancel': CancelExecutableActionObject;
   '@xstate.stop': StopExecutableActionObject;
   '@xstate.terminate': TerminateExecutableActionObject;
+  '@xstate.deadLetter': DeadLetterExecutableActionObject;
 }>;
 
 export type SpecialExecutableAction = BuiltInExecutableActionObject;
@@ -3014,28 +3062,57 @@ export interface SubscribeToMappers<
   error?: (error: unknown) => TMappedEvent;
 }
 
+type EnqueueSpawnOptions<
+  TLogic extends AnyActorLogic,
+  TSystemRegistry extends SystemRegistry
+> = {
+  input?: InputFrom<TLogic>;
+  id?: string;
+  syncSnapshot?: boolean;
+  registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
+};
+
+type EnqueueSpawnArgs<
+  TLogic extends AnyActorLogic,
+  TSystemRegistry extends SystemRegistry
+> = ConditionalRequired<
+  [
+    options?: EnqueueSpawnOptions<TLogic, TSystemRegistry> & {
+      [K in RequiredLogicInput<TLogic>]: unknown;
+    }
+  ],
+  IsNotNever<RequiredLogicInput<TLogic>>
+>;
+
+type EnqueueSpawner<
+  TActorMap extends Sources['actors'],
+  TSystemRegistry extends SystemRegistry
+> = {
+  <TSource extends keyof TActorMap & string>(
+    src: TSource,
+    ...[options]: EnqueueSpawnArgs<TActorMap[TSource], TSystemRegistry>
+  ): ActorFromLogic<TActorMap[TSource]>;
+  <TLogic extends AnyActorLogic>(
+    logic: TLogic,
+    ...[options]: EnqueueSpawnArgs<TLogic, TSystemRegistry>
+  ): ActorFromLogic<TLogic>;
+};
+
 export type EnqueueObject<
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
-  TSystemRegistry extends SystemRegistry = SystemRegistry
+  TSystemRegistry extends SystemRegistry = SystemRegistry,
+  TActorMap extends Sources['actors'] = Sources['actors']
 > = {
   cancel: (id: string) => void;
   raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
   /**
-   * Spawns a child actor from the given logic. Without an explicit `id`, the
-   * child gets a deterministic src-keyed id (`worker:0`, `worker:1`, …)
-   * allocated from the parent snapshot's own counters, so ids replay
-   * identically and persist with the parent.
+   * Spawns a child actor from a registered source key or logic. Without an
+   * explicit `id`, the child gets a deterministic src-keyed id (`worker:0`,
+   * `worker:1`, …) allocated from the parent snapshot's own counters, so ids
+   * replay identically and persist with the parent.
    */
-  spawn: <T extends AnyActorLogic>(
-    logic: T,
-    options?: {
-      input?: InputFrom<T>;
-      id?: string;
-      syncSnapshot?: boolean;
-      registryKey?: RegistryKeyForLogic<T, TSystemRegistry>;
-    }
-  ) => ActorFromLogic<T>;
+  spawn: EnqueueSpawner<TActorMap, TSystemRegistry>;
   emit: (emittedEvent: TEmittedEvent) => void;
   <T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): void;
   log: (...args: any[]) => void;
@@ -3044,7 +3121,7 @@ export type EnqueueObject<
     event: SendableEventFromActorRef<NoInfer<TActorRef>>,
     options?: { id?: string; delay?: number }
   ) => void;
-  stop: (actor?: AnyActor) => void;
+  stop: (actor?: AnyActorRef) => void;
   /**
    * Listen to emitted events from an actor. Returns a listener actor that can
    * be stopped via `enq.stop()`.
@@ -3055,7 +3132,7 @@ export type EnqueueObject<
    * @param mapper - Function to transform emitted events into machine events
    */
   listen: <TEmitted extends EventObject, TMappedEvent extends TEvent>(
-    actor: AnyActor,
+    actor: AnyActorRef,
     eventType: string,
     mapper: (event: TEmitted) => TMappedEvent
   ) => AnyActor;
@@ -3067,7 +3144,7 @@ export type EnqueueObject<
    * @param mappers - Object with done/error/snapshot mappers, or a single
    *   snapshot mapper function
    */
-  subscribeTo: <TActor extends AnyActor, TMappedEvent extends TEvent>(
+  subscribeTo: <TActor extends AnyActorRef, TMappedEvent extends TEvent>(
     actor: TActor,
     mappers:
       | SubscribeToMappers<
@@ -3115,7 +3192,7 @@ export type Action<
     system?: AnyActorSystem;
     params: TParams;
   },
-  enqueue: EnqueueObject<TEvent, TEmittedEvent>
+  enqueue: EnqueueObject<TEvent, TEmittedEvent, SystemRegistry, TActorMap>
 ) => {
   context?: Partial<_TCtx>;
   children?: Record<string, AnyActor | undefined>;

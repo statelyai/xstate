@@ -116,6 +116,30 @@ describe('durable effect descriptors', () => {
       src: 'worker'
     });
   });
+
+  it('retains an explicitly selected source when aliases share logic', () => {
+    const shared = createMachine({});
+    const machine = setup({
+      actors: { first: shared, second: shared }
+    }).createMachine({
+      id: 'aliases',
+      entry: (_, enq) => {
+        enq.spawn('second', { id: 'worker' });
+      }
+    });
+    const durable = createDurable(machine, {
+      executeAction: () => {},
+      waitForEvent: () => {
+        throw new Error('host-driven loop');
+      }
+    });
+
+    const [, effects] = durable.initialTransition();
+    expect(
+      effects.find(({ descriptor }) => descriptor.type === '@xstate.spawn')
+        ?.descriptor
+    ).toMatchObject({ actor: 'aliases/worker', src: 'second' });
+  });
 });
 
 describe('durable rootAddress', () => {
@@ -598,7 +622,7 @@ describe('review findings: eighth round', () => {
     await first;
   });
 
-  it('a parked root-addressed event without a host sendEvent fails loudly', async () => {
+  it('a parked root-addressed event without a host mailbox hook fails loudly', async () => {
     let send: ((event: { type: string }) => void) | undefined;
     const emitter = createCallbackLogic(({ sendBack }) => {
       send = sendBack;
@@ -615,7 +639,7 @@ describe('review findings: eighth round', () => {
     const durable = createDurable(machine, {
       executeAction: () => {},
       // A runtime operation makes the adapter the system runtime, but there
-      // is no sendEvent to receive root-addressed events.
+      // is no root mailbox hook to receive root-addressed events.
       cancelTimer: () => {},
       waitForEvent: () => {
         throw new Error('host-driven loop');
@@ -627,7 +651,7 @@ describe('review findings: eighth round', () => {
     // The loop is parked: delivering locally would enqueue into the inert
     // root's mailbox and silently lose the event.
     expect(() => send!({ type: 'LATE' })).toThrow(
-      /parked.*no sendEvent|no sendEvent to receive it/
+      /parked.*no enqueueRootEvent or sendEvent/
     );
   });
 });

@@ -608,7 +608,6 @@ export function getPersistedSnapshot<
   for (const id in children) {
     const child = children[id] as any;
     if (
-      isDevelopment &&
       typeof child.src !== 'string' &&
       (!options || !('__unsafeAllowInlineActors' in (options as object)))
     ) {

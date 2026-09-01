@@ -1,7 +1,6 @@
 import {
   createActor,
   createCallbackLogic,
-  createFSM,
   createMachine,
   deliverEvent,
   getEffectDescriptor,
@@ -115,6 +114,39 @@ describe('deterministic actor ids', () => {
 });
 
 describe('actor addresses', () => {
+  it('uses the first registered source for transition-spawned aliases', () => {
+    const machine = setup({
+      actors: { first: workerMachine, second: workerMachine }
+    }).createMachine({
+      entry: ({ actors }, enq) => {
+        enq.spawn(actors.first, { id: 'one' });
+        enq.spawn(actors.second, { id: 'two' });
+      }
+    });
+
+    const [snapshot] = initialTransition(machine);
+    const persisted = machine.getPersistedSnapshot(snapshot) as any;
+    expect(persisted.children.one.src).toBe('first');
+    expect(persisted.children.two.src).toBe('first');
+  });
+
+  it('uses the first registered source for context-spawned aliases', () => {
+    const machine = setup({
+      actors: { first: workerMachine, second: workerMachine }
+    }).createMachine({
+      context: ({ actors, spawn }) => {
+        spawn(actors.first, { id: 'one' });
+        spawn(actors.second, { id: 'two' });
+        return {};
+      }
+    });
+
+    const [snapshot] = initialTransition(machine);
+    const persisted = machine.getPersistedSnapshot(snapshot) as any;
+    expect(persisted.children.one.src).toBe('first');
+    expect(persisted.children.two.src).toBe('first');
+  });
+
   it('addresses are the /-joined id path from the root', () => {
     const machine = setup({
       actors: { worker: workerMachine }
@@ -766,35 +798,6 @@ describe('review findings: sixth round', () => {
 });
 
 describe('review findings: seventh round', () => {
-  it('keeps id counters across state-function state changes', () => {
-    const fsm = createFSM({
-      initial: 'a',
-      states: {
-        a: {
-          entry: (_: any, enq: any) => {
-            enq.spawn(workerMachine);
-          },
-          on: { GO: { target: 'b' } }
-        },
-        // A state change that spawns nothing must not drop the counters.
-        b: { on: { GO2: { target: 'c' } } },
-        c: {
-          entry: (_: any, enq: any) => {
-            enq.spawn(workerMachine);
-          }
-        }
-      }
-    });
-
-    const actor = createActor(fsm).start();
-    actor.send({ type: 'GO' });
-    actor.send({ type: 'GO2' });
-    expect(Object.keys(actor.getSnapshot().children).sort()).toEqual([
-      'worker:0',
-      'worker:1'
-    ]);
-  });
-
   it('gives internal helper actors their own id namespace', () => {
     const emitter = createCallbackLogic(() => {});
     const anonymous = createMachine({ initial: 'i', states: { i: {} } });

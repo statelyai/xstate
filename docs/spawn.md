@@ -23,7 +23,7 @@ on: {
 }
 ```
 
-`enq.spawn(logic, options)` returns the [actor reference](actors.md) immediately, so the same transition can store it, send to it or subscribe to it.
+`enq.spawn(source, options)` returns the [actor reference](actors.md) immediately, so the same transition can store it, send to it or subscribe to it. `source` may be registered actor logic or its registered name.
 
 ## Spawn options
 
@@ -34,13 +34,17 @@ on: {
 | `registryKey` | Registers the child in the [actor registry](systems.md) under that key. |
 | `syncSnapshot` | When `true`, each child snapshot is sent to the parent as an `xstate.snapshot.actor` event. |
 
-The first argument is actor logic, never a registered name. Read logic from `actors` when it is registered:
+Use a registered name when its durable source identity matters:
 
 ```ts
-entry: ({ actors }, enq) => {
-  enq.spawn(actors.upload, { input: { file } });
+entry: (_, enq) => {
+  enq.spawn('upload', { input: { file } });
 };
 ```
+
+The name is checked against `actors`; its required input and returned actor reference are inferred from that entry. An unknown name is a type error. If a declared entry has not been implemented through the machine config, `provide(...)` or `extend(...)`, spawning it throws immediately.
+
+Passing the logic value remains convenient: `enq.spawn(actors.upload, options)`. XState recovers its registered name when possible. Inline unregistered logic may run but cannot be durably persisted.
 
 Spawning with an `id` that a live child of the same parent already uses throws: an address names at most one live actor. Stop the existing child first — an id stopped earlier in the same transition is free to reuse, and a child that completed on its own frees its id for the transition handling its completion. Generate ids from something stable, such as a file or participant id.
 
@@ -150,24 +154,33 @@ can be stopped with `enq.stop(...)`, and both work in transition, `entry` and
 
 ## Persistence
 
-Children spawned in the context initializer from logic registered in `actors` are persisted and restored with the parent snapshot:
+<!-- registered spawn source persistence behavior from packages/core/src/spawn.ts, packages/core/src/transitionActions.ts, and packages/core/src/StateMachine.ts -->
+
+Children spawned from sources registered in `actors` are persisted and restored with the parent snapshot. The context initializer accepts registered logic. Transition functions additionally accept its typed name:
 
 ```ts
 const machine = createMachine({
   actors: { connection },
   context: ({ spawn, actors }) => ({
     connection: spawn(actors.connection, { id: 'connection' })
-  })
+  }),
+  on: {
+    reconnect: (_, enq) => {
+      enq.spawn('connection', { id: 'replacement' });
+    }
+  }
 });
 ```
 
-The child records `src: 'connection'`, which `createActor(machine, { snapshot })` resolves back to the registered logic. Restoring a snapshot whose child source is not registered fails instead of silently dropping the child.
+Each child records `src: 'connection'`, which `createActor(machine, { snapshot })` resolves back to the currently registered logic. `provide(...)` may replace that implementation under the same source key. Restoring a snapshot whose child source is not registered fails instead of silently dropping the child.
 
-> **Warning:** Children created with `enq.spawn(...)` are stored by logic value, not by source name, so they cannot be persisted. `getPersistedSnapshot()` throws `An inline child actor cannot be persisted.` in development while such a child is running. Invoke the child, or spawn it in the context initializer, when the machine must be persisted.
+Register persistent child logic in `actors`. Spawning inline logic that is not registered works while the parent is running, but `getPersistedSnapshot()` throws `An inline child actor cannot be persisted.` while that child exists.
+
+Several source keys may share one logic object. `enq.spawn('second')` records exactly `src: 'second'`, so implementations under those names may diverge through `provide(...)`, `extend(...)` or a later machine version. Passing the shared logic value instead uses the first registered key as its canonical source identity.
 
 ## TypeScript
 
-`enq.spawn(...)` returns an actor reference typed from the logic, and requires `input` when the logic requires it. Type references stored in context with `ActorRefFrom`:
+`enq.spawn(...)` returns an actor reference typed from the selected source or logic, and requires `input` when it requires input. Type references stored in context with `ActorRefFrom`:
 
 ```ts
 const machine = createMachine({
@@ -196,6 +209,7 @@ schemas: {
 
 ```ts
 const child = enq.spawn(logic, { id, input, registryKey, syncSnapshot: true });
+const durableChild = enq.spawn('registeredSource', { id, input });
 enq.sendTo(child, { type: 'start' });
 enq.subscribeTo(child, { done: (output) => ({ type: 'finished', output }) });
 enq.stop(child);

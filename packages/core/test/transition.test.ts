@@ -2833,6 +2833,38 @@ describe('transition function', () => {
 });
 
 describe('getNextTransitions', () => {
+  it('should return no transitions for an error snapshot', () => {
+    const machineV1 = createMachine({
+      version: '1',
+      initial: 'a',
+      states: { a: {} }
+    });
+    const machineV2 = createMachine({
+      version: '2',
+      initial: 'a',
+      states: { a: {} }
+    });
+    const persisted = createActor(machineV1).start().getPersistedSnapshot();
+    const errorSnapshot = createActor(machineV2, {
+      snapshot: persisted
+    }).getSnapshot();
+
+    expect(errorSnapshot.status).toBe('error');
+    expect(getNextTransitions(errorSnapshot)).toEqual([]);
+  });
+
+  it('should return no transitions for a completed snapshot', () => {
+    const machine = createMachine({
+      initial: 'done',
+      on: { RESET: { target: '.done' } },
+      states: { done: { type: 'final' } }
+    });
+    const doneSnapshot = createActor(machine).getSnapshot();
+
+    expect(doneSnapshot.status).toBe('done');
+    expect(getNextTransitions(doneSnapshot)).toEqual([]);
+  });
+
   it('should return all transitions from current state', () => {
     const machine = createMachine({
       initial: 'a',

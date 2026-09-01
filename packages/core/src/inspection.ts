@@ -5,6 +5,8 @@ import {
   AnyTransitionDefinition,
   Snapshot
 } from './types.ts';
+import type { StandardSchemaV1 } from './schema.types.ts';
+import type { EventRejectionReason } from './system.ts';
 
 /**
  * A record of a single action executed during a transition.
@@ -101,23 +103,38 @@ export interface TransitionInspectionEvent extends BaseInspectionEventProperties
 }
 
 /**
- * A lossless, two-event inspection protocol:
+ * Emitted when an event could not be delivered to its target actor (a dead
+ * letter): a send to a stopped actor, an invalid external event payload, or
+ * an internal event type sent from outside its owning actor.
  *
- * - `@xstate.actor` — actor topology (identity + parent), drawable up front.
- * - `@xstate.transition` — every transition facet: event, snapshot, source,
- *   microsteps, executed actions, and sent/scheduled events.
+ * A dead letter is not an actor error: the target actor's snapshot is
+ * unchanged.
  */
-/** Emitted when an event could not be delivered to its target actor. */
 export interface DeadLetterInspectionEvent extends BaseInspectionEventProperties {
   type: '@xstate.deadletter';
   /** The actor that sent the event, or `undefined` when sent externally. */
   sourceRef: ActorRefLike | undefined;
   /** The undelivered event. */
   event: AnyEventObject;
-  /** Why the event was not delivered, such as `'stopped'`. */
-  reason: string;
+  /**
+   * Why the event was not delivered: `'stopped'`, `'invalidEvent'` or
+   * `'internalEvent'`.
+   */
+  reason: EventRejectionReason;
+  /** Standard Schema issues for `'invalidEvent'` dead letters. */
+  issues?: readonly StandardSchemaV1.Issue[];
+  /** The underlying error describing a delivery-boundary rejection. */
+  error?: Error;
 }
 
+/**
+ * A lossless inspection protocol:
+ *
+ * - `@xstate.actor` — actor topology (identity + parent), drawable up front.
+ * - `@xstate.transition` — every transition facet: event, snapshot, source,
+ *   microsteps, executed actions, and sent/scheduled events.
+ * - `@xstate.deadletter` — events that could not be delivered.
+ */
 export type InspectionEvent =
   | ActorInspectionEvent
   | TransitionInspectionEvent

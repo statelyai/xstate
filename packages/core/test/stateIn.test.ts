@@ -470,7 +470,7 @@ describe('transition "in" check', () => {
       type: 'parallel',
       guards: {
         // hasSelection: stateIn('selected')
-        hasSelection: (value: StateValue) => {
+        hasSelection: ({ value }: { value: StateValue }) => {
           return matchesState('selected', value);
         }
       },
@@ -483,7 +483,7 @@ describe('transition "in" check', () => {
             home: {
               on: {
                 NEXT: ({ guards, value }) => {
-                  if (guards.hasSelection(value)) {
+                  if (guards.hasSelection({ value })) {
                     return {
                       target: 'success'
                     };

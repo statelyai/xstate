@@ -1,5 +1,6 @@
 import isDevelopment from '#is-development';
 import { assertSendToEvent, builtInActions } from './actions.ts';
+import { resolveRegisteredActorSource } from './actorSource.ts';
 import { listenerLogic, type ListenerInput } from './actors/listener.ts';
 import {
   subscriptionLogic,
@@ -11,7 +12,9 @@ import { createErrorPlatformEvent } from './eventUtils.ts';
 import {
   getActorIdPrefix,
   parseGeneratedActorId,
-  type ActorSystemRuntime
+  type ActorSystemRuntime,
+  type DeadLetterDetail,
+  type EventRejectionReason
 } from './system.ts';
 import { isLazyActorScope, withActorScope } from './actorScope.ts';
 import { getEventOutput } from './utils.ts';
@@ -32,6 +35,7 @@ import type {
   ExecutableActionObject,
   MachineContext,
   RaiseExecutableActionObject,
+  DeadLetterExecutableActionObject,
   SendToExecutableActionObject,
   Snapshot,
   SpecialExecutableAction,
@@ -80,6 +84,41 @@ export function createEmitEffect(
     type: event.type,
     source: actorScope.self,
     event,
+    params: undefined,
+    args: []
+  };
+}
+
+function execDeadLetterEffect(
+  this: DeadLetterExecutableActionObject,
+  runtime: EffectRuntime = this.target.system
+): void | PromiseLike<void> {
+  return runtime.deadLetter!(
+    this.source,
+    this.target,
+    this.event,
+    this.reason,
+    this.detail
+  );
+}
+
+/** @internal Creates a dead-letter effect for a boundary-rejected event. */
+export function createDeadLetterEffect(
+  actorScope: AnyActorScope,
+  source: AnyActor | undefined,
+  event: AnyEventObject,
+  reason: EventRejectionReason,
+  detail?: DeadLetterDetail
+): DeadLetterExecutableActionObject {
+  return {
+    kind: 'builtin',
+    type: '@xstate.deadLetter',
+    exec: execDeadLetterEffect,
+    source,
+    target: actorScope.self,
+    event,
+    reason,
+    detail,
     params: undefined,
     args: []
   };
@@ -347,29 +386,35 @@ function getWorkingSnapshotOf(actorScope: AnyActorScope):
   )._snapshot;
 }
 
-const srcKeyCaches = new WeakMap<object, Map<unknown, string | undefined>>();
-
-function getRegisteredSrcKey(
-  actorScope: AnyActorScope,
-  logic: AnyActorLogic
-): string | undefined {
-  const registeredActors = (
+function getRegisteredActors(
+  actorScope: AnyActorScope
+): Record<string, AnyActorLogic> | undefined {
+  return (
     actorScope.self as {
-      logic?: { sources?: { actors?: Record<string, unknown> } };
+      logic?: { sources?: { actors?: Record<string, AnyActorLogic> } };
     }
   ).logic?.sources?.actors;
-  if (!registeredActors) {
-    return undefined;
-  }
-  let cache = srcKeyCaches.get(registeredActors);
-  if (!cache) {
-    cache = new Map();
-    for (const key of Object.keys(registeredActors)) {
-      cache.set(registeredActors[key], key);
+}
+
+function resolveTransitionSpawnSource(
+  actorScope: AnyActorScope,
+  source: string | AnyActorLogic
+): { logic: AnyActorLogic; src: string | undefined } {
+  const registeredActors = getRegisteredActors(actorScope);
+  if (typeof source === 'string') {
+    const logic = registeredActors?.[source];
+    if (!logic) {
+      throw new Error(`Actor source '${source}' is not provided`);
     }
-    srcKeyCaches.set(registeredActors, cache);
+    return { logic, src: source };
   }
-  return cache.get(logic);
+  if (!registeredActors) {
+    return { logic: source, src: undefined };
+  }
+  return {
+    logic: source,
+    src: resolveRegisteredActorSource(registeredActors, source)
+  };
 }
 
 /**
@@ -579,17 +624,14 @@ export function createTransitionEnqueue(
         internalEvents.push(raisedEvent);
       }
     },
-    spawn: (logic, options) => {
+    spawn: (source: string | AnyActorLogic, options: any) => {
+      const { logic, src } = resolveTransitionSpawnSource(actorScope, source);
       if (!createActors) {
         // TODO: replace this speculative placeholder with a typed inert actor ref.
         return {
-          id: options?.id ?? options?.registryKey ?? (logic as any).id
+          id: options?.id ?? options?.registryKey ?? src ?? (logic as any).id
         } as AnyActor;
       }
-      // Recover the registered source key for setup-provided logic so the
-      // spawned child persists (and gets a deterministic id prefix) by key
-      // instead of by inline logic reference.
-      const src = getRegisteredSrcKey(actorScope, logic);
       // Generated ids allocate from the parent snapshot's own counters
       // through the transition's allocation transaction; explicit
       // generated-shaped ids reserve their numbering the same way.
@@ -635,14 +677,17 @@ export function createTransitionEnqueue(
     },
     stop: (actor) => {
       if (actor) {
+        // enq.stop accepts the consumer ActorRef contract; refs handed to
+        // machine code are always full actor instances at runtime.
+        const actorInstance = actor as AnyActor;
         const action = pushBuiltInAction(
           actions,
           builtInActions['@xstate.stop'],
           actorScope,
-          actor
+          actorInstance
         );
-        action.childUpdate = { type: 'remove', actor };
-        recordStoppedChild(actorScope, actor);
+        action.childUpdate = { type: 'remove', actor: actorInstance };
+        recordStoppedChild(actorScope, actorInstance);
       }
     }
   };

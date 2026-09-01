@@ -347,7 +347,7 @@ export type Next_MachineConfig<
     TChildrenSchemaMap
   >;
   actions?: TActionMap;
-  guards?: TGuardMap;
+  guards?: TGuardMap & GuardSourceMap<TContext, TEvent>;
   actors?: TActorMap;
   /** The machine's own version. */
   version?: string;
@@ -1479,17 +1479,74 @@ export interface Sources {
     string,
     (...args: any[]) => void | { context?: any; children?: any }
   >;
-  guards: Record<string, (...args: any[]) => boolean>;
-  delays: Record<string, number | ((...args: any[]) => number)>;
+  // `Function` (no call signature) rather than `(...args: any[]) => boolean`:
+  // a call-signature constraint leaks `any` into the contextual type of
+  // inline source functions, defeating the typed companions
+  // (GuardSourceMap/DelaySourceMap) intersected at authoring sites.
+  // oxlint-disable-next-line no-unsafe-function-type
+  guards: Record<string, Function>;
+  // oxlint-disable-next-line no-unsafe-function-type
+  delays: Record<string, number | Function>;
   actors: Record<string, AnyActorLogic>;
 }
 
+/**
+ * Contextually types the entries of a `guards: { ... }` source map. Guard
+ * sources receive the transition args object first and optional caller-supplied
+ * params after it.
+ */
+export type GuardSourceMap<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  // `never` context (machine without context) must accept the `any`-typed
+  // context of transition args, mirroring TransitionConfigFunction's _TCtx.
+  _TCtx = [TContext] extends [never] ? any : TContext
+> = Record<
+  string,
+  (
+    args: {
+      context: _TCtx;
+      event: TEvent;
+      self: AnyActorRef;
+      parent: AnyActorRef | undefined;
+      value: StateValue;
+      children: Record<string, AnyActorRef | undefined>;
+    },
+    ...params: any[]
+  ) => boolean
+>;
+
+/**
+ * Contextually types the entries of a `delays: { ... }` source map. Delay
+ * functions receive `{ context, event, stateNode }` at runtime.
+ */
+export type DelaySourceMap<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  _TCtx = [TContext] extends [never] ? any : TContext
+> = Record<
+  string,
+  | number
+  | ((args: {
+      context: _TCtx;
+      event: TEvent;
+      stateNode: AnyStateNode;
+    }) => number)
+>;
+
 export type DelayMapFromNames<
   TDelays extends string,
-  _TDelayMap extends Sources['delays']
+  TDelayMap extends Sources['delays']
 > = string extends TDelays
   ? Sources['delays']
-  : { [K in TDelays]: Sources['delays'][string] };
+  : {
+      // Preserve authored entry types so downstream consumers (e.g.
+      // `machine.provide({ delays })`) keep the concrete signatures; names
+      // referenced only from `after` keys fall back to the generic shape.
+      [K in TDelays]: K extends keyof TDelayMap
+        ? TDelayMap[K]
+        : number | ((...args: any[]) => number);
+    };
 
 type DelayNamesFromConfig<TConfig> = TConfig extends {
   delays: infer TDelays;

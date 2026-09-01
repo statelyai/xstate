@@ -20,7 +20,7 @@ entry: ({ context }, enq) => {
 | `enq(...)` | Enqueue an effect function. |
 | `enq.raise(...)` | Send an event to the same actor. |
 | `enq.sendTo(...)` | Send an event to another actor. |
-| `enq.spawn(...)` | Spawn a child actor. |
+| `enq.spawn(...)` | Spawn a child from actor logic or its typed registered name. |
 | `enq.stop(...)` | Stop an actor. |
 | `enq.cancel(...)` | Cancel a delayed event. |
 | `enq.log(...)` | Log values. |

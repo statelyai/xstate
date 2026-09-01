@@ -45,13 +45,15 @@ Every event type carries `rootId`, the session ID of the root actor, and `actorR
 | `actions` | The executed actions, as `{ type, params }`. |
 | `sent` | Events relayed to other actors, as `{ targetRef, targetId, event, delay, id }`. |
 
-`@xstate.deadletter` announces an undeliverable event, such as one sent to a stopped actor. Delivery is at-most-once, so this is observability, not retry.
+`@xstate.deadletter` announces an undeliverable event: one sent to a stopped actor, an event whose payload failed its declared schema, or an [internal event](internal-events.md) type sent from outside its owning actor. Delivery is at-most-once, so this is observability, not retry. A dead letter is not an actor error; the target actor keeps running and its snapshot is unchanged.
 
 | Property | Description |
 | --- | --- |
 | `sourceRef` | The actor that sent the event, or `undefined` when sent externally. |
 | `event` | The undelivered event. |
-| `reason` | Why delivery failed, such as `'stopped'`. |
+| `reason` | Why delivery failed: `'stopped'`, `'invalidEvent'` or `'internalEvent'`. |
+| `issues` | Standard Schema issues for `'invalidEvent'` dead letters. |
+| `error` | The underlying error for a delivery-boundary rejection. |
 
 Actor stop is derivable from `snapshot.status` on the actor's final `@xstate.transition` event, so there is no separate stop event. The v5 `@xstate.event`, `@xstate.snapshot`, `@xstate.action` and `@xstate.microstep` events are gone; `@xstate.transition` carries all of them.
 
@@ -69,4 +71,5 @@ event.actorRef; // '@xstate.actor' and '@xstate.transition'
 event.parentRef, event.id, event.src, event.snapshot; // '@xstate.actor'
 event.event, event.snapshot, event.sourceRef, event.targetRef; // '@xstate.transition'
 event.microsteps, event.actions, event.sent; // '@xstate.transition'
+event.event, event.reason, event.issues, event.error; // '@xstate.deadletter'
 ```

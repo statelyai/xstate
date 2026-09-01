@@ -77,6 +77,13 @@ const validated = base.extend({
 
 Validation can be installed, replaced or disabled by a derived setup. Installing it checks inherited and new schemas for compatibility. Runtime validation is assertion-only, so schemas that transform one type into another are rejected; disable validation with `validator: undefined` when transformations are required.
 
+### Validation failures
+
+Where a validation failure surfaces depends on which side of the delivery boundary produced the invalid value:
+
+- **Events arriving from outside the actor** — from `actor.send` or from another actor — are rejected at the boundary when their payload fails its schema, or when the event type is undeclared and `unknownEvents` is `'error'`. The event is never delivered: the actor does not transition, does not error, and no API throws. The rejection is reported to the `onRejectedEvent` dead-letter hook on `createActor` options, to [inspection](inspection.md) observers as a `@xstate.deadletter` event, and as a development-mode console warning. In pure `transition(...)` calls, the snapshot is returned unchanged together with a `@xstate.deadLetter` effect carrying the rejection.
+- **Values the actor produces itself** — input, context, output, emitted events and delayed raised events — error the actor when they fail their schema, and pure `transition(...)`/`initialTransition(...)` throw an `ActorValidationError`. These are machine bugs.
+
 ## Sources on the machine
 
 `actions`, `guards`, `actors` and `delays` can be declared directly on `createMachine(...)` instead of on `setup(...)`. Use `setup(...)` when several machines share the same sources or when state schemas are needed.
@@ -99,8 +106,9 @@ Named sources arrive as typed maps on the arguments of every transition function
 ```ts
 idle: {
   on: {
-    submit: ({ context, actions, guards }, enq) => {
-      if (!guards.isReady()) return;
+    submit: (args, enq) => {
+      const { actions } = args;
+      if (!args.guards.isReady(args)) return;
       actions.notify({ msg: 'Charging' });
       enq(actions.notify, { msg: 'Queued' });
       return { target: 'charging' };
@@ -109,7 +117,7 @@ idle: {
 }
 ```
 
-Named actions and guards are called with their params. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
+Named actions are called with their params. Named guards receive the transition arguments object first, then any params. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
 
 ```ts
 setup({

@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "6.0.0-alpha.44",
+  "version": "6.0.0-alpha.50",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "bin": {
@@ -23,6 +23,20 @@
       "import": "./dist/xstate.cjs.mjs",
       "default": "./dist/xstate.cjs.js"
     },
+    "./fsm": {
+      "types": {
+        "import": "./dist/xstate-fsm.cjs.mjs",
+        "default": "./dist/xstate-fsm.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-fsm.development.esm.js",
+        "import": "./dist/xstate-fsm.development.cjs.mjs",
+        "default": "./dist/xstate-fsm.development.cjs.js"
+      },
+      "module": "./dist/xstate-fsm.esm.js",
+      "import": "./dist/xstate-fsm.cjs.mjs",
+      "default": "./dist/xstate-fsm.cjs.js"
+    },
     "./graph": {
       "types": {
         "import": "./dist/xstate-graph.cjs.mjs",
@@ -36,6 +50,20 @@
       "module": "./dist/xstate-graph.esm.js",
       "import": "./dist/xstate-graph.cjs.mjs",
       "default": "./dist/xstate-graph.cjs.js"
+    },
+    "./scxml": {
+      "types": {
+        "import": "./dist/xstate-scxml.cjs.mjs",
+        "default": "./dist/xstate-scxml.cjs.js"
+      },
+      "development": {
+        "module": "./dist/xstate-scxml.development.esm.js",
+        "import": "./dist/xstate-scxml.development.cjs.mjs",
+        "default": "./dist/xstate-scxml.development.cjs.js"
+      },
+      "module": "./dist/xstate-scxml.esm.js",
+      "import": "./dist/xstate-scxml.cjs.mjs",
+      "default": "./dist/xstate-scxml.cjs.js"
     },
     "./actors": {
       "types": {
@@ -100,8 +128,10 @@
     "guards",
     "dev",
     "graph",
+    "scxml",
     "validation",
     "durable",
+    "fsm",
     "bin"
   ],
   "keywords": [
@@ -121,6 +151,9 @@
   },
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "license": "MIT",
+  "dependencies": {
+    "saxes": "^6.0.0"
+  },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
@@ -130,7 +163,6 @@
     "ajv": "^8.12.0",
     "pkg-up": "^3.1.0",
     "rxjs": "^7.8.1",
-    "xml-js": "^1.6.11",
     "zod": "^3.25.51"
   },
   "preconstruct": {
@@ -139,8 +171,10 @@
       "./index.ts",
       "./actors/index.ts",
       "./graph/index.ts",
+      "./scxml/index.ts",
       "./validation/index.ts",
-      "./durable/index.ts"
+      "./durable/index.ts",
+      "./fsm/index.ts"
     ]
   }
 }

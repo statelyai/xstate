@@ -362,7 +362,6 @@
           ]
         },
         "context": { "type": "object" },
-        "_scxmlDonedata": { "type": "object" },
         "version": { "type": "string" },
         "internalEvents": {
           "type": "array",

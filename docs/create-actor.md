@@ -38,7 +38,8 @@ const actor = createActor(machine, { input: { userId: 'u_1' } });
 | `id` | `string` | Custom identifier for this actor. |
 | `input` | input of the logic | [Input](input-output.md) passed to the logic when it starts. |
 | `snapshot` | persisted snapshot | Starts the actor from a [persisted snapshot](persistence.md). Actions are not re-executed; invocations restart and children are restored. |
-| `inspect` | function or observer | Receives `@xstate.actor` and `@xstate.transition` [inspection](inspection.md) events. |
+| `inspect` | function or observer | Receives [inspection](inspection.md) events. |
+| `onRejectedEvent` | `(rejection) => void` | Dead-letter hook for events rejected at the delivery boundary. See [inspection](inspection.md) and [internal events](internal-events.md). Observed on the root actor only. |
 | `clock` | `{ setTimeout, clearTimeout, now? }` | Controls [delays](delays.md) and [timeouts](timeouts.md). Use `SimulatedClock` in [tests](testing.md). |
 | `logger` | `(...args) => void` | Used by `log(...)` actions. Defaults to `console.log`. |
 | `registryKey` | `string` | Registers the actor in the [system](systems.md) under this key. |

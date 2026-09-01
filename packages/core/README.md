@@ -11,9 +11,39 @@
   <br />
 </p>
 
-XState is a state management and orchestration solution for JavaScript and TypeScript apps. It has _zero_ dependencies, and is useful for frontend and backend application logic.
+<!-- runtime dependencies and public entry points from package.json -->
+
+XState is a state management and orchestration solution for JavaScript and TypeScript apps. The main `xstate` entry point has _zero_ runtime dependencies; the optional `xstate/scxml` entry point uses an XML parser. XState is useful for frontend and backend application logic.
 
 It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
+
+For flat finite state machines, `xstate/fsm` provides a tiny pure transition
+table with context and TypeScript support:
+
+<!-- public exports from packages/core/src/fsm/index.ts; exact capabilities documented in docs/fsm.md -->
+
+```ts
+import { createFSM } from 'xstate/fsm';
+
+const machine = createFSM({
+  initial: 'inactive',
+  states: {
+    inactive: { on: { toggle: 'active' } },
+    active: { on: { toggle: 'inactive' } }
+  }
+});
+
+let state = machine.initialState;
+state = machine.transition(state, { type: 'toggle' });
+```
+
+For typed context, event payloads, or state-specific context snapshots, use
+`setup` and `types` from `xstate/fsm`. These schemas are type-only in this
+subpath; use root `xstate` for runtime schema validation.
+
+See the [exact supported surface](https://stately.ai/docs/fsm). Use the root `xstate`
+entry point for compound or parallel statecharts, invocation, named sources,
+runtime schemas, serialization and inspection.
 
 ### ✨ Create state machines visually in Stately Studio → [state.new](https://state.new)
 
@@ -26,6 +56,10 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 🖥 [Download our VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode)
 
 📑 Inspired by the [SCXML specification](https://www.w3.org/TR/scxml/)
+
+<!-- public SCXML entry point from src/scxml/index.ts -->
+
+Create machines from SCXML documents with the opt-in `xstate/scxml` entry point. See the [SCXML guide](../../docs/scxml.md).
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 

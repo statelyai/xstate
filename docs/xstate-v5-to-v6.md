@@ -189,7 +189,7 @@ The second argument is the action queue. It buffers side effects so the transiti
 | `enq.emit(event)`               | Emit an event observable via `actor.on(...)`                                       |
 | `enq.log(...args)`              | Log via the configured logger (replaces v5 `log`)                                  |
 | `enq.sendTo(ref, event, opts?)` | Send an event to another actor (replaces v5 `sendTo` / `sendParent` / `forwardTo`) |
-| `enq.spawn(logic, opts?)`       | Spawn a child actor; `opts.registryKey` registers it in a typed system registry    |
+| `enq.spawn(source, opts?)`      | Spawn from actor logic or a typed registered name; `opts.registryKey` registers it in a typed system registry |
 | `enq.stop(ref?)`                | Stop a spawned child or listener (replaces v5 `stopChild`)                         |
 | `enq.listen(ref, type, mapper)` | Subscribe to a child's emitted events; remap → parent (returns a stoppable ref)    |
 | `enq.subscribeTo(ref, mappers)` | Subscribe to a child's snapshot stream (returns a stoppable ref)                   |
@@ -300,14 +300,14 @@ in transition (and `choice`) function args:
 
 ```ts
 // v6
-choice: ({ context, guards }) => {
-  if (guards.isVip(context)) {
+choice: (args) => {
+  if (args.guards.isVip(args)) {
     return { target: 'vipFlow' };
   }
   return { target: 'defaultFlow' };
 },
 guards: {
-  isVip: ({ isVip }) => isVip
+  isVip: ({ context }) => context.isVip
 }
 ```
 
@@ -768,9 +768,9 @@ invoke: {
 }
 ```
 
-String IDs still work for `invoke.src` when the actor is registered on `createMachine({ actors: { ... } })` directly or supplied via `machine.provide({ actors: { ... } })`. Spawning accepts actor logic, not a string ID.
+String IDs work for `invoke.src` and transition spawning when the actor is registered on `createMachine({ actors: { ... } })` directly or supplied via `machine.provide({ actors: { ... } })`. `enq.spawn('worker')` is checked against that actor map and retains exactly that source identity. The context initializer's `spawn` continues to accept actor logic.
 
-Persistence differs by API. Invoked children always persist and rehydrate: inline `invoke.src` logic receives a synthetic source identity resolved back through the machine config. Children spawned from a `context: ({ spawn }) => ...` initializer resolve registered logic back to its source name and persist. Children spawned with `enq.spawn(...)` currently have no source identity — `getPersistedSnapshot()` throws `An inline child actor cannot be persisted.` in development, even for registered logic. Prefer `invoke` when a child must survive persistence.
+Invoked children always persist and rehydrate: inline `invoke.src` logic receives a synthetic source identity resolved back through the machine config. `spawn(actors.worker)` in a context initializer and both `enq.spawn(actors.worker)` and `enq.spawn('worker')` in a transition retain a registered source key and persist. `provide(...)` may replace the implementation under that key. When multiple keys share a logic value, the string form preserves the selected key; the logic form uses the first registered key. Raw inline logic that is not registered has no reconstructable source identity, so `getPersistedSnapshot()` throws while such a spawned child exists.
 
 `invoke.src` may also be a **function** resolving to logic or to a registered name: `src: ({ actors, context, event, self }) => actors.fetchUser`.
 
@@ -977,7 +977,7 @@ These exports have been **removed** from `xstate`:
 These exports have been **added**:
 
 - `setup` (reshaped - see §4) and `createSystem` for typed system registries
-- `createFSM` and its related `FSMActorLogic`/`FSMConfig`/`FSMSnapshot` types for flat, actor-compatible finite state machines
+- `createFSM` and its related types for tiny, pure flat finite state machines: `FSM`, `FSMArgs`, `FSMConfig`, `FSMContextPatch`, `FSMSnapshot`, `FSMStateConfig`, `FSMTransition`, `FSMTransitionConfig`, `FSMTransitionFunction`
 - `createStateConfig`
 - `checkStateIn`
 - `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
@@ -990,6 +990,10 @@ These exports have been **added**:
 - Executable effect types: `BaseExecutableActionObject`, `CustomExecutableActionObject`, `ExecutableActionObject`, `ExecutableActionObjectFromLogic`, `BuiltInExecutableActionObject`, `SpecialExecutableAction`, `StartExecutableActionObject`, `RaiseExecutableActionObject`, `SendToExecutableActionObject`, `CancelExecutableActionObject`, `StopExecutableActionObject`, `TerminateExecutableActionObject`
 - `ActorLogic.start(snapshot, scope, options?)` receives `options.restored` so logic can distinguish restoration from a fresh start.
 - `actor.select(selector)` - derived, subscribable views
+
+The `xstate/fsm` subpath exports the pure `createFSM` API plus a lightweight
+`setup`/`types` facade for typed events, context, and state snapshots. See
+[compact finite state machines](fsm.md) for its exact supported surface.
 
 ---
 
@@ -1232,11 +1236,18 @@ no JSON representation.
 
 ### SCXML
 
-- `toMachineJSON(scxml)` - parse SCXML XML to a plain JSON machine config
-- `toMachine(scxml)` - parse SCXML XML directly to a `StateMachine`
+`createMachineFromSCXML(scxml)` creates an XState machine from an SCXML
+document. Import it from the opt-in `xstate/scxml` entry point so the XML parser
+does not become part of the main `xstate` module graph.
 
-These remain **repo-internal** and are not exported from `xstate` (they pull in
-an XML parser).
+```ts
+import { createMachineFromSCXML } from 'xstate/scxml';
+
+const machine = createMachineFromSCXML(scxml);
+```
+
+SCXML uses a private compiler representation rather than `MachineJSON`. See
+[SCXML](scxml.md) for resource resolution and usage.
 
 ---
 
