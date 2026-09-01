@@ -582,17 +582,11 @@ type KnownSetupStateTarget<
       ? never
       :
           | SetupRelativeStateTarget<RelativeSetupStateSchemas<TStateSchemas>>
-          | SetupStateIdTarget<
-              SetupStateIds<RootSetupStateSchemas<TStateSchemas>>
-            >
-          | SetupStateIdTargets<RootSetupStateSchemas<TStateSchemas>>
+          | RootSetupStateIdTarget<RootSetupStateSchemas<TStateSchemas>>
     :
         | (StrictSetupStatePaths<TStateSchemas> & string)
         | SetupRelativeStateTarget<RelativeSetupStateSchemas<TStateSchemas>>
-        | SetupStateIdTarget<
-            SetupStateIds<RootSetupStateSchemas<TStateSchemas>>
-          >
-        | SetupStateIdTargets<RootSetupStateSchemas<TStateSchemas>>;
+        | RootSetupStateIdTarget<RootSetupStateSchemas<TStateSchemas>>;
 
 declare const strictSetupStateTargets: unique symbol;
 declare const relativeSetupStateSchemas: unique symbol;
@@ -705,12 +699,6 @@ type RootSetupStateTarget<
   | SetupRelativeStateTarget<TStateSchemas>
   | RootSetupStateIdTarget<TStateSchemas>;
 
-type RootSetupStateIdTarget<
-  TStateSchemas extends Record<string, SetupStateSchema>
-> =
-  | SetupStateIdTarget<SetupStateIds<TStateSchemas>>
-  | SetupStateIdTargets<TStateSchemas>;
-
 type SetupStateTransitionChildSchemas<TStateSchema extends SetupStateSchema> =
   TStateSchema extends {
     states: infer TChildStateSchemas extends Record<string, SetupStateSchema>;
@@ -800,6 +788,15 @@ type SetupStateIdTargets<
               ? SetupStateIdTargets<TChildStateSchemas>
               : never;
           }[keyof TStateSchemas & string];
+
+type RootSetupStateIdTarget<
+  TStateSchemas extends Record<string, SetupStateSchema>
+> =
+  SetupStateIds<TStateSchemas> extends infer TIds extends string
+    ? [TIds] extends [never]
+      ? never
+      : SetupStateIdTarget<TIds> | SetupStateIdTargets<TStateSchemas>
+    : never;
 
 type SetupStateSchemaAtTarget<
   TStateSchemas extends Record<string, SetupStateSchema>,

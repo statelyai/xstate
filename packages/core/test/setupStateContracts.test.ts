@@ -1877,4 +1877,186 @@ describe('setup state contracts', () => {
       'left-ready'
     );
   });
+
+  it('handles a larger explicit parallel topology', () => {
+    const s = setup({
+      schemas: { events: { NEXT: types<{}>() } },
+      states: {
+        app: {
+          type: 'parallel',
+          id: 'workflow',
+          states: {
+            regionOne: {
+              type: 'compound',
+              initial: 's1',
+              states: {
+                s1: {},
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            },
+            regionTwo: {
+              type: 'compound',
+              initial: 's1',
+              states: {
+                s1: {},
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            },
+            regionThree: {
+              type: 'compound',
+              initial: 's1',
+              states: {
+                s1: {},
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            },
+            regionFour: {
+              type: 'compound',
+              initial: 's1',
+              states: {
+                s1: {},
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            },
+            regionFive: {
+              type: 'compound',
+              initial: 's1',
+              states: {
+                s1: {},
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            },
+            regionSix: {
+              type: 'compound',
+              initial: 's1',
+              states: {
+                s1: {},
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const machine = s.createMachine({
+      initial: 'app',
+      states: {
+        app: {
+          states: {
+            regionOne: {
+              states: {
+                s1: { on: { NEXT: { target: '#workflow.regionOne.s2' } } },
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            },
+            regionTwo: {
+              states: {
+                s1: { on: { NEXT: { target: 's2' } } },
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            },
+            regionThree: {
+              states: {
+                s1: { on: { NEXT: { target: 's2' } } },
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            },
+            regionFour: {
+              states: {
+                s1: { on: { NEXT: { target: 's2' } } },
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            },
+            regionFive: {
+              states: {
+                s1: { on: { NEXT: { target: 's2' } } },
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            },
+            regionSix: {
+              states: {
+                s1: { on: { NEXT: { target: 's2' } } },
+                s2: {},
+                s3: {},
+                s4: {},
+                s5: {},
+                s6: {},
+                s7: {},
+                s8: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    expect(machine.states.app.states.regionSix.states.s8).toBeDefined();
+  });
 });
