@@ -50,11 +50,11 @@ const PROFILES = {
     const logic = createFSM({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: { target: 'active' } } },
-        active: { on: { toggle: { target: 'inactive' } } }
+        inactive: { on: { toggle: 'active' } },
+        active: { on: { toggle: 'inactive' } }
       }
     });
-    console.log(logic.id);
+    console.log(logic.transition(logic.initialState, { type: 'toggle' }).value);
   `
   },
   'fsm-entrypoint-logic': {
@@ -64,27 +64,11 @@ const PROFILES = {
     const logic = createFSM({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: { target: 'active' } } },
-        active: { on: { toggle: { target: 'inactive' } } }
+        inactive: { on: { toggle: 'active' } },
+        active: { on: { toggle: 'inactive' } }
       }
     });
-    console.log(logic.id);
-  `
-  },
-  'fsm-entrypoint-actor': {
-    capabilities: ['fsm', 'actor', 'subpath'],
-    source: `
-    import { createFSM, createFSMActor } from 'xstate/fsm';
-    const logic = createFSM({
-      initial: 'inactive',
-      states: {
-        inactive: { on: { toggle: { target: 'active' } } },
-        active: { on: { toggle: { target: 'inactive' } } }
-      }
-    });
-    const actor = createFSMActor(logic).start();
-    actor.send({ type: 'toggle' });
-    console.log(actor.getSnapshot().value);
+    console.log(logic.transition(logic.initialState, { type: 'toggle' }).value);
   `
   },
   'minimal-machine': {
@@ -104,19 +88,36 @@ const PROFILES = {
   `
   },
   'minimal-fsm': {
-    capabilities: ['fsm', 'actor'],
+    capabilities: ['fsm', 'pure-transition', 'subpath'],
     source: `
-    import { createFSM, createActor } from 'xstate';
+    import { createFSM } from 'xstate/fsm';
     const machine = createFSM({
       initial: 'inactive',
       states: {
-        inactive: { on: { toggle: { target: 'active' } } },
-        active: { on: { toggle: { target: 'inactive' } } }
+        inactive: { on: { toggle: 'active' } },
+        active: { on: { toggle: 'inactive' } }
       }
     });
-    const actor = createActor(machine).start();
-    actor.send({ type: 'toggle' });
-    console.log(actor.getSnapshot().value);
+    console.log(machine.transition(machine.initialState, { type: 'toggle' }).value);
+  `
+  },
+  'fsm-setup': {
+    capabilities: ['fsm', 'setup', 'subpath'],
+    source: `
+    import { setup, types } from 'xstate/fsm';
+    const app = setup({
+      schemas: {
+        events: { toggle: types() }
+      }
+    });
+    const machine = app.createFSM({
+      initial: 'inactive',
+      states: {
+        inactive: { on: { toggle: 'active' } },
+        active: { on: { toggle: 'inactive' } }
+      }
+    });
+    console.log(machine.transition(machine.initialState, { type: 'toggle' }).value);
   `
   },
   'custom-logic-actor': {

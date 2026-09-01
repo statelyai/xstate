@@ -45,7 +45,7 @@ Pick based on what you need:
 
 - **[`@xstate/store`](#xstate-store)**: simple event-based state management. <1kb, great TypeScript inference, similar in spirit to Redux/Zustand. Start here if you just need a store.
 - **[`@xstate/effect`](packages/xstate-effect)**: Effect 4 integration for XState v6 actors, schemas, typed requirements/errors, streams, and Effect actions.
-- **[`xstate/fsm`](docs/fsm.md)**: compact flat finite state machines with an actor-compatible, self-contained runtime.
+- **[`xstate/fsm`](docs/fsm.md)**: tiny pure flat finite state machines with context and TypeScript support.
 - **[`xstate`](#super-quick-start)**: state machines, statecharts, actors, effects, and orchestration for complex app logic.
 
 They work great together, but you don't need one to use the other.

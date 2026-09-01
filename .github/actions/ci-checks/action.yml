@@ -6,10 +6,6 @@ runs:
       run: pnpm build
       shell: bash
 
-    - name: FSM runtime
-      run: pnpm bench:fsm-runtime -- --verify
-      shell: bash
-
     - name: Oxlint
       run: pnpm lint
       shell: bash

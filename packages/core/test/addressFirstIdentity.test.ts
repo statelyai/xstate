@@ -1,7 +1,6 @@
 import {
   createActor,
   createCallbackLogic,
-  createFSM,
   createMachine,
   deliverEvent,
   getEffectDescriptor,
@@ -799,35 +798,6 @@ describe('review findings: sixth round', () => {
 });
 
 describe('review findings: seventh round', () => {
-  it('keeps id counters across state-function state changes', () => {
-    const fsm = createFSM({
-      initial: 'a',
-      states: {
-        a: {
-          entry: (_: any, enq: any) => {
-            enq.spawn(workerMachine);
-          },
-          on: { GO: { target: 'b' } }
-        },
-        // A state change that spawns nothing must not drop the counters.
-        b: { on: { GO2: { target: 'c' } } },
-        c: {
-          entry: (_: any, enq: any) => {
-            enq.spawn(workerMachine);
-          }
-        }
-      }
-    });
-
-    const actor = createActor(fsm).start();
-    actor.send({ type: 'GO' });
-    actor.send({ type: 'GO2' });
-    expect(Object.keys(actor.getSnapshot().children).sort()).toEqual([
-      'worker:0',
-      'worker:1'
-    ]);
-  });
-
   it('gives internal helper actors their own id namespace', () => {
     const emitter = createCallbackLogic(() => {});
     const anonymous = createMachine({ initial: 'i', states: { i: {} } });
