@@ -340,6 +340,15 @@ describe('setup state contracts', () => {
       }
     });
 
+    valid.createStateConfig('parent.hist', { target: 'idle' });
+
+    if (false) {
+      valid.createStateConfig('parent.hist', {
+        // @ts-expect-error - history targets must use declared state IDs
+        target: '#missing'
+      });
+    }
+
     if (false) {
       valid.createMachine({
         initial: 'parent',
@@ -693,6 +702,309 @@ describe('setup state contracts', () => {
     expect(true).toBe(true);
   });
 
+  it('requires root transitions to use root-relative targets', () => {
+    const s = setup({
+      schemas: { events: { GO: types<{}>() } },
+      states: { active: {}, inactive: {} }
+    });
+
+    s.createMachine({
+      initial: 'active',
+      on: { GO: { target: '.inactive' } },
+      states: { active: {}, inactive: {} }
+    });
+
+    if (false) {
+      s.createMachine({
+        initial: 'active',
+        on: {
+          // @ts-expect-error - root transitions require a dot-relative target
+          GO: {
+            target: 'inactive'
+          }
+        },
+        states: { active: {}, inactive: {} }
+      });
+    }
+
+    expect(true).toBe(true);
+  });
+
+  it('types root invoke completion targets as root-relative targets', () => {
+    const s = setup({
+      actors: {
+        worker: createAsyncLogic({ run: async () => undefined })
+      },
+      states: {
+        idle: {},
+        done: { schemas: { input: types<{ id: number }>() } }
+      }
+    });
+
+    s.createMachine({
+      initial: 'idle',
+      invoke: {
+        src: 'worker',
+        onDone: { target: '.done', input: { id: 1 } }
+      },
+      states: { idle: {}, done: {} }
+    });
+
+    if (false) {
+      s.createMachine({
+        initial: 'idle',
+        // @ts-expect-error - root invoke completion targets are dot-relative
+        invoke: {
+          src: 'worker',
+          onDone: { target: 'done', input: { id: 1 } }
+        },
+        states: { idle: {}, done: {} }
+      });
+    }
+  });
+
+  it('preserves escaped dots in setup state paths', () => {
+    const s = setup({
+      schemas: { events: { GO: types<{}>(), ID: types<{}>() } },
+      states: {
+        active: {
+          type: 'compound',
+          initial: 'idle',
+          id: 'active.id',
+          states: {
+            'foo.bar': {
+              type: 'atomic',
+              id: 'node.id',
+              schemas: { input: types<{ id: number }>() }
+            },
+            idle: { type: 'atomic' }
+          }
+        }
+      }
+    });
+
+    s.createStateConfig('active.idle', {
+      on: {
+        GO: {
+          target: 'foo\\.bar',
+          input: { id: 1 }
+        },
+        ID: {
+          target: '#node\\.id',
+          input: { id: 1 }
+        }
+      }
+    });
+
+    s.createStateConfig('active.foo\\.bar', {
+      entry: ({ input }) => {
+        input.id satisfies number;
+      }
+    });
+
+    if (false) {
+      s.createStateConfig('active.idle', {
+        on: {
+          // @ts-expect-error - a literal dot in a state key must be escaped
+          GO: { target: '.foo.bar', input: { id: 1 } }
+        }
+      });
+    }
+
+    s.createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          initial: 'idle',
+          states: {
+            'foo.bar': {},
+            idle: {
+              on: {
+                ID: { target: '#node\\.id', input: { id: 1 } }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    s.createMachine({
+      initial: { target: '#active\\.id' },
+      states: {
+        active: {
+          initial: 'idle',
+          states: {
+            'foo.bar': {},
+            idle: {}
+          }
+        }
+      }
+    });
+
+    if (false) {
+      s.createMachine({
+        initial: 'active',
+        states: {
+          active: {
+            initial: 'idle',
+            states: {
+              'foo.bar': {},
+              idle: {
+                on: {
+                  // @ts-expect-error - dots in IDs must be escaped
+                  ID: { target: '#node.id', input: { id: 1 } }
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  });
+
+  it('types choice targets and their target inputs from setup', () => {
+    const s = setup({
+      schemas: { context: types<{ value: number }>() },
+      states: {
+        route: { type: 'choice' },
+        done: { schemas: { input: types<{ token: string }>() } },
+        active: {
+          type: 'parallel',
+          states: {
+            left: { schemas: { input: types<{ leftId: number }>() } },
+            right: { schemas: { input: types<{ rightId: boolean }>() } }
+          }
+        },
+        other: { schemas: { input: types<{ otherId: string }>() } }
+      }
+    });
+
+    s.createMachine({
+      context: { value: 1 },
+      initial: 'route',
+      states: {
+        route: {
+          choice: ({ context }) => {
+            context.value satisfies number;
+            return { target: 'done', input: { token: 'ok' } };
+          }
+        },
+        done: {},
+        active: {
+          states: {
+            left: {},
+            right: {}
+          }
+        },
+        other: {}
+      }
+    });
+
+    s.createMachine({
+      context: { value: 1 },
+      initial: 'route',
+      states: {
+        route: {
+          choice: () => ({
+            target: ['active.left', 'active.right'],
+            input: { leftId: 1, rightId: true }
+          })
+        },
+        active: { states: { left: {}, right: {} } },
+        other: {},
+        done: {}
+      }
+    });
+
+    if (false) {
+      s.createMachine({
+        context: { value: 1 },
+        initial: 'route',
+        states: {
+          route: {
+            // @ts-expect-error - choice targets must exist in setup
+            choice: () => ({
+              target: 'missing'
+            })
+          },
+          done: {}
+        }
+      });
+
+      s.createMachine({
+        context: { value: 1 },
+        initial: 'route',
+        states: {
+          route: {
+            // @ts-expect-error - the choice target requires its input
+            choice: () => ({
+              target: 'done'
+            })
+          },
+          done: {}
+        }
+      });
+
+      s.createMachine({
+        context: { value: 1 },
+        initial: 'route',
+        states: {
+          route: {
+            // @ts-expect-error - choice target sets require every target input
+            choice: () => ({
+              target: ['active.left', 'active.right'],
+              input: { leftId: 1 }
+            })
+          },
+          active: { states: { left: {}, right: {} } },
+          other: {},
+          done: {}
+        }
+      });
+    }
+
+    expect(true).toBe(true);
+  });
+
+  it('requires self-reentry transitions to provide current state input', () => {
+    const s = setup({
+      schemas: { events: { GO: types<{}>() } },
+      states: {
+        active: { schemas: { input: types<{ id: number }>() } }
+      }
+    });
+
+    s.createMachine({
+      initial: { target: 'active', input: { id: 0 } },
+      states: {
+        active: {
+          on: {
+            GO: { target: '.', reenter: true, input: { id: 1 } }
+          }
+        }
+      }
+    });
+
+    if (false) {
+      s.createMachine({
+        initial: { target: 'active', input: { id: 0 } },
+        states: {
+          active: {
+            on: {
+              // @ts-expect-error - self-reentry requires the current state input
+              GO: {
+                target: '.',
+                reenter: true
+              }
+            }
+          }
+        }
+      });
+    }
+
+    expect(true).toBe(true);
+  });
+
   it('uses setup parallel metadata when validating authored target sets', () => {
     const s = setup({
       schemas: { events: { RESET: types<{}>() } },
@@ -733,6 +1045,168 @@ describe('setup state contracts', () => {
     expect(machine.states.active.type).toBe('parallel');
   });
 
+  it('keeps standalone target sets aligned with statechart topology', () => {
+    const s = setup({
+      schemas: { events: { DONE: types<{}>() } },
+      states: {
+        active: {
+          type: 'parallel',
+          states: {
+            left: {
+              type: 'compound',
+              initial: 'idle',
+              states: { idle: {}, done: {} }
+            },
+            right: {
+              type: 'compound',
+              initial: 'idle',
+              states: { idle: {}, done: {} }
+            }
+          }
+        }
+      }
+    });
+
+    s.createStateConfig('active', {
+      on: {
+        DONE: { target: ['.left.idle', '.right.idle'] }
+      },
+      states: {
+        left: { states: { idle: {}, done: {} } },
+        right: { states: { idle: {}, done: {} } }
+      }
+    });
+
+    if (false) {
+      s.createStateConfig('active.left', {
+        on: {
+          // @ts-expect-error - target sets cannot select two children of one compound state
+          DONE: { target: ['.idle', '.done'] }
+        },
+        states: { idle: {}, done: {} }
+      });
+
+      s.createStateConfig('active.left', {
+        on: {
+          // @ts-expect-error - an invalid target set cannot hide in a transition array
+          DONE: [{ target: ['.idle', '.done'] }, { target: '.idle' }]
+        },
+        states: { idle: {}, done: {} }
+      });
+    }
+  });
+
+  it('keeps transitions on parallel regions scoped to their own children', () => {
+    const s = setup({
+      schemas: { events: { DONE: types<{}>() } },
+      states: {
+        active: {
+          type: 'parallel',
+          states: {
+            left: {
+              type: 'compound',
+              initial: 'idle',
+              states: { idle: {}, done: {} }
+            },
+            right: {
+              type: 'compound',
+              initial: 'idle',
+              states: { idle: {}, done: {} }
+            }
+          }
+        }
+      }
+    });
+
+    s.createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          states: {
+            left: {
+              on: { DONE: { target: '.done' } },
+              states: { idle: {}, done: {} }
+            },
+            right: { states: { idle: {}, done: {} } }
+          }
+        }
+      }
+    });
+
+    if (false) {
+      s.createMachine({
+        initial: 'active',
+        states: {
+          active: {
+            states: {
+              left: {
+                on: {
+                  // @ts-expect-error - a parallel region cannot target its sibling region by name
+                  DONE: { target: 'right' }
+                },
+                states: { idle: {}, done: {} }
+              },
+              right: { states: { idle: {}, done: {} } }
+            }
+          }
+        }
+      });
+    }
+  });
+
+  it('keeps target-set input typing for parallel-region self targets', () => {
+    const s = setup({
+      schemas: { events: { REFRESH: types<{}>() } },
+      states: {
+        active: {
+          type: 'parallel',
+          states: {
+            left: { schemas: { input: types<{ id: number }>() } },
+            right: {}
+          }
+        }
+      }
+    });
+
+    s.createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          states: {
+            left: {
+              on: {
+                REFRESH: { target: ['.'], input: { id: 1 } }
+              }
+            },
+            right: {}
+          }
+        }
+      }
+    });
+
+    if (false) {
+      s.createMachine({
+        initial: 'active',
+        states: {
+          active: {
+            states: {
+              left: {
+                on: {
+                  REFRESH: {
+                    target: ['.'],
+                    // @ts-expect-error - the self target still requires its input
+                    input: {}
+                  }
+                }
+              },
+              right: {}
+            }
+          }
+        }
+      });
+    }
+  });
+
   it('correlates nested setup targets with their context and input schemas', () => {
     const s = setup({
       schemas: {
@@ -740,11 +1214,13 @@ describe('setup state contracts', () => {
         events: {
           GO: types<{}>(),
           CHILD: types<{}>(),
-          GRANDCHILD: types<{}>()
+          GRANDCHILD: types<{}>(),
+          NESTED_ID: types<{}>()
         }
       },
       states: {
         parent: {
+          id: 'parent-id',
           initial: 'idle',
           states: {
             idle: {},
@@ -752,6 +1228,7 @@ describe('setup state contracts', () => {
               schemas: { input: types<{ childToken: number }>() }
             },
             flow: {
+              id: 'flow-id',
               type: 'compound',
               initial: 'ready',
               states: {
@@ -790,12 +1267,26 @@ describe('setup state contracts', () => {
           input: { grandchildToken: true }
         },
         GO: {
-          target: '.flow.done',
+          target: '#parent-id.flow.done',
+          context: { mode: 'done', code: 1 },
+          input: { token: 'ready' }
+        },
+        NESTED_ID: {
+          target: '#flow-id.done',
           context: { mode: 'done', code: 1 },
           input: { token: 'ready' }
         }
       }
     });
+
+    if (false) {
+      s.createStateConfig('parent', {
+        on: {
+          // @ts-expect-error - descendants after nested IDs must be known
+          NESTED_ID: { target: '#flow-id.missing' }
+        }
+      });
+    }
 
     const machineSetup = setup({
       schemas: {
@@ -1129,6 +1620,28 @@ describe('setup state contracts', () => {
         }
       }
     });
+
+    if (false) {
+      s.createStateConfig('idle', {
+        on: {
+          GO: {
+            target: ['active.left.ready', 'active.right.ready'],
+            // @ts-expect-error - input mappers must provide every target field
+            input: () => ({ leftId: 1 })
+          }
+        }
+      });
+
+      s.createStateConfig('idle', {
+        on: {
+          // @ts-expect-error - function results must provide every target field
+          GO: () => ({
+            target: ['active.left.ready', 'active.right.ready'],
+            input: { leftId: 1 }
+          })
+        }
+      });
+    }
 
     const actor = createActor(machine).start();
     actor.send({ type: 'GO' });

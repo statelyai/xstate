@@ -2002,6 +2002,19 @@ type InvalidTransitionMapTargets<
       }[keyof TTransitionMap]
     : never;
 
+type InvalidInitialTarget<TRootConfig, TChildStates, TInitialTarget> =
+  TInitialTarget extends string
+    ? string extends TInitialTarget
+      ? never
+      : TInitialTarget extends keyof TChildStates
+        ? never
+        : TInitialTarget extends `#${string}`
+          ? TInitialTarget extends AuthoredIdTargets<TRootConfig>
+            ? never
+            : TInitialTarget
+          : TInitialTarget
+    : never;
+
 type InvalidInvokeTargets<
   TRootConfig,
   TSourcePath extends StatePath,
@@ -2042,13 +2055,7 @@ type InvalidNodeTargets<
                 ? TInitialTarget
                 : TInitial
             ) extends infer TInitialTarget
-            ? TInitialTarget extends string
-              ? string extends TInitialTarget
-                ? never
-                : TInitialTarget extends keyof TChildStates
-                  ? never
-                  : TInitialTarget
-              : never
+            ? InvalidInitialTarget<TRootConfig, TChildStates, TInitialTarget>
             : never
           : never)
       | (TNode extends { on: infer TOn }
@@ -2118,13 +2125,7 @@ export type ValidateStateTargets<TConfig> = 0 extends 1 & TConfig
                   ? TInitialTarget
                   : TInitial
               ) extends infer TInitialTarget
-              ? TInitialTarget extends string
-                ? string extends TInitialTarget
-                  ? never
-                  : TInitialTarget extends keyof TStates
-                    ? never
-                    : TInitialTarget
-                : never
+              ? InvalidInitialTarget<TConfig, TStates, TInitialTarget>
               : never
             : never)
         | InvalidNodeTargets<TConfig, TConfig, []>

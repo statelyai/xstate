@@ -339,13 +339,7 @@ describe('setup', () => {
     expect(true).toBe(true);
   });
 
-  // KNOWN SOUNDNESS GAP: in a parallel state, targeting a sibling region
-  // (e.g. `target: 'r2'` from inside `r1`) type-checks but is a runtime no-op.
-  // There is no way to tell whether a state is parallel from the setup `states`
-  // schema alone, so sibling regions are indistinguishable from ordinary
-  // siblings. Tripwire: when `target: 'r2'` stops compiling, the gap is
-  // fixed — flip that line to a `@ts-expect-error`.
-  it('createStateConfig (path, config) currently accepts a sibling-region target in a parallel state (known limitation)', () => {
+  it('createStateConfig (path, config) rejects sibling-region targets in parallel states', () => {
     const s = setup({
       schemas: {
         events: {
@@ -354,6 +348,7 @@ describe('setup', () => {
       },
       states: {
         p: {
+          type: 'parallel',
           states: {
             r1: {},
             r2: {}
@@ -364,8 +359,9 @@ describe('setup', () => {
 
     s.createStateConfig('p.r1', {
       on: {
+        // @ts-expect-error - parallel regions cannot target sibling regions by name
         E: {
-          target: 'r2' // known gap: should be rejected; flip to @ts-expect-error when it is
+          target: 'r2'
         }
       }
     });
