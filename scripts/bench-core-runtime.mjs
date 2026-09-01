@@ -171,21 +171,6 @@ function makeMachineFunctionContext() {
   });
 }
 
-function makeFSMEnq() {
-  return createFSM({
-    initial: 'idle',
-    states: {
-      idle: {
-        on: {
-          hit: (_, enq) => {
-            enq(noop);
-          }
-        }
-      }
-    }
-  });
-}
-
 function makeMachineEnq() {
   return createMachine({
     initial: 'idle',
@@ -282,6 +267,14 @@ function makePublicTransitionBench(makeLogic, event) {
   };
 }
 
+function makeFSMTransitionBench(makeFSM, event) {
+  const fsm = makeFSM();
+  let snapshot = fsm.initialState;
+  return () => {
+    snapshot = fsm.transition(snapshot, event);
+  };
+}
+
 function makeActorSendBench(makeLogic, event) {
   const actor = createActor(makeLogic()).start();
   return () => {
@@ -351,35 +344,25 @@ if (dunkyModule) {
 
 const results = [
   bench('createFSM public transition: { target }', () =>
-    makePublicTransitionBench(makeFSMTarget, { type: 'next' })),
+    makeFSMTransitionBench(makeFSMTarget, { type: 'next' })),
   bench('createMachine public transition: { target }', () =>
     makePublicTransitionBench(makeMachineTarget, { type: 'next' })),
   bench('createFSM public transition: { context }', () =>
-    makePublicTransitionBench(makeFSMContext, { type: 'hit' })),
+    makeFSMTransitionBench(makeFSMContext, { type: 'hit' })),
   bench('createMachine public transition: { context }', () =>
     makePublicTransitionBench(makeMachineContext, { type: 'hit' })),
   bench('createFSM public transition: function context', () =>
-    makePublicTransitionBench(makeFSMFunctionContext, { type: 'hit' })),
+    makeFSMTransitionBench(makeFSMFunctionContext, { type: 'hit' })),
   bench('createMachine public transition: function context', () =>
     makePublicTransitionBench(makeMachineFunctionContext, { type: 'hit' })),
-  bench('createFSM raw transition: { target }', () =>
-    makeRawTransitionBench(makeFSMTarget, { type: 'next' })),
   bench('createMachine raw transition: { target }', () =>
     makeRawTransitionBench(makeMachineTarget, { type: 'next' })),
-  bench('createFSM actor.send: { target }', () =>
-    makeActorSendBench(makeFSMTarget, { type: 'next' })),
   bench('createMachine actor.send: { target }', () =>
     makeActorSendBench(makeMachineTarget, { type: 'next' })),
-  bench('createFSM actor.send: { context }', () =>
-    makeActorSendBench(makeFSMContext, { type: 'hit' })),
   bench('createMachine actor.send: { context }', () =>
     makeActorSendBench(makeMachineContext, { type: 'hit' })),
-  bench('createFSM actor.send: function context', () =>
-    makeActorSendBench(makeFSMFunctionContext, { type: 'hit' })),
   bench('createMachine actor.send: function context', () =>
     makeActorSendBench(makeMachineFunctionContext, { type: 'hit' })),
-  bench('createFSM actor.send: function enq', () =>
-    makeActorSendBench(makeFSMEnq, { type: 'hit' })),
   bench('createMachine actor.send: function enq', () =>
     makeActorSendBench(makeMachineEnq, { type: 'hit' })),
   benchConstruction('construct createFSM', makeFSMTarget),
