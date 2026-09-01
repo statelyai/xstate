@@ -1,14 +1,22 @@
 import { Cause, Effect, Exit, Stream } from 'effect';
 import {
   createLogic,
+  type ActorLogicValidator,
   type ActorLogic,
   type AnyActorLogic,
   type AnyActorRef,
   type AnyActorSystem,
   type EventObject,
-  type Snapshot
+  type Snapshot,
+  type StandardSchemaV1
 } from 'xstate';
 import { relayToParent, startHostedEffect } from './internal.ts';
+import {
+  type EffectSchemaLike,
+  type ToStandardSchema,
+  type ValidateEffectActorSchemas,
+  toStandardSchema
+} from './schema.ts';
 
 const EFFECT_INIT = '@xstate.init';
 const EFFECT_RESOLVE = 'xstate.effect.resolve';
@@ -43,6 +51,50 @@ export type EffectSource<TOutput, TError, TInput, TRequirements> =
   | ((
       args: EffectSourceArgs<TInput>
     ) => Effect.Effect<TOutput, TError, TRequirements>);
+
+type EffectActorSchemas = {
+  readonly input?: EffectSchemaLike;
+  readonly output?: EffectSchemaLike;
+};
+
+type EffectSourceConfig<
+  TOutput,
+  TError,
+  TInput,
+  TRequirements,
+  TSchemas extends EffectActorSchemas = EffectActorSchemas,
+  TValidator extends ActorLogicValidator | undefined =
+    | ActorLogicValidator
+    | undefined
+> = {
+  readonly id?: string;
+  readonly validator?: TValidator;
+  readonly schemas?: TSchemas &
+    ([TValidator] extends [ActorLogicValidator]
+      ? ValidateEffectActorSchemas<TSchemas>
+      : unknown);
+  readonly effect: EffectSource<TOutput, TError, TInput, TRequirements>;
+};
+
+type SchemaOutput<TSchema extends EffectSchemaLike> =
+  StandardSchemaV1.InferOutput<ToStandardSchema<TSchema>>;
+
+type EffectSuccess<T> = T extends Effect.Effect<infer A, any, any> ? A : never;
+
+type EffectFailure<T> = T extends Effect.Effect<any, infer E, any> ? E : never;
+
+type EffectRequirements<T> =
+  T extends Effect.Effect<any, any, infer R> ? R : never;
+
+type EffectSchemaValidationConfig<TSchemas extends EffectActorSchemas> =
+  | {
+      readonly validator: ActorLogicValidator;
+      readonly schemas: TSchemas & ValidateEffectActorSchemas<TSchemas>;
+    }
+  | {
+      readonly validator?: undefined;
+      readonly schemas: TSchemas;
+    };
 
 export type EffectActorLogic<TOutput, TError, TInput, TRequirements> =
   ActorLogic<
@@ -89,6 +141,114 @@ function brandLogic<TLogic extends AnyActorLogic>(
   return logic;
 }
 
+export function fromEffect<
+  const TInputSchema extends EffectSchemaLike,
+  const TOutputSchema extends EffectSchemaLike,
+  TError = unknown,
+  TRequirements = never
+>(
+  config: Omit<
+    EffectSourceConfig<
+      SchemaOutput<TOutputSchema>,
+      TError,
+      SchemaOutput<TInputSchema>,
+      TRequirements
+    >,
+    'schemas' | 'validator'
+  > &
+    EffectSchemaValidationConfig<{
+      input: TInputSchema;
+      output: TOutputSchema;
+    }>
+): EffectActorLogic<
+  SchemaOutput<TOutputSchema>,
+  TError,
+  SchemaOutput<TInputSchema>,
+  TRequirements
+>;
+export function fromEffect<
+  const TInputSchema extends EffectSchemaLike,
+  TEffect extends Effect.Effect<any, any, any>
+>(
+  config: Omit<
+    EffectSourceConfig<
+      EffectSuccess<TEffect>,
+      EffectFailure<TEffect>,
+      SchemaOutput<TInputSchema>,
+      EffectRequirements<TEffect>,
+      { input: TInputSchema }
+    >,
+    'effect' | 'schemas' | 'validator'
+  > &
+    EffectSchemaValidationConfig<{
+      input: TInputSchema;
+      output?: never;
+    }> & {
+      effect: TEffect;
+    }
+): EffectActorLogic<
+  EffectSuccess<TEffect>,
+  EffectFailure<TEffect>,
+  SchemaOutput<TInputSchema>,
+  EffectRequirements<TEffect>
+>;
+export function fromEffect<
+  const TInputSchema extends EffectSchemaLike,
+  TEffect extends Effect.Effect<any, any, any>
+>(
+  config: Omit<
+    EffectSourceConfig<
+      EffectSuccess<TEffect>,
+      EffectFailure<TEffect>,
+      SchemaOutput<TInputSchema>,
+      EffectRequirements<TEffect>,
+      { input: TInputSchema }
+    >,
+    'effect' | 'schemas' | 'validator'
+  > &
+    EffectSchemaValidationConfig<{
+      input: TInputSchema;
+      output?: never;
+    }> & {
+      effect: (args: EffectSourceArgs<SchemaOutput<TInputSchema>>) => TEffect;
+    }
+): EffectActorLogic<
+  EffectSuccess<TEffect>,
+  EffectFailure<TEffect>,
+  SchemaOutput<TInputSchema>,
+  EffectRequirements<TEffect>
+>;
+export function fromEffect<
+  const TOutputSchema extends EffectSchemaLike,
+  TError = unknown,
+  TInput = undefined,
+  TRequirements = never
+>(
+  config: Omit<
+    EffectSourceConfig<
+      SchemaOutput<TOutputSchema>,
+      TError,
+      TInput,
+      TRequirements
+    >,
+    'schemas' | 'validator'
+  > &
+    EffectSchemaValidationConfig<{
+      input?: never;
+      output: TOutputSchema;
+    }>
+): EffectActorLogic<SchemaOutput<TOutputSchema>, TError, TInput, TRequirements>;
+export function fromEffect<
+  TOutput,
+  TError = unknown,
+  TInput = undefined,
+  TRequirements = never
+>(
+  config: EffectSourceConfig<TOutput, TError, TInput, TRequirements> & {
+    schemas?: undefined;
+  }
+): EffectActorLogic<TOutput, TError, TInput, TRequirements>;
+
 export function fromEffect<TOutput, TError = unknown, TRequirements = never>(
   effect: Effect.Effect<TOutput, TError, TRequirements>
 ): EffectActorLogic<TOutput, TError, undefined, TRequirements>;
@@ -108,8 +268,25 @@ export function fromEffect<
   TInput = undefined,
   TRequirements = never
 >(
-  source: EffectSource<TOutput, TError, TInput, TRequirements>
+  sourceOrConfig:
+    | EffectSource<TOutput, TError, TInput, TRequirements>
+    | EffectSourceConfig<TOutput, TError, TInput, TRequirements>
 ): EffectActorLogic<TOutput, TError, TInput, TRequirements> {
+  const config: EffectSourceConfig<TOutput, TError, TInput, TRequirements> =
+    typeof sourceOrConfig === 'function' || Effect.isEffect(sourceOrConfig)
+      ? { effect: sourceOrConfig }
+      : sourceOrConfig;
+  const source = config.effect;
+  const schemas = config.schemas
+    ? {
+        ...(config.schemas.input
+          ? { input: toStandardSchema(config.schemas.input) }
+          : {}),
+        ...(config.schemas.output
+          ? { output: toStandardSchema(config.schemas.output) }
+          : {})
+      }
+    : undefined;
   const logic = createLogic<
     undefined,
     TOutput,
@@ -117,6 +294,9 @@ export function fromEffect<
     TInput,
     EventObject
   >({
+    id: config.id,
+    validator: config.validator,
+    schemas,
     context: undefined,
     run: ({ event, input, self }, enq) => {
       if (event.type === EFFECT_RESOLVE) {
@@ -140,9 +320,7 @@ export function fromEffect<
       }
 
       const effect =
-        typeof source === 'function'
-          ? source({ input, self: self as AnyActorRef })
-          : source;
+        typeof source === 'function' ? source({ input, self }) : source;
 
       enq.effect(() =>
         startHostedEffect(self as AnyActorRef, effect, (exit) => {
@@ -209,9 +387,7 @@ export function fromEffectStream<
       }
 
       const streamValue =
-        typeof stream === 'function'
-          ? stream({ input, self: self as AnyActorRef })
-          : stream;
+        typeof stream === 'function' ? stream({ input, self }) : stream;
       const consume = Stream.runForEach(streamValue, (value) =>
         Effect.sync(() => {
           if (self.getSnapshot().status === 'active') {
@@ -226,7 +402,7 @@ export function fromEffectStream<
             return;
           }
           if (Exit.isSuccess(exit)) {
-            self.send({ type: EFFECT_COMPLETE } as any);
+            self.send({ type: EFFECT_COMPLETE });
           } else {
             const error = toError(exit);
             if (error !== undefined) {
@@ -281,9 +457,7 @@ export function fromEffectEventStream<
       }
 
       const streamValue =
-        typeof stream === 'function'
-          ? stream({ input, self: self as AnyActorRef })
-          : stream;
+        typeof stream === 'function' ? stream({ input, self }) : stream;
       const consume = Stream.runForEach(streamValue, (value) =>
         Effect.sync(() => relayToParent(self as AnyActorRef, value))
       );
@@ -294,7 +468,7 @@ export function fromEffectEventStream<
             return;
           }
           if (Exit.isSuccess(exit)) {
-            self.send({ type: EFFECT_COMPLETE } as any);
+            self.send({ type: EFFECT_COMPLETE });
           } else {
             const error = toError(exit);
             if (error !== undefined) {

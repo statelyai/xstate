@@ -21,9 +21,10 @@ npm install @xstate/effect@alpha xstate@alpha effect@rc
 machine and can use existing XState transitions.
 
 ```ts
-import { Context, Effect } from 'effect';
+import { Context, Effect, Schema } from 'effect';
 import { createEffectActor, fromEffect } from '@xstate/effect';
 import { setup } from 'xstate';
+import { standardSchemaValidator } from 'xstate/validation';
 
 interface ApiService {
   fetchUser: (id: string) => Effect.Effect<{ id: string }, Error>;
@@ -31,12 +32,17 @@ interface ApiService {
 
 const Api = Context.Service<ApiService>('Api');
 
-const logic = fromEffect(
-  ({ input }: { input: { id: string } }) =>
+const logic = fromEffect({
+  validator: standardSchemaValidator(),
+  schemas: {
+    input: Schema.Struct({ id: Schema.String }),
+    output: Schema.Struct({ id: Schema.String })
+  },
+  effect: ({ input }) =>
     Effect.gen(function* () {
       return yield* Api.use((api) => api.fetchUser(input.id));
     })
-);
+});
 
 const machine = setup({ actors: { fetchUser: logic } }).createMachine({
   initial: 'loading',
@@ -70,6 +76,89 @@ interruption is treated as cancellation.
 
 Effect-backed logic must be started with `createEffectActor`; using ordinary
 `createActor` does not install an Effect runtime and fails during startup.
+
+## Effect schemas
+
+`setupEffect` accepts Effect schemas in its `schemas` and `states` options. The
+same applies to `setupEffect(...).extend(...)`. XState infers the decoded
+`Schema.Type`, so there is no need to call `Schema.toStandardSchemaV1`.
+
+```ts
+import { Effect, Schema } from 'effect';
+import { createEffectActor, setupEffect } from '@xstate/effect';
+import { standardSchemaValidator } from 'xstate/validation';
+
+const machine = setupEffect({
+  validator: standardSchemaValidator(),
+  schemas: {
+    context: Schema.Struct({ count: Schema.Number }),
+    events: {
+      ADD: Schema.Struct({ value: Schema.Number })
+    }
+  }
+}).createMachine({
+  context: { count: 0 },
+  on: {
+    ADD: ({ context, event }) => ({
+      context: { count: context.count + event.value }
+    })
+  }
+});
+
+const actor = await Effect.runPromise(createEffectActor(machine));
+actor.send({ type: 'ADD', value: 2 });
+```
+
+Standard Schemas remain supported and can be mixed with Effect schemas. Schema
+validation follows normal XState rules. Schemas provide types without a
+`validator`; adding `standardSchemaValidator()` enables runtime assertions.
+
+XState validation checks a value but does not replace it with a transformed
+value. When runtime validation is enabled, TypeScript rejects schemas whose
+encoded and decoded types differ. Effect schemas used at this validation seam
+must decode synchronously and without Effect service requirements.
+
+Actor Effects can read services from the Effect context captured by
+`createEffectActor`, as in the `Effect.provideService` example above. The actor
+does not own the lifetime of a caller-provided Layer or `ManagedRuntime`. For a
+Layer with scoped resources, keep a caller-owned `ManagedRuntime` alive until
+the actor is stopped, then dispose it:
+
+```ts
+import { ManagedRuntime } from 'effect';
+
+const runtime = ManagedRuntime.make(AppLayer);
+const actor = await runtime.runPromise(createEffectActor(machine));
+
+// use the actor
+actor.stop();
+await runtime.dispose();
+```
+
+Providing a scoped Layer only around `createEffectActor(machine)` is not
+sufficient: actor creation returns immediately, so that Layer's scope would
+close while the actor is still active.
+
+`fromEffect` also accepts Effect schemas for actor input and output. Either
+schema may be omitted, and the missing type is inferred from the Effect:
+
+```ts
+const loadUser = fromEffect({
+  schemas: {
+    input: Schema.Struct({ id: Schema.String }),
+    output: Schema.Struct({ id: Schema.String })
+  },
+  effect: ({ input }) =>
+    Api.use((api) => api.fetchUser(input.id))
+});
+```
+
+The existing shorthand forms continue to work:
+
+```ts
+fromEffect(Effect.succeed('done'));
+fromEffect(({ input }: { input: string }) => Effect.succeed(input.length));
+```
 
 ## Effect actions
 
