@@ -1210,7 +1210,7 @@ describe('setup state contracts', () => {
   it('correlates nested setup targets with their context and input schemas', () => {
     const s = setup({
       schemas: {
-        context: types<{ mode: 'idle' }>(),
+        context: types<{ mode: 'idle' } | { mode: 'done'; code: number }>(),
         events: {
           GO: types<{}>(),
           CHILD: types<{}>(),

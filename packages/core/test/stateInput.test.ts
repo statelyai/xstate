@@ -1837,6 +1837,87 @@ describe('setup', () => {
     expect(true).toBe(true);
   });
 
+  it('state context schemas should refine part of the root context', () => {
+    const machine = setup({
+      schemas: {
+        context: z.object({
+          requestId: z.string(),
+          draft: z.string().optional()
+        }),
+        events: { REVIEW: z.object({ draft: z.string() }) }
+      },
+      states: {
+        workflow: {
+          type: 'compound',
+          initial: 'editing',
+          states: {
+            editing: {},
+            reviewing: {
+              schemas: { context: z.object({ draft: z.string() }) }
+            }
+          }
+        }
+      }
+    }).createMachine({
+      context: { requestId: 'req-1' },
+      initial: 'workflow',
+      states: {
+        workflow: {
+          initial: 'editing',
+          states: {
+            editing: {
+              on: {
+                REVIEW: ({ event }) => ({
+                  target: 'reviewing',
+                  context: { draft: event.draft }
+                })
+              }
+            },
+            reviewing: {
+              entry: ({ context }) => {
+                false satisfies IsAny<typeof context>;
+                false satisfies IsAny<typeof context.requestId>;
+                context.requestId satisfies string;
+                context.draft satisfies string;
+                // @ts-expect-error - root context fields keep their declared type
+                context.requestId satisfies number;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'REVIEW', draft: 'Ready' });
+
+    type ReviewingContext = StateContextFromStateValue<
+      StateSchemaFrom<typeof machine>,
+      { requestId: string; draft?: string },
+      { workflow: 'reviewing' }
+    >;
+    false satisfies IsAny<ReviewingContext['requestId']>;
+    (({}) as ReviewingContext).requestId satisfies string;
+    (({}) as ReviewingContext).draft satisfies string;
+    // @ts-expect-error - the root field remains a string in the refinement
+    (({}) as ReviewingContext).requestId satisfies number;
+
+    const snapshot = actor.getSnapshot();
+    if (snapshot.matches({ workflow: 'reviewing' })) {
+      false satisfies IsAny<typeof snapshot.context>;
+      false satisfies IsAny<typeof snapshot.context.requestId>;
+      snapshot.context.requestId satisfies string;
+      snapshot.context.draft satisfies string;
+      // @ts-expect-error - root context fields keep their declared type
+      snapshot.context.requestId satisfies number;
+    }
+
+    expect(snapshot.context).toEqual({
+      requestId: 'req-1',
+      draft: 'Ready'
+    });
+  });
+
   it('state schemas should allow undeclared sibling states', () => {
     setup({
       states: {

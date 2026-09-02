@@ -1572,6 +1572,7 @@ type StateContext<
 > = TStateSchema['schemas'] extends { context: infer TContextSchema }
   ? TContextSchema extends StandardSchemaV1
     ? StandardSchemaV1.InferOutput<TContextSchema> &
+        RootContext<TFallbackContext> &
         MachineContext &
         RootContextMarker<TFallbackContext>
     : RootContext<TFallbackContext>
@@ -1593,6 +1594,7 @@ type StateContextShape<
 > = TStateSchema['schemas'] extends { context: infer TContextSchema }
   ? TContextSchema extends StandardSchemaV1
     ? StandardSchemaV1.InferOutput<TContextSchema> &
+        RootContext<TFallbackContext> &
         RootContextMarker<TFallbackContext>
     : RootContext<TFallbackContext>
   : RootContext<TFallbackContext>;

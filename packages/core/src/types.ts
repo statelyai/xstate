@@ -2751,7 +2751,9 @@ type ContextFromStateSchema<
   TSchema extends StateSchema,
   TFallbackContext extends MachineContext
 > = TSchema['contextSchema'] extends StandardSchemaV1
-  ? StandardSchemaV1.InferOutput<TSchema['contextSchema']> & MachineContext
+  ? StandardSchemaV1.InferOutput<TSchema['contextSchema']> &
+      TFallbackContext &
+      MachineContext
   : TFallbackContext;
 
 type ContextFromChildStateValue<
