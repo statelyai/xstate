@@ -6,7 +6,7 @@ Add experimental Effect 4 integration for XState v6.
 
 - `createEffectActor(logic)` creates and starts an actor as a scoped Effect resource. The actor stops, and its running Effects are interrupted, when the enclosing `Scope` closes. XState timers use the Effect `Clock`, so `TestClock` drives delayed transitions.
 - `fromEffect`, `fromEffectStream` and `fromEffectEventStream` turn Effects and Streams into actor logic with typed failures and service requirements. Interruption from inside the Effect reports an `EffectInterruptedError`.
-- `setupEffect` accepts Effect schemas and Effect-returning actions; `runEffect` runs an Effect from an inline action.
+- `setupEffect` accepts Effect schemas and Effect-returning actions.
 - `send`, `snapshots`, `emitted`, `waitFor`, `toEffect` and `inspect` expose an actor as Effects and Streams.
 
 ```ts

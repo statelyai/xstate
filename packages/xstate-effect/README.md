@@ -115,9 +115,7 @@ Pass `options.clock` to use a different clock, such as XState's `SimulatedClock`
 - logic used inline as `invoke.src`, at the root or in any state,
 - all of the above inside child machines, whether registered or invoked inline, up to 10 levels of nesting.
 
-Two sources are not visible to the type because they live inside transition function bodies: logic passed to `enq.spawn` and Effects run with `runEffect`. They still run in the captured context, and a missing service fails at runtime.
-
-> **Warning:** Spawn registered actors (`enq.spawn(args.actors.worker)`) and register actions with `setupEffect` to keep requirements typed. Inline `enq.spawn(logic)` and `runEffect` typecheck with `R = never` and fail at runtime when a service is missing.
+Logic passed inline to `enq.spawn` lives inside a transition function body and is not visible to the type. Spawning inline Effect logic is therefore rejected at runtime; spawn a declared actor instead (`enq.spawn(args.actors.worker)`). See [Declared only](#declared-only).
 
 ### Observing actors
 
@@ -253,7 +251,7 @@ XState validation checks a value but does not replace it with a transformed valu
 
 ## Effect actions
 
-<!-- effect action contract from src/setupEffect.ts; runEffect from src/runEffect.ts -->
+<!-- effect action contract from src/setupEffect.ts; spawn guard from src/internal.ts -->
 
 `setupEffect({ actions })` registers actions that return Effects. They run in the actor's context and are interrupted when the actor stops. Failures and defects route to the state's `onError`. The v6 enqueue contract is preserved, so action parameters are passed explicitly:
 
@@ -299,17 +297,17 @@ const machine = setupEffect({
 });
 ```
 
-`runEffect(self, effect)` runs an Effect from an inline action. It has the same lifetime and error behavior as a registered Effect action, but its requirements are not reflected in `RequirementsFrom`.
+### Declared only
 
-```ts
-const machine = createMachine({
-  on: {
-    SAVE: (args, enq) => enq(runEffect, args.self, Effect.log('saving'))
-  }
-});
-```
+Anything that touches the Effect context must be a declared action or a declared actor. Only declared sources contribute to the actor's requirements, so an inline Effect infers `R = never` and fails at runtime when a service is missing. Declared actions also carry a name for inspection and `machine.provide` overrides.
 
-Effect actions and `runEffect` do not block the actor. The actor processes the next event while the Effect runs.
+- Register Effect actions with `setupEffect({ actions })` and run them with `enq(args.actions.name, args)`.
+- Register spawned Effect logic with `setup({ actors })` or `setupEffect({ actors })` and spawn it with `enq.spawn(args.actors.name)`. Spawning inline Effect logic is an error at runtime.
+- Effect logic used inline as `invoke.src` runs and contributes to `RequirementsFrom`. Registering it in `actors` gives it a name.
+
+An inline action that returns an Effect does not run it. `enq(() => Effect.log('saved'))` creates the Effect and discards it, because XState only awaits returned promises. The repository lint rule `xstate-effect/no-inline-effect` flags this pattern.
+
+Effect actions do not block the actor. The actor processes the next event while the Effect runs.
 
 ## Tracing
 

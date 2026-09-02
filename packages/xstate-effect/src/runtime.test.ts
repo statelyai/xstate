@@ -14,7 +14,6 @@ import {
   fromEffect,
   fromEffectEventStream,
   fromEffectStream,
-  runEffect,
   setupEffect
 } from './index.ts';
 
@@ -335,90 +334,6 @@ describe('@xstate/effect runtime', () => {
     expect(actor.getSnapshot().output).toBe('done');
   });
 
-  it('runs an inline runEffect action in the host Effect context', async () => {
-    const Config = Context.Service<{ value: number }>('Config');
-    let observed: number | undefined;
-    const machine = createMachine({
-      on: {
-        READ: (args, enq) =>
-          enq(
-            runEffect,
-            args.self,
-            Config.use((config) =>
-              Effect.sync(() => {
-                observed = config.value;
-              })
-            )
-          )
-      }
-    });
-
-    const actor = await runScoped(
-      Effect.provideService(createEffectActor(machine), Config, { value: 7 })
-    );
-    actor.send({ type: 'READ' });
-    await waitForEffects();
-
-    expect(observed).toBe(7);
-  });
-
-  it('routes a failing inline runEffect action to onError', async () => {
-    const failure = { code: 'BOOM' as const };
-    let received: unknown;
-    const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            FAIL: (args, enq) => enq(runEffect, args.self, Effect.fail(failure))
-          },
-          onError: ({ event }) => {
-            received = event.error;
-            return { target: 'failed' };
-          }
-        },
-        failed: {}
-      }
-    });
-
-    const actor = await runScoped(createEffectActor(machine));
-    actor.send({ type: 'FAIL' });
-    await waitForEffects();
-
-    expect(actor.getSnapshot().value).toBe('failed');
-    expect(received).toEqual(failure);
-  });
-
-  it('interrupts an inline runEffect action when the actor stops', async () => {
-    let interrupted = false;
-    const machine = createMachine({
-      on: {
-        WORK: (args, enq) =>
-          enq(
-            runEffect,
-            args.self,
-            Effect.ensuring(
-              Effect.never,
-              Effect.sync(() => {
-                interrupted = true;
-              })
-            )
-          )
-      }
-    });
-
-    const actor = await runScoped(createEffectActor(machine));
-    actor.send({ type: 'WORK' });
-    await waitForEffects();
-
-    expect(interrupted).toBe(false);
-
-    actor.stop();
-    await waitForEffects();
-
-    expect(interrupted).toBe(true);
-  });
-
   it('infers stream input from the fromEffectStream config form', async () => {
     const logic = fromEffectStream({
       schemas: { input: Schema.Struct({ n: Schema.Number }) },
@@ -579,6 +494,24 @@ describe('@xstate/effect runtime', () => {
     const ref = actor.getSnapshot().context.ref;
     expect(ref?.getSnapshot().status).toBe('done');
     expect(ref?.getSnapshot().output).toBe('spawned');
+  });
+
+  it('rejects inline Effect logic passed to enq.spawn', async () => {
+    const machine = setup({}).createMachine({
+      context: { ref: undefined as AnyActorRef | undefined },
+      entry: (_args, enq) => ({
+        context: { ref: enq.spawn(fromEffect(Effect.succeed('inline'))) }
+      })
+    });
+
+    const actor = await runScoped(createEffectActor(machine));
+    await waitForEffects();
+
+    const ref = actor.getSnapshot().context.ref;
+    expect(ref?.getSnapshot().status).toBe('error');
+    expect(String(ref?.getSnapshot().error)).toMatch(
+      /must be declared in setup\(\{ actors \}\)/
+    );
   });
 
   it('routes a defect in an Effect action to onError', async () => {

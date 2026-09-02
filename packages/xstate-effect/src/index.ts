@@ -24,7 +24,6 @@ export {
   type WaitForOptions
 } from './actor.ts';
 export { createEffectClock } from './clock.ts';
-export { runEffect } from './runEffect.ts';
 export { ActorStoppedError, EffectInterruptedError } from './errors.ts';
 export {
   setupEffect,

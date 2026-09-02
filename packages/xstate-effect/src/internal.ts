@@ -47,7 +47,47 @@ function findEffectHost(actor: AnyActorRef): EffectHost | undefined {
   return undefined;
 }
 
+type DeclaringMachine = {
+  sources?: { actors?: Record<string, unknown> };
+  idMap?: Map<string, { invoke?: Array<{ logic?: unknown }> }>;
+};
+
+/**
+ * Rejects Effect logic that a machine spawned inline. Only declared actors
+ * (`setup({ actors })`) and `invoke` sources are visible to
+ * `RequirementsFrom`, so anything else would infer `R = never` and fail
+ * later with a missing service.
+ */
+function assertDeclaredLogic(actor: AnyActorRef): void {
+  const self = actor as AnyActor;
+  const parent = self._parent;
+  const machine = parent?.logic as DeclaringMachine | undefined;
+  if (!machine?.sources || !machine.idMap || typeof self.src === 'string') {
+    return;
+  }
+
+  const logic = (self as { logic?: unknown }).logic;
+  if (Object.values(machine.sources.actors ?? {}).includes(logic)) {
+    return;
+  }
+  for (const stateNode of machine.idMap.values()) {
+    for (const definition of stateNode.invoke ?? []) {
+      if (
+        definition.logic === logic ||
+        typeof definition.logic === 'function'
+      ) {
+        return;
+      }
+    }
+  }
+
+  throw new Error(
+    `Effect logic spawned by "${parent!.id}" must be declared in setup({ actors }). Spawn a declared actor instead, for example enq.spawn(args.actors.name).`
+  );
+}
+
 function requireEffectHost(actor: AnyActorRef): EffectHost {
+  assertDeclaredLogic(actor);
   const host = findEffectHost(actor);
   if (!host) {
     throw new Error(
