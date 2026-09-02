@@ -1,5 +1,5 @@
 import { Context, Effect } from 'effect';
-import { setup, type AnyActorLogic } from 'xstate';
+import { createMachine, setup, type AnyActorLogic } from 'xstate';
 import {
   createEffectActor,
   fromEffect,
@@ -174,6 +174,123 @@ describe('RequirementsFrom', () => {
     false satisfies Equals<RequirementsFrom<typeof parent>, BetaRequirement>;
     true satisfies Includes<ActorRequirements<typeof parent>, AlphaRequirement>;
     true satisfies Includes<ActorRequirements<typeof parent>, BetaRequirement>;
+
+    expect(true).toBe(true);
+  });
+});
+
+describe('RequirementsFrom (inline invoke.src)', () => {
+  it('collects requirements from an inline root invoke', () => {
+    const machine = createMachine({
+      invoke: { src: alphaLogic }
+    });
+
+    true satisfies Equals<RequirementsFrom<typeof machine>, AlphaRequirement>;
+    true satisfies Includes<
+      ActorRequirements<typeof machine>,
+      AlphaRequirement
+    >;
+
+    expect(true).toBe(true);
+  });
+
+  it('collects requirements from an inline invoke nested two states deep', () => {
+    const machine = setup({}).createMachine({
+      initial: 'outer',
+      states: {
+        outer: {
+          initial: 'inner',
+          states: {
+            inner: { invoke: { src: alphaLogic } }
+          }
+        }
+      }
+    });
+
+    true satisfies Equals<RequirementsFrom<typeof machine>, AlphaRequirement>;
+
+    expect(true).toBe(true);
+  });
+
+  it('collects requirements from an array of invoke configs', () => {
+    const machine = setup({ actors: { betaLogic } }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: [{ src: 'betaLogic' }, { src: alphaLogic }]
+        }
+      }
+    });
+
+    true satisfies Equals<
+      RequirementsFrom<typeof machine>,
+      AlphaRequirement | BetaRequirement
+    >;
+
+    expect(true).toBe(true);
+  });
+
+  it('recurses into an inline child machine used as invoke.src', () => {
+    const child = createMachine({
+      initial: 'a',
+      states: { a: { invoke: { src: alphaLogic } } }
+    });
+    const parent = createMachine({
+      initial: 'a',
+      states: { a: { invoke: { src: child } } }
+    });
+
+    true satisfies Equals<RequirementsFrom<typeof parent>, AlphaRequirement>;
+    true satisfies Includes<ActorRequirements<typeof parent>, AlphaRequirement>;
+
+    expect(true).toBe(true);
+  });
+
+  it('no longer infers `never` for inline Effect logic', () => {
+    const inline = createMachine({
+      initial: 'a',
+      states: { a: { invoke: { src: alphaLogic } } }
+    });
+
+    false satisfies IsNever<RequirementsFrom<typeof inline>>;
+
+    // @ts-expect-error -- inline requirements must no longer be `never`
+    const probe: IsNever<RequirementsFrom<typeof inline>> extends true
+      ? 'INLINE_R_IS_NEVER'
+      : 'inline ok' = 'INLINE_R_IS_NEVER';
+    void probe;
+
+    expect(true).toBe(true);
+  });
+
+  it('infers `never` when every invoke.src is a registered string', () => {
+    const machine = setup({ actors: { plainLogic } }).createMachine({
+      initial: 'a',
+      states: { a: { invoke: { src: 'plainLogic' } } }
+    });
+
+    true satisfies IsNever<RequirementsFrom<typeof machine>>;
+
+    expect(true).toBe(true);
+  });
+
+  it('cannot see logic spawned inside a transition function body', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            GO: (_args, enq) => {
+              enq.spawn(alphaLogic);
+            }
+          }
+        }
+      }
+    });
+
+    // Known limitation: `enq.spawn` happens inside a function body, so the
+    // spawned logic never reaches the machine's type.
+    true satisfies IsNever<RequirementsFrom<typeof machine>>;
 
     expect(true).toBe(true);
   });

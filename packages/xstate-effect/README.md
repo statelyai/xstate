@@ -111,11 +111,13 @@ Pass `options.clock` to use a different clock, such as XState's `SimulatedClock`
 `RequirementsFrom<Logic>` is the `R` channel of `createEffectActor`. It collects the requirements of:
 
 - actions registered with `setupEffect({ actions })`,
-- actors registered with `setup({ actors })` or `setupEffect({ actors })`, including Effect actors inside registered child machines.
+- actors registered with `setup({ actors })` or `setupEffect({ actors })`,
+- logic used inline as `invoke.src`, at the root or in any state,
+- all of the above inside child machines, whether registered or invoked inline, up to 10 levels of nesting.
 
-Sources that are not registered are not visible to the type: an inline `invoke.src`, logic passed to `enq.spawn`, and Effects run with `runEffect`. They still run in the captured context, and a missing service fails at runtime.
+Two sources are not visible to the type because they live inside transition function bodies: logic passed to `enq.spawn` and Effects run with `runEffect`. They still run in the captured context, and a missing service fails at runtime.
 
-> **Warning:** Register Effect actors and actions in `setup` or `setupEffect` to get typed requirements. An inline source that needs a service typechecks with `R = never` and fails when the actor starts.
+> **Warning:** Spawn registered actors (`enq.spawn(args.actors.worker)`) and register actions with `setupEffect` to keep requirements typed. Inline `enq.spawn(logic)` and `runEffect` typecheck with `R = never` and fail at runtime when a service is missing.
 
 ### Observing actors
 

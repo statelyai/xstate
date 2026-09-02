@@ -37,13 +37,46 @@ type RequirementsFromActors<T, TDepth extends Depth> =
       RequirementsFrom<T[keyof T], TDepth>
     : never;
 
+/** `invoke` accepts a single config or an array of them. */
+type InvokeEntry<TInvoke> = TInvoke extends readonly (infer U)[] ? U : TInvoke;
+
+/**
+ * Requirements of the logic passed inline as `invoke.src`. A string `src`
+ * names an actor registered in `setup({ actors })`, whose requirements are
+ * already collected from the actor map, so it contributes nothing here.
+ */
+type RequirementsFromInvoke<TInvoke, TDepth extends Depth> =
+  InvokeEntry<TInvoke> extends infer TEntry
+    ? TEntry extends { src: infer TSrc }
+      ? TSrc extends string
+        ? never
+        : RequirementsFrom<TSrc, TDepth>
+      : never
+    : never;
+
+/**
+ * Walks the machine's literal config tree (the state schema) collecting
+ * requirements from inline `invoke.src` logic at the root and in every
+ * descendant state node.
+ */
+type RequirementsFromStateSchema<TSchema, TDepth extends Depth> =
+  | (TSchema extends { invoke: infer TInvoke }
+      ? RequirementsFromInvoke<TInvoke, TDepth>
+      : never)
+  | (TSchema extends { states: infer TStates }
+      ? TStates extends Record<string, any>
+        ? RequirementsFromStateSchema<TStates[keyof TStates], TDepth>
+        : never
+      : never);
+
 /**
  * Collects the Effect service requirements of an actor logic.
  *
  * For Effect logic this is the logic's own `R`. For a state machine it is the
  * union of the requirements of its registered Effect actions, its registered
- * Effect actors, and — recursively — the requirements of any registered child
- * machines (capped at {@link MaxDepth} levels of nesting).
+ * Effect actors, the Effect logic passed inline as `invoke.src` anywhere in
+ * its state tree, and — recursively — the requirements of any child machine
+ * reached either way (capped at {@link MaxDepth} levels of machine nesting).
  */
 export type RequirementsFrom<T, TDepth extends Depth = MaxDepth> =
   T extends EffectLogicBrand<any, infer R>
@@ -51,12 +84,18 @@ export type RequirementsFrom<T, TDepth extends Depth = MaxDepth> =
     : T extends {
           readonly _actionMap: infer TActionMap;
           readonly _actorMap: infer TActorMap;
+          readonly _stateSchema: infer TStateSchema;
         }
       ?
           | RequirementsFromActions<TActionMap>
           | ([TDepth] extends [0]
               ? never
-              : RequirementsFromActors<TActorMap, PrevDepth[TDepth]>)
+              :
+                  | RequirementsFromActors<TActorMap, PrevDepth[TDepth]>
+                  | RequirementsFromStateSchema<
+                      TStateSchema,
+                      PrevDepth[TDepth]
+                    >)
       : never;
 
 export type ErrorFrom<T> =
