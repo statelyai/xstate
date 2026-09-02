@@ -52,7 +52,8 @@ const editorSetup = setup({
 In `reviewing`, both `context.requestId` and the narrowed
 `context.draft: string` are available. With runtime validation enabled, XState
 validates the complete context against both the root schema and every active
-state schema.
+state schema. Nested states also retain refinements from their active ancestor
+states.
 
 State contracts can also declare structural metadata: `type`, `initial`,
 `history`, `target`, and `id` (plus `route: true` for a routable state).

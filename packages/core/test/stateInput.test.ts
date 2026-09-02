@@ -1842,24 +1842,26 @@ describe('setup', () => {
       schemas: {
         context: z.object({
           requestId: z.string(),
-          draft: z.string().optional()
+          draft: z.string().optional(),
+          approved: z.literal(true).optional()
         }),
-        events: { REVIEW: z.object({ draft: z.string() }) }
+        events: { REVIEW: z.object({ approved: z.literal(true) }) }
       },
       states: {
         workflow: {
           type: 'compound',
           initial: 'editing',
+          schemas: { context: z.object({ draft: z.string() }) },
           states: {
             editing: {},
             reviewing: {
-              schemas: { context: z.object({ draft: z.string() }) }
+              schemas: { context: z.object({ approved: z.literal(true) }) }
             }
           }
         }
       }
     }).createMachine({
-      context: { requestId: 'req-1' },
+      context: { requestId: 'req-1', draft: 'Ready' },
       initial: 'workflow',
       states: {
         workflow: {
@@ -1869,7 +1871,7 @@ describe('setup', () => {
               on: {
                 REVIEW: ({ event }) => ({
                   target: 'reviewing',
-                  context: { draft: event.draft }
+                  context: { approved: event.approved }
                 })
               }
             },
@@ -1879,8 +1881,16 @@ describe('setup', () => {
                 false satisfies IsAny<typeof context.requestId>;
                 context.requestId satisfies string;
                 context.draft satisfies string;
+                context.approved satisfies true;
                 // @ts-expect-error - root context fields keep their declared type
                 context.requestId satisfies number;
+              },
+              on: {
+                REVIEW: ({ context }) => {
+                  context.requestId satisfies string;
+                  context.draft satisfies string;
+                  context.approved satisfies true;
+                }
               }
             }
           }
@@ -1889,16 +1899,17 @@ describe('setup', () => {
     });
 
     const actor = createActor(machine).start();
-    actor.send({ type: 'REVIEW', draft: 'Ready' });
+    actor.send({ type: 'REVIEW', approved: true });
 
     type ReviewingContext = StateContextFromStateValue<
       StateSchemaFrom<typeof machine>,
-      { requestId: string; draft?: string },
+      { requestId: string; draft?: string; approved?: true },
       { workflow: 'reviewing' }
     >;
     false satisfies IsAny<ReviewingContext['requestId']>;
     (({}) as ReviewingContext).requestId satisfies string;
     (({}) as ReviewingContext).draft satisfies string;
+    (({}) as ReviewingContext).approved satisfies true;
     // @ts-expect-error - the root field remains a string in the refinement
     (({}) as ReviewingContext).requestId satisfies number;
 
@@ -1908,13 +1919,15 @@ describe('setup', () => {
       false satisfies IsAny<typeof snapshot.context.requestId>;
       snapshot.context.requestId satisfies string;
       snapshot.context.draft satisfies string;
+      snapshot.context.approved satisfies true;
       // @ts-expect-error - root context fields keep their declared type
       snapshot.context.requestId satisfies number;
     }
 
     expect(snapshot.context).toEqual({
       requestId: 'req-1',
-      draft: 'Ready'
+      draft: 'Ready',
+      approved: true
     });
   });
 
