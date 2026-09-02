@@ -1,4 +1,5 @@
 import type { Effect } from 'effect';
+import type { StateMachine } from 'xstate';
 import type { EffectLogicBrand } from './fromEffect.ts';
 import { effectActionBrand } from './brands.ts';
 
@@ -81,11 +82,23 @@ type RequirementsFromStateSchema<TSchema, TDepth extends Depth> =
 export type RequirementsFrom<T, TDepth extends Depth = MaxDepth> =
   T extends EffectLogicBrand<any, infer R>
     ? R
-    : T extends {
-          readonly _actionMap: infer TActionMap;
-          readonly _actorMap: infer TActorMap;
-          readonly _stateSchema: infer TStateSchema;
-        }
+    : T extends StateMachine<
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          infer TStateSchema,
+          infer TActionMap,
+          infer TActorMap,
+          any,
+          any,
+          any
+        >
       ?
           | RequirementsFromActions<TActionMap>
           | ([TDepth] extends [0]

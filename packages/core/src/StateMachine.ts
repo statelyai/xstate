@@ -236,10 +236,6 @@ export class StateMachine<
    */
   readonly _internalEventType!: TInternalEvent;
 
-  /** @internal Preserve source-map types through type-level machine helpers. */
-  readonly _actionMap!: TActionMap;
-  readonly _actorMap!: TActorMap;
-  readonly _stateSchema!: TConfig;
 
   /** The machine's own version. */
   public version?: string;
