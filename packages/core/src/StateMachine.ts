@@ -236,7 +236,6 @@ export class StateMachine<
    */
   readonly _internalEventType!: TInternalEvent;
 
-
   /** The machine's own version. */
   public version?: string;
 
