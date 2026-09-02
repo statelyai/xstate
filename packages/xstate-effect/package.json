@@ -16,7 +16,6 @@
     ".": "./dist/xstate-effect.js",
     "./package.json": "./package.json"
   },
-  "types": "dist/xstate-effect.cjs.d.ts",
   "sideEffects": false,
   "files": [
     "dist"
@@ -30,7 +29,7 @@
   },
   "scripts": {},
   "peerDependencies": {
-    "effect": "4.0.0-rc.112",
+    "effect": "^4.0.0-rc.112",
     "xstate": "workspace:^"
   },
   "devDependencies": {

@@ -1,10 +1,12 @@
 import {
   Context,
   Effect,
+  Exit,
   Layer,
   ManagedRuntime,
   Option,
   Schema,
+  Scope,
   Stream
 } from 'effect';
 import {
@@ -25,6 +27,25 @@ import {
 
 const waitForEffects = () =>
   new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+let scopes: Scope.Closeable[] = [];
+
+afterEach(async () => {
+  const pending = scopes;
+  scopes = [];
+  for (const scope of pending) {
+    await Effect.runPromise(Scope.close(scope, Exit.void));
+  }
+});
+
+/** Runs a scoped Effect in a scope that stays open until the test ends. */
+const runScoped = async <A, E>(
+  effect: Effect.Effect<A, E, Scope.Scope>
+): Promise<A> => {
+  const scope = await Effect.runPromise(Scope.make());
+  scopes.push(scope);
+  return Effect.runPromise(Scope.provide(effect, scope));
+};
 
 describe('@xstate/effect', () => {
   it('accepts Effect schemas in setupEffect with full type inference', async () => {
@@ -54,7 +75,7 @@ describe('@xstate/effect', () => {
       }
     });
 
-    const actor = await Effect.runPromise(createEffectActor(machine));
+    const actor = await runScoped(createEffectActor(machine));
     actor.send({ type: 'ADD', value: 3 });
     const sendInvalidEvent = () => {
       // @ts-expect-error -- Effect schemas constrain event payloads
@@ -95,7 +116,7 @@ describe('@xstate/effect', () => {
         }
       }
     });
-    const actor = await Effect.runPromise(createEffectActor(machine));
+    const actor = await runScoped(createEffectActor(machine));
 
     actor.send({ type: 'ADD', value: 2 });
 
@@ -153,7 +174,7 @@ describe('@xstate/effect', () => {
       });
     const runWithoutAudit = () => {
       // @ts-expect-error -- extended Effect actions contribute requirements
-      Effect.runPromise(createEffectActor(machine));
+      runScoped(createEffectActor(machine));
     };
 
     void runWithoutAudit;
@@ -311,7 +332,7 @@ describe('@xstate/effect', () => {
       }
     });
 
-    const actor = await Effect.runPromise(
+    const actor = await runScoped(
       createEffectActor(logic, { input: { id: '42' } })
     );
     const createWithInvalidInput = () => {
@@ -386,7 +407,7 @@ describe('@xstate/effect', () => {
 
     const runWithoutService = () => {
       // @ts-expect-error -- schema inference preserves Effect requirements
-      Effect.runPromise(createEffectActor(logic, { input: { id: '42' } }));
+      runScoped(createEffectActor(logic, { input: { id: '42' } }));
     };
     void runWithoutService;
   });
@@ -398,7 +419,7 @@ describe('@xstate/effect', () => {
       },
       effect: Effect.succeed('ok')
     });
-    const actor = await Effect.runPromise(
+    const actor = await runScoped(
       createEffectActor(logic, { input: { id: '42' } })
     );
     await waitForEffects();
@@ -411,7 +432,7 @@ describe('@xstate/effect', () => {
       schemas: { output: Schema.String },
       effect: Effect.succeed('ok')
     });
-    const actor = await Effect.runPromise(createEffectActor(logic));
+    const actor = await runScoped(createEffectActor(logic));
     await waitForEffects();
 
     actor.getSnapshot().output satisfies string | undefined;
@@ -423,9 +444,7 @@ describe('@xstate/effect', () => {
       schemas: { output: Schema.String },
       effect: ({ input }: { input: number }) => Effect.succeed(String(input))
     });
-    const actor = await Effect.runPromise(
-      createEffectActor(logic, { input: 42 })
-    );
+    const actor = await runScoped(createEffectActor(logic, { input: 42 }));
     await waitForEffects();
 
     expect(actor.getSnapshot().output).toBe('42');
@@ -437,7 +456,7 @@ describe('@xstate/effect', () => {
       schemas: { output: Schema.String },
       effect: Effect.succeed('ok')
     });
-    const actor = await Effect.runPromise(createEffectActor(logic));
+    const actor = await runScoped(createEffectActor(logic));
     await waitForEffects();
 
     expect(actor.getSnapshot().status).toBe('done');
@@ -454,7 +473,7 @@ describe('@xstate/effect', () => {
       effect: Effect.promise(() => output) as Effect.Effect<any>
     });
     const errors: unknown[] = [];
-    const actor = await Effect.runPromise(createEffectActor(logic));
+    const actor = await runScoped(createEffectActor(logic));
     actor.subscribe({ error: (error) => errors.push(error) });
     resolve(42);
     await waitForEffects();
@@ -490,14 +509,14 @@ describe('@xstate/effect', () => {
       }
     });
 
-    const actor = await Effect.runPromise(
+    const actor = await runScoped(
       Effect.provideService(createEffectActor(machine), Audit, {
         record: (value) => recorded.push(value)
       })
     );
     const runWithoutAudit = () => {
       // @ts-expect-error -- the actor requires the Audit service
-      Effect.runPromise(createEffectActor(machine));
+      runScoped(createEffectActor(machine));
     };
     void runWithoutAudit;
 
@@ -542,7 +561,11 @@ describe('@xstate/effect', () => {
     });
 
     try {
-      const actor = await runtime.runPromise(createEffectActor(machine));
+      const scope = await runtime.runPromise(Scope.make());
+      scopes.push(scope);
+      const actor = await runtime.runPromise(
+        Scope.provide(createEffectActor(machine), scope)
+      );
 
       expect(acquired).toBe(1);
       expect(released).toBe(0);
@@ -583,7 +606,7 @@ describe('@xstate/effect', () => {
       }
     });
 
-    const actor = await Effect.runPromise(createEffectActor(machine));
+    const actor = await runScoped(createEffectActor(machine));
     actor.send({ type: 'FAIL' });
     await waitForEffects();
 
@@ -609,7 +632,7 @@ describe('@xstate/effect', () => {
       }
     });
 
-    const actor = await Effect.runPromise(createEffectActor(machine));
+    const actor = await runScoped(createEffectActor(machine));
     await waitForEffects();
 
     expect(actor.getSnapshot().value).toBe('success');
@@ -620,9 +643,7 @@ describe('@xstate/effect', () => {
     const directEffect = Object.assign(Effect.succeed('direct'), {
       effect: Effect.succeed('nested')
     });
-    const actor = await Effect.runPromise(
-      createEffectActor(fromEffect(directEffect))
-    );
+    const actor = await runScoped(createEffectActor(fromEffect(directEffect)));
     await waitForEffects();
 
     expect(actor.getSnapshot().output).toBe('direct');
@@ -647,7 +668,7 @@ describe('@xstate/effect', () => {
       }
     });
 
-    const actor = await Effect.runPromise(createEffectActor(machine));
+    const actor = await runScoped(createEffectActor(machine));
     await waitForEffects();
 
     expect(actor.getSnapshot().value).toBe('failed');
@@ -687,7 +708,7 @@ describe('@xstate/effect', () => {
     );
     const runWithoutService = () => {
       // @ts-expect-error -- the actor requires Service
-      Effect.runPromise(createEffectActor(logic));
+      runScoped(createEffectActor(logic));
     };
     void runWithoutService;
     const machine = setup({ actors: { logic } }).createMachine({
@@ -701,7 +722,7 @@ describe('@xstate/effect', () => {
 
     const runWithoutRegisteredService = () => {
       // @ts-expect-error -- the registered actor requires Service
-      Effect.runPromise(createEffectActor(machine));
+      runScoped(createEffectActor(machine));
     };
     void runWithoutRegisteredService;
   });
@@ -715,7 +736,7 @@ describe('@xstate/effect', () => {
   });
 
   it('exposes the latest item from an Effect stream and completes', async () => {
-    const actor = await Effect.runPromise(
+    const actor = await runScoped(
       createEffectActor(fromEffectStream(Stream.make(1, 2, 3)))
     );
     await waitForEffects();
@@ -750,7 +771,7 @@ describe('@xstate/effect', () => {
       }
     });
 
-    const actor = await Effect.runPromise(createEffectActor(machine));
+    const actor = await runScoped(createEffectActor(machine));
     await waitForEffects();
 
     expect(actor.getSnapshot().context).toEqual({ seen: 3 });
@@ -766,7 +787,7 @@ describe('@xstate/effect', () => {
         })
       )
     );
-    const actor = await Effect.runPromise(createEffectActor(logic));
+    const actor = await runScoped(createEffectActor(logic));
 
     actor.stop();
     await waitForEffects();
@@ -800,7 +821,7 @@ describe('@xstate/effect', () => {
         cancelled: {}
       }
     });
-    const actor = await Effect.runPromise(createEffectActor(machine));
+    const actor = await runScoped(createEffectActor(machine));
 
     actor.send({ type: 'CANCEL' });
     await waitForEffects();
@@ -833,7 +854,7 @@ describe('@xstate/effect', () => {
         }
       }
     });
-    const actor = await Effect.runPromise(createEffectActor(machine));
+    const actor = await runScoped(createEffectActor(machine));
 
     actor.send({ type: 'WORK' });
     actor.stop();
@@ -849,11 +870,11 @@ describe('@xstate/effect', () => {
       return Effect.never;
     });
 
-    const actor = await Effect.runPromise(createEffectActor(logic));
+    const actor = await runScoped(createEffectActor(logic));
     const persisted = actor.getPersistedSnapshot();
     actor.stop();
 
-    const restoredActor = await Effect.runPromise(
+    const restoredActor = await runScoped(
       createEffectActor(logic, { snapshot: persisted })
     );
 

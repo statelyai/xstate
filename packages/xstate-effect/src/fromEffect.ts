@@ -6,10 +6,12 @@ import {
   type AnyActorLogic,
   type AnyActorRef,
   type AnyActorSystem,
+  type AnyEventObject,
   type EventObject,
   type Snapshot,
   type StandardSchemaV1
 } from 'xstate';
+import { EffectInterruptedError } from './errors.ts';
 import { relayToParent, startHostedEffect } from './internal.ts';
 import {
   type EffectSchemaLike,
@@ -44,6 +46,9 @@ export type EffectSnapshot<TOutput, TError, TInput> = Snapshot<TOutput> & {
 export type EffectSourceArgs<TInput> = {
   readonly input: TInput;
   readonly self: AnyActorRef;
+  readonly system: AnyActorSystem;
+  /** Emits an event that can be observed with `actor.on(...)` or `emitted(actor)`. */
+  readonly emit: (event: AnyEventObject) => void;
 };
 
 export type EffectSource<TOutput, TError, TInput, TRequirements> =
@@ -122,10 +127,30 @@ export type EffectStreamActorLogic<TItem, TError, TInput, TRequirements> =
     EffectLogicBrand<TError, TRequirements>;
 
 function toError(exit: Exit.Exit<unknown, unknown>): unknown {
-  if (Exit.isSuccess(exit) || Cause.hasInterruptsOnly(exit.cause)) {
+  if (Exit.isSuccess(exit)) {
     return undefined;
   }
+  if (Cause.hasInterruptsOnly(exit.cause)) {
+    return new EffectInterruptedError({
+      cause: exit.cause as Cause.Cause<never>
+    });
+  }
   return Cause.squash(exit.cause);
+}
+
+function createSourceArgs<TInput>(
+  input: TInput,
+  self: AnyActorRef,
+  system: AnyActorSystem
+): EffectSourceArgs<TInput> {
+  return {
+    input,
+    self,
+    system,
+    emit: (event) => {
+      void system.emitEvent(self as any, event);
+    }
+  };
 }
 
 function brandLogic<TLogic extends AnyActorLogic>(
@@ -298,7 +323,7 @@ export function fromEffect<
     validator: config.validator,
     schemas,
     context: undefined,
-    run: ({ event, input, self }, enq) => {
+    run: ({ event, input, self, system }, enq) => {
       if (event.type === EFFECT_RESOLVE) {
         return {
           status: 'done',
@@ -320,7 +345,9 @@ export function fromEffect<
       }
 
       const effect =
-        typeof source === 'function' ? source({ input, self }) : source;
+        typeof source === 'function'
+          ? source(createSourceArgs(input, self as AnyActorRef, system))
+          : source;
 
       enq.effect(() =>
         startHostedEffect(self as AnyActorRef, effect, (exit) => {
@@ -331,10 +358,7 @@ export function fromEffect<
           if (Exit.isSuccess(exit)) {
             self.send({ type: EFFECT_RESOLVE, output: exit.value } as any);
           } else {
-            const error = toError(exit);
-            if (error !== undefined) {
-              self.send({ type: EFFECT_REJECT, error } as any);
-            }
+            self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
           }
         })
       );
@@ -348,18 +372,110 @@ export function fromEffect<
   ) as unknown as EffectActorLogic<TOutput, TError, TInput, TRequirements>;
 }
 
+export type EffectStreamSource<TItem, TError, TInput, TRequirements> =
+  | Stream.Stream<TItem, TError, TRequirements>
+  | ((
+      args: EffectSourceArgs<TInput>
+    ) => Stream.Stream<TItem, TError, TRequirements>);
+
+type EffectStreamConfig<
+  TItem,
+  TError,
+  TInput,
+  TRequirements,
+  TSchemas extends { readonly input?: EffectSchemaLike } = {
+    readonly input?: EffectSchemaLike;
+  },
+  TValidator extends ActorLogicValidator | undefined =
+    | ActorLogicValidator
+    | undefined
+> = {
+  readonly id?: string;
+  readonly validator?: TValidator;
+  readonly schemas?: TSchemas &
+    ([TValidator] extends [ActorLogicValidator]
+      ? ValidateEffectActorSchemas<TSchemas>
+      : unknown);
+  readonly stream: EffectStreamSource<TItem, TError, TInput, TRequirements>;
+};
+
+type StreamItem<T> = T extends Stream.Stream<infer A, any, any> ? A : never;
+type StreamError<T> = T extends Stream.Stream<any, infer E, any> ? E : never;
+type StreamRequirements<T> =
+  T extends Stream.Stream<any, any, infer R> ? R : never;
+
+function resolveStreamConfig<TItem, TError, TInput, TRequirements>(
+  sourceOrConfig:
+    | EffectStreamSource<TItem, TError, TInput, TRequirements>
+    | EffectStreamConfig<TItem, TError, TInput, TRequirements>
+): EffectStreamConfig<TItem, TError, TInput, TRequirements> {
+  return typeof sourceOrConfig === 'function' || Stream.isStream(sourceOrConfig)
+    ? { stream: sourceOrConfig }
+    : sourceOrConfig;
+}
+
+function toLogicSchemas(
+  schemas: { readonly input?: EffectSchemaLike } | undefined
+) {
+  return schemas?.input
+    ? { input: toStandardSchema(schemas.input) }
+    : undefined;
+}
+
+export function fromEffectStream<
+  const TInputSchema extends EffectSchemaLike,
+  TStream extends Stream.Stream<any, any, any>
+>(
+  config: Omit<
+    EffectStreamConfig<
+      StreamItem<TStream>,
+      StreamError<TStream>,
+      SchemaOutput<TInputSchema>,
+      StreamRequirements<TStream>
+    >,
+    'stream' | 'schemas' | 'validator'
+  > &
+    EffectSchemaValidationConfig<{ input: TInputSchema }> & {
+      stream:
+        | TStream
+        | ((args: EffectSourceArgs<SchemaOutput<TInputSchema>>) => TStream);
+    }
+): EffectStreamActorLogic<
+  StreamItem<TStream>,
+  StreamError<TStream>,
+  SchemaOutput<TInputSchema>,
+  StreamRequirements<TStream>
+>;
 export function fromEffectStream<
   TItem,
   TError = unknown,
   TInput = undefined,
   TRequirements = never
 >(
-  stream:
-    | Stream.Stream<TItem, TError, TRequirements>
-    | ((
-        args: EffectSourceArgs<TInput>
-      ) => Stream.Stream<TItem, TError, TRequirements>)
+  config: EffectStreamConfig<TItem, TError, TInput, TRequirements> & {
+    schemas?: undefined;
+  }
+): EffectStreamActorLogic<TItem, TError, TInput, TRequirements>;
+export function fromEffectStream<
+  TItem,
+  TError = unknown,
+  TInput = undefined,
+  TRequirements = never
+>(
+  stream: EffectStreamSource<TItem, TError, TInput, TRequirements>
+): EffectStreamActorLogic<TItem, TError, TInput, TRequirements>;
+export function fromEffectStream<
+  TItem,
+  TError = unknown,
+  TInput = undefined,
+  TRequirements = never
+>(
+  sourceOrConfig:
+    | EffectStreamSource<TItem, TError, TInput, TRequirements>
+    | EffectStreamConfig<TItem, TError, TInput, TRequirements>
 ): EffectStreamActorLogic<TItem, TError, TInput, TRequirements> {
+  const config = resolveStreamConfig(sourceOrConfig);
+  const stream = config.stream;
   const logic = createLogic<
     TItem | undefined,
     undefined,
@@ -367,8 +483,11 @@ export function fromEffectStream<
     TInput,
     EventObject
   >({
+    id: config.id,
+    validator: config.validator,
+    schemas: toLogicSchemas(config.schemas),
     context: undefined,
-    run: ({ event, input, self }, enq) => {
+    run: ({ event, input, self, system }, enq) => {
       if (event.type === EFFECT_NEXT) {
         return { context: (event as EventObject & { value: TItem }).value };
       }
@@ -387,7 +506,9 @@ export function fromEffectStream<
       }
 
       const streamValue =
-        typeof stream === 'function' ? stream({ input, self }) : stream;
+        typeof stream === 'function'
+          ? stream(createSourceArgs(input, self as AnyActorRef, system))
+          : stream;
       const consume = Stream.runForEach(streamValue, (value) =>
         Effect.sync(() => {
           if (self.getSnapshot().status === 'active') {
@@ -404,10 +525,7 @@ export function fromEffectStream<
           if (Exit.isSuccess(exit)) {
             self.send({ type: EFFECT_COMPLETE });
           } else {
-            const error = toError(exit);
-            if (error !== undefined) {
-              self.send({ type: EFFECT_REJECT, error } as any);
-            }
+            self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
           }
         })
       );
@@ -422,17 +540,59 @@ export function fromEffectStream<
 }
 
 export function fromEffectEventStream<
+  const TInputSchema extends EffectSchemaLike,
+  TStream extends Stream.Stream<EventObject, any, any>
+>(
+  config: Omit<
+    EffectStreamConfig<
+      StreamItem<TStream>,
+      StreamError<TStream>,
+      SchemaOutput<TInputSchema>,
+      StreamRequirements<TStream>
+    >,
+    'stream' | 'schemas' | 'validator'
+  > &
+    EffectSchemaValidationConfig<{ input: TInputSchema }> & {
+      stream:
+        | TStream
+        | ((args: EffectSourceArgs<SchemaOutput<TInputSchema>>) => TStream);
+    }
+): EffectActorLogic<
+  undefined,
+  StreamError<TStream>,
+  SchemaOutput<TInputSchema>,
+  StreamRequirements<TStream>
+>;
+export function fromEffectEventStream<
   TEvent extends EventObject,
   TError = unknown,
   TInput = undefined,
   TRequirements = never
 >(
-  stream:
-    | Stream.Stream<TEvent, TError, TRequirements>
-    | ((
-        args: EffectSourceArgs<TInput>
-      ) => Stream.Stream<TEvent, TError, TRequirements>)
+  config: EffectStreamConfig<TEvent, TError, TInput, TRequirements> & {
+    schemas?: undefined;
+  }
+): EffectActorLogic<undefined, TError, TInput, TRequirements>;
+export function fromEffectEventStream<
+  TEvent extends EventObject,
+  TError = unknown,
+  TInput = undefined,
+  TRequirements = never
+>(
+  stream: EffectStreamSource<TEvent, TError, TInput, TRequirements>
+): EffectActorLogic<undefined, TError, TInput, TRequirements>;
+export function fromEffectEventStream<
+  TEvent extends EventObject,
+  TError = unknown,
+  TInput = undefined,
+  TRequirements = never
+>(
+  sourceOrConfig:
+    | EffectStreamSource<TEvent, TError, TInput, TRequirements>
+    | EffectStreamConfig<TEvent, TError, TInput, TRequirements>
 ): EffectActorLogic<undefined, TError, TInput, TRequirements> {
+  const config = resolveStreamConfig(sourceOrConfig);
+  const stream = config.stream;
   const logic = createLogic<
     undefined,
     undefined,
@@ -440,8 +600,11 @@ export function fromEffectEventStream<
     TInput,
     EventObject
   >({
+    id: config.id,
+    validator: config.validator,
+    schemas: toLogicSchemas(config.schemas),
     context: undefined,
-    run: ({ event, input, self }, enq) => {
+    run: ({ event, input, self, system }, enq) => {
       if (event.type === EFFECT_COMPLETE) {
         return { status: 'done', input: undefined };
       }
@@ -457,7 +620,9 @@ export function fromEffectEventStream<
       }
 
       const streamValue =
-        typeof stream === 'function' ? stream({ input, self }) : stream;
+        typeof stream === 'function'
+          ? stream(createSourceArgs(input, self as AnyActorRef, system))
+          : stream;
       const consume = Stream.runForEach(streamValue, (value) =>
         Effect.sync(() => relayToParent(self as AnyActorRef, value))
       );
@@ -470,10 +635,7 @@ export function fromEffectEventStream<
           if (Exit.isSuccess(exit)) {
             self.send({ type: EFFECT_COMPLETE });
           } else {
-            const error = toError(exit);
-            if (error !== undefined) {
-              self.send({ type: EFFECT_REJECT, error } as any);
-            }
+            self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
           }
         })
       );

@@ -1,18 +1,25 @@
-import { Cause, Context, Effect, Exit, Fiber } from 'effect';
+import { Cause, Context, Effect, Exit, Scope } from 'effect';
 import type { AnyActor, AnyActorRef } from 'xstate';
 
 export interface EffectHost {
-  readonly context: Context.Context<any>;
-  readonly fibers: Map<AnyActorRef, Set<Fiber.Fiber<any, any>>>;
+  /** The Effect context captured by `createEffectActor`, including the actor scope. */
+  readonly context: Context.Context<never>;
+  /** A scope that closes when the root actor stops. */
+  readonly scope: Scope.Closeable;
+  readonly interruptors: Map<AnyActorRef, Set<() => void>>;
   readonly subscriptions: Map<AnyActorRef, { unsubscribe(): void }>;
 }
 
 const effectHosts = new WeakMap<object, EffectHost>();
 
-export function createEffectHost(context: Context.Context<any>): EffectHost {
+export function createEffectHost(
+  context: Context.Context<never>,
+  scope: Scope.Closeable
+): EffectHost {
   return {
     context,
-    fibers: new Map(),
+    scope,
+    interruptors: new Map(),
     subscriptions: new Map()
   };
 }
@@ -53,28 +60,28 @@ function requireEffectHost(actor: AnyActorRef): EffectHost {
 function untrackEffect(
   actor: AnyActorRef,
   host: EffectHost,
-  fiber: Fiber.Fiber<any, any>
+  interrupt: () => void
 ): void {
-  const fibers = host.fibers.get(actor);
-  if (!fibers) {
+  const interruptors = host.interruptors.get(actor);
+  if (!interruptors) {
     return;
   }
 
-  fibers.delete(fiber);
-  if (fibers.size === 0) {
-    host.fibers.delete(actor);
+  interruptors.delete(interrupt);
+  if (interruptors.size === 0) {
+    host.interruptors.delete(actor);
     host.subscriptions.get(actor)?.unsubscribe();
     host.subscriptions.delete(actor);
   }
 }
 
 function cleanupActorEffects(actor: AnyActorRef, host: EffectHost): void {
-  const fibers = host.fibers.get(actor);
-  if (fibers) {
-    for (const fiber of fibers) {
-      fiber.interruptUnsafe();
+  const interruptors = host.interruptors.get(actor);
+  if (interruptors) {
+    host.interruptors.delete(actor);
+    for (const interrupt of interruptors) {
+      interrupt();
     }
-    host.fibers.delete(actor);
   }
 
   host.subscriptions.get(actor)?.unsubscribe();
@@ -84,12 +91,12 @@ function cleanupActorEffects(actor: AnyActorRef, host: EffectHost): void {
 function trackEffect(
   actor: AnyActorRef,
   host: EffectHost,
-  fiber: Fiber.Fiber<any, any>
+  interrupt: () => void
 ): void {
-  let fibers = host.fibers.get(actor);
-  if (!fibers) {
-    fibers = new Set();
-    host.fibers.set(actor, fibers);
+  let interruptors = host.interruptors.get(actor);
+  if (!interruptors) {
+    interruptors = new Set();
+    host.interruptors.set(actor, interruptors);
     host.subscriptions.set(
       actor,
       actor.subscribe({
@@ -98,55 +105,76 @@ function trackEffect(
       })
     );
   }
-  fibers.add(fiber);
+  interruptors.add(interrupt);
 }
 
+/**
+ * Runs an Effect in the actor's host context. The Effect is interrupted when
+ * the actor stops or when the returned function is called; `onExit` is not
+ * called after that.
+ */
 export function startHostedEffect<A, E>(
   actor: AnyActorRef,
   effect: Effect.Effect<A, E, any>,
   onExit: (exit: Exit.Exit<A, E>) => void
 ): () => void {
   const host = requireEffectHost(actor);
-  const fiber = Effect.runForkWith(host.context)(effect);
-  trackEffect(actor, host, fiber);
-
   let active = true;
-  const removeObserver = fiber.addObserver((exit) => {
+  const traced = Effect.withSpan(effect, 'xstate.effect', {
+    attributes: {
+      'xstate.actor.id': (actor as AnyActor).id,
+      'xstate.actor.address': (actor as AnyActor).address
+    }
+  }) as Effect.Effect<A, E, never>;
+  const cancel = () => {
     if (!active) {
       return;
     }
     active = false;
-    untrackEffect(actor, host, fiber);
-    onExit(exit);
-  });
-
-  return () => {
-    if (!active) {
-      return;
-    }
-    active = false;
-    removeObserver();
-    untrackEffect(actor, host, fiber);
-    fiber.interruptUnsafe();
+    untrackEffect(actor, host, cancel);
+    interrupt();
   };
+  const interrupt = Effect.runCallbackWith(host.context)(traced, {
+    onExit: (exit) => {
+      if (!active) {
+        return;
+      }
+      active = false;
+      untrackEffect(actor, host, cancel);
+      onExit(exit);
+    }
+  });
+  if (active) {
+    trackEffect(actor, host, cancel);
+  }
+
+  return cancel;
 }
 
+/**
+ * Runs an Effect in the actor's host context and settles when it exits.
+ * Interruption settles without error; failures and defects reject with the
+ * squashed cause so the actor's error handling can observe them.
+ */
 export function runHostedEffect<A, E>(
   actor: AnyActorRef,
   effect: Effect.Effect<A, E, any>
 ): PromiseLike<void> {
-  const host = requireEffectHost(actor);
-  const fiber = Effect.runForkWith(host.context)(effect);
-  trackEffect(actor, host, fiber);
-  fiber.addObserver(() => untrackEffect(actor, host, fiber));
-
-  return Effect.runPromiseExit(Fiber.join(fiber)).then((exit) => {
-    untrackEffect(actor, host, fiber);
-    if (Exit.isSuccess(exit) || Cause.hasInterruptsOnly(exit.cause)) {
-      return;
-    }
-    throw Cause.squash(exit.cause);
+  return new Promise<void>((resolve, reject) => {
+    startHostedEffect(actor, effect, (exit) => {
+      if (Exit.isSuccess(exit) || Cause.hasInterruptsOnly(exit.cause)) {
+        resolve();
+      } else {
+        // Effect failures are arbitrary values, not necessarily Errors.
+        // oxlint-disable-next-line typescript/prefer-promise-reject-errors
+        reject(Cause.squash(exit.cause));
+      }
+    });
   });
+}
+
+export function closeEffectHost(host: EffectHost): void {
+  Effect.runFork(Scope.close(host.scope, Exit.void));
 }
 
 export function relayToParent(
