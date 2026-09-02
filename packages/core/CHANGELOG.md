@@ -1,5 +1,38 @@
 # xstate
 
+## 6.0.0-alpha.51
+
+### Minor Changes
+
+- 29dae8c: Improve `setup(...)` state contracts with typed structural metadata, recursive
+  state input requirements for composite and parallel entry, history-default
+  validation, strongly typed relative targets, and shared input requirements for
+  literal target sets.
+- b44d9cb: State-level context schemas now refine the root context schema instead of
+  replacing it. Declare only the fields narrowed by a state while retaining all
+  root context fields in state actions, transitions, and narrowed snapshots.
+  Nested states retain active ancestor refinements, and `xstate/fsm` uses the
+  same refinement semantics.
+  
+  ```ts
+  const machine = setup({
+    schemas: {
+      context: z.object({
+        requestId: z.string(),
+        draft: z.string().optional()
+      })
+    },
+    states: {
+      reviewing: {
+        schemas: { context: z.object({ draft: z.string() }) }
+      }
+    }
+  }).createMachine({
+    context: { requestId: 'req-1' },
+    // ...
+  });
+  ```
+
 ## 6.0.0-alpha.50
 
 ### Patch Changes
