@@ -46,6 +46,7 @@ Beyond simplifying the action/guard surface, v6 introduces a number of features 
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Inline function transitions](#1-inline-functions-replace-action-creators)        | Transitions and actions are plain functions; `enq` queues side effects.                                                                                                                           |
 | [Standard Schema definitions](#3-createmachine-schemas-replace-types)             | `schemas.context`/`events`/`internalEvents`/`input`/`output`/`emitted`/`meta`/`tags` accept Zod (or any [Standard Schema](https://standardschema.dev)) for TypeScript inference and runtime-readable metadata.     |
+| [Setup state contracts](#4-setup-and-providing-sources)                           | `setup({ states })` can type state schemas and declare structural defaults such as state type, initial target, history target, ID, and route behavior.                                             |
 | [State input](#5-state-input)                                                     | State nodes may declare a typed `input` payload that callers must provide on transition.                                                                                                          |
 | [`actor.trigger.X()`](#6-typed-actortrigger)                                      | Type-safe event dispatcher generated from `schemas.events` - no event-object boilerplate.                                                                                                         |
 | [`createAsyncLogic`](#7-async-actors-frompromise--createasynclogic)               | `fromPromise` rebuilt with `id`, `timeout`, `AbortSignal`, durable `enq.step()`, and event emission.                                                                                              |
@@ -458,7 +459,9 @@ If you omit `schemas.context`, the context type is inferred from the literal `co
 
 ## 4. `setup()` and providing sources
 
-`setup()` still exists in v6 and still accepts `actions`, `guards`, `actors`, and `delays` (merged into every machine created from it). What changed: `types` is replaced by `schemas`, and `setup()` gains a `states` key for declaring **state-level input schemas** so `createMachine` and `createStateConfig` are typed for the `initial: { target, input }` form and for transitions targeting those states.
+<!-- setup state contracts from SetupStateSchema in packages/core/src/setup.ts -->
+
+`setup()` still exists in v6 and still accepts `actions`, `guards`, `actors`, and `delays` (merged into every machine created from it). What changed: `types` is replaced by `schemas`, and `setup()` gains a `states` key for declaring **state contracts**. A contract can provide state-level schemas plus structural metadata and defaults such as `type`, `initial`, `history`, `target`, `id`, and `route`. This types `createMachine` and `createStateConfig`, including the `initial: { target, input }` form and transitions targeting those states. Setups that declare only schemas remain permissive for compatibility.
 
 ```ts
 // v6 - setup with root schemas and state-level input schemas
@@ -977,6 +980,7 @@ These exports have been **removed** from `xstate`:
 These exports have been **added**:
 
 - `setup` (reshaped - see §4) and `createSystem` for typed system registries
+- Setup state contract types: `SetupStateSchema`, `SetupStateSchemas`, `SetupStateType`
 - `createFSM` and its related types for tiny, pure flat finite state machines: `FSM`, `FSMArgs`, `FSMConfig`, `FSMContextPatch`, `FSMSnapshot`, `FSMStateConfig`, `FSMTransition`, `FSMTransitionConfig`, `FSMTransitionFunction`
 - `createStateConfig`
 - `checkStateIn`
