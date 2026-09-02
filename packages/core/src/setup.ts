@@ -1572,6 +1572,7 @@ type StateContext<
 > = TStateSchema['schemas'] extends { context: infer TContextSchema }
   ? TContextSchema extends StandardSchemaV1
     ? StandardSchemaV1.InferOutput<TContextSchema> &
+        RootContext<TFallbackContext> &
         MachineContext &
         RootContextMarker<TFallbackContext>
     : RootContext<TFallbackContext>
@@ -1593,9 +1594,23 @@ type StateContextShape<
 > = TStateSchema['schemas'] extends { context: infer TContextSchema }
   ? TContextSchema extends StandardSchemaV1
     ? StandardSchemaV1.InferOutput<TContextSchema> &
+        RootContext<TFallbackContext> &
         RootContextMarker<TFallbackContext>
     : RootContext<TFallbackContext>
   : RootContext<TFallbackContext>;
+
+type ActiveStateContext<
+  TStateSchema extends SetupStateSchema,
+  TRootContext extends MachineContext,
+  TAncestorContext
+> = StateContext<TStateSchema, TRootContext> &
+  TAncestorContext &
+  MachineContext;
+
+type ActiveStateContextShape<
+  TStateSchema extends SetupStateSchema,
+  TAncestorContext
+> = StateContextShape<TStateSchema, TAncestorContext> & TAncestorContext;
 
 type WithNestedStates<TConfig, TNestedStates> = TConfig extends {
   type: 'choice';
@@ -2966,7 +2981,7 @@ type StateNodeConfigWithNestedInputBase<
 > = WithNestedStates<
   DistributiveOmit<
     Next_StateNodeConfig<
-      StateContext<TStateSchema, TContext>,
+      ActiveStateContext<TStateSchema, TContext, TContextShape>,
       TEvent,
       TDelays,
       TTag,
@@ -2998,7 +3013,7 @@ type StateNodeConfigWithNestedInputBase<
           | (string & {})
           | InitialTransitionWithInput<
               TStateSchema['states'],
-              StateContext<TStateSchema, TContext>,
+              ActiveStateContext<TStateSchema, TContext, TContextShape>,
               TEvent
             >
       :
@@ -3011,8 +3026,8 @@ type StateNodeConfigWithNestedInputBase<
   } & {
     on?: StateTransitions<
       SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
-      StateContext<TStateSchema, TContext>,
-      StateContextShape<TStateSchema, TContextShape>,
+      ActiveStateContext<TStateSchema, TContext, TContextShape>,
+      ActiveStateContextShape<TStateSchema, TContextShape>,
       TEvent,
       TEmitted,
       TChildren,
@@ -3026,8 +3041,8 @@ type StateNodeConfigWithNestedInputBase<
     >;
     always?: StateTransitionConfigOrTarget<
       SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
-      StateContext<TStateSchema, TContext>,
-      StateContextShape<TStateSchema, TContextShape>,
+      ActiveStateContext<TStateSchema, TContext, TContextShape>,
+      ActiveStateContextShape<TStateSchema, TContextShape>,
       TEvent,
       TEvent,
       TEmitted,
@@ -3043,8 +3058,8 @@ type StateNodeConfigWithNestedInputBase<
     invoke?: SingleOrArray<
       SetupInvokeConfig<
         SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
-        StateContext<TStateSchema, TContext>,
-        StateContextShape<TStateSchema, TContextShape>,
+        ActiveStateContext<TStateSchema, TContext, TContextShape>,
+        ActiveStateContextShape<TStateSchema, TContextShape>,
         TEvent,
         TEmitted,
         TChildren,
@@ -3059,8 +3074,8 @@ type StateNodeConfigWithNestedInputBase<
     >;
     onDone?: StateTransitionConfigOrTarget<
       SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
-      StateContext<TStateSchema, TContext>,
-      StateContextShape<TStateSchema, TContextShape>,
+      ActiveStateContext<TStateSchema, TContext, TContextShape>,
+      ActiveStateContextShape<TStateSchema, TContextShape>,
       DoneStateEvent<StateCompletionOutput<TStateSchema>>,
       TEvent,
       TEmitted,
@@ -3075,8 +3090,8 @@ type StateNodeConfigWithNestedInputBase<
     >;
     onError?: StateTransitionConfigOrTarget<
       SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
-      StateContext<TStateSchema, TContext>,
-      StateContextShape<TStateSchema, TContextShape>,
+      ActiveStateContext<TStateSchema, TContext, TContextShape>,
+      ActiveStateContextShape<TStateSchema, TContextShape>,
       ErrorEvent,
       TEvent,
       TEmitted,
@@ -3091,8 +3106,8 @@ type StateNodeConfigWithNestedInputBase<
     >;
     onTimeout?: StateTransitionConfigOrTarget<
       SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
-      StateContext<TStateSchema, TContext>,
-      StateContextShape<TStateSchema, TContextShape>,
+      ActiveStateContext<TStateSchema, TContext, TContextShape>,
+      ActiveStateContextShape<TStateSchema, TContextShape>,
       TimeoutEvent,
       TEvent,
       TEmitted,
@@ -3108,8 +3123,8 @@ type StateNodeConfigWithNestedInputBase<
     after?: {
       [K in NoInfer<TDelays> | number]?: StateTransitionConfigOrTarget<
         SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
-        StateContext<TStateSchema, TContext>,
-        StateContextShape<TStateSchema, TContextShape>,
+        ActiveStateContext<TStateSchema, TContext, TContextShape>,
+        ActiveStateContextShape<TStateSchema, TContextShape>,
         AfterEvent,
         TEvent,
         TEmitted,
@@ -3137,7 +3152,7 @@ type StateNodeConfigWithNestedInputBase<
         >,
         TStateSchema['states'],
         TContext,
-        StateContextShape<TStateSchema, TContextShape>,
+        ActiveStateContextShape<TStateSchema, TContextShape>,
         TEvent,
         TChildren,
         TDelays,
@@ -3153,7 +3168,7 @@ type StateNodeConfigWithNestedInputBase<
       >
     : {
         [K in string]?: Next_StateNodeConfig<
-          TContext,
+          ActiveStateContext<TStateSchema, TContext, TContextShape>,
           TEvent,
           TDelays,
           TTag,

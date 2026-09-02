@@ -6,6 +6,7 @@ export interface StandardSchemaV1<Input = unknown, Output = Input> {
 
 /** Schemas that can be declared for an individual state node. */
 export type SetupStateSchemas = {
+  /** Refines the machine's root context schema while this state is active. */
   context?: StandardSchemaV1;
   input?: StandardSchemaV1;
   /** The output emitted when this state node completes. */

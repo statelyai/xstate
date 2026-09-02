@@ -29,6 +29,32 @@ const orderMachine = orderSetup.createMachine({
 
 `setup(...)` also accepts `states`, where each state declares its own schemas. That is what types the `initial: { target, input }` form and transitions carrying [state input](state-input.md).
 
+A state-level `schemas.context` refines the root context schema. It only needs
+to declare the fields narrowed in that state; XState intersects its inferred
+type with the root context type:
+
+```ts
+const editorSetup = setup({
+  schemas: {
+    context: z.object({
+      requestId: z.string(),
+      draft: z.string().optional()
+    })
+  },
+  states: {
+    reviewing: {
+      schemas: { context: z.object({ draft: z.string() }) }
+    }
+  }
+});
+```
+
+In `reviewing`, both `context.requestId` and the narrowed
+`context.draft: string` are available. With runtime validation enabled, XState
+validates the complete context against both the root schema and every active
+state schema. Nested states also retain refinements from their active ancestor
+states.
+
 State contracts can also declare structural metadata: `type`, `initial`,
 `history`, `target`, and `id` (plus `route: true` for a routable state).
 `createMachine(...)` may omit those defaults, and the resulting state value and

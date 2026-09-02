@@ -97,7 +97,7 @@ Every non-root state node accepts the following. All are optional.
 | `tags` | `string[]` | Tags read with `snapshot.hasTag(...)`. |
 | `description` | `string` | Human-readable description. |
 | `order` | `number` | Document order override. |
-| `schemas` | `{ input, ... }` | Per-state schemas, usually declared in `setup({ states })`. |
+| `schemas` | `{ context, input, output }` | Per-state schemas, usually declared in `setup({ states })`. A context schema refines the root context schema. |
 
 A [choice state](choice-states.md) is a different shape: it requires `type: 'choice'` and a `choice` function, and accepts only `id`, `tags`, `meta`, `description` and `route`. It cannot have `states`, `on`, `entry`, `exit`, `invoke`, `after`, `always` or `output`.
 

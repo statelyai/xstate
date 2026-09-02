@@ -614,6 +614,48 @@ describe('runtime schema validation', () => {
     );
   });
 
+  it('validates root and partial state context schemas independently', () => {
+    const createPartialContextMachine = (context: unknown) =>
+      setup({
+        validator: standardSchemaValidator(),
+        schemas: {
+          context: z.object({
+            requestId: z.string(),
+            draft: z.string().optional()
+          })
+        },
+        states: {
+          reviewing: {
+            schemas: { context: z.object({ draft: z.string() }) }
+          }
+        }
+      }).createMachine({
+        context: context as any,
+        initial: 'reviewing',
+        states: { reviewing: {} }
+      });
+
+    expect(() =>
+      initialTransition(
+        createPartialContextMachine({ requestId: 'req-1', draft: 'Ready' })
+      )
+    ).not.toThrow();
+    expectValidationError(
+      getThrown(() =>
+        initialTransition(
+          createPartialContextMachine({ requestId: 1, draft: 'Ready' })
+        )
+      ),
+      'context'
+    );
+    expectValidationError(
+      getThrown(() =>
+        initialTransition(createPartialContextMachine({ requestId: 'req-1' }))
+      ),
+      'state.context'
+    );
+  });
+
   it('does not validate named action and guard params in v1', () => {
     const action = vi.fn();
     const actionMachine = setup({

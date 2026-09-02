@@ -33,7 +33,8 @@ Structural state contracts are checked only when declared. For example,
 `type: 'parallel'` forbids `initial`, while `type: 'compound'` requires one.
 `setup(...)` can supply those defaults, so the machine config may omit them.
 Existing setups that declare only schemas keep their permissive machine-config
-typing.
+typing. A state-level `schemas.context` is intersected with the root context
+schema, so it can declare only the fields that state narrows.
 
 Public schema event keys create typed methods on `actor.trigger`; internal
 schema keys do not appear in the public trigger namespace.
