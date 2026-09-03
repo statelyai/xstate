@@ -1,6 +1,6 @@
 export * from '@xstate/store';
 
-import { useCallback, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import {
   type AnyStoreConfig,
   type AnyStoreLogicCreator,
@@ -16,6 +16,8 @@ import {
   type ValueFromAtomConfig,
   type StoreSnapshot,
   type ContextFromStoreConfig,
+  type Observer,
+  type StoreInspectionEvent,
   createStore,
   isAtom
 } from '@xstate/store';
@@ -58,12 +60,31 @@ type StoreFromStoreDefinition<TDefinition extends StoreDefinition> =
       ? StoreFromStoreConfig<TDefinition>
       : never;
 
+interface UseStoreOptions {
+  /**
+   * An observer or callback that receives [inspection
+   * events](https://stately.ai/docs/inspection) from the store. Subscribed
+   * while provided; stable across re-renders.
+   */
+  inspect?:
+    | Observer<StoreInspectionEvent>
+    | ((inspectionEvent: StoreInspectionEvent) => void);
+}
+
 type UseStoreArgs<TDefinition extends StoreDefinition> =
   TDefinition extends AnyStoreLogicCreator
     ? undefined extends InputFromStoreLogicCreator<TDefinition>
-      ? [logic: TDefinition, input?: InputFromStoreLogicCreator<TDefinition>]
-      : [logic: TDefinition, input: InputFromStoreLogicCreator<TDefinition>]
-    : [definition: TDefinition];
+      ? [
+          logic: TDefinition,
+          input?: InputFromStoreLogicCreator<TDefinition>,
+          options?: UseStoreOptions
+        ]
+      : [
+          logic: TDefinition,
+          input: InputFromStoreLogicCreator<TDefinition>,
+          options?: UseStoreOptions
+        ]
+    : [definition: TDefinition, options?: UseStoreOptions];
 
 type AtomDefinition = BaseAtom<any> | AnyAtomConfig;
 
@@ -174,18 +195,60 @@ export function useSelector<TSnapshot, T>(
   );
 }
 
-/** Creates a stable store instance for the lifetime of a React component. */
+/**
+ * Creates a stable store instance for the lifetime of a React component.
+ *
+ * Pass `options.inspect` to subscribe an inspector to the store. The
+ * subscription is removed when the inspector is removed or on unmount.
+ *
+ * @example
+ *
+ * ```ts
+ * function Counter() {
+ *   const store = useStore(
+ *     {
+ *       context: { count: 0 },
+ *       on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+ *     },
+ *     { inspect: inspector.inspect }
+ *   );
+ *   // …
+ * }
+ * ```
+ */
 export function useStore<TDefinition extends StoreDefinition>(
-  ...[definition, input]: UseStoreArgs<TDefinition>
+  ...args: UseStoreArgs<TDefinition>
 ): StoreFromStoreDefinition<TDefinition> {
+  const [definition] = args;
+  const isLogic = 'createStore' in definition;
+  const input = isLogic ? args[1] : undefined;
+  const options = (isLogic ? args[2] : args[1]) as UseStoreOptions | undefined;
+
   const storeRef = useRef<any>(undefined);
 
   if (!storeRef.current) {
-    storeRef.current =
-      'createStore' in definition
-        ? definition.createStore(input)
-        : createStoreFromDefinition(definition);
+    storeRef.current = isLogic
+      ? definition.createStore(input)
+      : createStoreFromDefinition(definition);
   }
+
+  const inspectRef = useRef(options?.inspect);
+  inspectRef.current = options?.inspect;
+  const shouldInspect = options?.inspect !== undefined;
+
+  useEffect(() => {
+    if (!inspectRef.current) {
+      return;
+    }
+    return storeRef.current.inspect((inspectionEvent: StoreInspectionEvent) => {
+      const inspect = inspectRef.current;
+      if (typeof inspect === 'function') {
+        inspect(inspectionEvent);
+      } else {
+        inspect?.next?.(inspectionEvent);
+      }
+    }).unsubscribe;
+  }, [shouldInspect]);
 
   return storeRef.current;
 }
