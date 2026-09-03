@@ -65,6 +65,8 @@ const App = () => {
 
 ---
 
+<!-- useStore overloads and inspection behavior from packages/xstate-store-react/src/index.ts -->
+
 ### `useStore(definition, options?)`
 
 Creates a store instance scoped to a component.
@@ -86,7 +88,7 @@ const App = () => {
 };
 ```
 
-To wire up an inspector, pass the `inspect` option. The inspector is subscribed on mount and unsubscribed on unmount:
+To wire up an inspector, pass the `inspect` option. The inspector is subscribed while the option is provided and unsubscribed when it is removed or the component unmounts:
 
 ```tsx
 const store = useStore(

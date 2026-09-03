@@ -8,7 +8,8 @@ import {
   useStore,
   useAtom,
   useAtomState,
-  createStoreHook
+  createStoreHook,
+  type StoreInspectionEvent
 } from './index.ts';
 
 describe('@xstate/store-react', () => {
@@ -226,6 +227,36 @@ describe('@xstate/store-react', () => {
       // 1 init event on subscribe + 1 per transition; no duplicates from
       // re-render resubscription
       expect(snapshotEvents).toEqual(['@xstate.init', 'inc', 'inc']);
+    });
+
+    it('should subscribe an inspector enabled after mount', () => {
+      const events: string[] = [];
+
+      const Counter = ({
+        inspect
+      }: {
+        inspect?: (event: StoreInspectionEvent) => void;
+      }) => {
+        const store = useStore(
+          {
+            context: { count: 0 },
+            on: {
+              inc: (ctx: { count: number }) => ({ count: ctx.count + 1 })
+            }
+          },
+          { inspect }
+        );
+
+        return <button onClick={() => store.send({ type: 'inc' })}>inc</button>;
+      };
+
+      const { rerender } = render(<Counter />);
+      rerender(<Counter inspect={(event) => events.push(event.event.type)} />);
+
+      expect(events).toEqual(['@xstate.init']);
+
+      fireEvent.click(screen.getByRole('button'));
+      expect(events).toEqual(['@xstate.init', 'inc']);
     });
 
     it('should support the inspect option with store logic and input', () => {

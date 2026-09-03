@@ -63,8 +63,8 @@ type StoreFromStoreDefinition<TDefinition extends StoreDefinition> =
 interface UseStoreOptions {
   /**
    * An observer or callback that receives [inspection
-   * events](https://stately.ai/docs/inspection) from the store. Subscribed on
-   * mount and unsubscribed on unmount; stable across re-renders.
+   * events](https://stately.ai/docs/inspection) from the store. Subscribed
+   * while provided; stable across re-renders.
    */
   inspect?:
     | Observer<StoreInspectionEvent>
@@ -198,8 +198,8 @@ export function useSelector<TSnapshot, T>(
 /**
  * Creates a stable store instance for the lifetime of a React component.
  *
- * Pass `options.inspect` to subscribe an inspector to the store on mount; the
- * subscription is removed on unmount.
+ * Pass `options.inspect` to subscribe an inspector to the store. The
+ * subscription is removed when the inspector is removed or on unmount.
  *
  * @example
  *
@@ -234,6 +234,7 @@ export function useStore<TDefinition extends StoreDefinition>(
 
   const inspectRef = useRef(options?.inspect);
   inspectRef.current = options?.inspect;
+  const shouldInspect = options?.inspect !== undefined;
 
   useEffect(() => {
     if (!inspectRef.current) {
@@ -247,7 +248,7 @@ export function useStore<TDefinition extends StoreDefinition>(
         inspect?.next?.(inspectionEvent);
       }
     }).unsubscribe;
-  }, []);
+  }, [shouldInspect]);
 
   return storeRef.current;
 }
