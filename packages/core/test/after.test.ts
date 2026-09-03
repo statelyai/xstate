@@ -1,5 +1,6 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createMachine, createActor } from '../src/index.ts';
+import { builtInActions } from '../src/actions.ts';
 import z from 'zod';
 
 const lightMachine = createMachine({
@@ -37,6 +38,30 @@ afterEach(() => {
 });
 
 describe('delayed transitions', () => {
+  it('does not rely on inferred function names for built-in timer effects', () => {
+    vi.useFakeTimers();
+    const raise = builtInActions['@xstate.raise'];
+    const originalName = Object.getOwnPropertyDescriptor(raise, 'name')!;
+    Object.defineProperty(raise, 'name', { ...originalName, value: 'a' });
+
+    try {
+      const actor = createActor(
+        createMachine({
+          initial: 'waiting',
+          states: {
+            waiting: { after: { 10: { target: 'done' } } },
+            done: {}
+          }
+        })
+      ).start();
+
+      vi.advanceTimersByTime(10);
+      expect(actor.getSnapshot().value).toBe('done');
+    } finally {
+      Object.defineProperty(raise, 'name', originalName);
+    }
+  });
+
   it('uses a canonical after event with delay and state identity', () => {
     vi.useFakeTimers();
     const spy = vi.fn();
