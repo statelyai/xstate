@@ -757,6 +757,7 @@ function getBuiltInActionFields(
         (typeof builtInActions)['@xstate.spawn']
       >;
       return {
+        type: '@xstate.spawn',
         kind: 'builtin',
         exec: execSpawnEffect,
         source: actor._parent,
@@ -772,6 +773,7 @@ function getBuiltInActionFields(
         (typeof builtInActions)['@xstate.raise']
       >;
       return {
+        type: '@xstate.raise',
         kind: 'builtin',
         exec: execRaiseEffect,
         source: (
@@ -787,6 +789,7 @@ function getBuiltInActionFields(
         (typeof builtInActions)['@xstate.sendTo']
       >;
       return {
+        type: '@xstate.sendTo',
         kind: 'builtin',
         exec: execSendToEffect,
         source: (
@@ -803,6 +806,7 @@ function getBuiltInActionFields(
         (typeof builtInActions)['@xstate.cancel']
       >;
       return {
+        type: '@xstate.cancel',
         kind: 'builtin',
         exec: execCancelEffect,
         source: (
@@ -816,6 +820,7 @@ function getBuiltInActionFields(
         (typeof builtInActions)['@xstate.stop']
       >;
       return {
+        type: '@xstate.stop',
         kind: 'builtin',
         exec: execStopEffect,
         source: (args as Parameters<(typeof builtInActions)['@xstate.stop']>)[0]

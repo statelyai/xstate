@@ -38,13 +38,15 @@ export interface TypeSchema<T> extends StandardSchemaV1<T, T> {
  *     context: types<{ count: number }>(),
  *     events: {
  *       inc: types<{ by: number }>(),
- *       reset: types<{}>()
+ *       reset: types<void>()
  *     }
  *   },
  *   context: { count: 0 }
  *   // ...
  * });
  * ```
+ *
+ * Use `types<void>()` for events without a payload.
  */
 export function types<T>(): TypeSchema<T> {
   return {

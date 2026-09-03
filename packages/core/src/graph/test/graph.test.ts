@@ -613,6 +613,27 @@ describe('@xstate/graph', () => {
 
       expect(digraph).toMatchSnapshot();
     });
+
+    it('does not rely on StateMachine constructor identity', () => {
+      const machine = createMachine({
+        id: 'light',
+        initial: 'green',
+        states: {
+          green: { on: { TIMER: { target: 'yellow' } } },
+          yellow: {}
+        }
+      });
+      const machineFromAnotherPackageInstance = new Proxy(machine, {
+        getPrototypeOf: () => null
+      });
+
+      expect(machineFromAnotherPackageInstance).not.toBeInstanceOf(
+        machine.constructor
+      );
+      expect(toDirectedGraph(machineFromAnotherPackageInstance).id).toBe(
+        'light'
+      );
+    });
   });
 });
 
