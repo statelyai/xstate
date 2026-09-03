@@ -1,5 +1,11 @@
 # xstate
 
+## 6.0.0-alpha.52
+
+### Patch Changes
+
+- 069aadf: Fixed delayed transitions and other built-in effects in minified bundles, preserved hook-owned actors across React StrictMode effect reconnects, and allowed graph utilities to accept machines from duplicate XState package copies.
+
 ## 6.0.0-alpha.51
 
 ### Minor Changes
