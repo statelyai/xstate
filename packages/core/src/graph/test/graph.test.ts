@@ -586,6 +586,26 @@ describe('@xstate/graph', () => {
 
       expect(path.state.matches('red')).toBeTruthy();
     });
+
+    it('does not treat custom logic with a getStateNodeById property as a machine', () => {
+      const logic = Object.assign(
+        createLogic({
+          context: 0,
+          run: ({ context, event }) => {
+            if (event.type === 'INC') {
+              return { context: context + 1 };
+            }
+          }
+        }),
+        { getStateNodeById: () => 'custom metadata' }
+      );
+
+      const path = getPathsFromEvents(logic, [{ type: 'INC' }], {
+        toState: (state) => state.context === 1
+      })[0];
+
+      expect(path.state.context).toBe(1);
+    });
   });
 
   describe('toDirectedGraph', () => {
