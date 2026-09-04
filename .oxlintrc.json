@@ -23,6 +23,7 @@
     "{docs,examples,templates}/",
     "**/dist",
     "**/*.test.*",
+    "packages/xstate-effect/test/lint-fixtures/",
     "**/*.svelte",
     "scripts/jest-utils/"
   ],

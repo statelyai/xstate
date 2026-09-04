@@ -12,6 +12,7 @@ import {
   type StandardSchemaV1
 } from 'xstate';
 import { EffectInterruptedError } from './errors.ts';
+import type { EffectRequirements } from './types.ts';
 import { relayToParent, startHostedEffect } from './internal.ts';
 import {
   type EffectSchemaLike,
@@ -30,6 +31,13 @@ const effectLogicBrand: unique symbol = Symbol.for(
   '@xstate/effect/logic'
 ) as any;
 
+/**
+ * Type-level marker attached to logic created by `fromEffect`,
+ * `fromEffectStream` and `fromEffectEventStream`. It carries the logic's
+ * failure type and its Effect service requirements, which is how
+ * `RequirementsFrom` collects the `R` channel of `createEffectActor` without
+ * inspecting the logic at runtime.
+ */
 export interface EffectLogicBrand<TError, TRequirements> {
   readonly [effectLogicBrand]: {
     readonly error: TError;
@@ -37,12 +45,24 @@ export interface EffectLogicBrand<TError, TRequirements> {
   };
 }
 
+/**
+ * Snapshot of a `fromEffect` actor. The actor holds no context of its own: it
+ * is `active` while the Effect runs, `done` with the Effect's success value as
+ * `output`, or `error` with the Effect's failure, defect or
+ * `EffectInterruptedError` as `error`.
+ */
 export type EffectSnapshot<TOutput, TError, TInput> = Snapshot<TOutput> & {
   readonly context: undefined;
   readonly input: TInput | undefined;
   readonly error: TError | undefined;
 };
 
+/**
+ * Argument passed to the function form of an Effect source. It gives the
+ * source the actor's `input`, its own reference (`self`), the actor `system`,
+ * and `emit` for publishing events that `actor.on(...)` and `emitted(actor)`
+ * observe.
+ */
 export type EffectSourceArgs<TInput> = {
   readonly input: TInput;
   readonly self: AnyActorRef;
@@ -51,6 +71,11 @@ export type EffectSourceArgs<TInput> = {
   readonly emit: (event: AnyEventObject) => void;
 };
 
+/**
+ * What `fromEffect` accepts as its Effect: either an Effect value, or a
+ * function of {@link EffectSourceArgs} returning one. The function form is
+ * called once per actor start, so it sees that actor's input.
+ */
 export type EffectSource<TOutput, TError, TInput, TRequirements> =
   | Effect.Effect<TOutput, TError, TRequirements>
   | ((
@@ -88,9 +113,6 @@ type EffectSuccess<T> = T extends Effect.Effect<infer A, any, any> ? A : never;
 
 type EffectFailure<T> = T extends Effect.Effect<any, infer E, any> ? E : never;
 
-type EffectRequirements<T> =
-  T extends Effect.Effect<any, any, infer R> ? R : never;
-
 type EffectSchemaValidationConfig<TSchemas extends EffectActorSchemas> =
   | {
       readonly validator: ActorLogicValidator;
@@ -101,15 +123,25 @@ type EffectSchemaValidationConfig<TSchemas extends EffectActorSchemas> =
       readonly schemas: TSchemas;
     };
 
+/**
+ * Actor logic produced by `fromEffect` and `fromEffectEventStream`. It is
+ * ordinary XState actor logic carrying {@link EffectLogicBrand}, so a machine
+ * can invoke or spawn it, and `createEffectActor` can collect its
+ * requirements.
+ */
 export type EffectActorLogic<TOutput, TError, TInput, TRequirements> =
   ActorLogic<
     EffectSnapshot<TOutput, TError, TInput>,
     EventObject,
     TInput,
     AnyActorSystem
-  > &
-    EffectLogicBrand<TError, TRequirements>;
+  > & { readonly id?: string } & EffectLogicBrand<TError, TRequirements>;
 
+/**
+ * Snapshot of a `fromEffectStream` actor. `context` holds the most recent
+ * stream item, or `undefined` before the first one. The actor reaches `done`
+ * with no output when the stream completes, and `error` when it fails.
+ */
 export type EffectStreamSnapshot<TItem, TError, TInput> =
   Snapshot<undefined> & {
     readonly context: TItem | undefined;
@@ -117,14 +149,18 @@ export type EffectStreamSnapshot<TItem, TError, TInput> =
     readonly error: TError | undefined;
   };
 
+/**
+ * Actor logic produced by `fromEffectStream`. Its snapshot is an
+ * {@link EffectStreamSnapshot}, so the parent reads the latest item from the
+ * child's `context` rather than from events.
+ */
 export type EffectStreamActorLogic<TItem, TError, TInput, TRequirements> =
   ActorLogic<
     EffectStreamSnapshot<TItem, TError, TInput>,
     EventObject,
     TInput,
     AnyActorSystem
-  > &
-    EffectLogicBrand<TError, TRequirements>;
+  > & { readonly id?: string } & EffectLogicBrand<TError, TRequirements>;
 
 function toError(exit: Exit.Exit<unknown, unknown>): unknown {
   if (Exit.isSuccess(exit)) {
@@ -166,6 +202,15 @@ function brandLogic<TLogic extends AnyActorLogic>(
   return logic;
 }
 
+/**
+ * Creates actor logic that runs an Effect. The actor completes with the
+ * Effect's success value as its output and fails with the Effect's error, its
+ * squashed defect, or an `EffectInterruptedError` when the Effect interrupts
+ * itself. Stopping the actor interrupts the Effect without an error. Accepts
+ * an Effect, a function of {@link EffectSourceArgs} returning one, or a config
+ * object with `id`, `schemas`, `validator` and `effect`. The logic must be run
+ * under `createEffectActor`, which provides the Effect services it declares.
+ */
 export function fromEffect<
   const TInputSchema extends EffectSchemaLike,
   const TOutputSchema extends EffectSchemaLike,
@@ -209,33 +254,9 @@ export function fromEffect<
       input: TInputSchema;
       output?: never;
     }> & {
-      effect: TEffect;
-    }
-): EffectActorLogic<
-  EffectSuccess<TEffect>,
-  EffectFailure<TEffect>,
-  SchemaOutput<TInputSchema>,
-  EffectRequirements<TEffect>
->;
-export function fromEffect<
-  const TInputSchema extends EffectSchemaLike,
-  TEffect extends Effect.Effect<any, any, any>
->(
-  config: Omit<
-    EffectSourceConfig<
-      EffectSuccess<TEffect>,
-      EffectFailure<TEffect>,
-      SchemaOutput<TInputSchema>,
-      EffectRequirements<TEffect>,
-      { input: TInputSchema }
-    >,
-    'effect' | 'schemas' | 'validator'
-  > &
-    EffectSchemaValidationConfig<{
-      input: TInputSchema;
-      output?: never;
-    }> & {
-      effect: (args: EffectSourceArgs<SchemaOutput<TInputSchema>>) => TEffect;
+      effect:
+        | TEffect
+        | ((args: EffectSourceArgs<SchemaOutput<TInputSchema>>) => TEffect);
     }
 ): EffectActorLogic<
   EffectSuccess<TEffect>,
@@ -350,17 +371,22 @@ export function fromEffect<
           : source;
 
       enq.effect(() =>
-        startHostedEffect(self as AnyActorRef, effect, (exit) => {
-          if (self.getSnapshot().status !== 'active') {
-            return;
-          }
+        startHostedEffect(
+          self as AnyActorRef,
+          effect as Effect.Effect<TOutput, TError>,
+          'fromEffect',
+          (exit) => {
+            if (self.getSnapshot().status !== 'active') {
+              return;
+            }
 
-          if (Exit.isSuccess(exit)) {
-            self.send({ type: EFFECT_RESOLVE, output: exit.value } as any);
-          } else {
-            self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
+            if (Exit.isSuccess(exit)) {
+              self.send({ type: EFFECT_RESOLVE, output: exit.value } as any);
+            } else {
+              self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
+            }
           }
-        })
+        )
       );
     }
   });
@@ -372,6 +398,11 @@ export function fromEffect<
   ) as unknown as EffectActorLogic<TOutput, TError, TInput, TRequirements>;
 }
 
+/**
+ * What `fromEffectStream` and `fromEffectEventStream` accept as their stream:
+ * either a Stream value, or a function of {@link EffectSourceArgs} returning
+ * one. The function form is called once per actor start.
+ */
 export type EffectStreamSource<TItem, TError, TInput, TRequirements> =
   | Stream.Stream<TItem, TError, TRequirements>
   | ((
@@ -422,6 +453,13 @@ function toLogicSchemas(
     : undefined;
 }
 
+/**
+ * Creates actor logic that runs a Stream and exposes its most recent item as
+ * the actor's `context`. The actor reaches `done` when the stream completes
+ * and `error` when it fails. Accepts a Stream, a function of
+ * {@link EffectSourceArgs} returning one, or a config object with `id`,
+ * `schemas`, `validator` and `stream`.
+ */
 export function fromEffectStream<
   const TInputSchema extends EffectSchemaLike,
   TStream extends Stream.Stream<any, any, any>
@@ -518,16 +556,21 @@ export function fromEffectStream<
       );
 
       enq.effect(() =>
-        startHostedEffect(self as AnyActorRef, consume, (exit) => {
-          if (self.getSnapshot().status !== 'active') {
-            return;
+        startHostedEffect(
+          self as AnyActorRef,
+          consume as Effect.Effect<void, TError>,
+          'fromEffectStream',
+          (exit) => {
+            if (self.getSnapshot().status !== 'active') {
+              return;
+            }
+            if (Exit.isSuccess(exit)) {
+              self.send({ type: EFFECT_COMPLETE });
+            } else {
+              self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
+            }
           }
-          if (Exit.isSuccess(exit)) {
-            self.send({ type: EFFECT_COMPLETE });
-          } else {
-            self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
-          }
-        })
+        )
       );
     }
   });
@@ -539,6 +582,12 @@ export function fromEffectStream<
   ) as unknown as EffectStreamActorLogic<TItem, TError, TInput, TRequirements>;
 }
 
+/**
+ * Creates actor logic that runs a Stream of events and relays each item to the
+ * parent machine as an event, the way `fromEventObservable` does. The actor
+ * has no output: it reaches `done` when the stream completes and `error` when
+ * it fails. Accepts the same forms as `fromEffectStream`.
+ */
 export function fromEffectEventStream<
   const TInputSchema extends EffectSchemaLike,
   TStream extends Stream.Stream<EventObject, any, any>
@@ -628,16 +677,21 @@ export function fromEffectEventStream<
       );
 
       enq.effect(() =>
-        startHostedEffect(self as AnyActorRef, consume, (exit) => {
-          if (self.getSnapshot().status !== 'active') {
-            return;
+        startHostedEffect(
+          self as AnyActorRef,
+          consume as Effect.Effect<void, TError>,
+          'fromEffectEventStream',
+          (exit) => {
+            if (self.getSnapshot().status !== 'active') {
+              return;
+            }
+            if (Exit.isSuccess(exit)) {
+              self.send({ type: EFFECT_COMPLETE });
+            } else {
+              self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
+            }
           }
-          if (Exit.isSuccess(exit)) {
-            self.send({ type: EFFECT_COMPLETE });
-          } else {
-            self.send({ type: EFFECT_REJECT, error: toError(exit) } as any);
-          }
-        })
+        )
       );
     }
   });

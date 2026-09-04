@@ -14,7 +14,8 @@ import {
   createMachine,
   initialTransition,
   setup,
-  types
+  types,
+  type StandardSchemaV1
 } from 'xstate';
 import { standardSchemaValidator } from 'xstate/validation';
 import {
@@ -25,8 +26,31 @@ import {
   setupEffect
 } from './index.ts';
 
-const waitForEffects = () =>
-  new Promise<void>((resolve) => setTimeout(resolve, 0));
+/**
+ * Polls until `predicate` holds. Effects run on detached fibers, so tests wait
+ * for the condition they assert on instead of for a fixed number of ticks.
+ */
+const until = async (predicate: () => boolean, timeoutMs = 1000) => {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() > deadline) {
+      throw new Error('Timed out waiting for condition');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+};
+
+/**
+ * Runs a value through a converted schema with the Standard Schema interface
+ * XState validates against, and reports whether the schema rejected it.
+ */
+const rejects = (schema: StandardSchemaV1, value: unknown): boolean => {
+  const result = schema['~standard'].validate(value);
+  if (result instanceof Promise) {
+    throw new Error('Expected a synchronous schema');
+  }
+  return !!result.issues;
+};
 
 let scopes: Scope.Closeable[] = [];
 
@@ -84,7 +108,39 @@ describe('@xstate/effect', () => {
     void sendInvalidEvent;
 
     expect(actor.getSnapshot().context).toEqual({ count: 3 });
-    expect(machine.schemas?.context?.['~standard'].vendor).toBe('effect');
+  });
+
+  it('validates converted context and event schemas at runtime', async () => {
+    const machine = setupEffect({
+      validator: standardSchemaValidator(),
+      schemas: {
+        context: Schema.Struct({ count: Schema.Number }),
+        events: { ADD: Schema.Struct({ value: Schema.Number }) }
+      }
+    }).createMachine({
+      context: { count: 0 },
+      on: {
+        ADD: ({ context, event }) => ({
+          context: { count: context.count + event.value }
+        })
+      }
+    });
+    const actor = await runScoped(createEffectActor(machine));
+
+    actor.send({ type: 'ADD', value: 2 });
+    expect(actor.getSnapshot().context).toEqual({ count: 2 });
+
+    // The converted event schema is what runtime validation asserts against,
+    // so an invalid payload is rejected instead of transitioning.
+    actor.send({ type: 'ADD', value: 'invalid' } as any);
+    expect(actor.getSnapshot().context).toEqual({ count: 2 });
+
+    const invalidContext = setupEffect({
+      validator: standardSchemaValidator(),
+      schemas: { context: Schema.Struct({ count: Schema.Number }) }
+    }).createMachine({ context: { count: 'invalid' } as any });
+
+    expect(() => initialTransition(invalidContext)).toThrow('Invalid context');
   });
 
   it('accepts Effect schemas when extending setupEffect', async () => {
@@ -121,7 +177,9 @@ describe('@xstate/effect', () => {
     actor.send({ type: 'ADD', value: 2 });
 
     expect(actor.getSnapshot().context).toEqual({ count: 2 });
-    expect(effectSetup.schemas.events.ADD['~standard'].vendor).toBe('effect');
+    expect(rejects(effectSetup.schemas.events.ADD, { value: 'invalid' })).toBe(
+      true
+    );
   });
 
   it('preserves runtime validation compatibility through setupEffect.extend', () => {
@@ -198,14 +256,15 @@ describe('@xstate/effect', () => {
       }
     });
 
+    expect(rejects(effectSetup.states.running.schemas!.input!, {})).toBe(true);
     expect(
-      effectSetup.states.running.schemas?.input?.['~standard'].vendor
-    ).toBe('effect');
+      rejects(effectSetup.states.running.schemas!.input!, { timeout: 5 })
+    ).toBe(false);
     expect(
-      effectSetup.states.running.states?.retrying.schemas?.context?.[
-        '~standard'
-      ].vendor
-    ).toBe('effect');
+      rejects(effectSetup.states.running.states!.retrying.schemas!.context!, {
+        attempt: 'no'
+      })
+    ).toBe(true);
   });
 
   it('converts Effect schemas in every setup schema map', () => {
@@ -232,16 +291,21 @@ describe('@xstate/effect', () => {
     });
 
     expect(
-      [
-        effectSetup.schemas.internalEvents.TICK,
-        effectSetup.schemas.actions.track.params,
-        effectSetup.schemas.guards.hasAccess.params,
-        effectSetup.schemas.emitted.changed,
-        effectSetup.schemas.meta,
-        effectSetup.schemas.tags,
-        effectSetup.schemas.children.child
-      ].every((schema) => schema['~standard'].vendor === 'effect')
+      rejects(effectSetup.schemas.internalEvents.TICK, { count: 'no' })
     ).toBe(true);
+    expect(rejects(effectSetup.schemas.actions.track.params, { key: 1 })).toBe(
+      true
+    );
+    expect(
+      rejects(effectSetup.schemas.guards.hasAccess.params, { role: 1 })
+    ).toBe(true);
+    expect(rejects(effectSetup.schemas.emitted.changed, { value: 'no' })).toBe(
+      true
+    );
+    expect(rejects(effectSetup.schemas.meta, { label: 1 })).toBe(true);
+    expect(rejects(effectSetup.schemas.tags, 'inactive')).toBe(true);
+    // `Schema.Unknown` accepts anything; converting it must not change that.
+    expect(rejects(effectSetup.schemas.children.child, 'anything')).toBe(false);
   });
 
   it('preserves __proto__ schema and state keys while converting', () => {
@@ -257,13 +321,11 @@ describe('@xstate/effect', () => {
     });
 
     expect(Object.hasOwn(effectSetup.schemas.events, '__proto__')).toBe(true);
-    expect(effectSetup.schemas.events['__proto__']['~standard'].vendor).toBe(
-      'effect'
-    );
+    expect(rejects(effectSetup.schemas.events['__proto__'], 42)).toBe(true);
     expect(Object.hasOwn(effectSetup.states, '__proto__')).toBe(true);
-    expect(
-      effectSetup.states['__proto__'].schemas?.input?.['~standard'].vendor
-    ).toBe('effect');
+    expect(rejects(effectSetup.states['__proto__'].schemas!.input!, 42)).toBe(
+      true
+    );
   });
 
   it('uses converted Effect schemas with XState runtime validation', () => {
@@ -340,12 +402,24 @@ describe('@xstate/effect', () => {
       createEffectActor(logic, { input: { id: 42 } });
     };
     void createWithInvalidInput;
-    await waitForEffects();
+    await until(() => actor.getSnapshot().status === 'done');
 
     actor.getSnapshot().output?.greeting satisfies string | undefined;
     expect(actor.getSnapshot().output).toEqual({ greeting: 'Hello 42' });
-    expect((logic.config as any).schemas.input['~standard'].vendor).toBe(
-      'effect'
+  });
+
+  it('rejects invalid fromEffect input with XState runtime validation', () => {
+    const logic = fromEffect({
+      validator: standardSchemaValidator(),
+      schemas: {
+        input: Schema.Struct({ id: Schema.String }),
+        output: Schema.Struct({ greeting: Schema.String })
+      },
+      effect: ({ input }) => Effect.succeed({ greeting: `Hello ${input.id}` })
+    });
+
+    expect(() => initialTransition(logic, { id: 42 } as any)).toThrow(
+      'Invalid input'
     );
   });
 
@@ -422,7 +496,7 @@ describe('@xstate/effect', () => {
     const actor = await runScoped(
       createEffectActor(logic, { input: { id: '42' } })
     );
-    await waitForEffects();
+    await until(() => actor.getSnapshot().status === 'done');
 
     expect(actor.getSnapshot().output).toBe('ok');
   });
@@ -433,7 +507,7 @@ describe('@xstate/effect', () => {
       effect: Effect.succeed('ok')
     });
     const actor = await runScoped(createEffectActor(logic));
-    await waitForEffects();
+    await until(() => actor.getSnapshot().status === 'done');
 
     actor.getSnapshot().output satisfies string | undefined;
     expect(actor.getSnapshot().output).toBe('ok');
@@ -445,7 +519,7 @@ describe('@xstate/effect', () => {
       effect: ({ input }: { input: number }) => Effect.succeed(String(input))
     });
     const actor = await runScoped(createEffectActor(logic, { input: 42 }));
-    await waitForEffects();
+    await until(() => actor.getSnapshot().status === 'done');
 
     expect(actor.getSnapshot().output).toBe('42');
   });
@@ -457,7 +531,7 @@ describe('@xstate/effect', () => {
       effect: Effect.succeed('ok')
     });
     const actor = await runScoped(createEffectActor(logic));
-    await waitForEffects();
+    await until(() => actor.getSnapshot().status === 'done');
 
     expect(actor.getSnapshot().status).toBe('done');
   });
@@ -476,9 +550,8 @@ describe('@xstate/effect', () => {
     const actor = await runScoped(createEffectActor(logic));
     actor.subscribe({ error: (error) => errors.push(error) });
     resolve(42);
-    await waitForEffects();
+    await until(() => actor.getSnapshot().status === 'error');
 
-    expect(actor.getSnapshot().status).toBe('error');
     expect(errors).toHaveLength(1);
   });
 
@@ -521,7 +594,7 @@ describe('@xstate/effect', () => {
     void runWithoutAudit;
 
     actor.send({ type: 'AUDIT' });
-    await waitForEffects();
+    await until(() => recorded.length === 1);
 
     expect(recorded).toEqual([1]);
   });
@@ -570,7 +643,7 @@ describe('@xstate/effect', () => {
       expect(acquired).toBe(1);
       expect(released).toBe(0);
       actor.send({ type: 'READ' });
-      await waitForEffects();
+      await until(() => observed !== undefined);
       expect(observed).toBe('scoped');
 
       actor.stop();
@@ -608,9 +681,8 @@ describe('@xstate/effect', () => {
 
     const actor = await runScoped(createEffectActor(machine));
     actor.send({ type: 'FAIL' });
-    await waitForEffects();
+    await until(() => actor.getSnapshot().value === 'failed');
 
-    expect(actor.getSnapshot().value).toBe('failed');
     expect(received).toEqual(failure);
   });
 
@@ -633,9 +705,8 @@ describe('@xstate/effect', () => {
     });
 
     const actor = await runScoped(createEffectActor(machine));
-    await waitForEffects();
+    await until(() => actor.getSnapshot().value === 'success');
 
-    expect(actor.getSnapshot().value).toBe('success');
     expect(actor.getSnapshot().context).toEqual({ result: 'ok' });
   });
 
@@ -644,7 +715,7 @@ describe('@xstate/effect', () => {
       effect: Effect.succeed('nested')
     });
     const actor = await runScoped(createEffectActor(fromEffect(directEffect)));
-    await waitForEffects();
+    await until(() => actor.getSnapshot().status === 'done');
 
     expect(actor.getSnapshot().output).toBe('direct');
   });
@@ -669,9 +740,8 @@ describe('@xstate/effect', () => {
     });
 
     const actor = await runScoped(createEffectActor(machine));
-    await waitForEffects();
+    await until(() => actor.getSnapshot().value === 'failed');
 
-    expect(actor.getSnapshot().value).toBe('failed');
     expect(actor.getSnapshot().context).toEqual({ error: failure });
   });
 
@@ -739,27 +809,48 @@ describe('@xstate/effect', () => {
     const actor = await runScoped(
       createEffectActor(fromEffectStream(Stream.make(1, 2, 3)))
     );
-    await waitForEffects();
+    await until(() => actor.getSnapshot().status === 'done');
 
     expect(actor.getSnapshot().context).toBe(3);
-    expect(actor.getSnapshot().status).toBe('done');
   });
 
-  it('relays an Effect event stream to its parent', async () => {
-    const machine = createMachine({
-      context: { seen: 0 },
+  it('infers stream input from the fromEffectStream config form', async () => {
+    const logic = fromEffectStream({
+      schemas: { input: Schema.Struct({ n: Schema.Number }) },
+      stream: ({ input }) => {
+        input satisfies { readonly n: number };
+        return Stream.make(input.n, input.n + 1);
+      }
+    });
+
+    const actor = await runScoped(
+      createEffectActor(logic, { input: { n: 5 } })
+    );
+    await until(() => actor.getSnapshot().status === 'done');
+
+    expect(actor.getSnapshot().context).toBe(6);
+  });
+
+  it('relays a configured Effect event stream to its parent', async () => {
+    const relay = fromEffectEventStream({
+      schemas: { input: Schema.Struct({ n: Schema.Number }) },
+      stream: ({ input }) => {
+        input satisfies { readonly n: number };
+        return Stream.make(
+          { type: 'VALUE' as const, value: input.n },
+          { type: 'VALUE' as const, value: input.n * 2 }
+        );
+      }
+    });
+    const machine = setup({
       schemas: { events: { VALUE: types<{ value: number }>() } },
+      actors: { relay }
+    }).createMachine({
+      context: { seen: 0 },
       initial: 'active',
       states: {
         active: {
-          invoke: {
-            src: fromEffectEventStream(
-              Stream.make(
-                { type: 'VALUE', value: 1 },
-                { type: 'VALUE', value: 2 }
-              )
-            )
-          },
+          invoke: { src: 'relay', input: { n: 3 } },
           on: {
             VALUE: {
               context: ({ context, event }) => ({
@@ -772,95 +863,9 @@ describe('@xstate/effect', () => {
     });
 
     const actor = await runScoped(createEffectActor(machine));
-    await waitForEffects();
+    await until(() => actor.getSnapshot().context.seen === 9);
 
-    expect(actor.getSnapshot().context).toEqual({ seen: 3 });
-  });
-
-  it('interrupts a running Effect actor when it is stopped', async () => {
-    let interrupted = false;
-    const logic = fromEffect(
-      Effect.ensuring(
-        Effect.never,
-        Effect.sync(() => {
-          interrupted = true;
-        })
-      )
-    );
-    const actor = await runScoped(createEffectActor(logic));
-
-    actor.stop();
-    await waitForEffects();
-
-    expect(interrupted).toBe(true);
-    expect(actor.getSnapshot().status).toBe('stopped');
-  });
-
-  it('interrupts an invoked Effect actor when its state is exited', async () => {
-    let interrupted = false;
-    const worker = fromEffect(
-      Effect.ensuring(
-        Effect.never,
-        Effect.sync(() => {
-          interrupted = true;
-        })
-      )
-    );
-    const machine = setup({ actors: { worker } }).createMachine({
-      context: {},
-      initial: 'loading',
-      states: {
-        loading: {
-          invoke: {
-            src: 'worker'
-          },
-          on: {
-            CANCEL: { target: 'cancelled' }
-          }
-        },
-        cancelled: {}
-      }
-    });
-    const actor = await runScoped(createEffectActor(machine));
-
-    actor.send({ type: 'CANCEL' });
-    await waitForEffects();
-
-    expect(interrupted).toBe(true);
-    expect(actor.getSnapshot().value).toBe('cancelled');
-    actor.stop();
-  });
-
-  it('interrupts a running Effect action when its actor is stopped', async () => {
-    let interrupted = false;
-    const effectSetup = setupEffect({
-      actions: {
-        work: (_args) =>
-          Effect.ensuring(
-            Effect.never,
-            Effect.sync(() => {
-              interrupted = true;
-            })
-          )
-      }
-    });
-    const machine = effectSetup.createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            WORK: (args, enq) => enq(args.actions.work, args)
-          }
-        }
-      }
-    });
-    const actor = await runScoped(createEffectActor(machine));
-
-    actor.send({ type: 'WORK' });
-    actor.stop();
-    await waitForEffects();
-
-    expect(interrupted).toBe(true);
+    expect(actor.getSnapshot().context).toEqual({ seen: 9 });
   });
 
   it('restarts an unkeyed Effect actor from persisted state', async () => {

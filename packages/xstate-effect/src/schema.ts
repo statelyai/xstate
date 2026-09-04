@@ -6,8 +6,19 @@ import type {
   StandardSchemaV1
 } from 'xstate';
 
+/**
+ * An Effect `Schema` accepted by this package. `setupEffect`, `fromEffect`,
+ * `fromEffectStream` and `fromEffectEventStream` convert it to a Standard
+ * Schema, so XState infers the decoded `Schema.Type` without an explicit call
+ * to `Schema.toStandardSchemaV1`.
+ */
 export type EffectSchema = Schema.ConstraintDecoder<unknown>;
 
+/**
+ * Either an Effect {@link EffectSchema} or a Standard Schema. Every schema
+ * position in this package accepts both, so Effect schemas and schemas from
+ * other libraries can be mixed in one machine.
+ */
 export type EffectSchemaLike = StandardSchemaV1 | EffectSchema;
 
 interface RuntimeValidationDoesNotSupportTransformingSchemas {
@@ -52,6 +63,12 @@ type ToStandardSchemaShape<TValue> = TValue extends EffectSchemaLike
     ? { [K in keyof TValue]: ToStandardSchemaShape<TValue[K]> }
     : TValue;
 
+/**
+ * The `schemas` option of `setupEffect`: XState's `SetupSchemas` with every
+ * schema position widened to {@link EffectSchemaLike}. Covers `context`,
+ * `input`, `output` and the per-key records for `events`, `internalEvents`,
+ * `emitted` and `children`.
+ */
 export type EffectSetupSchemas = {
   [K in keyof SetupSchemas]?: EffectSchemaShape<NonNullable<SetupSchemas[K]>>;
 };
@@ -80,6 +97,12 @@ export type ToStandardSetupSchemas<TSchemas> = {
   ? TStandardSchemas
   : never;
 
+/**
+ * One node of the `states` option of `setupEffect`: the schemas declared for
+ * that state, and the same shape recursively for its child states. It is
+ * XState's `SetupStateSchema` with Effect schemas allowed in every schema
+ * position.
+ */
 export interface EffectSetupStateSchema {
   schemas?: EffectSchemaShape<SetupStateSchemas>;
   states?: Record<string, EffectSetupStateSchema>;
@@ -148,7 +171,7 @@ function mapSchemaRecord(
       if (Schema.isSchema(entry) || isStandardSchema(entry)) {
         return [key, toStandardSchema(entry as EffectSchemaLike)];
       }
-      if (entry && typeof entry === 'object') {
+      if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
         return [key, mapSchemaRecord(entry as Record<string, unknown>)];
       }
       return [key, entry];

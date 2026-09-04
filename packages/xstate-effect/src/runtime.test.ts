@@ -1,27 +1,57 @@
-import { Context, Effect, Exit, Schema, Scope, Stream } from 'effect';
+import { Context, Duration, Effect, Exit, Scope, Stream } from 'effect';
 import { TestClock } from 'effect/testing';
 import {
   SimulatedClock,
   createMachine,
   setup,
-  types,
   type Actor,
   type AnyActorRef
 } from 'xstate';
 import {
   EffectInterruptedError,
   createEffectActor,
+  deadLetters,
+  emitted,
   fromEffect,
-  fromEffectEventStream,
   fromEffectStream,
   setupEffect
 } from './index.ts';
 
-const waitForEffects = () =>
-  new Promise<void>((resolve) => setTimeout(resolve, 0));
+// XState reports an unhandled actor error by rethrowing it from a
+// `setTimeout(fn)` callback with no delay, which the test runner can only
+// observe as an unhandled error. Intercepting exactly those calls makes "was
+// this error reported?" an assertion instead. This works whether `xstate`
+// resolves to source or to the built package, unlike mocking the module.
+const reported: unknown[] = [];
+const realSetTimeout = globalThis.setTimeout;
 
-/** Polls until `predicate` holds, instead of sleeping for a fixed duration. */
-const waitUntil = async (predicate: () => boolean, timeoutMs = 2000) => {
+beforeAll(() => {
+  vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
+    callback: (...args: unknown[]) => void,
+    delay?: number,
+    ...args: unknown[]
+  ) => {
+    if (delay !== undefined) {
+      return realSetTimeout(callback, delay, ...args);
+    }
+    try {
+      callback(...args);
+    } catch (error) {
+      reported.push(error);
+    }
+    return 0;
+  }) as typeof setTimeout);
+});
+
+afterAll(() => {
+  vi.restoreAllMocks();
+});
+
+/**
+ * Polls until `predicate` holds. Effects run on detached fibers, so tests wait
+ * for the condition they assert on instead of for a fixed number of ticks.
+ */
+const until = async (predicate: () => boolean, timeoutMs = 1000) => {
   const deadline = Date.now() + timeoutMs;
   while (!predicate()) {
     if (Date.now() > deadline) {
@@ -32,6 +62,10 @@ const waitUntil = async (predicate: () => boolean, timeoutMs = 2000) => {
 };
 
 let scopes: Scope.Closeable[] = [];
+
+beforeEach(() => {
+  reported.length = 0;
+});
 
 afterEach(async () => {
   const pending = scopes;
@@ -52,10 +86,13 @@ const runScoped = async <A, E>(
 
 describe('@xstate/effect runtime', () => {
   it('stops the actor and interrupts its Effect when the enclosing scope closes', async () => {
+    let started = false;
     let interrupted = false;
     const logic = fromEffect(
       Effect.ensuring(
-        Effect.never,
+        Effect.sync(() => {
+          started = true;
+        }).pipe(Effect.andThen(Effect.never)),
         Effect.sync(() => {
           interrupted = true;
         })
@@ -67,6 +104,7 @@ describe('@xstate/effect runtime', () => {
       Effect.scoped(
         Effect.gen(function* () {
           actor = yield* createEffectActor(logic);
+          yield* Effect.promise(() => until(() => started));
 
           expect(actor.getSnapshot().status).toBe('active');
           expect(interrupted).toBe(false);
@@ -79,6 +117,7 @@ describe('@xstate/effect runtime', () => {
   });
 
   it('releases actor-scoped finalizers when the actor is stopped', async () => {
+    let started = false;
     let released = 0;
     const logic = fromEffect(
       Effect.gen(function* () {
@@ -87,21 +126,23 @@ describe('@xstate/effect runtime', () => {
             released++;
           })
         );
+        started = true;
         return yield* Effect.never;
       })
     );
     const actor = await runScoped(createEffectActor(logic));
-    await waitForEffects();
+    await until(() => started);
 
     expect(released).toBe(0);
 
     actor.stop();
-    await waitForEffects();
+    await until(() => released === 1);
 
     expect(released).toBe(1);
   });
 
   it('releases actor-scoped finalizers when the enclosing scope closes', async () => {
+    let started = false;
     let released = 0;
 
     await Effect.runPromise(
@@ -115,11 +156,12 @@ describe('@xstate/effect runtime', () => {
                     released++;
                   })
                 );
+                started = true;
                 return yield* Effect.never;
               })
             )
           );
-          yield* Effect.promise(waitForEffects);
+          yield* Effect.promise(() => until(() => started));
 
           expect(released).toBe(0);
         })
@@ -130,6 +172,7 @@ describe('@xstate/effect runtime', () => {
   });
 
   it('keeps actor-scoped finalizers open after the Effect itself completes', async () => {
+    let completed = false;
     let released = 0;
     const machine = setupEffect({
       actions: {
@@ -140,6 +183,7 @@ describe('@xstate/effect runtime', () => {
                 released++;
               })
             );
+            completed = true;
           })
       }
     }).createMachine({
@@ -150,13 +194,100 @@ describe('@xstate/effect runtime', () => {
     const actor = await runScoped(createEffectActor(machine));
 
     actor.send({ type: 'WORK' });
-    await waitForEffects();
+    await until(() => completed);
 
     expect(released).toBe(0);
     expect(actor.getSnapshot().status).toBe('active');
 
     actor.stop();
-    await waitForEffects();
+    await until(() => released === 1);
+
+    expect(released).toBe(1);
+  });
+
+  it('runs a hosted finalizer before Effect.scoped resolves', async () => {
+    const order: string[] = [];
+    let started = false;
+
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* createEffectActor(
+            fromEffect(
+              Effect.gen(function* () {
+                yield* Effect.addFinalizer(() =>
+                  Effect.sync(() => {
+                    order.push('finalizer');
+                  })
+                );
+                started = true;
+                return yield* Effect.never;
+              })
+            )
+          );
+          yield* Effect.promise(() => until(() => started));
+        })
+      )
+    );
+    order.push('scope closed');
+
+    expect(order).toEqual(['finalizer', 'scope closed']);
+  });
+
+  it('runs a hosted finalizer when the actor errors', async () => {
+    let released = 0;
+    const logic = fromEffect(
+      Effect.gen(function* () {
+        yield* Effect.addFinalizer(() =>
+          Effect.sync(() => {
+            released++;
+          })
+        );
+        return yield* Effect.fail({ code: 'BOOM' as const }).pipe(
+          Effect.delay(1)
+        );
+      })
+    );
+    const actor = await runScoped(createEffectActor(logic));
+    actor.subscribe({ error: () => {} });
+    await until(() => actor.getSnapshot().status === 'error');
+    await until(() => released === 1);
+
+    expect(released).toBe(1);
+  });
+
+  it('tolerates stopping an actor before its scope closes', async () => {
+    let started = false;
+    let released = 0;
+
+    await expect(
+      Effect.runPromise(
+        Effect.scoped(
+          Effect.gen(function* () {
+            const actor = yield* createEffectActor(
+              fromEffect(
+                Effect.gen(function* () {
+                  yield* Effect.addFinalizer(() =>
+                    Effect.sync(() => {
+                      released++;
+                    })
+                  );
+                  started = true;
+                  return yield* Effect.never;
+                })
+              )
+            );
+            yield* Effect.promise(() => until(() => started));
+
+            actor.stop();
+            actor.stop();
+            yield* Effect.promise(() => until(() => released === 1));
+
+            expect(actor.getSnapshot().status).toBe('stopped');
+          })
+        )
+      )
+    ).resolves.toBeUndefined();
 
     expect(released).toBe(1);
   });
@@ -175,11 +306,12 @@ describe('@xstate/effect runtime', () => {
         Effect.gen(function* () {
           const actor = yield* createEffectActor(machine);
 
-          yield* Effect.promise(waitForEffects);
           expect(actor.getSnapshot().value).toBe('green');
 
           yield* TestClock.adjust('1 second');
-          yield* Effect.promise(waitForEffects);
+          yield* Effect.promise(() =>
+            until(() => actor.getSnapshot().value === 'yellow')
+          );
 
           expect(actor.getSnapshot().value).toBe('yellow');
         })
@@ -213,19 +345,115 @@ describe('@xstate/effect runtime', () => {
     );
   });
 
+  it('reads the current time from the Effect clock', async () => {
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const actor = yield* createEffectActor(createMachine({}));
+          // `Clock.now` is optional in XState; the Effect clock always has it.
+          const now = () => actor.clock.now?.();
+
+          expect(now()).toBe(0);
+
+          yield* TestClock.setTime(1000);
+          expect(now()).toBe(1000);
+
+          yield* TestClock.adjust(Duration.seconds(5));
+          expect(now()).toBe(6000);
+        })
+      ).pipe(Effect.provide(TestClock.layer()))
+    );
+  });
+
+  it('interrupts a pending after timer when the enclosing scope closes', async () => {
+    let entered = 0;
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: { after: { 1000: { target: 'yellow' } } },
+        yellow: {
+          entry: () => {
+            entered++;
+          }
+        }
+      }
+    });
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        yield* Effect.scoped(
+          Effect.gen(function* () {
+            yield* createEffectActor(machine);
+            yield* TestClock.adjust('500 millis');
+          })
+        );
+
+        // The timer fiber lived in the actor scope, which is now closed.
+        yield* TestClock.adjust('5 seconds');
+
+        expect(entered).toBe(0);
+      }).pipe(Effect.provide(TestClock.layer()))
+    );
+  });
+
+  it('reports a root actor error that no subscriber observed', async () => {
+    const failure = { code: 'UNOBSERVED' as const };
+    const actor = await runScoped(
+      createEffectActor(fromEffect(Effect.fail(failure).pipe(Effect.delay(1))))
+    );
+    await until(() => actor.getSnapshot().status === 'error');
+    await until(() => reported.length > 0);
+
+    expect(reported).toEqual([failure]);
+  });
+
+  it('does not report a root actor error observed by a subscriber', async () => {
+    const failure = { code: 'OBSERVED' as const };
+    const observed: unknown[] = [];
+    const actor = await runScoped(
+      createEffectActor(fromEffect(Effect.fail(failure).pipe(Effect.delay(1))))
+    );
+    actor.subscribe({ error: (error) => observed.push(error) });
+    await until(() => actor.getSnapshot().status === 'error');
+
+    expect(observed).toEqual([failure]);
+    expect(reported).toEqual([]);
+  });
+
   it('reports self-interruption as an EffectInterruptedError', async () => {
     const actor = await runScoped(
       createEffectActor(fromEffect(Effect.interrupt))
     );
-    await waitForEffects();
+    await until(() => actor.getSnapshot().status === 'error');
 
     const snapshot = actor.getSnapshot();
     const error: unknown = snapshot.error;
-    expect(snapshot.status).toBe('error');
     expect(error).toBeInstanceOf(EffectInterruptedError);
     expect((error as EffectInterruptedError)._tag).toBe(
       'EffectInterruptedError'
     );
+  });
+
+  it('reports an Effect.timeout as a TimeoutError failure', async () => {
+    const logic = fromEffect(Effect.timeout(Effect.never, Duration.millis(1)));
+    const actor = await runScoped(createEffectActor(logic));
+    actor.subscribe({ error: () => {} });
+    await until(() => actor.getSnapshot().status === 'error');
+
+    const error: unknown = actor.getSnapshot().error;
+    expect((error as { _tag?: string })._tag).toBe('TimeoutError');
+    expect(error).not.toBeInstanceOf(EffectInterruptedError);
+  });
+
+  it('reports a defect from Effect.die as the actor error', async () => {
+    const defect = new Error('defect');
+    const actor = await runScoped(
+      createEffectActor(fromEffect(Effect.die(defect)))
+    );
+    await until(() => actor.getSnapshot().status === 'error');
+
+    expect(actor.getSnapshot().status).toBe('error');
+    expect(actor.getSnapshot().error).toBe(defect);
   });
 
   it('routes an interrupted invoked Effect to onError', async () => {
@@ -248,9 +476,8 @@ describe('@xstate/effect runtime', () => {
     });
 
     const actor = await runScoped(createEffectActor(machine));
-    await waitForEffects();
+    await until(() => actor.getSnapshot().value === 'failed');
 
-    expect(actor.getSnapshot().value).toBe('failed');
     expect(received).toBeInstanceOf(EffectInterruptedError);
   });
 
@@ -279,114 +506,183 @@ describe('@xstate/effect runtime', () => {
     const child = actor.getSnapshot().children.worker;
 
     actor.send({ type: 'CANCEL' });
-    await waitForEffects();
+    await until(() => interrupted);
 
-    expect(interrupted).toBe(true);
     expect(actor.getSnapshot().value).toBe('cancelled');
     expect(actor.getSnapshot().status).toBe('active');
     expect(child?.getSnapshot().status).toBe('stopped');
     expect(child?.getSnapshot().error).toBeUndefined();
+    expect(reported).toEqual([]);
   });
 
-  it('does not report interruption of an Effect that loses an internal race', async () => {
-    let loserReleased = false;
-    const logic = fromEffect(
-      Effect.race(
-        Effect.as(Effect.sleep('5 millis'), 'winner'),
-        Effect.ensuring(
-          Effect.never,
-          Effect.sync(() => {
-            loserReleased = true;
+  it('interrupts a running Effect action when its actor is stopped', async () => {
+    let started = false;
+    let interrupted = false;
+    const machine = setupEffect({
+      actions: {
+        work: (_args) =>
+          Effect.ensuring(
+            Effect.sync(() => {
+              started = true;
+            }).pipe(Effect.andThen(Effect.never)),
+            Effect.sync(() => {
+              interrupted = true;
+            })
+          )
+      }
+    }).createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            WORK: (args, enq) => enq(args.actions.work, args)
+          }
+        }
+      }
+    });
+    const actor = await runScoped(createEffectActor(machine));
+
+    actor.send({ type: 'WORK' });
+    await until(() => started);
+    actor.stop();
+    await until(() => interrupted);
+
+    expect(interrupted).toBe(true);
+  });
+
+  it('does not block the actor while an Effect action runs', async () => {
+    let started = false;
+    let finished = false;
+    const machine = setupEffect({
+      actions: {
+        work: (_args) =>
+          Effect.gen(function* () {
+            started = true;
+            yield* Effect.never;
+            finished = true;
           })
-        )
-      )
-    );
+      }
+    }).createMachine({
+      context: { count: 0 },
+      on: {
+        WORK: (args, enq) => enq(args.actions.work, args),
+        PING: ({ context }) => ({ context: { count: context.count + 1 } })
+      }
+    });
+    const actor = await runScoped(createEffectActor(machine));
 
-    const actor = await runScoped(createEffectActor(logic));
-    await waitUntil(() => actor.getSnapshot().status === 'done');
+    actor.send({ type: 'WORK' });
+    await until(() => started);
+    actor.send({ type: 'PING' });
 
-    expect(actor.getSnapshot().output).toBe('winner');
-    expect(actor.getSnapshot().error).toBeUndefined();
-    expect(loserReleased).toBe(true);
+    expect(actor.getSnapshot().context).toEqual({ count: 1 });
+    expect(finished).toBe(false);
   });
 
-  it('emits events from the fromEffect source args', async () => {
-    const emitted: Array<{ type: string; value: number }> = [];
+  // Known gap: `setupEffect` wraps the actions declared in `setup` and
+  // `extend`, but `machine.provide` merges raw sources, so an Effect returned
+  // by a provided action is created and discarded. Overriding with a plain
+  // core action does work; see the test below.
+  it('runs an Effect action provided through machine.provide in the host context', async () => {
+    const Audit = Context.Service<{ record: (value: string) => void }>('Audit');
+    const recorded: string[] = [];
+    const machine = setupEffect({
+      actions: {
+        audit: (_args) =>
+          Audit.use((audit) => Effect.sync(() => audit.record('declared')))
+      }
+    }).createMachine({
+      on: {
+        AUDIT: (args, enq) => enq(args.actions.audit, args)
+      }
+    });
+    const provided = machine.provide({
+      actions: {
+        audit: (_args: unknown) =>
+          Audit.use((audit) => Effect.sync(() => audit.record('provided')))
+      }
+    });
+
+    const actor = await runScoped(
+      Effect.provideService(createEffectActor(provided), Audit, {
+        record: (value) => recorded.push(value)
+      })
+    );
+    actor.send({ type: 'AUDIT' });
+    await until(() => recorded.length > 0, 50);
+
+    expect(recorded).toEqual(['provided']);
+  });
+
+  it('runs a plain action provided through machine.provide', async () => {
+    const recorded: string[] = [];
+    const machine = setupEffect({
+      actions: {
+        audit: (_args) => Effect.sync(() => recorded.push('declared'))
+      }
+    }).createMachine({
+      on: {
+        AUDIT: (args, enq) => enq(args.actions.audit, args)
+      }
+    });
+    const provided = machine.provide({
+      actions: {
+        audit: () => {
+          recorded.push('provided');
+        }
+      }
+    });
+
+    const actor = await runScoped(createEffectActor(provided));
+    actor.send({ type: 'AUDIT' });
+    await until(() => recorded.length > 0);
+
+    expect(recorded).toEqual(['provided']);
+  });
+
+  it('observes events emitted from the fromEffect source args', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     const logic = fromEffect(({ emit }) =>
       Effect.gen(function* () {
-        yield* Effect.yieldNow;
+        yield* Effect.promise(() => gate);
         emit({ type: 'progress', value: 1 });
         emit({ type: 'progress', value: 2 });
         return 'done';
       })
     );
 
-    const actor = await runScoped(createEffectActor(logic));
-    actor.on('progress', (event) =>
-      emitted.push(event as { type: string; value: number })
-    );
-    await waitForEffects();
+    const collected: unknown[] = [];
 
-    expect(emitted).toEqual([
+    await runScoped(
+      Effect.gen(function* () {
+        const actor = yield* createEffectActor(logic);
+        let listeners = 0;
+        const actorOn = actor.on.bind(actor);
+        actor.on = ((...args: Parameters<typeof actorOn>) => {
+          listeners++;
+          return actorOn(...args);
+        }) as typeof actor.on;
+
+        yield* Effect.forkScoped(
+          Stream.runForEach(emitted(actor), (event) =>
+            Effect.sync(() => {
+              collected.push(event);
+            })
+          )
+        );
+        yield* Effect.promise(() => until(() => listeners > 0));
+        release();
+        yield* Effect.promise(() => until(() => collected.length === 2));
+      })
+    );
+
+    expect(collected).toEqual([
       { type: 'progress', value: 1 },
       { type: 'progress', value: 2 }
     ]);
-    expect(actor.getSnapshot().output).toBe('done');
-  });
-
-  it('infers stream input from the fromEffectStream config form', async () => {
-    const logic = fromEffectStream({
-      schemas: { input: Schema.Struct({ n: Schema.Number }) },
-      stream: ({ input }) => {
-        input satisfies { readonly n: number };
-        return Stream.make(input.n, input.n + 1);
-      }
-    });
-
-    const actor = await runScoped(
-      createEffectActor(logic, { input: { n: 5 } })
-    );
-    await waitForEffects();
-
-    expect(actor.getSnapshot().context).toBe(6);
-    expect(actor.getSnapshot().status).toBe('done');
-  });
-
-  it('relays a configured Effect event stream to its parent', async () => {
-    const relay = fromEffectEventStream({
-      schemas: { input: Schema.Struct({ n: Schema.Number }) },
-      stream: ({ input }) => {
-        input satisfies { readonly n: number };
-        return Stream.make(
-          { type: 'VALUE' as const, value: input.n },
-          { type: 'VALUE' as const, value: input.n * 2 }
-        );
-      }
-    });
-    const machine = setup({
-      schemas: { events: { VALUE: types<{ value: number }>() } },
-      actors: { relay }
-    }).createMachine({
-      context: { seen: 0 },
-      initial: 'active',
-      states: {
-        active: {
-          invoke: { src: 'relay', input: { n: 3 } },
-          on: {
-            VALUE: {
-              context: ({ context, event }) => ({
-                seen: context.seen + event.value
-              })
-            }
-          }
-        }
-      }
-    });
-
-    const actor = await runScoped(createEffectActor(machine));
-    await waitForEffects();
-
-    expect(actor.getSnapshot().context).toEqual({ seen: 9 });
   });
 
   it('reports a failing Effect stream as an actor error', async () => {
@@ -394,10 +690,10 @@ describe('@xstate/effect runtime', () => {
     const actor = await runScoped(
       createEffectActor(fromEffectStream(Stream.fail(failure)))
     );
-    await waitForEffects();
+    await until(() => actor.getSnapshot().status === 'error');
 
-    expect(actor.getSnapshot().status).toBe('error');
     expect(actor.getSnapshot().error).toEqual(failure);
+    expect(reported).toEqual([failure]);
   });
 
   it('interrupts an Effect stream when the invoking state exits', async () => {
@@ -425,10 +721,31 @@ describe('@xstate/effect runtime', () => {
 
     const actor = await runScoped(createEffectActor(machine));
     actor.send({ type: 'CANCEL' });
-    await waitForEffects();
+    await until(() => interrupted);
 
-    expect(interrupted).toBe(true);
     expect(actor.getSnapshot().value).toBe('cancelled');
+  });
+
+  it('does not report interruption of an Effect that loses an internal race', async () => {
+    let loserReleased = false;
+    const logic = fromEffect(
+      Effect.race(
+        Effect.as(Effect.sleep('5 millis'), 'winner'),
+        Effect.ensuring(
+          Effect.never,
+          Effect.sync(() => {
+            loserReleased = true;
+          })
+        )
+      )
+    );
+
+    const actor = await runScoped(createEffectActor(logic));
+    await until(() => actor.getSnapshot().status === 'done');
+
+    expect(actor.getSnapshot().output).toBe('winner');
+    expect(actor.getSnapshot().error).toBeUndefined();
+    expect(loserReleased).toBe(true);
   });
 
   it('resolves the Effect host through the parent chain', async () => {
@@ -467,7 +784,7 @@ describe('@xstate/effect runtime', () => {
         value: 'from the root'
       })
     );
-    await waitUntil(() => actor.getSnapshot().value === 'done');
+    await until(() => actor.getSnapshot().value === 'done');
 
     expect(actor.getSnapshot().value).toBe('done');
   });
@@ -489,11 +806,10 @@ describe('@xstate/effect runtime', () => {
         value: 'spawned'
       })
     );
-    await waitForEffects();
+    const ref = actor.getSnapshot().context.ref!;
+    await until(() => ref.getSnapshot().status === 'done');
 
-    const ref = actor.getSnapshot().context.ref;
-    expect(ref?.getSnapshot().status).toBe('done');
-    expect(ref?.getSnapshot().output).toBe('spawned');
+    expect(ref.getSnapshot().output).toBe('spawned');
   });
 
   it('rejects inline Effect logic passed to enq.spawn', async () => {
@@ -505,13 +821,54 @@ describe('@xstate/effect runtime', () => {
     });
 
     const actor = await runScoped(createEffectActor(machine));
-    await waitForEffects();
+    const ref = actor.getSnapshot().context.ref!;
+    await until(() => ref.getSnapshot().status === 'error');
 
-    const ref = actor.getSnapshot().context.ref;
-    expect(ref?.getSnapshot().status).toBe('error');
-    expect(String(ref?.getSnapshot().error)).toMatch(
+    expect(String(ref.getSnapshot().error)).toMatch(
       /must be declared in setup\(\{ actors \}\)/
     );
+  });
+
+  it('rejects inline spawned logic even when another invoke has a dynamic src', async () => {
+    const leaf = fromEffect(Effect.succeed('leaf'));
+    const machine = setup({ actors: { leaf } }).createMachine({
+      context: {
+        declared: undefined as AnyActorRef | undefined,
+        inline: undefined as AnyActorRef | undefined
+      },
+      initial: 'working',
+      states: {
+        working: {
+          invoke: {
+            src: ({ actors }) => actors.leaf,
+            id: 'dynamic',
+            onDone: { target: 'done' }
+          },
+          entry: ({ actors }, enq) => ({
+            context: {
+              declared: enq.spawn(actors.leaf),
+              inline: enq.spawn(fromEffect(Effect.succeed('inline')))
+            }
+          })
+        },
+        done: {}
+      }
+    });
+
+    const actor = await runScoped(createEffectActor(machine));
+    const { declared, inline } = actor.getSnapshot().context;
+    await until(() => declared!.getSnapshot().status === 'done');
+    await until(() => inline!.getSnapshot().status === 'error');
+    await until(() => actor.getSnapshot().value === 'done');
+
+    // A declared actor spawned by name is allowed…
+    expect(declared!.getSnapshot().output).toBe('leaf');
+    // …an inline one is not, even though a dynamic `invoke.src` is nearby…
+    expect(String(inline!.getSnapshot().error)).toMatch(
+      /must be declared in setup\(\{ actors \}\)/
+    );
+    // …and the dynamically invoked child still ran.
+    expect(actor.getSnapshot().value).toBe('done');
   });
 
   it('routes a defect in an Effect action to onError', async () => {
@@ -537,9 +894,8 @@ describe('@xstate/effect runtime', () => {
 
     const actor = await runScoped(createEffectActor(machine));
     actor.send({ type: 'BOOM' });
-    await waitForEffects();
+    await until(() => actor.getSnapshot().value === 'failed');
 
-    expect(actor.getSnapshot().value).toBe('failed');
     expect(received).toBe(defect);
   });
 
@@ -558,10 +914,9 @@ describe('@xstate/effect runtime', () => {
     );
 
     const actor = await runScoped(createEffectActor(logic));
-    await waitForEffects();
+    await until(() => actor.getSnapshot().context === 1);
 
     expect(subscriptions).toBe(1);
-    expect(actor.getSnapshot().context).toBe(1);
 
     const persisted = actor.getPersistedSnapshot();
     actor.stop();
@@ -569,59 +924,105 @@ describe('@xstate/effect runtime', () => {
     const restored = await runScoped(
       createEffectActor(logic, { snapshot: persisted })
     );
-    await waitForEffects();
+    await until(() => restored.getSnapshot().context === 2);
 
     expect(subscriptions).toBe(2);
-    expect(restored.getSnapshot().context).toBe(2);
     restored.stop();
   });
 
-  it('tolerates stopping an actor before its scope closes', async () => {
-    let released = 0;
+  it('reports a send to a stopped actor as a dead letter', async () => {
+    const worker = fromEffect(Effect.never);
+    const machine = setup({ actors: { worker } }).createMachine({
+      initial: 'working',
+      states: {
+        working: {
+          invoke: { src: 'worker', id: 'worker' },
+          on: { CANCEL: { target: 'cancelled' } }
+        },
+        cancelled: {}
+      }
+    });
+    const letters: Array<{ reason: string; type: string }> = [];
 
-    await expect(
-      Effect.runPromise(
-        Effect.scoped(
-          Effect.gen(function* () {
-            const actor = yield* createEffectActor(
-              fromEffect(
-                Effect.gen(function* () {
-                  yield* Effect.addFinalizer(() =>
-                    Effect.sync(() => {
-                      released++;
-                    })
-                  );
-                  return yield* Effect.never;
-                })
-              )
-            );
-
-            actor.stop();
-            actor.stop();
-            yield* Effect.promise(waitForEffects);
-
-            expect(actor.getSnapshot().status).toBe('stopped');
-          })
-        )
-      )
-    ).resolves.toBeUndefined();
-
-    expect(released).toBe(1);
-  });
-
-  it('runs hosted Effects inside a traced xstate.effect span', async () => {
-    let spanName: string | undefined;
-    let attributes: Record<string, unknown> | undefined;
-    const worker = fromEffect(
+    await runScoped(
       Effect.gen(function* () {
-        const span = yield* Effect.currentSpan;
-        spanName = span.name;
-        attributes = Object.fromEntries(span.attributes);
-        return 'ok';
+        const actor = yield* createEffectActor(machine);
+        const system = actor.system;
+        const systemInspect = system.inspect.bind(system);
+        let inspecting = false;
+        system.inspect = ((observer: Parameters<typeof systemInspect>[0]) => {
+          inspecting = true;
+          return systemInspect(observer);
+        }) as typeof system.inspect;
+
+        yield* Effect.forkScoped(
+          Stream.runForEach(deadLetters(actor), (event) =>
+            Effect.sync(() => {
+              letters.push({
+                reason: event.reason,
+                type: event.event.type
+              });
+            })
+          )
+        );
+        yield* Effect.promise(() => until(() => inspecting));
+
+        const child = actor.getSnapshot().children.worker!;
+        actor.send({ type: 'CANCEL' });
+        yield* Effect.promise(() =>
+          until(() => child.getSnapshot().status === 'stopped')
+        );
+
+        child.send({ type: 'TO_CHILD' });
+        actor.stop();
+        actor.send({ type: 'TO_ROOT' });
+
+        yield* Effect.promise(() => until(() => letters.length === 2));
       })
     );
-    const machine = setup({ actors: { worker } }).createMachine({
+
+    expect(letters).toEqual([
+      { reason: 'stopped', type: 'TO_CHILD' },
+      { reason: 'stopped', type: 'TO_ROOT' }
+    ]);
+  });
+
+  it('accepts a fromEffect config without schemas', async () => {
+    const logic = fromEffect({
+      id: 'loadUser',
+      effect: ({ input }: { input: { id: string } }) =>
+        Effect.succeed({ greeting: `Hello ${input.id}` })
+    });
+
+    // `EffectActorLogic` does not surface the `id` that `createLogic` sets.
+    expect(logic.id).toBe('loadUser');
+
+    const actor = await runScoped(
+      createEffectActor(logic, { input: { id: '42' } })
+    );
+    await until(() => actor.getSnapshot().status === 'done');
+
+    actor.getSnapshot().output satisfies { greeting: string } | undefined;
+    expect(actor.getSnapshot().output).toEqual({ greeting: 'Hello 42' });
+  });
+
+  it('runs hosted Effects inside spans named after their source', async () => {
+    const spans: Array<{ name: string; attributes: Record<string, unknown> }> =
+      [];
+    const record = Effect.gen(function* () {
+      const span = yield* Effect.currentSpan;
+      spans.push({
+        name: span.name,
+        attributes: Object.fromEntries(span.attributes)
+      });
+    });
+    const worker = fromEffect(Effect.as(record, 'ok'));
+    const machine = setupEffect({
+      actors: { worker },
+      actions: { audit: (_args) => record }
+    }).createMachine({
       initial: 'pending',
+      on: { AUDIT: (args, enq) => enq(args.actions.audit, args) },
       states: {
         pending: {
           invoke: { src: 'worker', id: 'worker', onDone: { target: 'done' } }
@@ -631,13 +1032,23 @@ describe('@xstate/effect runtime', () => {
     });
 
     const actor = await runScoped(createEffectActor(machine, { id: 'traced' }));
-    await waitForEffects();
+    await until(() => actor.getSnapshot().value === 'done');
+    actor.send({ type: 'AUDIT' });
+    await until(() => spans.length === 2);
 
-    expect(actor.getSnapshot().value).toBe('done');
-    expect(spanName).toBe('xstate.effect');
-    expect(attributes).toEqual({
-      'xstate.actor.id': 'worker',
-      'xstate.actor.address': 'traced/worker'
+    expect(spans[0]).toEqual({
+      name: 'fromEffect',
+      attributes: {
+        'xstate.actor.id': 'worker',
+        'xstate.actor.address': 'traced/worker'
+      }
+    });
+    expect(spans[1]).toEqual({
+      name: 'action.audit',
+      attributes: {
+        'xstate.actor.id': 'traced',
+        'xstate.actor.address': 'traced'
+      }
     });
   });
 });

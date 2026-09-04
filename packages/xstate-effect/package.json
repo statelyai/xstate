@@ -10,7 +10,7 @@
     "statechart"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://stately.ai/docs",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-effect#readme",
   "license": "MIT",
   "exports": {
     ".": "./dist/xstate-effect.js",

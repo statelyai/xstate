@@ -1061,12 +1061,17 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       }
     } else {
       let reportError = false;
+      let handled = false;
 
       for (const observer of this.observers) {
         const errorListener = observer.error;
-        reportError ||= !errorListener;
+        if (!observer.passive) {
+          reportError ||= !errorListener;
+          handled ||= !!errorListener;
+        }
         safeCall(errorListener, err);
       }
+      reportError ||= !handled;
       this.observers.clear();
       if (reportError) {
         reportUnhandledError(err);

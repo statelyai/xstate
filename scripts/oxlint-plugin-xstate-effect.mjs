@@ -1,11 +1,23 @@
 // Lint rules for @xstate/effect usage.
 //
-// `no-inline-effect` flags an Effect created inside an inline `enq(...)`
-// callback or passed inline to `enq.spawn(...)`. XState only awaits returned
-// promises, so an Effect returned from an inline action is created and
-// discarded, and inline Effect logic is invisible to `RequirementsFrom`.
-// Declare Effect actions with `setupEffect({ actions })` and spawned Effect
-// logic with `actors` instead.
+// `no-inline-effect` flags an Effect created inside an inline enqueue callback
+// or passed inline to `enq.spawn(...)`. XState only awaits returned promises,
+// so an Effect returned from an inline action is created and discarded, and
+// inline Effect logic is invisible to `RequirementsFrom`. Declare Effect
+// actions with `setupEffect({ actions })` and spawned Effect logic with
+// `actors` instead.
+//
+// The enqueue object is matched by name (`enq` or `enqueue`), the two names
+// the v6 transition signature is written with in this repository and in the
+// docs. A differently named parameter is not matched.
+//
+// Limitation: an Effect is recognized only by its root identifier `Effect`,
+// so `enq(() => Effect.log('x'))` is reported while an Effect produced by a
+// helper (`enq(() => makeEffect())`), by a namespace import under another
+// name, or by a `Stream`/`Layer` root is not. Widening this needs type
+// information, which this syntactic rule does not have.
+
+const ENQUEUE_NAMES = new Set(['enq', 'enqueue']);
 
 const EFFECT_LOGIC_CONSTRUCTORS = new Set([
   'fromEffect',
@@ -99,7 +111,7 @@ const noInlineEffect = {
         if (
           callee.type === 'MemberExpression' &&
           callee.object.type === 'Identifier' &&
-          callee.object.name === 'enq' &&
+          ENQUEUE_NAMES.has(callee.object.name) &&
           callee.property.type === 'Identifier' &&
           callee.property.name === 'spawn'
         ) {
@@ -110,7 +122,7 @@ const noInlineEffect = {
           return;
         }
 
-        if (callee.type !== 'Identifier' || callee.name !== 'enq') {
+        if (callee.type !== 'Identifier' || !ENQUEUE_NAMES.has(callee.name)) {
           return;
         }
         const [action] = node.arguments;

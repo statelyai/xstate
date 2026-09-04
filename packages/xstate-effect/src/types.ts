@@ -2,18 +2,25 @@ import type { Effect } from 'effect';
 import type { EffectLogicBrand } from './fromEffect.ts';
 import { effectActionBrand } from './brands.ts';
 
-type RequirementsFromEffect<T> =
+/** The `R` channel of an Effect type, or `never` for anything else. */
+export type EffectRequirements<T> =
   T extends Effect.Effect<any, any, infer R> ? R : never;
 
 type RequirementsFromActions<T> =
   T extends Record<string, (...args: any[]) => any>
     ? T[keyof T] extends infer TAction
       ? TAction extends {
-          readonly [effectActionBrand]: infer R;
+          readonly [effectActionBrand]?: infer R;
         }
-        ? R
-        : RequirementsFromEffect<
-            TAction extends (...args: any[]) => infer R ? R : never
+        ? unknown extends R
+          ? EffectRequirements<
+              TAction extends (...args: any[]) => infer TResult
+                ? TResult
+                : never
+            >
+          : Exclude<R, undefined>
+        : EffectRequirements<
+            TAction extends (...args: any[]) => infer TResult ? TResult : never
           >
       : never
     : never;
@@ -97,6 +104,3 @@ export type RequirementsFrom<T, TDepth extends Depth = MaxDepth> =
                       PrevDepth[TDepth]
                     >)
       : never;
-
-export type ErrorFrom<T> =
-  T extends EffectLogicBrand<infer E, any> ? E : unknown;

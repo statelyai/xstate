@@ -1,5 +1,5 @@
 import { Cause, Duration, Effect, Exit, Scope, Stream } from 'effect';
-import { createMachine, types, type AnyActor } from 'xstate';
+import { createMachine, types, type AnyActor, type SnapshotFrom } from 'xstate';
 import {
   ActorStoppedError,
   createEffectActor,
@@ -8,7 +8,7 @@ import {
   inspect,
   send,
   snapshots,
-  toEffect,
+  join,
   waitFor
 } from './index.ts';
 
@@ -81,6 +81,13 @@ const counterMachine = createMachine({
   output: ({ context }) => ({ count: context.count })
 });
 
+type CounterSnapshot = SnapshotFrom<typeof counterMachine>;
+type DoneCounterSnapshot = CounterSnapshot & { status: 'done' };
+
+/** A type-predicate predicate, so `waitFor` narrows what it resolves with. */
+const isDone = (snapshot: CounterSnapshot): snapshot is DoneCounterSnapshot =>
+  snapshot.status === 'done';
+
 const emitterMachine = createMachine({
   initial: 'active',
   states: {
@@ -104,6 +111,18 @@ describe('send', () => {
         yield* send(actor, { type: 'INCREMENT' });
 
         expect(actor.getSnapshot().context).toEqual({ count: 2 });
+      })
+    );
+  });
+
+  it('accepts the data-last form', async () => {
+    await runScoped(
+      Effect.gen(function* () {
+        const actor = yield* createEffectActor(counterMachine);
+
+        yield* send({ type: 'INCREMENT' } as const)(actor);
+
+        expect(actor.getSnapshot().context).toEqual({ count: 1 });
       })
     );
   });
@@ -243,6 +262,39 @@ describe('waitFor', () => {
     expect(snapshot.context).toEqual({ count: 2 });
   });
 
+  it('accepts the data-last form', async () => {
+    const snapshot = await runScoped(
+      Effect.gen(function* () {
+        const actor = yield* createEffectActor(counterMachine);
+        afterSubscribe(actor, () => {
+          actor.send({ type: 'INCREMENT' });
+        });
+
+        return yield* waitFor(
+          (state: CounterSnapshot) => state.context.count === 1
+        )(actor);
+      })
+    );
+
+    expect(snapshot.context).toEqual({ count: 1 });
+  });
+
+  it('narrows the snapshot with a type-predicate predicate', async () => {
+    const snapshot = await runScoped(
+      Effect.gen(function* () {
+        const actor = yield* createEffectActor(counterMachine);
+        afterSubscribe(actor, () => {
+          actor.send({ type: 'FINISH' });
+        });
+
+        return yield* waitFor(actor, isDone);
+      })
+    );
+
+    snapshot satisfies { status: 'done' };
+    expect(snapshot.output).toEqual({ count: 0 });
+  });
+
   it('fails with ActorStoppedError when the actor stops first', async () => {
     const error = await runScoped(
       Effect.gen(function* () {
@@ -278,7 +330,7 @@ describe('waitFor', () => {
   });
 });
 
-describe('toEffect', () => {
+describe('join', () => {
   it('succeeds with the actor output when it is done', async () => {
     const output = await runScoped(
       Effect.gen(function* () {
@@ -288,7 +340,7 @@ describe('toEffect', () => {
           actor.send({ type: 'FINISH' });
         });
 
-        return yield* toEffect(actor);
+        return yield* join(actor);
       })
     );
 
@@ -303,7 +355,7 @@ describe('toEffect', () => {
           fromEffect(Effect.fail(failure).pipe(Effect.delay(10)))
         );
 
-        return yield* Effect.flip(toEffect(actor));
+        return yield* Effect.flip(join(actor));
       })
     );
 
@@ -319,7 +371,7 @@ describe('toEffect', () => {
           actor.stop();
         });
 
-        return yield* Effect.flip(toEffect(actor));
+        return yield* Effect.flip(join(actor));
       })
     );
 

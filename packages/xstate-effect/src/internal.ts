@@ -1,4 +1,4 @@
-import { Cause, Context, Effect, Exit, Scope } from 'effect';
+import { Cause, Context, Effect, Exit, type Fiber, Scope } from 'effect';
 import type { AnyActor, AnyActorRef } from 'xstate';
 
 export interface EffectHost {
@@ -6,6 +6,8 @@ export interface EffectHost {
   readonly context: Context.Context<never>;
   /** A scope that closes when the root actor stops. */
   readonly scope: Scope.Closeable;
+  /** The fiber running the scope's finalizers once the scope has closed. */
+  closing?: Fiber.Fiber<void>;
   readonly interruptors: Map<AnyActorRef, Set<() => void>>;
   readonly subscriptions: Map<AnyActorRef, { unsubscribe(): void }>;
 }
@@ -49,7 +51,7 @@ function findEffectHost(actor: AnyActorRef): EffectHost | undefined {
 
 type DeclaringMachine = {
   sources?: { actors?: Record<string, unknown> };
-  idMap?: Map<string, { invoke?: Array<{ logic?: unknown }> }>;
+  idMap?: Map<string, { invoke?: Array<{ id?: string }> }>;
 };
 
 /**
@@ -57,25 +59,24 @@ type DeclaringMachine = {
  * (`setup({ actors })`) and `invoke` sources are visible to
  * `RequirementsFrom`, so anything else would infer `R = never` and fail
  * later with a missing service.
+ *
+ * A spawned declared actor carries its registered key as `src`; an invoked
+ * child carries the id of the `invoke` entry that created it.
  */
 function assertDeclaredLogic(actor: AnyActorRef): void {
-  const self = actor as AnyActor;
+  const self = actor as AnyActor & { logic?: unknown };
   const parent = self._parent;
   const machine = parent?.logic as DeclaringMachine | undefined;
   if (!machine?.sources || !machine.idMap || typeof self.src === 'string') {
     return;
   }
 
-  const logic = (self as { logic?: unknown }).logic;
-  if (Object.values(machine.sources.actors ?? {}).includes(logic)) {
+  if (Object.values(machine.sources.actors ?? {}).includes(self.logic)) {
     return;
   }
   for (const stateNode of machine.idMap.values()) {
     for (const definition of stateNode.invoke ?? []) {
-      if (
-        definition.logic === logic ||
-        typeof definition.logic === 'function'
-      ) {
+      if (definition.id === self.id) {
         return;
       }
     }
@@ -140,6 +141,7 @@ function trackEffect(
     host.subscriptions.set(
       actor,
       actor.subscribe({
+        passive: true,
         error: () => cleanupActorEffects(actor, host),
         complete: () => cleanupActorEffects(actor, host)
       })
@@ -152,20 +154,29 @@ function trackEffect(
  * Runs an Effect in the actor's host context. The Effect is interrupted when
  * the actor stops or when the returned function is called; `onExit` is not
  * called after that.
+ *
+ * This mirrors how Effect's own `unstable/reactivity` bridges callback code:
+ * `Effect.runCallbackWith` with the captured services, and a synchronous
+ * interruptor kept per actor.
  */
 export function startHostedEffect<A, E>(
   actor: AnyActorRef,
-  effect: Effect.Effect<A, E, any>,
+  effect: Effect.Effect<A, E>,
+  spanName: string,
   onExit: (exit: Exit.Exit<A, E>) => void
 ): () => void {
   const host = requireEffectHost(actor);
   let active = true;
-  const traced = Effect.withSpan(effect, 'xstate.effect', {
-    attributes: {
-      'xstate.actor.id': (actor as AnyActor).id,
-      'xstate.actor.address': (actor as AnyActor).address
-    }
-  }) as Effect.Effect<A, E, never>;
+  const traced = Effect.withSpan(
+    spanName,
+    {
+      attributes: {
+        'xstate.actor.id': (actor as AnyActor).id,
+        'xstate.actor.address': (actor as AnyActor).address
+      }
+    },
+    { captureStackTrace: false }
+  )(effect);
   const cancel = () => {
     if (!active) {
       return;
@@ -198,10 +209,11 @@ export function startHostedEffect<A, E>(
  */
 export function runHostedEffect<A, E>(
   actor: AnyActorRef,
-  effect: Effect.Effect<A, E, any>
+  effect: Effect.Effect<A, E>,
+  spanName: string
 ): PromiseLike<void> {
   return new Promise<void>((resolve, reject) => {
-    startHostedEffect(actor, effect, (exit) => {
+    startHostedEffect(actor, effect, spanName, (exit) => {
       if (Exit.isSuccess(exit) || Cause.hasInterruptsOnly(exit.cause)) {
         resolve();
       } else {
@@ -213,10 +225,21 @@ export function runHostedEffect<A, E>(
   });
 }
 
+/**
+ * Closes the host scope immediately and runs its finalizers, with the host's
+ * services, on a fiber that `createEffectActor`'s release can await.
+ */
 export function closeEffectHost(host: EffectHost): void {
-  Effect.runFork(Scope.close(host.scope, Exit.void));
+  const finalizers = Scope.closeUnsafe(host.scope, Exit.void);
+  if (finalizers) {
+    host.closing = Effect.runForkWith(host.context)(finalizers);
+  }
 }
 
+/**
+ * Delivers a stream item to the parent as an event. This runs outside a
+ * transition, so it uses the system relay like core's observable logic does.
+ */
 export function relayToParent(
   actor: AnyActorRef,
   event: { type: string; [key: string]: unknown }

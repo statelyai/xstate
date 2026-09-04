@@ -17,7 +17,7 @@ export class EffectInterruptedError extends Data.TaggedError(
 }
 
 /**
- * Reported by `toEffect` and `waitFor` when the actor stops or errors before
+ * Reported by `join` and `waitFor` when the actor stops or errors before
  * producing the awaited result.
  */
 export class ActorStoppedError extends Data.TaggedError('ActorStoppedError')<{

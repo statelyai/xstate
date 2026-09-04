@@ -1893,6 +1893,13 @@ export type Observer<T> = {
   next?: (value: T) => void;
   error?: (err: unknown) => void;
   complete?: () => void;
+  /**
+   * Marks an observer that only tracks the actor's lifecycle, such as one
+   * installed by a runtime integration. A passive observer does not count as
+   * an error handler: an unhandled actor error is still reported when every
+   * observer with an `error` callback is passive.
+   */
+  passive?: boolean;
 };
 
 export interface Subscription {

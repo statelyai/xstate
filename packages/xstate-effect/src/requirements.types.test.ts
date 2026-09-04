@@ -59,8 +59,6 @@ describe('RequirementsFrom', () => {
       ActorRequirements<typeof alphaLogic>,
       AlphaRequirement
     >;
-
-    expect(true).toBe(true);
   });
 
   it('collects requirements from a registered Effect actor', () => {
@@ -74,8 +72,6 @@ describe('RequirementsFrom', () => {
       ActorRequirements<typeof machine>,
       AlphaRequirement
     >;
-
-    expect(true).toBe(true);
   });
 
   it('collects requirements from a registered Effect action', () => {
@@ -90,8 +86,6 @@ describe('RequirementsFrom', () => {
     });
 
     true satisfies Equals<RequirementsFrom<typeof machine>, AlphaRequirement>;
-
-    expect(true).toBe(true);
   });
 
   it('collects requirements through a registered child machine', () => {
@@ -114,8 +108,6 @@ describe('RequirementsFrom', () => {
       ? 'NESTED_R_IS_NEVER'
       : 'nested ok' = 'NESTED_R_IS_NEVER';
     void probe;
-
-    expect(true).toBe(true);
   });
 
   it('collects requirements two machine levels deep', () => {
@@ -134,8 +126,6 @@ describe('RequirementsFrom', () => {
 
     true satisfies Equals<RequirementsFrom<typeof parent>, AlphaRequirement>;
     true satisfies Includes<ActorRequirements<typeof parent>, AlphaRequirement>;
-
-    expect(true).toBe(true);
   });
 
   it('infers `never` for a machine with no Effect sources', () => {
@@ -152,8 +142,6 @@ describe('RequirementsFrom', () => {
     true satisfies IsNever<RequirementsFrom<typeof parent>>;
     // @ts-expect-error -- a machine with no Effect sources requires nothing
     true satisfies Includes<ActorRequirements<typeof parent>, AlphaRequirement>;
-
-    expect(true).toBe(true);
   });
 
   it('unions requirements from two different actors', () => {
@@ -174,8 +162,6 @@ describe('RequirementsFrom', () => {
     false satisfies Equals<RequirementsFrom<typeof parent>, BetaRequirement>;
     true satisfies Includes<ActorRequirements<typeof parent>, AlphaRequirement>;
     true satisfies Includes<ActorRequirements<typeof parent>, BetaRequirement>;
-
-    expect(true).toBe(true);
   });
 });
 
@@ -190,8 +176,6 @@ describe('RequirementsFrom (inline invoke.src)', () => {
       ActorRequirements<typeof machine>,
       AlphaRequirement
     >;
-
-    expect(true).toBe(true);
   });
 
   it('collects requirements from an inline invoke nested two states deep', () => {
@@ -208,8 +192,6 @@ describe('RequirementsFrom (inline invoke.src)', () => {
     });
 
     true satisfies Equals<RequirementsFrom<typeof machine>, AlphaRequirement>;
-
-    expect(true).toBe(true);
   });
 
   it('collects requirements from an array of invoke configs', () => {
@@ -226,8 +208,6 @@ describe('RequirementsFrom (inline invoke.src)', () => {
       RequirementsFrom<typeof machine>,
       AlphaRequirement | BetaRequirement
     >;
-
-    expect(true).toBe(true);
   });
 
   it('recurses into an inline child machine used as invoke.src', () => {
@@ -242,8 +222,6 @@ describe('RequirementsFrom (inline invoke.src)', () => {
 
     true satisfies Equals<RequirementsFrom<typeof parent>, AlphaRequirement>;
     true satisfies Includes<ActorRequirements<typeof parent>, AlphaRequirement>;
-
-    expect(true).toBe(true);
   });
 
   it('no longer infers `never` for inline Effect logic', () => {
@@ -259,8 +237,6 @@ describe('RequirementsFrom (inline invoke.src)', () => {
       ? 'INLINE_R_IS_NEVER'
       : 'inline ok' = 'INLINE_R_IS_NEVER';
     void probe;
-
-    expect(true).toBe(true);
   });
 
   it('infers `never` when every invoke.src is a registered string', () => {
@@ -270,8 +246,6 @@ describe('RequirementsFrom (inline invoke.src)', () => {
     });
 
     true satisfies IsNever<RequirementsFrom<typeof machine>>;
-
-    expect(true).toBe(true);
   });
 
   it('cannot see logic spawned inside a transition function body', () => {
@@ -291,7 +265,5 @@ describe('RequirementsFrom (inline invoke.src)', () => {
     // Known limitation: `enq.spawn` happens inside a function body, so the
     // spawned logic never reaches the machine's type.
     true satisfies IsNever<RequirementsFrom<typeof machine>>;
-
-    expect(true).toBe(true);
   });
 });

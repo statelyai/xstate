@@ -1,4 +1,4 @@
-import { Clock, Context, Duration, Effect, type Fiber } from 'effect';
+import { Clock, Context, Duration, Effect, Fiber, Scope } from 'effect';
 import type { ActorOptions, AnyActorLogic } from 'xstate';
 
 type XStateClock = NonNullable<ActorOptions<AnyActorLogic>['clock']>;
@@ -6,21 +6,29 @@ type XStateClock = NonNullable<ActorOptions<AnyActorLogic>['clock']>;
 /**
  * An XState clock that schedules delays with `Effect.sleep` in the given
  * context, so timers follow the Effect `Clock` service (including
- * `TestClock`).
+ * `TestClock`). Timer fibers run in the context's `Scope` and are
+ * interrupted when it closes.
  */
 export function createEffectClock(
-  context: Context.Context<never>
+  context: Context.Context<Scope.Scope>
 ): XStateClock {
+  const clock = Context.get(context, Clock.Clock);
+  const scope = Context.get(context, Scope.Scope);
   const runFork = Effect.runForkWith(context);
-  const runSync = Effect.runSyncWith(context);
   return {
     setTimeout: (fn: () => void, timeout: number) =>
-      runFork(
-        Effect.andThen(Effect.sleep(Duration.millis(timeout)), Effect.sync(fn))
+      Fiber.runIn(
+        runFork(
+          Effect.andThen(
+            Effect.sleep(Duration.millis(timeout)),
+            Effect.sync(fn)
+          )
+        ),
+        scope
       ),
     clearTimeout: (id: Fiber.Fiber<void>) => {
       id.interruptUnsafe();
     },
-    now: () => runSync(Clock.currentTimeMillis)
+    now: () => clock.currentTimeMillisUnsafe()
   };
 }

@@ -1,4 +1,4 @@
-import { Context, Effect, Exit, Scope } from 'effect';
+import { Context, Effect, Exit, Fiber, Scope } from 'effect';
 import {
   createActor,
   type Actor,
@@ -24,6 +24,10 @@ import type { RequirementsFrom } from './types.ts';
  * see a `Scope` that closes when the actor stops, so `Effect.addFinalizer`
  * and `Effect.acquireRelease` inside them release with the actor.
  *
+ * The returned Effect never fails. Starting logic that needs an Effect host
+ * outside `createEffectActor`, or spawning undeclared Effect logic, is a
+ * programming error that surfaces as the actor's `error` status.
+ *
  * XState timers use the Effect `Clock` service by default, so `TestClock`
  * drives delayed transitions. Pass `options.clock` to override.
  */
@@ -41,11 +45,12 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       const context = Context.add(baseContext, Scope.Scope, actorScope);
       const host = createEffectHost(context, actorScope);
       const actor = createActor(logic, {
-        clock: createEffectClock(context),
-        ...(options as ActorOptions<TLogic>)
+        ...(options as ActorOptions<TLogic>),
+        clock: options?.clock ?? createEffectClock(context)
       });
       bindEffectHost(actor, host);
       actor.subscribe({
+        passive: true,
         error: () => closeEffectHost(host),
         complete: () => closeEffectHost(host)
       });
@@ -53,12 +58,14 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       return { actor, host };
     }),
     ({ actor, host }) =>
-      Effect.andThen(
-        Effect.sync(() => {
-          actor.stop();
-        }),
-        Scope.close(host.scope, Exit.void)
-      )
+      Effect.gen(function* () {
+        actor.stop();
+        if (host.closing) {
+          yield* Fiber.join(host.closing);
+        } else {
+          yield* Scope.close(host.scope, Exit.void);
+        }
+      })
   ).pipe(
     Effect.map(({ actor }: { actor: Actor<TLogic>; host: EffectHost }) => actor)
   ) as unknown as Effect.Effect<
