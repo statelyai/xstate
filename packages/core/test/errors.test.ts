@@ -1072,6 +1072,39 @@ describe('error handling', () => {
     expect(errorSpy).toHaveBeenCalledWith('transition action failed');
   });
 
+  it('state onError catches rejected transition action promises', async () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            NEXT: (_, enq) => {
+              enq(() =>
+                Promise.reject(new Error('transition action rejected'))
+              );
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy(getErrorMessage(event.error));
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+    await Promise.resolve();
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('transition action rejected');
+  });
+
   it('state onError accepts a cross-state context patch (typed against the target state schema)', () => {
     const machine = setup({
       schemas: {

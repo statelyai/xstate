@@ -203,6 +203,18 @@ export type OutputFrom<T> =
       ? (TSnapshot & { status: 'done' })['output']
       : never;
 
+type ErrorFromSnapshot<TSnapshot> = TSnapshot extends { error: infer TError }
+  ? Exclude<TError, undefined>
+  : unknown;
+
+export type ErrorFrom<T> = T extends {
+  transition: (snapshot: infer TSnapshot, ...args: any[]) => any;
+}
+  ? ErrorFromSnapshot<TSnapshot>
+  : T extends ActorRef<infer TSnapshot, infer _TEvent, infer _TEmitted>
+    ? ErrorFromSnapshot<TSnapshot>
+    : never;
+
 export type NoRequiredParams<T extends ParameterizedObject> = T extends any
   ? undefined extends T['params']
     ? T['type']
@@ -1882,6 +1894,13 @@ export type Observer<T> = {
   next?: (value: T) => void;
   error?: (err: unknown) => void;
   complete?: () => void;
+  /**
+   * Marks an observer that only tracks the actor's lifecycle, such as one
+   * installed by a runtime integration. A passive observer does not count as
+   * an error handler: an unhandled actor error is still reported when every
+   * observer with an `error` callback is passive.
+   */
+  passive?: boolean;
 };
 
 export interface Subscription {
