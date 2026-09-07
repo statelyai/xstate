@@ -5,7 +5,6 @@ import {
   type AnyStateMachine,
   type AnyActorRef,
   type AnySetupConfig,
-  type EnqueueObject,
   type EventObject,
   type MachineContext,
   type SetupConfig,
@@ -69,8 +68,7 @@ export type EffectAction<
   TError = unknown,
   TRequirements = never
 > = (
-  args: EffectActionArgs<TContext, TEvent>,
-  enq?: EnqueueObject<any, any>
+  args: EffectActionArgs<TContext, TEvent>
 ) => Effect.Effect<void, TError, TRequirements>;
 
 type AnyEffectAction = EffectAction<any, any, any, any>;
@@ -313,8 +311,8 @@ function wrapActions(
     {};
   for (const key of Object.keys(actions)) {
     const action = actions[key];
-    wrapped[key] = (args, enq) => {
-      const result = action(args, enq);
+    wrapped[key] = (args) => {
+      const result = action(args);
       return Effect.isEffect(result)
         ? runHostedEffect(
             args.self,

@@ -412,13 +412,19 @@ XState validation checks a value but does not replace it with a transformed valu
 
 <!-- effect action contract from src/setupEffect.ts; spawn guard from src/internal.ts -->
 
-In XState v6 an action is a plain function, and a transition enqueues it with the arguments it should run with: `enq(args.actions.audit, args)`. There is no implicit action context, so the transition passes `args` explicitly and the enqueue call stays synchronous. `setupEffect({ actions })` keeps that contract and adds one thing: the action returns an Effect, and that Effect is the asynchronous boundary. The action function itself is called synchronously during the transition. The Effect it returns runs in the actor's Effect context and is interrupted when the actor stops. Failures and defects route to the state's `onError`.
+`setupEffect({ actions })` declares actions that return an Effect. An Effect action is fire-and-forget: the transition enqueues it, the transition commits, and the Effect then runs in the actor's Effect context without blocking the actor. It is interrupted when the actor stops. A failure or defect routes to the state's `onError`.
+
+In XState v6 an action is a plain function that a transition enqueues with explicit arguments, `enq(args.actions.audit, args)`. `setupEffect` keeps that contract. The function is called synchronously during the transition, and the Effect it returns is the asynchronous boundary.
 
 ```ts
+class Audit extends Context.Service<
+  Audit,
+  { readonly record: (count: number) => Effect.Effect<void> }
+>()('@app/Audit') {}
+
 const machine = setupEffect({
   actions: {
-    audit: ({ context }) =>
-      Effect.sync(() => console.log('count', context.count))
+    audit: ({ context }) => Audit.use((audit) => audit.record(context.count))
   }
 }).createMachine({
   context: { count: 1 },
@@ -433,30 +439,40 @@ const machine = setupEffect({
 });
 ```
 
-For an action that needs XState enqueue methods, pass the enqueue object as a second action parameter and keep enqueue operations outside the Effect. The enqueue calls are planned synchronously by the action function; the returned Effect is the asynchronous boundary.
+Use Effect actions for work whose result the machine does not need: logging, telemetry, notifications, cache writes. When the result matters, invoke the Effect as an actor with `fromEffect`, so `onDone` and `onError` receive it typed and the state models the wait.
+
+An Effect action cannot enqueue: it runs after the transition. Enqueue from the transition function, which has the machine's event types. To hand a result back to the machine from an Effect action, send an event to `self`:
 
 ```ts
 const machine = setupEffect({
-  actions: {
-    audit: ({ context }, enq) => {
-      enq?.raise({ type: 'AUDIT_COMPLETE', count: context.count });
-      return Effect.sync(() => console.log('count', context.count));
+  schemas: {
+    events: {
+      SAVE: Schema.Struct({}),
+      SYNCED: Schema.Struct({ version: Schema.Number })
     }
+  },
+  actions: {
+    sync: ({ context, self }) =>
+      Effect.gen(function* () {
+        const version = yield* Api.use((api) => api.sync(context.draft));
+        yield* Effect.sync(() => self.send({ type: 'SYNCED', version }));
+      })
   }
 }).createMachine({
-  context: { count: 1 },
+  context: { draft: '', version: 0 },
   initial: 'active',
   states: {
     active: {
       on: {
-        AUDIT: (args, enq) => enq(args.actions.audit, args, enq)
+        SAVE: (args, enq) => enq(args.actions.sync, args),
+        SYNCED: ({ context, event }) => ({
+          context: { ...context, version: event.version }
+        })
       }
     }
   }
 });
 ```
-
-A declared action is defined before any machine uses it, so the enqueue object it receives is not typed with a machine's event union: `raise` accepts any event object. Raise events from the transition function when you want the machine's own event types.
 
 ### Declared only
 
