@@ -90,6 +90,55 @@ store.can.increment({ by: 4 });
 Returning `undefined` marks the event as not allowed. Returning the same context
 object is still allowed, and transitions that enqueue effects are allowed.
 
+## Persistence
+
+<!-- persist and flushStorage behavior from src/persist.ts -->
+
+Use the `persist` extension to save state after events are committed. Calling
+`store.can` or the pure `store.transition` method does not schedule writes.
+Asynchronous writes execute in event order for each store. Call
+`await flushStorage(store)` to write buffered changes and wait for queued writes
+to finish. Synchronous storage adapters continue to write synchronously.
+
+```ts
+import { persist, flushStorage } from '@xstate/store/persist';
+
+const savedDonutStore = donutStore.with(persist({ name: 'donuts' }));
+savedDonutStore.trigger.addDonut();
+await flushStorage(savedDonutStore);
+```
+
+## Async atoms
+
+<!-- createAsyncAtom dependency and cancellation behavior from src/atom.ts -->
+
+`createAsyncAtom` loads a value lazily and exposes a `pending`, `done`, or
+`error` state. Atoms read synchronously by its getter remain dependencies after
+the request succeeds or fails. When a dependency changes, subscribed async atoms
+reload; otherwise, they reload on the next read. Read dependencies before the
+first `await` to track them.
+
+```ts
+import { createAtom, createAsyncAtom } from '@xstate/store';
+
+const userId = createAtom('ada');
+const user = createAsyncAtom(async ({ signal }) => {
+  const id = userId.get();
+  const response = await fetch(`/users/${id}`, { signal });
+  return response.json();
+});
+
+user.subscribe((state) => {
+  if (state.status === 'done') {
+    console.log(state.data);
+  }
+});
+
+userId.set('grace'); // Reloads even after the previous request settled.
+```
+
+Recomputing aborts the previous getter's signal and ignores its stale result.
+
 ## Usage with React
 
 Import `useSelector` from `@xstate/store-react`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:

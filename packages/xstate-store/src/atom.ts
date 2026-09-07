@@ -87,9 +87,15 @@ export interface AsyncAtomOptions {
 
 function updateAsyncAtom<T>(
   atom: InternalAtom<AsyncAtomState<T>>,
-  nextValue: AsyncAtomState<T>
+  nextValue: AsyncAtomState<T>,
+  compare: (
+    previous: AsyncAtomState<T>,
+    next: AsyncAtomState<T>
+  ) => boolean = Object.is
 ): void {
-  if (atom._update(nextValue)) {
+  // Settling changes the value without recollecting the getter's dependencies.
+  if (!compare(atom._snapshot, nextValue)) {
+    atom._snapshot = nextValue;
     const subs = atom.subs;
     if (subs !== undefined) {
       propagate(subs);
@@ -125,13 +131,21 @@ export function createAsyncAtom<T>(
         if (runId !== currentRunId || controller.signal.aborted) {
           return;
         }
-        updateAsyncAtom(ref.current!, { status: 'done', data });
+        updateAsyncAtom(
+          ref.current!,
+          { status: 'done', data },
+          options?.compare
+        );
       },
       (error) => {
         if (runId !== currentRunId || controller.signal.aborted) {
           return;
         }
-        updateAsyncAtom(ref.current!, { status: 'error', error });
+        updateAsyncAtom(
+          ref.current!,
+          { status: 'error', error },
+          options?.compare
+        );
       }
     );
 
