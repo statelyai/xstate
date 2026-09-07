@@ -78,10 +78,9 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       const mailbox =
         yield* Queue.unbounded<MailboxItem<EventFromLogic<TLogic>>>();
       const timers = new Map<string, Fiber.Fiber<void>>();
-      let root: AnyActor | undefined;
-      let actor: EffectActor<TLogic> | undefined;
+      // `root`, `rootAddress` and `actor` are declared after the adapter
+      // below; its callbacks only run once they are initialized.
       let stopped = false;
-      let rootAddress: string | undefined;
       const isRoot = (candidate: AnyActor) => candidate.address === rootAddress;
 
       const offer = (item: MailboxItem<EventFromLogic<TLogic>>) => {
@@ -140,7 +139,7 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
           },
           emitEvent: (source, event) => {
             if (isRoot(source)) {
-              actor?._emit(event as never);
+              actor._emit(event as never);
               return;
             }
             (source as AnyActor & { _emit(value: unknown): void })._emit(event);
@@ -236,12 +235,12 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
           fiber.interruptUnsafe();
         }
         timers.clear();
-        const current = actor?.getSnapshot();
+        const current = actor.getSnapshot();
         if (current) {
           stopChildren(current);
         }
         runFork(Queue.shutdown(mailbox));
-        if (actor && !actor._isSettled) {
+        if (!actor._isSettled) {
           actor._settle({
             ...(actor.getSnapshot() as Snapshot<unknown>),
             status: 'stopped'
@@ -255,12 +254,12 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       let [snapshot, effects] = durable.initialTransition(
         options?.input as never
       );
-      root = durable.getActorRef(snapshot)!;
-      rootAddress = durable.rootAddress;
+      const root = durable.getActorRef(snapshot)!;
+      const rootAddress = durable.rootAddress;
       // The root exists from here on; later announcements are step
       // re-materializations, not new actors.
       rootAnnounced = true;
-      actor = new EffectActor(
+      const actor = new EffectActor(
         logic,
         root!,
         snapshot,
@@ -321,11 +320,11 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             snapshot = errorSnapshot(snapshot, error);
             break;
           }
-          actor!._publish(snapshot);
+          actor._publish(snapshot);
           yield* executeEffects(effects);
         }
         if (!stopped) {
-          actor!._publish(snapshot);
+          actor._publish(snapshot);
           if ((snapshot as Snapshot<unknown>).status !== 'active') {
             stopChildren(snapshot);
             closeEffectHost(host);
