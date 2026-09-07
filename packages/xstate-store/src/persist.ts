@@ -126,6 +126,7 @@ interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   pendingEvents: TEvent[] | null;
   pendingCheckpoint: unknown;
   flushTimeoutId: ReturnType<typeof setTimeout> | null;
+  pendingWrite: Promise<void> | null;
   flush: () => void | Promise<void>;
 }
 
@@ -206,6 +207,24 @@ function migrateEventsIfNeeded<TEvent extends EventObject>(
   return stored.events;
 }
 
+function enqueueWrite(
+  internals: PersistInternals<any, any>,
+  write: () => void | Promise<void>
+): void | Promise<void> {
+  const result = internals.pendingWrite
+    ? internals.pendingWrite.then(write, write)
+    : write();
+  if (result instanceof Promise) {
+    const pending = result.finally(() => {
+      if (internals.pendingWrite === pending) {
+        internals.pendingWrite = null;
+      }
+    });
+    internals.pendingWrite = pending;
+    return pending;
+  }
+}
+
 function writeSnapshotToStorage<TContext>(
   internals: PersistInternals<TContext>,
   context: TContext
@@ -219,19 +238,21 @@ function writeSnapshotToStorage<TContext>(
     version: options.version ?? 0
   };
 
-  try {
-    const serialized = serializeSnapshotValue(options, value);
-    const result = storage.setItem(options.name, serialized);
-    if (result instanceof Promise) {
-      return result
-        .then(() => options.onDone?.(contextToPersist))
-        .catch((err) => options.onError?.(err));
-    }
+  return enqueueWrite(internals, () => {
+    try {
+      const serialized = serializeSnapshotValue(options, value);
+      const result = storage.setItem(options.name, serialized);
+      if (result instanceof Promise) {
+        return result
+          .then(() => options.onDone?.(contextToPersist))
+          .catch((err) => options.onError?.(err));
+      }
 
-    options.onDone?.(contextToPersist);
-  } catch (err) {
-    options.onError?.(err);
-  }
+      options.onDone?.(contextToPersist);
+    } catch (err) {
+      options.onError?.(err);
+    }
+  });
 }
 
 function writeEventsToStorage<TEvent extends EventObject>(
@@ -250,19 +271,21 @@ function writeEventsToStorage<TEvent extends EventObject>(
     value.checkpoint = checkpoint;
   }
 
-  try {
-    const serialized = serializeEventValue(options, value);
-    const result = storage.setItem(options.name, serialized);
-    if (result instanceof Promise) {
-      return result
-        .then(() => options.onDone?.(events))
-        .catch((err) => options.onError?.(err));
-    }
+  return enqueueWrite(internals, () => {
+    try {
+      const serialized = serializeEventValue(options, value);
+      const result = storage.setItem(options.name, serialized);
+      if (result instanceof Promise) {
+        return result
+          .then(() => options.onDone?.(events))
+          .catch((err) => options.onError?.(err));
+      }
 
-    options.onDone?.(events);
-  } catch (err) {
-    options.onError?.(err);
-  }
+      options.onDone?.(events);
+    } catch (err) {
+      options.onError?.(err);
+    }
+  });
 }
 
 function createInternals<TContext, TEvent extends EventObject>(
@@ -277,6 +300,7 @@ function createInternals<TContext, TEvent extends EventObject>(
     pendingEvents: null,
     pendingCheckpoint: null,
     flushTimeoutId: null,
+    pendingWrite: null,
     flush: () => {
       if (internals.flushTimeoutId !== null) {
         clearTimeout(internals.flushTimeoutId);
@@ -303,6 +327,7 @@ function createInternals<TContext, TEvent extends EventObject>(
           return result;
         }
       }
+      return internals.pendingWrite ?? undefined;
     }
   };
 
@@ -451,21 +476,17 @@ function persistSnapshotFromLogic<
 
       // Schedule storage write
       if (throttleMs > 0) {
-        // Throttled: buffer context, schedule delayed write
-        internals.pendingContext = options.pick
-          ? (options.pick(nextSnapshot.context) as any)
-          : nextSnapshot.context;
-
-        if (internals.flushTimeoutId === null) {
-          const persistEffect = () => {
+        const persistEffect = () => {
+          internals.pendingContext = options.pick
+            ? options.pick(nextSnapshot.context)
+            : nextSnapshot.context;
+          if (internals.flushTimeoutId === null) {
             internals.flushTimeoutId = setTimeout(() => {
               void internals.flush();
             }, throttleMs);
-          };
-          return [snapshotWithMeta, [...effects, persistEffect]];
-        }
-
-        return [snapshotWithMeta, effects];
+          }
+        };
+        return [snapshotWithMeta, [...effects, persistEffect]];
       }
 
       // Immediate write as effect
@@ -669,19 +690,16 @@ function persistEventFromLogic<
 
       // Schedule storage write
       if (throttleMs > 0) {
-        internals.pendingEvents = nextEvents;
-        internals.pendingCheckpoint = nextCheckpoint;
-
-        if (internals.flushTimeoutId === null) {
-          const persistEffect = () => {
+        const persistEffect = () => {
+          internals.pendingEvents = nextEvents;
+          internals.pendingCheckpoint = nextCheckpoint;
+          if (internals.flushTimeoutId === null) {
             internals.flushTimeoutId = setTimeout(() => {
               void internals.flush();
             }, throttleMs);
-          };
-          return [snapshotWithEvents, [...effects, persistEffect]];
-        }
-
-        return [snapshotWithEvents, effects];
+          }
+        };
+        return [snapshotWithEvents, [...effects, persistEffect]];
       }
 
       // Immediate write as effect
@@ -877,7 +895,8 @@ export function clearStorage(store: {
 }
 
 /**
- * Forces an immediate write of any pending throttled context to storage.
+ * Flushes pending throttled updates and waits for already queued async writes.
+ * Synchronous storage writes complete before this function returns.
  *
  * @example
  *

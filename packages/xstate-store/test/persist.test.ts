@@ -1,5 +1,7 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createStore } from '../src/index.ts';
+import { z } from 'zod';
+import { StoreValidationError, validateSchemas } from '../src/validate.ts';
 import {
   persist,
   createJSONStorage,
@@ -1169,3 +1171,141 @@ describe('persist - strategy: event', () => {
     vi.useRealTimers();
   });
 });
+
+describe.each(['snapshot', 'event'] as const)(
+  'persist committed %s writes',
+  (strategy) => {
+    it.each(['can', 'transition', 'validation'] as const)(
+      'does not buffer %s evaluations',
+      async (evaluation) => {
+        vi.useFakeTimers();
+        try {
+          const storage = createMockStorage();
+          const base = createStore({
+            schemas: { context: z.object({ count: z.number().max(1) }) },
+            context: { count: 0 },
+            on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+          }).with(
+            persist({
+              name: 'committed',
+              strategy,
+              storage,
+              throttle: 100,
+              ...(strategy === 'event' ? { maxEvents: 1 } : {})
+            })
+          );
+          const store =
+            evaluation === 'validation' ? base.with(validateSchemas()) : base;
+          store.trigger.inc();
+          if (evaluation === 'can') {
+            expect(store.can.inc()).toBe(true);
+          } else if (evaluation === 'transition') {
+            store.transition(store.getSnapshot(), { type: 'inc' });
+          } else {
+            expect(() => store.trigger.inc()).toThrow(StoreValidationError);
+          }
+          await vi.advanceTimersByTimeAsync(100);
+          expect(store.getSnapshot().context.count).toBe(1);
+          const saved = JSON.parse(storage.getItem('committed') as string);
+          if (strategy === 'snapshot') expect(saved.context.count).toBe(1);
+          else {
+            expect(saved.events).toEqual([{ type: 'inc' }]);
+            expect(saved.checkpoint).toBeNull();
+          }
+        } finally {
+          vi.useRealTimers();
+        }
+      }
+    );
+
+    it('flushes throttled data after an already pending asynchronous write', async () => {
+      vi.useFakeTimers();
+      try {
+        const writes: Array<{ value: string; resolve: () => void }> = [];
+        const storage: StateStorage = {
+          getItem: () => null,
+          removeItem: () => {},
+          setItem: (_name, value) =>
+            new Promise<void>((resolve) => writes.push({ value, resolve }))
+        };
+        const store = createStore({
+          context: { count: 0 },
+          on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+        }).with(
+          persist({ name: 'throttled', storage, strategy, throttle: 100 })
+        );
+        store.trigger.inc();
+        await vi.advanceTimersByTimeAsync(100);
+        store.trigger.inc();
+        const flushed = flushStorage(store);
+        expect(writes).toHaveLength(1);
+        writes[0].resolve();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(writes).toHaveLength(2);
+        const saved = JSON.parse(writes[1].value);
+        if (strategy === 'snapshot') expect(saved.context.count).toBe(2);
+        else expect(saved.events).toHaveLength(2);
+        writes[1].resolve();
+        await flushed;
+        await vi.advanceTimersByTimeAsync(100);
+        expect(writes).toHaveLength(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it.each([false, true])(
+      'orders asynchronous writes and recovers after failure: %s',
+      async (failFirst) => {
+        const writes: Array<{
+          value: string;
+          resolve: () => void;
+          reject: (error: unknown) => void;
+        }> = [];
+        let saved: string | null = null;
+        const onDone = vi.fn();
+        const onError = vi.fn();
+        const storage: StateStorage = {
+          getItem: () => saved,
+          removeItem: () => {},
+          setItem: (_key, value) =>
+            new Promise<void>((resolve, reject) => {
+              writes.push({
+                value,
+                resolve: () => {
+                  saved = value;
+                  resolve();
+                },
+                reject
+              });
+            })
+        };
+        const store = createStore({
+          context: { count: 0 },
+          on: { inc: (ctx) => ({ count: ctx.count + 1 }) }
+        }).with(
+          persist({ name: 'ordered', strategy, storage, onDone, onError })
+        );
+        store.trigger.inc();
+        store.trigger.inc();
+        // A fast second write cannot overtake the first: it has not started yet.
+        expect(writes).toHaveLength(1);
+        const flushed = flushStorage(store);
+        expect(flushed).toBeInstanceOf(Promise);
+        const completed = vi.fn();
+        void Promise.resolve(flushed).then(completed);
+        if (failFirst) writes[0].reject(new Error('write failed'));
+        else writes[0].resolve();
+        await vi.waitFor(() => expect(writes).toHaveLength(2));
+        expect(completed).not.toHaveBeenCalled();
+        writes[1].resolve();
+        await flushed;
+        const value = JSON.parse(saved!);
+        if (strategy === 'snapshot') expect(value.context.count).toBe(2);
+        else expect(value.events).toHaveLength(2);
+        expect(onError).toHaveBeenCalledTimes(failFirst ? 1 : 0);
+        expect(onDone).toHaveBeenCalledTimes(failFirst ? 1 : 2);
+      }
+    );
+  }
+);
