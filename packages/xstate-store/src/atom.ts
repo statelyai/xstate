@@ -64,13 +64,29 @@ function purgeDeps(sub: ReactiveNode) {
 }
 
 function flush(): void {
-  while (notifyIndex < queuedEffectsLength) {
-    const effect = queuedEffects[notifyIndex]!;
-    queuedEffects[notifyIndex++] = undefined;
-    effect.notify();
+  let didThrow = false;
+  let firstError: unknown;
+  try {
+    while (notifyIndex < queuedEffectsLength) {
+      const effect = queuedEffects[notifyIndex]!;
+      queuedEffects[notifyIndex++] = undefined;
+      try {
+        effect.notify();
+      } catch (error) {
+        effect.flags |= ReactiveFlags.Watching | ReactiveFlags.Recursed;
+        if (!didThrow) {
+          didThrow = true;
+          firstError = error;
+        }
+      }
+    }
+  } finally {
+    notifyIndex = 0;
+    queuedEffectsLength = 0;
   }
-  notifyIndex = 0;
-  queuedEffectsLength = 0;
+  if (didThrow) {
+    throw firstError;
+  }
 }
 
 /** The current state of an async atom. */
@@ -228,7 +244,7 @@ export function createAtom<T>(
     _update(getValue?: T | ((snapshot: T) => T)): boolean {
       const prevSub = activeSub;
       const compare = optionsOrInput?.compare ?? Object.is;
-      activeSub = atom;
+      activeSub = isComputed ? atom : undefined;
       ++cycle;
       atom.depsTail = undefined;
       if (isComputed) {

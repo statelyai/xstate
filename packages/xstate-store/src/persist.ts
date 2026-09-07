@@ -308,23 +308,17 @@ function createInternals<TContext, TEvent extends EventObject>(
       }
       if (isEventStrategy(options)) {
         if (internals.pendingEvents !== null) {
-          const result = writeEventsToStorage(
-            internals,
-            internals.pendingEvents,
-            internals.pendingCheckpoint
-          );
+          const events = internals.pendingEvents;
+          const checkpoint = internals.pendingCheckpoint;
           internals.pendingEvents = null;
           internals.pendingCheckpoint = null;
-          return result;
+          return writeEventsToStorage(internals, events, checkpoint);
         }
       } else {
         if (internals.pendingContext !== null) {
-          const result = writeSnapshotToStorage(
-            internals as any,
-            internals.pendingContext as TContext
-          );
+          const context = internals.pendingContext;
           internals.pendingContext = null;
-          return result;
+          return writeSnapshotToStorage(internals as any, context as TContext);
         }
       }
       return internals.pendingWrite ?? undefined;
@@ -374,6 +368,7 @@ function persistSnapshotFromLogic<
 
         // Async storage — can't hydrate synchronously
         if (storedValue instanceof Promise) {
+          void storedValue.catch((error) => options.onError?.(error));
           return {
             ...baseSnapshot,
             _persist: { hydrated: false },
@@ -477,9 +472,7 @@ function persistSnapshotFromLogic<
       // Schedule storage write
       if (throttleMs > 0) {
         const persistEffect = () => {
-          internals.pendingContext = options.pick
-            ? options.pick(nextSnapshot.context)
-            : nextSnapshot.context;
+          internals.pendingContext = nextSnapshot.context;
           if (internals.flushTimeoutId === null) {
             internals.flushTimeoutId = setTimeout(() => {
               void internals.flush();
@@ -552,6 +545,7 @@ function persistEventFromLogic<
         const storedValue = storage.getItem(options.name);
 
         if (storedValue instanceof Promise) {
+          void storedValue.catch((error) => options.onError?.(error));
           return {
             ...baseSnapshot,
             _persistEvents: [],
@@ -891,7 +885,16 @@ export function clearStorage(store: {
   if (!internals) {
     throw new Error('clearStorage: store does not have a persist extension');
   }
-  return internals.storage.removeItem(internals.options.name);
+  if (internals.flushTimeoutId !== null) {
+    clearTimeout(internals.flushTimeoutId);
+    internals.flushTimeoutId = null;
+  }
+  internals.pendingContext = null;
+  internals.pendingEvents = null;
+  internals.pendingCheckpoint = null;
+  return enqueueWrite(internals, () =>
+    internals.storage.removeItem(internals.options.name)
+  );
 }
 
 /**

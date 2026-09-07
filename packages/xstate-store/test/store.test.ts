@@ -14,6 +14,35 @@ import {
   EventFromStoreConfig
 } from '../src/types.ts';
 
+it('processes triggered events breadth-first when handlers append more events', () => {
+  const processed: number[] = [];
+  const effects: number[] = [];
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      start: (_context, _event, enqueue) => {
+        for (let id = 0; id < 100; id++) {
+          enqueue.trigger.item({ id });
+        }
+      },
+      item: (context, event: { id: number }, enqueue) => {
+        processed.push(event.id);
+        if (event.id < 100) {
+          enqueue.trigger.item({ id: event.id + 100 });
+        }
+        enqueue.effect(() => effects.push(event.id));
+        return { count: context.count + 1 };
+      }
+    }
+  });
+
+  store.trigger.start();
+  const expected = Array.from({ length: 200 }, (_, index) => index);
+  expect(processed).toEqual(expected);
+  expect(effects).toEqual(expected);
+  expect(store.getSnapshot().context.count).toBe(200);
+});
+
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
   const store = createStore({

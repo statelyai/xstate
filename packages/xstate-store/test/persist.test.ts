@@ -13,6 +13,169 @@ import {
 } from '../src/persist.ts';
 
 // Mock localStorage
+describe('persistence lifecycle regressions', () => {
+  it('orders new async writes after a queued clear', async () => {
+    const operations: string[] = [];
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(
+      persist({
+        name: 'counter',
+        storage: {
+          getItem: () => null,
+          setItem: async (_key, value) => {
+            operations.push(`write ${JSON.parse(value).context.count}`);
+          },
+          removeItem: async () => {
+            operations.push('clear');
+          }
+        }
+      })
+    );
+
+    store.trigger.inc();
+    const cleared = clearStorage(store);
+    store.trigger.inc();
+    await cleared;
+    await flushStorage(store);
+    expect(operations).toEqual(['write 1', 'clear', 'write 2']);
+  });
+
+  it.each(['snapshot', 'event'] as const)(
+    'reports a rejected initial async read (%s)',
+    async (strategy) => {
+      const error = new Error('read failed');
+      const rejected = Promise.reject(error);
+      // Keep the unfixed implementation from leaking rejection into other tests.
+      void rejected.catch(() => {});
+      const onError = vi.fn();
+      createStore({ context: {}, on: {} }).with(
+        persist({
+          name: 'counter',
+          strategy,
+          onError,
+          storage: {
+            getItem: () => rejected,
+            setItem: vi.fn(),
+            removeItem: vi.fn()
+          }
+        })
+      );
+      await Promise.resolve();
+      expect(onError).toHaveBeenCalledExactlyOnceWith(error);
+    }
+  );
+
+  it('applies pick once when flushing a throttled update', () => {
+    const storage = createMockStorage();
+    const pick = vi.fn((context: { count: number }) => ({
+      count: context.count + 1
+    }));
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(persist({ name: 'counter', storage, throttle: 100, pick }));
+
+    store.trigger.inc();
+    flushStorage(store);
+    expect(pick).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(storage.getItem('counter') as string).context).toEqual({
+      count: 2
+    });
+  });
+
+  it.each(['snapshot', 'event'] as const)(
+    'preserves updates triggered by onDone during a throttled flush (%s)',
+    (strategy) => {
+      const storage = createMockStorage();
+      let firstWrite = true;
+      const store = createStore({
+        context: { count: 0 },
+        on: { inc: (context) => ({ count: context.count + 1 }) }
+      }).with(
+        persist({
+          name: 'counter',
+          storage,
+          strategy,
+          throttle: 100,
+          onDone: () => {
+            if (firstWrite) {
+              firstWrite = false;
+              store.trigger.inc();
+            }
+          }
+        })
+      );
+
+      store.trigger.inc();
+      flushStorage(store);
+      flushStorage(store);
+      const saved = JSON.parse(storage.getItem('counter') as string);
+      expect(
+        strategy === 'event' ? saved.events.length : saved.context.count
+      ).toBe(2);
+    }
+  );
+
+  it.each(['snapshot', 'event'] as const)(
+    'cancels buffered writes when storage is cleared (%s)',
+    (strategy) => {
+      vi.useFakeTimers();
+      try {
+        const storage = createMockStorage();
+        const store = createStore({
+          context: { count: 0 },
+          on: { inc: (context) => ({ count: context.count + 1 }) }
+        }).with(persist({ name: 'counter', strategy, storage, throttle: 100 }));
+
+        store.trigger.inc();
+        expect(clearStorage(store)).toBeUndefined();
+        vi.advanceTimersByTime(100);
+        flushStorage(store);
+        expect(storage.getItem('counter')).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    }
+  );
+
+  it('removes storage after an in-flight async write finishes', async () => {
+    let completeWrite!: () => void;
+    let saved: string | null = null;
+    const removeItem = vi.fn(() => {
+      saved = null;
+    });
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(
+      persist({
+        name: 'counter',
+        storage: {
+          getItem: () => null,
+          setItem: (_key, value) =>
+            new Promise<void>((resolve) => {
+              completeWrite = () => {
+                saved = value;
+                resolve();
+              };
+            }),
+          removeItem
+        }
+      })
+    );
+
+    store.trigger.inc();
+    const cleared = clearStorage(store);
+    expect(removeItem).not.toHaveBeenCalled();
+    completeWrite();
+    await cleared;
+    expect(removeItem).toHaveBeenCalledExactlyOnceWith('counter');
+    expect(saved).toBeNull();
+  });
+});
+
 function createMockStorage(): StateStorage {
   const data: Record<string, string> = {};
   return {

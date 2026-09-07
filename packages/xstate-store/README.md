@@ -100,6 +100,13 @@ Asynchronous writes execute in event order for each store. Call
 `await flushStorage(store)` to write buffered changes and wait for queued writes
 to finish. Synchronous storage adapters continue to write synchronously.
 
+With throttling, `pick` runs once per write on the latest buffered context.
+`clearStorage(store)` cancels buffered writes and removes saved data after any
+already queued writes finish; await its result when using asynchronous storage.
+New events sent after clearing can persist new state. For asynchronous storage,
+call `await rehydrateStore(store)` to load saved state; initial read failures are
+reported through `onError`.
+
 ```ts
 import { persist, flushStorage } from '@xstate/store/persist';
 
@@ -107,6 +114,33 @@ const savedDonutStore = donutStore.with(persist({ name: 'donuts' }));
 savedDonutStore.trigger.addDonut();
 await flushStorage(savedDonutStore);
 ```
+
+### Undo and persistence
+
+<!-- snapshot undo restoration behavior from src/undo.ts -->
+
+Snapshot-based `undoRedo` restores historical state while preserving live
+extension metadata, including persistence hydration. A custom `restore` callback
+can enqueue events; their updated extension metadata is preserved too. Apply
+`persist` after `undoRedo` when undo and redo themselves should write to storage:
+
+```ts
+import { undoRedo } from '@xstate/store/undo';
+
+const undoableDonutStore = donutStore
+  .with(undoRedo({ strategy: 'snapshot' }))
+  .with(persist({ name: 'undoable-donuts' }));
+```
+
+## Atom updates and subscriptions
+
+<!-- writable updater tracking and subscriber errors from src/atom.ts -->
+
+Reads inside a writable atom's `set(previous => next)` updater do not create
+reactive dependencies. Use a computed atom getter to track other atoms instead.
+If a synchronous subscriber throws, other queued subscribers still receive their
+notifications before the first error is rethrown to the caller. The atom's value
+has already changed; later updates continue to notify subscribers normally.
 
 ## Async atoms
 
