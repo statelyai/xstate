@@ -1072,6 +1072,45 @@ describe('error handling', () => {
     expect(errorSpy).toHaveBeenCalledWith('transition action failed');
   });
 
+  it('does not report an error that a subscriber observes before the report runs', async () => {
+    const reported: unknown[] = [];
+    installGlobalOnErrorHandler((ev) => {
+      if (getErrorMessage(ev.error) === 'sync failure') {
+        reported.push(ev.error);
+      }
+    });
+    const errorSpy = vi.fn();
+    const actor = createActor(
+      createCallbackLogic(() => {
+        throw new Error('sync failure');
+      })
+    );
+    actor.start();
+    expect(actor.getSnapshot().status).toBe('error');
+    actor.subscribe({ error: errorSpy });
+
+    await sleep(20);
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(reported).toEqual([]);
+  });
+
+  it('reports an error that no subscriber observed', async () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    installGlobalOnErrorHandler((ev) => {
+      expect(getErrorMessage(ev.error)).toBe('sync failure');
+      resolve();
+    });
+    const actor = createActor(
+      createCallbackLogic(() => {
+        throw new Error('sync failure');
+      })
+    );
+    actor.start();
+
+    await promise;
+  });
+
   it('state onError catches rejected transition action promises', async () => {
     const errorSpy = vi.fn();
     const machine = createMachine({

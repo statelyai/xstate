@@ -154,6 +154,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   private _mailboxStarted = false;
 
   private observers?: Set<Observer<SnapshotFrom<TLogic>>>;
+  /** Whether a consumer subscribed to this actor's error after it errored. */
+  private _errorObserved = false;
   private eventListeners:
     | Map<string, Set<(emittedEvent: EmittedFrom<TLogic>) => void>>
     | undefined;
@@ -722,6 +724,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
           if (!observer.error) {
             reportUnhandledError(err);
           } else {
+            if (!observer.passive) {
+              this._errorObserved = true;
+            }
             safeCall(observer.error, err);
           }
           break;
@@ -1053,11 +1058,25 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     this.eventListeners?.clear();
   }
 
+  /**
+   * Reports an unhandled error unless a consumer observes it before the
+   * report runs. An actor can error before its creator has a chance to
+   * subscribe, so the check waits one macrotask for a subscriber with an
+   * `error` callback.
+   */
+  private _reportUnlessObserved(err: unknown): void {
+    setTimeout(() => {
+      if (!this._errorObserved) {
+        reportUnhandledError(err);
+      }
+    });
+  }
+
   private _error(err: unknown): void {
     this._stopProcedure();
     if (!this.observers?.size) {
       if (!this._parent) {
-        reportUnhandledError(err);
+        this._reportUnlessObserved(err);
       }
     } else {
       let reportError = false;
@@ -1074,7 +1093,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       reportError ||= !handled;
       this.observers.clear();
       if (reportError) {
-        reportUnhandledError(err);
+        this._reportUnlessObserved(err);
       }
     }
     this.eventListeners?.clear();

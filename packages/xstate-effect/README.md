@@ -229,12 +229,13 @@ const program = Effect.gen(function* () {
 
 `@xstate/effect/atom` exposes an actor through `effect/unstable/reactivity`, so a reactive UI reads it the way it reads any other Effect state. `createActorAtoms(runtime, logic, options?)` takes an `Atom.runtime` whose Layer provides the logic's services and returns:
 
-| Atom             | Type                                          |
-| ---------------- | --------------------------------------------- |
-| `actor`          | `Atom<AsyncResult<Actor>>`                    |
-| `snapshot`       | `Atom<AsyncResult<Snapshot>>`                 |
-| `send`           | `AtomResultFn<Event, void>`: set it with an event |
-| `select(f)`      | `Atom<AsyncResult<T>>` derived from `snapshot`    |
+| Atom        | Type                                                                            |
+| ----------- | ------------------------------------------------------------------------------- |
+| `actor`     | `Atom<AsyncResult<Actor>>`                                                      |
+| `snapshot`  | `Atom<AsyncResult<Snapshot>>`                                                   |
+| `result`    | `Atom<AsyncResult<Snapshot, ErrorFrom<Logic>>>`: a `Failure` once the actor errors |
+| `send`      | `Writable<AsyncResult<void, NotReadyError>, Event>`: set it with an event        |
+| `select(f)` | `Atom<AsyncResult<T>>` derived from `snapshot`                                   |
 
 ```ts
 import { Effect, Layer } from 'effect';
@@ -260,7 +261,7 @@ registry.subscribe(
 registry.set(user.send, { type: 'RETRY' });
 ```
 
-The actor starts when one of its atoms is first read and stops when nothing reads or mounts them anymore. Results are `AsyncResult` values because the runtime's Layer builds asynchronously. Wrap an atom with `Atom.keepAlive` to keep the actor for the registry's lifetime, or build the atoms inside `Atom.family` to get one actor per input.
+The actor starts when one of its atoms is first read and stops when nothing reads or mounts them anymore. Results are `AsyncResult` values because the runtime's Layer builds asynchronously. `send` delivers the event synchronously, like `actor.send`; setting it before the runtime is ready records a `NotReadyError` failure instead. `result` is `snapshot` with an errored actor reported as a `Failure`, for error boundaries. Wrap an atom with `Atom.keepAlive` to keep the actor for the registry's lifetime, or build the atoms inside `Atom.family` to get one actor per input.
 
 A runtime that does not provide a service the logic requires is a type error on the `runtime` argument.
 
@@ -298,7 +299,7 @@ export function App() {
 }
 ```
 
-`useAtomSuspense` suspends until the runtime and the actor are ready. `useAtomValue` returns the `AsyncResult` instead, for components that render their own loading state. The actor starts when the first component reads one of its atoms and stops when the last one unmounts; pin it with `Atom.keepAlive` when it must outlive the components.
+`useAtomSuspense` suspends until the runtime and the actor are ready. `useAtomValue` returns the `AsyncResult` instead, for components that render their own loading state. The actor starts when the first component reads one of its atoms and stops when the last one unmounts. An owner component can hold it with `useAtomMount(checkout.actor)` while children read selectors; pin it with `Atom.keepAlive` when it must outlive the components.
 
 Without atoms, create the actor through a `ManagedRuntime` and read it with `useSelector` from `@xstate/react`, which takes an existing actor reference. `actor.send` works directly there.
 

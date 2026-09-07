@@ -45,6 +45,14 @@ function actorId(actor: AnyActorRef): string {
   return (actor as Partial<AnyActor>).id ?? '(unknown)';
 }
 
+/**
+ * Marks an already-errored actor's error as observed, so XState does not
+ * report it as unhandled: the caller consumes it as a typed failure.
+ */
+function observeError(actor: AnyActorRef): void {
+  actor.subscribe({ error: () => {} }).unsubscribe();
+}
+
 function stoppedError(actor: AnyActorRef): ActorStoppedError {
   return new ActorStoppedError({
     actorId: actorId(actor),
@@ -102,6 +110,7 @@ export function snapshots<TActor extends AnyActorRef>(
         Queue.offerUnsafe(queue, current);
 
         if (current.status !== 'active') {
+          observeError(actor);
           Queue.endUnsafe(queue);
           return noopSubscription;
         }
@@ -237,6 +246,7 @@ export const waitFor: {
         }
 
         if (current.status !== 'active') {
+          observeError(actor);
           resume(Effect.fail(stoppedError(actor)));
           return;
         }
@@ -312,6 +322,7 @@ export function join<TActor extends AnyActorRef>(
     };
 
     if (actor.getSnapshot().status !== 'active') {
+      observeError(actor);
       settle();
       return;
     }

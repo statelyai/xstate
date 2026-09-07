@@ -1,8 +1,9 @@
-import { Context, Effect, Layer } from 'effect';
+import { Cause, Context, Effect, Layer } from 'effect';
 import { AsyncResult, Atom, AtomRegistry } from 'effect/unstable/reactivity';
 import { createMachine, setup } from 'xstate';
 import { createActorAtoms } from './atom.ts';
 import { fromEffect, setupEffect } from './index.ts';
+import { NotReadyError } from './atom.ts';
 
 const until = async (predicate: () => boolean, timeoutMs = 1000) => {
   const deadline = Date.now() + timeoutMs;
@@ -137,5 +138,52 @@ describe('createActorAtoms', () => {
     await until(() => actor?.getSnapshot().status === 'stopped');
 
     expect(actor?.getSnapshot().status).toBe('stopped');
+  });
+
+  it('reports NotReadyError when an event is sent before the runtime is ready', async () => {
+    class Slow extends Context.Service<Slow, { ready: true }>()('Slow') {}
+    const registry = AtomRegistry.make();
+    const runtime = Atom.runtime(
+      Layer.effect(
+        Slow,
+        Effect.delay(Effect.succeed({ ready: true as const }), '5 millis')
+      )
+    );
+    const atoms = createActorAtoms(runtime, counterMachine);
+
+    const unmount = registry.mount(atoms.send);
+    registry.set(atoms.send, { type: 'INC' });
+    const early = registry.get(atoms.send);
+    expect(AsyncResult.isFailure(early)).toBe(true);
+    expect(
+      AsyncResult.isFailure(early) && Cause.squash(early.cause)
+    ).toBeInstanceOf(NotReadyError);
+
+    await until(() => AsyncResult.isSuccess(registry.get(atoms.actor)));
+    registry.set(atoms.send, { type: 'INC' });
+    const late = registry.get(atoms.actor);
+    expect(
+      AsyncResult.isSuccess(late) && late.value.getSnapshot().context
+    ).toEqual({
+      count: 1
+    });
+    expect(AsyncResult.isSuccess(registry.get(atoms.send))).toBe(true);
+    unmount();
+  });
+
+  it('exposes an errored actor as a failed result', async () => {
+    const failure = { code: 'BOOM' as const };
+    const registry = AtomRegistry.make();
+    const runtime = Atom.runtime(Layer.empty);
+    const atoms = createActorAtoms(runtime, fromEffect(Effect.fail(failure)));
+
+    const unmount = registry.mount(atoms.result);
+    await until(() => AsyncResult.isFailure(registry.get(atoms.result)));
+
+    const result = registry.get(atoms.result);
+    expect(AsyncResult.isFailure(result) && Cause.squash(result.cause)).toEqual(
+      failure
+    );
+    unmount();
   });
 });

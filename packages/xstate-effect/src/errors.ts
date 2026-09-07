@@ -30,3 +30,13 @@ export class ActorStoppedError extends Data.TaggedError('ActorStoppedError')<{
     } before completing`;
   }
 }
+
+/**
+ * Reported by the `send` atom of `createActorAtoms` when an event is sent
+ * before the actor's runtime has finished building.
+ */
+export class NotReadyError extends Data.TaggedError('NotReadyError') {
+  override get message(): string {
+    return 'The actor is not ready yet';
+  }
+}
