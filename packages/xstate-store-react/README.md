@@ -32,6 +32,7 @@ const App = () => {
 
 ## API
 
+<!-- selector comparison semantics from src/index.ts -->
 ### `useSelector(store, selector?, compare?)`
 
 Subscribes to a store and returns a selected value.
@@ -59,7 +60,7 @@ const App = () => {
 
 - `store` - Store or other readable value created with `createStore()`
 - `selector?` - Function to select a value from snapshot
-- `compare?` - Equality function (default: `===`)
+- `compare?` - Equality function (default: `===`). Also applies to the full snapshot when `selector` is `undefined`.
 
 **Returns:** Selected value (re-renders on change)
 

@@ -43,6 +43,18 @@ const updateStore = <Path extends unknown[]>(
       return;
     }
 
+    if (
+      isWrappable(next) &&
+      isWrappable(prev) &&
+      Array.isArray(next) !== Array.isArray(prev)
+    ) {
+      const replacement = deepClone(next, valueRefs);
+      // Solid merges wrappable values; clear the old container to replace its shape.
+      set(...path, undefined);
+      set(...path, () => replacement);
+      return;
+    }
+
     if (!isWrappable(next) || !isWrappable(prev)) {
       // toString cannot be set in solid stores
       if (path[path.length - 1] !== 'toString') {

@@ -173,20 +173,10 @@ export function useSelector<TSnapshot, T>(
     [store]
   );
 
-  if (!selector) {
-    const selectorWithCompare = useSelectorWithCompare(
-      identity,
-      defaultCompare
-    );
-
-    return useSyncExternalStore(
-      subscribe,
-      () => selectorWithCompare(store.get()),
-      () => selectorWithCompare(store.get())
-    );
-  }
-
-  const selectorWithCompare = useSelectorWithCompare(selector, compare);
+  const selectorWithCompare = useSelectorWithCompare(
+    (selector ?? identity) as (snapshot: TSnapshot) => T,
+    compare
+  );
 
   return useSyncExternalStore(
     subscribe,

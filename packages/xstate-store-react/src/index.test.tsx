@@ -458,3 +458,19 @@ describe('@xstate/store-react', () => {
     });
   });
 });
+
+it('honors a comparator when the selector is omitted', () => {
+  const atom = createAtom({ count: 0, ignored: 0 });
+  let renders = 0;
+  function View() {
+    const value = useSelector(atom, undefined, (a, b) => a?.count === b?.count);
+    renders++;
+    return <div>{value.count}</div>;
+  }
+  render(<View />);
+  const initialRenders = renders;
+  act(() => atom.set({ count: 0, ignored: 1 }));
+  expect(renders).toBe(initialRenders);
+  act(() => atom.set({ count: 1, ignored: 1 }));
+  expect(screen.getByText('1')).toBeTruthy();
+});

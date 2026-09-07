@@ -1585,3 +1585,75 @@ describe('fromActorRef', () => {
     expect(elState.textContent).toEqual('two');
   });
 });
+
+it('observes actor updates between setup and effect subscription', () => {
+  const actor = createActor(
+    createMachine({
+      context: { count: 0 },
+      on: { INC: ({ context }) => ({ context: { count: context.count + 1 } }) }
+    })
+  ).start();
+  render(() => {
+    const snapshot = fromActorRef(actor);
+    actor.send({ type: 'INC' });
+    return <div data-testid="setup-count">{snapshot().context.count}</div>;
+  });
+  expect(screen.getByTestId('setup-count').textContent).toBe('1');
+  actor.stop();
+});
+
+it.each([false, true])(
+  'exposes terminal actor errors, initially errored: %s',
+  (initiallyErrored) => {
+    const actor = createActor(
+      createMachine({
+        on: {
+          FAIL: () => {
+            throw new Error('failed');
+          }
+        }
+      })
+    );
+    actor.subscribe({ error: () => {} });
+    actor.start();
+    if (initiallyErrored) actor.send({ type: 'FAIL' });
+    render(() => {
+      const snapshot = fromActorRef(actor);
+      return <div data-testid="terminal-status">{snapshot().status}</div>;
+    });
+    if (!initiallyErrored) actor.send({ type: 'FAIL' });
+    expect(screen.getByTestId('terminal-status').textContent).toBe('error');
+  }
+);
+
+it('replaces array and object context values without changing source data', () => {
+  const actor = createActor(
+    createMachine({
+      schemas: { events: { SET: z.object({ value: z.any() }) } },
+      context: { value: [1, 2] as any },
+      on: { SET: ({ event }) => ({ context: { value: event.value } }) }
+    })
+  ).start();
+  let selected!: ReturnType<typeof fromActorRef<typeof actor>>;
+  render(() => {
+    selected = fromActorRef(actor);
+    return <div />;
+  });
+  const shared = { nested: 6 };
+  const object: any = { item: 3, left: shared, right: shared };
+  object.self = object;
+  actor.send({ type: 'SET', value: object });
+  expect(Array.isArray(selected().context.value)).toBe(false);
+  expect(selected().context.value.item).toBe(3);
+  expect(selected().context.value.left).toBe(selected().context.value.right);
+  expect(selected().context.value.self).toBe(selected().context.value);
+  const array: any[] = [{ item: 4 }];
+  array.push(array);
+  actor.send({ type: 'SET', value: array });
+  expect(Array.isArray(selected().context.value)).toBe(true);
+  expect(selected().context.value[1]).toBe(selected().context.value);
+  actor.send({ type: 'SET', value: [{ item: 5 }] });
+  expect(array[0].item).toBe(4);
+  expect(object.item).toBe(3);
+  actor.stop();
+});

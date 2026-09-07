@@ -32,6 +32,9 @@ The returned ref is a `shallowRef`. Templates unwrap it, so use `{{ total }}` in
 
 The actor only needs `getSnapshot()` and `subscribe(...)`, so any actor reference works, including [invoked or spawned children](../invoke.md).
 
+<!-- error observation from ../src/useSelector.ts -->
+Selectors also receive terminal error snapshots. Select `snapshot.status` or `snapshot.error` to display failures; the adapter does not throw them into an error boundary.
+
 ## Change detection
 
 The ref is written only when `compare(previous, next)` returns `false`. Reference equality is the default, so a selector that builds a new object updates on every snapshot. Pass a comparison function in that case.

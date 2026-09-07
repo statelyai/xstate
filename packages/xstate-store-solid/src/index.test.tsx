@@ -241,3 +241,14 @@ describe('@xstate/store-solid', () => {
     });
   });
 });
+
+it('observes updates between setup and effect subscription', () => {
+  const atom = createAtom(0);
+  function View() {
+    const value = useSelector(atom, (n) => n);
+    atom.set(1);
+    return <div data-testid="setup-value">{value()}</div>;
+  }
+  render(() => <View />);
+  expect(screen.getByTestId('setup-value').textContent).toBe('1');
+});
