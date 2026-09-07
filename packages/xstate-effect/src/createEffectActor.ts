@@ -78,10 +78,11 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       const mailbox =
         yield* Queue.unbounded<MailboxItem<EventFromLogic<TLogic>>>();
       const timers = new Map<string, Fiber.Fiber<void>>();
-      // `root`, `rootAddress` and `actor` are declared after the adapter
-      // below; its callbacks only run once they are initialized.
+      // `root` and `actor` are declared after the adapter below; its
+      // callbacks only run once they are initialized.
       let stopped = false;
-      const isRoot = (candidate: AnyActor) => candidate.address === rootAddress;
+      const isRoot = (candidate: AnyActor) =>
+        candidate.address === durable.rootAddress;
 
       const offer = (item: MailboxItem<EventFromLogic<TLogic>>) => {
         if (!stopped) {
@@ -191,7 +192,7 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             // announces it again; observers should see the root once.
             if (
               event.type === '@xstate.actor' &&
-              (event.actorRef as AnyActor).address === rootAddress
+              (event.actorRef as AnyActor).address === durable.rootAddress
             ) {
               if (rootAnnounced) {
                 return;
@@ -255,7 +256,6 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
         options?.input as never
       );
       const root = durable.getActorRef(snapshot)!;
-      const rootAddress = durable.rootAddress;
       // The root exists from here on; later announcements are step
       // re-materializations, not new actors.
       rootAnnounced = true;
