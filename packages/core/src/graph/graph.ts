@@ -100,10 +100,12 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
         return [defaultEvent];
       }) as any[];
     },
-    fromState: machine.getInitialSnapshot(
-      createMockActorScope(),
-      options?.input
-    ) as SnapshotFrom<TMachine>,
+    fromState:
+      options?.fromState ??
+      (machine.getInitialSnapshot(
+        createMockActorScope(),
+        options?.input
+      ) as SnapshotFrom<TMachine>),
     ...otherOptions
   };
 

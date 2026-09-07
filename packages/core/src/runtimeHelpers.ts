@@ -3,7 +3,12 @@ import {
   XSTATE_LOGIC_EFFECT_RESOLVE,
   XSTATE_LOGIC_EFFECT_START
 } from './constants.ts';
-import type { ActorTermination, AnyActor, AnyEventObject } from './types.ts';
+import type {
+  ActorTermination,
+  AnyActor,
+  AnyEventObject,
+  Subscription
+} from './types.ts';
 
 type StepEffects = Record<
   string,
@@ -16,23 +21,9 @@ function getStepEffect(actor: AnyActor, key: string) {
   return (actor.getSnapshot() as { effects?: StepEffects }).effects?.[key];
 }
 
-function waitForStep<TStepOutput>(
-  actor: AnyActor,
-  key: string
-): Promise<TStepOutput> {
-  return new Promise((resolve, reject) => {
-    const subscription = actor.subscribe((snapshot) => {
-      const effect = (snapshot as { effects?: StepEffects }).effects?.[key];
-      if (effect?.status === 'done') {
-        subscription.unsubscribe();
-        resolve(effect.output as TStepOutput);
-      } else if (effect?.status === 'error') {
-        subscription.unsubscribe();
-        reject(effect.error as Error);
-      }
-    });
-  });
-}
+// Live promises belong to an actor incarnation, unlike its persisted journal.
+// A restored active record has no promise here and must be retried locally.
+const pendingSteps = new WeakMap<AnyActor, Map<string, Promise<unknown>>>();
 
 /**
  * Runs one keyed step of an async actor with the built-in journal: the
@@ -57,19 +48,57 @@ export async function runStep<TStepOutput>(
   if (effect?.status === 'error') {
     throw effect.error;
   }
-  if (effect?.status === 'active') {
-    return waitForStep(actor, key);
+  const running = pendingSteps.get(actor)?.get(key);
+  if (running) {
+    return running as Promise<TStepOutput>;
+  }
+  if (actor.getSnapshot().status !== 'active') {
+    throw new Error(`Actor terminated before step "${key}" completed`);
   }
 
-  sendSelf({ type: XSTATE_LOGIC_EFFECT_START, key });
-  try {
-    const output = await exec();
-    sendSelf({ type: XSTATE_LOGIC_EFFECT_RESOLVE, key, output });
-    return output;
-  } catch (error) {
-    sendSelf({ type: XSTATE_LOGIC_EFFECT_REJECT, key, error });
-    throw error;
+  let resolve!: (value: TStepOutput | PromiseLike<TStepOutput>) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<TStepOutput>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  let steps = pendingSteps.get(actor);
+  if (!steps) {
+    steps = new Map();
+    pendingSteps.set(actor, steps);
   }
+  steps.set(key, promise);
+  // oxlint-disable-next-line prefer-const
+  let subscription: Subscription | undefined;
+  const cleanup = () => {
+    subscription?.unsubscribe();
+    steps.delete(key);
+    if (!steps.size) {
+      pendingSteps.delete(actor);
+    }
+  };
+  void promise.then(cleanup, cleanup);
+  subscription = actor.subscribe({
+    error: reject,
+    complete: () =>
+      reject(new Error(`Actor terminated before step "${key}" completed`))
+  });
+  void (async () => {
+    try {
+      sendSelf({ type: XSTATE_LOGIC_EFFECT_START, key });
+      const output = await exec();
+      if (actor.getSnapshot().status === 'active') {
+        sendSelf({ type: XSTATE_LOGIC_EFFECT_RESOLVE, key, output });
+        resolve(output);
+      }
+    } catch (error) {
+      if (actor.getSnapshot().status === 'active') {
+        sendSelf({ type: XSTATE_LOGIC_EFFECT_REJECT, key, error });
+      }
+      reject(error);
+    }
+  })().catch(reject);
+  return promise;
 }
 
 /**

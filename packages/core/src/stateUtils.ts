@@ -1353,6 +1353,7 @@ export function initialMicrostep(
   initEvent: AnyEventObject,
   internalQueue: AnyEventObject[]
 ): Microstep {
+  root.machine._microstepHooks?.begin(actorScope.self);
   const initialStateNodes = [...getInitialStateNodes(root)];
   const statesForDefaultEntry = new Set<AnyStateNode>();
   const collectDefaultEntryStates = (stateNode: AnyStateNode): void => {
@@ -1403,6 +1404,12 @@ function microstep(
   selectionResults?: TransitionSelectionResults
 ): Microstep {
   const executableActions: ExecutableActionObject[] = [];
+  const internalEvents = currentSnapshot.machine._microstepHooks?.drain(
+    actorScope.self
+  );
+  if (internalEvents?.length) {
+    internalQueue.push(...internalEvents);
+  }
 
   if (!transitions.length) {
     return [currentSnapshot, executableActions];
@@ -2548,6 +2555,13 @@ export function macrostep(
     // eventless transitions should always be selected after selecting *regular* transitions
     // by assigning `undefined` to `previousState` we ensure that `shouldSelectEventlessTransitions` gets always computed to true in such a case
     const previousState = enabledTransitions.length ? nextSnapshot : undefined;
+    // Failed eventless guards can raise events even when no transition wins.
+    const raisedEvents = nextSnapshot.machine._microstepHooks?.drain(
+      actorScope.self
+    );
+    if (raisedEvents?.length) {
+      internalQueue.push(...raisedEvents);
+    }
 
     if (!enabledTransitions.length) {
       if (!internalQueue.length) {
@@ -2729,6 +2743,7 @@ function selectEventlessTransitions(
   event: AnyEventObject,
   actorScope: AnyActorScope
 ) {
+  snapshot.machine._microstepHooks?.begin(actorScope.self);
   const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
   const atomicStates = snapshot.nodes.filter(isAtomicStateNode);
 

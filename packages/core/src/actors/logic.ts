@@ -2,6 +2,7 @@ import {
   XSTATE_LOGIC_EFFECT_REJECT,
   XSTATE_LOGIC_EFFECT_RESOLVE,
   XSTATE_LOGIC_EFFECT_START,
+  XSTATE_INIT,
   XSTATE_STOP
 } from '../constants.ts';
 import { createInitEvent } from '../eventUtils.ts';
@@ -383,7 +384,13 @@ export function createLogic<
       key: string,
       exec: (runtime?: Partial<ActorSystemRuntime>) => void | (() => void)
     ) => {
-      if (snapshot.effects?.[key]) {
+      const recorded = snapshot.effects?.[key];
+      // Active process-local attachments must be recreated on restore. A
+      // completed effect remains memoized; ordinary events never reattach.
+      if (
+        recorded &&
+        !(event.type === XSTATE_INIT && recorded.status === 'active')
+      ) {
         return;
       }
       effects.push(
