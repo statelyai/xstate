@@ -13,6 +13,7 @@
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-effect#readme",
   "license": "MIT",
   "exports": {
+    "./atom": "./dist/xstate-effect-atom.js",
     ".": "./dist/xstate-effect.js",
     "./package.json": "./package.json"
   },
@@ -38,7 +39,8 @@
   },
   "preconstruct": {
     "entrypoints": [
-      "./index.ts"
+      "./index.ts",
+      "./atom.ts"
     ]
   }
 }

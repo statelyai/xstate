@@ -223,34 +223,84 @@ const program = Effect.gen(function* () {
 });
 ```
 
+## Atoms
+
+<!-- atom surface from src/atom.ts -->
+
+`@xstate/effect/atom` exposes an actor through `effect/unstable/reactivity`, so a reactive UI reads it the way it reads any other Effect state. `createActorAtoms(runtime, logic, options?)` takes an `Atom.runtime` whose Layer provides the logic's services and returns:
+
+| Atom             | Type                                          |
+| ---------------- | --------------------------------------------- |
+| `actor`          | `Atom<AsyncResult<Actor>>`                    |
+| `snapshot`       | `Atom<AsyncResult<Snapshot>>`                 |
+| `send`           | `AtomResultFn<Event, void>`: set it with an event |
+| `select(f)`      | `Atom<AsyncResult<T>>` derived from `snapshot`    |
+
+```ts
+import { Effect, Layer } from 'effect';
+import { Atom, AtomRegistry, AsyncResult } from 'effect/unstable/reactivity';
+import { createActorAtoms } from '@xstate/effect/atom';
+
+const runtime = Atom.runtime(
+  Layer.succeed(Api, { fetchUser: (id) => Effect.succeed({ id }) })
+);
+const user = createActorAtoms(runtime, machine);
+const status = user.select((snapshot) => snapshot.value);
+
+const registry = AtomRegistry.make();
+registry.subscribe(
+  status,
+  (result) => {
+    if (AsyncResult.isSuccess(result)) {
+      console.log(result.value);
+    }
+  },
+  { immediate: true }
+);
+registry.set(user.send, { type: 'RETRY' });
+```
+
+The actor starts when one of its atoms is first read and stops when nothing reads or mounts them anymore. Results are `AsyncResult` values because the runtime's Layer builds asynchronously. Wrap an atom with `Atom.keepAlive` to keep the actor for the registry's lifetime, or build the atoms inside `Atom.family` to get one actor per input.
+
+A runtime that does not provide a service the logic requires is a type error on the `runtime` argument.
+
+`effect/unstable/reactivity` is an unstable Effect module. This entry point follows it and may change independently of the rest of the package.
+
 ## React
 
-`useMachine`, `useActor` and `useActorRef` call `createActor` internally, so they cannot start Effect-backed logic. Create the actor through a `ManagedRuntime` or a Layer, then read it from React with `useSelector`, which takes an existing actor reference.
+`useMachine`, `useActor` and `useActorRef` call `createActor` internally, so they cannot start Effect-backed logic. In an Effect application the actor lives in the runtime and React reads it through atoms: `@xstate/effect/atom` builds them and `@effect/atom-react` provides the hooks.
 
 ```tsx
-import { Effect, ManagedRuntime } from 'effect';
-import { send } from '@xstate/effect';
-import { useSelector } from '@xstate/react';
+import { Suspense } from 'react';
+import { Atom } from 'effect/unstable/reactivity';
+import { useAtomSet, useAtomSuspense } from '@effect/atom-react';
+import { createActorAtoms } from '@xstate/effect/atom';
 
-const runtime = ManagedRuntime.make(AppLayer);
-const actor = await runtime.runPromise(
-  Effect.gen(function* () {
-    return yield* CheckoutActor;
-  })
-);
+const runtime = Atom.runtime(AppLayer);
+const checkout = createActorAtoms(runtime, checkoutMachine);
+const status = checkout.select((snapshot) => snapshot.value);
 
 function Checkout() {
-  const status = useSelector(actor, (s) => s.value);
+  const { value } = useAtomSuspense(status);
+  const send = useAtomSet(checkout.send);
 
   return (
-    <button onClick={() => runtime.runFork(send(actor, { type: 'PAY' }))}>
-      {String(status)}
-    </button>
+    <button onClick={() => send({ type: 'PAY' })}>{String(value)}</button>
+  );
+}
+
+export function App() {
+  return (
+    <Suspense fallback={null}>
+      <Checkout />
+    </Suspense>
   );
 }
 ```
 
-`actor.send` also works directly. Use `send` when the call site is already inside an Effect.
+`useAtomSuspense` suspends until the runtime and the actor are ready. `useAtomValue` returns the `AsyncResult` instead, for components that render their own loading state. The actor starts when the first component reads one of its atoms and stops when the last one unmounts; pin it with `Atom.keepAlive` when it must outlive the components.
+
+Without atoms, create the actor through a `ManagedRuntime` and read it with `useSelector` from `@xstate/react`, which takes an existing actor reference. `actor.send` works directly there.
 
 ## Effect actor logic
 
