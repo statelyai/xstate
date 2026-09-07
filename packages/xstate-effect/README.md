@@ -16,7 +16,7 @@ npm install @xstate/effect@alpha xstate@alpha effect@rc
 
 <!-- public API from src/index.ts; actor lifetime from src/createEffectActor.ts -->
 
-`createEffectActor` creates and starts an XState actor inside an Effect. The actor is a scoped resource: it stops when the enclosing `Scope` closes. `fromEffect` turns an Effect into actor logic that a machine can invoke. The machine itself is an ordinary v6 machine.
+`createEffectActor` runs an XState actor as an Effect interpreter over pure transitions: each step is `transition(snapshot, event)`, and an Effect fiber owns the mailbox, the timers and the actions it produces. The actor is a scoped resource: it stops when the enclosing `Scope` closes. `fromEffect` turns an Effect into actor logic that a machine can invoke. The machine itself is an ordinary v6 machine.
 
 ```ts
 import { Context, Effect, Schema } from 'effect';
@@ -68,6 +68,17 @@ await Effect.runPromise(
 ```
 
 Effect-backed logic must run under `createEffectActor`. Starting it with `createActor` puts the actor in the `error` status because no Effect runtime is available.
+
+### How it runs
+
+XState's transition function is pure: `transition(snapshot, event)` returns the next snapshot and the actions to run, without running them. `createEffectActor` drives that function through XState's `createDurable` loop from an Effect fiber and interprets the actions:
+
+- the mailbox is an Effect `Queue`, so `actor.send` enqueues and the fiber processes events in order;
+- timers for `after` transitions and delayed events are `Effect.sleep` fibers in the actor's `Scope`, on the Effect `Clock`;
+- declared Effect actions run as forked Effects with the services captured at creation, without blocking the loop;
+- built-in actions (spawn, send, emit, stop) run as XState defines them, and child actors run as live XState actors whose Effects use the same host.
+
+The handle it returns is an `EffectActor`. It implements XState's `ActorRef` contract (`send`, `getSnapshot`, `subscribe`, `on`) plus `inspect`, `getPersistedSnapshot` and `stop`, so `useSelector`, this package's actor functions and the inspection APIs accept it. Because the loop runs on a fiber, `send` returns before the event is processed; read the outcome with `waitFor`, `join` or `snapshots` rather than `getSnapshot` right after a send.
 
 ## Actors
 
@@ -148,7 +159,7 @@ await Effect.runPromise(
 );
 ```
 
-Pass `options.clock` to use a different clock, such as XState's `SimulatedClock`.
+Timers are fibers in the actor's scope, so they are interrupted when the actor stops.
 
 ### Requirements
 
@@ -169,7 +180,7 @@ Logic passed inline to `enq.spawn` lives inside a transition function body and i
 
 <!-- actor surface from src/actor.ts -->
 
-These are free functions that take a plain XState `Actor` or `ActorRef`. `createEffectActor` returns that actor, not a wrapper handle with Effect methods on it. So they apply to any actor reference, including children read from `snapshot.children` and actors created outside this package; a bundler drops the ones a program does not import; and everything that already accepts an XState actor, such as `useSelector` and the inspection APIs, works on the same object.
+These are free functions that take any XState `ActorRef`, including the `EffectActor` handle, children read from `snapshot.children` and actors created outside this package. A bundler drops the ones a program does not import, and everything that already accepts an XState actor, such as `useSelector`, works on the same handle.
 
 | Function                                 | Returns                                                     |
 | ---------------------------------------- | ----------------------------------------------------------- |
@@ -210,7 +221,7 @@ const program = Effect.gen(function* () {
 });
 ```
 
-`send` returns `Effect<void>` and never fails. Delivery is synchronous, like `actor.send(event)`, and XState reports an event it could not deliver as a **dead letter** with a reason: `'stopped'` for a send to a stopped actor, `'invalidEvent'` for a payload the target's schema rejects, and `'internalEvent'` for an internal event type sent from outside its owning actor. A failing `send` could not carry that reason, and a dead letter is not an actor error. Observe them instead:
+`send` returns `Effect<void>` and never fails. It enqueues the event, like `actor.send(event)`, and XState reports an event it could not deliver as a **dead letter** with a reason: `'stopped'` for a send to a stopped actor, `'invalidEvent'` for a payload the target's schema rejects, and `'internalEvent'` for an internal event type sent from outside its owning actor. A failing `send` could not carry that reason, and a dead letter is not an actor error. Observe them instead:
 
 ```ts
 const program = Effect.gen(function* () {
@@ -261,7 +272,7 @@ registry.subscribe(
 registry.set(user.send, { type: 'RETRY' });
 ```
 
-The actor starts when one of its atoms is first read and stops when nothing reads or mounts them anymore. Results are `AsyncResult` values because the runtime's Layer builds asynchronously. `send` delivers the event synchronously, like `actor.send`; setting it before the runtime is ready records a `NotReadyError` failure instead. `result` is `snapshot` with an errored actor reported as a `Failure`, for error boundaries. Wrap an atom with `Atom.keepAlive` to keep the actor for the registry's lifetime, or build the atoms inside `Atom.family` to get one actor per input.
+The actor starts when one of its atoms is first read and stops when nothing reads or mounts them anymore. Results are `AsyncResult` values because the runtime's Layer builds asynchronously. `send` enqueues the event, like `actor.send`; setting it before the runtime is ready records a `NotReadyError` failure instead. `result` is `snapshot` with an errored actor reported as a `Failure`, for error boundaries. Wrap an atom with `Atom.keepAlive` to keep the actor for the registry's lifetime, or build the atoms inside `Atom.family` to get one actor per input.
 
 A runtime that does not provide a service the logic requires is a type error on the `runtime` argument.
 
@@ -488,19 +499,7 @@ Effect actions do not block the actor. The actor processes the next event while 
 
 ## Persistence
 
-Effect-backed logic uses the normal XState persistence APIs. `actor.getPersistedSnapshot()` returns a serializable snapshot, and `createEffectActor(logic, { snapshot })` restores it.
-
-```ts
-const program = Effect.gen(function* () {
-  const actor = yield* createEffectActor(machine);
-  const persisted = actor.getPersistedSnapshot();
-  actor.stop();
-
-  return yield* createEffectActor(machine, { snapshot: persisted });
-});
-```
-
-A persisted snapshot records the actor's state, not the progress of a running Effect. Restoring a snapshot in which an Effect actor was still active runs its Effect or stream again from the start. Make those Effects idempotent, or persist from a state in which nothing is in flight.
+`actor.getPersistedSnapshot()` returns a serializable snapshot of the actor's state. It records state, not the progress of a running Effect. Restoring a snapshot into a new interpreter is not supported yet; the durable execution loop this package is built on is the intended path for that, and it is the next piece of work.
 
 ## Testing
 

@@ -11,7 +11,11 @@ export {
   type EffectStreamActorLogic,
   type EffectStreamSnapshot
 } from './fromEffect.ts';
-export { createEffectActor } from './createEffectActor.ts';
+export {
+  createEffectActor,
+  type EffectActorOptions
+} from './createEffectActor.ts';
+export { EffectActor } from './effectActor.ts';
 export {
   deadLetters,
   emitted,

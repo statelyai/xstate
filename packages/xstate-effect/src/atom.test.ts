@@ -162,6 +162,11 @@ describe('createActorAtoms', () => {
     await until(() => AsyncResult.isSuccess(registry.get(atoms.actor)));
     registry.set(atoms.send, { type: 'INC' });
     const late = registry.get(atoms.actor);
+    await until(
+      () =>
+        AsyncResult.isSuccess(late) &&
+        late.value.getSnapshot().context.count === 1
+    );
     expect(
       AsyncResult.isSuccess(late) && late.value.getSnapshot().context
     ).toEqual({

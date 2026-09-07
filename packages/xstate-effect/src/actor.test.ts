@@ -1,7 +1,13 @@
-import { Cause, Duration, Effect, Exit, Scope, Stream } from 'effect';
-import { createMachine, types, type AnyActor, type SnapshotFrom } from 'xstate';
+import { Cause, Duration, Effect, Exit, Fiber, Scope, Stream } from 'effect';
+import {
+  createMachine,
+  types,
+  type AnyActorRef,
+  type SnapshotFrom
+} from 'xstate';
 import {
   ActorStoppedError,
+  EffectActor,
   createEffectActor,
   emitted,
   fromEffect,
@@ -11,6 +17,20 @@ import {
   join,
   waitFor
 } from './index.ts';
+
+/**
+ * Polls until `predicate` holds. The actor processes events on its own fiber,
+ * so tests wait for the condition they assert on.
+ */
+const until = async (predicate: () => boolean, timeoutMs = 1000) => {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() > deadline) {
+      throw new Error('Timed out waiting for condition');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+};
 
 let scopes: Scope.Closeable[] = [];
 
@@ -35,7 +55,7 @@ const runScoped = async <A, E>(
  * Runs `drive` right after the API under test subscribes to the actor, so
  * tests never race the Effect scheduler with a timer.
  */
-const afterSubscribe = (actor: AnyActor, drive: () => void): void => {
+const afterSubscribe = (actor: AnyActorRef, drive: () => void): void => {
   const actorSubscribe = actor.subscribe.bind(actor);
   let driven = false;
   actor.subscribe = ((...args: Parameters<typeof actorSubscribe>) => {
@@ -48,14 +68,14 @@ const afterSubscribe = (actor: AnyActor, drive: () => void): void => {
   }) as typeof actor.subscribe;
 };
 
-/** The `system.inspect` counterpart of {@link afterSubscribe}. */
-const afterInspect = (actor: AnyActor, drive: () => void): void => {
-  const systemInspect = actor.system.inspect.bind(actor.system);
-  actor.system.inspect = ((observer: Parameters<typeof systemInspect>[0]) => {
-    const subscription = systemInspect(observer);
+/** The `actor.inspect` counterpart of {@link afterSubscribe}. */
+const afterInspect = (actor: EffectActor<any>, drive: () => void): void => {
+  const actorInspect = actor.inspect.bind(actor);
+  actor.inspect = ((observer: Parameters<typeof actorInspect>[0]) => {
+    const subscription = actorInspect(observer);
     queueMicrotask(drive);
     return subscription;
-  }) as typeof actor.system.inspect;
+  }) as typeof actor.inspect;
 };
 
 const counterMachine = createMachine({
@@ -109,6 +129,7 @@ describe('send', () => {
 
         yield* send(actor, { type: 'INCREMENT' });
         yield* send(actor, { type: 'INCREMENT' });
+        yield* waitFor(actor, (state) => state.context.count === 2);
 
         expect(actor.getSnapshot().context).toEqual({ count: 2 });
       })
@@ -121,6 +142,7 @@ describe('send', () => {
         const actor = yield* createEffectActor(counterMachine);
 
         yield* send({ type: 'INCREMENT' } as const)(actor);
+        yield* waitFor(actor, (state) => state.context.count === 1);
 
         expect(actor.getSnapshot().context).toEqual({ count: 1 });
       })
@@ -216,16 +238,32 @@ describe('snapshots', () => {
 
 describe('emitted', () => {
   it('streams emitted events and ends when the actor stops', async () => {
-    const collected = await runScoped(
+    const collected: unknown[] = [];
+    await runScoped(
       Effect.gen(function* () {
         const actor = yield* createEffectActor(emitterMachine);
-        afterSubscribe(actor, () => {
-          actor.send({ type: 'PING' });
-          actor.send({ type: 'PING' });
-          actor.stop();
-        });
+        let listening = false;
+        const actorOn = actor.on.bind(actor);
+        actor.on = ((...args: Parameters<typeof actorOn>) => {
+          listening = true;
+          return actorOn(...args);
+        }) as typeof actor.on;
 
-        return yield* Stream.runCollect(emitted(actor));
+        const fiber = yield* Effect.forkScoped(
+          Stream.runForEach(emitted(actor), (event) =>
+            Effect.sync(() => {
+              collected.push(event);
+            })
+          )
+        );
+        yield* Effect.promise(() => until(() => listening));
+
+        actor.send({ type: 'PING' });
+        actor.send({ type: 'PING' });
+        yield* Effect.promise(() => until(() => collected.length === 2));
+
+        actor.stop();
+        yield* Fiber.join(fiber);
       })
     );
 

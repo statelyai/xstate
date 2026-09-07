@@ -15,6 +15,7 @@ import type {
   SnapshotFrom,
   Subscription
 } from 'xstate';
+import type { EffectActor } from './effectActor.ts';
 import { ActorStoppedError } from './errors.ts';
 
 /** The event type accepted by an actor's `send` method. */
@@ -24,11 +25,13 @@ export type SendableEventFrom<TActor extends AnyActorRef> = Parameters<
 
 /** The event type an actor emits through `actor.on(...)`. */
 export type EmittedEventFrom<TActor> =
-  TActor extends Actor<infer TLogic>
+  TActor extends EffectActor<infer TLogic>
     ? EmittedFrom<TLogic>
-    : TActor extends ActorRef<any, any, infer TEmitted, any>
-      ? TEmitted
-      : AnyEventObject;
+    : TActor extends Actor<infer TLogic>
+      ? EmittedFrom<TLogic>
+      : TActor extends ActorRef<any, any, infer TEmitted, any>
+        ? TEmitted
+        : AnyEventObject;
 
 /** Options for {@link waitFor}. */
 export interface WaitForOptions {
@@ -363,13 +366,21 @@ export function join<TActor extends AnyActorRef>(
 export function inspect(actor: AnyActorRef): Stream.Stream<InspectionEvent> {
   return Stream.callback<InspectionEvent>((queue) =>
     Effect.acquireRelease(
-      Effect.sync(() =>
-        (actor as unknown as AnyActor).system.inspect(
-          (inspectionEvent: InspectionEvent) => {
-            Queue.offerUnsafe(queue, inspectionEvent);
-          }
-        )
-      ),
+      Effect.sync(() => {
+        const observer: (inspectionEvent: InspectionEvent) => void = (
+          inspectionEvent
+        ) => {
+          Queue.offerUnsafe(queue, inspectionEvent);
+        };
+        const inspectable = actor as {
+          inspect?: (
+            observer: (inspectionEvent: InspectionEvent) => void
+          ) => Subscription;
+        };
+        return inspectable.inspect
+          ? inspectable.inspect(observer)
+          : (actor as unknown as AnyActor).system.inspect(observer);
+      }),
       (subscription) =>
         Effect.sync(() => {
           subscription.unsubscribe();

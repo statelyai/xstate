@@ -4,7 +4,7 @@
 
 Add experimental Effect 4 integration for XState v6.
 
-- `createEffectActor(logic)` creates and starts an actor as a scoped Effect resource. The actor stops, and its running Effects are interrupted, when the enclosing `Scope` closes. XState timers use the Effect `Clock`, so `TestClock` drives delayed transitions.
+- `createEffectActor(logic)` runs an actor as an Effect interpreter over XState's pure `transition` function: an Effect fiber owns the mailbox, timers run as `Effect.sleep` fibers on the Effect `Clock` (so `TestClock` drives delayed transitions), and declared Effect actions run as forked Effects with the captured services. It returns an `EffectActor` handle that implements XState's `ActorRef` contract. The actor is a scoped resource: it stops, and its running Effects are interrupted, when the enclosing `Scope` closes.
 - `fromEffect`, `fromEffectStream` and `fromEffectEventStream` turn Effects and Streams into actor logic with typed failures and service requirements. Interruption from inside the Effect reports an `EffectInterruptedError`.
 - `setupEffect` accepts Effect schemas and Effect-returning actions.
 - `@xstate/effect/atom` exports `createActorAtoms`, which runs an actor in an `Atom.runtime` from `effect/unstable/reactivity` and exposes `actor`, `snapshot`, `send` and `select` atoms for reactive UIs such as `@effect/atom-react`.

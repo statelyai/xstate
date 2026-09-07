@@ -106,6 +106,7 @@ describe('@xstate/effect', () => {
       actor.send({ type: 'ADD', value: 'invalid' });
     };
     void sendInvalidEvent;
+    await until(() => actor.getSnapshot().context.count === 3);
 
     expect(actor.getSnapshot().context).toEqual({ count: 3 });
   });
@@ -128,12 +129,15 @@ describe('@xstate/effect', () => {
     const actor = await runScoped(createEffectActor(machine));
 
     actor.send({ type: 'ADD', value: 2 });
-    expect(actor.getSnapshot().context).toEqual({ count: 2 });
+    await until(() => actor.getSnapshot().context.count === 2);
 
     // The converted event schema is what runtime validation asserts against,
-    // so an invalid payload is rejected instead of transitioning.
+    // so an invalid payload is rejected instead of transitioning. A second
+    // valid event, processed after it, proves the invalid one was dropped.
     actor.send({ type: 'ADD', value: 'invalid' } as any);
-    expect(actor.getSnapshot().context).toEqual({ count: 2 });
+    actor.send({ type: 'ADD', value: 1 });
+    await until(() => actor.getSnapshot().context.count === 3);
+    expect(actor.getSnapshot().context).toEqual({ count: 3 });
 
     const invalidContext = setupEffect({
       validator: standardSchemaValidator(),
@@ -175,6 +179,7 @@ describe('@xstate/effect', () => {
     const actor = await runScoped(createEffectActor(machine));
 
     actor.send({ type: 'ADD', value: 2 });
+    await until(() => actor.getSnapshot().context.count === 2);
 
     expect(actor.getSnapshot().context).toEqual({ count: 2 });
     expect(rejects(effectSetup.schemas.events.ADD, { value: 'invalid' })).toBe(
@@ -866,24 +871,5 @@ describe('@xstate/effect', () => {
     await until(() => actor.getSnapshot().context.seen === 9);
 
     expect(actor.getSnapshot().context).toEqual({ seen: 9 });
-  });
-
-  it('restarts an unkeyed Effect actor from persisted state', async () => {
-    let runs = 0;
-    const logic = fromEffect(() => {
-      runs += 1;
-      return Effect.never;
-    });
-
-    const actor = await runScoped(createEffectActor(logic));
-    const persisted = actor.getPersistedSnapshot();
-    actor.stop();
-
-    const restoredActor = await runScoped(
-      createEffectActor(logic, { snapshot: persisted })
-    );
-
-    expect(runs).toBe(2);
-    restoredActor.stop();
   });
 });

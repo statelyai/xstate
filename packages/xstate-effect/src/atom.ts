@@ -1,16 +1,17 @@
 import { Cause, type Effect } from 'effect';
 import { AsyncResult, Atom } from 'effect/unstable/reactivity';
 import type {
-  Actor,
-  ActorOptions,
   AnyActorLogic,
   ErrorFrom,
   EventFromLogic,
-  RequiredActorOptionsKeys,
   Snapshot,
   SnapshotFrom
 } from 'xstate';
-import { createEffectActor } from './createEffectActor.ts';
+import {
+  createEffectActor,
+  type EffectActorOptions
+} from './createEffectActor.ts';
+import type { EffectActor } from './effectActor.ts';
 import { NotReadyError } from './errors.ts';
 import type { RequirementsFrom } from './types.ts';
 
@@ -26,7 +27,7 @@ export interface ActorAtoms<TLogic extends AnyActorLogic, ER = never> {
    * The running actor. It starts when the atom is first read and stops when
    * the atom is released, that is, when nothing reads or mounts it anymore.
    */
-  readonly actor: Atom.Atom<AsyncResult.AsyncResult<Actor<TLogic>, ER>>;
+  readonly actor: Atom.Atom<AsyncResult.AsyncResult<EffectActor<TLogic>, ER>>;
   /** The actor's current snapshot, updated on every transition. */
   readonly snapshot: Atom.Atom<
     AsyncResult.AsyncResult<SnapshotFrom<TLogic>, ER>
@@ -75,14 +76,15 @@ export function createActorAtoms<TLogic extends AnyActorLogic, R, ER = never>(
       ? unknown
       : MissingRequirements<Exclude<RequirementsFrom<TLogic>, R>>),
   logic: TLogic,
-  options?: ActorOptions<TLogic> & {
-    [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-  }
+  options?: EffectActorOptions<TLogic>
 ): ActorAtoms<TLogic, ER> {
   const host = runtime as Atom.AtomRuntime<any, ER>;
 
   const actor = host.atom(
-    createEffectActor(logic, options) as Effect.Effect<Actor<TLogic>, never>
+    createEffectActor(logic, options as never) as unknown as Effect.Effect<
+      EffectActor<TLogic>,
+      never
+    >
   );
 
   const snapshot = Atom.make(
@@ -144,7 +146,7 @@ export function createActorAtoms<TLogic extends AnyActorLogic, R, ER = never>(
       } else if (AsyncResult.isFailure(current)) {
         ctx.setSelf(AsyncResult.map(current, () => undefined));
       } else {
-        current.value.send(event as Parameters<Actor<TLogic>['send']>[0]);
+        current.value.send(event);
         ctx.setSelf(AsyncResult.success(undefined));
       }
     }

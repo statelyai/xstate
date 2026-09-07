@@ -13,6 +13,22 @@ export interface EffectHost {
 }
 
 const effectHosts = new WeakMap<object, EffectHost>();
+let ambientHost: EffectHost | undefined;
+
+/**
+ * Runs `fn` with `host` as the ambient host, so Effects started synchronously
+ * inside it (declared actions executed by an execution loop) resolve their
+ * host without an identity binding.
+ */
+export function withEffectHost<T>(host: EffectHost, fn: () => T): T {
+  const previous = ambientHost;
+  ambientHost = host;
+  try {
+    return fn();
+  } finally {
+    ambientHost = previous;
+  }
+}
 
 export function createEffectHost(
   context: Context.Context<never>,
@@ -26,8 +42,8 @@ export function createEffectHost(
   };
 }
 
-export function bindEffectHost(actor: AnyActorRef, host: EffectHost): void {
-  effectHosts.set(actor, host);
+export function bindEffectHost(target: object, host: EffectHost): void {
+  effectHosts.set(target, host);
 }
 
 function findEffectHost(actor: AnyActorRef): EffectHost | undefined {
@@ -46,7 +62,7 @@ function findEffectHost(actor: AnyActorRef): EffectHost | undefined {
       | undefined;
   }
 
-  return undefined;
+  return ambientHost;
 }
 
 type DeclaringMachine = {
@@ -230,6 +246,14 @@ export function runHostedEffect<A, E>(
  * services, on a fiber that `createEffectActor`'s release can await.
  */
 export function closeEffectHost(host: EffectHost): void {
+  for (const [actor, interruptors] of host.interruptors) {
+    host.interruptors.delete(actor);
+    for (const interrupt of interruptors) {
+      interrupt();
+    }
+    host.subscriptions.get(actor)?.unsubscribe();
+    host.subscriptions.delete(actor);
+  }
   const finalizers = Scope.closeUnsafe(host.scope, Exit.void);
   if (finalizers) {
     host.closing = Effect.runForkWith(host.context)(finalizers);
