@@ -7,7 +7,7 @@ State and transition metadata can now use separate types:
 ```ts
 const machine = setup({
   types: {
-    stateMeta: {} as { label: string },
+    meta: {} as { label: string },
     transitionMeta: {} as { trackingId: number }
   }
 }).createMachine({
@@ -18,5 +18,5 @@ const machine = setup({
 });
 ```
 
-The existing `types.meta` field remains supported and applies its type to both
-state and transition metadata.
+When `transitionMeta` is omitted, `types.meta` continues to apply its type to
+both state and transition metadata.

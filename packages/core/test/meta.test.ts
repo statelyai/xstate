@@ -420,7 +420,7 @@ describe('transition meta data', () => {
   it('infers distinct metadata types with createMachine', () => {
     const machine = createMachine({
       types: {
-        stateMeta: {} as { label: string },
+        meta: {} as { label: string },
         transitionMeta: {} as { trackingId: number }
       },
       meta: { label: 'root' },
@@ -438,7 +438,7 @@ describe('transition meta data', () => {
   it('supports distinct state and transition meta types', () => {
     const machine = setup({
       types: {
-        stateMeta: {} as { view: 'compact' | 'full' },
+        meta: {} as { view: 'compact' | 'full' },
         transitionMeta: {} as { analyticsEvent: string }
       }
     }).createMachine({
@@ -477,7 +477,7 @@ describe('transition meta data', () => {
   it('rejects state and transition metadata in the wrong positions', () => {
     setup({
       types: {
-        stateMeta: {} as { state: string },
+        meta: {} as { state: string },
         transitionMeta: {} as { transition: string }
       }
     }).createMachine({

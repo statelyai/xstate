@@ -1520,10 +1520,11 @@ export interface SetupTypes<
   input?: TInput;
   output?: TOutput;
   emitted?: TEmitted;
-  /** State-node metadata. Retained as the shared metadata declaration for compatibility. */
+  /**
+   * State-node metadata. Also used for transition metadata when
+   * `transitionMeta` is not specified.
+   */
   meta?: TStateMeta;
-  /** State-node metadata. */
-  stateMeta?: TStateMeta;
   /** Transition metadata. */
   transitionMeta?: TTransitionMeta;
 }
@@ -1559,7 +1560,6 @@ export interface MachineTypes<
   guards?: TGuard;
   delays?: TDelay;
   meta?: TStateMeta;
-  stateMeta?: TStateMeta;
   transitionMeta?: TTransitionMeta;
 }
 
