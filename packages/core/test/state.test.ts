@@ -529,12 +529,16 @@ describe('State', () => {
 });
 
 it.each(['__proto__', 'constructor', 'toString'])(
-  'transitions from a state named %s',
+  'transitions from a state named %s in a JSON config',
   (key) => {
-    const machine = createMachine({
-      initial: key,
-      states: { [key]: { on: { GO: 'done' } }, done: { type: 'final' } }
-    });
+    const machine = createMachine(
+      JSON.parse(
+        JSON.stringify({
+          initial: key,
+          states: { [key]: { on: { GO: 'done' } }, done: { type: 'final' } }
+        })
+      )
+    );
     const actor = createActor(machine);
     const error = vi.fn();
     actor.subscribe({ error });
