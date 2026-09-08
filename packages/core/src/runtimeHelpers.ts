@@ -18,7 +18,10 @@ type StepEffects = Record<
 >;
 
 function getStepEffect(actor: AnyActor, key: string) {
-  return (actor.getSnapshot() as { effects?: StepEffects }).effects?.[key];
+  const effects = (actor.getSnapshot() as { effects?: StepEffects }).effects;
+  return effects && Object.prototype.hasOwnProperty.call(effects, key)
+    ? effects[key]
+    : undefined;
 }
 
 // Live promises belong to an actor incarnation, unlike its persisted journal.

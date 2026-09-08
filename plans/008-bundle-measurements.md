@@ -68,3 +68,7 @@ Node v25.9.0; esbuild 0.25.4; Terser 5.49.0; pako 2.1.0. Lockfile SHA256: `e56ed
 | react-machine | 27602 | 27669 | 26297 | 26378 | 6acb3e102e50788d |
 | react-store | 3316 | 3203 | 3111 | 3036 | 88131a1887146232 |
 | kitchen-sink | 35547 | 35592 | 34131 | 34127 | d5acb39aa24261fb |
+
+## Subsequent arbitrary-key and cleanup correctness follow-up
+
+All25 source profiles still pass both minifiers after own-property journal reads, prototype-safe state names, and draining all cleanups after an error. Relative to the table above: custom-logic-actor 6747 → 6778 (+31 bytes); minimal-machine 25867 → 25943 (+76 bytes); invoked 27158 → 27269 (+111 bytes); store-counter 2975 → 2975 (+0 bytes). Production profiles will be rechecked after the subsequent declaration-boundary repair.

@@ -527,3 +527,21 @@ describe('State', () => {
     });
   });
 });
+
+it.each(['__proto__', 'constructor', 'toString'])(
+  'transitions from a state named %s',
+  (key) => {
+    const machine = createMachine({
+      initial: key,
+      states: { [key]: { on: { GO: 'done' } }, done: { type: 'final' } }
+    });
+    const actor = createActor(machine);
+    const error = vi.fn();
+    actor.subscribe({ error });
+    actor.start();
+    expect(Object.hasOwn(machine.root.states, key)).toBe(true);
+    actor.send({ type: 'GO' });
+    expect(actor.getSnapshot().status).toBe('done');
+    expect(error).not.toHaveBeenCalled();
+  }
+);

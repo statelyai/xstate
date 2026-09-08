@@ -206,10 +206,16 @@ function cleanupLogicEffects(self: AnyActorRef): void {
   if (!state) {
     return;
   }
-  for (const { cleanup } of state.values()) {
-    cleanup?.();
-  }
   effectStates.delete(self);
+  let failure: { error: unknown } | undefined;
+  for (const { cleanup } of state.values()) {
+    try {
+      cleanup?.();
+    } catch (error) {
+      failure ??= { error };
+    }
+  }
+  if (failure) throw failure.error;
 }
 
 function resolveContext<TContext, TInput>(
@@ -379,12 +385,17 @@ export function createLogic<
     }
 
     const effects: LogicEffect<TEvent, TEmitted>[] = [];
-    const trackedEffects: Record<string, LogicEffectState> = {};
+    const trackedEffects: Record<string, LogicEffectState> =
+      Object.create(null);
     const enqueueEffect = (
       key: string,
       exec: (runtime?: Partial<ActorSystemRuntime>) => void | (() => void)
     ) => {
-      const recorded = snapshot.effects?.[key];
+      const recorded =
+        snapshot.effects &&
+        Object.prototype.hasOwnProperty.call(snapshot.effects, key)
+          ? snapshot.effects[key]
+          : undefined;
       // Active process-local attachments must be recreated on restore. A
       // completed effect remains memoized; ordinary events never reattach.
       if (

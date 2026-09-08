@@ -120,7 +120,7 @@ actor.getSnapshot().context.count; // 1
 | `enq.effect(exec)` | Run a side effect; return a cleanup function from `exec`. |
 | `enq.effect(key, exec)` | Run a keyed effect once. |
 
-A keyed effect starts once and is tracked on `snapshot.effects[key]`. Later transitions that enqueue the same key do nothing. Restoring an active actor reattaches active keyed effects; completed effects remain memoized. Cleanup functions run when the actor stops.
+A keyed effect starts once and is tracked on `snapshot.effects[key]`. Later transitions that enqueue the same key do nothing. Restoring an active actor reattaches active keyed effects; completed effects remain memoized. Cleanup functions run when the actor stops. Every cleanup is attempted even if one throws; the first error is reported through the actor. Effect keys may be any string, including `__proto__` and `constructor`.
 
 ```ts
 run: ({ context }, enq) => {
