@@ -6,15 +6,15 @@
   "author": "David Khourshid",
   "license": "MIT",
   "scripts": {
-    "start": "parcel index.html --open",
-    "build": "parcel build index.html"
+    "start": "vite --open",
+    "build": "tsc --noEmit && vite build"
   },
   "dependencies": {
-    "parcel-bundler": "^1.12.5",
     "xstate": "workspace:*",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^8.2.2"
   }
 }

@@ -16,7 +16,6 @@ allowBuilds:
   lmdb: true
   msgpackr-extract: true
   oxc-resolver: true
-  parcel-bundler: true
   protobufjs: true
   svelte-preprocess: true
   vue-demi: true
@@ -40,9 +39,20 @@ minimumReleaseAgeExclude:
   - '@changesets/write@1.0.0'
 
 overrides:
+  # SCXML tests read this pinned package's fixtures only, never its HTTP runner.
+  '@scion-scxml/test-framework@2.0.16>cli-table': '-'
+  '@scion-scxml/test-framework@2.0.16>github': '-'
+  '@scion-scxml/test-framework@2.0.16>grunt': '-'
+  '@scion-scxml/test-framework@2.0.16>grunt-release': '-'
+  '@scion-scxml/test-framework@2.0.16>load-grunt-tasks': '-'
+  '@scion-scxml/test-framework@2.0.16>node-static': '-'
+  '@scion-scxml/test-framework@2.0.16>nopt': '-'
+  '@scion-scxml/test-framework@2.0.16>request': '-'
+  '@scion-scxml/test-framework@2.0.16>underscore': '-'
   '@types/node': 25.2.1
+  'vite-node@3.2.4>vite': 6.4.3
+  'vite@>=6.0.0 <6.4.3': 6.4.3
   stylus: 0.55.0
-  vite: 5.4.21
   vue: 3.5.17
   yaml: 2.8.2
 

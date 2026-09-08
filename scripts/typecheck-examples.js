@@ -1,34 +1,47 @@
 // @ts-check
-const fs = require('fs');
-const path = require('path');
-const cp = require('child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
-const examplesDir = path.resolve(__dirname, '..', 'examples');
+const root = path.resolve(__dirname, '..');
+const selected = process.argv.slice(2);
+const examples = selected.length
+  ? selected.map((name) =>
+      path.isAbsolute(name) || name.includes('/')
+        ? path.resolve(name)
+        : path.join(root, 'examples', name)
+    )
+  : fs
+      .readdirSync(path.join(root, 'examples'))
+      .map((name) => path.join(root, 'examples', name));
 
-const examples = fs.readdirSync(examplesDir);
-
-// run tsc on each subdirectory in /examples/*
-for (const example of examples) {
-  console.log('Checking example: ' + example);
-  const dirPath = path.join(examplesDir, example);
-
-  if (!fs.existsSync(path.join(dirPath, 'package.json'))) {
-    console.log('Skipping ' + example + ' (no package.json)');
+let failed = false;
+for (const directory of examples) {
+  const config = path.join(directory, 'tsconfig.json');
+  if (!fs.existsSync(config)) {
+    console.error(`Skipping ${directory}: no tsconfig.json`);
+    failed ||= selected.length > 0;
     continue;
   }
 
-  const exampleDir = path.join(
-    path.resolve(__dirname, '..', 'examples', example)
-  );
-  const tscPath = path.join(process.cwd(), 'node_modules', '.bin', 'tsc');
-
+  console.log(`Checking ${directory}`);
   try {
-    cp.execSync(`${tscPath} --noEmit --skipLibCheck`, {
-      cwd: exampleDir,
-      stdio: 'inherit'
+    const manifestPath = require.resolve('typescript/package.json', {
+      paths: [directory, root]
     });
-  } catch (err) {
-    console.error(exampleDir);
-    console.error(err);
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const compiler = path.resolve(
+      path.dirname(manifestPath),
+      manifest.bin.tsc ?? manifest.bin.tsc6
+    );
+    execFileSync(
+      process.execPath,
+      [compiler, '--project', config, '--noEmit'],
+      { cwd: directory, stdio: 'inherit' }
+    );
+  } catch {
+    failed = true;
+    console.error(`Typecheck failed: ${directory}`);
   }
 }
+process.exitCode = failed ? 1 : 0;

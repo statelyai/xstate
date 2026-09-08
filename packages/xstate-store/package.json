@@ -36,7 +36,7 @@
   "devDependencies": {
     "@statelyai/inspect": "^0.4.0",
     "@testing-library/vue": "^8.1.0",
-    "@vitejs/plugin-vue": "^5.1.2",
+    "@vitejs/plugin-vue": "^6.0.8",
     "@xstate/vue": "workspace:^",
     "immer": "^10.0.2",
     "react": "^19.0.0",

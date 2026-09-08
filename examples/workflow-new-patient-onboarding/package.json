@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "typescript": "^5.9.3",
-    "vite": "^4.5.14",
+    "vite": "^6.4.3",
     "vite-node": "^0.31.4"
   },
   "dependencies": {

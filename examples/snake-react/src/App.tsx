@@ -1,12 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useActor } from '@xstate/react';
-import { type Dir, getGamObjectAtPos, snakeMachine } from './snakeMachine';
+import { type Dir, snakeMachine } from './snakeMachine';
+import { createOccupancyIndex } from './occupancy';
 
 function App() {
   const [current, send] = useActor(snakeMachine);
   const { gridSize, score, highScore } = current.context;
   const isGameOver = current.matches('Game Over');
-  console.log(current);
+  const occupancy = useMemo(
+    () => createOccupancyIndex(current.context),
+    [current.context]
+  );
 
   useEffect(() => {
     function keyListener(event: KeyboardEvent) {
@@ -45,8 +49,7 @@ function App() {
       >
         {Array.from({ length: gridSize.y }).map((_, row) =>
           Array.from({ length: gridSize.x }).map((_, col) => {
-            const { type, dir } =
-              getGamObjectAtPos(current.context, { x: col, y: row }) || {};
+            const { type, dir } = occupancy.get(`${col},${row}`) || {};
             return (
               <div className="cell" key={`${col} ${row}`}>
                 <span

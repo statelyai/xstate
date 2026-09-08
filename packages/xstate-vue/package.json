@@ -63,7 +63,7 @@
   },
   "devDependencies": {
     "@testing-library/vue": "^8.1.0",
-    "@vitejs/plugin-vue": "^5.1.2",
+    "@vitejs/plugin-vue": "^6.0.8",
     "vue": "3.5.27",
     "xstate": "workspace:^"
   }

@@ -6,15 +6,15 @@ export const donutMachine = createMachine({
   states: {
     ingredients: {
       on: {
-        NEXT: 'directions'
+        NEXT: { target: 'directions' }
       }
     },
     directions: {
       initial: 'makeDough',
-      onDone: 'fry',
+      onDone: { target: 'fry' },
       states: {
         makeDough: {
-          on: { NEXT: 'mix' }
+          on: { NEXT: { target: 'mix' } }
         },
         mix: {
           type: 'parallel',
@@ -23,7 +23,7 @@ export const donutMachine = createMachine({
               initial: 'mixing',
               states: {
                 mixing: {
-                  on: { MIXED_DRY: 'mixed' }
+                  on: { MIXED_DRY: { target: 'mixed' } }
                 },
                 mixed: {
                   type: 'final'
@@ -34,7 +34,7 @@ export const donutMachine = createMachine({
               initial: 'mixing',
               states: {
                 mixing: {
-                  on: { MIXED_WET: 'mixed' }
+                  on: { MIXED_WET: { target: 'mixed' } }
                 },
                 mixed: {
                   type: 'final'
@@ -42,7 +42,7 @@ export const donutMachine = createMachine({
               }
             }
           },
-          onDone: 'allMixed'
+          onDone: { target: 'allMixed' }
         },
         allMixed: {
           type: 'final'
@@ -51,27 +51,27 @@ export const donutMachine = createMachine({
     },
     fry: {
       on: {
-        NEXT: 'flip'
+        NEXT: { target: 'flip' }
       }
     },
     flip: {
       on: {
-        NEXT: 'dry'
+        NEXT: { target: 'dry' }
       }
     },
     dry: {
       on: {
-        NEXT: 'glaze'
+        NEXT: { target: 'glaze' }
       }
     },
     glaze: {
       on: {
-        NEXT: 'serve'
+        NEXT: { target: 'serve' }
       }
     },
     serve: {
       on: {
-        ANOTHER_DONUT: 'ingredients'
+        ANOTHER_DONUT: { target: 'ingredients' }
       }
     }
   }
