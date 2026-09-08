@@ -31,7 +31,8 @@ import type {
   AnyStateNodeConfig,
   ProvidedActor,
   NonReducibleUnknown,
-  EventDescriptor
+  EventDescriptor,
+  MetaObject
 } from './types.ts';
 import {
   createInvokeId,
@@ -59,16 +60,20 @@ const toSerializableAction = (action: UnknownAction) => {
 
 interface StateNodeOptions<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject
 > {
   _key: string;
-  _parent?: StateNode<TContext, TEvent>;
+  _parent?: StateNode<TContext, TEvent, TStateMeta, TTransitionMeta>;
   _machine: AnyStateMachine;
 }
 
 export class StateNode<
   TContext extends MachineContext = MachineContext,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = EventObject,
+  TStateMeta extends MetaObject = MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
 > {
   /**
    * The relative key of the state node, which represents its location in the
@@ -90,7 +95,12 @@ export class StateNode<
   /** The string path from the root machine node to this node. */
   public path: string[];
   /** The child state nodes. */
-  public states: StateNodesConfig<TContext, TEvent>;
+  public states: StateNodesConfig<
+    TContext,
+    TEvent,
+    TStateMeta,
+    TTransitionMeta
+  >;
   /**
    * The type of history on this state node. Can be:
    *
@@ -103,7 +113,7 @@ export class StateNode<
   /** The action(s) to be executed upon exiting the state node. */
   public exit: UnknownAction[];
   /** The parent state node. */
-  public parent?: StateNode<TContext, TEvent>;
+  public parent?: StateNode<TContext, TEvent, TStateMeta, TTransitionMeta>;
   /** The root machine node. */
   public machine: StateMachine<
     TContext,
@@ -118,14 +128,15 @@ export class StateNode<
     any, // input
     any, // output
     any, // emitted
-    any, // meta
-    any // state schema
+    TStateMeta,
+    any, // state schema
+    TTransitionMeta
   >;
   /**
    * The meta data associated with this state node, which will be returned in
    * State instances.
    */
-  public meta?: any;
+  public meta?: TStateMeta;
   /**
    * The output data sent with the "xstate.done.state._id_" event if this is a
    * final state node.
@@ -143,8 +154,13 @@ export class StateNode<
   public description?: string;
 
   public tags: string[] = [];
-  public transitions!: Map<string, TransitionDefinition<TContext, TEvent>[]>;
-  public always?: Array<TransitionDefinition<TContext, TEvent>>;
+  public transitions!: Map<
+    string,
+    TransitionDefinition<TContext, TEvent, TTransitionMeta>[]
+  >;
+  public always?: Array<
+    TransitionDefinition<TContext, TEvent, TTransitionMeta>
+  >;
 
   constructor(
     /** The raw config used to create the machine. */
@@ -158,9 +174,10 @@ export class StateNode<
       TODO, // tags
       TODO, // output
       TODO, // emitted
-      TODO // meta
+      TStateMeta,
+      TTransitionMeta
     >,
-    options: StateNodeOptions<TContext, TEvent>
+    options: StateNodeOptions<TContext, TEvent, TStateMeta, TTransitionMeta>
   ) {
     this.parent = options._parent;
     this.key = options._key;
@@ -221,7 +238,7 @@ export class StateNode<
 
   /** @internal */
   public _initialize() {
-    this.transitions = formatTransitions(this);
+    this.transitions = formatTransitions(this) as typeof this.transitions;
     if (this.config.always) {
       this.always = toTransitionConfigArray(this.config.always).map((t) =>
         formatTransition(this, NULL_EVENT, t)
@@ -234,7 +251,12 @@ export class StateNode<
   }
 
   /** The well-structured state node definition. */
-  public get definition(): StateNodeDefinition<TContext, TEvent> {
+  public get definition(): StateNodeDefinition<
+    TContext,
+    TEvent,
+    TStateMeta,
+    TTransitionMeta
+  > {
     return {
       id: this.id,
       key: this.key,
@@ -247,18 +269,24 @@ export class StateNode<
             actions: this.initial.actions.map(toSerializableAction),
             eventType: null as any,
             reenter: false,
+            meta: this.initial.meta,
+            description: this.initial.description,
             toJSON: () => ({
               target: this.initial.target.map((t) => `#${t.id}`),
               source: `#${this.id}`,
               actions: this.initial.actions.map(toSerializableAction),
-              eventType: null as any
+              eventType: null as any,
+              meta: this.initial.meta,
+              description: this.initial.description
             })
           }
         : undefined,
       history: this.history,
-      states: mapValues(this.states, (state: StateNode<TContext, TEvent>) => {
-        return state.definition;
-      }) as StatesDefinition<TContext, TEvent>,
+      states: mapValues(
+        this.states,
+        (state: StateNode<TContext, TEvent, TStateMeta, TTransitionMeta>) =>
+          state.definition
+      ) as StatesDefinition<TContext, TEvent, TStateMeta, TTransitionMeta>,
       on: this.on,
       transitions: [...this.transitions.values()].flat().map((t) => ({
         ...t,
@@ -290,7 +318,7 @@ export class StateNode<
       ParameterizedObject,
       string,
       TODO, // TEmitted
-      TODO // TMeta
+      TTransitionMeta
     >
   > {
     return memo(this, 'invoke', () =>
@@ -324,14 +352,14 @@ export class StateNode<
           ParameterizedObject,
           string,
           TODO, // TEmitted
-          TODO // TMeta
+          TTransitionMeta
         >;
       })
     );
   }
 
   /** The mapping of events to transitions. */
-  public get on(): TransitionDefinitionMap<TContext, TEvent> {
+  public get on(): TransitionDefinitionMap<TContext, TEvent, TTransitionMeta> {
     return memo(this, 'on', () => {
       const transitions = this.transitions;
 
@@ -343,12 +371,14 @@ export class StateNode<
             map[descriptor].push(transition);
             return map;
           },
-          {} as TransitionDefinitionMap<TContext, TEvent>
+          {} as TransitionDefinitionMap<TContext, TEvent, TTransitionMeta>
         );
     });
   }
 
-  public get after(): Array<DelayedTransitionDefinition<TContext, TEvent>> {
+  public get after(): Array<
+    DelayedTransitionDefinition<TContext, TEvent, TTransitionMeta>
+  > {
     return memo(
       this,
       'delayedTransitions',
@@ -356,9 +386,19 @@ export class StateNode<
     );
   }
 
-  public get initial(): InitialTransitionDefinition<TContext, TEvent> {
-    return memo(this, 'initial', () =>
-      formatInitialTransition(this, this.config.initial)
+  public get initial(): InitialTransitionDefinition<
+    TContext,
+    TEvent,
+    TTransitionMeta
+  > {
+    return memo(
+      this,
+      'initial',
+      () =>
+        formatInitialTransition(
+          this,
+          this.config.initial
+        ) as typeof this.initial
     );
   }
 
@@ -375,16 +415,23 @@ export class StateNode<
       any // TStateSchema
     >,
     event: TEvent
-  ): TransitionDefinition<TContext, TEvent>[] | undefined {
+  ): TransitionDefinition<TContext, TEvent, TTransitionMeta>[] | undefined {
     const eventType = event.type;
     const actions: UnknownAction[] = [];
 
-    let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
+    let selectedTransition:
+      | TransitionDefinition<TContext, TEvent, TTransitionMeta>
+      | undefined;
 
-    const candidates: Array<TransitionDefinition<TContext, TEvent>> = memo(
+    const candidates: Array<
+      TransitionDefinition<TContext, TEvent, TTransitionMeta>
+    > = memo(
       this,
       `candidates-${eventType}`,
-      () => getCandidates(this, eventType)
+      () =>
+        getCandidates(this, eventType) as Array<
+          TransitionDefinition<TContext, TEvent, TTransitionMeta>
+        >
     );
 
     for (const candidate of candidates) {
