@@ -1,17 +1,9 @@
 import './App.css';
 import { feedbackMachine } from './feedbackMachine';
 import { useMachine } from '@xstate/react';
-import { createBrowserInspector } from '@statelyai/inspect';
-
-const { inspect } = createBrowserInspector({
-  // Comment out the line below to start the inspector
-  autoStart: false
-});
 
 function Feedback() {
-  const [state, send] = useMachine(feedbackMachine, {
-    inspect
-  });
+  const [state, send] = useMachine(feedbackMachine);
 
   if (state.matches('closed')) {
     return (
@@ -79,6 +71,7 @@ function Feedback() {
           <h2>What can we do better?</h2>
           <textarea
             name="feedback"
+            value={state.context.feedback}
             rows={4}
             placeholder="So many things..."
             onChange={(ev) => {
