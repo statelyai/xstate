@@ -8,6 +8,7 @@ export default defineProject({
     include: ['test/**/*.test.{ts,tsx}'],
     exclude: [...includeSolid, ...includeVue],
     globals: true,
+    server: { deps: { inline: ['@statelyai/inspect'] } },
     environment: 'happy-dom'
   }
 });

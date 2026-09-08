@@ -89,9 +89,19 @@ const App = () => {
 };
 ```
 
-To wire up an inspector, pass the `inspect` option. The inspector is subscribed while the option is provided and unsubscribed when it is removed or the component unmounts:
+To wire up an inspector, pass a stable `inspect` callback. The inspector is subscribed while the option is provided and unsubscribed when it is removed or the component unmounts. Stores emit `@xstate.transition` events. With `@statelyai/inspect`, forward these through its public `snapshot()` method; its `inspect` observer accepts the XState v5 inspection protocol.
 
 ```tsx
+import type { StoreInspectionEvent } from '@xstate/store';
+import { createBrowserInspector } from '@statelyai/inspect';
+
+// Outside the component: keep the callback stable between renders.
+const inspector = createBrowserInspector();
+const inspectStore = (event: StoreInspectionEvent) => {
+  inspector.snapshot(event.actorRef, event.snapshot, { event: event.event });
+};
+
+// Inside the component:
 const store = useStore(
   {
     context: { count: 0 },
@@ -99,7 +109,7 @@ const store = useStore(
       inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
     }
   },
-  { inspect: inspector.inspect }
+  { inspect: inspectStore }
 );
 ```
 

@@ -1,9 +1,12 @@
 import './App.css';
-import { createStore } from '@xstate/store';
+import { createStore, type StoreInspectionEvent } from '@xstate/store';
 import { useSelector, useStore } from '@xstate/store-react';
 import { createBrowserInspector } from '@statelyai/inspect';
 
 const inspector = createBrowserInspector();
+const inspectStore = (event: StoreInspectionEvent) => {
+  inspector.snapshot(event.actorRef, event.snapshot, { event: event.event });
+};
 
 const store = createStore({
   context: {
@@ -23,7 +26,7 @@ const store = createStore({
   }
 });
 
-store.inspect(inspector.inspect);
+store.inspect(inspectStore);
 
 function LocalCounter() {
   const localStore = useStore(
@@ -39,7 +42,7 @@ function LocalCounter() {
         }
       }
     },
-    { inspect: inspector.inspect }
+    { inspect: inspectStore }
   );
   const count = useSelector(localStore, (s) => s.context.count);
 
