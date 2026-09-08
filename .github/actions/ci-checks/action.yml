@@ -6,6 +6,27 @@ runs:
       run: pnpm build
       shell: bash
 
+    - name: Maintained examples and tooling
+      run: pnpm check:examples
+      shell: bash
+
+    - name: Standalone templates
+      run: pnpm check:templates
+      shell: bash
+
+    - name: Bundle behavior verification and size reports
+      run: |
+        node --test scripts/bundle-size-verify.test.mjs
+        node scripts/bundle-size.mjs --report --verify --json > "$RUNNER_TEMP/bundle-size-source.json"
+        node scripts/bundle-size.mjs --dist --verify --json > "$RUNNER_TEMP/bundle-size-dist.json"
+      shell: bash
+
+    - name: Upload bundle size reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: bundle-size-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}
+        path: ${{ runner.temp }}/bundle-size-*.json
+
     - name: Oxlint
       run: pnpm lint
       shell: bash

@@ -120,3 +120,21 @@ it('replays the last permitted override candidate matching a serialized event', 
   expect(path.state.context).toBe(2);
   expect(path.steps[1].event).toEqual({ type: 'ADD', amount: 100 });
 });
+
+it.each(['shortest', 'simple', 'replay'] as const)(
+  'initializes a machine once with explicit undefined fromState: %s',
+  (mode) => {
+    const machine = createMachine({ initial: 'idle', states: { idle: {} } });
+    const initialize = vi.spyOn(machine, 'getInitialSnapshot');
+    const options = { fromState: undefined, events: [] };
+    const paths =
+      mode === 'replay'
+        ? getPathsFromEvents(machine, [], options)
+        : (mode === 'shortest' ? getShortestPaths : getSimplePaths)(
+            machine,
+            options
+          );
+    expect(paths).toHaveLength(1);
+    expect(initialize).toHaveBeenCalledTimes(1);
+  }
+);

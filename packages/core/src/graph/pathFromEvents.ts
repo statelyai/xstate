@@ -53,11 +53,17 @@ export function getPathsFromEvents<
         typeof options.events === 'function'
           ? options.events(state)
           : options.events;
-      nextEvent = candidates.findLast(
-        (candidate) =>
+      nextEvent = undefined;
+      for (let index = candidates.length - 1; index >= 0; index--) {
+        const candidate = candidates[index];
+        if (
           (!filterEvents || filterEvents(state, candidate)) &&
           serializeEvent(candidate) === eventSerial
-      );
+        ) {
+          nextEvent = candidate;
+          break;
+        }
+      }
     } else if (filterEvents && !filterEvents(state, event)) {
       nextEvent = undefined;
     }
