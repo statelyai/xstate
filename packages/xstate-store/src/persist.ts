@@ -118,6 +118,7 @@ export type PersistOptions<
 
 // Internal helpers
 const PERSIST_INTERNALS: unique symbol = Symbol.for('xstate-store-persist');
+const PERSIST_REVISION: unique symbol = Symbol('xstate-store-persist-revision');
 
 interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   options: PersistOptions<TContext, TEvent>;
@@ -127,6 +128,7 @@ interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   pendingCheckpoint: unknown;
   flushTimeoutId: ReturnType<typeof setTimeout> | null;
   pendingWrite: Promise<void> | null;
+  lastScheduledRevision: number;
   flush: () => void | Promise<void>;
 }
 
@@ -301,6 +303,7 @@ function createInternals<TContext, TEvent extends EventObject>(
     pendingCheckpoint: null,
     flushTimeoutId: null,
     pendingWrite: null,
+    lastScheduledRevision: 0,
     flush: () => {
       if (internals.flushTimeoutId !== null) {
         clearTimeout(internals.flushTimeoutId);
@@ -452,9 +455,12 @@ function persistSnapshotFromLogic<
       // Delegate to wrapped logic
       const [nextSnapshot, effects] = logic.transition(snapshot, event);
 
+      const revision = (snapshot[PERSIST_REVISION] ?? 0) + 1;
+
       // Preserve _persist metadata
       const snapshotWithMeta = {
         ...nextSnapshot,
+        [PERSIST_REVISION]: revision,
         _persist: snapshot._persist ?? { hydrated: false },
         [PERSIST_INTERNALS]: internals
       };
@@ -469,25 +475,23 @@ function persistSnapshotFromLogic<
         return [snapshotWithMeta, effects];
       }
 
-      // Schedule storage write
-      if (throttleMs > 0) {
-        const persistEffect = () => {
+      // Commit before wrapped effects can trigger another event. Subscribers can
+      // already have committed a newer eligible event before effects begin.
+      const persistEffect = () => {
+        if (revision <= internals.lastScheduledRevision) return;
+        internals.lastScheduledRevision = revision;
+        if (throttleMs > 0) {
           internals.pendingContext = nextSnapshot.context;
           if (internals.flushTimeoutId === null) {
             internals.flushTimeoutId = setTimeout(() => {
               void internals.flush();
             }, throttleMs);
           }
-        };
-        return [snapshotWithMeta, [...effects, persistEffect]];
-      }
-
-      // Immediate write as effect
-      const persistEffect = () => {
-        void writeSnapshotToStorage(internals as any, nextSnapshot.context);
+        } else {
+          void writeSnapshotToStorage(internals as any, nextSnapshot.context);
+        }
       };
-
-      return [snapshotWithMeta, [...effects, persistEffect]];
+      return [snapshotWithMeta, [persistEffect, ...effects]];
     }
   };
 
@@ -620,6 +624,7 @@ function persistEventFromLogic<
           return [
             {
               ...replayedSnapshot,
+              [PERSIST_REVISION]: snapshot[PERSIST_REVISION],
               _persistEvents: events,
               _persistCheckpoint: parsed.checkpoint ?? null,
               _persist: { ...snapshot._persist, hydrated: true },
@@ -646,9 +651,12 @@ function persistEventFromLogic<
       const prevEvents: TEvent[] = snapshot._persistEvents ?? [];
       const prevCheckpoint: unknown = snapshot._persistCheckpoint ?? null;
 
+      const revision = (snapshot[PERSIST_REVISION] ?? 0) + 1;
+
       // Preserve metadata
       const snapshotWithMeta = {
         ...nextSnapshot,
+        [PERSIST_REVISION]: revision,
         _persistEvents: prevEvents,
         _persistCheckpoint: prevCheckpoint,
         _persist: snapshot._persist ?? { hydrated: false },
@@ -682,9 +690,10 @@ function persistEventFromLogic<
         _persistCheckpoint: nextCheckpoint
       };
 
-      // Schedule storage write
-      if (throttleMs > 0) {
-        const persistEffect = () => {
+      const persistEffect = () => {
+        if (revision <= internals.lastScheduledRevision) return;
+        internals.lastScheduledRevision = revision;
+        if (throttleMs > 0) {
           internals.pendingEvents = nextEvents;
           internals.pendingCheckpoint = nextCheckpoint;
           if (internals.flushTimeoutId === null) {
@@ -692,16 +701,11 @@ function persistEventFromLogic<
               void internals.flush();
             }, throttleMs);
           }
-        };
-        return [snapshotWithEvents, [...effects, persistEffect]];
-      }
-
-      // Immediate write as effect
-      const persistEffect = () => {
-        void writeEventsToStorage(internals, nextEvents, nextCheckpoint);
+        } else {
+          void writeEventsToStorage(internals, nextEvents, nextCheckpoint);
+        }
       };
-
-      return [snapshotWithEvents, [...effects, persistEffect]];
+      return [snapshotWithEvents, [persistEffect, ...effects]];
     }
   };
 

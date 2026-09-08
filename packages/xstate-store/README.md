@@ -96,7 +96,10 @@ object is still allowed, and transitions that enqueue effects are allowed.
 
 Use the `persist` extension to save state after events are committed. Calling
 `store.can` or the pure `store.transition` method does not schedule writes.
-Asynchronous writes execute in event order for each store. Call
+Writes preserve commit order, including events triggered synchronously by effects
+or subscriptions. A newer eligible event can supersede an older pending write;
+`onDone` runs for writes actually performed. Asynchronous writes execute in event
+order for each store. Call
 `await flushStorage(store)` to write buffered changes and wait for queued writes
 to finish. Synchronous storage adapters continue to write synchronously.
 

@@ -14,6 +14,36 @@ import {
 
 // Mock localStorage
 describe('persistence lifecycle regressions', () => {
+  it.each([0, 100])(
+    'preserves an eligible snapshot when a nested event is filtered (throttle %i)',
+    async (throttle) => {
+      const storage = createMockStorage();
+      const store = createStore({
+        context: { value: 0 },
+        on: {
+          outer: () => ({ value: 1 }),
+          inner: () => ({ value: 2 })
+        }
+      }).with(
+        persist({
+          name: 'filtered-nested',
+          storage,
+          throttle,
+          filter: (event) => event.type === 'outer'
+        })
+      );
+      store.subscribe((snapshot) => {
+        if (snapshot.context.value === 1) store.trigger.inner();
+      });
+      store.trigger.outer();
+      expect(store.getSnapshot().context.value).toBe(2);
+      await flushStorage(store);
+      expect(
+        JSON.parse(storage.getItem('filtered-nested') as string).context.value
+      ).toBe(1);
+    }
+  );
+
   it('orders new async writes after a queued clear', async () => {
     const operations: string[] = [];
     const store = createStore({
@@ -1338,6 +1368,67 @@ describe('persist - strategy: event', () => {
 describe.each(['snapshot', 'event'] as const)(
   'persist committed %s writes',
   (strategy) => {
+    it.each([
+      [0, 'effect'],
+      [100, 'effect'],
+      [0, 'subscriber'],
+      [100, 'subscriber']
+    ] as const)(
+      'persists nested events in commit order (throttle %i, %s)',
+      async (throttle, nestedFrom) => {
+        const storage = createMockStorage();
+        const makeStore = () =>
+          createStore({
+            context: { value: 0 },
+            on: {
+              outer: (context, _event, enqueue) => {
+                if (nestedFrom === 'effect') {
+                  enqueue.effect(({ trigger }) => trigger.inner());
+                }
+                return { value: context.value * 10 + 1 };
+              },
+              inner: (context) => ({ value: context.value * 10 + 2 })
+            }
+          }).with(
+            persist({
+              name: 'nested',
+              strategy,
+              storage,
+              throttle,
+              ...(strategy === 'event' ? { maxEvents: 1 } : {})
+            })
+          );
+        const store = makeStore();
+        expect(store.can.outer()).toBe(true);
+        store.transition(store.getSnapshot(), { type: 'outer' });
+        await flushStorage(store);
+        expect(storage.getItem('nested')).toBeNull();
+
+        const subscription = store.subscribe((snapshot) => {
+          if (nestedFrom === 'subscriber' && snapshot.context.value === 1) {
+            store.trigger.inner();
+          }
+        });
+        store.trigger.outer();
+        subscription.unsubscribe();
+        expect(store.getSnapshot().context.value).toBe(12);
+        await flushStorage(store);
+        const saved = JSON.parse(storage.getItem('nested') as string);
+        if (strategy === 'snapshot') {
+          expect(saved.context.value).toBe(12);
+        } else {
+          expect(saved.events).toEqual([{ type: 'inner' }]);
+          expect(saved.checkpoint).toEqual({ value: 1 });
+        }
+        expect(makeStore().getSnapshot().context.value).toBe(12);
+
+        await rehydrateStore(store);
+        store.trigger.inner();
+        await flushStorage(store);
+        expect(makeStore().getSnapshot().context.value).toBe(122);
+      }
+    );
+
     it.each(['can', 'transition', 'validation'] as const)(
       'does not buffer %s evaluations',
       async (evaluation) => {
