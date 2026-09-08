@@ -6,6 +6,10 @@ runs:
       run: pnpm build
       shell: bash
 
+    - name: Strict built package declarations
+      run: node scripts/check-built-types.mjs
+      shell: bash
+
     - name: Maintained examples and tooling
       run: pnpm check:examples
       shell: bash
