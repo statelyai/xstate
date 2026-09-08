@@ -72,3 +72,35 @@ Node v25.9.0; esbuild 0.25.4; Terser 5.49.0; pako 2.1.0. Lockfile SHA256: `e56ed
 ## Subsequent arbitrary-key and cleanup correctness follow-up
 
 All25 source profiles still pass both minifiers after own-property journal reads, prototype-safe state names, and draining all cleanups after an error. Relative to the table above: custom-logic-actor 6747 → 6778 (+31 bytes); minimal-machine 25867 → 25943 (+76 bytes); invoked 27158 → 27269 (+111 bytes); store-counter 2975 → 2975 (+0 bytes). After the declaration-boundary repair and a fresh production build, all25 public-package distribution profiles pass both minifiers. Built gzip: custom actor 6972, minimal machine 25983, invoked 27302. The strict TypeScript consumer also passes with skipLibCheck disabled.
+
+## Final dependency-resolved verification
+
+Lockfile SHA256: `979bd60f07dd7cdf24673f6672363131e074e99ef9e648df36410787e7ab1c23`. Node v25.9.0; esbuild 0.25.4; Terser 5.49.0; pako 2.1.0. All 25 source and 25 public-package distribution profiles passed behavior assertions with both minifiers. Sizes below are gzip bytes. React is externalized in adapter profiles.
+
+| Profile | Source esbuild | Built esbuild | Source Terser | Built Terser |
+| --- | ---: | ---: | ---: | ---: |
+| fsm-logic | 389 | 384 | 376 | 376 |
+| fsm-entrypoint-logic | 389 | 384 | 376 | 376 |
+| minimal-machine | 25943 | 25983 | 24871 | 24939 |
+| minimal-fsm | 389 | 386 | 376 | 376 |
+| fsm-setup | 483 | 479 | 384 | 384 |
+| custom-logic-actor | 6778 | 6972 | 6612 | 6650 |
+| machine-construction | 25913 | 25964 | 24851 | 24916 |
+| pure-machine | 26082 | 26102 | 24969 | 25035 |
+| compound | 25952 | 25992 | 24878 | 24945 |
+| parallel | 25964 | 26004 | 24888 | 24957 |
+| history | 26007 | 26046 | 24939 | 25008 |
+| final | 25960 | 25999 | 24890 | 24958 |
+| eventless | 25950 | 25992 | 24876 | 24943 |
+| actionful | 25958 | 26000 | 24885 | 24952 |
+| invoked | 27269 | 27302 | 26206 | 26255 |
+| delayed | 25962 | 26001 | 24890 | 24958 |
+| persisted | 25977 | 26015 | 24901 | 24969 |
+| inspected | 25953 | 25993 | 24880 | 24947 |
+| machine-and-actors | 27320 | 27360 | 26261 | 26311 |
+| validated-machine | 27684 | 27689 | 26516 | 26568 |
+| store-counter | 2975 | 2869 | 2802 | 2742 |
+| store-atom | 1733 | 1695 | 1587 | 1534 |
+| react-machine | 27673 | 27736 | 26364 | 26445 |
+| react-store | 3316 | 3203 | 3111 | 3036 |
+| kitchen-sink | 35658 | 35698 | 34230 | 34255 |
