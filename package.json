@@ -44,6 +44,7 @@
     "lint": "oxlint --quiet --report-unused-disable-directives-severity=error",
     "lint:fix": "oxlint --fix --report-unused-disable-directives-severity=error",
     "typecheck": "tsc",
+    "typecheck:adapter-consumers": "tsc -p tsconfig.exact-optional.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:core": "vitest run --project xstate",
