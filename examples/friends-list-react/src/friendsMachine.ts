@@ -1,73 +1,45 @@
-import { ActorRefFrom, createMachine } from 'xstate';
+import { types, ActorRefFrom, createMachine } from 'xstate';
 import { friendMachine } from './friendMachine';
 
-const makeId = () => Math.random().toString(36).substring(7);
-
 export const friendsMachine = createMachine({
-  types: {} as {
-    context: {
+  schemas: {
+    context: types<{
       newFriendName: string;
-      friends: ActorRefFrom<typeof friendMachine>[];
-    };
-    events:
-      | {
-          type: 'FRIENDS.ADD';
-          name: string;
-        }
-      | {
-          type: 'NEW_FRIEND.CHANGE';
-          name: string;
-        }
-      | {
-          type: 'FRIEND.REMOVE';
-          index: number;
-        };
+      friends: { id: string; ref: ActorRefFrom<typeof friendMachine> }[];
+    }>(),
+    events: {
+      'FRIENDS.ADD': types<{ name: string }>(),
+      'NEW_FRIEND.CHANGE': types<{ name: string }>(),
+      'FRIEND.REMOVE': types<{ index: number }>()
+    }
   },
-  id: 'friends',
-  context: {
-    newFriendName: '',
-    friends: []
-  },
+  context: { newFriendName: '', friends: [] },
   on: {
-    'NEW_FRIEND.CHANGE': ({ context, event, guards, actions }, enq) => {
-      return {
-        context: {
-          ...context,
-          newFriendName: (({ event }) => event.name)({
-            context: context,
-            event: event
-          })
-        }
-      };
-    },
-    'FRIENDS.ADD': ({ context, event, guards, actions }, enq) => {
-      if (!(({ event }) => event.name.trim().length > 0)({ context, event })) {
-        return;
-      }
+    'NEW_FRIEND.CHANGE': ({ context, event }) => ({
+      context: { ...context, newFriendName: event.name }
+    }),
+    'FRIENDS.ADD': ({ context, event }, enq) => {
+      if (!event.name.trim()) return;
+      const id = crypto.randomUUID();
       const friend = enq.spawn(friendMachine, {
-        id: `friend-${makeId()}`,
-        input: {
-          name: context.newFriendName
-        }
+        id,
+        input: { name: event.name }
       });
       return {
         context: {
-          ...context,
-          friends: context.friends.concat(friend),
-          newFriendName: ''
+          newFriendName: '',
+          friends: [...context.friends, { id, ref: friend }]
         }
       };
     },
-    'FRIEND.REMOVE': ({ context, event, guards, actions }, enq) => {
-      enq.stop(context.friends[event.index]);
+    'FRIEND.REMOVE': ({ context, event }, enq) => {
+      const friend = context.friends[event.index];
+      if (!friend) return;
+      enq.stop(friend.ref);
       return {
         context: {
           ...context,
-          friends: (({ context, event }) =>
-            context.friends.filter((_, index) => index !== event.index))({
-            context: context,
-            event: event
-          })
+          friends: context.friends.filter((_, index) => index !== event.index)
         }
       };
     }

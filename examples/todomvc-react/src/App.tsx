@@ -3,8 +3,16 @@ import { Todos } from './Todos';
 import { createActorContext } from '@xstate/react';
 import { todosMachine } from './todosMachine';
 
+function readSnapshot() {
+  try {
+    return JSON.parse(localStorage.getItem('todos') || 'null') ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export const TodosContext = createActorContext(todosMachine, {
-  state: JSON.parse(localStorage.getItem('todos') || 'null')
+  snapshot: readSnapshot()
 });
 
 function App() {

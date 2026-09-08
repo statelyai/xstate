@@ -1,113 +1,27 @@
 import React, { useRef } from 'react';
 import { useActorRef, useSelector } from '@xstate/react';
 import cn from 'classnames';
-import { createMachine } from 'xstate';
+import { todoMachine } from './todoMachine';
 import { TodosContext } from './App';
 import { TodoItem } from './todosMachine';
-
-export const todoMachine = createMachine({
-  types: {
-    context: {} as {
-      initialTitle: string;
-      title: string;
-    },
-    events: {} as
-      | {
-          type: 'edit';
-        }
-      | {
-          type: 'blur';
-        }
-      | {
-          type: 'cancel';
-        }
-      | {
-          type: 'change';
-          value: string;
-        },
-    input: {} as {
-      todo: TodoItem;
-    }
-  },
-  actions: {
-    focusInput: () => {},
-    onCommit: () => {}
-  },
-  id: 'todo',
-  initial: 'reading',
-  context: ({ input }) => ({
-    initialTitle: input.todo.title,
-    title: input.todo.title
-  }),
-  states: {
-    reading: {
-      on: {
-        edit: 'editing'
-      }
-    },
-    editing: {
-      entry: (args, enq) => {
-        enq((actionArgs) => args.actions['focusInput'](actionArgs as any));
-        return {
-          context: {
-            ...args.context,
-            initialTitle: (({ context }) => context.title)({
-              context: args.context,
-              event: args.event
-            })
-          }
-        };
-      },
-      on: {
-        blur: ({ context, event, guards, actions }, enq) => {
-          enq((actionArgs) => actions['onCommit'](actionArgs as any));
-          return { target: 'reading' };
-        },
-        cancel: ({ context, event, guards, actions }, enq) => {
-          return {
-            target: 'reading',
-            context: {
-              ...context,
-              title: (({ context }) => context.initialTitle)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        },
-        change: ({ context, event, guards, actions }, enq) => {
-          return {
-            context: {
-              ...context,
-              title: (({ event }) => event.value)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        }
-      }
-    }
-  }
-});
 
 export function Todo({ todo }: { todo: TodoItem }) {
   const todosActorRef = TodosContext.useActorRef();
   const todoActorRef = useActorRef(
     todoMachine.provide({
       actions: {
-        onCommit: ({ context }) => {
+        onCommit: ({ title }) => {
           todosActorRef.send({
             type: 'todo.commit',
             todo: {
               ...todo,
-              title: context.title
+              title
             }
           });
         },
         focusInput: () => {
           setTimeout(() => {
-            inputRef.current && inputRef.current.select();
+            inputRef.current?.select();
           });
         }
       }

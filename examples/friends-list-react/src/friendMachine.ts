@@ -1,101 +1,54 @@
-import { createMachine, createAsyncLogic } from 'xstate';
+import { types, createMachine, createAsyncLogic } from 'xstate';
+
 export const friendMachine = createMachine({
-  types: {
-    context: {} as {
-      prevName: string;
-      name: string;
+  schemas: {
+    context: types<{ prevName: string; name: string }>(),
+    events: {
+      SET_NAME: types<{ value: string }>(),
+      SAVE: types<{}>(),
+      EDIT: types<{}>(),
+      CANCEL: types<{}>()
     },
-    events: {} as
-      | {
-          type: 'SET_NAME';
-          value: string;
-        }
-      | {
-          type: 'SAVE';
-        }
-      | {
-          type: 'EDIT';
-        }
-      | {
-          type: 'CANCEL';
-        },
-    input: {} as {
-      name: string;
-    },
-    tags: {} as 'read' | 'form' | 'saving'
+    input: types<{ name: string }>(),
+    tags: types<'read' | 'form' | 'saving'>()
   },
   actors: {
     saveUser: createAsyncLogic({
       run: async () => {
-        // Simulate network request
         await new Promise((resolve) => setTimeout(resolve, 1000));
         return true;
       }
     })
   },
-  id: 'friend',
   initial: 'reading',
-  context: ({ input }) => ({
-    prevName: input.name,
-    name: input.name
-  }),
+  context: ({ input }) => ({ prevName: input.name, name: input.name }),
   states: {
-    reading: {
-      tags: 'read',
-      on: {
-        EDIT: 'editing'
-      }
-    },
+    reading: { tags: ['read'], on: { EDIT: { target: 'editing' } } },
     editing: {
-      tags: 'form',
+      tags: ['form'],
       on: {
-        SET_NAME: ({ context, event, guards, actions }, enq) => {
-          return {
-            context: {
-              ...context,
-              name: (({ event }) => event.value)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        },
-        SAVE: {
-          target: 'saving'
-        }
+        SET_NAME: ({ context, event }) => ({
+          context: { ...context, name: event.value }
+        }),
+        SAVE: { target: 'saving' }
       }
     },
     saving: {
       tags: ['form', 'saving'],
       invoke: {
         src: 'saveUser',
-        onDone: ({ context, event, guards, actions }, enq) => {
-          return {
-            target: 'reading',
-            context: {
-              ...context,
-              prevName: (({ context }) => context.name)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        }
+        onDone: ({ context }) => ({
+          target: 'reading',
+          context: { ...context, prevName: context.name }
+        }),
+        onError: { target: 'editing' }
       }
     }
   },
   on: {
-    CANCEL: ({ context, event, guards, actions }, enq) => {
-      return {
-        target: '.reading',
-        context: {
-          ...context,
-          name: (({ context }) => context.prevName)({
-            context: context,
-            event: event
-          })
-        }
-      };
-    }
+    CANCEL: ({ context }) => ({
+      target: '.reading',
+      context: { ...context, name: context.prevName }
+    })
   }
 });

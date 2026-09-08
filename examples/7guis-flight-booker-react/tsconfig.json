@@ -1,15 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
 
-    "baseUrl": ".",
     "paths": {
-      "*": ["./*.d.ts"],
-      "@/*": ["./src/*", "./dist/*", ""]
+      "@/*": ["./src/*"]
     },
 
     /* Bundler mode */
@@ -26,5 +24,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
+  "include": ["src", "types.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

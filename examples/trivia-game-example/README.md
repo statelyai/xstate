@@ -38,5 +38,18 @@ pnpm install
 Start the development server on http://localhost:5173
 
 ```bash
-yarn dev
+pnpm dev
 ```
+
+<!-- sync:src -->
+
+This example uses the workspace XState v6 alpha. Machine schemas use `types<T>()` for static typing. From the repository root, install dependencies and run `pnpm build` first, then:
+
+```sh
+pnpm --dir examples/trivia-game-example dev
+pnpm --dir examples/trivia-game-example build
+```
+
+The machine regression tests run with the repository's `pnpm check:examples` command.
+
+Character requests require the Rick & Morty API. Failed loads show a Retry button; tests replace the API with deterministic fixtures and do not require network access.
