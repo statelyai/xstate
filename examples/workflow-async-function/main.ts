@@ -1,50 +1,6 @@
-import { createMachine, createAsyncLogic, createActor } from 'xstate';
-import { z } from 'zod';
-// https://github.com/serverlessworkflow/specification/tree/main/examples#async-function-invocation-example
-export const workflow = createMachine({
-  types: {
-    input: {} as {
-      customer: string;
-    }
-  },
-  actors: {
-    sendEmail: createAsyncLogic({
-      schemas: {
-        input: z.custom<{
-          customer: string;
-        }>()
-      },
-      run: async ({ input }) => {
-        console.log('Sending email to', input.customer);
-        await new Promise<void>((resolve) =>
-          setTimeout(() => {
-            console.log('Email sent to', input.customer);
-            resolve();
-          }, 1000)
-        );
-      }
-    })
-  },
-  id: 'async-function-invocation',
-  initial: 'Send email',
-  context: ({ input }) => ({
-    customer: input.customer
-  }),
-  states: {
-    'Send email': {
-      invoke: {
-        src: 'sendEmail',
-        input: ({ context }) => ({
-          customer: context.customer
-        }),
-        onDone: 'Email sent'
-      }
-    },
-    'Email sent': {
-      type: 'final'
-    }
-  }
-});
+import { createActor } from 'xstate';
+import { workflow } from './workflow.ts';
+
 const actor = createActor(workflow, {
   input: {
     customer: 'david@example.com'

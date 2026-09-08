@@ -17,6 +17,15 @@ const compiler = join(
   dirname(require.resolve('typescript/package.json')),
   compilerManifest.bin.tsc ?? compilerManifest.bin.tsc6
 );
+const publicEntries = Object.keys(
+  require(join(root, 'packages/core/package.json')).exports
+).filter((entry) => entry !== './package.json');
+const imports = publicEntries
+  .map(
+    (entry, index) =>
+      `import * as entry${index} from ${JSON.stringify(entry === '.' ? 'xstate' : 'xstate' + entry.slice(1))};`
+  )
+  .join('\n');
 const cache = join(root, 'node_modules', '.cache');
 mkdirSync(cache, { recursive: true });
 const consumer = mkdtempSync(join(cache, 'xstate-types-'));
@@ -31,13 +40,10 @@ try {
     join(consumer, 'index.mts'),
     `
     import { createActor, createMachine } from 'xstate';
-    import * as graph from 'xstate/graph';
-    import * as durable from 'xstate/durable';
-    import * as fsm from 'xstate/fsm';
-    import * as validation from 'xstate/validation';
+    ${imports}
     const actor = createActor(createMachine({ initial: 'idle', states: { idle: {} } }));
     actor.start(); actor.stop();
-    void [graph, durable, fsm, validation];
+    void [${publicEntries.map((_, index) => `entry${index}`).join(',')}];
   `
   );
   writeFileSync(

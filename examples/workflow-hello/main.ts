@@ -1,18 +1,5 @@
-import { createMachine, createActor } from 'xstate';
-
-// https://github.com/serverlessworkflow/specification/tree/main/examples#hello-world-example
-export const workflow = createMachine({
-  id: 'helloworld',
-  initial: 'Hello State',
-  states: {
-    'Hello State': {
-      type: 'final',
-      output: {
-        result: 'Hello World!'
-      }
-    }
-  }
-});
+import { createActor } from 'xstate';
+import { workflow } from './workflow.ts';
 
 const actor = createActor(workflow);
 
