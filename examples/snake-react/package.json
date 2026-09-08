@@ -13,8 +13,7 @@
     "@xstate/react": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "xstate": "workspace:*",
-    "zod": "^3.25.76"
+    "xstate": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.3.28",

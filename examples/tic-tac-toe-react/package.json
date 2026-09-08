@@ -8,13 +8,13 @@
   },
   "dependencies": {
     "@xstate/react": "workspace:*",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "xstate": "workspace:*"
   },
   "devDependencies": {
-    "@types/react": "^17.0.91",
-    "@types/react-dom": "^17.0.26",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
     "typescript": "^5.9.3",
     "vite": "^6.4.3"
   },

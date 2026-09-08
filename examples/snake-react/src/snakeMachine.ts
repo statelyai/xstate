@@ -1,5 +1,4 @@
-import { createMachine, createCallbackLogic } from 'xstate';
-import { z } from 'zod';
+import { createMachine, createCallbackLogic, types } from 'xstate';
 
 export type Dir = 'Up' | 'Left' | 'Down' | 'Right';
 export type Point = { x: number; y: number };
@@ -111,11 +110,11 @@ export function createInitialContext(): SnakeMachineContext {
 
 export const snakeMachine = createMachine({
   schemas: {
-    context: z.custom<SnakeMachineContext>(),
+    context: types<SnakeMachineContext>(),
     events: {
-      NEW_GAME: z.object({}),
-      ARROW_KEY: z.object({ dir: z.enum(['Up', 'Left', 'Down', 'Right']) }),
-      TICK: z.object({})
+      NEW_GAME: types<{}>(),
+      ARROW_KEY: types<{ dir: Dir }>(),
+      TICK: types<{}>()
     }
   },
   actors: {

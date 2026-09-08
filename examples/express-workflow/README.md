@@ -2,11 +2,13 @@
 
 This is a simple workflow engine built with:
 
-- XState v5
+- XState v6 alpha
 - TypeScript
 - Express
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/examples/express-workflow?file=index.ts)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/examples/express-workflow?file=index.ts)
+
+<!-- Commands from package.json; endpoints and state ownership from app.ts. -->
 
 ## Usage
 
@@ -29,7 +31,7 @@ Example response:
 
 ```json
 {
-  "workflowId": "7ky252"
+  "workflowId": "18d24758-bbf8-45c7-8b15-becdfb759efe"
 }
 ```
 
@@ -50,3 +52,5 @@ Gets the current state of a workflow instance.
 ```bash
 curl -X GET http://localhost:4242/workflows/:id
 ```
+
+Three `TIMER` events complete one green → yellow → red → green cycle and increment `context.cycles`. Invalid event shapes return 400; missing workflow IDs return 404. State lives in memory and resets when the server restarts. Each request stops its temporary actor after saving the snapshot.
