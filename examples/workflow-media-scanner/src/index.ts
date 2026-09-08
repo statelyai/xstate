@@ -1,24 +1,23 @@
 import { mediaScannerMachine } from './mediaScannerMachine';
 import { createActor } from 'xstate';
 
-(async () => {
-  console.log('Starting the awesome media scanner thingy');
-
-  const mediaScannerActor = createActor(mediaScannerMachine, {
-    input: {
-      basePath: 'YOUR BASE PATH HERE',
-      destinationPath: 'YOUR DESTINATION PATH HERE'
-    }
-  });
-
-  mediaScannerActor.subscribe((state) => {
-    console.log({
-      state: state.value,
-      error: state.error,
-      context: state.context
-    });
-  });
-
-  mediaScannerActor.start();
-  mediaScannerActor.send({ type: 'START_SCAN' });
-})();
+const [basePath, destinationPath] = process.argv.slice(2);
+if (!basePath || !destinationPath)
+  throw new Error(
+    'Usage: pnpm start <source-directory> <destination-directory>'
+  );
+const actor = createActor(mediaScannerMachine, {
+  input: { basePath, destinationPath }
+});
+actor.subscribe({
+  next(snapshot) {
+    console.log(snapshot.value, snapshot.context);
+    if (snapshot.matches('ReportingErrors')) process.exitCode = 1;
+  },
+  error(error) {
+    console.error(error);
+    process.exitCode = 1;
+  }
+});
+actor.start();
+actor.send({ type: 'START_SCAN' });

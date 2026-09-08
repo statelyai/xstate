@@ -58,7 +58,7 @@
     "@tsconfig/svelte": "^5.0.2",
     "svelte": "^5.0.0",
     "svelte-check": "^4.6.0",
-    "svelte-preprocess": "^5.0.0",
+    "svelte-preprocess": "^6.0.5",
     "vite": "^6.4.3",
     "xstate": "workspace:^"
   }

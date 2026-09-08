@@ -1,9 +1,16 @@
 import React from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router';
 import Home from './pages/Home';
 import Trivia from './pages/Trivia';
 import { TriviaMachineContext } from './context/AppContext';
 import triviaMachine from './triviaMachine';
+
+const TriviaRoute = () => {
+  const hasStarted = TriviaMachineContext.useSelector((state) =>
+    state.matches('startTrivia')
+  );
+  return hasStarted ? <Trivia /> : <Navigate to="/" replace />;
+};
 
 const App = () => {
   const navigate = useNavigate();
@@ -12,13 +19,15 @@ const App = () => {
       <TriviaMachineContext.Provider
         logic={triviaMachine.provide({
           actions: {
-            goToTriviaPage: () => navigate('/trivia')
+            goToTriviaPage: () => {
+              void navigate('/trivia');
+            }
           }
         })}
       >
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/trivia" element={<Trivia />} />
+          <Route path="/trivia" element={<TriviaRoute />} />
         </Routes>
       </TriviaMachineContext.Provider>
     </React.Fragment>

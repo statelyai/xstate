@@ -35,7 +35,7 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 
-✍️ Browse through the many [XState examples](https://github.com/statelyai/xstate/tree/main/examples)
+✍️ Browse through the many [XState examples](https://github.com/statelyai/xstate/tree/next/examples)
 
 ## Which package should I use?
 

@@ -80,7 +80,7 @@
     "@babel/preset-react": "^7.29.7",
     "@babel/preset-typescript": "^7.29.7",
     "@changesets/cli": "^3.0.0",
-    "@manypkg/cli": "^0.21.4",
+    "@manypkg/cli": "^0.22.0",
     "@preconstruct/cli": "^2.8.13",
     "@types/node": "25.2.1",
     "@typescript/native": "npm:typescript@^7.0.2",

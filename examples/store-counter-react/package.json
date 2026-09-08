@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@statelyai/inspect": "^0.4.0",
+    "@statelyai/inspect": "^0.7.2",
     "@xstate/store": "workspace:*",
     "@xstate/store-react": "workspace:*",
     "react": "^19.2.4",

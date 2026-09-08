@@ -1,16 +1,17 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // Preconstruct development links expose source via the module condition.
   resolve: { conditions: ['module', 'development', 'browser'] },
   ssr: { resolve: { conditions: ['module', 'development', 'node'] } },
   test: {
-    include: [
-      'examples/snake-react/src/snakeMachine.test.ts',
-      'examples/*/src/*.machine.test.ts',
-      'examples/express-workflow/*.test.ts',
-      'examples/mongodb-persisted-state/*.test.ts',
-      'examples/mongodb-credit-check-api/*.test.ts',
-      'examples/workflow-*/workflow.test.ts'
+    include: ['examples/**/*.{test,spec}.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      // These use node:test and run separately through test:tooling.
+      'examples/persisted-donut-maker/snapshotWriter.test.ts',
+      'examples/snake-react/src/occupancy.test.ts'
     ]
   }
 });

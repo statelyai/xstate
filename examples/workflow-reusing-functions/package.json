@@ -12,7 +12,6 @@
     "vite-node": "^3.2.4"
   },
   "dependencies": {
-    "xstate": "workspace:*",
-    "zod": "^3.25.76"
+    "xstate": "workspace:*"
   }
 }

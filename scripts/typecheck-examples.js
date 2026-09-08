@@ -34,11 +34,32 @@ for (const directory of examples) {
       path.dirname(manifestPath),
       manifest.bin.tsc ?? manifest.bin.tsc6
     );
-    execFileSync(
-      process.execPath,
-      [compiler, '--project', config, '--noEmit'],
-      { cwd: directory, stdio: 'inherit' }
-    );
+    const ts = require(path.dirname(manifestPath));
+    const checked = new Set();
+    // A solution config can contain no files; check its referenced projects too.
+    /** @param {string} project */
+    function checkProject(project) {
+      if (checked.has(project)) return;
+      checked.add(project);
+      const source = ts.readConfigFile(project, ts.sys.readFile);
+      if (source.error) throw new Error(`Cannot read ${project}`);
+      const parsed = ts.parseJsonConfigFileContent(
+        source.config,
+        ts.sys,
+        path.dirname(project),
+        undefined,
+        project
+      );
+      for (const reference of parsed.projectReferences ?? []) {
+        checkProject(ts.resolveProjectReferencePath(reference));
+      }
+      execFileSync(
+        process.execPath,
+        [compiler, '--project', project, '--noEmit'],
+        { cwd: path.dirname(project), stdio: 'inherit' }
+      );
+    }
+    checkProject(config);
   } catch {
     failed = true;
     console.error(`Typecheck failed: ${directory}`);

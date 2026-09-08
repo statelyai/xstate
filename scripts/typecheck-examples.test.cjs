@@ -47,3 +47,46 @@ test('checks only selected projects, handles spaces, and reports failures', () =
     fs.rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('checks referenced projects behind a solution config without emitting JavaScript', () => {
+  const directory = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'example references ')
+  );
+  try {
+    const child = path.join(directory, 'child project');
+    fs.mkdirSync(child);
+    fs.writeFileSync(
+      path.join(directory, 'tsconfig.json'),
+      '// Solution config\n' +
+        JSON.stringify({ files: [], references: [{ path: './child project' }] })
+    );
+    fs.writeFileSync(
+      path.join(child, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          target: 'ES2022',
+          module: 'NodeNext',
+          strict: true,
+          types: [],
+          skipLibCheck: true
+        },
+        files: ['index.ts']
+      })
+    );
+    const source = path.join(child, 'index.ts');
+    fs.writeFileSync(source, 'const value: number = "wrong";');
+    const bad = spawnSync(process.execPath, [script, directory], {
+      encoding: 'utf8'
+    });
+    assert.equal(bad.status, 1, bad.stdout + bad.stderr);
+    assert.match(bad.stdout, /not assignable to type 'number'/);
+    fs.writeFileSync(source, 'const value: number = 1;');
+    const good = spawnSync(process.execPath, [script, directory], {
+      encoding: 'utf8'
+    });
+    assert.equal(good.status, 0, good.stdout + good.stderr);
+    assert.equal(fs.existsSync(path.join(child, 'index.js')), false);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});

@@ -12,7 +12,6 @@
     "vite-node": "^3.2.4"
   },
   "dependencies": {
-    "cockatiel": "^3.2.1",
     "xstate": "workspace:*"
   }
 }

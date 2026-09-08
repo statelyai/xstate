@@ -10,7 +10,7 @@ runs:
       run: node scripts/check-built-types.mjs
       shell: bash
 
-    - name: Maintained examples and tooling
+    - name: All examples and tooling
       run: pnpm check:examples
       shell: bash
 
