@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true
+  },
+  "include": ["scripts/typecheck-fixtures/exact-optional-adapters.ts"],
+  "exclude": []
+}

@@ -1152,8 +1152,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   events: Array<EventDescriptor<any>>;
   sources: Sources;
   config: any;
-  version?: string;
-  schemas?: import('./types.v6.ts').AnyMachineSchemas;
+  version?: string | undefined;
+  schemas?: import('./types.v6.ts').AnyMachineSchemas | undefined;
   snapshotSchema: import('./machineVersion.types.ts').MachineSnapshotSchema;
   eventSchema: import('./machineVersion.types.ts').MachineEventSchema;
   provide(sources: any): AnyStateMachine;
@@ -2301,7 +2301,7 @@ export interface ActorLogic<
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
   /** Optional runtime validator for pure calculation boundaries. */
-  validator?: import('./validation.types.ts').ActorLogicValidator;
+  validator?: import('./validation.types.ts').ActorLogicValidator | undefined;
   /**
    * Transition function that processes the current state and an incoming event
    * to produce a new state and effects.
@@ -2388,7 +2388,7 @@ export interface ActorLogic<
 
 export interface AnyActorLogic {
   config?: unknown;
-  validator?: import('./validation.types.ts').ActorLogicValidator;
+  validator?: import('./validation.types.ts').ActorLogicValidator | undefined;
   transition(
     snapshot: any,
     event: any,
