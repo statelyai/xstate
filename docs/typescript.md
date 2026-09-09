@@ -43,6 +43,14 @@ schema keys do not appear in the public trigger namespace.
 actor.trigger.increment();
 ```
 
+### Zod object schemas
+
+Zod's `z.object(...)` strips unknown keys from the parsed value. Use
+`z.looseObject(...)` when a schema should validate its declared properties but
+preserve additional properties, and `z.strictObject(...)` when additional
+properties should be rejected. In Zod 3, the equivalent of `z.looseObject(...)`
+is `z.object(...).passthrough()`; v6 examples use the Zod 4 API.
+
 Event types narrow inside transitions:
 
 ```ts
