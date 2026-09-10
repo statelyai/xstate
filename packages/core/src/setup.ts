@@ -123,7 +123,7 @@ export type SetupReturn<
   TOutput extends NonReducibleUnknown,
   TEmitted extends EventObject,
   TStateMeta extends MetaObject,
-  TTransitionMeta extends MetaObject
+  TTransitionMeta extends MetaObject = TStateMeta
 > = {
   extend: <
     TExtendActions extends Record<
