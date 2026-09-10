@@ -1859,7 +1859,9 @@ function microstep(
       for (const transition of filteredTransitions) {
         const { targets, input } = getCurrentTransitionResult(transition);
         if (input && targets) {
-          for (const targetNode of targets) {
+          for (const targetNode of targets.filter((targetNode) =>
+            statesToEnter.has(targetNode)
+          )) {
             stateInputMap[targetNode.id] = input;
             stateInputsChanged = true;
           }
