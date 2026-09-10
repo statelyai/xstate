@@ -73,10 +73,10 @@ const machine = setup({
 });
 ```
 
-**Keep reusable implementations standalone.** Guards, actions, and actor logic are reusable pieces: none of them may depend on the calling machine's context, event, or anything else actor-specific. Each takes only what it needs — narrow parameters for guards and actions, a narrow declared `input` schema for actor logic — so it stays independently testable and readable at the call site. In practice:
+**Keep reusable implementations standalone.** Guards, actions, and actor logic are normal functions: none of them may depend on the calling machine's context, event, or anything else actor-specific, and none of them ever receives the transition args object. Each takes only what it needs — call a guard like any predicate, `isEditing(context.editing)`, never `isEditing(args, ...)`. Registering standalone functions on `setup()` is fine; coupling them to the machine is not. In practice:
 
-- Guards: module-level predicates, called inside the transition function (worked example below).
-- Actions: module-level functions with narrow parameters, enqueued as `enq(sendEmail, context.address)`. Do not register them in `setup({ actions })` and do not forward the transition args object.
+- Guards: plain predicates with narrow parameters, called inside the transition function (worked example below).
+- Actions: plain functions with narrow parameters, enqueued as `enq(sendEmail, context.address)`. Never forward the transition args object.
 - Actor logic: declare the `input` fields the logic actually uses, and map only those at the invoke site (`input: ({ context }) => ({ page: context.page })`). Never pass the whole parent context, and never type an actor's `input`/`run` params with the parent machine's context or event types.
 - Module-level helpers generally: take `(tiles: number[])`, not `(context: BoardContext)`.
 
@@ -106,7 +106,7 @@ on: {
 }
 ```
 
-Do not register guards in `setup({ guards })`, and do not forward the transition `args` object to a guard. Narrow parameters keep each predicate independently testable and readable at the call site; passing `args` hides what the rule depends on. (This will be revisited once core pre-binds guard sources.)
+Never forward the transition `args` object to a guard — a guard call reads like any predicate call: `guards.isEditing(context.editing)` or `isEditing(context.editing)`, never `guards.isEditing(args, ...)`. Narrow parameters keep each predicate independently testable and readable at the call site; passing `args` hides what the rule depends on. Examples currently keep guards at module level because today's `setup({ guards })` contract forces args-first calls; once core pre-binds guard sources (#5702), registering the same plain predicates in `setup({ guards })` is equally good.
 
 `delays` are different: a named delay function is called by the runtime with `{ context, event, stateNode }`, so it does take that args object. `schemas.context` and `schemas.events` type it, so do not annotate the params.
 
