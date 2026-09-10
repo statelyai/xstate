@@ -5235,7 +5235,7 @@ describe('guards', () => {
         //   }
         // }
         EV: (args) => {
-          if (args.guards.isGreaterThan(args, { count: 10 })) {
+          if (args.guards.isGreaterThan({ count: 10 })) {
             return {};
           }
         }
@@ -5317,7 +5317,7 @@ describe('guards', () => {
         // }
         EV: (args) => {
           if (
-            args.guards.isGreaterThan(args, {
+            args.guards.isGreaterThan({
               // @ts-expect-error
               count: 'bar'
             })
@@ -5397,7 +5397,7 @@ describe('guards', () => {
         //   }
         // }
         EV: (args) => {
-          if (args.guards.plainGuard(args)) {
+          if (args.guards.plainGuard()) {
             return {};
           }
         }
@@ -5481,7 +5481,7 @@ describe('guards', () => {
         //   }
         // }
         FOO: (args) => {
-          if (args.guards.isGreaterThan(args, { count: 100 })) {
+          if (args.guards.isGreaterThan({ count: 100 })) {
             return {};
           }
         }
@@ -5519,7 +5519,7 @@ describe('guards', () => {
         // }
         FOO: (args) => {
           if (
-            args.guards.isGreaterThan(args, {
+            args.guards.isGreaterThan({
               // @ts-expect-error
               count: 'bazinga'
             })
@@ -5572,7 +5572,7 @@ describe('guards', () => {
         //   }
         // }
         FOO: (args) => {
-          if (args.guards.isGreaterThan(args, { count: 100 })) {
+          if (args.guards.isGreaterThan({ count: 100 })) {
             return {};
           }
           return {};

@@ -113,7 +113,7 @@ const machine = createMachine({
     browsing: {
       on: {
         addItem: (args) => {
-          if (!args.guards.hasStock(args)) return;
+          if (!args.guards.hasStock()) return;
           return { target: 'adding' };
         }
       }
@@ -396,7 +396,7 @@ on: { reset: { target: ['playback.stopped', 'volume.audible'] } }
 routing: {
   type: 'choice',
   choice: (args) => {
-    if (args.guards.isVip(args)) return { target: 'vipFlow' };
+    if (args.guards.isVip()) return { target: 'vipFlow' };
     return { target: 'standardFlow' };
   }
 }

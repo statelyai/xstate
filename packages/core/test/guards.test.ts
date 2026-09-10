@@ -896,3 +896,94 @@ describe('guards - unknown references', () => {
     );
   });
 });
+
+describe('guards - bound sources on transition args', () => {
+  it('calls the raw source with the transition args first, then params', () => {
+    const received: unknown[] = [];
+    const machine = createMachine({
+      context: { count: 5 },
+      guards: {
+        isAbove: (args, threshold: number) => {
+          received.push(args, threshold);
+          return (args.context as { count: number }).count > threshold;
+        }
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: ({ guards }) => {
+              if (guards.isAbove(3)) {
+                return { target: 'b' };
+              }
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'EV' });
+
+    expect(actor.getSnapshot().value).toBe('b');
+    const [args, threshold] = received;
+    expect(threshold).toBe(3);
+    expect((args as any).context).toEqual({ count: 5 });
+    expect((args as any).event).toEqual({ type: 'EV' });
+    expect((args as any).self).toBeDefined();
+  });
+
+  it('binds guards with no params beyond args', () => {
+    const machine = createMachine({
+      context: { ready: true },
+      guards: {
+        isReady: ({ context }) => (context as { ready: boolean }).ready
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: ({ guards }) => {
+              if (guards.isReady()) {
+                return { target: 'b' };
+              }
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'EV' });
+    expect(actor.getSnapshot().value).toBe('b');
+  });
+
+  it('allows a bound guard to call another bound guard', () => {
+    const machine = createMachine({
+      context: { count: 5 },
+      guards: {
+        isPositive: ({ context }) => (context as { count: number }).count > 0,
+        isValid: (args) => args.guards.isPositive()
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: ({ guards }) => {
+              if (guards.isValid()) {
+                return { target: 'b' };
+              }
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'EV' });
+    expect(actor.getSnapshot().value).toBe('b');
+  });
+});

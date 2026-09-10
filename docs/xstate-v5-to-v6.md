@@ -302,7 +302,7 @@ in transition (and `choice`) function args:
 ```ts
 // v6
 choice: (args) => {
-  if (args.guards.isVip(args)) {
+  if (args.guards.isVip()) {
     return { target: 'vipFlow' };
   }
   return { target: 'defaultFlow' };

@@ -38,20 +38,21 @@ Do not fetch data in a guard. Invoke an actor, store the result in context, then
 
 ## Named guards
 
-Define reusable guards on `setup(...)` or the machine's `guards`. A guard function receives the transition arguments object (`{ context, event, ... }`) first, followed by any params. Named guards are available as typed functions on every transition function's arguments; call one by forwarding the args object.
+Define reusable guards on `setup(...)` or the machine's `guards`. A guard function receives the transition arguments object (`{ context, event, ... }`) first, followed by any params. On a transition function's arguments, each named guard is pre-bound to those arguments: call it with only its params.
 
 ```ts
 const orderMachine = createMachine({
-  context: { available: 0, quantity: 0 },
+  context: { available: 0, quantity: 0, limit: 10 },
   guards: {
-    hasStock: ({ context }) => context.available >= context.quantity
+    hasStock: ({ context }) => context.available >= context.quantity,
+    isBelow: ({ context }, limit: number) => context.quantity < limit
   },
   initial: 'browsing',
   states: {
     browsing: {
       on: {
-        addItem: (args) => {
-          if (!args.guards.hasStock(args)) return;
+        addItem: ({ context, guards }) => {
+          if (!guards.hasStock() || !guards.isBelow(context.limit)) return;
           return { target: 'adding' };
         }
       }
@@ -81,7 +82,7 @@ approve: ({ context, self }) => {
 
 ## TypeScript
 
-Guard conditions are checked wherever the transition function's `context` and `event` are typed, so a condition that reads a field the schemas do not declare is a type error. Named guards are typed on the `guards` argument, and `schemas.guards` can declare param types before the implementations exist. See [setup and provide](setup-and-provide.md).
+Guard conditions are checked wherever the transition function's `context` and `event` are typed, so a condition that reads a field the schemas do not declare is a type error. Named guards are typed on the `guards` argument with the declared signature minus the leading args parameter, and `schemas.guards` can declare param types before the implementations exist. See [setup and provide](setup-and-provide.md).
 
 ## Guards cheatsheet
 
@@ -102,11 +103,11 @@ on: {
   }
 }
 
-// named guard
+// named guard: pre-bound on transition args, call with params only
 guards: { isReady: ({ context }) => context.ready }
 on: {
-  start: (args) => {
-    if (args.guards.isReady(args)) return { target: 'active' };
+  start: ({ guards }) => {
+    if (guards.isReady()) return { target: 'active' };
   }
 }
 ```

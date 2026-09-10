@@ -483,7 +483,7 @@ describe('transition "in" check', () => {
             home: {
               on: {
                 NEXT: ({ guards, value }) => {
-                  if (guards.hasSelection({ value })) {
+                  if (guards.hasSelection()) {
                     return {
                       target: 'success'
                     };

@@ -653,6 +653,14 @@ export function createMachineFromConfig(
   const { evaluateResolvable, resolveValue, makeScope, getDurationConfig } =
     expressionResolver;
 
+  // Raw guard sources (populated once the machine is provided). Conditions
+  // must call these args-first with the args they were handed — the bound
+  // `args.guards` surface closes over the original args object.
+  const runtimeGuardSources: Record<
+    string,
+    (args: any, params: any) => boolean
+  > = {};
+
   type ResolvedCondition = ((args: any) => boolean) | undefined;
 
   function resolveCondition(
@@ -681,10 +689,10 @@ export function createMachineFromConfig(
         );
         return !!guard?.({ ...args, params });
       }
-      const guardImpl = args.guards?.[condition.type];
+      const guardImpl = runtimeGuardSources[condition.type];
       if (!guardImpl) {
         throw new Error(
-          getMissingGuardMessage(condition.type, args.guards ?? {})
+          getMissingGuardMessage(condition.type, runtimeGuardSources)
         );
       }
       return guardImpl(args, params);
@@ -1054,10 +1062,9 @@ export function createMachineFromConfig(
     ...contextConfig,
     version: json.version
   }) as unknown as AnyStateMachine;
-  const provided = machine.provide({
-    actions: resolvedSources.actions,
-    actors: resolvedSources.actors,
-    guards: {
+  Object.assign(
+    runtimeGuardSources,
+    {
       'xstate.stateIn': (args: any, params: any) => {
         const stateId = params?.stateId as string;
         const snapshot = args._snapshot;
@@ -1070,15 +1077,20 @@ export function createMachineFromConfig(
       },
       'xstate.not': (args: any, params: any) => {
         const inner = params?.guard;
-        const impl = inner && args.guards?.[inner.type];
+        const impl = inner && runtimeGuardSources[inner.type];
         if (!impl)
           throw new Error(
             `Guard '${inner?.type}' referenced by 'xstate.not' is not implemented.`
           );
         return !impl(args, inner.params);
-      },
-      ...resolvedSources.guards
+      }
     },
+    resolvedSources.guards
+  );
+  const provided = machine.provide({
+    actions: resolvedSources.actions,
+    actors: resolvedSources.actors,
+    guards: runtimeGuardSources,
     delays: resolvedSources.delays
   });
   (provided as any)._json = json;

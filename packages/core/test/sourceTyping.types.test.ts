@@ -207,21 +207,32 @@ describe('setup() source typing', () => {
     });
   });
 
-  it('preserves guard signatures for callers via args.guards', () => {
+  it('surfaces guards on args pre-bound (declared signature minus args)', () => {
     createMachine({
       schemas: {
         context: z.object({ count: z.number() })
       },
       context: { count: 0 },
       guards: {
-        isAbove: (_args, threshold: number) => _args.context.count > threshold
+        isAbove: (_args, threshold: number) => _args.context.count > threshold,
+        isReady: (_args) => _args.context.count > 0
       },
       initial: 'a',
       states: {
         a: {
           on: {
             EV: (args) => {
-              if (args.guards.isAbove(args, 3)) {
+              // bound: params keep their declared types
+              ((_accept: boolean) => {})(args.guards.isAbove(3));
+              // @ts-expect-error bound guard param must be a number
+              args.guards.isAbove('3');
+              // @ts-expect-error bound guards no longer take the args object
+              args.guards.isAbove(args, 3);
+              // a guard declared with only the args parameter binds to ()
+              ((_accept: boolean) => {})(args.guards.isReady());
+              // @ts-expect-error no params declared beyond args
+              args.guards.isReady(args);
+              if (args.guards.isAbove(3)) {
                 return { target: 'b' };
               }
             }

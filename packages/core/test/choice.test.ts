@@ -45,10 +45,10 @@ describe('choice states', () => {
         routing: {
           type: 'choice',
           choice: (args) => {
-            if (args.guards.isVip(args)) {
+            if (args.guards.isVip()) {
               return { target: 'vipFlow' };
             }
-            if (args.guards.isOverBudget(args)) {
+            if (args.guards.isOverBudget()) {
               return { target: 'review' };
             }
             return { target: 'standardFlow' };

@@ -92,7 +92,7 @@ describe('route', () => {
         },
         review: {
           id: 'review',
-          route: (args) => args.guards.isReady(args)
+          route: (args) => args.guards.isReady()
         }
       }
     });

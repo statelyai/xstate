@@ -154,7 +154,10 @@ export type InferGuards<TGuardSchemaMap extends GuardSchemas> =
   string extends keyof TGuardSchemaMap
     ? {}
     : {
+        // Args-first, like every guard source; callers see the bound
+        // signature (`BoundGuardMap`) with the args parameter stripped.
         [K in keyof TGuardSchemaMap & string]: (
+          args: GuardSourceArgs<any, EventObject>,
           params: StandardSchemaV1.InferOutput<TGuardSchemaMap[K]['params']>
         ) => boolean;
       };
@@ -1522,6 +1525,18 @@ export interface Sources {
  * sources receive the transition args object first and optional caller-supplied
  * params after it.
  */
+export type GuardSourceArgs<TContext, TEvent extends EventObject> = {
+  context: TContext;
+  event: TEvent;
+  self: AnyActorRef;
+  parent: AnyActorRef | undefined;
+  value: StateValue;
+  children: Record<string, AnyActorRef | undefined>;
+  // The other guard sources, pre-bound to these args (loosely typed here;
+  // the concrete `BoundGuardMap` shape is only known at the machine level).
+  guards: Record<string, (...params: any[]) => boolean>;
+};
+
 export type GuardSourceMap<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1530,18 +1545,23 @@ export type GuardSourceMap<
   _TCtx = [TContext] extends [never] ? any : TContext
 > = Record<
   string,
-  (
-    args: {
-      context: _TCtx;
-      event: TEvent;
-      self: AnyActorRef;
-      parent: AnyActorRef | undefined;
-      value: StateValue;
-      children: Record<string, AnyActorRef | undefined>;
-    },
-    ...params: any[]
-  ) => boolean
+  (args: GuardSourceArgs<_TCtx, TEvent>, ...params: any[]) => boolean
 >;
+
+/**
+ * The shape of `guards` surfaced on transition args: each declared guard
+ * source is pre-bound to the current transition args, so its bound signature
+ * is the declared signature minus the leading args parameter —
+ * `guards.canRetry()` instead of `guards.canRetry(args)`.
+ */
+export type BoundGuardMap<TGuardMap extends Sources['guards']> = {
+  [K in keyof TGuardMap]: TGuardMap[K] extends (
+    args: never,
+    ...params: infer TParams
+  ) => infer TReturn
+    ? (...params: TParams) => TReturn
+    : TGuardMap[K];
+};
 
 /**
  * Contextually types the entries of a `delays: { ... }` source map. Delay

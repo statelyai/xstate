@@ -58,8 +58,8 @@ const machine = createMachine({
     routing: {
       type: 'choice',
       choice: (args) => {
-        if (args.guards.isVip(args)) return { target: 'vipFlow' };
-        if (args.guards.isOverBudget(args)) return { target: 'review' };
+        if (args.guards.isVip()) return { target: 'vipFlow' };
+        if (args.guards.isOverBudget()) return { target: 'review' };
         return { target: 'standardFlow' };
       }
     },
@@ -99,7 +99,7 @@ states: {
   routing: {
     type: 'choice',
     choice: (args) => {
-      if (args.guards.isVip(args)) return { target: 'vipFlow' };
+      if (args.guards.isVip()) return { target: 'vipFlow' };
       return { target: 'standardFlow' }; // fallback: must resolve
     }
   },

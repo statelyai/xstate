@@ -163,7 +163,7 @@ idle: {
   on: {
     submit: (args, enq) => {
       const { actions } = args;
-      if (!args.guards.isReady(args)) return;
+      if (!args.guards.isReady()) return;
       actions.notify({ msg: 'Charging' });
       enq(actions.notify, { msg: 'Queued' });
       return { target: 'charging' };
@@ -172,7 +172,7 @@ idle: {
 }
 ```
 
-Named actions are called with their params. Named guards receive the transition arguments object first, then any params. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
+Named actions are called with their params. A named guard's implementation receives the transition arguments object first, then any params; on transition args the guard is pre-bound, so call it with only its params. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
 
 ```ts
 setup({

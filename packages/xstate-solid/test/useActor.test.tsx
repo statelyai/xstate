@@ -1578,7 +1578,7 @@ describe('useActor', () => {
               }
             }),
             EV: ({ guards, context }) => {
-              if (guards.isAwesome({ context })) {
+              if (guards.isAwesome()) {
                 return { target: 'b' };
               }
             }
