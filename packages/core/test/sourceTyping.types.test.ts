@@ -19,13 +19,9 @@ describe('setup() source typing', () => {
         }
       },
       guards: {
-        isPositive: ({ context, event }) => {
-          expectType<{ count: number }>(context);
-          expectType<{ type: 'INC'; by: number } | { type: 'RESET' }>(event);
-          return context.count > 0;
-        },
-        // additional params after the args object are free-form
-        isAbove: ({ context }, threshold: number) => context.count > threshold
+        // plain predicates: params only, no injected transition args
+        isPositive: (count: number) => count > 0,
+        isAbove: (count: number, threshold: number) => count > threshold
       },
       delays: {
         backoff: ({ context, event }) => {
@@ -38,24 +34,21 @@ describe('setup() source typing', () => {
     });
   });
 
-  it('rejects guards that do not accept the args object first', () => {
-    if (false) {
-      setup({
-        schemas: {
-          context: z.object({ count: z.number() })
-        },
-        guards: {
-          // @ts-expect-error - guard sources receive (args, ...params)
-          positional: (count: number) => count > 0
-        }
-      });
-    }
+  it('accepts plain positional guards', () => {
+    setup({
+      schemas: {
+        context: z.object({ count: z.number() })
+      },
+      guards: {
+        positional: (count: number) => count > 0
+      }
+    });
   });
 
   it('accepts loosely-typed guards and delays without schemas', () => {
     setup({
       guards: {
-        anyContext: ({ context }) => context.whatever === true
+        anyValue: (value) => value === true
       },
       delays: {
         slow: ({ context }) => context.ms ?? 1000
@@ -70,10 +63,7 @@ describe('setup() source typing', () => {
       }
     }).extend({
       guards: {
-        isPositive: ({ context }) => {
-          expectType<{ count: number }>(context);
-          return context.count > 0;
-        }
+        isPositive: (count: number) => count > 0
       },
       delays: {
         backoff: ({ context }) => {
@@ -94,12 +84,12 @@ describe('setup() source typing', () => {
       schemas: {
         events: { B: z.object({ b: z.string() }) }
       },
-      guards: {
+      delays: {
         seesBothEvents: ({ event }) => {
           expectType<{ type: 'A'; a: number } | { type: 'B'; b: string }>(
             event
           );
-          return event.type === 'A';
+          return event.type === 'A' ? 100 : 200;
         }
       }
     });
@@ -112,7 +102,7 @@ describe('setup() source typing', () => {
       },
       context: { count: 0 },
       guards: {
-        isPositive: ({ context }) => context.count > 0
+        isPositive: (count: number) => count > 0
       },
       delays: {
         backoff: ({ context }) => context.count * 100
@@ -123,10 +113,7 @@ describe('setup() source typing', () => {
 
     machine.provide({
       guards: {
-        isPositive: ({ context }) => {
-          expectType<{ count: number }>(context);
-          return context.count > 1;
-        }
+        isPositive: (count: number) => count > 1
       },
       delays: {
         backoff: 500
@@ -197,42 +184,38 @@ describe('setup() source typing', () => {
       },
       context: { ok: true },
       guards: {
-        isOk: ({ context }) => {
-          expectType<{ ok: boolean }>(context);
-          return context.ok;
-        }
+        isOk: (ok: boolean) => ok
       },
       initial: 'a',
       states: { a: {} }
     });
   });
 
-  it('surfaces guards on args pre-bound (declared signature minus args)', () => {
+  it('surfaces guards on args with their declared plain signatures', () => {
     createMachine({
       schemas: {
         context: z.object({ count: z.number() })
       },
       context: { count: 0 },
       guards: {
-        isAbove: (_args, threshold: number) => _args.context.count > threshold,
-        isReady: (_args) => _args.context.count > 0
+        isAbove: (count: number, threshold: number) => count > threshold,
+        isEnabled: () => true
       },
       initial: 'a',
       states: {
         a: {
           on: {
             EV: (args) => {
-              // bound: params keep their declared types
-              ((_accept: boolean) => {})(args.guards.isAbove(3));
-              // @ts-expect-error bound guard param must be a number
-              args.guards.isAbove('3');
-              // @ts-expect-error bound guards no longer take the args object
+              // params keep their declared types
+              ((_accept: boolean) => {})(
+                args.guards.isAbove(args.context.count, 3)
+              );
+              // @ts-expect-error guard params must match the declared types
+              args.guards.isAbove('1', 3);
+              // @ts-expect-error no transition args object is expected
               args.guards.isAbove(args, 3);
-              // a guard declared with only the args parameter binds to ()
-              ((_accept: boolean) => {})(args.guards.isReady());
-              // @ts-expect-error no params declared beyond args
-              args.guards.isReady(args);
-              if (args.guards.isAbove(3)) {
+              ((_accept: boolean) => {})(args.guards.isEnabled());
+              if (args.guards.isAbove(args.context.count, 3)) {
                 return { target: 'b' };
               }
             }

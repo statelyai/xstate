@@ -5217,7 +5217,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (_args, params: { count: number }) => {
+        isGreaterThan: (params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5256,7 +5256,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (_args, params: { count: number }) => {
+        isGreaterThan: (params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5299,7 +5299,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (_args, params: { count: number }) => {
+        isGreaterThan: (params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5342,7 +5342,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (_args, params: { count: number }) => {
+        isGreaterThan: (params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5382,8 +5382,8 @@ describe('guards', () => {
       //     | { type: 'plainGuard'; params?: { foo: string } };
       // },
       guards: {
-        plainGuard: (_args, params?: { foo: string }) => true,
-        isGreaterThan: (_args, params: { count: number }) => {
+        plainGuard: (params?: { foo: string }) => true,
+        isGreaterThan: (params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5418,7 +5418,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // }
       guards: {
-        isGreaterThan: (_args, params: { count: number }) => {
+        isGreaterThan: (params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5427,7 +5427,7 @@ describe('guards', () => {
       }
     }).provide({
       guards: {
-        isGreaterThan: (_args, params: { count: number }) => {
+        isGreaterThan: (params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5440,7 +5440,7 @@ describe('guards', () => {
   it('should not allow a provided guard outside of the defined ones', () => {
     const machine = createMachine({
       guards: {
-        isGreaterThan: (_args, _params: { count: number }) => {
+        isGreaterThan: (_params: { count: number }) => {
           return true;
         },
         plainGuard: () => true
@@ -5466,7 +5466,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (_args, params: { count: number }) => {
+        isGreaterThan: (params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5502,7 +5502,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (_args, params: { count: number }) => {
+        isGreaterThan: (params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5552,7 +5552,7 @@ describe('guards', () => {
         })
       },
       guards: {
-        isGreaterThan: (_args, { count }: { count: number }) => {
+        isGreaterThan: ({ count }: { count: number }) => {
           return true;
         }
       },

@@ -864,7 +864,7 @@ describe('guards - unknown references', () => {
     const machine = createMachine({
       context: { ready: false },
       guards: {
-        isReady: ({ context }) => context.ready === true
+        isReady: (ready: boolean) => ready === true
       },
       initial: 'routing',
       states: {
@@ -873,7 +873,7 @@ describe('guards - unknown references', () => {
             if (
               guards
                 // @ts-expect-error
-                .isRedy(context)
+                .isRedy(context.ready)
             ) {
               return { target: 'go' };
             }
@@ -897,23 +897,23 @@ describe('guards - unknown references', () => {
   });
 });
 
-describe('guards - bound sources on transition args', () => {
-  it('calls the raw source with the transition args first, then params', () => {
-    const received: unknown[] = [];
+describe('guards - plain function sources', () => {
+  it('passes only the caller-supplied params to the source', () => {
+    const received: unknown[][] = [];
     const machine = createMachine({
       context: { count: 5 },
       guards: {
-        isAbove: (args, threshold: number) => {
-          received.push(args, threshold);
-          return (args.context as { count: number }).count > threshold;
+        isAbove: (count: number, threshold: number) => {
+          received.push([count, threshold]);
+          return count > threshold;
         }
       },
       initial: 'a',
       states: {
         a: {
           on: {
-            EV: ({ guards }) => {
-              if (guards.isAbove(3)) {
+            EV: ({ context, guards }) => {
+              if (guards.isAbove(context.count, 3)) {
                 return { target: 'b' };
               }
             }
@@ -927,52 +927,20 @@ describe('guards - bound sources on transition args', () => {
     actor.send({ type: 'EV' });
 
     expect(actor.getSnapshot().value).toBe('b');
-    const [args, threshold] = received;
-    expect(threshold).toBe(3);
-    expect((args as any).context).toEqual({ count: 5 });
-    expect((args as any).event).toEqual({ type: 'EV' });
-    expect((args as any).self).toBeDefined();
+    expect(received).toEqual([[5, 3]]);
   });
 
-  it('binds guards with no params beyond args', () => {
+  it('supports zero-param guards', () => {
     const machine = createMachine({
-      context: { ready: true },
       guards: {
-        isReady: ({ context }) => (context as { ready: boolean }).ready
+        isEnabled: () => true
       },
       initial: 'a',
       states: {
         a: {
           on: {
             EV: ({ guards }) => {
-              if (guards.isReady()) {
-                return { target: 'b' };
-              }
-            }
-          }
-        },
-        b: {}
-      }
-    });
-
-    const actor = createActor(machine).start();
-    actor.send({ type: 'EV' });
-    expect(actor.getSnapshot().value).toBe('b');
-  });
-
-  it('allows a bound guard to call another bound guard', () => {
-    const machine = createMachine({
-      context: { count: 5 },
-      guards: {
-        isPositive: ({ context }) => (context as { count: number }).count > 0,
-        isValid: (args) => args.guards.isPositive()
-      },
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            EV: ({ guards }) => {
-              if (guards.isValid()) {
+              if (guards.isEnabled()) {
                 return { target: 'b' };
               }
             }

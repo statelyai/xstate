@@ -301,14 +301,14 @@ in transition (and `choice`) function args:
 
 ```ts
 // v6
-choice: (args) => {
-  if (args.guards.isVip()) {
+choice: ({ context, guards }) => {
+  if (guards.isVip(context.isVip)) {
     return { target: 'vipFlow' };
   }
   return { target: 'defaultFlow' };
 },
 guards: {
-  isVip: ({ context }) => context.isVip
+  isVip: (isVip) => isVip
 }
 ```
 
@@ -504,7 +504,7 @@ const machine = createMachine({
     log: (params: { msg: string }) => console.log(params.msg)
   },
   guards: {
-    isReady: ({ context }) => context.ready === true
+    isReady: (ready: boolean) => ready === true
   },
   actors: {
     fetchUser: createAsyncLogic({ run: ({ input }) => fetch(`/u/${input.id}`) })

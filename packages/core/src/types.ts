@@ -17,7 +17,7 @@ import type {
 // this is needed to make JSDoc `@link` work properly
 // oxlint-disable-next-line no-unused-vars
 import type { SimulatedClock } from './SimulatedClock.ts';
-import { BoundGuardMap, Sources, Next_StateNodeConfig } from './types.v6.ts';
+import { Sources, Next_StateNodeConfig } from './types.v6.ts';
 import { StandardSchemaV1 } from './schema.types.ts';
 import { builtInActions } from './actions.ts';
 
@@ -644,7 +644,7 @@ type TransitionFunctionArgs<
   system: AnyActorSystem;
   actions: TActionMap;
   actors: TActorMap;
-  guards: BoundGuardMap<TGuardMap>;
+  guards: TGuardMap;
   delays: TDelayMap;
 } & OutputArg<TCurrentEvent>;
 
@@ -3191,7 +3191,7 @@ export type Action<
     children: Record<string, AnyActor | undefined>;
     actions: TActionMap;
     actors: TActorMap;
-    guards: BoundGuardMap<TGuardMap>;
+    guards: TGuardMap;
     delays: TDelayMap;
     system?: AnyActorSystem;
     params: TParams;

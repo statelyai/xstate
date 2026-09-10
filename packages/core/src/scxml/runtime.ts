@@ -1093,15 +1093,6 @@ export function createMachineFromSCXMLConfig(
     expressionResolver;
   const sendCounters = new WeakMap<AnyActorRef, number>();
 
-  // Raw guard sources (populated once the machine is provided). Conditions
-  // must call these args-first with the args they were handed — the bound
-  // `args.guards` surface closes over the original args object, which would
-  // ignore locally-adjusted args (e.g. a finalized context).
-  const runtimeGuardSources: Record<
-    string,
-    (args: any, params: any) => boolean
-  > = {};
-
   type ResolvedCondition = ((args: any) => boolean) | undefined;
 
   function resolveCondition(
@@ -1132,10 +1123,10 @@ export function createMachineFromSCXMLConfig(
         );
         return !!guard?.({ ...args, params });
       }
-      const guardImpl = runtimeGuardSources[condition.type];
+      const guardImpl = args.guards?.[condition.type];
       if (!guardImpl) {
         throw new Error(
-          getMissingGuardMessage(condition.type, runtimeGuardSources)
+          getMissingGuardMessage(condition.type, args.guards ?? {})
         );
       }
       return guardImpl(args, params);
@@ -2578,7 +2569,7 @@ export function createMachineFromSCXMLConfig(
     },
     'xstate.not': (args: any, params: any) => {
       const inner = params?.guard;
-      const innerImpl = inner && runtimeGuardSources[inner.type];
+      const innerImpl = inner && args.guards?.[inner.type];
       if (!innerImpl) {
         throw new Error(
           `Guard '${inner?.type}' referenced by 'xstate.not' is not implemented.`
@@ -2587,11 +2578,13 @@ export function createMachineFromSCXMLConfig(
       return !innerImpl(args, inner.params);
     }
   };
-  Object.assign(runtimeGuardSources, providedGuards, resolvedSources.guards);
   const provided = machine.provide({
     actions: resolvedSources.actions,
     actors: resolvedSources.actors,
-    guards: runtimeGuardSources,
+    guards: {
+      ...providedGuards,
+      ...resolvedSources.guards
+    },
     delays: resolvedSources.delays
   });
 

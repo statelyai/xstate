@@ -45,7 +45,6 @@ import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
 import {
   ActionSchemas,
-  BoundGuardMap,
   DelayMapFromNames,
   DelaySourceMap,
   GuardSourceMap,
@@ -3551,7 +3550,7 @@ type StateTransitionContextMapper<
     system: SystemRuntime<TSystemRegistry>;
     actions: TActionMap;
     actors: TActorMap;
-    guards: BoundGuardMap<TGuardMap>;
+    guards: TGuardMap;
     delays: TDelayMap;
   } & OutputArg<TExpressionEvent>
 ) => ContextPatch<TContextShape, TTargetContextShape, TResolvedTargetContext>;
@@ -3641,7 +3640,7 @@ type StateTransitionFunction<
     system: SystemRuntime<TSystemRegistry>;
     actions: TActionMap;
     actors: TActorMap;
-    guards: BoundGuardMap<TGuardMap>;
+    guards: TGuardMap;
     delays: TDelayMap;
     input: TInput;
   } & OutputArg<TExpressionEvent>,

@@ -51,7 +51,7 @@ The config object accepts `context`, `input`, `reenter`, `meta` and `description
 ```ts
 review: {
   id: 'review',
-  route: (args) => args.guards.isReady()
+  route: ({ context, guards }) => guards.isReady(context.ready)
 }
 ```
 

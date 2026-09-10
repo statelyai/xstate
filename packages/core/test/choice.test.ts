@@ -45,10 +45,10 @@ describe('choice states', () => {
         routing: {
           type: 'choice',
           choice: (args) => {
-            if (args.guards.isVip()) {
+            if (args.guards.isVip(args.context.isVip)) {
               return { target: 'vipFlow' };
             }
-            if (args.guards.isOverBudget()) {
+            if (args.guards.isOverBudget(args.context.overBudget)) {
               return { target: 'review' };
             }
             return { target: 'standardFlow' };
@@ -59,9 +59,8 @@ describe('choice states', () => {
         standardFlow: {}
       },
       guards: {
-        isVip: ({ context }: { context: { isVip: boolean } }) => context.isVip,
-        isOverBudget: ({ context }: { context: { overBudget: boolean } }) =>
-          context.overBudget
+        isVip: (isVip: boolean) => isVip,
+        isOverBudget: (overBudget: boolean) => overBudget
       }
     });
 

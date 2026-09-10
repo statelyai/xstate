@@ -15,7 +15,7 @@ const orderSetup = setup({
   actions: {
     logTotal: (params: { total: number }) => console.log(params.total)
   },
-  guards: { hasStock: ({ context }) => context.total > 0 },
+  guards: { hasStock: (total: number) => total > 0 },
   actors: { chargeCard },
   delays: { retryDelay: 1_000 }
 });
@@ -146,7 +146,7 @@ Where a validation failure surfaces depends on which side of the delivery bounda
 ```ts
 const machine = createMachine({
   actions: { notify: (params: { msg: string }) => toast(params.msg) },
-  guards: { isReady: ({ context }) => context.ready },
+  guards: { isReady: (ready: boolean) => ready },
   actors: { chargeCard },
   delays: { retryDelay: 1_000 },
   initial: 'idle',
@@ -163,7 +163,7 @@ idle: {
   on: {
     submit: (args, enq) => {
       const { actions } = args;
-      if (!args.guards.isReady()) return;
+      if (!args.guards.isReady(args.context.ready)) return;
       actions.notify({ msg: 'Charging' });
       enq(actions.notify, { msg: 'Queued' });
       return { target: 'charging' };
@@ -172,7 +172,7 @@ idle: {
 }
 ```
 
-Named actions are called with their params. A named guard's implementation receives the transition arguments object first, then any params; on transition args the guard is pre-bound, so call it with only its params. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
+Named actions and guards are plain functions called with only their params — nothing is injected. Pass values from `context` or the event explicitly. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
 
 ```ts
 setup({
@@ -230,7 +230,7 @@ Sources declared on `setup(...)` or on the machine config are inferred into `{ a
 const s = setup({
   schemas: { context: z.object({ n: z.number() }) },
   actions: { log: (params: { msg: string }) => console.log(params.msg) },
-  guards: { isPositive: ({ context }) => context.n > 0 },
+  guards: { isPositive: (n: number) => n > 0 },
   actors: { fetchUser },
   delays: { retry: 1_000 },
   states: { loading: { schemas: { input: z.object({ id: z.string() }) } } }

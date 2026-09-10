@@ -115,28 +115,6 @@ function getStateInput(snapshot: AnyMachineSnapshot, stateNodeId: string) {
   return snapshot._stateInputs?.[stateNodeId];
 }
 
-/**
- * Surfaces guard sources on transition args pre-bound to those args: callers
- * invoke `guards.name(...params)` while the raw source still receives
- * `(args, ...params)` per its declared signature.
- */
-function withBoundGuards<T extends object>(
-  args: T,
-  rawGuards: Record<string, unknown>
-): T {
-  const cache: Record<PropertyKey, unknown> = {};
-  (args as { guards?: unknown }).guards = new Proxy(rawGuards, {
-    get: (target, key, receiver) => {
-      const guard = Reflect.get(target, key, receiver);
-      if (typeof guard !== 'function') {
-        return guard;
-      }
-      return (cache[key] ??= (...params: unknown[]) => guard(args, ...params));
-    }
-  });
-  return args;
-}
-
 export function isAtomicStateNode(stateNode: AnyStateNode) {
   return (
     stateNode.type === 'atomic' ||
@@ -1484,34 +1462,33 @@ function microstep(
           true
         );
 
-        const args = withBoundGuards(
-          isLazyActorScope(actorScope)
-            ? withActorScope(
-                {
-                  context,
-                  event,
-                  children,
-                  actions: currentSnapshot.machine.sources.actions,
-                  actors: currentSnapshot.machine.sources.actors,
-                  delays: currentSnapshot.machine.sources.delays,
-                  input
-                },
-                actorScope
-              )
-            : {
+        const args = isLazyActorScope(actorScope)
+          ? withActorScope(
+              {
                 context,
                 event,
-                parent: actorScope.self._parent,
-                self: actorScope.self,
                 children,
-                system: actorScope.system,
                 actions: currentSnapshot.machine.sources.actions,
                 actors: currentSnapshot.machine.sources.actors,
+                guards: currentSnapshot.machine.sources.guards,
                 delays: currentSnapshot.machine.sources.delays,
                 input
               },
-          currentSnapshot.machine.sources.guards
-        );
+              actorScope
+            )
+          : {
+              context,
+              event,
+              parent: actorScope.self._parent,
+              self: actorScope.self,
+              children,
+              system: actorScope.system,
+              actions: currentSnapshot.machine.sources.actions,
+              actors: currentSnapshot.machine.sources.actors,
+              guards: currentSnapshot.machine.sources.guards,
+              delays: currentSnapshot.machine.sources.delays,
+              input
+            };
         const res = transitionFn(args, enqueue);
 
         if (res?.context !== undefined) {
@@ -2252,38 +2229,37 @@ export function getTransitionResult(
 } {
   let transitionArgs: any;
   const getTransitionArgs = () =>
-    (transitionArgs ??= withBoundGuards(
-      isLazyActorScope(actorScope)
-        ? withActorScope(
-            {
-              context: snapshot.context,
-              event,
-              output: getEventOutput(event),
-              value: snapshot.value,
-              children: snapshot.children,
-              actions: snapshot.machine.sources.actions,
-              actors: snapshot.machine.sources.actors,
-              delays: snapshot.machine.sources.delays,
-              input: getStateInput(snapshot, transition.source.id)
-            },
-            actorScope
-          )
-        : {
+    (transitionArgs ??= isLazyActorScope(actorScope)
+      ? withActorScope(
+          {
             context: snapshot.context,
             event,
             output: getEventOutput(event),
             value: snapshot.value,
             children: snapshot.children,
-            system: actorScope.system,
-            parent: actorScope.self._parent,
-            self: actorScope.self,
             actions: snapshot.machine.sources.actions,
             actors: snapshot.machine.sources.actors,
+            guards: snapshot.machine.sources.guards,
             delays: snapshot.machine.sources.delays,
             input: getStateInput(snapshot, transition.source.id)
           },
-      snapshot.machine.sources.guards
-    ));
+          actorScope
+        )
+      : {
+          context: snapshot.context,
+          event,
+          output: getEventOutput(event),
+          value: snapshot.value,
+          children: snapshot.children,
+          system: actorScope.system,
+          parent: actorScope.self._parent,
+          self: actorScope.self,
+          actions: snapshot.machine.sources.actions,
+          actors: snapshot.machine.sources.actors,
+          guards: snapshot.machine.sources.guards,
+          delays: snapshot.machine.sources.delays,
+          input: getStateInput(snapshot, transition.source.id)
+        });
 
   if (transition.to) {
     const actions: AnyAction[] = [];
@@ -2679,22 +2655,20 @@ function evaluateTransitionFunction(
 
   try {
     res = transitionTo(
-      withBoundGuards(
-        withActorScope(
-          {
-            context,
-            event,
-            output: getEventOutput(event),
-            value: snapshot.value,
-            children: snapshot.children,
-            actions: sources.actions,
-            actors: sources.actors,
-            delays: sources.delays,
-            input: getStateInput(snapshot, sourceId)
-          },
-          actorScope
-        ),
-        sources.guards
+      withActorScope(
+        {
+          context,
+          event,
+          output: getEventOutput(event),
+          value: snapshot.value,
+          children: snapshot.children,
+          actions: sources.actions,
+          actors: sources.actors,
+          guards: sources.guards,
+          delays: sources.delays,
+          input: getStateInput(snapshot, sourceId)
+        },
+        actorScope
       ),
       getTransitionEffectEnqueue()
     );
@@ -2803,21 +2777,19 @@ export function evaluateCandidate(
   }
 
   if (candidate.guard) {
-    const guardArgs = withBoundGuards(
-      withActorSelfAndParent(
-        {
-          context: snapshot.context,
-          event,
-          output: getEventOutput(event),
-          children: snapshot.children,
-          actions: stateNode.machine.sources.actions,
-          actors: stateNode.machine.sources.actors,
-          delays: stateNode.machine.sources.delays,
-          _snapshot: snapshot
-        },
-        actorScope
-      ),
-      stateNode.machine.sources.guards
+    const guardArgs = withActorSelfAndParent(
+      {
+        context: snapshot.context,
+        event,
+        output: getEventOutput(event),
+        children: snapshot.children,
+        actions: stateNode.machine.sources.actions,
+        actors: stateNode.machine.sources.actors,
+        guards: stateNode.machine.sources.guards,
+        delays: stateNode.machine.sources.delays,
+        _snapshot: snapshot
+      },
+      actorScope
     );
     if (!(candidate.guard as (args: typeof guardArgs) => boolean)(guardArgs)) {
       return false;
