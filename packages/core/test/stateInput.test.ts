@@ -1664,6 +1664,79 @@ describe('setup', () => {
     expect(actor.getSnapshot().context.count).toBe(90);
   });
 
+  it("a non-reentering self-transition cannot overwrite a concurrent transition's input", () => {
+    const s = setup({
+      schemas: {
+        events: {
+          GO: z.object({})
+        }
+      },
+      states: {
+        receiver: {
+          states: {
+            active: {
+              schemas: {
+                input: z.object({ value: z.number() })
+              }
+            }
+          }
+        },
+        sender: {
+          states: {
+            idle: {}
+          }
+        }
+      }
+    });
+    const entryInputs: Array<{ value: number }> = [];
+    const machine = s.createMachine({
+      type: 'parallel',
+      states: {
+        sender: {
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                GO: {
+                  target: '#active',
+                  input: { value: 2 }
+                } as any
+              }
+            }
+          }
+        },
+        receiver: {
+          initial: {
+            target: 'active',
+            input: { value: 1 }
+          },
+          states: {
+            active: {
+              id: 'active',
+              entry: ({ input }) => {
+                entryInputs.push(input);
+              },
+              on: {
+                GO: {
+                  target: '#active',
+                  input: { value: 99 }
+                } as any
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+
+    expect(entryInputs).toEqual([{ value: 1 }, { value: 2 }]);
+    expect(
+      (actor.getSnapshot().getInputs() as Record<string, unknown>)['active']
+    ).toEqual({ value: 2 });
+  });
+
   it("a compound state's input is replaced only when the state is re-entered", () => {
     const s = setup({
       schemas: {
