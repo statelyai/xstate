@@ -536,7 +536,9 @@ describe('transition meta data', () => {
           },
           invoke: {
             src: 'child',
-            onDone: { meta: { source: 'invoke' } }
+            onDone: { meta: { source: 'invoke.done' } },
+            onError: { meta: { source: 'invoke.error' } },
+            onSnapshot: { meta: { source: 'invoke.snapshot' } }
           }
         }
       }
@@ -551,6 +553,27 @@ describe('transition meta data', () => {
       | { source: string }
       | undefined;
 
+    type InvokeDefinition = (typeof machine.definition.states.idle.invoke)[0];
+    type SingleTransition<T> = Exclude<
+      NonNullable<T>,
+      string | readonly unknown[]
+    >;
+
+    (({}) as SingleTransition<InvokeDefinition['onDone']>).meta satisfies
+      | { source: string }
+      | undefined;
+    (({}) as SingleTransition<InvokeDefinition['onError']>).meta satisfies
+      | { source: string }
+      | undefined;
+    (({}) as SingleTransition<InvokeDefinition['onSnapshot']>).meta satisfies
+      | { source: string }
+      | undefined;
+
+    // @ts-expect-error invoke callback metadata is transition metadata
+    (({}) as SingleTransition<InvokeDefinition['onDone']>).meta satisfies
+      | { unknown: string }
+      | undefined;
+
     expect(machine.root.initial.meta).toEqual({ source: 'initial' });
     expect(machine.definition.initial?.meta).toEqual({ source: 'initial' });
     expect(JSON.parse(JSON.stringify(machine)).initial.meta).toEqual({
@@ -562,7 +585,13 @@ describe('transition meta data', () => {
       [...machine.states.idle.transitions.values()]
         .flat()
         .map((transition) => transition.meta)
-    ).toContainEqual({ source: 'invoke' });
+    ).toEqual(
+      expect.arrayContaining([
+        { source: 'invoke.done' },
+        { source: 'invoke.error' },
+        { source: 'invoke.snapshot' }
+      ])
+    );
   });
 
   it('TS should error with unexpected transition meta property', () => {

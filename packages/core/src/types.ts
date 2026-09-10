@@ -385,7 +385,7 @@ export interface InvokeDefinition<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TTransitionMeta extends MetaObject
 > {
   id: string;
 
@@ -412,7 +412,7 @@ export interface InvokeDefinition<
           TGuard,
           TDelay,
           TEmitted,
-          TMeta
+          TTransitionMeta
         >
       >;
   /**
@@ -431,7 +431,7 @@ export interface InvokeDefinition<
           TGuard,
           TDelay,
           TEmitted,
-          TMeta
+          TTransitionMeta
         >
       >;
 
@@ -447,7 +447,7 @@ export interface InvokeDefinition<
           TGuard,
           TDelay,
           TEmitted,
-          TMeta
+          TTransitionMeta
         >
       >;
 
@@ -460,7 +460,7 @@ export interface InvokeDefinition<
       TGuard,
       TDelay,
       TEmitted,
-      TMeta
+      TTransitionMeta
     >,
     'onDone' | 'onError' | 'toJSON'
   >;
@@ -1173,7 +1173,7 @@ export interface StateNodeDefinition<
       TODO,
       TODO,
       TODO, // TEmitted
-      TODO // TMeta
+      TTransitionMeta
     >
   >;
   description?: string;
