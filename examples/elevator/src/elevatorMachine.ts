@@ -11,10 +11,13 @@ export const TOP_FLOOR = 6;
 export const BOTTOM_FLOOR = 1;
 
 /** Which way the car is heading, derived from the queue. */
-export const directionOf = (context: ElevatorContext): -1 | 0 | 1 => {
-  const [next] = context.queue;
+export const directionOf = (
+  currentFloor: number,
+  queue: number[]
+): -1 | 0 | 1 => {
+  const [next] = queue;
   if (next === undefined) return 0;
-  return Math.sign(next - context.currentFloor) as -1 | 0 | 1;
+  return Math.sign(next - currentFloor) as -1 | 0 | 1;
 };
 
 /**
@@ -73,7 +76,9 @@ export const elevatorMachine = setup({
         // re-entering `moving` restarts the timer.
         travelTime: ({ context }) => {
           const destination = context.queue[0]!;
-          const nextFloor = context.currentFloor + directionOf(context);
+          const nextFloor =
+            context.currentFloor +
+            directionOf(context.currentFloor, context.queue);
 
           return nextFloor === destination
             ? {

@@ -21,6 +21,18 @@ const hasLostGame = (lifes: number) => lifes <= 0;
 
 const hasWonGame = (points: number) => points >= 100;
 
+/** Fresh trivia state, reused by the initial context and by a replay. */
+const initialTriviaData: Pick<
+  TriviaContext,
+  'currentCharacter' | 'randomCharacters' | 'points' | 'question' | 'lifes'
+> = {
+  currentCharacter: null,
+  randomCharacters: [],
+  points: 0,
+  question: 0,
+  lifes: 3
+};
+
 export const triviaMachine = setup({
   schemas: {
     context: types<TriviaContext>(),
@@ -46,17 +58,6 @@ export const triviaMachine = setup({
     loadRandomCharacters: createAsyncLogic({
       run: () => RickCharacters.getRandomCharacters()
     })
-  },
-  actions: {
-    resetTriviaData: () => ({
-      context: {
-        currentCharacter: null,
-        randomCharacters: [],
-        points: 0,
-        question: 0,
-        lifes: 3
-      }
-    })
   }
 }).createMachine({
   id: 'triviaMachine',
@@ -64,12 +65,8 @@ export const triviaMachine = setup({
   context: {
     homePageCharacters: [],
     hasLoaded: false,
-    currentCharacter: null,
-    randomCharacters: [],
     isClueOpened: false,
-    points: 0,
-    question: 0,
-    lifes: 3
+    ...initialTriviaData
   },
   states: {
     homepage: {
@@ -108,7 +105,7 @@ export const triviaMachine = setup({
     startTrivia: {
       id: 'startTrivia',
       initial: 'loadQuestionData',
-      entry: ({ actions }) => actions.resetTriviaData(),
+      entry: () => ({ context: initialTriviaData }),
       states: {
         loadQuestionData: {
           id: 'loadQuestionData',

@@ -27,7 +27,7 @@ export default function App() {
   }
 
   if (state.matches('account')) {
-    const errors = accountErrors(context);
+    const errors = accountErrors(context.email, context.password);
 
     return (
       <main>
@@ -66,7 +66,7 @@ export default function App() {
   }
 
   if (state.matches('profile')) {
-    const errors = profileErrors(context);
+    const errors = profileErrors(context.name, context.role);
 
     return (
       <main>

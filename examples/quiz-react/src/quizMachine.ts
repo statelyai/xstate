@@ -49,8 +49,8 @@ const initialContext: QuizContext = {
   answers: []
 };
 
-export const secondsLeft = (context: QuizContext) =>
-  Math.max(0, QUESTION_SECONDS - context.elapsed);
+export const secondsLeft = (elapsed: number) =>
+  Math.max(0, QUESTION_SECONDS - elapsed);
 
 /**
  * Records an answer and moves on: back into `answering` for the next question

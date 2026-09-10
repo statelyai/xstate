@@ -55,7 +55,7 @@ actor.subscribe((snapshot) => {
   closeButton.disabled = !doorsOpen;
 
   const direction = { '-1': 'down', '0': 'idle', '1': 'up' }[
-    String(directionOf(snapshot.context))
+    String(directionOf(snapshot.context.currentFloor, snapshot.context.queue))
   ];
 
   output.textContent = `${String(snapshot.value)} · floor ${currentFloor} · ${direction} · queue [${queue.join(', ')}]`;

@@ -47,7 +47,7 @@ function App() {
         <span>
           Question {index + 1} of {questions.length}
         </span>
-        <span className="timer">{secondsLeft(state.context)}s</span>
+        <span className="timer">{secondsLeft(state.context.elapsed)}s</span>
       </header>
       <h1>{question.prompt}</h1>
       <ul className="choices">

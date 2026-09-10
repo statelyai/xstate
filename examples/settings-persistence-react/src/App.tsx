@@ -74,7 +74,10 @@ export default function App() {
       </form>
 
       <p className="ok">
-        Effective theme: <strong>{effectiveTheme(state.context)}</strong>
+        Effective theme:{' '}
+        <strong>
+          {effectiveTheme(state.context.theme, state.context.systemDark)}
+        </strong>
       </p>
       <p className="hint">
         The OS currently prefers {systemDark ? 'dark' : 'light'}. Change it

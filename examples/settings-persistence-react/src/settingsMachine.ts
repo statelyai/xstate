@@ -77,11 +77,14 @@ export function applyTheme(theme: 'light' | 'dark') {
   document.documentElement.dataset.theme = theme;
 }
 
-export function effectiveTheme(context: SettingsContext): 'light' | 'dark' {
-  if (context.theme === 'system') {
-    return context.systemDark ? 'dark' : 'light';
+export function effectiveTheme(
+  theme: ThemePreference,
+  systemDark: boolean
+): 'light' | 'dark' {
+  if (theme === 'system') {
+    return systemDark ? 'dark' : 'light';
   }
-  return context.theme;
+  return theme;
 }
 
 /**
@@ -128,14 +131,14 @@ export const settingsMachine = setup({
   // there is nothing to wait for and no `loading` state to render.
   context: () => ({ ...readSettings(), systemDark: prefersDark() }),
   entry: ({ context }, enq) => {
-    enq(applyTheme, effectiveTheme(context));
+    enq(applyTheme, effectiveTheme(context.theme, context.systemDark));
   },
   invoke: { src: 'systemTheme', input: {} },
   on: {
     setTheme: ({ context, event }, enq) => {
       const next: Settings = { ...context, theme: event.theme };
       enq(persist, next);
-      enq(applyTheme, effectiveTheme({ ...context, ...next }));
+      enq(applyTheme, effectiveTheme(next.theme, context.systemDark));
       return { context: next };
     },
     setDensity: ({ context, event }, enq) => {
@@ -152,12 +155,12 @@ export const settingsMachine = setup({
     // machine always tracks the OS preference so the toggle is instant.
     systemThemeChanged: ({ context, event }, enq) => {
       const next = { ...context, systemDark: event.dark };
-      enq(applyTheme, effectiveTheme(next));
+      enq(applyTheme, effectiveTheme(context.theme, event.dark));
       return { context: { systemDark: event.dark } };
     },
     reset: ({ context }, enq) => {
       enq(persist, DEFAULTS);
-      enq(applyTheme, effectiveTheme({ ...context, ...DEFAULTS }));
+      enq(applyTheme, effectiveTheme(DEFAULTS.theme, context.systemDark));
       return { context: DEFAULTS };
     }
   }

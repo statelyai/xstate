@@ -1,45 +1,47 @@
 import { setup, types } from 'xstate';
 
+export type Plan = 'free' | 'pro' | '';
+
 export type WizardContext = {
   email: string;
   password: string;
   street: string;
   city: string;
-  plan: 'free' | 'pro' | '';
+  plan: Plan;
 };
 
 /**
  * Validation lives in plain functions so the machine and the UI apply the same
  * rules: the machine blocks the transition, the UI shows the messages.
  */
-export function accountErrors(context: WizardContext): string[] {
+export function accountErrors(email: string, password: string): string[] {
   const errors: string[] = [];
 
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(context.email)) {
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     errors.push('Enter a valid email address.');
   }
-  if (context.password.length < 8) {
+  if (password.length < 8) {
     errors.push('Password must be at least 8 characters.');
   }
 
   return errors;
 }
 
-export function addressErrors(context: WizardContext): string[] {
+export function addressErrors(street: string, city: string): string[] {
   const errors: string[] = [];
 
-  if (context.street.trim() === '') {
+  if (street.trim() === '') {
     errors.push('Street is required.');
   }
-  if (context.city.trim() === '') {
+  if (city.trim() === '') {
     errors.push('City is required.');
   }
 
   return errors;
 }
 
-export function planErrors(context: WizardContext): string[] {
-  return context.plan === '' ? ['Pick a plan.'] : [];
+export function planErrors(plan: Plan): string[] {
+  return plan === '' ? ['Pick a plan.'] : [];
 }
 
 export const wizardMachine = setup({
@@ -74,7 +76,7 @@ export const wizardMachine = setup({
     account: {
       on: {
         next: ({ context }) =>
-          accountErrors(context).length === 0
+          accountErrors(context.email, context.password).length === 0
             ? { target: 'address' }
             : undefined
       }
@@ -82,14 +84,18 @@ export const wizardMachine = setup({
     address: {
       on: {
         next: ({ context }) =>
-          addressErrors(context).length === 0 ? { target: 'plan' } : undefined,
+          addressErrors(context.street, context.city).length === 0
+            ? { target: 'plan' }
+            : undefined,
         back: { target: 'account' }
       }
     },
     plan: {
       on: {
         next: ({ context }) =>
-          planErrors(context).length === 0 ? { target: 'done' } : undefined,
+          planErrors(context.plan).length === 0
+            ? { target: 'done' }
+            : undefined,
         back: { target: 'address' }
       }
     },

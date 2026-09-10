@@ -73,6 +73,15 @@ const machine = setup({
 });
 ```
 
+**Keep reusable implementations standalone.** Guards, actions, and actor logic are reusable pieces: none of them may depend on the calling machine's context, event, or anything else actor-specific. Each takes only what it needs — narrow parameters for guards and actions, a narrow declared `input` schema for actor logic — so it stays independently testable and readable at the call site. In practice:
+
+- Guards: module-level predicates, called inside the transition function (worked example below).
+- Actions: module-level functions with narrow parameters, enqueued as `enq(sendEmail, context.address)`. Do not register them in `setup({ actions })` and do not forward the transition args object.
+- Actor logic: declare the `input` fields the logic actually uses, and map only those at the invoke site (`input: ({ context }) => ({ page: context.page })`). Never pass the whole parent context, and never type an actor's `input`/`run` params with the parent machine's context or event types.
+- Module-level helpers generally: take `(tiles: number[])`, not `(context: BoardContext)`.
+
+Transition functions themselves are machine-owned and rightly receive the transition args. `delays` are the other exception — see below.
+
 **Write guards as module-level predicates.** A guard is an ordinary function declared next to the machine, taking the narrowest useful parameters — the values it actually judges, not the whole transition args object. Call it directly inside the transition function.
 
 ```ts
@@ -118,7 +127,7 @@ delays: {
 
 **Write code a human would write.** Mechanically converted v4/v5 code is rejected. In particular:
 
-- No IIFE-wrapped guards or assigns inside transition functions. Put the logic in a module-level predicate, or a named action in `setup()`.
+- No IIFE-wrapped guards or assigns inside transition functions. Put the logic in a module-level predicate or a module-level function.
 - No `(() => { ... })()` blocks standing in for what should be a declarative transition.
 - No leftover `predictableActionArguments`, `tsTypes`, or other pre-v5 config keys.
 - No `as any` to work around types. If the types fight you, that is a bug worth reporting.

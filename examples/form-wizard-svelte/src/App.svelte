@@ -17,9 +17,11 @@
   const errors = $derived.by(() => {
     const context = $snapshot.context;
 
-    if ($snapshot.matches('account')) return accountErrors(context);
-    if ($snapshot.matches('address')) return addressErrors(context);
-    if ($snapshot.matches('plan')) return planErrors(context);
+    if ($snapshot.matches('account'))
+      return accountErrors(context.email, context.password);
+    if ($snapshot.matches('address'))
+      return addressErrors(context.street, context.city);
+    if ($snapshot.matches('plan')) return planErrors(context.plan);
 
     return [];
   });

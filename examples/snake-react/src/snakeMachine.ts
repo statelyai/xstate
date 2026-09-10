@@ -19,15 +19,17 @@ type GameObject =
   | { type: 'body'; dir: Dir }
   | { type: 'apple'; dir: undefined };
 export function getGamObjectAtPos(
-  context: SnakeMachineContext,
+  snake: Snake,
+  apple: Point,
+  dir: Dir,
   p: Point
 ): GameObject | undefined {
   let maybeBodyPart: BodyPart | undefined;
-  if (isSamePos(head(context.snake), p)) {
-    return { type: 'head', dir: context.dir };
-  } else if (isSamePos(context.apple, p)) {
+  if (isSamePos(head(snake), p)) {
+    return { type: 'head', dir };
+  } else if (isSamePos(apple, p)) {
     return { type: 'apple', dir: undefined };
-  } else if ((maybeBodyPart = find(body(context.snake), p))) {
+  } else if ((maybeBodyPart = find(body(snake), p))) {
     return { type: 'body', dir: maybeBodyPart.dir };
   } else {
     return undefined;
@@ -125,21 +127,21 @@ export function createInitialContext(): SnakeMachineContext {
   };
 }
 
-function ateApple(context: SnakeMachineContext) {
-  return isSamePos(head(context.snake), context.apple);
+function ateApple(snake: Snake, apple: Point) {
+  return isSamePos(head(snake), apple);
 }
 
-function hitTail(context: SnakeMachineContext) {
-  return !!find(body(context.snake), head(context.snake));
+function hitTail(snake: Snake) {
+  return !!find(body(snake), head(snake));
 }
 
-function hitWall(context: SnakeMachineContext) {
-  return isOutsideGrid(context.gridSize, head(context.snake));
+function hitWall(gridSize: Point, snake: Snake) {
+  return isOutsideGrid(gridSize, head(snake));
 }
 
 /** The direction the snake should face after an arrow key, ignoring 180° turns. */
-function nextDir(context: SnakeMachineContext, dir: Dir): Dir {
-  return dir !== oppositeDir[context.dir] ? dir : context.dir;
+function nextDir(currentDir: Dir, dir: Dir): Dir {
+  return dir !== oppositeDir[currentDir] ? dir : currentDir;
 }
 
 export const snakeMachine = setup({
@@ -169,7 +171,7 @@ export const snakeMachine = setup({
       on: {
         ARROW_KEY: ({ context, event }) => ({
           target: 'Moving',
-          context: { dir: nextDir(context, event.dir) }
+          context: { dir: nextDir(context.dir, event.dir) }
         })
       }
     },
@@ -183,7 +185,7 @@ export const snakeMachine = setup({
       // Eventless transition: re-runs after every context change, so eating an
       // apple is resolved before the collision check on the next pass.
       always: ({ context }) => {
-        if (ateApple(context)) {
+        if (ateApple(context.snake, context.apple)) {
           const snake = growSnake(context.snake);
 
           return {
@@ -196,7 +198,10 @@ export const snakeMachine = setup({
           };
         }
 
-        if (hitTail(context) || hitWall(context)) {
+        if (
+          hitTail(context.snake) ||
+          hitWall(context.gridSize, context.snake)
+        ) {
           return { target: 'Game Over' };
         }
       },
@@ -208,7 +213,7 @@ export const snakeMachine = setup({
         // feels responsive instead of waiting for the next tick.
         ARROW_KEY: ({ context, event }) => ({
           target: 'Moving',
-          context: { dir: nextDir(context, event.dir) }
+          context: { dir: nextDir(context.dir, event.dir) }
         })
       }
     },

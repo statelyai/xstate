@@ -12,26 +12,26 @@ export type SignupContext = {
 };
 
 /** Validation shared by the machine and the UI, so both agree on the rules. */
-export function accountErrors(context: SignupContext): string[] {
+export function accountErrors(email: string, password: string): string[] {
   const errors: string[] = [];
 
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(context.email)) {
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     errors.push('Enter a valid email address.');
   }
-  if (context.password.length < 8) {
+  if (password.length < 8) {
     errors.push('Password must be at least 8 characters.');
   }
 
   return errors;
 }
 
-export function profileErrors(context: SignupContext): string[] {
+export function profileErrors(name: string, role: Role | ''): string[] {
   const errors: string[] = [];
 
-  if (context.name.trim().length < 2) {
+  if (name.trim().length < 2) {
     errors.push('Name must be at least 2 characters.');
   }
-  if (context.role === '') {
+  if (role === '') {
     errors.push('Pick a role.');
   }
 
@@ -97,7 +97,7 @@ export const signupMachine = setup({
         // Returning nothing blocks the transition, so an invalid step cannot
         // advance. There is no separate `guard` key in v6.
         next: ({ context }) => {
-          if (accountErrors(context).length === 0) {
+          if (accountErrors(context.email, context.password).length === 0) {
             return { target: 'profile' };
           }
         }
@@ -108,7 +108,7 @@ export const signupMachine = setup({
         setName: ({ event }) => ({ context: { name: event.value } }),
         setRole: ({ event }) => ({ context: { role: event.value } }),
         next: ({ context }) => {
-          if (profileErrors(context).length === 0) {
+          if (profileErrors(context.name, context.role).length === 0) {
             return { target: 'confirm' };
           }
         },

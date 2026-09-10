@@ -50,7 +50,12 @@ function App() {
         {Array.from({ length: gridSize.y }).map((_, row) =>
           Array.from({ length: gridSize.x }).map((_, col) => {
             const { type, dir } =
-              getGamObjectAtPos(current.context, { x: col, y: row }) || {};
+              getGamObjectAtPos(
+                current.context.snake,
+                current.context.apple,
+                current.context.dir,
+                { x: col, y: row }
+              ) || {};
             return (
               <div className="cell" key={`${col} ${row}`}>
                 <span

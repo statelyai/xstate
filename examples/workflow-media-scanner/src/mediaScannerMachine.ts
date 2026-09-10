@@ -20,6 +20,11 @@ const ACCEPTED_FILE_TYPES = [
   'mts'
 ];
 
+/** Side effect: notify an operator about directories that could not be scanned. */
+function emailErrors(dirsToReport: string[]) {
+  console.log('Emailing errors for:', dirsToReport);
+}
+
 interface MediaScannerContext {
   basePath: string;
   destinationPath: string;
@@ -62,11 +67,6 @@ export const mediaScannerMachine = setup({
         input: { dirsToMove: string[]; destinationPath: string };
       }) => moveFiles(input.dirsToMove, input.destinationPath)
     })
-  },
-  actions: {
-    emailErrors: (params: { dirsToReport: string[] }) => {
-      console.log('Emailing errors for:', params.dirsToReport);
-    }
   }
 }).createMachine({
   id: 'mediaScanner',
@@ -146,8 +146,8 @@ export const mediaScannerMachine = setup({
     reportingErrors: {
       description:
         'Reports missing paths and directories without read/write access.',
-      entry: ({ context, actions }, enq) => {
-        enq(actions.emailErrors, { dirsToReport: context.dirsToReport });
+      entry: ({ context }, enq) => {
+        enq(emailErrors, context.dirsToReport);
       },
       on: { RESTART: { target: 'idle' } }
     }
