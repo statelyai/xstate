@@ -1518,30 +1518,14 @@ export interface Sources {
 }
 
 /**
- * Contextually types the entries of a `guards: { ... }` source map. Guard
- * sources receive the transition args object first and optional caller-supplied
- * params after it.
+ * Contextually types the entries of a `guards: { ... }` source map. Guards
+ * are plain predicates: they receive only caller-supplied params (no injected
+ * transition args) and are called the same way they are declared.
  */
 export type GuardSourceMap<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  // `never` context (machine without context) must accept the `any`-typed
-  // context of transition args, mirroring TransitionConfigFunction's _TCtx.
-  _TCtx = [TContext] extends [never] ? any : TContext
-> = Record<
-  string,
-  (
-    args: {
-      context: _TCtx;
-      event: TEvent;
-      self: AnyActorRef;
-      parent: AnyActorRef | undefined;
-      value: StateValue;
-      children: Record<string, AnyActorRef | undefined>;
-    },
-    ...params: any[]
-  ) => boolean
->;
+  _TContext extends MachineContext,
+  _TEvent extends EventObject
+> = Record<string, (...params: any[]) => boolean>;
 
 /**
  * Contextually types the entries of a `delays: { ... }` source map. Delay

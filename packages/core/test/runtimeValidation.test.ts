@@ -687,7 +687,7 @@ describe('runtime schema validation', () => {
     }).createMachine({
       on: {
         GO: ({ guards }) => {
-          if (guards.allowed({ count: 'x' } as any)) {
+          if ((guards.allowed as any)({ count: 'x' })) {
             return {};
           }
         }
