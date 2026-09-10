@@ -10,8 +10,6 @@ const chargeCard = createAsyncLogic({
   }
 });
 
-const hasItems = (total: number) => total > 0;
-
 /** A headless order workflow: no DOM, no framework, no UI code. */
 export const orderMachine = setup({
   schemas: {
@@ -27,7 +25,10 @@ export const orderMachine = setup({
       cancel: types<{}>()
     }
   },
-  actors: { chargeCard }
+  actors: { chargeCard },
+  guards: {
+    hasItems: (total: number) => total > 0
+  }
 }).createMachine({
   context: { total: 0, chargeId: null, error: null },
   initial: 'cart',
@@ -37,8 +38,8 @@ export const orderMachine = setup({
         addItem: ({ context }) => ({
           context: { total: context.total + 120 }
         }),
-        checkout: ({ context }) =>
-          hasItems(context.total) ? { target: 'charging' } : undefined
+        checkout: ({ context, guards }) =>
+          guards.hasItems(context.total) ? { target: 'charging' } : undefined
       }
     },
     charging: {

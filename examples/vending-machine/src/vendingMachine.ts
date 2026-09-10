@@ -30,10 +30,6 @@ export interface VendingContext {
 
 const priceOf = (id: string) => items.find((item) => item.id === id)!.price;
 
-const inStock = (stock: Record<string, number>, id: string) => stock[id]! > 0;
-
-const canAfford = (credit: number, id: string) => credit >= priceOf(id);
-
 export const vendingMachine = setup({
   schemas: {
     context: types<VendingContext>(),
@@ -46,6 +42,10 @@ export const vendingMachine = setup({
   delays: {
     dispenseTime: 1200,
     changeTime: 800
+  },
+  guards: {
+    inStock: (stock: Record<string, number>, id: string) => stock[id]! > 0,
+    canAfford: (credit: number, id: string) => credit >= priceOf(id)
   }
 }).createMachine({
   id: 'vendingMachine',
@@ -69,12 +69,12 @@ export const vendingMachine = setup({
         }),
         // Plain predicates are called explicitly here, so one transition
         // function can choose between three outcomes.
-        select: ({ context, event }) => {
-          if (!inStock(context.stock, event.id)) {
+        select: ({ context, event, guards }) => {
+          if (!guards.inStock(context.stock, event.id)) {
             return { context: { message: 'Sold out' } };
           }
 
-          if (!canAfford(context.credit, event.id)) {
+          if (!guards.canAfford(context.credit, event.id)) {
             const missing = priceOf(event.id) - context.credit;
             return { context: { message: `Add ${missing}¢ more` } };
           }

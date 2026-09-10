@@ -41,10 +41,6 @@ const handleEvent = createAsyncLogic({
   }
 });
 
-/** Idempotency: the delivery id set in context is the dedupe key. */
-const isDuplicate = (seen: string[], deliveryId: string) =>
-  seen.includes(deliveryId);
-
 const processorMachine = setup({
   schemas: {
     context: types<{
@@ -55,7 +51,12 @@ const processorMachine = setup({
     }>(),
     input: types<{ inbox: Delivery[] }>()
   },
-  actors: { handleEvent, verifySignature }
+  actors: { handleEvent, verifySignature },
+  guards: {
+    /** Idempotency: the delivery id set in context is the dedupe key. */
+    isDuplicate: (seen: string[], deliveryId: string) =>
+      seen.includes(deliveryId)
+  }
 }).createMachine({
   context: ({ input }) => ({
     inbox: input.inbox,
@@ -80,8 +81,8 @@ const processorMachine = setup({
           log,
           `received ${context.current!.deliveryId} (${context.current!.event})`
         ),
-      always: ({ context }) =>
-        isDuplicate(context.seen, context.current!.deliveryId)
+      always: ({ context, guards }) =>
+        guards.isDuplicate(context.seen, context.current!.deliveryId)
           ? { target: 'settled' }
           : { target: 'verifying' }
     },

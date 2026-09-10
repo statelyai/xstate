@@ -40,8 +40,6 @@ const MAX_ATTEMPTS = 2;
  * reaches a final state, so the caller never has to catch anything: it reads
  * `ok` from the output and decides whether to fail over.
  */
-const canRetry = (attempt: number) => attempt < MAX_ATTEMPTS;
-
 const provider = setup({
   schemas: {
     context: types<{
@@ -62,7 +60,10 @@ const provider = setup({
   delays: {
     backoff: ({ context }) => 100 * 2 ** (context.attempt - 1)
   },
-  actors: { complete }
+  actors: { complete },
+  guards: {
+    canRetry: (attempt: number) => attempt < MAX_ATTEMPTS
+  }
 }).createMachine({
   context: ({ input }) => ({
     provider: input.provider,
@@ -85,11 +86,11 @@ const provider = setup({
           target: 'answered',
           context: { attempt: context.attempt + 1, text: event.output.text }
         }),
-        onError: ({ context, event }, enq) => {
+        onError: ({ context, event, guards }, enq) => {
           const attempt = context.attempt + 1;
           const error = (event.error as Error).message;
           enq(log, `${context.provider}: attempt ${attempt} failed (${error})`);
-          return canRetry(attempt)
+          return guards.canRetry(attempt)
             ? { target: 'backingOff', context: { attempt, error } }
             : { target: 'exhausted', context: { attempt, error } };
         }

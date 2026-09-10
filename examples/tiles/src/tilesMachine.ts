@@ -43,9 +43,6 @@ function isAdjacent(selected: Tile | undefined, hovered: Tile | undefined) {
   );
 }
 
-const allTilesInOrder = (tiles: number[]) =>
-  tiles.every((tile, index) => tile === index);
-
 export const tilesMachine = setup({
   schemas: {
     context: types<TilesContext>(),
@@ -56,6 +53,10 @@ export const tilesMachine = setup({
       'tile.move': types<{}>(),
       'move.canceled': types<{}>()
     }
+  },
+  guards: {
+    allTilesInOrder: (tiles: number[]) =>
+      tiles.every((tile, index) => tile === index)
   }
 }).createMachine({
   id: 'tiles',
@@ -117,8 +118,8 @@ export const tilesMachine = setup({
           }
         }
       },
-      always: ({ context }) => {
-        if (!allTilesInOrder(context.tiles)) {
+      always: ({ context, guards }) => {
+        if (!guards.allTilesInOrder(context.tiles)) {
           return;
         }
 

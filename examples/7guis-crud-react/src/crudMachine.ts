@@ -28,14 +28,6 @@ const initialEntries: Entry[] = [
 export const matchesFilter = (entry: Entry, filter: string) =>
   entry.surname.toLowerCase().startsWith(filter.trim().toLowerCase());
 
-/** Narrows the selection to an entry id. */
-const hasSelection = (selectedId: string | null): selectedId is string =>
-  selectedId !== null;
-
-/** An entry needs at least one of the two name fields. */
-const isNamed = (name: string, surname: string) =>
-  name.trim().length > 0 || surname.trim().length > 0;
-
 export const crudMachine = setup({
   schemas: {
     context: types<CrudContext>(),
@@ -48,6 +40,14 @@ export const crudMachine = setup({
       update: types<{}>(),
       delete: types<{}>()
     }
+  },
+  guards: {
+    /** Narrows the selection to an entry id. */
+    hasSelection: (selectedId: string | null): selectedId is string =>
+      selectedId !== null,
+    /** An entry needs at least one of the two name fields. */
+    isNamed: (name: string, surname: string) =>
+      name.trim().length > 0 || surname.trim().length > 0
   }
 }).createMachine({
   id: 'crud',
@@ -80,8 +80,8 @@ export const crudMachine = setup({
       };
     },
 
-    create: ({ context }) => {
-      if (!isNamed(context.nameDraft, context.surnameDraft)) {
+    create: ({ context, guards }) => {
+      if (!guards.isNamed(context.nameDraft, context.surnameDraft)) {
         return;
       }
 
@@ -96,10 +96,10 @@ export const crudMachine = setup({
       };
     },
 
-    update: ({ context }) => {
+    update: ({ context, guards }) => {
       if (
-        !hasSelection(context.selectedId) ||
-        !isNamed(context.nameDraft, context.surnameDraft)
+        !guards.hasSelection(context.selectedId) ||
+        !guards.isNamed(context.nameDraft, context.surnameDraft)
       ) {
         return;
       }
@@ -119,8 +119,8 @@ export const crudMachine = setup({
       };
     },
 
-    delete: ({ context }) => {
-      if (!hasSelection(context.selectedId)) {
+    delete: ({ context, guards }) => {
+      if (!guards.hasSelection(context.selectedId)) {
         return;
       }
 

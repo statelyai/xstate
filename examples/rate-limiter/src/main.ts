@@ -15,8 +15,6 @@ const EXPECTED = 10;
  * `acquire` is granted immediately, and anything that is not granted waits in
  * a queue until a refill releases it.
  */
-const hasToken = (tokens: number) => tokens > 0;
-
 const limiterMachine = setup({
   schemas: {
     context: types<{
@@ -26,7 +24,11 @@ const limiterMachine = setup({
     }>(),
     events: { acquire: types<{ id: string }>() }
   },
-  delays: { refill: REFILL_MS }
+  delays: { refill: REFILL_MS },
+  guards: {
+    /** A request is granted immediately only while the bucket has a token. */
+    hasToken: (tokens: number) => tokens > 0
+  }
 }).createMachine({
   context: { tokens: CAPACITY, waiting: [], granted: [] },
   initial: 'open',
@@ -54,8 +56,8 @@ const limiterMachine = setup({
         }
       },
       on: {
-        acquire: ({ context, event }, enq) => {
-          if (hasToken(context.tokens)) {
+        acquire: ({ context, event, guards }, enq) => {
+          if (guards.hasToken(context.tokens)) {
             enq(log, `granted ${event.id} (tokens left ${context.tokens - 1})`);
             return {
               context: {

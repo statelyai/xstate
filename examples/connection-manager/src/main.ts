@@ -42,8 +42,6 @@ const ping = createAsyncLogic({
   }
 });
 
-const canRetry = (attempt: number) => attempt < MAX_ATTEMPTS;
-
 const clientMachine = setup({
   schemas: {
     context: types<{
@@ -62,7 +60,10 @@ const clientMachine = setup({
       ),
     heartbeat: HEARTBEAT_MS
   },
-  actors: { connect, ping }
+  actors: { connect, ping },
+  guards: {
+    canRetry: (attempt: number) => attempt < MAX_ATTEMPTS
+  }
 }).createMachine({
   context: {
     attempt: 0,
@@ -90,11 +91,11 @@ const clientMachine = setup({
             }
           };
         },
-        onError: ({ context, event }, enq) => {
+        onError: ({ context, event, guards }, enq) => {
           const lastError = (event.error as Error).message;
           const attempt = context.attempt + 1;
           enq(log, `  connect failed: ${lastError}`);
-          return canRetry(attempt)
+          return guards.canRetry(attempt)
             ? { target: 'backingOff', context: { attempt, lastError } }
             : { target: 'gaveUp', context: { attempt, lastError } };
         }

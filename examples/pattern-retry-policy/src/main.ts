@@ -22,10 +22,6 @@ const storePatient = createAsyncLogic({
   }
 });
 
-// A plain predicate taking only the value it judges, called directly from the
-// transition function below.
-const canRetry = (attempts: number) => attempts < MAX_ATTEMPTS;
-
 const machine = setup({
   schemas: {
     context: types<{
@@ -40,6 +36,10 @@ const machine = setup({
   delays: {
     // Exponential backoff: 200ms, 400ms, 800ms, ...
     backoff: ({ context }) => 100 * 2 ** context.attempts
+  },
+  guards: {
+    // A plain predicate taking only the value it judges.
+    canRetry: (attempts: number) => attempts < MAX_ATTEMPTS
   }
 }).createMachine({
   context: ({ input }) => ({
@@ -58,10 +58,10 @@ const machine = setup({
           target: 'stored',
           context: { recordId: event.output.recordId }
         }),
-        onError: ({ context, event }) => {
+        onError: ({ context, event, guards }) => {
           const error = String((event.error as Error).message);
           const attempts = context.attempts + 1;
-          return canRetry(attempts)
+          return guards.canRetry(attempts)
             ? { target: 'backingOff', context: { attempts, error } }
             : { target: 'gaveUp', context: { attempts, error } };
         }

@@ -73,40 +73,55 @@ const machine = setup({
 });
 ```
 
-**Keep reusable implementations standalone.** Guards, actions, and actor logic are normal functions: none of them may depend on the calling machine's context, event, or anything else actor-specific, and none of them ever receives the transition args object. Each takes only what it needs — call a guard like any predicate, `isEditing(context.editing)`, never `isEditing(args, ...)`. Registering standalone functions on `setup()` is fine; coupling them to the machine is not. In practice:
+**Keep reusable implementations standalone.** Guards, actions, and actor logic are normal functions: none of them may depend on the calling machine's context, event, or anything else actor-specific, and none of them ever receives the transition args object. Each takes only what it needs — call a guard like any predicate, `guards.isEditing(context.editing)`, never `guards.isEditing(args, ...)`. Registering standalone functions on `setup()` is fine; coupling them to the machine is not. In practice:
 
-- Guards: plain predicates with narrow parameters, called inside the transition function (worked example below).
+- Guards: plain predicates with narrow parameters, registered in `guards:` and called inside the transition function (worked example below).
 - Actions: plain functions with narrow parameters, enqueued as `enq(sendEmail, context.address)`. Never forward the transition args object.
 - Actor logic: declare the `input` fields the logic actually uses, and map only those at the invoke site (`input: ({ context }) => ({ page: context.page })`). Never pass the whole parent context, and never type an actor's `input`/`run` params with the parent machine's context or event types.
 - Module-level helpers generally: take `(tiles: number[])`, not `(context: BoardContext)`.
 
 Transition functions themselves are machine-owned and rightly receive the transition args. `delays` are the other exception — see below.
 
-**Write guards as module-level predicates.** A guard is an ordinary function declared next to the machine, taking the narrowest useful parameters — the values it actually judges, not the whole transition args object. Call it directly inside the transition function.
+**Register guards in `guards:` and call them like plain predicates.** A guard is an ordinary function, taking the narrowest useful parameters — the values it actually judges, not the whole transition args object. Put it in the machine's `guards:` source map (on `setup()`, or on the machine config when the example uses a bare `createMachine`), then destructure `guards` from the transition args and call it.
 
 ```ts
-const hasSession = (user: User | null): user is User => user !== null;
-const hasStock = (quantity: number) => quantity > 0;
+const machine = setup({
+  schemas: {
+    /* ... */
+  },
+  guards: {
+    hasSession: (user: User | null): user is User => user !== null,
+    hasStock: (quantity: number) => quantity > 0
+  }
+}).createMachine({
+  /* ... */
+});
 ```
 
 ```ts
 on: {
-  submit: ({ context }) => ({
-    target: hasSession(context.user) ? 'dashboard' : 'login'
+  submit: ({ context, guards }) => ({
+    target: guards.hasSession(context.user) ? 'dashboard' : 'login'
   });
 }
 ```
 
 ```ts
 on: {
-  addItem: ({ context }) => {
-    if (!hasStock(context.quantity)) return;
+  addItem: ({ context, guards }) => {
+    if (!guards.hasStock(context.quantity)) return;
     return { target: 'adding' };
   };
 }
 ```
 
-Never forward the transition `args` object to a guard — a guard call reads like any predicate call: `guards.isEditing(context.editing)` or `isEditing(context.editing)`, never `guards.isEditing(args, ...)`. Narrow parameters keep each predicate independently testable and readable at the call site; passing `args` hides what the rule depends on. Examples currently keep guards at module level because today's `setup({ guards })` contract forces args-first calls; once core pre-binds guard sources (#5702), registering the same plain predicates in `setup({ guards })` is equally good.
+Type predicates keep narrowing through `guards.` access, so `guards.hasSession(context.user)` still narrows `context.user` in the branch below it.
+
+Never forward the transition `args` object to a guard — a guard call reads like any predicate call: `guards.isEditing(context.editing)`, never `guards.isEditing(args, ...)`. Narrow parameters keep each predicate independently testable and readable at the call site; passing `args` hides what the rule depends on.
+
+A predicate that a UI component also imports stays declared at module level and is registered by reference (`guards: { isEditing }`), so both call sites keep working.
+
+Note: guards referenced declaratively from serialized JSON or SCXML machines (`guard: { type, params }`) are the one exception. There the runtime is the caller, so it passes the transition args object first and `params` second. Examples written in TypeScript never use that form.
 
 `delays` are different: a named delay function is called by the runtime with `{ context, event, stateNode }`, so it does take that args object. `schemas.context` and `schemas.events` type it, so do not annotate the params.
 
@@ -127,7 +142,7 @@ delays: {
 
 **Write code a human would write.** Mechanically converted v4/v5 code is rejected. In particular:
 
-- No IIFE-wrapped guards or assigns inside transition functions. Put the logic in a module-level predicate or a module-level function.
+- No IIFE-wrapped guards or assigns inside transition functions. Put the logic in a registered guard or a module-level function.
 - No `(() => { ... })()` blocks standing in for what should be a declarative transition.
 - No leftover `predictableActionArguments`, `tsTypes`, or other pre-v5 config keys.
 - No `as any` to work around types. If the types fight you, that is a bug worth reporting.

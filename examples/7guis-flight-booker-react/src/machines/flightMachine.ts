@@ -8,10 +8,6 @@ const inspector = createInspector();
 /** A departure cannot be booked in the past. */
 const isValidDepartDate = (departDate: string) => departDate >= TODAY;
 
-/** A return must be after a valid departure. */
-const isValidReturnDate = (departDate: string, returnDate: string) =>
-  isValidDepartDate(departDate) && returnDate > departDate;
-
 export const flightBookerMachine = setup({
   schemas: {
     context: types<FlightData>(),
@@ -27,6 +23,12 @@ export const flightBookerMachine = setup({
     booker: createAsyncLogic({
       run: () => sleep(2000)
     })
+  },
+  guards: {
+    isValidDepartDate,
+    /** A return must be after a valid departure. */
+    isValidReturnDate: (departDate: string, returnDate: string) =>
+      isValidDepartDate(departDate) && returnDate > departDate
   }
 }).createMachine({
   id: 'flightBookerMachine',
@@ -47,8 +49,8 @@ export const flightBookerMachine = setup({
         oneWay: {
           on: {
             CHANGE_TRIP_TYPE: { target: 'roundTrip' },
-            BOOK_DEPART: ({ context }) => {
-              if (isValidDepartDate(context.departDate)) {
+            BOOK_DEPART: ({ context, guards }) => {
+              if (guards.isValidDepartDate(context.departDate)) {
                 return { target: '#flightBookerMachine.booking' };
               }
             }
@@ -60,8 +62,10 @@ export const flightBookerMachine = setup({
             CHANGE_RETURN_DATE: ({ event }) => ({
               context: { returnDate: event.value }
             }),
-            BOOK_RETURN: ({ context }) => {
-              if (isValidReturnDate(context.departDate, context.returnDate)) {
+            BOOK_RETURN: ({ context, guards }) => {
+              if (
+                guards.isValidReturnDate(context.departDate, context.returnDate)
+              ) {
                 return { target: '#flightBookerMachine.booking' };
               }
             }

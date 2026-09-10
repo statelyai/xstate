@@ -37,8 +37,6 @@ const checkWin = (board: Board) =>
 
 const checkDraw = (moves: number) => moves === 9;
 
-const isValidMove = (board: Board, value: number) => board[value] === null;
-
 export const ticTacToeMachine = setup({
   schemas: {
     context: types<TicTacToeContext>(),
@@ -47,6 +45,9 @@ export const ticTacToeMachine = setup({
       RESET: types<{}>()
     },
     tags: types<'winner' | 'draw'>()
+  },
+  guards: {
+    isValidMove: (board: Board, value: number) => board[value] === null
   }
 }).createMachine({
   initial: 'playing',
@@ -62,8 +63,8 @@ export const ticTacToeMachine = setup({
         }
       },
       on: {
-        PLAY: ({ context, event }) => {
-          if (!isValidMove(context.board, event.value)) {
+        PLAY: ({ context, event, guards }) => {
+          if (!guards.isValidMove(context.board, event.value)) {
             return;
           }
 

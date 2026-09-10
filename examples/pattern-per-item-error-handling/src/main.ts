@@ -63,7 +63,10 @@ const orderMachine = setup({
     },
     provisioned: {
       type: 'final',
-      output: ({ context }) => ({ id: context.order.id, status: 'provisioned' })
+      output: ({ context }) => ({
+        id: context.order.id,
+        status: 'provisioned'
+      })
     },
     failed: {
       type: 'final',

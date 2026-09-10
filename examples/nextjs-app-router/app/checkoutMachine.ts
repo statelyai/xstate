@@ -1,7 +1,5 @@
 import { setup, types } from 'xstate';
 
-const hasItems = (items: number) => items > 0;
-
 /** The server-side machine: one checkout per session. */
 export const checkoutMachine = setup({
   schemas: {
@@ -11,6 +9,9 @@ export const checkoutMachine = setup({
       pay: types<{}>(),
       reset: types<{}>()
     }
+  },
+  guards: {
+    hasItems: (items: number) => items > 0
   }
 }).createMachine({
   id: 'checkout',
@@ -22,8 +23,8 @@ export const checkoutMachine = setup({
         addItem: ({ context }) => ({
           context: { items: context.items + 1 }
         }),
-        pay: ({ context }) =>
-          hasItems(context.items) ? { target: 'paid' } : undefined
+        pay: ({ context, guards }) =>
+          guards.hasItems(context.items) ? { target: 'paid' } : undefined
       }
     },
     paid: {

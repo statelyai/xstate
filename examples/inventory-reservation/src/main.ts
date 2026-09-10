@@ -55,9 +55,6 @@ const holdMachine = setup({
 
 type HoldRef = ActorRefFrom<typeof holdMachine>;
 
-/** Overselling check: a reservation is only granted against real stock. */
-const inStock = (available: number) => available > 0;
-
 const inventoryMachine = setup({
   schemas: {
     context: types<{
@@ -72,6 +69,10 @@ const inventoryMachine = setup({
       holdSettled: types<{ outcome: HoldOutcome }>()
     },
     input: types<{ available: number }>()
+  },
+  guards: {
+    /** Overselling check: a reservation is only granted against real stock. */
+    inStock: (available: number) => available > 0
   }
 }).createMachine({
   context: ({ input }) => ({
@@ -83,8 +84,8 @@ const inventoryMachine = setup({
   states: {
     open: {
       on: {
-        reserve: ({ context, event }, enq) => {
-          if (!inStock(context.available)) {
+        reserve: ({ context, event, guards }, enq) => {
+          if (!guards.inStock(context.available)) {
             enq(log, `denied ${event.customer}: out of stock`);
             return undefined;
           }

@@ -37,8 +37,6 @@ const runJob = createAsyncLogic({
   }
 });
 
-const canRetry = (attempts: number) => attempts < MAX_ATTEMPTS;
-
 /** One actor per job: attempt, back off, retry, or dead-letter. */
 const jobMachine = setup({
   schemas: {
@@ -49,6 +47,9 @@ const jobMachine = setup({
   actors: { runJob },
   delays: {
     backoff: ({ context }) => 50 * 2 ** context.attempts
+  },
+  guards: {
+    canRetry: (attempts: number) => attempts < MAX_ATTEMPTS
   }
 }).createMachine({
   context: ({ input }) => ({ job: input.job, attempts: 0, error: null }),
@@ -62,11 +63,11 @@ const jobMachine = setup({
           enq(log, `  job ${context.job.id} succeeded`);
           return { target: 'done' };
         },
-        onError: ({ context, event }, enq) => {
+        onError: ({ context, event, guards }, enq) => {
           const error = (event.error as Error).message;
           const attempts = context.attempts + 1;
           enq(log, `  job ${context.job.id} attempt ${attempts}: ${error}`);
-          return canRetry(attempts)
+          return guards.canRetry(attempts)
             ? { target: 'backingOff', context: { attempts, error } }
             : { target: 'deadLetter', context: { attempts, error } };
         }
