@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   Actor,
@@ -50,6 +50,53 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
   return [actorRef, setActorRef];
 }
 
+export function useActorLifecycle<TLogic extends AnyActorLogic>(
+  actorRef: Actor<TLogic>,
+  setActorRef: (actorRef: Actor<TLogic>) => void,
+  createReplacement: () => Actor<TLogic>
+): void {
+  const pendingStopsRef = useRef(new Map<Actor<TLogic>, () => void>());
+
+  useEffect(() => {
+    const cancelPendingStop = pendingStopsRef.current.get(actorRef);
+    if (cancelPendingStop) {
+      cancelPendingStop();
+      pendingStopsRef.current.delete(actorRef);
+    }
+
+    // If the actor was stopped before this effect reconnected, create a fresh
+    // actor. A stopped actor cannot be restarted.
+    if (
+      (actorRef as any)._processingStatus ===
+        2 /* ProcessingStatus.Stopped */ &&
+      (actorRef.getSnapshot() as any)?.status === 'stopped'
+    ) {
+      const newActor = createReplacement();
+      newActor.start();
+      setActorRef(newActor);
+      return;
+    }
+
+    actorRef.start();
+    return () => {
+      let canceled = false;
+      const cancel = () => {
+        canceled = true;
+      };
+      pendingStopsRef.current.set(actorRef, cancel);
+
+      queueMicrotask(() => {
+        if (!canceled) {
+          actorRef.stop();
+        }
+        if (pendingStopsRef.current.get(actorRef) === cancel) {
+          pendingStopsRef.current.delete(actorRef);
+        }
+      });
+    };
+  }, [actorRef]);
+}
+
 export function useActorRef<TLogic extends AnyActorLogic>(
   machine: TLogic,
   ...[options, observerOrListener]: IsNotNever<
@@ -82,29 +129,9 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     };
   }, [observerOrListener]);
 
-  useEffect(() => {
-    // If the actor was stopped by a previous cleanup (e.g. strict mode),
-    // create a fresh actor. The setActorRef triggers a re-render so
-    // useSyncExternalStore re-subscribes to the new actor.
-    // Only recreate if externally stopped ('stopped' status from XSTATE_STOP),
-    // not if it completed naturally ('done'/'error' status).
-    if (
-      (actorRef as any)._processingStatus ===
-        2 /* ProcessingStatus.Stopped */ &&
-      (actorRef.getSnapshot() as any)?.status === 'stopped'
-    ) {
-      const newActor = createActor(machine, actorRef.options);
-      newActor.start();
-      setActorRef(newActor);
-      // No cleanup — the re-render will run this effect again with the
-      // new actorRef (which is Running), registering the stop cleanup then.
-      return;
-    }
-    actorRef.start();
-    return () => {
-      actorRef.stop();
-    };
-  }, [actorRef]);
+  useActorLifecycle(actorRef, setActorRef, () =>
+    createActor(machine, actorRef.options)
+  );
 
   return actorRef;
 }

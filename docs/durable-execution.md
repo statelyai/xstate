@@ -21,8 +21,7 @@ loop hooks: `executeAction` runs a custom action as a host step, and
 import { createDurable } from 'xstate/durable';
 
 const durable = createDurable(machine, {
-  sendEvent: (source, target, event) =>
-    host.send(source?.address, target.address, event),
+  enqueueRootEvent: (_source, event) => host.enqueue(event),
   scheduleTimer: (source, id, delay) =>
     host.schedule({ address: source.address, timerId: id, delay }),
   cancelTimer: (source, id) =>
@@ -40,6 +39,13 @@ const output = await durable.run(input);
 
 Runtime operations you omit keep their local behavior — spawned machine
 children run in this process, for example.
+
+`enqueueRootEvent` is the narrow hook most co-located hosts need: it receives
+events sent to the execution root while the loop is parked. Implement
+`sendEvent` only when the host owns routing for every target. That override
+replaces local delivery completely; call `deliverEvent(source, target, event)`
+for co-located targets instead of `target.send(event)`, which re-enters the
+runtime.
 
 The primary durable unit for async work is the actor itself: a developer
 writes a normal promise (`fromPromise`, `createAsyncLogic`) and invokes it;
@@ -156,6 +162,47 @@ string `src` key, and `JSON.stringify` on a reference produces that identity.
 To place several executions of the same machine on one transport, namespace
 the wire address with a host key outside the logical address.
 
+## Durable timers
+
+<!-- logical timer snapshot and durable adapter timer operations from packages/core/src/types.ts, packages/core/src/system.ts, and packages/core/src/durable/index.ts -->
+
+`scheduleTimer(source, id, delay)` is the complete host-neutral scheduling
+contract. `source.address` and `id` identify the logical timer; both are stable
+when the same event journal is replayed. Persist an absolute deadline derived
+from `delay` when accepting the operation, then let the host's scheduler wake a
+new process. The serializable firing input is `{ type: 'xstate.timer', id }`.
+Journal that input before applying it. For a root timer, pass it to
+`durable.transition(snapshot, event)` after recreating the execution and
+replaying earlier journal entries.
+
+```ts
+scheduleTimer: (source, id, delay) => {
+  const event = { type: 'xstate.timer', id };
+  if (!journal.hasTimerFiring(source.address, id)) {
+    host.schedule({
+      address: source.address,
+      id,
+      dueAt: host.now() + delay,
+      event
+    });
+  }
+}
+```
+
+`snapshot.timers` is the public, per-actor set of pending logical timers. Each
+entry contains its deterministic `id`, declared `delay`, delivery type, event
+and logical target. It intentionally has no host deadline or remaining-time
+field: persist that bookkeeping atomically with accepting `scheduleTimer`.
+For a child timer, retain `source.address`; after restoring the tree,
+`durable.getActorRef(snapshot, address)` resolves the current timer source.
+
+When a state exits before its timer fires, the transition removes the entry
+from `snapshot.timers` and emits `cancelTimer(source, id)`. Stopping an actor
+routes `cancelAllTimers(source)` through the same adapter. These operations are
+installed across the live actor tree, including restored children, so host-side
+alarms can use `(source.address, id)` consistently. A stale firing input whose
+timer is no longer pending is ignored.
+
 ## The effect contract
 
 `initialTransition()` and `transition()` remain pure. The helper tags their
@@ -208,9 +255,10 @@ Events addressed to the root actor do not reach `sendEvent` during
 `executeEffects`: the execution captures and retains them, and
 `waitForEvent()` hands them out — in capture order — before deferring to the
 adapter. While the loop is parked in the adapter's wait, a root-addressed
-event reaches `sendEvent` like any other target and belongs in the host's
-mailbox; if the adapter implements no `sendEvent`, producing one there throws,
-since delivering it locally to the inert root would silently lose it.
+event reaches `enqueueRootEvent`, or `sendEvent` when the adapter implements
+the broader routing override, and belongs in the host's mailbox. Producing one
+without either hook throws, since delivering it locally to the inert root
+would silently lose it.
 
 ### Journaling rules
 
@@ -240,15 +288,30 @@ host.
 ## Determinism constraints
 
 Replay only reconstructs the same effects when every transition is a pure
-function of the snapshot and event. Code that runs during a transition — 
-guards, transition functions, `context` assigners, `input` factories — must
-not read the clock, generate random values, or reach external state:
+function of the snapshot and event. Inline `entry` and `exit` callbacks run
+during transition calculation too, so a direct side effect there runs again
+whenever a durable host folds the event history. Guards, transition functions,
+`context` assigners, `input` factories, and inline entry/exit callbacks must
+not read the clock, generate random values, mutate external state, or perform
+I/O:
 `Date.now()`, `Math.random()`, and `crypto.randomUUID()` all produce a
 different effect sequence on replay, and nothing detects the divergence.
 Perform such work inside journaled operations (the host's `executeAction`,
 where the recorded result replays), or derive values deterministically from
 what the snapshot already carries — addresses and effect IDs are stable
 across replays and make good seeds and idempotency keys.
+
+```ts
+// Wrong: runs during every replay fold.
+entry: () => {
+  analytics.track('entered');
+}
+
+// Right: describes an effect for the durable host to execute or replay.
+entry: ({ context }, enq) => {
+  enq(notifyApprover, context.orderId);
+}
+```
 
 ## Checkpoints and placement
 
@@ -280,6 +343,33 @@ across the whole live actor tree, including transitions computed by the pure
 path. This is host observability, not part of the durable contract: use it
 for operation logs, tracing and test instrumentation, and keep the adapter
 itself pure physics.
+
+## Rejected events
+
+When the machine declares a runtime validator, an external event whose payload
+fails its schema is rejected at the boundary: `transition()` returns the
+snapshot unchanged together with a `@xstate.deadLetter` effect, and never
+throws. Replay stays total — replaying a poisoned queued event produces the
+same unchanged snapshot and the same rejection effect every time.
+
+The effect executes through the `deadLetter` runtime operation, so a host
+journals rejections by implementing `deadLetter` on the adapter like any other
+runtime operation:
+
+```ts
+const durable = createDurable(machine, {
+  // ...
+  deadLetter: (_source, _target, event, reason, detail) =>
+    host.journalDeadLetter(event, reason, detail?.issues)
+});
+```
+
+Without an adapter `deadLetter`, the effect falls back to the local behavior:
+a `@xstate.deadletter` inspection event and a development-mode warning.
+
+Events the machine raises to itself are not boundary events. A delayed raised
+event that fails its schema throws from `transition()` and errors the
+execution; that is a machine bug.
 
 `run()` resolves with the machine output when the machine is done, throws the
 machine error when it fails, and throws `DurableExecutionCancelledError` when

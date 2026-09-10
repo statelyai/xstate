@@ -43,6 +43,30 @@ describe('persisted snapshot versioning', () => {
     expect(restored.getSnapshot().value).toBe('b');
   });
 
+  it('does not treat a live snapshot machine reference as persisted identity', () => {
+    const machineV1 = createMachine({
+      id: 'checkout',
+      version: '1',
+      initial: 'a',
+      states: { a: { on: { NEXT: { target: 'b' } } }, b: {} }
+    });
+    const machineV2 = createMachine({
+      id: 'checkout',
+      version: '2',
+      initial: 'a',
+      states: { a: { on: { NEXT: { target: 'b' } } }, b: {} }
+    });
+    const actor = createActor(machineV1).start();
+    actor.send({ type: 'NEXT' });
+    const migrated = { ...actor.getSnapshot(), version: '2' };
+
+    const restored = createActor(machineV2, { snapshot: migrated }).start();
+
+    expect(restored.getSnapshot().status).toBe('active');
+    expect(restored.getSnapshot().value).toBe('b');
+    expect(restored.getSnapshot().machine).toBe(machineV2);
+  });
+
   it('restores from nested machine identity without the legacy top-level version', () => {
     const machine = createMachine({
       id: 'checkout',

@@ -75,12 +75,22 @@ export interface DurableEffect<TEffect> extends DurableEffectMetadata {
  * during `executeEffects`: the execution captures and retains them, and the
  * execution's `waitForEvent()` hands them out before deferring to this
  * adapter. While the loop is parked, a root-addressed event reaches
- * `sendEvent` like any other target, so the host enqueues it in its own
- * mailbox.
+ * `enqueueRootEvent`, or the broader `sendEvent` override when implemented,
+ * so the host can place it in its own mailbox.
  */
 export interface DurableExecutionAdapter<
   TLogic extends AnyActorLogic
 > extends Partial<ActorSystemRuntime> {
+  /**
+   * Enqueues an event addressed to this execution's root while the durable
+   * loop is parked in `waitForEvent()`. Use this when the host only owns the
+   * root mailbox; implementing `sendEvent` instead takes ownership of delivery
+   * for every target and must use `deliverEvent` for co-located actors.
+   */
+  enqueueRootEvent?(
+    source: AnyActor | undefined,
+    event: AnyEventObject
+  ): void | PromiseLike<void>;
   /**
    * Executes a custom action as a durable host step or activity. The host
    * should identify the action by `type` and memoize or deduplicate it using
@@ -312,7 +322,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
         impl.bind(adapter);
     }
   }
-  const hasSystemRuntime = Object.keys(systemRuntime).length > 0;
+  const hasSystemRuntime =
+    Object.keys(systemRuntime).length > 0 || !!adapter.enqueueRootEvent;
 
   // One batch per `executeEffects` call. The wrapped runtime stays installed
   // on the actor system for the whole execution, so it also sees operations
@@ -427,12 +438,20 @@ export function createDurable<TLogic extends AnyActorLogic>(
       if (
         !currentBatch &&
         target.address === rootAddress &&
+        !runtime.sendEvent &&
+        adapter.enqueueRootEvent
+      ) {
+        return dispatch(() => adapter.enqueueRootEvent!(source, event));
+      }
+      if (
+        !currentBatch &&
+        target.address === rootAddress &&
         !runtime.sendEvent
       ) {
         // The root actor is inert; delivering locally would enqueue into a
         // mailbox that never runs, silently losing the event.
         throw new Error(
-          `A root-addressed event ("${event.type}") was produced while the durable loop was parked, but the adapter has no sendEvent to receive it. Implement sendEvent and enqueue root-addressed events in the host's mailbox.`
+          `A root-addressed event ("${event.type}") was produced while the durable loop was parked, but the adapter has no enqueueRootEvent or sendEvent to receive it. Implement enqueueRootEvent to place root-addressed events in the host's mailbox.`
         );
       }
       if (currentBatch && target.address === rootAddress) {

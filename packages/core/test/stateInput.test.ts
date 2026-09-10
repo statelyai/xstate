@@ -339,13 +339,7 @@ describe('setup', () => {
     expect(true).toBe(true);
   });
 
-  // KNOWN SOUNDNESS GAP: in a parallel state, targeting a sibling region
-  // (e.g. `target: 'r2'` from inside `r1`) type-checks but is a runtime no-op.
-  // There is no way to tell whether a state is parallel from the setup `states`
-  // schema alone, so sibling regions are indistinguishable from ordinary
-  // siblings. Tripwire: when `target: 'r2'` stops compiling, the gap is
-  // fixed — flip that line to a `@ts-expect-error`.
-  it('createStateConfig (path, config) currently accepts a sibling-region target in a parallel state (known limitation)', () => {
+  it('createStateConfig (path, config) rejects sibling-region targets in parallel states', () => {
     const s = setup({
       schemas: {
         events: {
@@ -354,6 +348,7 @@ describe('setup', () => {
       },
       states: {
         p: {
+          type: 'parallel',
           states: {
             r1: {},
             r2: {}
@@ -364,8 +359,9 @@ describe('setup', () => {
 
     s.createStateConfig('p.r1', {
       on: {
+        // @ts-expect-error - parallel regions cannot target sibling regions by name
         E: {
-          target: 'r2' // known gap: should be rejected; flip to @ts-expect-error when it is
+          target: 'r2'
         }
       }
     });
@@ -1839,6 +1835,100 @@ describe('setup', () => {
       snapshot.context.user satisfies null;
     }
     expect(true).toBe(true);
+  });
+
+  it('state context schemas should refine part of the root context', () => {
+    const machine = setup({
+      schemas: {
+        context: z.object({
+          requestId: z.string(),
+          draft: z.string().optional(),
+          approved: z.literal(true).optional()
+        }),
+        events: { REVIEW: z.object({ approved: z.literal(true) }) }
+      },
+      states: {
+        workflow: {
+          type: 'compound',
+          initial: 'editing',
+          schemas: { context: z.object({ draft: z.string() }) },
+          states: {
+            editing: {},
+            reviewing: {
+              schemas: { context: z.object({ approved: z.literal(true) }) }
+            }
+          }
+        }
+      }
+    }).createMachine({
+      context: { requestId: 'req-1', draft: 'Ready' },
+      initial: 'workflow',
+      states: {
+        workflow: {
+          initial: 'editing',
+          states: {
+            editing: {
+              on: {
+                REVIEW: ({ event }) => ({
+                  target: 'reviewing',
+                  context: { approved: event.approved }
+                })
+              }
+            },
+            reviewing: {
+              entry: ({ context }) => {
+                false satisfies IsAny<typeof context>;
+                false satisfies IsAny<typeof context.requestId>;
+                context.requestId satisfies string;
+                context.draft satisfies string;
+                context.approved satisfies true;
+                // @ts-expect-error - root context fields keep their declared type
+                context.requestId satisfies number;
+              },
+              on: {
+                REVIEW: ({ context }) => {
+                  context.requestId satisfies string;
+                  context.draft satisfies string;
+                  context.approved satisfies true;
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'REVIEW', approved: true });
+
+    type ReviewingContext = StateContextFromStateValue<
+      StateSchemaFrom<typeof machine>,
+      { requestId: string; draft?: string; approved?: true },
+      { workflow: 'reviewing' }
+    >;
+    false satisfies IsAny<ReviewingContext['requestId']>;
+    (({}) as ReviewingContext).requestId satisfies string;
+    (({}) as ReviewingContext).draft satisfies string;
+    (({}) as ReviewingContext).approved satisfies true;
+    // @ts-expect-error - the root field remains a string in the refinement
+    (({}) as ReviewingContext).requestId satisfies number;
+
+    const snapshot = actor.getSnapshot();
+    if (snapshot.matches({ workflow: 'reviewing' })) {
+      false satisfies IsAny<typeof snapshot.context>;
+      false satisfies IsAny<typeof snapshot.context.requestId>;
+      snapshot.context.requestId satisfies string;
+      snapshot.context.draft satisfies string;
+      snapshot.context.approved satisfies true;
+      // @ts-expect-error - root context fields keep their declared type
+      snapshot.context.requestId satisfies number;
+    }
+
+    expect(snapshot.context).toEqual({
+      requestId: 'req-1',
+      draft: 'Ready',
+      approved: true
+    });
   });
 
   it('state schemas should allow undeclared sibling states', () => {

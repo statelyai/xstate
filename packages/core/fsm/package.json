@@ -1,0 +1,8 @@
+{
+  "main": "../dist/xstate-fsm.cjs.js",
+  "module": "../dist/xstate-fsm.esm.js",
+  "umd:main": "../dist/xstate-fsm.umd.min.js",
+  "preconstruct": {
+    "umdName": "XStateFSM"
+  }
+}

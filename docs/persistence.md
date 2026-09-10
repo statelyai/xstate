@@ -10,6 +10,10 @@ const persisted = actor.getPersistedSnapshot();
 localStorage.setItem('checkout', JSON.stringify(persisted));
 ```
 
+Do not persist or migrate `actor.getSnapshot()`. A live snapshot carries
+runtime-only state, including its producing machine; `getPersistedSnapshot()`
+removes those associations and writes the machine's serializable identity.
+
 Restore the actor with the `snapshot` option.
 
 ```ts

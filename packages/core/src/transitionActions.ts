@@ -12,7 +12,9 @@ import { createErrorPlatformEvent } from './eventUtils.ts';
 import {
   getActorIdPrefix,
   parseGeneratedActorId,
-  type ActorSystemRuntime
+  type ActorSystemRuntime,
+  type DeadLetterDetail,
+  type EventRejectionReason
 } from './system.ts';
 import { isLazyActorScope, withActorScope } from './actorScope.ts';
 import { getEventOutput } from './utils.ts';
@@ -33,6 +35,7 @@ import type {
   ExecutableActionObject,
   MachineContext,
   RaiseExecutableActionObject,
+  DeadLetterExecutableActionObject,
   SendToExecutableActionObject,
   Snapshot,
   SpecialExecutableAction,
@@ -81,6 +84,41 @@ export function createEmitEffect(
     type: event.type,
     source: actorScope.self,
     event,
+    params: undefined,
+    args: []
+  };
+}
+
+function execDeadLetterEffect(
+  this: DeadLetterExecutableActionObject,
+  runtime: EffectRuntime = this.target.system
+): void | PromiseLike<void> {
+  return runtime.deadLetter!(
+    this.source,
+    this.target,
+    this.event,
+    this.reason,
+    this.detail
+  );
+}
+
+/** @internal Creates a dead-letter effect for a boundary-rejected event. */
+export function createDeadLetterEffect(
+  actorScope: AnyActorScope,
+  source: AnyActor | undefined,
+  event: AnyEventObject,
+  reason: EventRejectionReason,
+  detail?: DeadLetterDetail
+): DeadLetterExecutableActionObject {
+  return {
+    kind: 'builtin',
+    type: '@xstate.deadLetter',
+    exec: execDeadLetterEffect,
+    source,
+    target: actorScope.self,
+    event,
+    reason,
+    detail,
     params: undefined,
     args: []
   };
@@ -639,14 +677,17 @@ export function createTransitionEnqueue(
     },
     stop: (actor) => {
       if (actor) {
+        // enq.stop accepts the consumer ActorRef contract; refs handed to
+        // machine code are always full actor instances at runtime.
+        const actorInstance = actor as AnyActor;
         const action = pushBuiltInAction(
           actions,
           builtInActions['@xstate.stop'],
           actorScope,
-          actor
+          actorInstance
         );
-        action.childUpdate = { type: 'remove', actor };
-        recordStoppedChild(actorScope, actor);
+        action.childUpdate = { type: 'remove', actor: actorInstance };
+        recordStoppedChild(actorScope, actorInstance);
       }
     }
   };
@@ -716,6 +757,7 @@ function getBuiltInActionFields(
         (typeof builtInActions)['@xstate.spawn']
       >;
       return {
+        type: '@xstate.spawn',
         kind: 'builtin',
         exec: execSpawnEffect,
         source: actor._parent,
@@ -731,6 +773,7 @@ function getBuiltInActionFields(
         (typeof builtInActions)['@xstate.raise']
       >;
       return {
+        type: '@xstate.raise',
         kind: 'builtin',
         exec: execRaiseEffect,
         source: (
@@ -746,6 +789,7 @@ function getBuiltInActionFields(
         (typeof builtInActions)['@xstate.sendTo']
       >;
       return {
+        type: '@xstate.sendTo',
         kind: 'builtin',
         exec: execSendToEffect,
         source: (
@@ -762,6 +806,7 @@ function getBuiltInActionFields(
         (typeof builtInActions)['@xstate.cancel']
       >;
       return {
+        type: '@xstate.cancel',
         kind: 'builtin',
         exec: execCancelEffect,
         source: (
@@ -775,6 +820,7 @@ function getBuiltInActionFields(
         (typeof builtInActions)['@xstate.stop']
       >;
       return {
+        type: '@xstate.stop',
         kind: 'builtin',
         exec: execStopEffect,
         source: (args as Parameters<(typeof builtInActions)['@xstate.stop']>)[0]

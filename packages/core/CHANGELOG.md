@@ -1,5 +1,157 @@
 # xstate
 
+## 6.0.0-alpha.52
+
+### Patch Changes
+
+- 069aadf: Fixed delayed transitions and other built-in effects in minified bundles, preserved hook-owned actors across React StrictMode effect reconnects, and allowed graph utilities to accept machines from duplicate XState package copies.
+
+## 6.0.0-alpha.51
+
+### Minor Changes
+
+- 29dae8c: Improve `setup(...)` state contracts with typed structural metadata, recursive
+  state input requirements for composite and parallel entry, history-default
+  validation, strongly typed relative targets, and shared input requirements for
+  literal target sets.
+- b44d9cb: State-level context schemas now refine the root context schema instead of
+  replacing it. Declare only the fields narrowed by a state while retaining all
+  root context fields in state actions, transitions, and narrowed snapshots.
+  Nested states retain active ancestor refinements, and `xstate/fsm` uses the
+  same refinement semantics.
+  
+  ```ts
+  const machine = setup({
+    schemas: {
+      context: z.object({
+        requestId: z.string(),
+        draft: z.string().optional()
+      })
+    },
+    states: {
+      reviewing: {
+        schemas: { context: z.object({ draft: z.string() }) }
+      }
+    }
+  }).createMachine({
+    context: { requestId: 'req-1' },
+    // ...
+  });
+  ```
+
+## 6.0.0-alpha.50
+
+### Patch Changes
+
+- 7f9fc4f: Invalid external events are now rejected at the delivery boundary instead of erroring the actor or throwing. This covers events whose payload fails a declared runtime validator schema and internal event types (`internalEvents`) sent from outside their owning actor. A rejected event is never delivered: the actor does not transition, does not error, and no API throws.
+  
+  Rejections are reported through:
+  
+  - a new `onRejectedEvent` dead-letter hook on `createActor(...)` options, which receives an `EventRejection` describing the event, target, source, origin, reason and validation issues;
+  - the `@xstate.deadletter` inspection event, which now also carries the validation `issues` and underlying `error` for boundary rejections;
+  - a development-mode console warning.
+  
+  ```ts
+  const actor = createActor(machine, {
+    onRejectedEvent: (rejection) => {
+      console.log(rejection.event, rejection.reason, rejection.issues);
+    }
+  });
+  ```
+  
+  Pure `transition(...)` calls no longer throw for invalid external events: the snapshot is returned unchanged with a `@xstate.deadLetter` effect carrying the rejection, so durable hosts can journal rejections and replay stays total even with poisoned queued events. The effect executes through the `deadLetter` runtime operation, so `createDurable(...)` adapters journal rejections by implementing `deadLetter` like any other runtime operation.
+  
+  Internal faults are unchanged: values the machine produces itself (input, context, output, emitted events and delayed raised events) that fail their schema still error the actor, and pure transitions still throw for them.
+
+## 6.0.0-alpha.49
+
+### Minor Changes
+
+- 501c5e3: Add the self-contained `xstate/fsm` entry point for compact flat finite state
+  machines. It exports `createFSM` and `createFSMActor` without including the full
+  statechart actor runtime.
+  
+  ```ts
+  import { createFSM, createFSMActor } from 'xstate/fsm';
+  
+  const logic = createFSM({
+    initial: 'inactive',
+    states: {
+      inactive: { on: { toggle: { target: 'active' } } },
+      active: { on: { toggle: { target: 'inactive' } } }
+    }
+  });
+  
+  const actor = createFSMActor(logic).start();
+  ```
+  
+  The FSM runtime also supports guarded transitions, context, actions, eventless
+  transitions, final states, child actors, delayed events, and snapshot
+  persistence for state, context, and self-directed timers. Live inline children
+  and timers targeting other actors are rejected at the persistence boundary
+  because the compact runtime has no registered actor-source registry.
+
+## 6.0.0-alpha.48
+
+### Patch Changes
+
+- 7601447: Add `createMachineFromSCXML(...)` through the `xstate/scxml` entry point. Converted machines follow strict SCXML behavior for transition selection, executable content, datamodel evaluation, invocation, event metadata, and completion.
+  
+  ```ts
+  import { createMachineFromSCXML } from 'xstate/scxml';
+  
+  const machine = createMachineFromSCXML(scxml);
+  ```
+
+## 6.0.0-alpha.47
+
+### Minor Changes
+
+- 72938f8: Guard and delay source functions are now contextually typed from `schemas` — in `setup({ ... })`, `.extend({ ... })`, and `createMachine({ ... })` — so inline functions get typed `context` and `event` without hand annotations:
+  
+  ```ts
+  const s = setup({
+    schemas: {
+      context: z.object({ count: z.number() }),
+      events: { INC: z.object({ by: z.number() }) }
+    },
+    guards: {
+      // context: { count: number }, event: { type: 'INC'; by: number }
+      isPositive: ({ context }) => context.count > 0,
+      // additional params after the args object are free-form
+      isAbove: ({ context }, threshold: number) => context.count > threshold
+    },
+    delays: {
+      backoff: ({ context }) => context.count * 100
+    }
+  });
+  ```
+  
+  Guard sources receive the transition args object first (`{ context, event, self, parent, value, children }`), followed by any caller-supplied params — matching how the runtime invokes referenced guards. Delay sources receive `{ context, event, stateNode }`.
+  
+  Additionally, `enq.stop(...)`, `enq.listen(...)`, and `enq.subscribeTo(...)` now accept any `ActorRef` (such as values typed with `ActorRefFrom<typeof machine>`), instead of requiring the full actor instance type returned by `enq.spawn(...)`.
+
+### Patch Changes
+
+- 6ecc2df: Document durable timer semantics for event-journal hosts.
+- fc7454f: Restoring an externally migrated live snapshot now treats its `machine` property as a runtime association rather than persisted version metadata. Persisted snapshots continue validating their nested `{ id, version }` identity and legacy top-level `version` together.
+  
+  `getNextTransitions(snapshot)` returns an empty array for completed or errored snapshots.
+  
+  Setup-created machines whose input schema accepts `undefined` no longer require a meaningless `input` property when other actor options are provided, including after `machine.provide(...)`.
+  
+  Durable adapters can implement `enqueueRootEvent` when the host owns only the execution root's mailbox, without overriding delivery for co-located actors:
+  
+  ```ts
+  const durable = createDurable(machine, {
+    enqueueRootEvent: (_source, event) => host.enqueue(event),
+    executeAction,
+    waitForEvent
+  });
+  ```
+  
+  Implement `sendEvent` only when the host owns routing for every target; use `deliverEvent` for co-located delivery. Durable replay guidance now explicitly covers inline entry and exit callbacks.
+
 ## 6.0.0-alpha.46
 
 ### Patch Changes

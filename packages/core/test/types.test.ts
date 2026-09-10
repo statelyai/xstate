@@ -30,6 +30,7 @@ import {
   createLogic,
   createMachine,
   createSystem,
+  type EventRejection,
   initialTransition,
   isBuiltInExecutableAction,
   setup,
@@ -104,6 +105,11 @@ describe('SpecialExecutableAction', () => {
           noop(action.status);
           noop(action.output);
           noop(action.error);
+          break;
+        case '@xstate.deadLetter':
+          noop(action.event);
+          noop(action.reason);
+          noop(action.detail);
           break;
         default: {
           const _exhaustive: never = action;
@@ -452,24 +458,29 @@ describe('internalEvents', () => {
       }
     });
 
-    const actor = createActor(machine);
+    const rejections: EventRejection[] = [];
+    const actor = createActor(machine, {
+      onRejectedEvent: (rejection) => rejections.push(rejection)
+    });
 
     actor.send({ type: 'foo' });
 
-    expect(() => actor.send({ type: 'tick' } as any)).toThrow(
-      'Internal event "tick" cannot be sent to actor'
-    );
-    expect(() =>
-      actor.send({ type: 'change.value', value: 'blocked' } as any)
-    ).toThrow('Internal event "change.value" cannot be sent to actor');
+    actor.send({ type: 'tick' } as any);
+    actor.send({ type: 'change.value', value: 'blocked' } as any);
 
     actor.trigger.foo();
-    expect(() => (actor.trigger as any).tick()).toThrow(
-      'Internal event "tick" cannot be sent to actor'
-    );
-    expect(() =>
-      (actor.trigger as any)['change.value']({ value: 'blocked' })
-    ).toThrow('Internal event "change.value" cannot be sent to actor');
+    (actor.trigger as any).tick();
+    (actor.trigger as any)['change.value']({ value: 'blocked' });
+
+    expect(rejections.map((rejection) => rejection.event.type)).toEqual([
+      'tick',
+      'change.value',
+      'tick',
+      'change.value'
+    ]);
+    expect(
+      rejections.every((rejection) => rejection.reason === 'internalEvent')
+    ).toBe(true);
 
     function _expectSendRejected(a: typeof actor) {
       // @ts-expect-error internal events are not sendable from outside
@@ -5081,6 +5092,21 @@ describe('input', () => {
     createActor(machine);
   });
 
+  it('should not require input when a setup input schema accepts undefined', () => {
+    const machine = setup({
+      schemas: {
+        input: types<{} | null | undefined>()
+      }
+    }).createMachine({
+      context: {},
+      initial: 'active',
+      states: { active: {} }
+    });
+
+    createActor(machine, { inspect: () => {} });
+    createActor(machine.provide({}), { inspect: () => {} });
+  });
+
   it('should create actors from provided no-event setup machines', () => {
     const child = createMachine({});
     const machine = setup({
@@ -5191,7 +5217,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5208,8 +5234,8 @@ describe('guards', () => {
         //     }
         //   }
         // }
-        EV: ({ guards }) => {
-          if (guards.isGreaterThan({ count: 10 })) {
+        EV: (args) => {
+          if (args.guards.isGreaterThan(args, { count: 10 })) {
             return {};
           }
         }
@@ -5230,7 +5256,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5273,7 +5299,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5289,9 +5315,9 @@ describe('guards', () => {
         //     }
         //   }
         // }
-        EV: ({ guards }) => {
+        EV: (args) => {
           if (
-            guards.isGreaterThan({
+            args.guards.isGreaterThan(args, {
               // @ts-expect-error
               count: 'bar'
             })
@@ -5316,7 +5342,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5330,11 +5356,11 @@ describe('guards', () => {
         //     params: {}
         //   }
         // }
-        EV: ({ guards }) => {
+        EV: (args) => {
           if (
-            guards
+            args.guards
               // @ts-expect-error
-              .isGreaterThan()
+              .isGreaterThan(args)
           ) {
             return {};
           }
@@ -5356,8 +5382,8 @@ describe('guards', () => {
       //     | { type: 'plainGuard'; params?: { foo: string } };
       // },
       guards: {
-        plainGuard: (params?: { foo: string }) => true,
-        isGreaterThan: (params: { count: number }) => {
+        plainGuard: (_args, params?: { foo: string }) => true,
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5370,8 +5396,8 @@ describe('guards', () => {
         //     type: 'plainGuard'
         //   }
         // }
-        EV: ({ guards }) => {
-          if (guards.plainGuard()) {
+        EV: (args) => {
+          if (args.guards.plainGuard(args)) {
             return {};
           }
         }
@@ -5392,7 +5418,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // }
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5401,7 +5427,7 @@ describe('guards', () => {
       }
     }).provide({
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5414,7 +5440,7 @@ describe('guards', () => {
   it('should not allow a provided guard outside of the defined ones', () => {
     const machine = createMachine({
       guards: {
-        isGreaterThan: (_params: { count: number }) => {
+        isGreaterThan: (_args, _params: { count: number }) => {
           return true;
         },
         plainGuard: () => true
@@ -5440,7 +5466,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5454,8 +5480,8 @@ describe('guards', () => {
         //     params: () => ({ count: 100 })
         //   }
         // }
-        FOO: ({ guards }) => {
-          if (guards.isGreaterThan({ count: 100 })) {
+        FOO: (args) => {
+          if (args.guards.isGreaterThan(args, { count: 100 })) {
             return {};
           }
         }
@@ -5476,7 +5502,7 @@ describe('guards', () => {
       //     | { type: 'plainGuard' };
       // },
       guards: {
-        isGreaterThan: (params: { count: number }) => {
+        isGreaterThan: (_args, params: { count: number }) => {
           ((_accept: number) => {})(params.count);
           // @ts-expect-error
           ((_accept: 'not any') => {})(params);
@@ -5491,9 +5517,9 @@ describe('guards', () => {
         //     params: () => ({ count: 'bazinga' })
         //   }
         // }
-        FOO: ({ guards }) => {
+        FOO: (args) => {
           if (
-            guards.isGreaterThan({
+            args.guards.isGreaterThan(args, {
               // @ts-expect-error
               count: 'bazinga'
             })
@@ -5526,7 +5552,7 @@ describe('guards', () => {
         })
       },
       guards: {
-        isGreaterThan: ({ count }: { count: number }) => {
+        isGreaterThan: (_args, { count }: { count: number }) => {
           return true;
         }
       },
@@ -5545,8 +5571,8 @@ describe('guards', () => {
         //     }
         //   }
         // }
-        FOO: ({ guards }) => {
-          if (guards.isGreaterThan({ count: 100 })) {
+        FOO: (args) => {
+          if (args.guards.isGreaterThan(args, { count: 100 })) {
             return {};
           }
           return {};

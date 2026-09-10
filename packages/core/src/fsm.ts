@@ -1,860 +1,433 @@
-import { XSTATE_INIT, XSTATE_STOP, XSTATE_TIMER } from './constants.ts';
-import { builtInActions } from './actions.ts';
-import {
-  beginSpawnAllocation,
-  finalizeTransitionResult,
-  deriveDeferredStarts,
-  createSendToEffect,
-  createTransitionEnqueue,
-  resolveActionsWithContext
-} from './transitionActions.ts';
-import { isLazyActorScope, withActorScope } from './actorScope.ts';
-import type {
-  ActorLogic,
-  ActorScope,
-  AnyAction,
-  AnyActorScope,
-  AnyEventObject,
-  EventObject,
-  ExecutableActionObject,
-  MachineContext,
-  LogicalTimer,
-  NonReducibleUnknown,
-  Snapshot
-} from './types.ts';
+import type { EventObject, MachineContext } from './types.ts';
+import type { StandardSchemaV1 } from './schema.types.ts';
+import type { SetupSchemas, SetupStateSchema } from './setup.ts';
+import type { InferEvents } from './types.v6.ts';
 
-export type FSMSnapshot<
+export type FSMArgs<
   TContext extends MachineContext,
-  TState extends string,
-  TInput = unknown
-> = Snapshot<undefined> & {
-  value: TState;
-  context: TContext;
-  input: TInput | undefined;
-  children: {};
-  timers: Record<string, LogicalTimer>;
-  _nextTimerId: number;
-  _nextActorIds?: Record<string, number>;
-  _stateInput: Record<string, unknown> | undefined;
-  machine: {
-    id: string;
-    sources: {
-      actions: {};
-      actors: {};
-      guards: {};
-      delays: {};
-    };
-  };
-};
-
-type FSMArgs<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TState extends string,
-  TInput
+  TEvent extends EventObject
 > = {
   context: TContext;
   event: TEvent;
-  input: TInput | undefined;
-  value: TState;
-  self: any;
-  system: any;
-  parent: any;
-  children: {};
 };
 
-type FSMAction<
+export type FSMContextPatch<TContext extends MachineContext> =
+  Partial<TContext>;
+
+export type FSMTransitionConfig<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TState extends string,
-  TInput
-> = (
-  args: FSMArgs<TContext, TEvent, TState, TInput> & {
-    input: Record<string, unknown> | undefined;
-  },
-  enq: ReturnType<typeof createTransitionEnqueue>
-) => void | { context?: FSMContextPatch<TContext> };
-
-type FSMGuard<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TState extends string,
-  TInput
-> = (args: FSMArgs<TContext, TEvent, TState, TInput>) => boolean;
-
-type FSMContextPatch<TContext extends MachineContext> = Partial<TContext> & {
-  call?: never;
-  apply?: never;
-  bind?: never;
-};
-
-type FSMContextMapper<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TState extends string,
-  TInput
-> = (
-  args: FSMArgs<TContext, TEvent, TState, TInput>
-) => FSMContextPatch<TContext>;
-
-type FSMTarget<TContext extends MachineContext> = {
-  target?: string;
-  context?: FSMContextPatch<TContext>;
-  input?:
-    | Record<string, unknown>
-    | ((args: {
-        context: TContext;
-        event: EventObject;
-      }) => Record<string, unknown>);
-};
-
-type FSMObjectTarget<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TState extends string,
-  TInput
-> = Omit<FSMTarget<TContext>, 'context'> & {
-  context?:
-    | FSMContextPatch<TContext>
-    | FSMContextMapper<TContext, TEvent, TState, TInput>;
-};
-
-type FSMTransitionFunction<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TState extends string,
-  TInput
-> = (
-  args: FSMArgs<TContext, TEvent, TState, TInput>,
-  enq: ReturnType<typeof createTransitionEnqueue>
-) => void | false | FSMTarget<TContext>;
-
-type FSMTransition<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TState extends string,
-  TInput
-> =
-  | FSMObjectTarget<TContext, TEvent, TState, TInput>
-  | (FSMObjectTarget<TContext, TEvent, TState, TInput> & {
-      guard?: FSMGuard<TContext, TEvent, TState, TInput>;
-      actions?:
-        | FSMAction<TContext, TEvent, TState, TInput>
-        | Array<FSMAction<TContext, TEvent, TState, TInput>>;
-    })
-  | FSMTransitionFunction<TContext, TEvent, TState, TInput>;
-
-type FSMStateConfig<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TState extends string,
-  TInput
+  TState extends string
 > = {
-  entry?:
-    | FSMAction<TContext, TEvent, TState, TInput>
-    | Array<FSMAction<TContext, TEvent, TState, TInput>>;
-  exit?:
-    | FSMAction<TContext, TEvent, TState, TInput>
-    | Array<FSMAction<TContext, TEvent, TState, TInput>>;
-  on?: Record<
-    string,
-    | FSMTransition<TContext, TEvent, TState, TInput>
-    | Array<FSMTransition<TContext, TEvent, TState, TInput>>
+  target?: TState;
+  context?: FSMContextPatch<TContext>;
+};
+
+export type FSMTransitionFunction<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TState extends string,
+  TTransitionContext extends MachineContext = TContext
+> = (
+  args: FSMArgs<TContext, TEvent>
+) => FSMTransitionConfig<TTransitionContext, TState> | undefined;
+
+type EventForType<TEvent extends EventObject, TType extends string> = [
+  Extract<TEvent, { type: TType }>
+] extends [never]
+  ? TEvent
+  : Extract<TEvent, { type: TType }>;
+
+export type FSMTransition<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TState extends string,
+  TTransitionContext extends MachineContext = TContext
+> =
+  | TState
+  | FSMTransitionConfig<TTransitionContext, TState>
+  | FSMTransitionFunction<TContext, TEvent, TState, TTransitionContext>;
+
+type FSMOn<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TState extends string,
+  TTransitionContext extends MachineContext = TContext
+> = {
+  [TType in TEvent['type'] & string]?: FSMTransition<
+    TContext,
+    EventForType<TEvent, TType>,
+    TState,
+    TTransitionContext
   >;
 };
 
-export type FSMConfig<
+export type FSMStateConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TState extends string,
-  TInput = NonReducibleUnknown
+  TTransitionContext extends MachineContext = TContext
+> = {
+  on?: FSMOn<TContext, TEvent, TState, TTransitionContext>;
+};
+
+type FSMContextConfig<TContext extends MachineContext> =
+  string extends keyof TContext
+    ? { context?: TContext }
+    : keyof TContext extends never
+      ? { context?: TContext }
+      : { context: TContext };
+
+export type FSMConfig<
+  TContext extends MachineContext = {},
+  TEvent extends EventObject = EventObject,
+  TState extends string = string
 > = {
   id?: string;
   initial: TState;
-  context?: TContext | ((args: { input: TInput }) => TContext);
-  states: Record<TState, FSMStateConfig<TContext, TEvent, TState, TInput>>;
-};
+  states: { [K in TState]: FSMStateConfig<TContext, TEvent, TState> };
+} & FSMContextConfig<TContext>;
 
-export type FSMActorLogic<
+type FSMConfigForStates<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TState extends string,
-  TInput
-> = ActorLogic<
-  FSMSnapshot<TContext, TState, TInput>,
-  TEvent,
-  TInput,
-  any,
-  EventObject
+  TStates extends Record<string, unknown>
+> = Omit<
+  FSMConfig<TContext, TEvent, keyof TStates & string>,
+  'initial' | 'states'
 > & {
-  id?: string;
+  initial: keyof TStates & string;
+  states: {
+    [K in keyof TStates]: FSMStateConfig<
+      TContext,
+      TEvent,
+      keyof TStates & string
+    >;
+  };
 };
 
-const emptySources = {
-  actions: {},
-  actors: {},
-  guards: {},
-  delays: {}
+export type FSMSnapshot<
+  TContext extends MachineContext,
+  TState extends string
+> = {
+  value: TState;
+  context: TContext;
 };
 
-const emptyExecutableActions: ExecutableActionObject[] = [];
-const emptyRawActions: AnyAction[] = [];
-const builtInActionSet = new Set<(...args: any[]) => void>(
-  Object.values(builtInActions)
-);
-
-function toArray<T>(value: T | T[] | undefined): T[] {
-  return value === undefined ? [] : Array.isArray(value) ? value : [value];
-}
-
-function resolveContext<TContext extends MachineContext, TInput>(
-  context: TContext | ((args: { input: TInput }) => TContext) | undefined,
-  input: TInput
-): TContext {
-  return typeof context === 'function'
-    ? (context as (args: { input: TInput }) => TContext)({ input })
-    : (context ?? ({} as TContext));
-}
-
-function resolveTransitionContext<
+export type FSM<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TState extends string,
-  TInput
->(
-  context:
-    | FSMContextPatch<TContext>
-    | FSMContextMapper<TContext, TEvent, TState, TInput>
-    | undefined,
-  args: FSMArgs<TContext, TEvent, TState, TInput>
-): FSMContextPatch<TContext> | undefined {
-  return typeof context === 'function' ? context(args) : context;
-}
+  TSnapshot extends { value: TState; context: MachineContext } = FSMSnapshot<
+    TContext,
+    TState
+  >,
+  TConfig = FSMConfig<TContext, TEvent, TState>
+> = {
+  readonly id: string | undefined;
+  readonly config: TConfig;
+  readonly initialState: TSnapshot;
+  transition(snapshot: TSnapshot, event: TEvent): TSnapshot;
+};
 
-function resolveInput(
-  input: FSMTarget<any>['input'],
-  context: MachineContext,
-  event: EventObject
-) {
-  return typeof input === 'function' ? input({ context, event }) : input;
-}
+type FSMSetupSchemas = Pick<SetupSchemas, 'context' | 'events'>;
+type FSMSetupStates = Record<string, SetupStateSchema>;
 
-function mergeContextPatch<TContext extends MachineContext>(
-  context: TContext,
-  patch: FSMContextPatch<TContext>
-): TContext {
-  for (const key of Object.keys(patch) as Array<keyof TContext>) {
-    if (
-      !Object.prototype.hasOwnProperty.call(context, key) ||
-      !Object.is(context[key], patch[key])
-    ) {
-      return { ...context, ...patch };
+type FSMSchemaContext<TSchema extends StandardSchemaV1> =
+  StandardSchemaV1.InferOutput<TSchema> extends MachineContext
+    ? StandardSchemaV1.InferOutput<TSchema>
+    : MachineContext;
+
+type FSMSetupContext<TSchemas extends FSMSetupSchemas> = TSchemas extends {
+  context: infer TSchema extends StandardSchemaV1;
+}
+  ? FSMSchemaContext<TSchema>
+  : MachineContext;
+
+type FSMSetupEvents<TSchemas extends FSMSetupSchemas> = TSchemas extends {
+  events: infer TEventSchemas extends Record<string, StandardSchemaV1>;
+}
+  ? InferEvents<TEventSchemas>
+  : EventObject;
+
+type FSMStateContext<
+  TStateSchema,
+  TGlobalContext extends MachineContext
+> = TStateSchema extends { schemas?: infer TSchemas }
+  ? TSchemas extends {
+      context?: infer TSchema extends StandardSchemaV1;
     }
-  }
+    ? FSMSchemaContext<TSchema> &
+        ([MachineContext] extends [TGlobalContext] ? unknown : TGlobalContext)
+    : TGlobalContext
+  : TGlobalContext;
 
-  return context;
-}
+type FSMContextFromDeclaredStates<
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext
+> = {
+  [K in keyof TStates & string]: FSMStateContext<TStates[K], TGlobalContext>;
+}[keyof TStates & string];
 
-function createSnapshot<
-  TContext extends MachineContext,
+type FSMContextFromStates<
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext
+> = [keyof TStates] extends [never]
+  ? TGlobalContext
+  : [MachineContext] extends [TGlobalContext]
+    ? FSMContextFromDeclaredStates<TStates, TGlobalContext>
+    : TGlobalContext | FSMContextFromDeclaredStates<TStates, TGlobalContext>;
+
+type FSMSetupStateContext<
   TState extends string,
-  TInput
->(
-  value: TState,
-  context: TContext,
-  input: TInput | undefined,
-  machine: FSMSnapshot<TContext, TState, TInput>['machine'],
-  stateInput?: Record<string, unknown>
-): FSMSnapshot<TContext, TState, TInput> {
-  return {
-    status: 'active',
-    output: undefined,
-    error: undefined,
-    value,
-    context,
-    input,
-    children: {},
-    timers: {},
-    _nextTimerId: 0,
-    _stateInput: stateInput,
-    machine
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext
+> = TState extends keyof TStates
+  ? FSMStateContext<TStates[TState], TGlobalContext>
+  : TGlobalContext;
+
+type FSMSetupSnapshot<
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext,
+  TMachineStates extends Record<string, unknown>
+> = [keyof TStates] extends [never]
+  ? FSMSnapshot<TGlobalContext, keyof TMachineStates & string>
+  : {
+      [K in keyof TMachineStates & string]: {
+        value: K;
+        context: FSMSetupStateContext<K, TStates, TGlobalContext>;
+      };
+    }[keyof TMachineStates & string];
+
+type FSMSetupTargetTransitionConfig<
+  TSourceContext extends MachineContext,
+  TTarget extends string,
+  TTargetContext extends MachineContext
+> = [FSMRequiredTargetContextKeys<TSourceContext, TTargetContext>] extends [
+  never
+]
+  ? {
+      target: TTarget;
+      context?: FSMTargetContextPatch<TSourceContext, TTargetContext>;
+    }
+  : {
+      target: TTarget;
+      context: FSMTargetContextPatch<TSourceContext, TTargetContext>;
+    };
+
+type FSMRequiredTargetContextKeys<TSourceContext, TTargetContext> = {
+  [K in keyof TTargetContext]-?: K extends keyof TSourceContext
+    ? [TSourceContext[K]] extends [TTargetContext[K]]
+      ? never
+      : K
+    : K;
+}[keyof TTargetContext];
+
+type FSMTargetContextPatch<TSourceContext, TTargetContext> =
+  Partial<TTargetContext> &
+    Pick<
+      TTargetContext,
+      Extract<
+        FSMRequiredTargetContextKeys<TSourceContext, TTargetContext>,
+        string
+      >
+    >;
+
+type FSMSetupTransitionConfig<
+  TSourceContext extends MachineContext,
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext
+> =
+  | { target?: undefined; context?: FSMContextPatch<TSourceContext> }
+  | {
+      [TTarget in keyof TStates & string]: FSMSetupTargetTransitionConfig<
+        TSourceContext,
+        TTarget,
+        FSMSetupStateContext<TTarget, TStates, TGlobalContext>
+      >;
+    }[keyof TStates & string];
+
+type FSMSetupStringTransition<
+  TSourceContext extends MachineContext,
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext
+> = {
+  [TTarget in keyof TStates & string]: [TSourceContext] extends [
+    FSMSetupStateContext<TTarget, TStates, TGlobalContext>
+  ]
+    ? TTarget
+    : never;
+}[keyof TStates & string];
+
+type FSMSetupTransitionFunction<
+  TSourceContext extends MachineContext,
+  TEvent extends EventObject,
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext
+> = (
+  args: FSMArgs<TSourceContext, TEvent>
+) =>
+  | FSMSetupTransitionConfig<TSourceContext, TStates, TGlobalContext>
+  | undefined;
+
+type FSMSetupTransition<
+  TSourceContext extends MachineContext,
+  TEvent extends EventObject,
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext,
+  TMachineStates extends Record<string, unknown>
+> = [keyof TStates] extends [never]
+  ? FSMTransition<TSourceContext, TEvent, keyof TMachineStates & string>
+  :
+      | FSMSetupStringTransition<TSourceContext, TStates, TGlobalContext>
+      | FSMSetupTransitionConfig<TSourceContext, TStates, TGlobalContext>
+      | FSMSetupTransitionFunction<
+          TSourceContext,
+          TEvent,
+          TStates,
+          TGlobalContext
+        >;
+
+type FSMSetupStateConfig<
+  TSourceContext extends MachineContext,
+  TEvent extends EventObject,
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext,
+  TMachineStates extends Record<string, unknown>
+> = {
+  on?: {
+    [TType in TEvent['type'] & string]?: FSMSetupTransition<
+      TSourceContext,
+      EventForType<TEvent, TType>,
+      TStates,
+      TGlobalContext,
+      TMachineStates
+    >;
   };
-}
+};
 
-function cloneSnapshot<
-  TContext extends MachineContext,
-  TState extends string,
-  TInput
+type FSMSetupMachineConfig<
+  TSchemas extends FSMSetupSchemas,
+  TStates extends FSMSetupStates,
+  TMachineStates extends Record<string, unknown>
+> = {
+  id?: string;
+  initial: keyof TMachineStates & string;
+  states: {
+    [K in keyof TMachineStates]: FSMSetupStateConfig<
+      FSMStateContext<
+        K extends keyof TStates ? TStates[K] : {},
+        FSMSetupContext<TSchemas>
+      >,
+      FSMSetupEvents<TSchemas>,
+      TStates,
+      FSMSetupContext<TSchemas>,
+      TMachineStates
+    >;
+  };
+} & FSMContextConfig<FSMContextFromStates<TStates, FSMSetupContext<TSchemas>>>;
+
+export type FSMSetupConfig<
+  TSchemas extends FSMSetupSchemas = {},
+  TStates extends FSMSetupStates = {}
+> = {
+  schemas?: TSchemas;
+  states?: TStates;
+};
+
+export type FSMSetupReturn<
+  TSchemas extends FSMSetupSchemas,
+  TStates extends FSMSetupStates
+> = {
+  createFSM<const TMachineStates extends Record<string, unknown>>(
+    config: FSMSetupMachineConfig<TSchemas, TStates, TMachineStates>
+  ): FSM<
+    FSMContextFromStates<TStates, FSMSetupContext<TSchemas>>,
+    FSMSetupEvents<TSchemas>,
+    keyof TMachineStates & string,
+    FSMSetupSnapshot<TStates, FSMSetupContext<TSchemas>, TMachineStates>,
+    FSMSetupMachineConfig<TSchemas, TStates, TMachineStates>
+  >;
+};
+
+export function setup<
+  const TSchemas extends FSMSetupSchemas = {},
+  const TStates extends FSMSetupStates = {}
 >(
-  snapshot: FSMSnapshot<TContext, TState, TInput>,
-  value: TState,
-  context: TContext,
-  stateInput: Record<string, unknown> | undefined
-): FSMSnapshot<TContext, TState, TInput> {
+  _config: FSMSetupConfig<TSchemas, TStates> = {}
+): FSMSetupReturn<TSchemas, TStates> {
   return {
-    status: snapshot.status,
-    output: snapshot.output,
-    error: snapshot.error,
-    value,
-    context,
-    input: snapshot.input,
-    children: snapshot.children,
-    timers: snapshot.timers,
-    _nextTimerId: snapshot._nextTimerId,
-    // Carried across state changes: dropping these would let a later spawn
-    // reuse the id of a still-running child.
-    _nextActorIds: snapshot._nextActorIds,
-    _stateInput: stateInput,
-    machine: snapshot.machine
-  } as FSMSnapshot<TContext, TState, TInput>;
-}
-
-function stopSnapshot<
-  TContext extends MachineContext,
-  TState extends string,
-  TInput
->(
-  snapshot: FSMSnapshot<TContext, TState, TInput>
-): FSMSnapshot<TContext, TState, TInput> {
-  return {
-    status: 'stopped',
-    output: undefined,
-    error: undefined,
-    value: snapshot.value,
-    context: snapshot.context,
-    input: undefined,
-    children: snapshot.children,
-    timers: snapshot.timers,
-    _nextTimerId: snapshot._nextTimerId,
-    _nextActorIds: snapshot._nextActorIds,
-    _stateInput: snapshot._stateInput,
-    machine: snapshot.machine
-  } as FSMSnapshot<TContext, TState, TInput>;
-}
-
-function assertNoStringTransitions(
-  config: FSMConfig<any, any, string, any>
-): void {
-  for (const [stateKey, stateConfig] of Object.entries(config.states)) {
-    for (const [eventType, transitionConfig] of Object.entries(
-      stateConfig.on ?? {}
-    )) {
-      for (const transition of toArray(transitionConfig)) {
-        if (typeof transition === 'string') {
-          const target = transition as string;
-          throw new Error(
-            `Invalid transition for "${stateKey}.${eventType}": use { target: "${target}" } instead of a string target.`
-          );
-        }
-      }
-    }
-  }
-}
-
-function resolveSimpleEnqueuedActions(
-  rawActions: AnyAction[]
-): ExecutableActionObject[] | undefined {
-  const executableActions: ExecutableActionObject[] = [];
-
-  for (const action of rawActions) {
-    if (
-      !action ||
-      typeof action !== 'object' ||
-      !('action' in action) ||
-      typeof action.action !== 'function' ||
-      builtInActionSet.has(action.action) ||
-      '_special' in action.action
-    ) {
-      return undefined;
-    }
-
-    executableActions.push({
-      kind: 'action',
-      type: action.action.name || '(anonymous)',
-      params: undefined,
-      args: action.args,
-      action: action.action,
-      exec() {
-        return this.action?.(...this.args);
-      }
-    });
-  }
-
-  return executableActions;
+    createFSM: (config: FSMConfig) => createFSM(config)
+  } as unknown as FSMSetupReturn<TSchemas, TStates>;
 }
 
 export function createFSM<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TInput = NonReducibleUnknown
+  TContext extends MachineContext = {},
+  TEvent extends EventObject = EventObject,
+  const TStates extends Record<string, unknown> = Record<string, unknown>
 >(
-  config: FSMConfig<TContext, TEvent, string, TInput>
-): FSMActorLogic<TContext, TEvent, string, TInput> {
-  const machine = {
-    id: config.id ?? '(fsm)',
-    sources: emptySources
-  };
-  assertNoStringTransitions(config);
-
-  const runActions = (
-    snapshot: FSMSnapshot<TContext, string, TInput>,
-    event: EventObject,
-    actorScope: AnyActorScope,
-    rawActions: AnyAction[] | undefined
-  ): [FSMSnapshot<TContext, string, TInput>, ExecutableActionObject[]] => {
-    if (!rawActions?.length) {
-      return [snapshot, emptyExecutableActions];
-    }
-    const simpleExecutableActions = resolveSimpleEnqueuedActions(rawActions);
-    if (simpleExecutableActions) {
-      return [snapshot, simpleExecutableActions];
-    }
-    return resolveActionsWithContext(
-      snapshot as any,
-      event as AnyEventObject,
-      actorScope,
-      rawActions
-    ) as any;
+  config: FSMConfigForStates<TContext, TEvent, TStates>
+): FSM<
+  TContext,
+  TEvent,
+  keyof TStates & string,
+  FSMSnapshot<TContext, keyof TStates & string>,
+  FSMConfigForStates<TContext, TEvent, TStates>
+> {
+  type TState = keyof TStates & string;
+  const initialState: FSMSnapshot<TContext, TState> = {
+    value: config.initial,
+    context: config.context ?? ({} as TContext)
   };
 
-  const runStateActions = (
-    snapshot: FSMSnapshot<TContext, string, TInput>,
-    event: EventObject,
-    actorScope: AnyActorScope,
-    actionsConfig: FSMStateConfig<TContext, TEvent, string, TInput>['entry'],
-    stateInput: Record<string, unknown> | undefined,
-    internalQueue: EventObject[]
-  ): [FSMSnapshot<TContext, string, TInput>, ExecutableActionObject[]] => {
-    if (!actionsConfig) {
-      return [snapshot, emptyExecutableActions];
-    }
+  return {
+    id: config.id,
+    config,
+    initialState,
+    transition(snapshot, event) {
+      const stateConfig = config.states[snapshot.value];
+      const transitions = stateConfig?.on as
+        | Record<string, FSMTransition<TContext, TEvent, TState> | undefined>
+        | undefined;
+      const transition =
+        transitions && Object.hasOwn(transitions, event.type)
+          ? transitions[event.type]
+          : undefined;
 
-    const actions: AnyAction[] = [];
-    const enq = createTransitionEnqueue(
-      actorScope,
-      actions,
-      internalQueue,
-      true
-    );
-    let context: TContext | undefined;
-    const actionCount = Array.isArray(actionsConfig) ? actionsConfig.length : 1;
+      if (transition === undefined) {
+        return snapshot;
+      }
 
-    for (let i = 0; i < actionCount; i++) {
-      const action = Array.isArray(actionsConfig)
-        ? actionsConfig[i]
-        : actionsConfig;
-      const result = action(
-        withActorScope(
-          {
-            context: context ?? snapshot.context,
-            event: event as TEvent,
-            input: stateInput as any,
-            value: snapshot.value,
-            children: snapshot.children
-          },
-          actorScope
-        ),
-        enq
-      );
-      if (result?.context !== undefined) {
-        const currentContext = context ?? snapshot.context;
-        const nextContext = mergeContextPatch(currentContext, result.context);
-        if (nextContext !== currentContext) {
+      const args = { context: snapshot.context, event };
+      const result =
+        typeof transition === 'function'
+          ? transition(args)
+          : typeof transition === 'string'
+            ? { target: transition }
+            : transition;
+
+      if (!result) {
+        return snapshot;
+      }
+
+      const contextPatch = result.context;
+      let context = snapshot.context;
+      if (contextPatch !== undefined) {
+        const nextContext = { ...snapshot.context, ...contextPatch };
+        if (
+          Object.keys(contextPatch).some(
+            (key) => nextContext[key] !== snapshot.context[key]
+          )
+        ) {
           context = nextContext;
         }
       }
-    }
+      const value = result.target ?? snapshot.value;
 
-    const nextSnapshot =
-      context !== undefined
-        ? cloneSnapshot(snapshot, snapshot.value, context, snapshot._stateInput)
-        : snapshot;
-    return runActions(nextSnapshot, event, actorScope, actions);
+      if (value === snapshot.value && context === snapshot.context) {
+        return snapshot;
+      }
+
+      return { value, context };
+    }
   };
-
-  const selectTransition = (
-    snapshot: FSMSnapshot<TContext, string, TInput>,
-    event: TEvent,
-    actorScope: AnyActorScope,
-    internalQueue: EventObject[]
-  ) => {
-    const state = config.states[snapshot.value];
-    const transitionsConfig:
-      | FSMTransition<TContext, TEvent, string, TInput>
-      | Array<FSMTransition<TContext, TEvent, string, TInput>>
-      | undefined = state?.on?.[event.type];
-
-    if (!transitionsConfig) {
-      return undefined;
-    }
-
-    const transitionCount = Array.isArray(transitionsConfig)
-      ? transitionsConfig.length
-      : 1;
-
-    for (let i = 0; i < transitionCount; i++) {
-      const transition = Array.isArray(transitionsConfig)
-        ? transitionsConfig[i]
-        : transitionsConfig;
-      const args = withActorScope(
-        {
-          context: snapshot.context,
-          event,
-          input: snapshot.input,
-          value: snapshot.value,
-          children: snapshot.children
-        },
-        actorScope
-      );
-
-      if (typeof transition === 'function') {
-        const actions: AnyAction[] = [];
-        const enq = createTransitionEnqueue(
-          actorScope,
-          actions,
-          internalQueue,
-          true
-        );
-        const result = transition(args, enq);
-        if (!result) {
-          if (actions.length) {
-            return { actions };
-          }
-          continue;
-        }
-        return {
-          target: result.target,
-          context: result.context,
-          input: result.input,
-          actions
-        };
-      }
-
-      if (
-        'guard' in transition &&
-        transition.guard &&
-        !transition.guard(args)
-      ) {
-        continue;
-      }
-
-      return {
-        target: transition.target,
-        context: resolveTransitionContext(transition.context, args),
-        input: transition.input,
-        actions:
-          'actions' in transition && transition.actions
-            ? toArray(transition.actions as any)
-            : emptyRawActions
-      };
-    }
-
-    return undefined;
-  };
-
-  const transitionCore = (
-    snapshot: FSMSnapshot<TContext, string, TInput>,
-    event: TEvent,
-    actorScope: ActorScope<
-      FSMSnapshot<TContext, string, TInput>,
-      TEvent,
-      any,
-      EventObject
-    >
-  ): [FSMSnapshot<TContext, string, TInput>, ExecutableActionObject[]] => {
-    if (snapshot.status !== 'active') {
-      return [snapshot, []];
-    }
-    if (event.type === XSTATE_STOP) {
-      const actions: AnyAction[] = [];
-      const enqueue = createTransitionEnqueue(actorScope, actions, []);
-      for (const id of Object.keys(snapshot.timers)) {
-        enqueue.cancel(id);
-      }
-      const [withoutTimers, cancelEffects] = resolveActionsWithContext(
-        snapshot as any,
-        event,
-        actorScope,
-        actions
-      );
-      return [stopSnapshot(withoutTimers as any), cancelEffects] as any;
-    }
-    if (event.type === XSTATE_TIMER) {
-      const timer = snapshot.timers[(event as any).id];
-      if (!timer) {
-        return [snapshot, emptyExecutableActions];
-      }
-      const timers = { ...snapshot.timers };
-      delete timers[timer.id];
-      const nextSnapshot = { ...snapshot, timers };
-      if (timer.type === '@xstate.raise') {
-        return transitionCore(nextSnapshot, timer.event as TEvent, actorScope);
-      }
-      const target = timer.target === 'self' ? actorScope.self : timer.target;
-      return [
-        nextSnapshot,
-        [createSendToEffect(actorScope, target, timer.event)]
-      ];
-    }
-
-    const stateConfig = config.states[snapshot.value];
-    const directTransition = stateConfig?.on?.[event.type];
-    if (!directTransition) {
-      return [snapshot, emptyExecutableActions];
-    }
-
-    if (
-      !Array.isArray(directTransition) &&
-      typeof directTransition !== 'function' &&
-      !('guard' in directTransition) &&
-      !('actions' in directTransition && directTransition.actions) &&
-      typeof directTransition.input !== 'function'
-    ) {
-      const target = directTransition.target ?? snapshot.value;
-      const stateChanged = target !== snapshot.value;
-      if (stateChanged && (stateConfig.exit || config.states[target]?.entry)) {
-        // Exit/entry actions need the general path.
-      } else {
-        const hasContext = directTransition.context !== undefined;
-        const hasInput = directTransition.input !== undefined;
-        const resolvedContext = !isLazyActorScope(actorScope)
-          ? resolveTransitionContext(directTransition.context, {
-              context: snapshot.context,
-              event,
-              input: snapshot.input,
-              value: snapshot.value,
-              self: actorScope.self,
-              system: actorScope.system,
-              parent: actorScope.self._parent,
-              children: snapshot.children
-            })
-          : typeof directTransition.context === 'function'
-            ? directTransition.context(
-                withActorScope(
-                  {
-                    context: snapshot.context,
-                    event,
-                    input: snapshot.input,
-                    value: snapshot.value,
-                    children: snapshot.children
-                  },
-                  actorScope
-                )
-              )
-            : directTransition.context;
-        const context =
-          hasContext && resolvedContext
-            ? mergeContextPatch(snapshot.context, resolvedContext)
-            : snapshot.context;
-        if (
-          !stateChanged &&
-          context === snapshot.context &&
-          !hasInput &&
-          snapshot._stateInput === undefined
-        ) {
-          return [snapshot, emptyExecutableActions];
-        }
-        return [
-          cloneSnapshot(
-            snapshot,
-            target,
-            context,
-            hasInput
-              ? resolveInput(directTransition.input, context, event)
-              : undefined
-          ),
-          emptyExecutableActions
-        ];
-      }
-    }
-    if (
-      typeof directTransition === 'function' &&
-      directTransition.length < 2 &&
-      !stateConfig?.exit
-    ) {
-      const result = directTransition(
-        withActorScope(
-          {
-            context: snapshot.context,
-            event,
-            input: snapshot.input,
-            value: snapshot.value,
-            children: snapshot.children
-          },
-          actorScope
-        ),
-        undefined as any
-      );
-      if (result) {
-        const target = result.target ?? snapshot.value;
-        if (!config.states[target]?.entry) {
-          const hasContext = result.context !== undefined;
-          const hasInput = result.input !== undefined;
-          const context =
-            hasContext && result.context
-              ? mergeContextPatch(snapshot.context, result.context)
-              : snapshot.context;
-          if (
-            target === snapshot.value &&
-            context === snapshot.context &&
-            !hasInput &&
-            snapshot._stateInput === undefined
-          ) {
-            return [snapshot, emptyExecutableActions];
-          }
-          return [
-            cloneSnapshot(
-              snapshot,
-              target,
-              context,
-              hasInput ? resolveInput(result.input, context, event) : undefined
-            ),
-            emptyExecutableActions
-          ];
-        }
-      }
-    }
-
-    let nextSnapshot: FSMSnapshot<TContext, string, TInput> = snapshot;
-    const executableActions: ExecutableActionObject[] = [];
-    const internalQueue: EventObject[] = [event];
-    let iterations = 0;
-
-    while (internalQueue.length) {
-      if (++iterations > 1000) {
-        throw new Error('FSM microstep count exceeded 1000');
-      }
-      const nextEvent = internalQueue.shift() as TEvent;
-      const selected = selectTransition(
-        nextSnapshot,
-        nextEvent,
-        actorScope,
-        internalQueue
-      );
-      if (!selected) {
-        continue;
-      }
-
-      const nextValue = selected.target ?? nextSnapshot.value;
-      const stateChanged = nextValue !== nextSnapshot.value;
-
-      if (stateChanged) {
-        const [exited, exitActions] = runStateActions(
-          nextSnapshot,
-          nextEvent,
-          actorScope,
-          config.states[nextSnapshot.value]?.exit,
-          nextSnapshot._stateInput,
-          internalQueue
-        );
-        nextSnapshot = exited;
-        executableActions.push(...exitActions);
-      }
-
-      let context = nextSnapshot.context;
-      if (selected.context !== undefined) {
-        context = mergeContextPatch(context, selected.context);
-      }
-      const hasInput = selected.input !== undefined;
-      const stateInput = hasInput
-        ? resolveInput(selected.input, context, nextEvent)
-        : undefined;
-      if (
-        stateChanged ||
-        context !== nextSnapshot.context ||
-        hasInput ||
-        nextSnapshot._stateInput !== undefined
-      ) {
-        nextSnapshot = cloneSnapshot(
-          nextSnapshot,
-          nextValue,
-          context,
-          stateInput
-        );
-      }
-
-      const [afterTransition, transitionActions] = runActions(
-        nextSnapshot,
-        nextEvent,
-        actorScope,
-        selected.actions
-      );
-      nextSnapshot = afterTransition;
-      executableActions.push(...transitionActions);
-
-      if (stateChanged) {
-        const [entered, entryActions] = runStateActions(
-          nextSnapshot,
-          nextEvent,
-          actorScope,
-          config.states[nextValue]?.entry,
-          stateInput,
-          internalQueue
-        );
-        nextSnapshot = entered;
-        executableActions.push(...entryActions);
-      }
-    }
-
-    return [nextSnapshot, executableActions];
-  };
-
-  const transition = ((...args: Parameters<typeof transitionCore>) => {
-    beginSpawnAllocation(args[2]);
-    const [nextSnapshot, effects] = transitionCore(...args);
-    return finalizeTransitionResult(args[2], args[0], [
-      nextSnapshot,
-      [...effects, ...deriveDeferredStarts(effects)]
-    ]);
-  }) as FSMActorLogic<TContext, TEvent, string, TInput>['transition'];
-
-  const logic: FSMActorLogic<TContext, TEvent, string, TInput> = {
-    id: config.id,
-    config,
-    transition,
-    initialTransition: (input, actorScope) => {
-      beginSpawnAllocation(actorScope);
-      const context = resolveContext(config.context, input);
-      const snapshot = createSnapshot(
-        config.initial,
-        context,
-        input,
-        machine as any
-      );
-      const internalQueue: EventObject[] = [];
-      let [nextSnapshot, actions] = runStateActions(
-        snapshot,
-        { type: XSTATE_INIT },
-        actorScope,
-        config.states[config.initial]?.entry,
-        undefined,
-        internalQueue
-      );
-      if (!actions.length) {
-        actions = [];
-      }
-      while (internalQueue.length) {
-        const [raisedSnapshot, raisedActions] = transitionCore(
-          nextSnapshot,
-          internalQueue.shift()! as TEvent,
-          actorScope
-        );
-        nextSnapshot = raisedSnapshot;
-        actions.push(...raisedActions);
-      }
-      return finalizeTransitionResult(actorScope, undefined, [
-        nextSnapshot,
-        [...actions, ...deriveDeferredStarts(actions)]
-      ]);
-    },
-    getInitialSnapshot: (actorScope, input) =>
-      logic.initialTransition(input, actorScope)[0],
-    getPersistedSnapshot: ({ machine: _, ...snapshot }) => snapshot,
-    restoreSnapshot: (snapshot) => ({
-      ...(snapshot as FSMSnapshot<TContext, string, TInput>),
-      machine: machine as any
-    })
-  };
-
-  return logic;
 }

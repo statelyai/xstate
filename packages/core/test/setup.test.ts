@@ -164,6 +164,83 @@ describe('setup', () => {
     expect(machine.states.done.schemas).toBeUndefined();
   });
 
+  it('deep-merges repeated nested state contracts through extend', () => {
+    const leftInput = types<{ left: number }>();
+    const rightInput = types<{ right: boolean }>();
+
+    const s = setup({
+      states: {
+        parent: {
+          type: 'compound',
+          initial: 'left',
+          states: {
+            left: { schemas: { input: leftInput } }
+          }
+        }
+      }
+    }).extend({
+      states: {
+        parent: {
+          states: {
+            right: { schemas: { input: rightInput } }
+          }
+        }
+      }
+    });
+
+    expect(s.states.parent.states?.left.schemas?.input).toBe(leftInput);
+    expect(s.states.parent.states?.right.schemas?.input).toBe(rightInput);
+
+    const machine = s.createMachine({
+      initial: 'parent',
+      states: {
+        parent: {
+          initial: { target: 'left', input: { left: 1 } },
+          states: { left: {}, right: {} }
+        }
+      }
+    });
+
+    expect(machine.states.parent.states.left.schemas?.input).toBe(leftInput);
+    expect(machine.states.parent.states.right.schemas?.input).toBe(rightInput);
+  });
+
+  it('uses extension state metadata while preserving base descendants', () => {
+    const s = setup({
+      states: {
+        parent: {
+          type: 'compound',
+          id: 'base-parent',
+          initial: 'left',
+          states: { left: {} }
+        }
+      }
+    }).extend({
+      states: {
+        parent: {
+          type: 'compound',
+          id: 'extension-parent',
+          initial: 'right',
+          states: { right: {} }
+        }
+      }
+    });
+
+    s.states.parent.type satisfies 'compound';
+    s.states.parent.id satisfies 'extension-parent';
+    s.states.parent.initial satisfies 'right';
+    s.states.parent.states?.left;
+    s.states.parent.states?.right;
+
+    const machine = s.createMachine({
+      initial: 'parent',
+      states: { parent: { states: { left: {}, right: {} } } }
+    });
+
+    expect(machine.states.parent.id).toBe('extension-parent');
+    expect(machine.states.parent.config.initial).toBe('right');
+  });
+
   it('extends sources', () => {
     const calls: string[] = [];
 
