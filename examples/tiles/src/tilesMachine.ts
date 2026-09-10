@@ -43,13 +43,9 @@ export const tilesMachine = setup({
     }
   },
   guards: {
-    isAdjacent: ({
-      selected,
-      hovered
-    }: {
-      selected: Tile | undefined;
-      hovered: Tile | undefined;
-    }) => {
+    isAdjacent: ({ context }) => {
+      const { selected, hovered } = context;
+
       if (!selected || !hovered) {
         return false;
       }
@@ -59,7 +55,7 @@ export const tilesMachine = setup({
         (hovered.y === selected.y && Math.abs(hovered.x - selected.x) === 1)
       );
     },
-    allTilesInOrder: (tiles: number[]) =>
+    allTilesInOrder: (_, tiles: number[]) =>
       tiles.every((tile, index) => tile === index)
   }
 }).createMachine({
@@ -100,8 +96,10 @@ export const tilesMachine = setup({
               target: 'selecting',
               context: { ...context, selected: undefined, hovered: undefined }
             }),
-            'tile.move': ({ context, guards }) => {
-              if (!guards.isAdjacent(context)) {
+            'tile.move': (args) => {
+              const { context, guards } = args;
+
+              if (!guards.isAdjacent(args)) {
                 return { target: '#selecting' };
               }
 
@@ -122,8 +120,10 @@ export const tilesMachine = setup({
           }
         }
       },
-      always: ({ context, guards }) => {
-        if (!guards.allTilesInOrder(context.tiles)) {
+      always: (args) => {
+        const { context, guards } = args;
+
+        if (!guards.allTilesInOrder(args, context.tiles)) {
           return;
         }
 

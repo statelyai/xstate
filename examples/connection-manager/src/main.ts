@@ -53,11 +53,11 @@ const clientMachine = setup({
     }>()
   },
   guards: {
-    canRetry: (attempt: number) => attempt < MAX_ATTEMPTS
+    canRetry: (_, attempt: number) => attempt < MAX_ATTEMPTS
   },
   delays: {
     // Exponential backoff with full jitter, so reconnect storms spread out.
-    backoff: ({ context }: { context: { attempt: number } }) =>
+    backoff: ({ context }) =>
       Math.round(
         BASE_BACKOFF_MS * 2 ** (context.attempt - 1) * (0.5 + Math.random() / 2)
       ),
@@ -91,11 +91,12 @@ const clientMachine = setup({
             }
           };
         },
-        onError: ({ context, event, guards }, enq) => {
+        onError: (args, enq) => {
+          const { context, event, guards } = args;
           const lastError = (event.error as Error).message;
           const attempt = context.attempt + 1;
           enq(log, `  connect failed: ${lastError}`);
-          return guards.canRetry(attempt)
+          return guards.canRetry(args, attempt)
             ? { target: 'backingOff', context: { attempt, lastError } }
             : { target: 'gaveUp', context: { attempt, lastError } };
         }

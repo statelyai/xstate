@@ -58,8 +58,7 @@ export const paymentMachine = setup({
   actors: { submitPayment },
   delays: {
     // Exponential backoff: 1s, 2s, 4s. The delay is a function of context.
-    backoff: ({ context }: { context: PaymentContext }) =>
-      BASE_DELAY * 2 ** (context.attempt - 1)
+    backoff: ({ context }) => BASE_DELAY * 2 ** (context.attempt - 1)
   }
 }).createMachine({
   id: 'payment',

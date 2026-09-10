@@ -69,52 +69,45 @@ const machine = setup({
     })
   },
   guards: {
-    // Guards are standalone functions: they take the narrowest params the
-    // rule needs, not the machine's context. Annotate the params — guards
-    // deliberately do not get contextual typing from `schemas.context`.
-    hasSession: (user: User | null) => user !== null
+    // A guard source takes the transition args object first — contextually
+    // typed from `schemas`, so do not annotate it — and the values the rule
+    // needs after it, as annotated params. Use `_` when the rule reads
+    // nothing from the args.
+    hasSession: ({ context }) => context.user !== null,
+    isAllowed: (_, user: User | null) => user !== null
   }
 }).createMachine({
   /* ... */
 });
 ```
 
-Call them explicitly from a transition function, passing the values the rule needs:
+Call them explicitly from a transition function, passing the transition args through and then the values the rule needs:
 
 ```ts
 on: {
-  submit: ({ context, guards }) => ({
-    target: guards.hasSession(context.user) ? 'dashboard' : 'login'
+  submit: (args) => ({
+    target: args.guards.hasSession(args) ? 'dashboard' : 'login'
   });
 }
 ```
 
-Write a guard so its signature reads as a reusable function. When a rule needs several values, take a named param object rather than the whole context:
-
-```ts
-guards: {
-  hasStock: ({ available, quantity }: { available: number; quantity: number }) =>
-    available >= quantity;
-}
-```
-
 ```ts
 on: {
-  addItem: ({ context, guards }) => {
-    if (!guards.hasStock(context)) return;
+  addItem: (args) => {
+    const { context, guards } = args;
+    if (!guards.hasStock(args, context.quantity)) return;
     return { target: 'adding' };
   };
 }
 ```
 
-Avoid `({ context }: { context: WholeContext })` — a guard shaped like a callback of the machine's context is not reusable and is not the idiom.
+A guard's `event` is the declared event union, so args from an `invoke.onDone`/`onError` handler cannot be passed to a named guard when `schemas.events` is declared. Use a plain module-level predicate there instead of a `guards` source, and call it directly.
 
-`delays` are different: a named delay function is called by the runtime with `{ context, event, stateNode }`, so it does take that args object.
+`delays` are different: a named delay function is called by the runtime with `{ context, event, stateNode }`, so it does take that args object. `schemas.context` and `schemas.events` type it, so do not annotate the params.
 
 ```ts
 delays: {
-  backoff: ({ context }: { context: { attempt: number } }) =>
-    100 * 2 ** (context.attempt - 1);
+  backoff: ({ context }) => 100 * 2 ** (context.attempt - 1);
 }
 ```
 

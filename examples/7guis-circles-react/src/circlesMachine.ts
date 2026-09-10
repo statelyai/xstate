@@ -46,8 +46,8 @@ export const circlesMachine = setup({
     }
   },
   guards: {
-    // Standalone, args-first: takes only the stack it inspects.
-    canPop: (stack: Circle[][]) => stack.length > 0
+    // Args-first: the transition args come first, then the stack it inspects.
+    canPop: (_, stack: Circle[][]) => stack.length > 0
   }
 }).createMachine({
   id: 'circles',
@@ -122,8 +122,10 @@ export const circlesMachine = setup({
     }
   },
   on: {
-    undo: ({ context, guards }) => {
-      if (!guards.canPop(context.past)) {
+    undo: (args) => {
+      const { context, guards } = args;
+
+      if (!guards.canPop(args, context.past)) {
         return;
       }
 
@@ -137,8 +139,10 @@ export const circlesMachine = setup({
         }
       };
     },
-    redo: ({ context, guards }) => {
-      if (!guards.canPop(context.future)) {
+    redo: (args) => {
+      const { context, guards } = args;
+
+      if (!guards.canPop(args, context.future)) {
         return;
       }
 

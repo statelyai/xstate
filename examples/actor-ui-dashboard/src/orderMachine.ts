@@ -27,7 +27,7 @@ export const orderMachine = setup({
   },
   actors: { chargeCard },
   guards: {
-    hasItems: (total: number) => total > 0
+    hasItems: (_, total: number) => total > 0
   }
 }).createMachine({
   context: { total: 0, chargeId: null, error: null },
@@ -38,8 +38,10 @@ export const orderMachine = setup({
         addItem: ({ context }) => ({
           context: { total: context.total + 120 }
         }),
-        checkout: ({ context, guards }) =>
-          guards.hasItems(context.total) ? { target: 'charging' } : undefined
+        checkout: (args) =>
+          args.guards.hasItems(args, args.context.total)
+            ? { target: 'charging' }
+            : undefined
       }
     },
     charging: {

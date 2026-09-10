@@ -41,15 +41,12 @@ export const triviaMachine = setup({
     })
   },
   guards: {
-    isAnswerCorrect: ({
-      answer,
-      correctId
-    }: {
-      answer: number;
-      correctId: number | undefined;
-    }) => answer === correctId,
-    hasLostGame: (lifes: number) => lifes <= 0,
-    hasWonGame: (points: number) => points >= 100
+    isAnswerCorrect: (
+      _,
+      { answer, correctId }: { answer: number; correctId: number | undefined }
+    ) => answer === correctId,
+    hasLostGame: (_, lifes: number) => lifes <= 0,
+    hasWonGame: (_, points: number) => points >= 100
   },
   actions: {
     resetTriviaData: () => ({
@@ -161,10 +158,10 @@ export const triviaMachine = setup({
           states: {
             questionStart: {
               on: {
-                'user.selectAnswer': ({ context, event, guards }) => ({
-                  target: guards.isAnswerCorrect({
-                    answer: event.answer,
-                    correctId: context.currentCharacter?.id
+                'user.selectAnswer': (args) => ({
+                  target: args.guards.isAnswerCorrect(args, {
+                    answer: args.event.answer,
+                    correctId: args.context.currentCharacter?.id
                   })
                     ? 'correctAnswer'
                     : 'incorrectAnswer'
@@ -175,10 +172,12 @@ export const triviaMachine = setup({
               entry: ({ context }) => ({
                 context: { points: context.points + 10 }
               }),
-              always: ({ context, guards }) => {
-                if (guards.hasLostGame(context.lifes))
+              always: (args) => {
+                const { context, guards } = args;
+
+                if (guards.hasLostGame(args, context.lifes))
                   return { target: 'lostGame' };
-                if (guards.hasWonGame(context.points))
+                if (guards.hasWonGame(args, context.points))
                   return { target: 'wonGame' };
               },
               on: { 'user.nextQuestion': { target: '#loadQuestionData' } }
@@ -187,10 +186,12 @@ export const triviaMachine = setup({
               entry: ({ context }) => ({
                 context: { lifes: context.lifes - 1 }
               }),
-              always: ({ context, guards }) => {
-                if (guards.hasLostGame(context.lifes))
+              always: (args) => {
+                const { context, guards } = args;
+
+                if (guards.hasLostGame(args, context.lifes))
                   return { target: 'lostGame' };
-                if (guards.hasWonGame(context.points))
+                if (guards.hasWonGame(args, context.points))
                   return { target: 'wonGame' };
               },
               on: { 'user.nextQuestion': { target: '#loadQuestionData' } }

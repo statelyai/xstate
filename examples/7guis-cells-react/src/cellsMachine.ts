@@ -34,8 +34,9 @@ export const cellsMachine = setup({
     }
   },
   guards: {
-    // Standalone, args-first: takes only the cell name it validates.
-    isEditing: (editing: string | null): editing is string => editing !== null
+    // Args-first: the transition args come first, then the value it validates.
+    isEditing: (_, editing: string | null): editing is string =>
+      editing !== null
   }
 }).createMachine({
   id: 'cells',
@@ -64,8 +65,10 @@ export const cellsMachine = setup({
         cancel: { target: 'idle', context: { editing: null, draft: '' } },
         // Committing recomputes the whole sheet, so every cell that depends
         // on the edited one — directly or transitively — updates at once.
-        commit: ({ context, guards }) => {
-          if (!guards.isEditing(context.editing)) {
+        commit: (args) => {
+          const { context, guards } = args;
+
+          if (!guards.isEditing(args, context.editing)) {
             return;
           }
 

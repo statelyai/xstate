@@ -34,13 +34,13 @@ const machine = setup({
   },
   actors: { storePatient },
   guards: {
-    canRetry: ({ context }: { context: { attempts: number } }) =>
-      context.attempts < MAX_ATTEMPTS
+    // Guard sources take the transition args object first; the values the
+    // rule needs come after it as ordinary params.
+    canRetry: (_, attempts: number) => attempts < MAX_ATTEMPTS
   },
   delays: {
     // Exponential backoff: 200ms, 400ms, 800ms, ...
-    backoff: ({ context }: { context: { attempts: number } }) =>
-      100 * 2 ** context.attempts
+    backoff: ({ context }) => 100 * 2 ** context.attempts
   }
 }).createMachine({
   context: ({ input }) => ({
@@ -59,10 +59,11 @@ const machine = setup({
           target: 'stored',
           context: { recordId: event.output.recordId }
         }),
-        onError: ({ context, event, guards }) => {
+        onError: (args) => {
+          const { context, event, guards } = args;
           const error = String((event.error as Error).message);
           const attempts = context.attempts + 1;
-          return guards.canRetry({ context: { attempts } })
+          return guards.canRetry(args, attempts)
             ? { target: 'backingOff', context: { attempts, error } }
             : { target: 'gaveUp', context: { attempts, error } };
         }

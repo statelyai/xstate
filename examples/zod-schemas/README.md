@@ -2,12 +2,13 @@
 
 ## What it teaches
 
-How to define context, events, input and output with Zod schemas, and what runtime validation adds on top of the types — invalid payloads are rejected before any transition runs.
+How to define context, events, input and output with Zod schemas, what runtime validation adds on top of the types, and where each kind of failure surfaces — invalid incoming events are rejected at the delivery boundary, while faults the machine produces itself error the actor.
 
 ## XState features used
 
 - Zod schemas (Standard Schema) in `setup({ schemas })` for `context`, `events`, `input` and `output`
 - `standardSchemaValidator()` from `xstate/validation` on both the machine and an actor created with `createAsyncLogic`
+- `onRejectedEvent` on `createActor` options, the root actor's dead-letter hook, including the Standard Schema `issues` it carries
 - the actor error channel (`actor.subscribe({ error })`) and the resulting `error` status
 - `invoke` with a validated `input`, final state `output`, `toPromise`
 
@@ -18,12 +19,13 @@ pnpm install
 pnpm start
 ```
 
-The signup machine accepts one valid submission, then three invalid ones: a malformed email, a payload parsed from JSON whose `plan` is not in the enum, and machine input of the wrong type. Each failure prints on the actor's error channel and leaves the state value untouched.
+The signup machine accepts one valid submission, then four failures: a malformed email, a payload parsed from JSON whose `plan` is not in the enum, machine input of the wrong type, and a machine that raises an event its own schema rejects.
 
-Two behaviors worth knowing:
+Three behaviors worth knowing:
 
 - Schemas alone do nothing at runtime. Without `validator: standardSchemaValidator()`, a Zod schema in `schemas` is only a source of types — exactly like `types<T>()`, which never validates. Use `types<T>()` when the data is already trusted, and a Standard Schema plus a validator at the edges where it is not.
-- A validation failure on a running actor is not thrown at the `send` call site. It goes to the actor's error channel, and the actor's status becomes `error`. The pure `transition()` API throws instead, because there is no actor to error.
+- An event arriving from outside with an invalid payload is rejected before delivery. `send` does not throw, the actor does not transition and does not error — its status stays `active`. The rejection is reported to `onRejectedEvent` with the failing `issues`, and to [inspection](https://stately.ai/docs/inspection) observers as a `@xstate.deadletter` event. A pure `transition(...)` call returns the snapshot unchanged plus a `@xstate.deadLetter` effect.
+- Values the machine produces itself — input, context, output, emitted events and delayed raised events — are machine bugs when they fail their schema, so they error the actor, and the pure APIs throw.
 
 ## Inspect it
 

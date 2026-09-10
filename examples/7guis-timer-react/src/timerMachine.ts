@@ -31,8 +31,8 @@ export const timerMachine = setup({
     })
   },
   guards: {
-    // Standalone, args-first: the rule only needs the two numbers it compares.
-    isElapsed: ({ elapsed, duration }: TimerContext) => elapsed >= duration
+    // Args-first: the rule reads both numbers it compares off the context.
+    isElapsed: ({ context }) => context.elapsed >= context.duration
   }
 }).createMachine({
   id: 'timer',
@@ -46,8 +46,8 @@ export const timerMachine = setup({
     // once the duration is reached.
     running: {
       invoke: { src: 'ticks' },
-      always: ({ context, guards }) =>
-        guards.isElapsed(context) ? { target: 'done' } : undefined,
+      always: (args) =>
+        args.guards.isElapsed(args) ? { target: 'done' } : undefined,
       on: {
         TICK: ({ context }) => ({
           context: {

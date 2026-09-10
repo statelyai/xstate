@@ -42,9 +42,9 @@ export const crudMachine = setup({
     }
   },
   guards: {
-    // Standalone, args-first: each guard takes only the value it judges.
-    hasSelection: (selectedId: string | null) => selectedId !== null,
-    isNamed: ({ name, surname }: { name: string; surname: string }) =>
+    // Args-first: the transition args come first, then the value each judges.
+    hasSelection: (_, selectedId: string | null) => selectedId !== null,
+    isNamed: (_, { name, surname }: { name: string; surname: string }) =>
       name.trim().length > 0 || surname.trim().length > 0
   }
 }).createMachine({
@@ -78,9 +78,11 @@ export const crudMachine = setup({
       };
     },
 
-    create: ({ context, guards }) => {
+    create: (args) => {
+      const { context, guards } = args;
+
       if (
-        !guards.isNamed({
+        !guards.isNamed(args, {
           name: context.nameDraft,
           surname: context.surnameDraft
         })
@@ -99,10 +101,12 @@ export const crudMachine = setup({
       };
     },
 
-    update: ({ context, guards }) => {
+    update: (args) => {
+      const { context, guards } = args;
+
       if (
-        !guards.hasSelection(context.selectedId) ||
-        !guards.isNamed({
+        !guards.hasSelection(args, context.selectedId) ||
+        !guards.isNamed(args, {
           name: context.nameDraft,
           surname: context.surnameDraft
         })
@@ -125,8 +129,10 @@ export const crudMachine = setup({
       };
     },
 
-    delete: ({ context, guards }) => {
-      if (!guards.hasSelection(context.selectedId)) {
+    delete: (args) => {
+      const { context, guards } = args;
+
+      if (!guards.hasSelection(args, context.selectedId)) {
         return;
       }
 

@@ -40,9 +40,11 @@ export const vendingMachine = setup({
     }
   },
   guards: {
-    inStock: ({ stock, id }: { stock: Record<string, number>; id: string }) =>
-      stock[id]! > 0,
-    canAfford: ({ credit, id }: { credit: number; id: string }) =>
+    inStock: (
+      _,
+      { stock, id }: { stock: Record<string, number>; id: string }
+    ) => stock[id]! > 0,
+    canAfford: (_, { credit, id }: { credit: number; id: string }) =>
       credit >= priceOf(id)
   },
   delays: {
@@ -71,12 +73,16 @@ export const vendingMachine = setup({
         }),
         // The guards declared in `setup()` are called explicitly here, so one
         // transition function can choose between three outcomes.
-        select: ({ context, event, guards }) => {
-          if (!guards.inStock({ stock: context.stock, id: event.id })) {
+        select: (args) => {
+          const { context, event, guards } = args;
+
+          if (!guards.inStock(args, { stock: context.stock, id: event.id })) {
             return { context: { message: 'Sold out' } };
           }
 
-          if (!guards.canAfford({ credit: context.credit, id: event.id })) {
+          if (
+            !guards.canAfford(args, { credit: context.credit, id: event.id })
+          ) {
             const missing = priceOf(event.id) - context.credit;
             return { context: { message: `Add ${missing}¢ more` } };
           }

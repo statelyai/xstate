@@ -38,7 +38,7 @@ export const bookingMachine = setup({
     })
   },
   guards: {
-    isAvailable: ({ slots, slotId }: { slots: Slot[]; slotId: string }) =>
+    isAvailable: (_, { slots, slotId }: { slots: Slot[]; slotId: string }) =>
       slots.some((slot) => slot.id === slotId && !slot.taken)
   },
   delays: {
@@ -72,17 +72,27 @@ export const bookingMachine = setup({
       on: {
         // Taken slots are not selectable: the guard returns false and the
         // transition function returns `undefined`, leaving the event unhandled.
-        select: ({ context, event, guards }) =>
-          guards.isAvailable({ slots: context.slots, slotId: event.slotId })
-            ? {
-                target: 'holding',
-                context: {
-                  selectedId: event.slotId,
-                  secondsLeft: HOLD_SECONDS,
-                  error: null
-                }
-              }
-            : undefined
+        select: (args) => {
+          const { context, event, guards } = args;
+
+          if (
+            !guards.isAvailable(args, {
+              slots: context.slots,
+              slotId: event.slotId
+            })
+          ) {
+            return undefined;
+          }
+
+          return {
+            target: 'holding',
+            context: {
+              selectedId: event.slotId,
+              secondsLeft: HOLD_SECONDS,
+              error: null
+            }
+          };
+        }
       }
     },
     /** The slot is reserved for the user, but only until the hold expires. */

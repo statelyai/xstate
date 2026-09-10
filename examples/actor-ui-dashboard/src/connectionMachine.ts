@@ -2,6 +2,13 @@ import { createAsyncLogic, setup, types } from 'xstate';
 
 const MAX_ATTEMPTS = 4;
 
+/**
+ * A plain predicate rather than a `guards` source: the retry decision is made
+ * from an `invoke.onError` handler, whose event is not part of the declared
+ * event union that a named guard's args are typed against.
+ */
+const canRetry = (attempt: number) => attempt < MAX_ATTEMPTS;
+
 /** A flaky transport: every third dial fails. */
 let dials = 0;
 const connect = createAsyncLogic({
@@ -32,12 +39,8 @@ export const connectionMachine = setup({
     }
   },
   actors: { connect },
-  guards: {
-    canRetry: (attempt: number) => attempt < MAX_ATTEMPTS
-  },
   delays: {
-    backoff: ({ context }: { context: { attempt: number } }) =>
-      300 * 2 ** (context.attempt - 1)
+    backoff: ({ context }) => 300 * 2 ** (context.attempt - 1)
   }
 }).createMachine({
   context: { attempt: 0, sessionId: null, lastError: null },
@@ -57,10 +60,10 @@ export const connectionMachine = setup({
             lastError: null
           }
         }),
-        onError: ({ context, event, guards }) => {
+        onError: ({ context, event }) => {
           const lastError = (event.error as Error).message;
           const attempt = context.attempt + 1;
-          return guards.canRetry(attempt)
+          return canRetry(attempt)
             ? { target: 'backingOff', context: { attempt, lastError } }
             : { target: 'gaveUp', context: { attempt, lastError } };
         }

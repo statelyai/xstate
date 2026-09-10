@@ -28,8 +28,7 @@ export const expenseMachine = setup({
   },
   guards: {
     // Small expenses skip review entirely.
-    isAutoApproved: ({ event }: { event: { amount: number } }) =>
-      event.amount <= 100
+    isAutoApproved: (_, amount: number) => amount <= 100
   }
 }).createMachine({
   id: 'expense',
@@ -38,13 +37,18 @@ export const expenseMachine = setup({
   states: {
     draft: {
       on: {
-        submit: ({ event, guards }) => ({
-          target: guards.isAutoApproved({ event }) ? 'approved' : 'inReview',
-          context: {
-            amount: event.amount,
-            approver: guards.isAutoApproved({ event }) ? 'auto' : null
-          }
-        })
+        submit: (args) => {
+          const { event, guards } = args;
+          const autoApproved = guards.isAutoApproved(args, event.amount);
+
+          return {
+            target: autoApproved ? 'approved' : 'inReview',
+            context: {
+              amount: event.amount,
+              approver: autoApproved ? 'auto' : null
+            }
+          };
+        }
       }
     },
     inReview: {

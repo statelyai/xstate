@@ -76,10 +76,55 @@ const signupMachine = setup({
   }
 });
 
-/** A fresh signup actor that reports validation failures on its error channel. */
+/**
+ * A machine whose own delayed `raise` produces a payload its schema rejects.
+ * That is a machine bug, not a caller's mistake, so it errors the actor.
+ */
+const buggyMachine = setup({
+  validator: standardSchemaValidator(),
+  schemas: {
+    context: z.object({}),
+    events: {
+      begin: z.object({}),
+      retry: z.object({ attempt: z.number() })
+    }
+  }
+}).createMachine({
+  context: {},
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        begin: (_, enq) => {
+          // `attempt` must be a number; the machine sends a string.
+          enq.raise(
+            { type: 'retry', attempt: 'soon' as unknown as number },
+            {
+              delay: 10
+            }
+          );
+        }
+      }
+    }
+  }
+});
+
+/**
+ * A fresh signup actor. Rejected events land on the dead-letter hook; faults
+ * the machine itself produces land on the error channel.
+ */
 const startSignup = (input: { source: string }) => {
   const actor = createActor(signupMachine, {
     input: input as never,
+    onRejectedEvent: (rejection) => {
+      const paths = rejection.issues
+        ?.map((issue) => issue.path?.join('.') || '(root)')
+        .join(', ');
+      log(
+        `   dead letter: "${rejection.event.type}" from ${rejection.eventOrigin} ` +
+          `(${rejection.reason})${paths ? ` at ${paths}` : ''}`
+      );
+    },
     inspect: inspector?.inspect
   });
   actor.subscribe({
@@ -94,8 +139,9 @@ const ok = startSignup({ source: 'pricing-page' });
 ok.send({ type: 'submit', email: 'ada@example.com', plan: 'pro' });
 log(`   done: ${JSON.stringify(await toPromise(ok))}`);
 
-log('\n2. an invalid payload never reaches a transition');
+log('\n2. an invalid payload is rejected at the delivery boundary');
 const bad = startSignup({ source: 'pricing-page' });
+// `send` is fire-and-forget: no throw here, and the actor keeps running.
 bad.send({ type: 'submit', email: 'not-an-email', plan: 'pro' });
 log(`   state: ${JSON.stringify(bad.getSnapshot().value)}`);
 log(`   status: ${bad.getSnapshot().status}`);
@@ -112,5 +158,14 @@ log(`   status: ${fromNetwork.getSnapshot().status}`);
 log('\n4. input is validated too, before the machine starts');
 const badInput = startSignup({ source: 42 } as never);
 log(`   status: ${badInput.getSnapshot().status}`);
+
+log('\n5. a fault the machine produces itself still errors the actor');
+const buggy = createActor(buggyMachine, { inspect: inspector?.inspect });
+buggy.subscribe({
+  error: (error) => log(`   error channel: ${(error as Error).message}`)
+});
+buggy.start();
+buggy.send({ type: 'begin' });
+log(`   status: ${buggy.getSnapshot().status}`);
 
 inspector?.destroy();

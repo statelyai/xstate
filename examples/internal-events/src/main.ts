@@ -78,7 +78,22 @@ const uploadMachine = setup({
 
 const actor = createActor(uploadMachine, {
   input: { file: 'report.pdf', total: 1024 },
-  inspect: inspector?.inspect
+  // A rejected event is silent unless it is observed. `onRejectedEvent` is the
+  // root actor's dead-letter hook: it fires for every event that was not
+  // delivered, with the reason why.
+  onRejectedEvent: (rejection) => {
+    log(
+      `dead letter: "${rejection.event.type}" from ${rejection.eventOrigin} ` +
+        `(${rejection.reason}) — ${rejection.error?.message}`
+    );
+  },
+  inspect: (event) => {
+    // The same rejections reach inspection observers as `@xstate.deadletter`.
+    if (event.type === '@xstate.deadletter') {
+      log(`  inspected as ${event.type}: "${event.event.type}"`);
+    }
+    inspector?.inspect(event);
+  }
 });
 
 actor.subscribe((snapshot) => log(`state: ${JSON.stringify(snapshot.value)}`));
@@ -87,26 +102,23 @@ actor.start();
 // A public event: accepted, and it kicks off the private progress protocol.
 actor.send({ type: 'start' });
 
-// A private event from outside: rejected synchronously, before delivery.
-try {
-  // @ts-expect-error — `progress.chunk` matches the `progress.*` internal
-  // event schema, so it is removed from what `actor.send` accepts.
-  actor.send({ type: 'progress.chunk', bytes: 999_999 });
-} catch (error) {
-  log(`rejected: ${(error as Error).message}`);
-}
+// A private event from outside. `send` is fire-and-forget: it does not throw
+// and the actor does not error. The event is dropped at the delivery boundary
+// and reported as a dead letter.
+//
+// Wildcard `progress.*` entries are excluded from `actor.send` just like
+// exact entries such as `tick`.
+// @ts-expect-error — `progress.chunk` matches an internal wildcard.
+actor.send({ type: 'progress.chunk', bytes: 999_999 });
 
 // The same holds for `trigger`, the shorthand form of `send`.
-try {
-  // @ts-expect-error — `tick` is internal, so `actor.trigger` has no `tick`.
-  actor.trigger.tick({});
-} catch (error) {
-  log(`rejected: ${(error as Error).message}`);
-}
+// @ts-expect-error — `tick` is internal, so `actor.trigger` has no `tick`.
+actor.trigger.tick({});
 
 log(
   `state after the rejected sends: ${JSON.stringify(actor.getSnapshot().value)}`
 );
+log(`status after the rejected sends: ${actor.getSnapshot().status}`);
 log(`bytes after the rejected sends: ${actor.getSnapshot().context.sent}`);
 
 const output = await toPromise(actor);

@@ -39,14 +39,14 @@ export const ticTacToeMachine = setup({
     tags: types<'winner' | 'draw'>()
   },
   guards: {
-    checkWin: (board: Board) =>
+    checkWin: (_, board: Board) =>
       winningLines.some(
         (line) =>
           line.every((i) => board[i] === 'x') ||
           line.every((i) => board[i] === 'o')
       ),
-    checkDraw: (moves: number) => moves === 9,
-    isValidMove: (params: { board: Board; value: number }) =>
+    checkDraw: (_, moves: number) => moves === 9,
+    isValidMove: (_, params: { board: Board; value: number }) =>
       params.board[params.value] === null
   }
 }).createMachine({
@@ -54,18 +54,25 @@ export const ticTacToeMachine = setup({
   context: initialContext(),
   states: {
     playing: {
-      always: ({ context, guards }) => {
-        if (guards.checkWin(context.board)) {
+      always: (args) => {
+        const { context, guards } = args;
+
+        if (guards.checkWin(args, context.board)) {
           return { target: 'gameOver.winner' };
         }
-        if (guards.checkDraw(context.moves)) {
+        if (guards.checkDraw(args, context.moves)) {
           return { target: 'gameOver.draw' };
         }
       },
       on: {
-        PLAY: ({ context, event, guards }) => {
+        PLAY: (args) => {
+          const { context, event, guards } = args;
+
           if (
-            !guards.isValidMove({ board: context.board, value: event.value })
+            !guards.isValidMove(args, {
+              board: context.board,
+              value: event.value
+            })
           ) {
             return;
           }

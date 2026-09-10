@@ -58,11 +58,10 @@ const provider = setup({
     }>()
   },
   guards: {
-    canRetry: (attempt: number) => attempt < MAX_ATTEMPTS
+    canRetry: (_, attempt: number) => attempt < MAX_ATTEMPTS
   },
   delays: {
-    backoff: ({ context }: { context: { attempt: number } }) =>
-      100 * 2 ** (context.attempt - 1)
+    backoff: ({ context }) => 100 * 2 ** (context.attempt - 1)
   },
   actors: { complete }
 }).createMachine({
@@ -87,11 +86,12 @@ const provider = setup({
           target: 'answered',
           context: { attempt: context.attempt + 1, text: event.output.text }
         }),
-        onError: ({ context, event, guards }, enq) => {
+        onError: (args, enq) => {
+          const { context, event, guards } = args;
           const attempt = context.attempt + 1;
           const error = (event.error as Error).message;
           enq(log, `${context.provider}: attempt ${attempt} failed (${error})`);
-          return guards.canRetry(attempt)
+          return guards.canRetry(args, attempt)
             ? { target: 'backingOff', context: { attempt, error } }
             : { target: 'exhausted', context: { attempt, error } };
         }

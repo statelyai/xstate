@@ -46,11 +46,10 @@ const jobMachine = setup({
   },
   actors: { runJob },
   guards: {
-    canRetry: (attempts: number) => attempts < MAX_ATTEMPTS
+    canRetry: (_, attempts: number) => attempts < MAX_ATTEMPTS
   },
   delays: {
-    backoff: ({ context }: { context: { attempts: number } }) =>
-      50 * 2 ** context.attempts
+    backoff: ({ context }) => 50 * 2 ** context.attempts
   }
 }).createMachine({
   context: ({ input }) => ({ job: input.job, attempts: 0, error: null }),
@@ -64,11 +63,12 @@ const jobMachine = setup({
           enq(log, `  job ${context.job.id} succeeded`);
           return { target: 'done' };
         },
-        onError: ({ context, event, guards }, enq) => {
+        onError: (args, enq) => {
+          const { context, event, guards } = args;
           const error = (event.error as Error).message;
           const attempts = context.attempts + 1;
           enq(log, `  job ${context.job.id} attempt ${attempts}: ${error}`);
-          return guards.canRetry(attempts)
+          return guards.canRetry(args, attempts)
             ? { target: 'backingOff', context: { attempts, error } }
             : { target: 'deadLetter', context: { attempts, error } };
         }
