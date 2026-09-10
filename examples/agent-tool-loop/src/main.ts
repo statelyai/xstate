@@ -84,6 +84,8 @@ const toolTarget = {
   weather: 'calling_weather'
 } as const;
 
+const underLimit = (iterations: number) => iterations < MAX_ITERATIONS;
+
 const agent = setup({
   schemas: {
     context: types<{
@@ -94,9 +96,6 @@ const agent = setup({
       answer: string | null;
     }>(),
     input: types<{ goal: string }>()
-  },
-  guards: {
-    underLimit: (_, iterations: number) => iterations < MAX_ITERATIONS
   },
   actors: { calculator, model, search, weather }
 }).createMachine({
@@ -118,8 +117,7 @@ const agent = setup({
           goal: context.goal,
           observations: context.observations
         }),
-        onDone: (args, enq) => {
-          const { context, event, guards } = args;
+        onDone: ({ context, event }, enq) => {
           const iterations = context.iterations + 1;
           const reply: ModelReply = event.output;
           if (reply.kind === 'final') {
@@ -129,7 +127,7 @@ const agent = setup({
               context: { iterations, answer: reply.answer }
             };
           }
-          if (!guards.underLimit(args, iterations)) {
+          if (!underLimit(iterations)) {
             return { target: 'stopped', context: { iterations } };
           }
           enq(log, `model thought: ${reply.thought}`);

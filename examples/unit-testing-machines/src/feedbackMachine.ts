@@ -21,6 +21,10 @@ export const submitFeedback = createAsyncLogic({
 
 export const RETRY_DELAY = 3000;
 
+/** Feedback needs both a rating and a non-empty comment. */
+const isComplete = (rating: number, comment: string) =>
+  rating > 0 && comment.trim().length > 0;
+
 export const feedbackMachine = setup({
   schemas: {
     context: types<{
@@ -37,10 +41,6 @@ export const feedbackMachine = setup({
     }
   },
   actors: { submitFeedback },
-  guards: {
-    isComplete: ({ context }) =>
-      context.rating > 0 && context.comment.trim().length > 0
-  },
   delays: { retryAfter: RETRY_DELAY }
 }).createMachine({
   context: { rating: 0, comment: '', id: null, error: null },
@@ -52,8 +52,10 @@ export const feedbackMachine = setup({
         comment: ({ event }) => ({ context: { comment: event.comment } }),
         // A transition function replaces the v5 `guard` key: return a target
         // when the transition should be taken, and nothing when it should not.
-        submit: (args) =>
-          args.guards.isComplete(args) ? { target: 'submitting' } : undefined
+        submit: ({ context }) =>
+          isComplete(context.rating, context.comment)
+            ? { target: 'submitting' }
+            : undefined
       }
     },
     submitting: {

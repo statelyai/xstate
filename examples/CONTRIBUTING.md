@@ -50,7 +50,7 @@ Keep the dependency list minimal. Anything beyond the framework, XState, and the
 
 Examples are reference material, so the code must be idiomatic v6.
 
-**Use `setup()` as the entry point.** Declare actors, guards, actions, and delays in `setup()`, then call `.createMachine()`. Reference them by name in the machine config.
+**Use `setup()` as the entry point.** Declare actors, actions, and delays in `setup()`, then call `.createMachine()`. Reference them by name in the machine config.
 
 ```ts
 import { setup, createAsyncLogic, types } from 'xstate';
@@ -67,41 +67,37 @@ const machine = setup({
       schemas: { input: types<{ email: string }>() },
       run: async ({ input }) => login(input)
     })
-  },
-  guards: {
-    // A guard source takes the transition args object first — contextually
-    // typed from `schemas`, so do not annotate it — and the values the rule
-    // needs after it, as annotated params. Use `_` when the rule reads
-    // nothing from the args.
-    hasSession: ({ context }) => context.user !== null,
-    isAllowed: (_, user: User | null) => user !== null
   }
 }).createMachine({
   /* ... */
 });
 ```
 
-Call them explicitly from a transition function, passing the transition args through and then the values the rule needs:
+**Write guards as module-level predicates.** A guard is an ordinary function declared next to the machine, taking the narrowest useful parameters — the values it actually judges, not the whole transition args object. Call it directly inside the transition function.
+
+```ts
+const hasSession = (user: User | null): user is User => user !== null;
+const hasStock = (quantity: number) => quantity > 0;
+```
 
 ```ts
 on: {
-  submit: (args) => ({
-    target: args.guards.hasSession(args) ? 'dashboard' : 'login'
+  submit: ({ context }) => ({
+    target: hasSession(context.user) ? 'dashboard' : 'login'
   });
 }
 ```
 
 ```ts
 on: {
-  addItem: (args) => {
-    const { context, guards } = args;
-    if (!guards.hasStock(args, context.quantity)) return;
+  addItem: ({ context }) => {
+    if (!hasStock(context.quantity)) return;
     return { target: 'adding' };
   };
 }
 ```
 
-A guard's `event` is the declared event union, so args from an `invoke.onDone`/`onError` handler cannot be passed to a named guard when `schemas.events` is declared. Use a plain module-level predicate there instead of a `guards` source, and call it directly.
+Do not register guards in `setup({ guards })`, and do not forward the transition `args` object to a guard. Narrow parameters keep each predicate independently testable and readable at the call site; passing `args` hides what the rule depends on. (This will be revisited once core pre-binds guard sources.)
 
 `delays` are different: a named delay function is called by the runtime with `{ context, event, stateNode }`, so it does take that args object. `schemas.context` and `schemas.events` type it, so do not annotate the params.
 
@@ -122,7 +118,7 @@ delays: {
 
 **Write code a human would write.** Mechanically converted v4/v5 code is rejected. In particular:
 
-- No IIFE-wrapped guards or assigns inside transition functions. Put the logic in a named guard or action in `setup()`.
+- No IIFE-wrapped guards or assigns inside transition functions. Put the logic in a module-level predicate, or a named action in `setup()`.
 - No `(() => { ... })()` blocks standing in for what should be a declarative transition.
 - No leftover `predictableActionArguments`, `tsTypes`, or other pre-v5 config keys.
 - No `as any` to work around types. If the types fight you, that is a bug worth reporting.

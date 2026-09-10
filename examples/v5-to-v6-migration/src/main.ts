@@ -14,6 +14,11 @@ const submitFeedback = createAsyncLogic({
   }
 });
 
+// v5: guards: { isComplete: ({ context }) => ... } registered in `setup()`.
+// v6: a plain predicate taking only the values it judges.
+const isComplete = (rating: number, comment: string) =>
+  rating > 0 && comment.trim().length > 0;
+
 export const feedbackMachine = setup({
   // v5: types: {} as { context: …; events: … }
   schemas: {
@@ -28,11 +33,7 @@ export const feedbackMachine = setup({
       submit: types<{}>()
     }
   },
-  actors: { submitFeedback },
-  guards: {
-    isComplete: ({ context }) =>
-      context.rating > 0 && context.comment.trim().length > 0
-  }
+  actors: { submitFeedback }
 }).createMachine({
   context: { rating: 0, comment: '', id: null },
   initial: 'editing',
@@ -43,8 +44,10 @@ export const feedbackMachine = setup({
         rate: ({ event }) => ({ context: { rating: event.rating } }),
         comment: ({ event }) => ({ context: { comment: event.comment } }),
         // v5: { guard: 'isComplete', target: 'submitting' }
-        submit: (args) =>
-          args.guards.isComplete(args) ? { target: 'submitting' } : undefined
+        submit: ({ context }) =>
+          isComplete(context.rating, context.comment)
+            ? { target: 'submitting' }
+            : undefined
       }
     },
     submitting: {

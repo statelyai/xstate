@@ -80,6 +80,10 @@ const OFFERS: [Offer, Offer, Offer] = [
  * Parent machine. It runs the same child three times with different input and
  * compares the three outputs.
  */
+// Input arrives from outside the program, so it is checked before use.
+const hasValidPrincipal = (principal: number) =>
+  Number.isFinite(principal) && principal >= 1_000 && principal <= 1_000_000;
+
 const compareOffersMachine = setup({
   schemas: {
     context: types<{
@@ -94,12 +98,6 @@ const compareOffersMachine = setup({
       | { ok: false; error: string | null }
     >()
   },
-  guards: {
-    // Input arrives from outside the program, so it is checked before use.
-    // A guard keeps the check declarative and reusable.
-    hasValidPrincipal: (_, principal: number) =>
-      Number.isFinite(principal) && principal >= 1_000 && principal <= 1_000_000
-  },
   actors: { loanQuoteMachine }
 }).createMachine({
   context: ({ input }) => ({
@@ -110,13 +108,13 @@ const compareOffersMachine = setup({
   initial: 'validating',
   states: {
     validating: {
-      always: (args) =>
-        args.guards.hasValidPrincipal(args, args.context.principal)
+      always: ({ context }) =>
+        hasValidPrincipal(context.principal)
           ? { target: 'quotingA' }
           : {
               target: 'rejected',
               context: {
-                error: `principal ${args.context.principal} is outside 1000..1000000`
+                error: `principal ${context.principal} is outside 1000..1000000`
               }
             }
     },

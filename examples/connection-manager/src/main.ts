@@ -42,6 +42,8 @@ const ping = createAsyncLogic({
   }
 });
 
+const canRetry = (attempt: number) => attempt < MAX_ATTEMPTS;
+
 const clientMachine = setup({
   schemas: {
     context: types<{
@@ -51,9 +53,6 @@ const clientMachine = setup({
       drops: number;
       lastError: string | null;
     }>()
-  },
-  guards: {
-    canRetry: (_, attempt: number) => attempt < MAX_ATTEMPTS
   },
   delays: {
     // Exponential backoff with full jitter, so reconnect storms spread out.
@@ -91,12 +90,11 @@ const clientMachine = setup({
             }
           };
         },
-        onError: (args, enq) => {
-          const { context, event, guards } = args;
+        onError: ({ context, event }, enq) => {
           const lastError = (event.error as Error).message;
           const attempt = context.attempt + 1;
           enq(log, `  connect failed: ${lastError}`);
-          return guards.canRetry(args, attempt)
+          return canRetry(attempt)
             ? { target: 'backingOff', context: { attempt, lastError } }
             : { target: 'gaveUp', context: { attempt, lastError } };
         }

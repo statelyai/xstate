@@ -12,6 +12,9 @@ export type ExpenseEvent =
  * One workflow instance per expense report. The Lambda handler owns no state
  * of its own: every fact the workflow needs lives in this machine's snapshot.
  */
+/** Small expenses skip review entirely. */
+const isAutoApproved = (amount: number) => amount <= 100;
+
 export const expenseMachine = setup({
   schemas: {
     context: types<{
@@ -25,10 +28,6 @@ export const expenseMachine = setup({
       reject: types<{ reason: string }>(),
       pay: types<{}>()
     }
-  },
-  guards: {
-    // Small expenses skip review entirely.
-    isAutoApproved: (_, amount: number) => amount <= 100
   }
 }).createMachine({
   id: 'expense',
@@ -37,9 +36,8 @@ export const expenseMachine = setup({
   states: {
     draft: {
       on: {
-        submit: (args) => {
-          const { event, guards } = args;
-          const autoApproved = guards.isAutoApproved(args, event.amount);
+        submit: ({ event }) => {
+          const autoApproved = isAutoApproved(event.amount);
 
           return {
             target: autoApproved ? 'approved' : 'inReview',

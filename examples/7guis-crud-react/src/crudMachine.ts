@@ -28,6 +28,14 @@ const initialEntries: Entry[] = [
 export const matchesFilter = (entry: Entry, filter: string) =>
   entry.surname.toLowerCase().startsWith(filter.trim().toLowerCase());
 
+/** Narrows the selection to an entry id. */
+const hasSelection = (selectedId: string | null): selectedId is string =>
+  selectedId !== null;
+
+/** An entry needs at least one of the two name fields. */
+const isNamed = (name: string, surname: string) =>
+  name.trim().length > 0 || surname.trim().length > 0;
+
 export const crudMachine = setup({
   schemas: {
     context: types<CrudContext>(),
@@ -40,12 +48,6 @@ export const crudMachine = setup({
       update: types<{}>(),
       delete: types<{}>()
     }
-  },
-  guards: {
-    // Args-first: the transition args come first, then the value each judges.
-    hasSelection: (_, selectedId: string | null) => selectedId !== null,
-    isNamed: (_, { name, surname }: { name: string; surname: string }) =>
-      name.trim().length > 0 || surname.trim().length > 0
   }
 }).createMachine({
   id: 'crud',
@@ -78,15 +80,8 @@ export const crudMachine = setup({
       };
     },
 
-    create: (args) => {
-      const { context, guards } = args;
-
-      if (
-        !guards.isNamed(args, {
-          name: context.nameDraft,
-          surname: context.surnameDraft
-        })
-      ) {
+    create: ({ context }) => {
+      if (!isNamed(context.nameDraft, context.surnameDraft)) {
         return;
       }
 
@@ -101,15 +96,10 @@ export const crudMachine = setup({
       };
     },
 
-    update: (args) => {
-      const { context, guards } = args;
-
+    update: ({ context }) => {
       if (
-        !guards.hasSelection(args, context.selectedId) ||
-        !guards.isNamed(args, {
-          name: context.nameDraft,
-          surname: context.surnameDraft
-        })
+        !hasSelection(context.selectedId) ||
+        !isNamed(context.nameDraft, context.surnameDraft)
       ) {
         return;
       }
@@ -129,10 +119,8 @@ export const crudMachine = setup({
       };
     },
 
-    delete: (args) => {
-      const { context, guards } = args;
-
-      if (!guards.hasSelection(args, context.selectedId)) {
+    delete: ({ context }) => {
+      if (!hasSelection(context.selectedId)) {
         return;
       }
 

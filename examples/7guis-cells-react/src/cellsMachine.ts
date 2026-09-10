@@ -23,6 +23,10 @@ const initialCells: CellMap = {
   C1: '=SUM(A1:B2)'
 };
 
+/** Narrows `context.editing` to the cell name being edited. */
+const isEditing = (editing: string | null): editing is string =>
+  editing !== null;
+
 export const cellsMachine = setup({
   schemas: {
     context: types<CellsContext>(),
@@ -32,11 +36,6 @@ export const cellsMachine = setup({
       commit: types<{}>(),
       cancel: types<{}>()
     }
-  },
-  guards: {
-    // Args-first: the transition args come first, then the value it validates.
-    isEditing: (_, editing: string | null): editing is string =>
-      editing !== null
   }
 }).createMachine({
   id: 'cells',
@@ -65,10 +64,8 @@ export const cellsMachine = setup({
         cancel: { target: 'idle', context: { editing: null, draft: '' } },
         // Committing recomputes the whole sheet, so every cell that depends
         // on the edited one — directly or transitively — updates at once.
-        commit: (args) => {
-          const { context, guards } = args;
-
-          if (!guards.isEditing(args, context.editing)) {
+        commit: ({ context }) => {
+          if (!isEditing(context.editing)) {
             return;
           }
 

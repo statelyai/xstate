@@ -40,6 +40,8 @@ const MAX_ATTEMPTS = 2;
  * reaches a final state, so the caller never has to catch anything: it reads
  * `ok` from the output and decides whether to fail over.
  */
+const canRetry = (attempt: number) => attempt < MAX_ATTEMPTS;
+
 const provider = setup({
   schemas: {
     context: types<{
@@ -56,9 +58,6 @@ const provider = setup({
       text: string | null;
       error: string | null;
     }>()
-  },
-  guards: {
-    canRetry: (_, attempt: number) => attempt < MAX_ATTEMPTS
   },
   delays: {
     backoff: ({ context }) => 100 * 2 ** (context.attempt - 1)
@@ -86,12 +85,11 @@ const provider = setup({
           target: 'answered',
           context: { attempt: context.attempt + 1, text: event.output.text }
         }),
-        onError: (args, enq) => {
-          const { context, event, guards } = args;
+        onError: ({ context, event }, enq) => {
           const attempt = context.attempt + 1;
           const error = (event.error as Error).message;
           enq(log, `${context.provider}: attempt ${attempt} failed (${error})`);
-          return guards.canRetry(args, attempt)
+          return canRetry(attempt)
             ? { target: 'backingOff', context: { attempt, error } }
             : { target: 'exhausted', context: { attempt, error } };
         }

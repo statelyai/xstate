@@ -31,6 +31,21 @@ function shuffle(tiles: number[]): number[] {
   return shuffled;
 }
 
+/** Two tiles can swap only if they share a row or column edge. */
+function isAdjacent(selected: Tile | undefined, hovered: Tile | undefined) {
+  if (!selected || !hovered) {
+    return false;
+  }
+
+  return (
+    (hovered.x === selected.x && Math.abs(hovered.y - selected.y) === 1) ||
+    (hovered.y === selected.y && Math.abs(hovered.x - selected.x) === 1)
+  );
+}
+
+const allTilesInOrder = (tiles: number[]) =>
+  tiles.every((tile, index) => tile === index);
+
 export const tilesMachine = setup({
   schemas: {
     context: types<TilesContext>(),
@@ -41,22 +56,6 @@ export const tilesMachine = setup({
       'tile.move': types<{}>(),
       'move.canceled': types<{}>()
     }
-  },
-  guards: {
-    isAdjacent: ({ context }) => {
-      const { selected, hovered } = context;
-
-      if (!selected || !hovered) {
-        return false;
-      }
-
-      return (
-        (hovered.x === selected.x && Math.abs(hovered.y - selected.y) === 1) ||
-        (hovered.y === selected.y && Math.abs(hovered.x - selected.x) === 1)
-      );
-    },
-    allTilesInOrder: (_, tiles: number[]) =>
-      tiles.every((tile, index) => tile === index)
   }
 }).createMachine({
   id: 'tiles',
@@ -96,10 +95,8 @@ export const tilesMachine = setup({
               target: 'selecting',
               context: { ...context, selected: undefined, hovered: undefined }
             }),
-            'tile.move': (args) => {
-              const { context, guards } = args;
-
-              if (!guards.isAdjacent(args)) {
+            'tile.move': ({ context }) => {
+              if (!isAdjacent(context.selected, context.hovered)) {
                 return { target: '#selecting' };
               }
 
@@ -120,10 +117,8 @@ export const tilesMachine = setup({
           }
         }
       },
-      always: (args) => {
-        const { context, guards } = args;
-
-        if (!guards.allTilesInOrder(args, context.tiles)) {
+      always: ({ context }) => {
+        if (!allTilesInOrder(context.tiles)) {
           return;
         }
 

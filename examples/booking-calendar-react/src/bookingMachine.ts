@@ -13,6 +13,10 @@ export interface BookingContext {
   error: string | null;
 }
 
+/** A slot can be held only while it is listed and not already taken. */
+const isAvailable = (slots: Slot[], slotId: string) =>
+  slots.some((slot) => slot.id === slotId && !slot.taken);
+
 export const bookingMachine = setup({
   schemas: {
     context: types<BookingContext>(),
@@ -36,10 +40,6 @@ export const bookingMachine = setup({
       const interval = setInterval(() => sendBack({ type: 'TICK' }), 1000);
       return () => clearInterval(interval);
     })
-  },
-  guards: {
-    isAvailable: (_, { slots, slotId }: { slots: Slot[]; slotId: string }) =>
-      slots.some((slot) => slot.id === slotId && !slot.taken)
   },
   delays: {
     holdTime: HOLD_SECONDS * 1000
@@ -72,15 +72,8 @@ export const bookingMachine = setup({
       on: {
         // Taken slots are not selectable: the guard returns false and the
         // transition function returns `undefined`, leaving the event unhandled.
-        select: (args) => {
-          const { context, event, guards } = args;
-
-          if (
-            !guards.isAvailable(args, {
-              slots: context.slots,
-              slotId: event.slotId
-            })
-          ) {
+        select: ({ context, event }) => {
+          if (!isAvailable(context.slots, event.slotId)) {
             return undefined;
           }
 

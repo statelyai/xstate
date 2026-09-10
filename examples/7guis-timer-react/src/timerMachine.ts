@@ -14,6 +14,9 @@ interface TimerContext {
   duration: number;
 }
 
+/** Whether the timer has reached its target duration. */
+const isElapsed = (elapsed: number, duration: number) => elapsed >= duration;
+
 export const timerMachine = setup({
   schemas: {
     context: types<TimerContext>(),
@@ -29,10 +32,6 @@ export const timerMachine = setup({
 
       return () => clearInterval(interval);
     })
-  },
-  guards: {
-    // Args-first: the rule reads both numbers it compares off the context.
-    isElapsed: ({ context }) => context.elapsed >= context.duration
   }
 }).createMachine({
   id: 'timer',
@@ -46,8 +45,10 @@ export const timerMachine = setup({
     // once the duration is reached.
     running: {
       invoke: { src: 'ticks' },
-      always: (args) =>
-        args.guards.isElapsed(args) ? { target: 'done' } : undefined,
+      always: ({ context }) =>
+        isElapsed(context.elapsed, context.duration)
+          ? { target: 'done' }
+          : undefined,
       on: {
         TICK: ({ context }) => ({
           context: {

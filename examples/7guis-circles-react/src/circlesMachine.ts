@@ -33,6 +33,9 @@ export const circleAt = (circles: Circle[], x: number, y: number) =>
     .filter((circle) => distanceSq(circle, x, y) <= (circle.diameter / 2) ** 2)
     .sort((a, b) => distanceSq(a, x, y) - distanceSq(b, x, y))[0] ?? null;
 
+/** Whether an undo or redo stack has an entry to pop. */
+const canPop = (stack: Circle[][]) => stack.length > 0;
+
 export const circlesMachine = setup({
   schemas: {
     context: types<CirclesContext>(),
@@ -44,10 +47,6 @@ export const circlesMachine = setup({
       undo: types<{}>(),
       redo: types<{}>()
     }
-  },
-  guards: {
-    // Args-first: the transition args come first, then the stack it inspects.
-    canPop: (_, stack: Circle[][]) => stack.length > 0
   }
 }).createMachine({
   id: 'circles',
@@ -122,10 +121,8 @@ export const circlesMachine = setup({
     }
   },
   on: {
-    undo: (args) => {
-      const { context, guards } = args;
-
-      if (!guards.canPop(args, context.past)) {
+    undo: ({ context }) => {
+      if (!canPop(context.past)) {
         return;
       }
 
@@ -139,10 +136,8 @@ export const circlesMachine = setup({
         }
       };
     },
-    redo: (args) => {
-      const { context, guards } = args;
-
-      if (!guards.canPop(args, context.future)) {
+    redo: ({ context }) => {
+      if (!canPop(context.future)) {
         return;
       }
 
