@@ -1,4 +1,9 @@
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
+import type {
+  SetupSchemas,
+  SetupStateSchema,
+  SetupStateType
+} from './base.types.ts';
 import type { ActorLogicValidator } from './validation.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
@@ -432,46 +437,11 @@ type ValidateRegistryKeys<
 
 export type { SetupStateSchemas };
 
-/** State node types that can be declared in a setup state contract. */
-export type SetupStateType =
-  | 'atomic'
-  | 'compound'
-  | 'parallel'
-  | 'final'
-  | 'history'
-  | 'choice';
-
-export type SetupSchemas = {
-  context?: StandardSchemaV1;
-  events?: Record<string, StandardSchemaV1>;
-  internalEvents?: Record<string, StandardSchemaV1>;
-  actions?: ActionSchemas;
-  guards?: GuardSchemas;
-  emitted?: Record<string, StandardSchemaV1>;
-  input?: StandardSchemaV1;
-  output?: StandardSchemaV1;
-  meta?: StandardSchemaV1;
-  tags?: StandardSchemaV1;
-  children?: Record<string, StandardSchemaV1>;
-};
-
-/**
- * State schema with optional input/output schemas, structural metadata, and
- * nested states.
- *
- * Structural fields are contracts/defaults for `createMachine(...)`; machine
- * behavior remains authored in the machine config.
- */
-export interface SetupStateSchema {
-  type?: SetupStateType;
-  id?: string;
-  initial?: string;
-  history?: 'shallow' | 'deep' | true;
-  target?: string | readonly [string, ...string[]];
-  route?: true;
-  schemas?: SetupStateSchemas;
-  states?: Record<string, SetupStateSchema>;
-}
+export type {
+  SetupSchemas,
+  SetupStateSchema,
+  SetupStateType
+} from './base.types.ts';
 
 type SetupSchema<
   TSchemas,

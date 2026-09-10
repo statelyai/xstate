@@ -1,8 +1,12 @@
-import {
-  SetupStateSchemas,
-  StandardSchemaV1,
-  TypeSchema
-} from './schema.types.ts';
+import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
+import type {
+  ActionSchemas,
+  GuardSchemas,
+  InferEvents,
+  InferInternalEvents
+} from './base.types.ts';
+
+export type { ActionSchemas, GuardSchemas, InferEvents, InferInternalEvents };
 import { MachineSnapshot } from './State';
 import {
   Action,
@@ -76,55 +80,6 @@ export type SchemaOrConfigOutput<
   ? OutputFromConfig<TConfig, InferOutput<TOutputSchema, unknown>>
   : InferOutput<TOutputSchema, unknown>;
 
-/**
- * Event payloads from schemas (e.g. Zod) are often inferred as optional in
- * output types. Wrapping in Required<> ensures properties defined in the schema
- * are required on the event. Type-only schemas created with the `types()`
- * helper are exempt: their declared type is authoritative, so optional
- * properties stay optional.
- */
-export type InferEvents<
-  TEventSchemaMap extends Record<string, StandardSchemaV1>
-> = Values<{
-  [K in keyof TEventSchemaMap & string]: StandardSchemaV1.InferOutput<
-    TEventSchemaMap[K]
-  > extends infer O
-    ? [O] extends [never]
-      ? never
-      : unknown extends O
-        ? O & { type: K }
-        : [O] extends [void]
-          ? { type: K }
-          : string extends keyof O
-            ? [O[string]] extends [never]
-              ? { type: EventTypeFromSchemaKey<K> }
-              : NormalizeEventPayload<TEventSchemaMap[K], O> & {
-                  type: EventTypeFromSchemaKey<K>;
-                }
-            : NormalizeEventPayload<TEventSchemaMap[K], O> & {
-                type: EventTypeFromSchemaKey<K>;
-              }
-    : never;
-}>;
-
-/** Infers internal events only from explicitly declared schema keys. */
-export type InferInternalEvents<
-  TEventSchemaMap extends Record<string, StandardSchemaV1>
-> = string extends keyof TEventSchemaMap ? never : InferEvents<TEventSchemaMap>;
-
-type EventTypeFromSchemaKey<TKey extends string> = TKey extends '*'
-  ? string
-  : TKey extends `${infer TLeading}.*`
-    ? `${TLeading}.${string}`
-    : TKey;
-
-/**
- * Keeps a type-only schema's payload verbatim; applies Required<> to payloads
- * from validator libraries (see {@link InferEvents}).
- */
-type NormalizeEventPayload<TSchema extends StandardSchemaV1, O> =
-  TSchema extends TypeSchema<any> ? O : Required<O>;
-
 export type InferChildren<
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>
 > = string extends keyof TChildrenSchemaMap
@@ -136,10 +91,6 @@ export type InferChildren<
         ? NormalizeActorRef<StandardSchemaV1.InferOutput<TChildrenSchemaMap[K]>>
         : never;
     };
-
-export type ActionSchemas = Record<string, { params: StandardSchemaV1 }>;
-
-export type GuardSchemas = Record<string, { params: StandardSchemaV1 }>;
 
 export type InferActions<TActionSchemaMap extends ActionSchemas> =
   string extends keyof TActionSchemaMap

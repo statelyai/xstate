@@ -1,7 +1,11 @@
-import type { EventObject, MachineContext } from './types.ts';
+import type {
+  EventObject,
+  InferEvents,
+  MachineContext,
+  SetupSchemas,
+  SetupStateSchema
+} from './base.types.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
-import type { SetupSchemas, SetupStateSchema } from './setup.ts';
-import type { InferEvents } from './types.v6.ts';
 
 export type FSMArgs<
   TContext extends MachineContext,

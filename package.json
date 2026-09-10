@@ -45,6 +45,7 @@
     "lint:fix": "oxlint --fix --report-unused-disable-directives-severity=error",
     "typecheck": "tsc",
     "typecheck:adapter-consumers": "tsc -p tsconfig.exact-optional.json",
+    "typecheck:fsm-only": "node scripts/typecheck-fsm-only.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:core": "vitest run --project xstate",
