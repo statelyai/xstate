@@ -144,6 +144,127 @@ describe('machine output type inference', () => {
     });
   });
 
+  it('infers the root output as the union of top-level final-state outputs', () => {
+    const machine = setup({
+      schemas: {
+        context: types<{ attempts: number }>()
+      }
+    }).createMachine({
+      context: { attempts: 1 },
+      initial: 'working',
+      states: {
+        working: {
+          on: {
+            RESOLVE: { target: 'succeeded' },
+            REJECT: { target: 'failed' }
+          }
+        },
+        succeeded: {
+          type: 'final',
+          output: ({ context }) => ({
+            status: 'ok' as const,
+            attempts: context.attempts
+          })
+        },
+        failed: {
+          type: 'final',
+          output: { status: 'error' as const }
+        }
+      }
+    });
+
+    type Output = OutputFrom<typeof machine>;
+
+    ((_output: Output) => {
+      _output satisfies
+        | { status: 'ok'; attempts: number }
+        | { status: 'error' };
+      // @ts-expect-error not part of the union
+      _output satisfies { status: 'ok'; attempts: number };
+    })({ status: 'error' });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'REJECT' });
+    expect(actor.getSnapshot().output).toEqual({ status: 'error' });
+  });
+
+  it('infers root output from top-level final states of a plain machine', () => {
+    const machine = createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: () => ({ ok: true as const })
+        }
+      }
+    });
+
+    ((_output: OutputFrom<typeof machine>) => {
+      _output satisfies { ok: true };
+    })({ ok: true });
+  });
+
+  it('includes undefined for a top-level final state without output', () => {
+    const machine = setup({}).createMachine({
+      initial: 'a',
+      states: {
+        a: { on: { NEXT: { target: 'b' } } },
+        b: {
+          type: 'final',
+          output: () => ({ done: true })
+        },
+        c: { type: 'final' }
+      }
+    });
+
+    type Output = OutputFrom<typeof machine>;
+
+    ((_output: Output) => {
+      _output satisfies { done: boolean } | undefined;
+    })(undefined);
+  });
+
+  it('prefers a setup-declared per-state output schema for root output', () => {
+    const machine = setup({
+      states: {
+        done: {
+          type: 'final',
+          schemas: { output: types<{ total: number }>() }
+        }
+      }
+    }).createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          output: () => ({ total: 1 })
+        }
+      }
+    });
+
+    ((_output: OutputFrom<typeof machine>) => {
+      _output satisfies { total: number };
+    })({ total: 1 });
+  });
+
+  it('keeps the root output mapper authoritative over final-state outputs', () => {
+    const machine = setup({}).createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          output: () => ({ inner: true })
+        }
+      },
+      output: () => ({ outer: true })
+    });
+
+    ((_output: OutputFrom<typeof machine>) => {
+      _output satisfies { outer: boolean };
+      // @ts-expect-error the root mapper wins
+      _output satisfies { inner: boolean };
+    })({ outer: true });
+  });
+
   it('does not regress state completion output typing', () => {
     setup({
       states: {
