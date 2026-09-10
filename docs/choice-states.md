@@ -48,7 +48,7 @@ A choice cannot enqueue effects or update context: `actions` and `to` on the ret
 
 ## Named guards
 
-The choice function receives the same arguments as a [transition](transitions.md) function, including named `guards` from the machine config or [`setup()`](guards.md).
+The choice function receives the same arguments as a [transition](transitions.md) function, including named `guards` from the machine config or [`setup()`](guards.md). Guards are plain predicates: pass them the values they need.
 
 ```ts
 const machine = createMachine({
@@ -57,9 +57,9 @@ const machine = createMachine({
   states: {
     routing: {
       type: 'choice',
-      choice: (args) => {
-        if (args.guards.isVip(args)) return { target: 'vipFlow' };
-        if (args.guards.isOverBudget(args)) return { target: 'review' };
+      choice: ({ context, guards }) => {
+        if (guards.isVip(context.isVip)) return { target: 'vipFlow' };
+        if (guards.isOverBudget(context.overBudget)) return { target: 'review' };
         return { target: 'standardFlow' };
       }
     },
@@ -68,8 +68,8 @@ const machine = createMachine({
     standardFlow: {}
   },
   guards: {
-    isVip: ({ context }) => context.isVip,
-    isOverBudget: ({ context }) => context.overBudget
+    isVip: (isVip) => isVip,
+    isOverBudget: (overBudget) => overBudget
   }
 });
 ```
@@ -98,8 +98,8 @@ Choice states replace v5 chains of transient `always` transitions, keeping the b
 states: {
   routing: {
     type: 'choice',
-    choice: (args) => {
-      if (args.guards.isVip(args)) return { target: 'vipFlow' };
+    choice: ({ context, guards }) => {
+      if (guards.isVip(context.isVip)) return { target: 'vipFlow' };
       return { target: 'standardFlow' }; // fallback: must resolve
     }
   },
