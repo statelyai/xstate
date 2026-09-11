@@ -73,6 +73,18 @@ export interface PropertyExplorationBounds {
   readonly truncationReasons: readonly string[];
 }
 
+export interface PropertyTemporalCoverage {
+  /** Temporal definitions satisfied in at least one run. */
+  readonly satisfied: readonly string[];
+  /** Temporal definitions that caused a run to fail. */
+  readonly failed: readonly string[];
+  /**
+   * Bounded `eventually`/`until` definitions whose `within` bound was never
+   * reached before the run ended, and which were never satisfied.
+   */
+  readonly inconclusive: readonly string[];
+}
+
 export interface PropertyCoverage {
   readonly runs: number;
   readonly steps: number;
@@ -100,6 +112,7 @@ export interface PropertyCoverage {
   >;
   readonly guards: PropertyGuardCoverageDimension;
   readonly frontiers: PropertyCoverageDimension;
+  readonly temporal: PropertyTemporalCoverage;
   readonly exploration: PropertyExplorationBounds;
 }
 
@@ -143,6 +156,11 @@ export interface MutablePropertyCoverage {
   >;
   guards: MutableDimension;
   frontiers: MutableDimension;
+  temporal: {
+    satisfied: Set<string>;
+    failed: Set<string>;
+    inconclusive: Set<string>;
+  };
   transitionIds: WeakMap<AnyTransitionDefinition, string>;
   guardIds: WeakMap<AnyTransitionDefinition, string>;
   guardOutcomes: Record<string, { passed: number; failed: number }>;
@@ -364,6 +382,11 @@ export function createPropertyCoverage(
     dynamicTransitions: {},
     guards: dimension(),
     frontiers: dimension(),
+    temporal: {
+      satisfied: new Set(),
+      failed: new Set(),
+      inconclusive: new Set()
+    },
     transitionIds: new WeakMap(),
     guardIds: new WeakMap(),
     guardOutcomes: {},
@@ -629,8 +652,23 @@ export function finalizePropertyCoverage(
       outcomes: { ...coverage.guardOutcomes }
     },
     frontiers: finalizeDimension(coverage.frontiers),
+    temporal: {
+      satisfied: [...coverage.temporal.satisfied].sort(),
+      failed: [...coverage.temporal.failed].sort(),
+      inconclusive: [...coverage.temporal.inconclusive]
+        .filter((id) => !coverage.temporal.satisfied.has(id))
+        .sort()
+    },
     exploration
   };
+}
+
+export function recordPropertyTemporal(
+  coverage: MutablePropertyCoverage,
+  id: string,
+  outcome: 'satisfied' | 'failed' | 'inconclusive'
+): void {
+  coverage.temporal[outcome].add(id);
 }
 
 export function declarePropertyFrontier(

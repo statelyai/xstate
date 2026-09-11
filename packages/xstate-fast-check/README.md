@@ -4,10 +4,18 @@ FastCheck adapter for generator-neutral XState property testing.
 
 ## Installation
 
-<!-- install command matching package.json peerDependencies -->
+`@xstate/fast-check` has `xstate` and `fast-check` as required peer
+dependencies:
 
 ```bash
-pnpm add -D @xstate/fast-check fast-check
+pnpm add -D @xstate/fast-check fast-check xstate
+```
+
+`effect` is an optional peer dependency. Install it only if you use the
+`@xstate/fast-check/effect-schema` entrypoint:
+
+```bash
+pnpm add -D effect
 ```
 
 ## API
@@ -243,14 +251,227 @@ temporal: [
 ]
 ```
 
-### Replay
-
-Use `replayPropertyTest()` to replay versioned fixtures without FastCheck and
-`formatPropertyTrace()` for a readable XState trace. It accepts optional
-`reference` and `sut` implementations so oracle and SUT divergences replay too,
-stops at the recorded `failedAt` step, and throws if the recorded failure did
-not reproduce. Engine-native seed/path metadata remains available on
-`PropertyTestFailure.replay`.
-
 The optional `@xstate/fast-check/effect-schema` entrypoint converts Effect
-Schemas into FastCheck arbitraries without adding Effect to XState.
+Schemas into FastCheck arbitraries without adding Effect to XState:
+
+```ts
+import * as Schema from 'effect/Schema';
+import { fromEffectSchemas } from '@xstate/fast-check/effect-schema';
+
+const events = fromEffectSchemas({
+  INC: Schema.Struct({ value: Schema.Number })
+});
+```
+
+`fromEffectSchema(schema)` converts a single schema; `fromEffectSchemas(map)`
+converts a keyed map of payload schemas for use as `events`.
+
+## Effects are not executed
+
+`propertyTest()` drives the machine through the pure `transition()` path. It
+never starts an actor, so no effect is executed:
+
+- `invoke`, `spawn`, and enqueued actions are collected as executable action
+  objects on each timeline entry's `effects` array, and on the
+  `PropertyInvariantContext.effects` passed to `invariant` and temporal
+  predicates. Assert on them; they do not run.
+- Invoked actors never start, so their `onDone`, `onError`, and `onSnapshot`
+  transitions are never taken by the property run itself. Deliver the
+  corresponding events yourself from `events` if you want to explore those
+  transitions.
+- `after` delays and other timers are not driven by the property run. Time only
+  moves through `commands.advance`, and only a SUT that owns its own clock can
+  turn that into delivered events. `PropertySutSession.advance(milliseconds)`
+  returns the events its clock delivered, and XState applies them through the
+  same pure transition path before comparing model and SUT snapshots. Without a
+  `sut`, an `advance` command records a runtime timeline entry and advances the
+  stable step count, but delivers nothing.
+
+Path generation (`getShortestPaths()`, `getSimplePaths()`, and the other
+`TestModel` path methods) has the same limitation: paths are computed from pure
+transitions, so transitions that depend on invoked actors or timers are not
+discovered. Supply those events explicitly, or use `getPathsFromEvents()` with
+an event sequence you control.
+
+## Choosing between path testing and property testing
+
+Both APIs live in `xstate/graph` and share `TestModel`.
+
+| | Path testing | Property testing |
+| --- | --- | --- |
+| API | `model.getShortestPaths()` / `getSimplePaths()` + `path.test(params)`, or `model.testPath(path, params)` | `propertyTest(machineOrModel, options)` |
+| Coverage strategy | Exhaustive traversal of the reachable graph, up to the traversal limits | Randomized command sequences from the generators you supply |
+| Event payloads | Fixed, from `events` traversal options | Generated per run, and shrunk on failure |
+| Failure output | The failing path | A shrunk counterexample, a chronological trace, and a portable replay fixture |
+
+Use path testing when you want deterministic, enumerable coverage of a finite
+graph and you can fix event payloads. Use property testing when payloads,
+ordering, or timing matter, or when you compare the machine against a reference
+implementation or a real system under test.
+
+## Writing an adapter
+
+An adapter connects a generator engine to the neutral XState layer. It
+implements `PropertyTestAdapter<TKind>`, where `TKind` is a
+`PropertyGeneratorKind` — a higher-kinded type that tells `propertyTest()` what
+a generator of a given payload type looks like in your engine:
+
+```ts
+interface FastCheckGeneratorKind extends PropertyGeneratorKind {
+  readonly generator: fc.Arbitrary<this['target']>;
+}
+```
+
+With that declaration, `events.INC` must be an `fc.Arbitrary` of the `INC`
+payload, `commands.advance` an `fc.Arbitrary<number>`, and so on.
+
+`run(request)` receives a `PropertyTestAdapterRequest`:
+
+| Field | Description |
+| --- | --- |
+| `events` | One entry per declared event case: `{ type, caseId, generator }`. `generator` is the opaque value you supplied in `events`. |
+| `commands` | One entry per configured runtime command: `{ type: 'advance' \| 'checkpoint' \| 'stop', generator }`. |
+| `runBudget` | The number of runs this scenario should use, when `frontiers.runsPerFrontier` fixes it. Prefer it over your own run count. |
+| `createEvent(type, payload)` | Builds a typed event from a generated payload. Use it if your engine produces concrete events instead of driving the runner. |
+| `createRunner()` | Creates a fresh `PropertyScenarioRunner` for one run or shrink attempt. |
+
+Each run follows the same lifecycle:
+
+1. `createRunner()`, then `await runner.start()`.
+2. For each generated step, either an event — `runner.canRunGenerated(type,
+   generated, caseId)` to check applicability, then
+   `await runner.runGenerated(type, generated, caseId)` — or a runtime command
+   — `runner.canRunCommand(applicable)`, then `await runner.advance(ms)`,
+   `await runner.checkpoint(label)`, or `await runner.stop()`.
+3. `runner.finish()` to settle pending temporal properties.
+4. `await runner.dispose()` in a `finally` block, always.
+
+`run()` resolves with a `PropertyTestAdapterResult`: `runs` (runs actually
+executed), `exploration` (`configuredRuns`, `maximumSequenceLength`, and
+optional `engine`, `seed`, `path`, `truncated`, `truncationReasons`), `error`
+(the failure to report, omitted on success), and `replay` (engine-native
+metadata attached to `PropertyTestFailure.replay`).
+
+```ts
+import type {
+  PropertyGeneratorKind,
+  PropertyTestAdapter,
+  PropertyTestAdapterRequest,
+  PropertyTestAdapterResult
+} from 'xstate/graph';
+import type { EventObject, Snapshot } from 'xstate';
+
+interface RandomKind extends PropertyGeneratorKind {
+  readonly generator: () => this['target'];
+}
+
+export function randomAdapter(numRuns = 100): PropertyTestAdapter<RandomKind> {
+  return {
+    async run<TSnapshot extends Snapshot<unknown>, TEvent extends EventObject>(
+      request: PropertyTestAdapterRequest<TSnapshot, TEvent>
+    ): Promise<PropertyTestAdapterResult> {
+      const runs = request.runBudget ?? numRuns;
+      for (let run = 0; run < runs; run++) {
+        const runner = request.createRunner();
+        try {
+          await runner.start();
+          for (let step = 0; step < 10; step++) {
+            const { type, caseId, generator } =
+              request.events[Math.floor(Math.random() * request.events.length)];
+            const generated = (generator as () => unknown)();
+            if (!runner.canRunGenerated(type, generated, caseId)) continue;
+            await runner.runGenerated(type, generated, caseId);
+          }
+          runner.finish();
+        } catch (error) {
+          return {
+            runs: run + 1,
+            exploration: { configuredRuns: runs, maximumSequenceLength: 10 },
+            error
+          };
+        } finally {
+          await runner.dispose();
+        }
+      }
+      return {
+        runs,
+        exploration: { configuredRuns: runs, maximumSequenceLength: 10 }
+      };
+    }
+  };
+}
+```
+
+This adapter does not shrink. Shrinking is a property of the generator engine:
+`fastCheckAdapter()` gets it from `fc.commands()`, which shrinks both the
+command sequence and each generated payload.
+
+Generated payloads must be plain objects. If a generator produces a primitive,
+an array, or `null`, the run fails with an error naming the offending event
+case and pointing at `resolve`.
+
+## Failures, traces, and replay
+
+A failing property throws `PropertyTestFailure`, with:
+
+| Field | Description |
+| --- | --- |
+| `trace` | The chronological `PropertyTrace`: `start`, `initialSnapshot`, `timeline`, `prefixEvents`, `events`, `commands`, `steps`, `finalSnapshot`, and observations. |
+| `cause` | The original error thrown by the invariant, temporal check, comparison, or SUT. |
+| `replay` | Engine-native metadata (`engine`, `engineVersion`, `seed`, `path`, `replayPath`, `data`) for re-running the same engine. |
+| `fixture` | A `PortablePropertyReplayFixture` (`formatVersion: 2`) that replays without the generator engine. |
+| `coverage` | The `PropertyCoverage` accumulated up to the failure. |
+
+`formatPropertyTrace(trace)` returns a human-readable string.
+`serializePropertyTrace(trace)` returns a JSON-safe object — snapshots are
+converted with `toJSON()` where available — for writing traces to disk or
+attaching them to CI artifacts.
+
+`replayPropertyTest(machineOrModel, fixture, options)` replays a fixture. It
+takes `invariant`, and optional `temporal`, `reference`, `sut`, `test`, and
+`restoreSnapshot`. It stops at the recorded `failedAt` step and throws the
+reproduced failure; if the failure does not reproduce, it throws an error
+saying so. A fixture recorded from a snapshot start requires `restoreSnapshot`.
+The fixture's recorded machine `id` and `version` are checked against the
+machine you pass.
+
+`defaultEquivalent(left, right)` is the structural, key-order insensitive,
+cycle-safe deep equality used to compare model projections against reference
+and SUT observations. Use it to build a custom `equivalent` on top of the
+default behavior.
+
+`extractReplayPath(counterexample)` (exported from `@xstate/fast-check`) pulls
+the `replayPath` out of a raw fast-check `fc.commands` counterexample. You only
+need it when you call fast-check yourself; `fastCheckAdapter()` already puts the
+value on `PropertyTestFailure.replay.replayPath`.
+
+## Starting from a snapshot or input
+
+`options.input` supplies the machine input for the initial transition of every
+run.
+
+`options.start` starts every run from an existing snapshot instead. Both fields
+are required:
+
+```ts
+await propertyTest(machine, {
+  adapter: fastCheckAdapter(),
+  start: {
+    snapshot: persistedSnapshot,
+    serializeSnapshot: (snapshot) => snapshot.toJSON()
+  },
+  events,
+  invariant
+});
+```
+
+`serializeSnapshot` is what gets recorded in the replay fixture, so replaying
+that fixture needs a matching `restoreSnapshot`:
+
+```ts
+await replayPropertyTest(machine, failure.fixture!, {
+  invariant,
+  restoreSnapshot: (snapshot) =>
+    machine.resolveState(snapshot as { value: string; context: Context })
+});
+```

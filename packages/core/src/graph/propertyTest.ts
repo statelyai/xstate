@@ -22,6 +22,7 @@ import {
   incrementCoverage,
   recordPropertyEventCase,
   recordPropertyGuards,
+  recordPropertyTemporal,
   recordPropertySnapshot,
   recordPropertyTransitions,
   type MutablePropertyCoverage,
@@ -952,14 +953,15 @@ export class PropertyScenarioRunner<
       }
       const definition = state.definition;
       if (definition.type !== 'eventually' && definition.type !== 'until') {
-        // `always`/`never` are checked on every stable step; nothing is pending.
+        // `always`/`never` are checked on every stable step; reaching the end
+        // of the run without a failure means the property held.
+        recordPropertyTemporal(this.coverage, definition.id, 'satisfied');
         continue;
       }
       if (definition.within !== undefined) {
         // The run ended before the bound elapsed, so the property is
         // inconclusive rather than violated.
-        // TODO(STA-6400): record inconclusive temporal properties in coverage
-        // once `PropertyCoverage` exposes a field for them.
+        recordPropertyTemporal(this.coverage, definition.id, 'inconclusive');
         this.inconclusiveTemporalIds.push(definition.id);
         continue;
       }
@@ -1192,6 +1194,9 @@ export class PropertyScenarioRunner<
       } else if (!(await definition.hold(context))) {
         this.failTemporal(definition);
       }
+      if (state.satisfied) {
+        recordPropertyTemporal(this.coverage, definition.id, 'satisfied');
+      }
       if (
         !state.satisfied &&
         definition.within !== undefined &&
@@ -1203,6 +1208,7 @@ export class PropertyScenarioRunner<
   }
 
   private failTemporal(definition: PropertyTemporal<TSnapshot, TEvent>): never {
+    recordPropertyTemporal(this.coverage, definition.id, 'failed');
     const failure: PortableTemporalFailure = {
       type: definition.type,
       id: definition.id,

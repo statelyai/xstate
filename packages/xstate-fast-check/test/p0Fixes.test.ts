@@ -595,3 +595,51 @@ describe('extractReplayPath (STA-6407)', () => {
     ).not.toThrow();
   });
 });
+
+describe('temporal coverage (STA-6400)', () => {
+  it('reports a bounded `eventually` whose `within` bound was never reached as inconclusive', async () => {
+    const result = await propertyTest(counterMachine, {
+      adapter: scriptedAdapter(async (runner, caseId) => {
+        runner.canRun({ type: 'INC' }, caseId);
+        await runner.run({ type: 'INC' }, caseId);
+      }),
+      events: { INC: undefined },
+      temporal: [
+        {
+          type: 'eventually',
+          id: 'reach-fifty',
+          within: 50,
+          predicate: ({ snapshot }) => snapshot.context.count === 50
+        }
+      ],
+      invariant: () => {}
+    });
+
+    expect(result.coverage.temporal.inconclusive).toContain('reach-fifty');
+    expect(result.coverage.temporal.satisfied).not.toContain('reach-fifty');
+    expect(result.coverage.temporal.failed).toEqual([]);
+  });
+
+  it('reports a satisfied `eventually` as satisfied', async () => {
+    const result = await propertyTest(counterMachine, {
+      adapter: scriptedAdapter(async (runner, caseId) => {
+        runner.canRun({ type: 'INC' }, caseId);
+        await runner.run({ type: 'INC' }, caseId);
+      }),
+      events: { INC: undefined },
+      temporal: [
+        {
+          type: 'eventually',
+          id: 'reach-one',
+          within: 50,
+          predicate: ({ snapshot }) => snapshot.context.count === 1
+        }
+      ],
+      invariant: () => {}
+    });
+
+    expect(result.coverage.temporal.satisfied).toEqual(['reach-one']);
+    expect(result.coverage.temporal.inconclusive).toEqual([]);
+    expect(result.coverage.temporal.failed).toEqual([]);
+  });
+});
