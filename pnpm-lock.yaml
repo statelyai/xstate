@@ -1413,6 +1413,15 @@ importers:
         specifier: ^3.2.2
         version: 3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@17.6.3)(jsdom@26.1.0)(sass@1.97.3)(stylus@0.55.0)(supports-color@5.5.0)(terser@5.49.0)
 
+  packages/xstate-effect:
+    devDependencies:
+      effect:
+        specifier: 4.0.0-rc.112
+        version: 4.0.0-rc.112
+      xstate:
+        specifier: workspace:^
+        version: link:../core
+
   packages/xstate-react:
     dependencies:
       use-isomorphic-layout-effect:
@@ -3294,8 +3303,18 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
+  '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4':
+    resolution: {integrity: sha512-LCkGo6JDfaBhgST7UpPWgNgLINpcpabaHfyz5OBx75nUYxBsaEPxjnyNjWpeb/xBup/682QnBfRBy2/LvPutZQ==, tarball: https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-darwin-arm64/-/msgpackr-extract-darwin-arm64-3.0.4.tgz}
+    cpu: [arm64]
+    os: [darwin]
+
   '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.3':
     resolution: {integrity: sha512-mdzd3AVzYKuUmiWOQ8GNhl64/IoFGol569zNRdkLReh6LRLHOXxU4U8eq0JwaD8iFHdVGqSy4IjFL4reoWCDFw==, tarball: https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-darwin-x64/-/msgpackr-extract-darwin-x64-3.0.3.tgz}
+    cpu: [x64]
+    os: [darwin]
+
+  '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.4':
+    resolution: {integrity: sha512-zExlW9zUJKZH/tOtVMttwjKa4Xm/3KcNjnE3dPN92uCktwavMxpgCA3MoJK/DOnTWsQgo224OaST27/mPNAf+w==, tarball: https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-darwin-x64/-/msgpackr-extract-darwin-x64-3.0.4.tgz}
     cpu: [x64]
     os: [darwin]
 
@@ -3304,8 +3323,18 @@ packages:
     cpu: [arm64]
     os: [linux]
 
+  '@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.4':
+    resolution: {integrity: sha512-dgX0P/9wGPJeHFBG+ZmhgE6bmtMt7NP5CRBGyyktpopdk/mW4POnrpQsSLtKI1dwpc+pPLuXHDh6vvskyQE/sw==, tarball: https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-linux-arm64/-/msgpackr-extract-linux-arm64-3.0.4.tgz}
+    cpu: [arm64]
+    os: [linux]
+
   '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.3':
     resolution: {integrity: sha512-fg0uy/dG/nZEXfYilKoRe7yALaNmHoYeIoJuJ7KJ+YyU2bvY8vPv27f7UKhGRpY6euFYqEVhxCFZgAUNQBM3nw==, tarball: https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-linux-arm/-/msgpackr-extract-linux-arm-3.0.3.tgz}
+    cpu: [arm]
+    os: [linux]
+
+  '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.4':
+    resolution: {integrity: sha512-Tg3yX65f5GbtXLkrYEHE5oibZG9epyYWas7FogTTEJeDEF9JlXJzKgXaNhT3UXlTOeA+AfZpYZYZ0uPj7Cfquw==, tarball: https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-linux-arm/-/msgpackr-extract-linux-arm-3.0.4.tgz}
     cpu: [arm]
     os: [linux]
 
@@ -3314,8 +3343,18 @@ packages:
     cpu: [x64]
     os: [linux]
 
+  '@msgpackr-extract/msgpackr-extract-linux-x64@3.0.4':
+    resolution: {integrity: sha512-8TNXMEjJc3QEy7R/x1INhgiU+XakDAFUzBhaz7+Rbrs8NH5UQeHQxxmzsSBJGyV6I1jW79undiQm8tOI+D+8FQ==, tarball: https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-linux-x64/-/msgpackr-extract-linux-x64-3.0.4.tgz}
+    cpu: [x64]
+    os: [linux]
+
   '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.3':
     resolution: {integrity: sha512-x0fWaQtYp4E6sktbsdAqnehxDgEc/VwM7uLsRCYWaiGu0ykYdZPiS8zCWdnjHwyiumousxfBm4SO31eXqwEZhQ==, tarball: https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-win32-x64/-/msgpackr-extract-win32-x64-3.0.3.tgz}
+    cpu: [x64]
+    os: [win32]
+
+  '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.4':
+    resolution: {integrity: sha512-CmCXPQrkbwExx3j946/PtHWHbYJiCRBRDl4BlkRQcJB/YOwQxJRTpoo7aTsortjgoJ1x7opzTSxn7C+ASSLVjQ==, tarball: https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-win32-x64/-/msgpackr-extract-win32-x64-3.0.4.tgz}
     cpu: [x64]
     os: [win32]
 
@@ -6554,6 +6593,9 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==, tarball: https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz}
 
+  effect@4.0.0-rc.112:
+    resolution: {integrity: sha512-wXxwuh1Ywnv4cPRM3Wfa0vDwuOHnZ1TsTgHJkG9XgzND6inhBH9n1vBxhg3iIXOia/OrpmvVmd3lrD4vq6bF3A==, tarball: https://registry.npmjs.org/effect/-/effect-4.0.0-rc.112.tgz}
+
   electron-to-chromium@1.5.181:
     resolution: {integrity: sha512-+ISMj8OIQ+0qEeDj14Rt8WwcTOiqHyAB+5bnK1K7xNNLjBJ4hRCQfUkw8RWtcLbfBzDwc15ZnKH0c7SNOfwiyA==, tarball: https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.181.tgz}
 
@@ -6928,6 +6970,10 @@ packages:
   falafel@2.2.5:
     resolution: {integrity: sha512-HuC1qF9iTnHDnML9YZAdCDQwT0yKl/U55K4XSUXqGAA2GLoafFgWRqdAbhWJxXaYD4pyoVxAJ8wH670jMpI9DQ==, tarball: https://registry.npmjs.org/falafel/-/falafel-2.2.5.tgz}
     engines: {node: '>=0.4.0'}
+
+  fast-check@4.9.0:
+    resolution: {integrity: sha512-7ms6T7SybUev/PQITciI0yLM2pOSFy5zpG8Ty7tQofcVaQUvrMXp6CBwqF6fThLCLOrfBtuHAtwq6Yu4XPCllg==, tarball: https://registry.npmjs.org/fast-check/-/fast-check-4.9.0.tgz}
+    engines: {node: '>=12.17.0'}
 
   fast-deep-equal@2.0.1:
     resolution: {integrity: sha512-bCK/2Z4zLidyB4ReuIsvALH6w31YfAQDmXMqMx6FyfHqvBxtjC0eRumeSu4Bs3XtXwpyIywtSTrVT99BxY1f9w==, tarball: https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-2.0.1.tgz}
@@ -8666,8 +8712,15 @@ packages:
     resolution: {integrity: sha512-P0efT1C9jIdVRefqjzOQ9Xml57zpOXnIuS+csaB4MdZbTdmGDLo8XhzBG1N7aO11gKDDkJvBLULeFTo46wwreA==, tarball: https://registry.npmjs.org/msgpackr-extract/-/msgpackr-extract-3.0.3.tgz}
     hasBin: true
 
+  msgpackr-extract@3.0.4:
+    resolution: {integrity: sha512-4kmO/MdyUIkLIvTPr8VHLil4AtoKIoniWPIEk5+CDy0xnWC84azhSFmuJ7PxZdsYtiP5kEeQsORAVIeMgxT+Hw==, tarball: https://registry.npmjs.org/msgpackr-extract/-/msgpackr-extract-3.0.4.tgz}
+    hasBin: true
+
   msgpackr@1.11.8:
     resolution: {integrity: sha512-bC4UGzHhVvgDNS7kn9tV8fAucIYUBuGojcaLiz7v+P63Lmtm0Xeji8B/8tYKddALXxJLpwIeBmUN3u64C4YkRA==, tarball: https://registry.npmjs.org/msgpackr/-/msgpackr-1.11.8.tgz}
+
+  msgpackr@2.0.6:
+    resolution: {integrity: sha512-plGul/tqjt9vqWFR9zyqyLZls6gb5KTLvnsRO2B9+TZ8tNiXiVI/CR8LiDWlAX4IUeVkQ9gsmzKA6voC2QOciw==, tarball: https://registry.npmjs.org/msgpackr/-/msgpackr-2.0.6.tgz}
 
   muggle-string@0.3.1:
     resolution: {integrity: sha512-ckmWDJjphvd/FvZawgygcUeQCxzvohjFO5RxTjj4eq8kw359gFF3E1brjfI+viLMxss5JrHTDRHZvu2/tuy0Qg==, tarball: https://registry.npmjs.org/muggle-string/-/muggle-string-0.3.1.tgz}
@@ -9580,6 +9633,9 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==, tarball: https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz}
     engines: {node: '>=6'}
+
+  pure-rand@8.4.2:
+    resolution: {integrity: sha512-vvuOGgcuPJAirlHvuQw1TrOiw7ptaIXXmIbNuiNOY6lNGJJH49PQ1Kj4nd783nPdQhQdicgOjVI2yI/9BD6/Ng==, tarball: https://registry.npmjs.org/pure-rand/-/pure-rand-8.4.2.tgz}
 
   purgecss@2.3.0:
     resolution: {integrity: sha512-BE5CROfVGsx2XIhxGuZAT7rTH9lLeQx/6M0P7DTXQH4IUc3BBzs9JUzt4yzGf3JrH9enkeq6YJBe9CTtkm1WmQ==, tarball: https://registry.npmjs.org/purgecss/-/purgecss-2.3.0.tgz}
@@ -13638,19 +13694,37 @@ snapshots:
   '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3':
     optional: true
 
+  '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4':
+    optional: true
+
   '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.3':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.4':
     optional: true
 
   '@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.3':
     optional: true
 
+  '@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.4':
+    optional: true
+
   '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.3':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.4':
     optional: true
 
   '@msgpackr-extract/msgpackr-extract-linux-x64@3.0.3':
     optional: true
 
+  '@msgpackr-extract/msgpackr-extract-linux-x64@3.0.4':
+    optional: true
+
   '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.3':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.4':
     optional: true
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
@@ -17049,6 +17123,11 @@ snapshots:
 
   ee-first@1.1.1: {}
 
+  effect@4.0.0-rc.112:
+    dependencies:
+      fast-check: 4.9.0
+      msgpackr: 2.0.6
+
   electron-to-chromium@1.5.181: {}
 
   electron-to-chromium@1.5.399: {}
@@ -17774,6 +17853,10 @@ snapshots:
     dependencies:
       acorn: 7.4.1
       isarray: 2.0.5
+
+  fast-check@4.9.0:
+    dependencies:
+      pure-rand: 8.4.2
 
   fast-deep-equal@2.0.1: {}
 
@@ -19894,10 +19977,26 @@ snapshots:
       '@msgpackr-extract/msgpackr-extract-win32-x64': 3.0.3
     optional: true
 
+  msgpackr-extract@3.0.4:
+    dependencies:
+      node-gyp-build-optional-packages: 5.2.2
+    optionalDependencies:
+      '@msgpackr-extract/msgpackr-extract-darwin-arm64': 3.0.4
+      '@msgpackr-extract/msgpackr-extract-darwin-x64': 3.0.4
+      '@msgpackr-extract/msgpackr-extract-linux-arm': 3.0.4
+      '@msgpackr-extract/msgpackr-extract-linux-arm64': 3.0.4
+      '@msgpackr-extract/msgpackr-extract-linux-x64': 3.0.4
+      '@msgpackr-extract/msgpackr-extract-win32-x64': 3.0.4
+    optional: true
+
   msgpackr@1.11.8:
     optionalDependencies:
       msgpackr-extract: 3.0.3
     optional: true
+
+  msgpackr@2.0.6:
+    optionalDependencies:
+      msgpackr-extract: 3.0.4
 
   muggle-string@0.3.1: {}
 
@@ -21053,6 +21152,8 @@ snapshots:
   punycode@1.4.1: {}
 
   punycode@2.3.1: {}
+
+  pure-rand@8.4.2: {}
 
   purgecss@2.3.0:
     dependencies:

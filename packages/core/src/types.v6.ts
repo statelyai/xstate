@@ -17,6 +17,7 @@ import {
   Compute,
   DoneActorEvent,
   DoNotInfer,
+  ErrorFrom,
   ErrorActorEvent,
   EventDescriptor,
   ErrorEvent,
@@ -757,7 +758,8 @@ export type Next_InvokeConfig<
             TDelayMap,
             TMeta,
             TSystemRegistry,
-            DoneActorEvent<OutputFrom<TActorMap[K]>>
+            DoneActorEvent<OutputFrom<TActorMap[K]>>,
+            ErrorActorEvent<ErrorFrom<TActorMap[K]>>
           > & {
             id?: ChildIdForLogic<TActorMap[K], TChildren>;
             input?:
@@ -812,7 +814,10 @@ interface Next_InvokeConfigBase<
   TSystemRegistry extends SystemRegistry,
   TDoneEvent extends EventObject = [keyof TActorMap & string] extends [never]
     ? DoneActorEvent<any>
-    : DoneActorEvent<OutputFrom<TActorMap[keyof TActorMap & string]>>
+    : DoneActorEvent<OutputFrom<TActorMap[keyof TActorMap & string]>>,
+  TErrorEvent extends EventObject = [keyof TActorMap & string] extends [never]
+    ? ErrorActorEvent<any>
+    : ErrorActorEvent<ErrorFrom<TActorMap[keyof TActorMap & string]>>
 > {
   id?: string;
   registryKey?: keyof TSystemRegistry & string;
@@ -829,7 +834,7 @@ interface Next_InvokeConfigBase<
   >;
   onError?: Next_TransitionConfigOrTarget<
     TContext,
-    ErrorActorEvent,
+    TErrorEvent,
     TEvent,
     TEmitted,
     TActionMap,

@@ -236,6 +236,15 @@ export class StateMachine<
    */
   readonly _internalEventType!: TInternalEvent;
 
+  /**
+   * Type-level carriers for the machine's source maps and state schema. Type
+   * helpers in integration packages read these to walk a machine's declared
+   * actions, actors and invoked sources. They are never assigned at runtime.
+   */
+  readonly _actionMap!: TActionMap;
+  readonly _actorMap!: TActorMap;
+  readonly _stateSchema!: TConfig;
+
   /** The machine's own version. */
   public version?: string;
 
