@@ -246,6 +246,25 @@ describe('machine output type inference', () => {
     })({ total: 1 });
   });
 
+  it('prefers an inline per-state output schema for root output', () => {
+    const machine = setup({}).createMachine({
+      initial: 'done',
+      states: {
+        done: {
+          type: 'final',
+          schemas: { output: types<{ id: string }>() },
+          output: () => ({ id: 'a' })
+        }
+      }
+    });
+
+    ((_output: OutputFrom<typeof machine>) => {
+      _output satisfies { id: string };
+      // @ts-expect-error the declared per-state schema is authoritative
+      _output satisfies undefined;
+    })({ id: 'a' });
+  });
+
   it('keeps the root output mapper authoritative over final-state outputs', () => {
     const machine = setup({}).createMachine({
       initial: 'done',

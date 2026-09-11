@@ -60,6 +60,7 @@ import {
   Next_InvokeConfig,
   Next_StateNodeConfig,
   Next_TransitionConfigOrTarget,
+  FinalStateConfigOutput,
   OutputFromConfig,
   ValidateHistoryDefaults,
   ValidateStateTargets,
@@ -1401,8 +1402,8 @@ type IsFinalState<TStateConfig, TStateSchema> = TStateConfig extends {
 /**
  * The union of output types across the config's top-level final states, or
  * `never` when it has none. A setup-declared per-state `schemas.output` wins
- * over the state's config `output` mapper; a final state with neither
- * contributes `undefined`.
+ * over the state's inline `schemas.output`, which wins over the state's
+ * `output` mapper; a final state with none of these contributes `undefined`.
  */
 type SetupTopLevelFinalOutput<
   TConfig,
@@ -1414,11 +1415,8 @@ type SetupTopLevelFinalOutput<
         K extends keyof TStates ? TStates[K] : never
       > extends true
         ? K extends keyof TStates
-          ? StateOutput<
-              TStates[K],
-              OutputFromConfig<TConfigStates[K], undefined>
-            >
-          : OutputFromConfig<TConfigStates[K], undefined>
+          ? StateOutput<TStates[K], FinalStateConfigOutput<TConfigStates[K]>>
+          : FinalStateConfigOutput<TConfigStates[K]>
         : never;
     }[keyof TConfigStates]
   : never;

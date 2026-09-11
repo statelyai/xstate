@@ -70,7 +70,7 @@ export type OutputFromConfig<TConfig, TFallback> = TConfig extends {
  * (or static value), otherwise `undefined` (a final state with no `output`
  * completes the machine with `undefined` output).
  */
-type FinalStateConfigOutput<TStateConfig> = TStateConfig extends {
+export type FinalStateConfigOutput<TStateConfig> = TStateConfig extends {
   schemas: { output: infer TOutputSchema extends StandardSchemaV1 };
 }
   ? StandardSchemaV1.InferOutput<TOutputSchema>
