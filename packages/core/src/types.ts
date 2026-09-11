@@ -1152,8 +1152,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   events: Array<EventDescriptor<any>>;
   sources: Sources;
   config: any;
-  version?: string;
-  schemas?: import('./types.v6.ts').AnyMachineSchemas;
+  version?: string | undefined;
+  schemas?: import('./types.v6.ts').AnyMachineSchemas | undefined;
   snapshotSchema: import('./machineVersion.types.ts').MachineSnapshotSchema;
   eventSchema: import('./machineVersion.types.ts').MachineEventSchema;
   provide(sources: any): AnyStateMachine;
@@ -1506,6 +1506,7 @@ export type Mapper<
   args: {
     context: _TCtx;
     event: TExpressionEvent;
+    input?: Record<string, unknown>;
     self: ActorSelf<
       MachineSnapshot<
         _TCtx & MachineContext,
@@ -2300,7 +2301,7 @@ export interface ActorLogic<
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
   /** Optional runtime validator for pure calculation boundaries. */
-  validator?: import('./validation.types.ts').ActorLogicValidator;
+  validator?: import('./validation.types.ts').ActorLogicValidator | undefined;
   /**
    * Transition function that processes the current state and an incoming event
    * to produce a new state and effects.
@@ -2387,7 +2388,7 @@ export interface ActorLogic<
 
 export interface AnyActorLogic {
   config?: unknown;
-  validator?: import('./validation.types.ts').ActorLogicValidator;
+  validator?: import('./validation.types.ts').ActorLogicValidator | undefined;
   transition(
     snapshot: any,
     event: any,
@@ -2642,6 +2643,7 @@ export type StateSchema = {
   contextSchema?: StandardSchemaV1;
   outputSchema?: StandardSchemaV1;
   input?: unknown;
+  initial?: unknown;
 
   // Other types
   // Needed because TS treats objects with all optional properties as a "weak" object
@@ -2749,7 +2751,9 @@ type ContextFromStateSchema<
   TSchema extends StateSchema,
   TFallbackContext extends MachineContext
 > = TSchema['contextSchema'] extends StandardSchemaV1
-  ? StandardSchemaV1.InferOutput<TSchema['contextSchema']> & MachineContext
+  ? StandardSchemaV1.InferOutput<TSchema['contextSchema']> &
+      TFallbackContext &
+      MachineContext
   : TFallbackContext;
 
 type ContextFromChildStateValue<

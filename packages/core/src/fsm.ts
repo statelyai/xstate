@@ -156,21 +156,26 @@ type FSMStateContext<
   ? TSchemas extends {
       context?: infer TSchema extends StandardSchemaV1;
     }
-    ? FSMSchemaContext<TSchema>
+    ? FSMSchemaContext<TSchema> &
+        ([MachineContext] extends [TGlobalContext] ? unknown : TGlobalContext)
     : TGlobalContext
   : TGlobalContext;
+
+type FSMContextFromDeclaredStates<
+  TStates extends FSMSetupStates,
+  TGlobalContext extends MachineContext
+> = {
+  [K in keyof TStates & string]: FSMStateContext<TStates[K], TGlobalContext>;
+}[keyof TStates & string];
 
 type FSMContextFromStates<
   TStates extends FSMSetupStates,
   TGlobalContext extends MachineContext
 > = [keyof TStates] extends [never]
   ? TGlobalContext
-  : {
-      [K in keyof TStates & string]: FSMStateContext<
-        TStates[K],
-        TGlobalContext
-      >;
-    }[keyof TStates & string];
+  : [MachineContext] extends [TGlobalContext]
+    ? FSMContextFromDeclaredStates<TStates, TGlobalContext>
+    : TGlobalContext | FSMContextFromDeclaredStates<TStates, TGlobalContext>;
 
 type FSMSetupStateContext<
   TState extends string,
@@ -197,12 +202,35 @@ type FSMSetupTargetTransitionConfig<
   TSourceContext extends MachineContext,
   TTarget extends string,
   TTargetContext extends MachineContext
-> = [TSourceContext] extends [TTargetContext]
-  ? { target: TTarget; context?: FSMContextPatch<TSourceContext> }
+> = [FSMRequiredTargetContextKeys<TSourceContext, TTargetContext>] extends [
+  never
+]
+  ? {
+      target: TTarget;
+      context?: FSMTargetContextPatch<TSourceContext, TTargetContext>;
+    }
   : {
       target: TTarget;
-      context: TTargetContext;
+      context: FSMTargetContextPatch<TSourceContext, TTargetContext>;
     };
+
+type FSMRequiredTargetContextKeys<TSourceContext, TTargetContext> = {
+  [K in keyof TTargetContext]-?: K extends keyof TSourceContext
+    ? [TSourceContext[K]] extends [TTargetContext[K]]
+      ? never
+      : K
+    : K;
+}[keyof TTargetContext];
+
+type FSMTargetContextPatch<TSourceContext, TTargetContext> =
+  Partial<TTargetContext> &
+    Pick<
+      TTargetContext,
+      Extract<
+        FSMRequiredTargetContextKeys<TSourceContext, TTargetContext>,
+        string
+      >
+    >;
 
 type FSMSetupTransitionConfig<
   TSourceContext extends MachineContext,

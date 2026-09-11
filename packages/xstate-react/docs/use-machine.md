@@ -89,9 +89,7 @@ If the actor reaches an `error` snapshot, `useActor` throws the error during ren
 
 One actor is created per component instance. It starts in an effect after mount and is stopped on unmount.
 
-React StrictMode mounts, unmounts and remounts a component in development. The second mount would otherwise leave the component holding a stopped actor, so `useActor` and `useActorRef` detect an externally stopped actor and create a fresh one from the same logic and options, starting from the initial state. An actor that completed naturally (`done` or `error`) is left alone and is not restarted.
-
-That development-only stop and restart does not currently restart invoked or spawned children. If a child actor appears inert only under StrictMode, that is why; the behavior in production builds is unaffected.
+React StrictMode disconnects and immediately reconnects effects in development. `useActor` and `useActorRef` defer cleanup by one microtask, so that immediate reconnect cancels the pending stop and preserves the actor and its children. A real unmount still stops the actor. If an actor was stopped externally before an effect reconnects, the hooks create a fresh actor from the same logic and options; an actor that completed naturally (`done` or `error`) is left alone.
 
 Changing the logic identity between renders is handled separately: when the config of the logic passed in differs from the running actor's, a new actor is created from the current logic and seeded with the previous actor's persisted snapshot, so the component keeps its state. Implementations swapped with `machine.provide({ ... })` in the component body keep the same config, so they update the running actor in place rather than replacing it. A guard or action defined in render always sees the latest props.
 

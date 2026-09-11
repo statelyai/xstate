@@ -1558,11 +1558,7 @@ describe('useActor', () => {
         isNotAwesome: true
       } as any,
       guards: {
-        isAwesome: ({
-          context
-        }: {
-          context: { isAwesome: boolean; isNotAwesome: boolean };
-        }) => !!context.isAwesome
+        isAwesome: (isAwesome: boolean) => !!isAwesome
       },
       states: {
         a: {
@@ -1578,7 +1574,7 @@ describe('useActor', () => {
               }
             }),
             EV: ({ guards, context }) => {
-              if (guards.isAwesome({ context })) {
+              if (guards.isAwesome(context.isAwesome)) {
                 return { target: 'b' };
               }
             }

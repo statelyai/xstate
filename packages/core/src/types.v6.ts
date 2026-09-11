@@ -442,10 +442,12 @@ type InvokeInputArgs<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
-  TChildren extends Record<string, AnyActorRef | undefined>
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TInput = undefined
 > = {
   context: TContext;
   event: TEvent;
+  input: TInput;
   self: ActorSelf<
     MachineSnapshot<
       TContext,
@@ -568,7 +570,8 @@ type InlineChildInvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TInput = undefined
 > = Values<{
   [K in keyof TChildren & string]: Omit<
     Next_InvokeConfigBase<
@@ -599,7 +602,7 @@ type InlineChildInvokeConfig<
     src: LogicForChildRef<TChildren[K]>;
     input?:
       | ((
-          args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+          args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren, TInput>
         ) => unknown)
       | NonReducibleUnknown;
   };
@@ -615,7 +618,8 @@ type InlineInvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TInput = undefined
 > =
   HasExplicitChildren<TChildren> extends true
     ? InlineChildInvokeConfig<
@@ -628,7 +632,8 @@ type InlineInvokeConfig<
         TGuardMap,
         TDelayMap,
         TMeta,
-        TSystemRegistry
+        TSystemRegistry,
+        TInput
       >
     : Omit<
         Next_InvokeConfigBase<
@@ -658,7 +663,13 @@ type InlineInvokeConfig<
         src: AnyActorLogic;
         input?:
           | ((
-              args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+              args: InvokeInputArgs<
+                TContext,
+                TEvent,
+                TEmitted,
+                TChildren,
+                TInput
+              >
             ) => unknown)
           | NonReducibleUnknown;
       };
@@ -683,7 +694,8 @@ export type Next_InvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TSystemRegistry extends SystemRegistry = SystemRegistry
+  TSystemRegistry extends SystemRegistry = SystemRegistry,
+  TInput = undefined
 > = string extends keyof TActorMap
   ? // No registered actor sources (permissive map): `src`/`input` cannot be
     // correlated. A mapped type over `string` would also defer resolution and
@@ -699,7 +711,8 @@ export type Next_InvokeConfig<
         TGuardMap,
         TDelayMap,
         TMeta,
-        TSystemRegistry
+        TSystemRegistry,
+        TInput
       >
     : Next_InvokeConfigBase<
         TContext,
@@ -721,7 +734,13 @@ export type Next_InvokeConfig<
             ) => string | AnyActorLogic);
         input?:
           | ((
-              args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+              args: InvokeInputArgs<
+                TContext,
+                TEvent,
+                TEmitted,
+                TChildren,
+                TInput
+              >
             ) => unknown)
           | NonReducibleUnknown;
       }
@@ -743,7 +762,13 @@ export type Next_InvokeConfig<
             id?: ChildIdForLogic<TActorMap[K], TChildren>;
             input?:
               | ((
-                  args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+                  args: InvokeInputArgs<
+                    TContext,
+                    TEvent,
+                    TEmitted,
+                    TChildren,
+                    TInput
+                  >
                 ) => InputFrom<TActorMap[K]>)
               | InputFrom<TActorMap[K]>;
           } & (
@@ -770,7 +795,8 @@ export type Next_InvokeConfig<
           TGuardMap,
           TDelayMap,
           TMeta,
-          TSystemRegistry
+          TSystemRegistry,
+          TInput
         >;
 
 interface Next_InvokeConfigBase<
@@ -1201,7 +1227,8 @@ interface Next_RegularStateNodeConfig<
       TGuardMap,
       TDelayMap,
       TMeta,
-      TSystemRegistry
+      TSystemRegistry,
+      TInput
     >
   >;
   /** The mapping of event types to their potential transition(s). */
@@ -1491,30 +1518,14 @@ export interface Sources {
 }
 
 /**
- * Contextually types the entries of a `guards: { ... }` source map. Guard
- * sources receive the transition args object first and optional caller-supplied
- * params after it.
+ * Contextually types the entries of a `guards: { ... }` source map. Guards
+ * are plain predicates: they receive only caller-supplied params (no injected
+ * transition args) and are called the same way they are declared.
  */
 export type GuardSourceMap<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  // `never` context (machine without context) must accept the `any`-typed
-  // context of transition args, mirroring TransitionConfigFunction's _TCtx.
-  _TCtx = [TContext] extends [never] ? any : TContext
-> = Record<
-  string,
-  (
-    args: {
-      context: _TCtx;
-      event: TEvent;
-      self: AnyActorRef;
-      parent: AnyActorRef | undefined;
-      value: StateValue;
-      children: Record<string, AnyActorRef | undefined>;
-    },
-    ...params: any[]
-  ) => boolean
->;
+  _TContext extends MachineContext,
+  _TEvent extends EventObject
+> = Record<string, (...params: any[]) => boolean>;
 
 /**
  * Contextually types the entries of a `delays: { ... }` source map. Delay
@@ -1975,6 +1986,19 @@ type InvalidTransitionMapTargets<
       }[keyof TTransitionMap]
     : never;
 
+type InvalidInitialTarget<TRootConfig, TChildStates, TInitialTarget> =
+  TInitialTarget extends string
+    ? string extends TInitialTarget
+      ? never
+      : TInitialTarget extends keyof TChildStates
+        ? never
+        : TInitialTarget extends `#${string}`
+          ? TInitialTarget extends AuthoredIdTargets<TRootConfig>
+            ? never
+            : TInitialTarget
+          : TInitialTarget
+    : never;
+
 type InvalidInvokeTargets<
   TRootConfig,
   TSourcePath extends StatePath,
@@ -2015,13 +2039,7 @@ type InvalidNodeTargets<
                 ? TInitialTarget
                 : TInitial
             ) extends infer TInitialTarget
-            ? TInitialTarget extends string
-              ? string extends TInitialTarget
-                ? never
-                : TInitialTarget extends keyof TChildStates
-                  ? never
-                  : TInitialTarget
-              : never
+            ? InvalidInitialTarget<TRootConfig, TChildStates, TInitialTarget>
             : never
           : never)
       | (TNode extends { on: infer TOn }
@@ -2091,13 +2109,7 @@ export type ValidateStateTargets<TConfig> = 0 extends 1 & TConfig
                   ? TInitialTarget
                   : TInitial
               ) extends infer TInitialTarget
-              ? TInitialTarget extends string
-                ? string extends TInitialTarget
-                  ? never
-                  : TInitialTarget extends keyof TStates
-                    ? never
-                    : TInitialTarget
-                : never
+              ? InvalidInitialTarget<TConfig, TStates, TInitialTarget>
               : never
             : never)
         | InvalidNodeTargets<TConfig, TConfig, []>

@@ -1802,6 +1802,10 @@ function microstep(
         }
       };
 
+      const enteredTargetsByTransition = new Map<
+        AnyTransitionDefinition,
+        Set<AnyStateNode>
+      >();
       for (const transition of filteredTransitions) {
         const domain = getTransitionDomain(
           transition,
@@ -1810,6 +1814,8 @@ function microstep(
         );
 
         const { targets, reenter } = getCurrentTransitionResult(transition);
+        const enteredTargets = new Set<AnyStateNode>();
+        enteredTargetsByTransition.set(transition, enteredTargets);
 
         for (const targetNode of targets ?? []) {
           if (
@@ -1818,6 +1824,7 @@ function microstep(
               transition.source !== domain ||
               reenter)
           ) {
+            enteredTargets.add(targetNode);
             statesToEnter.add(targetNode);
             statesForDefaultEntry.add(targetNode);
           }
@@ -1860,7 +1867,9 @@ function microstep(
       for (const transition of filteredTransitions) {
         const { targets, input } = getCurrentTransitionResult(transition);
         if (input && targets) {
-          for (const targetNode of targets) {
+          for (const targetNode of targets.filter((targetNode) =>
+            enteredTargetsByTransition.get(transition)?.has(targetNode)
+          )) {
             stateInputMap[targetNode.id] = input;
             stateInputsChanged = true;
           }
@@ -1908,6 +1917,7 @@ function microstep(
                   self: actorScope.self,
                   context: nextState.context,
                   event,
+                  input: stateInputMap[stateNodeToEnter.id],
                   output: getEventOutput(event)
                 })
               : invokeDef.input;

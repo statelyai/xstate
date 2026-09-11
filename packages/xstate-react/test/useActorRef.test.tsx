@@ -19,6 +19,59 @@ afterEach(() => {
 });
 
 describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
+  it('should accept events from effects when mounted in strict mode', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let received = 0;
+    const machine = createMachine({
+      actions: {
+        record: () => {
+          received++;
+        }
+      },
+      on: {
+        INC: ({ actions }, enq) => enq(actions.record)
+      }
+    });
+
+    const App = () => {
+      const actorRef = useActorRef(machine);
+
+      React.useEffect(() => {
+        actorRef.send({ type: 'INC' });
+      }, [actorRef]);
+
+      return null;
+    };
+
+    render(<App />);
+
+    expect(warnSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('was not delivered (stopped)')
+    );
+    expect(received).toBe(suiteKey === 'strict' ? 2 : 1);
+  });
+
+  it('should still warn when sending to an actor after unmount', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const machine = createMachine({});
+    let actorRef: ActorRefFrom<typeof machine>;
+
+    const App = () => {
+      actorRef = useActorRef(machine);
+      return null;
+    };
+
+    const { unmount } = render(<App />);
+    unmount();
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+
+    actorRef!.send({ type: 'INC' });
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('was not delivered (stopped)')
+    );
+  });
+
   it('observer should be called with next state', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({

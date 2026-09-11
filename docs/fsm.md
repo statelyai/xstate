@@ -59,7 +59,8 @@ const machine = machineSetup.createFSM({
 ```
 
 Declare per-state context schemas when the snapshot should be a discriminated
-union:
+union. They refine an existing root context schema in the same way as full
+XState machines, so root fields remain available:
 
 ```ts
 type User = { id: string };

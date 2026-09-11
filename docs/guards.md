@@ -38,20 +38,22 @@ Do not fetch data in a guard. Invoke an actor, store the result in context, then
 
 ## Named guards
 
-Define reusable guards on `setup(...)` or the machine's `guards`. A guard function receives the transition arguments object (`{ context, event, ... }`) first, followed by any params. Named guards are available as typed functions on every transition function's arguments; call one by forwarding the args object.
+Define reusable guards on `setup(...)` or the machine's `guards`. A named guard is a plain predicate function: it receives only the arguments you pass it and knows nothing about the machine. The caller decides what the guard sees — pass values from `context` or the event explicitly.
 
 ```ts
 const orderMachine = createMachine({
-  context: { available: 0, quantity: 0 },
+  context: { available: 0, quantity: 0, limit: 10 },
   guards: {
-    hasStock: ({ context }) => context.available >= context.quantity
+    hasStock: (available: number, quantity: number) => available >= quantity,
+    isBelow: (quantity: number, limit: number) => quantity < limit
   },
   initial: 'browsing',
   states: {
     browsing: {
       on: {
-        addItem: (args) => {
-          if (!args.guards.hasStock(args)) return;
+        addItem: ({ context, guards }) => {
+          if (!guards.hasStock(context.available, context.quantity)) return;
+          if (!guards.isBelow(context.quantity, context.limit)) return;
           return { target: 'adding' };
         }
       }
@@ -81,7 +83,7 @@ approve: ({ context, self }) => {
 
 ## TypeScript
 
-Guard conditions are checked wherever the transition function's `context` and `event` are typed, so a condition that reads a field the schemas do not declare is a type error. Named guards are typed on the `guards` argument, and `schemas.guards` can declare param types before the implementations exist. See [setup and provide](setup-and-provide.md).
+Guard conditions are checked wherever the transition function's `context` and `event` are typed, so a condition that reads a field the schemas do not declare is a type error. Named guards are typed on the `guards` argument exactly as declared, and `schemas.guards` can declare param types before the implementations exist. See [setup and provide](setup-and-provide.md).
 
 ## Guards cheatsheet
 
@@ -102,11 +104,11 @@ on: {
   }
 }
 
-// named guard
-guards: { isReady: ({ context }) => context.ready }
+// named guard: a plain predicate; pass it what it needs
+guards: { isReady: (ready: boolean) => ready }
 on: {
-  start: (args) => {
-    if (args.guards.isReady(args)) return { target: 'active' };
+  start: ({ context, guards }) => {
+    if (guards.isReady(context.ready)) return { target: 'active' };
   }
 }
 ```
