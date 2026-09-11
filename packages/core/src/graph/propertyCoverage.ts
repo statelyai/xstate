@@ -24,13 +24,35 @@ export interface PropertyCoverageDimension {
   readonly unknown: readonly string[];
 }
 
+export interface PropertyTransitionPairCoverageDimension extends PropertyCoverageDimension {
+  /**
+   * `true` when the statically enumerable pair universe exceeded
+   * `TRANSITION_PAIR_UNIVERSE_LIMIT` and was cut short. Pairs observed at
+   * runtime are still reported as covered.
+   */
+  readonly truncated: boolean;
+}
+
+export interface PropertyRequirementCoverageDimension extends PropertyCoverageDimension {
+  /** Requirement id to the state nodes and transitions that declare it. */
+  readonly sources: Readonly<Record<string, readonly string[]>>;
+}
+
 interface PropertyGuardCoverageDimension extends PropertyCoverageDimension {
   readonly outcomes: Readonly<
     Record<string, { readonly passed: number; readonly failed: number }>
   >;
 }
 
+export type PropertyEventCaseStage =
+  | 'generated'
+  | 'applicable'
+  | 'executed'
+  | 'ignored';
+
 export interface PropertyEventCaseCounts {
+  /** Effective relative generation weight for this case. Defaults to `1`. */
+  readonly weight: number;
   readonly generated: number;
   readonly applicable: number;
   readonly executed: number;
@@ -107,6 +129,10 @@ export interface PropertyCoverage {
   /** Lifecycle counts for the event cases supplied to `propertyTest()`. */
   readonly eventCases: Readonly<Record<string, PropertyEventCaseCounts>>;
   readonly transitions: PropertyCoverageDimension;
+  /** Pairs of consecutive executed transitions, as `${t1} -> ${t2}`. */
+  readonly transitionPairs: PropertyTransitionPairCoverageDimension;
+  /** Requirement ids declared via `meta.requirements`. */
+  readonly requirements: PropertyRequirementCoverageDimension;
   readonly dynamicTransitions: Readonly<
     Record<string, PropertyDynamicTransitionCoverage>
   >;
@@ -146,6 +172,13 @@ export interface MutablePropertyCoverage {
   eventTypes: MutableDimension;
   eventCases: Record<string, PropertyEventCaseCounts>;
   transitions: MutableDimension;
+  transitionPairs: MutableDimension;
+  transitionPairsTruncated: boolean;
+  requirements: MutableDimension;
+  requirementSources: Record<string, string[]>;
+  requirementsByStateNode: Map<string, readonly string[]>;
+  requirementsByTransition: Map<string, readonly string[]>;
+  previousTransitionIds: readonly string[] | null;
   dynamicTransitions: Record<
     string,
     {
@@ -321,7 +354,7 @@ function registerTransition(
   index: number,
   reachable: Set<string>,
   reachabilityUnknown: boolean
-): void {
+): string {
   const id = JSON.stringify([
     'transition',
     transition.source.id,
@@ -354,6 +387,143 @@ function registerTransition(
       unknown: sourceUnreachable && reachabilityUnknown
     });
   }
+  return id;
+}
+
+/**
+ * Upper bound on statically enumerated transition pairs. Pair universes grow
+ * quadratically, so large machines report a truncated universe rather than
+ * spending unbounded time and memory on it.
+ */
+const TRANSITION_PAIR_UNIVERSE_LIMIT = 5000;
+
+export function getPropertyTransitionPairId(
+  first: string,
+  second: string
+): string {
+  return `${first} -> ${second}`;
+}
+
+function getDescendantIds(node: AnyStateNode): Set<string> {
+  const ids = new Set<string>([node.id]);
+  for (const descendant of getStateNodes(node)) {
+    ids.add(descendant.id);
+  }
+  return ids;
+}
+
+interface RegisteredTransition {
+  readonly id: string;
+  readonly transition: AnyTransitionDefinition;
+}
+
+/**
+ * Declares the pairs of transitions that can run back to back. A pair
+ * `(t1, t2)` is possible when `t2`'s source node is within the configuration
+ * `t1` can leave behind, approximated as the descendants-or-self of `t1`'s
+ * targets (or of its own source when `t1` is targetless).
+ */
+function declareTransitionPairs(
+  coverage: MutablePropertyCoverage,
+  registered: readonly RegisteredTransition[]
+): void {
+  const followers = new Map<string, RegisteredTransition[]>();
+  for (const entry of registered) {
+    const bySource = followers.get(entry.transition.source.id);
+    if (bySource) {
+      bySource.push(entry);
+    } else {
+      followers.set(entry.transition.source.id, [entry]);
+    }
+  }
+  const descendants = new Map<string, Set<string>>();
+  let declared = 0;
+  for (const first of registered) {
+    const roots = first.transition.target?.length
+      ? first.transition.target
+      : [first.transition.source];
+    const firstDeclaration = coverage.transitions.declarations.get(first.id);
+    const reachableSources = new Set<string>();
+    for (const root of roots) {
+      let ids = descendants.get(root.id);
+      if (!ids) {
+        ids = getDescendantIds(root);
+        descendants.set(root.id, ids);
+      }
+      for (const id of ids) {
+        reachableSources.add(id);
+      }
+    }
+    for (const second of registered) {
+      const dynamic = !!first.transition.to || !!second.transition.to;
+      if (!dynamic && !reachableSources.has(second.transition.source.id)) {
+        continue;
+      }
+      if (declared >= TRANSITION_PAIR_UNIVERSE_LIMIT) {
+        coverage.transitionPairsTruncated = true;
+        return;
+      }
+      declared++;
+      const secondDeclaration = coverage.transitions.declarations.get(
+        second.id
+      );
+      declare(
+        coverage.transitionPairs,
+        getPropertyTransitionPairId(first.id, second.id),
+        {
+          unreachable:
+            !!firstDeclaration?.unreachable || !!secondDeclaration?.unreachable,
+          unknown:
+            dynamic ||
+            !!firstDeclaration?.unknown ||
+            !!secondDeclaration?.unknown
+        }
+      );
+    }
+  }
+}
+
+function normalizeRequirements(meta: unknown): readonly string[] {
+  const requirements = (meta as { requirements?: unknown } | undefined)
+    ?.requirements;
+  if (typeof requirements === 'string') {
+    return [requirements];
+  }
+  if (Array.isArray(requirements)) {
+    return requirements.filter(
+      (requirement): requirement is string => typeof requirement === 'string'
+    );
+  }
+  return [];
+}
+
+function declareRequirements(
+  coverage: MutablePropertyCoverage,
+  requirements: readonly string[],
+  source: string,
+  owner: Map<string, readonly string[]>,
+  ownerId: string
+): void {
+  if (!requirements.length) {
+    return;
+  }
+  owner.set(ownerId, [...(owner.get(ownerId) ?? []), ...requirements]);
+  for (const requirement of requirements) {
+    declare(coverage.requirements, requirement);
+    const sources = (coverage.requirementSources[requirement] ??= []);
+    if (!sources.includes(source)) {
+      sources.push(source);
+    }
+  }
+}
+
+function recordRequirements(
+  coverage: MutablePropertyCoverage,
+  requirements: readonly string[] | undefined
+): void {
+  for (const requirement of requirements ?? []) {
+    incrementCoverage(coverage.requirements, requirement);
+  }
 }
 
 export function createPropertyCoverage(
@@ -379,6 +549,13 @@ export function createPropertyCoverage(
     eventTypes: dimension(),
     eventCases: {},
     transitions: dimension(),
+    transitionPairs: dimension(),
+    transitionPairsTruncated: false,
+    requirements: dimension(),
+    requirementSources: {},
+    requirementsByStateNode: new Map(),
+    requirementsByTransition: new Map(),
+    previousTransitionIds: null,
     dynamicTransitions: {},
     guards: dimension(),
     frontiers: dimension(),
@@ -400,6 +577,7 @@ export function createPropertyCoverage(
       coverage.configurations,
       coverage.eventTypes,
       coverage.transitions,
+      coverage.transitionPairs,
       coverage.guards
     ]) {
       declare(target, '(not statically enumerable)', { unknown: true });
@@ -417,32 +595,56 @@ export function createPropertyCoverage(
       ) ||
         (node.always ?? []).some((definition) => !!definition.to))
   );
+  const registered: RegisteredTransition[] = [];
   for (const node of nodes) {
+    declareRequirements(
+      coverage,
+      normalizeRequirements(node.meta),
+      `stateNode:${node.id}`,
+      coverage.requirementsByStateNode,
+      node.id
+    );
     declare(coverage.stateNodes, node.id, {
       unreachable: !reachable.has(node.id) && !hasReachableDynamicTransition,
       unknown: !reachable.has(node.id) && hasReachableDynamicTransition
     });
     for (const definitions of node.transitions.values()) {
       for (let index = 0; index < definitions.length; index++) {
-        registerTransition(
-          coverage,
-          definitions[index],
-          index,
-          reachable,
-          !reachable.has(node.id) && hasReachableDynamicTransition
-        );
+        registered.push({
+          id: registerTransition(
+            coverage,
+            definitions[index],
+            index,
+            reachable,
+            !reachable.has(node.id) && hasReachableDynamicTransition
+          ),
+          transition: definitions[index]
+        });
       }
     }
     for (let index = 0; index < (node.always?.length ?? 0); index++) {
-      registerTransition(
-        coverage,
-        node.always![index],
-        index,
-        reachable,
-        !reachable.has(node.id) && hasReachableDynamicTransition
-      );
+      registered.push({
+        id: registerTransition(
+          coverage,
+          node.always![index],
+          index,
+          reachable,
+          !reachable.has(node.id) && hasReachableDynamicTransition
+        ),
+        transition: node.always![index]
+      });
     }
   }
+  for (const entry of registered) {
+    declareRequirements(
+      coverage,
+      normalizeRequirements((entry.transition as { meta?: unknown }).meta),
+      `transition:${entry.id}`,
+      coverage.requirementsByTransition,
+      entry.id
+    );
+  }
+  declareTransitionPairs(coverage, registered);
   declare(coverage.states, '(runtime serialized states)', { unknown: true });
   declare(coverage.configurations, '(runtime configurations)', {
     unknown: true
@@ -469,6 +671,7 @@ export function recordPropertySnapshot(
     ).nodes ?? (snapshot as { _nodes?: readonly { id: string }[] })._nodes;
   for (const node of nodes ?? []) {
     incrementCoverage(coverage.stateNodes, node.id);
+    recordRequirements(coverage, coverage.requirementsByStateNode.get(node.id));
   }
 }
 
@@ -504,8 +707,30 @@ export function recordPropertyTransitions(
     if (guardId) {
       incrementCoverage(coverage.guards, guardId);
     }
+    recordRequirements(coverage, coverage.requirementsByTransition.get(id));
+  }
+  if (ids.length) {
+    for (const previous of coverage.previousTransitionIds ?? []) {
+      for (const current of ids) {
+        incrementCoverage(
+          coverage.transitionPairs,
+          getPropertyTransitionPairId(previous, current)
+        );
+      }
+    }
+    coverage.previousTransitionIds = ids;
   }
   return ids;
+}
+
+/**
+ * Clears the consecutive-transition chain so pairs are only counted within a
+ * single run.
+ */
+export function resetPropertyTransitionPairs(
+  coverage: MutablePropertyCoverage
+): void {
+  coverage.previousTransitionIds = null;
 }
 
 export function getPropertyEventCaseId(
@@ -517,20 +742,29 @@ export function getPropertyEventCaseId(
 
 export function declarePropertyEventCase(
   coverage: MutablePropertyCoverage,
-  id: string
+  id: string,
+  weight?: number
 ): void {
-  coverage.eventCases[id] ??= {
-    generated: 0,
-    applicable: 0,
-    executed: 0,
-    ignored: 0
-  };
+  const existing = coverage.eventCases[id];
+  if (!existing) {
+    coverage.eventCases[id] = {
+      weight: weight ?? 1,
+      generated: 0,
+      applicable: 0,
+      executed: 0,
+      ignored: 0
+    };
+    return;
+  }
+  if (weight !== undefined && existing.weight !== weight) {
+    coverage.eventCases[id] = { ...existing, weight };
+  }
 }
 
 export function recordPropertyEventCase(
   coverage: MutablePropertyCoverage,
   id: string,
-  stage: keyof PropertyEventCaseCounts
+  stage: PropertyEventCaseStage
 ): void {
   declarePropertyEventCase(coverage, id);
   const counts = coverage.eventCases[id] as {
@@ -635,6 +869,18 @@ export function finalizePropertyCoverage(
         .map(([id, counts]) => [id, { ...counts }])
     ),
     transitions: finalizeDimension(coverage.transitions),
+    transitionPairs: {
+      ...finalizeDimension(coverage.transitionPairs),
+      truncated: coverage.transitionPairsTruncated
+    },
+    requirements: {
+      ...finalizeDimension(coverage.requirements),
+      sources: Object.fromEntries(
+        Object.entries(coverage.requirementSources)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([id, sources]) => [id, [...sources].sort()])
+      )
+    },
     dynamicTransitions: Object.fromEntries(
       Object.entries(coverage.dynamicTransitions)
         .sort(([left], [right]) => left.localeCompare(right))

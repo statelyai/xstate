@@ -25,6 +25,7 @@ import {
   recordPropertyTemporal,
   recordPropertySnapshot,
   recordPropertyTransitions,
+  resetPropertyTransitionPairs,
   type MutablePropertyCoverage,
   type PropertyCoverage,
   type PropertyExplorationBounds,
@@ -195,6 +196,8 @@ export interface PropertyTestAdapterResult {
 export interface PropertyGeneratedCommand {
   readonly type: 'advance' | 'checkpoint' | 'stop';
   readonly generator: unknown;
+  /** Relative generation weight. `1` unless configured otherwise. */
+  readonly weight: number;
 }
 
 export interface PropertyTestAdapterRequest<
@@ -205,6 +208,8 @@ export interface PropertyTestAdapterRequest<
     readonly type: string;
     readonly caseId: string;
     readonly generator: unknown;
+    /** Relative generation weight. `1` unless configured otherwise. */
+    readonly weight: number;
   }[];
   readonly commands: readonly PropertyGeneratedCommand[];
   readonly runBudget?: number;
@@ -338,6 +343,11 @@ export interface PropertyEventDescriptor<
 > {
   readonly generate: TGenerator;
   readonly case?: string;
+  /**
+   * Relative generation weight for this case. Must be a positive, finite
+   * number. Defaults to `1`.
+   */
+  readonly weight?: number;
   readonly when?: (context: {
     readonly snapshot: TSnapshot;
     readonly event: TEvent;
@@ -352,6 +362,11 @@ export interface PropertyResolvedEventDescriptor<
 > {
   readonly generate: TGenerator;
   readonly case?: string;
+  /**
+   * Relative generation weight for this case. Must be a positive, finite
+   * number. Defaults to `1`.
+   */
+  readonly weight?: number;
   /** Resolves a shrinkable symbolic value against the current model snapshot. */
   readonly resolve: (context: {
     readonly snapshot: TSnapshot;
@@ -600,6 +615,23 @@ function deepEqual(
   );
 }
 
+function assertPropertyWeight(
+  weight: number | undefined,
+  location: string
+): number {
+  if (weight === undefined) {
+    return 1;
+  }
+  if (typeof weight !== 'number' || !Number.isFinite(weight) || weight <= 0) {
+    throw new Error(
+      `Property ${location} has an invalid \`weight\` (${String(
+        weight
+      )}). Weights must be positive, finite numbers.`
+    );
+  }
+  return weight;
+}
+
 function assertEventPayload(
   payload: unknown,
   type: string,
@@ -676,6 +708,7 @@ export class PropertyScenarioRunner<
   }
 
   public async start(): Promise<void> {
+    resetPropertyTransitionPairs(this.coverage);
     const [snapshot, effects, selected, guards, resolutions]: [
       TSnapshot,
       readonly unknown[],
@@ -1413,6 +1446,24 @@ export interface PropertyFrontierOptions<
     | ((context: PropertyFrontierContext<TSnapshot, TEvent>) => number);
 }
 
+/**
+ * A command generator, optionally paired with a relative generation weight. A
+ * bare generator is equivalent to `{ generate, weight: 1 }`; a `weight` key is
+ * what distinguishes the descriptor form.
+ */
+export interface PropertyCommandDescriptor<TGenerator> {
+  readonly generate: TGenerator;
+  /** Positive, finite relative generation weight. Defaults to `1`. */
+  readonly weight?: number;
+}
+
+export type PropertyCommandGenerator<
+  TKind extends PropertyGeneratorKind,
+  TValue
+> =
+  | PropertyGenerator<TKind, TValue>
+  | PropertyCommandDescriptor<PropertyGenerator<TKind, TValue>>;
+
 export interface PropertyTestOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -1422,9 +1473,12 @@ export interface PropertyTestOptions<
   readonly adapter: PropertyTestAdapter<TKind>;
   readonly events: PropertyEventGenerators<TSnapshot, TEvent, TKind>;
   readonly commands?: {
-    readonly advance?: PropertyGenerator<TKind, number>;
-    readonly checkpoint?: PropertyGenerator<TKind, { readonly label?: string }>;
-    readonly stop?: PropertyGenerator<TKind, Record<string, never>>;
+    readonly advance?: PropertyCommandGenerator<TKind, number>;
+    readonly checkpoint?: PropertyCommandGenerator<
+      TKind,
+      { readonly label?: string }
+    >;
+    readonly stop?: PropertyCommandGenerator<TKind, Record<string, never>>;
   };
   readonly sut?: PropertySut<TSnapshot, TEvent>;
   readonly test?: PropertyTestModelExecution<TSnapshot, TEvent>;
@@ -1525,7 +1579,10 @@ export async function propertyTest<
           EventFromSource<TSource>
         > = eventCase &&
         typeof eventCase === 'object' &&
-        ('when' in eventCase || 'case' in eventCase || 'resolve' in eventCase)
+        ('when' in eventCase ||
+          'case' in eventCase ||
+          'resolve' in eventCase ||
+          'weight' in eventCase)
           ? (eventCase as AnyPropertyEventDescriptor<
               SnapshotFromSource<TSource>,
               EventFromSource<TSource>
@@ -1544,16 +1601,35 @@ export async function propertyTest<
           );
         }
         eventDescriptors.set(caseId, descriptor);
-        return { type, caseId, generator: descriptor.generate };
+        return {
+          type,
+          caseId,
+          generator: descriptor.generate,
+          weight: assertPropertyWeight(
+            descriptor.weight,
+            `event case "${caseName}" for "${type}"`
+          )
+        };
       });
     }
   );
   const commands: PropertyGeneratedCommand[] = [];
   for (const type of ['advance', 'checkpoint', 'stop'] as const) {
-    const generator = options.commands?.[type];
-    if (generator !== undefined) {
-      commands.push({ type, generator });
+    const configured = options.commands?.[type];
+    if (configured === undefined) {
+      continue;
     }
+    const descriptor =
+      typeof configured === 'object' &&
+      configured !== null &&
+      'weight' in configured
+        ? (configured as PropertyCommandDescriptor<unknown>)
+        : { generate: configured as unknown };
+    commands.push({
+      type,
+      generator: descriptor.generate,
+      weight: assertPropertyWeight(descriptor.weight, `"${type}" command`)
+    });
   }
   if (options.start && typeof options.start.serializeSnapshot !== 'function') {
     throw new Error(
@@ -1562,7 +1638,7 @@ export async function propertyTest<
   }
   const coverage = createPropertyCoverage(model.testLogic);
   for (const event of events) {
-    declarePropertyEventCase(coverage, event.caseId);
+    declarePropertyEventCase(coverage, event.caseId, event.weight);
   }
   const exploration: PropertyExplorationAccumulator = {
     configuredRuns: 0,

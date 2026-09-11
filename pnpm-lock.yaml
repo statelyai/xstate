@@ -1424,6 +1424,9 @@ importers:
       xstate:
         specifier: workspace:^
         version: link:../core
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   packages/xstate-react:
     dependencies:
@@ -1639,7 +1642,7 @@ importers:
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^4.0.0
-        version: 4.0.4(supports-color@5.5.0)(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
+        version: 4.0.4(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
       '@testing-library/svelte':
         specifier: ^5.2.6
         version: 5.2.8(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))(vitest@3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@17.6.3)(jsdom@26.1.0)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
@@ -1679,7 +1682,7 @@ importers:
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^4.0.0
-        version: 4.0.4(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
+        version: 4.0.4(supports-color@5.5.0)(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
       '@testing-library/svelte':
         specifier: ^5.2.6
         version: 5.2.8(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))(vitest@3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@17.6.3)(jsdom@26.1.0)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
@@ -6822,6 +6825,7 @@ packages:
   eslint@8.57.1:
     resolution: {integrity: sha512-ypowyDxpVSYpkXr9WPv2PAZCtNip1Mv5KTW0SCurXv/9iOpcrH9PaqUElksqEB6pChqHGDRCFTyrZlGhnLNGiA==, tarball: https://registry.npmjs.org/eslint/-/eslint-8.57.1.tgz}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
 
   eslint@9.39.5:

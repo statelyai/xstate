@@ -266,6 +266,85 @@ const events = fromEffectSchemas({
 `fromEffectSchema(schema)` converts a single schema; `fromEffectSchemas(map)`
 converts a keyed map of payload schemas for use as `events`.
 
+## Deriving generators from schemas
+
+`eventsFromSchemas(machine)` builds the `events` map from the event schemas
+declared on the machine, so payload generators do not have to be written by
+hand:
+
+```ts
+import * as z from 'zod';
+import { createMachine } from 'xstate';
+import { propertyTest } from 'xstate/graph';
+import { eventsFromSchemas, fastCheckAdapter } from '@xstate/fast-check';
+
+const machine = createMachine({
+  schemas: {
+    events: {
+      INC: z.object({ value: z.number().int() }),
+      RESET: z.object({})
+    }
+  }
+  // ...
+});
+
+await propertyTest(machine, {
+  adapter: fastCheckAdapter(),
+  events: eventsFromSchemas(machine),
+  invariant: ({ snapshot }) => {
+    expect(snapshot.context.count).toBeGreaterThanOrEqual(0);
+  }
+});
+```
+
+Generated payloads never include a `type` field; the event-map key supplies the
+event type. A declared `type` field is stripped.
+
+To override a derived generator, merge an explicit one over the derived map.
+`mergeEventGenerators(derived, explicit)` does that, and explicit entries win:
+
+```ts
+events: mergeEventGenerators(eventsFromSchemas(machine), {
+  INC: fc.record({ value: fc.integer({ min: 0, max: 10 }) })
+});
+```
+
+`fastCheckAdapter()` cannot derive generators itself, because the adapter does
+not receive the machine.
+
+### Supported schema libraries
+
+Generation requires a schema whose structure can be inspected:
+
+| Library | Entrypoint | Notes |
+| --- | --- | --- |
+| Zod (v3 and v4) | `@xstate/fast-check` | `object`, `string`, `number`, `int`, `bigint`, `boolean`, `date`, `literal`, `enum`, `union`, `array`, `tuple`, `record`, `optional`, `nullable`, `default`, `catch`, `readonly`, `null`, `undefined`, `any`, `unknown` |
+| Effect Schema | `@xstate/fast-check/effect-schema` | Import `eventsFromSchemas` from that entrypoint so Effect stays optional |
+
+An unsupported schema kind throws an error naming the schema path, for example
+`'SET.when'`.
+
+Other Standard Schema implementations validate but expose no structure, so no
+generator can be derived from them. Type-only declarations (`types<{...}>()`
+and `types.events`) are erased at runtime and cannot be derived either. For
+both cases, supply a generator explicitly, or pass a `fallback` converter:
+
+```ts
+eventsFromSchemas(machine, {
+  fallback: (schema, path) => myConverter(schema)
+});
+```
+
+### Events without a schema
+
+Event types that appear in the machine's transitions but have no declared
+schema are generated as `{}` by default. Pass `eventsWithoutSchema: 'skip'` to
+leave them out of the map:
+
+```ts
+eventsFromSchemas(machine, { eventsWithoutSchema: 'skip' });
+```
+
 ## Effects are not executed
 
 `propertyTest()` drives the machine through the pure `transition()` path. It
@@ -475,3 +554,124 @@ await replayPropertyTest(machine, failure.fixture!, {
     machine.resolveState(snapshot as { value: string; context: Context })
 });
 ```
+
+## Coverage reports
+
+`propertyTest()` resolves with a `coverage` object. `xstate` exports formatters
+that turn it into readable output and CI artifacts:
+
+```ts
+import {
+  assertPropertyCoverage,
+  formatPropertyCoverage,
+  formatPropertyCoverageHTML,
+  formatPropertyCoverageJUnit,
+  propertyCoverageToJSON
+} from 'xstate/graph';
+
+const { coverage } = await propertyTest(machine, {
+  adapter: fastCheckAdapter(),
+  events,
+  invariant
+});
+
+console.log(formatPropertyCoverage(coverage));
+console.log(formatPropertyCoverage(coverage, { format: 'markdown' }));
+```
+
+`formatPropertyCoverage()` prints one line per dimension, for example
+`transitions: 7/9 covered (77.8%), 1 uncovered, 1 unreachable, 0 unknown`,
+followed by the outstanding ids, guard outcomes, event-case lifecycle counts,
+temporal results and the exploration bounds. `format: 'markdown'` renders the
+same data as tables. Output is deterministic, so it can be snapshot-tested.
+
+- `propertyCoverageToJSON(coverage)` returns stable, JSON-safe data tagged with
+  `formatVersion: 1`, for storing or diffing coverage between runs.
+- `formatPropertyCoverageJUnit(coverage, { suiteName })` returns JUnit XML with
+  one `<testcase>` per transition and per state node: `<failure>` for uncovered
+  items and `<skipped>` for unreachable or unknown ones.
+- `formatPropertyCoverageHTML(coverage, { title })` returns a single
+  self-contained HTML document with summary cards and tables.
+
+`assertPropertyCoverage()` gates a test on covered ratios
+(`covered / (covered + uncovered)`), throwing an error with the formatted report
+when a dimension falls short:
+
+```ts
+assertPropertyCoverage(coverage, { transitions: 1, stateNodes: 0.9 });
+```
+
+## Transition pairs and requirements
+
+Two further coverage dimensions come from the machine definition itself.
+
+`coverage.transitionPairs` tracks pairs of transitions that ran back to back
+within a single run, keyed as `"<first id> -> <second id>"`. Chains are reset
+between runs, so a pair is only covered when one run executed both transitions
+in sequence. The universe of possible pairs is derived from the machine: a pair
+is possible when the second transition's source node lies within the
+configuration the first transition can leave behind. Pairs that involve a
+dynamic (function) target are reported as `unknown`, since their targets are
+only known at runtime. Large machines have quadratically many pairs, so
+enumeration stops at 5,000 declared pairs and sets `transitionPairs.truncated`
+to `true`; pairs observed at runtime are still reported as covered.
+
+`coverage.requirements` tracks requirement ids declared through `meta`, on
+state nodes and on transitions. A requirement is covered when any state node or
+transition carrying it is covered.
+
+```ts
+const machine = createMachine({
+  initial: 'idle',
+  states: {
+    idle: {
+      meta: { requirements: 'REQ-1' },
+      on: {
+        SUBMIT: { target: 'sent', meta: { requirements: ['REQ-2', 'REQ-3'] } }
+      }
+    },
+    sent: {}
+  }
+});
+
+const { coverage } = await propertyTest(machine, {
+  adapter: fastCheckAdapter(),
+  events: { SUBMIT: fc.constant({}) },
+  invariant: () => {}
+});
+
+coverage.requirements.uncovered; // requirement ids never exercised
+coverage.requirements.sources['REQ-2']; // ['transition:…'] — where it is declared
+```
+
+`meta.requirements` accepts a string or an array of strings.
+
+## Weighting events
+
+Every event case and command is generated with equal probability by default.
+Give a case a `weight` to change how often it is drawn relative to the others:
+
+```ts
+await propertyTest(machine, {
+  adapter: fastCheckAdapter(),
+  events: {
+    // Drawn roughly ten times as often as RESET.
+    INC: { generate: fc.record({ value: fc.integer() }), weight: 10 },
+    RESET: { generate: fc.constant({}), weight: 1 }
+  },
+  commands: {
+    // Rarely stop the actor mid-run.
+    stop: { generate: fc.constant({}), weight: 0.1 }
+  },
+  invariant
+});
+```
+
+Weights must be positive, finite numbers and default to `1`. They are relative,
+not probabilities, and may be fractional. A bare generator is equivalent to
+`{ generate, weight: 1 }`; the `weight` key is what distinguishes the descriptor
+form for `commands`. When every weight is `1` the generation path is unchanged,
+so existing seeds keep reproducing the same sequences.
+
+The effective weight of each case is reported in
+`coverage.eventCases[id].weight`.

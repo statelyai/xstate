@@ -21,6 +21,27 @@ export interface FastCheckAdapterOptions extends Omit<
 }
 
 /**
+ * `fc.oneof` only accepts integer weights, so relative weights are rescaled by
+ * the smallest one before rounding. Ratios are preserved up to rounding, and
+ * every entry keeps a weight of at least 1 so no case becomes ungeneratable.
+ */
+function toIntegerWeights<T>(
+  weighted: readonly { arbitrary: T; weight: number }[]
+): { arbitrary: T; weight: number }[] {
+  const smallest = Math.min(...weighted.map(({ weight }) => weight));
+  return weighted.map(({ arbitrary, weight }) => ({
+    arbitrary,
+    weight: Math.min(
+      MAXIMUM_INTEGER_WEIGHT,
+      Math.max(1, Math.round(weight / smallest))
+    )
+  }));
+}
+
+/** Keeps rescaled weights well inside safe-integer arithmetic. */
+const MAXIMUM_INTEGER_WEIGHT = 1_000_000;
+
+/**
  * Extracts the `replayPath` that fast-check embeds in a `fc.commands`
  * counterexample so a failing run can be replayed deterministically.
  *
@@ -181,43 +202,67 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
   >(
     request: PropertyTestAdapterRequest<TSnapshot, TEvent>
   ): Promise<PropertyTestAdapterResult> {
-    const commands: fc.Arbitrary<
+    type PropertyCommandArbitrary = fc.Arbitrary<
       fc.AsyncCommand<
         PropertyScenarioRunner<TSnapshot, TEvent>,
         undefined,
         false
       >
-    >[] = request.events.map(({ type, caseId, generator }) =>
-      (generator as fc.Arbitrary<unknown>).map(
+    >;
+    const weighted: {
+      arbitrary: PropertyCommandArbitrary;
+      weight: number;
+    }[] = request.events.map(({ type, caseId, generator, weight }) => ({
+      arbitrary: (generator as fc.Arbitrary<unknown>).map(
         (generated) => new EventPropertyCommand(type, generated, caseId)
-      )
-    );
+      ),
+      weight
+    }));
     for (const command of request.commands) {
       if (command.type === 'advance') {
-        commands.push(
-          (command.generator as fc.Arbitrary<number>).map(
+        weighted.push({
+          arbitrary: (command.generator as fc.Arbitrary<number>).map(
             (milliseconds) => new AdvancePropertyCommand(milliseconds)
-          )
-        );
+          ),
+          weight: command.weight
+        });
       } else if (command.type === 'checkpoint') {
-        commands.push(
-          (command.generator as fc.Arbitrary<{ readonly label?: string }>).map(
-            (value) => new CheckpointPropertyCommand(value.label)
-          )
-        );
+        weighted.push({
+          arbitrary: (
+            command.generator as fc.Arbitrary<{ readonly label?: string }>
+          ).map((value) => new CheckpointPropertyCommand(value.label)),
+          weight: command.weight
+        });
       } else {
-        commands.push(
-          (command.generator as fc.Arbitrary<Record<string, never>>).map(
-            () => new StopPropertyCommand()
-          )
-        );
+        weighted.push({
+          arbitrary: (
+            command.generator as fc.Arbitrary<Record<string, never>>
+          ).map(() => new StopPropertyCommand()),
+          weight: command.weight
+        });
       }
     }
-    if (!commands.length) {
+    if (!weighted.length) {
       throw new Error(
         'Property tests require at least one event or command generator'
       );
     }
+    // `fc.commands` samples uniformly across the arbitraries it is given, so
+    // weights are applied by collapsing them into a single weighted
+    // `fc.oneof`. The unweighted array path is kept so existing seeds keep
+    // reproducing the same sequences.
+    const commands: PropertyCommandArbitrary[] = weighted.every(
+      ({ weight }) => weight === 1
+    )
+      ? weighted.map(({ arbitrary }) => arbitrary)
+      : [
+          fc.oneof(
+            ...(toIntegerWeights(weighted) as [
+              { arbitrary: PropertyCommandArbitrary; weight: number },
+              ...{ arbitrary: PropertyCommandArbitrary; weight: number }[]
+            ])
+          )
+        ];
     const commandSequence = fc.commands<
       PropertyScenarioRunner<TSnapshot, TEvent>,
       undefined,
@@ -309,3 +354,10 @@ export function fastCheckAdapter(
 ): PropertyTestAdapter<FastCheckGeneratorKind> {
   return new FastCheckAdapter(options);
 }
+
+export {
+  arbitraryFromSchema,
+  eventsFromSchemas,
+  mergeEventGenerators
+} from './schema.ts';
+export type { EventsFromSchemasOptions, SchemaConverter } from './schema.ts';

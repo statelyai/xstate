@@ -1,5 +1,18 @@
 import * as Schema from 'effect/Schema';
 import * as fc from 'fast-check';
+import type { AnyStateMachine } from 'xstate';
+import {
+  eventsFromSchemas as baseEventsFromSchemas,
+  type EventsFromSchemasOptions,
+  type SchemaConverter
+} from './schema.ts';
+
+const effectConverter: SchemaConverter = (schema) =>
+  schema !== null &&
+  (typeof schema === 'object' || typeof schema === 'function') &&
+  typeof (schema as { ast?: { _tag?: unknown } }).ast === 'object'
+    ? (fromEffectSchema(schema as Schema.Top) as fc.Arbitrary<unknown>)
+    : undefined;
 
 /** Converts an Effect Schema into a native FastCheck arbitrary. */
 export function fromEffectSchema<TSchema extends Schema.Top>(
@@ -24,4 +37,18 @@ export function fromEffectSchemas<
   ) as {
     [TKey in keyof TSchemas]: fc.Arbitrary<TSchemas[TKey]['Type']>;
   };
+}
+
+/**
+ * Same as `eventsFromSchemas` from `@xstate/fast-check`, with Effect Schema
+ * support registered.
+ */
+export function eventsFromSchemas<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options: EventsFromSchemasOptions = {}
+): ReturnType<typeof baseEventsFromSchemas<TMachine>> {
+  return baseEventsFromSchemas(machine, {
+    ...options,
+    converters: [effectConverter, ...(options.converters ?? [])]
+  });
 }

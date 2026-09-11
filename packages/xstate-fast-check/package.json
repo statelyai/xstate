@@ -22,12 +22,14 @@
   "peerDependencies": {
     "effect": "4.0.0-beta.106",
     "fast-check": "^4.9.0",
-    "xstate": "workspace:^"
+    "xstate": "workspace:^",
+    "zod": "^3.25.0 || ^4.0.0"
   },
   "devDependencies": {
     "effect": "4.0.0-beta.106",
     "fast-check": "^4.9.0",
-    "xstate": "workspace:^"
+    "xstate": "workspace:^",
+    "zod": "^4.4.3"
   },
   "preconstruct": {
     "umdName": "XStateFastCheck",
@@ -38,6 +40,9 @@
   },
   "peerDependenciesMeta": {
     "effect": {
+      "optional": true
+    },
+    "zod": {
       "optional": true
     }
   }
