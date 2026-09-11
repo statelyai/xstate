@@ -187,9 +187,70 @@ await propertyTest(machine, {
 });
 ```
 
+### Temporal properties
+
+Four temporal operators are available. Each one is checked on every stable
+macrostep:
+
+| `type` | Fails when |
+| --- | --- |
+| `always` | The `predicate` does not hold on some stable step. |
+| `never` | The `predicate` holds on some stable step. |
+| `eventually` | The `predicate` never holds. |
+| `until` | `hold` stops holding before `until` holds. |
+
+`always` and `never` take a single `predicate`. `eventually` takes a
+`predicate`, and `until` takes both `hold` and `until` predicates.
+
+`eventually` and `until` accept an optional `within` bound, measured in stable
+steps:
+
+- With `within`, the property fails as soon as that many stable steps elapse
+  without being satisfied.
+- If the run ends before the `within` bound is reached, the property is
+  **inconclusive**, not failed. A run that is too short to decide a bounded
+  property never reports a violation.
+- Without `within`, the property must be satisfied before the run ends, and an
+  unsatisfied property fails at `finish()`.
+
+```ts
+temporal: [
+  {
+    type: 'always',
+    id: 'count-never-negative',
+    predicate: ({ snapshot }) => snapshot.context.count >= 0
+  },
+  {
+    type: 'never',
+    id: 'no-error-state',
+    predicate: ({ snapshot }) => snapshot.matches('error')
+  },
+  {
+    // fails at step 10 if `settled` was not reached by then;
+    // inconclusive if the run ends before step 10
+    type: 'eventually',
+    id: 'settles',
+    within: 10,
+    predicate: ({ snapshot }) => snapshot.matches('settled')
+  },
+  {
+    // must be satisfied before the run ends
+    type: 'until',
+    id: 'stays-open-until-closed',
+    hold: ({ snapshot }) => snapshot.matches('open'),
+    until: ({ snapshot }) => snapshot.matches('closed')
+  }
+]
+```
+
+### Replay
+
 Use `replayPropertyTest()` to replay versioned fixtures without FastCheck and
-`formatPropertyTrace()` for a readable XState trace. Engine-native seed/path
-metadata remains available on `PropertyTestFailure.replay`.
+`formatPropertyTrace()` for a readable XState trace. It accepts optional
+`reference` and `sut` implementations so oracle and SUT divergences replay too,
+stops at the recorded `failedAt` step, and throws if the recorded failure did
+not reproduce. Engine-native seed/path metadata remains available on
+`PropertyTestFailure.replay`.
 
 The optional `@xstate/fast-check/effect-schema` entrypoint converts Effect
 Schemas into FastCheck arbitraries without adding Effect to XState.

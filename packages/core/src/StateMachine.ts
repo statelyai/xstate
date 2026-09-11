@@ -841,7 +841,8 @@ export class StateMachine<
     const transitionDetails = getTransitionDetails(actorScope);
     if (transitionDetails) {
       transitionDetails.transitions.push(selected);
-    } else if (
+    }
+    if (
       !isInertActorScope(actorScope) &&
       (actorScope.system._hasInspectionObservers?.() ?? true)
     ) {

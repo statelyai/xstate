@@ -20,6 +20,52 @@ export interface FastCheckAdapterOptions extends Omit<
   readonly replayPath?: string;
 }
 
+/**
+ * Extracts the `replayPath` that fast-check embeds in a `fc.commands`
+ * counterexample so a failing run can be replayed deterministically.
+ *
+ * fast-check exposes no typed accessor for this: `CommandsArbitrary` builds a
+ * `CommandsIterable` whose `metadataForReplay()` returns the
+ * `replayPath="<path>"` fragment, and whose `toString()` appends that fragment
+ * inside a trailing `/* ... *\/` comment. Neither member is declared in
+ * `fast-check`'s public typings (checked against fast-check 4.9.0), so this
+ * helper is the single place that depends on that shape. It prefers
+ * `metadataForReplay()` and falls back to parsing `toString()`.
+ */
+export function extractReplayPath(counterexample: unknown): string | undefined {
+  if (counterexample === null || counterexample === undefined) {
+    return undefined;
+  }
+  const candidate = counterexample as {
+    metadataForReplay?: unknown;
+    toString?: unknown;
+  };
+  if (typeof candidate.metadataForReplay === 'function') {
+    const metadata = (candidate.metadataForReplay as () => unknown)();
+    const fromMetadata = parseReplayPathMetadata(metadata);
+    if (fromMetadata !== undefined) {
+      return fromMetadata;
+    }
+  }
+  if (typeof candidate.toString === 'function') {
+    return parseReplayPathMetadata(
+      (candidate.toString as () => string).call(counterexample)
+    );
+  }
+  return undefined;
+}
+
+function parseReplayPathMetadata(metadata: unknown): string | undefined {
+  if (typeof metadata !== 'string') {
+    return undefined;
+  }
+  const match = metadata.match(/replayPath="([^"]*)"/);
+  if (!match) {
+    return undefined;
+  }
+  return match[1];
+}
+
 class EventPropertyCommand<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -252,11 +298,7 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
         engine: 'fast-check',
         seed: result.seed,
         path: result.counterexamplePath ?? undefined,
-        replayPath: (
-          result.counterexample?.[0] as { toString(): string } | undefined
-        )
-          ?.toString()
-          .match(/replayPath="([^"]+)"/)?.[1]
+        replayPath: extractReplayPath(result.counterexample?.[0])
       }
     };
   }

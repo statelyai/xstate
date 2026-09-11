@@ -78,10 +78,25 @@ export type PropertyCommand<TEvent extends EventObject = EventObject> =
   | { readonly type: 'checkpoint'; readonly label?: string }
   | { readonly type: 'stop' };
 
-export interface PropertyObservation {
+export interface PropertyComparedObservation {
+  /** The model projection that was compared. */
   readonly model: unknown;
-  readonly oracle?: unknown;
-  readonly sut?: unknown;
+  /** The value observed on the reference oracle or the system under test. */
+  readonly observed: unknown;
+}
+
+export interface PropertyObservation {
+  /**
+   * The model projection of the reference oracle when one is configured,
+   * otherwise the model projection of the system under test. Prefer the
+   * explicit `reference` and `sut` fields, which always report the projection
+   * they were compared against.
+   */
+  readonly model: unknown;
+  /** Present when a reference oracle is configured. */
+  readonly reference?: PropertyComparedObservation;
+  /** Present when a system under test is configured. */
+  readonly sut?: PropertyComparedObservation;
 }
 
 export interface PropertyEventTimelineEntry<
@@ -128,10 +143,11 @@ export interface PortablePropertyTimelineEntry {
 }
 
 export interface PortableTemporalFailure {
-  readonly type: 'eventually' | 'until';
+  readonly type: 'eventually' | 'until' | 'always' | 'never';
   readonly id: string;
   readonly description?: string;
-  readonly within: number;
+  /** Only present for bounded (`eventually`/`until`) temporal properties. */
+  readonly within?: number;
   readonly atStep: number;
 }
 
@@ -399,16 +415,38 @@ export type PropertyTemporal<
       readonly type: 'eventually';
       readonly id: string;
       readonly description?: string;
-      readonly within: number;
+      /**
+       * Fails as soon as this many stable steps elapse without the predicate
+       * holding. When omitted, the predicate must hold before the run ends.
+       */
+      readonly within?: number;
       readonly predicate: PropertyTemporalPredicate<TSnapshot, TEvent>;
     }
   | {
       readonly type: 'until';
       readonly id: string;
       readonly description?: string;
-      readonly within: number;
+      /**
+       * Fails as soon as this many stable steps elapse without `until`
+       * holding. When omitted, `until` must hold before the run ends.
+       */
+      readonly within?: number;
       readonly hold: PropertyTemporalPredicate<TSnapshot, TEvent>;
       readonly until: PropertyTemporalPredicate<TSnapshot, TEvent>;
+    }
+  | {
+      /** The predicate must hold on every stable step. */
+      readonly type: 'always';
+      readonly id: string;
+      readonly description?: string;
+      readonly predicate: PropertyTemporalPredicate<TSnapshot, TEvent>;
+    }
+  | {
+      /** The predicate must never hold on any stable step. */
+      readonly type: 'never';
+      readonly id: string;
+      readonly description?: string;
+      readonly predicate: PropertyTemporalPredicate<TSnapshot, TEvent>;
     };
 
 export interface PropertyStep<
@@ -467,8 +505,119 @@ interface TemporalState<
   satisfied: boolean;
 }
 
-function defaultEquivalent(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+/**
+ * Structural, key-order insensitive deep equality used to compare model
+ * projections against reference/SUT observations. Cycle-safe.
+ */
+export function defaultEquivalent(left: unknown, right: unknown): boolean {
+  return deepEqual(left, right, new Map());
+}
+
+function deepEqual(
+  left: unknown,
+  right: unknown,
+  visited: Map<object, Set<object>>
+): boolean {
+  if (Object.is(left, right)) {
+    return true;
+  }
+  if (
+    typeof left !== 'object' ||
+    typeof right !== 'object' ||
+    left === null ||
+    right === null
+  ) {
+    // `NaN` is handled by `Object.is`; `0`/`-0` are treated as equal.
+    return left === right;
+  }
+  const seen = visited.get(left);
+  if (seen?.has(right)) {
+    return true;
+  }
+  if (seen) {
+    seen.add(right);
+  } else {
+    visited.set(left, new Set([right]));
+  }
+  if (left instanceof Date || right instanceof Date) {
+    return (
+      left instanceof Date &&
+      right instanceof Date &&
+      left.getTime() === right.getTime()
+    );
+  }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right)) {
+      return false;
+    }
+    return (
+      left.length === right.length &&
+      left.every((value, index) => deepEqual(value, right[index], visited))
+    );
+  }
+  if (left instanceof Map || right instanceof Map) {
+    if (!(left instanceof Map) || !(right instanceof Map)) {
+      return false;
+    }
+    if (left.size !== right.size) {
+      return false;
+    }
+    for (const [key, value] of left) {
+      if (!right.has(key) || !deepEqual(value, right.get(key), visited)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (left instanceof Set || right instanceof Set) {
+    if (!(left instanceof Set) || !(right instanceof Set)) {
+      return false;
+    }
+    if (left.size !== right.size) {
+      return false;
+    }
+    for (const value of left) {
+      if (!right.has(value)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+  return leftKeys.every(
+    (key) =>
+      Object.prototype.hasOwnProperty.call(right, key) &&
+      deepEqual(
+        (left as Record<string, unknown>)[key],
+        (right as Record<string, unknown>)[key],
+        visited
+      )
+  );
+}
+
+function assertEventPayload(
+  payload: unknown,
+  type: string,
+  caseId?: string
+): asserts payload is object {
+  if (
+    payload === null ||
+    typeof payload !== 'object' ||
+    Array.isArray(payload)
+  ) {
+    const location = caseId
+      ? `Property event case ${caseId}`
+      : `Property event "${type}"`;
+    throw new Error(
+      `${location} generated a non-object payload (${
+        typeof payload === 'string' ? JSON.stringify(payload) : String(payload)
+      }). Event payloads must be plain objects; use a \`resolve\` function to map generated values onto an event payload.`
+    );
+  }
 }
 
 export class PropertyScenarioRunner<
@@ -491,6 +640,7 @@ export class PropertyScenarioRunner<
     | PropertyTestModelSession<TSnapshot, TEvent>
     | undefined;
   private lastObservation: PropertyObservation | undefined;
+  private readonly inconclusiveTemporalIds: string[] = [];
   private generatedCommandCount = 0;
 
   public constructor(
@@ -591,7 +741,6 @@ export class PropertyScenarioRunner<
   }
 
   private canRunResolved(event: TEvent | undefined, caseId: string): boolean {
-    this.recordGeneratedCommand();
     recordPropertyEventCase(this.coverage, caseId, 'generated');
     const descriptor = this.eventDescriptors.get(caseId);
     const canRun =
@@ -617,13 +766,14 @@ export class PropertyScenarioRunner<
       descriptor && 'resolve' in descriptor && descriptor.resolve
         ? descriptor.resolve({ snapshot: this.snapshot, generated })
         : generated;
-    return payload === undefined
-      ? undefined
-      : ({ ...(payload as object), type } as TEvent);
+    if (payload === undefined) {
+      return undefined;
+    }
+    assertEventPayload(payload, type, caseId);
+    return { ...payload, type } as TEvent;
   }
 
   public canRunCommand(applicable: boolean): boolean {
-    this.recordGeneratedCommand();
     if (!applicable) {
       this.coverage.skipped++;
     }
@@ -632,6 +782,7 @@ export class PropertyScenarioRunner<
 
   public async run(event: TEvent, caseId: string): Promise<void> {
     this.assertStarted();
+    this.recordGeneratedCommand();
     recordPropertyEventCase(this.coverage, caseId, 'executed');
     await this.executeEvent(
       event,
@@ -689,6 +840,7 @@ export class PropertyScenarioRunner<
 
   public async advance(milliseconds: number): Promise<void> {
     this.assertStarted();
+    this.recordGeneratedCommand();
     if (!this.sutSession?.advance) {
       throw new Error('Property SUT does not support clock advancement');
     }
@@ -727,6 +879,7 @@ export class PropertyScenarioRunner<
 
   public async checkpoint(label?: string): Promise<void> {
     this.assertStarted();
+    this.recordGeneratedCommand();
     const entry: PropertyRuntimeTimelineEntry<TSnapshot, TEvent> = {
       kind: 'command',
       index: this.timeline.length,
@@ -747,6 +900,7 @@ export class PropertyScenarioRunner<
 
   public async stop(): Promise<void> {
     this.assertStarted();
+    this.recordGeneratedCommand();
     const previousSnapshot = this.snapshot;
     const [snapshot, effects, selected, guards, resolutions] =
       transitionWithDetails(this.logic, previousSnapshot, {
@@ -793,10 +947,34 @@ export class PropertyScenarioRunner<
     }
     this.finished = true;
     for (const state of this.temporal) {
-      if (!state.satisfied) {
-        this.failTemporal(state.definition);
+      if (state.satisfied) {
+        continue;
       }
+      const definition = state.definition;
+      if (definition.type !== 'eventually' && definition.type !== 'until') {
+        // `always`/`never` are checked on every stable step; nothing is pending.
+        continue;
+      }
+      if (definition.within !== undefined) {
+        // The run ended before the bound elapsed, so the property is
+        // inconclusive rather than violated.
+        // TODO(STA-6400): record inconclusive temporal properties in coverage
+        // once `PropertyCoverage` exposes a field for them.
+        this.inconclusiveTemporalIds.push(definition.id);
+        continue;
+      }
+      this.failTemporal(definition);
     }
+  }
+
+  /** Bounded temporal properties that the run ended before deciding. */
+  public getInconclusiveTemporalIds(): readonly string[] {
+    return this.inconclusiveTemporalIds.slice();
+  }
+
+  /** The number of stable steps observed so far. */
+  public getStableStep(): number {
+    return this.stableStep;
   }
 
   public async dispose(): Promise<void> {
@@ -995,6 +1173,18 @@ export class PropertyScenarioRunner<
       }
       this.coverage.temporalChecks++;
       const definition = state.definition;
+      if (definition.type === 'always') {
+        if (!(await definition.predicate(context))) {
+          this.failTemporal(definition);
+        }
+        continue;
+      }
+      if (definition.type === 'never') {
+        if (await definition.predicate(context)) {
+          this.failTemporal(definition);
+        }
+        continue;
+      }
       if (definition.type === 'eventually') {
         state.satisfied = await definition.predicate(context);
       } else if (await definition.until(context)) {
@@ -1002,7 +1192,11 @@ export class PropertyScenarioRunner<
       } else if (!(await definition.hold(context))) {
         this.failTemporal(definition);
       }
-      if (!state.satisfied && context.step >= definition.within) {
+      if (
+        !state.satisfied &&
+        definition.within !== undefined &&
+        context.step >= definition.within
+      ) {
         this.failTemporal(definition);
       }
     }
@@ -1013,7 +1207,10 @@ export class PropertyScenarioRunner<
       type: definition.type,
       id: definition.id,
       description: definition.description,
-      within: definition.within,
+      within:
+        definition.type === 'eventually' || definition.type === 'until'
+          ? definition.within
+          : undefined,
       atStep: this.stableStep - 1
     };
     this.fail(
@@ -1046,10 +1243,13 @@ export class PropertyScenarioRunner<
         ? this.sut.projectSut(sutRaw)
         : sutRaw
       : undefined;
+    const sutModel = this.sut
+      ? this.sut.projectModel(this.snapshot)
+      : undefined;
     const observation: PropertyObservation = {
       model,
-      oracle: reference,
-      sut
+      reference: this.reference ? { model, observed: reference } : undefined,
+      sut: this.sut ? { model: sutModel, observed: sut } : undefined
     };
     let referenceMatches = true;
     let sutMatches = true;
@@ -1061,7 +1261,6 @@ export class PropertyScenarioRunner<
     }
     if (this.sut) {
       this.coverage.sutComparisons++;
-      const sutModel = this.sut.projectModel(this.snapshot);
       sutMatches = this.sut.equivalent
         ? await this.sut.equivalent(sutModel, sut)
         : defaultEquivalent(sutModel, sut);
@@ -1073,9 +1272,9 @@ export class PropertyScenarioRunner<
         'Property observation diverged',
         {
           model,
-          oracle: reference,
-          sut,
-          oracleMatches: referenceMatches,
+          reference: observation.reference,
+          sut: observation.sut,
+          referenceMatches,
           sutMatches
         },
         this.stableStep
@@ -1126,12 +1325,19 @@ export class PropertyScenarioRunner<
     failedAt: number,
     temporalFailure?: PortableTemporalFailure
   ): never {
+    let fixture: PortablePropertyReplayFixture | undefined;
+    try {
+      fixture = this.getReplayFixture(failedAt, temporalFailure);
+    } catch {
+      // Never mask the underlying failure with a fixture-construction error.
+      fixture = undefined;
+    }
     throw new PropertyTestFailure(
       message,
       this.getTrace(),
       cause,
       undefined,
-      this.getReplayFixture(failedAt, temporalFailure)
+      fixture
     );
   }
 
@@ -1343,6 +1549,11 @@ export async function propertyTest<
       commands.push({ type, generator });
     }
   }
+  if (options.start && typeof options.start.serializeSnapshot !== 'function') {
+    throw new Error(
+      'Property tests starting from a snapshot require a `start.serializeSnapshot` function'
+    );
+  }
   const coverage = createPropertyCoverage(model.testLogic);
   for (const event of events) {
     declarePropertyEventCase(coverage, event.caseId);
@@ -1408,8 +1619,10 @@ export async function propertyTest<
       events,
       commands,
       runBudget,
-      createEvent: (type, payload) =>
-        ({ ...(payload as object), type }) as EventFromSource<TSource>,
+      createEvent: (type, payload) => {
+        assertEventPayload(payload, type);
+        return { ...payload, type } as EventFromSource<TSource>;
+      },
       createRunner: () => {
         coverage.runs++;
         return new PropertyScenarioRunner(
@@ -1555,6 +1768,10 @@ export async function replayPropertyTest<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
     >;
+    readonly sut?: PropertySut<
+      SnapshotFromSource<TSource>,
+      EventFromSource<TSource>
+    >;
     readonly test?: PropertyTestModelExecution<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
@@ -1610,7 +1827,7 @@ export async function replayPropertyTest<
       : undefined,
     [],
     undefined,
-    undefined,
+    options.sut,
     model as TestModel<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>,
@@ -1630,9 +1847,16 @@ export async function replayPropertyTest<
         EventFromSource<TSource>
       >;
       await runner.replay(command);
+      if (runner.getStableStep() > fixture.failedAt) {
+        // The recorded failure step has been replayed; anything after it was
+        // never reached by the original run.
+        break;
+      }
     }
     runner.finish();
-    return runner.getTrace();
+    throw new Error(
+      `Property replay did not reproduce the recorded failure at step ${fixture.failedAt}`
+    );
   } finally {
     await runner.dispose();
   }

@@ -2429,7 +2429,8 @@ export function macrostep(
     const transitionDetails = getTransitionDetails(actorScope);
     if (transitionDetails) {
       transitionDetails.transitions.push(...transitions);
-    } else if (
+    }
+    if (
       !isInertActorScope(actorScope) &&
       (event.type === XSTATE_INIT ||
         (actorScope.system._hasInspectionObservers?.() ?? true))

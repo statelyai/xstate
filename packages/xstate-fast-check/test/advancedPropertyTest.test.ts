@@ -447,7 +447,7 @@ describe('advanced property testing', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('shrinks independent reference divergence with model, oracle, and SUT observations', async () => {
+  it('shrinks independent reference divergence with model, reference, and SUT observations', async () => {
     const machine = createMachine({
       id: 'reference',
       schemas: {
@@ -498,18 +498,51 @@ describe('advanced property testing', () => {
 
     expect(failure).toBeInstanceOf(PropertyTestFailure);
     expect(failure.trace.events).toHaveLength(1);
-    expect(failure.cause).toMatchObject({
+    const cause = failure.cause as {
+      model: number;
+      reference: { model: number; observed: number };
+      sut: { model: number; observed: number };
+      referenceMatches: boolean;
+      sutMatches: boolean;
+    };
+    expect(cause).toMatchObject({
       model: expect.any(Number),
-      oracle: expect.any(Number),
-      sut: expect.any(Number),
-      oracleMatches: false,
+      reference: {
+        model: expect.any(Number),
+        observed: expect.any(Number)
+      },
+      sut: {
+        model: expect.any(Number),
+        observed: expect.any(Number)
+      },
+      referenceMatches: false,
       sutMatches: true
     });
-    expect(failure.trace.timeline.at(-1)?.observation).toMatchObject({
+    // the reference oracle diverged (it adds `value + 1`), the SUT agreed
+    expect(cause.reference.observed).not.toBe(cause.reference.model);
+    expect(cause.sut.observed).toBe(cause.sut.model);
+    expect(cause.reference.model).toBe(cause.model);
+    const observation = failure.trace.timeline.at(-1)?.observation as {
+      model: number;
+      reference: { model: number; observed: number };
+      sut: { model: number; observed: number };
+    };
+    expect(observation).toMatchObject({
       model: expect.any(Number),
-      oracle: expect.any(Number),
-      sut: expect.any(Number)
+      reference: {
+        model: expect.any(Number),
+        observed: expect.any(Number)
+      },
+      sut: {
+        model: expect.any(Number),
+        observed: expect.any(Number)
+      }
     });
+    expect(observation).not.toHaveProperty('oracle');
+    expect(observation.reference.observed).not.toBe(
+      observation.reference.model
+    );
+    expect(observation.sut.observed).toBe(observation.sut.model);
   });
 
   it('replays temporal failures and chronological runtime commands portably', async () => {

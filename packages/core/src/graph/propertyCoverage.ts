@@ -6,6 +6,8 @@ import type {
   Snapshot
 } from '../types.ts';
 import type { GuardEvaluation } from '../transition.ts';
+import { getStateNodeByPath } from '../stateUtils.ts';
+import { normalizeTarget } from '../utils.ts';
 import { getStateNodes } from './graph.ts';
 
 export type PropertyCoverageStatus =
@@ -47,6 +49,7 @@ export interface PropertyExplorationFrontier {
   readonly runBudget: number | null;
   readonly configuredRuns: number | null;
   readonly completedRuns: number;
+  /** Runner creations, including shrink attempts. */
   readonly attemptedRuns: number;
 }
 
@@ -60,6 +63,7 @@ export interface PropertyExplorationSeed {
 export interface PropertyExplorationBounds {
   readonly configuredRuns: number | null;
   readonly completedRuns: number;
+  /** Runner creations, including shrink attempts. */
   readonly attemptedRuns: number;
   readonly maximumSequenceLength: number | null;
   readonly maximumObservedSequenceLength: number;
@@ -232,14 +236,52 @@ function getPropertyTransitionId(
   );
 }
 
+/**
+ * Resolves the default target(s) of a history state node. History nodes are
+ * never part of an active configuration themselves; entering one enters these
+ * nodes instead, so anything reachable only through a history default target
+ * would otherwise be misreported as unreachable.
+ */
+function getHistoryDefaultTargets(node: AnyStateNode): AnyStateNode[] {
+  const parent = node.parent;
+  if (!parent) {
+    return [];
+  }
+  const normalized = normalizeTarget(
+    (node.config as { target?: string | string[] }).target
+  );
+  if (!normalized) {
+    return parent.type === 'parallel'
+      ? [parent]
+      : (parent.initial?.target ?? []);
+  }
+  const targets: AnyStateNode[] = [];
+  for (const target of normalized) {
+    if (typeof target !== 'string') {
+      targets.push(target as AnyStateNode);
+      continue;
+    }
+    try {
+      targets.push(getStateNodeByPath(parent, target));
+    } catch {
+      // An unresolvable target contributes no reachability information.
+    }
+  }
+  return targets;
+}
+
 function collectReachableNodes(root: AnyStateNode): Set<string> {
   const reachable = new Set<string>([root.id]);
   const queue: AnyStateNode[] = [root];
   while (queue.length) {
     const node = queue.shift()!;
+    // `node.transitions` already includes `on`, `after`, the compound/parallel
+    // `onDone` transitions and the `invoke` `onDone`/`onError`/`onSnapshot`
+    // transitions, because `formatTransitions()` folds all of them into it.
     const candidates = [
       ...(node.initial?.target ?? []),
       ...(node.type === 'parallel' ? Object.values(node.states) : []),
+      ...(node.type === 'history' ? getHistoryDefaultTargets(node) : []),
       ...[...node.transitions.values()].flatMap((definitions) =>
         definitions.flatMap((definition) => definition.target ?? [])
       ),

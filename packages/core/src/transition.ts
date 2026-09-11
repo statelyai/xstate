@@ -33,6 +33,7 @@ import {
 import {
   createTransitionDetails,
   type GuardEvaluation,
+  type TransitionDetails,
   type TransitionResolution
 } from './actorScope.ts';
 
@@ -84,8 +85,10 @@ export function transition<T extends AnyActorLogic>(
   nextSnapshot: SnapshotFrom<T>,
   actions: ExecutableActionObjectFromLogic<T>[]
 ] {
-  const [nextSnapshot, effects] = transitionWithDetails(logic, snapshot, event);
-  return [nextSnapshot, effects];
+  return runTransition(logic, snapshot, event, false)[0] as [
+    SnapshotFrom<T>,
+    ExecutableActionObjectFromLogic<T>[]
+  ];
 }
 
 /** @internal */
@@ -100,8 +103,34 @@ export function transitionWithDetails<T extends AnyActorLogic>(
   guards: GuardEvaluation[],
   resolutions: TransitionResolution[]
 ] {
+  const [[nextSnapshot, effects], details] = runTransition(
+    logic,
+    snapshot,
+    event,
+    true
+  );
+  return [
+    nextSnapshot as SnapshotFrom<T>,
+    effects as ExecutableActionObjectFromLogic<T>[],
+    details!.transitions,
+    details!.guards,
+    details!.resolutions
+  ];
+}
+
+/**
+ * Shared implementation of the pure `transition()` path. `withDetails` controls
+ * whether transition evidence is collected; no details object is allocated
+ * otherwise.
+ */
+function runTransition(
+  logic: AnyActorLogic,
+  snapshot: any,
+  event: any,
+  withDetails: boolean
+): [[AnyMachineSnapshot, ExecutableActionObject[]], TransitionDetails?] {
   const actorScope = createInertActorScope(logic, snapshot);
-  const details = createTransitionDetails(actorScope);
+  const details = withDetails ? createTransitionDetails(actorScope) : undefined;
   setInertActorScopeSnapshot(actorScope, snapshot, false);
   const [nextSnapshot, effects] = finalizeTransitionResult(
     actorScope,
@@ -115,13 +144,7 @@ export function transitionWithDetails<T extends AnyActorLogic>(
       ? nextSnapshot
       : attachSnapshotActorRef(actorScope, nextSnapshot);
   inspectPureTransition(actorScope, returnedSnapshot, event);
-  return [
-    returnedSnapshot,
-    effects as ExecutableActionObjectFromLogic<T>[],
-    details.transitions,
-    details.guards,
-    details.resolutions
-  ];
+  return [[returnedSnapshot, effects], details];
 }
 
 /**
@@ -137,8 +160,10 @@ export function initialTransition<T extends AnyActorLogic>(
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
 ): [SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]] {
-  const [snapshot, effects] = initialTransitionWithDetails(logic, input as any);
-  return [snapshot, effects];
+  return runInitialTransition(logic, input, false)[0] as [
+    SnapshotFrom<T>,
+    ExecutableActionObjectFromLogic<T>[]
+  ];
 }
 
 /** @internal */
@@ -154,8 +179,32 @@ export function initialTransitionWithDetails<T extends AnyActorLogic>(
   GuardEvaluation[],
   TransitionResolution[]
 ] {
+  const [[nextSnapshot, effects], details] = runInitialTransition(
+    logic,
+    input,
+    true
+  );
+  return [
+    nextSnapshot as SnapshotFrom<T>,
+    effects as ExecutableActionObjectFromLogic<T>[],
+    details!.transitions,
+    details!.guards,
+    details!.resolutions
+  ];
+}
+
+/**
+ * Shared implementation of the pure `initialTransition()` path. `withDetails`
+ * controls whether transition evidence is collected; no details object is
+ * allocated otherwise.
+ */
+function runInitialTransition(
+  logic: AnyActorLogic,
+  input: unknown,
+  withDetails: boolean
+): [[AnyMachineSnapshot, ExecutableActionObject[]], TransitionDetails?] {
   const actorScope = createInertActorScope(logic);
-  const details = createTransitionDetails(actorScope);
+  const details = withDetails ? createTransitionDetails(actorScope) : undefined;
 
   const [nextSnapshot, executableActions] = finalizeTransitionResult(
     actorScope,
@@ -166,13 +215,7 @@ export function initialTransitionWithDetails<T extends AnyActorLogic>(
   setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
   const returnedSnapshot = attachSnapshotActorRef(actorScope, nextSnapshot);
   inspectPureTransition(actorScope, returnedSnapshot, createInitEvent(input));
-  return [
-    returnedSnapshot,
-    executableActions as ExecutableActionObjectFromLogic<T>[],
-    details.transitions,
-    details.guards,
-    details.resolutions
-  ];
+  return [[returnedSnapshot, executableActions], details];
 }
 
 /**
