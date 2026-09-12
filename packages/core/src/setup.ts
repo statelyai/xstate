@@ -302,6 +302,7 @@ type InlineMachineSchemas<
   TInputSchema,
   TOutputSchema,
   TMetaSchema,
+  TTransitionMetaSchema,
   TTagSchema,
   TChildrenSchemaMap
 > = {
@@ -314,6 +315,7 @@ type InlineMachineSchemas<
   input?: TInputSchema;
   output?: TOutputSchema;
   meta?: TMetaSchema;
+  transitionMeta?: TTransitionMetaSchema;
   tags?: TTagSchema;
   children?: TChildrenSchemaMap;
 };
@@ -451,6 +453,7 @@ export type SetupSchemas = {
   input?: StandardSchemaV1;
   output?: StandardSchemaV1;
   meta?: StandardSchemaV1;
+  transitionMeta?: StandardSchemaV1;
   tags?: StandardSchemaV1;
   children?: Record<string, StandardSchemaV1>;
 };
@@ -1299,6 +1302,7 @@ type SetupStateNodeConfig<
   SetupOutput<TSchemas, StandardSchemaV1>,
   SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
   SetupMeta<TSchemas, StandardSchemaV1>,
+  SetupTransitionMeta<TSchemas, StandardSchemaV1, StandardSchemaV1>,
   SetupActions<TSchemas, TSetupActionMap>,
   TSetupActorMap,
   SetupGuards<TSchemas, TSetupGuardMap>,
@@ -1415,6 +1419,16 @@ type SetupMeta<TSchemas, TMetaSchema extends StandardSchemaV1> = [
 ] extends [never]
   ? InferOutput<TMetaSchema, MetaObject>
   : InferOutput<SetupSchema<TSchemas, 'meta'>, MetaObject>;
+
+type SetupTransitionMeta<
+  TSchemas,
+  TMetaSchema extends StandardSchemaV1,
+  TTransitionMetaSchema extends StandardSchemaV1
+> = [SetupSchema<TSchemas, 'transitionMeta'>] extends [never]
+  ? StandardSchemaV1 extends TTransitionMetaSchema
+    ? SetupMeta<TSchemas, TMetaSchema>
+    : InferOutput<TTransitionMetaSchema, MetaObject>
+  : InferOutput<SetupSchema<TSchemas, 'transitionMeta'>, MetaObject>;
 
 type SetupChildren<
   TSchemas,
@@ -2603,6 +2617,7 @@ type SetupMachineConfigBase<
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
+  TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext,
@@ -2611,7 +2626,8 @@ type SetupMachineConfigBase<
   TDelays extends string,
   TTag extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
@@ -2631,6 +2647,7 @@ type SetupMachineConfigBase<
     SetupOrConfigSchema<TSchemas, 'input', TInputSchema>,
     SetupOrConfigSchema<TSchemas, 'output', TOutputSchema>,
     SetupOrConfigSchema<TSchemas, 'meta', TMetaSchema>,
+    SetupOrConfigSchema<TSchemas, 'transitionMeta', TTransitionMetaSchema>,
     SetupOrConfigSchema<TSchemas, 'tags', TTagSchema>,
     SetupOrConfigSchemaMap<TSchemas, 'children', TChildrenSchemaMap>,
     TContext,
@@ -2675,6 +2692,8 @@ type SetupMachineConfigBase<
     | string
     | {
         target: string;
+        meta?: TTransitionMeta;
+        description?: string;
         input?: unknown;
       }
     | undefined;
@@ -2685,7 +2704,7 @@ type SetupMachineConfigBase<
     TEvent,
     TEmitted,
     TChildren,
-    TMeta,
+    TTransitionMeta,
     TActionMap,
     TActorMap,
     TGuardMap,
@@ -2700,7 +2719,7 @@ type SetupMachineConfigBase<
     TEvent,
     TEmitted,
     TChildren,
-    TMeta,
+    TTransitionMeta,
     TActionMap,
     TActorMap,
     TGuardMap,
@@ -2715,7 +2734,7 @@ type SetupMachineConfigBase<
       TEvent,
       TEmitted,
       TChildren,
-      TMeta,
+      TTransitionMeta,
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -2735,7 +2754,8 @@ type SetupMachineConfigBase<
     TTag,
     SetupOutput<TSchemas, TOutputSchema>,
     TEmitted,
-    TMeta,
+    TStateMeta,
+    TTransitionMeta,
     TActionMap,
     TActorMap,
     TGuardMap,
@@ -2757,6 +2777,7 @@ type SetupMachineConfig<
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
+  TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext,
@@ -2765,7 +2786,8 @@ type SetupMachineConfig<
   TDelays extends string,
   TTag extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
@@ -2790,6 +2812,7 @@ type SetupMachineConfig<
           TInputSchema,
           TOutputSchema,
           TMetaSchema,
+          TTransitionMetaSchema,
           TTagSchema,
           TChildrenSchemaMap,
           TContext,
@@ -2798,7 +2821,8 @@ type SetupMachineConfig<
           TDelays,
           TTag,
           TEmitted,
-          TMeta,
+          TStateMeta,
+          TTransitionMeta,
           TActionMap,
           TActorMap,
           TGuardMap,
@@ -2814,7 +2838,12 @@ type SetupMachineConfig<
       > & {
         initial?:
           | SetupInitialStateKey<TStateSchemas, TStateKeys>
-          | RootInitialTransitionWithInput<TStateSchemas, TContext, TEvent>
+          | RootInitialTransitionWithInput<
+              TStateSchemas,
+              TContext,
+              TEvent,
+              TTransitionMeta
+            >
           | undefined;
         on?: StateTransitions<
           TStateSchemas,
@@ -2823,7 +2852,7 @@ type SetupMachineConfig<
           TEvent,
           TEmitted,
           TChildren,
-          TMeta,
+          TTransitionMeta,
           TActionMap,
           TActorMap,
           TGuardMap,
@@ -2841,7 +2870,7 @@ type SetupMachineConfig<
           TEvent,
           TEmitted,
           TChildren,
-          TMeta,
+          TTransitionMeta,
           TActionMap,
           TActorMap,
           TGuardMap,
@@ -2859,7 +2888,7 @@ type SetupMachineConfig<
             TEvent,
             TEmitted,
             TChildren,
-            TMeta,
+            TTransitionMeta,
             TActionMap,
             TActorMap,
             TGuardMap,
@@ -2879,7 +2908,8 @@ type SetupMachineConfig<
           TTag,
           SetupOutput<TSchemas, TOutputSchema>,
           TEmitted,
-          TMeta,
+          TStateMeta,
+          TTransitionMeta,
           TActionMap,
           TActorMap,
           TGuardMap,
@@ -2899,6 +2929,7 @@ type SetupMachineConfig<
         TInputSchema,
         TOutputSchema,
         TMetaSchema,
+        TTransitionMetaSchema,
         TTagSchema,
         TChildrenSchemaMap,
         TContext,
@@ -2907,7 +2938,8 @@ type SetupMachineConfig<
         TDelays,
         TTag,
         TEmitted,
-        TMeta,
+        TStateMeta,
+        TTransitionMeta,
         TActionMap,
         TActorMap,
         TGuardMap,
@@ -2932,7 +2964,8 @@ type StatesWithInput<
   TTag extends string,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
@@ -2951,7 +2984,8 @@ type StatesWithInput<
     TTag,
     TOutput,
     TEmitted,
-    TMeta,
+    TStateMeta,
+    TTransitionMeta,
     TActionMap,
     TActorMap,
     TGuardMap,
@@ -2972,7 +3006,8 @@ type StateNodeConfigWithNestedInputBase<
   TTag extends string,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
@@ -2987,7 +3022,7 @@ type StateNodeConfigWithNestedInputBase<
       TTag,
       StateOutput<TStateSchema, TOutput>,
       TEmitted,
-      TMeta,
+      TStateMeta,
       TChildren,
       TActionMap,
       TActorMap,
@@ -2996,7 +3031,8 @@ type StateNodeConfigWithNestedInputBase<
       StateInput<TStateSchema>,
       Record<string, unknown>,
       TSystemRegistry,
-      StateCompletionOutput<TStateSchema>
+      StateCompletionOutput<TStateSchema>,
+      TTransitionMeta
     >,
     | 'on'
     | 'always'
@@ -3014,12 +3050,15 @@ type StateNodeConfigWithNestedInputBase<
           | InitialTransitionWithInput<
               TStateSchema['states'],
               ActiveStateContext<TStateSchema, TContext, TContextShape>,
-              TEvent
+              TEvent,
+              TTransitionMeta
             >
       :
           | string
           | {
               target: string;
+              meta?: TTransitionMeta;
+              description?: string;
               input?: Record<string, unknown>;
             }
           | undefined;
@@ -3031,7 +3070,7 @@ type StateNodeConfigWithNestedInputBase<
       TEvent,
       TEmitted,
       TChildren,
-      TMeta,
+      TTransitionMeta,
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -3047,7 +3086,7 @@ type StateNodeConfigWithNestedInputBase<
       TEvent,
       TEmitted,
       TChildren,
-      TMeta,
+      TTransitionMeta,
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -3063,7 +3102,7 @@ type StateNodeConfigWithNestedInputBase<
         TEvent,
         TEmitted,
         TChildren,
-        TMeta,
+        TTransitionMeta,
         TActionMap,
         TActorMap,
         TGuardMap,
@@ -3080,7 +3119,7 @@ type StateNodeConfigWithNestedInputBase<
       TEvent,
       TEmitted,
       TChildren,
-      TMeta,
+      TTransitionMeta,
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -3096,7 +3135,7 @@ type StateNodeConfigWithNestedInputBase<
       TEvent,
       TEmitted,
       TChildren,
-      TMeta,
+      TTransitionMeta,
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -3112,7 +3151,7 @@ type StateNodeConfigWithNestedInputBase<
       TEvent,
       TEmitted,
       TChildren,
-      TMeta,
+      TTransitionMeta,
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -3129,7 +3168,7 @@ type StateNodeConfigWithNestedInputBase<
         TEvent,
         TEmitted,
         TChildren,
-        TMeta,
+        TTransitionMeta,
         TActionMap,
         TActorMap,
         TGuardMap,
@@ -3159,7 +3198,8 @@ type StateNodeConfigWithNestedInputBase<
         TTag,
         TOutput,
         TEmitted,
-        TMeta,
+        TStateMeta,
+        TTransitionMeta,
         TActionMap,
         TActorMap,
         TGuardMap,
@@ -3174,7 +3214,7 @@ type StateNodeConfigWithNestedInputBase<
           TTag,
           TOutput,
           TEmitted,
-          TMeta,
+          TStateMeta,
           TChildren,
           TActionMap,
           TActorMap,
@@ -3182,7 +3222,9 @@ type StateNodeConfigWithNestedInputBase<
           TDelayMap,
           undefined,
           Record<string, unknown>,
-          TSystemRegistry
+          TSystemRegistry,
+          unknown,
+          TTransitionMeta
         >;
       }
 >;
@@ -3198,7 +3240,8 @@ type StateNodeConfigWithNestedInput<
   TTag extends string,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
@@ -3217,7 +3260,8 @@ type StateNodeConfigWithNestedInput<
     TTag,
     TOutput,
     TEmitted,
-    TMeta,
+    TStateMeta,
+    TTransitionMeta,
     TActionMap,
     TActorMap,
     TGuardMap,
@@ -3827,22 +3871,28 @@ type SetupInitialStateKey<
 type InitialTransitionWithInput<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TTransitionMeta extends MetaObject
 > = {
   [K in keyof TStateSchemas & string]: {
     target: K;
+    meta?: TTransitionMeta;
+    description?: string;
   } & SetupStateInputConfig<TStateSchemas[K], TContext, TEvent>;
 }[keyof TStateSchemas & string];
 
 type RootInitialTransitionWithInput<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TTransitionMeta extends MetaObject
 > =
-  | InitialTransitionWithInput<TStateSchemas, TContext, TEvent>
+  | InitialTransitionWithInput<TStateSchemas, TContext, TEvent, TTransitionMeta>
   | {
       [K in RootSetupStateIdTarget<TStateSchemas>]: {
         target: K;
+        meta?: TTransitionMeta;
+        description?: string;
       } & SetupStateInputConfig<
         SetupStateSchemaAtTarget<TStateSchemas, K>,
         TContext,
@@ -3917,6 +3967,7 @@ export interface SetupReturn<
     TInputSchema extends StandardSchemaV1 = StandardSchemaV1,
     TOutputSchema extends StandardSchemaV1 = StandardSchemaV1,
     TMetaSchema extends StandardSchemaV1 = StandardSchemaV1,
+    TTransitionMetaSchema extends StandardSchemaV1 = TMetaSchema,
     TTagSchema extends StandardSchemaV1 = StandardSchemaV1,
     const TChildrenSchemaMap extends Record<string, StandardSchemaV1> = Record<
       string,
@@ -3948,6 +3999,7 @@ export interface SetupReturn<
       TInputSchema,
       TOutputSchema,
       TMetaSchema,
+      TTransitionMetaSchema,
       TTagSchema,
       TChildrenSchemaMap,
       SetupContext<TSchemas, TContextSchema>,
@@ -3960,6 +4012,7 @@ export interface SetupReturn<
       TTag,
       SetupEmitted<TSchemas, TEmittedSchemaMap>,
       SetupMeta<TSchemas, TMetaSchema>,
+      SetupTransitionMeta<TSchemas, TMetaSchema, TTransitionMetaSchema>,
       MergeSourceMaps<
         SetupActions<TSchemas, TSetupActionMap>,
         MergeSourceMaps<InferActions<TActionSchemaMap>, TActionMap>
@@ -3987,6 +4040,7 @@ export interface SetupReturn<
       TInputSchema,
       TOutputSchema,
       TMetaSchema,
+      TTransitionMetaSchema,
       TTagSchema,
       TChildrenSchemaMap,
       SetupContext<TSchemas, TContextSchema>,
@@ -3999,6 +4053,7 @@ export interface SetupReturn<
       TTag,
       SetupEmitted<TSchemas, TEmittedSchemaMap>,
       SetupMeta<TSchemas, TMetaSchema>,
+      SetupTransitionMeta<TSchemas, TMetaSchema, TTransitionMetaSchema>,
       MergeSourceMaps<
         SetupActions<TSchemas, TSetupActionMap>,
         MergeSourceMaps<InferActions<TActionSchemaMap>, TActionMap>
@@ -4028,6 +4083,7 @@ export interface SetupReturn<
         input?: TInputSchema;
         output?: TOutputSchema;
         meta?: TMetaSchema;
+        transitionMeta?: TTransitionMetaSchema;
         tags?: TTagSchema;
         children?: TChildrenSchemaMap;
       } & ([TValidator] extends [ActorLogicValidator]
@@ -4042,6 +4098,7 @@ export interface SetupReturn<
               TInputSchema,
               TOutputSchema,
               TMetaSchema,
+              TTransitionMetaSchema,
               TTagSchema,
               TChildrenSchemaMap
             >
@@ -4102,7 +4159,8 @@ export interface SetupReturn<
       TSetupDelays | TDelays,
       MergeSourceMaps<TSetupDelayMap, TDelayMap>
     >,
-    SetupInternalEvents<TSchemas, TInternalEventSchemaMap>
+    SetupInternalEvents<TSchemas, TInternalEventSchemaMap>,
+    SetupTransitionMeta<TSchemas, TMetaSchema, TTransitionMetaSchema>
   > &
     MachineIdentity<TConfig>;
 

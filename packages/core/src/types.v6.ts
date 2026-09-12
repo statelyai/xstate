@@ -259,6 +259,7 @@ type MachineSchemas<
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
+  TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>
 > = {
@@ -271,6 +272,7 @@ type MachineSchemas<
   input?: TInputSchema;
   output?: TOutputSchema;
   meta?: TMetaSchema;
+  transitionMeta?: TTransitionMetaSchema;
   tags?: TTagSchema;
   children?: TChildrenSchemaMap;
 };
@@ -280,6 +282,7 @@ export type AnyMachineSchemas = MachineSchemas<
   Record<string, StandardSchemaV1>,
   Record<string, StandardSchemaV1>,
   Record<string, StandardSchemaV1>,
+  StandardSchemaV1,
   StandardSchemaV1,
   StandardSchemaV1,
   StandardSchemaV1,
@@ -295,6 +298,7 @@ export type Next_MachineConfig<
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
+  TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext = InferOutput<TContextSchema, MachineContext>,
@@ -330,7 +334,8 @@ export type Next_MachineConfig<
     Record<string, unknown> | undefined,
     Record<string, unknown>,
     DoNotInfer<TSystemRegistry>,
-    DoNotInfer<InferOutput<TOutputSchema, unknown>>
+    DoNotInfer<InferOutput<TOutputSchema, unknown>>,
+    DoNotInfer<InferOutput<TTransitionMetaSchema, MetaObject>>
   >,
   'output' | 'schemas'
 > & {
@@ -344,6 +349,7 @@ export type Next_MachineConfig<
     TInputSchema,
     TOutputSchema,
     TMetaSchema,
+    TTransitionMetaSchema,
     TTagSchema,
     TChildrenSchemaMap
   >;
@@ -1055,7 +1061,7 @@ export type Next_StateNodeConfig<
   TTag extends string,
   _TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
+  TStateMeta extends MetaObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
@@ -1064,7 +1070,8 @@ export type Next_StateNodeConfig<
   TInput = Record<string, unknown> | undefined,
   TInputMap extends Record<string, unknown> = Record<string, unknown>,
   TSystemRegistry extends SystemRegistry = SystemRegistry,
-  TChildOutput = unknown
+  TChildOutput = unknown,
+  TTransitionMeta extends MetaObject = TStateMeta
 > =
   | Next_RegularStateNodeConfig<
       TContext,
@@ -1073,7 +1080,8 @@ export type Next_StateNodeConfig<
       TTag,
       _TOutput,
       TEmitted,
-      TMeta,
+      TStateMeta,
+      TTransitionMeta,
       TChildren,
       TActionMap,
       TActorMap,
@@ -1088,7 +1096,8 @@ export type Next_StateNodeConfig<
       TContext,
       TEvent,
       TTag,
-      TMeta,
+      TStateMeta,
+      TTransitionMeta,
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -1099,7 +1108,8 @@ interface Next_ChoiceStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTag extends string,
-  TMeta extends MetaObject,
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
@@ -1117,18 +1127,18 @@ interface Next_ChoiceStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TTransitionMeta
   >;
   id?: string | undefined;
   order?: number;
   tags?: TTag[];
   description?: string;
-  meta?: TMeta;
+  meta?: TStateMeta;
   route?:
     | Next_RouteConfig<
         TContext,
         TEvent,
-        TMeta,
+        TTransitionMeta,
         TActionMap,
         TActorMap,
         TGuardMap,
@@ -1159,7 +1169,8 @@ interface Next_RegularStateNodeConfig<
   TTag extends string,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
@@ -1177,6 +1188,8 @@ interface Next_RegularStateNodeConfig<
     | string
     | {
         target: string;
+        meta?: TTransitionMeta;
+        description?: string;
         input?:
           | Record<string, unknown>
           | ((args: {
@@ -1212,7 +1225,7 @@ interface Next_RegularStateNodeConfig<
       TTag,
       any, // TOutput,
       TEmitted,
-      TMeta,
+      TStateMeta,
       TChildren,
       TActionMap,
       TActorMap,
@@ -1221,7 +1234,8 @@ interface Next_RegularStateNodeConfig<
       LookupInput<TInputMap, K>,
       TInputMap,
       TSystemRegistry,
-      TChildOutput
+      TChildOutput,
+      TTransitionMeta
     >;
   };
   /**
@@ -1238,7 +1252,7 @@ interface Next_RegularStateNodeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TMeta,
+      TTransitionMeta,
       TSystemRegistry,
       TInput
     >
@@ -1254,7 +1268,7 @@ interface Next_RegularStateNodeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TMeta,
+      TTransitionMeta,
       TInput,
       TChildren
     >;
@@ -1267,7 +1281,7 @@ interface Next_RegularStateNodeConfig<
     | Next_RouteConfig<
         TContext,
         TEvent,
-        TMeta,
+        TTransitionMeta,
         TActionMap,
         TActorMap,
         TGuardMap,
@@ -1312,7 +1326,7 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta,
+    TTransitionMeta,
     undefined,
     TChildren
   >;
@@ -1329,7 +1343,7 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta,
+    TTransitionMeta,
     undefined,
     TChildren
   >;
@@ -1350,7 +1364,7 @@ interface Next_RegularStateNodeConfig<
           TActorMap,
           TGuardMap,
           TDelayMap,
-          TMeta,
+          TTransitionMeta,
           TInput,
           [TContext] extends [never] ? any : TContext,
           TChildren
@@ -1385,7 +1399,7 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta,
+    TTransitionMeta,
     TInput,
     TChildren
   >;
@@ -1403,7 +1417,7 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta,
+    TTransitionMeta,
     undefined,
     TChildren
   >;
@@ -1412,7 +1426,7 @@ interface Next_RegularStateNodeConfig<
    * The meta data associated with this state node, which will be returned in
    * State instances.
    */
-  meta?: TMeta;
+  meta?: TStateMeta;
   /**
    * The output data sent with the `xstate.done.state` event if this is a final
    * state node.

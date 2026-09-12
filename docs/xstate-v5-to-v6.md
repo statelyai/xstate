@@ -386,6 +386,7 @@ schemas: {
   input:    ZodSchema,                                  // machine input
   output:   ZodSchema,                                  // machine output
   meta:     ZodSchema,                                  // per-state meta
+  transitionMeta: ZodSchema,                            // per-transition meta
   tags:     z.enum([...]),                              // tag values
   children: { [childId: string]: ZodSchema }            // invoked/spawned child schemas
 }

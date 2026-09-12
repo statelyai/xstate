@@ -1532,18 +1532,19 @@ export type Mapper<
 
 export interface TransitionDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TMeta extends MetaObject = any
 > extends Omit<
   TransitionConfig<
     TContext,
     TEvent,
     TEvent,
     TODO,
+    TMeta,
     TODO,
     TODO,
     TODO,
-    TODO, // TEmitted
-    TODO // TMeta
+    TODO
   >,
   'target' | 'to'
 > {
@@ -1565,11 +1566,13 @@ export interface TransitionDefinition<
 
 export type AnyTransitionDefinition = TransitionDefinition<any, any>;
 
-export type InitialTransitionDefinition = {
+export type InitialTransitionDefinition<TMeta extends MetaObject = any> = {
   source: AnyStateNode;
   target: AnyStateNode[] | undefined;
   reenter?: boolean;
   eventType?: EventDescriptor<any>;
+  meta?: TMeta;
+  description?: string;
   input?:
     | Record<string, unknown>
     | ((args: {
@@ -1581,10 +1584,11 @@ export type InitialTransitionDefinition = {
 
 export type TransitionDefinitionMap<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TMeta extends MetaObject = any
 > = {
   [K in EventDescriptor<TEvent>]: Array<
-    TransitionDefinition<TContext, ExtractEvent<TEvent, K>>
+    TransitionDefinition<TContext, ExtractEvent<TEvent, K>, TMeta>
   >;
 };
 
@@ -1599,8 +1603,9 @@ export type DelayExpr<
 
 export interface DelayedTransitionDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
-> extends TransitionDefinition<TContext, TEvent> {
+  TEvent extends EventObject,
+  TMeta extends MetaObject = any
+> extends TransitionDefinition<TContext, TEvent, TMeta> {
   delay: number | string | DelayExpr<TContext, TEvent>;
 }
 

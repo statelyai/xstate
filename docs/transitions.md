@@ -11,6 +11,8 @@ idle: { on: { start: { target: 'active' } } }
 
 ## Transition properties
 
+<!-- transition config properties from packages/core/src/types.v6.ts -->
+
 | Property | Description |
 | --- | --- |
 | `target` | Target state or states. |
@@ -20,6 +22,17 @@ idle: { on: { start: { target: 'active' } } }
 | `reenter` | Re-enter the source state when targeting it. |
 | `meta` | Per-transition metadata. |
 | `description` | Human-readable description. |
+
+Use `schemas.transitionMeta` to type transition metadata separately from state
+metadata. If omitted, transition metadata uses `schemas.meta` for backwards
+compatibility.
+
+```ts
+schemas: {
+  meta: z.object({ label: z.string() }),
+  transitionMeta: z.object({ trackingId: z.number() })
+}
+```
 
 There is no `guard` property. Conditions live inside the transition function, which returns `undefined` to reject the event. See [guards](guards.md).
 

@@ -49,6 +49,13 @@ type MachineIdentity<TConfig> = {
     : undefined;
 };
 
+type TransitionMetaFromSchemas<
+  TMetaSchema extends StandardSchemaV1,
+  TTransitionMetaSchema extends StandardSchemaV1
+> = StandardSchemaV1 extends TTransitionMetaSchema
+  ? InferOutput<TMetaSchema, MetaObject>
+  : InferOutput<TTransitionMetaSchema, MetaObject>;
+
 type TestValue =
   | string
   | {
@@ -113,6 +120,7 @@ export function createMachine<
   TInputSchema extends StandardSchemaV1,
   const TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
+  TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   const TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
   _TEvent extends EventObject,
@@ -138,6 +146,7 @@ export function createMachine<
       TInputSchema,
       TOutputSchema,
       TMetaSchema,
+      TTransitionMetaSchema,
       TTagSchema,
       TChildrenSchemaMap,
       InferOutput<TContextSchema, MachineContext>,
@@ -188,7 +197,8 @@ export function createMachine<
   TActorMap,
   TGuardMap,
   DelayMapFromNames<TDelays, TDelayMap>,
-  InferInternalEvents<TInternalEventSchemaMap>
+  InferInternalEvents<TInternalEventSchemaMap>,
+  TransitionMetaFromSchemas<TMetaSchema, TTransitionMetaSchema>
 > & {
   states: TSS;
 } & MachineIdentity<TSS>;
@@ -207,6 +217,7 @@ export function createMachine<
   TInputSchema extends StandardSchemaV1 = StandardSchemaV1,
   const TOutputSchema extends StandardSchemaV1 = StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TTransitionMetaSchema extends StandardSchemaV1 = TMetaSchema,
   TTagSchema extends StandardSchemaV1 = StandardSchemaV1,
   const TChildrenSchemaMap extends Record<string, StandardSchemaV1> = Record<
     string,
@@ -237,6 +248,7 @@ export function createMachine<
       TInputSchema,
       TOutputSchema,
       TMetaSchema,
+      TTransitionMetaSchema,
       TTagSchema,
       TChildrenSchemaMap,
       WidenLiterals<TContext>,
@@ -299,7 +311,8 @@ export function createMachine<
   TActorMap,
   TGuardMap,
   DelayMapFromNames<TDelays, TDelayMap>,
-  InferInternalEvents<TInternalEventSchemaMap>
+  InferInternalEvents<TInternalEventSchemaMap>,
+  TransitionMetaFromSchemas<TMetaSchema, TTransitionMetaSchema>
 > & {
   states: TSS;
 } & MachineIdentity<TSS>;
@@ -320,6 +333,7 @@ export function createMachine(config: any): any {
     any,
     any,
     any,
+    any,
     any
   >(config) as any;
 }
@@ -331,6 +345,7 @@ export function createStateConfig<
   _TInputSchema extends StandardSchemaV1,
   const TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
+  TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   // TContext extends MachineContext,
   _TEvent extends StandardSchemaV1.InferOutput<TEventSchema> & EventObject, // TODO: consider using a stricter `EventObject` here
@@ -357,7 +372,12 @@ export function createStateConfig<
       DoNotInfer<TActionMap>,
       DoNotInfer<TActorMap>,
       DoNotInfer<TGuardMap>,
-      DoNotInfer<TDelayMap>
+      DoNotInfer<TDelayMap>,
+      any,
+      any,
+      any,
+      any,
+      DoNotInfer<TransitionMetaFromSchemas<TMetaSchema, TTransitionMetaSchema>>
     >
 ): typeof config {
   return config;

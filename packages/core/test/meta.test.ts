@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { createMachine, createActor, StateId } from '../src/index.ts';
+import {
+  createMachine,
+  createActor,
+  serializeMachine,
+  setup,
+  StateId
+} from '../src/index.ts';
 
 describe('state meta data', () => {
   const enter_walk = () => {};
@@ -475,6 +481,148 @@ describe('state meta data', () => {
 });
 
 describe('transition meta data', () => {
+  it('supports distinct state and transition metadata schemas', () => {
+    const machine = createMachine({
+      schemas: {
+        meta: z.object({ label: z.string() }),
+        transitionMeta: z.object({ trackingId: z.number() })
+      },
+      meta: { label: 'root' },
+      on: {
+        NEXT: { meta: { trackingId: 42 } }
+      }
+    });
+
+    machine.root.meta satisfies { label: string } | undefined;
+    machine.root.transitions.get('NEXT')![0].meta satisfies
+      | { trackingId: number }
+      | undefined;
+  });
+
+  it('rejects state and transition metadata in the wrong positions', () => {
+    createMachine({
+      schemas: {
+        meta: z.object({ state: z.string() }),
+        transitionMeta: z.object({ transition: z.string() })
+      },
+      // @ts-expect-error transition metadata is invalid on a state node
+      meta: { transition: 'root' }
+    });
+
+    createMachine({
+      schemas: {
+        meta: z.object({ state: z.string() }),
+        transitionMeta: z.object({ transition: z.string() })
+      },
+      // @ts-expect-error state metadata is invalid on a transition
+      on: {
+        NEXT: {
+          meta: { state: 'next' }
+        }
+      }
+    });
+  });
+
+  it('uses the state metadata schema for transitions by default', () => {
+    const machine = createMachine({
+      schemas: {
+        meta: z.object({ legacy: z.string() })
+      },
+      meta: { legacy: 'state' },
+      on: {
+        NEXT: { meta: { legacy: 'transition' } }
+      }
+    });
+
+    machine.root.meta satisfies { legacy: string } | undefined;
+    machine.root.transitions.get('NEXT')![0].meta satisfies
+      | { legacy: string }
+      | undefined;
+  });
+
+  it('preserves transition metadata on v6 transition definitions', () => {
+    const machine = setup({
+      schemas: {
+        meta: z.object({ state: z.string() }),
+        transitionMeta: z.object({ source: z.string() })
+      },
+      actors: {
+        child: createMachine({})
+      }
+    }).createMachine({
+      initial: {
+        target: 'idle',
+        meta: { source: 'initial' },
+        description: 'start idle'
+      },
+      states: {
+        idle: {
+          meta: { state: 'idle' },
+          route: { meta: { source: 'route' } },
+          always: { meta: { source: 'always' } },
+          after: {
+            100: () => ({ meta: { source: 'after' } })
+          },
+          timeout: 200,
+          onTimeout: { meta: { source: 'state.timeout' } },
+          invoke: {
+            src: 'child',
+            timeout: 300,
+            onDone: { meta: { source: 'invoke.done' } },
+            onError: { meta: { source: 'invoke.error' } },
+            onSnapshot: { meta: { source: 'invoke.snapshot' } },
+            onTimeout: { meta: { source: 'invoke.timeout' } }
+          }
+        },
+        routing: {
+          type: 'choice',
+          meta: { state: 'routing' },
+          choice: () => ({
+            target: 'idle',
+            meta: { source: 'choice' }
+          })
+        }
+      }
+    });
+
+    machine.root.initial.meta satisfies { source: string } | undefined;
+    machine.root.states.idle.meta satisfies { state: string } | undefined;
+    machine.root.states.idle.always![0].meta satisfies
+      | { source: string }
+      | undefined;
+    machine.root.states.idle.after[0].meta satisfies
+      | { source: string }
+      | undefined;
+
+    const invoke = machine.root.states.idle.invoke[0];
+    type SingleTransition<T> = Exclude<
+      NonNullable<T>,
+      string | readonly unknown[]
+    >;
+
+    (({}) as SingleTransition<typeof invoke.onDone>).meta satisfies
+      | { source: string }
+      | undefined;
+    (({}) as SingleTransition<typeof invoke.onError>).meta satisfies
+      | { source: string }
+      | undefined;
+    (({}) as SingleTransition<typeof invoke.onSnapshot>).meta satisfies
+      | { source: string }
+      | undefined;
+    (({}) as SingleTransition<typeof invoke.onTimeout>).meta satisfies
+      | { source: string }
+      | undefined;
+
+    expect(machine.root.initial.meta).toEqual({ source: 'initial' });
+    expect(machine.root.initial.description).toBe('start idle');
+    expect(
+      JSON.parse(JSON.stringify(serializeMachine(machine))).initial
+    ).toMatchObject({
+      meta: { source: 'initial' },
+      description: 'start idle'
+    });
+  });
+
   it('TS should error with unexpected transition meta property', () => {
     createMachine({
       schemas: {
