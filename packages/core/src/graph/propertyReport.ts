@@ -69,7 +69,16 @@ export interface PropertyCoverageJSON {
     readonly failed: string[];
     readonly inconclusive: string[];
   };
+  readonly labels: Record<
+    string,
+    {
+      readonly count: number;
+      readonly values: Record<string, number>;
+      readonly share: number;
+    }
+  >;
   readonly exploration: {
+    readonly stoppedBecause: string;
     readonly configuredRuns: number | null;
     readonly completedRuns: number;
     readonly attemptedRuns: number;
@@ -197,6 +206,7 @@ function explorationLines(exploration: PropertyExplorationBounds): string[] {
       `attempted ${exploration.attemptedRuns}`,
     `sequence length: max ${exploration.maximumSequenceLength ?? 'n/a'}, ` +
       `max observed ${exploration.maximumObservedSequenceLength}`,
+    `stopped because: ${exploration.stoppedBecause}`,
     `truncated: ${exploration.truncated}${
       exploration.truncationReasons.length
         ? ` (${[...exploration.truncationReasons].sort().join(', ')})`
@@ -279,6 +289,24 @@ function formatText(coverage: PropertyCoverage): string {
         `  - ${formatPropertyCoverageId(id)}: ${counts.generated} generated, ${
           counts.applicable
         } applicable, ${counts.executed} executed, ${counts.ignored} ignored`
+      );
+    }
+  }
+  const labels = Object.entries(coverage.labels).sort(([left], [right]) =>
+    left.localeCompare(right)
+  );
+  if (labels.length) {
+    lines.push('labels:');
+    for (const [name, label] of labels) {
+      const values = Object.entries(label.values)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([value, count]) => `${value}=${count}`)
+        .join(', ');
+      lines.push(
+        `  - ${name}: ${label.count} recorded, ${percentage(
+          Math.round(label.share * 1000),
+          1000
+        )} of runs${values ? ` (${values})` : ''}`
       );
     }
   }
@@ -377,6 +405,29 @@ function formatMarkdown(coverage: PropertyCoverage): string {
           String(counts.applicable),
           String(counts.executed),
           String(counts.ignored)
+        ])
+      ),
+      ''
+    );
+  }
+
+  const labels = Object.entries(coverage.labels).sort(([left], [right]) =>
+    left.localeCompare(right)
+  );
+  if (labels.length) {
+    lines.push(
+      '## Labels',
+      '',
+      ...markdownTable(
+        ['Label', 'Count', 'Share', 'Values'],
+        labels.map(([name, label]) => [
+          name,
+          String(label.count),
+          percentage(Math.round(label.share * 1000), 1000),
+          Object.entries(label.values)
+            .sort(([left], [right]) => left.localeCompare(right))
+            .map(([value, count]) => `${value}=${count}`)
+            .join('; ') || '-'
         ])
       ),
       ''
@@ -493,7 +544,20 @@ export function propertyCoverageToJSON(
       failed: [...coverage.temporal.failed],
       inconclusive: [...coverage.temporal.inconclusive]
     },
+    labels: Object.fromEntries(
+      Object.entries(coverage.labels)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([name, label]) => [
+          name,
+          {
+            count: label.count,
+            values: { ...label.values },
+            share: label.share
+          }
+        ])
+    ),
     exploration: {
+      stoppedBecause: coverage.exploration.stoppedBecause,
       configuredRuns: coverage.exploration.configuredRuns,
       completedRuns: coverage.exploration.completedRuns,
       attemptedRuns: coverage.exploration.attemptedRuns,

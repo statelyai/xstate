@@ -288,6 +288,11 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
     if (request.runBudget !== undefined) {
       parameters.numRuns = request.runBudget;
     }
+    if (request.runOffset && parameters.seed !== undefined) {
+      // Offsetting a fixed seed keeps successive batches of one campaign from
+      // replaying the same sequences.
+      parameters.seed += request.runOffset;
+    }
     const result = await fc.check(
       property,
       parameters as fc.Parameters<

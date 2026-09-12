@@ -470,6 +470,28 @@ importers:
         specifier: ^0.31.4
         version: 0.31.4(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(supports-color@5.5.0)(terser@5.49.0)
 
+  examples/property-testing-playwright:
+    dependencies:
+      xstate:
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.40.0
+        version: 1.63.0
+      '@xstate/fast-check':
+        specifier: workspace:*
+        version: link:../../packages/xstate-fast-check
+      '@xstate/test-playwright':
+        specifier: workspace:*
+        version: link:../../packages/xstate-test-playwright
+      fast-check:
+        specifier: ^4.9.0
+        version: 4.9.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   examples/snake-react:
     dependencies:
       '@xstate/react':
@@ -1642,7 +1664,7 @@ importers:
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^4.0.0
-        version: 4.0.4(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
+        version: 4.0.4(supports-color@5.5.0)(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
       '@testing-library/svelte':
         specifier: ^5.2.6
         version: 5.2.8(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))(vitest@3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@17.6.3)(jsdom@26.1.0)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
@@ -1682,7 +1704,7 @@ importers:
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^4.0.0
-        version: 4.0.4(supports-color@5.5.0)(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
+        version: 4.0.4(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
       '@testing-library/svelte':
         specifier: ^5.2.6
         version: 5.2.8(svelte@5.46.1)(vite@5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))(vitest@3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@17.6.3)(jsdom@26.1.0)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0))
@@ -1701,6 +1723,15 @@ importers:
       vite:
         specifier: 5.4.21
         version: 5.4.21(@types/node@25.2.1)(sass@1.97.3)(stylus@0.55.0)(terser@5.49.0)
+      xstate:
+        specifier: workspace:^
+        version: link:../core
+
+  packages/xstate-test-playwright:
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.40.0
+        version: 1.63.0
       xstate:
         specifier: workspace:^
         version: link:../core
@@ -4125,6 +4156,11 @@ packages:
   '@pkgr/core@0.1.2':
     resolution: {integrity: sha512-fdDH1LSGfZdTH2sxdpVMw31BanV28K/Gry0cVFxaNP77neJSkd82mM8ErPNYs9e+0O7SdHBLTDzDgwUuy18RnQ==, tarball: https://registry.npmjs.org/@pkgr/core/-/core-0.1.2.tgz}
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
+
+  '@playwright/test@1.63.0':
+    resolution: {integrity: sha512-oxMK4vllB9RK5NQ2l1pq1IfOf2AvnEuj/vYGDj0H2nMtmtZpKtCwt/l00GEO6xjGfpBNAvjovvYdCm50dRQkpQ==, tarball: https://registry.npmjs.org/@playwright/test/-/test-1.63.0.tgz}
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@pnpm/config.env-replace@1.1.0':
     resolution: {integrity: sha512-htyl8TWnKL7K/ESFa1oW2UB5lVDxuF5DpM7tBi6Hu2LNL3mWkIzNLG6N4zoCUP1lCKNxWy/3iu8mS8MvToGd6w==, tarball: https://registry.npmjs.org/@pnpm/config.env-replace/-/config.env-replace-1.1.0.tgz}
@@ -9313,6 +9349,16 @@ packages:
     resolution: {integrity: sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA==, tarball: https://registry.npmjs.org/pkg-up/-/pkg-up-3.1.0.tgz}
     engines: {node: '>=8'}
 
+  playwright-core@1.63.0:
+    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==, tarball: https://registry.npmjs.org/playwright-core/-/playwright-core-1.63.0.tgz}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.63.0:
+    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==, tarball: https://registry.npmjs.org/playwright/-/playwright-1.63.0.tgz}
+    engines: {node: '>=20'}
+    hasBin: true
+
   please-upgrade-node@3.2.0:
     resolution: {integrity: sha512-gQR3WpIgNIKwBMVLkpMUeR3e1/E1y42bqDQZfql+kDeXd8COYfM8PQA4X6y7a8u9Ua9FHmsrrmirW2vHs45hWg==, tarball: https://registry.npmjs.org/please-upgrade-node/-/please-upgrade-node-3.2.0.tgz}
 
@@ -14197,6 +14243,10 @@ snapshots:
     optional: true
 
   '@pkgr/core@0.1.2': {}
+
+  '@playwright/test@1.63.0':
+    dependencies:
+      playwright: 1.63.0
 
   '@pnpm/config.env-replace@1.1.0': {}
 
@@ -20769,6 +20819,12 @@ snapshots:
   pkg-up@3.1.0:
     dependencies:
       find-up: 3.0.0
+
+  playwright-core@1.63.0: {}
+
+  playwright@1.63.0:
+    dependencies:
+      playwright-core: 1.63.0
 
   please-upgrade-node@3.2.0:
     dependencies:

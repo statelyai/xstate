@@ -410,7 +410,8 @@ payload, `commands.advance` an `fc.Arbitrary<number>`, and so on.
 | --- | --- |
 | `events` | One entry per declared event case: `{ type, caseId, generator }`. `generator` is the opaque value you supplied in `events`. |
 | `commands` | One entry per configured runtime command: `{ type: 'advance' \| 'checkpoint' \| 'stop', generator }`. |
-| `runBudget` | The number of runs this scenario should use, when `frontiers.runsPerFrontier` fixes it. Prefer it over your own run count. |
+| `runBudget` | The number of runs this scenario should use, when `frontiers.runsPerFrontier` or a batched campaign fixes it. Prefer it over your own run count. |
+| `runOffset` | Runs already completed by earlier batches of the same campaign. Offset a fixed seed by it so each batch explores different sequences. |
 | `createEvent(type, payload)` | Builds a typed event from a generated payload. Use it if your engine produces concrete events instead of driving the runner. |
 | `createRunner()` | Creates a fresh `PropertyScenarioRunner` for one run or shrink attempt. |
 
@@ -500,6 +501,11 @@ A failing property throws `PropertyTestFailure`, with:
 | `replay` | Engine-native metadata (`engine`, `engineVersion`, `seed`, `path`, `replayPath`, `data`) for re-running the same engine. |
 | `fixture` | A `PortablePropertyReplayFixture` (`formatVersion: 2`) that replays without the generator engine. |
 | `coverage` | The `PropertyCoverage` accumulated up to the failure. |
+| `summary` | The short message, without the trace. |
+
+`message` is the summary followed by `formatPropertyTrace(trace)`, and it is
+built before the stack is captured, so reporters that print only `error.stack`
+still show the counterexample.
 
 `formatPropertyTrace(trace)` returns a human-readable string.
 `serializePropertyTrace(trace)` returns a JSON-safe object — snapshots are
@@ -675,3 +681,105 @@ so existing seeds keep reproducing the same sequences.
 
 The effective weight of each case is reported in
 `coverage.eventCases[id].weight`.
+
+## Stop conditions
+
+`until` stops a campaign as soon as the accumulated coverage is good enough.
+The adapter is invoked in batches of `batchRuns` runs (default `25`), and the
+condition is re-evaluated between batches:
+
+```ts
+const { coverage } = await propertyTest(machine, {
+  adapter: fastCheckAdapter({ maxCommands: 6 }),
+  events: { NEXT: fc.constant({}) },
+  invariant,
+  until: { transitions: 1, eventCases: 1 },
+  batchRuns: 25,
+  maxRuns: 500
+});
+
+coverage.exploration.stoppedBecause; // 'until' | 'budget' | 'failure'
+```
+
+The object form accepts the ratios `stateNodes`, `transitions`,
+`transitionPairs`, `guards`, `eventCases`, and `requirements`, plus `runs` and
+`timeMs`. A ratio is `covered / (covered + uncovered)`; `eventCases` is the
+share of event cases executed at least once. Every listed key must hold. `any`
+holds when at least one of the conditions it lists holds:
+
+```ts
+until: { any: [{ transitions: 1 }, { timeMs: 5_000 }] };
+```
+
+The predicate form receives the aggregated coverage:
+
+```ts
+until: (coverage) => coverage.stateNodes.uncovered.length === 0;
+```
+
+A batched campaign completes at most `maxRuns` runs (default `100`), which is
+reported as `coverage.exploration.configuredRuns`. Without `until` (and without
+`frontiers: 'auto'`) the adapter is invoked exactly once with its own
+`numRuns`, unchanged.
+
+## Coverage-guided exploration
+
+`frontiers: 'auto'` spends each batch where coverage is missing. Between
+batches it maps the uncovered transitions to the state nodes that declare them,
+finds the shortest path from the initial state to each of those state nodes,
+and replays those paths as the prefixes of the next batch:
+
+```ts
+const { coverage } = await propertyTest(machine, {
+  adapter: fastCheckAdapter({ maxCommands: 4 }),
+  events: { GO: fc.constant({}), FINISH: fc.constant({}) },
+  invariant,
+  frontiers: 'auto',
+  until: { transitions: 1 },
+  maxRuns: 200
+});
+```
+
+The expanded form is `{ strategy: 'uncovered', maxFrontiers, runsPerFrontier,
+limit }`. `maxFrontiers` (default `5`) bounds the frontiers explored per batch,
+`runsPerFrontier` defaults to an even split of the batch, and `limit` (default
+`1000`) bounds the path search. Frontiers are ordered by how many uncovered
+transitions their state node owns and deduplicated by target configuration.
+When nothing uncovered is reachable — or the machine cannot be traversed within
+`limit` — the batch falls back to unguided random exploration.
+
+A frontier prefix is replayed verbatim: shrinking only shortens the generated
+continuation, so a counterexample keeps the path that reached the interesting
+state. Each frontier is reported in `coverage.frontiers` and
+`coverage.exploration.frontiers`.
+
+## Labels and statistics
+
+`label(name, value?)` and `classify(condition, name)` are available on the
+invariant, temporal, SUT, and reference contexts. Use them to measure what the
+generated sequences actually did:
+
+```ts
+const { coverage } = await propertyTest(machine, {
+  adapter: fastCheckAdapter({ numRuns: 200 }),
+  events: { WITHDRAW: fc.record({ amount: fc.integer({ min: 1 }) }) },
+  invariant: ({ snapshot, label, classify }) => {
+    label('balance', snapshot.context.balance);
+    classify(snapshot.context.balance === 0, 'emptied');
+  },
+  expectLabels: { emptied: { min: 0.1 } }
+});
+
+coverage.labels.emptied.count; // total occurrences
+coverage.labels.emptied.share; // runs that recorded it / completed runs
+coverage.labels.balance.values['0']; // occurrences per recorded value
+```
+
+`expectLabels` fails the campaign when a label is too rare. `min` is a share of
+completed runs (`0`..`1`) and `minCount` is a total number of occurrences. A
+shortfall throws an error naming every label that fell short, with the
+`PropertyCoverage` attached as `error.coverage`.
+
+Labels are rendered by `formatPropertyCoverage()` in both text and markdown,
+and by `propertyCoverageToJSON()`. Counts include shrinking runs, so treat them
+as a distribution sketch rather than an exact tally.

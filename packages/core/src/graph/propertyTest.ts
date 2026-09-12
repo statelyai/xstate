@@ -22,21 +22,27 @@ import {
   incrementCoverage,
   recordPropertyEventCase,
   recordPropertyGuards,
+  recordPropertyLabel,
   recordPropertyTemporal,
   recordPropertySnapshot,
   recordPropertyTransitions,
   resetPropertyTransitionPairs,
   type MutablePropertyCoverage,
   type PropertyCoverage,
+  type PropertyCoverageDimension,
+  type PropertyStoppedBecause,
   type PropertyExplorationBounds,
   type PropertyExplorationFrontier,
   type PropertyExplorationSeed
 } from './propertyCoverage.ts';
+import { getShortestPaths } from './shortestPaths.ts';
 import type { StatePath, Step, TestParam } from './types.ts';
 
 export type {
   PropertyCoverage,
   PropertyCoverageDimension,
+  PropertyLabelCoverage,
+  PropertyStoppedBecause,
   PropertyCoverageStatus,
   PropertyDynamicTransitionCoverage,
   PropertyEventCaseCounts,
@@ -213,6 +219,12 @@ export interface PropertyTestAdapterRequest<
   }[];
   readonly commands: readonly PropertyGeneratedCommand[];
   readonly runBudget?: number;
+  /**
+   * The number of runs already completed by earlier batches of the same
+   * campaign. Adapters that derive their seed from a fixed value should offset
+   * it by this number so batches explore different sequences.
+   */
+  readonly runOffset?: number;
   readonly createEvent: (type: string, payload: unknown) => TEvent;
   readonly createRunner: () => PropertyScenarioRunner<TSnapshot, TEvent>;
 }
@@ -229,7 +241,7 @@ export interface PropertyTestAdapter<
 export interface PropertySutContext<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
-> {
+> extends PropertyLabelRecorders {
   readonly logic: ActorLogic<TSnapshot, TEvent, unknown>;
   readonly input: unknown;
   readonly snapshot: TSnapshot | undefined;
@@ -317,10 +329,21 @@ type EventForType<
 > = Extract<TEvent, { type: TType }>;
 type EventPayload<TEvent extends EventObject> = Omit<TEvent, 'type'>;
 
+/** Records a statistic for the current run. */
+export interface PropertyLabelRecorders {
+  /**
+   * Records `name` (optionally with `value`) for the current run. Labels are
+   * aggregated across the campaign into `coverage.labels`.
+   */
+  readonly label: (name: string, value?: string | number | boolean) => void;
+  /** Records `name` when `condition` holds. */
+  readonly classify: (condition: boolean, name: string) => void;
+}
+
 export interface PropertyInvariantContext<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
-> {
+> extends PropertyLabelRecorders {
   readonly initialSnapshot: TSnapshot;
   readonly previousSnapshot: TSnapshot;
   readonly snapshot: TSnapshot;
@@ -496,20 +519,41 @@ export interface PropertyTrace<
   readonly finalObservation?: PropertyObservation;
 }
 
+/**
+ * Builds the full failure message before `Error` captures the stack. The
+ * formatted trace is part of the message so reporters that only print
+ * `error.stack` still show the counterexample (GH #3435).
+ */
+function getPropertyFailureMessage<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+>(summary: string, trace: PropertyTrace<TSnapshot, TEvent>): string {
+  try {
+    return `${summary}\n${formatPropertyTrace(trace)}`;
+  } catch {
+    // Never mask the failure with a formatting error.
+    return summary;
+  }
+}
+
 export class PropertyTestFailure<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
   TEvent extends EventObject = EventObject
 > extends Error {
+  /** The short message, without the formatted trace. */
+  public readonly summary: string;
+
   public constructor(
-    message: string,
+    summary: string,
     public readonly trace: PropertyTrace<TSnapshot, TEvent>,
     public readonly cause: unknown,
     public readonly replay?: PropertyReplayMetadata,
     public readonly fixture?: PortablePropertyReplayFixture,
     public readonly coverage?: PropertyCoverage
   ) {
-    super(message, { cause });
+    super(getPropertyFailureMessage(summary, trace), { cause });
     this.name = 'PropertyTestFailure';
+    this.summary = summary;
   }
 }
 
@@ -675,6 +719,22 @@ export class PropertyScenarioRunner<
   private lastObservation: PropertyObservation | undefined;
   private readonly inconclusiveTemporalIds: string[] = [];
   private generatedCommandCount = 0;
+  private readonly labelsSeen = new Set<string>();
+
+  /** Records a label for this run. */
+  public readonly label = (
+    name: string,
+    value?: string | number | boolean
+  ): void => {
+    recordPropertyLabel(this.coverage, name, value, this.labelsSeen);
+  };
+
+  /** Records `name` when `condition` holds. */
+  public readonly classify = (condition: boolean, name: string): void => {
+    if (condition) {
+      this.label(name);
+    }
+  };
 
   public constructor(
     private readonly logic: ActorLogic<TSnapshot, TEvent, unknown>,
@@ -739,7 +799,9 @@ export class PropertyScenarioRunner<
     const context = {
       logic: this.logic,
       input: this.input,
-      snapshot: this.startingSnapshot
+      snapshot: this.startingSnapshot,
+      label: this.label,
+      classify: this.classify
     };
     if (this.reference) {
       this.referenceSession = await this.reference.create(context);
@@ -1179,7 +1241,9 @@ export class PropertyScenarioRunner<
         snapshot,
         event,
         effects,
-        step
+        step,
+        label: this.label,
+        classify: this.classify
       });
     } catch (cause) {
       this.fail(
@@ -1194,7 +1258,9 @@ export class PropertyScenarioRunner<
       snapshot,
       event,
       effects,
-      step
+      step,
+      label: this.label,
+      classify: this.classify
     });
     return observation;
   }
@@ -1490,9 +1556,228 @@ export interface PropertyTestOptions<
   };
   readonly frontiers?:
     | readonly StatePath<TSnapshot, TEvent>[]
-    | PropertyFrontierOptions<TSnapshot, TEvent>;
+    | PropertyFrontierOptions<TSnapshot, TEvent>
+    | 'auto'
+    | PropertyAutoFrontierOptions;
   readonly invariant: PropertyInvariant<TSnapshot, TEvent>;
   readonly temporal?: readonly PropertyTemporal<TSnapshot, TEvent>[];
+  /**
+   * Stops the campaign as soon as the condition holds. Coverage is
+   * re-evaluated between batches of `batchRuns` runs. Without `until` (and
+   * without `frontiers: 'auto'`) the adapter is invoked exactly once.
+   */
+  readonly until?: PropertyStopCondition;
+  /** Runs per batch in a batched campaign. Defaults to 25. */
+  readonly batchRuns?: number;
+  /** Total runs a batched campaign may complete. Defaults to 100. */
+  readonly maxRuns?: number;
+  /** Minimum label frequencies the campaign must reach. */
+  readonly expectLabels?: PropertyLabelExpectations;
+}
+
+/** Minimum frequencies required of labels recorded during the campaign. */
+export interface PropertyLabelExpectations {
+  readonly [name: string]: {
+    /** Minimum share of completed runs that must record the label, `0`..`1`. */
+    readonly min?: number;
+    /** Minimum total occurrences of the label. */
+    readonly minCount?: number;
+  };
+}
+
+/**
+ * Ratios are `covered / (covered + uncovered)`. Every listed key must hold;
+ * `any` holds when at least one of its conditions does.
+ */
+export interface PropertyStopConditionObject {
+  readonly stateNodes?: number;
+  readonly transitions?: number;
+  readonly transitionPairs?: number;
+  readonly guards?: number;
+  /** The share of event cases executed at least once. */
+  readonly eventCases?: number;
+  readonly requirements?: number;
+  readonly runs?: number;
+  readonly timeMs?: number;
+  readonly any?: readonly PropertyStopCondition[];
+}
+
+export type PropertyStopCondition =
+  | PropertyStopConditionObject
+  | ((coverage: PropertyCoverage) => boolean);
+
+/** Coverage-guided exploration. See `frontiers: 'auto'`. */
+export interface PropertyAutoFrontierOptions {
+  readonly strategy: 'uncovered';
+  /** Frontiers explored per batch. Defaults to 5. */
+  readonly maxFrontiers?: number;
+  /** Runs per frontier. Defaults to an even split of the batch. */
+  readonly runsPerFrontier?: number;
+  /** Traversal limit for the shortest-path search. Defaults to 1000. */
+  readonly limit?: number;
+}
+
+const DEFAULT_BATCH_RUNS = 25;
+const DEFAULT_MAX_RUNS = 100;
+const DEFAULT_MAX_FRONTIERS = 5;
+const DEFAULT_FRONTIER_SEARCH_LIMIT = 1000;
+
+function getCoverageRatio(dimension: PropertyCoverageDimension): number {
+  const considered = dimension.covered.length + dimension.uncovered.length;
+  return considered ? dimension.covered.length / considered : 1;
+}
+
+function getEventCaseRatio(coverage: PropertyCoverage): number {
+  const cases = Object.values(coverage.eventCases);
+  if (!cases.length) {
+    return 1;
+  }
+  return cases.filter((counts) => counts.executed > 0).length / cases.length;
+}
+
+/** Evaluates a {@link PropertyStopCondition} against aggregated coverage. */
+export function evaluatePropertyStopCondition(
+  condition: PropertyStopCondition,
+  coverage: PropertyCoverage,
+  elapsedMs: number
+): boolean {
+  if (typeof condition === 'function') {
+    return condition(coverage);
+  }
+  const clauses: boolean[] = [];
+  for (const key of [
+    'stateNodes',
+    'transitions',
+    'transitionPairs',
+    'guards',
+    'requirements'
+  ] as const) {
+    const threshold = condition[key];
+    if (threshold !== undefined) {
+      clauses.push(getCoverageRatio(coverage[key]) >= threshold);
+    }
+  }
+  if (condition.eventCases !== undefined) {
+    clauses.push(getEventCaseRatio(coverage) >= condition.eventCases);
+  }
+  if (condition.runs !== undefined) {
+    clauses.push(coverage.exploration.completedRuns >= condition.runs);
+  }
+  if (condition.timeMs !== undefined) {
+    clauses.push(elapsedMs >= condition.timeMs);
+  }
+  if (condition.any?.length) {
+    clauses.push(
+      condition.any.some((nested) =>
+        evaluatePropertyStopCondition(nested, coverage, elapsedMs)
+      )
+    );
+  }
+  // An empty condition never stops the campaign.
+  return clauses.length > 0 && clauses.every(Boolean);
+}
+
+function getSnapshotStateNodeIds(
+  snapshot: Snapshot<unknown>
+): readonly string[] {
+  const nodes =
+    (
+      snapshot as {
+        nodes?: readonly { id: string }[];
+        _nodes?: readonly { id: string }[];
+      }
+    ).nodes ?? (snapshot as { _nodes?: readonly { id: string }[] })._nodes;
+  return nodes?.map((node) => node.id) ?? [];
+}
+
+function getTransitionSourceId(id: string): string | undefined {
+  try {
+    const parsed = JSON.parse(id) as unknown[];
+    return Array.isArray(parsed) && parsed[0] === 'transition'
+      ? String(parsed[1])
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Picks the shortest paths that reach the state nodes owning the most
+ * uncovered transitions, deduplicated by target configuration.
+ */
+function selectUncoveredFrontiers<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+>(
+  paths: readonly StatePath<TSnapshot, TEvent>[],
+  coverage: PropertyCoverage,
+  maxFrontiers: number
+): StatePath<TSnapshot, TEvent>[] {
+  const uncoveredBySource = new Map<string, number>();
+  for (const id of coverage.transitions.uncovered) {
+    const source = getTransitionSourceId(id);
+    if (source === undefined) {
+      continue;
+    }
+    uncoveredBySource.set(source, (uncoveredBySource.get(source) ?? 0) + 1);
+  }
+  const ranked = [...uncoveredBySource].sort(
+    ([leftId, left], [rightId, right]) =>
+      right - left || leftId.localeCompare(rightId)
+  );
+  const selected: StatePath<TSnapshot, TEvent>[] = [];
+  const seen = new Set<string>();
+  for (const [sourceId] of ranked) {
+    let best: StatePath<TSnapshot, TEvent> | undefined;
+    for (const path of paths) {
+      if (
+        !path.steps.length ||
+        !getSnapshotStateNodeIds(path.state).includes(sourceId)
+      ) {
+        continue;
+      }
+      if (!best || path.weight < best.weight) {
+        best = path;
+      }
+    }
+    if (!best) {
+      continue;
+    }
+    const key = getPropertyConfigurationId(best.state);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    selected.push(best);
+    if (selected.length >= maxFrontiers) {
+      break;
+    }
+  }
+  return selected;
+}
+
+function getLabelExpectationFailures(
+  expectations: PropertyLabelExpectations,
+  coverage: PropertyCoverage
+): string[] {
+  const failures: string[] = [];
+  for (const [name, expectation] of Object.entries(expectations)) {
+    const label = coverage.labels[name] ?? { count: 0, values: {}, share: 0 };
+    if (expectation.min !== undefined && label.share < expectation.min) {
+      failures.push(
+        `${name}: share ${label.share.toFixed(3)} is below ${expectation.min}`
+      );
+    }
+    if (
+      expectation.minCount !== undefined &&
+      label.count < expectation.minCount
+    ) {
+      failures.push(
+        `${name}: count ${label.count} is below ${expectation.minCount}`
+      );
+    }
+  }
+  return failures;
 }
 
 function getFrontierId<
@@ -1510,6 +1795,8 @@ function getFrontierId<
 
 interface PropertyExplorationAccumulator {
   configuredRuns: number;
+  configuredRunsOverride: number | null;
+  stoppedBecause: PropertyStoppedBecause;
   configuredRunsUnknown: boolean;
   completedRuns: number;
   maximumSequenceLength: number | null;
@@ -1533,9 +1820,10 @@ function finalizeExploration(
     accumulator.truncationReasons.add('maximum sequence length reached');
   }
   return {
-    configuredRuns: accumulator.configuredRunsUnknown
-      ? null
-      : accumulator.configuredRuns,
+    configuredRuns:
+      accumulator.configuredRunsOverride ??
+      (accumulator.configuredRunsUnknown ? null : accumulator.configuredRuns),
+    stoppedBecause: accumulator.stoppedBecause,
     completedRuns: accumulator.completedRuns,
     attemptedRuns: coverage.runs,
     maximumSequenceLength,
@@ -1642,6 +1930,8 @@ export async function propertyTest<
   }
   const exploration: PropertyExplorationAccumulator = {
     configuredRuns: 0,
+    configuredRunsOverride: null,
+    stoppedBecause: 'budget',
     configuredRunsUnknown: false,
     completedRuns: 0,
     maximumSequenceLength: 0,
@@ -1651,12 +1941,21 @@ export async function propertyTest<
     truncationReasons: new Set()
   };
   const configuredFrontiers = options.frontiers;
+  const autoFrontierOptions: PropertyAutoFrontierOptions | null =
+    configuredFrontiers === 'auto'
+      ? { strategy: 'uncovered' }
+      : configuredFrontiers &&
+          !Array.isArray(configuredFrontiers) &&
+          (configuredFrontiers as PropertyAutoFrontierOptions).strategy ===
+            'uncovered'
+        ? (configuredFrontiers as PropertyAutoFrontierOptions)
+        : null;
   const frontierOptions: PropertyFrontierOptions<
     SnapshotFromSource<TSource>,
     EventFromSource<TSource>
   > | null = Array.isArray(configuredFrontiers)
     ? { paths: configuredFrontiers }
-    : configuredFrontiers
+    : configuredFrontiers && !autoFrontierOptions
       ? (configuredFrontiers as PropertyFrontierOptions<
           SnapshotFromSource<TSource>,
           EventFromSource<TSource>
@@ -1679,17 +1978,23 @@ export async function propertyTest<
     | undefined
   > = frontierOptions ? selectedFrontiers : [undefined];
 
-  for (const frontierContext of scenarios) {
+  type Scenario =
+    | PropertyFrontierContext<
+        SnapshotFromSource<TSource>,
+        EventFromSource<TSource>
+      >
+    | undefined;
+
+  const runScenario = async (
+    frontierContext: Scenario,
+    runBudget: number | undefined,
+    runOffset: number | undefined
+  ): Promise<void> => {
     const prefixEvents = frontierContext
       ? frontierContext.frontier.steps
           .map((step) => step.event)
           .filter((event) => event.type !== XSTATE_INIT)
       : [];
-    const runBudget = frontierContext
-      ? typeof frontierOptions?.runsPerFrontier === 'function'
-        ? frontierOptions.runsPerFrontier(frontierContext)
-        : frontierOptions?.runsPerFrontier
-      : undefined;
     if (
       runBudget !== undefined &&
       (!Number.isInteger(runBudget) || runBudget < 1)
@@ -1701,6 +2006,7 @@ export async function propertyTest<
       events,
       commands,
       runBudget,
+      runOffset,
       createEvent: (type, payload) => {
         assertEventPayload(payload, type);
         return { ...payload, type } as EventFromSource<TSource>;
@@ -1777,9 +2083,10 @@ export async function propertyTest<
     }
 
     if (result.error !== undefined) {
+      exploration.stoppedBecause = 'failure';
       if (result.error instanceof PropertyTestFailure) {
         throw new PropertyTestFailure(
-          result.error.message,
+          result.error.summary,
           result.error.trace,
           result.error.cause,
           result.replay,
@@ -1794,14 +2101,133 @@ export async function propertyTest<
         ? result.error
         : new Error('Property adapter failed', { cause: result.error });
     }
-  }
+  };
 
-  return {
-    coverage: finalizePropertyCoverage(
+  const snapshotCoverage = () =>
+    finalizePropertyCoverage(
       coverage,
       finalizeExploration(coverage, exploration)
-    )
-  };
+    );
+  const getStaticRunBudget = (frontierContext: Scenario) =>
+    frontierContext
+      ? typeof frontierOptions?.runsPerFrontier === 'function'
+        ? frontierOptions.runsPerFrontier(frontierContext)
+        : frontierOptions?.runsPerFrontier
+      : undefined;
+
+  if (!options.until && !autoFrontierOptions) {
+    for (const frontierContext of scenarios) {
+      await runScenario(
+        frontierContext,
+        getStaticRunBudget(frontierContext),
+        undefined
+      );
+    }
+  } else {
+    const maxRuns = options.maxRuns ?? DEFAULT_MAX_RUNS;
+    const batchRuns = Math.max(
+      1,
+      Math.min(options.batchRuns ?? DEFAULT_BATCH_RUNS, maxRuns)
+    );
+    exploration.configuredRunsOverride = maxRuns;
+    const startedAt = Date.now();
+    let shortestPaths:
+      | StatePath<SnapshotFromSource<TSource>, EventFromSource<TSource>>[]
+      | null = null;
+    const getShortestPathsOnce = () => {
+      if (shortestPaths) {
+        return shortestPaths;
+      }
+      try {
+        shortestPaths = getShortestPaths(model.testLogic as any, {
+          input: options.input,
+          limit: autoFrontierOptions?.limit ?? DEFAULT_FRONTIER_SEARCH_LIMIT
+        }) as StatePath<
+          SnapshotFromSource<TSource>,
+          EventFromSource<TSource>
+        >[];
+      } catch {
+        // An unenumerable machine simply falls back to random exploration.
+        shortestPaths = [];
+      }
+      return shortestPaths;
+    };
+    let nextFrontierIndex = 0;
+    const getAutoScenarios = (
+      budget: number
+    ): [Scenario, number | undefined][] => {
+      const paths = selectUncoveredFrontiers(
+        getShortestPathsOnce(),
+        snapshotCoverage(),
+        autoFrontierOptions!.maxFrontiers ?? DEFAULT_MAX_FRONTIERS
+      );
+      if (!paths.length) {
+        return [[undefined, budget]];
+      }
+      const perFrontier =
+        autoFrontierOptions!.runsPerFrontier ??
+        Math.max(1, Math.floor(budget / paths.length));
+      return paths.map((frontier) => {
+        const id = getFrontierId(frontier);
+        declarePropertyFrontier(coverage, id);
+        return [{ frontier, index: nextFrontierIndex++, id }, perFrontier] as [
+          Scenario,
+          number | undefined
+        ];
+      });
+    };
+
+    while (exploration.completedRuns < maxRuns) {
+      const budget = Math.min(batchRuns, maxRuns - exploration.completedRuns);
+      const batch: [Scenario, number | undefined][] = autoFrontierOptions
+        ? getAutoScenarios(budget)
+        : scenarios.map((frontierContext) => [
+            frontierContext,
+            Math.min(getStaticRunBudget(frontierContext) ?? budget, budget)
+          ]);
+      for (const [frontierContext, scenarioBudget] of batch) {
+        await runScenario(
+          frontierContext,
+          scenarioBudget,
+          exploration.completedRuns
+        );
+        if (exploration.completedRuns >= maxRuns) {
+          break;
+        }
+      }
+      if (
+        options.until &&
+        evaluatePropertyStopCondition(
+          options.until,
+          snapshotCoverage(),
+          Date.now() - startedAt
+        )
+      ) {
+        exploration.stoppedBecause = 'until';
+        break;
+      }
+    }
+  }
+
+  const finalCoverage = snapshotCoverage();
+  if (options.expectLabels) {
+    const failures = getLabelExpectationFailures(
+      options.expectLabels,
+      finalCoverage
+    );
+    if (failures.length) {
+      const error = new Error(
+        `Property label expectations were not met:\n${failures
+          .map((failure) => `  - ${failure}`)
+          .join('\n')}`
+      ) as Error & { coverage: PropertyCoverage };
+      error.name = 'PropertyLabelExpectationError';
+      error.coverage = finalCoverage;
+      throw error;
+    }
+  }
+
+  return { coverage: finalCoverage };
 }
 
 function normalizeFixtureTimeline(

@@ -1,19 +1,19 @@
 /**
  * A dependency-free `PropertyTestAdapter` used to exercise the
- * `xstate/graph` property-testing surface from within `packages/core`.
+ * `xstate/graph` property-testing surface from within this package.
  *
  * It is deliberately minimal: a seeded `mulberry32` PRNG, plain
  * `{ sample(rng) }` generators, uniformly random command sequences and no
  * shrinking. Real users should prefer `@xstate/fast-check`.
  */
-import type { EventObject, Snapshot } from '../../index.ts';
+import type { EventObject, Snapshot } from 'xstate';
 import type {
   PropertyGeneratorKind,
   PropertyScenarioRunner,
   PropertyTestAdapter,
   PropertyTestAdapterRequest,
   PropertyTestAdapterResult
-} from '../propertyTest.ts';
+} from 'xstate/graph';
 
 export type Rng = () => number;
 
@@ -141,9 +141,7 @@ class RandomAdapter implements PropertyTestAdapter<RandomGeneratorKind> {
       );
     }
 
-    // `runOffset` keeps successive batches of one campaign from replaying the
-    // same sequences.
-    const seed = (this.options.seed ?? 0) + (request.runOffset ?? 0);
+    const seed = this.options.seed ?? 0;
     const maxCommands = this.options.maxCommands ?? 10;
     const configuredRuns = request.runBudget ?? this.options.numRuns ?? 10;
     let runs = 0;

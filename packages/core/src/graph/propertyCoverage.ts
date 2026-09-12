@@ -82,6 +82,9 @@ export interface PropertyExplorationSeed {
   readonly path?: string;
 }
 
+/** Why a property campaign stopped running batches. */
+export type PropertyStoppedBecause = 'until' | 'budget' | 'failure';
+
 export interface PropertyExplorationBounds {
   readonly configuredRuns: number | null;
   readonly completedRuns: number;
@@ -93,6 +96,22 @@ export interface PropertyExplorationBounds {
   readonly seeds: readonly PropertyExplorationSeed[];
   readonly truncated: boolean;
   readonly truncationReasons: readonly string[];
+  /**
+   * `'until'` when a stop condition was met, `'failure'` when a
+   * counterexample ended the campaign, `'budget'` when the configured runs
+   * were exhausted.
+   */
+  readonly stoppedBecause: PropertyStoppedBecause;
+}
+
+/** Aggregated occurrences of a label recorded with `label()`/`classify()`. */
+export interface PropertyLabelCoverage {
+  /** Total number of times the label was recorded across all runs. */
+  readonly count: number;
+  /** Occurrences per recorded value. Labels without a value are not listed. */
+  readonly values: Readonly<Record<string, number>>;
+  /** Runs in which the label was recorded at least once, over completed runs. */
+  readonly share: number;
 }
 
 export interface PropertyTemporalCoverage {
@@ -138,6 +157,8 @@ export interface PropertyCoverage {
   >;
   readonly guards: PropertyGuardCoverageDimension;
   readonly frontiers: PropertyCoverageDimension;
+  /** Labels recorded with `label()`/`classify()`, keyed by label name. */
+  readonly labels: Readonly<Record<string, PropertyLabelCoverage>>;
   readonly temporal: PropertyTemporalCoverage;
   readonly exploration: PropertyExplorationBounds;
 }
@@ -189,6 +210,10 @@ export interface MutablePropertyCoverage {
   >;
   guards: MutableDimension;
   frontiers: MutableDimension;
+  labels: Record<
+    string,
+    { count: number; values: Record<string, number>; runs: number }
+  >;
   temporal: {
     satisfied: Set<string>;
     failed: Set<string>;
@@ -559,6 +584,7 @@ export function createPropertyCoverage(
     dynamicTransitions: {},
     guards: dimension(),
     frontiers: dimension(),
+    labels: {},
     temporal: {
       satisfied: new Set(),
       failed: new Set(),
@@ -842,9 +868,11 @@ export function finalizePropertyCoverage(
     frontiers: [],
     seeds: [],
     truncated: false,
-    truncationReasons: []
+    truncationReasons: [],
+    stoppedBecause: 'budget'
   }
 ): PropertyCoverage {
+  const completedRuns = exploration.completedRuns || coverage.runs;
   return {
     runs: coverage.runs,
     steps: coverage.steps,
@@ -898,6 +926,22 @@ export function finalizePropertyCoverage(
       outcomes: { ...coverage.guardOutcomes }
     },
     frontiers: finalizeDimension(coverage.frontiers),
+    labels: Object.fromEntries(
+      Object.entries(coverage.labels)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([name, entry]) => [
+          name,
+          {
+            count: entry.count,
+            values: Object.fromEntries(
+              Object.entries(entry.values).sort(([left], [right]) =>
+                left.localeCompare(right)
+              )
+            ),
+            share: completedRuns ? entry.runs / completedRuns : 0
+          }
+        ])
+    ),
     temporal: {
       satisfied: [...coverage.temporal.satisfied].sort(),
       failed: [...coverage.temporal.failed].sort(),
@@ -907,6 +951,29 @@ export function finalizePropertyCoverage(
     },
     exploration
   };
+}
+
+/**
+ * Records one occurrence of a label. `seen` is the set of label names already
+ * recorded in the current run, so each run contributes at most once to a
+ * label's `share`.
+ */
+export function recordPropertyLabel(
+  coverage: MutablePropertyCoverage,
+  name: string,
+  value: string | number | boolean | undefined,
+  seen: Set<string>
+): void {
+  const entry = (coverage.labels[name] ??= { count: 0, values: {}, runs: 0 });
+  entry.count++;
+  if (value !== undefined) {
+    const key = String(value);
+    entry.values[key] = (entry.values[key] ?? 0) + 1;
+  }
+  if (!seen.has(name)) {
+    seen.add(name);
+    entry.runs++;
+  }
 }
 
 export function recordPropertyTemporal(

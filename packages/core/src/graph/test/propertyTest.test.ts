@@ -118,7 +118,12 @@ describe('propertyTest with the in-repo random adapter', () => {
 
     // Regression for GH #3435: the message must be final at construction time,
     // so the captured stack always starts with it.
-    expect(failure.message).toBe('Property invariant failed after 1 step');
+    expect(failure.summary).toBe('Property invariant failed after 1 step');
+    // The trace is part of the message, so reporters that only print the
+    // stack still show the counterexample.
+    expect(failure.message).toBe(
+      `${failure.summary}\n${formatPropertyTrace(failure.trace)}`
+    );
     expect(
       failure.stack?.startsWith(`PropertyTestFailure: ${failure.message}`)
     ).toBe(true);
@@ -393,10 +398,9 @@ describe('property trace serialization', () => {
     expect(formatted).toContain('"INC"');
     expect(formatted).toMatch(/^start /);
     expect(formatted.split('\n')[1]).toMatch(/^0\. generated\/generator /);
-    expect(`${failure.message}\n${formatted}`).toContain(
-      'Property invariant failed after 1 step'
-    );
-    expect(`${failure.message}\n${formatted}`).toMatchInlineSnapshot(`
+    expect(failure.message).toContain('Property invariant failed after 1 step');
+    expect(failure.message).toBe(`${failure.summary}\n${formatted}`);
+    expect(failure.message).toMatchInlineSnapshot(`
       "Property invariant failed after 1 step
       start {"status":"active","context":{"count":0},"value":{},"children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
       0. generated/generator {"value":5,"type":"INC"} -> {"status":"active","context":{"count":5},"value":{},"children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
