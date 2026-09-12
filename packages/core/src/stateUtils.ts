@@ -1593,7 +1593,8 @@ function microstep(
           nextState,
           event,
           actorScope,
-          exitActions
+          exitActions,
+          internalQueue
         );
         nextState = resolvedState;
         executableActions.push(...resolvedActions);
@@ -1607,7 +1608,8 @@ function microstep(
             nextState,
             event,
             actorScope,
-            invokeStopActions
+            invokeStopActions,
+            internalQueue
           );
           nextState = stoppedState;
           executableActions.push(...stopEffects);
@@ -2011,7 +2013,8 @@ function microstep(
           nextState,
           event,
           actorScope,
-          actions
+          actions,
+          internalQueue
         );
         nextState = resolvedState;
         actions.length = 0;
@@ -2118,7 +2121,8 @@ function microstep(
         nextState,
         event,
         actorScope,
-        transitionActions
+        transitionActions,
+        internalQueue
       );
     nextState = resolvedTransitionState;
     executableActions.push(...transitionExecutableActions);
@@ -2159,7 +2163,8 @@ function microstep(
         nextState,
         event,
         actorScope,
-        allExitActions
+        allExitActions,
+        internalQueue
       );
       nextState = resolvedState;
       executableActions.push(...resolvedActions);

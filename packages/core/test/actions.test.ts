@@ -2753,6 +2753,163 @@ describe('sendParent', () => {
   });
 });
 describe('sendTo', () => {
+  it('should send to an invoked child by its declared id', async () => {
+    const received = vi.fn();
+    const childMachine = createMachine({
+      schemas: {
+        events: {
+          PING: z.object({ value: z.number() })
+        }
+      },
+      on: {
+        PING: ({ event }) => {
+          received(event.value);
+        }
+      }
+    });
+    const parentMachine = createMachine({
+      schemas: {
+        children: {
+          worker: z.custom<ActorRefFromLogic<typeof childMachine>>()
+        }
+      },
+      invoke: {
+        id: 'worker',
+        src: childMachine
+      },
+      on: {
+        SEND: (_, enq) => {
+          enq.sendTo('worker', { type: 'PING', value: 42 });
+        }
+      }
+    });
+
+    const parent = createActor(parentMachine).start();
+    parent.send({ type: 'SEND' });
+
+    expect(received).toHaveBeenCalledWith(42);
+  });
+
+  it('should resolve a child spawned earlier in the same transition', () => {
+    const received = vi.fn();
+    const childMachine = createMachine({
+      schemas: {
+        events: {
+          PING: z.object({})
+        }
+      },
+      on: {
+        PING: () => {
+          received();
+        }
+      }
+    });
+    const parentMachine = createMachine({
+      schemas: {
+        children: {
+          worker: z.custom<ActorRefFromLogic<typeof childMachine>>()
+        }
+      },
+      on: {
+        START: (_, enq) => {
+          enq.spawn(childMachine, { id: 'worker' });
+          enq.sendTo('worker', { type: 'PING' });
+        }
+      }
+    });
+
+    const parent = createActor(parentMachine).start();
+    parent.send({ type: 'START' });
+
+    expect(received).toHaveBeenCalledOnce();
+  });
+
+  it('should raise a communication error for an unknown declared child id', () => {
+    const errorSpy = vi.fn();
+    const childMachine = createMachine({
+      schemas: {
+        events: {
+          PING: z.object({})
+        }
+      }
+    });
+    const parentMachine = createMachine({
+      schemas: {
+        children: {
+          worker: z.custom<ActorRefFromLogic<typeof childMachine>>()
+        }
+      },
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            SEND: (_, enq) => {
+              enq.sendTo('worker', { type: 'PING' });
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy(event.error);
+            return { target: 'failed' };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const parent = createActor(parentMachine).start();
+    parent.send({ type: 'SEND' });
+
+    expect(parent.getSnapshot().value).toBe('failed');
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Unable to send event to unknown child 'worker'"
+      })
+    );
+  });
+
+  it('should not resolve inherited properties as declared child ids', () => {
+    const errorSpy = vi.fn();
+    const childMachine = createMachine({
+      schemas: {
+        events: {
+          PING: z.object({})
+        }
+      }
+    });
+    const parentMachine = createMachine({
+      schemas: {
+        children: {
+          toString: z.custom<ActorRefFromLogic<typeof childMachine>>()
+        }
+      },
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            SEND: (_, enq) => {
+              enq.sendTo('toString', { type: 'PING' });
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy(event.error);
+            return { target: 'failed' };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const parent = createActor(parentMachine).start();
+    parent.send({ type: 'SEND' });
+
+    expect(parent.getSnapshot().value).toBe('failed');
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Unable to send event to unknown child 'toString'"
+      })
+    );
+  });
+
   it('should be able to send an event to an actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({

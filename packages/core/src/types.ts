@@ -593,7 +593,8 @@ export type TransitionConfigFunction<
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
   TInput = undefined,
-  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext
+  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext,
+  TChildren extends Record<string, AnyActorRef | undefined> = {}
 > = (
   args: TransitionFunctionArgs<
     _TCtx,
@@ -602,9 +603,10 @@ export type TransitionConfigFunction<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    TChildren
   > & { input: TInput },
-  enq: EnqueueObject<TEvent, TEmitted, SystemRegistry, TActorMap>
+  enq: EnqueueObject<TEvent, TEmitted, SystemRegistry, TActorMap, TChildren>
 ) => {
   target?: string | string[];
   // target?: keyof TSS['states'];
@@ -621,7 +623,11 @@ type TransitionFunctionArgs<
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
-  TDelayMap extends Sources['delays']
+  TDelayMap extends Sources['delays'],
+  TChildren extends Record<string, AnyActorRef | undefined> = Record<
+    string,
+    AnyActor
+  >
 > = {
   context: TContext;
   event: TCurrentEvent;
@@ -640,7 +646,7 @@ type TransitionFunctionArgs<
   >;
   parent: UnknownActorRef | undefined;
   value: StateValue;
-  children: Record<string, AnyActor>;
+  children: TChildren;
   system: AnyActorSystem;
   actions: TActionMap;
   actors: TActorMap;
@@ -3106,7 +3112,8 @@ export type EnqueueObject<
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
   TSystemRegistry extends SystemRegistry = SystemRegistry,
-  TActorMap extends Sources['actors'] = Sources['actors']
+  TActorMap extends Sources['actors'] = Sources['actors'],
+  TChildren extends Record<string, AnyActorRef | undefined> = {}
 > = {
   cancel: (id: string) => void;
   raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
@@ -3120,9 +3127,18 @@ export type EnqueueObject<
   emit: (emittedEvent: TEmittedEvent) => void;
   <T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): void;
   log: (...args: any[]) => void;
-  sendTo: <TActorRef extends { send: (...args: any[]) => void } | undefined>(
-    actorRef: TActorRef,
-    event: SendableEventFromActorRef<NoInfer<TActorRef>>,
+  sendTo: <
+    TTarget extends
+      | { send: (...args: any[]) => void }
+      | undefined
+      | (keyof TChildren & string)
+  >(
+    target: TTarget,
+    event: SendableEventFromActorRef<
+      NoInfer<
+        TTarget extends keyof TChildren & string ? TChildren[TTarget] : TTarget
+      >
+    >,
     options?: { id?: string; delay?: number }
   ) => void;
   stop: (actor?: AnyActorRef) => void;

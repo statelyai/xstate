@@ -5851,6 +5851,42 @@ describe('delays', () => {
     });
   });
 
+  it('should type enq.sendTo events against declared child ids', () => {
+    const child = createMachine({
+      schemas: {
+        events: {
+          PING: z.object({
+            type: z.literal('PING'),
+            value: z.number()
+          })
+        }
+      }
+    });
+
+    createMachine({
+      schemas: {
+        children: {
+          worker: z.custom<ActorRefFromLogic<typeof child>>()
+        }
+      },
+      invoke: {
+        id: 'worker',
+        src: child
+      },
+      on: {
+        SEND: (_, enq) => {
+          enq.sendTo('worker', { type: 'PING', value: 42 });
+          // @ts-expect-error unknown child id
+          enq.sendTo('missing', { type: 'PING', value: 42 });
+          // @ts-expect-error incompatible child event
+          enq.sendTo('worker', { type: 'PONG' });
+          // @ts-expect-error missing child event payload
+          enq.sendTo('worker', { type: 'PING' });
+        }
+      }
+    });
+  });
+
   it('should return typed actor refs from enq.spawn', () => {
     const child = createMachine({
       schemas: {
