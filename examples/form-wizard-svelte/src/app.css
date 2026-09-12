@@ -1,0 +1,46 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 2rem;
+}
+
+main {
+  max-width: 24rem;
+  margin: 0 auto;
+}
+
+fieldset {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+input[type='text'],
+input[type='password'],
+input:not([type]) {
+  font: inherit;
+  padding: 0.4rem;
+}
+
+.errors {
+  color: #b00020;
+  padding-left: 1.2rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+button {
+  font: inherit;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+}

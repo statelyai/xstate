@@ -1,78 +1,60 @@
-import { createMachine } from 'xstate';
+import { setup } from 'xstate';
 
-export const donutMachine = createMachine({
+export const donutMachine = setup({}).createMachine({
   id: 'donut',
   initial: 'ingredients',
   states: {
     ingredients: {
-      on: {
-        NEXT: 'directions'
-      }
+      on: { NEXT: { target: 'directions' } }
     },
     directions: {
       initial: 'makeDough',
-      onDone: 'fry',
+      onDone: { target: 'fry' },
       states: {
         makeDough: {
-          on: { NEXT: 'mix' }
+          on: { NEXT: { target: 'mix' } }
         },
         mix: {
           type: 'parallel',
+          onDone: { target: 'allMixed' },
           states: {
             mixDry: {
               initial: 'mixing',
               states: {
                 mixing: {
-                  on: { MIXED_DRY: 'mixed' }
+                  on: { MIXED_DRY: { target: 'mixed' } }
                 },
-                mixed: {
-                  type: 'final'
-                }
+                mixed: { type: 'final' }
               }
             },
             mixWet: {
               initial: 'mixing',
               states: {
                 mixing: {
-                  on: { MIXED_WET: 'mixed' }
+                  on: { MIXED_WET: { target: 'mixed' } }
                 },
-                mixed: {
-                  type: 'final'
-                }
+                mixed: { type: 'final' }
               }
             }
-          },
-          onDone: 'allMixed'
+          }
         },
-        allMixed: {
-          type: 'final'
-        }
+        allMixed: { type: 'final' }
       }
     },
     fry: {
-      on: {
-        NEXT: 'flip'
-      }
+      on: { NEXT: { target: 'flip' } }
     },
     flip: {
-      on: {
-        NEXT: 'dry'
-      }
+      on: { NEXT: { target: 'dry' } }
     },
     dry: {
-      on: {
-        NEXT: 'glaze'
-      }
+      on: { NEXT: { target: 'glaze' } }
     },
     glaze: {
-      on: {
-        NEXT: 'serve'
-      }
+      on: { NEXT: { target: 'serve' } }
     },
     serve: {
-      on: {
-        ANOTHER_DONUT: 'ingredients'
-      }
+      on: { ANOTHER_DONUT: { target: 'ingredients' } }
     }
   }
 });

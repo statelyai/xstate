@@ -1,18 +1,19 @@
-import { Container, Jumbotron } from 'react-bootstrap';
+import { Container } from 'react-bootstrap';
 
 const GameTitle = () => {
   return (
-    <Jumbotron className="text-center py-3">
+    <div className="text-center py-3 bg-body-secondary">
       <Container>
         <h1 className="small-trivia">
           <img
             width="300px"
+            alt="Rick and Morty"
             src="https://occ-0-3412-3934.1.nflxso.net/dnm/api/v6/LmEnxtiAuzezXBjYXPuDgfZ4zZQ/AAAABddiw4GEUq76B3fmiI7r6NF-GrWeEf99MjwKrfixFKM4B4o1uuitcgbuBNa3n04L5GSamUi2vex4adduBV-S2XGERxn29-ffvoRv.png?r=a6e"
           />
           TRIVIA
         </h1>
       </Container>
-    </Jumbotron>
+    </div>
   );
 };
 

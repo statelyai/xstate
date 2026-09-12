@@ -1,6 +1,9 @@
 import './App.css';
 import { useMachine } from '@xstate/react';
+import { createInspector } from '@statelyai/sdk';
 import { timerMachine } from './timerMachine';
+
+const inspector = createInspector();
 
 function convertSecondsToTime(seconds: number) {
   const minutes = Math.floor(seconds / 60);
@@ -16,9 +19,10 @@ function padTime(minsOrSecs: number) {
 }
 
 function App() {
-  const [state, send] = useMachine(timerMachine);
+  const [state, send] = useMachine(timerMachine, {
+    inspect: inspector.inspect
+  });
   const { minutes, seconds } = convertSecondsToTime(state.context.seconds);
-  const can = state.can.bind(state);
 
   return (
     <div className="App">
@@ -31,7 +35,7 @@ function App() {
             type: 'minute'
           })
         }
-        disabled={!can({ type: 'minute' })}
+        disabled={!state.can({ type: 'minute' })}
       >
         min
       </button>
@@ -41,7 +45,7 @@ function App() {
             type: 'second'
           })
         }
-        disabled={!can({ type: 'second' })}
+        disabled={!state.can({ type: 'second' })}
       >
         sec
       </button>
@@ -51,7 +55,7 @@ function App() {
             type: 'reset'
           })
         }
-        disabled={!can({ type: 'reset' })}
+        disabled={!state.can({ type: 'reset' })}
       >
         reset
       </button>
@@ -61,7 +65,7 @@ function App() {
             type: 'start'
           })
         }
-        disabled={!can({ type: 'start' })}
+        disabled={!state.can({ type: 'start' })}
       >
         start
       </button>
@@ -71,7 +75,7 @@ function App() {
             type: 'stop'
           })
         }
-        disabled={!can({ type: 'stop' })}
+        disabled={!state.can({ type: 'stop' })}
       >
         stop
       </button>

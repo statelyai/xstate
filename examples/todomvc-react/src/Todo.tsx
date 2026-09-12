@@ -1,38 +1,25 @@
-import React, { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useActorRef, useSelector } from '@xstate/react';
 import cn from 'classnames';
-import { createMachine } from 'xstate';
+import { setup, types } from 'xstate';
 import { TodosContext } from './App';
 import { TodoItem } from './todosMachine';
 
-export const todoMachine = createMachine({
-  types: {
-    context: {} as {
+export const todoMachine = setup({
+  schemas: {
+    context: types<{
       initialTitle: string;
       title: string;
+    }>(),
+    events: {
+      edit: types<{}>(),
+      blur: types<{}>(),
+      cancel: types<{}>(),
+      change: types<{ value: string }>()
     },
-    events: {} as
-      | {
-          type: 'edit';
-        }
-      | {
-          type: 'blur';
-        }
-      | {
-          type: 'cancel';
-        }
-      | {
-          type: 'change';
-          value: string;
-        },
-    input: {} as {
-      todo: TodoItem;
-    }
-  },
-  actions: {
-    focusInput: () => {},
-    onCommit: () => {}
-  },
+    input: types<{ todo: TodoItem }>()
+  }
+}).createMachine({
   id: 'todo',
   initial: 'reading',
   context: ({ input }) => ({
@@ -42,50 +29,23 @@ export const todoMachine = createMachine({
   states: {
     reading: {
       on: {
-        edit: 'editing'
+        edit: { target: 'editing' }
       }
     },
     editing: {
-      entry: (args, enq) => {
-        enq((actionArgs) => args.actions['focusInput'](actionArgs as any));
-        return {
-          context: {
-            ...args.context,
-            initialTitle: (({ context }) => context.title)({
-              context: args.context,
-              event: args.event
-            })
-          }
-        };
-      },
+      // Remember the title to restore if the edit is cancelled
+      entry: ({ context }) => ({
+        context: { initialTitle: context.title }
+      }),
       on: {
-        blur: ({ context, event, guards, actions }, enq) => {
-          enq((actionArgs) => actions['onCommit'](actionArgs as any));
-          return { target: 'reading' };
-        },
-        cancel: ({ context, event, guards, actions }, enq) => {
-          return {
-            target: 'reading',
-            context: {
-              ...context,
-              title: (({ context }) => context.initialTitle)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        },
-        change: ({ context, event, guards, actions }, enq) => {
-          return {
-            context: {
-              ...context,
-              title: (({ event }) => event.value)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        }
+        blur: { target: 'reading' },
+        cancel: ({ context }) => ({
+          target: 'reading',
+          context: { title: context.initialTitle }
+        }),
+        change: ({ event }) => ({
+          context: { title: event.value }
+        })
       }
     }
   }
@@ -93,34 +53,31 @@ export const todoMachine = createMachine({
 
 export function Todo({ todo }: { todo: TodoItem }) {
   const todosActorRef = TodosContext.useActorRef();
-  const todoActorRef = useActorRef(
-    todoMachine.provide({
-      actions: {
-        onCommit: ({ context }) => {
-          todosActorRef.send({
-            type: 'todo.commit',
-            todo: {
-              ...todo,
-              title: context.title
-            }
-          });
-        },
-        focusInput: () => {
-          setTimeout(() => {
-            inputRef.current && inputRef.current.select();
-          });
-        }
-      }
-    }),
-    {
-      input: { todo }
-    }
-  );
+  const todoActorRef = useActorRef(todoMachine, {
+    input: { todo }
+  });
   const { send } = todoActorRef;
   const { id, completed } = todo;
   const title = useSelector(todoActorRef, (s) => s.context.title);
   const isEditing = useSelector(todoActorRef, (s) => s.matches('editing'));
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.select();
+    }
+  }, [isEditing]);
+
+  function commit() {
+    send({ type: 'blur' });
+    todosActorRef.send({
+      type: 'todo.commit',
+      todo: {
+        ...todo,
+        title: todoActorRef.getSnapshot().context.title
+      }
+    });
+  }
 
   return (
     <li
@@ -164,7 +121,7 @@ export function Todo({ todo }: { todo: TodoItem }) {
       <input
         className="edit"
         value={title}
-        onBlur={() => send({ type: 'blur' })}
+        onBlur={commit}
         onChange={(ev) => {
           send({
             type: 'change',
@@ -173,7 +130,7 @@ export function Todo({ todo }: { todo: TodoItem }) {
         }}
         onKeyPress={(ev) => {
           if (ev.key === 'Enter') {
-            send({ type: 'blur' });
+            commit();
           }
         }}
         onKeyDown={(ev) => {

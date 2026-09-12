@@ -1,29 +1,19 @@
-import { createMachine } from 'xstate';
+import { setup, types } from 'xstate';
 
-export const feedbackMachine = createMachine({
-  types: {
-    context: {} as { feedback: string },
-    events: {} as
-      | {
-          type: 'feedback.good';
-        }
-      | {
-          type: 'feedback.bad';
-        }
-      | {
-          type: 'feedback.update';
-          value: string;
-        }
-      | { type: 'submit' }
-      | {
-          type: 'close';
-        }
-      | { type: 'back' }
-      | { type: 'restart' }
-  },
-  guards: {
-    feedbackValid: ({ context }) => context.feedback.length > 0
-  },
+export const feedbackMachine = setup({
+  schemas: {
+    context: types<{ feedback: string }>(),
+    events: {
+      'feedback.good': types<{}>(),
+      'feedback.bad': types<{}>(),
+      'feedback.update': types<{ value: string }>(),
+      submit: types<{}>(),
+      close: types<{}>(),
+      back: types<{}>(),
+      restart: types<{}>()
+    }
+  }
+}).createMachine({
   id: 'feedback',
   initial: 'prompt',
   context: {
@@ -32,28 +22,22 @@ export const feedbackMachine = createMachine({
   states: {
     prompt: {
       on: {
-        'feedback.good': 'thanks',
-        'feedback.bad': 'form'
+        'feedback.good': { target: 'thanks' },
+        'feedback.bad': { target: 'form' }
       }
     },
     form: {
       on: {
-        'feedback.update': ({ context, event, guards, actions }, enq) => {
-          return {
-            context: {
-              ...context,
-              feedback: (({ event }) => event.value)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        },
+        'feedback.update': ({ context, event }) => ({
+          context: { ...context, feedback: event.value }
+        }),
         back: { target: 'prompt' },
-        submit: ({ context, event, guards, actions }, enq) => {
-          if (!guards['feedbackValid']({ context, event })) {
+        submit: ({ context }) => {
+          // Only submit when feedback has been provided
+          if (context.feedback.length === 0) {
             return;
           }
+
           return { target: 'thanks' };
         }
       }
@@ -61,13 +45,14 @@ export const feedbackMachine = createMachine({
     thanks: {},
     closed: {
       on: {
-        restart: ({ context, event, guards, actions }, enq) => {
-          return { target: 'prompt', context: { ...context, feedback: '' } };
-        }
+        restart: ({ context }) => ({
+          target: 'prompt',
+          context: { ...context, feedback: '' }
+        })
       }
     }
   },
   on: {
-    close: '.closed'
+    close: { target: '.closed' }
   }
 });

@@ -1,0 +1,43 @@
+#app {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 6rem;
+}
+
+h1 {
+  font-size: 1.25rem;
+}
+
+.status,
+.note {
+  color: #55557a;
+  font-size: 0.875rem;
+}
+
+.feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.feed li {
+  border: 1px solid #dce0ea;
+  border-radius: 0.25rem;
+  padding: 1rem;
+  background: #f7f8fc;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  color: #b3261e;
+}
+
+.sentinel {
+  height: 1px;
+}

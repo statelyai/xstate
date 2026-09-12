@@ -1,12 +1,17 @@
+import LoadingOverlay from 'react-loading-overlay-ts';
 import { Button } from '../styled/Button';
 import { TriviaMachineContext } from '../../context/AppContext';
 import ImgsBack from '../layout/ImgsBack';
-import LoadingOverlay from 'react-loading-overlay-ts';
+import DisplayError from '../layout/DisplayError';
 
 const StartGame = () => {
   const triviaActorRef = TriviaMachineContext.useActorRef();
   const state = TriviaMachineContext.useSelector((state) => state);
   const { homePageCharacters, hasLoaded } = state.context;
+
+  if (state.matches({ homepage: 'loadFailed' })) {
+    return <DisplayError />;
+  }
 
   return (
     <div className="container">
@@ -22,7 +27,7 @@ const StartGame = () => {
               <>
                 <Button
                   onClick={() => triviaActorRef.send({ type: 'user.play' })}
-                  primary
+                  $primary
                 >
                   PLAY
                 </Button>

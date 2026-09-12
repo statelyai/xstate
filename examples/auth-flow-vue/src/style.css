@@ -1,0 +1,40 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 2rem;
+}
+
+main {
+  max-width: 22rem;
+  margin: 0 auto;
+}
+
+form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+input {
+  font: inherit;
+  padding: 0.4rem;
+}
+
+button {
+  font: inherit;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+}
+
+.error {
+  color: #b00020;
+}
+
+.hint,
+.token {
+  color: #666;
+}

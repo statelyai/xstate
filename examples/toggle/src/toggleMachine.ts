@@ -1,17 +1,23 @@
-import { createMachine } from 'xstate';
+import { setup, types } from 'xstate';
 
-export const toggleMachine = createMachine({
+export const toggleMachine = setup({
+  schemas: {
+    events: {
+      toggle: types<{}>()
+    }
+  }
+}).createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
     inactive: {
       on: {
-        toggle: 'active'
+        toggle: { target: 'active' }
       }
     },
     active: {
       on: {
-        toggle: 'inactive'
+        toggle: { target: 'inactive' }
       }
     }
   }

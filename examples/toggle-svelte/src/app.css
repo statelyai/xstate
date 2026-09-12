@@ -1,0 +1,33 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+}
+
+main {
+  text-align: center;
+}
+
+button {
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border: 1px solid #888;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.toggle {
+  font-size: 1.5rem;
+  min-width: 8rem;
+}
+
+.toggle.on {
+  background: #ffd75e;
+}
+
+.count {
+  color: #666;
+}

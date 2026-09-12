@@ -1,0 +1,72 @@
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  position: relative;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  display: grid;
+  place-items: center;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(26rem, 90vw);
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+input {
+  background: #f2f3f7;
+  border: 2px solid #dce0ea;
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #dce0ea;
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.results li {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+
+.results li.current {
+  background: #311bf6;
+  color: white;
+}
+
+.state {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #4a4f68;
+}
+
+.state.error {
+  color: #c22c2c;
+}

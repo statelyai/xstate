@@ -19,7 +19,7 @@ const Lose = () => {
           {context.hasLoaded && (
             <Button
               onClick={() => triviaActorRef.send({ type: 'user.playAgain' })}
-              primary
+              $primary
             >
               PLAY AGAIN
             </Button>

@@ -3937,7 +3937,7 @@ export interface SetupReturn<
     >,
     TInput = unknown,
     const TStateKeys extends string = SetupStateKey<TStates>,
-    TConfig extends SetupMachineConfig<
+    const TConfig extends SetupMachineConfig<
       TStates,
       TStateKeys,
       TSchemas,

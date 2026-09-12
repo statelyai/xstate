@@ -2,7 +2,7 @@ import BigTitle from '../components/layout/BigTitle';
 import StartGame from '../components/game/StartGame';
 import GeneralModal from '../components/layout/Modal';
 
-const App: React.FC = () => {
+const Home = () => {
   return (
     <>
       <BigTitle />
@@ -12,4 +12,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default Home;

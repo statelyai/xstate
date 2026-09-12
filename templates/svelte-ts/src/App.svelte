@@ -1,29 +1,24 @@
 <script lang="ts">
   import { feedbackMachine } from './feedbackMachine';
-  import { useMachine } from '@xstate/svelte';
-  import { createBrowserInspector } from '@statelyai/inspect';
+  import { useActor } from '@xstate/svelte';
+  import { createInspector } from '@statelyai/sdk';
 
-  const { inspect } = createBrowserInspector({
-    // Comment out the line below to start the inspector
-    autoStart: false
-  });
+  const inspector = createInspector();
 
-  const { snapshot, send } = useMachine(feedbackMachine, {
-    inspect
-  });
+  const { snapshot, send } = useActor(feedbackMachine, { inspect: inspector.inspect });
 </script>
 
 {#if $snapshot.matches('closed')}
   <div>
     <em>Feedback form closed.</em>
     <br />
-    <button on:click={() => send({ type: 'restart' })}>
+    <button onclick={() => send({ type: 'restart' })}>
       Provide more feedback
     </button>
   </div>
 {:else}
   <div class="feedback">
-    <button class="close-button" on:click={() => send({ type: 'close' })}>
+    <button class="close-button" onclick={() => send({ type: 'close' })}>
       Close
     </button>
 
@@ -31,11 +26,11 @@
       <div class="step">
         <h2>How was your experience?</h2>
 
-        <button class="button" on:click={() => send({ type: 'feedback.good' })}>
+        <button class="button" onclick={() => send({ type: 'feedback.good' })}>
           Good
         </button>
 
-        <button class="button" on:click={() => send({ type: 'feedback.bad' })}>
+        <button class="button" onclick={() => send({ type: 'feedback.bad' })}>
           Bad
         </button>
       </div>
@@ -54,7 +49,10 @@
     {#if $snapshot.matches('form')}
       <form
         class="step"
-        on:submit|preventDefault={() => send({ type: 'submit' })}
+        onsubmit={(ev) => {
+          ev.preventDefault();
+          send({ type: 'submit' });
+        }}
       >
         <h2>What can we do better?</h2>
 
@@ -62,15 +60,15 @@
           name="feedback"
           rows={4}
           placeholder="So many things..."
-          on:input={(ev) =>
-            send({ type: 'feedback.update', value: ev.target.value })}
-        />
+          oninput={(ev) =>
+            send({ type: 'feedback.update', value: ev.currentTarget.value })}
+        ></textarea>
 
         <button class="button" disabled={!$snapshot.can({ type: 'submit' })}>
           Submit
         </button>
 
-        <button class="button" on:click={() => send({ type: 'back' })}>
+        <button class="button" type="button" onclick={() => send({ type: 'back' })}>
           Back
         </button>
       </form>

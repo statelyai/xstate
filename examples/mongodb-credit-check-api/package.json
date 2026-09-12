@@ -2,27 +2,23 @@
   "private": true,
   "name": "@xstate/example-mongodb-credit-check-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "type": "module",
+  "license": "MIT",
   "scripts": {
-    "start": "nodemon index.ts"
+    "start": "vite-node index.ts",
+    "typecheck": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@types/body-parser": "^1.19.6",
-    "body-parser": "^1.20.4",
-    "express": "^4.22.1",
+    "@statelyai/sdk": "^0.20.1",
+    "express": "^5.1.0",
     "mongodb": "^6.21.0",
     "xstate": "workspace:*",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/express": "^4.17.25",
+    "@types/express": "^5.0.0",
     "@types/node": "^20.19.35",
-    "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite-node": "^0.31.4"
   }
 }

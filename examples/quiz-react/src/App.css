@@ -1,0 +1,39 @@
+#app {
+  max-width: 34rem;
+  padding: 2rem;
+  width: 100%;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  opacity: 0.7;
+}
+.timer {
+  font-variant-numeric: tabular-nums;
+}
+h1 {
+  font-size: 1.5rem;
+}
+.choices,
+.summary {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.summary {
+  list-style: decimal inside;
+  gap: 0.75rem;
+}
+.choices button {
+  width: 100%;
+  text-align: left;
+}
+.summary small {
+  display: block;
+  opacity: 0.7;
+}
+.skip {
+  margin-top: 1rem;
+}

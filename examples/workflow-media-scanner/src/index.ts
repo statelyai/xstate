@@ -1,24 +1,27 @@
-import { mediaScannerMachine } from './mediaScannerMachine';
 import { createActor } from 'xstate';
+import { mediaScannerMachine } from './mediaScannerMachine';
+import { createInspector } from '@statelyai/sdk';
 
-(async () => {
-  console.log('Starting the awesome media scanner thingy');
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
-  const mediaScannerActor = createActor(mediaScannerMachine, {
-    input: {
-      basePath: 'YOUR BASE PATH HERE',
-      destinationPath: 'YOUR DESTINATION PATH HERE'
-    }
-  });
+const basePath = process.env.MEDIA_BASE_PATH;
+const destinationPath = process.env.MEDIA_DESTINATION_PATH;
 
-  mediaScannerActor.subscribe((state) => {
-    console.log({
-      state: state.value,
-      error: state.error,
-      context: state.context
-    });
-  });
+if (!basePath || !destinationPath) {
+  console.error(
+    'Set MEDIA_BASE_PATH and MEDIA_DESTINATION_PATH before running the scanner.'
+  );
+  process.exit(1);
+}
 
-  mediaScannerActor.start();
-  mediaScannerActor.send({ type: 'START_SCAN' });
-})();
+const mediaScannerActor = createActor(mediaScannerMachine, {
+  input: { basePath, destinationPath },
+  inspect: inspector?.inspect
+});
+
+mediaScannerActor.subscribe((snapshot) => {
+  console.log({ state: snapshot.value, context: snapshot.context });
+});
+
+mediaScannerActor.start();
+mediaScannerActor.send({ type: 'START_SCAN' });

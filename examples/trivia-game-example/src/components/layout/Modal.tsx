@@ -24,7 +24,7 @@ export default function GeneralModal() {
           <li>You have 3 chances to be wrong or YOU LOSE!</li>
           <li>You can use the clues for every question</li>
         </ul>
-        <h2 className="text-center font-weight-bold">SHOW ME WHAT YOU GOT!</h2>
+        <h2 className="text-center fw-bold">SHOW ME WHAT YOU GOT!</h2>
       </Modal.Body>
       <Modal.Footer>
         <Button
@@ -34,7 +34,7 @@ export default function GeneralModal() {
           <h3>NOPE!</h3>
         </Button>
         <Button
-          className="btn btn-primary"
+          variant="primary"
           onClick={() => triviaActorRef.send({ type: 'user.accept' })}
         >
           <h3>LET'S DO IT</h3>
