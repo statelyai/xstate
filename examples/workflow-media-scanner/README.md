@@ -1,127 +1,23 @@
-# Workflow Example: Scanning and splitting Media
+# Media scanner workflow
 
-This is a small example of a back-end workflow that uses a state machine to execute long running tasks. This project crawls a directory full of movies and separates out videos over 1080p for potential processing down the line.
+<!-- CLI and dependency requirements from package.json and src/index.ts; workflow and filesystem behavior from src/mediaScannerMachine.ts and src/fileHandlers.ts. -->
 
-> **NOTE:This project is not intended for production use.**
+This XState v6 alpha workflow scans the immediate subdirectories of a media library, checks access, and probes supported video files. When a video exceeds 1920 pixels wide and 1080 pixels high, it moves that video's containing directory to the destination. Multiple qualifying videos in one directory cause one move. Existing destination directories are never overwritten.
 
-## Prerequisites
+Install `ffprobe` (included with [FFmpeg](https://ffmpeg.org/download.html)) and put it on `PATH`. From the repository root, run `pnpm install` and `pnpm build`. Then, in this directory:
 
-This project requires `ffprobe`, a binary that ships alongside `ffmpeg`, which is the golden standard for media file manipulation.
+```sh
+pnpm start '/path/to/media library' '/path/to/large videos'
+```
 
-- [Install ffmpeg here](https://ffmpeg.org/download.html)
-- Clone this repo and run `yarn` (or use your package manager of choice) in a terminal at the project's root.
-- Update the `basePath` and `destinationPath` in the `mediaScannerMachine.ts` file with your own paths.
-- Run the project with `yarn start` in the terminal
+Both paths are required. The CLI performs real directory moves; use directories you intend to reorganize. The source must contain at least one accessible immediate subdirectory. Source directory symlinks are not followed. A corrupt video does not prevent scanning other files in its directory. The scanner reports inaccessible paths, probe failures, and move failures. No qualifying videos is a successful scan. CLI errors set a failing exit code.
 
-## XState concepts involved
+The machine accepts `START_SCAN` in `idle`; `RESTART` returns from `ReportingErrors` to `idle`. Starting another scan clears the previous scan's result lists. Probe subprocesses receive arguments without a shell, respect actor cancellation, and time out after 30 seconds.
 
-This project convers how to implement the following with XState:
+`pnpm build` checks types. From the repository root, run:
 
-- Initializing a XState machine as an actor
+```sh
+pnpm exec vitest run --config scripts/vitest-examples.config.mts examples/workflow-media-scanner
+```
 
-  ```ts
-  // index.ts
-
-  // ...
-
-  const mediaScannerActor = createActor(mediaScannerMachine);
-  ```
-
-- Injecting context information into the actor on initialization
-
-  ```ts
-  // index.ts
-
-  // ...
-
-  const mediaScannerActor = createActor(mediaScannerMachine, {
-    input: {
-      basePath: 'YOUR BASE PATH HERE',
-      destinationPath: 'YOUR DESTINATION PATH HERE'
-    }
-  });
-  ```
-
-- Sending events to the XState actor
-
-  ```ts
-  // index.ts
-
-  // ...
-
-  mediaScannerActor.send({ type: 'START_SCAN' });
-  ```
-
-- Subscribing to a running actor for state change and context information
-
-  ```ts
-  // index.ts
-
-  // ...
-
-  mediaScannerActor.subscribe((state) => {
-    console.log({
-      state: state.value,
-      error: state.error,
-      context: state.context
-    });
-  });
-  ```
-
-- Invoking services and capturing results
-
-  > mediaScannerMachine.ts
-
-  ```ts
-  invoke: {
-    id: 'checkFilePermissions',
-    input: ({ context: { directoriesToCheck } }) => ({
-      directoriesToCheck
-    }),
-    src: createAsyncLogic({
-      run: async ({ input: { directoriesToCheck } }) =>
-        await checkFilePermissions(directoriesToCheck)
-    }),
-    onDone: [
-      {
-        target: 'EvaluatingFiles',
-        actions: assign(({ event }) => {
-          return {
-            dirsToEvaluate: event.output['dirsToEvaluate'],
-            dirsToReport: event.output['dirsToReport']
-          };
-        })
-      }
-    ],
-    onError: [
-      {
-        target: 'ReportingErrors',
-        actions: assign(({ event }) => {
-          return {
-            dirsToReport: event.error['dirsToReport']
-          };
-        })
-      }
-    ]
-  }
-  ```
-
-- Batching results and assigning multiple properties to the actor's context
-
-  > fileHandlers.ts
-
-  ```ts
-  ...
-   return { dirsToEvaluate, dirsToReport };
-  ```
-
-  > mediaScannerMachine.ts
-
-  ```ts
-  actions: assign(({ event }) => {
-    return {
-      dirsToEvaluate: event.output['dirsToEvaluate'],
-      dirsToReport: event.output['dirsToReport']
-    };
-  });
-  ```
+These tests mock filesystem moves and ffprobe. They cover workflow progression, permission and move errors, duplicate parent directories, existing destinations, corrupt files, audio-first stream metadata, and subprocess/JSON failures. They do not move a real media library or validate an installed FFmpeg binary.

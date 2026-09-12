@@ -13,22 +13,24 @@ export type userCredential = z.infer<typeof userCredentialSchema>;
 
 // this would be a great place to lookup the user in a database and confirm they exist
 // for now, we will just validate the input and return it
-export async function verifyCredentials(credentials: userCredential) {
+export function verifyCredentials(credentials: userCredential) {
   console.log('Verifying Credentials...');
   try {
     userCredentialSchema.parse(credentials);
-    return credentials;
+    return Promise.resolve(credentials);
   } catch (err) {
-    const errorMessage = 'Invalid Credentials. Details: ' + err;
+    const errorMessage = 'Invalid Credentials. Details: ' + String(err);
     console.log(errorMessage);
-    throw new Error(errorMessage);
+    return Promise.reject(new Error(errorMessage));
   }
 }
 // given an array of 3 scores, return the middle score
 //remember, it's not production code, it's a sample!
-export async function determineMiddleScore(scores: number[]) {
-  scores.sort();
-  return scores[1];
+export function determineMiddleScore(scores: number[]) {
+  if (scores.length !== 3 || scores.some((score) => !Number.isFinite(score))) {
+    return Promise.reject(new Error('Expected three finite credit scores'));
+  }
+  return Promise.resolve([...scores].sort((a, b) => a - b)[1]);
 }
 
 // this is where we would check the database to see if we have an existing report for this user
@@ -43,11 +45,13 @@ export async function checkReportsTable({
 }) {
   console.log('Checking for an existing report....');
   try {
-    const report = await collections.creditReports?.findOne({
+    if (!collections.creditReports)
+      throw new Error('Credit reports collection is not initialized');
+    const report = await collections.creditReports.findOne({
       ssn,
       bureauName
     });
-    return report as CreditReport | undefined;
+    return report as CreditReport | null;
   } catch (err) {
     console.log('Error checking reports table', err);
     throw err;
@@ -63,6 +67,7 @@ export async function checkBureauService({
   ssn: string;
   bureauName: string;
 }) {
+  void ssn;
   switch (bureauName) {
     case 'GavUnion':
       await sleep(range({ min: 1000, max: 10000 }));
@@ -73,6 +78,8 @@ export async function checkBureauService({
     case 'Gavperian':
       await sleep(range({ min: 1000, max: 10000 }));
       return range({ min: 300, max: 850 });
+    default:
+      throw new Error('Unknown credit bureau');
   }
 }
 
@@ -93,7 +100,9 @@ export async function generateInterestRate(creditScore: number) {
 // saves the specific credit report to the database, by SSN and bureau name
 export async function saveCreditReport(report: CreditReport) {
   try {
-    await collections.creditReports?.replaceOne(
+    if (!collections.creditReports)
+      throw new Error('Credit reports collection is not initialized');
+    const result = await collections.creditReports.replaceOne(
       {
         ssn: report.ssn,
         bureauName: report.bureauName
@@ -101,6 +110,8 @@ export async function saveCreditReport(report: CreditReport) {
       report,
       { upsert: true }
     );
+    if (!result.acknowledged)
+      throw new Error('Credit report write was not acknowledged');
   } catch (err) {
     console.log('Error saving credit report', err);
     throw err;
@@ -109,13 +120,17 @@ export async function saveCreditReport(report: CreditReport) {
 // saves the entire credit credit profile to the database
 export async function saveCreditProfile(profile: CreditProfile) {
   try {
-    await collections.creditProfiles?.replaceOne(
+    if (!collections.creditProfiles)
+      throw new Error('Credit profiles collection is not initialized');
+    const result = await collections.creditProfiles.replaceOne(
       {
-        ssn: profile.SSN
+        SSN: profile.SSN
       },
       profile,
       { upsert: true }
     );
+    if (!result.acknowledged)
+      throw new Error('Credit profile write was not acknowledged');
   } catch (err) {
     console.log('Error saving credit profile', err);
     throw err;

@@ -1,31 +1,9 @@
-import { createMachine } from 'xstate';
-
-interface CounterContext {
-  count: number;
-}
-
-type CounterEvent = {
-  type: 'INCREMENT';
-};
+import { types, createMachine } from 'xstate';
 
 export const counterMachine = createMachine({
-  types: {} as {
-    context: CounterContext;
-    events: CounterEvent;
-  },
-  id: 'counter',
+  schemas: { events: { INCREMENT: types<{}>() } },
   context: { count: 0 },
   on: {
-    INCREMENT: ({ context, event, guards, actions }, enq) => {
-      return {
-        context: {
-          ...context,
-          count: (({ context }) => context.count + 1)({
-            context: context,
-            event: event
-          })
-        }
-      };
-    }
+    INCREMENT: ({ context }) => ({ context: { count: context.count + 1 } })
   }
 });

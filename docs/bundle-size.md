@@ -1,0 +1,15 @@
+# Bundle measurements
+
+Run `pnpm bench:size` for the normal verified report, or `node scripts/bundle-size.mjs --report --verify --json` for JSON after installing the locked workspace dependencies. It measures 25 representative applications from source and asserts their observable output after both esbuild and Terser minification. The profiles cover FSMs, custom actors, statecharts, restoration, stores, atoms, and React integrations. Invoked and delayed profiles wait for completion; restoration crosses a JSON boundary. The exported API profile checks selected factory exports.
+
+Use `--report --baseline=<git-revision>` to substitute historical package source files in memory while retaining current dependencies, package resolution, and application profiles. This requires matching source file layout; missing historical files fail instead of silently mixing versions. It measures source changes, not a historical dependency installation.
+
+Use `--profile=minimal-machine` to select one application and `--why` for module attribution. After `pnpm build`, add `--dist` to measure built ESM packages through their public export maps in a temporary consumer, without source or direct distribution-entry aliases. Restore development entrypoints with `pnpm postinstall` before returning to source tests. Source and distribution measurements use identical profile inputs, recorded by hash, and report the tool versions used.
+
+React profiles render on the server and exclude the external `react` and `react-dom/server` peers. Their figures include XState and its bundled adapter dependencies, not a complete React application's download size. The verification harness resolves workspace-installed peers and provides Node's `require` for bundled CommonJS compatibility helpers. Assertions and the harness are outside the measured artifact. Adapter lifecycle tests separately cover browser mounting, updates, and cleanup.
+
+CI builds packages, checks a real TypeScript consumer with `skipLibCheck: false` via `node scripts/check-built-types.mjs`, executes both sets of profiles, and uploads JSON size reports. Incorrect observable output or failed compilation fails CI. Size reporting is informational: the historical thresholds predate the current runtime and remain unchanged. `pnpm bench:size:strict` (or running the script without `--report`) explicitly checks those historical thresholds and currently reports known overruns. Review any proposed budget update against a measured correctness baseline; do not regenerate budgets merely to make a check pass.
+
+Sizes are complete application profiles, not additive feature costs. Shared engine code, compression, minifier choices, and profile changes affect comparisons. The fixed JavaScript gzip implementation avoids platform-dependent zlib differences; compare the recorded tool versions and profile hashes before interpreting deltas.
+
+The audit measurements and rejected runtime experiment are recorded in [the capability report](../plans/008-bundle-measurements.md). The experiment runs only in memory with `--report --experiment=lazy-bind`; it never changes library source or production builds.

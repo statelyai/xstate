@@ -1,6 +1,113 @@
 import { createStore } from '../src/index.ts';
 import { undoRedo } from '../src/undo.ts';
 import { z } from 'zod';
+import { persist, flushStorage, isHydrated } from '../src/persist.ts';
+
+it.each(['persist-first', 'undo-first'] as const)(
+  'preserves persistence metadata through snapshot undo and redo (%s)',
+  (order) => {
+    const storage = {
+      getItem: () => null,
+      setItem: vi.fn(),
+      removeItem: vi.fn()
+    };
+    const base = createStore({
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    });
+    const store =
+      order === 'persist-first'
+        ? base
+            .with(persist({ name: 'counter', storage }))
+            .with(undoRedo({ strategy: 'snapshot' }))
+        : base
+            .with(undoRedo({ strategy: 'snapshot' }))
+            .with(persist({ name: 'counter', storage }));
+
+    store.trigger.inc();
+    store.trigger.undo();
+    expect(store.getSnapshot().context.count).toBe(0);
+    expect(isHydrated(store)).toBe(true);
+    expect(() => flushStorage(store)).not.toThrow();
+    store.trigger.redo();
+    expect(store.getSnapshot().context.count).toBe(1);
+    expect(isHydrated(store)).toBe(true);
+  }
+);
+
+it('preserves live extension metadata through custom restore triggers', () => {
+  const writes = vi.fn();
+  const store = createStore({
+    context: { count: 0 },
+    on: { inc: (context) => ({ count: context.count + 1 }) }
+  })
+    .with(
+      persist({
+        name: 'counter',
+        storage: { getItem: () => null, setItem: writes, removeItem: vi.fn() }
+      })
+    )
+    .with(
+      undoRedo({
+        strategy: 'snapshot',
+        restore: ({ next }, enqueue) => {
+          enqueue.trigger.inc();
+          return next;
+        }
+      })
+    );
+
+  store.trigger.inc();
+  writes.mockClear();
+  store.trigger.undo();
+  expect(isHydrated(store)).toBe(true);
+  expect(store.getSnapshot().context.count).toBe(1);
+  expect(writes).toHaveBeenCalledExactlyOnceWith(
+    'counter',
+    JSON.stringify({ context: { count: 1 }, version: 0 })
+  );
+});
+
+it('keeps metadata updates produced by custom restore triggers', () => {
+  const revision = Symbol('revision');
+  const store = createStore({
+    context: { count: 0 },
+    on: { inc: (context) => ({ count: context.count + 1 }) }
+  })
+    .with<{}>((logic) => ({
+      ...logic,
+      getInitialSnapshot: () => ({
+        ...logic.getInitialSnapshot(),
+        [revision]: 0
+      }),
+      transition: (snapshot, event) => {
+        const [next, effects] = logic.transition(snapshot, event);
+        return [
+          {
+            ...next,
+            [revision]: (Reflect.get(snapshot, revision) as number) + 1
+          },
+          effects
+        ];
+      }
+    }))
+    .with(
+      undoRedo({
+        strategy: 'snapshot',
+        restore: ({ next }, enqueue) => {
+          enqueue.trigger.inc();
+          return next;
+        }
+      })
+    );
+
+  store.trigger.inc();
+  expect(Reflect.get(store.getSnapshot(), revision)).toBe(1);
+  store.trigger.undo();
+  expect(Reflect.get(store.getSnapshot(), revision)).toBe(2);
+  store.trigger.redo();
+  expect(Reflect.get(store.getSnapshot(), revision)).toBe(3);
+});
 
 it('should undo a single event', () => {
   const store = createStore({

@@ -1180,25 +1180,30 @@ export function createMachineFromSCXMLConfig(
     };
   }
 
-  // Pending transition actions: set by .to functions, consumed by entry functions.
-  // This bridges SCXML's exit→transition→entry action ordering with XState's
-  // .to function receiving pre-exit context.
-  // Map keyed by target state ID so parallel transitions don't overwrite each other.
-  const pendingTransitionActionsMap: Record<string, ActionJSON[]> = {};
-
-  // Ordered queue of ALL transition actions (targeted + targetless) for parallel
-  // context sharing. In SCXML, all transition actions execute sequentially in
-  // document order with a shared evolving data model.
-  const allTransitionActions: ActionJSON[][] = [];
-  // Pre-transition context saved when a targetless .to executes. Used by entry
-  // functions to re-execute all transition actions from scratch when parallel
-  // targetless transitions coexist with targeted transitions.
-  let contextBeforeTargetless: MachineContext | null = null;
-  let targetlessEvent: AnyEventObject | null = null;
-  // Platform errors collected during transition selection (e.g., failing
-  // <transition cond>). Drained by the next state's entry into the internal
-  // event queue so they're processed before any external events.
-  const pendingPlatformErrors: Array<Record<string, unknown>> = [];
+  // Scratch belongs to one actor and is reset before each transition selection.
+  // Sharing it on the compiled machine leaks guards/actions across instances.
+  interface ScxmlScratch {
+    pendingTransitionActionsMap: Record<string, ActionJSON[]>;
+    allTransitionActions: ActionJSON[][];
+    contextBeforeTargetless: MachineContext | null;
+    targetlessEvent: AnyEventObject | null;
+    pendingPlatformErrors: Array<Record<string, unknown>>;
+  }
+  const actorScratch = new WeakMap<AnyActorRef, ScxmlScratch>();
+  function getScratch(self: AnyActorRef): ScxmlScratch {
+    let scratch = actorScratch.get(self);
+    if (!scratch) {
+      scratch = {
+        pendingTransitionActionsMap: Object.create(null),
+        allTransitionActions: [],
+        contextBeforeTargetless: null,
+        targetlessEvent: null,
+        pendingPlatformErrors: []
+      };
+      actorScratch.set(self, scratch);
+    }
+    return scratch;
+  }
   const scxmlDonedataValues = new WeakMap<AnyActorRef, Map<string, unknown>>();
 
   function evaluateDonedataValue(
@@ -1272,24 +1277,11 @@ export function createMachineFromSCXMLConfig(
       x,
       enq
     ) => {
+      const scratch = getScratch(x.self);
       scxmlMachineNames.set(x.self, json.id ?? '(machine)');
       if (stateId) {
         scxmlEnteringStates.set(x.self, [...ancestorIds, stateId]);
       }
-      // Drain any platform errors queued during transition selection (e.g.,
-      // failing <transition cond="..."> evaluations). These must be raised
-      // internally so they're processed before subsequent external events.
-      while (pendingPlatformErrors.length) {
-        const err = pendingPlatformErrors.shift()!;
-        enq.raise({
-          type: 'xstate.error.execution',
-          error: err,
-          _scxmlEventType: 'platform',
-          _scxmlEventName: 'error.execution',
-          _scxmlEventData: err
-        } as AnyEventObject);
-      }
-
       let context: MachineContext | undefined;
 
       // If targetless transitions were interleaved with targeted transitions
@@ -1299,44 +1291,44 @@ export function createMachineFromSCXMLConfig(
       // Only trigger when BOTH targeted (pending in map) and targetless fired
       // in the same microstep — prevents stale data from previous events.
       if (
-        contextBeforeTargetless &&
-        targetlessEvent === x.event &&
-        allTransitionActions.length > 0 &&
-        Object.keys(pendingTransitionActionsMap).length > 0
+        scratch.contextBeforeTargetless &&
+        scratch.targetlessEvent === x.event &&
+        scratch.allTransitionActions.length > 0 &&
+        Object.keys(scratch.pendingTransitionActionsMap).length > 0
       ) {
-        let ctx = contextBeforeTargetless;
-        for (const actions of allTransitionActions) {
+        let ctx = scratch.contextBeforeTargetless;
+        for (const actions of scratch.allTransitionActions) {
           const mergedX = { ...x, context: ctx };
           const result = executeActions(actions, mergedX, enq);
           if (result.context) {
             ctx = result.context;
           }
         }
-        allTransitionActions.length = 0;
-        contextBeforeTargetless = null;
-        targetlessEvent = null;
+        scratch.allTransitionActions.length = 0;
+        scratch.contextBeforeTargetless = null;
+        scratch.targetlessEvent = null;
         // Clear per-target map since we re-processed everything
-        for (const key of Object.keys(pendingTransitionActionsMap)) {
-          delete pendingTransitionActionsMap[key];
+        for (const key of Object.keys(scratch.pendingTransitionActionsMap)) {
+          delete scratch.pendingTransitionActionsMap[key];
         }
         context = ctx;
       } else {
         // Normal path: consume pending transition actions for THIS state.
         // In parallel states, each target gets its own pending actions.
         const transActions = stateId
-          ? pendingTransitionActionsMap[stateId]
+          ? scratch.pendingTransitionActionsMap[stateId]
           : undefined;
         if (transActions) {
-          delete pendingTransitionActionsMap[stateId!];
+          delete scratch.pendingTransitionActionsMap[stateId!];
           const result = executeActions(transActions, x, enq);
           if (result.context) {
             context = result.context;
           }
         }
         // Clear stale targetless data from previous microsteps
-        contextBeforeTargetless = null;
-        targetlessEvent = null;
-        allTransitionActions.length = 0;
+        scratch.contextBeforeTargetless = null;
+        scratch.targetlessEvent = null;
+        scratch.allTransitionActions.length = 0;
       }
 
       // Execute normal entry actions
@@ -2418,15 +2410,16 @@ export function createMachineFromSCXMLConfig(
           meta: t.meta,
           input: t.input !== undefined ? resolveTransitionInput : undefined,
           to: (x: any, enq: any) => {
+            const scratch = getScratch(x.self);
             const context = resolveTransitionContext(x);
             if (t.actions?.length) {
               // Track for parallel re-execution (dedup by reference)
-              if (!allTransitionActions.includes(t.actions)) {
-                allTransitionActions.push(t.actions);
+              if (!scratch.allTransitionActions.includes(t.actions)) {
+                scratch.allTransitionActions.push(t.actions);
               }
               // Save pre-transition context for parallel override
-              contextBeforeTargetless ??= x.context;
-              targetlessEvent ??= x.event;
+              scratch.contextBeforeTargetless ??= x.context;
+              scratch.targetlessEvent ??= x.event;
               // Execute immediately (fallback for non-parallel case)
               const result = executeActions(t.actions, x, enq);
               if (result.context) {
@@ -2452,13 +2445,14 @@ export function createMachineFromSCXMLConfig(
         meta: t.meta,
         input: t.input !== undefined ? resolveTransitionInput : undefined,
         to: (_x: any, _enq: any) => {
+          const scratch = getScratch(_x.self);
           const context = resolveTransitionContext(_x);
           if (t.actions?.length) {
             const targetId = target.replace(/^#/, '');
-            pendingTransitionActionsMap[targetId] = t.actions;
+            scratch.pendingTransitionActionsMap[targetId] = t.actions;
             // Track for parallel re-execution (dedup by reference)
-            if (!allTransitionActions.includes(t.actions)) {
-              allTransitionActions.push(t.actions);
+            if (!scratch.allTransitionActions.includes(t.actions)) {
+              scratch.allTransitionActions.push(t.actions);
             }
           }
           return {
@@ -2533,6 +2527,7 @@ export function createMachineFromSCXMLConfig(
   // Register SCXML guard sources
   const providedGuards: Record<string, (args: any, params: any) => boolean> = {
     'scxml.cond': ({ context, event, self }: any, params: any) => {
+      const scratch = getScratch(self);
       const expr = params?.expr as string;
       if (!expr) return true;
       try {
@@ -2540,14 +2535,14 @@ export function createMachineFromSCXMLConfig(
       } catch (err) {
         // Per SCXML spec, a cond that fails to evaluate is treated as false
         // AND raises error.execution. We can't enqueue from a guard, so
-        // queue it for the next entry to drain.
+        // queue it for the current microstep to drain, even without entry.
         const message =
           err instanceof Error
             ? err.message
             : typeof err === 'string'
               ? err
               : 'unknown error';
-        pendingPlatformErrors.push({
+        scratch.pendingPlatformErrors.push({
           tagname: 'cond',
           message,
           line: NaN,
@@ -2587,6 +2582,29 @@ export function createMachineFromSCXMLConfig(
     },
     delays: resolvedSources.delays
   });
+
+  provided._microstepHooks = {
+    begin(self) {
+      const scratch = getScratch(self);
+      scratch.pendingPlatformErrors = [];
+      scratch.pendingTransitionActionsMap = Object.create(null);
+      scratch.allTransitionActions = [];
+      scratch.contextBeforeTargetless = null;
+      scratch.targetlessEvent = null;
+    },
+    drain(self) {
+      const scratch = getScratch(self);
+      const errors = scratch.pendingPlatformErrors;
+      scratch.pendingPlatformErrors = [];
+      return errors.map((error) => ({
+        type: 'xstate.error.execution',
+        error,
+        _scxmlEventType: 'platform',
+        _scxmlEventName: 'error.execution',
+        _scxmlEventData: error
+      }));
+    }
+  };
 
   // Keep the original JSON so `serializeMachine(machine)`
   // round-trip losslessly.

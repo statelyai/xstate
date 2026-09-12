@@ -26,12 +26,13 @@ export function Todos() {
 
   // Persist todos
   useEffect(() => {
-    todosActorRef.subscribe(() => {
+    const subscription = todosActorRef.subscribe(() => {
       localStorage.setItem(
         'todos',
-        JSON.stringify(todosActorRef.getPersistedSnapshot?.())
+        JSON.stringify(todosActorRef.getPersistedSnapshot())
       );
     });
+    return () => subscription.unsubscribe();
   }, [todosActorRef]);
 
   useHashChange(() => {
@@ -43,7 +44,7 @@ export function Todos() {
 
   // Capture initial state of browser hash
   useEffect(() => {
-    window.location.hash.slice(2) &&
+    if (window.location.hash.slice(2))
       send({
         type: 'filter.change',
         filter: window.location.hash.slice(2) as TodosFilter

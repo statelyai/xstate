@@ -489,13 +489,14 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   /** Recover via the logic's error event if possible; otherwise error out. */
   private _recoverOrError(
     err: unknown,
-    snapshot?: SnapshotFrom<TLogic>
+    snapshot?: SnapshotFrom<TLogic>,
+    previousSnapshot?: SnapshotFrom<TLogic>
   ): boolean {
     if (this._tryHandleExecutionError(err, snapshot)) {
       return true;
     }
     this._setErrorSnapshot(err);
-    this._error(err);
+    this._error(err, previousSnapshot);
     return false;
   }
 
@@ -928,6 +929,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   private _process(event: EventFromLogic<TLogic>) {
+    const previousSnapshot = this._snapshot;
     let nextState: ActorLogicTransitionResult<SnapshotFrom<TLogic>> | undefined;
     let caughtError;
     try {
@@ -962,7 +964,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       executeExecutableEffects(effects, this._actorScope);
       this.update(snapshot, event);
     } catch (err) {
-      if (!this._recoverOrError(err, snapshot)) {
+      if (!this._recoverOrError(err, snapshot, previousSnapshot)) {
         this._inspectTransition(this._snapshot, event);
       }
       return;
@@ -1042,8 +1044,48 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     this.eventListeners?.clear();
   }
 
-  private _error(err: unknown): void {
+  private _error(err: unknown, previousSnapshot?: SnapshotFrom<TLogic>): void {
     this._stopProcedure();
+    // Transition calculation or effect execution may fail before child stop
+    // effects run. Keep the previous snapshot's children when calculation has
+    // already removed them, and include children owned by non-machine logic
+    // from the runtime registry.
+    const children = new Set<AnyActor>();
+    for (const snapshot of [this._snapshot, previousSnapshot]) {
+      const snapshotChildren = (
+        snapshot as
+          | {
+              children?: Record<string, AnyActor | undefined>;
+            }
+          | undefined
+      )?.children;
+      for (const child of Object.values(snapshotChildren ?? {})) {
+        if (
+          child?._parent === this &&
+          typeof child.getSnapshot === 'function'
+        ) {
+          children.add(child);
+        }
+      }
+    }
+    for (const child of this.system._peekChildren?.()?.values() ?? []) {
+      if (child._parent === this) {
+        children.add(child);
+      }
+    }
+    for (const child of children) {
+      try {
+        if (child.getSnapshot().status !== 'active') {
+          continue;
+        }
+        const result = this.system.stopActor(child);
+        if (result) {
+          void Promise.resolve(result).catch(reportUnhandledError);
+        }
+      } catch (error) {
+        reportUnhandledError(error);
+      }
+    }
     if (!this.observers?.size) {
       if (!this._parent) {
         reportUnhandledError(err);
@@ -1071,11 +1113,6 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       );
     }
   }
-  // TODO: atm children don't belong entirely to the actor so
-  // in a way - it's not even super aware of them
-  // so we can't stop them from here but we really should!
-  // right now, they are being stopped within the machine's transition
-  // but that could throw and leave us with "orphaned" active actors
   private _stopProcedure(): void {
     if (this._processingStatus !== ProcessingStatus.Running) {
       // Actor already stopped; do nothing

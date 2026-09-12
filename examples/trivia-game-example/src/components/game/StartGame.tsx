@@ -8,6 +8,16 @@ const StartGame = () => {
   const state = TriviaMachineContext.useSelector((state) => state);
   const { homePageCharacters, hasLoaded } = state.context;
 
+  const actorRef = TriviaMachineContext.useActorRef();
+  if (state.context.error)
+    return (
+      <div role="alert">
+        {state.context.error}{' '}
+        <button onClick={() => actorRef.send({ type: 'user.retry' })}>
+          Retry
+        </button>
+      </div>
+    );
   return (
     <div className="container">
       <div className="row">

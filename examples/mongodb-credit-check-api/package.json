@@ -3,9 +3,9 @@
   "name": "@xstate/example-mongodb-credit-check-api",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
-    "start": "nodemon index.ts"
+    "start": "nodemon index.ts",
+    "build": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",

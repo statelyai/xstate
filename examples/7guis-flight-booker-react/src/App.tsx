@@ -5,13 +5,12 @@ import { TODAY } from './utils';
 export default function App() {
   const { send } = FlightContext.useActorRef();
   const state = FlightContext.useSelector((state) => state);
-  const { departDate, returnDate } = state.context;
-  const isRoundTrip = state.matches({ scheduling: 'roundTrip' });
+  const { departDate, returnDate, isRoundTrip } = state.context;
   const isBooking = state.matches('booking');
   const isBooked = state.matches('booked');
 
   const isValidDepartDate = departDate >= TODAY;
-  const isValidReturnDate = returnDate >= departDate;
+  const isValidReturnDate = returnDate > departDate;
 
   return (
     <main>
@@ -38,7 +37,7 @@ export default function App() {
         id="Return Date"
         value={returnDate}
         isValidDate={isValidReturnDate}
-        disabled={!isRoundTrip}
+        disabled={!isRoundTrip || isBooking || isBooked}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           send({
             type: 'CHANGE_RETURN_DATE',

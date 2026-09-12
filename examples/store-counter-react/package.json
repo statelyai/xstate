@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@statelyai/inspect": "^0.4.0",
+    "@statelyai/inspect": "^0.7.2",
     "@xstate/store": "workspace:*",
     "@xstate/store-react": "workspace:*",
     "react": "^19.2.4",
@@ -27,6 +27,6 @@
     "globals": "^15.15.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^5.4.21"
+    "vite": "^6.4.3"
   }
 }

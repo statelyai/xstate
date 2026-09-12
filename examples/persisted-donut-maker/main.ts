@@ -1,6 +1,7 @@
 import { __unsafe_getAllOwnEventDescriptors, createActor } from 'xstate';
 import { promises as fs } from 'fs';
 import { donutMachine } from './donutMachine';
+import { createSnapshotWriter } from './snapshotWriter';
 
 const FILENAME = './persisted-state.json';
 
@@ -8,13 +9,21 @@ let restoredState;
 try {
   restoredState = JSON.parse(await fs.readFile(FILENAME, 'utf8'));
 } catch (e) {
+  if (!(e instanceof Error) || !('code' in e) || e.code !== 'ENOENT') {
+    throw e;
+  }
   console.log('No persisted state found.');
   restoredState = undefined;
 }
 
 const actor = createActor(donutMachine, {
-  state: restoredState
+  snapshot: restoredState
 });
+const writer = createSnapshotWriter(FILENAME);
+const reportWriteError = (error: unknown) => {
+  console.error('Could not save persisted state:', error);
+  process.exitCode = 1;
+};
 
 actor.subscribe({
   next(snapshot) {
@@ -34,7 +43,7 @@ actor.subscribe({
 
     // save persisted state to json file
     const persistedState = actor.getPersistedSnapshot();
-    fs.writeFile(FILENAME, JSON.stringify(persistedState));
+    void writer.write(persistedState).catch(reportWriteError);
   },
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);
@@ -47,3 +56,11 @@ process.stdin.on('data', (data) => {
   const eventType = data.toString().trim();
   actor.send({ type: eventType });
 });
+
+async function shutdown() {
+  actor.stop();
+  process.stdin.pause();
+  await writer.flush().catch(reportWriteError);
+}
+process.once('SIGINT', shutdown);
+process.stdin.once('end', shutdown);

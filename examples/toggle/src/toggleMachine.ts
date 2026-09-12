@@ -6,12 +6,12 @@ export const toggleMachine = createMachine({
   states: {
     inactive: {
       on: {
-        toggle: 'active'
+        toggle: { target: 'active' }
       }
     },
     active: {
       on: {
-        toggle: 'inactive'
+        toggle: { target: 'inactive' }
       }
     }
   }

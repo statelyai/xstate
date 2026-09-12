@@ -1,4 +1,4 @@
-import { createMachine } from 'xstate';
+import { types, createMachine } from 'xstate';
 
 export interface TodoItem {
   id: string;
@@ -9,21 +9,22 @@ export interface TodoItem {
 export type TodosFilter = 'all' | 'active' | 'completed';
 
 export const todosMachine = createMachine({
-  types: {} as {
-    context: {
+  schemas: {
+    context: types<{
       todo: string;
       todos: TodoItem[];
       filter: TodosFilter;
-    };
-    events:
-      | { type: 'newTodo.change'; value: string }
-      | { type: 'newTodo.commit'; value: string }
-      | { type: 'todo.commit'; todo: TodoItem }
-      | { type: 'todo.delete'; id: string }
-      | { type: 'filter.change'; filter: TodosFilter }
-      | { type: 'todo.mark'; id: string; mark: 'active' | 'completed' }
-      | { type: 'todo.markAll'; mark: 'active' | 'completed' }
-      | { type: 'todos.clearCompleted' };
+    }>(),
+    events: {
+      'newTodo.change': types<{ value: string }>(),
+      'newTodo.commit': types<{ value: string }>(),
+      'todo.commit': types<{ todo: TodoItem }>(),
+      'todo.delete': types<{ id: string }>(),
+      'filter.change': types<{ filter: TodosFilter }>(),
+      'todo.mark': types<{ id: string; mark: 'active' | 'completed' }>(),
+      'todo.markAll': types<{ mark: 'active' | 'completed' }>(),
+      'todos.clearCompleted': types<{}>()
+    }
   },
   id: 'todos',
   context: {
@@ -38,128 +39,65 @@ export const todosMachine = createMachine({
     filter: 'all'
   },
   on: {
-    'newTodo.change': ({ context, event, guards, actions }, enq) => {
-      return {
-        context: {
-          ...context,
-          todo: (({ event }) => event.value)({ context: context, event: event })
-        }
-      };
-    },
-    'newTodo.commit': ({ context, event, guards, actions }, enq) => {
-      if (!(({ event }) => event.value.trim().length > 0)({ context, event })) {
-        return;
-      }
+    'newTodo.change': ({ context, event }) => ({
+      context: { ...context, todo: event.value }
+    }),
+    'newTodo.commit': ({ context, event }) => {
+      if (!event.value.trim()) return;
       return {
         context: {
           ...context,
           todo: '',
-          todos: (({ context, event }) => {
-            const newTodo: TodoItem = {
-              id: Math.random().toString(36).substring(7),
-              title: event.value,
-              completed: false
-            };
-
-            return [...context.todos, newTodo];
-          })({ context: context, event: event })
+          todos: [
+            ...context.todos,
+            { id: crypto.randomUUID(), title: event.value, completed: false }
+          ]
         }
       };
     },
-    'todo.commit': ({ context, event, guards, actions }, enq) => {
-      return {
-        context: {
-          ...context,
-          todos: (({ context, event }) => {
-            const { todo: todoToUpdate } = event;
-
-            if (!todoToUpdate.title.trim().length) {
-              return context.todos.filter(
-                (todo) => todo.id !== todoToUpdate.id
-              );
-            }
-
-            return context.todos.map((todo) => {
-              if (todo.id === todoToUpdate.id) {
-                return todoToUpdate;
-              }
-
-              return todo;
-            });
-          })({ context: context, event: event })
-        }
-      };
-    },
-    'todo.delete': ({ context, event, guards, actions }, enq) => {
-      return {
-        context: {
-          ...context,
-          todos: (({ context, event }) => {
-            const { id } = event;
-
-            return context.todos.filter((todo) => todo.id !== id);
-          })({ context: context, event: event })
-        }
-      };
-    },
-    'filter.change': ({ context, event, guards, actions }, enq) => {
-      return {
-        context: {
-          ...context,
-          filter: (({ event }) => event.filter)({
-            context: context,
-            event: event
-          })
-        }
-      };
-    },
-    'todo.mark': ({ context, event, guards, actions }, enq) => {
-      return {
-        context: {
-          ...context,
-          todos: (({ context, event }) => {
-            const { mark } = event;
-
-            return context.todos.map((todo) => {
-              if (todo.id === event.id) {
-                return {
-                  ...todo,
-                  completed: mark === 'completed'
-                };
-              }
-
-              return todo;
-            });
-          })({ context: context, event: event })
-        }
-      };
-    },
-    'todo.markAll': ({ context, event, guards, actions }, enq) => {
-      return {
-        context: {
-          ...context,
-          todos: (({ context, event }) => {
-            const { mark } = event;
-
-            return context.todos.map((todo) => {
-              return {
-                ...todo,
-                completed: mark === 'completed'
-              };
-            });
-          })({ context: context, event: event })
-        }
-      };
-    },
-    'todos.clearCompleted': ({ context, event, guards, actions }, enq) => {
-      return {
-        context: {
-          ...context,
-          todos: (({ context }) => {
-            return context.todos.filter((todo) => !todo.completed);
-          })({ context: context, event: event })
-        }
-      };
-    }
+    'todo.commit': ({ context, event }) => ({
+      context: {
+        ...context,
+        todos: event.todo.title.trim()
+          ? context.todos.map((todo) =>
+              todo.id === event.todo.id ? event.todo : todo
+            )
+          : context.todos.filter((todo) => todo.id !== event.todo.id)
+      }
+    }),
+    'todo.delete': ({ context, event }) => ({
+      context: {
+        ...context,
+        todos: context.todos.filter((todo) => todo.id !== event.id)
+      }
+    }),
+    'filter.change': ({ context, event }) => ({
+      context: { ...context, filter: event.filter }
+    }),
+    'todo.mark': ({ context, event }) => ({
+      context: {
+        ...context,
+        todos: context.todos.map((todo) =>
+          todo.id === event.id
+            ? { ...todo, completed: event.mark === 'completed' }
+            : todo
+        )
+      }
+    }),
+    'todo.markAll': ({ context, event }) => ({
+      context: {
+        ...context,
+        todos: context.todos.map((todo) => ({
+          ...todo,
+          completed: event.mark === 'completed'
+        }))
+      }
+    }),
+    'todos.clearCompleted': ({ context }) => ({
+      context: {
+        ...context,
+        todos: context.todos.filter((todo) => !todo.completed)
+      }
+    })
   }
 });

@@ -52,5 +52,7 @@ const clone = <T extends unknown>(
 };
 
 // oxlint-disable-next-line typescript/no-unnecessary-type-constraint
-export const deepClone = <T extends unknown>(value: T): T =>
-  clone(value, new WeakMap());
+export const deepClone = <T extends unknown>(
+  value: T,
+  valueRefs: WeakMap<any, any> = new WeakMap()
+): T => clone(value, valueRefs);

@@ -35,7 +35,7 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 
-✍️ Browse through the many [XState examples](https://github.com/statelyai/xstate/tree/main/examples)
+✍️ Browse through the many [XState examples](https://github.com/statelyai/xstate/tree/next/examples)
 
 ## Which package should I use?
 
@@ -57,6 +57,8 @@ Special thanks to the sponsors who support this open-source project:
 
 ## Templates
 
+<!-- template versions and starter links from templates/*/package.json -->
+
 Get started by forking one of these templates on CodeSandbox:
 
 <table>
@@ -68,14 +70,14 @@ Get started by forking one of these templates on CodeSandbox:
 <tr>
 <td>
 
-[🤖 XState Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vanilla-ts)
+[🤖 XState Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/vanilla-ts)
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/vanilla-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/vanilla-ts?file=%2Fsrc%2FfeedbackMachine.ts)
 
 </td>
 <td>
 
-- XState v5
+- XState v6 alpha
 - TypeScript
 - _No framework_
 
@@ -85,15 +87,15 @@ Get started by forking one of these templates on CodeSandbox:
 <tr>
 <td>
 
-[⚛️ XState + React Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/react-ts)
+[⚛️ XState + React Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/react-ts)
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/react-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/react-ts?file=%2Fsrc%2FfeedbackMachine.ts)
 
 </td>
 <td>
 
 - [React](https://react.dev/)
-- XState v5
+- XState v6 alpha
 - TypeScript
 
 </td>
@@ -102,15 +104,15 @@ Get started by forking one of these templates on CodeSandbox:
 <tr>
 <td>
 
-[💚 XState + Vue Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/vue-ts)
+[💚 XState + Vue Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/vue-ts)
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/vue-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/vue-ts?file=%2Fsrc%2FfeedbackMachine.ts)
 
 </td>
 <td>
 
 - [Vue](https://vuejs.org/)
-- XState v5
+- XState v6 alpha
 - TypeScript
 
 </td>
@@ -119,15 +121,15 @@ Get started by forking one of these templates on CodeSandbox:
 <tr>
 <td>
 
-[🧡 XState + Svelte Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/main/templates/svelte-ts)
+[🧡 XState + Svelte Template (CodeSandbox)](https://codesandbox.io/p/devbox/github/statelyai/xstate/tree/next/templates/svelte-ts)
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/templates/svelte-ts?file=%2Fsrc%2FfeedbackMachine.ts)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/templates/svelte-ts?file=%2Fsrc%2FfeedbackMachine.ts)
 
 </td>
 <td>
 
-- [Svelte](https://svelte.dev/)
-- XState v5
+- [Svelte 5](https://svelte.dev/)
+- XState v6 alpha
 - TypeScript
 
 </td>

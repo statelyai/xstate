@@ -1,36 +1,15 @@
-import { createMachine, assertEvent, createAsyncLogic } from 'xstate';
+import { types, createMachine, createAsyncLogic } from 'xstate';
 import { createActorContext } from '@xstate/react';
 import { TODAY, TOMORROW, sleep } from '../utils';
 export const flightBookerMachine = createMachine({
-  types: {
-    context: {} as FlightData,
-    events: {} as
-      | {
-          type: 'BOOK_DEPART';
-        }
-      | {
-          type: 'BOOK_RETURN';
-        }
-      | {
-          type: 'CHANGE_TRIP_TYPE';
-        }
-      | {
-          type: 'CHANGE_DEPART_DATE';
-          value: string;
-        }
-      | {
-          type: 'CHANGE_RETURN_DATE';
-          value: string;
-        }
-  },
-  actions: {
-    setDepartDate: ({ context, event }) => {
-      assertEvent(event, 'CHANGE_DEPART_DATE');
-      return { context: { ...context, departDate: event.value } };
-    },
-    setReturnDate: ({ context, event }) => {
-      assertEvent(event, 'CHANGE_RETURN_DATE');
-      return { context: { ...context, returnDate: event.value } };
+  schemas: {
+    context: types<FlightData>(),
+    events: {
+      BOOK_DEPART: types<{}>(),
+      BOOK_RETURN: types<{}>(),
+      CHANGE_TRIP_TYPE: types<{}>(),
+      CHANGE_DEPART_DATE: types<{ value: string }>(),
+      CHANGE_RETURN_DATE: types<{ value: string }>()
     }
   },
   actors: {
@@ -40,16 +19,9 @@ export const flightBookerMachine = createMachine({
       }
     })
   },
-  guards: {
-    'isValidDepartDate?': ({ context: { departDate } }) => {
-      return departDate >= TODAY;
-    },
-    'isValidReturnDate?': ({ context: { departDate, returnDate } }) => {
-      return departDate >= TODAY && returnDate > departDate;
-    }
-  },
   id: 'flightBookerMachine',
   context: {
+    isRoundTrip: false,
     departDate: TODAY,
     returnDate: TOMORROW
   },
@@ -58,18 +30,19 @@ export const flightBookerMachine = createMachine({
     scheduling: {
       initial: 'oneWay',
       on: {
-        CHANGE_DEPART_DATE: ({ context, event, guards, actions }, enq) => {
-          enq((actionArgs) => actions['setDepartDate'](actionArgs as any));
-        }
+        CHANGE_DEPART_DATE: ({ context, event }) => ({
+          context: { ...context, departDate: event.value }
+        })
       },
       states: {
         oneWay: {
           on: {
-            CHANGE_TRIP_TYPE: {
-              target: 'roundTrip'
-            },
-            BOOK_DEPART: ({ context, event, guards, actions }, enq) => {
-              if (!guards['isValidDepartDate?']({ context, event })) {
+            CHANGE_TRIP_TYPE: ({ context }) => ({
+              target: 'roundTrip',
+              context: { ...context, isRoundTrip: true }
+            }),
+            BOOK_DEPART: ({ context }) => {
+              if (!(context.departDate >= TODAY)) {
                 return;
               }
               return { target: '#flightBookerMachine.booking' };
@@ -78,14 +51,20 @@ export const flightBookerMachine = createMachine({
         },
         roundTrip: {
           on: {
-            CHANGE_TRIP_TYPE: {
-              target: 'oneWay'
-            },
-            CHANGE_RETURN_DATE: ({ context, event, guards, actions }, enq) => {
-              enq((actionArgs) => actions['setReturnDate'](actionArgs as any));
-            },
-            BOOK_RETURN: ({ context, event, guards, actions }, enq) => {
-              if (!guards['isValidReturnDate?']({ context, event })) {
+            CHANGE_TRIP_TYPE: ({ context }) => ({
+              target: 'oneWay',
+              context: { ...context, isRoundTrip: false }
+            }),
+            CHANGE_RETURN_DATE: ({ context, event }) => ({
+              context: { ...context, returnDate: event.value }
+            }),
+            BOOK_RETURN: ({ context }) => {
+              if (
+                !(
+                  context.departDate >= TODAY &&
+                  context.returnDate > context.departDate
+                )
+              ) {
                 return;
               }
               return { target: '#flightBookerMachine.booking' };
@@ -100,9 +79,11 @@ export const flightBookerMachine = createMachine({
         onDone: {
           target: 'booked'
         },
-        onError: {
-          target: 'scheduling'
-        }
+        onError: ({ context }) => ({
+          target: context.isRoundTrip
+            ? 'scheduling.roundTrip'
+            : 'scheduling.oneWay'
+        })
       }
     },
     booked: {

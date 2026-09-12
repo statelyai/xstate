@@ -1,155 +1,106 @@
-import { createMachine, enqueueActions } from 'xstate';
-
-function range(num: number): number[] {
-  return Array.from(Array(num).keys());
-}
+import { types, createMachine } from 'xstate';
 
 export interface Tile {
   index: number;
   x: number;
   y: number;
 }
-
+function adjacent(a: Tile, b: Tile) {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
+}
+function shuffle(tiles: number[]) {
+  const result = [...tiles];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
 export const tilesMachine = createMachine({
-  types: {} as {
-    context: {
+  schemas: {
+    context: types<{
       tiles: number[];
       selected: Tile | undefined;
       hovered: Tile | undefined;
-    };
-  },
-  guards: {
-    isAdjacent: ({ context: { selected, hovered } }) => {
-      if (!selected || !hovered) {
-        return false;
-      }
-      const { x: hx, y: hy } = hovered;
-      const { x: sx, y: sy } = selected;
-      return (
-        (hx === sx && Math.abs(hy - sy) === 1) ||
-        (hy === sy && Math.abs(hx - sx) === 1)
-      );
-    },
-    allTilesInOrder: ({ context: { tiles } }) =>
-      tiles.every((tile, idx) => tile === idx)
-  },
-  actions: {
-    clearSelectedTile: ({ context }) => ({
-      context: { ...context, selected: undefined }
-    }),
-    clearHoveredTile: ({ context }) => ({
-      context: { ...context, hovered: undefined }
-    }),
-    setSelectedTile: ({ context, event }) => ({
-      context: { ...context, selected: event.tile }
-    }),
-    setHoveredTile: ({ context, event }) => ({
-      context: { ...context, hovered: event.tile }
-    }),
-    swapTiles: ({ context }) => ({
-      context: {
-        ...context,
-        tiles: swap(
-          context.tiles,
-          context.hovered!.index,
-          context.selected!.index
-        )
-      }
-    }),
-    shuffleTiles: ({ context }) => {
-      const newTiles = [...context.tiles];
-      for (let i = newTiles.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [newTiles[i], newTiles[j]] = [newTiles[j], newTiles[i]];
-      }
-      return { context: { ...context, tiles: newTiles } };
+    }>(),
+    events: {
+      'tile.select': types<{ tile: Tile }>(),
+      'tile.hover': types<{ tile: Tile }>(),
+      'tile.move': types<{}>(),
+      'move.canceled': types<{}>(),
+      shuffle: types<{}>()
     }
   },
   context: {
-    tiles: range(16),
+    tiles: Array.from({ length: 16 }, (_, index) => index),
     selected: undefined,
     hovered: undefined
   },
   initial: 'start',
   states: {
     start: {},
-    gameOver: {
-      id: 'gameOver',
-      // make the game replayable
-      on: {
-        shuffle: ({ context, event, guards, actions }, enq) => {
-          enq((actionArgs) => actions['shuffleTiles'](actionArgs as any));
-          return { target: 'playing' };
-        }
-      }
-    },
+    gameOver: {},
     playing: {
-      on: {
-        shuffle: { target: undefined }
-      },
+      on: { shuffle: {} },
+      initial: 'selecting',
       states: {
         selecting: {
-          id: 'selecting',
           on: {
-            'tile.select': ({ context, event, guards, actions }, enq) => {
-              enq((actionArgs) =>
-                actions['setSelectedTile'](actionArgs as any)
-              );
-              return { target: 'selected' };
-            }
+            'tile.select': ({ context, event }) => ({
+              target: 'selected',
+              context: { ...context, selected: event.tile }
+            })
           }
         },
         selected: {
           on: {
-            'move.canceled': ({ context, event, guards, actions }, enq) => {
-              enq((actionArgs) =>
-                actions['clearSelectedTile'](actionArgs as any)
-              );
-              enq((actionArgs) =>
-                actions['clearHoveredTile'](actionArgs as any)
-              );
-              return { target: 'selecting' };
-            },
-            'tile.hover': [
-              ({ context, event, guards, actions }, enq) => {
-                enq((actionArgs) =>
-                  actions['setHoveredTile'](actionArgs as any)
-                );
+            'tile.hover': ({ context, event }) => ({
+              context: { ...context, hovered: event.tile }
+            }),
+            'move.canceled': ({ context }) => ({
+              target: 'selecting',
+              context: { ...context, selected: undefined, hovered: undefined }
+            }),
+            'tile.move': ({ context }) => ({
+              target: 'selecting',
+              context: {
+                tiles:
+                  context.selected &&
+                  context.hovered &&
+                  adjacent(context.selected, context.hovered)
+                    ? swap(
+                        context.tiles,
+                        context.selected.index,
+                        context.hovered.index
+                      )
+                    : context.tiles,
+                selected: undefined,
+                hovered: undefined
               }
-            ],
-            'tile.move': ({ context, event, guards, actions }, enq) => {
-              enq(
-                enqueueActions(({ enqueue, check }) => {
-                  if (check('isAdjacent')) {
-                    enqueue('swapTiles');
-                    enqueue('clearSelectedTile');
-                    enqueue('clearHoveredTile');
-                  }
-                })
-              );
-              return { target: '#selecting' };
-            }
+            })
           }
         }
       },
-      always: ({ context, event, guards, actions }, enq) => {
-        if (!guards['allTilesInOrder']({ context, event })) {
-          return;
-        }
-        return { target: '#gameOver' };
-      },
-      initial: 'selecting'
+      always: ({ context }) =>
+        context.tiles.every((tile, index) => tile === index)
+          ? { target: 'gameOver' }
+          : undefined
     }
   },
   on: {
-    shuffle: ({ context, event, guards, actions }, enq) => {
-      enq((actionArgs) => actions['shuffleTiles'](actionArgs as any));
-      return { target: '.playing' };
-    }
+    shuffle: ({ context }) => ({
+      target: '.playing',
+      context: {
+        tiles: shuffle(context.tiles),
+        selected: undefined,
+        hovered: undefined
+      }
+    })
   }
 });
 
-export function swap<T extends any[]>(arr: T, a: number, b: number): T {
-  [arr[a], arr[b]] = [arr[b], arr[a]];
-  return arr;
+export function swap<T>(arr: T[], a: number, b: number): T[] {
+  const result = [...arr];
+  [result[a], result[b]] = [result[b], result[a]];
+  return result;
 }

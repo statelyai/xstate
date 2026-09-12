@@ -1,16 +1,8 @@
 <script lang="ts">
   import { feedbackMachine } from './feedbackMachine';
   import { useMachine } from '@xstate/svelte';
-  import { createBrowserInspector } from '@statelyai/inspect';
 
-  const { inspect } = createBrowserInspector({
-    // Comment out the line below to start the inspector
-    autoStart: false
-  });
-
-  const { snapshot, send } = useMachine(feedbackMachine, {
-    inspect
-  });
+  const { snapshot, send } = useMachine(feedbackMachine);
 </script>
 
 {#if $snapshot.matches('closed')}
@@ -59,18 +51,23 @@
         <h2>What can we do better?</h2>
 
         <textarea
+          value={$snapshot.context.feedback}
           name="feedback"
           rows={4}
           placeholder="So many things..."
           on:input={(ev) =>
-            send({ type: 'feedback.update', value: ev.target.value })}
-        />
+            send({ type: 'feedback.update', value: ev.currentTarget.value })}
+        ></textarea>
 
         <button class="button" disabled={!$snapshot.can({ type: 'submit' })}>
           Submit
         </button>
 
-        <button class="button" on:click={() => send({ type: 'back' })}>
+        <button
+          type="button"
+          class="button"
+          on:click={() => send({ type: 'back' })}
+        >
           Back
         </button>
       </form>

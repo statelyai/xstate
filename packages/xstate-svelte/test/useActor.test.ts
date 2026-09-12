@@ -80,3 +80,11 @@ describe('useActor', () => {
     expect(getByTestId('count').textContent).toBe('4');
   });
 });
+
+it('refreshes the actor snapshot after updates without subscribers', async () => {
+  const { getByText, getByTestId } = render(UseActorNonPersistentSubscription);
+  await fireEvent.click(getByText('Toggle'));
+  await fireEvent.click(getByText('Background increment'));
+  await fireEvent.click(getByText('Toggle'));
+  expect(getByTestId('count').textContent).toBe('1');
+});

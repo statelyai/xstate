@@ -1,69 +1,9 @@
-import { createMachine, createActor } from 'xstate';
-
-interface Bid {
-  carid: string;
-  amount: number;
-  bidder: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
-}
-
-// https://github.com/serverlessworkflow/specification/tree/main/examples#handle-car-auction-bids-example
-export const workflow = createMachine({
-  id: 'handleCarAuctionBid',
-  description: 'Store a single bid whole the car auction is active',
-  initial: 'StoreCarAuctionBid',
-  types: {} as {
-    context: {
-      bids: Bid[];
-    };
-    events: {
-      type: 'CarBidEvent';
-      bid: Bid;
-    };
-  },
-  context: {
-    bids: []
-  },
-  states: {
-    StoreCarAuctionBid: {
-      on: {
-        CarBidEvent: ({ context, event, guards, actions }, enq) => {
-          return {
-            context: {
-              ...context,
-              bids: (({ context, event }) => [...context.bids, event.bid])({
-                context: context,
-                event: event
-              })
-            }
-          };
-        }
-      },
-      after: {
-        BiddingDelay: 'BiddingEnded'
-      }
-    },
-    BiddingEnded: {
-      type: 'final',
-      output: ({ context }) => ({
-        // highest bid
-        winningBid: context.bids.reduce((prev, current) =>
-          prev.amount > current.amount ? prev : current
-        )
-      })
-    }
-  },
-  delays: {
-    BiddingDelay: 3000
-  }
-});
+import { createActor } from 'xstate';
+import { workflow } from './workflow.ts';
 
 const actor = createActor(workflow, {
   inspect: (inspEv) => {
-    if (inspEv.type === '@xstate.event') {
+    if (inspEv.type === '@xstate.transition') {
       console.log('Received event', inspEv.event);
     }
   }

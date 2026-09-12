@@ -1,86 +1,68 @@
-import { __unsafe_getAllOwnEventDescriptors, createActor } from 'xstate';
+import { __unsafe_getAllOwnEventDescriptors } from 'xstate';
 import { MongoClient, ServerApiVersion } from 'mongodb';
-import { donutMachine } from './donutMachine';
-import { TaskQueue } from './TaskQueue';
+import { createDonutSession } from './session';
 
-const uri = '<your mongodb connection string>';
-
-const client = new MongoClient(uri, {
-  serverApi: ServerApiVersion.v1
-});
-const db = client.db('donut-maker');
-const donutCollection = db.collection('donuts');
-const options = { upsert: true };
-const filter = { persistedState: { $exists: true } };
-
-let restoredState;
+const uri = process.env.MONGODB_URI;
+if (!uri)
+  throw new Error('Set MONGODB_URI to run the persisted donut example.');
+const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
 
 try {
   await client.connect();
-  restoredState = await donutCollection.findOne();
-  if (!restoredState) {
-    console.log('no persisted state found in db. starting from scratch.');
-  }
-  console.log('restored state: ', restoredState);
-
-  const actor = createActor(donutMachine, {
-    state: restoredState?.persistedState
+  const collection = client.db('donut-maker').collection('donuts');
+  const filter = { persistedState: { $exists: true } };
+  const restored = await collection.findOne(filter);
+  if (!restored)
+    console.log('No persisted state found. Starting from scratch.');
+  const reportError = (error: unknown) => {
+    console.error('Persistence failed:', error);
+    process.exitCode = 1;
+  };
+  const { actor, flush } = createDonutSession({
+    snapshot: restored?.persistedState,
+    async save(persistedState) {
+      await collection.updateOne(
+        filter,
+        { $set: { persistedState } },
+        { upsert: true }
+      );
+    },
+    onError: reportError
   });
-
-  const taskQueue = new TaskQueue();
-
+  let closing: Promise<void> | undefined;
+  function shutdown() {
+    if (!closing) {
+      actor.stop();
+      process.stdin.pause();
+      closing = flush().then(() => client.close());
+      void closing.catch(reportError);
+    }
+    return closing;
+  }
   actor.subscribe({
     next(snapshot) {
-      taskQueue.addTask(async () => {
-        // save persisted state to mongodb
-        const persistedState = actor.getPersistedSnapshot();
-        const updateDoc = {
-          $set: {
-            persistedState
-          }
-        };
-
-        const result = await donutCollection.updateOne(
-          filter,
-          updateDoc,
-          options
-        );
-
-        // only log if the upsert occurred
-        if (result.modifiedCount > 0 || result.upsertedCount > 0) {
-          console.log('persisted state saved to db. ', result);
-        }
-
-        const nextEvents = __unsafe_getAllOwnEventDescriptors(snapshot);
-        console.log(
-          'Current state:',
-          // the current state, bolded
-          `\x1b[1m${JSON.stringify(snapshot.value)}\x1b[0m\n`,
-          'Next events:',
-          // the next events, each of them bolded
-          nextEvents
-            .filter((event) => !event.startsWith('done.'))
-            .map((event) => `\n  \x1b[1m${event}\x1b[0m`)
-            .join(''),
-          '\nEnter the next event to send:'
-        );
-      });
+      console.log('Current state:', JSON.stringify(snapshot.value));
+      console.log(
+        'Next events:',
+        __unsafe_getAllOwnEventDescriptors(snapshot).join(', ')
+      );
     },
     complete() {
-      taskQueue.addTask(async () => {
-        console.log('workflow completed', actor.getSnapshot().output);
-        await client.close();
-      });
+      void shutdown();
     }
   });
-
   actor.start();
-
-  process.stdin.on('data', (data) => {
-    const eventType = data.toString().trim();
-    actor.send({ type: eventType });
+  process.stdin.on('data', (data) =>
+    actor.send({ type: data.toString().trim() })
+  );
+  process.once('SIGINT', () => {
+    void shutdown();
   });
-} catch (e) {
-  console.log('error details: ', e);
-  restoredState = undefined;
+  process.stdin.once('end', () => {
+    void shutdown();
+  });
+} catch (error) {
+  await client.close();
+  console.error('Could not start persisted workflow:', error);
+  process.exitCode = 1;
 }

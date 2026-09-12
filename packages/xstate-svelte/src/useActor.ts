@@ -30,6 +30,8 @@ export function useActor<TLogic extends AnyActorLogic>(
   let currentSnapshot = actorRef.getSnapshot();
 
   const snapshot = readable(currentSnapshot, (set) => {
+    currentSnapshot = actorRef.getSnapshot();
+    set(currentSnapshot);
     return actorRef.subscribe((nextSnapshot) => {
       if (currentSnapshot !== nextSnapshot) {
         currentSnapshot = nextSnapshot;

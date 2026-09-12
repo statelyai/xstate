@@ -50,7 +50,11 @@ const chargeCard = createAsyncLogic({
 });
 ```
 
-`enq.emit(event)` emits an event that observers read with `actor.on(...)`. Check a failure with `error instanceof TimeoutError`, which is exported from `xstate`. `enq.step(key, exec)` is hostless durability: the snapshot is the journal. Each step's outcome is recorded on the snapshot under `effects[key]`, and a restored actor replays a recorded result instead of running the step again — persist the snapshot to `localStorage` and a checkout flow survives a page reload without charging the card twice; persist it per request and a backend workflow resumes mid-function. `effects[key]` statuses also make per-step progress readable from the snapshot, and concurrent calls with the same key wait for the first one. On a [durable host](durable-execution.md), do not use `enq.step` — write a normal promise actor and let the host's `runLogic` journal it; the host's journal replaces the snapshot's. Durable step semantics are experimental.
+`enq.emit(event)` emits an event that observers read with `actor.on(...)`. Check a failure with `error instanceof TimeoutError`, which is exported from `xstate`.
+
+`enq.step(key, exec)` records outcomes on the snapshot under `effects[key]`. A restored actor reuses recorded completed outcomes. An interrupted local step still marked `active` is retried because its original promise cannot survive restoration. Interrupted steps therefore have at-least-once execution: use idempotency keys for external side effects, such as charging a card. Persisting a snapshot does not guarantee exactly-once side effects.
+
+Concurrent local calls with the same key share one running step. Waiting callers reject if the actor terminates before the step finishes. `effects[key]` also exposes per-step progress. On a [durable host](durable-execution.md), prefer a normal async actor whose whole body is journaled by the host's `runLogic`; a host-provided `runStep` retains control of its own retry and journal policy. Durable step semantics are experimental.
 
 Choose logic by lifecycle:
 
@@ -116,7 +120,7 @@ actor.getSnapshot().context.count; // 1
 | `enq.effect(exec)` | Run a side effect; return a cleanup function from `exec`. |
 | `enq.effect(key, exec)` | Run a keyed effect once. |
 
-A keyed effect starts once and is tracked on `snapshot.effects[key]`. Later transitions that enqueue the same key do nothing. Cleanup functions run when the actor stops.
+A keyed effect starts once and is tracked on `snapshot.effects[key]`. Later transitions that enqueue the same key do nothing. Restoring an active actor reattaches active keyed effects; completed effects remain memoized. Cleanup functions run when the actor stops. Every cleanup is attempted even if one throws; the first error is reported through the actor. Effect keys may be any string, including `__proto__` and `constructor`.
 
 ```ts
 run: ({ context }, enq) => {

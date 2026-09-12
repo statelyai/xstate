@@ -5,13 +5,11 @@
   "type": "module",
   "scripts": {
     "start": "vite-node --script ./main.ts",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "tsc --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
-    "vite": "^5.4.21",
-    "vite-node": "^0.31.4"
+    "vite-node": "^3.2.4"
   },
   "dependencies": {
     "cockatiel": "^3.2.1",

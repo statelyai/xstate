@@ -67,7 +67,7 @@ function serializeEvent<TEvent extends EventObject>(
   return JSON.stringify(event) as SerializedEvent;
 }
 
-export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
+function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<
     SnapshotFrom<TMachine>,
@@ -100,21 +100,16 @@ export function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
         return [defaultEvent];
       }) as any[];
     },
-    fromState: machine.getInitialSnapshot(
-      createMockActorScope(),
-      options?.input
-    ) as SnapshotFrom<TMachine>,
-    ...otherOptions
+    ...otherOptions,
+    fromState:
+      options?.fromState ??
+      (machine.getInitialSnapshot(
+        createMockActorScope(),
+        options?.input
+      ) as SnapshotFrom<TMachine>)
   };
 
   return traversalOptions;
-}
-
-export function createDefaultLogicOptions(): TraversalOptions<any, any, any> {
-  return {
-    serializeState: (state) => JSON.stringify(state),
-    serializeEvent
-  };
 }
 
 export function toDirectedGraph(
@@ -164,7 +159,7 @@ export function toDirectedGraph(
   return graph;
 }
 
-export function isMachineLogic(logic: unknown): logic is AnyStateMachine {
+function isMachineLogic(logic: unknown): logic is AnyStateMachine {
   if (!logic || typeof logic !== 'object') {
     return false;
   }
@@ -222,13 +217,13 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
     events: [],
     filterEvents: undefined,
     limit: Infinity,
-    fromState: undefined,
     toState: undefined,
     // Traversal should not continue past the `toState` predicate
     // since the target state has already been reached at that point
     stopWhen: traversalOptions?.toState,
     ...resolvedDefaultOptions,
-    ...traversalOptions
+    ...traversalOptions,
+    fromState: traversalOptions?.fromState ?? resolvedDefaultOptions?.fromState
   };
 
   return traversalConfig;

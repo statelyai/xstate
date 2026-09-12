@@ -16,7 +16,7 @@ function App() {
             return (
               <Friend
                 key={friend.id}
-                friendRef={friend}
+                friendRef={friend.ref}
                 onRemove={() => send({ type: 'FRIEND.REMOVE', index })}
               />
             );

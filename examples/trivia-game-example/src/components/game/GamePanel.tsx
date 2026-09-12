@@ -9,6 +9,16 @@ import { TriviaMachineContext } from '../../context/AppContext';
 const GamePanel = () => {
   const state = TriviaMachineContext.useSelector((state) => state);
   const { context } = state;
+  const actorRef = TriviaMachineContext.useActorRef();
+  if (state.context.error)
+    return (
+      <div role="alert">
+        {state.context.error}{' '}
+        <button onClick={() => actorRef.send({ type: 'user.retry' })}>
+          Retry
+        </button>
+      </div>
+    );
   return (
     <LoadingOverlay
       active={!context.hasLoaded}

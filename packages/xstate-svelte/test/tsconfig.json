@@ -3,6 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "target": "es2020",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "moduleResolution": "nodenext",
     "module": "nodenext",
     "allowImportingTsExtensions": true,

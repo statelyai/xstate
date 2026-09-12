@@ -1,16 +1,8 @@
 <script setup lang="ts">
 import { useMachine } from '@xstate/vue';
 import { feedbackMachine } from './feedbackMachine';
-import { createBrowserInspector } from '@statelyai/inspect';
 
-const { inspect } = createBrowserInspector({
-  // Comment out the line below to start the inspector
-  autoStart: false
-});
-
-const { snapshot, send } = useMachine(feedbackMachine, {
-  inspect
-});
+const { snapshot, send } = useMachine(feedbackMachine);
 </script>
 
 <template>
@@ -48,6 +40,7 @@ const { snapshot, send } = useMachine(feedbackMachine, {
       <h2>What can we do better?</h2>
       <textarea
         name="feedback"
+        :value="snapshot.context.feedback"
         rows="4"
         placeholder="So many things..."
         @input="

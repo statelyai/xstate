@@ -18,25 +18,13 @@ function TileGrid({
         gridTemplateColumns: 'repeat(4, 1fr)',
         gridTemplateRows: 'repeat(4, 1fr)',
         backgroundImage: `url(${image})`,
-        backgroundSize: '600% center'
+        backgroundSize: '400% 400%'
       }}
     >
       {children}
     </div>
   );
 }
-
-// export const Tile = withDefaultProps(Box, ({ tile, highlight }) => ({
-//   height: "100%",
-//   width: "100%",
-//   backgroundImage: "inherit",
-//   backgroundSize: "600% center",
-//   backgroundPosition: `${(tile % 4) * -100}% ${Math.floor(tile / 4) * -100}%`,
-//   css: css({
-//     filter: highlight ? "brightness(1.1)" : "brightness(1)"
-//   }),
-//   userSelect: "none"
-// }));
 
 function Tile({
   tile,
@@ -52,15 +40,24 @@ function Tile({
         height: '100%',
         width: '100%',
         backgroundImage: 'inherit',
-        backgroundSize: '600% center',
-        backgroundPosition: `${(tile % 4) * -100}% ${
-          Math.floor(tile / 4) * -100
-        }%`,
+        backgroundSize: '400% 400%',
+        backgroundPosition: `${((tile % 4) * 100) / 3}% ${(Math.floor(tile / 4) * 100) / 3}%`,
         filter: highlight ? 'brightness(1.1)' : 'brightness(1)',
         userSelect: 'none'
       }}
       {...divProps}
-    />
+    >
+      <span
+        style={{
+          background: '#fff',
+          color: '#172554',
+          padding: '2px 6px',
+          borderRadius: '4px'
+        }}
+      >
+        {tile + 1}
+      </span>
+    </div>
   );
 }
 
@@ -69,7 +66,7 @@ function App() {
 
   return (
     <div className="App">
-      <TileGrid image="https://source.unsplash.com/random/?city,night">
+      <TileGrid image="/puzzle.svg">
         {state.context.tiles.map((tile, index) => {
           const x = index % 4;
           const y = Math.floor(index / 4);

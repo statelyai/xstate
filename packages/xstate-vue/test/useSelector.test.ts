@@ -1,3 +1,6 @@
+import { effectScope } from 'vue';
+import { createActor, createMachine } from 'xstate';
+import { useSelector } from '../src/useSelector.ts';
 import { fireEvent, render } from '@testing-library/vue';
 import UseSelector from './UseSelector.vue';
 import useSelectorActorChange from './UseSelectorActorChange.vue';
@@ -74,3 +77,29 @@ describe('useSelector', () => {
     expect(container.textContent).toEqual('foo');
   });
 });
+
+it.each([false, true])(
+  'exposes terminal error snapshots, initially errored: %s',
+  (initiallyErrored) => {
+    const actor = createActor(
+      createMachine({
+        on: {
+          FAIL: () => {
+            throw new Error('failed');
+          }
+        }
+      })
+    );
+    actor.subscribe({ error: () => {} });
+    actor.start();
+    if (initiallyErrored) actor.send({ type: 'FAIL' });
+    const scope = effectScope();
+    try {
+      const selected = scope.run(() => useSelector(actor, (s) => s.status))!;
+      if (!initiallyErrored) actor.send({ type: 'FAIL' });
+      expect(selected.value).toBe('error');
+    } finally {
+      scope.stop();
+    }
+  }
+);
