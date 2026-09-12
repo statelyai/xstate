@@ -18,6 +18,7 @@ import {
   DoneActorEvent,
   DoNotInfer,
   ErrorActorEvent,
+  EnqueueObject,
   EventDescriptor,
   ErrorEvent,
   EventObject,
@@ -518,7 +519,8 @@ type InlineInvokeOnDone<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TChildren extends Record<string, AnyActorRef | undefined>
 > = [keyof TActorMap & string] extends [never]
   ? Next_TransitionConfigOrTarget<
       TContext,
@@ -529,7 +531,9 @@ type InlineInvokeOnDone<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TMeta
+      TMeta,
+      undefined,
+      TChildren
     >
   : string extends keyof TActorMap
     ? Next_TransitionConfigOrTarget<
@@ -541,7 +545,9 @@ type InlineInvokeOnDone<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TMeta
+        TMeta,
+        undefined,
+        TChildren
       >
     :
         | undefined
@@ -596,7 +602,8 @@ type InlineChildInvokeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TMeta
+      TMeta,
+      TChildren
     >;
     id: K;
     src: LogicForChildRef<TChildren[K]>;
@@ -658,7 +665,8 @@ type InlineInvokeConfig<
           TActorMap,
           TGuardMap,
           TDelayMap,
-          TMeta
+          TMeta,
+          TChildren
         >;
         src: AnyActorLogic;
         input?:
@@ -803,7 +811,7 @@ interface Next_InvokeConfigBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
-  _TChildren extends Record<string, AnyActorRef | undefined>,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
@@ -825,7 +833,9 @@ interface Next_InvokeConfigBase<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    undefined,
+    TChildren
   >;
   onError?: Next_TransitionConfigOrTarget<
     TContext,
@@ -836,7 +846,9 @@ interface Next_InvokeConfigBase<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    undefined,
+    TChildren
   >;
   onSnapshot?: Next_TransitionConfigOrTarget<
     TContext,
@@ -847,7 +859,9 @@ interface Next_InvokeConfigBase<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    undefined,
+    TChildren
   >;
   /**
    * The duration (in ms) after which this invocation will time out if it has
@@ -870,7 +884,9 @@ interface Next_InvokeConfigBase<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    undefined,
+    TChildren
   >;
 }
 
@@ -888,7 +904,8 @@ type StateAction<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
-  TInput = Record<string, unknown> | undefined
+  TInput = Record<string, unknown> | undefined,
+  TChildren extends Record<string, AnyActorRef | undefined> = {}
 > = (
   _: Omit<
     Parameters<
@@ -905,18 +922,13 @@ type StateAction<
     >[0],
     'params'
   > & { input: TInput },
-  enqueue: Parameters<
-    Action<
-      TContext,
-      TEvent,
-      TEmittedEvent,
-      TActionMap,
-      TActorMap,
-      TGuardMap,
-      TDelayMap,
-      never
-    >
-  >[1]
+  enqueue: EnqueueObject<
+    TEvent,
+    TEmittedEvent,
+    SystemRegistry,
+    TActorMap,
+    TChildren
+  >
 ) => ReturnType<
   Action<
     TContext,
@@ -1243,7 +1255,8 @@ interface Next_RegularStateNodeConfig<
       TGuardMap,
       TDelayMap,
       TMeta,
-      TInput
+      TInput,
+      TChildren
     >;
   };
   /**
@@ -1269,7 +1282,8 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TInput
+    TInput,
+    TChildren
   >;
   exit?: StateAction<
     TContext,
@@ -1279,7 +1293,8 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TInput
+    TInput,
+    TChildren
   >;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
@@ -1297,7 +1312,9 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    undefined,
+    TChildren
   >;
   /**
    * The transition to take when an `xstate.error.*` event is raised while this
@@ -1312,7 +1329,9 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    undefined,
+    TChildren
   >;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential
@@ -1332,7 +1351,9 @@ interface Next_RegularStateNodeConfig<
           TGuardMap,
           TDelayMap,
           TMeta,
-          TInput
+          TInput,
+          [TContext] extends [never] ? any : TContext,
+          TChildren
         >;
   };
 
@@ -1365,7 +1386,8 @@ interface Next_RegularStateNodeConfig<
     TGuardMap,
     TDelayMap,
     TMeta,
-    TInput
+    TInput,
+    TChildren
   >;
 
   /**
@@ -1381,7 +1403,9 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    undefined,
+    TChildren
   >;
   choice?: never;
   /**
@@ -1430,7 +1454,8 @@ export type Next_TransitionConfigOrTarget<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TInput = undefined
+  TInput = undefined,
+  TChildren extends Record<string, AnyActorRef | undefined> = {}
 > =
   | undefined
   | {
@@ -1466,7 +1491,9 @@ export type Next_TransitionConfigOrTarget<
         TGuardMap,
         TDelayMap,
         TMeta,
-        TInput
+        TInput,
+        [TContext] extends [never] ? any : TContext,
+        TChildren
       >;
       context?:
         | TransitionContextPatch<TContext>
@@ -1496,7 +1523,9 @@ export type Next_TransitionConfigOrTarget<
       TGuardMap,
       TDelayMap,
       TMeta,
-      TInput
+      TInput,
+      [TContext] extends [never] ? any : TContext,
+      TChildren
     >;
 
 export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;
