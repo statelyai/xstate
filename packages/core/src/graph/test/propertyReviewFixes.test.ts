@@ -1,4 +1,4 @@
-import { createMachine, types } from '../../index.ts';
+import { createMachine, SimulatedClock, types } from '../../index.ts';
 import {
   PropertyTestFailure,
   propertyTest,
@@ -279,5 +279,247 @@ describe('linearizability', () => {
 
     expect(classified).toBe(true);
     expect(result.linearizable).toBe(true);
+  });
+});
+
+describe('event descriptors', () => {
+  it('treats `{ generate }` with no other key as a descriptor', async () => {
+    const { coverage } = await propertyTest(toggleMachine, {
+      adapter: randomAdapter({ seed: 11, numRuns: 5, maxCommands: 4 }),
+      // A bare generator can itself be an object (fast-check arbitraries have
+      // a `generate` *method*), so only a non-function `generate` marks the
+      // descriptor form.
+      events: { TOGGLE: { generate: constant({}) } },
+      invariant: () => {}
+    });
+
+    expect(coverage.generatedSteps).toBeGreaterThan(0);
+    expect(
+      coverage.eventCases['["event-case","TOGGLE","default"]']?.executed
+    ).toBeGreaterThan(0);
+  });
+
+  it('treats an object with a `generate` method as a bare generator', async () => {
+    const { coverage } = await propertyTest(toggleMachine, {
+      adapter: randomAdapter({ seed: 11, numRuns: 5, maxCommands: 4 }),
+      events: {
+        TOGGLE: { generate: () => ({}), sample: () => ({}) } as any
+      },
+      invariant: () => {}
+    });
+
+    expect(coverage.generatedSteps).toBeGreaterThan(0);
+  });
+});
+
+describe('guard coverage', () => {
+  it('counts each guard evaluation exactly once', async () => {
+    const guarded = createMachine({
+      id: 'guarded',
+      initial: 'idle',
+      schemas: {
+        context: types<{ count: number }>(),
+        events: { STEP: types<{}>() }
+      },
+      context: { count: 0 },
+      states: {
+        idle: {
+          on: {
+            STEP: [
+              {
+                // Passes half the time, so both outcomes are observed.
+                guard: ({ context }: any) => context.count % 2 === 0,
+                actions: ({ context }: any) => ({
+                  context: { count: context.count + 1 }
+                })
+              },
+              {
+                actions: ({ context }: any) => ({
+                  context: { count: context.count + 1 }
+                })
+              }
+            ] as any
+          }
+        }
+      }
+    });
+
+    const { coverage } = await propertyTest(guarded as any, {
+      adapter: randomAdapter({ seed: 3, numRuns: 5, maxCommands: 8 }),
+      events: { STEP: constant({}) },
+      invariant: () => {}
+    });
+
+    const guards = coverage.guards;
+    const outcomes = guards.outcomes;
+    expect(Object.keys(outcomes).length).toBeGreaterThan(0);
+    for (const [id, outcome] of Object.entries(outcomes)) {
+      expect(outcome.passed + outcome.failed).toBeGreaterThan(0);
+      expect(guards.counts[id]).toBe(outcome.passed + outcome.failed);
+    }
+  });
+});
+
+describe('replay disposal', () => {
+  it('disposes sessions created before a later creator throws', async () => {
+    const failure = (await propertyTest(toggleMachine, {
+      adapter: randomAdapter({ seed: 7, numRuns: 1, maxCommands: 2 }),
+      events: { TOGGLE: constant({}) },
+      invariant: ({ snapshot }) => {
+        if ((snapshot as any).value === 'on') {
+          throw new Error('reached on');
+        }
+      }
+    }).catch((cause) => cause)) as PropertyTestFailure;
+    const fixture = failure.fixture as PortablePropertyReplayFixture;
+
+    let referenceDisposed = 0;
+    await expect(
+      replayPropertyTest(toggleMachine, fixture, {
+        invariant: () => {},
+        reference: {
+          create: () => ({
+            transition: () => {},
+            read: () => 'off',
+            dispose: () => {
+              referenceDisposed++;
+            }
+          }),
+          projectModel: (snapshot: any) => snapshot.value,
+          equivalent: () => true
+        },
+        test: {
+          create: () => {
+            throw new Error('test session creation failed');
+          }
+        }
+      })
+    ).rejects.toThrow('test session creation failed');
+
+    // `start()` runs inside the disposal boundary, so the reference session
+    // created before the failing creator is still disposed.
+    expect(referenceDisposed).toBe(1);
+  });
+});
+
+describe('clock-delivered events in fixtures', () => {
+  it('replays a SUT-clock run identically', async () => {
+    const timerMachine = createMachine({
+      id: 'timer',
+      schemas: {
+        context: types<{ ticks: number }>(),
+        events: { TICK: types<{}>() }
+      },
+      context: { ticks: 0 },
+      on: {
+        TICK: ({ context }: any) => ({ context: { ticks: context.ticks + 1 } })
+      }
+    });
+
+    function createClockSut() {
+      return {
+        create: () => {
+          const clock = new SimulatedClock();
+          const value = { ticks: 0 };
+          const pending: { type: 'TICK' }[] = [];
+          for (const delay of [1, 1, 1]) {
+            clock.setTimeout(() => {
+              value.ticks++;
+              pending.push({ type: 'TICK' });
+            }, delay);
+          }
+          return {
+            send: () => {},
+            read: () => value.ticks,
+            advance: (milliseconds: number) => {
+              clock.increment(milliseconds);
+              return pending.splice(0);
+            }
+          };
+        },
+        projectModel: (snapshot: any) => snapshot.context.ticks,
+        projectSut: (observed: unknown) => observed,
+        equivalent: (model: unknown, sut: unknown) => model === sut
+      };
+    }
+
+    const failure = (await propertyTest(timerMachine as any, {
+      adapter: randomAdapter({ seed: 13, numRuns: 4, maxCommands: 4 }),
+      events: {},
+      commands: { advance: constant(1) },
+      sut: createClockSut() as any,
+      invariant: ({ snapshot }: any) => {
+        if (snapshot.context.ticks >= 2) {
+          throw new Error('too many ticks');
+        }
+      }
+    }).catch((cause) => cause)) as PropertyTestFailure;
+
+    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    const fixture = failure.fixture as PortablePropertyReplayFixture;
+    const advanceEntry = fixture.timeline.find(
+      (entry) => entry.command.type === 'advance'
+    );
+    // The delivered events are recorded on the `advance` command *and* kept as
+    // the `origin: 'clock'` event entries that follow it, which is what the
+    // pure replay re-sends.
+    expect(advanceEntry).toBeDefined();
+    expect(
+      (advanceEntry!.command as any).deliveredEvents.length
+    ).toBeGreaterThan(0);
+    expect(
+      fixture.timeline.some(
+        (entry) =>
+          entry.command.type === 'event' && entry.command.origin === 'clock'
+      )
+    ).toBe(true);
+
+    // The fixture reproduces its recorded failure, with the same clock events
+    // delivered in the same order.
+    const replayed = (await replayPropertyTest(timerMachine as any, fixture, {
+      invariant: ({ snapshot }: any) => {
+        if (snapshot.context.ticks >= 2) {
+          throw new Error('too many ticks');
+        }
+      }
+    }).catch((cause) => cause)) as PropertyTestFailure;
+
+    expect(replayed).toBeInstanceOf(PropertyTestFailure);
+    expect(replayed.trace.timeline.map((entry: any) => entry.command)).toEqual(
+      fixture.timeline
+        .slice(0, replayed.trace.timeline.length)
+        .map((entry) => entry.command)
+    );
+  });
+
+  it('rejects a fixture whose clock-delivered events were dropped', async () => {
+    const fixture: PortablePropertyReplayFixture = {
+      formatVersion: 2,
+      start: { type: 'input', input: undefined },
+      timeline: [
+        {
+          kind: 'command',
+          command: {
+            type: 'advance',
+            milliseconds: 1,
+            deliveredEvents: [{ type: 'TOGGLE' }]
+          }
+        },
+        {
+          kind: 'event',
+          command: {
+            type: 'event',
+            event: { type: 'TOGGLE' },
+            phase: 'generated',
+            origin: 'generator'
+          }
+        }
+      ],
+      failedAt: 1
+    };
+
+    await expect(
+      replayPropertyTest(toggleMachine, fixture, { invariant: () => {} })
+    ).rejects.toThrow('is not a clock-delivered event');
   });
 });

@@ -740,7 +740,13 @@ export function recordPropertyTransitions(
   resolutions: readonly {
     readonly transition: AnyTransitionDefinition;
     readonly targetIds: readonly string[];
-  }[] = []
+  }[] = [],
+  /**
+   * Whether the guard of every selected transition should be counted as one
+   * evaluation. Callers that also call {@link recordPropertyGuards} for the
+   * same step must pass `false`, so a passing guard is not counted twice.
+   */
+  countGuards = true
 ): readonly string[] {
   incrementCoverage(coverage.eventTypes, event.type);
   const resolvedTargets = new Map(
@@ -761,9 +767,14 @@ export function recordPropertyTransitions(
         dynamic.observedTargetIds.add(targetId);
       }
     }
-    const guardId = coverage.guardIds.get(selected);
-    if (guardId) {
-      incrementCoverage(coverage.guards, guardId);
+    if (countGuards) {
+      // Only counted here when the caller has no guard evaluations of its own
+      // (executed mode): otherwise `recordPropertyGuards()` counts every
+      // evaluation, passing or failing, exactly once.
+      const guardId = coverage.guardIds.get(selected);
+      if (guardId) {
+        incrementCoverage(coverage.guards, guardId);
+      }
     }
     recordRequirements(coverage, coverage.requirementsByTransition.get(id));
   }

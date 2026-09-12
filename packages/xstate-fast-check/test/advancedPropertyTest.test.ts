@@ -76,6 +76,14 @@ describe('advanced property testing', () => {
         ({ passed, failed }) => passed > 0 && failed > 0
       )
     ).toBe(true);
+    // Every guard evaluation is counted exactly once, whether it passed or
+    // failed: a passing guard must not be counted by both the transition and
+    // the guard-outcome recording.
+    for (const [id, { passed, failed }] of Object.entries(
+      result.coverage.guards.outcomes
+    )) {
+      expect(result.coverage.guards.counts[id]).toBe(passed + failed);
+    }
     expect(result.coverage.transitions.covered).toEqual(
       expect.arrayContaining([expect.stringContaining('@eventless')])
     );

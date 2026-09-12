@@ -643,3 +643,27 @@ describe('temporal coverage (STA-6400)', () => {
     expect(result.coverage.temporal.failed).toEqual([]);
   });
 });
+
+describe('event descriptors', () => {
+  it('accepts a descriptor that only sets `generate`', async () => {
+    // `fc.constant({})` is an object with a `generate` *method*, so the
+    // descriptor form must be detected by `generate` not being a function.
+    const { coverage } = await propertyTest(counterMachine, {
+      adapter: fastCheckAdapter({ seed: 21, numRuns: 10, maxCommands: 4 }),
+      events: { INC: { generate: fc.constant({}) } },
+      invariant: () => {}
+    });
+
+    expect(coverage.generatedSteps).toBeGreaterThan(0);
+  });
+
+  it('still treats a bare arbitrary as a generator', async () => {
+    const { coverage } = await propertyTest(counterMachine, {
+      adapter: fastCheckAdapter({ seed: 21, numRuns: 10, maxCommands: 4 }),
+      events: { INC: fc.constant({}) },
+      invariant: () => {}
+    });
+
+    expect(coverage.generatedSteps).toBeGreaterThan(0);
+  });
+});

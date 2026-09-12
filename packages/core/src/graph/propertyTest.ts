@@ -684,6 +684,31 @@ interface TemporalState<
  * Structural, key-order insensitive deep equality used to compare model
  * projections against reference/SUT observations. Cycle-safe.
  */
+/**
+ * Distinguishes the descriptor form (`{ generate, case?, weight?, ... }`) from
+ * a bare generator. Generators are opaque adapter values that can themselves
+ * be objects with a `generate` *method* (fast-check arbitraries have one), so
+ * a `generate` key only marks a descriptor when it does not hold a function;
+ * any of the descriptor-only keys marks one regardless.
+ */
+function isPropertyDescriptorObject(value: unknown): boolean {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  if (
+    'case' in value ||
+    'when' in value ||
+    'resolve' in value ||
+    'weight' in value
+  ) {
+    return true;
+  }
+  return (
+    Object.prototype.hasOwnProperty.call(value, 'generate') &&
+    typeof (value as { generate: unknown }).generate !== 'function'
+  );
+}
+
 export function defaultEquivalent(left: unknown, right: unknown): boolean {
   return deepEqual(left, right, new Map());
 }
@@ -1224,7 +1249,8 @@ export class PropertyScenarioRunner<
       this.coverage,
       { type: XSTATE_INIT },
       selected,
-      resolutions
+      resolutions,
+      false
     );
     this.initialGuardIds = recordPropertyGuards(this.coverage, guards);
     let initialSnapshot = snapshot;
@@ -1606,7 +1632,8 @@ export class PropertyScenarioRunner<
         this.coverage,
         { type: XSTATE_STOP },
         selected,
-        resolutions
+        resolutions,
+        false
       );
       guardIds = recordPropertyGuards(this.coverage, guards);
     }
@@ -1808,7 +1835,8 @@ export class PropertyScenarioRunner<
         this.coverage,
         event,
         selected,
-        resolutions
+        resolutions,
+        false
       );
       guardIds = recordPropertyGuards(this.coverage, guards);
     }
@@ -2731,12 +2759,7 @@ export async function propertyTest<
         const descriptor: AnyPropertyEventDescriptor<
           SnapshotFromSource<TSource>,
           EventFromSource<TSource>
-        > = eventCase &&
-        typeof eventCase === 'object' &&
-        ('when' in eventCase ||
-          'case' in eventCase ||
-          'resolve' in eventCase ||
-          'weight' in eventCase)
+        > = isPropertyDescriptorObject(eventCase)
           ? (eventCase as AnyPropertyEventDescriptor<
               SnapshotFromSource<TSource>,
               EventFromSource<TSource>
@@ -2773,12 +2796,9 @@ export async function propertyTest<
     if (configured === undefined) {
       continue;
     }
-    const descriptor =
-      typeof configured === 'object' &&
-      configured !== null &&
-      'weight' in configured
-        ? (configured as PropertyCommandDescriptor<unknown>)
-        : { generate: configured as unknown };
+    const descriptor = isPropertyDescriptorObject(configured)
+      ? (configured as PropertyCommandDescriptor<unknown>)
+      : { generate: configured as unknown };
     commands.push({
       type,
       generator: descriptor.generate,
@@ -2786,12 +2806,9 @@ export async function propertyTest<
     });
   }
   for (const [src, configured] of Object.entries(options.outcomes ?? {})) {
-    const descriptor =
-      typeof configured === 'object' &&
-      configured !== null &&
-      'weight' in configured
-        ? (configured as PropertyCommandDescriptor<unknown>)
-        : { generate: configured as unknown };
+    const descriptor = isPropertyDescriptorObject(configured)
+      ? (configured as PropertyCommandDescriptor<unknown>)
+      : { generate: configured as unknown };
     commands.push({
       type: 'outcome',
       src,
@@ -3303,6 +3320,46 @@ export async function propertyTest<
   return { coverage: finalCoverage };
 }
 
+/**
+ * Replaying an `advance` command in pure mode (no executed actor, no SUT
+ * clock) only records the command: the events the original run's clock
+ * delivered are replayed from the `event` entries that follow it, each marked
+ * `origin: 'clock'`. This asserts the fixture still carries those entries in
+ * order, so a hand-edited or re-serialized fixture cannot silently drop the
+ * delivered events and replay a different timeline.
+ *
+ * Only a prefix check: a run that failed part-way through a delivery batch
+ * legitimately records fewer clock entries than `deliveredEvents`.
+ */
+function assertReplayFixtureClockEvents(
+  fixture: PortablePropertyReplayFixture | LegacyPortablePropertyReplayFixture
+): void {
+  const timeline = normalizeFixtureTimeline(fixture);
+  for (let index = 0; index < timeline.length; index++) {
+    const command = timeline[index].command;
+    if (command.type !== 'advance' || !command.deliveredEvents?.length) {
+      continue;
+    }
+    for (let offset = 0; offset < command.deliveredEvents.length; offset++) {
+      const next = timeline[index + 1 + offset]?.command;
+      if (!next) {
+        // The run ended inside this delivery batch.
+        break;
+      }
+      if (next.type !== 'event' || next.origin !== 'clock') {
+        throw new Error(
+          `Property replay fixture is inconsistent: the \`advance\` command at entry ${index} recorded ${command.deliveredEvents.length} delivered event(s), but entry ${index + 1 + offset} is not a clock-delivered event`
+        );
+      }
+      if (!defaultEquivalent(next.event, command.deliveredEvents[offset])) {
+        throw new Error(
+          `Property replay fixture is inconsistent: the \`advance\` command at entry ${index} recorded ${JSON.stringify(command.deliveredEvents[offset])} as delivered event ${offset}, but entry ${index + 1 + offset} replays ${JSON.stringify(next.event)}`
+        );
+      }
+    }
+  }
+}
+
 function normalizeFixtureTimeline(
   fixture: PortablePropertyReplayFixture | LegacyPortablePropertyReplayFixture
 ): readonly PortablePropertyTimelineEntry[] {
@@ -3495,8 +3552,14 @@ export async function replayPropertyTest<
       : undefined
   );
   const failedAt = fixture.failedAt;
-  await runner.start();
   try {
+    // `start()` creates the reference/SUT/test-model sessions one after the
+    // other, so it must run inside the disposal boundary: a creator that
+    // throws would otherwise leak the sessions created before it. `dispose()`
+    // only touches the sessions that exist, so it is safe after a partial
+    // start.
+    await runner.start();
+    assertReplayFixtureClockEvents(fixture);
     for (const entry of normalizeFixtureTimeline(fixture)) {
       const command = entry.command as PropertyCommand<
         EventFromSource<TSource>

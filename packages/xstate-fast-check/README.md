@@ -668,6 +668,14 @@ try {
 }
 ```
 
+A fixture records clock-delivered events twice: on the `advance` command, as
+`deliveredEvents`, and as the `event` entries that follow it, each marked
+`origin: 'clock'`. The replay of an `advance` command only re-records the
+command — in pure mode there is no clock to run — so the events themselves are
+replayed from those following entries. `replayPropertyTest()` checks the two
+against each other before replaying and rejects a fixture whose clock-delivered
+events were dropped or reordered.
+
 `defaultEquivalent(left, right)` is the structural, key-order insensitive,
 cycle-safe deep equality used to compare model projections against reference
 and SUT observations. Use it to build a custom `equivalent` on top of the
