@@ -16,7 +16,7 @@ import {
   isInertActorScope,
   setInertActorScopeSnapshot
 } from './getNextSnapshot.ts';
-import { withActorSelf } from './actorScope.ts';
+import { getTransitionDetails, withActorSelf } from './actorScope.ts';
 import {
   createMachineSnapshot,
   cloneMachineSnapshot,
@@ -838,6 +838,10 @@ export class StateMachine<
         ? ({ ...snapshot.context, ...selected.context } as TContext)
         : snapshot.context;
 
+    const transitionDetails = getTransitionDetails(actorScope);
+    if (transitionDetails) {
+      transitionDetails.transitions.push(selected);
+    }
     if (
       !isInertActorScope(actorScope) &&
       (actorScope.system._hasInspectionObservers?.() ?? true)

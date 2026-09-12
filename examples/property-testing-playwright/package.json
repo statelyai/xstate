@@ -1,0 +1,19 @@
+{
+  "name": "@xstate/example-property-testing-playwright",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@xstate/fast-check": "workspace:*",
+    "@xstate/test-playwright": "workspace:*",
+    "fast-check": "^4.9.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "xstate": "workspace:*"
+  }
+}

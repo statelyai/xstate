@@ -66,6 +66,7 @@ import { transitionEffectSignal, transitionEffectTargets } from './system.ts';
 import { isInertActorScope } from './getNextSnapshot.ts';
 import {
   getActorScopeParent,
+  getTransitionDetails,
   isLazyActorScope,
   withActorSelfAndParent,
   withActorScope
@@ -2290,6 +2291,14 @@ export function getTransitionResult(
       ? resolveTarget(transition.source, toArray(res.target) as string[])
       : undefined;
 
+    const transitionDetails = getTransitionDetails(actorScope);
+    if (transitionDetails) {
+      transitionDetails.resolutions.push({
+        transition: transition as AnyTransitionDefinition,
+        targetIds: targets?.map((target) => target.id) ?? []
+      });
+    }
+
     const resolvedInput =
       res?.input ??
       (typeof transition.input === 'function'
@@ -2417,6 +2426,10 @@ export function macrostep(
   ) {
     // collect microsteps; surfaced on the enclosing '@xstate.transition' event
     // via its `microsteps[]` facet (there is no standalone microstep event)
+    const transitionDetails = getTransitionDetails(actorScope);
+    if (transitionDetails) {
+      transitionDetails.transitions.push(...transitions);
+    }
     if (
       !isInertActorScope(actorScope) &&
       (event.type === XSTATE_INIT ||
@@ -2800,7 +2813,17 @@ export function evaluateCandidate(
       },
       actorScope
     );
-    if (!(candidate.guard as (args: typeof guardArgs) => boolean)(guardArgs)) {
+    const result = (candidate.guard as (args: typeof guardArgs) => boolean)(
+      guardArgs
+    );
+    const transitionDetails = getTransitionDetails(actorScope);
+    if (transitionDetails) {
+      transitionDetails.guards.push({
+        transition: candidate,
+        result
+      });
+    }
+    if (!result) {
       return false;
     }
   }

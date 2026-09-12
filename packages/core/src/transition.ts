@@ -30,10 +30,18 @@ import {
   createSpawnEffect,
   finalizeTransitionResult
 } from './transitionActions.ts';
+import {
+  createTransitionDetails,
+  type GuardEvaluation,
+  type TransitionDetails,
+  type TransitionResolution
+} from './actorScope.ts';
 
 import type { EventObject } from './types';
 
 type MachineMicrostep = [AnyMachineSnapshot, ExecutableActionObject[]];
+
+export type { GuardEvaluation, TransitionResolution } from './actorScope.ts';
 
 function attachMicrostepActorRefs(
   microsteps: MachineMicrostep[],
@@ -77,7 +85,52 @@ export function transition<T extends AnyActorLogic>(
   nextSnapshot: SnapshotFrom<T>,
   actions: ExecutableActionObjectFromLogic<T>[]
 ] {
+  return runTransition(logic, snapshot, event, false)[0] as [
+    SnapshotFrom<T>,
+    ExecutableActionObjectFromLogic<T>[]
+  ];
+}
+
+/** @internal */
+export function transitionWithDetails<T extends AnyActorLogic>(
+  logic: T,
+  snapshot: SnapshotFrom<T>,
+  event: EventFromLogic<T>
+): [
+  nextSnapshot: SnapshotFrom<T>,
+  actions: ExecutableActionObjectFromLogic<T>[],
+  transitions: AnyTransitionDefinition[],
+  guards: GuardEvaluation[],
+  resolutions: TransitionResolution[]
+] {
+  const [[nextSnapshot, effects], details] = runTransition(
+    logic,
+    snapshot,
+    event,
+    true
+  );
+  return [
+    nextSnapshot as SnapshotFrom<T>,
+    effects as ExecutableActionObjectFromLogic<T>[],
+    details!.transitions,
+    details!.guards,
+    details!.resolutions
+  ];
+}
+
+/**
+ * Shared implementation of the pure `transition()` path. `withDetails` controls
+ * whether transition evidence is collected; no details object is allocated
+ * otherwise.
+ */
+function runTransition(
+  logic: AnyActorLogic,
+  snapshot: any,
+  event: any,
+  withDetails: boolean
+): [[AnyMachineSnapshot, ExecutableActionObject[]], TransitionDetails?] {
   const actorScope = createInertActorScope(logic, snapshot);
+  const details = withDetails ? createTransitionDetails(actorScope) : undefined;
   setInertActorScopeSnapshot(actorScope, snapshot, false);
   const [nextSnapshot, effects] = finalizeTransitionResult(
     actorScope,
@@ -91,7 +144,7 @@ export function transition<T extends AnyActorLogic>(
       ? nextSnapshot
       : attachSnapshotActorRef(actorScope, nextSnapshot);
   inspectPureTransition(actorScope, returnedSnapshot, event);
-  return [returnedSnapshot, effects as ExecutableActionObjectFromLogic<T>[]];
+  return [[returnedSnapshot, effects], details];
 }
 
 /**
@@ -107,7 +160,51 @@ export function initialTransition<T extends AnyActorLogic>(
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
 ): [SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]] {
+  return runInitialTransition(logic, input, false)[0] as [
+    SnapshotFrom<T>,
+    ExecutableActionObjectFromLogic<T>[]
+  ];
+}
+
+/** @internal */
+export function initialTransitionWithDetails<T extends AnyActorLogic>(
+  logic: T,
+  ...[input]: undefined extends InputFrom<T>
+    ? [input?: InputFrom<T>]
+    : [input: InputFrom<T>]
+): [
+  SnapshotFrom<T>,
+  ExecutableActionObjectFromLogic<T>[],
+  AnyTransitionDefinition[],
+  GuardEvaluation[],
+  TransitionResolution[]
+] {
+  const [[nextSnapshot, effects], details] = runInitialTransition(
+    logic,
+    input,
+    true
+  );
+  return [
+    nextSnapshot as SnapshotFrom<T>,
+    effects as ExecutableActionObjectFromLogic<T>[],
+    details!.transitions,
+    details!.guards,
+    details!.resolutions
+  ];
+}
+
+/**
+ * Shared implementation of the pure `initialTransition()` path. `withDetails`
+ * controls whether transition evidence is collected; no details object is
+ * allocated otherwise.
+ */
+function runInitialTransition(
+  logic: AnyActorLogic,
+  input: unknown,
+  withDetails: boolean
+): [[AnyMachineSnapshot, ExecutableActionObject[]], TransitionDetails?] {
   const actorScope = createInertActorScope(logic);
+  const details = withDetails ? createTransitionDetails(actorScope) : undefined;
 
   const [nextSnapshot, executableActions] = finalizeTransitionResult(
     actorScope,
@@ -118,10 +215,7 @@ export function initialTransition<T extends AnyActorLogic>(
   setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
   const returnedSnapshot = attachSnapshotActorRef(actorScope, nextSnapshot);
   inspectPureTransition(actorScope, returnedSnapshot, createInitEvent(input));
-  return [
-    returnedSnapshot,
-    executableActions as ExecutableActionObjectFromLogic<T>[]
-  ];
+  return [[returnedSnapshot, executableActions], details];
 }
 
 /**

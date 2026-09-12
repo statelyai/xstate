@@ -11,4 +11,8 @@ export { getPathsFromEvents } from './pathFromEvents.ts';
 export * from './pathGenerators.ts';
 export { getShortestPaths } from './shortestPaths.ts';
 export { getSimplePaths } from './simplePaths.ts';
+export * from './propertyTest.ts';
+export * from './propertySuite.ts';
 export * from './types.ts';
+export * from './propertyReport.ts';
+export * from './propertyLinearizability.ts';
