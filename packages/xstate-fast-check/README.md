@@ -345,10 +345,13 @@ leave them out of the map:
 eventsFromSchemas(machine, { eventsWithoutSchema: 'skip' });
 ```
 
-## Effects are not executed
+## Effects are not executed (`mode: 'pure'`)
 
-`propertyTest()` drives the machine through the pure `transition()` path. It
-never starts an actor, so no effect is executed:
+By default `propertyTest()` drives the machine through the pure `transition()`
+path. It never starts an actor, so no effect is executed. Set
+[`mode: 'executed'`](#executed-mode) to run a real actor instead.
+
+In pure mode:
 
 - `invoke`, `spawn`, and enqueued actions are collected as executable action
   objects on each timeline entry's `effects` array, and on the
@@ -371,6 +374,131 @@ Path generation (`getShortestPaths()`, `getSimplePaths()`, and the other
 transitions, so transitions that depend on invoked actors or timers are not
 discovered. Supply those events explicitly, or use `getPathsFromEvents()` with
 an event sequence you control.
+
+## Executed mode
+
+`mode: 'executed'` runs the machine as a real actor instead of stepping it
+through `transition()`. Invoked and spawned actors start, their `onDone`,
+`onError`, and `onSnapshot` transitions fire, `raise` and `sendTo` are
+delivered, and `after` transitions are reachable.
+
+The actor runs on a `SimulatedClock`, so no delay elapses on its own. Time
+moves only through generated `advance` commands, and no `sut` is required for
+them:
+
+```ts
+await propertyTest(machine, {
+  adapter: fastCheckAdapter({ numRuns: 100 }),
+  mode: 'executed',
+  events: { START: fc.constant({}) },
+  commands: { advance: fc.integer({ min: 100, max: 900 }) },
+  invariant: ({ snapshot }) => {
+    // ...
+  }
+});
+```
+
+After every event, `advance`, and `outcome` command, the runner drains pending
+microtasks and macrotasks until the actor's inspection stream stops producing
+events, then checks the invariant and temporal properties against the settled
+snapshot.
+
+### Steering invoked actors
+
+Real services should not run inside a property campaign. Two options replace
+them:
+
+`actors` provides fixed logic for named invoke sources, through
+`machine.provide({ actors })`:
+
+```ts
+await propertyTest(machine, {
+  mode: 'executed',
+  actors: {
+    fetchUser: createAsyncLogic({ run: async () => ({ name: 'Ada' }) })
+  },
+  // ...
+});
+```
+
+`outcomes` replaces a named source with a stub whose result the adapter
+generates and shrinks, so a single campaign explores both the success and the
+failure branch:
+
+```ts
+await propertyTest(machine, {
+  mode: 'executed',
+  outcomes: {
+    fetchUser: fc.oneof(
+      fc.record({ ok: fc.constant(true), output: fc.record({ id: fc.integer() }) }),
+      fc.record({ ok: fc.constant(false), error: fc.constant('offline') })
+    )
+  },
+  events: { FETCH: fc.constant({}) },
+  invariant: () => {}
+});
+```
+
+Each stub stays pending until an `outcome` command supplies its result, so the
+generated ordering of events and outcomes is part of what the adapter shrinks.
+A stub that never receives an outcome simply never resolves, and the run ends
+with the machine still in its invoking state.
+
+`actors` and `outcomes` are rejected in pure mode.
+
+### What executed mode does and does not make deterministic
+
+Determinism covers everything that goes through the actor system and the
+simulated clock: delayed transitions, delayed sends, invoked and spawned actor
+lifecycles, and the order in which their events reach the machine.
+
+It does not cover anything outside that boundary. Real network calls, real
+timers created outside the actor's clock, `Date.now()`, and `Math.random()` are
+not intercepted. Replace the actors that reach for them with `actors` or
+`outcomes`.
+
+### Timeline entries
+
+Executed runs add a third timeline entry kind, `'actorEvent'`, for every
+transition the actor system performed on its own during a step: a child
+actor's `onDone`/`onError`/`onSnapshot`, a delayed transition, or a relayed
+send. Each entry carries the event, the actor that transitioned
+(`source: 'root' | 'child'` and `actorId`), and the resulting snapshot.
+Transitions on the tested actor are attributed to coverage exactly like
+generated events; a child actor's own transitions are not, because coverage is
+declared from the tested machine.
+
+Two coverage details differ from pure mode:
+
+- Guard coverage is attributed through the guarded transitions that were
+  selected, because the inspection protocol reports the microsteps taken
+  rather than every guard that was evaluated. `coverage.guardOutcomes` stays
+  empty.
+- Initial-transition and initial-guard coverage is computed from the pure
+  initial transition, because the `@xstate.init` inspection event carries no
+  microsteps.
+
+`coverage.exploration.mode` reports `'pure'` or `'executed'`.
+
+### Replaying an executed failure
+
+A failure fixture from an executed run records `mode: 'executed'` and an
+`outcomes` log: every invoked actor's resolved output or error, keyed by
+invoke source and by how many actors of that source had already resolved.
+`replayPropertyTest()` reads that log, replaces each recorded source with a
+stub, and replays the recorded outcomes in order, so the failure reproduces
+without calling any real service:
+
+```ts
+await replayPropertyTest(machine, fixture, {
+  invariant: ({ snapshot }) => {
+    // ...
+  }
+});
+```
+
+Pass `mode: 'pure'` to replay the fixture's events through the pure path
+instead, or `actors` to replay against different logic.
 
 ## Choosing between path testing and property testing
 
@@ -783,3 +911,75 @@ shortfall throws an error naming every label that fell short, with the
 Labels are rendered by `formatPropertyCoverage()` in both text and markdown,
 and by `propertyCoverageToJSON()`. Counts include shrinking runs, so treat them
 as a distribution sketch rather than an exact tally.
+
+## Offline suites
+
+A property suite is a deterministic set of replay fixtures recorded from a
+passing campaign. Commit it and replay it in CI without the generator adapter —
+and therefore without `fast-check` — installed.
+
+```ts
+import {
+  generatePropertySuite,
+  serializePropertySuite
+} from 'xstate/graph';
+
+const suite = await generatePropertySuite(machine, {
+  adapter: fastCheckAdapter({ numRuns: 200 }),
+  events,
+  invariant
+});
+
+await writeFile('suite.json', serializePropertySuite(suite));
+```
+
+`generatePropertySuite(machineOrModel, options)` takes every `propertyTest()`
+option plus:
+
+| Option | Description |
+| --- | --- |
+| `select` | `'minimal'` (default) keeps the smallest greedy subset of recorded traces that preserves the campaign's covered set. `'all'` keeps every distinct trace. |
+| `maxFixtures` | Upper bound on the number of fixtures kept. |
+| `generatedAt` | Recorded verbatim as `suite.generatedAt`. Omit it to keep the suite byte-stable across regenerations. |
+
+Selection runs a greedy set cover over the transition ids, state node ids, and
+guard ids each trace exercised, after dropping traces with identical command
+sequences. Ties are broken by the shorter trace, then by a stable key, so the
+same campaign always produces the same suite.
+
+The suite is `{ formatVersion: 1, machineId, machineVersion, generatedAt,
+fixtures, coverage }`, where `fixtures` are `PortablePropertyReplayFixture`
+values and `coverage` is the `propertyCoverageToJSON()` snapshot of the whole
+campaign — not only of the selected fixtures. `serializePropertySuite(suite)`
+and `parsePropertySuite(json)` round-trip it; parsing rejects unknown format
+versions.
+
+Replaying the suite needs only `xstate/graph`:
+
+```ts
+import { parsePropertySuite, replayPropertySuite } from 'xstate/graph';
+
+const suite = parsePropertySuite(await readFile('suite.json', 'utf8'));
+const { passed, failed } = await replayPropertySuite(machine, suite, {
+  invariant
+});
+
+if (failed.length) {
+  throw new Error(failed.map((failure) => failure.title).join('\n'));
+}
+```
+
+Every fixture is expected to pass — a suite is a regression set, not a set of
+counterexamples. `replayPropertySuite()` resolves with `{ passed, failed }`,
+where each failure carries `fixture`, `index`, `title`, and `error`.
+
+To register one test case per fixture instead, use `describePropertySuite()`.
+It is framework-agnostic: pass `it` and `describe`, or let it use the ambient
+globals of Vitest or Jest.
+
+```ts
+describePropertySuite(suite, machine, { invariant });
+```
+
+`replayPropertySuiteFixture(machineOrModel, fixture, options)` replays a single
+fixture and rejects with the underlying failure when it no longer passes.

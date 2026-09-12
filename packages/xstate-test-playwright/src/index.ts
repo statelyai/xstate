@@ -2,6 +2,7 @@ import type { EventObject, Snapshot } from 'xstate';
 import type {
   PropertySut,
   PropertySutContext,
+  PropertySutSendContext,
   PropertySutSession,
   PropertyTestModelExecution,
   PropertyTestModelSession,
@@ -86,8 +87,10 @@ export interface PlaywrightSutConfig<
   /** Runs when a scenario session is disposed. */
   readonly dispose?: (page: TPage) => void | Promise<void>;
   /**
-   * Per-case `page.route()` setup, keyed by the case resolved by `caseOf`. Use it to steer an invoked service to success or failure on
-   * different generated paths.
+   * Per-case `page.route()` setup, keyed by the generated event case id
+   * (`"<type>:<case>"`) when the property runner supplies one, otherwise by
+   * the case resolved by `caseOf`. Use it to steer an invoked service to
+   * success or failure on different generated paths.
    */
   readonly mocks?: {
     readonly [caseId: string]: PlaywrightMock<TPage>;
@@ -135,8 +138,10 @@ export function createPlaywrightSut<
       let checkpoints = 0;
 
       return {
-        send: async (event: TEvent) => {
-          const caseId = caseOf(event);
+        send: async (event: TEvent, context?: PropertySutSendContext) => {
+          // The generated event case id is authoritative when the property
+          // runner supplies one; `caseOf` remains the fallback.
+          const caseId = context?.caseId ?? caseOf(event);
           const mock =
             caseId === undefined ? undefined : config.mocks?.[caseId];
           if (mock && caseId !== appliedCase) {

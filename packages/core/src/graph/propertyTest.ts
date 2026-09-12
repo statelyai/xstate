@@ -7,6 +7,10 @@ import type {
   SnapshotFrom
 } from '../index.ts';
 import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
+import { createActor } from '../createActor.ts';
+import { createAsyncLogic } from '../actors/promise.ts';
+import { SimulatedClock } from '../SimulatedClock.ts';
+import type { InspectionEvent } from '../inspection.ts';
 import {
   initialTransitionWithDetails,
   transitionWithDetails
@@ -70,6 +74,32 @@ export interface PropertyReplayMetadata {
   readonly data?: unknown;
 }
 
+/**
+ * `'pure'` steps the machine through the pure `transition()` path: no effect
+ * runs, no invoked or spawned actor starts, no delayed transition fires.
+ * `'executed'` drives a real actor on a {@link SimulatedClock} instead, so
+ * invoked/spawned actors run and `after` transitions are reachable through
+ * generated `advance` commands.
+ */
+export type PropertyTestMode = 'pure' | 'executed';
+
+/** A resolved actor outcome queued for a stubbed invoke source. */
+export type PropertyActorOutcome =
+  | { readonly ok: true; readonly output: unknown }
+  | { readonly ok: false; readonly error: unknown };
+
+/**
+ * An actor outcome observed during an executed-mode run, keyed by invoke
+ * source and by how many actors of that source had already resolved.
+ * Recorded into replay fixtures so a failure can be replayed against stubbed
+ * actors instead of the real ones.
+ */
+export interface PropertyOutcomeRecord {
+  readonly src: string;
+  readonly occurrence: number;
+  readonly outcome: PropertyActorOutcome;
+}
+
 export type PropertyCommand<TEvent extends EventObject = EventObject> =
   | {
       readonly type: 'event';
@@ -84,7 +114,37 @@ export type PropertyCommand<TEvent extends EventObject = EventObject> =
       readonly deliveredEvents: readonly TEvent[];
     }
   | { readonly type: 'checkpoint'; readonly label?: string }
+  | {
+      /** Queues the next resolution of a stubbed invoke source. */
+      readonly type: 'outcome';
+      readonly src: string;
+      readonly outcome: PropertyActorOutcome;
+    }
   | { readonly type: 'stop' };
+
+/**
+ * An event the actor system produced on its own during an executed-mode step:
+ * an invoked actor's `onDone`/`onError`/`onSnapshot`, a delayed transition, a
+ * `sendTo`/`raise`, or a child actor's own transition.
+ */
+export interface PropertyActorTimelineEntry<
+  TSnapshot extends Snapshot<unknown>
+> {
+  readonly kind: 'actorEvent';
+  readonly index: number;
+  /** `'root'` when the tested actor transitioned, `'child'` otherwise. */
+  readonly source: 'root' | 'child';
+  /** The `id` of the actor that transitioned. */
+  readonly actorId: string;
+  readonly event: EventObject;
+  readonly previousSnapshot: TSnapshot;
+  readonly snapshot: TSnapshot;
+  readonly effects: readonly unknown[];
+  readonly transitionIds: readonly string[];
+  readonly guardIds: readonly string[];
+  /** Never set: reference/SUT comparison happens on the settled step. */
+  readonly observation?: undefined;
+}
 
 export interface PropertyComparedObservation {
   /** The model projection that was compared. */
@@ -143,7 +203,8 @@ export type PropertyTimelineEntry<
   TEvent extends EventObject
 > =
   | PropertyEventTimelineEntry<TSnapshot, TEvent>
-  | PropertyRuntimeTimelineEntry<TSnapshot, TEvent>;
+  | PropertyRuntimeTimelineEntry<TSnapshot, TEvent>
+  | PropertyActorTimelineEntry<TSnapshot>;
 
 export interface PortablePropertyTimelineEntry {
   readonly kind: 'event' | 'command';
@@ -171,6 +232,10 @@ export interface PortablePropertyReplayFixture {
   readonly timeline: readonly PortablePropertyTimelineEntry[];
   readonly failedAt: number;
   readonly temporalFailure?: PortableTemporalFailure;
+  /** Executed-mode runs only. See {@link PropertyOutcomeRecord}. */
+  readonly mode?: PropertyTestMode;
+  /** Actor outcomes observed during an executed-mode run, in resolution order. */
+  readonly outcomes?: readonly PropertyOutcomeRecord[];
 }
 
 interface LegacyPortablePropertyReplayFixture {
@@ -200,10 +265,15 @@ export interface PropertyTestAdapterResult {
 }
 
 export interface PropertyGeneratedCommand {
-  readonly type: 'advance' | 'checkpoint' | 'stop';
+  readonly type: 'advance' | 'checkpoint' | 'stop' | 'outcome';
   readonly generator: unknown;
   /** Relative generation weight. `1` unless configured otherwise. */
   readonly weight: number;
+  /**
+   * The invoke source an `'outcome'` command resolves. Always present for
+   * `'outcome'` commands and never present for the others.
+   */
+  readonly src?: string;
 }
 
 export interface PropertyTestAdapterRequest<
@@ -262,8 +332,20 @@ export interface PropertySut<
   ) => boolean | Promise<boolean>;
 }
 
+/** Metadata about the step an event belongs to, passed to `send`. */
+export interface PropertySutSendContext {
+  /**
+   * The generated event case id (`"<type>:<case>"`), when the event came from
+   * a generator. Absent for prefix, clock, and replayed events.
+   */
+  readonly caseId?: string;
+}
+
 export interface PropertySutSession<TEvent extends EventObject> {
-  readonly send: (event: TEvent) => void | Promise<void>;
+  readonly send: (
+    event: TEvent,
+    context?: PropertySutSendContext
+  ) => void | Promise<void>;
   readonly read: () => unknown | Promise<unknown>;
   readonly settle?: () => void | Promise<void>;
   readonly advance?: (
@@ -697,6 +779,263 @@ function assertEventPayload(
   }
 }
 
+/**
+ * Queues and hands out actor outcomes for stubbed invoke sources.
+ *
+ * A stub actor asks the registry for its outcome when it starts. If an
+ * outcome is already queued for its source it resolves immediately; otherwise
+ * the stub stays pending until an `outcome` command (or a seeded replay
+ * record) supplies one, which is what lets fast-check shrink service results.
+ */
+export class PropertyOutcomeRegistry {
+  private queued = new Map<string, PropertyActorOutcome[]>();
+  private waiting = new Map<
+    string,
+    ((outcome: PropertyActorOutcome) => void)[]
+  >();
+
+  /** Called by a stub actor when it starts. */
+  public request(src: string): Promise<PropertyActorOutcome> {
+    const queue = this.queued.get(src);
+    const next = queue?.shift();
+    if (next) {
+      return Promise.resolve(next);
+    }
+    return new Promise<PropertyActorOutcome>((resolve) => {
+      const waiters = this.waiting.get(src);
+      if (waiters) {
+        waiters.push(resolve);
+      } else {
+        this.waiting.set(src, [resolve]);
+      }
+    });
+  }
+
+  /** Resolves the oldest pending stub for `src`, or queues for the next one. */
+  public provide(src: string, outcome: PropertyActorOutcome): void {
+    const waiters = this.waiting.get(src);
+    const waiter = waiters?.shift();
+    if (waiter) {
+      waiter(outcome);
+      return;
+    }
+    const queue = this.queued.get(src);
+    if (queue) {
+      queue.push(outcome);
+    } else {
+      this.queued.set(src, [outcome]);
+    }
+  }
+
+  /** Pre-loads recorded outcomes so a replay never calls a real service. */
+  public seed(records: readonly PropertyOutcomeRecord[]): void {
+    for (const record of records) {
+      this.provide(record.src, record.outcome);
+    }
+  }
+
+  public reset(): void {
+    this.queued = new Map();
+    this.waiting = new Map();
+  }
+}
+
+let activeOutcomeRegistry: PropertyOutcomeRegistry | undefined;
+
+/**
+ * Builds the stub {@link ActorLogic} that replaces an invoke source named
+ * `src`. The registry is read when the stub starts — always inside the
+ * owning runner's step — so one stub built per campaign serves every run.
+ */
+function createOutcomeStub(src: string): ActorLogic<any, any, any> {
+  return createAsyncLogic({
+    run: async () => {
+      const registry = activeOutcomeRegistry;
+      if (!registry) {
+        throw new Error(
+          `Property outcome stub for "${src}" ran outside an executed-mode property run`
+        );
+      }
+      const outcome = await registry.request(src);
+      if (outcome.ok) {
+        return outcome.output;
+      }
+      throw outcome.error instanceof Error
+        ? outcome.error
+        : new Error(String(outcome.error));
+    }
+  }) as unknown as ActorLogic<any, any, any>;
+}
+
+/** Microtask turns awaited per drain round. */
+const DRAIN_MICROTASKS = 8;
+/** Drain rounds awaited before an executed step is considered settled. */
+const MAX_DRAIN_ROUNDS = 20;
+
+interface DrainedTransition<TSnapshot extends Snapshot<unknown>> {
+  readonly source: 'root' | 'child';
+  readonly actorId: string;
+  readonly event: EventObject;
+  readonly snapshot: TSnapshot;
+  readonly effects: readonly unknown[];
+  readonly transitionIds: readonly string[];
+}
+
+/**
+ * Drives a real actor on a {@link SimulatedClock} and turns its inspection
+ * stream into the same transition/guard details the pure path returns.
+ */
+class PropertyExecutionEngine<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  public readonly clock = new SimulatedClock();
+  private actor: {
+    start: () => void;
+    stop: () => void;
+    send: (event: TEvent) => void;
+    getSnapshot: () => TSnapshot;
+  };
+  private buffer: InspectionEvent[] = [];
+  private rootRef: unknown;
+  private readonly srcByActorId = new Map<string, string>();
+  private readonly resolvedBySrc = new Map<string, number>();
+  /** Outcomes observed this run, in resolution order. */
+  public readonly outcomes: PropertyOutcomeRecord[] = [];
+
+  public constructor(
+    logic: ActorLogic<TSnapshot, TEvent, unknown>,
+    input: unknown,
+    startingSnapshot: TSnapshot | undefined
+  ) {
+    const actor = createActor(logic as any, {
+      clock: this.clock,
+      input: input as never,
+      ...(startingSnapshot ? { snapshot: startingSnapshot as never } : {}),
+      inspect: (event: InspectionEvent) => {
+        this.buffer.push(event);
+      }
+    });
+    this.rootRef = actor;
+    this.actor = actor as unknown as typeof this.actor;
+  }
+
+  public start(): void {
+    this.actor.start();
+  }
+
+  public send(event: TEvent): void {
+    this.actor.send(event);
+  }
+
+  public advance(milliseconds: number): void {
+    this.clock.increment(milliseconds);
+  }
+
+  public stop(): void {
+    this.actor.stop();
+  }
+
+  public getSnapshot(): TSnapshot {
+    return this.actor.getSnapshot();
+  }
+
+  /**
+   * Runs microtasks and macrotasks until the inspection stream stops growing.
+   * The actor's own timers are on the simulated clock, so nothing here can
+   * fire a delayed transition; only already-pending promises settle.
+   */
+  public async drain(): Promise<void> {
+    let seen = -1;
+    for (
+      let round = 0;
+      round < MAX_DRAIN_ROUNDS && seen !== this.buffer.length;
+      round++
+    ) {
+      seen = this.buffer.length;
+      for (let turn = 0; turn < DRAIN_MICROTASKS; turn++) {
+        await Promise.resolve();
+      }
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    }
+  }
+
+  /**
+   * Consumes the buffered inspection events, records root transitions into
+   * `coverage`, and returns one {@link DrainedTransition} per transition.
+   */
+  public consume(
+    coverage: MutablePropertyCoverage
+  ): readonly DrainedTransition<TSnapshot>[] {
+    const buffered = this.buffer;
+    this.buffer = [];
+    const drained: DrainedTransition<TSnapshot>[] = [];
+    for (const inspected of buffered) {
+      if (inspected.type === '@xstate.actor') {
+        if (typeof inspected.src === 'string') {
+          this.srcByActorId.set(inspected.id, inspected.src);
+        }
+        continue;
+      }
+      if (inspected.type !== '@xstate.transition') {
+        continue;
+      }
+      const isRoot = inspected.actorRef === this.rootRef;
+      const actorId =
+        (inspected.actorRef as { id?: string } | undefined)?.id ?? '(unknown)';
+      if (!isRoot) {
+        this.recordOutcome(actorId, inspected.snapshot);
+      }
+      drained.push({
+        source: isRoot ? 'root' : 'child',
+        actorId,
+        event: inspected.event,
+        snapshot: inspected.snapshot as TSnapshot,
+        effects: inspected.actions,
+        // Only the tested actor's own transitions are part of its coverage.
+        transitionIds: isRoot
+          ? recordPropertyTransitions(
+              coverage,
+              inspected.event,
+              inspected.microsteps
+            )
+          : []
+      });
+    }
+    return drained;
+  }
+
+  private recordOutcome(actorId: string, snapshot: Snapshot<unknown>): void {
+    if (snapshot.status !== 'done' && snapshot.status !== 'error') {
+      return;
+    }
+    const src = this.srcByActorId.get(actorId);
+    if (src === undefined) {
+      return;
+    }
+    const occurrence = this.resolvedBySrc.get(src) ?? 0;
+    this.resolvedBySrc.set(src, occurrence + 1);
+    this.outcomes.push({
+      src,
+      occurrence,
+      outcome:
+        snapshot.status === 'done'
+          ? { ok: true, output: (snapshot as { output?: unknown }).output }
+          : { ok: false, error: (snapshot as { error?: unknown }).error }
+    });
+  }
+}
+
+/** Executed-mode wiring handed to a {@link PropertyScenarioRunner}. */
+export interface PropertyExecutionConfig {
+  readonly mode: PropertyTestMode;
+  readonly registry: PropertyOutcomeRegistry;
+  /** Outcomes pre-loaded before the run starts (replay). */
+  readonly seededOutcomes?: readonly PropertyOutcomeRecord[];
+}
+
 export class PropertyScenarioRunner<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -720,6 +1059,7 @@ export class PropertyScenarioRunner<
   private readonly inconclusiveTemporalIds: string[] = [];
   private generatedCommandCount = 0;
   private readonly labelsSeen = new Set<string>();
+  private execution: PropertyExecutionEngine<TSnapshot, TEvent> | undefined;
 
   /** Records a label for this run. */
   public readonly label = (
@@ -759,7 +1099,8 @@ export class PropertyScenarioRunner<
       string,
       AnyPropertyEventDescriptor<TSnapshot, TEvent>
     >,
-    private readonly coverage: MutablePropertyCoverage
+    private readonly coverage: MutablePropertyCoverage,
+    private readonly executionConfig?: PropertyExecutionConfig
   ) {
     this.temporal = temporal.map((definition) => ({
       definition,
@@ -784,9 +1125,6 @@ export class PropertyScenarioRunner<
           readonly import('../transition.ts').GuardEvaluation[],
           readonly import('../transition.ts').TransitionResolution[]
         ]);
-    this.snapshot = snapshot;
-    this.initialSnapshot = snapshot;
-    this.initialEffects = effects;
     this.initialTransitionIds = recordPropertyTransitions(
       this.coverage,
       { type: XSTATE_INIT },
@@ -794,8 +1132,36 @@ export class PropertyScenarioRunner<
       resolutions
     );
     this.initialGuardIds = recordPropertyGuards(this.coverage, guards);
+    let initialSnapshot = snapshot;
+    let initialEffects = effects;
+    if (this.executionConfig?.mode === 'executed') {
+      // The pure initial transition above is only used to attribute initial
+      // transition and guard coverage: the `@xstate.init` inspection event
+      // carries no microsteps. The snapshot the run proceeds from is the real
+      // actor's.
+      this.executionConfig.registry.reset();
+      this.executionConfig.registry.seed(
+        this.executionConfig.seededOutcomes ?? []
+      );
+      activeOutcomeRegistry = this.executionConfig.registry;
+      this.execution = new PropertyExecutionEngine(
+        this.logic,
+        this.input,
+        this.startingSnapshot
+      );
+      this.execution.start();
+      await this.execution.drain();
+      // Initial-transition coverage is already attributed above; the drained
+      // entries below cover anything the actor did on its own while starting.
+      this.execution.consume(this.coverage);
+      initialSnapshot = this.execution.getSnapshot();
+      initialEffects = [];
+    }
+    this.snapshot = initialSnapshot;
+    this.initialSnapshot = initialSnapshot;
+    this.initialEffects = initialEffects;
     this.started = true;
-    this.recordSnapshot(snapshot);
+    this.recordSnapshot(initialSnapshot);
     const context = {
       logic: this.logic,
       input: this.input,
@@ -812,7 +1178,12 @@ export class PropertyScenarioRunner<
     if (this.testModelExecution) {
       this.testModelSession = await this.testModelExecution.create(context);
     }
-    await this.checkStable(undefined, snapshot, snapshot, effects);
+    await this.checkStable(
+      undefined,
+      initialSnapshot,
+      initialSnapshot,
+      initialEffects
+    );
     for (const event of this.prefixEvents) {
       await this.executeEvent(event, 'prefix', 'frontier', true);
     }
@@ -869,6 +1240,13 @@ export class PropertyScenarioRunner<
     return { ...payload, type } as TEvent;
   }
 
+  /** `outcome` commands only apply while the executed actor is running. */
+  public canRunOutcome(): boolean {
+    return this.canRunCommand(
+      !!this.execution && this.snapshot.status === 'active'
+    );
+  }
+
   public canRunCommand(applicable: boolean): boolean {
     if (!applicable) {
       this.coverage.skipped++;
@@ -916,6 +1294,10 @@ export class PropertyScenarioRunner<
         command.caseId
       );
     } else if (command.type === 'advance') {
+      if (this.execution) {
+        await this.advanceExecuted(command.milliseconds);
+        return;
+      }
       this.coverage.clockAdvances++;
       this.timeline.push({
         kind: 'command',
@@ -927,6 +1309,10 @@ export class PropertyScenarioRunner<
         transitionIds: [],
         guardIds: []
       });
+    } else if (command.type === 'outcome') {
+      if (this.execution) {
+        await this.outcome(command.src, command.outcome);
+      }
     } else if (command.type === 'checkpoint') {
       await this.checkpoint(command.label);
     } else {
@@ -934,9 +1320,50 @@ export class PropertyScenarioRunner<
     }
   }
 
+  /** Queues the next resolution of the stubbed invoke source `src`. */
+  public async outcome(
+    src: string,
+    outcome: PropertyActorOutcome
+  ): Promise<void> {
+    this.assertStarted();
+    this.recordGeneratedCommand();
+    if (!this.execution || !this.executionConfig) {
+      throw new Error("Property `outcome` commands require `mode: 'executed'`");
+    }
+    const previousSnapshot = this.snapshot;
+    this.executionConfig.registry.provide(src, outcome);
+    await this.execution.drain();
+    const drained = this.execution.consume(this.coverage);
+    this.snapshot = this.execution.getSnapshot();
+    this.recordSnapshot(this.snapshot);
+    const entry: PropertyRuntimeTimelineEntry<TSnapshot, TEvent> = {
+      kind: 'command',
+      index: this.timeline.length,
+      command: { type: 'outcome', src, outcome },
+      previousSnapshot,
+      snapshot: this.snapshot,
+      effects: [],
+      transitionIds: [],
+      guardIds: []
+    };
+    this.timeline.push(entry);
+    this.pushActorEntries(previousSnapshot, drained);
+    const observation = await this.checkStable(
+      undefined,
+      previousSnapshot,
+      this.snapshot,
+      []
+    );
+    (entry as { observation?: PropertyObservation }).observation = observation;
+  }
+
   public async advance(milliseconds: number): Promise<void> {
     this.assertStarted();
     this.recordGeneratedCommand();
+    if (this.execution) {
+      await this.advanceExecuted(milliseconds);
+      return;
+    }
     if (!this.sutSession?.advance) {
       throw new Error('Property SUT does not support clock advancement');
     }
@@ -973,6 +1400,39 @@ export class PropertyScenarioRunner<
     }
   }
 
+  /**
+   * Advances the simulated clock the executed actor runs on, then drains
+   * whatever the elapsed delays produced.
+   */
+  private async advanceExecuted(milliseconds: number): Promise<void> {
+    const previousSnapshot = this.snapshot;
+    this.execution!.advance(milliseconds);
+    await this.execution!.drain();
+    const drained = this.execution!.consume(this.coverage);
+    this.snapshot = this.execution!.getSnapshot();
+    this.recordSnapshot(this.snapshot);
+    this.coverage.clockAdvances++;
+    const entry: PropertyRuntimeTimelineEntry<TSnapshot, TEvent> = {
+      kind: 'command',
+      index: this.timeline.length,
+      command: { type: 'advance', milliseconds, deliveredEvents: [] },
+      previousSnapshot,
+      snapshot: this.snapshot,
+      effects: [],
+      transitionIds: [],
+      guardIds: []
+    };
+    this.timeline.push(entry);
+    this.pushActorEntries(previousSnapshot, drained);
+    const observation = await this.checkStable(
+      undefined,
+      previousSnapshot,
+      this.snapshot,
+      []
+    );
+    (entry as { observation?: PropertyObservation }).observation = observation;
+  }
+
   public async checkpoint(label?: string): Promise<void> {
     this.assertStarted();
     this.recordGeneratedCommand();
@@ -998,20 +1458,37 @@ export class PropertyScenarioRunner<
     this.assertStarted();
     this.recordGeneratedCommand();
     const previousSnapshot = this.snapshot;
-    const [snapshot, effects, selected, guards, resolutions] =
-      transitionWithDetails(this.logic, previousSnapshot, {
-        type: XSTATE_STOP
-      } as TEvent);
+    let snapshot: TSnapshot;
+    let effects: readonly unknown[];
+    let transitionIds: readonly string[];
+    let guardIds: readonly string[];
+    let drained: readonly DrainedTransition<TSnapshot>[] = [];
+    if (this.execution) {
+      this.execution.stop();
+      await this.execution.drain();
+      drained = this.execution.consume(this.coverage);
+      snapshot = this.execution.getSnapshot();
+      effects = [];
+      transitionIds = [];
+      guardIds = [];
+    } else {
+      const [pureSnapshot, pureEffects, selected, guards, resolutions] =
+        transitionWithDetails(this.logic, previousSnapshot, {
+          type: XSTATE_STOP
+        } as TEvent);
+      snapshot = pureSnapshot;
+      effects = pureEffects;
+      transitionIds = recordPropertyTransitions(
+        this.coverage,
+        { type: XSTATE_STOP },
+        selected,
+        resolutions
+      );
+      guardIds = recordPropertyGuards(this.coverage, guards);
+    }
     this.snapshot = snapshot;
     await this.referenceSession?.stop?.();
     await this.sutSession?.stop?.();
-    const transitionIds = recordPropertyTransitions(
-      this.coverage,
-      { type: XSTATE_STOP },
-      selected,
-      resolutions
-    );
-    const guardIds = recordPropertyGuards(this.coverage, guards);
     this.coverage.stops++;
     this.coverage.steps++;
     this.coverage.generatedSteps++;
@@ -1027,6 +1504,7 @@ export class PropertyScenarioRunner<
       guardIds
     };
     this.timeline.push(entry);
+    this.pushActorEntries(previousSnapshot, drained);
     const observation = await this.checkStable(
       undefined,
       previousSnapshot,
@@ -1076,6 +1554,17 @@ export class PropertyScenarioRunner<
 
   public async dispose(): Promise<void> {
     const errors: unknown[] = [];
+    if (this.execution) {
+      try {
+        this.execution.stop();
+      } catch (error) {
+        errors.push(error);
+      }
+      this.execution = undefined;
+      if (activeOutcomeRegistry === this.executionConfig?.registry) {
+        activeOutcomeRegistry = undefined;
+      }
+    }
     for (const dispose of [
       this.testModelSession?.dispose,
       this.sutSession?.dispose,
@@ -1151,22 +1640,49 @@ export class PropertyScenarioRunner<
     caseId?: string
   ): Promise<void> {
     const previousSnapshot = this.snapshot;
-    const [snapshot, effects, selected, guards, resolutions] =
-      transitionWithDetails(this.logic, previousSnapshot, event);
+    let snapshot: TSnapshot;
+    let effects: readonly unknown[];
+    let transitionIds: readonly string[];
+    let guardIds: readonly string[];
+    let drained: readonly DrainedTransition<TSnapshot>[] = [];
+    if (this.execution) {
+      this.execution.send(event);
+      await this.execution.drain();
+      drained = this.execution.consume(this.coverage);
+      snapshot = this.execution.getSnapshot();
+      // The first root transition for this event type is the one the send
+      // caused; everything after it is the actor system reacting on its own.
+      const primaryIndex = drained.findIndex(
+        (entry) => entry.source === 'root' && entry.event.type === event.type
+      );
+      const primary = primaryIndex === -1 ? undefined : drained[primaryIndex];
+      drained = primaryIndex === -1 ? drained : drained.slice(primaryIndex + 1);
+      effects = primary?.effects ?? [];
+      transitionIds = primary?.transitionIds ?? [];
+      // The inspection protocol reports the microsteps taken, not the guards
+      // evaluated, so executed mode attributes guard coverage only through
+      // the guarded transitions that were selected.
+      guardIds = [];
+    } else {
+      const [pureSnapshot, pureEffects, selected, guards, resolutions] =
+        transitionWithDetails(this.logic, previousSnapshot, event);
+      snapshot = pureSnapshot;
+      effects = pureEffects;
+      transitionIds = recordPropertyTransitions(
+        this.coverage,
+        event,
+        selected,
+        resolutions
+      );
+      guardIds = recordPropertyGuards(this.coverage, guards);
+    }
     this.snapshot = snapshot;
     if (this.referenceSession) {
       await this.referenceSession.transition(event);
     }
     if (sendToSut) {
-      await this.sutSession?.send(event);
+      await this.sutSession?.send(event, { caseId });
     }
-    const transitionIds = recordPropertyTransitions(
-      this.coverage,
-      event,
-      selected,
-      resolutions
-    );
-    const guardIds = recordPropertyGuards(this.coverage, guards);
     this.coverage.steps++;
     if (phase === 'prefix') {
       this.coverage.prefixSteps++;
@@ -1186,6 +1702,7 @@ export class PropertyScenarioRunner<
       activeStateIds: this.getActiveStateIds(snapshot)
     };
     this.timeline.push(entry);
+    this.pushActorEntries(previousSnapshot, drained);
     if (sendToSut && this.testModelSession) {
       try {
         await this.testModel.testTransition(this.testModelSession.params, {
@@ -1395,6 +1912,35 @@ export class PropertyScenarioRunner<
     }
   }
 
+  /**
+   * Appends one timeline entry per transition the actor system performed on
+   * its own during an executed step: invoked/spawned actor lifecycle events,
+   * delayed transitions, and relayed sends.
+   */
+  private pushActorEntries(
+    previousSnapshot: TSnapshot,
+    drained: readonly DrainedTransition<TSnapshot>[]
+  ): void {
+    let previous = previousSnapshot;
+    for (const transition of drained) {
+      this.timeline.push({
+        kind: 'actorEvent',
+        index: this.timeline.length,
+        source: transition.source,
+        actorId: transition.actorId,
+        event: transition.event,
+        previousSnapshot: previous,
+        snapshot: transition.snapshot,
+        effects: transition.effects,
+        transitionIds: transition.transitionIds,
+        guardIds: []
+      });
+      if (transition.source === 'root') {
+        previous = transition.snapshot;
+      }
+    }
+  }
+
   private recordSnapshot(snapshot: TSnapshot): void {
     recordPropertySnapshot(this.coverage, snapshot);
   }
@@ -1468,12 +2014,27 @@ export class PropertyScenarioRunner<
             snapshot: this.serializeStartingSnapshot!(this.startingSnapshot)
           }
         : { type: 'input', input: this.input },
-      timeline: this.timeline.map((entry) => ({
-        kind: entry.kind,
-        command: entry.command as PropertyCommand
-      })),
+      timeline: this.timeline
+        .filter(
+          (
+            entry
+          ): entry is
+            | PropertyEventTimelineEntry<TSnapshot, TEvent>
+            | PropertyRuntimeTimelineEntry<TSnapshot, TEvent> =>
+            entry.kind !== 'actorEvent'
+        )
+        .map((entry) => ({
+          kind: entry.kind,
+          command: entry.command as PropertyCommand
+        })),
       failedAt,
-      temporalFailure
+      temporalFailure,
+      ...(this.execution
+        ? {
+            mode: 'executed' as const,
+            outcomes: this.execution.outcomes.slice()
+          }
+        : {})
     };
   }
 }
@@ -1537,6 +2098,30 @@ export interface PropertyTestOptions<
   TKind extends PropertyGeneratorKind
 > {
   readonly adapter: PropertyTestAdapter<TKind>;
+  /**
+   * `'pure'` (the default) steps the machine through `transition()`, so no
+   * effects run. `'executed'` runs a real actor on a `SimulatedClock`:
+   * invoked and spawned actors start, `onDone`/`onError`/`onSnapshot` fire,
+   * and `after` transitions are reached with generated `advance` commands.
+   */
+  readonly mode?: PropertyTestMode;
+  /**
+   * Actor logic substituted for the machine's named invoke/spawn sources
+   * before the campaign runs, via `machine.provide({ actors })`. Executed
+   * mode only.
+   */
+  readonly actors?: Readonly<Record<string, ActorLogic<any, any, any>>>;
+  /**
+   * Invoke source names whose actors are replaced by a stub that resolves
+   * from a generated `outcome` command, so the adapter shrinks service
+   * results alongside events. Executed mode only.
+   */
+  readonly outcomes?: {
+    readonly [src: string]: PropertyCommandGenerator<
+      TKind,
+      PropertyActorOutcome
+    >;
+  };
   readonly events: PropertyEventGenerators<TSnapshot, TEvent, TKind>;
   readonly commands?: {
     readonly advance?: PropertyCommandGenerator<TKind, number>;
@@ -1794,6 +2379,7 @@ function getFrontierId<
 }
 
 interface PropertyExplorationAccumulator {
+  mode: PropertyTestMode;
   configuredRuns: number;
   configuredRunsOverride: number | null;
   stoppedBecause: PropertyStoppedBecause;
@@ -1820,6 +2406,7 @@ function finalizeExploration(
     accumulator.truncationReasons.add('maximum sequence length reached');
   }
   return {
+    mode: accumulator.mode,
     configuredRuns:
       accumulator.configuredRunsOverride ??
       (accumulator.configuredRunsUnknown ? null : accumulator.configuredRuns),
@@ -1835,6 +2422,20 @@ function finalizeExploration(
   };
 }
 
+/** Applies `actors` to a machine, rejecting logic that cannot be provided. */
+function provideActors<TLogic>(
+  logic: TLogic,
+  actors: Readonly<Record<string, ActorLogic<any, any, any>>>
+): TLogic {
+  const provide = (logic as { provide?: unknown }).provide;
+  if (typeof provide !== 'function') {
+    throw new Error(
+      'Property `actors` and `outcomes` require a state machine; the provided actor logic has no `provide()`'
+    );
+  }
+  return (provide as (sources: unknown) => TLogic).call(logic, { actors });
+}
+
 export async function propertyTest<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>,
   TKind extends PropertyGeneratorKind
@@ -1847,10 +2448,31 @@ export async function propertyTest<
     TKind
   >
 ): Promise<{ coverage: PropertyCoverage }> {
-  const model =
+  const mode: PropertyTestMode = options.mode ?? 'pure';
+  if (mode === 'pure' && (options.actors || options.outcomes)) {
+    throw new Error(
+      "Property `actors` and `outcomes` require `mode: 'executed'`"
+    );
+  }
+  const outcomeRegistry = new PropertyOutcomeRegistry();
+  const providedActors: Record<string, ActorLogic<any, any, any>> = {
+    ...options.actors
+  };
+  for (const src of Object.keys(options.outcomes ?? {})) {
+    providedActors[src] = createOutcomeStub(src);
+  }
+  const baseModel =
     source instanceof TestModel
       ? source
       : new TestModel(source as ActorLogic<any, any, any>);
+  // Coverage ids are keyed by transition-definition identity, so the machine
+  // that gets provided must be the same one coverage is declared from.
+  const model = Object.keys(providedActors).length
+    ? new TestModel(
+        provideActors(baseModel.testLogic, providedActors),
+        baseModel.options
+      )
+    : baseModel;
   const eventDescriptors = new Map<
     string,
     AnyPropertyEventDescriptor<
@@ -1919,6 +2541,23 @@ export async function propertyTest<
       weight: assertPropertyWeight(descriptor.weight, `"${type}" command`)
     });
   }
+  for (const [src, configured] of Object.entries(options.outcomes ?? {})) {
+    const descriptor =
+      typeof configured === 'object' &&
+      configured !== null &&
+      'weight' in configured
+        ? (configured as PropertyCommandDescriptor<unknown>)
+        : { generate: configured as unknown };
+    commands.push({
+      type: 'outcome',
+      src,
+      generator: descriptor.generate,
+      weight: assertPropertyWeight(
+        descriptor.weight,
+        `"outcome" command for "${src}"`
+      )
+    });
+  }
   if (options.start && typeof options.start.serializeSnapshot !== 'function') {
     throw new Error(
       'Property tests starting from a snapshot require a `start.serializeSnapshot` function'
@@ -1929,6 +2568,7 @@ export async function propertyTest<
     declarePropertyEventCase(coverage, event.caseId, event.weight);
   }
   const exploration: PropertyExplorationAccumulator = {
+    mode,
     configuredRuns: 0,
     configuredRunsOverride: null,
     stoppedBecause: 'budget',
@@ -2035,7 +2675,8 @@ export async function propertyTest<
           options.invariant,
           options.temporal ?? [],
           eventDescriptors,
-          coverage
+          coverage,
+          mode === 'executed' ? { mode, registry: outcomeRegistry } : undefined
         );
       }
     });
@@ -2287,14 +2928,44 @@ export async function replayPropertyTest<
     readonly restoreSnapshot?: (
       snapshot: unknown
     ) => SnapshotFromSource<TSource>;
+    /**
+     * Defaults to the mode recorded in the fixture. In `'executed'` mode the
+     * replay drives a real actor, and every invoke source the fixture
+     * recorded an outcome for is replaced by a stub that replays those
+     * outcomes, so no real service is called.
+     */
+    readonly mode?: PropertyTestMode;
+    /** Actor logic to provide before replaying. Executed mode only. */
+    readonly actors?: Readonly<Record<string, ActorLogic<any, any, any>>>;
   }
 ): Promise<
   PropertyTrace<SnapshotFromSource<TSource>, EventFromSource<TSource>>
 > {
-  const model =
+  const baseModel =
     source instanceof TestModel
       ? source
       : new TestModel(source as ActorLogic<any, any, any>);
+  const mode: PropertyTestMode =
+    options.mode ??
+    (fixture.formatVersion === 2 ? fixture.mode : undefined) ??
+    'pure';
+  const recordedOutcomes =
+    fixture.formatVersion === 2 ? (fixture.outcomes ?? []) : [];
+  const outcomeRegistry = new PropertyOutcomeRegistry();
+  const providedActors: Record<string, ActorLogic<any, any, any>> = {
+    ...options.actors
+  };
+  if (mode === 'executed') {
+    for (const record of recordedOutcomes) {
+      providedActors[record.src] ??= createOutcomeStub(record.src);
+    }
+  }
+  const model = Object.keys(providedActors).length
+    ? new TestModel(
+        provideActors(baseModel.testLogic, providedActors),
+        baseModel.options
+      )
+    : baseModel;
   const identity = model.testLogic as { id?: string; version?: string };
   if (fixture.machine?.id && fixture.machine.id !== identity.id) {
     throw new Error(
@@ -2346,7 +3017,14 @@ export async function replayPropertyTest<
     options.invariant,
     options.temporal ?? [],
     new Map(),
-    coverage
+    coverage,
+    mode === 'executed'
+      ? {
+          mode,
+          registry: outcomeRegistry,
+          seededOutcomes: recordedOutcomes
+        }
+      : undefined
   );
   await runner.start();
   try {
@@ -2396,16 +3074,24 @@ export function serializePropertyTrace<
     timeline: trace.timeline.map((entry) => ({
       kind: entry.kind,
       index: entry.index,
-      command: entry.command,
       previousSnapshot: serializeSnapshot(entry.previousSnapshot),
       snapshot: serializeSnapshot(entry.snapshot),
       effects: entry.effects,
       transitionIds: entry.transitionIds,
       guardIds: entry.guardIds,
-      observation: entry.observation,
-      ...(entry.kind === 'event'
-        ? { activeStateIds: entry.activeStateIds }
-        : {})
+      ...(entry.kind === 'actorEvent'
+        ? {
+            source: entry.source,
+            actorId: entry.actorId,
+            event: entry.event
+          }
+        : {
+            command: entry.command,
+            observation: entry.observation,
+            ...(entry.kind === 'event'
+              ? { activeStateIds: entry.activeStateIds }
+              : {})
+          })
     })),
     finalSnapshot: serializeSnapshot(trace.finalSnapshot),
     finalObservation: trace.finalObservation
@@ -2420,6 +3106,15 @@ export function formatPropertyTrace<
     `start ${JSON.stringify(serializeSnapshot(trace.initialSnapshot))}`
   ];
   for (const entry of trace.timeline) {
+    if (entry.kind === 'actorEvent') {
+      lines.push(
+        `${entry.index}. actor(${entry.source}:${entry.actorId}) ${JSON.stringify(entry.event)} -> ${JSON.stringify(serializeSnapshot(entry.snapshot))}`
+      );
+      if (entry.transitionIds.length) {
+        lines.push(`   transitions ${entry.transitionIds.join(', ')}`);
+      }
+      continue;
+    }
     if (entry.kind === 'event') {
       lines.push(
         `${entry.index}. ${entry.command.phase}/${entry.command.origin} ${JSON.stringify(entry.command.event)} -> ${JSON.stringify(serializeSnapshot(entry.snapshot))}`

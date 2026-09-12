@@ -8,6 +8,7 @@
  */
 import type { EventObject, Snapshot } from '../../index.ts';
 import type {
+  PropertyActorOutcome,
   PropertyGeneratorKind,
   PropertyScenarioRunner,
   PropertyTestAdapter,
@@ -112,6 +113,17 @@ class RandomAdapter implements PropertyTestAdapter<RandomGeneratorKind> {
             check: (runner) =>
               runner.canRunCommand(runner.getSnapshot().status === 'active'),
             run: (runner) => runner.advance(milliseconds)
+          };
+        });
+      } else if (command.type === 'outcome') {
+        const src = command.src!;
+        factories.push((rng) => {
+          const outcome = (
+            command.generator as Gen<PropertyActorOutcome>
+          ).sample(rng);
+          return {
+            check: (runner) => runner.canRunOutcome(),
+            run: (runner) => runner.outcome(src, outcome)
           };
         });
       } else if (command.type === 'checkpoint') {

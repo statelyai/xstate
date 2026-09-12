@@ -86,6 +86,11 @@ export interface PropertyExplorationSeed {
 export type PropertyStoppedBecause = 'until' | 'budget' | 'failure';
 
 export interface PropertyExplorationBounds {
+  /**
+   * `'pure'` when the campaign stepped the machine through `transition()`,
+   * `'executed'` when it drove a real actor on a simulated clock.
+   */
+  readonly mode: 'pure' | 'executed';
   readonly configuredRuns: number | null;
   readonly completedRuns: number;
   /** Runner creations, including shrink attempts. */
@@ -860,6 +865,7 @@ function finalizeDimension(
 export function finalizePropertyCoverage(
   coverage: MutablePropertyCoverage,
   exploration: PropertyExplorationBounds = {
+    mode: 'pure',
     configuredRuns: null,
     completedRuns: coverage.runs,
     attemptedRuns: coverage.runs,

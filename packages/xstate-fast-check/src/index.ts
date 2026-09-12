@@ -1,5 +1,6 @@
 import * as fc from 'fast-check';
 import type {
+  PropertyActorOutcome,
   PropertyGeneratorKind,
   PropertyScenarioRunner,
   PropertyTestAdapter,
@@ -191,6 +192,34 @@ class StopPropertyCommand<
   }
 }
 
+class OutcomePropertyCommand<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> implements fc.AsyncCommand<
+  PropertyScenarioRunner<TSnapshot, TEvent>,
+  undefined,
+  false
+> {
+  public constructor(
+    public readonly src: string,
+    public readonly outcome: PropertyActorOutcome
+  ) {}
+
+  public check(runner: PropertyScenarioRunner<TSnapshot, TEvent>): boolean {
+    return runner.canRunOutcome();
+  }
+
+  public async run(
+    runner: PropertyScenarioRunner<TSnapshot, TEvent>
+  ): Promise<void> {
+    await runner.outcome(this.src, this.outcome);
+  }
+
+  public toString(): string {
+    return `outcome(${JSON.stringify(this.src)}, ${JSON.stringify(this.outcome)})`;
+  }
+}
+
 class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
   public readonly kind?: FastCheckGeneratorKind;
 
@@ -224,6 +253,14 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
           arbitrary: (command.generator as fc.Arbitrary<number>).map(
             (milliseconds) => new AdvancePropertyCommand(milliseconds)
           ),
+          weight: command.weight
+        });
+      } else if (command.type === 'outcome') {
+        const src = command.src!;
+        weighted.push({
+          arbitrary: (
+            command.generator as fc.Arbitrary<PropertyActorOutcome>
+          ).map((outcome) => new OutcomePropertyCommand(src, outcome)),
           weight: command.weight
         });
       } else if (command.type === 'checkpoint') {
