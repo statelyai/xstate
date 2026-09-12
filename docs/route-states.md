@@ -27,6 +27,21 @@ Two things are required: an explicit `id` and a `route`. A state with `route: {}
 
 The `route` value is either a config object or a transition-style function that acts as both guard and resolver.
 
+In an authored `createMachine(...)` config, put the condition directly in the
+route function. The object form does not accept a `guard` property:
+
+```ts
+// Valid authored machine config
+route: ({ context }) => context.loggedIn
+```
+
+```ts
+// Not valid in an authored machine config
+route: {
+  guard: ({ context }) => context.loggedIn
+}
+```
+
 - returning `undefined` or `false` blocks the route
 - returning `true` allows it
 - returning a config object allows it and applies the object
@@ -46,7 +61,10 @@ states: {
 
 Routing to `#profile` while logged out leaves the actor on `home` and does not touch `visits`. After the context says `loggedIn`, the same event enters `profile` and increments `visits` in the same step.
 
-The config object accepts `context`, `input`, `reenter`, `meta` and `description`. Named `guards` are available on the function arguments, exactly as in [guards](guards.md):
+The object returned by the route function accepts `context`, `input`,
+`reenter` and `meta`. A static route config accepts `input`, `reenter`, `meta`
+and `description`. Named `guards` are available on the function arguments,
+exactly as in [guards](guards.md):
 
 ```ts
 review: {
@@ -80,7 +98,11 @@ Use route states for:
 
 Route events are strongly typed. The `to` field only accepts `#id` strings for states that declare both an `id` and a `route`. A plain state key, the machine's own id, and a name that does not exist are all type errors. `machine.root.on['xstate.route']` is defined whenever the machine contains at least one route.
 
-Inside a route function, `context`, `event` and `guards` are inferred from the machine's schemas. When a machine is built from JSON with `createMachineFromConfig`, a route may reference a guard by name; an unimplemented name errors the actor at route time with `Guard 'isReady' is not implemented in machine 'flow'`.
+Inside a route function, `context`, `event` and `guards` are inferred from the
+machine's schemas. The serialized JSON accepted by `createMachineFromConfig`
+is a separate format: there, a route object may reference a guard by name with
+`{ guard: 'isReady' }`. An unimplemented name errors the actor at route time
+with `Guard 'isReady' is not implemented in machine 'flow'`.
 
 For a setup-defined route, declare `id` and `route: true` in the state
 contract. The machine config may omit both fields, and the route event remains

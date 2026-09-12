@@ -94,7 +94,7 @@ Every non-root state node accepts the following. All are optional.
 | `onError` | transition | Taken on an error raised at or below this state. |
 | `output` | value or mapper | [Output](input-output.md) of a final state node. |
 | `id` | `string` | Unique id, targetable as `#id`. |
-| `route` | `RouteConfig` | Enables `{ type: 'xstate.route', to: '#id' }`. Requires an explicit `id`. See [route states](route-states.md). |
+| `route` | `RouteConfig` | Enables `{ type: 'xstate.route', to: '#id' }`. Requires an explicit `id`. Use a route function for conditional routing; authored route objects do not accept `guard`. See [route states](route-states.md). |
 | `meta` | `object` | Metadata read with `snapshot.getMeta()`. See [states](states.md). |
 | `tags` | `string[]` | Tags read with `snapshot.hasTag(...)`. |
 | `description` | `string` | Human-readable description. |
