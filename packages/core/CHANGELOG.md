@@ -1,5 +1,29 @@
 # xstate
 
+## 6.0.0-alpha.54
+
+### Patch Changes
+
+- cd98aed: Preserve a state's existing input when a transition targets that state without
+  reentering it. Reentering transitions continue to replace the state input.
+- 2044d05: Send events to statically declared children by id. Events are checked against
+  the actor-ref protocol declared in `schemas.children`.
+  
+  ```ts
+  createMachine({
+    schemas: {
+      children: {
+        worker: types<ActorRefFromLogic<typeof workerLogic>>()
+      }
+    },
+    on: {
+      notify: (_, enq) => {
+        enq.sendTo('worker', { type: 'notify' });
+      }
+    }
+  });
+  ```
+
 ## 6.0.0-alpha.53
 
 ### Patch Changes
