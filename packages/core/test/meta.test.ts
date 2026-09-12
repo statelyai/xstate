@@ -526,8 +526,10 @@ describe('transition meta data', () => {
   it('uses the state metadata schema for transitions by default', () => {
     const machine = createMachine({
       schemas: {
+        context: z.object({}),
         meta: z.object({ legacy: z.string() })
       },
+      context: {},
       meta: { legacy: 'state' },
       on: {
         NEXT: { meta: { legacy: 'transition' } }
@@ -538,6 +540,22 @@ describe('transition meta data', () => {
     machine.root.transitions.get('NEXT')![0].meta satisfies
       | { legacy: string }
       | undefined;
+
+    createMachine({
+      schemas: {
+        // @ts-expect-error invalid metadata prevents this overload match
+        context: z.object({}),
+        // @ts-expect-error invalid metadata prevents this overload match
+        meta: z.object({ legacy: z.string() })
+      },
+      context: {},
+      // @ts-expect-error transitions fall back to the state metadata schema
+      on: {
+        NEXT: {
+          meta: { unrelated: true }
+        }
+      }
+    });
   });
 
   it('preserves transition metadata on v6 transition definitions', () => {
@@ -561,7 +579,7 @@ describe('transition meta data', () => {
           route: { meta: { source: 'route' } },
           always: { meta: { source: 'always' } },
           after: {
-            100: () => ({ meta: { source: 'after' } })
+            100: { target: 'routing', meta: { source: 'after' } }
           },
           timeout: 200,
           onTimeout: { meta: { source: 'state.timeout' } },

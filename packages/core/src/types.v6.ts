@@ -335,7 +335,11 @@ export type Next_MachineConfig<
     Record<string, unknown>,
     DoNotInfer<TSystemRegistry>,
     DoNotInfer<InferOutput<TOutputSchema, unknown>>,
-    DoNotInfer<InferOutput<TTransitionMetaSchema, MetaObject>>
+    DoNotInfer<
+      StandardSchemaV1 extends TTransitionMetaSchema
+        ? InferOutput<TMetaSchema, MetaObject>
+        : InferOutput<TTransitionMetaSchema, MetaObject>
+    >
   >,
   'output' | 'schemas'
 > & {
@@ -1354,7 +1358,16 @@ interface Next_RegularStateNodeConfig<
    */
   after?: {
     [K in NoInfer<TDelays> | number]?:
-      | { target: string }
+      | Next_StaticTransitionConfig<
+          TContext,
+          AfterEvent,
+          TEvent,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TTransitionMeta
+        >
       | TransitionConfigFunction<
           TContext,
           AfterEvent,
@@ -1458,6 +1471,37 @@ interface Next_RegularStateNodeConfig<
   target?: string | string[] | undefined;
 }
 
+type Next_StaticTransitionConfig<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays'],
+  TMeta extends MetaObject
+> = {
+  matches?: EventPayloadPattern<TExpressionEvent>;
+  target?: string | string[];
+  context?:
+    | TransitionContextPatch<TContext>
+    | TransitionContextMapper<
+        TContext,
+        TExpressionEvent,
+        TEvent,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap
+      >;
+  description?: string;
+  reenter?: boolean;
+  meta?: TMeta;
+  input?:
+    | Record<string, unknown>
+    | ((args: { context: any; event: any }) => Record<string, unknown>);
+};
+
 export type Next_TransitionConfigOrTarget<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -1472,27 +1516,16 @@ export type Next_TransitionConfigOrTarget<
   TChildren extends Record<string, AnyActorRef | undefined> = {}
 > =
   | undefined
-  | {
-      matches?: EventPayloadPattern<TExpressionEvent>;
-      target?: string | string[];
-      context?:
-        | TransitionContextPatch<TContext>
-        | TransitionContextMapper<
-            TContext,
-            TExpressionEvent,
-            TEvent,
-            TActionMap,
-            TActorMap,
-            TGuardMap,
-            TDelayMap
-          >;
-      description?: string;
-      reenter?: boolean;
-      meta?: TMeta;
-      input?:
-        | Record<string, unknown>
-        | ((args: { context: any; event: any }) => Record<string, unknown>);
-    }
+  | Next_StaticTransitionConfig<
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TMeta
+    >
   | {
       matches?: EventPayloadPattern<TExpressionEvent>;
       to?: TransitionConfigFunction<
