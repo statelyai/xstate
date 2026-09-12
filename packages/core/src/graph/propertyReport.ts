@@ -100,6 +100,17 @@ export interface PropertyCoverageJSON {
       readonly seed: number | null;
       readonly path: string | null;
     }[];
+    /** Only present when swarm testing was enabled. */
+    readonly swarm?: {
+      readonly runs: number;
+      readonly averageEnabled: number;
+    };
+    /** Only present when a target observation was recorded. */
+    readonly target?: {
+      readonly best: number;
+      readonly label: string | null;
+      readonly improvements: number;
+    };
   };
 }
 
@@ -207,6 +218,19 @@ function explorationLines(exploration: PropertyExplorationBounds): string[] {
     `sequence length: max ${exploration.maximumSequenceLength ?? 'n/a'}, ` +
       `max observed ${exploration.maximumObservedSequenceLength}`,
     `stopped because: ${exploration.stoppedBecause}`,
+    ...(exploration.swarm
+      ? [
+          `swarm: ${exploration.swarm.runs} runs, ` +
+            `${exploration.swarm.averageEnabled.toFixed(2)} cases enabled on average`
+        ]
+      : []),
+    ...(exploration.target.improvements
+      ? [
+          `target: best ${exploration.target.best}` +
+            `${exploration.target.label ? ` (${exploration.target.label})` : ''}, ` +
+            `${exploration.target.improvements} improvements`
+        ]
+      : []),
     `truncated: ${exploration.truncated}${
       exploration.truncationReasons.length
         ? ` (${[...exploration.truncationReasons].sort().join(', ')})`
@@ -579,7 +603,24 @@ export function propertyCoverageToJSON(
         engine: seed.engine ?? null,
         seed: seed.seed ?? null,
         path: seed.path ?? null
-      }))
+      })),
+      ...(coverage.exploration.swarm
+        ? {
+            swarm: {
+              runs: coverage.exploration.swarm.runs,
+              averageEnabled: coverage.exploration.swarm.averageEnabled
+            }
+          }
+        : {}),
+      ...(coverage.exploration.target.improvements
+        ? {
+            target: {
+              best: coverage.exploration.target.best,
+              label: coverage.exploration.target.label ?? null,
+              improvements: coverage.exploration.target.improvements
+            }
+          }
+        : {})
     }
   };
 }

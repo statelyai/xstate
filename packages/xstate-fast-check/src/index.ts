@@ -8,9 +8,30 @@ import type {
   PropertyTestAdapterResult
 } from 'xstate/graph';
 import type { EventObject, Snapshot } from 'xstate';
+import { withCurrentScheduler } from './scheduler.ts';
 
 export interface FastCheckGeneratorKind extends PropertyGeneratorKind {
   readonly generator: fc.Arbitrary<this['target']>;
+}
+
+export interface FastCheckSchedulerOptions {
+  /**
+   * Wraps every task release, for integrations that need their own batching
+   * (React's `act`, for example).
+   */
+  readonly act?: (task: () => Promise<void>) => Promise<void>;
+}
+
+/** A replayable summary of the ordering a scheduled run took. */
+export interface FastCheckSchedulerReport {
+  /** Task ids in the order the scheduler released them. */
+  readonly ordering: readonly number[];
+  readonly tasks: readonly {
+    readonly taskId: number;
+    readonly label: string;
+    readonly schedulingType: 'promise' | 'function' | 'sequence';
+    readonly status: 'resolved' | 'rejected' | 'pending';
+  }[];
 }
 
 export interface FastCheckAdapterOptions extends Omit<
@@ -19,6 +40,38 @@ export interface FastCheckAdapterOptions extends Omit<
 > {
   readonly maxCommands?: number;
   readonly replayPath?: string;
+  /**
+   * Explores promise resolution orders with `fc.scheduler()`. Wrap the system
+   * under test with `withScheduledSut` (and a reference oracle with
+   * `withScheduledReference`) so its async boundaries are scheduled too.
+   */
+  readonly scheduler?: boolean | FastCheckSchedulerOptions;
+}
+
+function normalizeSchedulerOptions(
+  scheduler: boolean | FastCheckSchedulerOptions | undefined
+): FastCheckSchedulerOptions | undefined {
+  if (!scheduler) {
+    return undefined;
+  }
+  return scheduler === true ? {} : scheduler;
+}
+
+function summarizeSchedulerReport(
+  scheduler: fc.Scheduler
+): FastCheckSchedulerReport {
+  const tasks = scheduler.report().map((item) => ({
+    taskId: item.taskId,
+    label: item.label,
+    schedulingType: item.schedulingType,
+    status: item.status
+  }));
+  return {
+    ordering: tasks
+      .filter(({ status }) => status !== 'pending')
+      .map(({ taskId }) => taskId),
+    tasks
+  };
 }
 
 /**
@@ -308,20 +361,72 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
       maxCommands: this.options.maxCommands,
       replayPath: this.options.replayPath
     });
-    const property = fc.asyncProperty(commandSequence, async (generated) => {
+    let schedulerReport: FastCheckSchedulerReport | undefined;
+    const runCommands = async (
+      generated: Iterable<
+        fc.AsyncCommand<
+          PropertyScenarioRunner<TSnapshot, TEvent>,
+          undefined,
+          false
+        >
+      >,
+      scheduler: fc.Scheduler | undefined
+    ) => {
       const runner = request.createRunner();
-      try {
-        await runner.start();
-        await fc.asyncModelRun(
-          () => ({ model: runner, real: undefined }),
-          generated
-        );
-        runner.finish();
-      } finally {
-        await runner.dispose();
+      const scenario = async () => {
+        try {
+          await runner.start();
+          await fc.asyncModelRun(
+            () => ({ model: runner, real: undefined }),
+            generated
+          );
+          runner.finish();
+        } finally {
+          await runner.dispose();
+        }
+      };
+      if (!scheduler) {
+        await scenario();
+        return;
       }
-    });
-    const { maxCommands: _, replayPath: __, ...parameters } = this.options;
+      // The command sequence is not handed to `fc.scheduledModelRun`: that
+      // wraps every command in `scheduler.scheduleSequence`, and a sequence
+      // item blocks the scheduler until it settles, so a command that awaits a
+      // scheduled SUT call deadlocks. Driving the whole scenario — start,
+      // commands, and disposal — with `waitFor` releases exactly the tasks the
+      // run needs, in the order the generated scheduler chose.
+      const finished = scenario();
+      try {
+        await scheduler.waitFor(finished);
+      } finally {
+        await scheduler.waitIdle();
+      }
+    };
+    const schedulerOptions = normalizeSchedulerOptions(this.options.scheduler);
+    const property = schedulerOptions
+      ? fc.asyncProperty(
+          commandSequence,
+          fc.scheduler(
+            schedulerOptions.act ? { act: schedulerOptions.act } : undefined
+          ),
+          async (generated, scheduler) =>
+            withCurrentScheduler(scheduler, async () => {
+              try {
+                await runCommands(generated, scheduler);
+              } finally {
+                schedulerReport = summarizeSchedulerReport(scheduler);
+              }
+            })
+        )
+      : fc.asyncProperty(commandSequence, async (generated) =>
+          runCommands(generated, undefined)
+        );
+    const {
+      maxCommands: _,
+      replayPath: __,
+      scheduler: ___,
+      ...parameters
+    } = this.options;
     if (request.runBudget !== undefined) {
       parameters.numRuns = request.runBudget;
     }
@@ -331,18 +436,8 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
       parameters.seed += request.runOffset;
     }
     const result = await fc.check(
-      property,
-      parameters as fc.Parameters<
-        [
-          Iterable<
-            fc.AsyncCommand<
-              PropertyScenarioRunner<TSnapshot, TEvent>,
-              undefined,
-              false
-            >
-          >
-        ]
-      >
+      property as fc.IAsyncProperty<unknown[]>,
+      parameters as fc.Parameters<unknown[]>
     );
 
     const configuredRuns = result.runConfiguration.numRuns ?? 100;
@@ -385,7 +480,8 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
         engine: 'fast-check',
         seed: result.seed,
         path: result.counterexamplePath ?? undefined,
-        replayPath: extractReplayPath(result.counterexample?.[0])
+        replayPath: extractReplayPath(result.counterexample?.[0]),
+        ...(schedulerReport ? { data: { scheduler: schedulerReport } } : {})
       }
     };
   }
@@ -397,6 +493,11 @@ export function fastCheckAdapter(
   return new FastCheckAdapter(options);
 }
 
+export {
+  getCurrentScheduler,
+  withScheduledReference,
+  withScheduledSut
+} from './scheduler.ts';
 export {
   arbitraryFromSchema,
   eventsFromSchemas,

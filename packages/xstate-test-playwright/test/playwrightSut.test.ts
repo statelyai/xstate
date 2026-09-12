@@ -154,7 +154,8 @@ describe('createPlaywrightSut', () => {
       input: undefined,
       snapshot: undefined,
       label: () => {},
-      classify: () => {}
+      classify: () => {},
+      target: () => {}
     });
     await session.send({ type: 'INC', value: 2 });
     await session.send({ type: 'INC', value: 1 });
@@ -180,7 +181,8 @@ describe('createPlaywrightSut', () => {
       input: undefined,
       snapshot: undefined,
       label: () => {},
-      classify: () => {}
+      classify: () => {},
+      target: () => {}
     });
 
     await expect(session.send({ type: 'RESET' })).rejects.toThrow(

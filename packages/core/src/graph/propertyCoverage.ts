@@ -82,6 +82,24 @@ export interface PropertyExplorationSeed {
   readonly path?: string;
 }
 
+/** Swarm testing statistics. Only present when `swarm` was enabled. */
+export interface PropertyExplorationSwarm {
+  /** Runs that were given a swarm subset of the event cases. */
+  readonly runs: number;
+  /** Mean number of event cases enabled per swarm run. */
+  readonly averageEnabled: number;
+}
+
+/** Targeted-search statistics. Only present when `target` was used. */
+export interface PropertyExplorationTarget {
+  /** The best (highest) observed target value, `-Infinity` when none. */
+  readonly best: number;
+  /** The label recorded alongside the best value, when one was given. */
+  readonly label?: string;
+  /** How many times the best value improved during the campaign. */
+  readonly improvements: number;
+}
+
 /** Why a property campaign stopped running batches. */
 export type PropertyStoppedBecause = 'until' | 'budget' | 'failure';
 
@@ -99,6 +117,10 @@ export interface PropertyExplorationBounds {
   readonly maximumObservedSequenceLength: number;
   readonly frontiers: readonly PropertyExplorationFrontier[];
   readonly seeds: readonly PropertyExplorationSeed[];
+  /** Swarm testing statistics, or `null` when `swarm` was not enabled. */
+  readonly swarm: PropertyExplorationSwarm | null;
+  /** Targeted-search statistics. `best` is `-Infinity` when unused. */
+  readonly target: PropertyExplorationTarget;
   readonly truncated: boolean;
   readonly truncationReasons: readonly string[];
   /**
@@ -873,6 +895,8 @@ export function finalizePropertyCoverage(
     maximumObservedSequenceLength: coverage.maximumObservedSequenceLength,
     frontiers: [],
     seeds: [],
+    swarm: null,
+    target: { best: -Infinity, improvements: 0 },
     truncated: false,
     truncationReasons: [],
     stoppedBecause: 'budget'

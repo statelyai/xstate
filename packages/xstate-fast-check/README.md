@@ -641,12 +641,32 @@ converted with `toJSON()` where available — for writing traces to disk or
 attaching them to CI artifacts.
 
 `replayPropertyTest(machineOrModel, fixture, options)` replays a fixture. It
-takes `invariant`, and optional `temporal`, `reference`, `sut`, `test`, and
-`restoreSnapshot`. It stops at the recorded `failedAt` step and throws the
-reproduced failure; if the failure does not reproduce, it throws an error
-saying so. A fixture recorded from a snapshot start requires `restoreSnapshot`.
-The fixture's recorded machine `id` and `version` are checked against the
-machine you pass.
+takes `invariant`, and optional `temporal`, `reference`, `sut`, `test`,
+`restoreSnapshot`, and `expect`. A fixture recorded from a snapshot start
+requires `restoreSnapshot`. The fixture's recorded machine `id` and `version`
+are checked against the machine you pass.
+
+`expect` says what the replay is for:
+
+| Value | Behavior |
+| --- | --- |
+| `'failure'` (default) | Stops at the recorded `failedAt` step and throws the reproduced failure. When the failure does not reproduce, it throws `PropertyReplayNotReproducedError`, whose `step` is the recorded failing step. |
+| `'pass'` | Replays the whole timeline and resolves with the `PropertyTrace`. Any property failure is thrown as-is. |
+
+`failedAt` is absent on fixtures recorded from a passing run, such as the ones
+an offline suite is built from; those are replayed with `expect: 'pass'`.
+
+```ts
+import { PropertyReplayNotReproducedError, replayPropertyTest } from 'xstate/graph';
+
+try {
+  await replayPropertyTest(machine, fixture, { invariant });
+} catch (error) {
+  if (error instanceof PropertyReplayNotReproducedError) {
+    // The regression is fixed: the fixture no longer reproduces its failure.
+  }
+}
+```
 
 `defaultEquivalent(left, right)` is the structural, key-order insensitive,
 cycle-safe deep equality used to compare model projections against reference
@@ -881,6 +901,67 @@ continuation, so a counterexample keeps the path that reached the interesting
 state. Each frontier is reported in `coverage.frontiers` and
 `coverage.exploration.frontiers`.
 
+## Swarm testing
+
+`swarm` restricts each run to a seeded random subset of the declared event
+cases, so rare interleavings are not crowded out by the most common events.
+Cases left out of a run report themselves as inapplicable for that run.
+
+```ts
+const { coverage } = await propertyTest(machine, {
+  adapter: fastCheckAdapter({ numRuns: 200, maxCommands: 8 }),
+  events: { OPEN: fc.constant({}), CLOSE: fc.constant({}), LOCK: fc.constant({}) },
+  invariant,
+  swarm: true
+});
+
+coverage.exploration.swarm; // { runs, averageEnabled }
+```
+
+`true` is `{ minCases: Math.ceil(cases / 2) }`. The expanded form takes
+`minCases` (the fewest cases a run may enable) and `seed` (the campaign seed the
+per-run subsets are derived from, default `0`). The subset for a run is a pure
+function of that seed and the run index, so a campaign's swarm sets are
+reproducible; the enabled case ids are recorded on the run's `PropertyTrace` and
+on any replay fixture as `swarm`.
+
+Shrinking is unaffected: as soon as a run fails, the enabled subset is frozen to
+the failing run's, so every shrink attempt explores the same case set.
+
+## Targeted search
+
+`target(observation, label?)` is available anywhere `label()` is, and
+`options.target` is the shorthand for calling it on every stable step. The
+campaign keeps the best (highest) observed value and reports it as
+`coverage.exploration.target`:
+
+```ts
+coverage.exploration.target; // { best, label, improvements }
+```
+
+`frontiers: { strategy: 'target' }` turns those observations into a hill climb.
+Between batches, the prefixes that reached the best values are replayed as the
+frontiers of the next batch, and the adapter generates a random continuation
+from each — so a value that needs more events than `maxCommands` allows in a
+single run is still reachable:
+
+```ts
+const { coverage } = await propertyTest(counterMachine, {
+  adapter: fastCheckAdapter({ maxCommands: 6 }),
+  events: { INC: fc.constant({}), DEC: fc.constant({}) },
+  invariant,
+  target: ({ snapshot }) => snapshot.context.count,
+  frontiers: { strategy: 'target' },
+  until: (coverage) => coverage.exploration.target.best >= 8,
+  batchRuns: 10,
+  maxRuns: 200
+});
+```
+
+The expanded form takes `maxFrontiers` (best prefixes carried into the next
+batch, default `5`) and `runsPerFrontier` (default: an even split of the batch).
+Until an observation is recorded, batches explore randomly.
+
 ## Labels and statistics
 
 `label(name, value?)` and `classify(condition, name)` are available on the
@@ -917,6 +998,25 @@ as a distribution sketch rather than an exact tally.
 A property suite is a deterministic set of replay fixtures recorded from a
 passing campaign. Commit it and replay it in CI without the generator adapter —
 and therefore without `fast-check` — installed.
+
+Traces are collected through `collect`, the per-run hook `propertyTest()` calls
+after each run finishes and its runner is disposed:
+
+```ts
+await propertyTest(machine, {
+  adapter: fastCheckAdapter({ numRuns: 50 }),
+  events,
+  invariant,
+  collect: (trace, { passed, runIndex }) => {
+    if (passed) {
+      recorded.push(trace);
+    }
+  }
+});
+```
+
+`passed` is `false` when the run ended in a property failure, and `runIndex`
+counts runner creations, shrink attempts included.
 
 ```ts
 import {
@@ -982,4 +1082,143 @@ describePropertySuite(suite, machine, { invariant });
 ```
 
 `replayPropertySuiteFixture(machineOrModel, fixture, options)` replays a single
-fixture and rejects with the underlying failure when it no longer passes.
+fixture and rejects with the underlying failure when it no longer passes. It is
+`replayPropertyTest()` with `expect: 'pass'`.
+
+## Concurrency
+
+A sequential property run sends one event at a time and reads the system under
+test between events, so it never observes a race. Two tools cover concurrency:
+a scheduler that explores promise resolution orders within a normal run, and a
+linearizability checker for histories of genuinely overlapping operations.
+
+### Scheduling promise resolution order
+
+`scheduler: true` adds an `fc.scheduler()` to the generated values of every run.
+Wrap the system under test with `withScheduledSut` (and a reference oracle with
+`withScheduledReference`) so its `send`, `read`, `settle`, and `advance` calls
+resolve in an order the scheduler chooses instead of plain microtask order:
+
+```ts
+import {
+  fastCheckAdapter,
+  getCurrentScheduler,
+  withScheduledSut
+} from '@xstate/fast-check';
+
+await propertyTest(counterMachine, {
+  adapter: fastCheckAdapter({ numRuns: 100, scheduler: true }),
+  events: { INC: fc.constant({}) },
+  sut: withScheduledSut({
+    create: () => {
+      // schedule the SUT's own background work on the same scheduler
+      const scheduler = getCurrentScheduler();
+      let committed = 0;
+      let pending = 0;
+      return {
+        send: () => {
+          const next = ++pending;
+          void scheduler!.schedule(Promise.resolve(), 'commit').then(() => {
+            committed = next;
+          });
+        },
+        read: () => committed
+      };
+    },
+    projectModel: (snapshot) => snapshot.context.count
+  }),
+  invariant
+});
+```
+
+`getCurrentScheduler()` returns the run's scheduler while a run is in flight and
+`undefined` otherwise, which is how the wrapper stays inert when the option is
+off.
+
+The ordering a failing run took is recorded on the replay metadata as
+`replay.data.scheduler`: `tasks` (each task's id, label, scheduling type, and
+status) and `ordering` (the task ids in release order). Feed `ordering` to
+`fc.schedulerFor(ordering)` to rebuild the same scheduler by hand.
+
+Limits:
+
+- The commands themselves are not scheduled. `fc.scheduledModelRun` wraps every
+  command in `scheduler.scheduleSequence`, and a sequence item blocks the
+  scheduler until it settles, so a command awaiting a scheduled SUT call
+  deadlocks. The adapter drives the whole run with `scheduler.waitFor` instead,
+  which schedules the SUT's async boundaries but keeps commands sequential.
+- Only work that goes through the scheduler is reordered. Timers, real I/O, and
+  promises the SUT creates without `getCurrentScheduler()` resolve as usual.
+- Replaying from `replay.data.scheduler` is manual: the seed and `replayPath`
+  reproduce the command sequence, and `fc.schedulerFor(ordering)` reproduces the
+  ordering.
+
+### Linearizability
+
+`checkLinearizable(history, model)` from `xstate/graph` decides whether a
+history of overlapping operations could have come from some sequential order of
+those operations. Each entry carries the event that was sent, the response the
+system gave, and the interval the operation was in flight:
+
+```ts
+import { checkLinearizable } from 'xstate/graph';
+
+const result = checkLinearizable(
+  [
+    { id: 'a', invocation: { type: 'write', value: 1 }, response: undefined, start: 0, end: 4 },
+    { id: 'b', invocation: { type: 'read' }, response: 1, start: 1, end: 5 }
+  ],
+  {
+    initial: 0,
+    apply: (state, event) =>
+      event.type === 'write'
+        ? { state: event.value, response: undefined }
+        : { state, response: state }
+  }
+);
+
+result.linearizable; // true
+result.witness; // the sequential order that explains the history
+result.explored; // candidate steps examined
+result.truncated; // the search hit `maxExplored` before deciding
+```
+
+The search is depth-first over the operations that could be linearized next —
+those starting no later than the earliest end time still outstanding — with
+`(state, completed set)` memoization. `truncated: true` means "not proven", not
+"proven wrong": raise `maxExplored` (default `100000`) or shorten the history.
+
+### Parallel commands
+
+`runParallelPropertyCommands(machine, options)` is the QuickCheck State Machine
+`parallel_commands` analogue: a sequential prefix puts the system in an
+interesting state, then N branches race, and the resulting history is checked
+against the machine's own pure `transition()` as the sequential specification.
+
+```ts
+import { runParallelPropertyCommands } from 'xstate/graph';
+
+const result = await runParallelPropertyCommands(counterMachine, {
+  prefix: [{ type: 'INC' }],
+  branches: [
+    [{ type: 'INC' }, { type: 'INC' }],
+    [{ type: 'INC' }]
+  ],
+  sut: {
+    create: () => {
+      let count = 0;
+      return { send: async () => ++count };
+    },
+    projectModel: (snapshot) => snapshot.context.count
+  }
+});
+
+result.linearizable;
+result.history; // the recorded operations with their intervals
+```
+
+`send` may return the response directly; when it returns `undefined` the
+response is read back with `read()`, so a `PropertySut` works unchanged.
+Responses are compared against `projectModel(snapshot)` of the model state after
+the event. Pass `maxExplored` to bound the search and `equalResponse` to replace
+the structural comparison.

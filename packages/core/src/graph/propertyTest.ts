@@ -37,7 +37,9 @@ import {
   type PropertyStoppedBecause,
   type PropertyExplorationBounds,
   type PropertyExplorationFrontier,
-  type PropertyExplorationSeed
+  type PropertyExplorationSeed,
+  type PropertyExplorationSwarm,
+  type PropertyExplorationTarget
 } from './propertyCoverage.ts';
 import { getShortestPaths } from './shortestPaths.ts';
 import type { StatePath, Step, TestParam } from './types.ts';
@@ -52,7 +54,9 @@ export type {
   PropertyEventCaseCounts,
   PropertyExplorationBounds,
   PropertyExplorationFrontier,
-  PropertyExplorationSeed
+  PropertyExplorationSeed,
+  PropertyExplorationSwarm,
+  PropertyExplorationTarget
 } from './propertyCoverage.ts';
 
 export interface PropertyGeneratorKind {
@@ -230,8 +234,14 @@ export interface PortablePropertyReplayFixture {
     | { readonly type: 'input'; readonly input: unknown }
     | { readonly type: 'snapshot'; readonly snapshot: unknown };
   readonly timeline: readonly PortablePropertyTimelineEntry[];
-  readonly failedAt: number;
+  /**
+   * The step the recorded run failed at. Absent on fixtures recorded from a
+   * passing run, such as the ones an offline property suite is built from.
+   */
+  readonly failedAt?: number;
   readonly temporalFailure?: PortableTemporalFailure;
+  /** Event case ids enabled for the run, when swarm testing was used. */
+  readonly swarm?: readonly string[];
   /** Executed-mode runs only. See {@link PropertyOutcomeRecord}. */
   readonly mode?: PropertyTestMode;
   /** Actor outcomes observed during an executed-mode run, in resolution order. */
@@ -420,6 +430,12 @@ export interface PropertyLabelRecorders {
   readonly label: (name: string, value?: string | number | boolean) => void;
   /** Records `name` when `condition` holds. */
   readonly classify: (condition: boolean, name: string) => void;
+  /**
+   * Records an observation for targeted search. The campaign keeps the best
+   * (highest) observed value and steers later batches towards the prefixes
+   * that reached it. See `frontiers: { strategy: 'target' }`.
+   */
+  readonly target: (observation: number, label?: string) => void;
 }
 
 export interface PropertyInvariantContext<
@@ -599,6 +615,8 @@ export interface PropertyTrace<
   readonly steps: readonly PropertyStep<TSnapshot, TEvent>[];
   readonly finalSnapshot: TSnapshot;
   readonly finalObservation?: PropertyObservation;
+  /** Event case ids enabled for the run, when swarm testing was used. */
+  readonly swarm?: readonly string[];
 }
 
 /**
@@ -1036,6 +1054,14 @@ export interface PropertyExecutionConfig {
   readonly seededOutcomes?: readonly PropertyOutcomeRecord[];
 }
 
+/** A single `target()` observation, recorded against the timeline. */
+export interface PropertyTargetObservation {
+  readonly value: number;
+  readonly label?: string;
+  /** Number of timeline entries recorded when the observation was made. */
+  readonly index: number;
+}
+
 export class PropertyScenarioRunner<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -1060,6 +1086,12 @@ export class PropertyScenarioRunner<
   private generatedCommandCount = 0;
   private readonly labelsSeen = new Set<string>();
   private execution: PropertyExecutionEngine<TSnapshot, TEvent> | undefined;
+  private swarmCaseIds: readonly string[] | undefined;
+  private swarmEnabled: ReadonlySet<string> | undefined;
+  private targetFunction:
+    | ((context: PropertyInvariantContext<TSnapshot, TEvent>) => number)
+    | undefined;
+  private readonly targetObservations: PropertyTargetObservation[] = [];
 
   /** Records a label for this run. */
   public readonly label = (
@@ -1075,6 +1107,47 @@ export class PropertyScenarioRunner<
       this.label(name);
     }
   };
+
+  /** Records an observation for targeted search. */
+  public readonly target = (observation: number, label?: string): void => {
+    if (typeof observation !== 'number' || Number.isNaN(observation)) {
+      throw new Error('target() requires a numeric observation');
+    }
+    this.targetObservations.push({
+      value: observation,
+      label,
+      index: this.timeline.length
+    });
+  };
+
+  /**
+   * Restricts this run to a subset of the declared event cases. Every other
+   * case reports itself as inapplicable, so a run only exercises the enabled
+   * ones. See the `swarm` option.
+   */
+  public setSwarm(caseIds: readonly string[]): void {
+    this.swarmCaseIds = caseIds;
+    this.swarmEnabled = new Set(caseIds);
+  }
+
+  /** Evaluates `target` on every stable step. See the `target` option. */
+  public setTargetFunction(
+    targetFunction: (
+      context: PropertyInvariantContext<TSnapshot, TEvent>
+    ) => number
+  ): void {
+    this.targetFunction = targetFunction;
+  }
+
+  /** Observations recorded with `target()` during this run. */
+  public getTargetObservations(): readonly PropertyTargetObservation[] {
+    return this.targetObservations;
+  }
+
+  /** `true` when the run completed without a property failure. */
+  public isFinished(): boolean {
+    return this.finished;
+  }
 
   public constructor(
     private readonly logic: ActorLogic<TSnapshot, TEvent, unknown>,
@@ -1167,7 +1240,8 @@ export class PropertyScenarioRunner<
       input: this.input,
       snapshot: this.startingSnapshot,
       label: this.label,
-      classify: this.classify
+      classify: this.classify,
+      target: this.target
     };
     if (this.reference) {
       this.referenceSession = await this.reference.create(context);
@@ -1211,6 +1285,7 @@ export class PropertyScenarioRunner<
     recordPropertyEventCase(this.coverage, caseId, 'generated');
     const descriptor = this.eventDescriptors.get(caseId);
     const canRun =
+      (this.swarmEnabled?.has(caseId) ?? true) &&
       !!event &&
       this.snapshot.status === 'active' &&
       (descriptor?.when?.({ snapshot: this.snapshot, event }) ?? true);
@@ -1627,7 +1702,8 @@ export class PropertyScenarioRunner<
         .map((entry) => entry.command),
       steps,
       finalSnapshot: this.snapshot,
-      finalObservation: this.lastObservation
+      finalObservation: this.lastObservation,
+      swarm: this.swarmCaseIds
     };
   }
 
@@ -1760,13 +1836,29 @@ export class PropertyScenarioRunner<
         effects,
         step,
         label: this.label,
-        classify: this.classify
+        classify: this.classify,
+        target: this.target
       });
     } catch (cause) {
       this.fail(
         `Property invariant failed after ${step} step${step === 1 ? '' : 's'}`,
         cause,
         step
+      );
+    }
+    if (this.targetFunction) {
+      this.target(
+        this.targetFunction({
+          initialSnapshot: this.initialSnapshot,
+          previousSnapshot,
+          snapshot,
+          event,
+          effects,
+          step,
+          label: this.label,
+          classify: this.classify,
+          target: this.target
+        })
       );
     }
     await this.checkTemporal({
@@ -1777,7 +1869,8 @@ export class PropertyScenarioRunner<
       effects,
       step,
       label: this.label,
-      classify: this.classify
+      classify: this.classify,
+      target: this.target
     });
     return observation;
   }
@@ -2029,6 +2122,7 @@ export class PropertyScenarioRunner<
         })),
       failedAt,
       temporalFailure,
+      ...(this.swarmCaseIds ? { swarm: this.swarmCaseIds } : {}),
       ...(this.execution
         ? {
             mode: 'executed' as const,
@@ -2143,7 +2237,32 @@ export interface PropertyTestOptions<
     | readonly StatePath<TSnapshot, TEvent>[]
     | PropertyFrontierOptions<TSnapshot, TEvent>
     | 'auto'
-    | PropertyAutoFrontierOptions;
+    | PropertyAutoFrontierOptions
+    | PropertyTargetFrontierOptions;
+  /**
+   * Swarm testing: each run only enables a seeded random subset of the
+   * declared event cases, so rarely-reachable interleavings are not crowded
+   * out by the most common ones. `true` enables at least half the cases.
+   */
+  readonly swarm?: boolean | PropertySwarmOptions;
+  /**
+   * Evaluated on every stable step. The campaign keeps the best (highest)
+   * observed value, reports it as `coverage.exploration.target`, and, with
+   * `frontiers: { strategy: 'target' }`, replays the prefixes that reached it
+   * as frontiers for the next batch. Equivalent to calling `target()` from
+   * the invariant.
+   */
+  readonly target?: (
+    context: PropertyInvariantContext<TSnapshot, TEvent>
+  ) => number;
+  /**
+   * Called once per run, after the runner has finished and been disposed.
+   * `passed` is `false` when the run ended in a property failure.
+   */
+  readonly collect?: (
+    trace: PropertyTrace<TSnapshot, TEvent>,
+    info: { readonly passed: boolean; readonly runIndex: number }
+  ) => void;
   readonly invariant: PropertyInvariant<TSnapshot, TEvent>;
   readonly temporal?: readonly PropertyTemporal<TSnapshot, TEvent>[];
   /**
@@ -2190,6 +2309,26 @@ export interface PropertyStopConditionObject {
 export type PropertyStopCondition =
   | PropertyStopConditionObject
   | ((coverage: PropertyCoverage) => boolean);
+
+/** Swarm testing options. See the `swarm` option. */
+export interface PropertySwarmOptions {
+  /**
+   * The fewest event cases a run may enable. Defaults to half the declared
+   * cases, rounded up.
+   */
+  readonly minCases?: number;
+  /** Campaign seed the per-run subsets are derived from. Defaults to `0`. */
+  readonly seed?: number;
+}
+
+/** Targeted search. See `frontiers: { strategy: 'target' }`. */
+export interface PropertyTargetFrontierOptions {
+  readonly strategy: 'target';
+  /** Best-scoring prefixes carried into the next batch. Defaults to 5. */
+  readonly maxFrontiers?: number;
+  /** Runs per frontier. Defaults to an even split of the batch. */
+  readonly runsPerFrontier?: number;
+}
 
 /** Coverage-guided exploration. See `frontiers: 'auto'`. */
 export interface PropertyAutoFrontierOptions {
@@ -2389,7 +2528,35 @@ interface PropertyExplorationAccumulator {
   maximumSequenceLengthUnknown: boolean;
   frontiers: PropertyExplorationFrontier[];
   seeds: PropertyExplorationSeed[];
+  swarmRuns: number;
+  swarmEnabledTotal: number;
+  swarmUsed: boolean;
+  targetBest: number;
+  targetLabel: string | undefined;
+  targetImprovements: number;
   truncationReasons: Set<string>;
+}
+
+/** A prefix that reached a good target value, kept for the next batch. */
+interface PropertyTargetCandidate<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  readonly value: number;
+  readonly key: string;
+  readonly events: readonly TEvent[];
+  readonly state: TSnapshot;
+}
+
+/** A small, dependency-free PRNG, used to pick swarm subsets. */
+function createSwarmRng(seed: number): () => number {
+  let a = (seed ^ 0x9e3779b9) >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 function finalizeExploration(
@@ -2417,6 +2584,19 @@ function finalizeExploration(
     maximumObservedSequenceLength: coverage.maximumObservedSequenceLength,
     frontiers: accumulator.frontiers.slice(),
     seeds: accumulator.seeds.slice(),
+    swarm: accumulator.swarmUsed
+      ? ({
+          runs: accumulator.swarmRuns,
+          averageEnabled: accumulator.swarmRuns
+            ? accumulator.swarmEnabledTotal / accumulator.swarmRuns
+            : 0
+        } satisfies PropertyExplorationSwarm)
+      : null,
+    target: {
+      best: accumulator.targetBest,
+      label: accumulator.targetLabel,
+      improvements: accumulator.targetImprovements
+    } satisfies PropertyExplorationTarget,
     truncated: accumulator.truncationReasons.size > 0,
     truncationReasons: [...accumulator.truncationReasons].sort()
   };
@@ -2578,6 +2758,12 @@ export async function propertyTest<
     maximumSequenceLengthUnknown: false,
     frontiers: [],
     seeds: [],
+    swarmRuns: 0,
+    swarmEnabledTotal: 0,
+    swarmUsed: !!options.swarm,
+    targetBest: -Infinity,
+    targetLabel: undefined,
+    targetImprovements: 0,
     truncationReasons: new Set()
   };
   const configuredFrontiers = options.frontiers;
@@ -2590,12 +2776,18 @@ export async function propertyTest<
             'uncovered'
         ? (configuredFrontiers as PropertyAutoFrontierOptions)
         : null;
+  const targetFrontierOptions: PropertyTargetFrontierOptions | null =
+    configuredFrontiers &&
+    !Array.isArray(configuredFrontiers) &&
+    (configuredFrontiers as PropertyTargetFrontierOptions).strategy === 'target'
+      ? (configuredFrontiers as PropertyTargetFrontierOptions)
+      : null;
   const frontierOptions: PropertyFrontierOptions<
     SnapshotFromSource<TSource>,
     EventFromSource<TSource>
   > | null = Array.isArray(configuredFrontiers)
     ? { paths: configuredFrontiers }
-    : configuredFrontiers && !autoFrontierOptions
+    : configuredFrontiers && !autoFrontierOptions && !targetFrontierOptions
       ? (configuredFrontiers as PropertyFrontierOptions<
           SnapshotFromSource<TSource>,
           EventFromSource<TSource>
@@ -2625,6 +2817,115 @@ export async function propertyTest<
       >
     | undefined;
 
+  const swarmOptions: PropertySwarmOptions | null = options.swarm
+    ? options.swarm === true
+      ? {}
+      : options.swarm
+    : null;
+  const swarmCaseIds = events.map((event) => event.caseId);
+  const swarmMinimum = Math.max(
+    1,
+    Math.min(
+      swarmCaseIds.length,
+      swarmOptions?.minCases ?? Math.ceil(swarmCaseIds.length / 2)
+    )
+  );
+  const swarmSeed = swarmOptions?.seed ?? 0;
+  /** The enabled subset for one run. Deterministic in `swarmSeed + runIndex`. */
+  const selectSwarmCases = (runIndex: number): readonly string[] => {
+    const rng = createSwarmRng(swarmSeed + runIndex * 0x2545f491);
+    const shuffled = swarmCaseIds.slice();
+    for (let index = shuffled.length - 1; index > 0; index--) {
+      const swapWith = Math.floor(rng() * (index + 1));
+      [shuffled[index], shuffled[swapWith]] = [
+        shuffled[swapWith],
+        shuffled[index]
+      ];
+    }
+    const count =
+      swarmMinimum + Math.floor(rng() * (shuffled.length - swarmMinimum + 1));
+    return shuffled.slice(0, count).sort();
+  };
+  // Shrinking re-runs the failing scenario, so the enabled subset is frozen to
+  // the one the failing run used as soon as a run fails.
+  let frozenSwarm: readonly string[] | undefined;
+  const targetCandidates: PropertyTargetCandidate<
+    SnapshotFromSource<TSource>,
+    EventFromSource<TSource>
+  >[] = [];
+  const targetFrontierLimit =
+    targetFrontierOptions?.maxFrontiers ?? DEFAULT_MAX_FRONTIERS;
+
+  const recordRun = (
+    runner: PropertyScenarioRunner<
+      SnapshotFromSource<TSource>,
+      EventFromSource<TSource>
+    >,
+    runIndex: number,
+    enabled: readonly string[] | undefined
+  ): void => {
+    const passed = runner.isFinished();
+    if (swarmOptions && !passed && !frozenSwarm) {
+      frozenSwarm = enabled;
+    }
+    let trace:
+      | PropertyTrace<SnapshotFromSource<TSource>, EventFromSource<TSource>>
+      | undefined;
+    try {
+      trace = runner.getTrace();
+    } catch {
+      return;
+    }
+    for (const observation of runner.getTargetObservations()) {
+      if (observation.value > exploration.targetBest) {
+        exploration.targetBest = observation.value;
+        exploration.targetLabel = observation.label;
+        exploration.targetImprovements++;
+      }
+      if (!targetFrontierOptions) {
+        continue;
+      }
+      const prefix = trace.timeline.slice(0, observation.index);
+      const prefixEvents = prefix
+        .filter(
+          (
+            entry
+          ): entry is PropertyEventTimelineEntry<
+            SnapshotFromSource<TSource>,
+            EventFromSource<TSource>
+          > => entry.kind === 'event'
+        )
+        .map((entry) => entry.command.event);
+      if (!prefixEvents.length) {
+        continue;
+      }
+      const key = JSON.stringify(prefixEvents);
+      if (targetCandidates.some((candidate) => candidate.key === key)) {
+        continue;
+      }
+      targetCandidates.push({
+        value: observation.value,
+        key,
+        events: prefixEvents,
+        state:
+          prefix.length > 0
+            ? prefix[prefix.length - 1].snapshot
+            : trace.initialSnapshot
+      });
+    }
+    targetCandidates.sort(
+      (left, right) =>
+        right.value - left.value ||
+        left.events.length - right.events.length ||
+        (left.key < right.key ? -1 : 1)
+    );
+    targetCandidates.length = Math.min(
+      targetCandidates.length,
+      targetFrontierLimit * 4
+    );
+    options.collect?.(trace, { passed, runIndex });
+  };
+
   const runScenario = async (
     frontierContext: Scenario,
     runBudget: number | undefined,
@@ -2642,6 +2943,7 @@ export async function propertyTest<
       throw new Error('runsPerFrontier must return a positive integer');
     }
     const attemptedRunsBefore = coverage.runs;
+    let scenarioRunCount = 0;
     const result = await options.adapter.run({
       events,
       commands,
@@ -2653,7 +2955,8 @@ export async function propertyTest<
       },
       createRunner: () => {
         coverage.runs++;
-        return new PropertyScenarioRunner(
+        const runIndex = (runOffset ?? 0) + scenarioRunCount++;
+        const runner = new PropertyScenarioRunner(
           model.testLogic as ActorLogic<
             SnapshotFromSource<TSource>,
             EventFromSource<TSource>,
@@ -2678,6 +2981,30 @@ export async function propertyTest<
           coverage,
           mode === 'executed' ? { mode, registry: outcomeRegistry } : undefined
         );
+        if (options.target) {
+          runner.setTargetFunction(options.target);
+        }
+        let enabled: readonly string[] | undefined;
+        if (swarmOptions) {
+          enabled = frozenSwarm ?? selectSwarmCases(runIndex);
+          runner.setSwarm(enabled);
+          exploration.swarmRuns++;
+          exploration.swarmEnabledTotal += enabled.length;
+        }
+        const dispose = runner.dispose.bind(runner);
+        (
+          runner as PropertyScenarioRunner<
+            SnapshotFromSource<TSource>,
+            EventFromSource<TSource>
+          > & { dispose: () => Promise<void> }
+        ).dispose = async () => {
+          try {
+            await dispose();
+          } finally {
+            recordRun(runner, runIndex, enabled);
+          }
+        };
+        return runner;
       }
     });
 
@@ -2756,7 +3083,7 @@ export async function propertyTest<
         : frontierOptions?.runsPerFrontier
       : undefined;
 
-  if (!options.until && !autoFrontierOptions) {
+  if (!options.until && !autoFrontierOptions && !targetFrontierOptions) {
     for (const frontierContext of scenarios) {
       await runScenario(
         frontierContext,
@@ -2818,14 +3145,48 @@ export async function propertyTest<
       });
     };
 
+    let nextTargetIndex = 0;
+    const getTargetScenarios = (
+      budget: number
+    ): [Scenario, number | undefined][] => {
+      const candidates = targetCandidates.slice(0, targetFrontierLimit);
+      if (!candidates.length) {
+        return [[undefined, budget]];
+      }
+      const perFrontier =
+        targetFrontierOptions!.runsPerFrontier ??
+        Math.max(1, Math.floor(budget / candidates.length));
+      return candidates.map((candidate) => {
+        const frontier = {
+          state: candidate.state,
+          steps: candidate.events.map((event) => ({
+            state: candidate.state,
+            event
+          })),
+          weight: candidate.events.length
+        } as unknown as StatePath<
+          SnapshotFromSource<TSource>,
+          EventFromSource<TSource>
+        >;
+        const id = getFrontierId(frontier);
+        declarePropertyFrontier(coverage, id);
+        return [{ frontier, index: nextTargetIndex++, id }, perFrontier] as [
+          Scenario,
+          number | undefined
+        ];
+      });
+    };
+
     while (exploration.completedRuns < maxRuns) {
       const budget = Math.min(batchRuns, maxRuns - exploration.completedRuns);
       const batch: [Scenario, number | undefined][] = autoFrontierOptions
         ? getAutoScenarios(budget)
-        : scenarios.map((frontierContext) => [
-            frontierContext,
-            Math.min(getStaticRunBudget(frontierContext) ?? budget, budget)
-          ]);
+        : targetFrontierOptions
+          ? getTargetScenarios(budget)
+          : scenarios.map((frontierContext) => [
+              frontierContext,
+              Math.min(getStaticRunBudget(frontierContext) ?? budget, budget)
+            ]);
       for (const [frontierContext, scenarioBudget] of batch) {
         await runScenario(
           frontierContext,
@@ -2899,6 +3260,24 @@ function normalizeFixtureTimeline(
   ];
 }
 
+/**
+ * Thrown by `replayPropertyTest()` when a fixture recorded from a failing run
+ * replays without reproducing that failure — the regression is fixed, or the
+ * machine no longer behaves the way the fixture recorded.
+ */
+export class PropertyReplayNotReproducedError extends Error {
+  public override readonly name = 'PropertyReplayNotReproducedError';
+
+  public constructor(
+    /** The step the fixture recorded the failure at. */
+    public readonly step: number
+  ) {
+    super(
+      `Property replay did not reproduce the recorded failure at step ${step}`
+    );
+  }
+}
+
 export async function replayPropertyTest<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 >(
@@ -2937,6 +3316,13 @@ export async function replayPropertyTest<
     readonly mode?: PropertyTestMode;
     /** Actor logic to provide before replaying. Executed mode only. */
     readonly actors?: Readonly<Record<string, ActorLogic<any, any, any>>>;
+    /**
+     * `'failure'` (the default) expects the fixture to reproduce its recorded
+     * failure, and throws {@link PropertyReplayNotReproducedError} when it
+     * does not. `'pass'` expects the whole timeline to replay cleanly, and
+     * lets any property failure through.
+     */
+    readonly expect?: 'failure' | 'pass';
   }
 ): Promise<
   PropertyTrace<SnapshotFromSource<TSource>, EventFromSource<TSource>>
@@ -3026,6 +3412,7 @@ export async function replayPropertyTest<
         }
       : undefined
   );
+  const failedAt = fixture.failedAt;
   await runner.start();
   try {
     for (const entry of normalizeFixtureTimeline(fixture)) {
@@ -3033,15 +3420,18 @@ export async function replayPropertyTest<
         EventFromSource<TSource>
       >;
       await runner.replay(command);
-      if (runner.getStableStep() > fixture.failedAt) {
+      if (failedAt !== undefined && runner.getStableStep() > failedAt) {
         // The recorded failure step has been replayed; anything after it was
         // never reached by the original run.
         break;
       }
     }
     runner.finish();
-    throw new Error(
-      `Property replay did not reproduce the recorded failure at step ${fixture.failedAt}`
+    if (options.expect === 'pass') {
+      return runner.getTrace();
+    }
+    throw new PropertyReplayNotReproducedError(
+      failedAt ?? runner.getStableStep()
     );
   } finally {
     await runner.dispose();

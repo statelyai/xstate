@@ -15,3 +15,4 @@ export * from './propertyTest.ts';
 export * from './propertySuite.ts';
 export * from './types.ts';
 export * from './propertyReport.ts';
+export * from './propertyLinearizability.ts';

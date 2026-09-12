@@ -30,22 +30,9 @@ import {
   type PropertySut,
   type PropertyTemporal,
   type PropertyTestModelExecution,
-  type PropertyScenarioRunner,
-  type PropertyTestAdapter,
-  type PropertyTestAdapterRequest,
-  type PropertyTestAdapterResult,
   type PropertyTestOptions,
   type PropertyTrace
 } from './propertyTest.ts';
-
-/**
- * `failedAt` recorded on suite fixtures. Suite fixtures come from passing
- * runs, so there is no failing step: the sentinel is past every step, which
- * makes `replayPropertyTest()` replay the whole timeline.
- */
-export const PASSING_PROPERTY_FIXTURE_FAILED_AT = Number.MAX_SAFE_INTEGER;
-
-const REPLAY_NO_FAILURE_PREFIX = 'Property replay did not reproduce';
 
 export interface PropertySuite {
   readonly formatVersion: 1;
@@ -151,8 +138,7 @@ function toSuiteFixture<
         entry.kind === 'event' || entry.kind === 'command'
           ? [{ kind: entry.kind, command: entry.command }]
           : []
-    ),
-    failedAt: PASSING_PROPERTY_FIXTURE_FAILED_AT
+    )
   };
 }
 
@@ -215,39 +201,17 @@ export async function generatePropertySuite<
   type TEvent = EventFromSource<TSource>;
 
   const traces: PropertyTrace<TSnapshot, TEvent>[] = [];
-  const { adapter, select, maxFixtures, generatedAt, ...rest } = options;
-
-  // `propertyTest()` has no trace-collection hook, so the adapter is wrapped
-  // and each runner's `finish()` is shadowed to record the completed trace.
-  const collectingAdapter: PropertyTestAdapter<TKind> = {
-    kind: adapter.kind,
-    run<TRunSnapshot extends Snapshot<unknown>, TRunEvent extends EventObject>(
-      request: PropertyTestAdapterRequest<TRunSnapshot, TRunEvent>
-    ): Promise<PropertyTestAdapterResult> {
-      return adapter.run({
-        ...request,
-        createRunner: () => {
-          const runner = request.createRunner();
-          const finish = runner.finish.bind(runner);
-          (
-            runner as PropertyScenarioRunner<TRunSnapshot, TRunEvent> & {
-              finish: () => void;
-            }
-          ).finish = () => {
-            finish();
-            traces.push(
-              runner.getTrace() as unknown as PropertyTrace<TSnapshot, TEvent>
-            );
-          };
-          return runner;
-        }
-      });
-    }
-  };
+  const { select, maxFixtures, generatedAt, collect, ...rest } = options;
 
   const { coverage } = await propertyTest(source, {
     ...rest,
-    adapter: collectingAdapter
+    // Only passing runs make regression fixtures.
+    collect: (trace, info) => {
+      collect?.(trace, info);
+      if (info.passed) {
+        traces.push(trace);
+      }
+    }
   });
 
   const logic = (
@@ -346,19 +310,10 @@ export async function replayPropertySuiteFixture<
   fixture: PortablePropertyReplayFixture,
   options: ReplayPropertySuiteOptions<TSource>
 ): Promise<void> {
-  try {
-    await replayPropertyTest(source, fixture, options as any);
-  } catch (error) {
-    // `replayPropertyTest()` expects a counterexample, so "no failure
-    // reproduced" is exactly what a regression fixture must produce.
-    if (
-      error instanceof Error &&
-      error.message.startsWith(REPLAY_NO_FAILURE_PREFIX)
-    ) {
-      return;
-    }
-    throw error;
-  }
+  await replayPropertyTest(source, fixture, {
+    ...(options as any),
+    expect: 'pass'
+  });
 }
 
 /** Replays every fixture in a suite. Each fixture is expected to pass. */
