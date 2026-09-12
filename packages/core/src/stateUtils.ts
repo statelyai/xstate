@@ -39,7 +39,8 @@ import {
   AnyTransitionConfig,
   AnyActorScope,
   ActionExecutor,
-  AnyStateMachine
+  AnyStateMachine,
+  MetaObject
 } from './types.ts';
 import {
   resolveOutput,
@@ -424,14 +425,24 @@ export function formatRouteTransitions(rootStateNode: AnyStateNode): void {
 
 export function formatInitialTransition<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TTransitionMeta extends MetaObject
 >(
-  stateNode: AnyStateNode,
+  stateNode: StateNode<TContext, TEvent, any, TTransitionMeta>,
   _target:
     | string
     | undefined
-    | InitialTransitionConfig<TContext, TEvent, TODO, TODO, TODO, TODO>
-): InitialTransitionDefinition<TContext, TEvent> {
+    | InitialTransitionConfig<
+        TContext,
+        TEvent,
+        TODO,
+        TODO,
+        TODO,
+        TODO,
+        TODO,
+        TTransitionMeta
+      >
+): InitialTransitionDefinition<TContext, TEvent, TTransitionMeta> {
   const resolvedTarget =
     typeof _target === 'string'
       ? stateNode.states[_target]
@@ -444,13 +455,19 @@ export function formatInitialTransition<
       `Initial state node "${_target}" not found on parent state node #${stateNode.id}`
     );
   }
-  const transition: InitialTransitionDefinition<TContext, TEvent> = {
+  const transition: InitialTransitionDefinition<
+    TContext,
+    TEvent,
+    TTransitionMeta
+  > = {
     source: stateNode,
     actions:
       !_target || typeof _target === 'string' ? [] : toArray(_target.actions),
     eventType: null as any,
     reenter: false,
     target: resolvedTarget ? [resolvedTarget] : [],
+    meta: typeof _target === 'object' ? _target.meta : undefined,
+    description: typeof _target === 'object' ? _target.description : undefined,
     toJSON: () => ({
       ...transition,
       source: `#${stateNode.id}`,

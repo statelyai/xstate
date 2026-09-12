@@ -122,7 +122,8 @@ export type SetupReturn<
   TInput,
   TOutput extends NonReducibleUnknown,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
 > = {
   extend: <
     TExtendActions extends Record<
@@ -180,7 +181,8 @@ export type SetupReturn<
     TInput,
     TOutput,
     TEmitted,
-    TMeta
+    TStateMeta,
+    TTransitionMeta
   >;
   /**
    * Creates a state config that is strongly typed. This state config can be
@@ -222,7 +224,8 @@ export type SetupReturn<
       TTag,
       unknown,
       TEmitted,
-      TMeta
+      TStateMeta,
+      TTransitionMeta
     >
   >(
     config: TStateConfig
@@ -277,7 +280,8 @@ export type SetupReturn<
       TInput,
       TOutput,
       TEmitted,
-      TMeta
+      TStateMeta,
+      TTransitionMeta
     >,
     TResolvedChildren extends Record<string, string> = MergeChildrenMap<
       TChildrenMap,
@@ -307,8 +311,9 @@ export type SetupReturn<
     TInput,
     TOutput,
     TEmitted,
-    TMeta,
-    ToStateSchema<TConfig>
+    TStateMeta,
+    ToStateSchema<TConfig>,
+    TTransitionMeta
   >;
 
   assign: typeof assign<
@@ -380,7 +385,8 @@ export function setup<
   TInput = NonReducibleUnknown,
   TOutput extends NonReducibleUnknown = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject
+  TStateMeta extends MetaObject = MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
 >({
   schemas,
   actors,
@@ -397,7 +403,8 @@ export function setup<
     TInput,
     TOutput,
     TEmitted,
-    TMeta
+    TStateMeta,
+    TTransitionMeta
   >;
   actors?: {
     // union here enforces that all configured children have to be provided in actors
@@ -449,7 +456,8 @@ export function setup<
   TInput,
   TOutput,
   TEmitted,
-  TMeta
+  TStateMeta,
+  TTransitionMeta
 > {
   return {
     assign,

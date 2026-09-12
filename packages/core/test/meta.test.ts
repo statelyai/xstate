@@ -417,6 +417,183 @@ describe('state meta data', () => {
 });
 
 describe('transition meta data', () => {
+  it('infers distinct metadata types with createMachine', () => {
+    const machine = createMachine({
+      types: {
+        meta: {} as { label: string },
+        transitionMeta: {} as { trackingId: number }
+      },
+      meta: { label: 'root' },
+      on: {
+        NEXT: { meta: { trackingId: 42 } }
+      }
+    });
+
+    machine.root.meta satisfies { label: string } | undefined;
+    machine.root.transitions.get('NEXT')![0].meta satisfies
+      | { trackingId: number }
+      | undefined;
+  });
+
+  it('supports distinct state and transition meta types', () => {
+    const machine = setup({
+      types: {
+        meta: {} as { view: 'compact' | 'full' },
+        transitionMeta: {} as { analyticsEvent: string }
+      }
+    }).createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          meta: { view: 'compact' },
+          on: {
+            NEXT: {
+              target: 'done',
+              meta: { analyticsEvent: 'next' }
+            }
+          }
+        },
+        done: {}
+      }
+    });
+
+    createActor(machine).getSnapshot().getMeta()['(machine).idle'] satisfies
+      | { view: 'compact' | 'full' }
+      | undefined;
+
+    machine.states.idle.transitions.get('NEXT')![0].meta satisfies
+      | { analyticsEvent: string }
+      | undefined;
+    machine.definition.states.idle.transitions[0].meta satisfies
+      | { analyticsEvent: string }
+      | undefined;
+
+    // @ts-expect-error state metadata is not transition metadata
+    machine.states.idle.transitions.get('NEXT')![0].meta satisfies
+      | { view: 'compact' | 'full' }
+      | undefined;
+  });
+
+  it('rejects state and transition metadata in the wrong positions', () => {
+    setup({
+      types: {
+        meta: {} as { state: string },
+        transitionMeta: {} as { transition: string }
+      }
+    }).createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          // @ts-expect-error transition metadata is invalid on a state node
+          meta: { transition: 'idle' },
+          on: {
+            NEXT: {
+              // @ts-expect-error state metadata is invalid on a transition
+              meta: { state: 'next' }
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('keeps types.meta as the shared metadata type for compatibility', () => {
+    const machine = setup({
+      types: {
+        meta: {} as { legacy: string }
+      }
+    }).createMachine({
+      meta: { legacy: 'state' },
+      on: {
+        NEXT: { meta: { legacy: 'transition' } }
+      }
+    });
+
+    machine.root.meta satisfies { legacy: string } | undefined;
+    machine.root.transitions.get('NEXT')![0].meta satisfies
+      | { legacy: string }
+      | undefined;
+  });
+
+  it('preserves transition meta on all transition definitions', () => {
+    const machine = setup({
+      types: {
+        transitionMeta: {} as { source: string }
+      },
+      actors: {
+        child: createMachine({})
+      }
+    }).createMachine({
+      initial: {
+        target: 'idle',
+        meta: { source: 'initial' }
+      },
+      states: {
+        idle: {
+          always: { meta: { source: 'always' } },
+          after: {
+            100: { meta: { source: 'after' } }
+          },
+          invoke: {
+            src: 'child',
+            onDone: { meta: { source: 'invoke.done' } },
+            onError: { meta: { source: 'invoke.error' } },
+            onSnapshot: { meta: { source: 'invoke.snapshot' } }
+          }
+        }
+      }
+    });
+
+    machine.root.initial.meta satisfies { source: string } | undefined;
+    machine.states.idle.always![0].meta satisfies
+      | { source: string }
+      | undefined;
+    machine.states.idle.after[0].meta satisfies { source: string } | undefined;
+    [...machine.states.idle.transitions.values()].flat()[0].meta satisfies
+      | { source: string }
+      | undefined;
+
+    type InvokeDefinition = (typeof machine.definition.states.idle.invoke)[0];
+    type SingleTransition<T> = Exclude<
+      NonNullable<T>,
+      string | readonly unknown[]
+    >;
+
+    (({}) as SingleTransition<InvokeDefinition['onDone']>).meta satisfies
+      | { source: string }
+      | undefined;
+    (({}) as SingleTransition<InvokeDefinition['onError']>).meta satisfies
+      | { source: string }
+      | undefined;
+    (({}) as SingleTransition<InvokeDefinition['onSnapshot']>).meta satisfies
+      | { source: string }
+      | undefined;
+
+    // @ts-expect-error invoke callback metadata is transition metadata
+    (({}) as SingleTransition<InvokeDefinition['onDone']>).meta satisfies
+      | { unknown: string }
+      | undefined;
+
+    expect(machine.root.initial.meta).toEqual({ source: 'initial' });
+    expect(machine.definition.initial?.meta).toEqual({ source: 'initial' });
+    expect(JSON.parse(JSON.stringify(machine)).initial.meta).toEqual({
+      source: 'initial'
+    });
+    expect(machine.states.idle.always![0].meta).toEqual({ source: 'always' });
+    expect(machine.states.idle.after[0].meta).toEqual({ source: 'after' });
+    expect(
+      [...machine.states.idle.transitions.values()]
+        .flat()
+        .map((transition) => transition.meta)
+    ).toEqual(
+      expect.arrayContaining([
+        { source: 'invoke.done' },
+        { source: 'invoke.error' },
+        { source: 'invoke.snapshot' }
+      ])
+    );
+  });
+
   it('TS should error with unexpected transition meta property', () => {
     setup({
       types: {

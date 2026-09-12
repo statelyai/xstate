@@ -151,7 +151,8 @@ export type InputFrom<T> =
     infer _TOutput,
     infer _TEmitted,
     infer _TMeta,
-    infer _TStateSchema
+    infer _TStateSchema,
+    infer _TTransitionMeta
   >
     ? TInput
     : T extends ActorLogic<
@@ -347,7 +348,9 @@ export interface InitialTransitionConfig<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TEmitted extends EventObject = EventObject,
+  TTransitionMeta extends MetaObject = MetaObject
 > extends TransitionConfig<
   TContext,
   TEvent,
@@ -356,8 +359,8 @@ export interface InitialTransitionConfig<
   TAction,
   TGuard,
   TDelay,
-  TODO, // TEmitted
-  TODO // TMeta
+  TEmitted,
+  TTransitionMeta
 > {
   target: string;
 }
@@ -382,7 +385,7 @@ export interface InvokeDefinition<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TTransitionMeta extends MetaObject
 > {
   id: string;
 
@@ -409,7 +412,7 @@ export interface InvokeDefinition<
           TGuard,
           TDelay,
           TEmitted,
-          TMeta
+          TTransitionMeta
         >
       >;
   /**
@@ -428,7 +431,7 @@ export interface InvokeDefinition<
           TGuard,
           TDelay,
           TEmitted,
-          TMeta
+          TTransitionMeta
         >
       >;
 
@@ -444,7 +447,7 @@ export interface InvokeDefinition<
           TGuard,
           TDelay,
           TEmitted,
-          TMeta
+          TTransitionMeta
         >
       >;
 
@@ -457,7 +460,7 @@ export interface InvokeDefinition<
       TGuard,
       TDelay,
       TEmitted,
-      TMeta
+      TTransitionMeta
     >,
     'onDone' | 'onError' | 'toJSON'
   >;
@@ -471,7 +474,9 @@ export type DelayedTransitions<
   TActor extends ProvidedActor,
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
-  TDelay extends string
+  TDelay extends string,
+  TEmitted extends EventObject = EventObject,
+  TTransitionMeta extends MetaObject = MetaObject
 > = {
   [K in Delay<TDelay>]?:
     | string
@@ -484,8 +489,8 @@ export type DelayedTransitions<
           TAction,
           TGuard,
           TDelay,
-          TODO, // TEmitted
-          TODO // TMeta
+          TEmitted,
+          TTransitionMeta
         >
       >;
 };
@@ -502,9 +507,11 @@ export type SingleOrArray<T> = readonly T[] | T;
 
 export type StateNodesConfig<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateMeta extends MetaObject = MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
 > = {
-  [K in string]: StateNode<TContext, TEvent>;
+  [K in string]: StateNode<TContext, TEvent, TStateMeta, TTransitionMeta>;
 };
 
 export type StatesConfig<
@@ -517,7 +524,8 @@ export type StatesConfig<
   TTag extends string,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
 > = {
   [K in string]: StateNodeConfig<
     TContext,
@@ -529,15 +537,23 @@ export type StatesConfig<
     TTag,
     TOutput,
     TEmitted,
-    TMeta
+    TStateMeta,
+    TTransitionMeta
   >;
 };
 
 export type StatesDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateMeta extends MetaObject = MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
 > = {
-  [K in string]: StateNodeDefinition<TContext, TEvent>;
+  [K in string]: StateNodeDefinition<
+    TContext,
+    TEvent,
+    TStateMeta,
+    TTransitionMeta
+  >;
 };
 
 export type TransitionConfigTarget = string | undefined;
@@ -551,7 +567,7 @@ export type TransitionConfigOrTarget<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TTransitionMeta extends MetaObject
 > = SingleOrArray<
   | TransitionConfigTarget
   | TransitionConfig<
@@ -563,7 +579,7 @@ export type TransitionConfigOrTarget<
       TGuard,
       TDelay,
       TEmitted,
-      TMeta
+      TTransitionMeta
     >
 >;
 
@@ -575,7 +591,7 @@ export type TransitionsConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TTransitionMeta extends MetaObject
 > = {
   [K in EventDescriptor<TEvent>]?: TransitionConfigOrTarget<
     TContext,
@@ -586,7 +602,7 @@ export type TransitionsConfig<
     TGuard,
     TDelay,
     TEmitted,
-    TMeta
+    TTransitionMeta
   >;
 };
 
@@ -616,7 +632,7 @@ type DistributeActors<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
+  TTransitionMeta extends MetaObject,
   TSpecificActor extends ProvidedActor
 > = TSpecificActor extends { src: infer TSrc }
   ?
@@ -659,7 +675,7 @@ type DistributeActors<
                     TGuard,
                     TDelay,
                     TEmitted,
-                    TMeta
+                    TTransitionMeta
                   >
                 >;
             /**
@@ -678,7 +694,7 @@ type DistributeActors<
                     TGuard,
                     TDelay,
                     TEmitted,
-                    TMeta
+                    TTransitionMeta
                   >
                 >;
 
@@ -694,7 +710,7 @@ type DistributeActors<
                     TGuard,
                     TDelay,
                     TEmitted,
-                    TMeta
+                    TTransitionMeta
                   >
                 >;
           } & { [K in RequiredActorOptions<TSpecificActor>]: unknown }
@@ -718,7 +734,7 @@ type DistributeActors<
                   TGuard,
                   TDelay,
                   TEmitted,
-                  TMeta
+                  TTransitionMeta
                 >
               >;
           onError?:
@@ -733,7 +749,7 @@ type DistributeActors<
                   TGuard,
                   TDelay,
                   TEmitted,
-                  TMeta
+                  TTransitionMeta
                 >
               >;
 
@@ -749,7 +765,7 @@ type DistributeActors<
                   TGuard,
                   TDelay,
                   TEmitted,
-                  TMeta
+                  TTransitionMeta
                 >
               >;
         }
@@ -763,7 +779,7 @@ export type InvokeConfig<
   TGuard extends ParameterizedObject,
   TDelay extends string,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TTransitionMeta extends MetaObject
 > =
   IsLiteralString<TActor['src']> extends true
     ? DistributeActors<
@@ -774,7 +790,7 @@ export type InvokeConfig<
         TGuard,
         TDelay,
         TEmitted,
-        TMeta,
+        TTransitionMeta,
         TActor
       >
     : {
@@ -807,7 +823,7 @@ export type InvokeConfig<
                 TGuard,
                 TDelay,
                 TEmitted,
-                TMeta
+                TTransitionMeta
               >
             >;
         /**
@@ -826,7 +842,7 @@ export type InvokeConfig<
                 TGuard,
                 TDelay,
                 TEmitted,
-                TMeta
+                TTransitionMeta
               >
             >;
 
@@ -842,7 +858,7 @@ export type InvokeConfig<
                 TGuard,
                 TDelay,
                 TEmitted,
-                TMeta
+                TTransitionMeta
               >
             >;
       };
@@ -855,7 +871,7 @@ export type AnyInvokeConfig = InvokeConfig<
   any,
   any,
   any,
-  any // TMeta
+  any // TTransitionMeta
 >;
 
 export interface StateNodeConfig<
@@ -868,11 +884,21 @@ export interface StateNodeConfig<
   TTag extends string,
   _TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
 > {
   /** The initial state transition. */
   initial?:
-    | InitialTransitionConfig<TContext, TEvent, TActor, TAction, TGuard, TDelay>
+    | InitialTransitionConfig<
+        TContext,
+        TEvent,
+        TActor,
+        TAction,
+        TGuard,
+        TDelay,
+        TEmitted,
+        TTransitionMeta
+      >
     | string
     | undefined;
   /**
@@ -905,7 +931,8 @@ export interface StateNodeConfig<
         TTag,
         NonReducibleUnknown,
         TEmitted,
-        TMeta
+        TStateMeta,
+        TTransitionMeta
       >
     | undefined;
   /**
@@ -921,7 +948,7 @@ export interface StateNodeConfig<
       TGuard,
       TDelay,
       TEmitted,
-      TMeta
+      TTransitionMeta
     >
   >;
   /** The mapping of event types to their potential transition(s). */
@@ -933,7 +960,7 @@ export interface StateNodeConfig<
     TGuard,
     TDelay,
     TEmitted,
-    TMeta
+    TTransitionMeta
   >;
   /** The action(s) to be executed upon entering the state node. */
   entry?: Actions<
@@ -978,7 +1005,7 @@ export interface StateNodeConfig<
           TGuard,
           TDelay,
           TEmitted,
-          TMeta
+          TTransitionMeta
         >
       >
     | undefined;
@@ -987,7 +1014,16 @@ export interface StateNodeConfig<
    * transition(s). The delayed transitions are taken after the specified delay
    * in an interpreter.
    */
-  after?: DelayedTransitions<TContext, TEvent, TActor, TAction, TGuard, TDelay>;
+  after?: DelayedTransitions<
+    TContext,
+    TEvent,
+    TActor,
+    TAction,
+    TGuard,
+    TDelay,
+    TEmitted,
+    TTransitionMeta
+  >;
 
   /**
    * An eventless transition that is always taken when this state node is
@@ -1002,14 +1038,14 @@ export interface StateNodeConfig<
     TGuard,
     TDelay,
     TEmitted,
-    TMeta
+    TTransitionMeta
   >;
-  parent?: StateNode<TContext, TEvent>;
+  parent?: StateNode<TContext, TEvent, TStateMeta, TTransitionMeta>;
   /**
    * The meta data associated with this state node, which will be returned in
    * State instances.
    */
-  meta?: TMeta;
+  meta?: TStateMeta;
   /**
    * The output data sent with the "xstate.done.state._id_" event if this is a
    * final state node.
@@ -1047,7 +1083,8 @@ export interface StateNodeConfig<
     TAction,
     TGuard,
     TDelay,
-    TEmitted
+    TEmitted,
+    TTransitionMeta
   >;
 }
 
@@ -1059,7 +1096,8 @@ export interface RouteTransitionConfig<
   TAction extends ParameterizedObject,
   TGuard extends ParameterizedObject,
   TDelay extends string,
-  TEmitted extends EventObject
+  TEmitted extends EventObject,
+  TTransitionMeta extends MetaObject = MetaObject
 > {
   guard?: Guard<TContext, TExpressionEvent, undefined, TGuard>;
   actions?: Actions<
@@ -1073,7 +1111,7 @@ export interface RouteTransitionConfig<
     TDelay,
     TEmitted
   >;
-  meta?: Record<string, any>;
+  meta?: TTransitionMeta;
   description?: string;
 }
 
@@ -1087,26 +1125,31 @@ export type AnyStateNodeConfig = StateNodeConfig<
   any,
   any,
   any, // emitted
-  any // meta
+  any, // state meta
+  any // transition meta
 >;
 
 export interface StateNodeDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateMeta extends MetaObject = MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
 > {
   id: string;
   version?: string | undefined;
   key: string;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
-  initial: InitialTransitionDefinition<TContext, TEvent> | undefined;
+  initial:
+    | InitialTransitionDefinition<TContext, TEvent, TTransitionMeta>
+    | undefined;
   history: boolean | 'shallow' | 'deep' | undefined;
-  states: StatesDefinition<TContext, TEvent>;
-  on: TransitionDefinitionMap<TContext, TEvent>;
-  transitions: Array<TransitionDefinition<TContext, TEvent>>;
+  states: StatesDefinition<TContext, TEvent, TStateMeta, TTransitionMeta>;
+  on: TransitionDefinitionMap<TContext, TEvent, TTransitionMeta>;
+  transitions: Array<TransitionDefinition<TContext, TEvent, TTransitionMeta>>;
   // TODO: establish what a definition really is
   entry: UnknownAction[];
   exit: UnknownAction[];
-  meta: any;
+  meta: TStateMeta | undefined;
   order: number;
   output?: StateNodeConfig<
     TContext,
@@ -1118,7 +1161,8 @@ export interface StateNodeDefinition<
     string,
     unknown,
     EventObject, // TEmitted
-    any // TMeta
+    any, // TStateMeta
+    any // TTransitionMeta
   >['output'];
   invoke: Array<
     InvokeDefinition<
@@ -1129,7 +1173,7 @@ export interface StateNodeDefinition<
       TODO,
       TODO,
       TODO, // TEmitted
-      TODO // TMeta
+      TTransitionMeta
     >
   >;
   description?: string;
@@ -1138,8 +1182,10 @@ export interface StateNodeDefinition<
 
 export interface StateMachineDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
-> extends StateNodeDefinition<TContext, TEvent> {}
+  TEvent extends EventObject,
+  TStateMeta extends MetaObject = MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
+> extends StateNodeDefinition<TContext, TEvent, TStateMeta, TTransitionMeta> {}
 
 export type AnyStateNode = StateNode<any, any>;
 
@@ -1173,7 +1219,8 @@ export type AnyStateMachine = StateMachine<
   any, // output
   any, // emitted
   any, // TMeta
-  any // TStateSchema
+  any, // TStateSchema
+  any // TTransitionMeta
 >;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
@@ -1417,7 +1464,8 @@ export type MachineConfig<
   TInput = any,
   TOutput = unknown,
   TEmitted extends EventObject = EventObject,
-  TMeta extends MetaObject = MetaObject
+  TStateMeta extends MetaObject = MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
 > = (Omit<
   StateNodeConfig<
     DoNotInfer<TContext>,
@@ -1429,7 +1477,8 @@ export type MachineConfig<
     DoNotInfer<TTag>,
     DoNotInfer<TOutput>,
     DoNotInfer<TEmitted>,
-    DoNotInfer<TMeta>
+    DoNotInfer<TStateMeta>,
+    DoNotInfer<TTransitionMeta>
   >,
   'output'
 > & {
@@ -1461,7 +1510,8 @@ export interface SetupTypes<
   TInput,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
 > {
   context?: TContext;
   events?: TEvent;
@@ -1470,7 +1520,13 @@ export interface SetupTypes<
   input?: TInput;
   output?: TOutput;
   emitted?: TEmitted;
-  meta?: TMeta;
+  /**
+   * State-node metadata. Also used for transition metadata when
+   * `transitionMeta` is not specified.
+   */
+  meta?: TStateMeta;
+  /** Transition metadata. */
+  transitionMeta?: TTransitionMeta;
 }
 
 export interface MachineTypes<
@@ -1484,7 +1540,8 @@ export interface MachineTypes<
   TInput,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject = TStateMeta
 > extends SetupTypes<
   TContext,
   TEvent,
@@ -1495,13 +1552,15 @@ export interface MachineTypes<
   TInput,
   TOutput,
   TEmitted,
-  TMeta
+  TStateMeta,
+  TTransitionMeta
 > {
   actors?: TActor;
   actions?: TAction;
   guards?: TGuard;
   delays?: TDelay;
-  meta?: TMeta;
+  meta?: TStateMeta;
+  transitionMeta?: TTransitionMeta;
 }
 
 export interface HistoryStateNode<
@@ -1722,7 +1781,8 @@ export type Mapper<
 
 export interface TransitionDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TTransitionMeta extends MetaObject = MetaObject
 > extends Omit<
   TransitionConfig<
     TContext,
@@ -1733,7 +1793,7 @@ export interface TransitionDefinition<
     TODO,
     TODO,
     TODO, // TEmitted
-    TODO // TMeta
+    TTransitionMeta
   >,
   | 'target'
   // `guard` is correctly rejected by `extends` here and `actions` should be too
@@ -1741,8 +1801,10 @@ export interface TransitionDefinition<
   // it doesn't exactly have to be incorrect, we are overriding this here anyway but it looks like a lucky accident rather than smth done on purpose
   | 'guard'
 > {
-  target: ReadonlyArray<StateNode<TContext, TEvent>> | undefined;
-  source: StateNode<TContext, TEvent>;
+  target:
+    | ReadonlyArray<StateNode<TContext, TEvent, any, TTransitionMeta>>
+    | undefined;
+  source: StateNode<TContext, TEvent, any, TTransitionMeta>;
   actions: readonly UnknownAction[];
   reenter: boolean;
   guard?: UnknownGuard;
@@ -1753,33 +1815,36 @@ export interface TransitionDefinition<
     actions: readonly UnknownAction[];
     guard?: UnknownGuard;
     eventType: EventDescriptor<TEvent>;
-    meta?: Record<string, any>;
+    meta?: TTransitionMeta;
   };
 }
 
-export type AnyTransitionDefinition = TransitionDefinition<any, any>;
+export type AnyTransitionDefinition = TransitionDefinition<any, any, any>;
 
 export interface InitialTransitionDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
-> extends TransitionDefinition<TContext, TEvent> {
-  target: ReadonlyArray<StateNode<TContext, TEvent>>;
+  TEvent extends EventObject,
+  TTransitionMeta extends MetaObject = MetaObject
+> extends TransitionDefinition<TContext, TEvent, TTransitionMeta> {
+  target: ReadonlyArray<StateNode<TContext, TEvent, any, TTransitionMeta>>;
   guard?: never;
 }
 
 export type TransitionDefinitionMap<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TTransitionMeta extends MetaObject = MetaObject
 > = {
   [K in EventDescriptor<TEvent>]: Array<
-    TransitionDefinition<TContext, ExtractEvent<TEvent, K>>
+    TransitionDefinition<TContext, ExtractEvent<TEvent, K>, TTransitionMeta>
   >;
 };
 
 export interface DelayedTransitionDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
-> extends TransitionDefinition<TContext, TEvent> {
+  TEvent extends EventObject,
+  TTransitionMeta extends MetaObject = MetaObject
+> extends TransitionDefinition<TContext, TEvent, TTransitionMeta> {
   delay: number | string | DelayExpr<TContext, TEvent, undefined, TEvent>;
 }
 
@@ -1815,7 +1880,8 @@ export interface StateConfig<
     any,
     any,
     any, // TMeta
-    any // TStateSchema
+    any, // TStateSchema
+    any // TTransitionMeta
   >;
 }
 
@@ -2099,7 +2165,8 @@ export type ActorLogicFrom<T> =
         any,
         any,
         any, // TMeta
-        any // TStateSchema
+        any, // TStateSchema
+        any // TTransitionMeta
       >
       ? R
       : R extends Promise<infer U>
@@ -2124,7 +2191,8 @@ export type ActorRefFrom<T> =
         infer TOutput,
         infer TEmitted,
         infer TMeta,
-        infer TStateSchema
+        infer TStateSchema,
+        infer _TTransitionMeta
       >
       ? ActorRef<
           MachineSnapshot<
@@ -2179,7 +2247,8 @@ export type InterpreterFrom<
     infer TOutput,
     infer TEmitted,
     infer TMeta,
-    infer TStateSchema
+    infer TStateSchema,
+    infer _TTransitionMeta
   >
     ? Actor<
         ActorLogic<
@@ -2218,7 +2287,8 @@ export type MachineImplementationsFrom<
     infer _TOutput,
     infer TEmitted,
     infer _TMeta,
-    infer _TStateSchema
+    infer _TStateSchema,
+    infer _TTransitionMeta
   >
     ? InternalMachineImplementations<
         ResolvedStateMachineTypes<
@@ -2438,7 +2508,8 @@ type ResolveEventType<T> =
         infer _TOutput,
         infer _TEmitted,
         infer _TMeta,
-        infer _TStateSchema
+        infer _TStateSchema,
+        infer _TTransitionMeta
       >
       ? TEvent
       : R extends MachineSnapshot<
@@ -2479,7 +2550,8 @@ export type ContextFrom<T> =
         infer _TOutput,
         infer _TEmitted,
         infer _TMeta,
-        infer _TStateSchema
+        infer _TStateSchema,
+        infer _TTransitionMeta
       >
       ? TContext
       : R extends MachineSnapshot<
@@ -2508,7 +2580,8 @@ export type ContextFrom<T> =
               infer _TOutput,
               infer _TEmitted,
               infer _TMeta,
-              infer _TStateSchema
+              infer _TStateSchema,
+              infer _TTransitionMeta
             >
             ? TContext
             : never
@@ -2621,7 +2694,8 @@ export type StateSchemaFrom<T extends AnyStateMachine> =
     infer _TOutput,
     infer _TEmitted,
     infer _TMeta,
-    infer TStateSchema
+    infer TStateSchema,
+    infer _TTransitionMeta
   >
     ? TStateSchema
     : never;
@@ -2788,7 +2862,8 @@ export type ExecutableActionsFrom<T extends AnyActorLogic> =
     infer _TOutput,
     infer _TEmitted,
     infer _TMeta,
-    infer _TStateSchema
+    infer _TStateSchema,
+    infer _TTransitionMeta
   >
     ?
         | SpecialExecutableAction
