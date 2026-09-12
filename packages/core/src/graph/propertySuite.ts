@@ -138,7 +138,12 @@ function toSuiteFixture<
         entry.kind === 'event' || entry.kind === 'command'
           ? [{ kind: entry.kind, command: entry.command }]
           : []
-    )
+    ),
+    // Carried through so the fixture replays under the same conditions the
+    // campaign recorded it under.
+    ...(trace.swarm ? { swarm: trace.swarm } : {}),
+    ...(trace.mode ? { mode: trace.mode } : {}),
+    ...(trace.outcomes ? { outcomes: trace.outcomes } : {})
   };
 }
 
@@ -357,6 +362,8 @@ export function formatPropertySuiteFixtureTitle(
         return `@advance(${command.milliseconds})`;
       case 'checkpoint':
         return '@checkpoint';
+      case 'outcome':
+        return `@outcome(${command.src})`;
       default:
         return '@stop';
     }

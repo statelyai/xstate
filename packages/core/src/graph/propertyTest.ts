@@ -23,6 +23,7 @@ import {
   finalizePropertyCoverage,
   getPropertyConfigurationId,
   getPropertyEventCaseId,
+  parsePropertyEventCaseId,
   incrementCoverage,
   recordPropertyEventCase,
   recordPropertyGuards,
@@ -345,10 +346,20 @@ export interface PropertySut<
 /** Metadata about the step an event belongs to, passed to `send`. */
 export interface PropertySutSendContext {
   /**
-   * The generated event case id (`"<type>:<case>"`), when the event came from
-   * a generator. Absent for prefix, clock, and replayed events.
+   * The internal generated event case id, when the event came from a
+   * generator. Absent for prefix, clock, and replayed events. It is an opaque
+   * string; use {@link PropertySutSendContext.case} to identify a case.
    */
   readonly caseId?: string;
+  /**
+   * The user-facing descriptor of the generated event case: the event `type`
+   * and the configured case `name` (`'default'` when the event was configured
+   * without a `case`). Absent whenever `caseId` is.
+   */
+  readonly case?: {
+    readonly type: string;
+    readonly name: string;
+  };
 }
 
 export interface PropertySutSession<TEvent extends EventObject> {
@@ -617,6 +628,10 @@ export interface PropertyTrace<
   readonly finalObservation?: PropertyObservation;
   /** Event case ids enabled for the run, when swarm testing was used. */
   readonly swarm?: readonly string[];
+  /** The mode the run was recorded in. */
+  readonly mode?: PropertyTestMode;
+  /** Actor outcomes observed during an executed-mode run, in resolution order. */
+  readonly outcomes?: readonly PropertyOutcomeRecord[];
 }
 
 /**
@@ -964,19 +979,23 @@ class PropertyExecutionEngine<
    * fire a delayed transition; only already-pending promises settle.
    */
   public async drain(): Promise<void> {
-    let seen = -1;
-    for (
-      let round = 0;
-      round < MAX_DRAIN_ROUNDS && seen !== this.buffer.length;
-      round++
-    ) {
-      seen = this.buffer.length;
+    for (let round = 0; round < MAX_DRAIN_ROUNDS; round++) {
+      const seen = this.buffer.length;
       for (let turn = 0; turn < DRAIN_MICROTASKS; turn++) {
         await Promise.resolve();
       }
       await new Promise<void>((resolve) => {
-        setTimeout(resolve, 0);
+        // `setImmediate` runs before timers, so draining is cheaper where it
+        // exists (Node); browsers and Deno fall back to a zero timeout.
+        if (typeof setImmediate === 'function') {
+          setImmediate(resolve);
+        } else {
+          setTimeout(resolve, 0);
+        }
       });
+      if (this.buffer.length === seen) {
+        return;
+      }
     }
   }
 
@@ -1138,6 +1157,9 @@ export class PropertyScenarioRunner<
   ): void {
     this.targetFunction = targetFunction;
   }
+
+  /** Outcomes observed while the executed run was alive. */
+  private executionOutcomes: readonly PropertyOutcomeRecord[] | undefined;
 
   /** Observations recorded with `target()` during this run. */
   public getTargetObservations(): readonly PropertyTargetObservation[] {
@@ -1385,9 +1407,12 @@ export class PropertyScenarioRunner<
         guardIds: []
       });
     } else if (command.type === 'outcome') {
-      if (this.execution) {
-        await this.outcome(command.src, command.outcome);
+      if (!this.execution) {
+        throw new Error(
+          `Property replay fixture contains an \`outcome\` command for "${command.src}" but the replay is running in pure mode: the fixture was recorded in executed mode; pass mode: 'executed'`
+        );
       }
+      await this.outcome(command.src, command.outcome);
     } else if (command.type === 'checkpoint') {
       await this.checkpoint(command.label);
     } else {
@@ -1440,7 +1465,31 @@ export class PropertyScenarioRunner<
       return;
     }
     if (!this.sutSession?.advance) {
-      throw new Error('Property SUT does not support clock advancement');
+      // Without a SUT that owns a clock there is nothing to advance: the
+      // command still records a runtime entry and a stable step, but delivers
+      // no events.
+      const advancedFrom = this.snapshot;
+      this.coverage.clockAdvances++;
+      const pureEntry: PropertyRuntimeTimelineEntry<TSnapshot, TEvent> = {
+        kind: 'command',
+        index: this.timeline.length,
+        command: { type: 'advance', milliseconds, deliveredEvents: [] },
+        previousSnapshot: advancedFrom,
+        snapshot: this.snapshot,
+        effects: [],
+        transitionIds: [],
+        guardIds: []
+      };
+      this.timeline.push(pureEntry);
+      const pureObservation = await this.checkStable(
+        undefined,
+        advancedFrom,
+        this.snapshot,
+        []
+      );
+      (pureEntry as { observation?: PropertyObservation }).observation =
+        pureObservation;
+      return;
     }
     const previousSnapshot = this.snapshot;
     const events = await this.sutSession.advance(milliseconds);
@@ -1594,7 +1643,6 @@ export class PropertyScenarioRunner<
     if (this.finished) {
       return;
     }
-    this.finished = true;
     for (const state of this.temporal) {
       if (state.satisfied) {
         continue;
@@ -1615,6 +1663,8 @@ export class PropertyScenarioRunner<
       }
       this.failTemporal(definition);
     }
+    // Only a run that survived every end-of-run temporal check has passed.
+    this.finished = true;
   }
 
   /** Bounded temporal properties that the run ended before deciding. */
@@ -1630,6 +1680,9 @@ export class PropertyScenarioRunner<
   public async dispose(): Promise<void> {
     const errors: unknown[] = [];
     if (this.execution) {
+      // The trace is built after disposal, so the observed outcomes outlive
+      // the engine.
+      this.executionOutcomes = this.execution.outcomes.slice();
       try {
         this.execution.stop();
       } catch (error) {
@@ -1703,7 +1756,14 @@ export class PropertyScenarioRunner<
       steps,
       finalSnapshot: this.snapshot,
       finalObservation: this.lastObservation,
-      swarm: this.swarmCaseIds
+      swarm: this.swarmCaseIds,
+      ...(this.execution || this.executionOutcomes
+        ? {
+            mode: 'executed' as const,
+            outcomes:
+              this.execution?.outcomes.slice() ?? this.executionOutcomes!
+          }
+        : {})
     };
   }
 
@@ -1757,7 +1817,11 @@ export class PropertyScenarioRunner<
       await this.referenceSession.transition(event);
     }
     if (sendToSut) {
-      await this.sutSession?.send(event, { caseId });
+      const parsedCase = caseId ? parsePropertyEventCaseId(caseId) : undefined;
+      await this.sutSession?.send(event, {
+        ...(caseId === undefined ? {} : { caseId }),
+        ...(parsedCase ? { case: parsedCase } : {})
+      });
     }
     this.coverage.steps++;
     if (phase === 'prefix') {
@@ -3178,6 +3242,7 @@ export async function propertyTest<
     };
 
     while (exploration.completedRuns < maxRuns) {
+      const runsBeforeBatch = exploration.completedRuns;
       const budget = Math.min(batchRuns, maxRuns - exploration.completedRuns);
       const batch: [Scenario, number | undefined][] = autoFrontierOptions
         ? getAutoScenarios(budget)
@@ -3196,6 +3261,12 @@ export async function propertyTest<
         if (exploration.completedRuns >= maxRuns) {
           break;
         }
+      }
+      if (exploration.completedRuns === runsBeforeBatch) {
+        // The adapter reported no completed runs for a whole batch, so looping
+        // again would spin forever.
+        exploration.truncationReasons.add('adapter made no progress');
+        break;
       }
       if (
         options.until &&
@@ -3338,6 +3409,17 @@ export async function replayPropertyTest<
   const recordedOutcomes =
     fixture.formatVersion === 2 ? (fixture.outcomes ?? []) : [];
   const outcomeRegistry = new PropertyOutcomeRegistry();
+  // Sources the fixture replays explicitly through `outcome` commands must not
+  // also be pre-seeded at start: that would provide each outcome twice and
+  // interleave them at the wrong steps.
+  const commandedSrcs = new Set(
+    normalizeFixtureTimeline(fixture).flatMap((entry) =>
+      entry.command.type === 'outcome' ? [entry.command.src] : []
+    )
+  );
+  const seededOutcomes = recordedOutcomes.filter(
+    (record) => !commandedSrcs.has(record.src)
+  );
   const providedActors: Record<string, ActorLogic<any, any, any>> = {
     ...options.actors
   };
@@ -3408,7 +3490,7 @@ export async function replayPropertyTest<
       ? {
           mode,
           registry: outcomeRegistry,
-          seededOutcomes: recordedOutcomes
+          seededOutcomes
         }
       : undefined
   );

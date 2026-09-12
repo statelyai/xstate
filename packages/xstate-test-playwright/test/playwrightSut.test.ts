@@ -257,3 +257,75 @@ describe('createPlaywrightTestModelSession', () => {
     ).rejects.toBeInstanceOf(PropertyTestFailure);
   });
 });
+
+describe('per-case mocks', () => {
+  /** Counts how often each mock was installed across a whole campaign. */
+  function mockingSutFor(page: FakePage, applied: string[]) {
+    return createPlaywrightSut<FakePage, CounterSnapshot, CounterEvent>(page, {
+      events: {
+        INC: async (p, event) => {
+          await p.fill('#amount', String(event.value));
+        },
+        RESET: async (p) => {
+          await p.click('#reset');
+        }
+      },
+      read: async (p) => Number(await p.locator('#count').textContent()),
+      projectModel: (snapshot) => snapshot.context.count,
+      reset: async (p) => {
+        await p.click('#reset');
+      },
+      mocks: {
+        'INC.small': async (p) => {
+          applied.push('INC.small');
+          await p.route('**/api/small', (route) =>
+            route.fulfill({ status: 200 })
+          );
+        },
+        'INC.large': async (p) => {
+          applied.push('INC.large');
+          await p.route('**/api/large', (route) =>
+            route.fulfill({ status: 200 })
+          );
+        }
+      }
+    });
+  }
+
+  const casedEvents = {
+    INC: [
+      { case: 'small', generate: record({ value: constant(1) }) },
+      { case: 'large', generate: record({ value: constant(3) }) }
+    ],
+    RESET: constant({})
+  };
+
+  it('resolves mocks by the generated event case', async () => {
+    const page = new FakePage();
+    const applied: string[] = [];
+    await propertyTest(counterMachine, {
+      adapter: randomAdapter({ seed: 2, numRuns: 8, maxCommands: 6 }),
+      events: casedEvents as any,
+      sut: mockingSutFor(page, applied),
+      invariant: () => {}
+    });
+
+    expect(applied).toContain('INC.small');
+    expect(applied).toContain('INC.large');
+  });
+
+  it('does not accumulate route handlers across sessions', async () => {
+    const page = new FakePage();
+    const applied: string[] = [];
+    await propertyTest(counterMachine, {
+      adapter: randomAdapter({ seed: 2, numRuns: 8, maxCommands: 6 }),
+      events: casedEvents as any,
+      sut: mockingSutFor(page, applied),
+      invariant: () => {}
+    });
+
+    expect(applied.length).toBeGreaterThan(1);
+    // Every route a mock installed is unrouted when its session is disposed.
+    expect(page.installedRoutes).toEqual([]);
+  });
+});

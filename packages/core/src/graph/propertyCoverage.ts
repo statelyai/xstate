@@ -137,7 +137,10 @@ export interface PropertyLabelCoverage {
   readonly count: number;
   /** Occurrences per recorded value. Labels without a value are not listed. */
   readonly values: Readonly<Record<string, number>>;
-  /** Runs in which the label was recorded at least once, over completed runs. */
+  /**
+   * Runs in which the label was recorded at least once, over attempted runs
+   * (including runs that failed or were shrunk). Always between `0` and `1`.
+   */
   readonly share: number;
 }
 
@@ -448,6 +451,11 @@ function registerTransition(
  * spending unbounded time and memory on it.
  */
 const TRANSITION_PAIR_UNIVERSE_LIMIT = 5000;
+/**
+ * Machines with more transitions than this skip pair enumeration entirely:
+ * the double loop below is O(T^2).
+ */
+const TRANSITION_PAIR_MACHINE_LIMIT = 500;
 
 export function getPropertyTransitionPairId(
   first: string,
@@ -479,14 +487,11 @@ function declareTransitionPairs(
   coverage: MutablePropertyCoverage,
   registered: readonly RegisteredTransition[]
 ): void {
-  const followers = new Map<string, RegisteredTransition[]>();
-  for (const entry of registered) {
-    const bySource = followers.get(entry.transition.source.id);
-    if (bySource) {
-      bySource.push(entry);
-    } else {
-      followers.set(entry.transition.source.id, [entry]);
-    }
+  if (registered.length > TRANSITION_PAIR_MACHINE_LIMIT) {
+    // Enumerating pairs is O(T^2); on large machines the universe is both
+    // uselessly large and expensive to build, so it is skipped entirely.
+    coverage.transitionPairsTruncated = true;
+    return;
   }
   const descendants = new Map<string, Set<string>>();
   let declared = 0;
@@ -793,6 +798,31 @@ export function getPropertyEventCaseId(
   return JSON.stringify(['event-case', eventType, caseName]);
 }
 
+/**
+ * Parses an id produced by {@link getPropertyEventCaseId} back into its event
+ * type and case name. Returns `undefined` for ids of any other shape.
+ */
+export function parsePropertyEventCaseId(
+  id: string
+): { readonly type: string; readonly name: string } | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(id);
+  } catch {
+    return undefined;
+  }
+  if (
+    !Array.isArray(parsed) ||
+    parsed.length !== 3 ||
+    parsed[0] !== 'event-case' ||
+    typeof parsed[1] !== 'string' ||
+    typeof parsed[2] !== 'string'
+  ) {
+    return undefined;
+  }
+  return { type: parsed[1], name: parsed[2] };
+}
+
 export function declarePropertyEventCase(
   coverage: MutablePropertyCoverage,
   id: string,
@@ -902,7 +932,9 @@ export function finalizePropertyCoverage(
     stoppedBecause: 'budget'
   }
 ): PropertyCoverage {
-  const completedRuns = exploration.completedRuns || coverage.runs;
+  // Labels are recorded by every attempted run, including failing and shrinking
+  // ones, so the share is taken over attempted runs and clamped.
+  const labelRuns = exploration.attemptedRuns || coverage.runs;
   return {
     runs: coverage.runs,
     steps: coverage.steps,
@@ -968,7 +1000,7 @@ export function finalizePropertyCoverage(
                 left.localeCompare(right)
               )
             ),
-            share: completedRuns ? entry.runs / completedRuns : 0
+            share: labelRuns ? Math.min(1, entry.runs / labelRuns) : 0
           }
         ])
     ),

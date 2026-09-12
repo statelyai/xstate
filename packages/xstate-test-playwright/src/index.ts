@@ -21,6 +21,8 @@ import type {
 export interface PlaywrightPage {
   readonly waitForLoadState?: (state?: any, options?: any) => Promise<void>;
   readonly screenshot?: (options?: any) => Promise<any>;
+  readonly route?: (url: any, handler: any, options?: any) => Promise<void>;
+  readonly unroute?: (url: any, handler?: any) => Promise<void>;
   readonly clock?: {
     readonly runFor?: (ticks: any) => Promise<void>;
   };
@@ -87,10 +89,14 @@ export interface PlaywrightSutConfig<
   /** Runs when a scenario session is disposed. */
   readonly dispose?: (page: TPage) => void | Promise<void>;
   /**
-   * Per-case `page.route()` setup, keyed by the generated event case id
-   * (`"<type>:<case>"`) when the property runner supplies one, otherwise by
-   * the case resolved by `caseOf`. Use it to steer an invoked service to
+   * Per-case `page.route()` setup. When the property runner supplies the
+   * generated event case, the key is looked up as `"<type>.<case>"` first and
+   * then as `"<case>"`; otherwise (prefix, clock and replayed events) the key
+   * is the case resolved by `caseOf`. Use it to steer an invoked service to
    * success or failure on different generated paths.
+   *
+   * Routes installed by a mock are unrouted when the scenario session is
+   * disposed, so handlers do not accumulate across runs.
    */
   readonly mocks?: {
     readonly [caseId: string]: PlaywrightMock<TPage>;
@@ -105,6 +111,78 @@ export interface PlaywrightSutConfig<
 function defaultCaseOf(event: EventObject): string {
   const explicit = (event as { case?: unknown }).case;
   return typeof explicit === 'string' ? explicit : event.type;
+}
+
+type InstalledRoute = readonly unknown[];
+
+/**
+ * Wraps a page so every `route()` a mock installs is recorded and can be
+ * removed again when the session is disposed.
+ */
+function trackRoutes<TPage extends PlaywrightPage>(
+  page: TPage,
+  installed: InstalledRoute[]
+): TPage {
+  if (typeof (page as { route?: unknown }).route !== 'function') {
+    return page;
+  }
+  return new Proxy(page as object, {
+    get(target, property, receiver) {
+      const value = Reflect.get(target, property, receiver);
+      if (typeof value !== 'function') {
+        return value;
+      }
+      if (property === 'route') {
+        return (...args: unknown[]) => {
+          installed.push(args);
+          return value.apply(target, args);
+        };
+      }
+      return value.bind(target);
+    }
+  }) as TPage;
+}
+
+/** Removes every route a mock installed through {@link trackRoutes}. */
+async function releaseRoutes<TPage extends PlaywrightPage>(
+  page: TPage,
+  installed: InstalledRoute[]
+): Promise<void> {
+  const unroute = (page as { unroute?: (...args: unknown[]) => unknown })
+    .unroute;
+  if (typeof unroute === 'function') {
+    for (const args of installed) {
+      await unroute.call(page, args[0], args[1]);
+    }
+  }
+  installed.length = 0;
+}
+
+/**
+ * Resolves the mock for a generated event case, trying `"<type>.<case>"`, then
+ * `"<case>"`, then the case resolved by `caseOf`.
+ */
+function resolveMock<TPage extends PlaywrightPage>(
+  mocks: Record<string, PlaywrightMock<TPage> | undefined> | undefined,
+  eventCase: { readonly type: string; readonly name: string } | undefined,
+  fallbackCase: string | undefined
+): { key: string; mock: PlaywrightMock<TPage> } | undefined {
+  if (!mocks) {
+    return undefined;
+  }
+  const keys = [
+    ...(eventCase
+      ? [`${eventCase.type}.${eventCase.name}`, eventCase.name]
+      : []),
+    ...(fallbackCase === undefined ? [] : [fallbackCase])
+  ];
+  for (const key of keys) {
+    const mock = mocks[key];
+    if (mock) {
+      return { key, mock };
+    }
+  }
+  return undefined;
 }
 
 function sanitizeLabel(label: string): string {
@@ -136,17 +214,23 @@ export function createPlaywrightSut<
       await config.reset?.(page);
       let appliedCase: string | undefined;
       let checkpoints = 0;
+      const installedRoutes: InstalledRoute[] = [];
+      const mockPage = trackRoutes(page, installedRoutes);
 
       return {
         send: async (event: TEvent, context?: PropertySutSendContext) => {
-          // The generated event case id is authoritative when the property
-          // runner supplies one; `caseOf` remains the fallback.
-          const caseId = context?.caseId ?? caseOf(event);
-          const mock =
-            caseId === undefined ? undefined : config.mocks?.[caseId];
-          if (mock && caseId !== appliedCase) {
-            await mock(page);
-            appliedCase = caseId;
+          // The generated event case is authoritative when the property runner
+          // supplies one; `caseOf` remains the fallback.
+          const resolved = resolveMock(
+            config.mocks as
+              | Record<string, PlaywrightMock<TPage> | undefined>
+              | undefined,
+            context?.case,
+            caseOf(event)
+          );
+          if (resolved && resolved.key !== appliedCase) {
+            await resolved.mock(mockPage);
+            appliedCase = resolved.key;
           }
           const action = (
             config.events as Record<
@@ -188,7 +272,10 @@ export function createPlaywrightSut<
           });
         },
         ...(config.stop ? { stop: () => config.stop!(page) } : {}),
-        ...(config.dispose ? { dispose: () => config.dispose!(page) } : {})
+        dispose: async () => {
+          await releaseRoutes(page, installedRoutes);
+          await config.dispose?.(page);
+        }
       };
     }
   };
@@ -246,6 +333,8 @@ export function createPlaywrightTestModelSession<
     ): Promise<PropertyTestModelSession<TSnapshot, TEvent>> => {
       await params.reset?.(page);
       let appliedCase: string | undefined;
+      const installedRoutes: InstalledRoute[] = [];
+      const mockPage = trackRoutes(page, installedRoutes);
 
       const events: Record<
         string,
@@ -259,12 +348,16 @@ export function createPlaywrightTestModelSession<
           >
         )[type];
         events[type] = async (step) => {
-          const caseId = caseOf(step.event);
-          const mock =
-            caseId === undefined ? undefined : params.mocks?.[caseId];
-          if (mock && caseId !== appliedCase) {
-            await mock(page);
-            appliedCase = caseId;
+          const resolved = resolveMock(
+            params.mocks as
+              | Record<string, PlaywrightMock<TPage> | undefined>
+              | undefined,
+            undefined,
+            caseOf(step.event)
+          );
+          if (resolved && resolved.key !== appliedCase) {
+            await resolved.mock(mockPage);
+            appliedCase = resolved.key;
           }
           await action(page, step);
         };
@@ -280,7 +373,10 @@ export function createPlaywrightTestModelSession<
 
       return {
         params: { events, states } as unknown as TestParam<TSnapshot, TEvent>,
-        ...(params.dispose ? { dispose: () => params.dispose!(page) } : {})
+        dispose: async () => {
+          await releaseRoutes(page, installedRoutes);
+          await params.dispose?.(page);
+        }
       };
     }
   };

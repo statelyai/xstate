@@ -928,6 +928,10 @@ on any replay fixture as `swarm`.
 Shrinking is unaffected: as soon as a run fails, the enabled subset is frozen to
 the failing run's, so every shrink attempt explores the same case set.
 
+Full event-case coverage is unreachable while `swarm` is on when a case is never
+enabled, so a stop condition such as `until: { eventCases: 1 }` may never hold.
+Bound such campaigns with `maxRuns`, or drop `eventCases` from `until`.
+
 ## Targeted search
 
 `target(observation, label?)` is available anywhere `label()` is, and
@@ -980,12 +984,12 @@ const { coverage } = await propertyTest(machine, {
 });
 
 coverage.labels.emptied.count; // total occurrences
-coverage.labels.emptied.share; // runs that recorded it / completed runs
+coverage.labels.emptied.share; // runs that recorded it / attempted runs (0..1)
 coverage.labels.balance.values['0']; // occurrences per recorded value
 ```
 
 `expectLabels` fails the campaign when a label is too rare. `min` is a share of
-completed runs (`0`..`1`) and `minCount` is a total number of occurrences. A
+attempted runs (`0`..`1`, capped at `1`) and `minCount` is a total number of occurrences. A
 shortfall throws an error naming every label that fell short, with the
 `PropertyCoverage` attached as `error.coverage`.
 

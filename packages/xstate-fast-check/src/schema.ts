@@ -295,11 +295,16 @@ export function arbitraryFromSchema(
 
 /** Strips a top-level `type` key; event-map keys supply the event type. */
 function stripType(
-  arbitrary: fc.Arbitrary<unknown>
+  arbitrary: fc.Arbitrary<unknown>,
+  eventType: string
 ): fc.Arbitrary<Record<string, unknown>> {
   return arbitrary.map((value) => {
-    if (value === null || typeof value !== 'object') {
-      return {} as Record<string, unknown>;
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(
+        `Property event "${eventType}" generated a non-object payload (${
+          typeof value === 'string' ? JSON.stringify(value) : String(value)
+        }). Event payloads must be plain objects; use a \`resolve\` function to map generated values onto an event payload.`
+      );
     }
     const { type: _type, ...payload } = value as Record<string, unknown>;
     return payload;
@@ -330,7 +335,8 @@ export function eventsFromSchemas<TMachine extends AnyStateMachine>(
       continue;
     }
     generators[eventType] = stripType(
-      arbitraryFromSchema(schema, options, eventType)
+      arbitraryFromSchema(schema, options, eventType),
+      eventType
     );
   }
 

@@ -84,7 +84,7 @@ test('the form matches the model', async ({ page }) => {
 | `reset`         | none                                          | Runs once when a scenario session is created.        |
 | `stop`          | none                                          | Runs when a scenario stops.                          |
 | `dispose`       | none                                          | Runs when a scenario session is disposed.            |
-| `mocks`         | none                                          | Per-case `page.route()` setup, applied before events. |
+| `mocks`         | none                                          | Per-case `page.route()` setup, applied before events, keyed by `"<type>.<case>"` or `"<case>"`. |
 | `caseOf`        | `event.case ?? event.type`                    | Resolves the mock case for an event.                 |
 
 Every scenario run creates a new session, so put navigation or app state reset
@@ -136,17 +136,42 @@ steered down a success path or a failure path depending on which case the
 generator picked:
 
 ```ts
-createPlaywrightSut(page, {
+propertyTest(machine, {
   events: {
-    SUBMIT: (page) => page.click('#submit')
+    SUBMIT: [
+      { case: 'ok', generate: fc.constant({}) },
+      { case: 'error', generate: fc.constant({}) }
+    ]
   },
+  sut: createPlaywrightSut(page, {
+    events: {
+      SUBMIT: (page) => page.click('#submit')
+    },
+    mocks: {
+      'SUBMIT.ok': (page) =>
+        page.route('**/api/submit', (route) =>
+          route.fulfill({ status: 200, body: '{"ok":true}' })
+        ),
+      'SUBMIT.error': (page) =>
+        page.route('**/api/submit', (route) => route.fulfill({ status: 500 }))
+    },
+    read,
+    projectModel
+  }),
+  invariant
+});
+```
+
+For a generated event the key is looked up as `"<type>.<case>"` first and then
+as `"<case>"`, where `<case>` is the `case` configured on the event (`'default'`
+when none is configured). Events the generator did not produce — prefix, clock
+and replayed events — have no case, and fall back to the key returned by
+`caseOf`, which defaults to `event.case ?? event.type`:
+
+```ts
+createPlaywrightSut(page, {
   mocks: {
-    'SUBMIT.ok': (page) =>
-      page.route('**/api/submit', (route) =>
-        route.fulfill({ status: 200, body: '{"ok":true}' })
-      ),
-    'SUBMIT.error': (page) =>
-      page.route('**/api/submit', (route) => route.fulfill({ status: 500 }))
+    'SUBMIT.error': (page) => page.route(/* ... */)
   },
   caseOf: (event) => `${event.type}.${event.outcome}`,
   read,
@@ -155,10 +180,9 @@ createPlaywrightSut(page, {
 ```
 
 The mock runs before the event action, and only when the resolved case differs
-from the previously applied one, so repeated events do not stack routes. Since
-`PropertySutSession.send` receives only the event, the case has to be derivable
-from the event: put it in the payload (`{ type: 'SUBMIT', outcome: 'error' }`)
-and map it with `caseOf`, which defaults to `event.case ?? event.type`.
+from the previously applied one, so repeated events do not stack routes. Every
+route a mock installs is removed with `page.unroute()` when the scenario session
+is disposed, so handlers do not accumulate across runs.
 
 ## Clock
 

@@ -84,6 +84,38 @@ describe('scheduled property runs', () => {
     );
   });
 
+  it('reports the schedule of the failing run, not of a later passing one', async () => {
+    let failure: PropertyTestFailure | undefined;
+    try {
+      await propertyTest(counterMachine, {
+        adapter: fastCheckAdapter({
+          seed: 7,
+          numRuns: 50,
+          maxCommands: 6,
+          scheduler: true
+        }),
+        events: { INC: fc.constant({}) },
+        sut: withScheduledSut(racyCounterSut),
+        invariant: () => {}
+      });
+    } catch (error) {
+      failure = error as PropertyTestFailure;
+    }
+
+    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    const report = (
+      failure!.replay?.data as { scheduler: FastCheckSchedulerReport }
+    ).scheduler;
+    const sentEvents = failure!.trace.timeline.filter(
+      (entry) => entry.kind === 'event'
+    ).length;
+    // One `commit` task per `INC` the counterexample sent: a report captured
+    // from a later, passing shrink candidate would not line up.
+    expect(report.tasks.filter((task) => task.label === 'commit').length).toBe(
+      sentEvents
+    );
+  });
+
   it('passes for a SUT that commits before resolving', async () => {
     await propertyTest(counterMachine, {
       adapter: fastCheckAdapter({

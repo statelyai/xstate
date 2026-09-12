@@ -99,6 +99,23 @@ function defaultSerializeState(state: unknown): string | undefined {
   }
 }
 
+/** Identity of a model snapshot: everything a transition can depend on. */
+function serializeSnapshotIdentity(state: unknown): string | undefined {
+  if (state === null || typeof state !== 'object') {
+    return defaultSerializeState(state);
+  }
+  const snapshot = state as {
+    value?: unknown;
+    context?: unknown;
+    status?: unknown;
+  };
+  return defaultSerializeState({
+    value: snapshot.value,
+    context: snapshot.context,
+    status: snapshot.status
+  });
+}
+
 /**
  * Decides whether a concurrent `history` is linearizable against a sequential
  * `model`: whether some total order of the operations, consistent with the
@@ -230,6 +247,14 @@ export interface ParallelPropertyCommandsOptions<TLogic extends AnyActorLogic> {
   readonly input?: unknown;
   readonly maxExplored?: number;
   readonly equalResponse?: (model: unknown, observed: unknown) => boolean;
+  /**
+   * Returns a stable string identity for a model snapshot, used to memoize
+   * search branches. Defaults to the snapshot's `value`, `context` and
+   * `status`, which keeps states that merely share a projection distinct.
+   */
+  readonly serializeState?: (
+    snapshot: SnapshotFrom<TLogic>
+  ) => string | undefined;
 }
 
 export interface ParallelPropertyCommandsResult<
@@ -259,8 +284,9 @@ export async function runParallelPropertyCommands<TLogic extends AnyActorLogic>(
     input: options.input,
     snapshot: undefined,
     label: () => {},
-    counter: () => {}
-  } as unknown as PropertySutContext<any, any>);
+    classify: () => {},
+    target: () => {}
+  } satisfies PropertySutContext<any, any>);
 
   let clock = 0;
   const now = () => clock++;
@@ -319,10 +345,12 @@ export async function runParallelPropertyCommands<TLogic extends AnyActorLogic>(
         };
       },
       equalResponse: options.equalResponse,
+      // Memoizing on the projection alone collapses distinct states that share
+      // a projection, which prunes valid linearizations.
       serializeState: (state) =>
-        defaultSerializeState(
-          options.sut.projectModel(state as SnapshotFrom<TLogic>)
-        )
+        options.serializeState
+          ? options.serializeState(state as SnapshotFrom<TLogic>)
+          : serializeSnapshotIdentity(state)
     },
     { maxExplored: options.maxExplored }
   );

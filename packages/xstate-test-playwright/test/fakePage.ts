@@ -18,7 +18,10 @@ export interface FakePageOptions {
 export class FakePage {
   public readonly app: FakeApp = { count: 0, label: 'idle' };
   public readonly screenshots: string[] = [];
+  /** Every `route()` call, in order. */
   public readonly routes: string[] = [];
+  /** The route handlers currently installed, as Playwright would hold them. */
+  public readonly installedRoutes: { url: string; handler: unknown }[] = [];
   public readonly loadStates: string[] = [];
   private pending: { remaining: number; amount: number }[] = [];
   private failRequests = false;
@@ -89,11 +92,24 @@ export class FakePage {
     handler: (route: { fulfill: (response: unknown) => void }) => void
   ): Promise<void> {
     this.routes.push(url);
+    this.installedRoutes.push({ url, handler });
     handler({
       fulfill: (response) => {
         this.failRequests = (response as { status?: number }).status === 500;
       }
     });
+    return Promise.resolve();
+  }
+
+  public unroute(url: string, handler?: unknown): Promise<void> {
+    const index = this.installedRoutes.findIndex(
+      (entry) =>
+        entry.url === url &&
+        (handler === undefined || entry.handler === handler)
+    );
+    if (index !== -1) {
+      this.installedRoutes.splice(index, 1);
+    }
     return Promise.resolve();
   }
 

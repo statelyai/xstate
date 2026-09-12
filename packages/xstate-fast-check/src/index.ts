@@ -413,8 +413,12 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
             withCurrentScheduler(scheduler, async () => {
               try {
                 await runCommands(generated, scheduler);
-              } finally {
+              } catch (error) {
+                // Only a failing run's schedule is worth reporting; capturing
+                // in `finally` would overwrite it with the last run fast-check
+                // executed, which may be a passing shrink candidate.
                 schedulerReport = summarizeSchedulerReport(scheduler);
+                throw error;
               }
             })
         )

@@ -97,6 +97,19 @@ describe('eventsFromSchemas with Zod', () => {
     }
   });
 
+  it('throws a descriptive error for a non-object event payload', () => {
+    const machine = createMachine({
+      schemas: { events: { PING: z.number() as any } },
+      on: { PING: () => ({}) }
+    });
+
+    expect(() =>
+      sample(
+        eventsFromSchemas(machine).PING as fc.Arbitrary<Record<string, unknown>>
+      )
+    ).toThrowError(/generated a non-object payload/);
+  });
+
   it('supports Zod v3-shaped definitions', () => {
     const v3String = { _def: { typeName: 'ZodString' } };
     const v3Object = {
