@@ -1,5 +1,28 @@
 # xstate
 
+## 5.33.0
+
+### Minor Changes
+
+- [#5700](https://github.com/statelyai/xstate/pull/5700) [`6d8c317`](https://github.com/statelyai/xstate/commit/6d8c317cf6d35b30e498007cc11a22be4c439c25) Thanks [@davidkpiano](https://github.com/davidkpiano)! - State and transition metadata can now use separate types:
+  
+  ```ts
+  const machine = setup({
+    types: {
+      meta: {} as { label: string },
+      transitionMeta: {} as { trackingId: number }
+    }
+  }).createMachine({
+    meta: { label: 'Root' },
+    on: {
+      NEXT: { meta: { trackingId: 42 } }
+    }
+  });
+  ```
+  
+  When `transitionMeta` is omitted, `types.meta` continues to apply its type to
+  both state and transition metadata.
+
 ## 5.32.6
 
 ### Patch Changes
