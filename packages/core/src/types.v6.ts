@@ -65,15 +65,48 @@ export type OutputFromConfig<TConfig, TFallback> = TConfig extends {
   : TFallback;
 
 /**
+ * The output type contributed by a single top-level final state: its
+ * `schemas.output` if declared, otherwise its `output` mapper's return type
+ * (or static value), otherwise `undefined` (a final state with no `output`
+ * completes the machine with `undefined` output).
+ */
+export type FinalStateConfigOutput<TStateConfig> = TStateConfig extends {
+  schemas: { output: infer TOutputSchema extends StandardSchemaV1 };
+}
+  ? StandardSchemaV1.InferOutput<TOutputSchema>
+  : OutputFromConfig<TStateConfig, undefined>;
+
+/**
+ * The union of output types across the config's top-level final states, or
+ * `never` when it has none. Reaching a top-level final state completes the
+ * machine with that state's output when no root `output` mapper is declared.
+ */
+export type TopLevelFinalOutput<TConfig> = TConfig extends {
+  states: infer TStates;
+}
+  ? {
+      [K in keyof TStates]: TStates[K] extends { type: 'final' }
+        ? FinalStateConfigOutput<TStates[K]>
+        : never;
+    }[keyof TStates]
+  : never;
+
+/**
  * The machine's output type when no output schema is declared in `setup()`: a
  * declared `schemas.output` is authoritative, otherwise the output type is
- * inferred from the config's `output` property.
+ * inferred from the config's `output` property, falling back to the union of
+ * top-level final-state output types.
  */
 export type SchemaOrConfigOutput<
   TOutputSchema extends StandardSchemaV1,
   TConfig
 > = StandardSchemaV1 extends TOutputSchema
-  ? OutputFromConfig<TConfig, InferOutput<TOutputSchema, unknown>>
+  ? OutputFromConfig<
+      TConfig,
+      [TopLevelFinalOutput<TConfig>] extends [never]
+        ? InferOutput<TOutputSchema, unknown>
+        : TopLevelFinalOutput<TConfig>
+    >
   : InferOutput<TOutputSchema, unknown>;
 
 /**

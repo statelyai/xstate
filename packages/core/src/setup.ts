@@ -60,6 +60,7 @@ import {
   Next_InvokeConfig,
   Next_StateNodeConfig,
   Next_TransitionConfigOrTarget,
+  FinalStateConfigOutput,
   OutputFromConfig,
   ValidateHistoryDefaults,
   ValidateStateTargets,
@@ -1387,18 +1388,59 @@ type HasOutputSchema<TSchemas, TOutputSchema extends StandardSchemaV1> = [
   : true;
 
 /**
+ * Whether a state is final, per the authored config or the setup-declared
+ * state contract.
+ */
+type IsFinalState<TStateConfig, TStateSchema> = TStateConfig extends {
+  type: 'final';
+}
+  ? true
+  : TStateSchema extends { type: 'final' }
+    ? true
+    : false;
+
+/**
+ * The union of output types across the config's top-level final states, or
+ * `never` when it has none. A setup-declared per-state `schemas.output` wins
+ * over the state's inline `schemas.output`, which wins over the state's
+ * `output` mapper; a final state with none of these contributes `undefined`.
+ */
+type SetupTopLevelFinalOutput<
+  TConfig,
+  TStates extends Record<string, SetupStateSchema>
+> = TConfig extends { states: infer TConfigStates }
+  ? {
+      [K in keyof TConfigStates]: IsFinalState<
+        TConfigStates[K],
+        K extends keyof TStates ? TStates[K] : never
+      > extends true
+        ? K extends keyof TStates
+          ? StateOutput<TStates[K], FinalStateConfigOutput<TConfigStates[K]>>
+          : FinalStateConfigOutput<TConfigStates[K]>
+        : never;
+    }[keyof TConfigStates]
+  : never;
+
+/**
  * The machine's output type. A declared output schema wins; otherwise the type
  * is inferred from the config's `output` property (a mapper's return type, or
- * the static value's type).
+ * the static value's type), falling back to the union of top-level
+ * final-state output types.
  */
 type SetupOrConfigOutput<
   TSchemas,
   TOutputSchema extends StandardSchemaV1,
-  TConfig
+  TConfig,
+  TStates extends Record<string, SetupStateSchema>
 > =
   HasOutputSchema<TSchemas, TOutputSchema> extends true
     ? SetupOutput<TSchemas, TOutputSchema>
-    : OutputFromConfig<TConfig, SetupOutput<TSchemas, TOutputSchema>>;
+    : OutputFromConfig<
+        TConfig,
+        [SetupTopLevelFinalOutput<TConfig, TStates>] extends [never]
+          ? SetupOutput<TSchemas, TOutputSchema>
+          : SetupTopLevelFinalOutput<TConfig, TStates>
+      >;
 
 type SetupEmitted<
   TSchemas,
@@ -4085,7 +4127,7 @@ export interface SetupReturn<
     [SetupSchema<TSchemas, 'input'>] extends [never]
       ? TInput
       : SetupInput<TSchemas, TInputSchema>,
-    SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig>,
+    SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig, TStates>,
     SetupEmitted<TSchemas, TEmittedSchemaMap>,
     SetupMeta<TSchemas, TMetaSchema>,
     SetupMachineStateSchema<TConfig, TStates>,
