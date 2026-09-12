@@ -2867,6 +2867,49 @@ describe('sendTo', () => {
     );
   });
 
+  it('should not resolve inherited properties as declared child ids', () => {
+    const errorSpy = vi.fn();
+    const childMachine = createMachine({
+      schemas: {
+        events: {
+          PING: z.object({})
+        }
+      }
+    });
+    const parentMachine = createMachine({
+      schemas: {
+        children: {
+          toString: z.custom<ActorRefFromLogic<typeof childMachine>>()
+        }
+      },
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            SEND: (_, enq) => {
+              enq.sendTo('toString', { type: 'PING' });
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy(event.error);
+            return { target: 'failed' };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const parent = createActor(parentMachine).start();
+    parent.send({ type: 'SEND' });
+
+    expect(parent.getSnapshot().value).toBe('failed');
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Unable to send event to unknown child 'toString'"
+      })
+    );
+  });
+
   it('should be able to send an event to an actor', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const childMachine = createMachine({

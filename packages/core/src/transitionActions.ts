@@ -1043,7 +1043,9 @@ export function resolveActionsWithContext(
       typeof actionRecord.args[1] === 'string'
     ) {
       const childId = actionRecord.args[1];
-      const target = intermediateSnapshot.children[childId];
+      const target = Object.hasOwn(intermediateSnapshot.children, childId)
+        ? intermediateSnapshot.children[childId]
+        : undefined;
       if (!target) {
         internalEvents?.push(
           createErrorPlatformEvent('communication', {
