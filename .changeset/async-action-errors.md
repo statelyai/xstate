@@ -24,3 +24,5 @@ const machine = createMachine({
 Add the `ErrorFrom` type helper. `invoke.onError` events are typed from the invoked actor's error type when the actor logic declares one.
 
 Add an optional `passive` flag to `Observer`. A passive observer only tracks the actor's lifecycle and does not count as an error handler, so an unhandled actor error is still reported when every observer with an `error` callback is passive.
+
+An unhandled actor error is now reported one macrotask later than before, and a subscriber with an `error` callback that attaches in that window takes the error instead. Tests that advance fake timers by a single tick to observe the report need one more tick.

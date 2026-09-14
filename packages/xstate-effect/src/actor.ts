@@ -73,10 +73,10 @@ function isActorRef(value: unknown): value is AnyActorRef {
 }
 
 /**
- * Sends an event to an actor. The returned Effect always succeeds: delivery
- * is synchronous, like `actor.send(event)`, and an event that cannot be
- * delivered (for example to a stopped actor) is reported as a dead letter,
- * observable with {@link deadLetters}.
+ * Sends an event to an actor. The returned Effect always succeeds: the event
+ * is enqueued, like `actor.send(event)`, and processed on the actor's own
+ * fiber. An event that cannot be delivered (for example to a stopped actor)
+ * is reported as a dead letter, observable with {@link deadLetters}.
  */
 export const send: {
   <TActor extends AnyActorRef>(

@@ -102,12 +102,16 @@ An actor built by `createEffectActor` is a scoped Effect, so `Layer.effect` turn
 
 ```ts
 import { Context, Effect, Layer, ManagedRuntime } from 'effect';
-import { createEffectActor, send, waitFor } from '@xstate/effect';
-import type { Actor } from 'xstate';
+import {
+  createEffectActor,
+  send,
+  waitFor,
+  type EffectActor
+} from '@xstate/effect';
 
 class CheckoutActor extends Context.Service<
   CheckoutActor,
-  Actor<typeof checkoutMachine>
+  EffectActor<typeof checkoutMachine>
 >()('@app/CheckoutActor') {}
 
 const CheckoutActorLayer = Layer.effect(
@@ -245,7 +249,7 @@ const program = Effect.gen(function* () {
 | `actor`     | `Atom<AsyncResult<Actor>>`                                                      |
 | `snapshot`  | `Atom<AsyncResult<Snapshot>>`                                                   |
 | `result`    | `Atom<AsyncResult<Snapshot, ErrorFrom<Logic>>>`: a `Failure` once the actor errors |
-| `send`      | `Writable<AsyncResult<void, NotReadyError>, Event>`: set it with an event        |
+| `send`      | `Writable<AsyncResult<void, NotReadyError>, Event>`: set it with an event; `NotReadyError` is exported from `@xstate/effect/atom` |
 | `select(f)` | `Atom<AsyncResult<T>>` derived from `snapshot`                                   |
 
 ```ts
@@ -563,6 +567,8 @@ const supervised = Effect.retry(Effect.scoped(program), {
 Both package errors are `Data.TaggedError` classes, so `Effect.catchTag('ActorStoppedError', …)` matches them.
 
 The actor's own failures are not in this table. A `fromEffect` actor reports the Effect's `E` value as `snapshot.error`, typed through `ErrorFrom`, which this package re-exports from `xstate`.
+
+A root actor that errors does not throw globally the way `createActor(...).start()` does. Its error is a value: read it with `join`, `waitFor`, the `result` atom, or `subscribe`. An errored actor nobody observes is silent, like a failed forked fiber.
 
 ## Tracing
 

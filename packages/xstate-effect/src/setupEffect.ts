@@ -59,8 +59,7 @@ export type EffectActionArgs<
  * synchronously during the transition with the arguments the transition
  * enqueued, and returns an Effect that runs afterwards in the actor's Effect
  * context. The Effect is interrupted when the actor stops; its failures and
- * defects route to the state's `onError`. The optional second parameter is the
- * transition's enqueue object, typed with the base `EventObject`.
+ * defects route to the state's `onError`.
  */
 export type EffectAction<
   TContext extends MachineContext = MachineContext,
