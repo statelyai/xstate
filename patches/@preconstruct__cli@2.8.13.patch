@@ -1,0 +1,48 @@
+diff --git a/cli/dist/preconstruct-cli-cli.cjs.js b/cli/dist/preconstruct-cli-cli.cjs.js
+index b5d4350cd50f752514ea9dda60b3afffbd462ab7..001727c3015e4a33334e7aee1c12b5c12e8dde57 100644
+--- a/cli/dist/preconstruct-cli-cli.cjs.js
++++ b/cli/dist/preconstruct-cli-cli.cjs.js
+@@ -1931,16 +1931,9 @@ async function dev(projectDir) {
+           entrypointPromises.push(fs__namespace.symlink(entrypoint.source, path__namespace["default"].join(distRoot, getDistFilenameForConditions(entrypoint, conditions.concat("module")))), fs__namespace.writeFile(path__namespace["default"].join(distRoot, getDistFilenameForConditions(entrypoint, conditions)), cjsTemplate));
+           if (exportsFieldConfig.importConditionDefaultExport === "default") {
+             entrypointPromises.push(getHasDefaultExportPromise().then(hasDefaultExport => {
+-              const filepath = path__namespace["default"].join(entrypoint.package.directory, getDistFilenameForConditions(entrypoint, conditions).replace(/\.js$/, ".mjs"));
+-              const importPath = `./${getDistFilenameForConditions(entrypoint, conditions)}`;
+-              return Promise.all([fs__namespace.writeFile(filepath, mjsTemplate(
+-              // the * won't really do anything right now
+-              // since cjs-module-lexer won't find anything
+-              // but that could be fixed by adding fake things
+-              // to the .cjs.js file that look like exports to cjs-module-lexer
+-              // but don't actually add the exports at runtime like esbuild does
+-              // (it would require re-running dev when adding new named exports)
+-              hasDefaultExport ? ["default", "*other"] : ["*other"], importPath, filepath)), hasDefaultExport && fs__namespace.writeFile(getJsDefaultForMjsFilepath(filepath), jsDefaultForMjsTemplate(importPath))]);
++              const filepath = path__namespace["default"].join(distRoot, getDistFilenameForConditions(entrypoint, conditions).replace(/\.js$/, ".mjs"));
++              const esmImportPath = "./" + path__namespace["default"].basename(getDistFilenameForConditions(entrypoint, conditions.concat("module")));
++              return fs__namespace.writeFile(filepath, esmReexportTemplate(hasDefaultExport, esmImportPath));
+             }));
+           }
+         }
+diff --git a/cli/dist/preconstruct-cli-cli.esm.js b/cli/dist/preconstruct-cli-cli.esm.js
+index 0ee4944142e9b8fb7f54ce8d64e72a65292dd4ad..d05a7589e69f40bfce16d3f0a1cb4e4434fe82fd 100644
+--- a/cli/dist/preconstruct-cli-cli.esm.js
++++ b/cli/dist/preconstruct-cli-cli.esm.js
+@@ -1882,16 +1882,9 @@ async function dev(projectDir) {
+           entrypointPromises.push(fs.symlink(entrypoint.source, path__default.join(distRoot, getDistFilenameForConditions(entrypoint, conditions.concat("module")))), fs.writeFile(path__default.join(distRoot, getDistFilenameForConditions(entrypoint, conditions)), cjsTemplate));
+           if (exportsFieldConfig.importConditionDefaultExport === "default") {
+             entrypointPromises.push(getHasDefaultExportPromise().then(hasDefaultExport => {
+-              const filepath = path__default.join(entrypoint.package.directory, getDistFilenameForConditions(entrypoint, conditions).replace(/\.js$/, ".mjs"));
+-              const importPath = `./${getDistFilenameForConditions(entrypoint, conditions)}`;
+-              return Promise.all([fs.writeFile(filepath, mjsTemplate(
+-              // the * won't really do anything right now
+-              // since cjs-module-lexer won't find anything
+-              // but that could be fixed by adding fake things
+-              // to the .cjs.js file that look like exports to cjs-module-lexer
+-              // but don't actually add the exports at runtime like esbuild does
+-              // (it would require re-running dev when adding new named exports)
+-              hasDefaultExport ? ["default", "*other"] : ["*other"], importPath, filepath)), hasDefaultExport && fs.writeFile(getJsDefaultForMjsFilepath(filepath), jsDefaultForMjsTemplate(importPath))]);
++              const filepath = path__default.join(distRoot, getDistFilenameForConditions(entrypoint, conditions).replace(/\.js$/, ".mjs"));
++              const esmImportPath = "./" + path__default.basename(getDistFilenameForConditions(entrypoint, conditions.concat("module")));
++              return fs.writeFile(filepath, esmReexportTemplate(hasDefaultExport, esmImportPath));
+             }));
+           }
+         }

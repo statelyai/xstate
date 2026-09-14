@@ -1,12 +1,22 @@
-# Tic-tac-toe example (`@xstate/store`)
+# store-tic-tac-toe
 
-This is an implementation of tic-tac-toe built with:
+## What it teaches
 
-- [XState Store](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)
-- React
-- TypeScript
-- Vite
+Modeling game rules as `@xstate/store` event handlers: each move is an event, and the winner is derived from the store's context.
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/store-tic-tac-toe)
+## XState features used
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/examples/store-tic-tac-toe)
+- `createStore` with `on` event handlers
+- `useSelector` from `@xstate/store-react`
+
+## Run it
+
+```bash
+pnpm install
+pnpm dev
+```
+
+## Inspect it
+
+`@statelyai/sdk` is wired up in `src/store.ts` with `gameStore.inspect(inspector.inspect)`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live store. Store snapshots and the events that produced them are sent to Stately's hosted relay.
+

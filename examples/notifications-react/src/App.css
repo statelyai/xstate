@@ -1,0 +1,136 @@
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  display: grid;
+  place-items: start center;
+  padding: 2rem 1rem;
+}
+
+#app {
+  width: min(34rem, 100%);
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem;
+}
+
+p {
+  color: #555;
+  font-size: 0.875rem;
+}
+
+.meta {
+  font-variant-numeric: tabular-nums;
+}
+
+.controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+button {
+  appearance: none;
+  background: #311bf6;
+  color: white;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  font-weight: bold;
+}
+
+button.success {
+  background: #0f8a5f;
+}
+
+button.error {
+  background: #c02b2b;
+}
+
+.toasts {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 18rem;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: white;
+  border: 1px solid #dce0ea;
+  border-left: 4px solid #311bf6;
+  border-radius: 0.25rem;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
+  padding: 0.75rem;
+  overflow: hidden;
+}
+
+.toast.success {
+  border-left-color: #0f8a5f;
+}
+
+.toast.error {
+  border-left-color: #c02b2b;
+}
+
+.toast.paused {
+  outline: 2px solid #311bf6;
+}
+
+.toast .body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.toast strong {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.toast button {
+  background: transparent;
+  color: #666;
+  padding: 0 0.25rem;
+  font-size: 1rem;
+}
+
+.toast .bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: #dce0ea;
+}
+
+.toast .bar.running {
+  animation: shrink 4s linear forwards;
+}
+
+@keyframes shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}

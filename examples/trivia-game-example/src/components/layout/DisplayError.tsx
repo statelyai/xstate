@@ -1,12 +1,15 @@
 import { Col, Container, Row } from 'react-bootstrap';
 import Image from 'react-bootstrap/Image';
+import type { FallbackProps } from 'react-error-boundary';
 import { Button } from '../styled/Button';
 import { TriviaMachineContext } from '../../context/AppContext';
 
-const DisplayError = () => {
+/**
+ * Rendered both as the machine's fetch-failure UI and as the
+ * `<ErrorBoundary>` fallback, hence the optional `FallbackProps`.
+ */
+const DisplayError = ({ resetErrorBoundary }: Partial<FallbackProps>) => {
   const triviaActorRef = TriviaMachineContext.useActorRef();
-  const state = TriviaMachineContext.useSelector((state) => state);
-  const { hasLoaded } = state.context;
   return (
     <Container>
       <Row>
@@ -17,14 +20,19 @@ const DisplayError = () => {
             roundedCircle
           />
           <h2 className="trivia">Sorry there was an error!</h2>
-          {hasLoaded && (
-            <Button
-              onClick={() => triviaActorRef.send({ type: 'user.playAgain' })}
-              primary
-            >
-              PLAY AGAIN
-            </Button>
-          )}
+          <p>
+            This game calls the public Rick &amp; Morty API, so it needs a
+            working network connection.
+          </p>
+          <Button
+            onClick={() => {
+              resetErrorBoundary?.();
+              triviaActorRef.send({ type: 'user.retry' });
+            }}
+            $primary
+          >
+            TRY AGAIN
+          </Button>
         </Col>
       </Row>
     </Container>

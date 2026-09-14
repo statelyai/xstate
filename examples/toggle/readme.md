@@ -1,11 +1,22 @@
-# Toggle
+# toggle
 
-This is a simple toggle, built with:
+## What it teaches
 
-- XState v5
-- TypeScript
-- Vite
+The smallest possible state machine: two states and one event that flips between them.
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/toggle)
+## XState features used
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/examples/toggle)
+- `setup()` with event schemas
+- Finite states and transitions
+- `createActor()` and snapshot subscriptions
+
+## Run it
+
+```bash
+pnpm install
+pnpm dev
+```
+
+## Inspect it
+
+`@statelyai/sdk` is wired up, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.

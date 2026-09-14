@@ -1,35 +1,32 @@
 import * as mongoDB from 'mongodb';
-import { AnyStateMachine, createActor } from 'xstate';
+import { createActor, type AnyStateMachine } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
 
-// mongoDB collections
+const inspector = process.env.INSPECT ? createInspector() : undefined;
+
+const uri = process.env.MONGODB_URI ?? 'mongodb://localhost:27017';
+
 export const collections: {
   machineStates?: mongoDB.Collection;
   creditReports?: mongoDB.Collection;
   creditProfiles?: mongoDB.Collection;
 } = {};
 
-// Initialize DB Connection and Credit Check Actor
 export async function initDbConnection() {
-  try {
-    //example uri
-    //const uri = "mongodb://localhost:27017/creditCheck";
-    const uri = '<your mongo uri here>/creditCheck';
-    const client = new mongoDB.MongoClient(uri, {
-      serverApi: mongoDB.ServerApiVersion.v1
-    });
-    const db = client.db('creditCheck');
-    collections.machineStates = db.collection('machineStates');
-    await client.connect();
-  } catch (err) {
-    console.log('Error connecting to the db...', err);
-    throw err;
-  }
+  const client = new mongoDB.MongoClient(uri);
+  await client.connect();
+
+  const db = client.db('creditCheck');
+  collections.machineStates = db.collection('machineStates');
+  collections.creditReports = db.collection('creditReports');
+  collections.creditProfiles = db.collection('creditProfiles');
 }
 
-// create an actor to be used in the API endpoints
-// hydrate the actor if a workflowId is provided
-// otherwise, create a new workflowId
-// persist the actor state to the db
+/**
+ * Returns a started actor for `workflowId`, restored from its persisted
+ * snapshot. Without a `workflowId`, a new workflow is created. The actor
+ * persists its snapshot on every transition.
+ */
 export async function getDurableActor({
   machine,
   workflowId
@@ -37,66 +34,50 @@ export async function getDurableActor({
   machine: AnyStateMachine;
   workflowId?: string;
 }) {
-  let restoredState;
-  // if workflowId is provided, hydrate the actor with the persisted state from the db
-  // otherwise, just create a new workflowId
-  if (workflowId) {
-    restoredState = await collections.machineStates?.findOne({
-      workflowId
-    });
+  let snapshot;
 
-    if (!restoredState) {
-      throw new Error('Actor not found with the provided workflowId');
+  if (workflowId) {
+    const stored = await collections.machineStates?.findOne({ workflowId });
+
+    if (!stored) {
+      throw new Error('No workflow found with the provided workflowId');
     }
 
-    console.log('restored state', restoredState);
+    snapshot = stored.persistedState;
   } else {
-    workflowId = generateActorId();
+    workflowId = generateWorkflowId();
   }
 
-  // create the actor, a null snapshot will cause the actor to start from the initial state
-  const actor = createActor(machine, {
-    snapshot: restoredState?.persistedState
-  });
+  const actor = createActor(machine, { snapshot, inspect: inspector?.inspect });
 
-  // subscribe to the actor to persist the state to the db
   actor.subscribe({
     next: async () => {
-      // on transition, persist the most recent actor state to the db
-      // be sure to enable upsert so that the state record is created if it doesn't exist!
-      const persistedState = actor.getPersistedSnapshot();
-      console.log('persisted state', persistedState);
       const result = await collections.machineStates?.replaceOne(
-        {
-          workflowId
-        },
-        {
-          workflowId,
-          persistedState
-        },
+        { workflowId },
+        { workflowId, persistedState: actor.getPersistedSnapshot() },
         { upsert: true }
       );
 
       if (!result?.acknowledged) {
         throw new Error(
-          'Error persisting actor state. Verify db connection is configured correctly.'
+          'Error persisting actor state. Verify the db connection is configured correctly.'
         );
       }
     },
     error: (err) => {
-      console.log('Error in actor subscription: ' + err);
-      throw err;
+      console.log('Error in actor subscription:', err);
     },
-    complete: async () => {
-      console.log('Actor is finished!');
+    complete: () => {
+      console.log('Workflow finished');
       actor.stop();
     }
   });
+
   actor.start();
 
   return { actor, workflowId };
 }
 
-function generateActorId() {
+function generateWorkflowId() {
   return Math.random().toString(36).substring(2, 8);
 }

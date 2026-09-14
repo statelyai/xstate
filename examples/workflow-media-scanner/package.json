@@ -2,20 +2,19 @@
   "private": true,
   "name": "@xstate/example-workflow-media-scanner",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node src/index.ts"
+    "start": "vite-node src/index.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
+    "xstate": "workspace:*"
+  },
+  "devDependencies": {
     "@types/node": "^20.19.35",
-    "fs-extra": "^11.3.4",
-    "mv": "^2.1.1",
-    "node-ffprobe": "^3.0.0",
-    "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "winston": "^3.19.0",
-    "xstate": "workspace:*",
-    "zod": "^3.25.76"
+    "vite-node": "^0.31.4"
   }
 }

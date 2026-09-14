@@ -4,16 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "vite-node --script ./main.ts",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "start": "tsx ./main.ts",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "vite": "^5.4.21",
-    "vite-node": "^0.31.4"
+    "@types/node": "^20.19.35",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "xstate": "workspace:*"
   }
 }

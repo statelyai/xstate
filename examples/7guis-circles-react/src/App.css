@@ -1,0 +1,90 @@
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  position: relative;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  display: grid;
+  place-items: center;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: #4a4f63;
+}
+
+svg {
+  border: 2px solid #dce0ea;
+  border-radius: 0.25rem;
+}
+
+.canvas {
+  fill: white;
+}
+
+svg circle {
+  fill: none;
+  stroke: #311bf6;
+  stroke-width: 2;
+}
+
+svg circle.selected {
+  fill: #dce0ea;
+}
+
+.adjuster {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  border: 2px solid #dce0ea;
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+}
+
+.adjuster label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #4a4f63;
+}
+
+button {
+  appearance: none;
+  background: #311bf6;
+  color: white;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  font-weight: bold;
+}
+
+button:disabled {
+  background: #babdcb;
+}
