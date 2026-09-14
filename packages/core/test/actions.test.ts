@@ -4357,3 +4357,21 @@ describe('actions', () => {
     expect(actions).toEqual({});
   });
 });
+
+describe('sendParent', () => {
+  it('should be a no-op when there is no parent actor', () => {
+    const machine = createMachine({
+      initial: 'init',
+      states: {
+        init: {
+          entry: sendParent({ type: 'CHILD_INIT' })
+        }
+      }
+    });
+
+    // sendParent should be a no-op (not error) when the actor has no parent
+    const actor = createActor(machine).start();
+    // The actor should remain active (not in error status)
+    expect(actor.getSnapshot().status).toBe('active');
+  });
+});
