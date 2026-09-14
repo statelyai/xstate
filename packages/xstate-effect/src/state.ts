@@ -21,7 +21,7 @@ type Join<TPrefix extends string, TKey extends string> = TPrefix extends ''
   : `${TPrefix}.${TKey}`;
 
 /** The tag of the machine itself, used when the root state is parallel. */
-export const MACHINE_TAG = '(machine)';
+const MACHINE_TAG = '(machine)';
 
 /**
  * The dotted path of a state value: `'idle'`, `'form.editing'`. A parallel
@@ -94,7 +94,7 @@ export type TaggedState<TMachine extends AnyStateMachine> = TaggedStateFrom<
 >;
 
 /** Computes the dotted path tag of a state value. */
-export function stateTag(value: StateValue, prefix = ''): string {
+function stateTag(value: StateValue, prefix = ''): string {
   if (typeof value === 'string') {
     return prefix ? `${prefix}.${value}` : value;
   }
