@@ -19,7 +19,10 @@ An example teaches one thing. State it in the first line of the README, then bui
 | `@xstate/store` example  | `store-*`          | `store-counter-react` |
 | AI agent example         | `agent-*`          | `agent-tool-loop`     |
 
-Use lowercase kebab-case. The directory name, the `name` field in `package.json`, and the README title must match.
+<!-- example directory, package-name, and README-title convention from examples/*/package.json and examples/*/{README.md,readme.md}; README filename handling from scripts/update-example-links.js -->
+
+Use lowercase kebab-case. The README title matches the directory name; the
+package name is `@xstate/example-<directory-name>`.
 
 ## Dependencies
 
@@ -149,7 +152,9 @@ delays: {
 
 ## README
 
-Every example needs a `README.md` with these sections, in this order:
+Every example needs a README with these sections, in this order. Use
+`README.md` for new examples; repository scripts also support existing
+lowercase `readme.md` files.
 
 1. **Title** — the directory name.
 2. **What it teaches** — one or two sentences naming the concept.
