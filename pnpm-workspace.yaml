@@ -2,6 +2,7 @@ packages:
   - 'packages/*'
   - 'scripts/*'
   - 'examples/*'
+  - 'examples/_shared/*'
 
 allowBuilds:
   '@parcel/watcher': true
@@ -16,9 +17,12 @@ allowBuilds:
   lmdb: true
   msgpackr-extract: true
   oxc-resolver: true
+  parcel-bundler: true
   protobufjs: true
+  sharp: false
   svelte-preprocess: true
   vue-demi: true
+  workerd: false
 
 linkWorkspacePackages: true
 
@@ -37,6 +41,7 @@ minimumReleaseAgeExclude:
   - '@changesets/should-skip-package@1.0.0'
   - '@changesets/types@7.0.0'
   - '@changesets/write@1.0.0'
+  - svelte-check@4.7.6
 
 overrides:
   # Supported by svelte-preprocess 6; replace its retained legacy optional peer.
@@ -78,4 +83,5 @@ overrides:
   yaml: 2.9.0
 
 patchedDependencies:
+  '@preconstruct/cli@2.8.13': patches/@preconstruct__cli@2.8.13.patch
   '@vue/test-utils@2.4.6': patches/@vue__test-utils@2.4.6.patch
