@@ -102,6 +102,11 @@ Relative paths work the same way: `target: ['playback.stopped', 'volume.audible'
 
 The target set must be a legal configuration: the targets must be in different regions of a common parallel ancestor. Two targets in the same region throw at machine creation, not at send time.
 
+With typed setup state schemas, one `input` value is shared by every target in
+the set and must contain the fields required by each target. Inputs for
+descendants entered through a composite or parallel state's normal `initial`
+transitions remain declared on those initial transitions.
+
 ## Cross-region conditions
 
 Use `checkStateIn(...)` inside a [transition function](guards.md) to read another region.
@@ -128,6 +133,35 @@ Common uses: a media player with independent playback, volume and subtitle regio
 ## TypeScript
 
 Region keys are inferred from `states`, so `snapshot.value` and `matches` are typed against the real region structure and a misspelled region is a type error. `onDone` on a parallel state receives a done event whose `output` is an object keyed by region. With `setup({ states })`, declare the aggregate explicitly with the parallel state's `schemas.output` when the region contract needs to be available before the machine config is written.
+
+You can declare the parallel shape in `setup(...)` and fill in behavior in
+`createMachine(...)`:
+
+```ts
+const playerSetup = setup({
+  states: {
+    active: {
+      type: 'parallel',
+      states: { playback: {}, volume: {} }
+    }
+  }
+});
+
+playerSetup.createMachine({
+  initial: 'active',
+  states: {
+    active: {
+      states: {
+        playback: { initial: 'playing', states: { playing: {} } },
+        volume: { initial: 'audible', states: { audible: {} } }
+      }
+    }
+  }
+});
+```
+
+The setup contract supplies `type: 'parallel'`, so `active` cannot define an
+`initial` state and its state value is typed as an object of regions.
 
 ## Parallel states cheatsheet
 

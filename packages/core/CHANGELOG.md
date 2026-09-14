@@ -1,5 +1,147 @@
 # xstate
 
+## 6.0.0-alpha.54
+
+### Minor Changes
+
+- 8b0d3e7: State and transition metadata can now use separate schemas:
+  
+  ```ts
+  const machine = createMachine({
+    schemas: {
+      meta: z.object({ label: z.string() }),
+      transitionMeta: z.object({ trackingId: z.number() })
+    },
+    meta: { label: 'Root' },
+    on: {
+      NEXT: { meta: { trackingId: 42 } }
+    }
+  });
+  ```
+  
+  When `transitionMeta` is omitted, `schemas.meta` continues to apply its type to
+  both state and transition metadata.
+
+### Patch Changes
+
+- 384e5d6: `actor.getPersistedSnapshot()` is now assignable to `PersistedSnapshotFrom<typeof machine>`, so persisted snapshots can be annotated with the public type instead of `ReturnType<Actor<typeof machine>['getPersistedSnapshot']>`:
+  
+  ```ts
+  import { createActor, type PersistedSnapshotFrom } from 'xstate';
+  
+  const snapshot: PersistedSnapshotFrom<typeof machine> =
+    createActor(machine).getPersistedSnapshot();
+  
+  snapshot.context; // typed from the machine
+  ```
+  
+  Event executors passed to `path.test()` from `xstate/graph` now receive the full event, payload included, instead of just `{ type }`:
+  
+  ```ts
+  await path.test({
+    events: {
+      // `event.card` used to require an `Extract<...>` cast
+      pay: ({ event }) => ui.pay(event.card)
+    }
+  });
+  ```
+- cd98aed: Preserve a state's existing input when a transition targets that state without
+  reentering it. Reentering transitions continue to replace the state input.
+- 2044d05: Send events to statically declared children by id. Events are checked against
+  the actor-ref protocol declared in `schemas.children`.
+  
+  ```ts
+  createMachine({
+    schemas: {
+      children: {
+        worker: types<ActorRefFromLogic<typeof workerLogic>>()
+      }
+    },
+    on: {
+      notify: (_, enq) => {
+        enq.sendTo('worker', { type: 'notify' });
+      }
+    }
+  });
+  ```
+
+## 6.0.0-alpha.53
+
+### Patch Changes
+
+- 010298e: Named guards are now plain predicate functions. A guard receives only the arguments you pass it — the transition args object is no longer injected first. Pass values from `context` or the event explicitly:
+  
+  ```ts
+  const machine = createMachine({
+    context: { count: 0 },
+    guards: {
+      // Previously: isAbove: (args, threshold) => args.context.count > threshold
+      isAbove: (count: number, threshold: number) => count > threshold,
+      isEnabled: () => true
+    },
+    initial: 'a',
+    states: {
+      a: {
+        on: {
+          NEXT: ({ context, guards }) => {
+            if (guards.isAbove(context.count, 3) && guards.isEnabled()) {
+              return { target: 'b' };
+            }
+          }
+        }
+      },
+      b: {}
+    }
+  });
+  ```
+  
+  Exception: guards referenced declaratively from serialized JSON or SCXML machines (`guard: { type, params }`) are invoked by the runtime and still receive the transition args object first, then `params` — the runtime is the caller there and has nothing else to pass.
+- c405428: Fixed framework adapter snapshot inference in projects that enable `exactOptionalPropertyTypes`.
+  
+  ```ts
+  const actor = createActor(machine);
+  const count = useSelector(actor, (snapshot) => snapshot.context.count);
+  ```
+
+## 6.0.0-alpha.52
+
+### Patch Changes
+
+- 069aadf: Fixed delayed transitions and other built-in effects in minified bundles, preserved hook-owned actors across React StrictMode effect reconnects, and allowed graph utilities to accept machines from duplicate XState package copies.
+
+## 6.0.0-alpha.51
+
+### Minor Changes
+
+- 29dae8c: Improve `setup(...)` state contracts with typed structural metadata, recursive
+  state input requirements for composite and parallel entry, history-default
+  validation, strongly typed relative targets, and shared input requirements for
+  literal target sets.
+- b44d9cb: State-level context schemas now refine the root context schema instead of
+  replacing it. Declare only the fields narrowed by a state while retaining all
+  root context fields in state actions, transitions, and narrowed snapshots.
+  Nested states retain active ancestor refinements, and `xstate/fsm` uses the
+  same refinement semantics.
+  
+  ```ts
+  const machine = setup({
+    schemas: {
+      context: z.object({
+        requestId: z.string(),
+        draft: z.string().optional()
+      })
+    },
+    states: {
+      reviewing: {
+        schemas: { context: z.object({ draft: z.string() }) }
+      }
+    }
+  }).createMachine({
+    context: { requestId: 'req-1' },
+    // ...
+  });
+  ```
+
 ## 6.0.0-alpha.50
 
 ### Patch Changes

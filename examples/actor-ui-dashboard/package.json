@@ -1,0 +1,21 @@
+{
+  "name": "@xstate/example-actor-ui-dashboard",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "serve": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
+    "@xstate-examples/actor-ui": "workspace:*",
+    "xstate": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}

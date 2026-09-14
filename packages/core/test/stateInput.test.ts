@@ -339,13 +339,7 @@ describe('setup', () => {
     expect(true).toBe(true);
   });
 
-  // KNOWN SOUNDNESS GAP: in a parallel state, targeting a sibling region
-  // (e.g. `target: 'r2'` from inside `r1`) type-checks but is a runtime no-op.
-  // There is no way to tell whether a state is parallel from the setup `states`
-  // schema alone, so sibling regions are indistinguishable from ordinary
-  // siblings. Tripwire: when `target: 'r2'` stops compiling, the gap is
-  // fixed — flip that line to a `@ts-expect-error`.
-  it('createStateConfig (path, config) currently accepts a sibling-region target in a parallel state (known limitation)', () => {
+  it('createStateConfig (path, config) rejects sibling-region targets in parallel states', () => {
     const s = setup({
       schemas: {
         events: {
@@ -354,6 +348,7 @@ describe('setup', () => {
       },
       states: {
         p: {
+          type: 'parallel',
           states: {
             r1: {},
             r2: {}
@@ -364,8 +359,9 @@ describe('setup', () => {
 
     s.createStateConfig('p.r1', {
       on: {
+        // @ts-expect-error - parallel regions cannot target sibling regions by name
         E: {
-          target: 'r2' // known gap: should be rejected; flip to @ts-expect-error when it is
+          target: 'r2'
         }
       }
     });
@@ -1599,6 +1595,221 @@ describe('setup', () => {
     });
   });
 
+  it("a self-transition's input only takes effect when the state is re-entered", () => {
+    const s = setup({
+      schemas: {
+        context: z.object({ count: z.number() }),
+        events: {
+          SET_MULTIPLIER_NO_REENTER: z.object({}),
+          SET_MULTIPLIER_REENTER: z.object({}),
+          MULTIPLY: z.object({})
+        }
+      },
+      states: {
+        active: {
+          schemas: {
+            input: z.object({ multiplier: z.number() })
+          }
+        }
+      }
+    });
+    const entryInputs: Array<{ multiplier: number }> = [];
+    const machine = s.createMachine({
+      context: { count: 1 },
+      initial: {
+        target: 'active',
+        input: { multiplier: 3 }
+      },
+      states: {
+        active: {
+          entry: ({ input }) => {
+            entryInputs.push(input);
+          },
+          on: {
+            SET_MULTIPLIER_NO_REENTER: {
+              target: 'active',
+              input: { multiplier: 99 }
+            },
+            SET_MULTIPLIER_REENTER: {
+              target: 'active',
+              reenter: true,
+              input: { multiplier: 10 }
+            },
+            MULTIPLY: ({ context, input }) => ({
+              context: { count: context.count * input.multiplier }
+            })
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'MULTIPLY' });
+    expect(actor.getSnapshot().context.count).toBe(3);
+
+    actor.send({ type: 'SET_MULTIPLIER_NO_REENTER' });
+    expect(entryInputs).toEqual([{ multiplier: 3 }]);
+    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+      multiplier: 3
+    });
+    actor.send({ type: 'MULTIPLY' });
+    expect(actor.getSnapshot().context.count).toBe(9);
+
+    actor.send({ type: 'SET_MULTIPLIER_REENTER' });
+    expect(entryInputs).toEqual([{ multiplier: 3 }, { multiplier: 10 }]);
+    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+      multiplier: 10
+    });
+    actor.send({ type: 'MULTIPLY' });
+    expect(actor.getSnapshot().context.count).toBe(90);
+  });
+
+  it("a non-reentering self-transition cannot overwrite a concurrent transition's input", () => {
+    const s = setup({
+      schemas: {
+        events: {
+          GO: z.object({})
+        }
+      },
+      states: {
+        receiver: {
+          states: {
+            active: {
+              schemas: {
+                input: z.object({ value: z.number() })
+              }
+            }
+          }
+        },
+        sender: {
+          states: {
+            idle: {}
+          }
+        }
+      }
+    });
+    const entryInputs: Array<{ value: number }> = [];
+    const machine = s.createMachine({
+      type: 'parallel',
+      states: {
+        sender: {
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                GO: {
+                  target: '#active',
+                  input: { value: 2 }
+                } as any
+              }
+            }
+          }
+        },
+        receiver: {
+          initial: {
+            target: 'active',
+            input: { value: 1 }
+          },
+          states: {
+            active: {
+              id: 'active',
+              entry: ({ input }) => {
+                entryInputs.push(input);
+              },
+              on: {
+                GO: {
+                  target: '#active',
+                  input: { value: 99 }
+                } as any
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+
+    expect(entryInputs).toEqual([{ value: 1 }, { value: 2 }]);
+    expect(
+      (actor.getSnapshot().getInputs() as Record<string, unknown>)['active']
+    ).toEqual({ value: 2 });
+  });
+
+  it("a compound state's input is replaced only when the state is re-entered", () => {
+    const s = setup({
+      schemas: {
+        events: {
+          PING: z.object({}),
+          PING_REENTER: z.object({})
+        }
+      },
+      states: {
+        parent: {
+          schemas: {
+            input: z.object({ value: z.number() })
+          },
+          states: {
+            child: {}
+          }
+        }
+      }
+    });
+    const parentInputs: Array<{ value: number }> = [];
+    const childEntries: string[] = [];
+    const machine = s.createMachine({
+      initial: {
+        target: 'parent',
+        input: { value: 1 }
+      },
+      states: {
+        parent: {
+          initial: 'child',
+          entry: ({ input }) => {
+            parentInputs.push(input);
+          },
+          on: {
+            PING: {
+              target: 'parent',
+              input: { value: 2 }
+            },
+            PING_REENTER: {
+              target: 'parent',
+              reenter: true,
+              input: { value: 3 }
+            }
+          },
+          states: {
+            child: {
+              entry: () => {
+                childEntries.push('child');
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    expect(parentInputs).toEqual([{ value: 1 }]);
+    expect(childEntries).toEqual(['child']);
+
+    actor.send({ type: 'PING' });
+    expect(parentInputs).toEqual([{ value: 1 }]);
+    expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
+      value: 1
+    });
+    expect(childEntries).toEqual(['child', 'child']);
+
+    actor.send({ type: 'PING_REENTER' });
+    expect(parentInputs).toEqual([{ value: 1 }, { value: 3 }]);
+    expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
+      value: 3
+    });
+    expect(childEntries).toEqual(['child', 'child', 'child']);
+  });
+
   it('invoke transitions should require context for incompatible targets', () => {
     const s = setup({
       schemas: {
@@ -1839,6 +2050,100 @@ describe('setup', () => {
       snapshot.context.user satisfies null;
     }
     expect(true).toBe(true);
+  });
+
+  it('state context schemas should refine part of the root context', () => {
+    const machine = setup({
+      schemas: {
+        context: z.object({
+          requestId: z.string(),
+          draft: z.string().optional(),
+          approved: z.literal(true).optional()
+        }),
+        events: { REVIEW: z.object({ approved: z.literal(true) }) }
+      },
+      states: {
+        workflow: {
+          type: 'compound',
+          initial: 'editing',
+          schemas: { context: z.object({ draft: z.string() }) },
+          states: {
+            editing: {},
+            reviewing: {
+              schemas: { context: z.object({ approved: z.literal(true) }) }
+            }
+          }
+        }
+      }
+    }).createMachine({
+      context: { requestId: 'req-1', draft: 'Ready' },
+      initial: 'workflow',
+      states: {
+        workflow: {
+          initial: 'editing',
+          states: {
+            editing: {
+              on: {
+                REVIEW: ({ event }) => ({
+                  target: 'reviewing',
+                  context: { approved: event.approved }
+                })
+              }
+            },
+            reviewing: {
+              entry: ({ context }) => {
+                false satisfies IsAny<typeof context>;
+                false satisfies IsAny<typeof context.requestId>;
+                context.requestId satisfies string;
+                context.draft satisfies string;
+                context.approved satisfies true;
+                // @ts-expect-error - root context fields keep their declared type
+                context.requestId satisfies number;
+              },
+              on: {
+                REVIEW: ({ context }) => {
+                  context.requestId satisfies string;
+                  context.draft satisfies string;
+                  context.approved satisfies true;
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'REVIEW', approved: true });
+
+    type ReviewingContext = StateContextFromStateValue<
+      StateSchemaFrom<typeof machine>,
+      { requestId: string; draft?: string; approved?: true },
+      { workflow: 'reviewing' }
+    >;
+    false satisfies IsAny<ReviewingContext['requestId']>;
+    (({}) as ReviewingContext).requestId satisfies string;
+    (({}) as ReviewingContext).draft satisfies string;
+    (({}) as ReviewingContext).approved satisfies true;
+    // @ts-expect-error - the root field remains a string in the refinement
+    (({}) as ReviewingContext).requestId satisfies number;
+
+    const snapshot = actor.getSnapshot();
+    if (snapshot.matches({ workflow: 'reviewing' })) {
+      false satisfies IsAny<typeof snapshot.context>;
+      false satisfies IsAny<typeof snapshot.context.requestId>;
+      snapshot.context.requestId satisfies string;
+      snapshot.context.draft satisfies string;
+      snapshot.context.approved satisfies true;
+      // @ts-expect-error - root context fields keep their declared type
+      snapshot.context.requestId satisfies number;
+    }
+
+    expect(snapshot.context).toEqual({
+      requestId: 'req-1',
+      draft: 'Ready',
+      approved: true
+    });
   });
 
   it('state schemas should allow undeclared sibling states', () => {

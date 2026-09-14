@@ -1,0 +1,27 @@
+#app {
+  max-width: 30rem;
+  padding: 2rem;
+  width: 100%;
+}
+h1 {
+  font-size: 1.5rem;
+}
+.slots {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.slots button.selected {
+  border-color: #646cff;
+}
+.hold {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.error {
+  color: #ff7875;
+}

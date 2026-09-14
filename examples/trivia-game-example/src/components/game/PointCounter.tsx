@@ -5,7 +5,7 @@ const PointCounter = () => {
   const context = TriviaMachineContext.useSelector((state) => state.context);
 
   const points = context.hasLoaded ? (
-    <span role="point-counter">{context.points}</span>
+    <span data-testid="point-counter">{context.points}</span>
   ) : (
     <Spinner
       className="small-spinner"
@@ -13,16 +13,16 @@ const PointCounter = () => {
       size="sm"
       role="status"
     >
-      <span className="sr-only">Loading...</span>
+      <span className="visually-hidden">Loading...</span>
     </Spinner>
   );
 
   return (
-    <div className="text-right">
+    <div className="text-end">
       <h1>
         <div className="text-center">
           Points{' '}
-          <Badge className="points" variant="secondary">
+          <Badge className="points" bg="secondary">
             {points}
           </Badge>
         </div>

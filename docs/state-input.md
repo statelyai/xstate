@@ -36,7 +36,7 @@ const uploadMachine = uploadSetup.createMachine({
 });
 ```
 
-State input is available to the target state's `entry`, `exit`, `on`, `after`, `timeout`, `onTimeout` and `output` functions. It persists across self-transitions and is replaced the next time the state is entered.
+State input is available to the target state's `entry`, `exit`, `on`, `after`, `timeout`, `onTimeout` and `output` functions. An invoked actor's `invoke.input` function also receives the state input, so it can adapt the state data to the actor's input contract. It persists across self-transitions and is replaced the next time the state is entered.
 
 ## Computing input
 
@@ -68,6 +68,21 @@ uploadSetup.createMachine({
 
 Nested states work the same way: a parent's `initial` passes input to its child.
 
+## Multiple targets
+
+XState applies one transition `input` to every target in a target array. When
+setup declares input schemas for those targets, the input must satisfy all of
+them:
+
+```ts
+target: ['active.left.ready', 'active.right.ready'],
+input: { leftId: 1, rightId: true }
+```
+
+Each target's descendants still receive their own input from their normal
+`initial` transitions. Widened target arrays remain compatible with existing
+configurations.
+
 ## Reading input from a snapshot
 
 `snapshot.getInputs()` returns the current inputs keyed by state node ID.
@@ -87,7 +102,7 @@ Use state input for data that belongs to one state rather than to the whole mach
 
 ## TypeScript
 
-Input is typed by the state's `schemas.input`. Transitions targeting the state require a matching `input`, and `({ input })` is typed inside that state's functions. Modular state configs created with `setup(...).createStateConfig(...)` are typed the same way. See [setup and provide](setup-and-provide.md).
+Input is typed by the state's `schemas.input`. Transitions targeting the state require a matching `input`, and `({ input })` is typed inside that state's functions, including `invoke.input`. Modular state configs created with `setup(...).createStateConfig(...)` are typed the same way. See [setup and provide](setup-and-provide.md).
 
 ## State input cheatsheet
 

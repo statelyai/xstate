@@ -155,4 +155,60 @@ describe('xstate/fsm setup', () => {
       }
     });
   });
+
+  it('combines root context with a partial state context schema', () => {
+    const app = setup({
+      schemas: {
+        context: types<{ requestId: string; draft?: string }>(),
+        events: {
+          review: types<{ draft: string }>(),
+          skip: types<{}>()
+        }
+      },
+      states: {
+        reviewing: { schemas: { context: types<{ draft: string }>() } }
+      }
+    });
+
+    const machine = app.createFSM({
+      initial: 'editing',
+      context: { requestId: 'req-1' },
+      states: {
+        editing: {
+          on: {
+            review: ({ event }) => ({
+              target: 'reviewing',
+              context: { draft: event.draft }
+            }),
+            // @ts-expect-error - the refinement requires a draft
+            skip: { target: 'reviewing' }
+          }
+        },
+        reviewing: {
+          on: {
+            review: ({ context }) => {
+              context.requestId satisfies string;
+              context.draft satisfies string;
+              return { context: { draft: context.draft } };
+            }
+          }
+        }
+      }
+    });
+
+    const next = machine.transition(machine.initialState, {
+      type: 'review',
+      draft: 'Ready'
+    });
+
+    if (next.value === 'reviewing') {
+      next.context.requestId satisfies string;
+      next.context.draft satisfies string;
+    }
+
+    expect(next).toEqual({
+      value: 'reviewing',
+      context: { requestId: 'req-1', draft: 'Ready' }
+    });
+  });
 });

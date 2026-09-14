@@ -1,28 +1,16 @@
-import { createMachine, createAsyncLogic } from 'xstate';
-export const friendMachine = createMachine({
-  types: {
-    context: {} as {
-      prevName: string;
-      name: string;
+import { createAsyncLogic, setup, types } from 'xstate';
+
+export const friendMachine = setup({
+  schemas: {
+    context: types<{ prevName: string; name: string }>(),
+    events: {
+      SET_NAME: types<{ value: string }>(),
+      SAVE: types<{}>(),
+      EDIT: types<{}>(),
+      CANCEL: types<{}>()
     },
-    events: {} as
-      | {
-          type: 'SET_NAME';
-          value: string;
-        }
-      | {
-          type: 'SAVE';
-        }
-      | {
-          type: 'EDIT';
-        }
-      | {
-          type: 'CANCEL';
-        },
-    input: {} as {
-      name: string;
-    },
-    tags: {} as 'read' | 'form' | 'saving'
+    input: types<{ name: string }>(),
+    tags: types<'read' | 'form' | 'saving'>()
   },
   actors: {
     saveUser: createAsyncLogic({
@@ -32,7 +20,8 @@ export const friendMachine = createMachine({
         return true;
       }
     })
-  },
+  }
+}).createMachine({
   id: 'friend',
   initial: 'reading',
   context: ({ input }) => ({
@@ -41,61 +30,33 @@ export const friendMachine = createMachine({
   }),
   states: {
     reading: {
-      tags: 'read',
+      tags: ['read'],
       on: {
-        EDIT: 'editing'
+        EDIT: { target: 'editing' }
       }
     },
     editing: {
-      tags: 'form',
+      tags: ['form'],
       on: {
-        SET_NAME: ({ context, event, guards, actions }, enq) => {
-          return {
-            context: {
-              ...context,
-              name: (({ event }) => event.value)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        },
-        SAVE: {
-          target: 'saving'
-        }
+        SET_NAME: ({ event }) => ({ context: { name: event.value } }),
+        SAVE: { target: 'saving' }
       }
     },
     saving: {
       tags: ['form', 'saving'],
       invoke: {
         src: 'saveUser',
-        onDone: ({ context, event, guards, actions }, enq) => {
-          return {
-            target: 'reading',
-            context: {
-              ...context,
-              prevName: (({ context }) => context.name)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        }
+        onDone: ({ context }) => ({
+          target: 'reading',
+          context: { prevName: context.name }
+        })
       }
     }
   },
   on: {
-    CANCEL: ({ context, event, guards, actions }, enq) => {
-      return {
-        target: '.reading',
-        context: {
-          ...context,
-          name: (({ context }) => context.prevName)({
-            context: context,
-            event: event
-          })
-        }
-      };
-    }
+    CANCEL: ({ context }) => ({
+      target: '.reading',
+      context: { name: context.prevName }
+    })
   }
 });

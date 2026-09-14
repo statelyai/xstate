@@ -106,14 +106,14 @@ on: {
 // named guards
 const machine = createMachine({
   guards: {
-    hasStock: ({ context }) => context.available >= context.quantity
+    hasStock: (available, quantity) => available >= quantity
   },
   initial: 'browsing',
   states: {
     browsing: {
       on: {
-        addItem: (args) => {
-          if (!args.guards.hasStock(args)) return;
+        addItem: ({ context, guards }) => {
+          if (!guards.hasStock(context.available, context.quantity)) return;
           return { target: 'adding' };
         }
       }
@@ -395,8 +395,8 @@ on: { reset: { target: ['playback.stopped', 'volume.audible'] } }
 // choice state: pass-through branch point, must resolve to a target
 routing: {
   type: 'choice',
-  choice: (args) => {
-    if (args.guards.isVip(args)) return { target: 'vipFlow' };
+  choice: ({ context, guards }) => {
+    if (guards.isVip(context.isVip)) return { target: 'vipFlow' };
     return { target: 'standardFlow' };
   }
 }
@@ -408,13 +408,30 @@ actor.send({ type: 'xstate.route', to: '#review' });
 
 // state input: schema in setup(...), value on the transition
 const s = setup({
-  states: { loading: { schemas: { input: z.object({ id: z.string() }) } } }
+  states: {
+    loading: { schemas: { input: z.object({ id: z.string() }) } },
+    active: {
+      type: 'parallel',
+      states: { playback: {}, volume: {} }
+    }
+  }
 });
 s.createMachine({
   initial: { target: 'loading', input: { id: 'a1' } },
-  states: { loading: { entry: ({ input }) => input.id } }
+  states: {
+    loading: { entry: ({ input }) => input.id },
+    active: {
+      states: {
+        playback: { initial: 'playing', states: { playing: {} } },
+        volume: { initial: 'audible', states: { audible: {} } }
+      }
+    }
+  }
 });
 ```
+
+State contracts without structural metadata remain permissive, so existing
+`setup(...)` machines do not need to add `type` or `initial` declarations.
 
 See [final](final-states.md), [history](history-states.md), [parallel](parallel-states.md), [choice](choice-states.md), [route](route-states.md) and [state input](state-input.md).
 
@@ -455,7 +472,7 @@ const orderSetup = setup({
     actions: { track: { params: z.object({ key: z.string() }) } }
   },
   actions: { notify: (params: { msg: string }) => toast(params.msg) },
-  guards: { isPositive: ({ total }: { total: number }) => total > 0 },
+  guards: { isPositive: (total: number) => total > 0 },
   actors: { chargeCard },
   delays: { retry: 1_000 },
   states: { paying: { schemas: { input: z.object({ id: z.string() }) } } }

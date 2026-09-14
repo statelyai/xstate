@@ -87,12 +87,18 @@ describe('strict authored targets', () => {
     });
 
     if (false) {
-      // @ts-expect-error - no state declares the ID `missing`
       s.createMachine({
         id: 'root',
         initial: 'idle',
         states: {
-          idle: { on: { GO: { target: '#missing' } } },
+          idle: {
+            on: {
+              // @ts-expect-error - no state declares the ID `missing`
+              GO: {
+                target: '#missing'
+              }
+            }
+          },
           done: { id: 'finished' }
         }
       });

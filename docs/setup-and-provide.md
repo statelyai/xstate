@@ -15,7 +15,7 @@ const orderSetup = setup({
   actions: {
     logTotal: (params: { total: number }) => console.log(params.total)
   },
-  guards: { hasStock: ({ context }) => context.total > 0 },
+  guards: { hasStock: (total: number) => total > 0 },
   actors: { chargeCard },
   delays: { retryDelay: 1_000 }
 });
@@ -28,6 +28,61 @@ const orderMachine = orderSetup.createMachine({
 ```
 
 `setup(...)` also accepts `states`, where each state declares its own schemas. That is what types the `initial: { target, input }` form and transitions carrying [state input](state-input.md).
+
+A state-level `schemas.context` refines the root context schema. It only needs
+to declare the fields narrowed in that state; XState intersects its inferred
+type with the root context type:
+
+```ts
+const editorSetup = setup({
+  schemas: {
+    context: z.object({
+      requestId: z.string(),
+      draft: z.string().optional()
+    })
+  },
+  states: {
+    reviewing: {
+      schemas: { context: z.object({ draft: z.string() }) }
+    }
+  }
+});
+```
+
+In `reviewing`, both `context.requestId` and the narrowed
+`context.draft: string` are available. With runtime validation enabled, XState
+validates the complete context against both the root schema and every active
+state schema. Nested states also retain refinements from their active ancestor
+states.
+
+State contracts can also declare structural metadata: `type`, `initial`,
+`history`, `target`, and `id` (plus `route: true` for a routable state).
+`createMachine(...)` may omit those defaults, and the resulting state value and
+state-node metadata retain their types. Declaring a state `type` also checks
+its compatible machine shape: compound states need an `initial`, parallel
+states do not accept one, history states need a non-empty `target`, and final
+or choice states cannot define child-state behavior. Setups that only declare
+`schemas` remain permissive for compatibility with existing machine configs.
+When a structural contract declares child states, `createMachine(...)` still
+provides those child configs; setup supplies their contracts and defaults, not
+their runtime behavior.
+
+When setup is extended, repeated state names merge recursively. Extension
+fields and schemas win conflicts, while descendants declared only by the base
+or extension are preserved.
+
+Input requirements follow entry semantics. A transition that targets a
+composite state supplies that state's input, while the composite state's
+`initial` supplies input for its newly entered child. A parallel state follows
+the same rule independently for each region, so every region with an
+input-bearing initial child needs an object-form `initial` transition. The
+path overload of `createStateConfig(...)` resolves relative targets such as
+`.child` and `.foo.grandchild` against the setup tree and types their input.
+
+History defaults do not have an input field. Therefore a setup history state
+cannot default directly to a state with required input; target a composite or
+parallel state whose normal initial transitions construct the required child
+inputs instead.
 
 State schemas can also declare `schemas.output` for the value emitted when that
 state completes. Final-state `output` functions and the parent state's `onDone`
@@ -91,7 +146,7 @@ Where a validation failure surfaces depends on which side of the delivery bounda
 ```ts
 const machine = createMachine({
   actions: { notify: (params: { msg: string }) => toast(params.msg) },
-  guards: { isReady: ({ context }) => context.ready },
+  guards: { isReady: (ready: boolean) => ready },
   actors: { chargeCard },
   delays: { retryDelay: 1_000 },
   initial: 'idle',
@@ -108,7 +163,7 @@ idle: {
   on: {
     submit: (args, enq) => {
       const { actions } = args;
-      if (!args.guards.isReady(args)) return;
+      if (!args.guards.isReady(args.context.ready)) return;
       actions.notify({ msg: 'Charging' });
       enq(actions.notify, { msg: 'Queued' });
       return { target: 'charging' };
@@ -117,7 +172,7 @@ idle: {
 }
 ```
 
-Named actions are called with their params. Named guards receive the transition arguments object first, then any params. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
+Named actions and guards are plain functions called with only their params — nothing is injected. Pass values from `context` or the event explicitly. Declare param types on the function itself, or with `schemas.actions` and `schemas.guards` so the params are checked before the implementations exist:
 
 ```ts
 setup({
@@ -175,7 +230,7 @@ Sources declared on `setup(...)` or on the machine config are inferred into `{ a
 const s = setup({
   schemas: { context: z.object({ n: z.number() }) },
   actions: { log: (params: { msg: string }) => console.log(params.msg) },
-  guards: { isPositive: ({ context }) => context.n > 0 },
+  guards: { isPositive: (n: number) => n > 0 },
   actors: { fetchUser },
   delays: { retry: 1_000 },
   states: { loading: { schemas: { input: z.object({ id: z.string() }) } } }

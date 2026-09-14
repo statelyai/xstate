@@ -605,7 +605,8 @@ export type TransitionConfigFunction<
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
   TInput = undefined,
-  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext
+  _TCtx extends MachineContext = [TContext] extends [never] ? any : TContext,
+  TChildren extends Record<string, AnyActorRef | undefined> = {}
 > = (
   args: TransitionFunctionArgs<
     _TCtx,
@@ -614,9 +615,10 @@ export type TransitionConfigFunction<
     TActionMap,
     TActorMap,
     TGuardMap,
-    TDelayMap
+    TDelayMap,
+    TChildren
   > & { input: TInput },
-  enq: EnqueueObject<TEvent, TEmitted, SystemRegistry, TActorMap>
+  enq: EnqueueObject<TEvent, TEmitted, SystemRegistry, TActorMap, TChildren>
 ) => {
   target?: string | string[];
   // target?: keyof TSS['states'];
@@ -633,7 +635,11 @@ type TransitionFunctionArgs<
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
-  TDelayMap extends Sources['delays']
+  TDelayMap extends Sources['delays'],
+  TChildren extends Record<string, AnyActorRef | undefined> = Record<
+    string,
+    AnyActor
+  >
 > = {
   context: TContext;
   event: TCurrentEvent;
@@ -652,7 +658,7 @@ type TransitionFunctionArgs<
   >;
   parent: UnknownActorRef | undefined;
   value: StateValue;
-  children: Record<string, AnyActor>;
+  children: TChildren;
   system: AnyActorSystem;
   actions: TActionMap;
   actors: TActorMap;
@@ -1164,8 +1170,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   events: Array<EventDescriptor<any>>;
   sources: Sources;
   config: any;
-  version?: string;
-  schemas?: import('./types.v6.ts').AnyMachineSchemas;
+  version?: string | undefined;
+  schemas?: import('./types.v6.ts').AnyMachineSchemas | undefined;
   snapshotSchema: import('./machineVersion.types.ts').MachineSnapshotSchema;
   eventSchema: import('./machineVersion.types.ts').MachineEventSchema;
   provide(sources: any): AnyStateMachine;
@@ -1518,6 +1524,7 @@ export type Mapper<
   args: {
     context: _TCtx;
     event: TExpressionEvent;
+    input?: Record<string, unknown>;
     self: ActorSelf<
       MachineSnapshot<
         _TCtx & MachineContext,
@@ -1537,18 +1544,19 @@ export type Mapper<
 
 export interface TransitionDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TMeta extends MetaObject = any
 > extends Omit<
   TransitionConfig<
     TContext,
     TEvent,
     TEvent,
     TODO,
+    TMeta,
     TODO,
     TODO,
     TODO,
-    TODO, // TEmitted
-    TODO // TMeta
+    TODO
   >,
   'target' | 'to'
 > {
@@ -1570,11 +1578,13 @@ export interface TransitionDefinition<
 
 export type AnyTransitionDefinition = TransitionDefinition<any, any>;
 
-export type InitialTransitionDefinition = {
+export type InitialTransitionDefinition<TMeta extends MetaObject = any> = {
   source: AnyStateNode;
   target: AnyStateNode[] | undefined;
   reenter?: boolean;
   eventType?: EventDescriptor<any>;
+  meta?: TMeta;
+  description?: string;
   input?:
     | Record<string, unknown>
     | ((args: {
@@ -1586,10 +1596,11 @@ export type InitialTransitionDefinition = {
 
 export type TransitionDefinitionMap<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TMeta extends MetaObject = any
 > = {
   [K in EventDescriptor<TEvent>]: Array<
-    TransitionDefinition<TContext, ExtractEvent<TEvent, K>>
+    TransitionDefinition<TContext, ExtractEvent<TEvent, K>, TMeta>
   >;
 };
 
@@ -1604,8 +1615,9 @@ export type DelayExpr<
 
 export interface DelayedTransitionDefinition<
   TContext extends MachineContext,
-  TEvent extends EventObject
-> extends TransitionDefinition<TContext, TEvent> {
+  TEvent extends EventObject,
+  TMeta extends MetaObject = any
+> extends TransitionDefinition<TContext, TEvent, TMeta> {
   delay: number | string | DelayExpr<TContext, TEvent>;
 }
 
@@ -1696,10 +1708,58 @@ type PersistedSnapshotLogicIdentity<TLogic> = TLogic extends {
     }
   : never;
 
-/** A persisted snapshot tied to a versioned actor logic identity. */
+/**
+ * A persisted snapshot tied to a versioned actor logic identity.
+ *
+ * @remarks
+ * This is a _brand only_: it carries the machine `id`/`version` identity used
+ * to constrain which persisted snapshots may be restored into which logic, and
+ * says nothing about the snapshot's shape. To annotate a value produced by
+ * {@link Actor.getPersistedSnapshot}, use {@link PersistedSnapshotFrom}
+ * instead.
+ */
 export type PersistedSnapshotFor<TLogic> = {
   readonly [persistedSnapshotLogic]: PersistedSnapshotLogicIdentity<TLogic>;
 };
+
+/** The identity stamp persisted by a machine that declares a `version`. */
+export type PersistedMachineIdentity<
+  TMachine extends AnyStateMachine = AnyStateMachine
+> = {
+  id: TMachine['id'];
+  version: NonNullable<TMachine['version']>;
+};
+
+/**
+ * The persisted snapshot produced by `actor.getPersistedSnapshot()` for a given
+ * state machine:
+ *
+ * ```ts
+ * const persisted: PersistedSnapshotFrom<typeof machine> =
+ *   actor.getPersistedSnapshot();
+ * ```
+ *
+ * @remarks
+ * The `machine` identity field is only present for machines that declare a
+ * `version`; unversioned machines persist no identity stamp.
+ *
+ * Unlike {@link PersistedSnapshotFor}, which is only the restore-time identity
+ * brand, this describes the persisted snapshot's actual shape.
+ */
+export type PersistedSnapshotFrom<TMachine extends AnyStateMachine> =
+  Snapshot<unknown> &
+    PersistedSnapshotFor<TMachine> & {
+      context: ContextFrom<TMachine>;
+      [key: string]: unknown;
+    } & (undefined extends TMachine['version']
+      ? { machine?: PersistedMachineIdentity<TMachine> }
+      : { machine: PersistedMachineIdentity<TMachine> });
+
+/** The persisted snapshot produced by `actor.getPersistedSnapshot()`. */
+export type PersistedSnapshotOf<TLogic extends AnyActorLogic> =
+  TLogic extends AnyStateMachine
+    ? PersistedSnapshotFrom<TLogic>
+    : Snapshot<unknown> & PersistedSnapshotFor<TLogic>;
 
 /**
  * A persisted snapshot restorable into the given actor logic: any snapshot
@@ -2319,7 +2379,7 @@ export interface ActorLogic<
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
   /** Optional runtime validator for pure calculation boundaries. */
-  validator?: import('./validation.types.ts').ActorLogicValidator;
+  validator?: import('./validation.types.ts').ActorLogicValidator | undefined;
   /**
    * Transition function that processes the current state and an incoming event
    * to produce a new state and effects.
@@ -2406,7 +2466,7 @@ export interface ActorLogic<
 
 export interface AnyActorLogic {
   config?: unknown;
-  validator?: import('./validation.types.ts').ActorLogicValidator;
+  validator?: import('./validation.types.ts').ActorLogicValidator | undefined;
   transition(
     snapshot: any,
     event: any,
@@ -2661,6 +2721,7 @@ export type StateSchema = {
   contextSchema?: StandardSchemaV1;
   outputSchema?: StandardSchemaV1;
   input?: unknown;
+  initial?: unknown;
 
   // Other types
   // Needed because TS treats objects with all optional properties as a "weak" object
@@ -2768,7 +2829,9 @@ type ContextFromStateSchema<
   TSchema extends StateSchema,
   TFallbackContext extends MachineContext
 > = TSchema['contextSchema'] extends StandardSchemaV1
-  ? StandardSchemaV1.InferOutput<TSchema['contextSchema']> & MachineContext
+  ? StandardSchemaV1.InferOutput<TSchema['contextSchema']> &
+      TFallbackContext &
+      MachineContext
   : TFallbackContext;
 
 type ContextFromChildStateValue<
@@ -3121,7 +3184,8 @@ export type EnqueueObject<
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
   TSystemRegistry extends SystemRegistry = SystemRegistry,
-  TActorMap extends Sources['actors'] = Sources['actors']
+  TActorMap extends Sources['actors'] = Sources['actors'],
+  TChildren extends Record<string, AnyActorRef | undefined> = {}
 > = {
   cancel: (id: string) => void;
   raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
@@ -3135,9 +3199,18 @@ export type EnqueueObject<
   emit: (emittedEvent: TEmittedEvent) => void;
   <T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): void;
   log: (...args: any[]) => void;
-  sendTo: <TActorRef extends { send: (...args: any[]) => void } | undefined>(
-    actorRef: TActorRef,
-    event: SendableEventFromActorRef<NoInfer<TActorRef>>,
+  sendTo: <
+    TTarget extends
+      | { send: (...args: any[]) => void }
+      | undefined
+      | (keyof TChildren & string)
+  >(
+    target: TTarget,
+    event: SendableEventFromActorRef<
+      NoInfer<
+        TTarget extends keyof TChildren & string ? TChildren[TTarget] : TTarget
+      >
+    >,
     options?: { id?: string; delay?: number }
   ) => void;
   stop: (actor?: AnyActorRef) => void;

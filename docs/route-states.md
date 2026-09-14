@@ -51,7 +51,7 @@ The config object accepts `context`, `input`, `reenter`, `meta` and `description
 ```ts
 review: {
   id: 'review',
-  route: (args) => args.guards.isReady(args)
+  route: ({ context, guards }) => guards.isReady(context.ready)
 }
 ```
 
@@ -81,6 +81,10 @@ Use route states for:
 Route events are strongly typed. The `to` field only accepts `#id` strings for states that declare both an `id` and a `route`. A plain state key, the machine's own id, and a name that does not exist are all type errors. `machine.root.on['xstate.route']` is defined whenever the machine contains at least one route.
 
 Inside a route function, `context`, `event` and `guards` are inferred from the machine's schemas. When a machine is built from JSON with `createMachineFromConfig`, a route may reference a guard by name; an unimplemented name errors the actor at route time with `Guard 'isReady' is not implemented in machine 'flow'`.
+
+For a setup-defined route, declare `id` and `route: true` in the state
+contract. The machine config may omit both fields, and the route event remains
+typed against the declared `#id`.
 
 ## Route states cheatsheet
 

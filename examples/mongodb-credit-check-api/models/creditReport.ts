@@ -1,10 +1,7 @@
-import { ObjectId } from 'mongodb';
+import type { BureauName } from './creditProfile';
 
-export default class CreditReport {
-  constructor(
-    public ssn: string,
-    public bureauName: string,
-    public creditScore: number,
-    public _id?: ObjectId
-  ) {}
+export interface CreditReport {
+  ssn: string;
+  bureauName: BureauName;
+  creditScore: number;
 }

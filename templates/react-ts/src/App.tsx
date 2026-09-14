@@ -1,16 +1,13 @@
 import './App.css';
 import { feedbackMachine } from './feedbackMachine';
-import { useMachine } from '@xstate/react';
-import { createBrowserInspector } from '@statelyai/inspect';
+import { useActor } from '@xstate/react';
+import { createInspector } from '@statelyai/sdk';
 
-const { inspect } = createBrowserInspector({
-  // Comment out the line below to start the inspector
-  autoStart: false
-});
+const inspector = createInspector();
 
 function Feedback() {
-  const [state, send] = useMachine(feedbackMachine, {
-    inspect
+  const [state, send] = useActor(feedbackMachine, {
+    inspect: inspector.inspect
   });
 
   if (state.matches('closed')) {

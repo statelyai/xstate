@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import cn from 'classnames';
 import { useHashChange } from './useHashChange';
 import { Todo } from './Todo';
@@ -29,7 +29,7 @@ export function Todos() {
     todosActorRef.subscribe(() => {
       localStorage.setItem(
         'todos',
-        JSON.stringify(todosActorRef.getPersistedSnapshot?.())
+        JSON.stringify(todosActorRef.getPersistedSnapshot())
       );
     });
   }, [todosActorRef]);

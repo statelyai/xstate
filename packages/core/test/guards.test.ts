@@ -864,7 +864,7 @@ describe('guards - unknown references', () => {
     const machine = createMachine({
       context: { ready: false },
       guards: {
-        isReady: ({ context }) => context.ready === true
+        isReady: (ready: boolean) => ready === true
       },
       initial: 'routing',
       states: {
@@ -873,7 +873,7 @@ describe('guards - unknown references', () => {
             if (
               guards
                 // @ts-expect-error
-                .isRedy(context)
+                .isRedy(context.ready)
             ) {
               return { target: 'go' };
             }
@@ -894,5 +894,64 @@ describe('guards - unknown references', () => {
     expect((snapshot as any).error.message).toMatch(
       /guards.isRedy is not a function/
     );
+  });
+});
+
+describe('guards - plain function sources', () => {
+  it('passes only the caller-supplied params to the source', () => {
+    const received: unknown[][] = [];
+    const machine = createMachine({
+      context: { count: 5 },
+      guards: {
+        isAbove: (count: number, threshold: number) => {
+          received.push([count, threshold]);
+          return count > threshold;
+        }
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: ({ context, guards }) => {
+              if (guards.isAbove(context.count, 3)) {
+                return { target: 'b' };
+              }
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'EV' });
+
+    expect(actor.getSnapshot().value).toBe('b');
+    expect(received).toEqual([[5, 3]]);
+  });
+
+  it('supports zero-param guards', () => {
+    const machine = createMachine({
+      guards: {
+        isEnabled: () => true
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: ({ guards }) => {
+              if (guards.isEnabled()) {
+                return { target: 'b' };
+              }
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'EV' });
+    expect(actor.getSnapshot().value).toBe('b');
   });
 });

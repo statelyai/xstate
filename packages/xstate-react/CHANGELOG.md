@@ -1,5 +1,11 @@
 # Changelog
 
+## 7.0.0-alpha.2
+
+### Patch Changes
+
+- 069aadf: Fixed delayed transitions and other built-in effects in minified bundles, preserved hook-owned actors across React StrictMode effect reconnects, and allowed graph utilities to accept machines from duplicate XState package copies.
+
 ## 7.0.0-alpha.1
 
 ### Major Changes

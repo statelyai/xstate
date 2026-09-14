@@ -19,7 +19,7 @@ entry: ({ context }, enq) => {
 | --- | --- |
 | `enq(...)` | Enqueue an effect function. |
 | `enq.raise(...)` | Send an event to the same actor. |
-| `enq.sendTo(...)` | Send an event to another actor. |
+| `enq.sendTo(...)` | Send an event to an actor ref or a statically declared child id. |
 | `enq.spawn(...)` | Spawn a child from actor logic or its typed registered name. |
 | `enq.stop(...)` | Stop an actor. |
 | `enq.cancel(...)` | Cancel a delayed event. |
@@ -40,7 +40,9 @@ Use actions for work such as:
 
 ## TypeScript
 
-Action arguments are inferred from context and event schemas.
+Action arguments are inferred from context and event schemas. A child declared
+in `schemas.children` can be addressed by id; its actor-ref schema determines
+which events are accepted.
 
 ## Actions cheatsheet
 
@@ -48,8 +50,8 @@ Action arguments are inferred from context and event schemas.
 entry: (_, enq) => enq(() => startEffect())
 exit: (_, enq) => enq(() => stopEffect())
 on: {
-  ping: ({ children }, enq) => {
-    enq.sendTo(children.worker, { type: 'ping' });
+  ping: (_, enq) => {
+    enq.sendTo('worker', { type: 'ping' });
   }
 }
 ```

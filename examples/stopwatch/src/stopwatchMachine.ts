@@ -1,14 +1,25 @@
-import { createMachine, createCallbackLogic } from 'xstate';
+import { createCallbackLogic, setup, types } from 'xstate';
 
-export const stopwatchMachine = createMachine({
+export const stopwatchMachine = setup({
+  schemas: {
+    context: types<{ elapsed: number }>(),
+    events: {
+      start: types<{}>(),
+      stop: types<{}>(),
+      reset: types<{}>(),
+      TICK: types<{}>()
+    }
+  },
   actors: {
     ticks: createCallbackLogic(({ sendBack }) => {
       const interval = setInterval(() => {
         sendBack({ type: 'TICK' });
       }, 10);
+
       return () => clearInterval(interval);
     })
-  },
+  }
+}).createMachine({
   id: 'stopwatch',
   initial: 'stopped',
   context: {
@@ -17,7 +28,7 @@ export const stopwatchMachine = createMachine({
   states: {
     stopped: {
       on: {
-        start: 'running'
+        start: { target: 'running' }
       }
     },
     running: {
@@ -25,24 +36,17 @@ export const stopwatchMachine = createMachine({
         src: 'ticks'
       },
       on: {
-        TICK: ({ context, event, guards, actions }, enq) => {
-          return {
-            context: {
-              ...context,
-              elapsed: (({ context }) => context.elapsed + 1)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        },
-        stop: 'stopped'
+        TICK: ({ context }) => ({
+          context: { ...context, elapsed: context.elapsed + 1 }
+        }),
+        stop: { target: 'stopped' }
       }
     }
   },
   on: {
-    reset: ({ context, event, guards, actions }, enq) => {
-      return { target: '.stopped', context: { ...context, elapsed: 0 } };
-    }
+    reset: ({ context }) => ({
+      target: '.stopped',
+      context: { ...context, elapsed: 0 }
+    })
   }
 });

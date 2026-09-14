@@ -110,6 +110,37 @@ Use history states when a user leaves a multi-step form and returns to the step 
 
 `target` on a history state is `string | string[]` and is checked against the machine's state paths, so an unknown default target is a type error as well as a runtime error. `snapshot.historyValue` is `Record<string, StateNode[]>` on a live snapshot and `Record<string, { id: string }[]>` once persisted.
 
+History defaults can be declared in `setup(...)` when the state topology is
+known there. The machine config can then omit `type` and `target`; the setup
+contract supplies them to the state node and the same target validation still
+applies:
+
+```ts
+const playerSetup = setup({
+  states: {
+    player: {
+      type: 'compound',
+      initial: 'stopped',
+      states: {
+        stopped: {},
+        hist: { type: 'history', target: 'stopped' }
+      }
+    }
+  }
+});
+
+playerSetup.createMachine({
+  initial: 'player',
+  states: { player: { states: { stopped: {}, hist: {} } } }
+});
+```
+
+History defaults have no `input` field. A setup history target therefore cannot
+be a state with required input. Target a compound or parallel state instead;
+its normal initial transitions must provide input for any newly entered child
+states. When history has a remembered configuration, the existing state inputs
+are restored with that configuration.
+
 ## History states cheatsheet
 
 ```ts

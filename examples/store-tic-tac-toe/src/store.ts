@@ -1,4 +1,7 @@
 import { createStore } from '@xstate/store';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 type Player = 'x' | 'o';
 type Cell = Player | null;
@@ -80,3 +83,5 @@ export const gameStore = createStore({
     reset: (): GameState => initialState
   }
 });
+
+gameStore.inspect(inspector.inspect);

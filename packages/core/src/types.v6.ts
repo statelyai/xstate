@@ -19,6 +19,7 @@ import {
   DoNotInfer,
   ErrorFrom,
   ErrorActorEvent,
+  EnqueueObject,
   EventDescriptor,
   ErrorEvent,
   EventObject,
@@ -259,6 +260,7 @@ type MachineSchemas<
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
+  TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>
 > = {
@@ -271,6 +273,7 @@ type MachineSchemas<
   input?: TInputSchema;
   output?: TOutputSchema;
   meta?: TMetaSchema;
+  transitionMeta?: TTransitionMetaSchema;
   tags?: TTagSchema;
   children?: TChildrenSchemaMap;
 };
@@ -280,6 +283,7 @@ export type AnyMachineSchemas = MachineSchemas<
   Record<string, StandardSchemaV1>,
   Record<string, StandardSchemaV1>,
   Record<string, StandardSchemaV1>,
+  StandardSchemaV1,
   StandardSchemaV1,
   StandardSchemaV1,
   StandardSchemaV1,
@@ -295,6 +299,7 @@ export type Next_MachineConfig<
   TInputSchema extends StandardSchemaV1,
   TOutputSchema extends StandardSchemaV1,
   TMetaSchema extends StandardSchemaV1,
+  TTransitionMetaSchema extends StandardSchemaV1,
   TTagSchema extends StandardSchemaV1,
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>,
   TContext extends MachineContext = InferOutput<TContextSchema, MachineContext>,
@@ -330,7 +335,12 @@ export type Next_MachineConfig<
     Record<string, unknown> | undefined,
     Record<string, unknown>,
     DoNotInfer<TSystemRegistry>,
-    DoNotInfer<InferOutput<TOutputSchema, unknown>>
+    DoNotInfer<InferOutput<TOutputSchema, unknown>>,
+    DoNotInfer<
+      StandardSchemaV1 extends TTransitionMetaSchema
+        ? InferOutput<TMetaSchema, MetaObject>
+        : InferOutput<TTransitionMetaSchema, MetaObject>
+    >
   >,
   'output' | 'schemas'
 > & {
@@ -344,6 +354,7 @@ export type Next_MachineConfig<
     TInputSchema,
     TOutputSchema,
     TMetaSchema,
+    TTransitionMetaSchema,
     TTagSchema,
     TChildrenSchemaMap
   >;
@@ -443,10 +454,12 @@ type InvokeInputArgs<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
-  TChildren extends Record<string, AnyActorRef | undefined>
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TInput = undefined
 > = {
   context: TContext;
   event: TEvent;
+  input: TInput;
   self: ActorSelf<
     MachineSnapshot<
       TContext,
@@ -517,7 +530,8 @@ type InlineInvokeOnDone<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
-  TMeta extends MetaObject
+  TMeta extends MetaObject,
+  TChildren extends Record<string, AnyActorRef | undefined>
 > = [keyof TActorMap & string] extends [never]
   ? Next_TransitionConfigOrTarget<
       TContext,
@@ -528,7 +542,9 @@ type InlineInvokeOnDone<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TMeta
+      TMeta,
+      undefined,
+      TChildren
     >
   : string extends keyof TActorMap
     ? Next_TransitionConfigOrTarget<
@@ -540,7 +556,9 @@ type InlineInvokeOnDone<
         TActorMap,
         TGuardMap,
         TDelayMap,
-        TMeta
+        TMeta,
+        undefined,
+        TChildren
       >
     :
         | undefined
@@ -569,7 +587,8 @@ type InlineChildInvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TInput = undefined
 > = Values<{
   [K in keyof TChildren & string]: Omit<
     Next_InvokeConfigBase<
@@ -594,13 +613,14 @@ type InlineChildInvokeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TMeta
+      TMeta,
+      TChildren
     >;
     id: K;
     src: LogicForChildRef<TChildren[K]>;
     input?:
       | ((
-          args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+          args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren, TInput>
         ) => unknown)
       | NonReducibleUnknown;
   };
@@ -616,7 +636,8 @@ type InlineInvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TSystemRegistry extends SystemRegistry
+  TSystemRegistry extends SystemRegistry,
+  TInput = undefined
 > =
   HasExplicitChildren<TChildren> extends true
     ? InlineChildInvokeConfig<
@@ -629,7 +650,8 @@ type InlineInvokeConfig<
         TGuardMap,
         TDelayMap,
         TMeta,
-        TSystemRegistry
+        TSystemRegistry,
+        TInput
       >
     : Omit<
         Next_InvokeConfigBase<
@@ -654,12 +676,19 @@ type InlineInvokeConfig<
           TActorMap,
           TGuardMap,
           TDelayMap,
-          TMeta
+          TMeta,
+          TChildren
         >;
         src: AnyActorLogic;
         input?:
           | ((
-              args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+              args: InvokeInputArgs<
+                TContext,
+                TEvent,
+                TEmitted,
+                TChildren,
+                TInput
+              >
             ) => unknown)
           | NonReducibleUnknown;
       };
@@ -684,7 +713,8 @@ export type Next_InvokeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TSystemRegistry extends SystemRegistry = SystemRegistry
+  TSystemRegistry extends SystemRegistry = SystemRegistry,
+  TInput = undefined
 > = string extends keyof TActorMap
   ? // No registered actor sources (permissive map): `src`/`input` cannot be
     // correlated. A mapped type over `string` would also defer resolution and
@@ -700,7 +730,8 @@ export type Next_InvokeConfig<
         TGuardMap,
         TDelayMap,
         TMeta,
-        TSystemRegistry
+        TSystemRegistry,
+        TInput
       >
     : Next_InvokeConfigBase<
         TContext,
@@ -722,7 +753,13 @@ export type Next_InvokeConfig<
             ) => string | AnyActorLogic);
         input?:
           | ((
-              args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+              args: InvokeInputArgs<
+                TContext,
+                TEvent,
+                TEmitted,
+                TChildren,
+                TInput
+              >
             ) => unknown)
           | NonReducibleUnknown;
       }
@@ -745,7 +782,13 @@ export type Next_InvokeConfig<
             id?: ChildIdForLogic<TActorMap[K], TChildren>;
             input?:
               | ((
-                  args: InvokeInputArgs<TContext, TEvent, TEmitted, TChildren>
+                  args: InvokeInputArgs<
+                    TContext,
+                    TEvent,
+                    TEmitted,
+                    TChildren,
+                    TInput
+                  >
                 ) => InputFrom<TActorMap[K]>)
               | InputFrom<TActorMap[K]>;
           } & (
@@ -772,14 +815,15 @@ export type Next_InvokeConfig<
           TGuardMap,
           TDelayMap,
           TMeta,
-          TSystemRegistry
+          TSystemRegistry,
+          TInput
         >;
 
 interface Next_InvokeConfigBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
-  _TChildren extends Record<string, AnyActorRef | undefined>,
+  TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
@@ -804,7 +848,9 @@ interface Next_InvokeConfigBase<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    undefined,
+    TChildren
   >;
   onError?: Next_TransitionConfigOrTarget<
     TContext,
@@ -815,7 +861,9 @@ interface Next_InvokeConfigBase<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    undefined,
+    TChildren
   >;
   onSnapshot?: Next_TransitionConfigOrTarget<
     TContext,
@@ -826,7 +874,9 @@ interface Next_InvokeConfigBase<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    undefined,
+    TChildren
   >;
   /**
    * The duration (in ms) after which this invocation will time out if it has
@@ -849,7 +899,9 @@ interface Next_InvokeConfigBase<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TMeta,
+    undefined,
+    TChildren
   >;
 }
 
@@ -867,7 +919,8 @@ type StateAction<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
-  TInput = Record<string, unknown> | undefined
+  TInput = Record<string, unknown> | undefined,
+  TChildren extends Record<string, AnyActorRef | undefined> = {}
 > = (
   _: Omit<
     Parameters<
@@ -884,18 +937,13 @@ type StateAction<
     >[0],
     'params'
   > & { input: TInput },
-  enqueue: Parameters<
-    Action<
-      TContext,
-      TEvent,
-      TEmittedEvent,
-      TActionMap,
-      TActorMap,
-      TGuardMap,
-      TDelayMap,
-      never
-    >
-  >[1]
+  enqueue: EnqueueObject<
+    TEvent,
+    TEmittedEvent,
+    SystemRegistry,
+    TActorMap,
+    TChildren
+  >
 ) => ReturnType<
   Action<
     TContext,
@@ -1022,7 +1070,7 @@ export type Next_StateNodeConfig<
   TTag extends string,
   _TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
+  TStateMeta extends MetaObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
@@ -1031,7 +1079,8 @@ export type Next_StateNodeConfig<
   TInput = Record<string, unknown> | undefined,
   TInputMap extends Record<string, unknown> = Record<string, unknown>,
   TSystemRegistry extends SystemRegistry = SystemRegistry,
-  TChildOutput = unknown
+  TChildOutput = unknown,
+  TTransitionMeta extends MetaObject = TStateMeta
 > =
   | Next_RegularStateNodeConfig<
       TContext,
@@ -1040,7 +1089,8 @@ export type Next_StateNodeConfig<
       TTag,
       _TOutput,
       TEmitted,
-      TMeta,
+      TStateMeta,
+      TTransitionMeta,
       TChildren,
       TActionMap,
       TActorMap,
@@ -1055,7 +1105,8 @@ export type Next_StateNodeConfig<
       TContext,
       TEvent,
       TTag,
-      TMeta,
+      TStateMeta,
+      TTransitionMeta,
       TActionMap,
       TActorMap,
       TGuardMap,
@@ -1066,7 +1117,8 @@ interface Next_ChoiceStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTag extends string,
-  TMeta extends MetaObject,
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
@@ -1084,18 +1136,18 @@ interface Next_ChoiceStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TTransitionMeta
   >;
   id?: string | undefined;
   order?: number;
   tags?: TTag[];
   description?: string;
-  meta?: TMeta;
+  meta?: TStateMeta;
   route?:
     | Next_RouteConfig<
         TContext,
         TEvent,
-        TMeta,
+        TTransitionMeta,
         TActionMap,
         TActorMap,
         TGuardMap,
@@ -1126,7 +1178,8 @@ interface Next_RegularStateNodeConfig<
   TTag extends string,
   TOutput,
   TEmitted extends EventObject,
-  TMeta extends MetaObject,
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject,
   TChildren extends Record<string, AnyActorRef | undefined>,
   TActionMap extends Sources['actions'],
   TActorMap extends Sources['actors'],
@@ -1144,6 +1197,8 @@ interface Next_RegularStateNodeConfig<
     | string
     | {
         target: string;
+        meta?: TTransitionMeta;
+        description?: string;
         input?:
           | Record<string, unknown>
           | ((args: {
@@ -1179,7 +1234,7 @@ interface Next_RegularStateNodeConfig<
       TTag,
       any, // TOutput,
       TEmitted,
-      TMeta,
+      TStateMeta,
       TChildren,
       TActionMap,
       TActorMap,
@@ -1188,7 +1243,8 @@ interface Next_RegularStateNodeConfig<
       LookupInput<TInputMap, K>,
       TInputMap,
       TSystemRegistry,
-      TChildOutput
+      TChildOutput,
+      TTransitionMeta
     >;
   };
   /**
@@ -1205,8 +1261,9 @@ interface Next_RegularStateNodeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TMeta,
-      TSystemRegistry
+      TTransitionMeta,
+      TSystemRegistry,
+      TInput
     >
   >;
   /** The mapping of event types to their potential transition(s). */
@@ -1220,8 +1277,9 @@ interface Next_RegularStateNodeConfig<
       TActorMap,
       TGuardMap,
       TDelayMap,
-      TMeta,
-      TInput
+      TTransitionMeta,
+      TInput,
+      TChildren
     >;
   };
   /**
@@ -1232,7 +1290,7 @@ interface Next_RegularStateNodeConfig<
     | Next_RouteConfig<
         TContext,
         TEvent,
-        TMeta,
+        TTransitionMeta,
         TActionMap,
         TActorMap,
         TGuardMap,
@@ -1247,7 +1305,8 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TInput
+    TInput,
+    TChildren
   >;
   exit?: StateAction<
     TContext,
@@ -1257,7 +1316,8 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TInput
+    TInput,
+    TChildren
   >;
   /**
    * The potential transition(s) to be taken upon reaching a final child state
@@ -1275,7 +1335,9 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TTransitionMeta,
+    undefined,
+    TChildren
   >;
   /**
    * The transition to take when an `xstate.error.*` event is raised while this
@@ -1290,7 +1352,9 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TTransitionMeta,
+    undefined,
+    TChildren
   >;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential
@@ -1299,7 +1363,16 @@ interface Next_RegularStateNodeConfig<
    */
   after?: {
     [K in NoInfer<TDelays> | number]?:
-      | { target: string }
+      | Next_StaticTransitionConfig<
+          TContext,
+          AfterEvent,
+          TEvent,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TTransitionMeta
+        >
       | TransitionConfigFunction<
           TContext,
           AfterEvent,
@@ -1309,8 +1382,10 @@ interface Next_RegularStateNodeConfig<
           TActorMap,
           TGuardMap,
           TDelayMap,
-          TMeta,
-          TInput
+          TTransitionMeta,
+          TInput,
+          [TContext] extends [never] ? any : TContext,
+          TChildren
         >;
   };
 
@@ -1342,8 +1417,9 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta,
-    TInput
+    TTransitionMeta,
+    TInput,
+    TChildren
   >;
 
   /**
@@ -1359,14 +1435,16 @@ interface Next_RegularStateNodeConfig<
     TActorMap,
     TGuardMap,
     TDelayMap,
-    TMeta
+    TTransitionMeta,
+    undefined,
+    TChildren
   >;
   choice?: never;
   /**
    * The meta data associated with this state node, which will be returned in
    * State instances.
    */
-  meta?: TMeta;
+  meta?: TStateMeta;
   /**
    * The output data sent with the `xstate.done.state` event if this is a final
    * state node.
@@ -1398,6 +1476,37 @@ interface Next_RegularStateNodeConfig<
   target?: string | string[] | undefined;
 }
 
+type Next_StaticTransitionConfig<
+  TContext extends MachineContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject,
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays'],
+  TMeta extends MetaObject
+> = {
+  matches?: EventPayloadPattern<TExpressionEvent>;
+  target?: string | string[];
+  context?:
+    | TransitionContextPatch<TContext>
+    | TransitionContextMapper<
+        TContext,
+        TExpressionEvent,
+        TEvent,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap
+      >;
+  description?: string;
+  reenter?: boolean;
+  meta?: TMeta;
+  input?:
+    | Record<string, unknown>
+    | ((args: { context: any; event: any }) => Record<string, unknown>);
+};
+
 export type Next_TransitionConfigOrTarget<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -1408,30 +1517,20 @@ export type Next_TransitionConfigOrTarget<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
   TMeta extends MetaObject,
-  TInput = undefined
+  TInput = undefined,
+  TChildren extends Record<string, AnyActorRef | undefined> = {}
 > =
   | undefined
-  | {
-      matches?: EventPayloadPattern<TExpressionEvent>;
-      target?: string | string[];
-      context?:
-        | TransitionContextPatch<TContext>
-        | TransitionContextMapper<
-            TContext,
-            TExpressionEvent,
-            TEvent,
-            TActionMap,
-            TActorMap,
-            TGuardMap,
-            TDelayMap
-          >;
-      description?: string;
-      reenter?: boolean;
-      meta?: TMeta;
-      input?:
-        | Record<string, unknown>
-        | ((args: { context: any; event: any }) => Record<string, unknown>);
-    }
+  | Next_StaticTransitionConfig<
+      TContext,
+      TExpressionEvent,
+      TEvent,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TMeta
+    >
   | {
       matches?: EventPayloadPattern<TExpressionEvent>;
       to?: TransitionConfigFunction<
@@ -1444,7 +1543,9 @@ export type Next_TransitionConfigOrTarget<
         TGuardMap,
         TDelayMap,
         TMeta,
-        TInput
+        TInput,
+        [TContext] extends [never] ? any : TContext,
+        TChildren
       >;
       context?:
         | TransitionContextPatch<TContext>
@@ -1474,7 +1575,9 @@ export type Next_TransitionConfigOrTarget<
       TGuardMap,
       TDelayMap,
       TMeta,
-      TInput
+      TInput,
+      [TContext] extends [never] ? any : TContext,
+      TChildren
     >;
 
 export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;
@@ -1496,30 +1599,14 @@ export interface Sources {
 }
 
 /**
- * Contextually types the entries of a `guards: { ... }` source map. Guard
- * sources receive the transition args object first and optional caller-supplied
- * params after it.
+ * Contextually types the entries of a `guards: { ... }` source map. Guards
+ * are plain predicates: they receive only caller-supplied params (no injected
+ * transition args) and are called the same way they are declared.
  */
 export type GuardSourceMap<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  // `never` context (machine without context) must accept the `any`-typed
-  // context of transition args, mirroring TransitionConfigFunction's _TCtx.
-  _TCtx = [TContext] extends [never] ? any : TContext
-> = Record<
-  string,
-  (
-    args: {
-      context: _TCtx;
-      event: TEvent;
-      self: AnyActorRef;
-      parent: AnyActorRef | undefined;
-      value: StateValue;
-      children: Record<string, AnyActorRef | undefined>;
-    },
-    ...params: any[]
-  ) => boolean
->;
+  _TContext extends MachineContext,
+  _TEvent extends EventObject
+> = Record<string, (...params: any[]) => boolean>;
 
 /**
  * Contextually types the entries of a `delays: { ... }` source map. Delay
@@ -1980,6 +2067,19 @@ type InvalidTransitionMapTargets<
       }[keyof TTransitionMap]
     : never;
 
+type InvalidInitialTarget<TRootConfig, TChildStates, TInitialTarget> =
+  TInitialTarget extends string
+    ? string extends TInitialTarget
+      ? never
+      : TInitialTarget extends keyof TChildStates
+        ? never
+        : TInitialTarget extends `#${string}`
+          ? TInitialTarget extends AuthoredIdTargets<TRootConfig>
+            ? never
+            : TInitialTarget
+          : TInitialTarget
+    : never;
+
 type InvalidInvokeTargets<
   TRootConfig,
   TSourcePath extends StatePath,
@@ -2020,13 +2120,7 @@ type InvalidNodeTargets<
                 ? TInitialTarget
                 : TInitial
             ) extends infer TInitialTarget
-            ? TInitialTarget extends string
-              ? string extends TInitialTarget
-                ? never
-                : TInitialTarget extends keyof TChildStates
-                  ? never
-                  : TInitialTarget
-              : never
+            ? InvalidInitialTarget<TRootConfig, TChildStates, TInitialTarget>
             : never
           : never)
       | (TNode extends { on: infer TOn }
@@ -2096,13 +2190,7 @@ export type ValidateStateTargets<TConfig> = 0 extends 1 & TConfig
                   ? TInitialTarget
                   : TInitial
               ) extends infer TInitialTarget
-              ? TInitialTarget extends string
-                ? string extends TInitialTarget
-                  ? never
-                  : TInitialTarget extends keyof TStates
-                    ? never
-                    : TInitialTarget
-                : never
+              ? InvalidInitialTarget<TConfig, TStates, TInitialTarget>
               : never
             : never)
         | InvalidNodeTargets<TConfig, TConfig, []>

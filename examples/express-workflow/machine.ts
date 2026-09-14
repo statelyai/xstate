@@ -1,36 +1,29 @@
-import { createMachine } from 'xstate';
+import { setup, types } from 'xstate';
 
-export const machine = createMachine({
-  id: 'counter',
+export const machine = setup({
+  schemas: {
+    context: types<{ cycles: number }>(),
+    events: {
+      TIMER: types<{}>()
+    }
+  }
+}).createMachine({
+  id: 'trafficLight',
   initial: 'green',
-  context: {
-    cycles: 0
-  },
+  context: { cycles: 0 },
   states: {
     green: {
-      on: {
-        TIMER: 'yellow'
-      }
+      on: { TIMER: { target: 'yellow' } }
     },
     yellow: {
-      on: {
-        TIMER: 'red'
-      }
+      on: { TIMER: { target: 'red' } }
     },
     red: {
       on: {
-        TIMER: ({ context, event, guards, actions }, enq) => {
-          return {
-            target: 'green',
-            context: {
-              ...context,
-              cycles: (({ context }) => context.cycles + 1)({
-                context: context,
-                event: event
-              })
-            }
-          };
-        }
+        TIMER: ({ context }) => ({
+          target: 'green',
+          context: { ...context, cycles: context.cycles + 1 }
+        })
       }
     }
   }

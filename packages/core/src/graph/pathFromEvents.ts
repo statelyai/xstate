@@ -2,10 +2,8 @@ import {
   ActorScope,
   ActorLogic,
   ActorSystem,
-  AnyStateMachine,
   EventObject,
-  Snapshot,
-  StateMachine
+  Snapshot
 } from '../index.ts';
 import { getAdjacencyMap } from './adjacency.ts';
 import {
@@ -18,14 +16,11 @@ import {
 import {
   resolveTraversalOptions,
   createDefaultMachineOptions,
-  createDefaultLogicOptions
+  createDefaultLogicOptions,
+  isMachineLogic
 } from './graph.ts';
 import { alterPath } from './alterPath.ts';
 import { createMockActorScope } from './actorScope.ts';
-
-function isMachine(value: any): value is AnyStateMachine {
-  return !!value && value instanceof StateMachine;
-}
 
 export function getPathsFromEvents<
   TSnapshot extends Snapshot<unknown>,
@@ -43,7 +38,7 @@ export function getPathsFromEvents<
       events,
       ...options
     },
-    (isMachine(logic)
+    (isMachineLogic(logic)
       ? createDefaultMachineOptions(logic)
       : createDefaultLogicOptions()) as TraversalOptions<
       TSnapshot,

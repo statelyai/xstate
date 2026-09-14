@@ -25,7 +25,7 @@ Both packages were removed. Instead of `@xstate/immer`, return an updated `conte
 
 ## Can I run v5 and v6 side by side?
 
-There is no supported dual-install story, and none is documented. If you want to migrate one machine at a time in a single application, the generic npm alias technique applies: install the second copy under another name, for example `npm install xstate5@npm:xstate@5`, and import from that alias in the modules that still use v5. Treat the two as separate libraries. Actors, snapshots and types are not interchangeable across them, so do not pass a v5 actor into a v6 machine or the reverse.
+There is no supported dual-install story. If you want to migrate one machine at a time in a single application, the generic npm alias technique applies: install the second copy under another name, for example `npm install xstate5@npm:xstate@5`, and import from that alias in the modules that still use v5. Treat the two as separate libraries. Actors, snapshots and types are not interchangeable across them, so do not pass a v5 actor into a v6 machine or the reverse. Keep framework bindings and other integration packages on the same major as the core instance they consume; an alias changes your import specifier, not the runtime protocol or peer dependency expected by an integration.
 
 ## Do v5 persisted snapshots work in v6?
 

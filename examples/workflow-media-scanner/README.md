@@ -1,127 +1,33 @@
-# Workflow Example: Scanning and splitting Media
+# workflow-media-scanner
 
-This is a small example of a back-end workflow that uses a state machine to execute long running tasks. This project crawls a directory full of movies and separates out videos over 1080p for potential processing down the line.
+## What it teaches
 
-> **NOTE:This project is not intended for production use.**
+A backend workflow that chains long-running file system tasks: each step is an invoked async actor whose output becomes the input of the next state.
 
-## Prerequisites
+## XState features used
 
-This project requires `ffprobe`, a binary that ships alongside `ffmpeg`, which is the golden standard for media file manipulation.
+- `setup()` with schemas, named actors and actions
+- `createAsyncLogic` for the scan, permission, evaluate and move steps
+- `invoke` with `onDone` / `onError` and a shared error state
+- `input` to seed context
 
-- [Install ffmpeg here](https://ffmpeg.org/download.html)
-- Clone this repo and run `yarn` (or use your package manager of choice) in a terminal at the project's root.
-- Update the `basePath` and `destinationPath` in the `mediaScannerMachine.ts` file with your own paths.
-- Run the project with `yarn start` in the terminal
+## Run it
 
-## XState concepts involved
+This example shells out to `ffprobe`, which ships with [ffmpeg](https://ffmpeg.org/download.html), to read video dimensions.
 
-This project convers how to implement the following with XState:
+```bash
+pnpm install
+MEDIA_BASE_PATH=/path/to/library \
+MEDIA_DESTINATION_PATH=/path/to/4k-library \
+pnpm start
+```
 
-- Initializing a XState machine as an actor
+The scanner walks each subdirectory of `MEDIA_BASE_PATH`, and moves the directories containing video above 1080p into `MEDIA_DESTINATION_PATH`. It moves directories with `fs.rename`, so both paths must be on the same filesystem.
 
-  ```ts
-  // index.ts
+The `start` script uses `vite-node` so that `xstate` resolves to this repo's source.
 
-  // ...
+> This example moves files on your disk. Point it at a copy of your library first.
 
-  const mediaScannerActor = createActor(mediaScannerMachine);
-  ```
+## Inspect it
 
-- Injecting context information into the actor on initialization
-
-  ```ts
-  // index.ts
-
-  // ...
-
-  const mediaScannerActor = createActor(mediaScannerMachine, {
-    input: {
-      basePath: 'YOUR BASE PATH HERE',
-      destinationPath: 'YOUR DESTINATION PATH HERE'
-    }
-  });
-  ```
-
-- Sending events to the XState actor
-
-  ```ts
-  // index.ts
-
-  // ...
-
-  mediaScannerActor.send({ type: 'START_SCAN' });
-  ```
-
-- Subscribing to a running actor for state change and context information
-
-  ```ts
-  // index.ts
-
-  // ...
-
-  mediaScannerActor.subscribe((state) => {
-    console.log({
-      state: state.value,
-      error: state.error,
-      context: state.context
-    });
-  });
-  ```
-
-- Invoking services and capturing results
-
-  > mediaScannerMachine.ts
-
-  ```ts
-  invoke: {
-    id: 'checkFilePermissions',
-    input: ({ context: { directoriesToCheck } }) => ({
-      directoriesToCheck
-    }),
-    src: createAsyncLogic({
-      run: async ({ input: { directoriesToCheck } }) =>
-        await checkFilePermissions(directoriesToCheck)
-    }),
-    onDone: [
-      {
-        target: 'EvaluatingFiles',
-        actions: assign(({ event }) => {
-          return {
-            dirsToEvaluate: event.output['dirsToEvaluate'],
-            dirsToReport: event.output['dirsToReport']
-          };
-        })
-      }
-    ],
-    onError: [
-      {
-        target: 'ReportingErrors',
-        actions: assign(({ event }) => {
-          return {
-            dirsToReport: event.error['dirsToReport']
-          };
-        })
-      }
-    ]
-  }
-  ```
-
-- Batching results and assigning multiple properties to the actor's context
-
-  > fileHandlers.ts
-
-  ```ts
-  ...
-   return { dirsToEvaluate, dirsToReport };
-  ```
-
-  > mediaScannerMachine.ts
-
-  ```ts
-  actions: assign(({ event }) => {
-    return {
-      dirsToEvaluate: event.output['dirsToEvaluate'],
-      dirsToReport: event.output['dirsToReport']
-    };
-  });
-  ```
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

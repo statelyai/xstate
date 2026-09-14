@@ -1,7 +1,6 @@
 import {
   EventObject,
   AnyStateMachine,
-  StateMachine,
   StateNode,
   AnyActorLogic,
   EventFromLogic,
@@ -122,7 +121,7 @@ export function toDirectedGraph(
   stateMachine: AnyStateNode | AnyStateMachine
 ): DirectedGraphNode {
   const stateNode = (
-    stateMachine instanceof StateMachine ? stateMachine.root : stateMachine
+    isMachineLogic(stateMachine) ? stateMachine.root : stateMachine
   ) as AnyStateNode; // TODO: accept only machines
 
   const edges: DirectedGraphEdge[] = [...stateNode.transitions.values()]
@@ -165,8 +164,24 @@ export function toDirectedGraph(
   return graph;
 }
 
-function isMachineLogic(logic: AnyActorLogic): logic is AnyStateMachine {
-  return 'getStateNodeById' in logic;
+export function isMachineLogic(logic: unknown): logic is AnyStateMachine {
+  if (!logic || typeof logic !== 'object') {
+    return false;
+  }
+
+  const machine = logic as Partial<AnyStateMachine>;
+  const root = machine.root as Partial<AnyStateNode> | undefined;
+
+  return (
+    !!root &&
+    typeof root === 'object' &&
+    typeof root.id === 'string' &&
+    typeof root.states === 'object' &&
+    typeof root.transitions?.values === 'function' &&
+    typeof machine.getStateNodeById === 'function' &&
+    typeof machine.resolveState === 'function' &&
+    typeof machine.getTransitionData === 'function'
+  );
 }
 
 export function resolveTraversalOptions<TLogic extends AnyActorLogic>(

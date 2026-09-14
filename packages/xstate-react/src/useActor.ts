@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 import {
   Actor,
@@ -12,7 +12,7 @@ import {
   type IsNotNever,
   type RequiredActorOptionsKeys
 } from 'xstate';
-import { useIdleActorRef } from './useActorRef.ts';
+import { useActorLifecycle, useIdleActorRef } from './useActorRef.ts';
 
 export function useActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
@@ -67,22 +67,7 @@ export function useActor<TLogic extends AnyActorLogic>(
     throw snapshotWithStatus.error;
   }
 
-  useEffect(() => {
-    if (
-      (actorRef as any)._processingStatus ===
-        2 /* ProcessingStatus.Stopped */ &&
-      (actorRef.getSnapshot() as any)?.status === 'stopped'
-    ) {
-      const newActor = createActor(logic, options);
-      newActor.start();
-      setActorRef(newActor);
-      return;
-    }
-    actorRef.start();
-    return () => {
-      actorRef.stop();
-    };
-  }, [actorRef]);
+  useActorLifecycle(actorRef, setActorRef, () => createActor(logic, options));
 
   return [actorSnapshot, actorRef.send, actorRef];
 }
