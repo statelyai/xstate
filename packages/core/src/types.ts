@@ -1935,10 +1935,10 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Can be generated with {@link Actor.getPersistedSnapshot}.
    * @see https://stately.ai/docs/persistence
    */
-  snapshot?: Snapshot<unknown>;
+  snapshot?: SnapshotFrom<TLogic>;
 
   /** @deprecated Use `snapshot` instead. */
-  state?: Snapshot<unknown>;
+  state?: SnapshotFrom<TLogic>;
 
   /** The source actor logic. */
   src?: string | AnyActorLogic;
