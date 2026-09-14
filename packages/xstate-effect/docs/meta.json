@@ -1,0 +1,13 @@
+{
+  "title": "XState Effect",
+  "pages": [
+    "quick-start",
+    "actors",
+    "observing-actors",
+    "matching-states",
+    "effect-logic",
+    "schemas-and-actions",
+    "atoms-and-react",
+    "testing-and-errors"
+  ]
+}
