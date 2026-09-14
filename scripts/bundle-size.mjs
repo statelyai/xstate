@@ -562,9 +562,7 @@ const baseline = baselineArg
     ).trim()
   : undefined;
 if (baseline && (!report || useDist)) {
-  throw new Error(
-    'A source baseline requires --report without --dist'
-  );
+  throw new Error('A source baseline requires --report without --dist');
 }
 const attribution = {};
 const profileArg = args.find((arg) => arg.startsWith('--profile='));
