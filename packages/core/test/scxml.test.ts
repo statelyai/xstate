@@ -71,11 +71,14 @@ const testGroups: Record<string, string[]> = {
     'test2',
     'test2b',
     'test3',
-    'test3b',
+    // 'test3b', // XState v5's `reenter: true` uses the source as the transition domain when all
+    //           // targets are within the source; this differs from SCXML external-transition
+    //           // semantics (domain = proper compound ancestor), so the conflict-resolution
+    //           // that makes b1 win over `a` does not apply (fixes #5162).
     'test4',
     'test5',
     'test6',
-    'test6b',
+    // 'test6b', // same reason as test3b above
     'test7',
     'test8',
     'test9',
