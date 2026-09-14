@@ -1,20 +1,24 @@
-# Counter example (`@xstate/store`)
+# store-counter-react
 
-This is a simple counter example, built with:
+## What it teaches
 
-- [XState Store](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)
-- React
-- TypeScript
-- Vite
+The two ways to own state with `@xstate/store`: a module-level store created with `createStore(…)` that every component shares, and a per-component store created with `useStore(…)` that lives and dies with the component.
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/store-counter-react)
+Use `createStore` when the state is app-wide (session, cart, theme) and any component may read or update it. Use `useStore` when each component instance needs its own copy — a list row, a form, a widget rendered many times — so the state resets when the component unmounts.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/examples/store-counter-react)
+## XState features used
 
-## Inspection
+- `createStore` with `on` event handlers
+- `useSelector` and `useStore` from `@xstate/store-react`
 
-The example opens the Stately Inspector. Store inspection emits
-`@xstate.transition` events; the stable `inspectStore` callback forwards their
-snapshots and triggering events through `inspector.snapshot()`. This also works
-with `@statelyai/inspect` versions that accept XState v5 inspection events.
-The local counter's inspection subscription ends when its component unmounts.
+## Run it
+
+```bash
+pnpm install
+pnpm dev
+```
+
+## Inspect it
+
+`@statelyai/sdk` is wired up in `src/App.tsx` with `globalStore.inspect(inspector.inspect)`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live store. Store snapshots and the events that produced them are sent to Stately's hosted relay.
+

@@ -1,5 +1,4 @@
-import { createMachine, createAsyncLogic } from 'xstate';
-import { z } from 'zod';
+import { createAsyncLogic, setup, types } from 'xstate';
 import {
   checkBureauService,
   checkReportsTable,
@@ -7,309 +6,338 @@ import {
   generateInterestRate,
   saveCreditProfile,
   saveCreditReport,
+  userCredentialSchema,
   verifyCredentials,
-  type userCredential
+  type UserCredential
 } from './services/machineLogicService';
-import type CreditProfile from './models/creditProfile';
+import type { BureauName, CreditProfile } from './models/creditProfile';
+import type { CreditReport } from './models/creditReport';
+import { z } from 'zod';
 
-type BureauInput = { ssn: string; bureauName: string };
+const bureauInputSchema = z.object({
+  ssn: z.string(),
+  bureauName: z.enum(['EquiGavin', 'GavUnion', 'Gavperian'])
+});
 
-export const creditCheckMachine = createMachine({
+function withScore(
+  context: CreditProfile,
+  bureauName: BureauName,
+  creditScore: number
+): CreditProfile {
+  return {
+    ...context,
+    scores: { ...context.scores, [bureauName]: creditScore }
+  };
+}
+
+function allBureausSucceeded(context: CreditProfile) {
+  return Object.values(context.scores).every((score) => score > 0);
+}
+
+export const creditCheckMachine = setup({
   schemas: {
-    context: z.custom<CreditProfile>(),
+    context: types<CreditProfile>(),
     events: {
-      Submit: z.object({
-        SSN: z.string(),
-        firstName: z.string(),
-        lastName: z.string()
-      })
+      Submit: types<{
+        SSN: string;
+        firstName: string;
+        lastName: string;
+      }>()
     }
   },
   actors: {
     verifyCredentials: createAsyncLogic({
-      schemas: { input: z.custom<userCredential>() },
+      schemas: { input: userCredentialSchema },
       run: ({ input }) => verifyCredentials(input)
     }),
     checkReportsTable: createAsyncLogic({
-      schemas: { input: z.custom<BureauInput>() },
+      schemas: { input: bureauInputSchema },
       run: ({ input }) => checkReportsTable(input)
     }),
     checkBureau: createAsyncLogic({
-      schemas: { input: z.custom<BureauInput>() },
-      run: async ({ input }) => {
-        const creditScore = await checkBureauService(input);
-        await saveCreditReport({ ...input, creditScore });
-        return creditScore;
-      }
+      schemas: { input: bureauInputSchema },
+      run: ({ input }) => checkBureauService(input)
     }),
     determineMiddleScore: createAsyncLogic({
-      schemas: { input: z.custom<number[]>() },
-      run: ({ input }) => determineMiddleScore(input)
+      schemas: { input: z.array(z.number()) },
+      run: async ({ input }) => determineMiddleScore(input)
     }),
-    generateInterestRates: createAsyncLogic({
-      schemas: { input: z.custom<CreditProfile>() },
-      run: async ({ input }) => {
-        const rate = await generateInterestRate(input.MiddleScore);
-        await saveCreditProfile({ ...input, InterestRateOptions: [rate] });
-        return rate;
-      }
+    generateInterestRate: createAsyncLogic({
+      schemas: { input: z.number() },
+      run: ({ input }) => generateInterestRate(input)
     })
   },
+  actions: {
+    saveReport: (report: CreditReport) => {
+      console.log('Saving report to the database...');
+      void saveCreditReport(report);
+    },
+    saveProfile: (profile: CreditProfile) => {
+      console.log('Saving the credit profile to the database...');
+      void saveCreditProfile(profile);
+    },
+    emailUser: (params: { rates: number[] }) => {
+      console.log(
+        'Emailing user with their interest rate options:',
+        params.rates
+      );
+    },
+    emailSalesTeam: (profile: CreditProfile) => {
+      console.log(
+        "Emailing sales team with the user's information:",
+        profile.FirstName,
+        profile.LastName,
+        profile.MiddleScore,
+        profile.InterestRateOptions
+      );
+    }
+  }
+}).createMachine({
+  id: 'multipleCreditCheck',
   context: {
     SSN: '',
     FirstName: '',
     LastName: '',
-    GavUnionScore: 0,
-    EquiGavinScore: 0,
-    GavperianScore: 0,
-    ErrorMessage: '',
+    scores: { EquiGavin: 0, GavUnion: 0, Gavperian: 0 },
     MiddleScore: 0,
-    InterestRateOptions: []
+    InterestRateOptions: [],
+    ErrorMessage: ''
   },
-  id: 'multipleCreditCheck',
-  initial: 'creditCheck',
+  initial: 'enteringInformation',
   states: {
-    Completed: { type: 'final' },
-    creditCheck: {
-      initial: 'Entering Information',
+    enteringInformation: {
+      on: {
+        Submit: ({ context, event }) => ({
+          target: 'verifyingCredentials',
+          context: {
+            ...context,
+            SSN: event.SSN,
+            FirstName: event.firstName,
+            LastName: event.lastName,
+            ErrorMessage: ''
+          }
+        })
+      }
+    },
+    verifyingCredentials: {
+      invoke: {
+        src: 'verifyCredentials',
+        input: ({ context }): UserCredential => ({
+          SSN: context.SSN,
+          firstName: context.FirstName,
+          lastName: context.LastName
+        }),
+        onDone: { target: 'checkingCreditScores' },
+        onError: ({ context, event }) => ({
+          target: 'enteringInformation',
+          context: {
+            ...context,
+            ErrorMessage: `Failed to verify credentials. Details: ${event.error}`
+          }
+        })
+      }
+    },
+    checkingCreditScores: {
+      description:
+        'Requests a report from each of the three credit bureaus in parallel and waits for all of them.',
+      type: 'parallel',
       states: {
-        'Entering Information': {
-          on: {
-            Submit: ({ context, event }) => ({
-              target: 'Verifying Credentials',
-              context: {
-                ...context,
-                SSN: event.SSN,
-                FirstName: event.firstName,
-                LastName: event.lastName,
-                ErrorMessage: '',
-                GavUnionScore: 0,
-                EquiGavinScore: 0,
-                GavperianScore: 0,
-                MiddleScore: 0,
-                InterestRateOptions: []
-              }
-            })
-          }
-        },
-        'Verifying Credentials': {
-          invoke: {
-            src: 'verifyCredentials',
-            input: ({ context }) => ({
-              SSN: context.SSN,
-              firstName: context.FirstName,
-              lastName: context.LastName
-            }),
-            onDone: { target: 'CheckingCreditScores' },
-            onError: ({ context, event }) => ({
-              target: 'Entering Information',
-              context: {
-                ...context,
-                ErrorMessage:
-                  'Failed to verify credentials. Details: ' +
-                  String(event.error)
-              }
-            })
-          }
-        },
-        CheckingCreditScores: {
-          type: 'parallel',
+        EquiGavin: {
+          initial: 'checkingForExistingReport',
           states: {
-            CheckingEquiGavin: {
-              initial: 'CheckingForExistingReport',
-              states: {
-                CheckingForExistingReport: {
-                  invoke: {
-                    src: 'checkReportsTable',
-                    input: ({ context }) => ({
-                      ssn: context.SSN,
-                      bureauName: 'EquiGavin'
-                    }),
-                    onDone: ({ context, event }) =>
-                      event.output && event.output.creditScore > 0
-                        ? {
-                            target: 'FetchingComplete',
-                            context: {
-                              ...context,
-                              EquiGavinScore: event.output.creditScore
-                            }
-                          }
-                        : { target: 'FetchingReport' },
-                    onError: { target: 'FetchingFailed' }
-                  }
-                },
-                FetchingReport: {
-                  invoke: {
-                    src: 'checkBureau',
-                    input: ({ context }) => ({
-                      ssn: context.SSN,
-                      bureauName: 'EquiGavin'
-                    }),
-                    onDone: ({ context, event }) => ({
-                      target: 'FetchingComplete',
-                      context: { ...context, EquiGavinScore: event.output }
-                    }),
-                    onError: { target: 'FetchingFailed' }
-                  }
-                },
-                FetchingComplete: { type: 'final' },
-                FetchingFailed: { type: 'final' }
-              }
-            },
-            CheckingGavUnion: {
-              initial: 'CheckingForExistingReport',
-              states: {
-                CheckingForExistingReport: {
-                  invoke: {
-                    src: 'checkReportsTable',
-                    input: ({ context }) => ({
-                      ssn: context.SSN,
-                      bureauName: 'GavUnion'
-                    }),
-                    onDone: ({ context, event }) =>
-                      event.output && event.output.creditScore > 0
-                        ? {
-                            target: 'FetchingComplete',
-                            context: {
-                              ...context,
-                              GavUnionScore: event.output.creditScore
-                            }
-                          }
-                        : { target: 'FetchingReport' },
-                    onError: { target: 'FetchingFailed' }
-                  }
-                },
-                FetchingReport: {
-                  invoke: {
-                    src: 'checkBureau',
-                    input: ({ context }) => ({
-                      ssn: context.SSN,
-                      bureauName: 'GavUnion'
-                    }),
-                    onDone: ({ context, event }) => ({
-                      target: 'FetchingComplete',
-                      context: { ...context, GavUnionScore: event.output }
-                    }),
-                    onError: { target: 'FetchingFailed' }
-                  }
-                },
-                FetchingComplete: { type: 'final' },
-                FetchingFailed: { type: 'final' }
-              }
-            },
-            CheckingGavperian: {
-              initial: 'CheckingForExistingReport',
-              states: {
-                CheckingForExistingReport: {
-                  invoke: {
-                    src: 'checkReportsTable',
-                    input: ({ context }) => ({
-                      ssn: context.SSN,
-                      bureauName: 'Gavperian'
-                    }),
-                    onDone: ({ context, event }) =>
-                      event.output && event.output.creditScore > 0
-                        ? {
-                            target: 'FetchingComplete',
-                            context: {
-                              ...context,
-                              GavperianScore: event.output.creditScore
-                            }
-                          }
-                        : { target: 'FetchingReport' },
-                    onError: { target: 'FetchingFailed' }
-                  }
-                },
-                FetchingReport: {
-                  invoke: {
-                    src: 'checkBureau',
-                    input: ({ context }) => ({
-                      ssn: context.SSN,
-                      bureauName: 'Gavperian'
-                    }),
-                    onDone: ({ context, event }) => ({
-                      target: 'FetchingComplete',
-                      context: { ...context, GavperianScore: event.output }
-                    }),
-                    onError: { target: 'FetchingFailed' }
-                  }
-                },
-                FetchingComplete: { type: 'final' },
-                FetchingFailed: { type: 'final' }
-              }
-            }
-          },
-          onDone: ({ context }) =>
-            context.EquiGavinScore > 0 &&
-            context.GavUnionScore > 0 &&
-            context.GavperianScore > 0
-              ? { target: 'DeterminingInterestRateOptions' }
-              : {
-                  target: 'Entering Information',
-                  context: {
-                    ...context,
-                    ErrorMessage: 'Failed to retrieve credit scores.'
-                  }
-                }
-        },
-        DeterminingInterestRateOptions: {
-          onDone: { target: '#multipleCreditCheck.Completed' },
-          initial: 'DeterminingMiddleScore',
-          states: {
-            DeterminingMiddleScore: {
+            checkingForExistingReport: {
               invoke: {
-                src: 'determineMiddleScore',
-                input: ({ context }) => [
-                  context.EquiGavinScore,
-                  context.GavUnionScore,
-                  context.GavperianScore
-                ],
-                onDone: ({ context, event }) => ({
-                  target: 'FetchingRates',
-                  context: { ...context, MiddleScore: event.output }
+                src: 'checkReportsTable',
+                input: ({ context }) => ({
+                  ssn: context.SSN,
+                  bureauName: 'EquiGavin' as const
                 }),
-                onError: ({ context, event }) => ({
-                  target:
-                    '#multipleCreditCheck.creditCheck.Entering Information',
-                  context: { ...context, ErrorMessage: String(event.error) }
-                })
+                onDone: ({ context, event }) =>
+                  event.output
+                    ? {
+                        target: 'fetchingComplete',
+                        context: withScore(
+                          context,
+                          'EquiGavin',
+                          event.output.creditScore
+                        )
+                      }
+                    : { target: 'fetchingReport' },
+                onError: { target: 'fetchingFailed' }
               }
             },
-            FetchingRates: {
+            fetchingReport: {
               invoke: {
-                src: 'generateInterestRates',
-                input: ({ context }) => context,
-                onDone: ({ context, event }) => ({
-                  target: 'RatesProvided',
-                  context: { ...context, InterestRateOptions: [event.output] }
+                src: 'checkBureau',
+                input: ({ context }) => ({
+                  ssn: context.SSN,
+                  bureauName: 'EquiGavin' as const
                 }),
-                onError: ({ context, event }) => ({
-                  target:
-                    '#multipleCreditCheck.creditCheck.Entering Information',
-                  context: { ...context, ErrorMessage: String(event.error) }
-                })
+                onDone: ({ context, event }) => ({
+                  target: 'fetchingComplete',
+                  context: withScore(context, 'EquiGavin', event.output)
+                }),
+                onError: { target: 'fetchingFailed' }
               }
             },
-            RatesProvided: {
+            fetchingComplete: {
               type: 'final',
-              entry: ({ context }, enq) => {
-                enq(() =>
-                  console.log(
-                    'emailing user with their interest rate options:',
-                    context.InterestRateOptions
-                  )
-                );
-                enq(() =>
-                  console.log(
-                    'emailing sales team with the user information:',
-                    context.FirstName,
-                    context.LastName,
-                    context.InterestRateOptions,
-                    context.MiddleScore
-                  )
-                );
+              entry: ({ context, actions }, enq) => {
+                enq(actions.saveReport, {
+                  ssn: context.SSN,
+                  bureauName: 'EquiGavin',
+                  creditScore: context.scores.EquiGavin
+                });
+              }
+            },
+            fetchingFailed: { type: 'final' }
+          }
+        },
+        GavUnion: {
+          initial: 'checkingForExistingReport',
+          states: {
+            checkingForExistingReport: {
+              invoke: {
+                src: 'checkReportsTable',
+                input: ({ context }) => ({
+                  ssn: context.SSN,
+                  bureauName: 'GavUnion' as const
+                }),
+                onDone: ({ context, event }) =>
+                  event.output
+                    ? {
+                        target: 'fetchingComplete',
+                        context: withScore(
+                          context,
+                          'GavUnion',
+                          event.output.creditScore
+                        )
+                      }
+                    : { target: 'fetchingReport' },
+                onError: { target: 'fetchingFailed' }
+              }
+            },
+            fetchingReport: {
+              invoke: {
+                src: 'checkBureau',
+                input: ({ context }) => ({
+                  ssn: context.SSN,
+                  bureauName: 'GavUnion' as const
+                }),
+                onDone: ({ context, event }) => ({
+                  target: 'fetchingComplete',
+                  context: withScore(context, 'GavUnion', event.output)
+                }),
+                onError: { target: 'fetchingFailed' }
+              }
+            },
+            fetchingComplete: {
+              type: 'final',
+              entry: ({ context, actions }, enq) => {
+                enq(actions.saveReport, {
+                  ssn: context.SSN,
+                  bureauName: 'GavUnion',
+                  creditScore: context.scores.GavUnion
+                });
+              }
+            },
+            fetchingFailed: { type: 'final' }
+          }
+        },
+        Gavperian: {
+          initial: 'checkingForExistingReport',
+          states: {
+            checkingForExistingReport: {
+              invoke: {
+                src: 'checkReportsTable',
+                input: ({ context }) => ({
+                  ssn: context.SSN,
+                  bureauName: 'Gavperian' as const
+                }),
+                onDone: ({ context, event }) =>
+                  event.output
+                    ? {
+                        target: 'fetchingComplete',
+                        context: withScore(
+                          context,
+                          'Gavperian',
+                          event.output.creditScore
+                        )
+                      }
+                    : { target: 'fetchingReport' },
+                onError: { target: 'fetchingFailed' }
+              }
+            },
+            fetchingReport: {
+              invoke: {
+                src: 'checkBureau',
+                input: ({ context }) => ({
+                  ssn: context.SSN,
+                  bureauName: 'Gavperian' as const
+                }),
+                onDone: ({ context, event }) => ({
+                  target: 'fetchingComplete',
+                  context: withScore(context, 'Gavperian', event.output)
+                }),
+                onError: { target: 'fetchingFailed' }
+              }
+            },
+            fetchingComplete: {
+              type: 'final',
+              entry: ({ context, actions }, enq) => {
+                enq(actions.saveReport, {
+                  ssn: context.SSN,
+                  bureauName: 'Gavperian',
+                  creditScore: context.scores.Gavperian
+                });
+              }
+            },
+            fetchingFailed: { type: 'final' }
+          }
+        }
+      },
+      onDone: ({ context }) =>
+        allBureausSucceeded(context)
+          ? { target: 'determiningInterestRateOptions' }
+          : {
+              target: 'enteringInformation',
+              context: {
+                ...context,
+                ErrorMessage: 'Failed to retrieve credit scores.'
               }
             }
+    },
+    determiningInterestRateOptions: {
+      description:
+        'Uses the middle of the three scores to decide the home loan interest rate.',
+      initial: 'determiningMiddleScore',
+      states: {
+        determiningMiddleScore: {
+          invoke: {
+            src: 'determineMiddleScore',
+            input: ({ context }) => Object.values(context.scores),
+            onDone: ({ context, event, actions }, enq) => {
+              const nextContext = { ...context, MiddleScore: event.output };
+              enq(actions.saveProfile, nextContext);
+              return { target: 'fetchingRates', context: nextContext };
+            }
+          }
+        },
+        fetchingRates: {
+          invoke: {
+            src: 'generateInterestRate',
+            input: ({ context }) => context.MiddleScore,
+            onDone: ({ context, event }) => ({
+              target: 'ratesProvided',
+              context: { ...context, InterestRateOptions: [event.output] }
+            })
+          }
+        },
+        ratesProvided: {
+          type: 'final',
+          entry: ({ context, actions }, enq) => {
+            enq(actions.emailUser, { rates: context.InterestRateOptions });
+            enq(actions.emailSalesTeam, context);
           }
         }
       }

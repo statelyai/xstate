@@ -1,9 +1,27 @@
-# Persisted donut maker
+# persisted-donut-maker
 
-<!-- CLI commands from package.json; persistence behavior from main.ts and snapshotWriter.ts. -->
+## What it teaches
 
-Run `pnpm start` from this directory, then enter one event displayed by the CLI per line. `pnpm build` checks types; `pnpm test` checks persistence.
+Persisting an actor to a file after every transition and restoring it on the next run, so a long-running workflow survives the process exiting.
 
-The XState v6 alpha actor restores `persisted-state.json` from the current directory. A missing file starts a new workflow; invalid or unreadable files stop startup.
+## XState features used
 
-Snapshots write serially to temporary files and atomically replace the saved file. While a write runs, newer snapshots replace the pending snapshot, bounding the queue. Ctrl-C or stdin closure stops the actor and waits for pending storage. Write failures are reported and set a failing exit code.
+- `setup()`
+- Persistence: `actor.getPersistedSnapshot()` and the `snapshot` actor option
+- Nested, parallel and final states with `onDone`
+- `machine.events` plus `snapshot.can(...)` to list the events available now
+
+## Run it
+
+```bash
+pnpm install
+pnpm start
+```
+
+Type an event name (for example `NEXT`) and press enter. The snapshot is written to `persisted-state.json` after every transition, so you can stop the process and pick up where you left off. Delete that file to start over.
+
+The `start` script passes `--conditions=module` so that Node resolves `xstate` to this repo's source.
+
+## Inspect it
+
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

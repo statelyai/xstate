@@ -1,0 +1,76 @@
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  position: relative;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  display: grid;
+  place-items: center;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 24rem;
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #4a4f63;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+input,
+select {
+  border: 2px solid #dce0ea;
+  padding: 0.4rem;
+  font: inherit;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+}
+
+button {
+  appearance: none;
+  background: #311bf6;
+  color: white;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  font-weight: bold;
+}
+
+button:disabled {
+  background: #babdcb;
+}

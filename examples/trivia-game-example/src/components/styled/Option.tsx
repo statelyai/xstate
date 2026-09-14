@@ -1,6 +1,6 @@
 import styled, { css } from 'styled-components';
 
-export const Option = styled.button<{ variant: string | undefined }>`
+export const Option = styled.button<{ $variant?: 'success' | 'danger' }>`
   background: transparent;
   border-radius: 3px;
   border: 2px solid palevioletred;
@@ -12,26 +12,19 @@ export const Option = styled.button<{ variant: string | undefined }>`
     width: 90%;
   }
   ${(props) =>
-    props.variant === 'success' &&
+    props.$variant === 'success' &&
     css`
       background-color: #c3e6cb;
-      color: white;
       border: solid thin #3d9cab;
       box-shadow: 0px 1px 10px #d2da4a;
-      margin: 10px;
-      width: 40%;
       color: #464646;
     `};
-
   ${(props) =>
-    props.variant === 'danger' &&
+    props.$variant === 'danger' &&
     css`
       background-color: #f5c6cb;
-      color: white;
       border: solid thin #3d9cab;
       box-shadow: 0px 1px 10px #d2da4a;
-      margin: 10px;
-      width: 40%;
       color: #464646;
     `};
 `;

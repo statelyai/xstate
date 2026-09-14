@@ -1,37 +1,36 @@
-# TodoMVC React
+# todomvc-react
 
-This is an implementation of [TodoMVC](https://todomvc.com/) built with:
+## What it teaches
 
-- XState v6 alpha
-- React
-- TypeScript
-- Vite
+Two levels of actors: one machine owns the todo list, and every todo row runs its own small machine for the read/edit lifecycle. The list machine's snapshot is persisted to `localStorage` and restored on load.
 
-## How to run
+## XState features used
 
-You may run the example locally with:
+- `setup()` with `schemas` (`types<T>()` for context, events, and input)
+- Transition functions returning `{ target, context }` context patches
+- `createActorContext` from `@xstate/react` to share the list actor
+- `useActorRef` + `useSelector` for the per-todo actors
+- `getPersistedSnapshot()` and the `snapshot` actor option for persistence
 
-```shell
-    cd examples/todomvc-react
-    pnpm install
-    pnpm run dev
+## Run it
+
+```bash
+pnpm install
+pnpm dev
 ```
 
-**OR**
+## Inspect it
 
-[Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/todomvc-react)
+`@statelyai/sdk` is wired up in `src/App.tsx`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.
 
-**OR**
+## Notes
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/examples/todomvc-react)
+Built against the XState v6 alpha in this repo (`xstate: workspace:*`), not a published release.
 
-<!-- sync:src -->
+Todos are persisted to `localStorage` under the `todos` key. Clear that key (or run in a private window) to start from the default list.
 
-This example uses the workspace XState v6 alpha. Machine schemas use `types<T>()` for static typing. From the repository root, install dependencies and run `pnpm build` first, then:
+This is an implementation of [TodoMVC](https://todomvc.com/).
 
-```sh
-pnpm --dir examples/todomvc-react dev
-pnpm --dir examples/todomvc-react build
-```
+[Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/todomvc-react)
 
-The machine regression tests run with the repository's `pnpm check:examples` command.
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/examples/todomvc-react)

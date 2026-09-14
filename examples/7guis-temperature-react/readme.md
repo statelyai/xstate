@@ -1,23 +1,32 @@
-# 7GUIs Temperature
+# 7guis-temperature-react
 
-This is an implementation of [the 7GUIs temperature converter](https://eugenkiss.github.io/7guis/tasks#temp) built with:
+## What it teaches
 
-- XState v6 alpha
-- React
-- TypeScript
-- Vite
+Two-way derived state: a single machine keeps the Celsius and Fahrenheit fields in sync, so each event recomputes both values from one input. This is [the 7GUIs temperature converter task](https://eugenkiss.github.io/7guis/tasks#temp), part of [the 7GUIs benchmark suite](https://eugenkiss.github.io/7guis/tasks).
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/7guis-temperature-react)
+## XState features used
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/examples/7guis-temperature-react)
+- `setup()` with `schemas` (`types<T>()` for context and events)
+- Machine-level `on` transition functions returning `{ context }`
+- `useActor` from `@xstate/react`
 
-<!-- sync:src -->
+## Run it
 
-This example uses the workspace XState v6 alpha. Machine schemas use `types<T>()` for static typing. From the repository root, install dependencies and run `pnpm build` first, then:
-
-```sh
-pnpm --dir examples/7guis-temperature-react dev
-pnpm --dir examples/7guis-temperature-react build
+```bash
+pnpm install
+pnpm dev
 ```
 
-The machine regression tests run with the repository's `pnpm check:examples` command.
+## Inspect it
+
+`@statelyai/sdk` is wired up in `src/App.tsx`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.
+
+## Notes
+
+Built against the XState v6 alpha in this repo (`xstate: workspace:*`), not a published release.
+
+The context values are typed `number | string` so an emptied input can round-trip as `''` and clear the other field instead of rendering `NaN`.
+
+## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/7guis-temperature-react)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/examples/7guis-temperature-react)

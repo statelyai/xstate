@@ -31,8 +31,8 @@ const Clue = (props: ClueProps) => {
 
   const popover = (
     <Popover id="popover-basic">
-      <Popover.Title as="h3">Clue</Popover.Title>
-      <Popover.Content>
+      <Popover.Header as="h3">Clue</Popover.Header>
+      <Popover.Body>
         {episode && (
           <span>
             <strong>This character appeared in:</strong>{' '}
@@ -43,7 +43,7 @@ const Clue = (props: ClueProps) => {
             <strong>Date #</strong> {episode.air_date}
           </span>
         )}
-      </Popover.Content>
+      </Popover.Body>
     </Popover>
   );
 

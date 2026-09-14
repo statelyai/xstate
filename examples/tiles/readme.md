@@ -1,25 +1,24 @@
-# Tiles game
+# tiles
 
-This is a simple tiles game, built with:
+## What it teaches
 
-- XState v6 alpha
-- React
-- TypeScript
-- Vite
+A sliding tile puzzle: hierarchical states model the select/move interaction, and named guards decide when a move is legal and when the puzzle is solved.
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/tiles)
+## XState features used
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/examples/tiles)
+- `setup()` with context, event schemas, and named `guards`
+- Nested (compound) states and `#id` targets
+- Eventless transitions (`always`) to detect the win condition
+- Disabling an event in a substate (`shuffle: undefined`)
+- `useMachine()` from `@xstate/react` and `snapshot.can()`
 
-<!-- sync:src -->
+## Run it
 
-This example uses the workspace XState v6 alpha. Machine schemas use `types<T>()` for static typing. From the repository root, install dependencies and run `pnpm build` first, then:
-
-```sh
-pnpm --dir examples/tiles dev
-pnpm --dir examples/tiles build
+```bash
+pnpm install
+pnpm dev
 ```
 
-The machine regression tests run with the repository's `pnpm check:examples` command.
+## Inspect it
 
-Shuffle starts a round. Drag between adjacent cells to swap tiles; canceled or nonadjacent moves clear the selection. Snapshots retain their original tile arrays.
+`@statelyai/sdk` is wired up, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.

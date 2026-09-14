@@ -1,23 +1,26 @@
-# 7GUIs Counter
+# 7guis-counter-react
 
-This is an implementation of [the 7GUIs counter](https://eugenkiss.github.io/7guis/tasks#counter) built with:
+## What it teaches
 
-- XState v6 alpha
-- React
-- TypeScript
-- Vite
+The smallest possible machine with context: a single event whose transition function returns updated context. This is [the 7GUIs counter task](https://eugenkiss.github.io/7guis/tasks#counter), part of [the 7GUIs benchmark suite](https://eugenkiss.github.io/7guis/tasks).
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/7guis-counter-react)
+## XState features used
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/examples/7guis-counter-react)
+- `setup()` with `schemas` (`types<T>()` for context and events)
+- Machine-level `on` transition function returning `{ context }`
+- `useActor` from `@xstate/react`
 
-<!-- sync:src -->
+## Run it
 
-This example uses the workspace XState v6 alpha. Machine schemas use `types<T>()` for static typing. From the repository root, install dependencies and run `pnpm build` first, then:
-
-```sh
-pnpm --dir examples/7guis-counter-react dev
-pnpm --dir examples/7guis-counter-react build
+```bash
+pnpm install
+pnpm dev
 ```
 
-The machine regression tests run with the repository's `pnpm check:examples` command.
+## Inspect it
+
+`@statelyai/sdk` is wired up in `src/App.tsx`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.
+
+## Notes
+
+Built against the XState v6 alpha in this repo (`xstate: workspace:*`), not a published release.

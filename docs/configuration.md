@@ -18,6 +18,8 @@ The root of a machine is a state node. It accepts everything a [state node](#sta
 
 ## Machine properties
 
+<!-- machine configuration properties from packages/core/src/types.v6.ts -->
+
 | Property | Type | Description |
 | --- | --- | --- |
 | `id` | `string` | Stable identifier for the root state node. Used by `#id` targets and in state node ids. |
@@ -38,8 +40,8 @@ The root of a machine is a state node. It accepts everything a [state node](#sta
 | `output` | value or `({ context, event }) => value` | [Output](input-output.md) produced on completion. |
 | `schemas` | `{ context, events, internalEvents, emitted, input, output, meta, tags, children, actions, guards }` | Standard Schema definitions. See [TypeScript](typescript.md). |
 | `internalEvents` | `readonly EventType[]` | Deprecated compatibility list for events declared in `schemas.events`; use `schemas.internalEvents` instead. See [internal events](internal-events.md). |
-| `actions` | `Record<string, (params, args) => void>` | Named action sources. See [setup and provide](setup-and-provide.md). |
-| `guards` | `Record<string, (params, args) => boolean>` | Named guard sources. See [guards](guards.md). |
+| `actions` | `Record<string, (...params) => void>` | Named action sources. See [setup and provide](setup-and-provide.md). |
+| `guards` | `Record<string, (...params) => boolean>` | Named guard sources. See [guards](guards.md). |
 | `actors` | `Record<string, ActorLogic>` | Named actor logic sources. See [invoke](invoke.md). |
 | `delays` | `Record<string, number \| (args) => number>` | Named delay sources. See [delays](delays.md). |
 | `version` | `string` | The machine's own version, stamped onto persisted snapshots. See [persistence](persistence.md). |

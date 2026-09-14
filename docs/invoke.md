@@ -232,7 +232,15 @@ setup({}).createMachine({
 });
 ```
 
-`children.payment` is then typed, `children.other` is a type error, and invoking incompatible logic under `id: 'payment'` is rejected.
+`children.payment` is then typed, `children.other` is a type error, and invoking incompatible logic under `id: 'payment'` is rejected. The id can also be used directly with `enq.sendTo`; the event is checked against the declared actor ref:
+
+```ts
+on: {
+  retry: (_, enq) => {
+    enq.sendTo('payment', { type: 'retry' });
+  }
+}
+```
 
 ## Invoke cheatsheet
 

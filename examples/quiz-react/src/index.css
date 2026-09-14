@@ -1,0 +1,33 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.5em 1em;
+  font-size: 1em;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  color: inherit;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  border-color: #646cff;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

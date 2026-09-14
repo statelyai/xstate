@@ -1,11 +1,15 @@
-import React from 'react';
 import './App.css';
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
 import { friendsMachine } from './friendsMachine';
 import { Friend } from './Friend';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function App() {
-  const [state, send] = useMachine(friendsMachine);
+  const [state, send] = useActor(friendsMachine, {
+    inspect: inspector.inspect
+  });
 
   return (
     <div className="app">
@@ -16,7 +20,7 @@ function App() {
             return (
               <Friend
                 key={friend.id}
-                friendRef={friend.ref}
+                friendRef={friend}
                 onRemove={() => send({ type: 'FRIEND.REMOVE', index })}
               />
             );

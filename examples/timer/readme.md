@@ -1,23 +1,24 @@
-# Timer
+# timer
 
-This is a timer, built with:
+## What it teaches
 
-- XState v6 alpha
-- React
-- TypeScript
-- Vite
+A countdown timer: an interval actor decrements the remaining time, and guarded transitions decide when the timer may start or must stop.
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/timer)
+## XState features used
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/examples/timer)
+- `setup()` with context, event schemas, and `actors`
+- `createCallbackLogic()` for the one-second tick
+- Guarded transitions (transition functions that return nothing to block)
+- Eventless transitions (`always`)
+- `useMachine()` from `@xstate/react` and `snapshot.can()`
 
-<!-- sync:src -->
+## Run it
 
-This example uses the workspace XState v6 alpha. Machine schemas use `types<T>()` for static typing. From the repository root, install dependencies and run `pnpm build` first, then:
-
-```sh
-pnpm --dir examples/timer dev
-pnpm --dir examples/timer build
+```bash
+pnpm install
+pnpm dev
 ```
 
-The machine regression tests run with the repository's `pnpm check:examples` command.
+## Inspect it
+
+`@statelyai/sdk` is wired up, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.

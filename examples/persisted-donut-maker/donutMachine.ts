@@ -1,13 +1,11 @@
-import { createMachine } from 'xstate';
+import { setup } from 'xstate';
 
-export const donutMachine = createMachine({
+export const donutMachine = setup({}).createMachine({
   id: 'donut',
   initial: 'ingredients',
   states: {
     ingredients: {
-      on: {
-        NEXT: { target: 'directions' }
-      }
+      on: { NEXT: { target: 'directions' } }
     },
     directions: {
       initial: 'makeDough',
@@ -18,6 +16,7 @@ export const donutMachine = createMachine({
         },
         mix: {
           type: 'parallel',
+          onDone: { target: 'allMixed' },
           states: {
             mixDry: {
               initial: 'mixing',
@@ -25,9 +24,7 @@ export const donutMachine = createMachine({
                 mixing: {
                   on: { MIXED_DRY: { target: 'mixed' } }
                 },
-                mixed: {
-                  type: 'final'
-                }
+                mixed: { type: 'final' }
               }
             },
             mixWet: {
@@ -36,43 +33,28 @@ export const donutMachine = createMachine({
                 mixing: {
                   on: { MIXED_WET: { target: 'mixed' } }
                 },
-                mixed: {
-                  type: 'final'
-                }
+                mixed: { type: 'final' }
               }
             }
-          },
-          onDone: { target: 'allMixed' }
+          }
         },
-        allMixed: {
-          type: 'final'
-        }
+        allMixed: { type: 'final' }
       }
     },
     fry: {
-      on: {
-        NEXT: { target: 'flip' }
-      }
+      on: { NEXT: { target: 'flip' } }
     },
     flip: {
-      on: {
-        NEXT: { target: 'dry' }
-      }
+      on: { NEXT: { target: 'dry' } }
     },
     dry: {
-      on: {
-        NEXT: { target: 'glaze' }
-      }
+      on: { NEXT: { target: 'glaze' } }
     },
     glaze: {
-      on: {
-        NEXT: { target: 'serve' }
-      }
+      on: { NEXT: { target: 'serve' } }
     },
     serve: {
-      on: {
-        ANOTHER_DONUT: { target: 'ingredients' }
-      }
+      on: { ANOTHER_DONUT: { target: 'ingredients' } }
     }
   }
 });

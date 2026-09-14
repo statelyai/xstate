@@ -18,7 +18,6 @@ import type {
   InitialTransitionDefinition,
   MachineContext,
   Mapper,
-  StateNodesConfig,
   TransitionDefinition,
   TransitionDefinitionMap,
   AnyStateMachine,
@@ -32,7 +31,9 @@ import type {
   AnyTransitionConfig,
   AnyTransitionDefinition,
   AnyMachineSnapshot,
-  AnyInvokeDefinition
+  AnyInvokeDefinition,
+  InvokeDefinition,
+  MetaObject
 } from './types.ts';
 import {
   createInvokeId,
@@ -60,17 +61,19 @@ const CHOICE_CONFIG_KEYS = [
 ] as const;
 
 interface StateNodeOptions<
-  TContext extends MachineContext,
-  TEvent extends EventObject
+  TStateMeta extends MetaObject,
+  TTransitionMeta extends MetaObject
 > {
   _key: string;
-  _parent?: StateNode<TContext, TEvent>;
+  _parent?: StateNode<any, any, TStateMeta, TTransitionMeta>;
   _machine: AnyStateMachine;
 }
 
 export class StateNode<
   TContext extends MachineContext = MachineContext,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = EventObject,
+  TStateMeta extends MetaObject = any,
+  TTransitionMeta extends MetaObject = TStateMeta
 > {
   /**
    * The relative key of the state node, which represents its location in the
@@ -99,7 +102,10 @@ export class StateNode<
   /** The string path from the root machine node to this node. */
   public path: string[];
   /** The child state nodes. */
-  public states: StateNodesConfig<any, any>;
+  public states: Record<
+    string,
+    StateNode<TContext, TEvent, TStateMeta, TTransitionMeta>
+  >;
   /**
    * The type of history on this state node. Can be:
    *
@@ -112,14 +118,14 @@ export class StateNode<
   /** The action(s) to be executed upon exiting the state node. */
   public exit: AnyAction | undefined;
   /** The parent state node. */
-  public parent?: StateNode<any, any>;
+  public parent?: StateNode<TContext, TEvent, TStateMeta, TTransitionMeta>;
   /** The root machine node. */
   public machine: AnyStateMachine;
   /**
    * The meta data associated with this state node, which will be returned in
    * State instances.
    */
-  public meta?: any;
+  public meta?: TStateMeta;
   /**
    * The output data sent with the `xstate.done.state` event if this is a final
    * state node.
@@ -139,11 +145,16 @@ export class StateNode<
   public schemas: SetupStateSchemas | undefined;
 
   public tags: string[] = [];
-  public transitions!: Map<string, AnyTransitionDefinition[]>;
-  public always?: Array<AnyTransitionDefinition>;
-  public invoke: Array<AnyInvokeDefinition>;
-  public on!: TransitionDefinitionMap<any, any>;
-  public after!: Array<DelayedTransitionDefinition<any, any>>;
+  public transitions!: Map<
+    string,
+    TransitionDefinition<any, any, TTransitionMeta>[]
+  >;
+  public always?: Array<TransitionDefinition<any, any, TTransitionMeta>>;
+  public invoke: Array<
+    InvokeDefinition<any, any, any, TTransitionMeta, any, any, any, any>
+  >;
+  public on!: TransitionDefinitionMap<any, any, TTransitionMeta>;
+  public after!: Array<DelayedTransitionDefinition<any, any, TTransitionMeta>>;
   public events!: Array<EventDescriptor<any>>;
   public ownEvents!: Array<EventDescriptor<any>>;
   private _candidateCache?: Map<string, AnyTransitionDefinition[]>;
@@ -151,7 +162,7 @@ export class StateNode<
   constructor(
     /** The raw config used to create the machine. */
     public config: AnyStateNodeConfig,
-    options: StateNodeOptions<TContext, TEvent>
+    options: StateNodeOptions<TStateMeta, TTransitionMeta>
   ) {
     this.parent = options._parent;
     this.key = options._key;
@@ -182,7 +193,12 @@ export class StateNode<
         ? mapValues(
             this.config.states,
             (stateConfig: AnyStateNodeConfig, key) => {
-              const stateNode = new StateNode(stateConfig, {
+              const stateNode = new StateNode<
+                any,
+                any,
+                TStateMeta,
+                TTransitionMeta
+              >(stateConfig, {
                 _parent: this,
                 _key: key,
                 _machine: this.machine
@@ -191,7 +207,7 @@ export class StateNode<
             }
           )
         : EMPTY_OBJECT
-    ) as StateNodesConfig<TContext, TEvent>;
+    ) as typeof this.states;
 
     if (this.type === 'compound' && !this.config.initial) {
       throw new Error(
@@ -241,19 +257,19 @@ export class StateNode<
         id: resolvedId,
         registryKey
       } as AnyInvokeDefinition;
-    });
+    }) as typeof this.invoke;
   }
 
   /** @internal */
   public _initialize() {
     this.after = getDelayedTransitions(this) as any;
-    this.transitions = formatTransitions(this);
+    this.transitions = formatTransitions(this) as typeof this.transitions;
     if (this.type === 'choice') {
-      this.always = formatChoiceTransitions(this);
+      this.always = formatChoiceTransitions(this) as typeof this.always;
     } else if (this.config.always) {
       this.always = mapTransitionConfigs(this.config.always, (transition) =>
         formatTransition(this, NULL_EVENT, transition)
-      );
+      ) as typeof this.always;
     }
 
     for (const key of Object.keys(this.states)) {
@@ -265,7 +281,7 @@ export class StateNode<
 
   /** @internal */
   public _refreshEventMetadata() {
-    const on = {} as TransitionDefinitionMap<TContext, TEvent>;
+    const on = {} as TransitionDefinitionMap<any, any, TTransitionMeta>;
     const ownEvents: EventDescriptor<any>[] = [];
     for (const [descriptor, transitions] of this.transitions) {
       (on as any)[descriptor] = transitions.slice();
@@ -290,10 +306,10 @@ export class StateNode<
     this.events = Array.from(events);
   }
 
-  public get initial(): InitialTransitionDefinition {
+  public get initial(): InitialTransitionDefinition<TTransitionMeta> {
     return memo(this, 'initial', () =>
       formatInitialTransition(this, this.config.initial)
-    );
+    ) as InitialTransitionDefinition<TTransitionMeta>;
   }
 
   /** @internal */
@@ -636,7 +652,13 @@ function formatInitialTransition(
   stateNode: AnyStateNode,
   _target:
     | string
-    | { target: string | string[]; input?: any; to?: (...args: any[]) => any }
+    | {
+        target: string | string[];
+        input?: any;
+        to?: (...args: any[]) => any;
+        meta?: any;
+        description?: string;
+      }
     | undefined
 ): InitialTransitionDefinition {
   const targetString =
@@ -645,6 +667,12 @@ function formatInitialTransition(
     typeof _target === 'object' && _target !== null ? _target.input : undefined;
   const to =
     typeof _target === 'object' && _target !== null ? _target.to : undefined;
+  const meta =
+    typeof _target === 'object' && _target !== null ? _target.meta : undefined;
+  const description =
+    typeof _target === 'object' && _target !== null
+      ? _target.description
+      : undefined;
   const targetStrings = Array.isArray(targetString)
     ? targetString
     : targetString
@@ -668,7 +696,9 @@ function formatInitialTransition(
       ? (resolvedTargets as AnyStateNode[])
       : undefined,
     input,
-    to
+    to,
+    meta,
+    description
   };
 
   return transition;

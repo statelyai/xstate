@@ -4,22 +4,25 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build"
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "@xstate/react": "workspace:*",
     "classnames": "^2.5.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "todomvc-app-css": "^2.4.3",
     "todomvc-common": "^1.0.5",
     "xstate": "workspace:*"
   },
   "devDependencies": {
-    "@types/react": "^18.3.28",
-    "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^4.7.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.1.1",
     "typescript": "^5.9.3",
-    "vite": "^6.4.3"
-  }
+    "vite": "^7.3.1"
+  },
+  "type": "module"
 }

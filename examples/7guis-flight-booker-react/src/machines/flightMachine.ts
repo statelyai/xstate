@@ -1,7 +1,14 @@
-import { types, createMachine, createAsyncLogic } from 'xstate';
+import { setup, types, createAsyncLogic } from 'xstate';
 import { createActorContext } from '@xstate/react';
 import { TODAY, TOMORROW, sleep } from '../utils';
-export const flightBookerMachine = createMachine({
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
+
+/** A departure cannot be booked in the past. */
+const isValidDepartDate = (departDate: string) => departDate >= TODAY;
+
+export const flightBookerMachine = setup({
   schemas: {
     context: types<FlightData>(),
     events: {
@@ -13,15 +20,19 @@ export const flightBookerMachine = createMachine({
     }
   },
   actors: {
-    Booker: createAsyncLogic({
-      run: () => {
-        return sleep(2000);
-      }
+    booker: createAsyncLogic({
+      run: () => sleep(2000)
     })
   },
+  guards: {
+    isValidDepartDate,
+    /** A return must be after a valid departure. */
+    isValidReturnDate: (departDate: string, returnDate: string) =>
+      isValidDepartDate(departDate) && returnDate > departDate
+  }
+}).createMachine({
   id: 'flightBookerMachine',
   context: {
-    isRoundTrip: false,
     departDate: TODAY,
     returnDate: TOMORROW
   },
@@ -30,44 +41,33 @@ export const flightBookerMachine = createMachine({
     scheduling: {
       initial: 'oneWay',
       on: {
-        CHANGE_DEPART_DATE: ({ context, event }) => ({
-          context: { ...context, departDate: event.value }
+        CHANGE_DEPART_DATE: ({ event }) => ({
+          context: { departDate: event.value }
         })
       },
       states: {
         oneWay: {
           on: {
-            CHANGE_TRIP_TYPE: ({ context }) => ({
-              target: 'roundTrip',
-              context: { ...context, isRoundTrip: true }
-            }),
-            BOOK_DEPART: ({ context }) => {
-              if (!(context.departDate >= TODAY)) {
-                return;
+            CHANGE_TRIP_TYPE: { target: 'roundTrip' },
+            BOOK_DEPART: ({ context, guards }) => {
+              if (guards.isValidDepartDate(context.departDate)) {
+                return { target: '#flightBookerMachine.booking' };
               }
-              return { target: '#flightBookerMachine.booking' };
             }
           }
         },
         roundTrip: {
           on: {
-            CHANGE_TRIP_TYPE: ({ context }) => ({
-              target: 'oneWay',
-              context: { ...context, isRoundTrip: false }
+            CHANGE_TRIP_TYPE: { target: 'oneWay' },
+            CHANGE_RETURN_DATE: ({ event }) => ({
+              context: { returnDate: event.value }
             }),
-            CHANGE_RETURN_DATE: ({ context, event }) => ({
-              context: { ...context, returnDate: event.value }
-            }),
-            BOOK_RETURN: ({ context }) => {
+            BOOK_RETURN: ({ context, guards }) => {
               if (
-                !(
-                  context.departDate >= TODAY &&
-                  context.returnDate > context.departDate
-                )
+                guards.isValidReturnDate(context.departDate, context.returnDate)
               ) {
-                return;
+                return { target: '#flightBookerMachine.booking' };
               }
-              return { target: '#flightBookerMachine.booking' };
             }
           }
         }
@@ -75,15 +75,9 @@ export const flightBookerMachine = createMachine({
     },
     booking: {
       invoke: {
-        src: 'Booker',
-        onDone: {
-          target: 'booked'
-        },
-        onError: ({ context }) => ({
-          target: context.isRoundTrip
-            ? 'scheduling.roundTrip'
-            : 'scheduling.oneWay'
-        })
+        src: 'booker',
+        onDone: { target: 'booked' },
+        onError: { target: 'scheduling' }
       }
     },
     booked: {
@@ -91,4 +85,7 @@ export const flightBookerMachine = createMachine({
     }
   }
 });
-export default createActorContext(flightBookerMachine);
+
+export default createActorContext(flightBookerMachine, {
+  inspect: inspector.inspect
+});

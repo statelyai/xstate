@@ -1,16 +1,16 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useActor } from '@xstate/react';
-import { type Dir, snakeMachine } from './snakeMachine';
-import { createOccupancyIndex } from './occupancy';
+import { type Dir, getGamObjectAtPos, snakeMachine } from './snakeMachine';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function App() {
-  const [current, send] = useActor(snakeMachine);
+  const [current, send] = useActor(snakeMachine, {
+    inspect: inspector.inspect
+  });
   const { gridSize, score, highScore } = current.context;
   const isGameOver = current.matches('Game Over');
-  const occupancy = useMemo(
-    () => createOccupancyIndex(current.context),
-    [current.context]
-  );
 
   useEffect(() => {
     function keyListener(event: KeyboardEvent) {
@@ -49,7 +49,13 @@ function App() {
       >
         {Array.from({ length: gridSize.y }).map((_, row) =>
           Array.from({ length: gridSize.x }).map((_, col) => {
-            const { type, dir } = occupancy.get(`${col},${row}`) || {};
+            const { type, dir } =
+              getGamObjectAtPos(
+                current.context.snake,
+                current.context.apple,
+                current.context.dir,
+                { x: col, y: row }
+              ) || {};
             return (
               <div className="cell" key={`${col} ${row}`}>
                 <span

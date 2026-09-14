@@ -1,23 +1,34 @@
-# React tic-tac-toe
+# tic-tac-toe-react
 
-This is an implementation of tic-tac-toe built with:
+## What it teaches
 
-- XState v6 alpha
-- React
-- TypeScript
-- Vite
+Eventless (`always`) transitions: after every move, the machine re-checks the board and moves itself to a game-over state without waiting for another event.
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/tic-tac-toe-react)
+## XState features used
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/examples/tic-tac-toe-react)
+- `setup()` with `schemas` (`types<T>()` for context, events, and tags)
+- Named `guards` in `setup()`, called from transition functions via `guards.*`
+- `always` transitions for win/draw detection
+- Nested states with `tags`, and `entry` returning updated context
+- `useActor` from `@xstate/react`
 
-<!-- sync:src -->
+## Run it
 
-This example uses the workspace XState v6 alpha. Machine schemas use `types<T>()` for static typing. From the repository root, install dependencies and run `pnpm build` first, then:
-
-```sh
-pnpm --dir examples/tic-tac-toe-react dev
-pnpm --dir examples/tic-tac-toe-react build
+```bash
+pnpm install
+pnpm dev
 ```
 
-The machine regression tests run with the repository's `pnpm check:examples` command.
+## Inspect it
+
+`@statelyai/sdk` is wired up in `src/App.tsx`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.
+
+## Notes
+
+Built against the XState v6 alpha in this repo (`xstate: workspace:*`), not a published release.
+
+`PLAY` flips the current player as part of the move, so the `gameOver.winner` state's `entry` records the *previous* player as the winner.
+
+## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/tic-tac-toe-react)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/examples/tic-tac-toe-react)

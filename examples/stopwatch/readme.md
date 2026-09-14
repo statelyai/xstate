@@ -1,22 +1,23 @@
-# Stopwatch
+# stopwatch
 
-This is a simple stopwatch, built with:
+## What it teaches
 
-- XState v6 alpha
-- TypeScript
-- Vite
+Driving state from a long-running interval actor that is only alive while the machine is in a particular state.
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/stopwatch)
+## XState features used
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/examples/stopwatch)
+- `setup()` with `actors`
+- `createCallbackLogic()` sending events back to the parent
+- `invoke` scoped to a state
+- Root-level transition (`reset`) targeting a state (`.stopped`)
 
-<!-- sync:src -->
+## Run it
 
-This example uses the workspace XState v6 alpha. Machine schemas use `types<T>()` for static typing. From the repository root, install dependencies and run `pnpm build` first, then:
-
-```sh
-pnpm --dir examples/stopwatch dev
-pnpm --dir examples/stopwatch build
+```bash
+pnpm install
+pnpm dev
 ```
 
-The machine regression tests run with the repository's `pnpm check:examples` command.
+## Inspect it
+
+`@statelyai/sdk` is wired up, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.

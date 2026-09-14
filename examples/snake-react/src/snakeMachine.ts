@@ -1,4 +1,4 @@
-import { createMachine, createCallbackLogic, types } from 'xstate';
+import { setup, types, createCallbackLogic } from 'xstate';
 
 export type Dir = 'Up' | 'Left' | 'Down' | 'Right';
 export type Point = { x: number; y: number };
@@ -14,10 +14,28 @@ export type SnakeMachineContext = {
   highScore: number;
 };
 
-export type GameObject =
+type GameObject =
   | { type: 'head'; dir: Dir }
   | { type: 'body'; dir: Dir }
   | { type: 'apple'; dir: undefined };
+export function getGamObjectAtPos(
+  snake: Snake,
+  apple: Point,
+  dir: Dir,
+  p: Point
+): GameObject | undefined {
+  let maybeBodyPart: BodyPart | undefined;
+  if (isSamePos(head(snake), p)) {
+    return { type: 'head', dir };
+  } else if (isSamePos(apple, p)) {
+    return { type: 'apple', dir: undefined };
+  } else if ((maybeBodyPart = find(body(snake), p))) {
+    return { type: 'body', dir: maybeBodyPart.dir };
+  } else {
+    return undefined;
+  }
+}
+
 const oppositeDir: Record<Dir, Dir> = {
   Up: 'Down',
   Down: 'Up',
@@ -62,18 +80,19 @@ function moveSnake(snake: Snake, dir: Dir): Snake {
   return [newHead(head(snake), dir), ...snake.slice(0, -1)];
 }
 
-function newApple(
-  gridSize: Point,
-  ineligibleGridPoints: Point[]
-): Point | undefined {
-  const occupied = new Set(ineligibleGridPoints.map(({ x, y }) => `${x},${y}`));
-  const available: Point[] = [];
-  for (let y = 0; y < gridSize.y; y++) {
-    for (let x = 0; x < gridSize.x; x++) {
-      if (!occupied.has(`${x},${y}`)) available.push({ x, y });
-    }
+function randomGridPoint(gridSize: Point): Point {
+  return {
+    x: Math.floor(Math.random() * gridSize.x),
+    y: Math.floor(Math.random() * gridSize.y)
+  };
+}
+
+function newApple(gridSize: Point, ineligibleGridPoints: Point[]) {
+  let newApple = randomGridPoint(gridSize);
+  while (find(ineligibleGridPoints, newApple)) {
+    newApple = randomGridPoint(gridSize);
   }
-  return available[Math.floor(Math.random() * available.length)];
+  return newApple;
 }
 
 function growSnake(snake: Snake): Snake {
@@ -108,7 +127,24 @@ export function createInitialContext(): SnakeMachineContext {
   };
 }
 
-export const snakeMachine = createMachine({
+function ateApple(snake: Snake, apple: Point) {
+  return isSamePos(head(snake), apple);
+}
+
+function hitTail(snake: Snake) {
+  return !!find(body(snake), head(snake));
+}
+
+function hitWall(gridSize: Point, snake: Snake) {
+  return isOutsideGrid(gridSize, head(snake));
+}
+
+/** The direction the snake should face after an arrow key, ignoring 180° turns. */
+function nextDir(currentDir: Dir, dir: Dir): Dir {
+  return dir !== oppositeDir[currentDir] ? dir : currentDir;
+}
+
+export const snakeMachine = setup({
   schemas: {
     context: types<SnakeMachineContext>(),
     events: {
@@ -119,10 +155,14 @@ export const snakeMachine = createMachine({
   },
   actors: {
     ticks: createCallbackLogic(({ sendBack }) => {
-      const interval = setInterval(() => sendBack({ type: 'TICK' }), 80);
-      return () => clearInterval(interval);
+      const i = setInterval(() => {
+        sendBack({ type: 'TICK' });
+      }, 80);
+
+      return () => clearInterval(i);
     })
-  },
+  }
+}).createMachine({
   id: 'SnakeMachine',
   context: createInitialContext(),
   initial: 'New Game',
@@ -131,59 +171,55 @@ export const snakeMachine = createMachine({
       on: {
         ARROW_KEY: ({ context, event }) => ({
           target: 'Moving',
-          context: {
-            ...context,
-            dir:
-              event.dir === oppositeDir[context.dir] ? context.dir : event.dir
-          }
+          context: { dir: nextDir(context.dir, event.dir) }
         })
       }
     },
     Moving: {
       entry: ({ context }) => ({
-        context: { ...context, snake: moveSnake(context.snake, context.dir) }
+        context: { snake: moveSnake(context.snake, context.dir) }
       }),
-      invoke: { src: 'ticks' },
+      invoke: {
+        src: 'ticks'
+      },
+      // Eventless transition: re-runs after every context change, so eating an
+      // apple is resolved before the collision check on the next pass.
       always: ({ context }) => {
-        if (
-          isOutsideGrid(context.gridSize, head(context.snake)) ||
-          find(body(context.snake), head(context.snake))
-        ) {
-          return { target: 'Game Over' };
-        }
-        if (isSamePos(head(context.snake), context.apple)) {
+        if (ateApple(context.snake, context.apple)) {
           const snake = growSnake(context.snake);
-          const apple =
-            snake.length < context.gridSize.x * context.gridSize.y
-              ? newApple(context.gridSize, snake)
-              : undefined;
+
           return {
-            target: apple ? undefined : 'Game Over',
             context: {
-              ...context,
               snake,
               score: context.score + 1,
               highScore: Math.max(context.score + 1, context.highScore),
-              apple: apple ?? context.apple
+              apple: newApple(context.gridSize, snake)
             }
           };
+        }
+
+        if (
+          hitTail(context.snake) ||
+          hitWall(context.gridSize, context.snake)
+        ) {
+          return { target: 'Game Over' };
         }
       },
       on: {
         TICK: ({ context }) => ({
-          context: { ...context, snake: moveSnake(context.snake, context.dir) }
+          context: { snake: moveSnake(context.snake, context.dir) }
         }),
+        // Re-entering `Moving` moves the snake immediately, so a keypress
+        // feels responsive instead of waiting for the next tick.
         ARROW_KEY: ({ context, event }) => ({
-          context: {
-            ...context,
-            dir:
-              event.dir === oppositeDir[context.dir] ? context.dir : event.dir
-          }
+          target: 'Moving',
+          context: { dir: nextDir(context.dir, event.dir) }
         })
       }
     },
     'Game Over': {
       on: {
+        // Triggered by pressing the "r" key
         NEW_GAME: ({ context }) => ({
           target: 'New Game',
           context: { ...createInitialContext(), highScore: context.highScore }

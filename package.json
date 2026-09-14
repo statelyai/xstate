@@ -44,6 +44,7 @@
     "lint": "oxlint --quiet --report-unused-disable-directives-severity=error",
     "lint:fix": "oxlint --fix --report-unused-disable-directives-severity=error",
     "typecheck": "tsc",
+    "typecheck:adapter-consumers": "tsc -p tsconfig.exact-optional.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:core": "vitest run --project xstate",
@@ -51,17 +52,14 @@
     "test:core:coverage": "vitest run --project xstate --coverage --coverage.provider=istanbul --coverage.include=packages/core/src/**/*.ts --coverage.exclude=**/*.test.ts",
     "test:store": "vitest run --project @xstate/store*",
     "test:store:watch": "vitest --project @xstate/store*",
-    "bench:size": "node scripts/bundle-size.mjs --report --verify",
+    "bench:size": "node scripts/bundle-size.mjs",
     "bench:size:update": "node scripts/bundle-size.mjs --update",
     "bench:core-runtime": "node scripts/bench-core-runtime.mjs",
     "bench:type-errors": "node scripts/type-error-quality.mjs",
     "changeset": "changeset",
     "release": "changeset publish",
     "version": "changeset version",
-    "test:tooling": "node --test scripts/typecheck-examples.test.cjs examples/persisted-donut-maker/snapshotWriter.test.ts examples/snake-react/src/occupancy.test.ts",
-    "check:examples": "node scripts/check-maintained-examples.js",
-    "check:templates": "node scripts/check-templates.js",
-    "bench:size:strict": "node scripts/bundle-size.mjs"
+    "test:tooling": "node --test scripts/typecheck-examples.test.cjs"
   },
   "repository": {
     "type": "git",
@@ -76,6 +74,7 @@
   "dependencies": {
     "@babel/core": "^7.29.7",
     "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/plugin-transform-class-static-block": "^7.29.7",
     "@babel/preset-env": "^7.29.7",
     "@babel/preset-react": "^7.29.7",
     "@babel/preset-typescript": "^7.29.7",

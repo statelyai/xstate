@@ -1,4 +1,4 @@
-import { types, createMachine } from 'xstate';
+import { setup, types } from 'xstate';
 
 export interface TodoItem {
   id: string;
@@ -8,7 +8,7 @@ export interface TodoItem {
 
 export type TodosFilter = 'all' | 'active' | 'completed';
 
-export const todosMachine = createMachine({
+export const todosMachine = setup({
   schemas: {
     context: types<{
       todo: string;
@@ -25,7 +25,8 @@ export const todosMachine = createMachine({
       'todo.markAll': types<{ mark: 'active' | 'completed' }>(),
       'todos.clearCompleted': types<{}>()
     }
-  },
+  }
+}).createMachine({
   id: 'todos',
   context: {
     todo: '',
@@ -39,44 +40,57 @@ export const todosMachine = createMachine({
     filter: 'all'
   },
   on: {
-    'newTodo.change': ({ context, event }) => ({
-      context: { ...context, todo: event.value }
+    'newTodo.change': ({ event }) => ({
+      context: { todo: event.value }
     }),
     'newTodo.commit': ({ context, event }) => {
-      if (!event.value.trim()) return;
+      if (!event.value.trim().length) {
+        return;
+      }
+
+      const newTodo: TodoItem = {
+        id: Math.random().toString(36).substring(7),
+        title: event.value,
+        completed: false
+      };
+
       return {
         context: {
-          ...context,
           todo: '',
-          todos: [
-            ...context.todos,
-            { id: crypto.randomUUID(), title: event.value, completed: false }
-          ]
+          todos: [...context.todos, newTodo]
         }
       };
     },
-    'todo.commit': ({ context, event }) => ({
-      context: {
-        ...context,
-        todos: event.todo.title.trim()
-          ? context.todos.map((todo) =>
-              todo.id === event.todo.id ? event.todo : todo
-            )
-          : context.todos.filter((todo) => todo.id !== event.todo.id)
+    'todo.commit': ({ context, event }) => {
+      const { todo: todoToUpdate } = event;
+
+      // An empty title deletes the todo
+      if (!todoToUpdate.title.trim().length) {
+        return {
+          context: {
+            todos: context.todos.filter((todo) => todo.id !== todoToUpdate.id)
+          }
+        };
       }
-    }),
+
+      return {
+        context: {
+          todos: context.todos.map((todo) =>
+            todo.id === todoToUpdate.id ? todoToUpdate : todo
+          )
+        }
+      };
+    },
     'todo.delete': ({ context, event }) => ({
       context: {
-        ...context,
         todos: context.todos.filter((todo) => todo.id !== event.id)
       }
     }),
-    'filter.change': ({ context, event }) => ({
-      context: { ...context, filter: event.filter }
+    'filter.change': ({ event }) => ({
+      context: { filter: event.filter }
     }),
     'todo.mark': ({ context, event }) => ({
       context: {
-        ...context,
         todos: context.todos.map((todo) =>
           todo.id === event.id
             ? { ...todo, completed: event.mark === 'completed' }
@@ -86,7 +100,6 @@ export const todosMachine = createMachine({
     }),
     'todo.markAll': ({ context, event }) => ({
       context: {
-        ...context,
         todos: context.todos.map((todo) => ({
           ...todo,
           completed: event.mark === 'completed'
@@ -95,7 +108,6 @@ export const todosMachine = createMachine({
     }),
     'todos.clearCompleted': ({ context }) => ({
       context: {
-        ...context,
         todos: context.todos.filter((todo) => !todo.completed)
       }
     })

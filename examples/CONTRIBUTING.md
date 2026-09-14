@@ -1,0 +1,237 @@
+# Contributing an example
+
+This folder is a corpus of small, self-contained XState examples. Each one is a pnpm workspace package that runs against the version of XState in this repo, not a published release. The standards below keep the corpus consistent and reviewable.
+
+## Scope: one concept per example
+
+An example teaches one thing. State it in the first line of the README, then build the smallest app that demonstrates it.
+
+- Keep examples under 300 lines of source code, excluding config and generated files.
+- If an example needs two unrelated concepts to make sense, split it into two examples.
+- Prefer plain CSS and no component library. UI chrome is not the subject.
+
+## Naming
+
+| Kind                     | Pattern            | Example               |
+| ------------------------ | ------------------ | --------------------- |
+| Frontend app             | `domain-framework` | `auth-flow-react`     |
+| Backend workflow pattern | `pattern-*`        | `pattern-saga`        |
+| `@xstate/store` example  | `store-*`          | `store-counter-react` |
+| AI agent example         | `agent-*`          | `agent-tool-loop`     |
+
+Use lowercase kebab-case. The directory name, the `name` field in `package.json`, and the README title must match.
+
+## Dependencies
+
+Depend on workspace packages, never on published versions:
+
+```json
+{
+  "dependencies": {
+    "xstate": "workspace:*",
+    "@xstate/react": "workspace:*"
+  }
+}
+```
+
+Pin the following framework and tooling versions. Do not introduce older majors.
+
+| Dependency | Version |
+| ---------- | ------- |
+| React      | 19      |
+| Vite       | 7       |
+| Vue        | 3.5     |
+| Svelte     | 5       |
+| Express    | 5       |
+
+Keep the dependency list minimal. Anything beyond the framework, XState, and the build tool needs a reason in the README.
+
+## XState v6 style
+
+Examples are reference material, so the code must be idiomatic v6.
+
+**Use `setup()` as the entry point.** Declare actors, actions, and delays in `setup()`, then call `.createMachine()`. Reference them by name in the machine config.
+
+```ts
+import { setup, createAsyncLogic, types } from 'xstate';
+
+const machine = setup({
+  schemas: {
+    context: types<{ user: User | null }>(),
+    events: {
+      submit: types<{ email: string }>()
+    }
+  },
+  actors: {
+    authenticate: createAsyncLogic({
+      schemas: { input: types<{ email: string }>() },
+      run: async ({ input }) => login(input)
+    })
+  }
+}).createMachine({
+  /* ... */
+});
+```
+
+**Keep reusable implementations standalone.** Guards, actions, and actor logic are normal functions: none of them may depend on the calling machine's context, event, or anything else actor-specific, and none of them ever receives the transition args object. Each takes only what it needs — call a guard like any predicate, `guards.isEditing(context.editing)`, never `guards.isEditing(args, ...)`. Registering standalone functions on `setup()` is fine; coupling them to the machine is not. In practice:
+
+- Guards: plain predicates with narrow parameters, registered in `guards:` and called inside the transition function (worked example below).
+- Actions: plain functions with narrow parameters, enqueued as `enq(sendEmail, context.address)`. Never forward the transition args object.
+- Actor logic: declare the `input` fields the logic actually uses, and map only those at the invoke site (`input: ({ context }) => ({ page: context.page })`). Never pass the whole parent context, and never type an actor's `input`/`run` params with the parent machine's context or event types.
+- Module-level helpers generally: take `(tiles: number[])`, not `(context: BoardContext)`.
+
+Transition functions themselves are machine-owned and rightly receive the transition args. `delays` are the other exception — see below.
+
+**Register guards in `guards:` and call them like plain predicates.** A guard is an ordinary function, taking the narrowest useful parameters — the values it actually judges, not the whole transition args object. Put it in the machine's `guards:` source map (on `setup()`, or on the machine config when the example uses a bare `createMachine`), then destructure `guards` from the transition args and call it.
+
+```ts
+const machine = setup({
+  schemas: {
+    /* ... */
+  },
+  guards: {
+    hasSession: (user: User | null): user is User => user !== null,
+    hasStock: (quantity: number) => quantity > 0
+  }
+}).createMachine({
+  /* ... */
+});
+```
+
+```ts
+on: {
+  submit: ({ context, guards }) => ({
+    target: guards.hasSession(context.user) ? 'dashboard' : 'login'
+  });
+}
+```
+
+```ts
+on: {
+  addItem: ({ context, guards }) => {
+    if (!guards.hasStock(context.quantity)) return;
+    return { target: 'adding' };
+  };
+}
+```
+
+Type predicates keep narrowing through `guards.` access, so `guards.hasSession(context.user)` still narrows `context.user` in the branch below it.
+
+Never forward the transition `args` object to a guard — a guard call reads like any predicate call: `guards.isEditing(context.editing)`, never `guards.isEditing(args, ...)`. Narrow parameters keep each predicate independently testable and readable at the call site; passing `args` hides what the rule depends on.
+
+A predicate that a UI component also imports stays declared at module level and is registered by reference (`guards: { isEditing }`), so both call sites keep working.
+
+Note: guards referenced declaratively from serialized JSON or SCXML machines (`guard: { type, params }`) are the one exception. There the runtime is the caller, so it passes the transition args object first and `params` second. Examples written in TypeScript never use that form.
+
+`delays` are different: a named delay function is called by the runtime with `{ context, event, stateNode }`, so it does take that args object. `schemas.context` and `schemas.events` type it, so do not annotate the params.
+
+```ts
+delays: {
+  backoff: ({ context }) => 100 * 2 ** (context.attempt - 1);
+}
+```
+
+**Use the `create*Logic` actor creators.** The exported names in `xstate` are:
+
+- `createAsyncLogic` — promise or async function actors (this is the v6 name; there is no `createPromiseLogic`)
+- `createCallbackLogic` — callback actors that send and receive events
+- `createObservableLogic` and `createEventObservableLogic` — observable actors
+- `createListenerLogic` — event listener actors
+- `createSubscriptionLogic` — subscription-based actors
+- `createLogic`, `createDefaultLogic`, `createAttachedLogic` — lower-level building blocks
+
+**Write code a human would write.** Mechanically converted v4/v5 code is rejected. In particular:
+
+- No IIFE-wrapped guards or assigns inside transition functions. Put the logic in a registered guard or a module-level function.
+- No `(() => { ... })()` blocks standing in for what should be a declarative transition.
+- No leftover `predictableActionArguments`, `tsTypes`, or other pre-v5 config keys.
+- No `as any` to work around types. If the types fight you, that is a bug worth reporting.
+
+## README
+
+Every example needs a `README.md` with these sections, in this order:
+
+1. **Title** — the directory name.
+2. **What it teaches** — one or two sentences naming the concept.
+3. **XState features used** — a short list, for example: parallel states, `invoke`, delayed transitions, persistence.
+4. **Run it** — the exact commands:
+
+   ```bash
+   pnpm install
+   pnpm dev # or `pnpm start` for backend examples
+   ```
+
+5. **Inspect it** — how to view the running actors in the [Stately Inspector](https://stately.ai/docs/inspector). Name the file the inspector is wired up in. For headless examples, document the `INSPECT=1` flag (see below). If the example genuinely has no actor or store to inspect, say why.
+
+Keep the README under a page. Explanation of the concept belongs in the docs; the README points at it.
+
+## Inspection
+
+Inspection uses [`@statelyai/sdk`](https://stately.ai/docs/inspector), which works with XState v5 and v6. Add it as a published dependency:
+
+```json
+{
+  "dependencies": {
+    "@statelyai/sdk": "^0.20.1"
+  }
+}
+```
+
+`createInspector()` connects to Stately's hosted relay at `wss://sky.stately.ai` and opens the hosted inspector in your default browser. Machine definitions, snapshots, events, and actor topology are sent to that relay, so keep an example's data uninteresting, and pass a self-hosted `url` if you need it to stay on your own infrastructure.
+
+Every example that starts an actor or creates a store must wire the inspector up in its own source — a README snippet is not enough. Browser examples create the inspector unconditionally:
+
+```ts
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
+
+const actor = createActor(machine, { inspect: inspector.inspect });
+```
+
+Framework hooks take the same `inspect` option, since they forward their options to `createActor`:
+
+```ts
+const [state, send] = useActor(machine, { inspect: inspector.inspect });
+const actorRef = useActorRef(machine, { inspect: inspector.inspect });
+export const Ctx = createActorContext(machine, { inspect: inspector.inspect });
+```
+
+`@xstate/store` stores are not created with `createActor`, so subscribe the inspector to the store instead:
+
+```ts
+store.inspect(inspector.inspect);
+```
+
+Headless examples — backend workflows, `pattern-*`, and `agent-*` — must put it behind an environment flag so the default run has no external dependency, and must destroy the inspector when the demo ends so the process can exit:
+
+```ts
+import { createActor } from 'xstate';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = process.env.INSPECT ? createInspector() : undefined;
+
+const actor = createActor(machine, { inspect: inspector?.inspect });
+
+// ...at the end of the demo:
+inspector?.destroy();
+```
+
+Run with inspection:
+
+```bash
+INSPECT=1 pnpm start
+```
+
+Headless examples may also render their actors with the shared dashboard in [`examples/_shared/actor-ui`](./_shared/actor-ui) instead of writing bespoke UI.
+
+## Checklist before opening a PR
+
+- [ ] Directory name follows the naming pattern and matches `package.json` and the README title.
+- [ ] All XState dependencies use `workspace:*`.
+- [ ] Framework versions match the pinned table.
+- [ ] Machine is built with `setup()`; actors use `create*Logic`.
+- [ ] Source is under 300 lines and teaches one concept.
+- [ ] `README.md` has all five sections.
+- [ ] Every actor and store the example starts is wired to the inspector in source, and headless examples gate it behind `INSPECT=1`.
+- [ ] The example is added to the coverage matrix in [`readme.md`](./readme.md).

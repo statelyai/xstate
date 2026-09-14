@@ -1,28 +1,41 @@
-import { createMachine, createAsyncLogic } from 'xstate';
+import { createAsyncLogic, setup, types } from 'xstate';
 import { getGreeting } from './getGreeting';
-import { z } from 'zod';
 
-export const fetchMachine = createMachine({
+export const fetchMachine = setup({
   schemas: {
-    context: z.object({
-      name: z.string(),
-      data: z.object({ greeting: z.string() }).nullable()
-    }),
-    events: { FETCH: z.object({}), RETRY: z.object({}) }
+    context: types<{
+      name: string;
+      data: { greeting: string } | null;
+    }>(),
+    events: {
+      FETCH: types<{}>(),
+      RETRY: types<{}>()
+    }
   },
   actors: {
-    fetchUser: createAsyncLogic({
-      schemas: { input: z.object({ name: z.string() }) },
+    fetchGreeting: createAsyncLogic({
+      schemas: {
+        input: types<{ name: string }>()
+      },
       run: ({ input }) => getGreeting(input.name)
     })
-  },
+  }
+}).createMachine({
+  id: 'fetch',
   initial: 'idle',
-  context: { name: 'World', data: null },
+  context: {
+    name: 'World',
+    data: null
+  },
   states: {
-    idle: { on: { FETCH: { target: 'loading' } } },
+    idle: {
+      on: {
+        FETCH: { target: 'loading' }
+      }
+    },
     loading: {
       invoke: {
-        src: 'fetchUser',
+        src: 'fetchGreeting',
         input: ({ context }) => ({ name: context.name }),
         onDone: ({ context, event }) => ({
           target: 'success',
@@ -33,8 +46,12 @@ export const fetchMachine = createMachine({
     },
     success: {},
     failure: {
-      after: { 1000: { target: 'loading' } },
-      on: { RETRY: { target: 'loading' } }
+      after: {
+        1000: { target: 'loading' }
+      },
+      on: {
+        RETRY: { target: 'loading' }
+      }
     }
   }
 });

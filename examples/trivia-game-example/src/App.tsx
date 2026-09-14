@@ -1,36 +1,35 @@
-import React from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router';
+import { useEffect } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Trivia from './pages/Trivia';
 import { TriviaMachineContext } from './context/AppContext';
-import triviaMachine from './triviaMachine';
 
-const TriviaRoute = () => {
-  const hasStarted = TriviaMachineContext.useSelector((state) =>
+/**
+ * The machine owns "a game is in progress"; the router just follows it. Keeping
+ * `navigate` out of the machine leaves the machine free of React dependencies.
+ */
+const RouteSync = () => {
+  const navigate = useNavigate();
+  const isPlaying = TriviaMachineContext.useSelector((state) =>
     state.matches('startTrivia')
   );
-  return hasStarted ? <Trivia /> : <Navigate to="/" replace />;
+
+  useEffect(() => {
+    navigate(isPlaying ? '/trivia' : '/');
+  }, [isPlaying, navigate]);
+
+  return null;
 };
 
 const App = () => {
-  const navigate = useNavigate();
   return (
-    <React.Fragment>
-      <TriviaMachineContext.Provider
-        logic={triviaMachine.provide({
-          actions: {
-            goToTriviaPage: () => {
-              void navigate('/trivia');
-            }
-          }
-        })}
-      >
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/trivia" element={<TriviaRoute />} />
-        </Routes>
-      </TriviaMachineContext.Provider>
-    </React.Fragment>
+    <TriviaMachineContext.Provider>
+      <RouteSync />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/trivia" element={<Trivia />} />
+      </Routes>
+    </TriviaMachineContext.Provider>
   );
 };
 

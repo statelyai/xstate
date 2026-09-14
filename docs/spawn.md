@@ -203,7 +203,10 @@ schemas: {
 }
 ```
 
-`children.connection` is then typed, and unknown keys are type errors. Dynamic children keyed by a runtime id stay typed through the context array instead.
+`children.connection` is then typed, unknown keys are type errors, and
+`enq.sendTo('connection', event)` checks the event against the declared actor
+ref. Dynamic children keyed by a runtime id stay typed through their returned
+refs or refs stored in context.
 
 ## Spawn cheatsheet
 
@@ -211,6 +214,7 @@ schemas: {
 const child = enq.spawn(logic, { id, input, registryKey, syncSnapshot: true });
 const durableChild = enq.spawn('registeredSource', { id, input });
 enq.sendTo(child, { type: 'start' });
+enq.sendTo('connection', { type: 'start' });
 enq.subscribeTo(child, { done: (output) => ({ type: 'finished', output }) });
 enq.stop(child);
 ```

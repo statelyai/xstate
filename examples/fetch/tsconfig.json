@@ -1,13 +1,17 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM"],
-    "strict": true,
     "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
     "noEmit": true,
-    "allowImportingTsExtensions": true
+    "strict": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": ["src"]
 }

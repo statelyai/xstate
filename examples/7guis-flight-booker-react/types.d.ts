@@ -7,7 +7,6 @@ declare global {
   type EventType = 'BOOK_DEPART' | 'BOOK_RETURN';
 
   type FlightData = {
-    isRoundTrip: boolean;
     departDate: string;
     returnDate: string;
   };

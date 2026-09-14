@@ -1,15 +1,41 @@
-# Persisted donut workflow with MongoDB
+# mongodb-persisted-state
 
-<!-- Runtime commands from package.json; MongoDB configuration and lifecycle from main.ts and session.ts. -->
+## What it teaches
 
-This XState v6 alpha example restores a donut workflow from MongoDB and persists each new snapshot in event order. Snapshots are captured before entering the write queue. A failed write is reported without preventing later writes.
+Persisting an actor snapshot to MongoDB after every transition and restoring it on the next run, so a workflow survives the process exiting.
 
-From the repository root, run `pnpm install` and `pnpm build`. Then, in this directory:
+## XState features used
 
-```sh
-MONGODB_URI='mongodb://localhost:27017' pnpm start
+- `setup()`
+- Persistence: `actor.getPersistedSnapshot()` and the `snapshot` actor option
+- Nested, parallel and final states with `onDone`
+- `machine.events` plus `snapshot.can(...)` to list the events available now
+
+## Run it
+
+Start MongoDB:
+
+```bash
+docker run --rm -d -p 27017:27017 --name xstate-mongo mongo:7
 ```
 
-The sample uses the `donut-maker` database and `donuts` collection. It restores the first document containing `persistedState`, or creates one when absent. Use a dedicated collection for this single-workflow example. Enter one displayed event per line. Ctrl-C or stdin closure stops the actor, drains pending writes, and closes the connection.
+Then:
 
-`pnpm build` checks types. Repository example tests use an in-memory persistence callback to verify ordering, failure recovery, and restoration; they do not connect to a live database.
+```bash
+pnpm install
+MONGODB_URI=mongodb://localhost:27017 pnpm start
+```
+
+`MONGODB_URI` defaults to `mongodb://localhost:27017`. The `donut-maker` database and its `donuts` collection are created on the first write. Type an event name (for example `NEXT`) and press enter; stop the process and start it again to see the workflow resume.
+
+The actor is bound to a single document, which it upserts. Writes go through `TaskQueue` so that snapshots are stored in transition order.
+
+The `start` script passes `--conditions=module` so that Node resolves `xstate` to this repo's source.
+
+> This example is a starting point, not production code. Among other things, URI credentials must be encoded — see [MongoDB's Node driver docs](https://www.mongodb.com/docs/drivers/node/current/fundamentals/authentication/mechanisms/).
+
+`donutMachine.ts` is a copy of the machine in [`../persisted-donut-maker`](../persisted-donut-maker), so each example stays runnable on its own. Keep the two files in sync.
+
+## Inspect it
+
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

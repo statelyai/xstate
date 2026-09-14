@@ -15,16 +15,13 @@ import type {
   ContextFrom,
   EventFrom,
   EventObject,
-  PersistedSnapshotFor,
+  PersistedSnapshotFrom,
   Snapshot
 } from './types.ts';
-
-export type PersistedMachineIdentity<
-  TMachine extends AnyStateMachine = AnyStateMachine
-> = {
-  id: TMachine['id'];
-  version: NonNullable<TMachine['version']>;
-};
+export type {
+  PersistedMachineIdentity,
+  PersistedSnapshotFrom
+} from './types.ts';
 
 type VersionedStateMachine = AnyStateMachine & {
   version: string;
@@ -33,14 +30,6 @@ type VersionedStateMachine = AnyStateMachine & {
 };
 
 type VersionEntry = MachineVersionDescriptor;
-
-export type PersistedSnapshotFrom<TMachine extends AnyStateMachine> =
-  Snapshot<unknown> &
-    PersistedSnapshotFor<TMachine> & {
-      context: ContextFrom<TMachine>;
-      machine: PersistedMachineIdentity<TMachine>;
-      [key: string]: unknown;
-    };
 
 export type PersistedSnapshotDataFrom<TMachine extends AnyStateMachine> =
   Snapshot<unknown> & {

@@ -1,50 +1,85 @@
-import { types, createMachine } from 'xstate';
+import { setup, types } from 'xstate';
 
 export interface Tile {
   index: number;
   x: number;
   y: number;
 }
-function adjacent(a: Tile, b: Tile) {
-  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
+
+interface TilesContext {
+  tiles: number[];
+  selected: Tile | undefined;
+  hovered: Tile | undefined;
 }
-function shuffle(tiles: number[]) {
-  const result = [...tiles];
-  for (let i = result.length - 1; i > 0; i--) {
+
+function range(num: number): number[] {
+  return Array.from(Array(num).keys());
+}
+
+function swap(tiles: number[], a: number, b: number): number[] {
+  const swapped = [...tiles];
+  [swapped[a], swapped[b]] = [swapped[b], swapped[a]];
+  return swapped;
+}
+
+function shuffle(tiles: number[]): number[] {
+  const shuffled = [...tiles];
+  for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  return result;
+  return shuffled;
 }
-export const tilesMachine = createMachine({
+
+/** Two tiles can swap only if they share a row or column edge. */
+function isAdjacent(selected: Tile | undefined, hovered: Tile | undefined) {
+  if (!selected || !hovered) {
+    return false;
+  }
+
+  return (
+    (hovered.x === selected.x && Math.abs(hovered.y - selected.y) === 1) ||
+    (hovered.y === selected.y && Math.abs(hovered.x - selected.x) === 1)
+  );
+}
+
+export const tilesMachine = setup({
   schemas: {
-    context: types<{
-      tiles: number[];
-      selected: Tile | undefined;
-      hovered: Tile | undefined;
-    }>(),
+    context: types<TilesContext>(),
     events: {
+      shuffle: types<{}>(),
       'tile.select': types<{ tile: Tile }>(),
       'tile.hover': types<{ tile: Tile }>(),
       'tile.move': types<{}>(),
-      'move.canceled': types<{}>(),
-      shuffle: types<{}>()
+      'move.canceled': types<{}>()
     }
   },
+  guards: {
+    allTilesInOrder: (tiles: number[]) =>
+      tiles.every((tile, index) => tile === index)
+  }
+}).createMachine({
+  id: 'tiles',
+  initial: 'start',
   context: {
-    tiles: Array.from({ length: 16 }, (_, index) => index),
+    tiles: range(16),
     selected: undefined,
     hovered: undefined
   },
-  initial: 'start',
   states: {
     start: {},
-    gameOver: {},
+    gameOver: {
+      id: 'gameOver'
+    },
     playing: {
-      on: { shuffle: {} },
       initial: 'selecting',
+      on: {
+        // Shuffling is only allowed before starting and after winning
+        shuffle: undefined
+      },
       states: {
         selecting: {
+          id: 'selecting',
           on: {
             'tile.select': ({ context, event }) => ({
               target: 'selected',
@@ -61,36 +96,42 @@ export const tilesMachine = createMachine({
               target: 'selecting',
               context: { ...context, selected: undefined, hovered: undefined }
             }),
-            'tile.move': ({ context }) => ({
-              target: 'selecting',
-              context: {
-                tiles:
-                  context.selected &&
-                  context.hovered &&
-                  adjacent(context.selected, context.hovered)
-                    ? swap(
-                        context.tiles,
-                        context.selected.index,
-                        context.hovered.index
-                      )
-                    : context.tiles,
-                selected: undefined,
-                hovered: undefined
+            'tile.move': ({ context }) => {
+              if (!isAdjacent(context.selected, context.hovered)) {
+                return { target: '#selecting' };
               }
-            })
+
+              return {
+                target: '#selecting',
+                context: {
+                  ...context,
+                  tiles: swap(
+                    context.tiles,
+                    context.hovered!.index,
+                    context.selected!.index
+                  ),
+                  selected: undefined,
+                  hovered: undefined
+                }
+              };
+            }
           }
         }
       },
-      always: ({ context }) =>
-        context.tiles.every((tile, index) => tile === index)
-          ? { target: 'gameOver' }
-          : undefined
+      always: ({ context, guards }) => {
+        if (!guards.allTilesInOrder(context.tiles)) {
+          return;
+        }
+
+        return { target: '#gameOver' };
+      }
     }
   },
   on: {
     shuffle: ({ context }) => ({
       target: '.playing',
       context: {
+        ...context,
         tiles: shuffle(context.tiles),
         selected: undefined,
         hovered: undefined
@@ -98,9 +139,3 @@ export const tilesMachine = createMachine({
     })
   }
 });
-
-export function swap<T>(arr: T[], a: number, b: number): T[] {
-  const result = [...arr];
-  [result[a], result[b]] = [result[b], result[a]];
-  return result;
-}

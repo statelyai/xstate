@@ -1003,7 +1003,8 @@ export function resolveActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
-  actions: AnyAction[]
+  actions: AnyAction[],
+  internalEvents?: EventObject[]
 ): [AnyMachineSnapshot, ExecutableActionObject[]] {
   let intermediateSnapshot = currentSnapshot;
   const executableActions: ExecutableActionObject[] = [];
@@ -1035,11 +1036,36 @@ export function resolveActionsWithContext(
 
     const isInline = typeof action === 'function';
     const actionRecord = getTransitionActionRecord(action);
+    let resolvedActionArgs = actionRecord?.args;
+
+    if (
+      actionRecord?.action === builtInActions['@xstate.sendTo'] &&
+      typeof actionRecord.args[1] === 'string'
+    ) {
+      const childId = actionRecord.args[1];
+      const target = Object.hasOwn(intermediateSnapshot.children, childId)
+        ? intermediateSnapshot.children[childId]
+        : undefined;
+      if (!target) {
+        internalEvents?.push(
+          createErrorPlatformEvent('communication', {
+            message: `Unable to send event to unknown child '${childId}'`,
+            event: actionRecord.args[2]
+          })
+        );
+        continue;
+      }
+      resolvedActionArgs = [
+        actionRecord.args[0],
+        target,
+        ...actionRecord.args.slice(2)
+      ];
+    }
 
     const resolvedAction = isInline
       ? action
       : actionRecord
-        ? actionRecord.action.bind(null, ...actionRecord.args)
+        ? actionRecord.action.bind(null, ...resolvedActionArgs!)
         : false;
 
     let actionParams = undefined;
@@ -1114,7 +1140,7 @@ export function resolveActionsWithContext(
         action !== null &&
         'action' in action &&
         typeof action.action === 'function'
-          ? getBuiltInActionFields(action.action, action.args)
+          ? getBuiltInActionFields(action.action, resolvedActionArgs!)
           : undefined;
       const isEmittedEvent =
         typeof action === 'object' && action !== null && !actionRecord;
@@ -1133,7 +1159,9 @@ export function resolveActionsWithContext(
             : action.name || '(anonymous)',
         params: builtInFields ? undefined : actionParams,
         args:
-          typeof action === 'object' && 'action' in action ? action.args : [],
+          typeof action === 'object' && 'action' in action
+            ? resolvedActionArgs!
+            : [],
         ...(builtInFields
           ? {}
           : isEmittedEvent

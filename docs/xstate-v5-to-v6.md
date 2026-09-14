@@ -301,14 +301,14 @@ in transition (and `choice`) function args:
 
 ```ts
 // v6
-choice: (args) => {
-  if (args.guards.isVip(args)) {
+choice: ({ context, guards }) => {
+  if (guards.isVip(context.isVip)) {
     return { target: 'vipFlow' };
   }
   return { target: 'defaultFlow' };
 },
 guards: {
-  isVip: ({ context }) => context.isVip
+  isVip: (isVip) => isVip
 }
 ```
 
@@ -386,6 +386,7 @@ schemas: {
   input:    ZodSchema,                                  // machine input
   output:   ZodSchema,                                  // machine output
   meta:     ZodSchema,                                  // per-state meta
+  transitionMeta: ZodSchema,                            // per-transition meta
   tags:     z.enum([...]),                              // tag values
   children: { [childId: string]: ZodSchema }            // invoked/spawned child schemas
 }
@@ -504,7 +505,7 @@ const machine = createMachine({
     log: (params: { msg: string }) => console.log(params.msg)
   },
   guards: {
-    isReady: ({ context }) => context.ready === true
+    isReady: (ready: boolean) => ready === true
   },
   actors: {
     fetchUser: createAsyncLogic({ run: ({ input }) => fetch(`/u/${input.id}`) })

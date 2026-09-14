@@ -1,6 +1,9 @@
 import './App.css';
 import { useMachine } from '@xstate/react';
+import { createInspector } from '@statelyai/sdk';
 import { tilesMachine } from './tilesMachine';
+
+const inspector = createInspector();
 
 function TileGrid({
   children,
@@ -17,8 +20,8 @@ function TileGrid({
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
         gridTemplateRows: 'repeat(4, 1fr)',
-        backgroundImage: `url(${image})`,
-        backgroundSize: '400% 400%'
+        backgroundImage: image,
+        backgroundSize: '600% center'
       }}
     >
       {children}
@@ -40,33 +43,26 @@ function Tile({
         height: '100%',
         width: '100%',
         backgroundImage: 'inherit',
-        backgroundSize: '400% 400%',
-        backgroundPosition: `${((tile % 4) * 100) / 3}% ${(Math.floor(tile / 4) * 100) / 3}%`,
+        backgroundSize: '600% center',
+        backgroundPosition: `${(tile % 4) * -100}% ${
+          Math.floor(tile / 4) * -100
+        }%`,
         filter: highlight ? 'brightness(1.1)' : 'brightness(1)',
         userSelect: 'none'
       }}
       {...divProps}
-    >
-      <span
-        style={{
-          background: '#fff',
-          color: '#172554',
-          padding: '2px 6px',
-          borderRadius: '4px'
-        }}
-      >
-        {tile + 1}
-      </span>
-    </div>
+    />
   );
 }
 
 function App() {
-  const [state, send] = useMachine(tilesMachine);
+  const [state, send] = useMachine(tilesMachine, {
+    inspect: inspector.inspect
+  });
 
   return (
     <div className="App">
-      <TileGrid image="/puzzle.svg">
+      <TileGrid image="conic-gradient(from 45deg, #0ea5e9, #a855f7, #f97316, #22c55e, #0ea5e9)">
         {state.context.tiles.map((tile, index) => {
           const x = index % 4;
           const y = Math.floor(index / 4);

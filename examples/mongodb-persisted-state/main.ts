@@ -1,68 +1,71 @@
-import { __unsafe_getAllOwnEventDescriptors } from 'xstate';
-import { MongoClient, ServerApiVersion } from 'mongodb';
-import { createDonutSession } from './session';
+import { createInterface } from 'node:readline';
+import { MongoClient } from 'mongodb';
+import { createActor } from 'xstate';
+import { donutMachine } from './donutMachine';
+import { TaskQueue } from './TaskQueue';
+import { createInspector } from '@statelyai/sdk';
 
-const uri = process.env.MONGODB_URI;
-if (!uri)
-  throw new Error('Set MONGODB_URI to run the persisted donut example.');
-const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
+const inspector = process.env.INSPECT ? createInspector() : undefined;
 
-try {
-  await client.connect();
-  const collection = client.db('donut-maker').collection('donuts');
-  const filter = { persistedState: { $exists: true } };
-  const restored = await collection.findOne(filter);
-  if (!restored)
-    console.log('No persisted state found. Starting from scratch.');
-  const reportError = (error: unknown) => {
-    console.error('Persistence failed:', error);
-    process.exitCode = 1;
-  };
-  const { actor, flush } = createDonutSession({
-    snapshot: restored?.persistedState,
-    async save(persistedState) {
-      await collection.updateOne(
+const uri = process.env.MONGODB_URI ?? 'mongodb://localhost:27017';
+
+const client = new MongoClient(uri);
+const donutCollection = client.db('donut-maker').collection('donuts');
+const filter = { persistedState: { $exists: true } };
+
+await client.connect();
+
+const stored = await donutCollection.findOne(filter);
+
+if (!stored) {
+  console.log('No persisted state found in the db. Starting from scratch.');
+}
+
+const actor = createActor(donutMachine, {
+  snapshot: stored?.persistedState,
+  inspect: inspector?.inspect
+});
+
+// Writes are queued so that snapshots reach the database in transition order.
+const taskQueue = new TaskQueue();
+const bold = (value: string) => `\x1b[1m${value}\x1b[0m`;
+
+actor.subscribe({
+  next(snapshot) {
+    const nextEvents = donutMachine.events.filter(
+      (type) => !type.startsWith('done.') && snapshot.can({ type })
+    );
+
+    taskQueue.addTask(async () => {
+      await donutCollection.updateOne(
         filter,
-        { $set: { persistedState } },
+        { $set: { persistedState: actor.getPersistedSnapshot() } },
         { upsert: true }
       );
-    },
-    onError: reportError
-  });
-  let closing: Promise<void> | undefined;
-  function shutdown() {
-    if (!closing) {
-      actor.stop();
-      process.stdin.pause();
-      closing = flush().then(() => client.close());
-      void closing.catch(reportError);
-    }
-    return closing;
-  }
-  actor.subscribe({
-    next(snapshot) {
-      console.log('Current state:', JSON.stringify(snapshot.value));
+
       console.log(
+        'Current state:',
+        `${bold(JSON.stringify(snapshot.value))}\n`,
         'Next events:',
-        __unsafe_getAllOwnEventDescriptors(snapshot).join(', ')
+        nextEvents.map((type) => `\n  ${bold(type)}`).join(''),
+        '\nEnter the next event to send:'
       );
-    },
-    complete() {
-      void shutdown();
-    }
-  });
-  actor.start();
-  process.stdin.on('data', (data) =>
-    actor.send({ type: data.toString().trim() })
-  );
-  process.once('SIGINT', () => {
-    void shutdown();
-  });
-  process.stdin.once('end', () => {
-    void shutdown();
-  });
-} catch (error) {
-  await client.close();
-  console.error('Could not start persisted workflow:', error);
-  process.exitCode = 1;
+    });
+  },
+  complete() {
+    taskQueue.addTask(async () => {
+      console.log('Workflow completed', actor.getSnapshot().output);
+      await client.close();
+    });
+  }
+});
+
+actor.start();
+
+const input = createInterface({ input: process.stdin });
+
+for await (const line of input) {
+  actor.send({ type: line.trim() });
 }
+
+inspector?.destroy();

@@ -213,7 +213,8 @@ export class StateMachine<
   TActorMap extends Sources['actors'],
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays'],
-  TInternalEvent extends EventObject = never
+  TInternalEvent extends EventObject = never,
+  TTransitionMeta extends MetaObject = TMeta
 > implements ActorLogic<
   MachineSnapshot<
     TContext,
@@ -236,6 +237,8 @@ export class StateMachine<
    * one `undefined` property this emits per machine instance is inert.
    */
   readonly _internalEventType!: TInternalEvent;
+  /** @internal Type-only marker for transition metadata. */
+  readonly _transitionMetaType!: TTransitionMeta;
 
   /** The machine's own version. */
   public version?: string;
@@ -259,11 +262,11 @@ export class StateMachine<
   /** @internal */
   public idMap: Map<string, AnyStateNode> = new Map();
 
-  public root: StateNode<TContext, TEvent>;
+  public root: StateNode<TContext, TEvent, TMeta, TTransitionMeta>;
 
   public id: string;
 
-  public states: StateNode<TContext, TEvent>['states'];
+  public states: StateNode<TContext, TEvent, TMeta, TTransitionMeta>['states'];
   public events: Array<EventDescriptor<TEvent>>;
   public internalEventDescriptors: ReadonlyArray<string>;
   /** @internal Skips eventless-selection scans for machines without `always`. */
@@ -275,6 +278,7 @@ export class StateMachine<
   constructor(
     /** The raw config used to create the machine. */
     public config: Next_MachineConfig<
+      any,
       any,
       any,
       any,
@@ -463,10 +467,13 @@ export class StateMachine<
     this.restoreSnapshot = this.restoreSnapshot.bind(this);
     this.start = this.start.bind(this);
 
-    this.root = new StateNode(config as any, {
-      _key: this.id,
-      _machine: this as any
-    });
+    this.root = new StateNode<TContext, TEvent, TMeta, TTransitionMeta>(
+      config as any,
+      {
+        _key: this.id,
+        _machine: this as any
+      }
+    );
 
     this.root._initialize();
     formatRouteTransitions(this.root);
@@ -1288,7 +1295,9 @@ export class StateMachine<
     }
   }
 
-  public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
+  public getStateNodeById(
+    stateId: string
+  ): StateNode<TContext, TEvent, TMeta, TTransitionMeta> {
     const fullPath = toStatePath(stateId);
     const relativePath = fullPath.slice(1);
     const resolvedStateId = isStateId(fullPath[0])
@@ -1303,7 +1312,9 @@ export class StateMachine<
     }
     return getStateNodeByPath(stateNode, relativePath) as StateNode<
       TContext,
-      TEvent
+      TEvent,
+      TMeta,
+      TTransitionMeta
     >;
   }
 

@@ -1,10 +1,24 @@
-import { types, createMachine } from 'xstate';
+import { setup, types } from 'xstate';
 
-export const counterMachine = createMachine({
-  schemas: { events: { increment: types<{}>(), decrement: types<{}>() } },
-  context: { count: 0 },
+export const counterMachine = setup({
+  schemas: {
+    context: types<{ count: number }>(),
+    events: {
+      increment: types<{}>(),
+      decrement: types<{}>()
+    }
+  }
+}).createMachine({
+  id: 'counter',
+  context: {
+    count: 0
+  },
   on: {
-    increment: ({ context }) => ({ context: { count: context.count + 1 } }),
-    decrement: ({ context }) => ({ context: { count: context.count - 1 } })
+    increment: ({ context }) => ({
+      context: { ...context, count: context.count + 1 }
+    }),
+    decrement: ({ context }) => ({
+      context: { ...context, count: context.count - 1 }
+    })
   }
 });

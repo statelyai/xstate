@@ -1,137 +1,123 @@
-import { createMachine, createAsyncLogic, types } from 'xstate';
+import { createAsyncLogic, setup, types } from 'xstate';
 import {
   checkFilePermissions,
   evaluateFiles,
   moveFiles,
-  scanDirectories,
-  PermissionError
+  scanDirectories
 } from './fileHandlers';
 
-type ScannerInput = { basePath: string; destinationPath: string };
-type ScannerContext = ScannerInput & {
+const ACCEPTED_FILE_TYPES = [
+  'mp4',
+  'mkv',
+  'avi',
+  'mov',
+  'm4v',
+  'mpg',
+  'mpeg',
+  'wmv',
+  'flv',
+  'ts',
+  'mts'
+];
+
+/** Side effect: notify an operator about directories that could not be scanned. */
+function emailErrors(dirsToReport: string[]) {
+  console.log('Emailing errors for:', dirsToReport);
+}
+
+interface MediaScannerContext {
+  basePath: string;
+  destinationPath: string;
   directoriesToCheck: string[];
   dirsToEvaluate: string[];
   dirsToMove: string[];
-  filesToEmail: string[];
   dirsToReport: string[];
-  processedFiles: string[];
   acceptedFileTypes: string[];
-  errorMessage: string;
-};
+}
 
-export const mediaScannerMachine = createMachine({
+export const mediaScannerMachine = setup({
   schemas: {
-    input: types<ScannerInput>(),
-    context: types<ScannerContext>(),
-    events: { START_SCAN: types<{}>(), RESTART: types<{}>() }
+    context: types<MediaScannerContext>(),
+    input: types<{ basePath: string; destinationPath: string }>(),
+    events: {
+      START_SCAN: types<{}>(),
+      RESTART: types<{}>()
+    }
   },
   actors: {
     scanLibrary: createAsyncLogic({
-      schemas: { input: types<{ basePath: string }>() },
-      run: ({ input }) => scanDirectories(input.basePath)
+      run: ({ input }: { input: { basePath: string } }) =>
+        scanDirectories(input.basePath)
     }),
     checkFilePermissions: createAsyncLogic({
-      schemas: { input: types<{ directoriesToCheck: string[] }>() },
-      run: ({ input }) => checkFilePermissions(input.directoriesToCheck)
+      run: ({ input }: { input: { directoriesToCheck: string[] } }) =>
+        checkFilePermissions(input.directoriesToCheck)
     }),
     evaluateFiles: createAsyncLogic({
-      schemas: {
-        input: types<{
-          dirsToEvaluate: string[];
-          acceptedFileTypes: string[];
-        }>()
-      },
-      run: ({ input, signal }) =>
-        evaluateFiles(input.dirsToEvaluate, input.acceptedFileTypes, signal)
+      run: ({
+        input
+      }: {
+        input: { dirsToEvaluate: string[]; acceptedFileTypes: string[] };
+      }) => evaluateFiles(input.dirsToEvaluate, input.acceptedFileTypes)
     }),
     moveFiles: createAsyncLogic({
-      schemas: {
-        input: types<{ dirsToMove: string[]; destinationPath: string }>()
-      },
-      run: ({ input }) => moveFiles(input.dirsToMove, input.destinationPath)
+      run: ({
+        input
+      }: {
+        input: { dirsToMove: string[]; destinationPath: string };
+      }) => moveFiles(input.dirsToMove, input.destinationPath)
     })
-  },
+  }
+}).createMachine({
+  id: 'mediaScanner',
   context: ({ input }) => ({
-    ...input,
+    basePath: input.basePath,
+    destinationPath: input.destinationPath,
     directoriesToCheck: [],
     dirsToEvaluate: [],
     dirsToMove: [],
-    filesToEmail: [],
     dirsToReport: [],
-    processedFiles: [],
-    acceptedFileTypes: [
-      'mp4',
-      'mkv',
-      'avi',
-      'mov',
-      'm4v',
-      'mpg',
-      'mpeg',
-      'wmv',
-      'flv',
-      'ts',
-      'mts'
-    ],
-    errorMessage: ''
+    acceptedFileTypes: ACCEPTED_FILE_TYPES
   }),
-  id: 'mediaScanner',
   initial: 'idle',
   states: {
     idle: {
-      on: {
-        START_SCAN: ({ context }) => ({
-          target: 'Scanning',
-          context: {
-            ...context,
-            directoriesToCheck: [],
-            dirsToEvaluate: [],
-            dirsToMove: [],
-            filesToEmail: [],
-            dirsToReport: [],
-            processedFiles: [],
-            errorMessage: ''
-          }
-        })
-      }
+      on: { START_SCAN: { target: 'scanning' } }
     },
-    Scanning: {
+    scanning: {
+      description:
+        'Scans the media library and collects every subdirectory to check.',
       invoke: {
         src: 'scanLibrary',
         input: ({ context }) => ({ basePath: context.basePath }),
         onDone: ({ context, event }) => ({
-          target: 'CheckingFilePermissions',
+          target: 'checkingFilePermissions',
           context: { ...context, directoriesToCheck: event.output }
         }),
-        onError: ({ context, event }) => ({
-          target: 'ReportingErrors',
-          context: { ...context, errorMessage: String(event.error) }
-        })
+        onError: { target: 'reportingErrors' }
       }
     },
-    CheckingFilePermissions: {
+    checkingFilePermissions: {
+      description:
+        'Splits the directories into readable/writable ones and ones to report.',
       invoke: {
         src: 'checkFilePermissions',
         input: ({ context }) => ({
           directoriesToCheck: context.directoriesToCheck
         }),
         onDone: ({ context, event }) => ({
-          target: 'EvaluatingFiles',
-          context: { ...context, ...event.output }
-        }),
-        onError: ({ context, event }) => ({
-          target: 'ReportingErrors',
+          target: 'evaluatingFiles',
           context: {
             ...context,
-            errorMessage: String(event.error),
-            dirsToReport:
-              event.error instanceof PermissionError
-                ? event.error.dirsToReport
-                : context.dirsToReport
+            dirsToEvaluate: event.output.dirsToEvaluate,
+            dirsToReport: event.output.dirsToReport
           }
-        })
+        }),
+        onError: { target: 'reportingErrors' }
       }
     },
-    EvaluatingFiles: {
+    evaluatingFiles: {
+      description: 'Collects the files above 1080p so they can be moved.',
       invoke: {
         src: 'evaluateFiles',
         input: ({ context }) => ({
@@ -139,58 +125,29 @@ export const mediaScannerMachine = createMachine({
           acceptedFileTypes: context.acceptedFileTypes
         }),
         onDone: ({ context, event }) => ({
-          target: 'MovingFiles',
-          context: {
-            ...context,
-            dirsToMove: event.output.dirsToMove,
-            dirsToReport: [
-              ...context.dirsToReport,
-              ...event.output.dirsToReport
-            ]
-          }
+          target: 'movingFiles',
+          context: { ...context, dirsToMove: event.output.dirsToMove }
         }),
-        onError: ({ context, event }) => ({
-          target: 'ReportingErrors',
-          context: { ...context, errorMessage: String(event.error) }
-        })
+        onError: { target: 'reportingErrors' }
       }
     },
-    MovingFiles: {
+    movingFiles: {
+      description: 'Moves the collected files to the destination library.',
       invoke: {
         src: 'moveFiles',
         input: ({ context }) => ({
           dirsToMove: context.dirsToMove,
           destinationPath: context.destinationPath
         }),
-        onDone: ({ context, event }) => ({
-          target:
-            event.output.errors.length || context.dirsToReport.length
-              ? 'ReportingErrors'
-              : 'idle',
-          context: {
-            ...context,
-            processedFiles: event.output.processedFiles,
-            dirsToReport: [
-              ...context.dirsToReport,
-              ...event.output.errors.map((error) => error.source)
-            ]
-          }
-        }),
-        onError: ({ context, event }) => ({
-          target: 'ReportingErrors',
-          context: { ...context, errorMessage: String(event.error) }
-        })
+        onDone: { target: 'idle' },
+        onError: { target: 'reportingErrors' }
       }
     },
-    ReportingErrors: {
+    reportingErrors: {
+      description:
+        'Reports missing paths and directories without read/write access.',
       entry: ({ context }, enq) => {
-        enq(() =>
-          console.error(
-            'Scanner errors:',
-            context.errorMessage,
-            context.dirsToReport
-          )
-        );
+        enq(emailErrors, context.dirsToReport);
       },
       on: { RESTART: { target: 'idle' } }
     }

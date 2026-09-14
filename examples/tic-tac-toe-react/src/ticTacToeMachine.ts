@@ -1,12 +1,23 @@
-import { types, createMachine } from 'xstate';
+import { setup, types } from 'xstate';
 
-type Player = 'x' | 'o';
-const initialContext = () => ({
-  board: Array<Player | null>(9).fill(null),
+export type Player = 'x' | 'o';
+
+type Board = Array<Player | null>;
+
+interface TicTacToeContext {
+  board: Board;
+  moves: number;
+  player: Player;
+  winner: Player | undefined;
+}
+
+const initialContext = (): TicTacToeContext => ({
+  board: Array(9).fill(null),
   moves: 0,
-  player: 'x' as Player,
-  winner: undefined as Player | undefined
+  player: 'x',
+  winner: undefined
 });
+
 const winningLines = [
   [0, 1, 2],
   [3, 4, 5],
@@ -18,44 +29,54 @@ const winningLines = [
   [2, 4, 6]
 ];
 
-export const ticTacToeMachine = createMachine({
+const checkWin = (board: Board) =>
+  winningLines.some(
+    (line) =>
+      line.every((i) => board[i] === 'x') || line.every((i) => board[i] === 'o')
+  );
+
+const checkDraw = (moves: number) => moves === 9;
+
+export const ticTacToeMachine = setup({
   schemas: {
-    context: types<ReturnType<typeof initialContext>>(),
-    events: { PLAY: types<{ value: number }>(), RESET: types<{}>() }
+    context: types<TicTacToeContext>(),
+    events: {
+      PLAY: types<{ value: number }>(),
+      RESET: types<{}>()
+    },
+    tags: types<'winner' | 'draw'>()
   },
-  context: initialContext,
+  guards: {
+    isValidMove: (board: Board, value: number) => board[value] === null
+  }
+}).createMachine({
   initial: 'playing',
+  context: initialContext(),
   states: {
     playing: {
       always: ({ context }) => {
-        const line = winningLines.find(
-          ([a, b, c]) =>
-            context.board[a] &&
-            context.board[a] === context.board[b] &&
-            context.board[a] === context.board[c]
-        );
-        if (line)
-          return {
-            target: 'gameOver.winner',
-            context: { ...context, winner: context.board[line[0]]! }
-          };
-        if (context.moves === 9) return { target: 'gameOver.draw' };
+        if (checkWin(context.board)) {
+          return { target: 'gameOver.winner' };
+        }
+        if (checkDraw(context.moves)) {
+          return { target: 'gameOver.draw' };
+        }
       },
       on: {
-        PLAY: ({ context, event }) => {
-          if (
-            !Number.isInteger(event.value) ||
-            context.board[event.value] !== null
-          )
+        PLAY: ({ context, event, guards }) => {
+          if (!guards.isValidMove(context.board, event.value)) {
             return;
+          }
+
           const board = [...context.board];
           board[event.value] = context.player;
+
           return {
+            target: 'playing',
             context: {
-              ...context,
               board,
               moves: context.moves + 1,
-              player: context.player === 'x' ? ('o' as const) : ('x' as const)
+              player: context.player === 'x' ? 'o' : 'x'
             }
           };
         }
@@ -63,8 +84,25 @@ export const ticTacToeMachine = createMachine({
     },
     gameOver: {
       initial: 'winner',
-      states: { winner: { tags: ['winner'] }, draw: { tags: ['draw'] } },
-      on: { RESET: () => ({ target: 'playing', context: initialContext() }) }
+      states: {
+        winner: {
+          tags: ['winner'],
+          // The player that made the winning move is the previous player,
+          // because `PLAY` already handed the turn over.
+          entry: ({ context }) => ({
+            context: { winner: context.player === 'x' ? 'o' : 'x' }
+          })
+        },
+        draw: {
+          tags: ['draw']
+        }
+      },
+      on: {
+        RESET: () => ({
+          target: 'playing',
+          context: initialContext()
+        })
+      }
     }
   }
 });

@@ -1,20 +1,19 @@
 {
   "name": "@xstate/example-fetch",
-  "version": "1.0.0",
   "private": true,
-  "main": "index.html",
-  "author": "David Khourshid",
-  "license": "MIT",
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "start": "vite --open",
-    "build": "tsc --noEmit && vite build"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "xstate": "workspace:*",
-    "zod": "^3.25.76"
+    "@statelyai/sdk": "^0.20.1",
+    "xstate": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
-    "vite": "^8.2.2"
+    "vite": "^7.3.1"
   }
 }

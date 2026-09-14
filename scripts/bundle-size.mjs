@@ -13,7 +13,6 @@
 //   node scripts/bundle-size.mjs --profile=minimal-machine
 //   node scripts/bundle-size.mjs --verify   # assert output of both minifiers
 //   node scripts/bundle-size.mjs --report   # report without enforcing stale budgets
-//   node scripts/bundle-size.mjs --report --experiment=lazy-bind # rejected prototype
 //
 // Source is canonical so the gate cannot accidentally measure stale build
 // artifacts. `--dist` requires `preconstruct build` to have run first.
@@ -22,7 +21,6 @@
 
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { lazyBindingsExperiment } from './bundle-size-experiment.mjs';
 import { verifyBundle } from './bundle-size-verify.mjs';
 import { createHash } from 'node:crypto';
 import {
@@ -551,7 +549,6 @@ const json = args.includes('--json');
 const useDist = args.includes('--dist');
 const verify = args.includes('--verify');
 const report = args.includes('--report');
-const experiment = args.includes('--experiment=lazy-bind');
 const baselineArg = args.find((arg) => arg.startsWith('--baseline='));
 const baseline = baselineArg
   ? execFileSync(
@@ -564,14 +561,9 @@ const baseline = baselineArg
       { cwd: root, encoding: 'utf8' }
     ).trim()
   : undefined;
-if (baseline && (!report || useDist || experiment)) {
+if (baseline && (!report || useDist)) {
   throw new Error(
-    'A source baseline requires --report without --dist or an experiment'
-  );
-}
-if (experiment && (!report || useDist)) {
-  throw new Error(
-    'The lazy-bind experiment requires --report and source input'
+    'A source baseline requires --report without --dist'
   );
 }
 const attribution = {};
@@ -614,9 +606,6 @@ const sourcePlugin = {
         src = src
           .replace(developmentImport, '')
           .replace(/\bisDevelopment\b/g, 'false');
-      }
-      if (experiment && args.path.endsWith('/StateMachine.ts')) {
-        src = lazyBindingsExperiment(src);
       }
       return { contents: src, loader: 'ts' };
     });
@@ -802,7 +791,6 @@ if (json) {
     JSON.stringify({
       source: useDist ? 'dist' : 'src',
       node: process.version,
-      experiment: experiment ? 'lazy-bind' : null,
       baseline: baseline ?? null,
       esbuild: esbuild.version,
       terser: preconstructRequire('terser/package.json').version,

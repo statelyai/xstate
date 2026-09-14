@@ -1,21 +1,24 @@
 <script lang="ts">
   import { feedbackMachine } from './feedbackMachine';
-  import { useMachine } from '@xstate/svelte';
+  import { useActor } from '@xstate/svelte';
+  import { createInspector } from '@statelyai/sdk';
 
-  const { snapshot, send } = useMachine(feedbackMachine);
+  const inspector = createInspector();
+
+  const { snapshot, send } = useActor(feedbackMachine, { inspect: inspector.inspect });
 </script>
 
 {#if $snapshot.matches('closed')}
   <div>
     <em>Feedback form closed.</em>
     <br />
-    <button on:click={() => send({ type: 'restart' })}>
+    <button onclick={() => send({ type: 'restart' })}>
       Provide more feedback
     </button>
   </div>
 {:else}
   <div class="feedback">
-    <button class="close-button" on:click={() => send({ type: 'close' })}>
+    <button class="close-button" onclick={() => send({ type: 'close' })}>
       Close
     </button>
 
@@ -23,11 +26,11 @@
       <div class="step">
         <h2>How was your experience?</h2>
 
-        <button class="button" on:click={() => send({ type: 'feedback.good' })}>
+        <button class="button" onclick={() => send({ type: 'feedback.good' })}>
           Good
         </button>
 
-        <button class="button" on:click={() => send({ type: 'feedback.bad' })}>
+        <button class="button" onclick={() => send({ type: 'feedback.bad' })}>
           Bad
         </button>
       </div>
@@ -46,16 +49,18 @@
     {#if $snapshot.matches('form')}
       <form
         class="step"
-        on:submit|preventDefault={() => send({ type: 'submit' })}
+        onsubmit={(ev) => {
+          ev.preventDefault();
+          send({ type: 'submit' });
+        }}
       >
         <h2>What can we do better?</h2>
 
         <textarea
-          value={$snapshot.context.feedback}
           name="feedback"
           rows={4}
           placeholder="So many things..."
-          on:input={(ev) =>
+          oninput={(ev) =>
             send({ type: 'feedback.update', value: ev.currentTarget.value })}
         ></textarea>
 
@@ -63,11 +68,7 @@
           Submit
         </button>
 
-        <button
-          type="button"
-          class="button"
-          on:click={() => send({ type: 'back' })}
-        >
+        <button class="button" type="button" onclick={() => send({ type: 'back' })}>
           Back
         </button>
       </form>

@@ -2583,6 +2583,10 @@ export function createMachineFromSCXMLConfig(
     delays: resolvedSources.delays
   });
 
+  // TODO: `_microstepHooks` is a private core extension point that only the
+  // SCXML runtime uses (per-actor scratch state, condition-error draining).
+  // Consider moving this into the SCXML runtime (e.g. wrapping `transition`)
+  // so core does not carry SCXML-specific hooks on its hot path.
   provided._microstepHooks = {
     begin(self) {
       const scratch = getScratch(self);

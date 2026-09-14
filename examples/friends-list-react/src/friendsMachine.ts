@@ -1,44 +1,53 @@
-import { types, ActorRefFrom, createMachine } from 'xstate';
+import { ActorFromLogic, setup, types } from 'xstate';
 import { friendMachine } from './friendMachine';
 
-export const friendsMachine = createMachine({
+const makeId = () => Math.random().toString(36).substring(7);
+
+export const friendsMachine = setup({
   schemas: {
     context: types<{
       newFriendName: string;
-      friends: { id: string; ref: ActorRefFrom<typeof friendMachine> }[];
+      friends: ActorFromLogic<typeof friendMachine>[];
     }>(),
     events: {
       'FRIENDS.ADD': types<{ name: string }>(),
       'NEW_FRIEND.CHANGE': types<{ name: string }>(),
       'FRIEND.REMOVE': types<{ index: number }>()
     }
+  }
+}).createMachine({
+  id: 'friends',
+  context: {
+    newFriendName: '',
+    friends: []
   },
-  context: { newFriendName: '', friends: [] },
   on: {
-    'NEW_FRIEND.CHANGE': ({ context, event }) => ({
-      context: { ...context, newFriendName: event.name }
+    'NEW_FRIEND.CHANGE': ({ event }) => ({
+      context: { newFriendName: event.name }
     }),
     'FRIENDS.ADD': ({ context, event }, enq) => {
-      if (!event.name.trim()) return;
-      const id = crypto.randomUUID();
+      if (!event.name.trim().length) {
+        return;
+      }
+
+      // Each friend is its own actor, spawned into the parent's context
       const friend = enq.spawn(friendMachine, {
-        id,
-        input: { name: event.name }
+        id: `friend-${makeId()}`,
+        input: { name: context.newFriendName }
       });
+
       return {
         context: {
-          newFriendName: '',
-          friends: [...context.friends, { id, ref: friend }]
+          friends: context.friends.concat(friend),
+          newFriendName: ''
         }
       };
     },
     'FRIEND.REMOVE': ({ context, event }, enq) => {
-      const friend = context.friends[event.index];
-      if (!friend) return;
-      enq.stop(friend.ref);
+      enq.stop(context.friends[event.index]);
+
       return {
         context: {
-          ...context,
           friends: context.friends.filter((_, index) => index !== event.index)
         }
       };

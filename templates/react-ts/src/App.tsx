@@ -1,9 +1,14 @@
 import './App.css';
 import { feedbackMachine } from './feedbackMachine';
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
+import { createInspector } from '@statelyai/sdk';
+
+const inspector = createInspector();
 
 function Feedback() {
-  const [state, send] = useMachine(feedbackMachine);
+  const [state, send] = useActor(feedbackMachine, {
+    inspect: inspector.inspect
+  });
 
   if (state.matches('closed')) {
     return (
@@ -71,7 +76,6 @@ function Feedback() {
           <h2>What can we do better?</h2>
           <textarea
             name="feedback"
-            value={state.context.feedback}
             rows={4}
             placeholder="So many things..."
             onChange={(ev) => {

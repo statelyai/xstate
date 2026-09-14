@@ -1,56 +1,41 @@
-# Express simple workflow engine
+# express-workflow
 
-This is a simple workflow engine built with:
+## What it teaches
 
-- XState v6 alpha
-- TypeScript
-- Express
+Running a state machine as a backend workflow: each HTTP request restores an actor from a persisted snapshot, sends it one event, and persists the next snapshot.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/examples/express-workflow?file=index.ts)
+## XState features used
 
-<!-- Commands from package.json; endpoints and state ownership from app.ts. -->
+- `setup()` with schemas
+- Persistence: `actor.getPersistedSnapshot()` and the `snapshot` actor option
+- Transition functions that return the next context
 
-## Usage
+## Run it
 
 ```bash
 pnpm install
 pnpm start
 ```
 
-## Endpoints
+The server listens on http://localhost:4242. The `start` script passes `--conditions=module` so that Node resolves `xstate` to this repo's source.
 
-### POST `/workflows`
-
-Creates a new workflow instance.
+### Endpoints
 
 ```bash
+# Create a workflow instance
 curl -X POST http://localhost:4242/workflows
+
+# Send an event to it (replace :id with the returned workflowId)
+curl -X POST http://localhost:4242/workflows/:id \
+  -H 'Content-Type: application/json' \
+  -d '{"type":"TIMER"}'
+
+# Read its persisted snapshot
+curl http://localhost:4242/workflows/:id
 ```
 
-Example response:
+Snapshots are kept in memory, so they are lost when the server restarts. Swap the `Map` for a database to make workflows durable.
 
-```json
-{
-  "workflowId": "18d24758-bbf8-45c7-8b15-becdfb759efe"
-}
-```
+## Inspect it
 
-### POST `/workflows/:id`
-
-Sends an event to a workflow instance.
-
-```bash
-# Replace :id with the workflow ID; e.g. http://localhost:4242/workflows/7ky252
-# the body should be JSON
-curl -X POST http://localhost:4242/workflows/:id -d '{"type": "TIMER"}' -H "Content-Type: application/json"
-```
-
-### GET `/workflows/:id`
-
-Gets the current state of a workflow instance.
-
-```bash
-curl -X GET http://localhost:4242/workflows/:id
-```
-
-Three `TIMER` events complete one green → yellow → red → green cycle and increment `context.cycles`. Invalid event shapes return 400; missing workflow IDs return 404. State lives in memory and resets when the server restarts. Each request stops its temporary actor after saving the snapshot.
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

@@ -20,11 +20,9 @@ export default function BookButton({ eventType, isBooking, isBooked }: Props) {
       <p>
         <span>Departs:</span> {state.context.departDate}
       </p>
-      {state.context.isRoundTrip && (
-        <p>
-          <span>Returns:</span> {state.context.returnDate}
-        </p>
-      )}
+      <p>
+        <span>Returns:</span> {state.context.returnDate}
+      </p>
     </>
   );
 

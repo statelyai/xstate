@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XState Example: actor UI dashboard</title>
+    <style>
+      body {
+        background: #0b0d10;
+        color: #e6e6e6;
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 24px;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 4px;
+      }
+      p {
+        color: #7d8795;
+        font-size: 13px;
+        margin: 0 0 20px;
+      }
+      #panels {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-start;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Headless machines, default UI</h1>
+    <p>
+      Neither machine below knows anything about the DOM. Each panel is
+      <code>mountActorUI(actor, element)</code>.
+    </p>
+    <div id="panels"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

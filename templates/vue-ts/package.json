@@ -9,17 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@statelyai/sdk": "^0.20.1",
     "@xstate/vue": "6.0.0-alpha.1",
     "vue": "^3.5.29",
-    "xstate": "6.0.0-alpha.52"
+    "xstate": "6.0.0-alpha.36"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.8",
     "typescript": "^5.9.3",
-    "vite": "^8.2.2",
-    "vue-tsc": "^3.3.11"
-  },
-  "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "vite": "^7.3.6",
+    "vue-tsc": "^3.3.9"
   }
 }

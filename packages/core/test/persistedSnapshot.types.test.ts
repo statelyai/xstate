@@ -1,5 +1,5 @@
 import { createActor, createMachine } from '../src';
-import type { Snapshot } from '../src';
+import type { PersistedSnapshotFrom, Snapshot } from '../src';
 
 describe('persisted snapshot round-trip types', () => {
   it('should round-trip getPersistedSnapshot into createActor without a cast', () => {
@@ -127,5 +127,56 @@ describe('persisted snapshot round-trip types', () => {
     const snapshot: Snapshot<unknown> =
       createActor(machine).getPersistedSnapshot();
     snapshot satisfies Snapshot<unknown>;
+  });
+
+  it('should be assignable to PersistedSnapshotFrom<typeof machine>', () => {
+    const machine = createMachine({
+      id: 'counter',
+      types: {} as { context: { count: number } },
+      context: { count: 0 },
+      initial: 'a',
+      states: { a: {} }
+    });
+
+    const snapshot: PersistedSnapshotFrom<typeof machine> =
+      createActor(machine).getPersistedSnapshot();
+
+    snapshot.context.count satisfies number;
+
+    createActor(machine, { snapshot });
+  });
+
+  it('should be assignable to PersistedSnapshotFrom<typeof machine> for a versioned machine', () => {
+    const machine = createMachine({
+      id: 'counter',
+      version: '1',
+      types: {} as { context: { count: number } },
+      context: { count: 0 },
+      initial: 'a',
+      states: { a: {} }
+    });
+
+    const snapshot: PersistedSnapshotFrom<typeof machine> =
+      createActor(machine).getPersistedSnapshot();
+
+    createActor(machine, { snapshot });
+  });
+
+  it('should reject a PersistedSnapshotFrom of a machine with a different ID', () => {
+    const checkout = createMachine({
+      id: 'checkout',
+      initial: 'a',
+      states: { a: {} }
+    });
+    const cart = createMachine({
+      id: 'cart',
+      initial: 'a',
+      states: { a: {} }
+    });
+
+    // @ts-expect-error
+    const snapshot: PersistedSnapshotFrom<typeof cart> =
+      createActor(checkout).getPersistedSnapshot();
+    snapshot;
   });
 });

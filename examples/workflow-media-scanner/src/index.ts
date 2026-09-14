@@ -1,23 +1,27 @@
-import { mediaScannerMachine } from './mediaScannerMachine';
 import { createActor } from 'xstate';
+import { mediaScannerMachine } from './mediaScannerMachine';
+import { createInspector } from '@statelyai/sdk';
 
-const [basePath, destinationPath] = process.argv.slice(2);
-if (!basePath || !destinationPath)
-  throw new Error(
-    'Usage: pnpm start <source-directory> <destination-directory>'
+const inspector = process.env.INSPECT ? createInspector() : undefined;
+
+const basePath = process.env.MEDIA_BASE_PATH;
+const destinationPath = process.env.MEDIA_DESTINATION_PATH;
+
+if (!basePath || !destinationPath) {
+  console.error(
+    'Set MEDIA_BASE_PATH and MEDIA_DESTINATION_PATH before running the scanner.'
   );
-const actor = createActor(mediaScannerMachine, {
-  input: { basePath, destinationPath }
+  process.exit(1);
+}
+
+const mediaScannerActor = createActor(mediaScannerMachine, {
+  input: { basePath, destinationPath },
+  inspect: inspector?.inspect
 });
-actor.subscribe({
-  next(snapshot) {
-    console.log(snapshot.value, snapshot.context);
-    if (snapshot.matches('ReportingErrors')) process.exitCode = 1;
-  },
-  error(error) {
-    console.error(error);
-    process.exitCode = 1;
-  }
+
+mediaScannerActor.subscribe((snapshot) => {
+  console.log({ state: snapshot.value, context: snapshot.context });
 });
-actor.start();
-actor.send({ type: 'START_SCAN' });
+
+mediaScannerActor.start();
+mediaScannerActor.send({ type: 'START_SCAN' });

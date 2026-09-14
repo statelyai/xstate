@@ -1,6 +1,6 @@
-import { types, createMachine, createAsyncLogic } from 'xstate';
+import { createAsyncLogic, setup, types } from 'xstate';
 
-export const friendMachine = createMachine({
+export const friendMachine = setup({
   schemas: {
     context: types<{ prevName: string; name: string }>(),
     events: {
@@ -15,21 +15,30 @@ export const friendMachine = createMachine({
   actors: {
     saveUser: createAsyncLogic({
       run: async () => {
+        // Simulate network request
         await new Promise((resolve) => setTimeout(resolve, 1000));
         return true;
       }
     })
-  },
+  }
+}).createMachine({
+  id: 'friend',
   initial: 'reading',
-  context: ({ input }) => ({ prevName: input.name, name: input.name }),
+  context: ({ input }) => ({
+    prevName: input.name,
+    name: input.name
+  }),
   states: {
-    reading: { tags: ['read'], on: { EDIT: { target: 'editing' } } },
+    reading: {
+      tags: ['read'],
+      on: {
+        EDIT: { target: 'editing' }
+      }
+    },
     editing: {
       tags: ['form'],
       on: {
-        SET_NAME: ({ context, event }) => ({
-          context: { ...context, name: event.value }
-        }),
+        SET_NAME: ({ event }) => ({ context: { name: event.value } }),
         SAVE: { target: 'saving' }
       }
     },
@@ -39,16 +48,15 @@ export const friendMachine = createMachine({
         src: 'saveUser',
         onDone: ({ context }) => ({
           target: 'reading',
-          context: { ...context, prevName: context.name }
-        }),
-        onError: { target: 'editing' }
+          context: { prevName: context.name }
+        })
       }
     }
   },
   on: {
     CANCEL: ({ context }) => ({
       target: '.reading',
-      context: { ...context, name: context.prevName }
+      context: { name: context.prevName }
     })
   }
 });

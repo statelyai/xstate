@@ -1,23 +1,33 @@
-# Media scanner workflow
+# workflow-media-scanner
 
-<!-- CLI and dependency requirements from package.json and src/index.ts; workflow and filesystem behavior from src/mediaScannerMachine.ts and src/fileHandlers.ts. -->
+## What it teaches
 
-This XState v6 alpha workflow scans the immediate subdirectories of a media library, checks access, and probes supported video files. When a video exceeds 1920 pixels wide and 1080 pixels high, it moves that video's containing directory to the destination. Multiple qualifying videos in one directory cause one move. Existing destination directories are never overwritten.
+A backend workflow that chains long-running file system tasks: each step is an invoked async actor whose output becomes the input of the next state.
 
-Install `ffprobe` (included with [FFmpeg](https://ffmpeg.org/download.html)) and put it on `PATH`. From the repository root, run `pnpm install` and `pnpm build`. Then, in this directory:
+## XState features used
 
-```sh
-pnpm start '/path/to/media library' '/path/to/large videos'
+- `setup()` with schemas, named actors and actions
+- `createAsyncLogic` for the scan, permission, evaluate and move steps
+- `invoke` with `onDone` / `onError` and a shared error state
+- `input` to seed context
+
+## Run it
+
+This example shells out to `ffprobe`, which ships with [ffmpeg](https://ffmpeg.org/download.html), to read video dimensions.
+
+```bash
+pnpm install
+MEDIA_BASE_PATH=/path/to/library \
+MEDIA_DESTINATION_PATH=/path/to/4k-library \
+pnpm start
 ```
 
-Both paths are required. The CLI performs real directory moves; use directories you intend to reorganize. The source must contain at least one accessible immediate subdirectory. Source directory symlinks are not followed. A corrupt video does not prevent scanning other files in its directory. The scanner reports inaccessible paths, probe failures, and move failures. No qualifying videos is a successful scan. CLI errors set a failing exit code.
+The scanner walks each subdirectory of `MEDIA_BASE_PATH`, and moves the directories containing video above 1080p into `MEDIA_DESTINATION_PATH`. It moves directories with `fs.rename`, so both paths must be on the same filesystem.
 
-The machine accepts `START_SCAN` in `idle`; `RESTART` returns from `ReportingErrors` to `idle`. Starting another scan clears the previous scan's result lists. Probe subprocesses receive arguments without a shell, respect actor cancellation, and time out after 30 seconds.
+The `start` script uses `vite-node` so that `xstate` resolves to this repo's source.
 
-`pnpm build` checks types. From the repository root, run:
+> This example moves files on your disk. Point it at a copy of your library first.
 
-```sh
-pnpm exec vitest run --config scripts/vitest-examples.config.mts examples/workflow-media-scanner
-```
+## Inspect it
 
-These tests mock filesystem moves and ffprobe. They cover workflow progression, permission and move errors, duplicate parent directories, existing destinations, corrupt files, audio-first stream metadata, and subprocess/JSON failures. They do not move a real media library or validate an installed FFmpeg binary.
+Run it with `INSPECT=1 pnpm start` to stream this example's actors to the [Stately Inspector](https://stately.ai/docs/inspector). `@statelyai/sdk` opens Stately's hosted inspector in your browser; machine definitions and snapshots are sent to Stately's hosted relay. Without `INSPECT`, the example runs offline and prints to stdout.

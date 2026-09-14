@@ -1,5 +1,3 @@
-import { ReactNode } from 'react';
-
 export type RMCharacter = {
   id: number;
   name: string;
@@ -22,12 +20,4 @@ export type RMEpisode = {
 
 export interface ClueProps {
   episode: string | null;
-}
-
-export interface PropsNode {
-  children: ReactNode;
-}
-
-export interface State {
-  hasError: boolean;
 }

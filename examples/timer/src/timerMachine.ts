@@ -1,7 +1,8 @@
-import { types, createMachine, createCallbackLogic } from 'xstate';
+import { createCallbackLogic, setup, types } from 'xstate';
 
-export const timerMachine = createMachine({
+export const timerMachine = setup({
   schemas: {
+    context: types<{ seconds: number }>(),
     events: {
       start: types<{}>(),
       stop: types<{}>(),
@@ -13,35 +14,64 @@ export const timerMachine = createMachine({
   },
   actors: {
     ticks: createCallbackLogic(({ sendBack }) => {
-      const interval = setInterval(() => sendBack({ type: 'TICK' }), 1000);
+      const interval = setInterval(() => {
+        sendBack({ type: 'TICK' });
+      }, 1000);
+
       return () => clearInterval(interval);
     })
-  },
-  context: { seconds: 0 },
+  }
+}).createMachine({
+  id: 'timer',
   initial: 'stopped',
+  context: {
+    seconds: 0
+  },
   states: {
     stopped: {
       on: {
-        start: ({ context }) =>
-          context.seconds > 0 ? { target: 'running' } : undefined,
+        start: ({ context }) => {
+          // Can only start a timer that has time on it
+          if (context.seconds === 0) {
+            return;
+          }
+
+          return { target: 'running' };
+        },
         minute: ({ context }) => ({
-          context: { seconds: context.seconds + 60 }
+          context: { ...context, seconds: context.seconds + 60 }
         }),
-        second: ({ context }) => ({ context: { seconds: context.seconds + 1 } })
+        second: ({ context }) => ({
+          context: { ...context, seconds: context.seconds + 1 }
+        })
       }
     },
     running: {
-      invoke: { src: 'ticks' },
+      invoke: {
+        src: 'ticks'
+      },
       on: {
         stop: { target: 'stopped' },
-        TICK: ({ context }) => ({ context: { seconds: context.seconds - 1 } })
+        TICK: ({ context }) => ({
+          context: { ...context, seconds: context.seconds - 1 }
+        })
       },
-      always: ({ context }) =>
-        context.seconds === 0 ? { target: 'stopped' } : undefined
+      always: ({ context }) => {
+        if (context.seconds > 0) {
+          return;
+        }
+
+        return { target: 'stopped' };
+      }
     }
   },
   on: {
-    reset: ({ context }) =>
-      context.seconds > 0 ? { context: { seconds: 0 } } : undefined
+    reset: ({ context }) => {
+      if (context.seconds === 0) {
+        return;
+      }
+
+      return { context: { ...context, seconds: 0 } };
+    }
   }
 });

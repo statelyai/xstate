@@ -1,23 +1,34 @@
-# React list
+# friends-list-react
 
-This is a React list built with:
+## What it teaches
 
-- XState v6 alpha
-- React
-- TypeScript
-- Vite
+Spawned child actors: a parent machine spawns one `friendMachine` actor per list item with `enq.spawn(...)`, keeps the actor refs in its context, and stops them with `enq.stop(...)` on removal. Each child owns its own editing/saving state.
 
-## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/next/examples/friends-list-react)
+## XState features used
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/next/examples/friends-list-react)
+- `setup()` with `schemas` (`types<T>()` for context, events, input, and tags)
+- `enq.spawn(logic, { id, input })` and `enq.stop(actorRef)` in transition functions
+- Child machine `context: ({ input }) => ...` and `tags`
+- `createAsyncLogic` invoked as `saveUser`, with `onDone` returning `{ target, context }`
+- `useActor` for the parent machine and `useSelector` for each child actor ref
 
-<!-- sync:src -->
+## Run it
 
-This example uses the workspace XState v6 alpha. Machine schemas use `types<T>()` for static typing. From the repository root, install dependencies and run `pnpm build` first, then:
-
-```sh
-pnpm --dir examples/friends-list-react dev
-pnpm --dir examples/friends-list-react build
+```bash
+pnpm install
+pnpm dev
 ```
 
-The machine regression tests run with the repository's `pnpm check:examples` command.
+## Inspect it
+
+`@statelyai/sdk` is wired up in `src/App.tsx`, so running the example opens Stately's hosted [inspector](https://stately.ai/docs/inspector) with the live actor. Machine definitions and snapshots are sent to Stately's hosted relay.
+
+## Notes
+
+Built against the XState v6 alpha in this repo (`xstate: workspace:*`), not a published release.
+
+Actor refs are stored in the parent's context (rather than looked up via `children`) because the list is dynamic and ordered.
+
+## [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/statelyai/xstate/tree/main/examples/friends-list-react)
+
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/statelyai/xstate/tree/main/examples/friends-list-react)

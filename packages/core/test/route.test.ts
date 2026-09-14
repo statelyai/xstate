@@ -78,7 +78,7 @@ describe('route', () => {
         ready: false as boolean
       },
       guards: {
-        isReady: ({ context }: { context: { ready: boolean } }) => context.ready
+        isReady: (ready: boolean) => ready
       },
       states: {
         amount: {
@@ -92,7 +92,7 @@ describe('route', () => {
         },
         review: {
           id: 'review',
-          route: (args) => args.guards.isReady(args)
+          route: (args) => args.guards.isReady(args.context.ready)
         }
       }
     });

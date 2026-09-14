@@ -1,25 +1,31 @@
-import { types, createMachine } from 'xstate';
+import { setup, types } from 'xstate';
 
-export const temperatureMachine = createMachine({
+interface TemperatureContext {
+  tempC?: number | string;
+  tempF?: number | string;
+}
+
+export const temperatureMachine = setup({
   schemas: {
-    context: types<{ tempC?: number | string; tempF?: number | string }>(),
+    context: types<TemperatureContext>(),
     events: {
       CELSIUS: types<{ value: string }>(),
       FAHRENHEIT: types<{ value: string }>()
     }
-  },
+  }
+}).createMachine({
   context: { tempC: undefined, tempF: undefined },
   on: {
     CELSIUS: ({ event }) => ({
       context: {
         tempC: event.value,
-        tempF: event.value.trim() ? (+event.value * 9) / 5 + 32 : ''
+        tempF: event.value.length ? +event.value * (9 / 5) + 32 : ''
       }
     }),
     FAHRENHEIT: ({ event }) => ({
       context: {
-        tempF: event.value,
-        tempC: event.value.trim() ? ((+event.value - 32) * 5) / 9 : ''
+        tempC: event.value.length ? (+event.value - 32) * (5 / 9) : '',
+        tempF: event.value
       }
     })
   }

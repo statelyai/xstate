@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import cn from 'classnames';
 import { useHashChange } from './useHashChange';
 import { Todo } from './Todo';
@@ -26,13 +26,12 @@ export function Todos() {
 
   // Persist todos
   useEffect(() => {
-    const subscription = todosActorRef.subscribe(() => {
+    todosActorRef.subscribe(() => {
       localStorage.setItem(
         'todos',
         JSON.stringify(todosActorRef.getPersistedSnapshot())
       );
     });
-    return () => subscription.unsubscribe();
   }, [todosActorRef]);
 
   useHashChange(() => {
@@ -44,7 +43,7 @@ export function Todos() {
 
   // Capture initial state of browser hash
   useEffect(() => {
-    if (window.location.hash.slice(2))
+    window.location.hash.slice(2) &&
       send({
         type: 'filter.change',
         filter: window.location.hash.slice(2) as TodosFilter
