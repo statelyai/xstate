@@ -77,8 +77,31 @@ function returnedExpressions(fn) {
   return found;
 }
 
+function isPromiseResolve(node) {
+  const { callee } = node;
+  return (
+    callee.type === 'MemberExpression' &&
+    callee.object.type === 'Identifier' &&
+    callee.object.name === 'Promise' &&
+    callee.property.type === 'Identifier' &&
+    callee.property.name === 'resolve'
+  );
+}
+
+/**
+ * An `Effect.*` call, or `Promise.resolve(<Effect call>)`. Core observes a
+ * returned promise for rejection only, so a promise-wrapped Effect is
+ * discarded the same way a bare one is.
+ */
 function isEffectExpression(node) {
-  return node.type === 'CallExpression' && rootIdentifier(node) === 'Effect';
+  if (node.type !== 'CallExpression') {
+    return false;
+  }
+  if (isPromiseResolve(node)) {
+    const [argument] = node.arguments;
+    return argument !== undefined && isEffectExpression(argument);
+  }
+  return rootIdentifier(node) === 'Effect';
 }
 
 function isInlineEffectLogic(node) {

@@ -17,8 +17,9 @@ export class EffectInterruptedError extends Data.TaggedError(
 }
 
 /**
- * Reported by `join` and `waitFor` when the actor stops or errors before
- * producing the awaited result.
+ * Reported by `waitFor` when the actor stops or errors before a snapshot
+ * matches, and by `join` when the actor stops without output. `join` reports
+ * an errored actor's own `snapshot.error` instead.
  */
 export class ActorStoppedError extends Data.TaggedError('ActorStoppedError')<{
   readonly actorId: string;

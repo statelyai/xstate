@@ -15,6 +15,10 @@ export function inlineActionBlock() {
   });
 }
 
+export function inlineActionPromiseWrapped() {
+  enqueue(() => Promise.resolve(Effect.succeed('ok')));
+}
+
 export function inlineSpawnEnq() {
   enq.spawn(fromEffect(Effect.succeed('inline')));
 }

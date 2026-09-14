@@ -17,6 +17,7 @@ import {
   EffectActor,
   actionFailure,
   isActionFailure,
+  safeCall,
   type MailboxItem
 } from './effectActor.ts';
 import {
@@ -200,7 +201,7 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
               rootAnnounced = true;
             }
             for (const inspector of inspectors) {
-              inspector(event);
+              safeCall(inspector, event);
             }
           }
         }

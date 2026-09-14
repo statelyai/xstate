@@ -22,5 +22,5 @@ export function inlineActionWithoutEffect() {
 }
 
 export function inlineActionReturningNonEffect() {
-  enqueue(() => Promise.resolve(Effect.succeed('ok')));
+  enqueue(() => Promise.resolve('ok'));
 }

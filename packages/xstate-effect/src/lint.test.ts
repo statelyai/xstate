@@ -72,7 +72,7 @@ describe('xstate-effect/no-inline-effect', () => {
     ).toBe(true);
     expect(
       diagnostics.filter((diagnostic) => diagnostic.message === inlineAction)
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(
       diagnostics.filter((diagnostic) => diagnostic.message === inlineSpawn)
     ).toHaveLength(2);

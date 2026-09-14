@@ -270,7 +270,7 @@ A parallel state has no single path. Its tag stops at the parallel state, or is 
 | ----------- | ------------------------------------------------------------------------------- |
 | `actor`     | `Atom<AsyncResult<Actor>>`                                                      |
 | `snapshot`  | `Atom<AsyncResult<Snapshot>>`                                                   |
-| `result`    | `Atom<AsyncResult<Snapshot, ErrorFrom<Logic>>>`: a `Failure` once the actor errors |
+| `result`    | `Atom<AsyncResult<Snapshot, ErrorFrom<Logic>>>`: a `Failure` once the actor errors. The runtime's own error type is also in every atom's error channel |
 | `send`      | `Writable<AsyncResult<void, NotReadyError>, Event>`: set it with an event; `NotReadyError` is exported from `@xstate/effect/atom` |
 | `select(f)` | `Atom<AsyncResult<T>>` derived from `snapshot`                                   |
 | `state`     | `Atom<AsyncResult<TaggedState>>`: the snapshot as a tagged union, see [Matching states](#matching-states) |
@@ -281,7 +281,7 @@ import { Atom, AtomRegistry, AsyncResult } from 'effect/unstable/reactivity';
 import { createActorAtoms } from '@xstate/effect/atom';
 
 const runtime = Atom.runtime(
-  Layer.succeed(Api, { fetchUser: (id) => Effect.succeed({ id }) })
+  Layer.succeed(Api, { fetchUser: (id: string) => Effect.succeed({ id }) })
 );
 const user = createActorAtoms(runtime, machine);
 const status = user.select((snapshot) => snapshot.value);
@@ -385,7 +385,7 @@ fromEffectStream(Stream.make(1, 2, 3));
 
 fromEffectStream({
   schemas: { input: Schema.Struct({ topic: Schema.String }) },
-  stream: ({ input }) => Stream.fromPubSub(topics.get(input.topic))
+  stream: ({ input }) => Stream.fromPubSub(topicPubSub(input.topic))
 });
 ```
 

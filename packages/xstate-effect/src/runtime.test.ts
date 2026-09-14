@@ -470,10 +470,6 @@ describe('@xstate/effect runtime', () => {
     expect(finished).toBe(false);
   });
 
-  // Known gap: `setupEffect` wraps the actions declared in `setup` and
-  // `extend`, but `machine.provide` merges raw sources, so an Effect returned
-  // by a provided action is created and discarded. Overriding with a plain
-  // core action does work; see the test below.
   it('runs an Effect action provided through machine.provide in the host context', async () => {
     const Audit = Context.Service<{ record: (value: string) => void }>('Audit');
     const recorded: string[] = [];

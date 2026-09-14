@@ -32,6 +32,20 @@ const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
   '@@observable')() as any;
 
+/**
+ * Calls a listener and reports an exception it throws without letting it
+ * escape into the interpreter, matching core's `safeCall`.
+ */
+export function safeCall<T>(fn: ((arg: T) => void) | undefined, arg?: T) {
+  try {
+    fn?.(arg as T);
+  } catch (err) {
+    setTimeout(() => {
+      throw err;
+    });
+  }
+}
+
 function toObserver<T>(
   nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,
@@ -134,9 +148,9 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
     if (this._settled) {
       const snapshot = this._snapshot as Snapshot<unknown>;
       if (snapshot.status === 'error') {
-        observer.error?.(snapshot.error);
+        safeCall(observer.error, snapshot.error);
       } else {
-        observer.complete?.();
+        safeCall(observer.complete);
       }
       return { unsubscribe: () => {} };
     }
@@ -176,7 +190,7 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
       ...(this._listeners.get('*') ?? [])
     ];
     for (const listener of listeners) {
-      listener(event);
+      safeCall(listener, event);
     }
   }
 
@@ -213,7 +227,7 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
     const status = (snapshot as Snapshot<unknown>).status;
     if (status === 'active') {
       for (const observer of this._observers) {
-        observer.next?.(snapshot);
+        safeCall(observer.next, snapshot);
       }
       return;
     }
@@ -232,14 +246,14 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
     const status = (snapshot as Snapshot<unknown>).status;
     if (status === 'done') {
       for (const observer of observers) {
-        observer.next?.(snapshot);
+        safeCall(observer.next, snapshot);
       }
     }
     for (const observer of observers) {
       if (status === 'error') {
-        observer.error?.((snapshot as Snapshot<unknown>).error);
+        safeCall(observer.error, (snapshot as Snapshot<unknown>).error);
       } else {
-        observer.complete?.();
+        safeCall(observer.complete);
       }
     }
   }
