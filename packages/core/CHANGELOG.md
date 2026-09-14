@@ -1,5 +1,70 @@
 # xstate
 
+## 6.0.0-alpha.54
+
+### Minor Changes
+
+- 8b0d3e7: State and transition metadata can now use separate schemas:
+  
+  ```ts
+  const machine = createMachine({
+    schemas: {
+      meta: z.object({ label: z.string() }),
+      transitionMeta: z.object({ trackingId: z.number() })
+    },
+    meta: { label: 'Root' },
+    on: {
+      NEXT: { meta: { trackingId: 42 } }
+    }
+  });
+  ```
+  
+  When `transitionMeta` is omitted, `schemas.meta` continues to apply its type to
+  both state and transition metadata.
+
+### Patch Changes
+
+- 384e5d6: `actor.getPersistedSnapshot()` is now assignable to `PersistedSnapshotFrom<typeof machine>`, so persisted snapshots can be annotated with the public type instead of `ReturnType<Actor<typeof machine>['getPersistedSnapshot']>`:
+  
+  ```ts
+  import { createActor, type PersistedSnapshotFrom } from 'xstate';
+  
+  const snapshot: PersistedSnapshotFrom<typeof machine> =
+    createActor(machine).getPersistedSnapshot();
+  
+  snapshot.context; // typed from the machine
+  ```
+  
+  Event executors passed to `path.test()` from `xstate/graph` now receive the full event, payload included, instead of just `{ type }`:
+  
+  ```ts
+  await path.test({
+    events: {
+      // `event.card` used to require an `Extract<...>` cast
+      pay: ({ event }) => ui.pay(event.card)
+    }
+  });
+  ```
+- cd98aed: Preserve a state's existing input when a transition targets that state without
+  reentering it. Reentering transitions continue to replace the state input.
+- 2044d05: Send events to statically declared children by id. Events are checked against
+  the actor-ref protocol declared in `schemas.children`.
+  
+  ```ts
+  createMachine({
+    schemas: {
+      children: {
+        worker: types<ActorRefFromLogic<typeof workerLogic>>()
+      }
+    },
+    on: {
+      notify: (_, enq) => {
+        enq.sendTo('worker', { type: 'notify' });
+      }
+    }
+  });
+  ```
+
 ## 6.0.0-alpha.53
 
 ### Patch Changes
