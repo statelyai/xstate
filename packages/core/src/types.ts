@@ -1152,10 +1152,12 @@ export interface AnyStateMachine extends AnyActorLogic {
   /** @internal */
   _hasEventlessTransitions?: boolean;
   /** @internal Adapter hooks for actor-local transition evaluation state. */
-  _microstepHooks?: {
-    begin(self: AnyActor): void;
-    drain(self: AnyActor): AnyEventObject[];
-  };
+  _microstepHooks?:
+    | {
+        begin(self: AnyActor): void;
+        drain(self: AnyActor): AnyEventObject[];
+      }
+    | undefined;
   /** @internal */
   idMap: Map<string, AnyStateNode>;
   options?: { maxIterations?: number };
