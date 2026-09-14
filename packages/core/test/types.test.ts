@@ -12,6 +12,9 @@ import {
   ActorRefFrom,
   ActorRefFromLogic,
   AnyActorLogic,
+  AnyStateMachine,
+  AnyStateNode,
+  AnyStateNodeDefinition,
   MachineContext,
   ProvidedActor,
   Spawner,
@@ -4684,4 +4687,27 @@ it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
   }
 
   new ActorThing(logic);
+});
+
+it('AnyStateNode should keep the state nodes of an AnyStateMachine unwidened', () => {
+  // Assignability cannot express this: `any` assigns in both directions, so a state node
+  // read off an `AnyStateMachine` satisfies `AnyStateNode` either way. What differs is
+  // whether the meta parameters stay `any` — if they fall back to their `MetaObject`
+  // default, tooling that tracks `any` (such as `@typescript-eslint`) reports every such
+  // node as an unsafe argument.
+  type IsAny<T> = 0 extends 1 & T ? true : false;
+  type StateMetaOf<T> = T extends { meta?: infer TStateMeta }
+    ? TStateMeta
+    : never;
+
+  const machineNodeMetaIsAny: IsAny<StateMetaOf<AnyStateMachine['root']>> =
+    true;
+  const anyStateNodeMetaIsAny: IsAny<StateMetaOf<AnyStateNode>> = true;
+  const anyStateNodeDefinitionMetaIsAny: IsAny<
+    StateMetaOf<AnyStateNodeDefinition>
+  > = true;
+
+  machineNodeMetaIsAny satisfies true;
+  anyStateNodeMetaIsAny satisfies true;
+  anyStateNodeDefinitionMetaIsAny satisfies true;
 });
