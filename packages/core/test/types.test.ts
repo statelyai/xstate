@@ -4696,18 +4696,25 @@ it('AnyStateNode should keep the state nodes of an AnyStateMachine unwidened', (
   // default, tooling that tracks `any` (such as `@typescript-eslint`) reports every such
   // node as an unsafe argument.
   type IsAny<T> = 0 extends 1 & T ? true : false;
-  type StateMetaOf<T> = T extends { meta?: infer TStateMeta }
-    ? TStateMeta
-    : never;
+  type MetaOf<T> = T extends { meta?: infer TMeta } ? TMeta : never;
 
-  const machineNodeMetaIsAny: IsAny<StateMetaOf<AnyStateMachine['root']>> =
+  const machineNodeMetaIsAny: IsAny<MetaOf<AnyStateMachine['root']>> = true;
+  const anyStateNodeMetaIsAny: IsAny<MetaOf<AnyStateNode>> = true;
+  const anyStateNodeDefinitionMetaIsAny: IsAny<MetaOf<AnyStateNodeDefinition>> =
     true;
-  const anyStateNodeMetaIsAny: IsAny<StateMetaOf<AnyStateNode>> = true;
-  const anyStateNodeDefinitionMetaIsAny: IsAny<
-    StateMetaOf<AnyStateNodeDefinition>
+
+  // Both aliases pass `any` to the transition metadata parameter as well, which is a
+  // separate slot rather than a fallback to `TStateMeta` once it is written explicitly.
+  const anyStateNodeTransitionMetaIsAny: IsAny<
+    MetaOf<AnyStateNode['definition']['transitions'][number]>
+  > = true;
+  const anyStateNodeDefinitionTransitionMetaIsAny: IsAny<
+    MetaOf<AnyStateNodeDefinition['transitions'][number]>
   > = true;
 
   machineNodeMetaIsAny satisfies true;
   anyStateNodeMetaIsAny satisfies true;
   anyStateNodeDefinitionMetaIsAny satisfies true;
+  anyStateNodeTransitionMetaIsAny satisfies true;
+  anyStateNodeDefinitionTransitionMetaIsAny satisfies true;
 });
