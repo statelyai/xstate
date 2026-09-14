@@ -13,6 +13,7 @@ import {
 } from './createEffectActor.ts';
 import type { EffectActor } from './effectActor.ts';
 import { NotReadyError } from './errors.ts';
+import { taggedState, type TaggedStateFrom } from './state.ts';
 import type { RequirementsFrom } from './types.ts';
 
 export { NotReadyError } from './errors.ts';
@@ -53,6 +54,13 @@ export interface ActorAtoms<TLogic extends AnyActorLogic, ER = never> {
   readonly select: <T>(
     selector: (snapshot: SnapshotFrom<TLogic>) => T
   ) => Atom.Atom<AsyncResult.AsyncResult<T, ER>>;
+  /**
+   * The snapshot as a tagged union over the machine's states, for
+   * `Match.tag` or a `switch` on `_tag`. See `taggedState`.
+   */
+  readonly state: Atom.Atom<
+    AsyncResult.AsyncResult<TaggedStateFrom<SnapshotFrom<TLogic>>, ER>
+  >;
 }
 
 interface MissingRequirements<T> {
@@ -158,5 +166,10 @@ export function createActorAtoms<TLogic extends AnyActorLogic, R, ER = never>(
     return Atom.map(snapshot, (result) => AsyncResult.map(result, selector));
   }
 
-  return { actor, snapshot, result, send: sendAtom, select };
+  const state = select(
+    (current) =>
+      taggedState(current as never) as TaggedStateFrom<SnapshotFrom<TLogic>>
+  );
+
+  return { actor, snapshot, result, send: sendAtom, select, state };
 }

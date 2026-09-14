@@ -36,6 +36,12 @@ export {
   type EffectSetupReturn
 } from './setupEffect.ts';
 export { type RequirementsFrom } from './types.ts';
+export {
+  taggedState,
+  type StateTag,
+  type TaggedState,
+  type TaggedStateFrom
+} from './state.ts';
 export { type ErrorFrom } from 'xstate';
 export {
   type EffectSchema,

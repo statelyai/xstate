@@ -238,6 +238,28 @@ const program = Effect.gen(function* () {
 });
 ```
 
+### Matching states
+
+<!-- tagged state view from src/state.ts -->
+
+`taggedState(snapshot)` views a machine snapshot as a member of a tagged union, so `Match.tag` and `Match.exhaustive` work on states. `_tag` is the state's dotted path, such as `'checkout.paying'`, and `context` is that state's context, including any per-state context schema declared in `setupEffect({ states })`. `TaggedState<typeof machine>` names the union.
+
+```ts
+import { Match, Stream } from 'effect';
+import { snapshots, taggedState, type TaggedState } from '@xstate/effect';
+
+const describe = Match.type<TaggedState<typeof checkoutMachine>>().pipe(
+  Match.tag('cart', ({ context }) => `${context.items.length} items`),
+  Match.tag('paying', ({ context }) => `paying ${context.paymentId}`),
+  Match.tag('done.paid', 'done.declined', ({ _tag }) => _tag),
+  Match.exhaustive
+);
+
+const labels = snapshots(actor).pipe(Stream.map(taggedState), Stream.map(describe));
+```
+
+A parallel state has no single path. Its tag stops at the parallel state, or is `'(machine)'` when the machine itself is parallel; match on `value` or `snapshot.matches` there. The `state` atom from `createActorAtoms` exposes the same view.
+
 ## Atoms
 
 <!-- atom surface from src/atom.ts -->
@@ -251,6 +273,7 @@ const program = Effect.gen(function* () {
 | `result`    | `Atom<AsyncResult<Snapshot, ErrorFrom<Logic>>>`: a `Failure` once the actor errors |
 | `send`      | `Writable<AsyncResult<void, NotReadyError>, Event>`: set it with an event; `NotReadyError` is exported from `@xstate/effect/atom` |
 | `select(f)` | `Atom<AsyncResult<T>>` derived from `snapshot`                                   |
+| `state`     | `Atom<AsyncResult<TaggedState>>`: the snapshot as a tagged union, see [Matching states](#matching-states) |
 
 ```ts
 import { Effect, Layer } from 'effect';
