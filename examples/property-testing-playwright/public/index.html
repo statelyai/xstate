@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Multi-step form</title>
+  </head>
+  <body>
+    <main>
+      <p id="step">name</p>
+      <p id="error"></p>
+      <input id="field" />
+      <button id="back">Back</button>
+      <button id="next">Next</button>
+      <p id="summary"></p>
+    </main>
+    <script>
+      const steps = ['name', 'email', 'review'];
+      const state = { step: 'name', name: '', email: '', error: '' };
+
+      const stepEl = document.querySelector('#step');
+      const errorEl = document.querySelector('#error');
+      const fieldEl = document.querySelector('#field');
+      const summaryEl = document.querySelector('#summary');
+
+      function render() {
+        stepEl.textContent = state.step;
+        errorEl.textContent = state.error;
+        fieldEl.value = state.step === 'email' ? state.email : state.name;
+        fieldEl.disabled = state.step === 'review' || state.step === 'done';
+        summaryEl.textContent =
+          state.step === 'review' || state.step === 'done'
+            ? `${state.name} <${state.email}>`
+            : '';
+      }
+
+      function validate() {
+        if (state.step === 'name') {
+          return state.name.trim().length > 0 ? '' : 'name is required';
+        }
+        if (state.step === 'email') {
+          return state.email.includes('@') ? '' : 'email is invalid';
+        }
+        return '';
+      }
+
+      fieldEl.addEventListener('input', () => {
+        if (state.step === 'name') {
+          state.name = fieldEl.value;
+        } else if (state.step === 'email') {
+          state.email = fieldEl.value;
+        }
+        state.error = '';
+        render();
+      });
+
+      document.querySelector('#next').addEventListener('click', () => {
+        if (state.step === 'review') {
+          state.step = 'done';
+          state.error = '';
+          render();
+          return;
+        }
+        const error = validate();
+        if (error) {
+          state.error = error;
+          render();
+          return;
+        }
+        state.error = '';
+        state.step = steps[steps.indexOf(state.step) + 1];
+        render();
+      });
+
+      document.querySelector('#back').addEventListener('click', () => {
+        const index = steps.indexOf(state.step);
+        if (index > 0) {
+          state.step = steps[index - 1];
+          state.error = '';
+        }
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>
