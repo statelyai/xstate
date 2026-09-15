@@ -1,5 +1,11 @@
 # xstate
 
+## 5.33.2
+
+### Patch Changes
+
+- [#5718](https://github.com/statelyai/xstate/pull/5718) [`015dc23`](https://github.com/statelyai/xstate/commit/015dc23d82fbb8f98e483281503cf97ea9974b2b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed metadata types in generic history values, snapshot nodes, and directed graph results. These containers now accept arbitrary state and transition metadata consistently with `AnyStateNode` and `AnyTransitionDefinition`, avoiding unsafe-type warnings when inspecting machines through generic APIs.
+
 ## 5.33.1
 
 ### Patch Changes
