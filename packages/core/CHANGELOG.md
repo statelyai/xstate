@@ -1,5 +1,11 @@
 # xstate
 
+## 6.0.0-alpha.56
+
+### Patch Changes
+
+- f7642bf: Fixed generic type helpers that accidentally restricted invocation transition metadata, state input, and transition children. `AnyInvokeDefinition`, `AnyStateNodeConfig`, and `AnyTransitionConfigFunction` now preserve arbitrary types in these positions when inspecting or accepting configurations from different machines.
+
 ## 6.0.0-alpha.55
 
 ### Minor Changes
