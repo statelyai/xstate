@@ -1570,7 +1570,7 @@ export interface HistoryStateNode<
   target: string | undefined;
 }
 
-/** History nodes preserve context and event types and accept any metadata. */
+/** Maps history state IDs to recalled nodes, preserving TContext and TEvent with arbitrary metadata. */
 export type HistoryValue<
   TContext extends MachineContext,
   TEvent extends EventObject
