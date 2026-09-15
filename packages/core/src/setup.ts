@@ -1595,9 +1595,11 @@ type StateContext<
 
 declare const rootContext: unique symbol;
 
-type RootContextMarker<TContext> = {
+// Keep this marker named so declaration emit can reference it without expanding
+// the private unique-symbol key into exported machine config types.
+export interface RootContextMarker<TContext> {
   readonly [rootContext]?: RootContext<TContext>;
-};
+}
 
 type RootContext<TContext> = typeof rootContext extends keyof TContext
   ? TContext[typeof rootContext]
