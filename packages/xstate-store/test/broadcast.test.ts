@@ -3,6 +3,7 @@ import { createStore } from '../src/index.ts';
 import {
   createBroadcastStorage,
   persist,
+  flushStorage,
   subscribeToBroadcastStorage,
   type StateStorage
 } from '../src/persist.ts';
@@ -92,6 +93,41 @@ describe('broadcast storage', () => {
   afterEach(() => {
     channels.clear();
     delete (globalThis as any).BroadcastChannel;
+  });
+
+  it('broadcasts queued persisted writes only after each async write completes', async () => {
+    const completions: Array<() => void> = [];
+    let saved: string | null = null;
+    const baseStorage: StateStorage = {
+      getItem: () => saved,
+      removeItem: () => {},
+      setItem: (_name, value) =>
+        new Promise<void>((resolve) => {
+          completions.push(() => {
+            saved = value;
+            resolve();
+          });
+        })
+    };
+    const storage = createBroadcastStorage(baseStorage);
+    const receiver = new MockBroadcastChannel('xstate-store');
+    const counts: number[] = [];
+    receiver.addEventListener('message', () => {
+      counts.push(JSON.parse(saved!).context.count);
+    });
+    const store = createCounterStore(storage);
+    store.trigger.inc();
+    store.trigger.inc();
+    expect(completions).toHaveLength(1);
+    expect(counts).toEqual([]);
+    const flushed = flushStorage(store);
+    completions[0]();
+    await waitForMicrotask();
+    expect(counts).toEqual([1]);
+    expect(completions).toHaveLength(2);
+    completions[1]();
+    await flushed;
+    expect(counts).toEqual([1, 2]);
   });
 
   it('broadcasts writes to other storage adapters on the same channel', () => {

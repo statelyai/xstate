@@ -44,3 +44,9 @@ export const Toggler = () => {
   );
 };
 ```
+
+## Observing an actor
+
+<!-- observer lifecycle from src/useActorRef.ts -->
+
+Pass a snapshot listener or observer as the third argument to `useActorRef(logic, options, observer)`. It subscribes before the actor starts. When changing the machine configuration replaces the actor, the observer follows the replacement, even when the callback identity stays the same. Unmounting unsubscribes the observer and stops the actor.

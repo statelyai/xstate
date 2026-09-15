@@ -19,6 +19,26 @@ afterEach(() => {
 });
 
 describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
+  it('rebinds a stable observer before a replacement actor starts', () => {
+    const first = createMachine({ on: { PING: {} } });
+    const second = createMachine({ on: { PING: {} } });
+    const observer = vi.fn();
+    let ref: ActorRefFrom<typeof first>;
+    const App = ({ machine }: { machine: typeof first }) => {
+      ref = useActorRef(machine, undefined, observer);
+      return null;
+    };
+    const { rerender } = render(<App machine={first} />);
+    const original = ref!;
+    observer.mockClear();
+    rerender(<App machine={second} />);
+    expect(ref!).not.toBe(original);
+    expect(observer).toHaveBeenCalledExactlyOnceWith(ref!.getSnapshot());
+    observer.mockClear();
+    ref!.send({ type: 'PING' });
+    expect(observer).toHaveBeenCalledExactlyOnceWith(ref!.getSnapshot());
+  });
+
   it('should accept events from effects when mounted in strict mode', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     let received = 0;

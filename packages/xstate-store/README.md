@@ -90,6 +90,92 @@ store.can.increment({ by: 4 });
 Returning `undefined` marks the event as not allowed. Returning the same context
 object is still allowed, and transitions that enqueue effects are allowed.
 
+## Persistence
+
+<!-- persist and flushStorage behavior from src/persist.ts -->
+
+Use the `persist` extension to save state after events are committed. Calling
+`store.can` or the pure `store.transition` method does not schedule writes.
+Writes preserve commit order, including events triggered synchronously by effects
+or subscriptions. A newer eligible event can supersede an older pending write;
+`onDone` runs for writes actually performed. Asynchronous writes execute in event
+order for each store. Call
+`await flushStorage(store)` to write buffered changes and wait for queued writes
+to finish. Synchronous storage adapters continue to write synchronously.
+
+With throttling, `pick` runs once per write on the latest buffered context.
+`clearStorage(store)` cancels buffered writes and removes saved data after any
+already queued writes finish; await its result when using asynchronous storage.
+New events sent after clearing can persist new state. For asynchronous storage,
+call `await rehydrateStore(store)` to load saved state; initial read failures are
+reported through `onError`.
+
+```ts
+import { persist, flushStorage } from '@xstate/store/persist';
+
+const savedDonutStore = donutStore.with(persist({ name: 'donuts' }));
+savedDonutStore.trigger.addDonut();
+await flushStorage(savedDonutStore);
+```
+
+### Undo and persistence
+
+<!-- snapshot undo restoration behavior from src/undo.ts -->
+
+Snapshot-based `undoRedo` restores historical state while preserving live
+extension metadata, including persistence hydration. A custom `restore` callback
+can enqueue events; their updated extension metadata is preserved too. Apply
+`persist` after `undoRedo` when undo and redo themselves should write to storage:
+
+```ts
+import { undoRedo } from '@xstate/store/undo';
+
+const undoableDonutStore = donutStore
+  .with(undoRedo({ strategy: 'snapshot' }))
+  .with(persist({ name: 'undoable-donuts' }));
+```
+
+## Atom updates and subscriptions
+
+<!-- writable updater tracking and subscriber errors from src/atom.ts -->
+
+Reads inside a writable atom's `set(previous => next)` updater do not create
+reactive dependencies. Use a computed atom getter to track other atoms instead.
+If a synchronous subscriber throws, other queued subscribers still receive their
+notifications before the first error is rethrown to the caller. The atom's value
+has already changed; later updates continue to notify subscribers normally.
+
+## Async atoms
+
+<!-- createAsyncAtom dependency and cancellation behavior from src/atom.ts -->
+
+`createAsyncAtom` loads a value lazily and exposes a `pending`, `done`, or
+`error` state. Atoms read synchronously by its getter remain dependencies after
+the request succeeds or fails. When a dependency changes, subscribed async atoms
+reload; otherwise, they reload on the next read. Read dependencies before the
+first `await` to track them.
+
+```ts
+import { createAtom, createAsyncAtom } from '@xstate/store';
+
+const userId = createAtom('ada');
+const user = createAsyncAtom(async ({ signal }) => {
+  const id = userId.get();
+  const response = await fetch(`/users/${id}`, { signal });
+  return response.json();
+});
+
+user.subscribe((state) => {
+  if (state.status === 'done') {
+    console.log(state.data);
+  }
+});
+
+userId.set('grace'); // Reloads even after the previous request settled.
+```
+
+Recomputing aborts the previous getter's signal and ignores its stale result.
+
 ## Usage with React
 
 Import `useSelector` from `@xstate/store-react`. Select the data you want via `useSelector(…)` and send events using `store.send(eventObject)`:

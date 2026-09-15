@@ -1,4 +1,4 @@
-import { Project, SourceFile } from 'ts-morph';
+import { Project, SourceFile, ts } from 'ts-morph';
 import type { Transform } from './types.ts';
 import {
   transforms as allTransforms,
@@ -60,6 +60,18 @@ export function applyToSourceFile(
     });
     if (result.changed) {
       changed = true;
+    }
+  }
+
+  if (changed) {
+    const diagnostics = sourceFile
+      .getProject()
+      .getProgram()
+      .compilerObject.getSyntacticDiagnostics(sourceFile.compilerNode);
+    if (diagnostics.length) {
+      throw new Error(
+        `Refusing to write invalid migration output for ${sourceFile.getFilePath()}: ${diagnostics.map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, ' ')).join('; ')}`
+      );
     }
   }
 
