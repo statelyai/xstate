@@ -6702,3 +6702,33 @@ describe('invoke onDone inference with heterogeneous actor maps', () => {
     });
   });
 });
+
+it('generic aliases preserve invocation metadata, state input, and transition children', () => {
+  type IsAny<T> = 0 extends 1 & T ? true : false;
+  type MetaOf<T> = T extends { meta?: infer M } ? M : never;
+  type Item<T> = T extends readonly (infer U)[] ? U : T;
+  type Invoke = import('../src').AnyInvokeDefinition;
+  type Callbacks = 'onDone' | 'onError' | 'onSnapshot' | 'onTimeout';
+  const invoke: { [K in Callbacks]: IsAny<MetaOf<Item<Invoke[K]>>> } = {
+    onDone: true,
+    onError: true,
+    onSnapshot: true,
+    onTimeout: true
+  };
+  type Entry = Extract<
+    import('../src').AnyStateNodeConfig['entry'],
+    (...args: any[]) => any
+  >;
+  const input: IsAny<Parameters<Entry>[0]['input']> = true;
+  const children: IsAny<
+    Parameters<import('../src').AnyTransitionConfigFunction>[0]['children']
+  > = true;
+  expect([
+    invoke.onDone,
+    invoke.onError,
+    invoke.onSnapshot,
+    invoke.onTimeout,
+    input,
+    children
+  ]).toEqual([true, true, true, true, true, true]);
+});
