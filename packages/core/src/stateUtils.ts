@@ -54,18 +54,18 @@ import {
 type StateNodeIterable<
   TContext extends MachineContext,
   TE extends EventObject
-> = Iterable<StateNode<TContext, TE>>;
+> = Iterable<StateNode<TContext, TE, any, any>>;
 type AnyStateNodeIterable = StateNodeIterable<any, any>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
-export function isAtomicStateNode(stateNode: StateNode<any, any>): boolean {
+export function isAtomicStateNode(stateNode: AnyStateNode): boolean {
   return stateNode.type === 'atomic' || stateNode.type === 'final';
 }
 
 function getChildren<TContext extends MachineContext, TE extends EventObject>(
-  stateNode: StateNode<TContext, TE>
-): Array<StateNode<TContext, TE>> {
+  stateNode: StateNode<TContext, TE, any, any>
+): Array<StateNode<TContext, TE, any, any>> {
   return Object.values(stateNode.states).filter((sn) => sn.type !== 'history');
 }
 
@@ -211,9 +211,9 @@ export function isInFinalState(
 export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
 export function getCandidates<TEvent extends EventObject>(
-  stateNode: StateNode<any, TEvent>,
+  stateNode: StateNode<any, TEvent, any, any>,
   receivedEventType: TEvent['type']
-): Array<TransitionDefinition<any, TEvent>> {
+): Array<TransitionDefinition<any, TEvent, any>> {
   const exactMatch = stateNode.transitions.get(receivedEventType);
   const wildcardCandidates = [...stateNode.transitions.keys()]
     .filter(
@@ -232,7 +232,7 @@ export function getCandidates<TEvent extends EventObject>(
 /** All delayed transitions from the config. */
 export function getDelayedTransitions(
   stateNode: AnyStateNode
-): Array<DelayedTransitionDefinition<MachineContext, EventObject>> {
+): Array<DelayedTransitionDefinition<MachineContext, EventObject, any>> {
   const afterConfig = stateNode.config.after;
   if (!afterConfig) {
     return [];
@@ -318,10 +318,10 @@ export function formatTransitions<
   TEvent extends EventObject
 >(
   stateNode: AnyStateNode
-): Map<string, TransitionDefinition<TContext, TEvent>[]> {
+): Map<string, TransitionDefinition<TContext, TEvent, any>[]> {
   const transitions = new Map<
     string,
-    TransitionDefinition<TContext, AnyEventObject>[]
+    TransitionDefinition<TContext, AnyEventObject, any>[]
   >();
   if (stateNode.config.on) {
     for (const descriptor of Object.keys(stateNode.config.on)) {
@@ -385,7 +385,7 @@ export function formatTransitions<
     }
     existing.push(delayedTransition);
   }
-  return transitions as Map<string, TransitionDefinition<TContext, any>[]>;
+  return transitions as Map<string, TransitionDefinition<TContext, any, any>[]>;
 }
 
 /**
@@ -684,7 +684,7 @@ function transitionAtomicNode<
     any // TStateSchema
   >,
   event: TEvent
-): Array<TransitionDefinition<TContext, TEvent>> | undefined {
+): Array<TransitionDefinition<TContext, TEvent, any>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
   const next = childStateNode.next(snapshot, event);
 
@@ -712,7 +712,7 @@ function transitionCompoundNode<
     any // TStateSchema
   >,
   event: TEvent
-): Array<TransitionDefinition<TContext, TEvent>> | undefined {
+): Array<TransitionDefinition<TContext, TEvent, any>> | undefined {
   const subStateKeys = Object.keys(stateValue);
 
   const childStateNode = getStateNode(stateNode, subStateKeys[0]);
@@ -747,8 +747,10 @@ function transitionParallelNode<
     any // TStateSchema
   >,
   event: TEvent
-): Array<TransitionDefinition<TContext, TEvent>> | undefined {
-  const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
+): Array<TransitionDefinition<TContext, TEvent, any>> | undefined {
+  const allInnerTransitions: Array<
+    TransitionDefinition<TContext, TEvent, any>
+  > = [];
 
   for (const subStateKey of Object.keys(stateValue)) {
     const subStateValue = stateValue[subStateKey];
@@ -792,7 +794,7 @@ export function transitionNode<
     any // TStateSchema
   >,
   event: TEvent
-): Array<TransitionDefinition<TContext, TEvent>> | undefined {
+): Array<TransitionDefinition<TContext, TEvent, any>> | undefined {
   // leaf node
   if (typeof stateValue === 'string') {
     return transitionAtomicNode(stateNode, stateValue, snapshot, event);

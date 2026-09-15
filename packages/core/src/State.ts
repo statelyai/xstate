@@ -104,7 +104,7 @@ interface MachineSnapshotBase<
 
   historyValue: Readonly<HistoryValue<TContext, TEvent>>;
   /** The enabled state nodes representative of the state value. */
-  _nodes: Array<StateNode<TContext, TEvent>>;
+  _nodes: Array<StateNode<TContext, TEvent, any, any>>;
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
 
