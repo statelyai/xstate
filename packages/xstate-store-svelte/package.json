@@ -34,7 +34,7 @@
     "svelte": "^3.0.0 || ^4.0.0 || ^5.0.0"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "@sveltejs/vite-plugin-svelte": "^5.1.1",
     "@testing-library/svelte": "^5.2.6",
     "svelte": "^5.0.0",
     "zod": "^4.4.3"

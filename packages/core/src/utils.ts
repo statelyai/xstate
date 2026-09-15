@@ -150,7 +150,17 @@ export function mapValues(
   const collectionKeys = Object.keys(collection);
   for (let i = 0; i < collectionKeys.length; i++) {
     const key = collectionKeys[i];
-    result[key] = iteratee(collection[key], key, collection, i);
+    const value = iteratee(collection[key], key, collection, i);
+    if (key === '__proto__') {
+      Object.defineProperty(result, key, {
+        value,
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
+    } else {
+      result[key] = value;
+    }
   }
 
   return result;

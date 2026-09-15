@@ -8,8 +8,11 @@ import {
   createCallbackLogic,
   createAsyncLogic,
   AnyEventObject,
+  AnyActor,
   ActorLogic,
   Snapshot,
+  SimulatedClock,
+  stopActor,
   setup
 } from '../src';
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
@@ -49,6 +52,182 @@ afterEach(() => {
 });
 
 describe('error handling', () => {
+  it.each(['calculation', 'effect'] as const)(
+    'stops descendants after a parent %s fails',
+    (failure) => {
+      const cleanup = vi.fn();
+      const exit = vi.fn();
+      const timer = vi.fn();
+      const clock = new SimulatedClock();
+      const error = new Error('parent failed');
+      const childLogic = createMachine({
+        initial: 'running',
+        states: {
+          running: {
+            exit,
+            invoke: { id: 'callback', src: createCallbackLogic(() => cleanup) },
+            after: {
+              10: (_, enq) => {
+                enq(timer);
+              }
+            }
+          }
+        }
+      });
+      const actor = createActor(
+        createMachine({
+          invoke: { id: 'child', src: childLogic },
+          on: {
+            FAIL: (_, enq) => {
+              if (failure === 'effect') {
+                enq(() => {
+                  throw error;
+                });
+              } else {
+                throw error;
+              }
+            }
+          }
+        }),
+        { clock }
+      );
+      const onError = vi.fn();
+      actor.subscribe({ error: onError });
+      actor.start();
+      const child = actor.getSnapshot().children.child!;
+      actor.send({ type: 'FAIL' });
+      clock.increment(20);
+      expect(actor.getSnapshot().status).toBe('error');
+      expect(child.getSnapshot().status).toBe('stopped');
+      expect(cleanup).toHaveBeenCalledTimes(1);
+      expect(exit).not.toHaveBeenCalled();
+      expect(timer).not.toHaveBeenCalled();
+      expect(onError).toHaveBeenCalledExactlyOnceWith(error);
+    }
+  );
+
+  it('stops custom-logic children absent from its snapshot after an error', () => {
+    const cleanup = vi.fn();
+    const actor = createActor(
+      createLogic({
+        context: undefined,
+        run: ({ event, self }, enq) => {
+          if (event.type === 'FAIL') {
+            throw new Error('parent failed');
+          }
+          enq.effect('child', () => {
+            createActor(
+              createCallbackLogic(() => cleanup),
+              { parent: self as AnyActor }
+            ).start();
+          });
+        }
+      })
+    );
+    actor.subscribe({ error: () => {} });
+    actor.start();
+    actor.send({ type: 'FAIL' });
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores domain children and foreign actors when custom logic errors', () => {
+    const foreign = createActor(createMachine({})).start();
+    const error = new Error('custom failure');
+    const snapshot = {
+      status: 'active' as const,
+      output: undefined,
+      error: undefined,
+      children: { number: 1, empty: null, domain: { name: 'child' }, foreign }
+    };
+    const actor = createActor({
+      getInitialSnapshot: () => snapshot,
+      initialTransition: () => [snapshot, []],
+      transition: () => {
+        throw error;
+      },
+      getPersistedSnapshot: (value: typeof snapshot) => value
+    });
+    const onError = vi.fn();
+    actor.subscribe({ error: onError });
+    actor.start();
+    actor.send({ type: 'FAIL' });
+    expect(onError).toHaveBeenCalledExactlyOnceWith(error);
+    expect(foreign.getSnapshot().status).toBe('active');
+    foreign.stop();
+  });
+
+  it.each([false, true])(
+    'stops a removed child exactly once when its stop effect ran: %s',
+    (stoppedFirst) => {
+      const cleanup = vi.fn();
+      const error = new Error('effect failed');
+      const actor = createActor(
+        createMachine({
+          invoke: { id: 'child', src: createCallbackLogic(() => cleanup) },
+          on: {
+            FAIL: ({ children }, enq) => {
+              if (stoppedFirst) {
+                enq.stop(children.child);
+              }
+              enq(() => {
+                throw error;
+              });
+              if (!stoppedFirst) {
+                enq.stop(children.child);
+              }
+            }
+          }
+        })
+      );
+      actor.subscribe({ error: () => {} });
+      actor.start();
+      const runtimeStop = vi.fn(stopActor);
+      actor.system.runtime = { stopActor: runtimeStop };
+      actor.send({ type: 'FAIL' });
+      expect(actor.getSnapshot().children.child).toBeUndefined();
+      expect(cleanup).toHaveBeenCalledTimes(1);
+      expect(runtimeStop).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('uses runtime child stops and continues after a child cleanup throws', () => {
+    const originalError = new Error('parent failed');
+    const cleanup = vi.fn();
+    const actor = createActor(
+      createMachine({
+        invoke: [
+          {
+            id: 'bad',
+            src: createCallbackLogic(() => () => {
+              throw new Error('cleanup failed');
+            })
+          },
+          { id: 'good', src: createCallbackLogic(() => cleanup) }
+        ],
+        on: {
+          FAIL: () => {
+            throw originalError;
+          }
+        }
+      })
+    );
+    const onError = vi.fn();
+    actor.subscribe({ error: onError });
+    actor.start();
+    const { bad, good } = actor.getSnapshot().children;
+    bad!.subscribe({ error: () => {} });
+    const runtimeStop = vi.fn(stopActor);
+    actor.system.runtime = { stopActor: runtimeStop };
+    actor.send({ type: 'FAIL' });
+    expect(runtimeStop.mock.calls.map(([child]) => child.id)).toEqual([
+      'bad',
+      'good'
+    ]);
+    expect(good!.getSnapshot().status).toBe('stopped');
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledExactlyOnceWith(originalError);
+  });
+
   // https://github.com/statelyai/xstate/issues/4004
   it('does not cause an infinite loop when an error is thrown in subscribe', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
