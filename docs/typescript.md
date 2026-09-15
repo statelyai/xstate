@@ -36,11 +36,6 @@ Existing setups that declare only schemas keep their permissive machine-config
 typing. A state-level `schemas.context` is intersected with the root context
 schema, so it can declare only the fields that state narrows.
 
-Machines created with `setup(...).createMachine(...)` can be exported with
-TypeScript's `declaration` option enabled, including machines with state-level
-context schemas and function-form transitions. No explicit machine type
-annotation is required.
-
 Public schema event keys create typed methods on `actor.trigger`; internal
 schema keys do not appear in the public trigger namespace.
 
