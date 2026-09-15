@@ -1,4 +1,5 @@
 import {
+  AnyStateNode,
   EventObject,
   StateNode,
   TransitionDefinition,
@@ -8,7 +9,7 @@ import {
   MachineSnapshot
 } from '..';
 
-export type AnyStateNode = StateNode<any, any>;
+export type { AnyStateNode };
 
 type JSONSerializable<T extends object, U> = T & {
   toJSON: () => U;

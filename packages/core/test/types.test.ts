@@ -12,6 +12,9 @@ import {
   ActorRefFrom,
   ActorRefFromLogic,
   AnyActorLogic,
+  AnyStateMachine,
+  AnyStateNode,
+  AnyStateNodeDefinition,
   MachineContext,
   ProvidedActor,
   Spawner,
@@ -4684,4 +4687,34 @@ it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
   }
 
   new ActorThing(logic);
+});
+
+it('AnyStateNode should keep the state nodes of an AnyStateMachine unwidened', () => {
+  // Assignability cannot express this: `any` assigns in both directions, so a state node
+  // read off an `AnyStateMachine` satisfies `AnyStateNode` either way. What differs is
+  // whether the meta parameters stay `any` — if they fall back to their `MetaObject`
+  // default, tooling that tracks `any` (such as `@typescript-eslint`) reports every such
+  // node as an unsafe argument.
+  type IsAny<T> = 0 extends 1 & T ? true : false;
+  type MetaOf<T> = T extends { meta?: infer TMeta } ? TMeta : never;
+
+  const machineNodeMetaIsAny: IsAny<MetaOf<AnyStateMachine['root']>> = true;
+  const anyStateNodeMetaIsAny: IsAny<MetaOf<AnyStateNode>> = true;
+  const anyStateNodeDefinitionMetaIsAny: IsAny<MetaOf<AnyStateNodeDefinition>> =
+    true;
+
+  // Both aliases pass `any` to the transition metadata parameter as well, which is a
+  // separate slot rather than a fallback to `TStateMeta` once it is written explicitly.
+  const anyStateNodeTransitionMetaIsAny: IsAny<
+    MetaOf<AnyStateNode['definition']['transitions'][number]>
+  > = true;
+  const anyStateNodeDefinitionTransitionMetaIsAny: IsAny<
+    MetaOf<AnyStateNodeDefinition['transitions'][number]>
+  > = true;
+
+  machineNodeMetaIsAny satisfies true;
+  anyStateNodeMetaIsAny satisfies true;
+  anyStateNodeDefinitionMetaIsAny satisfies true;
+  anyStateNodeTransitionMetaIsAny satisfies true;
+  anyStateNodeDefinitionTransitionMetaIsAny satisfies true;
 });

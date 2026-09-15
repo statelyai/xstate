@@ -1187,9 +1187,9 @@ export interface StateMachineDefinition<
   TTransitionMeta extends MetaObject = TStateMeta
 > extends StateNodeDefinition<TContext, TEvent, TStateMeta, TTransitionMeta> {}
 
-export type AnyStateNode = StateNode<any, any>;
+export type AnyStateNode = StateNode<any, any, any, any>;
 
-export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
+export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any, any>;
 
 export type AnyMachineSnapshot = MachineSnapshot<
   any,
