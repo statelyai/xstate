@@ -1597,6 +1597,7 @@ declare const rootContext: unique symbol;
 
 // Keep this marker named so declaration emit can reference it without expanding
 // the private unique-symbol key into exported machine config types.
+/** @public Referenced by emitted declarations of narrowed state contexts. */
 export interface RootContextMarker<TContext> {
   readonly [rootContext]?: RootContext<TContext>;
 }
