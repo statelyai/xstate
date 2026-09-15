@@ -491,7 +491,7 @@ export type AnyInvokeDefinition = InvokeDefinition<
   MachineContext,
   EventObject,
   EventObject,
-  MetaObject,
+  any, // TMeta
   Sources['actions'],
   Sources['actors'],
   Sources['guards'],
@@ -676,7 +676,9 @@ export type AnyTransitionConfigFunction = TransitionConfigFunction<
   any,
   any,
   any,
-  any
+  any,
+  any, // _TCtx
+  any // TChildren
 >;
 
 export type TransitionsConfig<
@@ -1135,7 +1137,12 @@ export type AnyStateNodeConfig = Next_StateNodeConfig<
   any,
   any,
   any,
-  any
+  any,
+  any, // TInput
+  any, // TInputMap
+  any, // TSystemRegistry
+  any, // TChildOutput
+  any // TTransitionMeta
 >;
 
 // Accept any StateNode instance regardless of generic parameters
