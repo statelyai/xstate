@@ -5,7 +5,8 @@
     {
       "name": "jsdoc-js",
       "specifier": "eslint-plugin-jsdoc"
-    }
+    },
+    "./scripts/oxlint-plugin-xstate-effect.mjs"
   ],
   "categories": {
     "correctness": "off"
@@ -22,6 +23,7 @@
     "{docs,examples,templates}/",
     "**/dist",
     "**/*.test.*",
+    "packages/xstate-effect/test/lint-fixtures/",
     "**/*.svelte",
     "scripts/jest-utils/"
   ],
@@ -30,6 +32,7 @@
     "for-direction": "error",
     "getter-return": "error",
     "jsdoc-js/no-undefined-types": "error",
+    "xstate-effect/no-inline-effect": "error",
     "no-async-promise-executor": "error",
     "no-case-declarations": "error",
     "no-class-assign": "error",

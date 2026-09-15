@@ -1,0 +1,10 @@
+{
+  "$schema": "../../../../node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": ["../../../../scripts/oxlint-plugin-xstate-effect.mjs"],
+  "categories": {
+    "correctness": "off"
+  },
+  "rules": {
+    "xstate-effect/no-inline-effect": "error"
+  }
+}

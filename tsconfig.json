@@ -14,5 +14,10 @@
     "stripInternal": true,
     "types": ["vitest/globals"]
   },
-  "exclude": ["**/examples", "**/templates", "scripts/type-error-fixtures"]
+  "exclude": [
+    "**/examples",
+    "**/templates",
+    "scripts/type-error-fixtures",
+    "packages/xstate-effect/test/lint-fixtures"
+  ]
 }

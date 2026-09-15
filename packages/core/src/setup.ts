@@ -28,6 +28,7 @@ import {
   EnqueueObject,
   DoneActorEvent,
   DoneStateEvent,
+  ErrorFrom,
   ErrorActorEvent,
   SystemRegistry,
   RegistryKeyForLogic,
@@ -1596,6 +1597,7 @@ declare const rootContext: unique symbol;
 
 // Keep this marker named so declaration emit can reference it without expanding
 // the private unique-symbol key into exported machine config types.
+/** @public Referenced by emitted declarations of narrowed state contexts. */
 export interface RootContextMarker<TContext> {
   readonly [rootContext]?: RootContext<TContext>;
 }
@@ -3411,7 +3413,7 @@ type SetupInvokeConfig<
             TStateSchemas,
             TContext,
             TContextShape,
-            ErrorActorEvent,
+            InvokeErrorEvent<TInvoke, TActorMap>,
             TEvent,
             TEmitted,
             TChildren,
@@ -3455,6 +3457,17 @@ type SetupInvokeConfig<
         }
       : never
     : never;
+
+type InvokeErrorEvent<
+  TInvoke,
+  TActorMap extends Sources['actors']
+> = TInvoke extends { src: infer TSrc }
+  ? TSrc extends keyof TActorMap & string
+    ? ErrorActorEvent<ErrorFrom<TActorMap[TSrc]>>
+    : TSrc extends AnyActorLogic
+      ? ErrorActorEvent<ErrorFrom<TSrc>>
+      : ErrorActorEvent
+  : ErrorActorEvent;
 
 type StateTransitionConfigOrTarget<
   TStateSchemas extends Record<string, SetupStateSchema>,

@@ -29,6 +29,10 @@
     "examples/**",
     // copy-pasted implementation from alien-signals
     "packages/xstate-store/src/alien.ts",
+    // lint rule fixtures, linted through the oxlint CLI by lint.test.ts
+    "packages/xstate-effect/test/lint-fixtures/**",
+    // declaration-emit fixtures, compiled by path in declarations.test.ts
+    "packages/core/test/fixtures/declarations/**",
     "scripts/**"
   ],
   "ignoreDependencies": [

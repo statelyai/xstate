@@ -295,7 +295,8 @@ export function toObserver<T>(
     error: (isObserver ? nextHandler.error : errorHandler)?.bind(self),
     complete: (isObserver ? nextHandler.complete : completionHandler)?.bind(
       self
-    )
+    ),
+    ...(isObserver && nextHandler.passive ? { passive: true } : {})
   };
 }
 
