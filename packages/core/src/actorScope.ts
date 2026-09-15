@@ -1,12 +1,55 @@
-import type { AnyActor, AnyActorScope } from './types.ts';
+import type {
+  AnyActor,
+  AnyActorScope,
+  AnyTransitionDefinition
+} from './types.ts';
 
 /** Marks the internal lazy scope without imposing structure on custom runtimes. @internal */
 export const lazyActorScope = Symbol();
 
+const transitionDetails = Symbol();
+
+export interface GuardEvaluation {
+  readonly transition: AnyTransitionDefinition;
+  readonly result: boolean;
+}
+
+export interface TransitionResolution {
+  readonly transition: AnyTransitionDefinition;
+  readonly targetIds: readonly string[];
+}
+
+export interface TransitionDetails {
+  readonly transitions: AnyTransitionDefinition[];
+  readonly guards: GuardEvaluation[];
+  readonly resolutions: TransitionResolution[];
+}
+
 type InternalActorScope = AnyActorScope & {
   _parent?: AnyActor;
   [lazyActorScope]?: true;
+  [transitionDetails]?: TransitionDetails;
 };
+
+/** Enables pure transition evidence without materializing a lazy actor scope. @internal */
+export function createTransitionDetails(
+  actorScope: AnyActorScope
+): TransitionDetails {
+  const details: TransitionDetails = {
+    transitions: [],
+    guards: [],
+    resolutions: []
+  };
+  (actorScope as InternalActorScope)[transitionDetails] = details;
+  return details;
+}
+
+/** Reads enabled pure transition evidence without touching actor capabilities. @internal */
+export function getTransitionDetails(
+  actorScope: AnyActorScope
+): TransitionDetails | undefined {
+  return (actorScope as InternalActorScope)[transitionDetails];
+}
 
 /** Whether actor capabilities are represented by a lazy pure-transition scope. @internal */
 export function isLazyActorScope(actorScope: AnyActorScope): boolean {
