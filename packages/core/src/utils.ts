@@ -223,8 +223,10 @@ export function normalizeTarget<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  target: SingleOrArray<string | StateNode<TContext, TEvent>> | undefined
-): ReadonlyArray<string | StateNode<TContext, TEvent>> | undefined {
+  target:
+    | SingleOrArray<string | StateNode<TContext, TEvent, any, any>>
+    | undefined
+): ReadonlyArray<string | StateNode<TContext, TEvent, any, any>> | undefined {
   if (target === undefined || target === TARGETLESS_KEY) {
     return undefined;
   }

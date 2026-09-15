@@ -4718,3 +4718,92 @@ it('AnyStateNode should keep the state nodes of an AnyStateMachine unwidened', (
   anyStateNodeTransitionMetaIsAny satisfies true;
   anyStateNodeDefinitionTransitionMetaIsAny satisfies true;
 });
+
+it('generic graph and snapshot containers preserve any metadata', () => {
+  type IsAny<T> = 0 extends 1 & T ? true : false;
+  type NodeMetaIsAny<T extends import('../src').AnyStateNode> = [
+    IsAny<T['meta']>,
+    IsAny<T['definition']['transitions'][number]['meta']>
+  ];
+
+  // Ordinary assignability cannot catch this regression: any assigns both ways.
+  const history: NodeMetaIsAny<
+    import('../src').AnyHistoryValue[string][number]
+  > = [true, true];
+  const config: NodeMetaIsAny<
+    import('../src').AnyStateConfig['_nodes'][number]
+  > = [true, true];
+  const snapshot: NodeMetaIsAny<
+    import('../src').AnyMachineSnapshot['_nodes'][number]
+  > = [true, true];
+  const graphNode: NodeMetaIsAny<
+    import('../src/graph').DirectedGraphNode['stateNode']
+  > = [true, true];
+  const graphTransition: IsAny<
+    import('../src/graph').DirectedGraphEdge['transition']['meta']
+  > = true;
+  const transitions: IsAny<
+    import('../src').Transitions<any, any>[number]['meta']
+  > = true;
+  const iterable: NodeMetaIsAny<
+    Parameters<
+      typeof import('../src/stateUtils').getStateValue
+    >[1] extends Iterable<infer T>
+      ? T
+      : never
+  > = [true, true];
+  const historyNode: NodeMetaIsAny<import('../src').HistoryStateNode<any>> = [
+    true,
+    true
+  ];
+  const normalized: NodeMetaIsAny<
+    Exclude<
+      NonNullable<
+        ReturnType<typeof import('../src/utils').normalizeTarget>
+      >[number],
+      string
+    >
+  > = [true, true];
+  const formatted: IsAny<
+    ReturnType<
+      typeof import('../src/stateUtils').formatTransitions
+    > extends Map<string, (infer T)[]>
+      ? T extends { meta?: infer M }
+        ? M
+        : never
+      : never
+  > = true;
+  const transitioned: IsAny<
+    NonNullable<
+      ReturnType<typeof import('../src/stateUtils').transitionNode>
+    >[number]['meta']
+  > = true;
+  const candidates: IsAny<
+    ReturnType<typeof import('../src/stateUtils').getCandidates>[number]['meta']
+  > = true;
+  const delayed: IsAny<
+    ReturnType<
+      typeof import('../src/stateUtils').getDelayedTransitions
+    >[number]['meta']
+  > = true;
+
+  expect(
+    [
+      history,
+      config,
+      snapshot,
+      graphNode,
+      graphTransition,
+      transitions,
+      iterable,
+      historyNode,
+      normalized,
+      formatted,
+      transitioned,
+      candidates,
+      delayed
+    ]
+      .flat()
+      .every(Boolean)
+  ).toBe(true);
+});

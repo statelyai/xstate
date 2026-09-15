@@ -1565,15 +1565,16 @@ export interface MachineTypes<
 
 export interface HistoryStateNode<
   TContext extends MachineContext
-> extends StateNode<TContext> {
+> extends StateNode<TContext, EventObject, any, any> {
   history: 'shallow' | 'deep';
   target: string | undefined;
 }
 
+/** History nodes preserve context and event types and accept any metadata. */
 export type HistoryValue<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = Record<string, Array<StateNode<TContext, TEvent>>>;
+> = Record<string, Array<StateNode<TContext, TEvent, any, any>>>;
 
 export type PersistedHistoryValue = Record<string, Array<{ id: string }>>;
 
@@ -1587,10 +1588,11 @@ export type StateFrom<
     ? ReturnType<ReturnType<T>['transition']>
     : never;
 
+/** Transitions with known context and event types and arbitrary metadata. */
 export type Transitions<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = Array<TransitionDefinition<TContext, TEvent>>;
+> = Array<TransitionDefinition<TContext, TEvent, any>>;
 
 export interface DoneActorEvent<
   TOutput = unknown,
@@ -1861,7 +1863,7 @@ export interface StateConfig<
   context: TContext;
   historyValue?: HistoryValue<TContext, TEvent>;
   /** @internal */
-  _nodes: Array<StateNode<TContext, TEvent>>;
+  _nodes: Array<StateNode<TContext, TEvent, any, any>>;
   children: Record<string, AnyActorRef>;
   status: SnapshotStatus;
   output?: any;
