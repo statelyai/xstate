@@ -507,4 +507,184 @@ describe('State', () => {
       expect(snapshot.status).toBe('stopped');
     });
   });
+
+  describe('.event', () => {
+    it('should have init event on initial snapshot', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: { a: {} }
+      });
+
+      const actor = createActor(machine).start();
+      expect(actor.getSnapshot().event.type).toBe('xstate.init');
+    });
+
+    it('should have init event with input on initial snapshot', () => {
+      const machine = createMachine({
+        types: {} as { input: { value: number } },
+        context: ({ input }) => ({ value: input.value }),
+        initial: 'a',
+        states: { a: {} }
+      });
+
+      const actor = createActor(machine, { input: { value: 42 } }).start();
+      expect(actor.getSnapshot().event.type).toBe('xstate.init');
+      expect((actor.getSnapshot().event as any).input).toEqual({ value: 42 });
+    });
+
+    it('should have the triggering event on snapshot after transition', () => {
+      const machine = createMachine({
+        types: {} as { events: { type: 'EVENT'; data: number } },
+        initial: 'a',
+        states: {
+          a: { on: { EVENT: 'b' } },
+          b: {}
+        }
+      });
+
+      const actor = createActor(machine).start();
+      actor.send({ type: 'EVENT', data: 123 });
+
+      expect(actor.getSnapshot().event).toEqual({ type: 'EVENT', data: 123 });
+    });
+
+    it('should update event on each transition', () => {
+      const machine = createMachine({
+        types: {} as {
+          events: { type: 'FIRST' } | { type: 'SECOND'; value: string };
+        },
+        initial: 'a',
+        states: {
+          a: { on: { FIRST: 'b' } },
+          b: { on: { SECOND: 'c' } },
+          c: {}
+        }
+      });
+
+      const actor = createActor(machine).start();
+
+      actor.send({ type: 'FIRST' });
+      expect(actor.getSnapshot().event).toEqual({ type: 'FIRST' });
+
+      actor.send({ type: 'SECOND', value: 'test' });
+      expect(actor.getSnapshot().event).toEqual({
+        type: 'SECOND',
+        value: 'test'
+      });
+    });
+
+    it('should preserve event on eventless (always) transitions', () => {
+      const machine = createMachine({
+        types: {} as { events: { type: 'TRIGGER'; data: number } },
+        initial: 'a',
+        states: {
+          a: { on: { TRIGGER: 'b' } },
+          b: { always: 'c' },
+          c: {}
+        }
+      });
+
+      const actor = createActor(machine).start();
+      actor.send({ type: 'TRIGGER', data: 42 });
+
+      // After the eventless transition from b -> c, the event should still be TRIGGER
+      expect(actor.getSnapshot().value).toBe('c');
+      expect(actor.getSnapshot().event).toEqual({ type: 'TRIGGER', data: 42 });
+    });
+
+    it('should be included in persisted snapshot', () => {
+      const machine = createMachine({
+        types: {} as { events: { type: 'EVENT'; payload: string } },
+        initial: 'a',
+        states: {
+          a: { on: { EVENT: 'b' } },
+          b: {}
+        }
+      });
+
+      const actor = createActor(machine).start();
+      actor.send({ type: 'EVENT', payload: 'test' });
+
+      const persisted = actor.getPersistedSnapshot();
+      expect((persisted as any).event).toEqual({
+        type: 'EVENT',
+        payload: 'test'
+      });
+    });
+
+    it('should be restored from persisted snapshot', () => {
+      const machine = createMachine({
+        types: {} as { events: { type: 'EVENT'; payload: string } },
+        initial: 'a',
+        states: {
+          a: { on: { EVENT: 'b' } },
+          b: {}
+        }
+      });
+
+      const actor1 = createActor(machine).start();
+      actor1.send({ type: 'EVENT', payload: 'test' });
+      const persisted = actor1.getPersistedSnapshot();
+      actor1.stop();
+
+      const actor2 = createActor(machine, { snapshot: persisted }).start();
+      expect(actor2.getSnapshot().event).toEqual({
+        type: 'EVENT',
+        payload: 'test'
+      });
+    });
+
+    it('should use structural sharing for deeply equal events', () => {
+      const machine = createMachine({
+        types: {} as {
+          events: { type: 'EVENT'; nested: { value: number; items: string[] } };
+        },
+        initial: 'a',
+        states: { a: {} }
+      });
+
+      const actor = createActor(machine).start();
+
+      // First event with nested structure
+      actor.send({
+        type: 'EVENT',
+        nested: { value: 42, items: ['a', 'b'] }
+      });
+      const snapshot1 = actor.getSnapshot();
+
+      // Second event with deeply equal structure (but new objects)
+      actor.send({
+        type: 'EVENT',
+        nested: { value: 42, items: ['a', 'b'] }
+      });
+      const snapshot2 = actor.getSnapshot();
+
+      // Structural sharing should preserve the original event reference
+      expect(snapshot2.event).toBe(snapshot1.event);
+      expect(snapshot2).toBe(snapshot1);
+    });
+
+    it('should create new snapshot when event has different nested values', () => {
+      const machine = createMachine({
+        types: {} as {
+          events: { type: 'EVENT'; data: { count: number } };
+        },
+        initial: 'a',
+        states: { a: {} }
+      });
+
+      const actor = createActor(machine).start();
+
+      actor.send({ type: 'EVENT', data: { count: 1 } });
+      const snapshot1 = actor.getSnapshot();
+
+      actor.send({ type: 'EVENT', data: { count: 2 } });
+      const snapshot2 = actor.getSnapshot();
+
+      // Different nested value means different event
+      expect(snapshot2.event).not.toBe(snapshot1.event);
+      expect(snapshot2).not.toBe(snapshot1);
+      expect(snapshot2.event).toEqual({ type: 'EVENT', data: { count: 2 } });
+    });
+  });
 });
