@@ -119,7 +119,18 @@ export type {
 } from './validation.types.ts';
 export { createSystem, setup } from './setup.ts';
 export type {
+  ActiveStateContext,
   AnySetupConfig,
+  RootContextMarker,
+  StrictSetupStateSchemas,
+  StrictSetupStateTargetsFlag,
+  StrictSetupStateTargetsMarker,
+  RelativeSetupStateSchemasMarker,
+  CurrentSetupStateSchemaMarker,
+  SetupStateParentTypeMarker,
+  SetupStateSchemasWithParentType,
+  RootSetupStateSchemasMarker,
+  WithRootSetupStateSchemas,
   SetupConfig,
   SetupReturn,
   SetupReturnFromConfig,
@@ -160,6 +171,8 @@ export { SpecialTargets } from './types.ts';
 export type {
   Next_MachineConfig as MachineConfig,
   Next_StateNodeConfig as StateNodeConfig,
+  Next_ChoiceStateNodeConfig as ChoiceStateNodeConfig,
+  Next_RegularStateNodeConfig as RegularStateNodeConfig,
   Next_InvokeConfig as InvokeConfig,
   Next_TransitionConfigOrTarget as TransitionConfigOrTarget,
   Sources,

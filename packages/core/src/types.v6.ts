@@ -1113,7 +1113,8 @@ export type Next_StateNodeConfig<
       TDelayMap
     >;
 
-interface Next_ChoiceStateNodeConfig<
+/** @public Referenced by emitted declarations of `Next_StateNodeConfig`. */
+export interface Next_ChoiceStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTag extends string,
@@ -1171,7 +1172,8 @@ interface Next_ChoiceStateNodeConfig<
   target?: never;
 }
 
-interface Next_RegularStateNodeConfig<
+/** @public Referenced by emitted declarations of `Next_StateNodeConfig`. */
+export interface Next_RegularStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TDelays extends string,
