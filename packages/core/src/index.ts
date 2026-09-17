@@ -208,9 +208,3 @@ export {
   terminateActor
 } from './runtimeHelpers.ts';
 export { waitFor } from './waitFor.ts';
-
-declare global {
-  interface SymbolConstructor {
-    readonly observable: symbol;
-  }
-}
