@@ -236,7 +236,8 @@ export function normalizeTarget<
 export function toObserver<T>(
   nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,
-  completionHandler?: () => void
+  completionHandler?: () => void,
+  observerId?: string
 ): Observer<T> {
   const isObserver = typeof nextHandler === 'object';
   const self = isObserver ? nextHandler : undefined;
@@ -246,7 +247,8 @@ export function toObserver<T>(
     error: (isObserver ? nextHandler.error : errorHandler)?.bind(self),
     complete: (isObserver ? nextHandler.complete : completionHandler)?.bind(
       self
-    )
+    ),
+    id: observerId
   };
 }
 
