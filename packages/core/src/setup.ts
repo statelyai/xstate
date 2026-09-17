@@ -567,7 +567,7 @@ type SetupRelativeStateTarget<
       : '.' | `.${StatePaths<TStateSchemas> & string}`;
 
 type SetupStateTarget<TStateSchemas extends Record<string, SetupStateSchema>> =
-  TStateSchemas extends { readonly [strictSetupStateTargets]: true }
+  TStateSchemas extends StrictSetupStateTargetsFlag
     ?
         | StrictSetupStatePaths<TStateSchemas>
         | SetupRelativeStateTarget<RelativeSetupStateSchemas<TStateSchemas>>
@@ -598,7 +598,41 @@ declare const rootSetupStateSchemas: unique symbol;
 declare const currentSetupStateSchema: unique symbol;
 declare const parentSetupStateType: unique symbol;
 
-type StrictSetupStateSchemas<
+// Named, like `RootContextMarker`, so declaration emit can reference these
+// markers instead of expanding their private unique-symbol keys into exported
+// types. They are split one key apiece because the conditional types below
+// match on a single key at a time, and those conditionals are emitted too.
+/** @public Referenced by emitted declarations of strict transition targets. */
+export type StrictSetupStateTargetsFlag = {
+  readonly [strictSetupStateTargets]: true;
+};
+
+/** @public Referenced by emitted declarations of strict transition targets. */
+export type RelativeSetupStateSchemasMarker<
+  TRelativeStateSchemas extends Record<string, SetupStateSchema>
+> = {
+  readonly [relativeSetupStateSchemas]: TRelativeStateSchemas;
+};
+
+/** @public Referenced by emitted declarations of strict transition targets. */
+export type CurrentSetupStateSchemaMarker<
+  TCurrentStateSchema extends SetupStateSchema
+> = {
+  readonly [currentSetupStateSchema]: TCurrentStateSchema;
+};
+
+/** @public Referenced by emitted declarations of strict transition targets. */
+export type StrictSetupStateTargetsMarker<
+  TRelativeStateSchemas extends Record<string, SetupStateSchema>,
+  TRootStateSchemas extends Record<string, SetupStateSchema>,
+  TCurrentStateSchema extends SetupStateSchema
+> = StrictSetupStateTargetsFlag &
+  RelativeSetupStateSchemasMarker<TRelativeStateSchemas> &
+  RootSetupStateSchemasMarker<TRootStateSchemas> &
+  CurrentSetupStateSchemaMarker<TCurrentStateSchema>;
+
+/** @public Referenced by emitted declarations of strict transition targets. */
+export type StrictSetupStateSchemas<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TRelativeStateSchemas extends Record<string, SetupStateSchema> = Record<
     string,
@@ -607,61 +641,60 @@ type StrictSetupStateSchemas<
   TRootStateSchemas extends Record<string, SetupStateSchema> =
     RootSetupStateSchemas<TStateSchemas>,
   TCurrentStateSchema extends SetupStateSchema = never
-> = TStateSchemas & {
-  readonly [strictSetupStateTargets]: true;
-  readonly [relativeSetupStateSchemas]: TRelativeStateSchemas;
-  readonly [rootSetupStateSchemas]: TRootStateSchemas;
-  readonly [currentSetupStateSchema]: TCurrentStateSchema;
-};
+> = TStateSchemas &
+  StrictSetupStateTargetsMarker<
+    TRelativeStateSchemas,
+    TRootStateSchemas,
+    TCurrentStateSchema
+  >;
 
 type RelativeSetupStateSchemas<
   TStateSchemas extends Record<string, SetupStateSchema>
-> = TStateSchemas extends {
-  readonly [relativeSetupStateSchemas]: infer TRelativeStateSchemas extends
-    Record<string, SetupStateSchema>;
-}
-  ? TRelativeStateSchemas
-  : TStateSchemas;
+> =
+  TStateSchemas extends RelativeSetupStateSchemasMarker<
+    infer TRelativeStateSchemas
+  >
+    ? TRelativeStateSchemas
+    : TStateSchemas;
 
 type RootSetupStateSchemas<
   TStateSchemas extends Record<string, SetupStateSchema>
-> = TStateSchemas extends {
-  readonly [rootSetupStateSchemas]: infer TRootStateSchemas extends Record<
-    string,
-    SetupStateSchema
-  >;
-}
-  ? TRootStateSchemas
-  : TStateSchemas;
+> =
+  TStateSchemas extends RootSetupStateSchemasMarker<infer TRootStateSchemas>
+    ? TRootStateSchemas
+    : TStateSchemas;
 
 type CurrentSetupStateSchema<
   TStateSchemas extends Record<string, SetupStateSchema>
-> = TStateSchemas extends {
-  readonly [currentSetupStateSchema]: infer TCurrentStateSchema extends
-    SetupStateSchema;
-}
-  ? TCurrentStateSchema
-  : never;
+> =
+  TStateSchemas extends CurrentSetupStateSchemaMarker<infer TCurrentStateSchema>
+    ? TCurrentStateSchema
+    : never;
 
 type SetupStateSelfSchema<TStateSchema extends SetupStateSchema> =
   TStateSchema extends { schemas: infer TSchemas extends SetupStateSchemas }
     ? { schemas: TSchemas }
     : {};
 
-type SetupStateSchemasWithParentType<
-  TStateSchemas extends Record<string, SetupStateSchema>,
+/** @public Referenced by emitted declarations of strict transition targets. */
+export type SetupStateParentTypeMarker<
   TParentStateType extends SetupStateType | never
-> = TStateSchemas & {
+> = {
   readonly [parentSetupStateType]: TParentStateType;
 };
 
+/** @public Referenced by emitted declarations of strict transition targets. */
+export type SetupStateSchemasWithParentType<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TParentStateType extends SetupStateType | never
+> = TStateSchemas & SetupStateParentTypeMarker<TParentStateType>;
+
 type SetupStateParentType<
   TStateSchemas extends Record<string, SetupStateSchema>
-> = TStateSchemas extends {
-  readonly [parentSetupStateType]: infer TParentStateType;
-}
-  ? TParentStateType
-  : never;
+> =
+  TStateSchemas extends SetupStateParentTypeMarker<infer TParentStateType>
+    ? TParentStateType
+    : never;
 
 type IsParallelSetupStateParent<
   TStateSchemas extends Record<string, SetupStateSchema>
@@ -686,12 +719,18 @@ type ResolveStateSiblingsForPath<
       : ResolveStateSiblings<TStates, TPath>
     : never;
 
-type WithRootSetupStateSchemas<
-  TStateSchemas extends Record<string, SetupStateSchema>,
+/** @public Referenced by emitted declarations of strict transition targets. */
+export type RootSetupStateSchemasMarker<
   TRootStateSchemas extends Record<string, SetupStateSchema>
-> = TStateSchemas & {
+> = {
   readonly [rootSetupStateSchemas]: TRootStateSchemas;
 };
+
+/** @public Referenced by emitted declarations of strict transition targets. */
+export type WithRootSetupStateSchemas<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TRootStateSchemas extends Record<string, SetupStateSchema>
+> = TStateSchemas & RootSetupStateSchemasMarker<TRootStateSchemas>;
 
 type RootSetupStateTransitionSchemas<
   TStateSchemas extends Record<string, SetupStateSchema>
@@ -1617,7 +1656,11 @@ type StateContextShape<
     : RootContext<TFallbackContext>
   : RootContext<TFallbackContext>;
 
-type ActiveStateContext<
+// Exported for the same reason as `RootContextMarker`: this is the context type
+// a narrowed state's transition receives, so it appears in the emitted
+// declarations of any machine that declares per-state `context`.
+/** @public Referenced by emitted declarations of narrowed state contexts. */
+export type ActiveStateContext<
   TStateSchema extends SetupStateSchema,
   TRootContext extends MachineContext,
   TAncestorContext
@@ -1710,7 +1753,7 @@ type SetupChoiceTargetConfig<
         TEvent
       >;
     }[KnownSetupStateTarget<TStateSchemas>]
-  | (TStateSchemas extends { readonly [strictSetupStateTargets]: true }
+  | (TStateSchemas extends StrictSetupStateTargetsFlag
       ? {
           target: KnownSetupStateTarget<TStateSchemas>[];
           input?: Record<string, unknown>;
@@ -3822,9 +3865,7 @@ type StateTransitionResult<
             });
     }[TKnownTarget]
   | {
-      target: TStateSchemas extends {
-        readonly [strictSetupStateTargets]: true;
-      }
+      target: TStateSchemas extends StrictSetupStateTargetsFlag
         ? never
         : Exclude<TTarget, TKnownTarget>;
       context?: StateTransitionContext<
