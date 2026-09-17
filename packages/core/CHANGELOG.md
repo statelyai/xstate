@@ -1,5 +1,37 @@
 # xstate
 
+## 6.0.0-alpha.58
+
+### Patch Changes
+
+- a50ea84: Machine output is now inferred as the union of the top-level final states' output types when no `schemas.output` or root `output` is declared. Previously, declaring `schemas.output` was required to get a typed result from `toPromise(actor)` or `snapshot.output`.
+  
+  ```ts
+  const machine = setup({}).createMachine({
+    initial: 'working',
+    states: {
+      working: {
+        on: {
+          resolve: { target: 'succeeded' },
+          reject: { target: 'failed' }
+        }
+      },
+      succeeded: {
+        type: 'final',
+        output: () => ({ status: 'ok' as const })
+      },
+      failed: {
+        type: 'final',
+        output: { status: 'error' as const }
+      }
+    }
+  });
+  
+  // OutputFrom<typeof machine> is
+  // { status: 'ok' } | { status: 'error' }
+  ```
+- 98160ed: Importing only `xstate/fsm` now typechecks on its own. Previously, an fsm-only program failed with `Property 'observable' does not exist on type 'SymbolConstructor'` errors because the `Symbol.observable` type augmentation lived in the main entry. The `xstate/fsm` entry also no longer pulls the main entry's full type surface into the program, so editors and `tsc` check far less code for fsm-only consumers.
+
 ## 6.0.0-alpha.57
 
 ### Patch Changes
