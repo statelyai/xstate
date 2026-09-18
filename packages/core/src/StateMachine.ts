@@ -58,6 +58,7 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
+  AnyStateMachine,
   AnyMachineSnapshot,
   AnyTransitionDefinition,
   Equals,
@@ -279,6 +280,10 @@ export class StateMachine<
   public internalEventDescriptors: ReadonlyArray<string>;
   /** @internal Skips eventless-selection scans for machines without `always`. */
   public _hasEventlessTransitions: boolean;
+
+  /** @internal Adapter hooks for actor-local transition evaluation state. */
+  public _microstepHooks?: AnyStateMachine['_microstepHooks'];
+
   constructor(
     /** The raw config used to create the machine. */
     public config: Next_MachineConfig<
@@ -541,6 +546,7 @@ export class StateMachine<
     ) as unknown as this;
     // Providing sources does not change the serializable definition.
     provided._json = this._json;
+    provided._microstepHooks = this._microstepHooks;
     return provided;
   }
 
@@ -927,6 +933,7 @@ export class StateMachine<
     actorScope: AnyActorScope,
     selectionResults?: TransitionSelectionResults
   ): Array<AnyTransitionDefinition> {
+    this._microstepHooks?.begin(actorScope.self);
     return (
       transitionNode(
         this.root,

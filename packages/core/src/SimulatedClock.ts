@@ -54,32 +54,25 @@ export class SimulatedClock implements SimulatedClock {
     }
     this._flushing = true;
 
-    const sorted = [...this.timeouts].sort(
-      ([_idA, timeoutA], [_idB, timeoutB]) => {
-        const endA = timeoutA.start + timeoutA.timeout;
-        const endB = timeoutB.start + timeoutB.timeout;
-        return endB > endA ? -1 : 1;
-      }
-    );
-
-    for (const [id, timeout] of sorted) {
-      if (this._flushingInvalidated) {
+    try {
+      do {
         this._flushingInvalidated = false;
-        this._flushing = false;
-        this.flushTimeouts();
-        return;
-      }
-      if (this.now() - timeout.start >= timeout.timeout) {
-        this.timeouts.delete(id);
-        timeout.fn.call(null);
-      }
-    }
-
-    this._flushing = false;
-    // Check if new timeouts were added during the last iteration
-    if (this._flushingInvalidated) {
+        const sorted = [...this.timeouts].sort(
+          ([, a], [, b]) => a.start + a.timeout - (b.start + b.timeout)
+        );
+        for (const [id, timeout] of sorted) {
+          if (this._flushingInvalidated) {
+            break;
+          }
+          if (this.now() - timeout.start >= timeout.timeout) {
+            this.timeouts.delete(id);
+            timeout.fn.call(null);
+          }
+        }
+      } while (this._flushingInvalidated);
+    } finally {
+      this._flushing = false;
       this._flushingInvalidated = false;
-      this.flushTimeouts();
     }
   }
   public increment(ms: number): void {

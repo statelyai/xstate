@@ -125,6 +125,7 @@ export function withExecutionIdentity<T>(
   }
 }
 
+/** @internal */
 export {
   hasAmbientInspector,
   withSystemInspector
@@ -1025,6 +1026,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   }
 }
 
+/** @internal */
 export function createRuntimeSystem<T extends ActorSystemInfo>(
   rootActor: AnyActor,
   options: {

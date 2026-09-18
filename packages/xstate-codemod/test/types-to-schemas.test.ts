@@ -1,3 +1,4 @@
+import { Project } from 'ts-morph';
 import { describe, expect, it } from 'vitest';
 import { typesToSchemas } from '../src/transforms/types-to-schemas.ts';
 import { applyTransform } from './helpers.ts';
@@ -69,3 +70,58 @@ createMachine({
     expect(output).toContain('types: {} as { context: { a: number } }');
   });
 });
+
+it.each([';', ',', '\n'])(
+  'generates valid multi-field payloads separated by %j',
+  (separator) => {
+    const { output } = applyTransform(
+      typesToSchemas,
+      `import { createMachine } from 'xstate';
+createMachine({ types: {} as { events: { type: 'update'${separator} first: number${separator} second: string${separator} } } });`
+    );
+    expectValidMigration(output);
+  }
+);
+
+it.each([
+  "import * as X from 'xstate'; X.createMachine",
+  "import type { AnyActorRef } from 'xstate'; import { createMachine } from 'xstate'; createMachine",
+  "import { createMachine, types as schema } from 'xstate'; createMachine",
+  "import { createMachine, type types } from 'xstate'; createMachine",
+  "import { createMachine } from 'xstate'; const types = 123; createMachine",
+  "import { createMachine, types } from 'xstate'; function configure(types: number) { return createMachine"
+])('uses a valid runtime helper binding: %s', (prefix) => {
+  const { output } = applyTransform(
+    typesToSchemas,
+    `${prefix}({ types: {} as { context: { count: number } } });${prefix.includes('function configure') ? '}' : ''}`
+  );
+  expectValidMigration(output);
+});
+
+it('preserves escaped event discriminants', () => {
+  const { output } = applyTransform(
+    typesToSchemas,
+    `import { createMachine } from 'xstate'; createMachine({ types: {} as { events: { type: 'say\\'hi' } } });`
+  );
+  expect(output).toContain(`"say'hi":`);
+  expectValidMigration(output);
+});
+
+function expectValidMigration(output: string) {
+  const project = new Project({
+    useInMemoryFileSystem: true,
+    compilerOptions: { strict: true, noUnusedLocals: false }
+  });
+  project.createSourceFile(
+    'xstate.d.ts',
+    `declare module 'xstate' {
+    export type AnyActorRef = unknown;
+    export function types<T>(): T;
+    export function createMachine(config: unknown): unknown;
+  }`
+  );
+  const source = project.createSourceFile('consumer.ts', output);
+  expect(source.getPreEmitDiagnostics().map((d) => d.getMessageText())).toEqual(
+    []
+  );
+}
