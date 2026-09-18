@@ -1,0 +1,40 @@
+{
+  "name": "@xstate/test-playwright",
+  "version": "0.0.0",
+  "description": "Playwright integration for XState property testing",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/xstate-test-playwright.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@playwright/test": ">=1.40",
+    "xstate": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "xstate": "workspace:^"
+  },
+  "preconstruct": {
+    "umdName": "XStateTestPlaywright",
+    "entrypoints": [
+      "./index.ts"
+    ]
+  }
+}
