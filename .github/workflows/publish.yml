@@ -84,7 +84,36 @@ jobs:
     steps:
       - uses: $/.github/actions/ci-setup
 
-      - name: Publish to npm
+      # Trusted publishing can only be configured after a package exists. Use
+      # the npm token for @xstate/effect's first publish, then return to OIDC.
+      - name: Check whether @xstate/effect needs bootstrap authentication
+        id: effect-bootstrap
+        shell: bash
+        run: |
+          registry_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            'https://registry.npmjs.org/@xstate%2feffect')"
+
+          case "$registry_status" in
+            200) echo 'required=false' >> "$GITHUB_OUTPUT" ;;
+            404) echo 'required=true' >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::Unexpected npm registry status: $registry_status"
+              exit 1
+              ;;
+          esac
+
+      - name: Bootstrap publish to npm
+        if: steps.effect-bootstrap.outputs.required == 'true'
+        # https://github.com/changesets/action
+        uses: changesets/action/publish@22ccf9aa43179fe9e27dc62e575971d28cce197c # v2.0.0
+        with:
+          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+
+      - name: Publish to npm with trusted publishing
+        if: steps.effect-bootstrap.outputs.required == 'false'
         # https://github.com/changesets/action
         uses: changesets/action/publish@22ccf9aa43179fe9e27dc62e575971d28cce197c # v2.0.0
         with:
