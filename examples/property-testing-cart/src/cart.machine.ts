@@ -6,6 +6,8 @@ export type CartItems = Record<string, number>;
 
 export interface CartContext {
   items: CartItems;
+  /** The message from the last declined payment, if there was one. */
+  lastError: string | null;
 }
 
 /**
@@ -41,7 +43,7 @@ export const cartMachine = setup({
   actors: { pay }
 }).createMachine({
   id: 'cart',
-  context: { items: {} },
+  context: { items: {}, lastError: null },
   initial: 'shopping',
   states: {
     shopping: {
@@ -50,6 +52,7 @@ export const cartMachine = setup({
         // generator never produces a quantity below one.
         ADD: ({ context, event }) => ({
           context: {
+            ...context,
             items: {
               ...context.items,
               [event.sku]: (context.items[event.sku] ?? 0) + event.qty
@@ -58,7 +61,7 @@ export const cartMachine = setup({
         }),
         REMOVE: ({ context, event }) => {
           const { [event.sku]: _removed, ...items } = context.items;
-          return { context: { items } };
+          return { context: { ...context, items } };
         },
         // An empty cart cannot be checked out: the transition returns nothing,
         // so the event is not handled in that case.
@@ -71,8 +74,13 @@ export const cartMachine = setup({
         src: 'pay',
         input: ({ context }) => ({ total: countItems(context.items) }),
         onDone: { target: 'done' },
-        // A declined payment returns the shopper to the cart, contents intact.
-        onError: { target: 'shopping' }
+        // A declined payment returns the shopper to the cart, contents intact,
+        // and records why. The message is what makes the declined cart a
+        // distinct state, so graph traversal walks the `onError` branch too.
+        onError: ({ context, event }) => ({
+          target: 'shopping',
+          context: { ...context, lastError: String(event.error) }
+        })
       }
     },
     done: { type: 'final' }

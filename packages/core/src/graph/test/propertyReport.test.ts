@@ -40,7 +40,7 @@ describe('property coverage reports', () => {
   it('formats coverage as text', async () => {
     const text = formatTestCoverage(await getCoverage());
 
-    expect(text).toContain('Property coverage');
+    expect(text).toContain('Test coverage');
     expect(text).toMatch(/stateNodes: \d+\/\d+ covered \(\d+\.\d%\)/);
     expect(text).toContain('unreachable stateNodes:');
     expect(text).toContain('light.broken');
@@ -53,7 +53,7 @@ describe('property coverage reports', () => {
       format: 'markdown'
     });
 
-    expect(markdown).toContain('# Property coverage');
+    expect(markdown).toContain('# Test coverage');
     expect(markdown).toContain(
       '| Dimension | Covered | Total | Ratio | Uncovered | Unreachable | Unknown |'
     );
@@ -154,7 +154,7 @@ describe('property coverage reports', () => {
       /stateNodes: 0\.0% covered, below the 50\.0% threshold/
     );
     expect(() => assertTestCoverage(starved, { stateNodes: 0.5 })).toThrow(
-      /Property coverage/
+      /Test coverage/
     );
   });
 });

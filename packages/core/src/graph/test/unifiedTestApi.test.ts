@@ -44,13 +44,14 @@ const toggleMachine = createMachine({
 });
 
 describe('testPaths option validation', () => {
-  it('rejects `outcomes`', async () => {
-    await expect(
-      testPaths(toggleMachine, {
-        mode: 'executed',
-        outcomes: { fetcher: () => ({ type: 'done', output: 1 }) }
-      } as never)
-    ).rejects.toThrow(/not supported by path generation/);
+  it('accepts `outcomes` for a machine with no invoked actors', async () => {
+    const { coverage } = await testPaths(toggleMachine, {
+      mode: 'executed',
+      outcomes: { fetcher: () => ({ ok: true, output: 1 }) }
+    });
+
+    // No path resolves `fetcher`, so no `outcome` command is ever issued.
+    expect(coverage.clockAdvances).toBe(0);
   });
 
   it('rejects `commands`', async () => {

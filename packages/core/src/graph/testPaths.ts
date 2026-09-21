@@ -12,6 +12,7 @@ import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   createSeededRng,
   deriveCaseSeed,
+  isEventDescriptorObject,
   normalizeEventDescriptors,
   sampleGenerator,
   type AnyTestEventDescriptor,
@@ -28,6 +29,8 @@ import {
   type TestAdapter,
   type TestAdapterRequest,
   type TestAdapterResult,
+  type TestActorOutcome,
+  type TestMode,
   type TestOptions,
   type PropertyGeneratorKind
 } from './propertyTest.ts';
@@ -135,6 +138,104 @@ export type TestExecutionOptions<
 >;
 
 const DEFAULT_SAMPLES = 3;
+
+/** Internal event types path generation drives explicitly. */
+const DONE_ACTOR_EVENT = 'xstate.done.actor';
+const ERROR_ACTOR_EVENT = 'xstate.error.actor';
+const AFTER_EVENT = 'xstate.after';
+const DONE_STATE_EVENT = 'xstate.done.state';
+
+/**
+ * The internal events traversal offers. The other internal events (state and
+ * invoke timeouts, actor snapshots) are left out: nothing here can drive them
+ * in executed mode, and a path that assumed one would desynchronize.
+ */
+const TRAVERSED_INTERNAL_EVENTS: ReadonlySet<string> = new Set([
+  DONE_ACTOR_EVENT,
+  ERROR_ACTOR_EVENT,
+  AFTER_EVENT
+]);
+
+/** Internal events are the machine's own; only user events have declared cases. */
+function isInternalEventType(type: string): boolean {
+  return type.startsWith('xstate.');
+}
+
+function assertGeneratedOutcome(
+  value: unknown,
+  src: string
+): asserts value is TestActorOutcome {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    typeof (value as { ok?: unknown }).ok !== 'boolean'
+  ) {
+    throw new Error(
+      `The \`outcomes\` generator for "${src}" produced ${JSON.stringify(
+        value
+      )} instead of an actor outcome. Generate \`{ ok: true, output }\` or \`{ ok: false, error }\`.`
+    );
+  }
+}
+
+/**
+ * Samples concrete actor outcomes from `outcomes`, the same way event payloads
+ * are sampled from `events`, so traversal can label each `xstate.done.actor` /
+ * `xstate.error.actor` step with the outcome that produced it.
+ */
+function sampleTestOutcomes(
+  outcomes: Readonly<Record<string, unknown>> | undefined,
+  samples: number,
+  seed: number
+): ReadonlyMap<string, readonly TestActorOutcome[]> {
+  const sampled = new Map<string, readonly TestActorOutcome[]>();
+  for (const [src, configured] of Object.entries(outcomes ?? {})) {
+    const generator = isEventDescriptorObject(configured)
+      ? (configured as { generate?: unknown }).generate
+      : configured;
+    if (generator === undefined) {
+      continue;
+    }
+    const rng = createSeededRng(deriveCaseSeed(seed, `outcome:${src}`));
+    const values = sampleGenerator(generator, rng, samples);
+    for (const value of values) {
+      assertGeneratedOutcome(value, src);
+    }
+    sampled.set(src, values as readonly TestActorOutcome[]);
+  }
+  return sampled;
+}
+
+/** Resolves an `after` delay reference to the milliseconds to advance. */
+function resolveTestDelay(logic: unknown, delayRef: number | string): number {
+  if (typeof delayRef === 'number') {
+    return delayRef;
+  }
+  const configured = (
+    logic as { sources?: { delays?: Record<string, unknown> } }
+  )?.sources?.delays?.[delayRef];
+  if (typeof configured === 'number') {
+    return configured;
+  }
+  throw new Error(
+    `Cannot advance the clock for the delayed transition "${delayRef}": ${
+      configured === undefined
+        ? `the machine declares no \`delays.${delayRef}\``
+        : `\`delays.${delayRef}\` is computed at runtime, and path generation needs a fixed number`
+    }. Provide a numeric delay, or run this case through \`propertyTest()\` with a generated \`advance\` command.`
+  );
+}
+
+/** How an internal path step is driven in executed mode. */
+interface InternalStepPlan {
+  readonly mode: TestMode;
+  readonly outcomeByEvent: WeakMap<
+    object,
+    { readonly src: string; readonly outcome: TestActorOutcome }
+  >;
+  readonly delayByEvent: WeakMap<object, number | string>;
+  readonly resolveDelay: (delayRef: number | string) => number;
+}
 
 const LEGACY_EVENT_EXECUTOR_MESSAGE =
   'A pre-2.0 event executor was passed as an event generator. `events` now declares how event *payloads* are generated; the functions that drive the system under test belong in `sut`. Wrap the old shape with `fromTestParam({ events, states })`, or write the `sut` directly.';
@@ -274,7 +375,8 @@ function createPathAdapter<
 >(
   paths: readonly StatePath<TSnapshot, TEvent>[],
   caseIds: WeakMap<object, string>,
-  results: TestPathRunResult<TSnapshot, TEvent>[]
+  results: TestPathRunResult<TSnapshot, TEvent>[],
+  plan: InternalStepPlan
 ): TestAdapter<any> {
   return {
     async run<TS extends Snapshot<unknown>, TE extends EventObject>(
@@ -298,6 +400,31 @@ function createPathAdapter<
           await runner.start();
           for (const step of steps) {
             const event = step.event;
+            if (plan.mode === 'executed') {
+              const resolved = plan.outcomeByEvent.get(
+                event as unknown as object
+              );
+              if (resolved) {
+                // The invoke source is stubbed, so the step resolves it with
+                // the outcome traversal took this branch for.
+                if (runner.canRunOutcome()) {
+                  await runner.outcome(resolved.src, resolved.outcome);
+                }
+                continue;
+              }
+              const delayRef = plan.delayByEvent.get(
+                event as unknown as object
+              );
+              if (delayRef !== undefined) {
+                await runner.advance(plan.resolveDelay(delayRef));
+                continue;
+              }
+              if (event.type === DONE_STATE_EVENT) {
+                // Raised by the machine itself once the region reaches its
+                // final state; there is nothing to drive.
+                continue;
+              }
+            }
             const caseId =
               caseIds.get(event as unknown as object) ??
               getPropertyEventCaseId(event.type, 'default');
@@ -405,12 +532,10 @@ export async function testPaths<
   type TEvent = EventFromSource<TSource>;
 
   assertNotTestParam(options);
-  for (const propertyOnly of ['outcomes', 'commands'] as const) {
-    if ((options as Record<string, unknown>)[propertyOnly] !== undefined) {
-      throw new Error(
-        `\`${propertyOnly}\` is not supported by path generation; use \`propertyTest()\`. Paths come from the pure state graph, which does not model invoked actors or \`after\` transitions.`
-      );
-    }
+  if ((options as Record<string, unknown>).commands !== undefined) {
+    throw new Error(
+      '`commands` is not supported by path generation; use `propertyTest()`. Paths decide their own `advance` and `outcome` commands from the internal events the traversal took.'
+    );
   }
   const samples = options.samples ?? DEFAULT_SAMPLES;
   if (!Number.isInteger(samples) || samples < 1) {
@@ -441,19 +566,98 @@ export async function testPaths<
     caseIds
   );
 
+  const mode: TestMode = options.mode ?? 'pure';
+  const sampledOutcomes = sampleTestOutcomes(
+    options.outcomes as Readonly<Record<string, unknown>> | undefined,
+    samples,
+    options.seed ?? 0
+  );
+  /** Invoke `id` to invoke `src`, collected from the state nodes as seen. */
+  const invokeSrcById = new Map<string, string>();
+  const outcomeByEvent = new WeakMap<
+    object,
+    { readonly src: string; readonly outcome: TestActorOutcome }
+  >();
+  const delayByEvent = new WeakMap<object, number | string>();
+
+  /**
+   * Turns one synthesized internal event into the concrete events traversal
+   * should offer, and remembers what executed mode has to do to reach it.
+   */
+  const expandInternalEvent = (event: AnyEventObject): TEvent[] => {
+    if (event.type === AFTER_EVENT) {
+      const offered = { ...event } as unknown as TEvent;
+      delayByEvent.set(
+        offered as unknown as object,
+        (event as unknown as { delay: number | string }).delay
+      );
+      return [offered];
+    }
+    const ok = event.type === DONE_ACTOR_EVENT;
+    const src = invokeSrcById.get(
+      (event as unknown as { actorId?: string }).actorId!
+    );
+    const declared = src === undefined ? undefined : sampledOutcomes.get(src);
+    const matching = declared?.filter((outcome) => outcome.ok === ok) ?? [];
+    const outcomes: readonly TestActorOutcome[] = matching.length
+      ? matching
+      : [
+          ok
+            ? { ok: true, output: undefined }
+            : { ok: false, error: new Error('generated failure') }
+        ];
+    return outcomes.map((outcome) => {
+      // `sessionId` identifies one incarnation of the invoked actor, which the
+      // pure graph invents per traversal and the run invents again. Leaving it
+      // out makes the event match whichever incarnation is live.
+      const { sessionId: _sessionId, ...rest } = event as AnyEventObject & {
+        sessionId?: string;
+      };
+      const offered = {
+        ...rest,
+        ...(outcome.ok ? { output: outcome.output } : { error: outcome.error })
+      } as unknown as TEvent;
+      if (src !== undefined) {
+        outcomeByEvent.set(offered as unknown as object, { src, outcome });
+      }
+      return offered;
+    });
+  };
+
   const traversalEvents = (snapshot: TSnapshot): readonly TEvent[] => {
     // A machine's own events exclude anything only a wildcard (`'*'`) handler
     // accepts, so the declared types are unioned in rather than replaced.
     const types = new Set<string>(expander.declaredTypes);
+    const internal: TEvent[] = [];
     if (typeof (snapshot as { nodes?: unknown }).nodes === 'object') {
+      for (const stateNode of (
+        snapshot as unknown as {
+          nodes: readonly { invoke?: readonly { id: string; src: string }[] }[];
+        }
+      ).nodes) {
+        for (const invokeDef of stateNode.invoke ?? []) {
+          invokeSrcById.set(invokeDef.id, invokeDef.src);
+        }
+      }
       for (const event of getAllOwnEvents(snapshot as never)) {
-        types.add((event as AnyEventObject).type);
+        const { type } = event as AnyEventObject;
+        if (!isInternalEventType(type)) {
+          types.add(type);
+        } else if (TRAVERSED_INTERNAL_EVENTS.has(type)) {
+          // Internal events carry the fields the transition matches on
+          // (`actorId`, `delay`, `stateId`), so they are offered whole rather
+          // than as a bare `{ type }` template.
+          internal.push(...expandInternalEvent(event as AnyEventObject));
+        }
       }
     }
     const templates: TEvent[] = [...types].map(
       (type) => ({ type }) as unknown as TEvent
     );
-    return templates.flatMap((template) => expander.expand(snapshot, template));
+    return [
+      ...templates.flatMap((template) => expander.expand(snapshot, template)),
+      ...internal
+    ];
   };
 
   const traversalOptions: TraversalOptions<TSnapshot, TEvent, unknown> = {
@@ -508,6 +712,8 @@ export async function testPaths<
   // exercise the machine's own events, which have no declared case.
   const declaredTypes = new Set(cases.map((eventCase) => eventCase.type));
   const extraEvents: Record<string, unknown> = {};
+  /** Invoke sources a path resolves, so executed mode can stub them. */
+  const stubbedSources = new Set<string>();
   for (const path of paths) {
     for (const step of path.steps) {
       const { type } = step.event;
@@ -518,12 +724,27 @@ export async function testPaths<
       ) {
         continue;
       }
+      if (isInternalEventType(type)) {
+        const resolved = outcomeByEvent.get(step.event as unknown as object);
+        if (resolved) {
+          stubbedSources.add(resolved.src);
+        }
+        if (mode === 'executed') {
+          // Driven as an `outcome` or `advance` command, not sent as an event.
+          continue;
+        }
+      }
       extraEvents[type] = { generate: undefined };
     }
   }
 
   const results: TestPathRunResult<TSnapshot, TEvent>[] = [];
-  const adapter = createPathAdapter(paths, caseIds, results);
+  const adapter = createPathAdapter(paths, caseIds, results, {
+    mode,
+    outcomeByEvent,
+    delayByEvent,
+    resolveDelay: (delayRef) => resolveTestDelay(testLogic, delayRef)
+  });
   const {
     paths: _paths,
     pathGenerator: _pathGenerator,
@@ -538,8 +759,20 @@ export async function testPaths<
     serializeEvent: _serializeEvent,
     allowDuplicatePaths: _allowDuplicatePaths,
     events: configuredEvents,
+    outcomes: configuredOutcomes,
     ...shared
   } = options;
+
+  // `outcomes` only reaches `propertyTest()` to install the stubs the
+  // `outcome` commands resolve, which is an executed-mode concern; the
+  // sampled values themselves are already baked into the path steps.
+  const stubs: Record<string, unknown> = {};
+  if (mode === 'executed') {
+    for (const src of stubbedSources) {
+      stubs[src] = { generate: undefined };
+    }
+    Object.assign(stubs, configuredOutcomes ?? {});
+  }
 
   try {
     const { coverage } = await propertyTest(
@@ -547,6 +780,7 @@ export async function testPaths<
       {
         ...(shared as object),
         adapter,
+        ...(Object.keys(stubs).length ? { outcomes: stubs } : {}),
         events: { ...(configuredEvents ?? {}), ...extraEvents }
       } as never
     );

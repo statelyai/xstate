@@ -2282,6 +2282,20 @@ export interface TestOptions<
    * mode only.
    */
   readonly actors?: Readonly<Record<string, ActorLogic<any, any, any>>>;
+  /**
+   * Invoke source names whose actors are replaced by a stub that resolves from
+   * an `outcome` command instead of running for real. Executed mode only.
+   *
+   * `propertyTest()` generates the outcomes, so the adapter shrinks service
+   * results alongside events. `testPaths()` samples them, the same way it
+   * samples event payloads, and routes the sampled outcome through the
+   * `xstate.done.actor` / `xstate.error.actor` step the traversal took. A
+   * source that a path resolves but that is not declared here is stubbed with
+   * a synthesized outcome.
+   */
+  readonly outcomes?: {
+    readonly [src: string]: PropertyCommandGenerator<TKind, TestActorOutcome>;
+  };
   readonly events?: TestEventGenerators<TSnapshot, TEvent, TKind>;
   readonly sut?: TestSut<TSnapshot, TEvent>;
   /**
@@ -2326,16 +2340,6 @@ export interface PropertyOptions<
   TKind extends PropertyGeneratorKind = PropertyGeneratorKind
 > {
   readonly adapter: TestAdapter<TKind>;
-  /**
-   * Invoke source names whose actors are replaced by a stub that resolves
-   * from a generated `outcome` command, so the adapter shrinks service
-   * results alongside events. Executed mode only, and property-only: path
-   * generation walks the pure state graph, which does not model invoked
-   * actors.
-   */
-  readonly outcomes?: {
-    readonly [src: string]: PropertyCommandGenerator<TKind, TestActorOutcome>;
-  };
   readonly commands?: {
     readonly advance?: PropertyCommandGenerator<TKind, number>;
     readonly checkpoint?: PropertyCommandGenerator<

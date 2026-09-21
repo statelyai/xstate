@@ -274,13 +274,24 @@ export type FastCheckTestPathsOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput
-> = Omit<TestPathsOptions<TSnapshot, TEvent, TInput>, 'events'> &
+> = Omit<TestPathsOptions<TSnapshot, TEvent, TInput>, 'events' | 'outcomes'> &
   DeriveEventsOptions & {
     readonly events?: TestEventGenerators<
       TSnapshot,
       TEvent,
       FastCheckGeneratorKind
     >;
+    /**
+     * Invoke sources whose outcomes are sampled from fast-check arbitraries
+     * and routed through the `xstate.done.actor` / `xstate.error.actor` steps
+     * traversal took. Executed mode only.
+     */
+    readonly outcomes?: TestPathsOptions<
+      TSnapshot,
+      TEvent,
+      TInput,
+      FastCheckGeneratorKind
+    >['outcomes'];
   };
 
 /** fast-check arbitraries expose a `generate` method; plain generators do not. */
@@ -300,7 +311,8 @@ function isArbitrary(value: unknown): value is fc.Arbitrary<unknown> {
 function sampleArbitraries(
   events: Record<string, unknown> | undefined,
   samples: number,
-  seed: number
+  seed: number,
+  prefix = ''
 ): Record<string, unknown> {
   const sampled = (generator: unknown, caseId: string): unknown => {
     if (!isArbitrary(generator)) {
@@ -317,14 +329,14 @@ function sampleArbitraries(
   };
   const one = (eventCase: unknown, type: string): unknown => {
     if (!isEventDescriptorObject(eventCase)) {
-      return sampled(eventCase, `${type}:default`);
+      return sampled(eventCase, `${prefix}${type}:default`);
     }
     const descriptor = eventCase as { generate?: unknown; case?: string };
     return {
       ...descriptor,
       generate: sampled(
         descriptor.generate,
-        `${type}:${descriptor.case ?? 'default'}`
+        `${prefix}${type}:${descriptor.case ?? 'default'}`
       )
     };
   };
@@ -357,22 +369,26 @@ export async function testPaths<
     InputFromSource<TSource>
   > = {} as never
 ) {
-  const { deriveEvents, events, ...rest } = options as {
+  const { deriveEvents, events, outcomes, ...rest } = options as {
     deriveEvents?: boolean;
     events?: Record<string, unknown>;
+    outcomes?: Record<string, unknown>;
   } & Record<string, unknown>;
   const derived =
     deriveEvents === false ? undefined : deriveMissingEvents(source, events);
   const merged = derived ? { ...derived, ...events } : (events ?? {});
+  const samples = (options.samples as number | undefined) ?? 3;
+  const seed = (options.seed as number | undefined) ?? 0;
   return baseTestPaths(
     source as any,
     {
       ...rest,
-      events: sampleArbitraries(
-        merged,
-        (options.samples as number | undefined) ?? 3,
-        (options.seed as number | undefined) ?? 0
-      )
+      ...(outcomes
+        ? {
+            outcomes: sampleArbitraries(outcomes, samples, seed, 'outcome:')
+          }
+        : {}),
+      events: sampleArbitraries(merged, samples, seed)
     } as any
   );
 }

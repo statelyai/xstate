@@ -274,7 +274,7 @@ function markdownTable(
 }
 
 function formatText(coverage: TestCoverage): string {
-  const lines: string[] = ['Property coverage', ''];
+  const lines: string[] = ['Test coverage', ''];
   for (const key of DIMENSION_KEYS) {
     lines.push(dimensionLine(key, getDimension(coverage, key)));
   }
@@ -344,7 +344,7 @@ function formatText(coverage: TestCoverage): string {
 }
 
 function formatMarkdown(coverage: TestCoverage): string {
-  const lines: string[] = ['# Property coverage', ''];
+  const lines: string[] = ['# Test coverage', ''];
   lines.push(
     ...markdownTable(
       [
@@ -637,7 +637,7 @@ export function formatTestCoverageJUnit(
   coverage: TestCoverage,
   options: FormatTestCoverageJUnitOptions = {}
 ): string {
-  const suiteName = options.suiteName ?? 'property-coverage';
+  const suiteName = options.suiteName ?? 'test-coverage';
   const cases: string[] = [];
   let tests = 0;
   let failures = 0;
@@ -718,7 +718,7 @@ export function formatTestCoverageHTML(
   coverage: TestCoverage,
   options: FormatTestCoverageHTMLOptions = {}
 ): string {
-  const title = options.title ?? 'Property coverage';
+  const title = options.title ?? 'Test coverage';
   const cards = DIMENSION_KEYS.map((key) => {
     const dimension = getDimension(coverage, key);
     const total = totalOf(dimension);
@@ -818,7 +818,7 @@ export function assertTestCoverage(
   }
   if (failures.length) {
     throw new Error(
-      `Property coverage thresholds not met:\n${failures
+      `Test coverage thresholds not met:\n${failures
         .map((failure) => `  - ${failure}`)
         .join('\n')}\n\n${formatTestCoverage(coverage)}`
     );

@@ -1,6 +1,6 @@
 ---
-'xstate': minor
-'@xstate/test': minor
+'xstate': major
+'@xstate/test': major
 ---
 
 Path-based and property-based testing are now one API with two generation

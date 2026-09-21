@@ -1,5 +1,5 @@
 import * as fc from 'fast-check';
-import { createMachine, types } from 'xstate';
+import { createAsyncLogic, createMachine, types } from 'xstate';
 import {
   ModelTestFailure,
   propertyTest,
@@ -165,5 +165,84 @@ describe('testPaths / propertyTest symmetry', () => {
         })
       ).rejects.toBeInstanceOf(ModelTestFailure);
     }
+  });
+});
+
+/**
+ * Invoked actors and a delayed transition: the branches that only exist once a
+ * real actor runs. Both entry points reach them in executed mode — one by
+ * generating `outcome` and `advance` commands, the other by translating the
+ * internal events its paths went through into the same commands.
+ */
+const fetchMachine = createMachine({
+  id: 'fetch',
+  schemas: {
+    context: types<{ data: unknown; error: string | null }>(),
+    events: { FETCH: types<{}>() }
+  },
+  actors: {
+    fetchUser: createAsyncLogic({
+      run: async () => {
+        throw new Error('the real `fetchUser` actor ran');
+      }
+    })
+  },
+  context: { data: null, error: null },
+  initial: 'idle',
+  states: {
+    idle: { on: { FETCH: { target: 'loading' } } },
+    loading: {
+      invoke: {
+        src: 'fetchUser',
+        onDone: ({ context, event }) => ({
+          target: 'success',
+          context: { ...context, data: event.output }
+        }),
+        onError: ({ context, event }) => ({
+          target: 'failure',
+          context: { ...context, error: String(event.error) }
+        })
+      }
+    },
+    success: { after: { 1000: { target: 'idle' } } },
+    failure: { on: { FETCH: { target: 'loading' } } }
+  }
+});
+
+const fetchOutcomes = {
+  fetchUser: fc.oneof(
+    fc.constant({ ok: true, output: { id: 1 } }),
+    fc.constant({ ok: false, error: new Error('offline') })
+  )
+};
+
+describe('executed-mode symmetry', () => {
+  it('leaves the same transitions uncovered from both strategies', async () => {
+    const pathRun = await testPaths(fetchMachine, {
+      mode: 'executed',
+      samples: 1,
+      seed: 7,
+      events: { FETCH: fc.constant({}) },
+      outcomes: fetchOutcomes
+    });
+    const propertyRun = await propertyTest(fetchMachine, {
+      mode: 'executed',
+      seed: 7,
+      numRuns: 60,
+      maxCommands: 8,
+      events: { FETCH: fc.constant({}) },
+      outcomes: fetchOutcomes,
+      commands: { advance: fc.constant(1000) }
+    });
+
+    expect(transitionUniverse(pathRun.coverage)).toEqual(
+      transitionUniverse(propertyRun.coverage)
+    );
+    expect(pathRun.coverage.transitions.uncovered).toEqual(
+      propertyRun.coverage.transitions.uncovered
+    );
+    expect(pathRun.coverage.transitions.uncovered).toEqual([]);
+    expect(pathRun.coverage.exploration.strategy).toBe('paths');
+    expect(propertyRun.coverage.exploration.strategy).toBe('property');
   });
 });

@@ -3,8 +3,8 @@
 The hello world for [`@xstate/test`](../../packages/xstate-test). A cart
 machine, a hand-written implementation of the same cart, and four tests: one
 that checks the model against itself, one that checks the implementation
-against the model, one that walks the model's state graph against the same
-implementation, and one that replays a recorded counterexample.
+against the model, one that walks the model's state graph instead of
+generating sequences, and one that replays a recorded counterexample.
 
 Run them with:
 
@@ -42,27 +42,23 @@ Three things are worth pointing at:
 `formatTestCoverage(coverage)` prints what the campaign reached:
 
 ```
-Property coverage
+Test coverage
 
 states: 3/4 covered (75.0%), 0 uncovered, 0 unreachable, 1 unknown
 stateNodes: 4/4 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 configurations: 3/4 covered (75.0%), 0 uncovered, 0 unreachable, 1 unknown
 statuses: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
-eventTypes: 5/6 covered (83.3%), 0 uncovered, 0 unreachable, 1 unknown
-transitions: 4/5 covered (80.0%), 0 uncovered, 0 unreachable, 1 unknown
+eventTypes: 6/6 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
+transitions: 5/5 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 guards: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
-transitionPairs: 4/21 covered (19.0%), 0 uncovered, 0 unreachable, 17 unknown
+transitionPairs: 9/24 covered (37.5%), 0 uncovered, 0 unreachable, 15 unknown
 requirements: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 frontiers: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 
-unknown eventTypes:
-  - xstate.error.actor
-unknown transitions:
-  - cart.paying --xstate.error.actor--> #0
 event cases:
-  - ADD / default: 30 generated, 30 applicable, 30 executed, 0 ignored
-  - CHECKOUT / default: 28 generated, 27 applicable, 27 executed, 1 ignored
-  - REMOVE / default: 26 generated, 2 applicable, 2 executed, 24 ignored
+  - ADD / default: 37 generated, 36 applicable, 36 executed, 1 ignored
+  - CHECKOUT / default: 22 generated, 21 applicable, 21 executed, 1 ignored
+  - REMOVE / default: 30 generated, 15 applicable, 15 executed, 15 ignored
 temporal: 1 satisfied, 0 failed, 0 inconclusive
   satisfied:
   - checks-out
@@ -109,50 +105,72 @@ start {"status":"active","context":{"items":{}},"value":"shopping", ...}
 The last line is the divergence: the model dropped `apple`, the store kept it
 at zero.
 
-## Test 3: the same `sut`, walked instead of generated
+## Test 3: the same machine, walked instead of generated
 
-`testPaths()` takes the same `events`, the same `sut`, and the same oracles.
-Only the generation keys change: `samples` decides how many concrete payloads
-each event case contributes to the graph, and `stopWhen` bounds a cart that
-would otherwise grow forever.
+`testPaths()` takes the same `events`, the same oracles, and the same
+`mode: 'executed'`. Only the generation keys change: `pathGenerator` picks the
+traversal, `samples` decides how many concrete payloads each event case
+contributes to the graph, and `stopWhen` bounds a cart that would otherwise
+grow forever.
 
 ```ts
 const { coverage, results } = await testPaths(cartMachine, {
   deriveEvents: false,
+  pathGenerator: 'simple',
   samples: 1,
   seed: 3,
-  events: { ADD, REMOVE: removeAnItemInTheCart },
-  stopWhen: (snapshot) => (snapshot.context.items.apple ?? 0) >= 2,
-  sut: cartSut
+  events: { ADD, REMOVE },
+  stopWhen: (snapshot) =>
+    Object.values(snapshot.context.items).some((qty) => qty >= 2),
+  mode: 'executed',
+  outcomes: { pay: fc.constant({ ok: true, output: { receiptId: 'rcpt_1' } }) }
 });
 ```
+
+The graph already contains the invoked actor's branches: `paying` has an
+`xstate.done.actor` and an `xstate.error.actor` transition, so the traversal
+routes through both. In `mode: 'executed'` each of those steps is replayed as
+an `outcome` command against a stubbed `pay` — the sampled outcome for the
+branch that was taken, or a synthesized one for a branch `outcomes` does not
+declare. An `after` transition works the same way, as a generated `advance`.
+In the default `mode: 'pure'` the internal event is simply sent, carrying the
+sampled `output` or `error` as its payload.
+
+Two of the generation keys are there for traversal's sake. `pathGenerator:
+'simple'` walks every simple path, not only the shortest one to each state, so
+a `REMOVE` that leads somewhere already reachable is still exercised. And
+`ADD` and `REMOVE` are declared as one case per SKU rather than as the
+shrinkable index the property tests use, because a graph edge has to be the
+same edge every time it is visited.
 
 The coverage object is the one `propertyTest()` returns, so the same
 formatters and assertions apply. Only `exploration` says which strategy ran:
 
 ```
-transitions: 2/5 covered (40.0%), 1 uncovered, 0 unreachable, 2 unknown
-uncovered transitions:
-  - cart.shopping --REMOVE--> #0
+transitions: 5/5 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 event cases:
-  - ADD / default: 3 generated, 3 applicable, 3 executed, 0 ignored
-  - CHECKOUT / default: 1 generated, 1 applicable, 1 executed, 0 ignored
-  - REMOVE / default: 0 generated, 0 applicable, 0 executed, 0 ignored
+  - ADD / apple: 287 generated, 287 applicable, 287 executed, 0 ignored
+  - ADD / pear: 287 generated, 287 applicable, 287 executed, 0 ignored
+  - CHECKOUT / default: 208 generated, 208 applicable, 208 executed, 0 ignored
+  - REMOVE / apple: 121 generated, 121 applicable, 121 executed, 0 ignored
+  - REMOVE / pear: 121 generated, 121 applicable, 121 executed, 0 ignored
 
 exploration:
-  runs: configured 2, completed 2, attempted 2
-  sequence length: max 3, max observed 3
+  runs: configured 164, completed 164, attempted 164
+  sequence length: max 12, max observed 12
   stopped because: budget
   seed ["frontier","initial"]: engine paths, seed n/a, path n/a
 ```
 
-`REMOVE` stays uncovered, and the report says so: removing the only item
-returns the cart to its starting state, so neither the shortest nor the simple
-paths include it. A literal sequence does, and the second `it` uses
-`fromEvents` to walk `ADD` then `REMOVE` against the buggy store. The failure
-is a `ModelTestFailure` with the same trace, fixture, and coverage that
-`propertyTest()` produces — `coverage.exploration.strategy` is the only
-difference.
+`expect(coverage.transitions.uncovered).toEqual([])` then holds: traversal
+reaches every transition the machine declares.
+
+A second `it` points the same traversal at the buggy store. Removing the only
+item returns the cart to its starting state, so no shortest path covers
+`REMOVE` on its own; a literal sequence does, and `fromEvents` walks `ADD`
+then `REMOVE` against it. The failure is a `ModelTestFailure` with the same
+trace, fixture, and coverage that `propertyTest()` produces —
+`coverage.exploration.strategy` is the only difference.
 
 ## Test 4: replaying the counterexample
 

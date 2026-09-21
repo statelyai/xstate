@@ -134,47 +134,74 @@ describe('cart', () => {
   });
 
   /**
-   * The same machine, the same `sut`, and the same oracles as test 2, run
-   * through graph traversal instead of generated sequences. Only the
-   * generation keys change.
+   * The same machine and the same oracles as the tests above, run through
+   * graph traversal instead of generated sequences. Only the generation keys
+   * change.
    */
   describe('path testing the same cart', () => {
+    const cartSut = {
+      create: () => {
+        const store = new CartStore();
+        return {
+          send: (event: CartEvent) => store.dispatch(event),
+          read: () => store.getState().items
+        };
+      },
+      projectModel: (snapshot: { context: { items: unknown } }) =>
+        snapshot.context.items
+    };
+
     const pathOptions = {
       deriveEvents: false,
+      // Simple paths, so a `REMOVE` that leads somewhere already reachable is
+      // still walked; shortest paths would skip it.
+      pathGenerator: 'simple',
       // One concrete payload per event case, so the graph stays small.
       samples: 1,
       seed: 3,
       events: {
-        ADD: fc.record({
-          sku: fc.constant('apple'),
-          qty: fc.constant(1)
-        }),
-        REMOVE: removeAnItemInTheCart
+        ADD: [
+          { case: 'apple', generate: fc.constant({ sku: 'apple', qty: 1 }) },
+          { case: 'pear', generate: fc.constant({ sku: 'pear', qty: 1 }) }
+        ],
+        // Traversal needs a fixed SKU per case rather than the shrinkable
+        // index the property tests use, so every edge is a stable graph edge.
+        REMOVE: [
+          { case: 'apple', generate: fc.constant({ sku: 'apple' }) },
+          { case: 'pear', generate: fc.constant({ sku: 'pear' }) }
+        ]
       },
       // The cart would otherwise grow without bound, and traversal with it.
       stopWhen: (snapshot: SnapshotFrom<typeof cartMachine>) =>
-        (snapshot.context.items.apple ?? 0) >= 2,
-      sut: {
-        create: () => {
-          const store = new CartStore();
-          return {
-            send: (event: CartEvent) => store.dispatch(event),
-            read: () => store.getState().items
-          };
-        },
-        projectModel: (snapshot: { context: { items: unknown } }) =>
-          snapshot.context.items
-      }
+        Object.values(snapshot.context.items).some((qty) => qty >= 2)
     } as const;
 
-    it('walks every shortest path', async () => {
-      const { coverage, results } = await testPaths(cartMachine, pathOptions);
+    it('walks every simple path', async () => {
+      const { coverage, results } = await testPaths(cartMachine, {
+        ...pathOptions,
+        // Real actors run, so the `xstate.done.actor` and
+        // `xstate.error.actor` steps the traversal took become `outcome`
+        // commands against a stubbed `pay`.
+        mode: 'executed',
+        outcomes: {
+          pay: fc.constant({ ok: true, output: { receiptId: 'rcpt_1' } })
+        },
+        invariant: ({ snapshot }) => {
+          for (const [sku, qty] of Object.entries(snapshot.context.items)) {
+            expect(qty, `quantity of ${sku}`).toBeGreaterThan(0);
+          }
+        }
+      });
 
       expect(results.length).toBeGreaterThan(0);
       expect(results.every(({ passed }) => passed)).toBe(true);
       // The same coverage object `propertyTest()` returns.
       expect(coverage.exploration.strategy).toBe('paths');
       expect(coverage.exploration.pathCount).toBe(results.length);
+      // Every transition, `paying --> done` and `paying --> shopping`
+      // included: only executed mode can reach those.
+      expect(coverage.transitions.uncovered).toEqual([]);
+      expect(coverage.transitions.unknown).toEqual([]);
       console.log(formatTestCoverage(coverage));
     });
 
@@ -182,10 +209,11 @@ describe('cart', () => {
       process.env.CART_BUG = '1';
       let failure!: ModelTestFailure;
       try {
-        // `REMOVE` returns the cart to its starting state, so no shortest or
-        // simple path covers it. A literal sequence does.
+        // `REMOVE` returns the cart to its starting state, so no shortest
+        // path covers it. A literal sequence does.
         await testPaths(cartMachine, {
           ...pathOptions,
+          sut: cartSut,
           fromEvents: [
             { type: 'ADD', sku: 'apple', qty: 1 },
             { type: 'REMOVE', sku: 'apple' }
