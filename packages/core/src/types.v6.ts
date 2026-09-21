@@ -275,6 +275,13 @@ export type AnyMachineSchemas = MachineSchemas<
   Record<string, StandardSchemaV1>
 >;
 
+/**
+ * The v5 `types` key has no v6 equivalent. Typing it as this message makes the
+ * compiler print the replacement rather than accepting dead configuration.
+ */
+type RemovedTypesKey =
+  '`types` was replaced by `schemas` in v6. Declare `context`, `events` and the other contracts under `schemas`, or run `xstate-codemod migrate --transform types-to-schemas`.';
+
 export type Next_MachineConfig<
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
@@ -328,6 +335,11 @@ export type Next_MachineConfig<
   >,
   'output' | 'schemas'
 > & {
+  /**
+   * Declared only so that a leftover v5 `types` key is rejected instead of
+   * being accepted and silently ignored: nothing reads it in v6.
+   */
+  types?: RemovedTypesKey;
   /** @deprecated Declare private event schemas in `schemas.internalEvents`. */
   internalEvents?: readonly InternalEventDescriptorFor<TEvent>[];
   schemas?: MachineSchemas<
