@@ -64,13 +64,29 @@ function purgeDeps(sub: ReactiveNode) {
 }
 
 function flush(): void {
-  while (notifyIndex < queuedEffectsLength) {
-    const effect = queuedEffects[notifyIndex]!;
-    queuedEffects[notifyIndex++] = undefined;
-    effect.notify();
+  let didThrow = false;
+  let firstError: unknown;
+  try {
+    while (notifyIndex < queuedEffectsLength) {
+      const effect = queuedEffects[notifyIndex]!;
+      queuedEffects[notifyIndex++] = undefined;
+      try {
+        effect.notify();
+      } catch (error) {
+        effect.flags |= ReactiveFlags.Watching | ReactiveFlags.Recursed;
+        if (!didThrow) {
+          didThrow = true;
+          firstError = error;
+        }
+      }
+    }
+  } finally {
+    notifyIndex = 0;
+    queuedEffectsLength = 0;
   }
-  notifyIndex = 0;
-  queuedEffectsLength = 0;
+  if (didThrow) {
+    throw firstError;
+  }
 }
 
 /** The current state of an async atom. */
@@ -87,9 +103,15 @@ export interface AsyncAtomOptions {
 
 function updateAsyncAtom<T>(
   atom: InternalAtom<AsyncAtomState<T>>,
-  nextValue: AsyncAtomState<T>
+  nextValue: AsyncAtomState<T>,
+  compare: (
+    previous: AsyncAtomState<T>,
+    next: AsyncAtomState<T>
+  ) => boolean = Object.is
 ): void {
-  if (atom._update(nextValue)) {
+  // Settling changes the value without recollecting the getter's dependencies.
+  if (!compare(atom._snapshot, nextValue)) {
+    atom._snapshot = nextValue;
     const subs = atom.subs;
     if (subs !== undefined) {
       propagate(subs);
@@ -125,13 +147,21 @@ export function createAsyncAtom<T>(
         if (runId !== currentRunId || controller.signal.aborted) {
           return;
         }
-        updateAsyncAtom(ref.current!, { status: 'done', data });
+        updateAsyncAtom(
+          ref.current!,
+          { status: 'done', data },
+          options?.compare
+        );
       },
       (error) => {
         if (runId !== currentRunId || controller.signal.aborted) {
           return;
         }
-        updateAsyncAtom(ref.current!, { status: 'error', error });
+        updateAsyncAtom(
+          ref.current!,
+          { status: 'error', error },
+          options?.compare
+        );
       }
     );
 
@@ -214,7 +244,7 @@ export function createAtom<T>(
     _update(getValue?: T | ((snapshot: T) => T)): boolean {
       const prevSub = activeSub;
       const compare = optionsOrInput?.compare ?? Object.is;
-      activeSub = atom;
+      activeSub = isComputed ? atom : undefined;
       ++cycle;
       atom.depsTail = undefined;
       if (isComputed) {

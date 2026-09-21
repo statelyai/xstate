@@ -17,7 +17,8 @@ import {
   Snapshot,
   ActorRef,
   AnyEventObject,
-  assertEvent
+  assertEvent,
+  types
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
 import z from 'zod';
@@ -3716,20 +3717,16 @@ describe('invoke', () => {
 
   it.skip('should be able to receive a delayed event sent by the entry action of the invoking state', async () => {
     const child = createMachine({
-      types: {} as {
+      schemas: {
         events: {
-          type: 'PING';
-          origin: ActorRef<Snapshot<unknown>, { type: 'PONG' }>;
-        };
+          PING: types<{
+            origin: ActorRef<Snapshot<unknown>, { type: 'PONG' }>;
+          }>()
+        }
       },
       on: {
         PING: ({ event }) => {
-          (
-            event as {
-              type: 'PING';
-              origin: ActorRef<Snapshot<unknown>, { type: 'PONG' }>;
-            }
-          ).origin.send({ type: 'PONG' });
+          event.origin.send({ type: 'PONG' });
         }
       }
     });

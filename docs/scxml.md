@@ -49,3 +49,7 @@ If an SCXML document references an external resource and no resolver is provided
 ## Machine JSON
 
 SCXML is compiled through a private representation because SCXML executable content and transition semantics cannot be represented losslessly as ordinary `MachineJSON`. Use `createMachineFromConfig(...)` for serialized XState definitions and `createMachineFromSCXML(...)` for SCXML documents.
+
+## Actor isolation and condition errors
+
+Actors created from the same compiled SCXML machine keep separate transition evaluation state. A failing `cond` raises `error.execution` in the current macrostep, even when the condition prevents state entry. Checking `snapshot.can(event)` does not queue an error for a later real event.

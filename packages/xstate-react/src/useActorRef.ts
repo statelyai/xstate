@@ -72,7 +72,6 @@ export function useActorLifecycle<TLogic extends AnyActorLogic>(
       (actorRef.getSnapshot() as any)?.status === 'stopped'
     ) {
       const newActor = createReplacement();
-      newActor.start();
       setActorRef(newActor);
       return;
     }
@@ -127,7 +126,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     return () => {
       sub.unsubscribe();
     };
-  }, [observerOrListener]);
+  }, [actorRef, observerOrListener]);
 
   useActorLifecycle(actorRef, setActorRef, () =>
     createActor(machine, actorRef.options)

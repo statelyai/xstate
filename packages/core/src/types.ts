@@ -1164,6 +1164,13 @@ export interface AnyStateMachine extends AnyActorLogic {
   root: AnyStateNode;
   /** @internal */
   _hasEventlessTransitions?: boolean;
+  /** @internal Adapter hooks for actor-local transition evaluation state. */
+  _microstepHooks?:
+    | {
+        begin(self: AnyActor): void;
+        drain(self: AnyActor): AnyEventObject[];
+      }
+    | undefined;
   /** @internal */
   idMap: Map<string, AnyStateNode>;
   options?: { maxIterations?: number };
@@ -1747,10 +1754,33 @@ export type PersistedMachineIdentity<
  * Unlike {@link PersistedSnapshotFor}, which is only the restore-time identity
  * brand, this describes the persisted snapshot's actual shape.
  */
+/**
+ * One entry in a persisted snapshot's `children`.
+ *
+ * @remarks
+ * An embedded child carries its own persisted `snapshot` — the co-locating
+ * runtime's whole-tree checkpoint. A child persisted by address
+ * (`getPersistedSnapshot({ embedChildren: false })`) and a remote handle carry
+ * `remote: true` instead, leaving each child's state with the runtime that
+ * owns it.
+ */
+export type PersistedActorRef = {
+  /** The child's logical address, stable across incarnations. */
+  address?: string;
+  /** The registered source key the child is restored from. */
+  src: string;
+  registryKey?: string;
+  syncSnapshot?: boolean;
+} & (
+  | { snapshot: unknown; remote?: undefined }
+  | { snapshot?: undefined; remote: true; incarnation?: string }
+);
+
 export type PersistedSnapshotFrom<TMachine extends AnyStateMachine> =
   Snapshot<unknown> &
     PersistedSnapshotFor<TMachine> & {
       context: ContextFrom<TMachine>;
+      children: Record<string, PersistedActorRef>;
       [key: string]: unknown;
     } & (undefined extends TMachine['version']
       ? { machine?: PersistedMachineIdentity<TMachine> }

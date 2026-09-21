@@ -1,4 +1,4 @@
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
 import { createInspector } from '@statelyai/sdk';
 import { bookingMachine } from './bookingMachine';
 import './App.css';
@@ -6,7 +6,7 @@ import './App.css';
 const inspector = createInspector();
 
 function App() {
-  const [state, send] = useMachine(bookingMachine, {
+  const [state, send] = useActor(bookingMachine, {
     inspect: inspector.inspect
   });
   const { slots, selectedId, secondsLeft, confirmation, error } = state.context;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
 import { setup, types } from 'xstate';
 import { createInspector } from '@statelyai/sdk';
 
@@ -25,7 +25,7 @@ const helpMachine = setup({
 });
 
 export function HelpToggle() {
-  const [snapshot, send] = useMachine(helpMachine, {
+  const [snapshot, send] = useActor(helpMachine, {
     inspect: inspector.inspect
   });
 

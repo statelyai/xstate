@@ -59,6 +59,9 @@ Custom comparison also covers domain-level sameness, such as treating names that
 
 ## Subscription timing
 
+<!-- subscription refresh from ../src/useSelector.ts and ../src/useActor.ts -->
+The `snapshot` readable returned by `useActor(...)` also refreshes whenever subscription resumes. Conditional UI shows updates that happened while it had no subscribers.
+
 The store subscribes to the actor lazily, when it gets its first subscriber, and re-reads the current snapshot at that moment. A store created early and rendered later still shows the current value, not a stale one.
 
 Dropping to zero subscribers unsubscribes from the actor but does not stop it. The actor's lifetime belongs to `useActorRef(...)`, not to the store.

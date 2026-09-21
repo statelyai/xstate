@@ -1,4 +1,4 @@
-import { createActor, createMachine } from '../src';
+import { createActor, createMachine, types } from '../src';
 import type { PersistedSnapshotFrom, Snapshot } from '../src';
 
 describe('persisted snapshot round-trip types', () => {
@@ -132,7 +132,7 @@ describe('persisted snapshot round-trip types', () => {
   it('should be assignable to PersistedSnapshotFrom<typeof machine>', () => {
     const machine = createMachine({
       id: 'counter',
-      types: {} as { context: { count: number } },
+      schemas: { context: types<{ count: number }>() },
       context: { count: 0 },
       initial: 'a',
       states: { a: {} }
@@ -150,7 +150,7 @@ describe('persisted snapshot round-trip types', () => {
     const machine = createMachine({
       id: 'counter',
       version: '1',
-      types: {} as { context: { count: number } },
+      schemas: { context: types<{ count: number }>() },
       context: { count: 0 },
       initial: 'a',
       states: { a: {} }

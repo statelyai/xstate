@@ -1,5 +1,5 @@
 import './App.css';
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
 import { createInspector } from '@statelyai/sdk';
 import { tilesMachine } from './tilesMachine';
 
@@ -56,7 +56,7 @@ function Tile({
 }
 
 function App() {
-  const [state, send] = useMachine(tilesMachine, {
+  const [state, send] = useActor(tilesMachine, {
     inspect: inspector.inspect
   });
 
