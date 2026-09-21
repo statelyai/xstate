@@ -20,6 +20,9 @@ import type { SimulatedClock } from './SimulatedClock.ts';
 import { Sources, Next_StateNodeConfig } from './types.v6.ts';
 import { StandardSchemaV1 } from './schema.types.ts';
 import { builtInActions } from './actions.ts';
+import type { EventObject, MachineContext, Values } from './base.types.ts';
+
+export type { EventObject, MachineContext, Values };
 
 export type Identity<T> = { [K in keyof T]: T[K] };
 
@@ -64,7 +67,6 @@ export type IsNotNever<T> = [T] extends [never] ? false : true;
 
 export type Compute<A> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
-export type Values<T> = T[keyof T];
 export type Elements<T> = T[keyof T & `${number}`];
 export type Merge<M, N> = Omit<M, keyof N> & N;
 export type IndexByProp<T extends Record<P, string>, P extends keyof T> = {
@@ -96,12 +98,6 @@ export type MetaObject = Record<string, any>;
 
 export type Lazy<T> = () => T;
 export type MaybeLazy<T> = T | Lazy<T>;
-
-/** The full definition of an event, with a string `type`. */
-export type EventObject = {
-  /** The type of event that is sent. */
-  type: string;
-};
 
 export type EventPayloadPattern<TEvent extends EventObject> = TEvent extends any
   ? Partial<Omit<TEvent, 'type'>>
@@ -139,8 +135,6 @@ export type UnifiedArg<
   >;
   system: AnyActorSystem;
 } & OutputArg<TExpressionEvent>;
-
-export type MachineContext = Record<string, any>;
 
 type DoneEventType = 'xstate.done.actor' | 'xstate.done.state';
 
@@ -491,7 +485,7 @@ export type AnyInvokeDefinition = InvokeDefinition<
   MachineContext,
   EventObject,
   EventObject,
-  MetaObject,
+  any, // TMeta
   Sources['actions'],
   Sources['actors'],
   Sources['guards'],
@@ -676,7 +670,9 @@ export type AnyTransitionConfigFunction = TransitionConfigFunction<
   any,
   any,
   any,
-  any
+  any,
+  any, // _TCtx
+  any // TChildren
 >;
 
 export type TransitionsConfig<
@@ -1135,7 +1131,12 @@ export type AnyStateNodeConfig = Next_StateNodeConfig<
   any,
   any,
   any,
-  any
+  any,
+  any, // TInput
+  any, // TInputMap
+  any, // TSystemRegistry
+  any, // TChildOutput
+  any // TTransitionMeta
 >;
 
 // Accept any StateNode instance regardless of generic parameters

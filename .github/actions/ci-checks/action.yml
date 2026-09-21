@@ -15,7 +15,7 @@ runs:
       shell: bash
 
     - name: Typecheck
-      run: pnpm typecheck && pnpm typecheck:adapter-consumers
+      run: pnpm typecheck && pnpm typecheck:adapter-consumers && pnpm typecheck:fsm-only
       shell: bash
 
     - name: Test

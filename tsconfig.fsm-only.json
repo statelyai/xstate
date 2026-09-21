@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": []
+  },
+  "include": ["scripts/typecheck-fixtures/fsm-only-consumer.ts"],
+  "exclude": []
+}

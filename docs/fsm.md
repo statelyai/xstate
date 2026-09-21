@@ -7,6 +7,9 @@ Use `xstate/fsm` when a plain switch statement would work, but you want a
 declarative transition table, type-safe events, and a machine definition that
 can be visualized or upgraded to a full XState machine later.
 
+The `xstate/fsm` entry typechecks independently: importing it does not require
+importing `xstate` or loading the full statechart type definitions.
+
 <!-- public exports from packages/core/src/fsm/index.ts; configuration surface from packages/core/src/fsm.ts -->
 
 Without schemas, the API is just a pure transition table:
