@@ -1,5 +1,70 @@
 # xstate
 
+## 6.0.0-alpha.59
+
+### Patch Changes
+
+- 69b6663: Stop child actors and their timers and subscriptions when an unhandled parent error occurs, including when a stop action has not executed yet.
+  
+  Keep `useActorRef` observers subscribed when the actor is replaced, and subscribe before the replacement starts.
+- 69b6663: Support state names and effect keys such as `__proto__`, `constructor`, and `toString`, including persisted effect restoration. Run every attachment cleanup when an earlier cleanup throws, while preserving the original error.
+- 69b6663: Fix published TypeScript declarations so applications can check XState with `skipLibCheck: false`.
+- 69b6663: Restore callback subscriptions and active keyed effects. Retry interrupted local async steps while reusing completed outcomes and sharing concurrent same-key work. Pending step callers reject when their actor terminates. Interrupted external side effects require idempotency keys.
+  
+  Keep SCXML condition errors and transition evaluation isolated between actors, and process condition errors without waiting for state entry.
+  
+  Replay finite graph event sequences without exploring every reachable state, initialize graph traversal once, and support arbitrary serialized state and event keys. Improve adjacency traversal for large graphs. Keep simulated clocks usable after a timer callback throws.
+- 69b6663: Events declared in `schemas.internalEvents` are now excluded from `actor.send` and `actor.trigger` in the published type declarations, matching the behavior already available when building against source. Both exact keys and wildcard keys are excluded.
+  
+  ```ts
+  const uploadMachine = setup({
+    schemas: {
+      events: { start: types<{}>() },
+      internalEvents: {
+        tick: types<{}>(),
+        'progress.*': types<{ bytes: number }>()
+      }
+    }
+  }).createMachine({
+    /* ... */
+  });
+  
+  const actor = createActor(uploadMachine);
+  
+  actor.send({ type: 'start' }); // ok
+  actor.send({ type: 'tick' }); // type error
+  actor.send({ type: 'progress.chunk', bytes: 256 }); // type error
+  actor.trigger.tick(); // type error: `tick` is not on `trigger`
+  ```
+- 69b6663: A persisted snapshot's `children` is now typed, so reading a persisted child no longer needs a cast. The new `PersistedActorRef` type describes both forms: an embedded child carries its own `snapshot`, while a child persisted by address carries `remote: true` and leaves its state with the runtime that owns it.
+  
+  ```ts
+  const persisted = actor.getPersistedSnapshot({ embedChildren: false });
+  
+  persisted.children.auditor.address; // string | undefined
+  persisted.children.auditor.src; // string
+  ```
+- 69b6663: A leftover v5 `types` key in a machine config is now a compile error instead of being accepted and silently ignored. The error names the replacement:
+  
+  ```ts
+  createMachine({
+    // Error: `types` was replaced by `schemas` in v6. Declare `context`,
+    // `events` and the other contracts under `schemas`, or run
+    // `xstate-codemod migrate --transform types-to-schemas`.
+    types: {} as { context: { count: number } },
+    context: { count: 0 }
+  });
+  ```
+  
+  Declare the contracts under `schemas` instead:
+  
+  ```ts
+  createMachine({
+    schemas: { context: types<{ count: number }>() },
+    context: { count: 0 }
+  });
+  ```
+
 ## 6.0.0-alpha.58
 
 ### Patch Changes
