@@ -90,3 +90,57 @@ test('checks referenced projects behind a solution config without emitting JavaS
     fs.rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('checks component projects with a compiler that understands them', () => {
+  const directory = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'example components ')
+  );
+  try {
+    /** @param {string} tool */
+    const stubCompiler = (project, tool) => {
+      const installed = path.join(project, 'node_modules', tool);
+      fs.mkdirSync(installed, { recursive: true });
+      fs.writeFileSync(
+        path.join(installed, 'package.json'),
+        JSON.stringify({
+          name: tool,
+          version: '0.0.0',
+          bin: { [tool]: './bin.cjs' }
+        })
+      );
+      fs.writeFileSync(
+        path.join(installed, 'bin.cjs'),
+        `console.log(${JSON.stringify(tool)} + ' ran');`
+      );
+    };
+
+    for (const [name, extension, tool] of [
+      ['svelte project', 'svelte', 'svelte-check'],
+      ['vue project', 'vue', 'vue-tsc']
+    ]) {
+      const project = path.join(directory, name);
+      fs.mkdirSync(project);
+      fs.writeFileSync(
+        path.join(project, 'tsconfig.json'),
+        JSON.stringify({
+          compilerOptions: { strict: true, types: [], skipLibCheck: true },
+          include: ['src/**/*.ts', `src/**/*.${extension}`]
+        })
+      );
+      stubCompiler(project, tool);
+      const result = spawnSync(process.execPath, [script, project], {
+        encoding: 'utf8'
+      });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.match(result.stdout, new RegExp(`${tool} ran`));
+    }
+
+    // Without a component-aware compiler the project fails loudly rather than
+    // falling back to `tsc`, which would report success without reading it.
+    const orphan = path.join(directory, 'svelte project');
+    fs.rmSync(path.join(orphan, 'node_modules'), { recursive: true });
+    assert.equal(spawnSync(process.execPath, [script, orphan]).status, 1);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});

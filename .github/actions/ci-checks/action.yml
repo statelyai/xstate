@@ -22,8 +22,16 @@ runs:
       run: pnpm typecheck && pnpm typecheck:adapter-consumers && pnpm typecheck:fsm-only
       shell: bash
 
+    - name: Typecheck examples
+      run: pnpm typecheck:examples
+      shell: bash
+
     - name: Test
       run: pnpm test --silent
+      shell: bash
+
+    - name: Test tooling
+      run: pnpm test:tooling
       shell: bash
 
     - name: Svelte Check

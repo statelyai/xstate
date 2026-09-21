@@ -39,11 +39,33 @@ try {
   writeFileSync(
     join(consumer, 'index.mts'),
     `
-    import { createActor, createMachine } from 'xstate';
+    import { createActor, createMachine, setup, types } from 'xstate';
     ${imports}
     const actor = createActor(createMachine({ initial: 'idle', states: { idle: {} } }));
     actor.start(); actor.stop();
     void [${publicEntries.map((_, index) => `entry${index}`).join(',')}];
+
+    // The machine's internal-event marker must survive \`stripInternal\`, or
+    // \`send\`/\`trigger\` silently accept internal events for every consumer of
+    // the published declarations. An unused \`@ts-expect-error\` fails here.
+    const internals = createActor(
+      setup({
+        schemas: {
+          events: { start: types<{}>() },
+          internalEvents: {
+            tick: types<{ at: number }>(),
+            'progress.*': types<{ bytes: number }>()
+          }
+        }
+      }).createMachine({ initial: 'idle', states: { idle: {} } })
+    );
+    internals.send({ type: 'start' });
+    // @ts-expect-error an exact internal key is not part of the public protocol
+    internals.send({ type: 'tick', at: 1 });
+    // @ts-expect-error a wildcard internal key is not either
+    internals.send({ type: 'progress.chunk', bytes: 1 });
+    // @ts-expect-error internal keys are absent from \`trigger\`
+    internals.trigger.tick({ at: 1 });
   `
   );
   writeFileSync(
