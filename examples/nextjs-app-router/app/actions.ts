@@ -9,8 +9,11 @@ import { advanceCheckout, ensureSessionId } from './session';
  */
 export async function sendCheckoutEvent(formData: FormData) {
   const type = formData.get('type');
+  if (typeof type !== 'string') {
+    throw new Error('missing event type');
+  }
   if (type !== 'addItem' && type !== 'pay' && type !== 'reset') {
-    throw new Error(`unknown event "${String(type)}"`);
+    throw new Error(`unknown event "${type}"`);
   }
 
   const sessionId = await ensureSessionId();
