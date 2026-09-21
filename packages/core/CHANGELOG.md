@@ -1,5 +1,93 @@
 # xstate
 
+## 6.0.0-alpha.58
+
+### Patch Changes
+
+- a50ea84: Machine output is now inferred as the union of the top-level final states' output types when no `schemas.output` or root `output` is declared. Previously, declaring `schemas.output` was required to get a typed result from `toPromise(actor)` or `snapshot.output`.
+  
+  ```ts
+  const machine = setup({}).createMachine({
+    initial: 'working',
+    states: {
+      working: {
+        on: {
+          resolve: { target: 'succeeded' },
+          reject: { target: 'failed' }
+        }
+      },
+      succeeded: {
+        type: 'final',
+        output: () => ({ status: 'ok' as const })
+      },
+      failed: {
+        type: 'final',
+        output: { status: 'error' as const }
+      }
+    }
+  });
+  
+  // OutputFrom<typeof machine> is
+  // { status: 'ok' } | { status: 'error' }
+  ```
+- 98160ed: Importing only `xstate/fsm` now typechecks on its own. Previously, an fsm-only program failed with `Property 'observable' does not exist on type 'SymbolConstructor'` errors because the `Symbol.observable` type augmentation lived in the main entry. The `xstate/fsm` entry also no longer pulls the main entry's full type surface into the program, so editors and `tsc` check far less code for fsm-only consumers.
+
+## 6.0.0-alpha.57
+
+### Patch Changes
+
+- 50184a8: Fixed declaration emit for machines and setups created with `setup({ states })`.
+  A package that exported one could not be built with `declaration: true`: the
+  emitted types reached for `ActiveStateContext` and a handful of private marker
+  types that were never exported from the package entry point, so consumers saw
+  TS2742 ("cannot be named without a reference to xstate/dist/...") or TS4023 on
+  xstate's internal `unique symbol`s.
+  
+  The types declaration emit needs are now public — `ActiveStateContext`,
+  `RootContextMarker`, `ChoiceStateNodeConfig`, `RegularStateNodeConfig`, and the
+  strict-target markers — and the private state-schema symbols live behind named
+  marker types instead of inline computed keys, so emit references a name rather
+  than expanding a symbol it cannot write down.
+
+## 6.0.0-alpha.56
+
+### Patch Changes
+
+- f7642bf: Fixed generic type helpers that accidentally restricted invocation transition metadata, state input, and transition children. `AnyInvokeDefinition`, `AnyStateNodeConfig`, and `AnyTransitionConfigFunction` now preserve arbitrary types in these positions when inspecting or accepting configurations from different machines.
+
+## 6.0.0-alpha.55
+
+### Minor Changes
+
+- dcc21df: Route rejected promises returned from custom actions to the actor's error handling, so a state's `onError` catches a failed async action instead of leaving an unhandled rejection. A rejection that was previously ignored now errors the actor when no `onError` handles it.
+  
+  ```ts
+  const machine = createMachine({
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          SAVE: (_, enq) => {
+            enq(() => saveToServer()); // returns a Promise
+          }
+        },
+        onError: { target: 'failed' }
+      },
+      failed: {}
+    }
+  });
+  ```
+  
+  Add the `ErrorFrom` type helper. `invoke.onError` events are typed from the invoked actor's error type when the actor logic declares one.
+  
+  Add an optional `passive` flag to `Observer`. A passive observer only tracks the actor's lifecycle and does not count as an error handler, so an unhandled actor error is still reported when every observer with an `error` callback is passive.
+  
+  An unhandled actor error is now reported one macrotask later than before, and a subscriber with an `error` callback that attaches in that window takes the error instead. Tests that advance fake timers by a single tick to observe the report need one more tick.
+
+### Patch Changes
+
+- df13f58: Fix TS4023 when exporting machines with state-level context schemas and function-form transitions while TypeScript declaration generation is enabled.
+
 ## 6.0.0-alpha.54
 
 ### Minor Changes
