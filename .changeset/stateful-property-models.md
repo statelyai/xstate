@@ -1,6 +1,6 @@
 ---
 'xstate': minor
-'@xstate/fast-check': minor
+'@xstate/test': minor
 ---
 
 Extend `propertyTest()` with fresh model-testing sessions, multiple named cases
@@ -9,7 +9,6 @@ snapshot. Model-testing event executors now receive the complete typed event.
 
 ```ts
 await propertyTest(createTestModel(machine), {
-  adapter: fastCheckAdapter(),
   events: {
     USE_ACCOUNT: {
       case: 'existing-account',

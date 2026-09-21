@@ -1,6 +1,6 @@
 ---
 'xstate': minor
-'@xstate/fast-check': minor
+'@xstate/test': minor
 ---
 
 Improve property testing accuracy, replay, and coverage:
@@ -25,7 +25,6 @@ Improve property testing accuracy, replay, and coverage:
 
 ```ts
 await propertyTest(machine, {
-  adapter: fastCheckAdapter(),
   events,
   temporal: [
     {

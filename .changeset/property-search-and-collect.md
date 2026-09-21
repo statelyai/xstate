@@ -1,6 +1,6 @@
 ---
 'xstate': minor
-'@xstate/fast-check': minor
+'@xstate/test': minor
 ---
 
 Property testing gained swarm testing, targeted search, and a per-run `collect` hook.
@@ -9,7 +9,7 @@ Property testing gained swarm testing, targeted search, and a per-run `collect` 
 
 ```ts
 const { coverage } = await propertyTest(machine, {
-  adapter: fastCheckAdapter({ numRuns: 200 }),
+  numRuns: 200,
   events,
   invariant,
   swarm: true
@@ -22,7 +22,7 @@ coverage.exploration.swarm; // { runs, averageEnabled }
 
 ```ts
 const { coverage } = await propertyTest(counterMachine, {
-  adapter: fastCheckAdapter({ maxCommands: 6 }),
+  maxCommands: 6,
   events: { INC: fc.constant({}), DEC: fc.constant({}) },
   invariant,
   target: ({ snapshot }) => snapshot.context.count,

@@ -10,7 +10,6 @@ generator adapter installed.
 
 ```ts
 const suite = await generatePropertySuite(machine, {
-  adapter: fastCheckAdapter(),
   events,
   invariant
 });

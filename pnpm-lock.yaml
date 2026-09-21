@@ -1803,6 +1803,31 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  examples/property-testing-cart:
+    dependencies:
+      xstate:
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      '@types/node':
+        specifier: 25.2.1
+        version: 25.2.1
+      '@xstate/test':
+        specifier: workspace:*
+        version: link:../../packages/xstate-test
+      fast-check:
+        specifier: ^4.9.0
+        version: 4.10.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@17.6.3)(jsdom@26.1.0)(sass@1.97.3)(stylus@0.55.0)(supports-color@5.5.0)(terser@5.49.0)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+
   examples/property-testing-playwright:
     dependencies:
       xstate:
@@ -1812,12 +1837,9 @@ importers:
       '@playwright/test':
         specifier: ^1.40.0
         version: 1.63.0
-      '@xstate/fast-check':
+      '@xstate/test':
         specifier: workspace:*
-        version: link:../../packages/xstate-fast-check
-      '@xstate/test-playwright':
-        specifier: workspace:*
-        version: link:../../packages/xstate-test-playwright
+        version: link:../../packages/xstate-test
       fast-check:
         specifier: ^4.9.0
         version: 4.10.0
@@ -2938,21 +2960,6 @@ importers:
         specifier: workspace:^
         version: link:../core
 
-  packages/xstate-fast-check:
-    devDependencies:
-      effect:
-        specifier: 4.0.0-beta.106
-        version: 4.0.0-beta.106
-      fast-check:
-        specifier: ^4.9.0
-        version: 4.10.0
-      xstate:
-        specifier: workspace:^
-        version: link:../core
-      zod:
-        specifier: ^4.4.3
-        version: 4.4.3
-
   packages/xstate-react:
     dependencies:
       use-isomorphic-layout-effect:
@@ -3233,14 +3240,23 @@ importers:
         specifier: workspace:^
         version: link:../core
 
-  packages/xstate-test-playwright:
+  packages/xstate-test:
     devDependencies:
       '@playwright/test':
         specifier: ^1.40.0
         version: 1.63.0
+      effect:
+        specifier: 4.0.0-beta.106
+        version: 4.0.0-beta.106
+      fast-check:
+        specifier: ^4.9.0
+        version: 4.10.0
       xstate:
         specifier: workspace:^
         version: link:../core
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   packages/xstate-vue:
     devDependencies:

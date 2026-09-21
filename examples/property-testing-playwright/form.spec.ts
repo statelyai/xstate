@@ -1,13 +1,14 @@
 import { test } from '@playwright/test';
 import * as fc from 'fast-check';
-import { fastCheckAdapter } from '@xstate/fast-check';
-import { createPlaywrightSut } from '@xstate/test-playwright';
-import { formatPropertyCoverage, propertyTest } from 'xstate/graph';
+import { formatPropertyCoverage, propertyTest } from '@xstate/test';
+import { createPlaywrightSut } from '@xstate/test/playwright';
 import { formMachine } from './machine.ts';
 
 test('the form matches its model', async ({ page }) => {
   const { coverage } = await propertyTest(formMachine, {
-    adapter: fastCheckAdapter({ seed: 1, numRuns: 25, maxCommands: 8 }),
+    seed: 1,
+    numRuns: 25,
+    maxCommands: 8,
     events: {
       FILL: fc.record({
         value: fc.oneof(

@@ -1,6 +1,6 @@
 ---
 'xstate': minor
-'@xstate/fast-check': minor
+'@xstate/test': minor
 ---
 
 Add exact property-test topology and transition coverage, configurable graph
@@ -15,7 +15,6 @@ the exploration bounds, frontier budgets, and adapter seeds used.
 ```ts
 const model = createTestModel(machine);
 const result = await propertyTest(model, {
-  adapter: fastCheckAdapter(),
   frontiers: {
     paths: model.getShortestPaths(),
     runsPerFrontier: 100

@@ -1,7 +1,7 @@
 # Property testing a multi-step form with Playwright
 
 A three-step form (name, email, review) served as static HTML, checked against
-an XState model with `propertyTest()` and `@xstate/test-playwright`.
+an XState model with `propertyTest()` and `@xstate/test/playwright`.
 
 - `public/index.html` — the app, plain HTML and JavaScript.
 - `machine.ts` — the model: steps, back navigation, validation errors.

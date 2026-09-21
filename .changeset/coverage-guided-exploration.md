@@ -1,6 +1,6 @@
 ---
 'xstate': minor
-'@xstate/fast-check': minor
+'@xstate/test': minor
 ---
 
 Property tests can now stop on coverage, steer exploration toward what has not
@@ -12,7 +12,6 @@ Runs are executed in batches of `batchRuns` (default 25) up to `maxRuns`
 
 ```ts
 const { coverage } = await propertyTest(machine, {
-  adapter: fastCheckAdapter(),
   events: { NEXT: fc.constant({}) },
   invariant,
   until: { transitions: 1, any: [{ guards: 1 }, { timeMs: 5_000 }] }
@@ -32,7 +31,6 @@ into `coverage.labels`, rendered by `formatPropertyCoverage()` and
 
 ```ts
 await propertyTest(machine, {
-  adapter: fastCheckAdapter(),
   events: { WITHDRAW: fc.record({ amount: fc.integer({ min: 1 }) }) },
   invariant: ({ snapshot, classify }) => {
     classify(snapshot.context.balance === 0, 'emptied');

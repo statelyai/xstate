@@ -1,7 +1,6 @@
 ---
 'xstate': minor
-'@xstate/fast-check': minor
-'@xstate/test-playwright': patch
+'@xstate/test': minor
 ---
 
 Added `mode: 'executed'` to `propertyTest()`. Property runs drive a real actor on a `SimulatedClock` instead of stepping the machine through `transition()`, so invoked and spawned actors run, their `onDone`/`onError`/`onSnapshot` transitions fire, and `after` transitions are reachable through generated `advance` commands — no system under test required.
@@ -10,7 +9,7 @@ Invoked actors are steered with `actors` (fixed logic) or `outcomes` (a generate
 
 ```ts
 await propertyTest(machine, {
-  adapter: fastCheckAdapter({ numRuns: 100 }),
+  numRuns: 100,
   mode: 'executed',
   outcomes: {
     fetchUser: fc.oneof(

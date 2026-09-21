@@ -1,6 +1,6 @@
 ---
 'xstate': minor
-'@xstate/fast-check': minor
+'@xstate/test': minor
 ---
 
 Property test coverage now reports two more dimensions, and event cases and
@@ -35,7 +35,6 @@ relative to each other:
 
 ```ts
 await propertyTest(machine, {
-  adapter: fastCheckAdapter(),
   events: {
     INC: { generate: fc.record({ value: fc.integer() }), weight: 10 },
     RESET: { generate: fc.constant({}), weight: 1 }

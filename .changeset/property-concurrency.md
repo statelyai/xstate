@@ -1,11 +1,11 @@
 ---
-'@xstate/fast-check': minor
+'@xstate/test': minor
 'xstate': minor
 ---
 
 Property tests can now look for concurrency bugs.
 
-`fastCheckAdapter({ scheduler: true })` generates an `fc.scheduler()` per run.
+`scheduler: true` generates an `fc.scheduler()` per run.
 Wrap the system under test with `withScheduledSut` (or a reference oracle with
 `withScheduledReference`) and its `send`, `read`, `settle`, and `advance` calls
 resolve in an order chosen by the scheduler, so races between them are explored
@@ -15,7 +15,8 @@ took is recorded as `replay.data.scheduler` and can be rebuilt with
 
 ```ts
 await propertyTest(counterMachine, {
-  adapter: fastCheckAdapter({ numRuns: 100, scheduler: true }),
+  numRuns: 100,
+  scheduler: true,
   events: { INC: fc.constant({}) },
   sut: withScheduledSut(counterSut),
   invariant

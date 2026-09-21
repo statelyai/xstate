@@ -1,20 +1,19 @@
 /**
  * A dependency-free `PropertyTestAdapter` used to exercise the
- * `xstate/graph` property-testing surface from within `packages/core`.
+ * `xstate/graph` property-testing surface from within `@xstate/test`.
  *
  * It is deliberately minimal: a seeded `mulberry32` PRNG, plain
  * `{ sample(rng) }` generators, uniformly random command sequences and no
  * shrinking. Real users should prefer `@xstate/test`.
  */
-import type { EventObject, Snapshot } from '../../index.ts';
+import type { EventObject, Snapshot } from 'xstate';
 import type {
-  PropertyActorOutcome,
   PropertyGeneratorKind,
   PropertyScenarioRunner,
   PropertyTestAdapter,
   PropertyTestAdapterRequest,
   PropertyTestAdapterResult
-} from '../propertyTest.ts';
+} from 'xstate/graph';
 
 type Rng = () => number;
 
@@ -59,10 +58,6 @@ export function record<TValue extends Record<string, unknown>>(generators: {
     }
     return value;
   });
-}
-
-export function oneOf<TValue>(...values: readonly TValue[]): Gen<TValue> {
-  return gen((rng) => values[Math.floor(rng() * values.length)]);
 }
 
 export interface RandomAdapterOptions {
@@ -115,17 +110,6 @@ class RandomAdapter implements PropertyTestAdapter<RandomGeneratorKind> {
             run: (runner) => runner.advance(milliseconds)
           };
         });
-      } else if (command.type === 'outcome') {
-        const src = command.src!;
-        factories.push((rng) => {
-          const outcome = (
-            command.generator as Gen<PropertyActorOutcome>
-          ).sample(rng);
-          return {
-            check: (runner) => runner.canRunOutcome(),
-            run: (runner) => runner.outcome(src, outcome)
-          };
-        });
       } else if (command.type === 'checkpoint') {
         factories.push((rng) => {
           const value = (
@@ -153,9 +137,7 @@ class RandomAdapter implements PropertyTestAdapter<RandomGeneratorKind> {
       );
     }
 
-    // `runOffset` keeps successive batches of one campaign from replaying the
-    // same sequences.
-    const seed = (this.options.seed ?? 0) + (request.runOffset ?? 0);
+    const seed = this.options.seed ?? 0;
     const maxCommands = this.options.maxCommands ?? 10;
     const configuredRuns = request.runBudget ?? this.options.numRuns ?? 10;
     let runs = 0;
