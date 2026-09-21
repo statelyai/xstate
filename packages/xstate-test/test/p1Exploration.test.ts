@@ -1,11 +1,11 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import {
-  PropertyTestFailure,
+  ModelTestFailure,
   fastCheckAdapter,
   propertyTest
 } from '../src/index.ts';
-import type { PropertyCoverage } from '../src/index.ts';
+import type { TestCoverage } from '../src/index.ts';
 
 const ringMachine = createMachine({
   id: 'exploration-ring',
@@ -45,7 +45,7 @@ const counterMachine = createMachine({
   }
 });
 
-function transitionRatio(coverage: PropertyCoverage): number {
+function transitionRatio(coverage: TestCoverage): number {
   const { covered, uncovered } = coverage.transitions;
   return covered.length / (covered.length + uncovered.length);
 }
@@ -146,10 +146,10 @@ describe('coverage-guided frontiers', () => {
       maxRuns: 40
     }).then(
       () => undefined,
-      (cause: unknown) => cause as PropertyTestFailure
+      (cause: unknown) => cause as ModelTestFailure
     );
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     // The prefix that walks the chain is replayed verbatim; shrinking only
     // removes generated commands, leaving the step that reaches `done`.
     const prefix = failure!.trace.prefixEvents;
@@ -192,7 +192,7 @@ describe('labels', () => {
       expectLabels: { huge: { min: 0.25 } }
     }).then(
       () => undefined,
-      (cause: unknown) => cause as Error & { coverage: PropertyCoverage }
+      (cause: unknown) => cause as Error & { coverage: TestCoverage }
     );
 
     expect(error!.name).toBe('PropertyLabelExpectationError');

@@ -10,13 +10,13 @@ import { getStateNodeByPath } from '../stateUtils.ts';
 import { normalizeTarget } from '../utils.ts';
 import { getStateNodes } from './graph.ts';
 
-export type PropertyCoverageStatus =
+export type TestCoverageStatus =
   | 'covered'
   | 'uncovered'
   | 'unreachable'
   | 'unknown';
 
-export interface PropertyCoverageDimension {
+export interface TestCoverageDimension {
   readonly counts: Readonly<Record<string, number>>;
   readonly covered: readonly string[];
   readonly uncovered: readonly string[];
@@ -24,7 +24,7 @@ export interface PropertyCoverageDimension {
   readonly unknown: readonly string[];
 }
 
-interface PropertyTransitionPairCoverageDimension extends PropertyCoverageDimension {
+interface TestTransitionPairCoverageDimension extends TestCoverageDimension {
   /**
    * `true` when the statically enumerable pair universe exceeded
    * `TRANSITION_PAIR_UNIVERSE_LIMIT` and was cut short. Pairs observed at
@@ -33,24 +33,24 @@ interface PropertyTransitionPairCoverageDimension extends PropertyCoverageDimens
   readonly truncated: boolean;
 }
 
-interface PropertyRequirementCoverageDimension extends PropertyCoverageDimension {
+interface TestRequirementCoverageDimension extends TestCoverageDimension {
   /** Requirement id to the state nodes and transitions that declare it. */
   readonly sources: Readonly<Record<string, readonly string[]>>;
 }
 
-interface PropertyGuardCoverageDimension extends PropertyCoverageDimension {
+interface TestGuardCoverageDimension extends TestCoverageDimension {
   readonly outcomes: Readonly<
     Record<string, { readonly passed: number; readonly failed: number }>
   >;
 }
 
-export type PropertyEventCaseStage =
+export type TestEventCaseStage =
   | 'generated'
   | 'applicable'
   | 'executed'
   | 'ignored';
 
-export interface PropertyEventCaseCounts {
+export interface TestEventCaseCounts {
   /** Effective relative generation weight for this case. Defaults to `1`. */
   readonly weight: number;
   readonly generated: number;
@@ -59,13 +59,13 @@ export interface PropertyEventCaseCounts {
   readonly ignored: number;
 }
 
-export interface PropertyDynamicTransitionCoverage {
+export interface TestDynamicTransitionCoverage {
   readonly hits: number;
   readonly observedTargetIds: readonly string[];
   readonly outcomeCompleteness: 'unknown';
 }
 
-export interface PropertyExplorationFrontier {
+export interface TestExplorationFrontier {
   readonly id: string;
   readonly prefixLength: number;
   readonly runBudget: number | null;
@@ -75,7 +75,7 @@ export interface PropertyExplorationFrontier {
   readonly attemptedRuns: number;
 }
 
-export interface PropertyExplorationSeed {
+export interface TestExplorationSeed {
   readonly frontierId: string;
   readonly engine?: string;
   readonly seed?: number;
@@ -83,7 +83,7 @@ export interface PropertyExplorationSeed {
 }
 
 /** Swarm testing statistics. Only present when `swarm` was enabled. */
-export interface PropertyExplorationSwarm {
+export interface TestExplorationSwarm {
   /** Runs that were given a swarm subset of the event cases. */
   readonly runs: number;
   /** Mean number of event cases enabled per swarm run. */
@@ -91,7 +91,7 @@ export interface PropertyExplorationSwarm {
 }
 
 /** Targeted-search statistics. Only present when `target` was used. */
-export interface PropertyExplorationTarget {
+export interface TestExplorationTarget {
   /** The best (highest) observed target value, `-Infinity` when none. */
   readonly best: number;
   /** The label recorded alongside the best value, when one was given. */
@@ -101,9 +101,18 @@ export interface PropertyExplorationTarget {
 }
 
 /** Why a property campaign stopped running batches. */
-export type PropertyStoppedBecause = 'until' | 'budget' | 'failure';
+export type TestStoppedBecause = 'until' | 'budget' | 'failure';
 
-export interface PropertyExplorationBounds {
+export interface TestExplorationBounds {
+  /**
+   * `'property'` when the campaign generated command sequences,
+   * `'paths'` when it executed paths produced by graph traversal.
+   */
+  readonly strategy: 'property' | 'paths';
+  /** Paths executed. Only present for `strategy: 'paths'`. */
+  readonly pathCount?: number;
+  /** How the paths were produced. Only present for `strategy: 'paths'`. */
+  readonly pathGenerator?: 'shortest' | 'simple' | 'events' | 'custom';
   /**
    * `'pure'` when the campaign stepped the machine through `transition()`,
    * `'executed'` when it drove a real actor on a simulated clock.
@@ -115,12 +124,12 @@ export interface PropertyExplorationBounds {
   readonly attemptedRuns: number;
   readonly maximumSequenceLength: number | null;
   readonly maximumObservedSequenceLength: number;
-  readonly frontiers: readonly PropertyExplorationFrontier[];
-  readonly seeds: readonly PropertyExplorationSeed[];
+  readonly frontiers: readonly TestExplorationFrontier[];
+  readonly seeds: readonly TestExplorationSeed[];
   /** Swarm testing statistics, or `null` when `swarm` was not enabled. */
-  readonly swarm: PropertyExplorationSwarm | null;
+  readonly swarm: TestExplorationSwarm | null;
   /** Targeted-search statistics. `best` is `-Infinity` when unused. */
-  readonly target: PropertyExplorationTarget;
+  readonly target: TestExplorationTarget;
   readonly truncated: boolean;
   readonly truncationReasons: readonly string[];
   /**
@@ -128,11 +137,11 @@ export interface PropertyExplorationBounds {
    * counterexample ended the campaign, `'budget'` when the configured runs
    * were exhausted.
    */
-  readonly stoppedBecause: PropertyStoppedBecause;
+  readonly stoppedBecause: TestStoppedBecause;
 }
 
 /** Aggregated occurrences of a label recorded with `label()`/`classify()`. */
-export interface PropertyLabelCoverage {
+export interface TestLabelCoverage {
   /** Total number of times the label was recorded across all runs. */
   readonly count: number;
   /** Occurrences per recorded value. Labels without a value are not listed. */
@@ -144,7 +153,7 @@ export interface PropertyLabelCoverage {
   readonly share: number;
 }
 
-interface PropertyTemporalCoverage {
+interface TestTemporalCoverage {
   /** Temporal definitions satisfied in at least one run. */
   readonly satisfied: readonly string[];
   /** Temporal definitions that caused a run to fail. */
@@ -156,7 +165,7 @@ interface PropertyTemporalCoverage {
   readonly inconclusive: readonly string[];
 }
 
-export interface PropertyCoverage {
+export interface TestCoverage {
   readonly runs: number;
   readonly steps: number;
   readonly skipped: number;
@@ -169,28 +178,28 @@ export interface PropertyCoverage {
   readonly stops: number;
   readonly sutComparisons: number;
   readonly oracleComparisons: number;
-  readonly states: PropertyCoverageDimension;
-  readonly stateNodes: PropertyCoverageDimension;
-  readonly configurations: PropertyCoverageDimension;
-  readonly statuses: PropertyCoverageDimension;
+  readonly states: TestCoverageDimension;
+  readonly stateNodes: TestCoverageDimension;
+  readonly configurations: TestCoverageDimension;
+  readonly statuses: TestCoverageDimension;
   /** Delivered event types. This does not describe payload-domain coverage. */
-  readonly eventTypes: PropertyCoverageDimension;
+  readonly eventTypes: TestCoverageDimension;
   /** Lifecycle counts for the event cases supplied to `propertyTest()`. */
-  readonly eventCases: Readonly<Record<string, PropertyEventCaseCounts>>;
-  readonly transitions: PropertyCoverageDimension;
+  readonly eventCases: Readonly<Record<string, TestEventCaseCounts>>;
+  readonly transitions: TestCoverageDimension;
   /** Pairs of consecutive executed transitions, as `${t1} -> ${t2}`. */
-  readonly transitionPairs: PropertyTransitionPairCoverageDimension;
+  readonly transitionPairs: TestTransitionPairCoverageDimension;
   /** Requirement ids declared via `meta.requirements`. */
-  readonly requirements: PropertyRequirementCoverageDimension;
+  readonly requirements: TestRequirementCoverageDimension;
   readonly dynamicTransitions: Readonly<
-    Record<string, PropertyDynamicTransitionCoverage>
+    Record<string, TestDynamicTransitionCoverage>
   >;
-  readonly guards: PropertyGuardCoverageDimension;
-  readonly frontiers: PropertyCoverageDimension;
+  readonly guards: TestGuardCoverageDimension;
+  readonly frontiers: TestCoverageDimension;
   /** Labels recorded with `label()`/`classify()`, keyed by label name. */
-  readonly labels: Readonly<Record<string, PropertyLabelCoverage>>;
-  readonly temporal: PropertyTemporalCoverage;
-  readonly exploration: PropertyExplorationBounds;
+  readonly labels: Readonly<Record<string, TestLabelCoverage>>;
+  readonly temporal: TestTemporalCoverage;
+  readonly exploration: TestExplorationBounds;
 }
 
 interface Declaration {
@@ -203,7 +212,7 @@ interface MutableDimension {
   declarations: Map<string, Declaration>;
 }
 
-export interface MutablePropertyCoverage {
+export interface MutableTestCoverage {
   runs: number;
   steps: number;
   skipped: number;
@@ -221,7 +230,7 @@ export interface MutablePropertyCoverage {
   configurations: MutableDimension;
   statuses: MutableDimension;
   eventTypes: MutableDimension;
-  eventCases: Record<string, PropertyEventCaseCounts>;
+  eventCases: Record<string, TestEventCaseCounts>;
   transitions: MutableDimension;
   transitionPairs: MutableDimension;
   transitionPairsTruncated: boolean;
@@ -328,7 +337,7 @@ function getPropertyStateId(snapshot: Snapshot<unknown>): string {
 }
 
 function getPropertyTransitionId(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   transition: AnyTransitionDefinition
 ): string {
   return (
@@ -404,7 +413,7 @@ function collectReachableNodes(root: AnyStateNode): Set<string> {
 }
 
 function registerTransition(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   transition: AnyTransitionDefinition,
   index: number,
   reachable: Set<string>,
@@ -481,7 +490,7 @@ interface RegisteredTransition {
  * targets (or of its own source when `t1` is targetless).
  */
 function declareTransitionPairs(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   registered: readonly RegisteredTransition[]
 ): void {
   if (registered.length > TRANSITION_PAIR_MACHINE_LIMIT) {
@@ -552,7 +561,7 @@ function normalizeRequirements(meta: unknown): readonly string[] {
 }
 
 function declareRequirements(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   requirements: readonly string[],
   source: string,
   owner: Map<string, readonly string[]>,
@@ -572,7 +581,7 @@ function declareRequirements(
 }
 
 function recordRequirements(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   requirements: readonly string[] | undefined
 ): void {
   for (const requirement of requirements ?? []) {
@@ -580,10 +589,8 @@ function recordRequirements(
   }
 }
 
-export function createPropertyCoverage(
-  logic: unknown
-): MutablePropertyCoverage {
-  const coverage: MutablePropertyCoverage = {
+export function createTestCoverage(logic: unknown): MutableTestCoverage {
+  const coverage: MutableTestCoverage = {
     runs: 0,
     steps: 0,
     skipped: 0,
@@ -708,7 +715,7 @@ export function createPropertyCoverage(
 }
 
 export function recordPropertySnapshot(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   snapshot: Snapshot<unknown>
 ): void {
   incrementCoverage(coverage.states, getPropertyStateId(snapshot));
@@ -731,7 +738,7 @@ export function recordPropertySnapshot(
 }
 
 export function recordPropertyTransitions(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   event: EventObject,
   transitions: readonly AnyTransitionDefinition[],
   resolutions: readonly {
@@ -794,7 +801,7 @@ export function recordPropertyTransitions(
  * single run.
  */
 export function resetPropertyTransitionPairs(
-  coverage: MutablePropertyCoverage
+  coverage: MutableTestCoverage
 ): void {
   coverage.previousTransitionIds = null;
 }
@@ -832,7 +839,7 @@ export function parsePropertyEventCaseId(
 }
 
 export function declarePropertyEventCase(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   id: string,
   weight?: number
 ): void {
@@ -853,9 +860,9 @@ export function declarePropertyEventCase(
 }
 
 export function recordPropertyEventCase(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   id: string,
-  stage: PropertyEventCaseStage
+  stage: TestEventCaseStage
 ): void {
   declarePropertyEventCase(coverage, id);
   const counts = coverage.eventCases[id] as {
@@ -868,7 +875,7 @@ export function recordPropertyEventCase(
 }
 
 export function recordPropertyGuards(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   evaluations: readonly GuardEvaluation[]
 ): readonly string[] {
   const ids: string[] = [];
@@ -894,9 +901,7 @@ export function recordPropertyGuards(
   return ids;
 }
 
-function finalizeDimension(
-  dimension: MutableDimension
-): PropertyCoverageDimension {
+function finalizeDimension(dimension: MutableDimension): TestCoverageDimension {
   const covered = Object.keys(dimension.counts).sort();
   const uncovered: string[] = [];
   const unreachable: string[] = [];
@@ -922,9 +927,10 @@ function finalizeDimension(
   };
 }
 
-export function finalizePropertyCoverage(
-  coverage: MutablePropertyCoverage,
-  exploration: PropertyExplorationBounds = {
+export function finalizeTestCoverage(
+  coverage: MutableTestCoverage,
+  exploration: TestExplorationBounds = {
+    strategy: 'property',
     mode: 'pure',
     configuredRuns: null,
     completedRuns: coverage.runs,
@@ -939,7 +945,7 @@ export function finalizePropertyCoverage(
     truncationReasons: [],
     stoppedBecause: 'budget'
   }
-): PropertyCoverage {
+): TestCoverage {
   // Labels are recorded by every attempted run, including failing and shrinking
   // ones, so the share is taken over attempted runs and clamped.
   const labelRuns = exploration.attemptedRuns || coverage.runs;
@@ -1029,7 +1035,7 @@ export function finalizePropertyCoverage(
  * label's `share`.
  */
 export function recordPropertyLabel(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   name: string,
   value: string | number | boolean | undefined,
   seen: Set<string>
@@ -1047,7 +1053,7 @@ export function recordPropertyLabel(
 }
 
 export function recordPropertyTemporal(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   id: string,
   outcome: 'satisfied' | 'failed' | 'inconclusive'
 ): void {
@@ -1055,7 +1061,7 @@ export function recordPropertyTemporal(
 }
 
 export function declarePropertyFrontier(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   id: string
 ): void {
   declare(coverage.frontiers, id);

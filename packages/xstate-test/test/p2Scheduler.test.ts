@@ -1,13 +1,13 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import {
-  PropertyTestFailure,
+  ModelTestFailure,
   fastCheckAdapter,
   getCurrentScheduler,
   propertyTest,
   withScheduledSut
 } from '../src/index.ts';
-import type { FastCheckSchedulerReport, PropertySut } from '../src/index.ts';
+import type { FastCheckSchedulerReport, TestSut } from '../src/index.ts';
 
 const counterMachine = createMachine({
   id: 'counter',
@@ -26,7 +26,7 @@ const counterMachine = createMachine({
  * a read may or may not observe the write depending on the ordering the
  * scheduler picks.
  */
-const racyCounterSut: PropertySut<any, any> = {
+const racyCounterSut: TestSut<any, any> = {
   create: () => {
     const scheduler = getCurrentScheduler();
     let committed = 0;
@@ -53,7 +53,7 @@ const racyCounterSut: PropertySut<any, any> = {
 
 describe('scheduled property runs', () => {
   it('finds an ordering where the SUT read races the write', async () => {
-    let failure: PropertyTestFailure | undefined;
+    let failure: ModelTestFailure | undefined;
     try {
       await propertyTest(counterMachine, {
         seed: 7,
@@ -65,10 +65,10 @@ describe('scheduled property runs', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     const report = (
       failure!.replay?.data as { scheduler: FastCheckSchedulerReport }
     ).scheduler;
@@ -80,7 +80,7 @@ describe('scheduled property runs', () => {
   });
 
   it('reports the schedule of the failing run, not of a later passing one', async () => {
-    let failure: PropertyTestFailure | undefined;
+    let failure: ModelTestFailure | undefined;
     try {
       await propertyTest(counterMachine, {
         seed: 7,
@@ -92,10 +92,10 @@ describe('scheduled property runs', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     const report = (
       failure!.replay?.data as { scheduler: FastCheckSchedulerReport }
     ).scheduler;

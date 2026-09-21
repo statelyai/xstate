@@ -7,7 +7,8 @@ an XState model with `propertyTest()` and `@xstate/test/playwright`.
 - `machine.ts` — the model: steps, back navigation, validation errors.
 - `form.spec.ts` — the property test; generated `FILL`/`NEXT`/`BACK` sequences
   run against the page, and the step label plus the error message are compared
-  after every event. Coverage is printed at the end.
+  after every event. The same `sut` also carries a per-state assertion in
+  `states`. Coverage is printed at the end.
 - `server.mjs` — a static file server used by `playwright.config.ts`.
 
 ## Running
@@ -17,5 +18,8 @@ pnpm install
 pnpm exec playwright install chromium
 pnpm test
 ```
+
+`createPlaywrightSut()` returns the one `sut` shape both entry points take, so
+the same configuration runs under `testPaths()` by swapping the call.
 
 This example is not run in CI, because it needs a browser download.

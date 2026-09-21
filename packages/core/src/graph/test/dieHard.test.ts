@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createMachine, SnapshotFrom } from '../../index.ts';
-import { createTestModel } from '../index.ts';
+import { createTestModel, fromTestParam } from '../index.ts';
 import { getDescription } from '../utils.ts';
 
 describe('die hard example', () => {
@@ -164,7 +164,9 @@ describe('die hard example', () => {
     paths.forEach((path) => {
       describe(`path ${getDescription(path.state)}`, () => {
         it(`path ${getDescription(path.state)}`, async () => {
-          await dieHardModel.model.testPath(path, dieHardModel.options);
+          await dieHardModel.model.testPath(path, {
+            sut: fromTestParam(dieHardModel.options)
+          });
         });
       });
     });
@@ -185,7 +187,9 @@ describe('die hard example', () => {
         path.state.value
       )} (${JSON.stringify(path.state.context)})`, () => {
         it(`path ${getDescription(path.state)}`, async () => {
-          await dieHardModel.model.testPath(path, dieHardModel.options);
+          await dieHardModel.model.testPath(path, {
+            sut: fromTestParam(dieHardModel.options)
+          });
         });
       });
     });
@@ -214,7 +218,9 @@ describe('die hard example', () => {
       path.state.value
     )} (${JSON.stringify(path.state.context)})`, () => {
       it(`path ${getDescription(path.state)}`, async () => {
-        await dieHardModel.model.testPath(path, dieHardModel.options);
+        await dieHardModel.model.testPath(path, {
+          sut: fromTestParam(dieHardModel.options)
+        });
       });
     });
 
@@ -248,7 +254,9 @@ describe('die hard example', () => {
       )} (${JSON.stringify(path.state.context)})`, () => {
         describe(`path ${getDescription(path.state)}`, () => {
           it(`reaches the target state`, async () => {
-            await dieHardModel.model.testPath(path, dieHardModel.options);
+            await dieHardModel.model.testPath(path, {
+              sut: fromTestParam(dieHardModel.options)
+            });
           });
         });
       });
@@ -295,18 +303,12 @@ describe('error path trace', () => {
       } catch (err: any) {
         expect(err.message).toEqual(expect.stringContaining('test error'));
         expect(err.message).toMatchInlineSnapshot(`
-          "test error
-          Path:
-          	State: {"value":"first"}
-          	Event: {"type":"@xstate.init"}
-
-          	State: {"value":"second"} via {"type":"@xstate.init"}
-          	Event: {"type":"NEXT_1"}
-
-          	State: {"value":"third"} via {"type":"NEXT_1"}
-          	Event: {"type":"NEXT_2"}
-
-          	State: {"value":"third"} via {"type":"NEXT_2"}"
+          "State assertion failed after 2 steps: test error
+          start {"status":"active","context":{},"value":"first","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
+          0. generated/generator {"type":"NEXT_1"} -> {"status":"active","context":{},"value":"second","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
+             transitions ["transition","(machine).first","NEXT_1",0]
+          1. generated/generator {"type":"NEXT_2"} -> {"status":"active","context":{},"value":"third","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
+             transitions ["transition","(machine).second","NEXT_2",0]"
         `);
         return;
       }

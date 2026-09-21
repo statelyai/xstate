@@ -1,14 +1,14 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import {
-  PropertyTestFailure,
+  ModelTestFailure,
   defaultEquivalent,
   extractReplayPath,
   fastCheckAdapter,
   propertyTest,
-  replayPropertyTest
+  replayTest
 } from '../src/index.ts';
-import type { PropertyTestAdapter } from '../src/index.ts';
+import type { TestAdapter } from '../src/index.ts';
 
 const counterMachine = createMachine({
   id: 'p0-counter',
@@ -28,7 +28,7 @@ const counterMachine = createMachine({
  */
 function scriptedAdapter(
   script: (runner: any, caseId: string) => Promise<void>
-): PropertyTestAdapter {
+): TestAdapter {
   return {
     run: async (request: any) => {
       const runner = request.createRunner();
@@ -45,7 +45,7 @@ function scriptedAdapter(
         await runner.dispose();
       }
     }
-  } as PropertyTestAdapter;
+  } as TestAdapter;
 }
 
 describe('temporal operators (STA-6400)', () => {
@@ -94,7 +94,7 @@ describe('temporal operators (STA-6400)', () => {
   });
 
   it('still fails an unbounded `eventually` that the run never satisfied', async () => {
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(counterMachine, {
         adapter: scriptedAdapter(async (runner, caseId) => {
@@ -112,10 +112,10 @@ describe('temporal operators (STA-6400)', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     expect(failure.fixture?.temporalFailure).toMatchObject({
       type: 'eventually',
       id: 'reach-ten-unbounded'
@@ -125,7 +125,7 @@ describe('temporal operators (STA-6400)', () => {
   });
 
   it('fails `always` on the first stable step where the predicate does not hold', async () => {
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(counterMachine, {
         adapter: scriptedAdapter(async (runner, caseId) => {
@@ -145,10 +145,10 @@ describe('temporal operators (STA-6400)', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     expect(failure.fixture?.temporalFailure).toMatchObject({
       type: 'always',
       id: 'below-two'
@@ -177,7 +177,7 @@ describe('temporal operators (STA-6400)', () => {
   });
 
   it('fails `never` on the first stable step where the predicate holds', async () => {
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(counterMachine, {
         adapter: scriptedAdapter(async (runner, caseId) => {
@@ -195,10 +195,10 @@ describe('temporal operators (STA-6400)', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     expect(failure.fixture?.temporalFailure).toMatchObject({
       type: 'never',
       id: 'never-one'
@@ -287,7 +287,7 @@ describe('non-object event payloads (STA-6402)', () => {
               exploration: { configuredRuns: 1, maximumSequenceLength: null }
             };
           }
-        } as PropertyTestAdapter,
+        } as TestAdapter,
         events: { INC: undefined },
         invariant: () => {}
       })
@@ -364,7 +364,7 @@ describe('exploration metrics (STA-6403)', () => {
 
 describe('replay (STA-6407)', () => {
   it('never masks the underlying failure with a fixture-construction error', async () => {
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(counterMachine, {
         adapter: scriptedAdapter(async (runner, caseId) => {
@@ -385,10 +385,10 @@ describe('replay (STA-6407)', () => {
         }
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     // the real cause survives; only the fixture is dropped
     expect((failure.cause as Error).message).toBe('count must stay at zero');
     expect(failure.fixture).toBeUndefined();
@@ -436,7 +436,7 @@ describe('replay (STA-6407)', () => {
       projectModel: (snapshot: any) => snapshot.context.count
     };
 
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(machine, {
         seed: 9,
@@ -447,22 +447,22 @@ describe('replay (STA-6407)', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     expect(failure.fixture).toBeDefined();
 
     // without the reference, the run is clean and replay reports non-reproduction
     await expect(
-      replayPropertyTest(machine, failure.fixture!, { invariant: () => {} })
+      replayTest(machine, failure.fixture!, { invariant: () => {} })
     ).rejects.toThrow(/did not reproduce the recorded failure/);
 
     // with the reference passed through, the divergence reproduces
-    const replayFailure = await replayPropertyTest(machine, failure.fixture!, {
+    const replayFailure = await replayTest(machine, failure.fixture!, {
       invariant: () => {},
       reference
     }).catch((error) => error);
-    expect(replayFailure).toBeInstanceOf(PropertyTestFailure);
+    expect(replayFailure).toBeInstanceOf(ModelTestFailure);
     expect(replayFailure.cause).toMatchObject({ referenceMatches: false });
   });
 
@@ -494,7 +494,7 @@ describe('replay (STA-6407)', () => {
       projectModel: (snapshot: any) => snapshot.context.count
     };
 
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(machine, {
         seed: 10,
@@ -505,15 +505,15 @@ describe('replay (STA-6407)', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
 
-    const replayFailure = await replayPropertyTest(machine, failure.fixture!, {
+    const replayFailure = await replayTest(machine, failure.fixture!, {
       invariant: () => {},
       sut
     }).catch((error) => error);
-    expect(replayFailure).toBeInstanceOf(PropertyTestFailure);
+    expect(replayFailure).toBeInstanceOf(ModelTestFailure);
     expect(replayFailure.cause).toMatchObject({ sutMatches: false });
   });
 });

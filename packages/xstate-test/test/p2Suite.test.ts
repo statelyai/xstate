@@ -1,12 +1,12 @@
 import * as fc from 'fast-check';
 import { createMachine } from 'xstate';
 import {
-  describePropertySuite,
+  describeTestSuite,
   fastCheckAdapter,
-  generatePropertySuite,
-  parsePropertySuite,
-  replayPropertySuite,
-  serializePropertySuite
+  generateTestSuite,
+  parseTestSuite,
+  replayTestSuite,
+  serializeTestSuite
 } from '../src/index.ts';
 
 const trafficMachine = createMachine({
@@ -28,7 +28,7 @@ const invariant = ({ snapshot, event }: { snapshot: any; event: any }) => {
 };
 
 const generate = () =>
-  generatePropertySuite(trafficMachine, {
+  generateTestSuite(trafficMachine, {
     numRuns: 25,
     seed: 3,
     events: {
@@ -46,8 +46,8 @@ describe('property suites with FastCheck', () => {
     expect(suite.coverage.dimensions.transitions.uncovered).toEqual([]);
     expect(suite.fixtures.length).toBeGreaterThan(0);
 
-    const replayed = parsePropertySuite(serializePropertySuite(suite));
-    const result = await replayPropertySuite(trafficMachine, replayed, {
+    const replayed = parseTestSuite(serializeTestSuite(suite));
+    const result = await replayTestSuite(trafficMachine, replayed, {
       invariant
     });
 
@@ -59,7 +59,7 @@ describe('property suites with FastCheck', () => {
     const suite = await generate();
     const registered: string[] = [];
 
-    describePropertySuite(suite, trafficMachine, {
+    describeTestSuite(suite, trafficMachine, {
       invariant,
       describe: (_name, fn) => fn(),
       it: (name) => {

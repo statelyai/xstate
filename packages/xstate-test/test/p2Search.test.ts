@@ -1,12 +1,12 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import {
-  PropertyTestFailure,
+  ModelTestFailure,
   fastCheckAdapter,
   propertyTest,
-  replayPropertyTest
+  replayTest
 } from '../src/index.ts';
-import type { PropertyTrace } from '../src/index.ts';
+import type { TestTrace } from '../src/index.ts';
 
 const counterMachine = createMachine({
   id: 'searchCounter',
@@ -45,7 +45,7 @@ describe('swarm testing with fast-check', () => {
         events,
         swarm: { seed: 9 },
         invariant: noop,
-        collect: (trace: PropertyTrace<any, any>) => {
+        collect: (trace: TestTrace<any, any>) => {
           swarms.push([...(trace.swarm ?? [])]);
         }
       });
@@ -74,10 +74,10 @@ describe('swarm testing with fast-check', () => {
       }
     }).then(
       () => undefined,
-      (error) => error as PropertyTestFailure<any, any>
+      (error) => error as ModelTestFailure<any, any>
     );
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     const fixture = failure!.fixture!;
     // The shrunk counterexample is three increments and nothing else.
     expect(fixture.timeline).toHaveLength(3);
@@ -91,7 +91,7 @@ describe('swarm testing with fast-check', () => {
     expect(fixture.swarm!.some((caseId) => caseId.includes('INC'))).toBe(true);
 
     await expect(
-      replayPropertyTest(counterMachine, fixture, {
+      replayTest(counterMachine, fixture, {
         invariant: ({ snapshot }) => {
           expect((snapshot as any).context.count).toBeLessThan(3);
         }

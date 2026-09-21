@@ -6,11 +6,11 @@ import {
   types
 } from 'xstate';
 import {
-  PropertyTestFailure,
+  ModelTestFailure,
   createTestModel,
   fastCheckAdapter,
   propertyTest,
-  replayPropertyTest
+  replayTest
 } from '../src/index.ts';
 
 const counterMachine = createMachine({
@@ -69,24 +69,20 @@ describe('propertyTest with FastCheck', () => {
       events: {
         INC: fc.constant({ value: 1 })
       },
-      test: {
+      sut: {
         create: () => {
           created++;
           active++;
           let count = 0;
           return {
-            params: {
-              events: {
-                INC: ({ event }) => {
-                  eventExecutions++;
-                  count += event.value;
-                }
-              },
-              states: {
-                '*': (snapshot) => {
-                  stateAssertions++;
-                  expect(count).toBe(snapshot.context.count);
-                }
+            send: (event: any) => {
+              eventExecutions++;
+              count += event.value ?? 0;
+            },
+            states: {
+              '*': (snapshot: any) => {
+                stateAssertions++;
+                expect(count).toBe(snapshot.context.count);
               }
             },
             dispose: () => {
@@ -116,16 +112,14 @@ describe('propertyTest with FastCheck', () => {
       numRuns: 20,
       maxCommands: 5,
       events: { INC: fc.constant({ value: 1 }) },
-      test: {
+      sut: {
         create: () => {
           created++;
           return {
-            params: {
-              events: { INC: () => {} },
-              states: {
-                '*': (snapshot) => {
-                  expect(snapshot.context.count).toBe(0);
-                }
+            send: () => {},
+            states: {
+              '*': (snapshot: any) => {
+                expect(snapshot.context.count).toBe(0);
               }
             },
             dispose: () => {
@@ -137,7 +131,7 @@ describe('propertyTest with FastCheck', () => {
       invariant: () => {}
     }).catch((error) => error);
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     expect(failure.trace.events).toEqual([{ type: 'INC', value: 1 }]);
     expect(created).toBeGreaterThan(1);
     expect(disposed).toBe(created);
@@ -158,7 +152,7 @@ describe('propertyTest with FastCheck', () => {
       });
 
     const error = await run().catch((value) => value);
-    expect(error).toBeInstanceOf(PropertyTestFailure);
+    expect(error).toBeInstanceOf(ModelTestFailure);
     expect(error.trace.steps.length).toBeGreaterThan(0);
     expect(error.replay).toMatchObject({
       engine: 'fast-check',
@@ -187,7 +181,7 @@ describe('propertyTest with FastCheck', () => {
   });
 
   it('creates portable fixtures that replay without FastCheck', async () => {
-    let error!: PropertyTestFailure;
+    let error!: ModelTestFailure;
     try {
       await propertyTest(counterMachine, {
         seed: 123,
@@ -201,21 +195,21 @@ describe('propertyTest with FastCheck', () => {
         }
       });
     } catch (value) {
-      error = value as PropertyTestFailure;
+      error = value as ModelTestFailure;
     }
 
     expect(error.fixture).toMatchObject({ formatVersion: 2, failedAt: 1 });
-    let replayed!: PropertyTestFailure;
+    let replayed!: ModelTestFailure;
     try {
-      await replayPropertyTest(counterMachine, error.fixture!, {
+      await replayTest(counterMachine, error.fixture!, {
         invariant: ({ snapshot }) => {
           expect(snapshot.context.count).toBeLessThan(10);
         }
       });
     } catch (value) {
-      replayed = value as PropertyTestFailure;
+      replayed = value as ModelTestFailure;
     }
-    expect(replayed).toBeInstanceOf(PropertyTestFailure);
+    expect(replayed).toBeInstanceOf(ModelTestFailure);
     expect(replayed.trace.steps).toHaveLength(error.trace.steps.length);
   });
 
@@ -265,7 +259,7 @@ describe('propertyTest with FastCheck', () => {
     const model = createTestModel(machine, { events: [{ type: 'GO' }] });
     const frontier = model.getPathsFromEvents([{ type: 'GO' }])[0];
     expect(frontier).toBeDefined();
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
 
     try {
       await propertyTest(model, {
@@ -281,7 +275,7 @@ describe('propertyTest with FastCheck', () => {
         }
       });
     } catch (value) {
-      failure = value as PropertyTestFailure;
+      failure = value as ModelTestFailure;
     }
 
     expect(
@@ -303,7 +297,7 @@ describe('propertyTest with FastCheck', () => {
 
   it('shrinks SUT divergence and disposes every run', async () => {
     let active = 0;
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(counterMachine, {
         seed: 8,
@@ -332,10 +326,10 @@ describe('propertyTest with FastCheck', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     expect(failure.message).toContain('observation diverged');
     expect(failure.trace.events).toEqual([{ type: 'INC', value: 1 }]);
     expect(active).toBe(0);

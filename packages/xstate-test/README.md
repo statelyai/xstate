@@ -3,12 +3,18 @@
 `@xstate/test` 2.0 — model-based and property-based testing for XState, built
 on fast-check.
 
-`propertyTest()` generates event and command sequences from a machine, runs
-them, and checks invariants and temporal properties after every step. It can
-run the model on its own, compare it against a reference implementation, or
-drive a real system under test — a class, a server, or a browser page — and
-fail when the two diverge. Counterexamples are shrunk to a minimal sequence and
-exported as a portable replay fixture.
+The package has two entry points over one engine:
+
+- `testPaths()` walks the machine's state graph and executes the generated
+  paths.
+- `propertyTest()` generates randomized event and command sequences and shrinks
+  a failing one.
+
+They take the same `events`, `sut`, `states`, `invariant`, `temporal`, and
+`reference` options, run through the same execution engine, and return the same
+coverage object. A failure from either is a `ModelTestFailure` carrying a
+chronological trace, the coverage so far, and a portable replay fixture that
+`replayTest()` re-runs.
 
 ## Installation
 
@@ -28,12 +34,20 @@ peer dependency of the `@xstate/test/playwright` entrypoint.
   and write fast-check's options at the top level instead of passing
   `adapter: fastCheckAdapter({ ... })`. `fastCheckAdapter` is still exported.
 - **From `@xstate/test` 0.x.** `createModel(machine).withEvents({ ... })` is
-  replaced by `propertyTest(machine, { events, invariant })`. Event
-  configuration moves from `withEvents` to the `events` map, and assertions
-  move from per-state `meta.test` functions to `invariant` (or to the `test`
-  option, which keeps the `states`/`events` assertion style).
+  replaced by `testPaths(machine, { events, sut })` or
+  `propertyTest(machine, { events, invariant })`. Event configuration moves
+  from `withEvents` to the `events` map. Per-state `meta.test` functions still
+  run, in both entry points.
 - **From `@xstate/test` 1.0 beta.** `createTestModel()` now lives in
   `xstate/graph`, and is re-exported from `@xstate/test`.
+- **From `@xstate/test` 2.0 beta.** The `TestParam` shape (`events` executors
+  plus `states` assertions) and the `test.create` option are gone; both are
+  replaced by the single `sut` option, which now also carries `states`.
+  `fromTestParam()` converts an old `{ events, states }` object into a `sut`.
+  Shared exports dropped their `Property` prefix — `PropertyCoverage` is
+  `TestCoverage`, `formatPropertyCoverage()` is `formatTestCoverage()`,
+  `PropertyTestFailure` is `ModelTestFailure`, `replayPropertyTest()` is
+  `replayTest()`, and so on. The old names remain as deprecated aliases.
 
 ## Getting started
 
@@ -72,8 +86,8 @@ must hold:
 ```ts
 import * as fc from 'fast-check';
 import {
-  assertPropertyCoverage,
-  formatPropertyCoverage,
+  assertTestCoverage,
+  formatTestCoverage,
   propertyTest
 } from '@xstate/test';
 
@@ -108,8 +122,8 @@ const { coverage } = await propertyTest(cartMachine, {
   until: { transitions: 1 }
 });
 
-console.log(formatPropertyCoverage(coverage));
-assertPropertyCoverage(coverage, { transitions: 1 });
+console.log(formatTestCoverage(coverage));
+assertTestCoverage(coverage, { transitions: 1 });
 ```
 
 To check a real implementation against the model, add a `sut` and say how to
@@ -140,6 +154,38 @@ await propertyTest(cartMachine, {
   },
   invariant: () => {}
 });
+```
+
+The same machine, the same `sut`, and the same oracles run through
+`testPaths()` instead. Only the generation keys change: `samples` and `seed`
+decide how many concrete payloads each event case contributes to traversal,
+and `pathGenerator` picks the traversal:
+
+```ts
+import { testPaths } from '@xstate/test';
+
+const { coverage, results } = await testPaths(cartMachine, {
+  // Each arbitrary is sampled into 3 concrete payloads before traversal.
+  samples: 3,
+  seed: 1,
+  pathGenerator: 'shortest',
+  events: {
+    ADD: fc.record({
+      sku: fc.constantFrom('apple', 'pear', 'plum'),
+      qty: fc.integer({ min: 1, max: 5 })
+    }),
+    REMOVE: removeAnItemInTheCart
+  },
+  sut: cartSut,
+  invariant: ({ snapshot }) => {
+    for (const [sku, qty] of Object.entries(snapshot.context.items)) {
+      expect(qty, `quantity of ${sku}`).toBeGreaterThan(0);
+    }
+  }
+});
+
+console.log(`${results.length} paths`);
+console.log(formatTestCoverage(coverage));
 ```
 
 ## API
@@ -231,29 +277,86 @@ await propertyTest(model, {
 });
 ```
 
-Use `test.create` to reuse the model-testing event executors and state
-assertions. It creates a fresh session for every generated run and shrink
-attempt, and always disposes it:
+### The `sut` option
+
+One option describes the system under test for both entry points. `create()`
+runs once per run — per generated sequence, per shrink attempt, or per path —
+and the session it returns is always disposed:
 
 ```ts
-await propertyTest(createTestModel(machine), {
+await propertyTest(machine, {
   events,
-  test: {
-    create: () => ({
-      params: {
-        events: { INC: ({ event }) => actor.send(event) },
+  sut: {
+    create: () => {
+      const actor = createActor(machine).start();
+      return {
+        send: (event) => actor.send(event),
+        read: () => actor.getSnapshot().context,
         states: {
-          active: (snapshot) => expect(renderedCount()).toBe(snapshot.context.count)
-        }
-      },
-      dispose: () => actor.stop()
-    })
+          active: (snapshot) =>
+            expect(renderedCount()).toBe(snapshot.context.count),
+          '*': (snapshot) => expect(rendered()).toMatch(String(snapshot.value))
+        },
+        dispose: () => actor.stop()
+      };
+    },
+    projectModel: (snapshot) => snapshot.context
   },
   invariant
 });
 ```
 
-<!-- propertyTest coverage fields from packages/core/src/graph/propertyCoverage.ts -->
+| Session member | Purpose |
+| --- | --- |
+| `send(event, context)` | Performs the event. `context.snapshot` is the model snapshot after the event, and `context.case` names the generated event case. |
+| `read()` | Reads the observable state, compared against `projectModel(snapshot)`. Optional: omit both to assert only through `states`. |
+| `states` | Per-state assertions, keyed by state value or `'#id'`, with `'*'` as the fallthrough. Run after every stable step. |
+| `settle()` | Waits for quiescence before every comparison. |
+| `advance(ms)` | Advances the SUT's own clock, returning any events it delivered. |
+| `checkpoint(label)` | Records a checkpoint. |
+| `stop()` / `dispose()` | Stop and teardown. |
+
+`states` can also be written at the top level of the options, without a `sut`.
+Per-state `meta.test` hooks on the machine's state nodes run alongside them,
+receiving the session and the snapshot.
+
+An old `{ events, states }` object converts in one call:
+
+```ts
+import { fromTestParam } from '@xstate/test';
+
+await testPaths(machine, { sut: fromTestParam({ events, states }) });
+```
+
+### `testPaths()`
+
+`testPaths()` takes every shared option plus the traversal ones, and returns
+`{ coverage, results }`:
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `pathGenerator` | `'shortest'` | `'shortest'`, `'simple'`, or a custom `PathGenerator`. |
+| `paths` | — | Executes these paths instead of generating any. |
+| `fromEvents` | — | Executes the single path built from a literal event sequence. |
+| `samples` | `3` | Concrete payloads sampled from each event case's `generate` before traversal. Must be an integer of at least `1`. |
+| `seed` | `0` | Seed for the sampling. Each event case draws from its own derived stream, so adding a case leaves the other cases' payloads unchanged. |
+| `limit`, `toState`, `fromState`, `stopWhen` | — | Traversal bounds. |
+| `allowDuplicatePaths` | `false` | Keeps paths that are prefixes of longer paths. Applies to a custom `pathGenerator` too. |
+
+Sampling happens before traversal, so each sampled payload becomes its own edge
+in the graph. `when` and `resolve` apply exactly as they do under
+`propertyTest()`: an inapplicable case is not offered as an event. `weight` is
+accepted and ignored, since traversal is exhaustive rather than sampled.
+
+`coverage.exploration.strategy` is `'paths'`, with `pathCount` and
+`pathGenerator` alongside it; `propertyTest()` reports `'property'`. Everything
+else in the coverage object is identical, so `formatTestCoverage()`,
+`testCoverageToJSON()`, `formatTestCoverageJUnit()`, `formatTestCoverageHTML()`,
+and `assertTestCoverage()` work for both. `generateTestSuite()` records
+fixtures from a `propertyTest()` campaign only — it takes the generation
+options `testPaths()` does not have.
+
+<!-- propertyTest coverage fields from packages/core/src/graph/coverage.ts -->
 
 Coverage reports stable state-node, configuration, event-type, transition,
 guard, and frontier identifiers. Topology dimensions separate `covered`,
@@ -481,7 +584,7 @@ In pure mode:
 
 - `invoke`, `spawn`, and enqueued actions are collected as executable action
   objects on each timeline entry's `effects` array, and on the
-  `PropertyInvariantContext.effects` passed to `invariant` and temporal
+  `TestInvariantContext.effects` passed to `invariant` and temporal
   predicates. Assert on them; they do not run.
 - Invoked actors never start, so their `onDone`, `onError`, and `onSnapshot`
   transitions are never taken by the property run itself. Deliver the
@@ -489,7 +592,7 @@ In pure mode:
   transitions.
 - `after` delays and other timers are not driven by the property run. Time only
   moves through `commands.advance`, and only a SUT that owns its own clock can
-  turn that into delivered events. `PropertySutSession.advance(milliseconds)`
+  turn that into delivered events. `TestSutSession.advance(milliseconds)`
   returns the events its clock delivered, and XState applies them through the
   same pure transition path before comparing model and SUT snapshots. Without a
   `sut`, an `advance` command records a runtime timeline entry and advances the
@@ -613,12 +716,12 @@ Two coverage details differ from pure mode:
 A failure fixture from an executed run records `mode: 'executed'` and an
 `outcomes` log: every invoked actor's resolved output or error, keyed by
 invoke source and by how many actors of that source had already resolved.
-`replayPropertyTest()` reads that log, replaces each recorded source with a
+`replayTest()` reads that log, replaces each recorded source with a
 stub, and replays the recorded outcomes in order, so the failure reproduces
 without calling any real service:
 
 ```ts
-await replayPropertyTest(machine, fixture, {
+await replayTest(machine, fixture, {
   invariant: ({ snapshot }) => {
     // ...
   }
@@ -630,20 +733,28 @@ instead, or `actors` to replay against different logic.
 
 ## Choosing between path testing and property testing
 
-Both APIs live in `xstate/graph`, are re-exported from `@xstate/test`, and
-share `TestModel`.
+Both entry points live in `xstate/graph`, are re-exported from `@xstate/test`,
+and share the same execution engine, oracles, coverage object, and failure
+type. Only the generation keys differ.
 
-| | Path testing | Property testing |
+| | `testPaths()` | `propertyTest()` |
 | --- | --- | --- |
-| API | `model.getShortestPaths()` / `getSimplePaths()` + `path.test(params)`, or `model.testPath(path, params)` | `propertyTest(machineOrModel, options)` |
-| Coverage strategy | Exhaustive traversal of the reachable graph, up to the traversal limits | Randomized command sequences from the generators you supply |
-| Event payloads | Fixed, from `events` traversal options | Generated per run, and shrunk on failure |
-| Failure output | The failing path | A shrunk counterexample, a chronological trace, and a portable replay fixture |
+| Sequences | Traversal of the reachable graph | Randomized command sequences |
+| Event payloads | Sampled once, `samples` per case | Generated per run |
+| On failure | The failing path | A shrunk counterexample |
+| Generation options | `pathGenerator`, `paths`, `fromEvents`, `samples`, `seed`, `limit`, `toState` | `numRuns`, `maxCommands`, `commands`, `until`, `frontiers`, `swarm`, `target` |
+| fast-check | Not required; arbitraries are sampled if given | Required |
+| `after` and invoked actors | Not exercised | `mode: 'executed'` with `advance`/`outcomes` |
+| Offline suites | — | `generateTestSuite()` |
 
-Use path testing when you want deterministic, enumerable coverage of a finite
-graph and you can fix event payloads. Use property testing when payloads,
-ordering, or timing matter, or when you compare the machine against a reference
-implementation or a real system under test.
+Paths come from traversal of the pure state graph, which models neither
+invoked actors nor `after` transitions. `testPaths()` therefore rejects
+`outcomes` and `commands`; reach those branches with `propertyTest()` in
+`mode: 'executed'`.
+
+Use `testPaths()` for deterministic, enumerable coverage of a finite graph. Use
+`propertyTest()` when payloads, ordering, or timing matter, or when you want a
+shrunk counterexample.
 
 ## Writing an adapter
 
@@ -653,7 +764,7 @@ an `adapter`, and `@xstate/test` supplies `fastCheckAdapter()` as one. Pass
 `adapter` to override the implicit one.
 
 An adapter connects a generator engine to the neutral XState layer. It
-implements `PropertyTestAdapter<TKind>`, where `TKind` is a
+implements `TestAdapter<TKind>`, where `TKind` is a
 `PropertyGeneratorKind` — a higher-kinded type that tells `propertyTest()` what
 a generator of a given payload type looks like in your engine:
 
@@ -666,7 +777,7 @@ interface FastCheckGeneratorKind extends PropertyGeneratorKind {
 With that declaration, `events.INC` must be an `fc.Arbitrary` of the `INC`
 payload, `commands.advance` an `fc.Arbitrary<number>`, and so on.
 
-`run(request)` receives a `PropertyTestAdapterRequest`:
+`run(request)` receives a `TestAdapterRequest`:
 
 | Field | Description |
 | --- | --- |
@@ -688,18 +799,18 @@ Each run follows the same lifecycle:
 3. `runner.finish()` to settle pending temporal properties.
 4. `await runner.dispose()` in a `finally` block, always.
 
-`run()` resolves with a `PropertyTestAdapterResult`: `runs` (runs actually
+`run()` resolves with a `TestAdapterResult`: `runs` (runs actually
 executed), `exploration` (`configuredRuns`, `maximumSequenceLength`, and
 optional `engine`, `seed`, `path`, `truncated`, `truncationReasons`), `error`
 (the failure to report, omitted on success), and `replay` (engine-native
-metadata attached to `PropertyTestFailure.replay`).
+metadata attached to `ModelTestFailure.replay`).
 
 ```ts
 import type {
   PropertyGeneratorKind,
-  PropertyTestAdapter,
-  PropertyTestAdapterRequest,
-  PropertyTestAdapterResult
+  TestAdapter,
+  TestAdapterRequest,
+  TestAdapterResult
 } from '@xstate/test';
 import type { EventObject, Snapshot } from 'xstate';
 
@@ -707,11 +818,11 @@ interface RandomKind extends PropertyGeneratorKind {
   readonly generator: () => this['target'];
 }
 
-export function randomAdapter(numRuns = 100): PropertyTestAdapter<RandomKind> {
+export function randomAdapter(numRuns = 100): TestAdapter<RandomKind> {
   return {
     async run<TSnapshot extends Snapshot<unknown>, TEvent extends EventObject>(
-      request: PropertyTestAdapterRequest<TSnapshot, TEvent>
-    ): Promise<PropertyTestAdapterResult> {
+      request: TestAdapterRequest<TSnapshot, TEvent>
+    ): Promise<TestAdapterResult> {
       const runs = request.runBudget ?? numRuns;
       for (let run = 0; run < runs; run++) {
         const runner = request.createRunner();
@@ -754,27 +865,27 @@ case and pointing at `resolve`.
 
 ## Failures, traces, and replay
 
-A failing property throws `PropertyTestFailure`, with:
+A failing property throws `ModelTestFailure`, with:
 
 | Field | Description |
 | --- | --- |
-| `trace` | The chronological `PropertyTrace`: `start`, `initialSnapshot`, `timeline`, `prefixEvents`, `events`, `commands`, `steps`, `finalSnapshot`, and observations. |
+| `trace` | The chronological `TestTrace`: `start`, `initialSnapshot`, `timeline`, `prefixEvents`, `events`, `commands`, `steps`, `finalSnapshot`, and observations. |
 | `cause` | The original error thrown by the invariant, temporal check, comparison, or SUT. |
 | `replay` | Engine-native metadata (`engine`, `engineVersion`, `seed`, `path`, `replayPath`, `data`) for re-running the same engine. |
-| `fixture` | A `PortablePropertyReplayFixture` (`formatVersion: 2`) that replays without the generator engine. |
-| `coverage` | The `PropertyCoverage` accumulated up to the failure. |
+| `fixture` | A `TestFixture` (`formatVersion: 2`) that replays without the generator engine. |
+| `coverage` | The `TestCoverage` accumulated up to the failure. |
 | `summary` | The short message, without the trace. |
 
-`message` is the summary followed by `formatPropertyTrace(trace)`, and it is
+`message` is the summary followed by `formatTestTrace(trace)`, and it is
 built before the stack is captured, so reporters that print only `error.stack`
 still show the counterexample.
 
-`formatPropertyTrace(trace)` returns a human-readable string.
-`serializePropertyTrace(trace)` returns a JSON-safe object — snapshots are
+`formatTestTrace(trace)` returns a human-readable string.
+`serializeTestTrace(trace)` returns a JSON-safe object — snapshots are
 converted with `toJSON()` where available — for writing traces to disk or
 attaching them to CI artifacts.
 
-`replayPropertyTest(machineOrModel, fixture, options)` replays a fixture. It
+`replayTest(machineOrModel, fixture, options)` replays a fixture. It
 takes `invariant`, and optional `temporal`, `reference`, `sut`, `test`,
 `restoreSnapshot`, and `expect`. A fixture recorded from a snapshot start
 requires `restoreSnapshot`. The fixture's recorded machine `id` and `version`
@@ -784,19 +895,19 @@ are checked against the machine you pass.
 
 | Value | Behavior |
 | --- | --- |
-| `'failure'` (default) | Stops at the recorded `failedAt` step and throws the reproduced failure. When the failure does not reproduce, it throws `PropertyReplayNotReproducedError`, whose `step` is the recorded failing step. |
-| `'pass'` | Replays the whole timeline and resolves with the `PropertyTrace`. Any property failure is thrown as-is. |
+| `'failure'` (default) | Stops at the recorded `failedAt` step and throws the reproduced failure. When the failure does not reproduce, it throws `ReplayNotReproducedError`, whose `step` is the recorded failing step. |
+| `'pass'` | Replays the whole timeline and resolves with the `TestTrace`. Any property failure is thrown as-is. |
 
 `failedAt` is absent on fixtures recorded from a passing run, such as the ones
 an offline suite is built from; those are replayed with `expect: 'pass'`.
 
 ```ts
-import { PropertyReplayNotReproducedError, replayPropertyTest } from '@xstate/test';
+import { ReplayNotReproducedError, replayTest } from '@xstate/test';
 
 try {
-  await replayPropertyTest(machine, fixture, { invariant });
+  await replayTest(machine, fixture, { invariant });
 } catch (error) {
-  if (error instanceof PropertyReplayNotReproducedError) {
+  if (error instanceof ReplayNotReproducedError) {
     // The regression is fixed: the fixture no longer reproduces its failure.
   }
 }
@@ -806,7 +917,7 @@ A fixture records clock-delivered events twice: on the `advance` command, as
 `deliveredEvents`, and as the `event` entries that follow it, each marked
 `origin: 'clock'`. The replay of an `advance` command only re-records the
 command — in pure mode there is no clock to run — so the events themselves are
-replayed from those following entries. `replayPropertyTest()` checks the two
+replayed from those following entries. `replayTest()` checks the two
 against each other before replaying and rejects a fixture whose clock-delivered
 events were dropped or reordered.
 
@@ -818,7 +929,7 @@ default behavior.
 `extractReplayPath(counterexample)` (exported from `@xstate/test`) pulls
 the `replayPath` out of a raw fast-check `fc.commands` counterexample. You only
 need it when you call fast-check yourself; `fastCheckAdapter()` already puts the
-value on `PropertyTestFailure.replay.replayPath`.
+value on `ModelTestFailure.replay.replayPath`.
 
 ## Starting from a snapshot or input
 
@@ -843,7 +954,7 @@ await propertyTest(machine, {
 that fixture needs a matching `restoreSnapshot`:
 
 ```ts
-await replayPropertyTest(machine, failure.fixture!, {
+await replayTest(machine, failure.fixture!, {
   invariant,
   restoreSnapshot: (snapshot) =>
     machine.resolveState(snapshot as { value: string; context: Context })
@@ -857,11 +968,11 @@ that turn it into readable output and CI artifacts:
 
 ```ts
 import {
-  assertPropertyCoverage,
-  formatPropertyCoverage,
-  formatPropertyCoverageHTML,
-  formatPropertyCoverageJUnit,
-  propertyCoverageToJSON
+  assertTestCoverage,
+  formatTestCoverage,
+  formatTestCoverageHTML,
+  formatTestCoverageJUnit,
+  testCoverageToJSON
 } from '@xstate/test';
 
 const { coverage } = await propertyTest(machine, {
@@ -869,30 +980,30 @@ const { coverage } = await propertyTest(machine, {
   invariant
 });
 
-console.log(formatPropertyCoverage(coverage));
-console.log(formatPropertyCoverage(coverage, { format: 'markdown' }));
+console.log(formatTestCoverage(coverage));
+console.log(formatTestCoverage(coverage, { format: 'markdown' }));
 ```
 
-`formatPropertyCoverage()` prints one line per dimension, for example
+`formatTestCoverage()` prints one line per dimension, for example
 `transitions: 7/9 covered (77.8%), 1 uncovered, 1 unreachable, 0 unknown`,
 followed by the outstanding ids, guard outcomes, event-case lifecycle counts,
 temporal results and the exploration bounds. `format: 'markdown'` renders the
 same data as tables. Output is deterministic, so it can be snapshot-tested.
 
-- `propertyCoverageToJSON(coverage)` returns stable, JSON-safe data tagged with
+- `testCoverageToJSON(coverage)` returns stable, JSON-safe data tagged with
   `formatVersion: 1`, for storing or diffing coverage between runs.
-- `formatPropertyCoverageJUnit(coverage, { suiteName })` returns JUnit XML with
+- `formatTestCoverageJUnit(coverage, { suiteName })` returns JUnit XML with
   one `<testcase>` per transition and per state node: `<failure>` for uncovered
   items and `<skipped>` for unreachable or unknown ones.
-- `formatPropertyCoverageHTML(coverage, { title })` returns a single
+- `formatTestCoverageHTML(coverage, { title })` returns a single
   self-contained HTML document with summary cards and tables.
 
-`assertPropertyCoverage()` gates a test on covered ratios
+`assertTestCoverage()` gates a test on covered ratios
 (`covered / (covered + uncovered)`), throwing an error with the formatted report
 when a dimension falls short:
 
 ```ts
-assertPropertyCoverage(coverage, { transitions: 1, stateNodes: 0.9 });
+assertTestCoverage(coverage, { transitions: 1, stateNodes: 0.9 });
 ```
 
 ## Transition pairs and requirements
@@ -1061,7 +1172,7 @@ coverage.exploration.swarm; // { runs, averageEnabled }
 `minCases` (the fewest cases a run may enable) and `seed` (the campaign seed the
 per-run subsets are derived from, default `0`). The subset for a run is a pure
 function of that seed and the run index, so a campaign's swarm sets are
-reproducible; the enabled case ids are recorded on the run's `PropertyTrace` and
+reproducible; the enabled case ids are recorded on the run's `TestTrace` and
 on any replay fixture as `swarm`.
 
 Shrinking is unaffected: as soon as a run fails, the enabled subset is frozen to
@@ -1130,10 +1241,10 @@ coverage.labels.balance.values['0']; // occurrences per recorded value
 `expectLabels` fails the campaign when a label is too rare. `min` is a share of
 attempted runs (`0`..`1`, capped at `1`) and `minCount` is a total number of occurrences. A
 shortfall throws an error naming every label that fell short, with the
-`PropertyCoverage` attached as `error.coverage`.
+`TestCoverage` attached as `error.coverage`.
 
-Labels are rendered by `formatPropertyCoverage()` in both text and markdown,
-and by `propertyCoverageToJSON()`. Counts include shrinking runs, so treat them
+Labels are rendered by `formatTestCoverage()` in both text and markdown,
+and by `testCoverageToJSON()`. Counts include shrinking runs, so treat them
 as a distribution sketch rather than an exact tally.
 
 ## Offline suites
@@ -1163,20 +1274,20 @@ counts runner creations, shrink attempts included.
 
 ```ts
 import {
-  generatePropertySuite,
-  serializePropertySuite
+  generateTestSuite,
+  serializeTestSuite
 } from '@xstate/test';
 
-const suite = await generatePropertySuite(machine, {
+const suite = await generateTestSuite(machine, {
   numRuns: 200,
   events,
   invariant
 });
 
-await writeFile('suite.json', serializePropertySuite(suite));
+await writeFile('suite.json', serializeTestSuite(suite));
 ```
 
-`generatePropertySuite(machineOrModel, options)` takes every `propertyTest()`
+`generateTestSuite(machineOrModel, options)` takes every `propertyTest()`
 option plus:
 
 | Option | Description |
@@ -1191,20 +1302,20 @@ sequences. Ties are broken by the shorter trace, then by a stable key, so the
 same campaign always produces the same suite.
 
 The suite is `{ formatVersion: 1, machineId, machineVersion, generatedAt,
-fixtures, coverage }`, where `fixtures` are `PortablePropertyReplayFixture`
-values and `coverage` is the `propertyCoverageToJSON()` snapshot of the whole
-campaign — not only of the selected fixtures. `serializePropertySuite(suite)`
-and `parsePropertySuite(json)` round-trip it; parsing rejects unknown format
+fixtures, coverage }`, where `fixtures` are `TestFixture`
+values and `coverage` is the `testCoverageToJSON()` snapshot of the whole
+campaign — not only of the selected fixtures. `serializeTestSuite(suite)`
+and `parseTestSuite(json)` round-trip it; parsing rejects unknown format
 versions.
 
 Replaying the suite needs only `xstate/graph`, so a committed suite runs in CI
 without fast-check installed:
 
 ```ts
-import { parsePropertySuite, replayPropertySuite } from '@xstate/test';
+import { parseTestSuite, replayTestSuite } from '@xstate/test';
 
-const suite = parsePropertySuite(await readFile('suite.json', 'utf8'));
-const { passed, failed } = await replayPropertySuite(machine, suite, {
+const suite = parseTestSuite(await readFile('suite.json', 'utf8'));
+const { passed, failed } = await replayTestSuite(machine, suite, {
   invariant
 });
 
@@ -1214,20 +1325,20 @@ if (failed.length) {
 ```
 
 Every fixture is expected to pass — a suite is a regression set, not a set of
-counterexamples. `replayPropertySuite()` resolves with `{ passed, failed }`,
+counterexamples. `replayTestSuite()` resolves with `{ passed, failed }`,
 where each failure carries `fixture`, `index`, `title`, and `error`.
 
-To register one test case per fixture instead, use `describePropertySuite()`.
+To register one test case per fixture instead, use `describeTestSuite()`.
 It is framework-agnostic: pass `it` and `describe`, or let it use the ambient
 globals of Vitest or Jest.
 
 ```ts
-describePropertySuite(suite, machine, { invariant });
+describeTestSuite(suite, machine, { invariant });
 ```
 
-`replayPropertySuiteFixture(machineOrModel, fixture, options)` replays a single
+`replayTestSuiteFixture(machineOrModel, fixture, options)` replays a single
 fixture and rejects with the underlying failure when it no longer passes. It is
-`replayPropertyTest()` with `expect: 'pass'`.
+`replayTest()` with `expect: 'pass'`.
 
 ## Playwright
 
@@ -1244,16 +1355,17 @@ assignable without extra typing.
 is a runnable version.
 
 
-### Style 1: `createPlaywrightSut`
+### `createPlaywrightSut`
 
-`createPlaywrightSut(page, config)` returns a `PropertySut`. The runner projects
+`createPlaywrightSut(page, config)` returns a `TestSut` that either entry point
+accepts. The runner projects
 both the model snapshot and the DOM to comparable values and fails the run when
 they diverge.
 
 ```ts
 import { test } from '@playwright/test';
 import * as fc from 'fast-check';
-import { formatPropertyCoverage, propertyTest } from '@xstate/test';
+import { formatTestCoverage, propertyTest } from '@xstate/test';
 import { createPlaywrightSut } from '@xstate/test/playwright';
 import { formMachine } from './machine';
 
@@ -1287,7 +1399,7 @@ test('the form matches the model', async ({ page }) => {
     invariant: () => {}
   });
 
-  console.log(formatPropertyCoverage(coverage));
+  console.log(formatTestCoverage(coverage));
 });
 ```
 
@@ -1296,8 +1408,9 @@ test('the form matches the model', async ({ page }) => {
 | Option          | Default                                       | Purpose                                              |
 | --------------- | --------------------------------------------- | ---------------------------------------------------- |
 | `events`        | required                                      | Performs each generated event against the page.      |
-| `read`          | required                                      | Projects the DOM to a model-comparable value.        |
-| `projectModel`  | required                                      | Projects the model snapshot to the same shape.       |
+| `read`          | none                                          | Projects the DOM to a model-comparable value.        |
+| `projectModel`  | none                                          | Projects the model snapshot to the same shape.       |
+| `states`        | none                                          | Per-state page assertions, run after every stable step. |
 | `projectSut`    | identity                                      | Normalizes the value from `read` before comparison.  |
 | `equivalent`    | deep equality                                 | Compares the two projections.                        |
 | `settle`        | `page.waitForLoadState('networkidle')`        | Waits for quiescence before every comparison.        |
@@ -1314,20 +1427,18 @@ Every scenario run creates a new session, so put navigation or app state reset
 in `reset`. Without it, state left over from the previous run diverges from the
 freshly started model.
 
-### Style 2: `createPlaywrightTestModelSession`
+### Assertions instead of projections
 
-If you prefer assertions over projections, `createPlaywrightTestModelSession`
-adapts the `TestParam` style (`events` executors and `states` assertions) to the
-`test` option:
+`read`/`projectModel` are optional. Configure `states` instead when you prefer
+page assertions to projections:
 
 ```ts
-await propertyTest(formMachine, {
-  numRuns: 25,
+await testPaths(formMachine, {
   events: { NEXT: fc.constant({}), BACK: fc.constant({}) },
-  test: createPlaywrightTestModelSession(page, {
+  sut: createPlaywrightSut(page, {
     reset: (page) => page.goto('/form.html'),
     events: {
-      NEXT: (page, step) => page.click('#next'),
+      NEXT: (page) => page.click('#next'),
       BACK: (page) => page.click('#back')
     },
     states: {
@@ -1340,17 +1451,13 @@ await propertyTest(formMachine, {
         await expect(page.locator('#step')).toHaveText(String(snapshot.value));
       }
     }
-  }),
-  invariant: () => {}
+  })
 });
 ```
 
 `states` keys are matched against the model state; `'*'` runs for every state
-that no other key matched. The `events` executors receive the `Step`, so
-`step.event` carries the generated payload.
-
-Both styles can be combined with `sut` and `test` in the same `propertyTest()`
-call when you want projection-based comparison and page assertions together.
+that no other key matched. Projections and assertions can be configured
+together in the same `createPlaywrightSut()` call.
 
 ### Mocks per case
 
@@ -1441,7 +1548,7 @@ appending the accessibility tree to a log.
 
 ### Failure output
 
-A divergence throws a `PropertyTestFailure` with the message
+A divergence throws a `ModelTestFailure` with the message
 `Property observation diverged`. The error carries the shrunk trace:
 
 - `failure.trace.steps` — every event, with its phase and payload; the last
@@ -1449,9 +1556,9 @@ A divergence throws a `PropertyTestFailure` with the message
 - `failure.trace.finalObservation.sut` — `{ model, observed }`, the two
   projections that failed to match.
 - `failure.replay` and `failure.fixture` — replay the counterexample with
-  `replayPropertyTest()`.
+  `replayTest()`.
 - `failure.coverage` — the coverage collected up to the failure, printable with
-  `formatPropertyCoverage()`.
+  `formatTestCoverage()`.
 
 ## Concurrency
 
@@ -1587,7 +1694,7 @@ result.history; // the recorded operations with their intervals
 ```
 
 `send` may return the response directly; when it returns `undefined` the
-response is read back with `read()`, so a `PropertySut` works unchanged.
+response is read back with `read()`, so a `TestSut` works unchanged.
 Responses are compared against `projectModel(snapshot)` of the model state after
 the event. Pass `maxExplored` to bound the search and `equalResponse` to replace
 the structural comparison.

@@ -1,6 +1,6 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import * as fc from 'fast-check';
-import { formatPropertyCoverage, propertyTest } from '@xstate/test';
+import { formatTestCoverage, propertyTest } from '@xstate/test';
 import { createPlaywrightSut } from '@xstate/test/playwright';
 import { formMachine } from './machine.ts';
 
@@ -44,11 +44,17 @@ test('the form matches its model', async ({ page }) => {
         step: String(snapshot.value),
         error: snapshot.context.error
       }),
+      // Per-state assertions live on the same `sut`, next to the projections.
+      states: {
+        review: async (page) => {
+          await expect(page.locator('#next')).toHaveText('Submit');
+        }
+      },
       // The page is static, so there is nothing to wait for on the network.
       settle: async () => {}
     }),
     invariant: () => {}
   });
 
-  console.log(formatPropertyCoverage(coverage));
+  console.log(formatTestCoverage(coverage));
 });

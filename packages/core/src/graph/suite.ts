@@ -3,8 +3,8 @@
  *
  * A property suite is a deterministic, coverage-preserving set of replay
  * fixtures recorded from a passing `propertyTest()` campaign. It can be
- * committed and replayed in CI with `replayPropertySuite()` (or registered as
- * individual test cases with `describePropertySuite()`) without the generator
+ * committed and replayed in CI with `replayTestSuite()` (or registered as
+ * individual test cases with `describeTestSuite()`) without the generator
  * adapter — and therefore without `fast-check` — being installed.
  */
 import type {
@@ -15,33 +15,30 @@ import type {
   SnapshotFrom
 } from '../index.ts';
 import type { TestModel } from './TestModel.ts';
-import {
-  propertyCoverageToJSON,
-  type PropertyCoverageJSON
-} from './propertyReport.ts';
+import { testCoverageToJSON, type TestCoverageJSON } from './report.ts';
 import {
   propertyTest,
-  replayPropertyTest,
-  type PortablePropertyReplayFixture,
-  type PortablePropertyTimelineEntry,
+  replayTest,
+  type TestFixture,
+  type PortableTestTimelineEntry,
   type PropertyGeneratorKind,
-  type PropertyInvariant,
-  type PropertyReferenceOracle,
-  type PropertySut,
-  type PropertyTemporal,
-  type PropertyTestModelExecution,
+  type TestInvariant,
+  type TestReference,
+  type TestSut,
+  type TestTemporal,
+  type TestStateAssertions,
   type PropertyTestOptions,
-  type PropertyTrace
+  type TestTrace
 } from './propertyTest.ts';
 
-export interface PropertySuite {
+export interface TestSuite {
   readonly formatVersion: 1;
   readonly machineId?: string;
   readonly machineVersion?: string;
   /** ISO timestamp, only present when `generatedAt` was supplied. */
   readonly generatedAt?: string;
-  readonly fixtures: readonly PortablePropertyReplayFixture[];
-  readonly coverage: PropertyCoverageJSON;
+  readonly fixtures: readonly TestFixture[];
+  readonly coverage: TestCoverageJSON;
 }
 
 type LogicFromSource<TSource> =
@@ -56,7 +53,7 @@ type EventFromSource<TSource> =
     : never;
 type InputFromSource<TSource> = InputFrom<LogicFromSource<TSource>>;
 
-export interface GeneratePropertySuiteOptions<
+export interface GenerateTestSuiteOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput,
@@ -75,7 +72,7 @@ export interface GeneratePropertySuiteOptions<
 }
 
 interface Candidate {
-  readonly fixture: PortablePropertyReplayFixture;
+  readonly fixture: TestFixture;
   readonly elements: readonly string[];
   readonly key: string;
   readonly length: number;
@@ -85,7 +82,7 @@ interface Candidate {
 function getTraceElements<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
->(trace: PropertyTrace<TSnapshot, TEvent>): string[] {
+>(trace: TestTrace<TSnapshot, TEvent>): string[] {
   const elements = new Set<string>();
   for (const id of trace.initialTransitionIds) {
     elements.add(`transition:${id}`);
@@ -113,10 +110,10 @@ function toSuiteFixture<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 >(
-  trace: PropertyTrace<TSnapshot, TEvent>,
+  trace: TestTrace<TSnapshot, TEvent>,
   machine: { readonly id?: string; readonly version?: string } | undefined,
   serializeStartingSnapshot: ((snapshot: TSnapshot) => unknown) | undefined
-): PortablePropertyReplayFixture {
+): TestFixture {
   if (trace.start.type === 'snapshot' && !serializeStartingSnapshot) {
     throw new Error(
       'Property suites starting from a snapshot require start.serializeSnapshot'
@@ -133,11 +130,10 @@ function toSuiteFixture<
           }
         : trace.start,
     // Only entries carrying a replayable command are portable.
-    timeline: trace.timeline.flatMap(
-      (entry): PortablePropertyTimelineEntry[] =>
-        entry.kind === 'event' || entry.kind === 'command'
-          ? [{ kind: entry.kind, command: entry.command }]
-          : []
+    timeline: trace.timeline.flatMap((entry): PortableTestTimelineEntry[] =>
+      entry.kind === 'event' || entry.kind === 'command'
+        ? [{ kind: entry.kind, command: entry.command }]
+        : []
     ),
     // Carried through so the fixture replays under the same conditions the
     // campaign recorded it under.
@@ -151,7 +147,7 @@ function toSuiteFixture<
 function selectFixtures(
   candidates: readonly Candidate[],
   maxFixtures: number | undefined
-): PortablePropertyReplayFixture[] {
+): TestFixture[] {
   const covered = new Set<string>();
   const remaining = candidates.slice();
   const selected: Candidate[] = [];
@@ -190,22 +186,22 @@ function selectFixtures(
  * Only passing runs are recorded: a campaign that finds a counterexample
  * throws, as `propertyTest()` does.
  */
-export async function generatePropertySuite<
+export async function generateTestSuite<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>,
   TKind extends PropertyGeneratorKind
 >(
   source: TSource,
-  options: GeneratePropertySuiteOptions<
+  options: GenerateTestSuiteOptions<
     SnapshotFromSource<TSource>,
     EventFromSource<TSource>,
     InputFromSource<TSource>,
     TKind
   >
-): Promise<PropertySuite> {
+): Promise<TestSuite> {
   type TSnapshot = SnapshotFromSource<TSource>;
   type TEvent = EventFromSource<TSource>;
 
-  const traces: PropertyTrace<TSnapshot, TEvent>[] = [];
+  const traces: TestTrace<TSnapshot, TEvent>[] = [];
   const { select, maxFixtures, generatedAt, collect, ...rest } = options;
 
   const { coverage } = await propertyTest(source, {
@@ -262,85 +258,82 @@ export async function generatePropertySuite<
     machineVersion: machine?.version,
     generatedAt,
     fixtures,
-    coverage: propertyCoverageToJSON(coverage)
+    coverage: testCoverageToJSON(coverage)
   };
 }
 
-export interface ReplayPropertySuiteOptions<
+export interface ReplayTestSuiteOptions<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 > {
-  readonly invariant: PropertyInvariant<
+  readonly invariant: TestInvariant<
     SnapshotFromSource<TSource>,
     EventFromSource<TSource>
   >;
-  readonly temporal?: readonly PropertyTemporal<
+  readonly temporal?: readonly TestTemporal<
     SnapshotFromSource<TSource>,
     EventFromSource<TSource>
   >[];
-  readonly reference?: PropertyReferenceOracle<
+  readonly reference?: TestReference<
     SnapshotFromSource<TSource>,
     EventFromSource<TSource>
   >;
-  readonly sut?: PropertySut<
-    SnapshotFromSource<TSource>,
-    EventFromSource<TSource>
-  >;
-  readonly test?: PropertyTestModelExecution<
+  readonly sut?: TestSut<SnapshotFromSource<TSource>, EventFromSource<TSource>>;
+  readonly states?: TestStateAssertions<
     SnapshotFromSource<TSource>,
     EventFromSource<TSource>
   >;
   readonly restoreSnapshot?: (snapshot: unknown) => SnapshotFromSource<TSource>;
 }
 
-export interface PropertySuiteReplayFailure {
-  readonly fixture: PortablePropertyReplayFixture;
+export interface TestSuiteReplayFailure {
+  readonly fixture: TestFixture;
   readonly index: number;
   readonly title: string;
   readonly error: unknown;
 }
 
-export interface PropertySuiteReplayResult {
+export interface TestSuiteReplayResult {
   readonly passed: number;
-  readonly failed: readonly PropertySuiteReplayFailure[];
+  readonly failed: readonly TestSuiteReplayFailure[];
 }
 
 /**
  * Replays one suite fixture. Resolves when the fixture still passes and
  * rejects with the underlying failure when it does not.
  */
-export async function replayPropertySuiteFixture<
+export async function replayTestSuiteFixture<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 >(
   source: TSource,
-  fixture: PortablePropertyReplayFixture,
-  options: ReplayPropertySuiteOptions<TSource>
+  fixture: TestFixture,
+  options: ReplayTestSuiteOptions<TSource>
 ): Promise<void> {
-  await replayPropertyTest(source, fixture, {
+  await replayTest(source, fixture, {
     ...(options as any),
     expect: 'pass'
   });
 }
 
 /** Replays every fixture in a suite. Each fixture is expected to pass. */
-export async function replayPropertySuite<
+export async function replayTestSuite<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 >(
   source: TSource,
-  suite: PropertySuite,
-  options: ReplayPropertySuiteOptions<TSource>
-): Promise<PropertySuiteReplayResult> {
+  suite: TestSuite,
+  options: ReplayTestSuiteOptions<TSource>
+): Promise<TestSuiteReplayResult> {
   let passed = 0;
-  const failed: PropertySuiteReplayFailure[] = [];
+  const failed: TestSuiteReplayFailure[] = [];
   for (let index = 0; index < suite.fixtures.length; index++) {
     const fixture = suite.fixtures[index];
     try {
-      await replayPropertySuiteFixture(source, fixture, options);
+      await replayTestSuiteFixture(source, fixture, options);
       passed++;
     } catch (error) {
       failed.push({
         fixture,
         index,
-        title: formatPropertySuiteFixtureTitle(fixture, index),
+        title: formatTestSuiteFixtureTitle(fixture, index),
         error
       });
     }
@@ -349,8 +342,8 @@ export async function replayPropertySuite<
 }
 
 /** A stable, human-readable one-line title for a fixture. */
-export function formatPropertySuiteFixtureTitle(
-  fixture: PortablePropertyReplayFixture,
+export function formatTestSuiteFixtureTitle(
+  fixture: TestFixture,
   index: number
 ): string {
   const steps = fixture.timeline.map((entry) => {
@@ -371,9 +364,9 @@ export function formatPropertySuiteFixtureTitle(
   return `fixture ${index + 1}: ${steps.join(' -> ') || '(no events)'}`;
 }
 
-export interface DescribePropertySuiteOptions<
+export interface DescribeTestSuiteOptions<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
-> extends ReplayPropertySuiteOptions<TSource> {
+> extends ReplayTestSuiteOptions<TSource> {
   /** Defaults to the ambient `it`. */
   readonly it?: (name: string, fn: () => Promise<void> | void) => unknown;
   /** Defaults to the ambient `describe`, when one exists. */
@@ -386,12 +379,12 @@ export interface DescribePropertySuiteOptions<
  * Registers one test per suite fixture with a vitest/jest-compatible
  * `it`/`describe` pair.
  */
-export function describePropertySuite<
+export function describeTestSuite<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 >(
-  suite: PropertySuite,
+  suite: TestSuite,
   source: TSource,
-  options: DescribePropertySuiteOptions<TSource>
+  options: DescribeTestSuiteOptions<TSource>
 ): void {
   const globals = globalThis as {
     it?: (name: string, fn: () => Promise<void> | void) => unknown;
@@ -400,13 +393,13 @@ export function describePropertySuite<
   const it = options.it ?? globals.it;
   if (!it) {
     throw new Error(
-      'describePropertySuite() requires an `it` function when none is global'
+      'describeTestSuite() requires an `it` function when none is global'
     );
   }
   const register = () => {
     suite.fixtures.forEach((fixture, index) => {
-      it(formatPropertySuiteFixtureTitle(fixture, index), async () => {
-        await replayPropertySuiteFixture(source, fixture, options);
+      it(formatTestSuiteFixtureTitle(fixture, index), async () => {
+        await replayTestSuiteFixture(source, fixture, options);
       });
     });
   };
@@ -422,7 +415,7 @@ export function describePropertySuite<
 }
 
 /** Serializes a suite with stable key ordering. */
-export function serializePropertySuite(suite: PropertySuite): string {
+export function serializeTestSuite(suite: TestSuite): string {
   return JSON.stringify(
     {
       formatVersion: suite.formatVersion,
@@ -438,8 +431,8 @@ export function serializePropertySuite(suite: PropertySuite): string {
 }
 
 /** Parses a serialized suite, rejecting unknown format versions. */
-export function parsePropertySuite(json: string): PropertySuite {
-  const parsed = JSON.parse(json) as PropertySuite;
+export function parseTestSuite(json: string): TestSuite {
+  const parsed = JSON.parse(json) as TestSuite;
   if (!parsed || typeof parsed !== 'object') {
     throw new Error('Property suite JSON must be an object');
   }

@@ -1,12 +1,12 @@
 import { createMachine } from '../../index.ts';
 import {
-  assertPropertyCoverage,
-  formatPropertyCoverage,
-  formatPropertyCoverageHTML,
-  formatPropertyCoverageJUnit,
-  propertyCoverageToJSON,
+  assertTestCoverage,
+  formatTestCoverage,
+  formatTestCoverageHTML,
+  formatTestCoverageJUnit,
+  testCoverageToJSON,
   propertyTest,
-  type PropertyCoverage
+  type TestCoverage
 } from '../index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
@@ -27,7 +27,7 @@ const lightMachine = createMachine({
   }
 });
 
-async function getCoverage(): Promise<PropertyCoverage> {
+async function getCoverage(): Promise<TestCoverage> {
   const { coverage } = await propertyTest(lightMachine, {
     adapter: randomAdapter({ seed: 1, numRuns: 3, maxCommands: 3 }),
     events: { NEXT: constant({}) },
@@ -38,7 +38,7 @@ async function getCoverage(): Promise<PropertyCoverage> {
 
 describe('property coverage reports', () => {
   it('formats coverage as text', async () => {
-    const text = formatPropertyCoverage(await getCoverage());
+    const text = formatTestCoverage(await getCoverage());
 
     expect(text).toContain('Property coverage');
     expect(text).toMatch(/stateNodes: \d+\/\d+ covered \(\d+\.\d%\)/);
@@ -49,7 +49,7 @@ describe('property coverage reports', () => {
   });
 
   it('formats coverage as markdown tables', async () => {
-    const markdown = formatPropertyCoverage(await getCoverage(), {
+    const markdown = formatTestCoverage(await getCoverage(), {
       format: 'markdown'
     });
 
@@ -63,14 +63,14 @@ describe('property coverage reports', () => {
   });
 
   it('renders transition ids readably', async () => {
-    const text = formatPropertyCoverage(await getCoverage());
+    const text = formatTestCoverage(await getCoverage());
 
     expect(text).toContain('--NEXT--> #0');
   });
 
   it('produces stable JSON that round-trips', async () => {
     const coverage = await getCoverage();
-    const json = propertyCoverageToJSON(coverage);
+    const json = testCoverageToJSON(coverage);
 
     expect(json.formatVersion).toBe(1);
     expect(JSON.parse(JSON.stringify(json))).toEqual(json);
@@ -87,7 +87,7 @@ describe('property coverage reports', () => {
 
   it('produces JUnit XML with one testcase per transition and state node', async () => {
     const coverage = await getCoverage();
-    const xml = formatPropertyCoverageJUnit(coverage, { suiteName: 'light' });
+    const xml = formatTestCoverageJUnit(coverage, { suiteName: 'light' });
 
     const expectedTests = [coverage.transitions, coverage.stateNodes].reduce(
       (total, dimension) =>
@@ -122,7 +122,7 @@ describe('property coverage reports', () => {
   });
 
   it('produces self-contained HTML', async () => {
-    const html = formatPropertyCoverageHTML(await getCoverage(), {
+    const html = formatTestCoverageHTML(await getCoverage(), {
       title: 'Light coverage'
     });
 
@@ -138,10 +138,10 @@ describe('property coverage reports', () => {
     const coverage = await getCoverage();
 
     expect(() =>
-      assertPropertyCoverage(coverage, { stateNodes: 1, transitions: 1 })
+      assertTestCoverage(coverage, { stateNodes: 1, transitions: 1 })
     ).not.toThrow();
 
-    const starved: PropertyCoverage = {
+    const starved: TestCoverage = {
       ...coverage,
       stateNodes: {
         ...coverage.stateNodes,
@@ -150,10 +150,10 @@ describe('property coverage reports', () => {
       }
     };
 
-    expect(() => assertPropertyCoverage(starved, { stateNodes: 0.5 })).toThrow(
+    expect(() => assertTestCoverage(starved, { stateNodes: 0.5 })).toThrow(
       /stateNodes: 0\.0% covered, below the 50\.0% threshold/
     );
-    expect(() => assertPropertyCoverage(starved, { stateNodes: 0.5 })).toThrow(
+    expect(() => assertTestCoverage(starved, { stateNodes: 0.5 })).toThrow(
       /Property coverage/
     );
   });

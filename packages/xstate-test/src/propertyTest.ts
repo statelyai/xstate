@@ -7,6 +7,7 @@
  * its options at the top level and build the adapter themselves. Passing an
  * explicit `adapter` still overrides that.
  */
+import * as fc from 'fast-check';
 import type {
   ActorLogic,
   AnyStateMachine,
@@ -16,13 +17,17 @@ import type {
   SnapshotFrom
 } from 'xstate';
 import {
-  generatePropertySuite as baseGeneratePropertySuite,
+  generateTestSuite as baseGeneratePropertySuite,
   propertyTest as basePropertyTest,
-  type GeneratePropertySuiteOptions,
-  type PropertyCoverage,
-  type PropertyEventGenerators,
-  type PropertySuite,
-  type PropertyTestAdapter,
+  testPaths as baseTestPaths,
+  deriveCaseSeed,
+  isEventDescriptorObject,
+  type TestPathsOptions,
+  type GenerateTestSuiteOptions,
+  type TestCoverage,
+  type TestEventGenerators,
+  type TestSuite,
+  type TestAdapter,
   type PropertyTestOptions,
   TestModel
 } from 'xstate/graph';
@@ -104,30 +109,25 @@ export type FastCheckPropertyTestOptions<
      * and `commands` are still typed against fast-check, so such an adapter
      * usually wants `propertyTest()` from `xstate/graph` instead.
      */
-    readonly adapter?: PropertyTestAdapter<any>;
+    readonly adapter?: TestAdapter<any>;
     /**
      * Optional when the machine declares `schemas.events`; the generators are
      * derived from those schemas, and entries here override the derived ones.
      */
-    readonly events?: PropertyEventGenerators<
+    readonly events?: TestEventGenerators<
       TSnapshot,
       TEvent,
       FastCheckGeneratorKind
     >;
   };
 
-export type FastCheckGeneratePropertySuiteOptions<
+export type FastCheckGenerateTestSuiteOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput
 > = FastCheckPropertyTestOptions<TSnapshot, TEvent, TInput> &
   Omit<
-    GeneratePropertySuiteOptions<
-      TSnapshot,
-      TEvent,
-      TInput,
-      FastCheckGeneratorKind
-    >,
+    GenerateTestSuiteOptions<TSnapshot, TEvent, TInput, FastCheckGeneratorKind>,
     keyof PropertyTestOptions<TSnapshot, TEvent, TInput, FastCheckGeneratorKind>
   >;
 
@@ -238,7 +238,7 @@ export async function propertyTest<
     EventFromSource<TSource>,
     InputFromSource<TSource>
   >
-): Promise<{ coverage: PropertyCoverage }> {
+): Promise<{ coverage: TestCoverage }> {
   return basePropertyTest(
     source as any,
     resolveOptions(source, options) as any
@@ -247,20 +247,148 @@ export async function propertyTest<
 
 /**
  * Records an offline property suite from a passing campaign, with fast-check
- * as the generator. See `generatePropertySuite()` in `xstate/graph`.
+ * as the generator. See `generateTestSuite()` in `xstate/graph`.
  */
-export async function generatePropertySuite<
+export async function generateTestSuite<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 >(
   source: TSource,
-  options: FastCheckGeneratePropertySuiteOptions<
+  options: FastCheckGenerateTestSuiteOptions<
     SnapshotFromSource<TSource>,
     EventFromSource<TSource>,
     InputFromSource<TSource>
   >
-): Promise<PropertySuite> {
+): Promise<TestSuite> {
   return baseGeneratePropertySuite(
     source as any,
     resolveOptions(source, options) as any
   );
 }
+
+/**
+ * {@link TestPathsOptions} with the generator kind fixed to fast-check:
+ * `events` takes `fc.Arbitrary` values, which are sampled into concrete
+ * payloads before traversal.
+ */
+export type FastCheckTestPathsOptions<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TInput
+> = Omit<TestPathsOptions<TSnapshot, TEvent, TInput>, 'events'> &
+  DeriveEventsOptions & {
+    readonly events?: TestEventGenerators<
+      TSnapshot,
+      TEvent,
+      FastCheckGeneratorKind
+    >;
+  };
+
+/** fast-check arbitraries expose a `generate` method; plain generators do not. */
+function isArbitrary(value: unknown): value is fc.Arbitrary<unknown> {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    typeof (value as { generate?: unknown }).generate === 'function'
+  );
+}
+
+/**
+ * Replaces every fast-check arbitrary with a plain `(rng) => value` generator
+ * backed by `fc.sample`, so `xstate/graph` can expand it without depending on
+ * fast-check.
+ */
+function sampleArbitraries(
+  events: Record<string, unknown> | undefined,
+  samples: number,
+  seed: number
+): Record<string, unknown> {
+  const sampled = (generator: unknown, caseId: string): unknown => {
+    if (!isArbitrary(generator)) {
+      return generator;
+    }
+    // Each case samples from a seed derived from its own id, so declaring a
+    // new event type does not change the payloads drawn for the existing ones.
+    const values = fc.sample(generator, {
+      seed: deriveCaseSeed(seed, caseId),
+      numRuns: Math.max(1, samples)
+    });
+    let index = 0;
+    return () => values[index++ % values.length];
+  };
+  const one = (eventCase: unknown, type: string): unknown => {
+    if (!isEventDescriptorObject(eventCase)) {
+      return sampled(eventCase, `${type}:default`);
+    }
+    const descriptor = eventCase as { generate?: unknown; case?: string };
+    return {
+      ...descriptor,
+      generate: sampled(
+        descriptor.generate,
+        `${type}:${descriptor.case ?? 'default'}`
+      )
+    };
+  };
+  return Object.fromEntries(
+    Object.entries(events ?? {}).map(([type, configured]) => [
+      type,
+      Array.isArray(configured)
+        ? configured.map((eventCase) => one(eventCase, type))
+        : one(configured, type)
+    ])
+  );
+}
+
+/**
+ * Executes model paths against a system under test.
+ *
+ * The same options as `propertyTest()`, minus the generation controls
+ * (`numRuns`, `maxCommands`, `swarm`, `frontiers`, …) and plus the traversal
+ * controls (`pathGenerator`, `limit`, `toState`, `samples`, `seed`). fast-check
+ * arbitraries are accepted in `events` and sampled into `samples` concrete
+ * payloads before traversal.
+ */
+export async function testPaths<
+  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
+>(
+  source: TSource,
+  options: FastCheckTestPathsOptions<
+    SnapshotFromSource<TSource>,
+    EventFromSource<TSource>,
+    InputFromSource<TSource>
+  > = {} as never
+) {
+  const { deriveEvents, events, ...rest } = options as {
+    deriveEvents?: boolean;
+    events?: Record<string, unknown>;
+  } & Record<string, unknown>;
+  const derived =
+    deriveEvents === false ? undefined : deriveMissingEvents(source, events);
+  const merged = derived ? { ...derived, ...events } : (events ?? {});
+  return baseTestPaths(
+    source as any,
+    {
+      ...rest,
+      events: sampleArbitraries(
+        merged,
+        (options.samples as number | undefined) ?? 3,
+        (options.seed as number | undefined) ?? 0
+      )
+    } as any
+  );
+}
+
+/**
+ * Pre-2.0 name for {@link generateTestSuite}. Re-exported here (rather than
+ * inherited from `xstate/graph`) so it keeps the implicit fast-check adapter;
+ * the generator-neutral one requires an explicit `adapter`.
+ *
+ * @deprecated Use `generateTestSuite()`.
+ */
+export const generatePropertySuite = generateTestSuite;
+
+/** @deprecated Use {@link FastCheckGenerateTestSuiteOptions}. */
+export type FastCheckGeneratePropertySuiteOptions<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TInput
+> = FastCheckGenerateTestSuiteOptions<TSnapshot, TEvent, TInput>;

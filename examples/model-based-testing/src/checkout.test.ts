@@ -35,14 +35,25 @@ describe('generated paths', () => {
       const ui = new CheckoutUi();
 
       await path.test({
-        // Event executors drive the system under test with the generated
-        // event, payload included.
-        events: {
-          startCheckout: () => ui.startCheckout(),
-          submitAddress: ({ event }) => ui.enterAddress(event.zip),
-          pay: ({ event }) => ui.pay(event.card),
-          back: () => ui.back(),
-          retry: () => ui.retry()
+        // The `sut` drives the system under test with each event, payload
+        // included.
+        sut: {
+          create: () => ({
+            send: (event) => {
+              switch (event.type) {
+                case 'startCheckout':
+                  return ui.startCheckout();
+                case 'submitAddress':
+                  return ui.enterAddress(event.zip);
+                case 'pay':
+                  return ui.pay(event.card);
+                case 'back':
+                  return ui.back();
+                case 'retry':
+                  return ui.retry();
+              }
+            }
+          })
         },
         // State assertions are the postconditions, checked after every step.
         states: {

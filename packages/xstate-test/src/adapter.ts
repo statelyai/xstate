@@ -1,11 +1,11 @@
 import * as fc from 'fast-check';
 import type {
-  PropertyActorOutcome,
+  TestActorOutcome,
   PropertyGeneratorKind,
   PropertyScenarioRunner,
-  PropertyTestAdapter,
-  PropertyTestAdapterRequest,
-  PropertyTestAdapterResult
+  TestAdapter,
+  TestAdapterRequest,
+  TestAdapterResult
 } from 'xstate/graph';
 import type { EventObject, Snapshot } from 'xstate';
 import { withCurrentScheduler } from './scheduler.ts';
@@ -255,7 +255,7 @@ class OutcomePropertyCommand<
 > {
   public constructor(
     public readonly src: string,
-    public readonly outcome: PropertyActorOutcome
+    public readonly outcome: TestActorOutcome
   ) {}
 
   public check(runner: PropertyScenarioRunner<TSnapshot, TEvent>): boolean {
@@ -273,7 +273,7 @@ class OutcomePropertyCommand<
   }
 }
 
-class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
+class FastCheckAdapter implements TestAdapter<FastCheckGeneratorKind> {
   public readonly kind?: FastCheckGeneratorKind;
 
   public constructor(private readonly options: FastCheckAdapterOptions) {}
@@ -282,8 +282,8 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
     TSnapshot extends Snapshot<unknown>,
     TEvent extends EventObject
   >(
-    request: PropertyTestAdapterRequest<TSnapshot, TEvent>
-  ): Promise<PropertyTestAdapterResult> {
+    request: TestAdapterRequest<TSnapshot, TEvent>
+  ): Promise<TestAdapterResult> {
     type PropertyCommandArbitrary = fc.Arbitrary<
       fc.AsyncCommand<
         PropertyScenarioRunner<TSnapshot, TEvent>,
@@ -311,9 +311,9 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
       } else if (command.type === 'outcome') {
         const src = command.src!;
         weighted.push({
-          arbitrary: (
-            command.generator as fc.Arbitrary<PropertyActorOutcome>
-          ).map((outcome) => new OutcomePropertyCommand(src, outcome)),
+          arbitrary: (command.generator as fc.Arbitrary<TestActorOutcome>).map(
+            (outcome) => new OutcomePropertyCommand(src, outcome)
+          ),
           weight: command.weight
         });
       } else if (command.type === 'checkpoint') {
@@ -493,6 +493,6 @@ class FastCheckAdapter implements PropertyTestAdapter<FastCheckGeneratorKind> {
 
 export function fastCheckAdapter(
   options: FastCheckAdapterOptions = {}
-): PropertyTestAdapter<FastCheckGeneratorKind> {
+): TestAdapter<FastCheckGeneratorKind> {
   return new FastCheckAdapter(options);
 }

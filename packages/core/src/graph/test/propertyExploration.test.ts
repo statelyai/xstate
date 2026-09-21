@@ -1,9 +1,9 @@
 import { createMachine, types } from '../../index.ts';
 import {
-  formatPropertyCoverage,
-  propertyCoverageToJSON,
+  formatTestCoverage,
+  testCoverageToJSON,
   propertyTest,
-  type PropertyCoverage
+  type TestCoverage
 } from '../index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
@@ -45,7 +45,7 @@ const labelMachine = createMachine({
 
 const noop = () => {};
 
-function transitionRatio(coverage: PropertyCoverage): number {
+function transitionRatio(coverage: TestCoverage): number {
   const { covered, uncovered } = coverage.transitions;
   return covered.length / (covered.length + uncovered.length);
 }
@@ -219,11 +219,11 @@ describe('labels and statistics', () => {
       }
     });
 
-    expect(formatPropertyCoverage(coverage)).toContain('labels:');
-    expect(formatPropertyCoverage(coverage, { format: 'markdown' })).toContain(
+    expect(formatTestCoverage(coverage)).toContain('labels:');
+    expect(formatTestCoverage(coverage, { format: 'markdown' })).toContain(
       '## Labels'
     );
-    expect(propertyCoverageToJSON(coverage).labels.count.count).toBe(
+    expect(testCoverageToJSON(coverage).labels.count.count).toBe(
       coverage.labels.count.count
     );
   });
@@ -238,7 +238,7 @@ describe('labels and statistics', () => {
       expectLabels: { large: { min: 0.5, minCount: 1 } }
     }).then(
       () => undefined,
-      (cause: unknown) => cause as Error & { coverage: PropertyCoverage }
+      (cause: unknown) => cause as Error & { coverage: TestCoverage }
     );
 
     expect(error).toBeInstanceOf(Error);

@@ -3,7 +3,8 @@ import { createMachine, types } from 'xstate';
 import {
   createTestModel,
   fastCheckAdapter,
-  propertyTest
+  propertyTest,
+  testPaths
 } from '../src/index.ts';
 import { expectTypeOf, it } from 'vitest';
 
@@ -90,22 +91,20 @@ it('infers machine and TestModel property APIs', () => {
 
     void propertyTest(createTestModel(machine), {
       events: { INC: fc.record({ value: fc.integer() }) },
-      test: {
+      sut: {
         create: () => ({
-          params: {
-            events: {
-              INC: ({ event, state }) => {
-                expectTypeOf(event.value).toEqualTypeOf<number>();
-                expectTypeOf(state.context.count).toEqualTypeOf<number>();
-              }
-            },
-            states: {
-              '*': (snapshot) => {
-                expectTypeOf(snapshot.context.count).toEqualTypeOf<number>();
-              }
+          send: (event, { snapshot }) => {
+            if (event.type === 'INC') {
+              expectTypeOf(event.value).toEqualTypeOf<number>();
             }
+            expectTypeOf(snapshot.context.count).toEqualTypeOf<number>();
           }
         })
+      },
+      states: {
+        '*': (snapshot) => {
+          expectTypeOf(snapshot.context.count).toEqualTypeOf<number>();
+        }
       },
       invariant: ({ snapshot }) => {
         expectTypeOf(snapshot.context.count).toEqualTypeOf<number>();
@@ -120,4 +119,23 @@ it('infers machine and TestModel property APIs', () => {
       invariant: () => {}
     });
   }
+});
+
+it('`testPaths()` accepts fast-check arbitraries in `events`', () => {
+  const run = () =>
+    testPaths(machine, {
+      events: {
+        INC: fc.record({ value: fc.integer() }),
+        RESET: fc.constant({})
+      }
+    });
+  expectTypeOf(run).returns.resolves.toHaveProperty('coverage');
+
+  () =>
+    testPaths(machine, {
+      events: {
+        // @ts-expect-error a payload generator must produce the event payload
+        INC: (value: number) => value
+      }
+    });
 });

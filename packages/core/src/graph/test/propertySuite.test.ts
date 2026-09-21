@@ -1,10 +1,10 @@
 import { createMachine } from '../../index.ts';
 import {
-  describePropertySuite,
-  generatePropertySuite,
-  parsePropertySuite,
-  replayPropertySuite,
-  serializePropertySuite
+  describeTestSuite,
+  generateTestSuite,
+  parseTestSuite,
+  replayTestSuite,
+  serializeTestSuite
 } from '../index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
@@ -38,7 +38,7 @@ const invariant = ({ snapshot, event }: { snapshot: any; event: any }) => {
 };
 
 const generate = () =>
-  generatePropertySuite(trafficMachine, {
+  generateTestSuite(trafficMachine, {
     adapter: randomAdapter({ seed: 7, numRuns: 20, maxCommands: 6 }),
     events: {
       NEXT: constant({}),
@@ -47,7 +47,7 @@ const generate = () =>
     invariant
   });
 
-describe('generatePropertySuite', () => {
+describe('generateTestSuite', () => {
   it('covers every reachable transition with few fixtures', async () => {
     const suite = await generate();
 
@@ -70,14 +70,14 @@ describe('generatePropertySuite', () => {
   });
 
   it('is deterministic', async () => {
-    expect(serializePropertySuite(await generate())).toBe(
-      serializePropertySuite(await generate())
+    expect(serializeTestSuite(await generate())).toBe(
+      serializeTestSuite(await generate())
     );
   });
 
   it('keeps every distinct trace with `select: "all"`', async () => {
     const minimal = await generate();
-    const all = await generatePropertySuite(trafficMachine, {
+    const all = await generateTestSuite(trafficMachine, {
       adapter: randomAdapter({ seed: 7, numRuns: 20, maxCommands: 6 }),
       events: { NEXT: constant({}), STOP: constant({}) },
       invariant,
@@ -88,7 +88,7 @@ describe('generatePropertySuite', () => {
   });
 
   it('respects `maxFixtures`', async () => {
-    const suite = await generatePropertySuite(trafficMachine, {
+    const suite = await generateTestSuite(trafficMachine, {
       adapter: randomAdapter({ seed: 7, numRuns: 20, maxCommands: 6 }),
       events: { NEXT: constant({}), STOP: constant({}) },
       invariant,
@@ -99,7 +99,7 @@ describe('generatePropertySuite', () => {
   });
 
   it('records `generatedAt` when supplied', async () => {
-    const suite = await generatePropertySuite(trafficMachine, {
+    const suite = await generateTestSuite(trafficMachine, {
       adapter: randomAdapter({ seed: 7, numRuns: 5, maxCommands: 4 }),
       events: { NEXT: constant({}) },
       invariant,
@@ -110,10 +110,10 @@ describe('generatePropertySuite', () => {
   });
 });
 
-describe('replayPropertySuite', () => {
+describe('replayTestSuite', () => {
   it('passes against the machine it was generated from', async () => {
     const suite = await generate();
-    const result = await replayPropertySuite(trafficMachine, suite, {
+    const result = await replayTestSuite(trafficMachine, suite, {
       invariant
     });
 
@@ -123,7 +123,7 @@ describe('replayPropertySuite', () => {
 
   it('reports failures naming the fixture when the machine changes', async () => {
     const suite = await generate();
-    const result = await replayPropertySuite(mutatedMachine, suite, {
+    const result = await replayTestSuite(mutatedMachine, suite, {
       invariant
     });
 
@@ -136,15 +136,15 @@ describe('replayPropertySuite', () => {
   });
 });
 
-describe('serializePropertySuite', () => {
+describe('serializeTestSuite', () => {
   it('round-trips through JSON', async () => {
     const suite = await generate();
-    const parsed = parsePropertySuite(serializePropertySuite(suite));
+    const parsed = parseTestSuite(serializeTestSuite(suite));
 
     expect(parsed.fixtures).toEqual(suite.fixtures);
     expect(parsed.machineId).toBe('traffic');
 
-    const result = await replayPropertySuite(trafficMachine, parsed, {
+    const result = await replayTestSuite(trafficMachine, parsed, {
       invariant
     });
     expect(result.failed).toEqual([]);
@@ -152,18 +152,18 @@ describe('serializePropertySuite', () => {
 
   it('rejects unknown format versions', () => {
     expect(() =>
-      parsePropertySuite(JSON.stringify({ formatVersion: 99, fixtures: [] }))
+      parseTestSuite(JSON.stringify({ formatVersion: 99, fixtures: [] }))
     ).toThrow(/Unsupported property suite format version: 99/);
   });
 });
 
-describe('describePropertySuite', () => {
+describe('describeTestSuite', () => {
   it('registers one test per fixture', async () => {
     const suite = await generate();
     const registered: string[] = [];
     const blocks: string[] = [];
 
-    describePropertySuite(suite, trafficMachine, {
+    describeTestSuite(suite, trafficMachine, {
       invariant,
       describe: (name, fn) => {
         blocks.push(name);
@@ -180,12 +180,12 @@ describe('describePropertySuite', () => {
   });
 });
 
-describe('describePropertySuite (vitest globals)', () => {
+describe('describeTestSuite (vitest globals)', () => {
   it('runs the generated fixtures', async () => {
     const suite = await generate();
     const results: Promise<void>[] = [];
 
-    describePropertySuite(suite, trafficMachine, {
+    describeTestSuite(suite, trafficMachine, {
       invariant,
       describe,
       it: (_name, fn) => {

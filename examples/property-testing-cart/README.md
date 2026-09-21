@@ -1,9 +1,10 @@
 # Property testing a shopping cart
 
 The hello world for [`@xstate/test`](../../packages/xstate-test). A cart
-machine, a hand-written implementation of the same cart, and three tests: one
+machine, a hand-written implementation of the same cart, and four tests: one
 that checks the model against itself, one that checks the implementation
-against the model, and one that replays a recorded counterexample.
+against the model, one that walks the model's state graph against the same
+implementation, and one that replays a recorded counterexample.
 
 Run them with:
 
@@ -17,7 +18,7 @@ pnpm test
 | --- | --- |
 | `src/cart.machine.ts` | The model. Event payloads are declared as Zod schemas, so the generators are derived from them. |
 | `src/cart-store.ts` | A plain `CartStore` class that mirrors the machine. Setting `CART_BUG=1` introduces one deliberate defect. |
-| `src/cart.test.ts` | The three tests. |
+| `src/cart.test.ts` | The four tests. |
 
 ## Test 1: the model on its own
 
@@ -38,7 +39,7 @@ Three things are worth pointing at:
 - **`until: { transitions: 1 }` stops the campaign early**, as soon as every
   transition has been covered, rather than always running the full budget.
 
-`formatPropertyCoverage(coverage)` prints what the campaign reached:
+`formatTestCoverage(coverage)` prints what the campaign reached:
 
 ```
 Property coverage
@@ -75,7 +76,7 @@ exploration:
   seed ["frontier","initial"]: engine fast-check, seed 1, path n/a
 ```
 
-`assertPropertyCoverage(coverage, { transitions: 1 })` then fails the test if a
+`assertTestCoverage(coverage, { transitions: 1 })` then fails the test if a
 later change leaves a transition unexercised.
 
 ## Test 2: the implementation against the model
@@ -108,12 +109,57 @@ start {"status":"active","context":{"items":{}},"value":"shopping", ...}
 The last line is the divergence: the model dropped `apple`, the store kept it
 at zero.
 
-## Test 3: replaying the counterexample
+## Test 3: the same `sut`, walked instead of generated
 
-A `PropertyTestFailure` carries a `fixture`: a portable, plain-JSON record of
-the sequence that failed. `replayPropertyTest(machine, fixture, options)`
+`testPaths()` takes the same `events`, the same `sut`, and the same oracles.
+Only the generation keys change: `samples` decides how many concrete payloads
+each event case contributes to the graph, and `stopWhen` bounds a cart that
+would otherwise grow forever.
+
+```ts
+const { coverage, results } = await testPaths(cartMachine, {
+  deriveEvents: false,
+  samples: 1,
+  seed: 3,
+  events: { ADD, REMOVE: removeAnItemInTheCart },
+  stopWhen: (snapshot) => (snapshot.context.items.apple ?? 0) >= 2,
+  sut: cartSut
+});
+```
+
+The coverage object is the one `propertyTest()` returns, so the same
+formatters and assertions apply. Only `exploration` says which strategy ran:
+
+```
+transitions: 2/5 covered (40.0%), 1 uncovered, 0 unreachable, 2 unknown
+uncovered transitions:
+  - cart.shopping --REMOVE--> #0
+event cases:
+  - ADD / default: 3 generated, 3 applicable, 3 executed, 0 ignored
+  - CHECKOUT / default: 1 generated, 1 applicable, 1 executed, 0 ignored
+  - REMOVE / default: 0 generated, 0 applicable, 0 executed, 0 ignored
+
+exploration:
+  runs: configured 2, completed 2, attempted 2
+  sequence length: max 3, max observed 3
+  stopped because: budget
+  seed ["frontier","initial"]: engine paths, seed n/a, path n/a
+```
+
+`REMOVE` stays uncovered, and the report says so: removing the only item
+returns the cart to its starting state, so neither the shortest nor the simple
+paths include it. A literal sequence does, and the second `it` uses
+`fromEvents` to walk `ADD` then `REMOVE` against the buggy store. The failure
+is a `ModelTestFailure` with the same trace, fixture, and coverage that
+`propertyTest()` produces — `coverage.exploration.strategy` is the only
+difference.
+
+## Test 4: replaying the counterexample
+
+A `ModelTestFailure` carries a `fixture`: a portable, plain-JSON record of
+the sequence that failed. `replayTest(machine, fixture, options)`
 re-runs exactly that sequence and expects the same failure, throwing
-`PropertyReplayNotReproducedError` if the failure no longer happens.
+`ReplayNotReproducedError` if the failure no longer happens.
 
 Committing a fixture turns a generated counterexample into an ordinary
 regression test that needs no generator and no seed.

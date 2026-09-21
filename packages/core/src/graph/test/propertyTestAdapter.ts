@@ -1,5 +1,5 @@
 /**
- * A dependency-free `PropertyTestAdapter` used to exercise the
+ * A dependency-free `TestAdapter` used to exercise the
  * `xstate/graph` property-testing surface from within `packages/core`.
  *
  * It is deliberately minimal: a seeded `mulberry32` PRNG, plain
@@ -8,12 +8,12 @@
  */
 import type { EventObject, Snapshot } from '../../index.ts';
 import type {
-  PropertyActorOutcome,
+  TestActorOutcome,
   PropertyGeneratorKind,
   PropertyScenarioRunner,
-  PropertyTestAdapter,
-  PropertyTestAdapterRequest,
-  PropertyTestAdapterResult
+  TestAdapter,
+  TestAdapterRequest,
+  TestAdapterResult
 } from '../propertyTest.ts';
 
 type Rng = () => number;
@@ -84,7 +84,7 @@ type StepFactory<
   TEvent extends EventObject
 > = (rng: Rng) => Step<TSnapshot, TEvent>;
 
-class RandomAdapter implements PropertyTestAdapter<RandomGeneratorKind> {
+class RandomAdapter implements TestAdapter<RandomGeneratorKind> {
   public readonly kind?: RandomGeneratorKind;
 
   public constructor(private readonly options: RandomAdapterOptions) {}
@@ -93,8 +93,8 @@ class RandomAdapter implements PropertyTestAdapter<RandomGeneratorKind> {
     TSnapshot extends Snapshot<unknown>,
     TEvent extends EventObject
   >(
-    request: PropertyTestAdapterRequest<TSnapshot, TEvent>
-  ): Promise<PropertyTestAdapterResult> {
+    request: TestAdapterRequest<TSnapshot, TEvent>
+  ): Promise<TestAdapterResult> {
     const factories: StepFactory<TSnapshot, TEvent>[] = [];
     for (const { type, caseId, generator } of request.events) {
       factories.push((rng) => {
@@ -118,9 +118,9 @@ class RandomAdapter implements PropertyTestAdapter<RandomGeneratorKind> {
       } else if (command.type === 'outcome') {
         const src = command.src!;
         factories.push((rng) => {
-          const outcome = (
-            command.generator as Gen<PropertyActorOutcome>
-          ).sample(rng);
+          const outcome = (command.generator as Gen<TestActorOutcome>).sample(
+            rng
+          );
           return {
             check: (runner) => runner.canRunOutcome(),
             run: (runner) => runner.outcome(src, outcome)
@@ -214,6 +214,6 @@ class RandomAdapter implements PropertyTestAdapter<RandomGeneratorKind> {
 
 export function randomAdapter(
   options: RandomAdapterOptions = {}
-): PropertyTestAdapter<RandomGeneratorKind> {
+): TestAdapter<RandomGeneratorKind> {
   return new RandomAdapter(options);
 }

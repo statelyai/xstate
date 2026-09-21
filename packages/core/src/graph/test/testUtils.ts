@@ -1,5 +1,5 @@
 import { EventObject, Snapshot } from '../../index.ts';
-import { TestModel, TestParam, TestPath } from '../index.ts';
+import { TestModel, TestParam, TestPath, fromTestParam } from '../index.ts';
 
 async function testModel<
   TSnapshot extends Snapshot<unknown>,
@@ -10,7 +10,7 @@ async function testModel<
   params: TestParam<TSnapshot, TEvent>
 ) {
   for (const path of model.getShortestPaths()) {
-    await path.test(params);
+    await path.test({ sut: fromTestParam(params) });
   }
 }
 
@@ -19,7 +19,7 @@ async function testPaths<
   TEvent extends EventObject
 >(paths: TestPath<TSnapshot, TEvent>[], params: TestParam<TSnapshot, TEvent>) {
   for (const path of paths) {
-    await path.test(params);
+    await path.test({ sut: fromTestParam(params) });
   }
 }
 

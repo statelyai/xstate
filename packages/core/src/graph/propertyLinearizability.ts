@@ -1,6 +1,6 @@
 import type { AnyActorLogic, EventFromLogic, SnapshotFrom } from '../types.ts';
 import { initialTransition, transition } from '../transition.ts';
-import type { PropertySutContext } from './propertyTest.ts';
+import type { TestSutContext } from './propertyTest.ts';
 
 /**
  * One completed operation of a concurrent history: the event that was sent
@@ -216,7 +216,7 @@ export interface ParallelPropertySutSession<TEvent> {
   /**
    * Sends an event. The resolved value is the operation's response; when it is
    * `undefined` the response is read back with `read()`, which makes a
-   * `PropertySutSession` usable as-is.
+   * `TestSutSession` usable as-is.
    */
   readonly send: (event: TEvent, context?: unknown) => unknown;
   readonly read?: () => unknown;
@@ -225,7 +225,7 @@ export interface ParallelPropertySutSession<TEvent> {
 
 export interface ParallelPropertySut<TSnapshot, TEvent> {
   readonly create: (
-    context: PropertySutContext<any, any>
+    context: TestSutContext<any, any>
   ) =>
     | ParallelPropertySutSession<TEvent>
     | Promise<ParallelPropertySutSession<TEvent>>;
@@ -286,7 +286,7 @@ export async function runParallelPropertyCommands<TLogic extends AnyActorLogic>(
     label: () => {},
     classify: () => {},
     target: () => {}
-  } satisfies PropertySutContext<any, any>);
+  } satisfies TestSutContext<any, any>);
 
   let clock = 0;
   const now = () => clock++;

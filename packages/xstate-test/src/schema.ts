@@ -1,6 +1,6 @@
 import * as fc from 'fast-check';
 import type { AnyStateMachine, EventFrom, SnapshotFrom } from 'xstate';
-import type { PropertyEventGenerators } from 'xstate/graph';
+import type { TestEventGenerators } from 'xstate/graph';
 import type { FastCheckGeneratorKind } from './adapter.ts';
 
 /**
@@ -933,7 +933,7 @@ function stripType(
 export function eventsFromSchemas<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options: EventsFromSchemasOptions = {}
-): PropertyEventGenerators<
+): TestEventGenerators<
   SnapshotFrom<TMachine>,
   EventFrom<TMachine>,
   FastCheckGeneratorKind
@@ -967,7 +967,7 @@ export function eventsFromSchemas<TMachine extends AnyStateMachine>(
     }
   }
 
-  return generators as PropertyEventGenerators<
+  return generators as TestEventGenerators<
     SnapshotFrom<TMachine>,
     EventFrom<TMachine>,
     FastCheckGeneratorKind

@@ -1,12 +1,12 @@
 import * as fc from 'fast-check';
 import { createAsyncLogic, createMachine, types } from 'xstate';
 import {
-  PropertyTestFailure,
+  ModelTestFailure,
   fastCheckAdapter,
   propertyTest,
-  replayPropertyTest
+  replayTest
 } from '../src/index.ts';
-import type { PortablePropertyReplayFixture } from '../src/index.ts';
+import type { TestFixture } from '../src/index.ts';
 
 const outcomeArbitrary = fc.oneof(
   fc.record({ ok: fc.constant(true as const), output: fc.integer() }),
@@ -155,23 +155,23 @@ describe('executed mode', () => {
           throw new Error('reached success');
         }
       }
-    }).catch((cause) => cause)) as PropertyTestFailure;
+    }).catch((cause) => cause)) as ModelTestFailure;
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
-    const fixture = failure.fixture as PortablePropertyReplayFixture;
+    expect(failure).toBeInstanceOf(ModelTestFailure);
+    const fixture = failure.fixture as TestFixture;
     expect(fixture.mode).toBe('executed');
     expect(fixture.outcomes?.length).toBeGreaterThan(0);
 
     calls = 0;
     await expect(
-      replayPropertyTest(machine, fixture, {
+      replayTest(machine, fixture, {
         invariant: ({ snapshot }: any) => {
           if (snapshot.value === 'success') {
             throw new Error('reached success');
           }
         }
       })
-    ).rejects.toThrow(PropertyTestFailure);
+    ).rejects.toThrow(ModelTestFailure);
     expect(calls).toBe(0);
   });
 

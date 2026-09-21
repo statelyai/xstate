@@ -1,9 +1,9 @@
 import { createMachine, initialTransition, types } from '../../index.ts';
 import {
-  PropertyTestFailure,
+  ModelTestFailure,
   propertyTest,
-  replayPropertyTest,
-  type PortablePropertyReplayFixture
+  replayTest,
+  type TestFixture
 } from '../index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
@@ -38,9 +38,9 @@ const legacyFixture = {
   failedAt: 1
 } as const;
 
-describe('replayPropertyTest', () => {
+describe('replayTest', () => {
   it('replays a v2 fixture produced by a failing property test', async () => {
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(counterMachine, {
         adapter: randomAdapter({ seed: 1, numRuns: 5, maxCommands: 2 }),
@@ -48,33 +48,31 @@ describe('replayPropertyTest', () => {
         invariant: failingInvariant
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
     expect(failure.fixture).toMatchObject({ formatVersion: 2 });
 
-    const replayed = (await replayPropertyTest(
-      counterMachine,
-      failure.fixture!,
-      { invariant: failingInvariant }
-    ).catch((error) => error)) as PropertyTestFailure;
+    const replayed = (await replayTest(counterMachine, failure.fixture!, {
+      invariant: failingInvariant
+    }).catch((error) => error)) as ModelTestFailure;
 
-    expect(replayed).toBeInstanceOf(PropertyTestFailure);
+    expect(replayed).toBeInstanceOf(ModelTestFailure);
     expect(replayed.trace.steps).toHaveLength(failure.trace.steps.length);
   });
 
   it('migrates a formatVersion 1 fixture', async () => {
-    const replayed = (await replayPropertyTest(counterMachine, legacyFixture, {
+    const replayed = (await replayTest(counterMachine, legacyFixture, {
       invariant: failingInvariant
-    }).catch((error) => error)) as PropertyTestFailure;
+    }).catch((error) => error)) as ModelTestFailure;
 
-    expect(replayed).toBeInstanceOf(PropertyTestFailure);
+    expect(replayed).toBeInstanceOf(ModelTestFailure);
     expect(replayed.trace.steps).toHaveLength(1);
     expect(replayed.trace.steps[0].phase).toBe('generated');
     expect(replayed.trace.steps[0].event).toEqual({ type: 'INC', value: 5 });
   });
 
   it('migrates prefix events from a formatVersion 1 fixture', async () => {
-    const replayed = (await replayPropertyTest(
+    const replayed = (await replayTest(
       counterMachine,
       {
         ...legacyFixture,
@@ -83,16 +81,16 @@ describe('replayPropertyTest', () => {
         failedAt: 2
       },
       { invariant: failingInvariant }
-    ).catch((error) => error)) as PropertyTestFailure;
+    ).catch((error) => error)) as ModelTestFailure;
 
-    expect(replayed).toBeInstanceOf(PropertyTestFailure);
+    expect(replayed).toBeInstanceOf(ModelTestFailure);
     expect(replayed.trace.prefixEvents).toEqual([{ type: 'INC', value: 3 }]);
     expect(replayed.trace.events).toEqual([{ type: 'INC', value: 3 }]);
   });
 
   it('rejects a fixture recorded against another machine id', async () => {
     await expect(
-      replayPropertyTest(
+      replayTest(
         counterMachine,
         { ...legacyFixture, machine: { id: 'other' } },
         { invariant: () => {} }
@@ -104,7 +102,7 @@ describe('replayPropertyTest', () => {
 
   it('rejects a fixture recorded against another machine version', async () => {
     await expect(
-      replayPropertyTest(
+      replayTest(
         counterMachine,
         { ...legacyFixture, machine: { id: 'counter', version: '2.0.0' } },
         { invariant: () => {} }
@@ -116,7 +114,7 @@ describe('replayPropertyTest', () => {
 
   it('requires `restoreSnapshot` when the fixture starts from a snapshot', async () => {
     const [snapshot] = initialTransition(counterMachine);
-    const fixture: PortablePropertyReplayFixture = {
+    const fixture: TestFixture = {
       formatVersion: 2,
       machine: { id: 'counter' },
       start: { type: 'snapshot', snapshot: snapshot.toJSON() },
@@ -125,7 +123,7 @@ describe('replayPropertyTest', () => {
     };
 
     await expect(
-      replayPropertyTest(counterMachine, fixture, { invariant: () => {} })
+      replayTest(counterMachine, fixture, { invariant: () => {} })
     ).rejects.toThrow(
       'Property replay fixture contains a snapshot but no restoreSnapshot function was provided'
     );
@@ -133,7 +131,7 @@ describe('replayPropertyTest', () => {
 
   it('throws when the replay does not reproduce the recorded failure', async () => {
     await expect(
-      replayPropertyTest(counterMachine, legacyFixture, {
+      replayTest(counterMachine, legacyFixture, {
         invariant: () => {}
       })
     ).rejects.toThrow(

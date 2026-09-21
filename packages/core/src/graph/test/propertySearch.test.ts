@@ -1,5 +1,5 @@
 import { createMachine, types } from '../../index.ts';
-import { propertyTest, type PropertyTrace } from '../index.ts';
+import { propertyTest, type TestTrace } from '../index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
 const counterMachine = createMachine({
@@ -33,7 +33,7 @@ async function collectSwarmSets(seed: number): Promise<string[][]> {
     },
     swarm: { seed },
     invariant: noop,
-    collect: (trace: PropertyTrace<any, any>) => {
+    collect: (trace: TestTrace<any, any>) => {
       swarms.push([...(trace.swarm ?? [])]);
     }
   });
@@ -62,7 +62,7 @@ describe('swarm testing', () => {
       },
       swarm: true,
       invariant: noop,
-      collect: (trace: PropertyTrace<any, any>) => {
+      collect: (trace: TestTrace<any, any>) => {
         swarms.push([...(trace.swarm ?? [])]);
       }
     });

@@ -1,9 +1,5 @@
 import type * as fc from 'fast-check';
-import type {
-  PropertyReferenceOracle,
-  PropertySut,
-  PropertySutSession
-} from 'xstate/graph';
+import type { TestReference, TestSut, TestSutSession } from 'xstate/graph';
 import type { EventObject, Snapshot } from 'xstate';
 
 let currentScheduler: fc.Scheduler | undefined;
@@ -44,7 +40,7 @@ function scheduleMethod<TArgs extends unknown[], T>(
 }
 
 /**
- * Wraps a {@link PropertySut} so its asynchronous boundaries (`send`, `read`,
+ * Wraps a {@link TestSut} so its asynchronous boundaries (`send`, `read`,
  * `settle`, `advance`) resolve in an order chosen by the run's fast-check
  * scheduler instead of in plain microtask order.
  *
@@ -54,7 +50,7 @@ function scheduleMethod<TArgs extends unknown[], T>(
 export function withScheduledSut<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
->(sut: PropertySut<TSnapshot, TEvent>): PropertySut<TSnapshot, TEvent> {
+>(sut: TestSut<TSnapshot, TEvent>): TestSut<TSnapshot, TEvent> {
   return {
     ...sut,
     create: async (context) => {
@@ -66,16 +62,18 @@ export function withScheduledSut<
       const send = scheduler.scheduleFunction(
         async (
           event: TEvent,
-          sendContext?: Parameters<PropertySutSession<TEvent>['send']>[1]
+          sendContext: Parameters<TestSutSession<TSnapshot, TEvent>['send']>[1]
         ) => await session.send(event, sendContext)
       );
-      const read = scheduler.scheduleFunction(async () => await session.read());
+      const read = session.read
+        ? scheduler.scheduleFunction(async () => await session.read!())
+        : undefined;
       const settle = scheduleMethod(scheduler, session.settle?.bind(session));
       const advance = scheduleMethod(scheduler, session.advance?.bind(session));
       return {
         ...session,
         send: (event, sendContext) => send(event, sendContext),
-        read: () => read(),
+        ...(read ? { read: () => read() } : {}),
         ...(settle ? { settle: () => settle() } : {}),
         ...(advance
           ? { advance: (milliseconds: number) => advance(milliseconds) }
@@ -94,8 +92,8 @@ export function withScheduledReference<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 >(
-  reference: PropertyReferenceOracle<TSnapshot, TEvent>
-): PropertyReferenceOracle<TSnapshot, TEvent> {
+  reference: TestReference<TSnapshot, TEvent>
+): TestReference<TSnapshot, TEvent> {
   return {
     ...reference,
     create: async (context) => {

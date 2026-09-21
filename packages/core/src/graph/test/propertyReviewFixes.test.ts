@@ -1,16 +1,13 @@
 import { createMachine, SimulatedClock, types } from '../../index.ts';
 import {
-  PropertyTestFailure,
+  ModelTestFailure,
   propertyTest,
-  replayPropertyTest,
-  type PortablePropertyReplayFixture,
-  type PropertyTestAdapter,
-  type PropertyTrace
+  replayTest,
+  type TestFixture,
+  type TestAdapter,
+  type TestTrace
 } from '../propertyTest.ts';
-import {
-  generatePropertySuite,
-  replayPropertySuite
-} from '../propertySuite.ts';
+import { generateTestSuite, replayTestSuite } from '../suite.ts';
 import { runParallelPropertyCommands } from '../propertyLinearizability.ts';
 import {
   constant,
@@ -53,7 +50,7 @@ const toggleMachine = createMachine({
 describe('executed replay seeding', () => {
   it('replays outcome commands without double-providing the seeded outcomes', async () => {
     const machine = fetchMachine();
-    const suite = await generatePropertySuite(machine, {
+    const suite = await generateTestSuite(machine, {
       adapter: randomAdapter({ seed: 9, numRuns: 20, maxCommands: 10 }),
       mode: 'executed',
       outcomes: {
@@ -74,7 +71,7 @@ describe('executed replay seeding', () => {
     expect(withOutcomes.length).toBeGreaterThan(0);
 
     for (const fixture of withOutcomes) {
-      const trace = await replayPropertyTest(machine, fixture, {
+      const trace = await replayTest(machine, fixture, {
         invariant: () => {},
         expect: 'pass'
       });
@@ -96,11 +93,11 @@ describe('executed replay seeding', () => {
           throw new Error('reached success');
         }
       }
-    }).catch((cause) => cause)) as PropertyTestFailure;
+    }).catch((cause) => cause)) as ModelTestFailure;
 
-    const fixture = failure.fixture as PortablePropertyReplayFixture;
+    const fixture = failure.fixture as TestFixture;
     await expect(
-      replayPropertyTest(machine, fixture, {
+      replayTest(machine, fixture, {
         mode: 'pure',
         invariant: () => {}
       })
@@ -111,7 +108,7 @@ describe('executed replay seeding', () => {
 describe('property suites', () => {
   it('carries the mode and outcomes of an executed campaign into its fixtures', async () => {
     const machine = fetchMachine();
-    const suite = await generatePropertySuite(machine, {
+    const suite = await generateTestSuite(machine, {
       adapter: randomAdapter({ seed: 2, numRuns: 6, maxCommands: 4 }),
       mode: 'executed',
       outcomes: { fetcher: constant({ ok: true, output: 1 } as any) },
@@ -124,7 +121,7 @@ describe('property suites', () => {
       true
     );
     // Replaying without an explicit mode must use the fixture's own mode.
-    const result = await replayPropertySuite(machine, suite, {
+    const result = await replayTestSuite(machine, suite, {
       invariant: () => {}
     });
     expect(result.failed).toEqual([]);
@@ -133,17 +130,16 @@ describe('property suites', () => {
 
   it('titles outcome commands', async () => {
     const machine = fetchMachine();
-    const suite = await generatePropertySuite(machine, {
+    const suite = await generateTestSuite(machine, {
       adapter: randomAdapter({ seed: 2, numRuns: 6, maxCommands: 4 }),
       mode: 'executed',
       outcomes: { fetcher: constant({ ok: true, output: 1 } as any) },
       events: { FETCH: constant({}) },
       invariant: () => {}
     });
-    const { formatPropertySuiteFixtureTitle } =
-      await import('../propertySuite.ts');
+    const { formatTestSuiteFixtureTitle } = await import('../suite.ts');
     const titles = suite.fixtures.map((fixture, index) =>
-      formatPropertySuiteFixtureTitle(fixture, index)
+      formatTestSuiteFixtureTitle(fixture, index)
     );
     expect(titles.some((title) => title.includes('@outcome(fetcher)'))).toBe(
       true
@@ -165,18 +161,18 @@ describe('end-of-run temporal failures', () => {
           predicate: () => false
         }
       ],
-      collect: (_trace: PropertyTrace<any, any>, info) => {
+      collect: (_trace: TestTrace<any, any>, info) => {
         collected.push(info.passed);
       }
     }).catch((cause) => cause);
 
-    expect(error).toBeInstanceOf(PropertyTestFailure);
+    expect(error).toBeInstanceOf(ModelTestFailure);
     expect(collected).toEqual([false]);
   });
 
   it('does not record an end-of-run temporal failure in a suite', async () => {
     await expect(
-      generatePropertySuite(toggleMachine, {
+      generateTestSuite(toggleMachine, {
         adapter: randomAdapter({ seed: 1, numRuns: 1, maxCommands: 2 }),
         events: { TOGGLE: constant({}) },
         invariant: () => {},
@@ -184,7 +180,7 @@ describe('end-of-run temporal failures', () => {
           { type: 'eventually', id: 'never-holds', predicate: () => false }
         ]
       })
-    ).rejects.toBeInstanceOf(PropertyTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailure);
   });
 });
 
@@ -202,7 +198,7 @@ describe('pure-mode advance', () => {
 
 describe('batch exploration', () => {
   it('stops when the adapter makes no progress', async () => {
-    const stalled: PropertyTestAdapter = {
+    const stalled: TestAdapter = {
       run: async () => ({
         runs: 0,
         exploration: { configuredRuns: 1, maximumSequenceLength: 1 }
@@ -370,12 +366,12 @@ describe('replay disposal', () => {
           throw new Error('reached on');
         }
       }
-    }).catch((cause) => cause)) as PropertyTestFailure;
-    const fixture = failure.fixture as PortablePropertyReplayFixture;
+    }).catch((cause) => cause)) as ModelTestFailure;
+    const fixture = failure.fixture as TestFixture;
 
     let referenceDisposed = 0;
     await expect(
-      replayPropertyTest(toggleMachine, fixture, {
+      replayTest(toggleMachine, fixture, {
         invariant: () => {},
         reference: {
           create: () => ({
@@ -388,7 +384,7 @@ describe('replay disposal', () => {
           projectModel: (snapshot: any) => snapshot.value,
           equivalent: () => true
         },
-        test: {
+        sut: {
           create: () => {
             throw new Error('test session creation failed');
           }
@@ -453,10 +449,10 @@ describe('clock-delivered events in fixtures', () => {
           throw new Error('too many ticks');
         }
       }
-    }).catch((cause) => cause)) as PropertyTestFailure;
+    }).catch((cause) => cause)) as ModelTestFailure;
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
-    const fixture = failure.fixture as PortablePropertyReplayFixture;
+    expect(failure).toBeInstanceOf(ModelTestFailure);
+    const fixture = failure.fixture as TestFixture;
     const advanceEntry = fixture.timeline.find(
       (entry) => entry.command.type === 'advance'
     );
@@ -476,15 +472,15 @@ describe('clock-delivered events in fixtures', () => {
 
     // The fixture reproduces its recorded failure, with the same clock events
     // delivered in the same order.
-    const replayed = (await replayPropertyTest(timerMachine as any, fixture, {
+    const replayed = (await replayTest(timerMachine as any, fixture, {
       invariant: ({ snapshot }: any) => {
         if (snapshot.context.ticks >= 2) {
           throw new Error('too many ticks');
         }
       }
-    }).catch((cause) => cause)) as PropertyTestFailure;
+    }).catch((cause) => cause)) as ModelTestFailure;
 
-    expect(replayed).toBeInstanceOf(PropertyTestFailure);
+    expect(replayed).toBeInstanceOf(ModelTestFailure);
     expect(replayed.trace.timeline.map((entry: any) => entry.command)).toEqual(
       fixture.timeline
         .slice(0, replayed.trace.timeline.length)
@@ -493,7 +489,7 @@ describe('clock-delivered events in fixtures', () => {
   });
 
   it('rejects a fixture whose clock-delivered events were dropped', async () => {
-    const fixture: PortablePropertyReplayFixture = {
+    const fixture: TestFixture = {
       formatVersion: 2,
       start: { type: 'input', input: undefined },
       timeline: [
@@ -519,7 +515,7 @@ describe('clock-delivered events in fixtures', () => {
     };
 
     await expect(
-      replayPropertyTest(toggleMachine, fixture, { invariant: () => {} })
+      replayTest(toggleMachine, fixture, { invariant: () => {} })
     ).rejects.toThrow('is not a clock-delivered event');
   });
 });

@@ -1,10 +1,7 @@
 import type { SnapshotFrom } from 'xstate';
 import { createMachine, types } from 'xstate';
-import { PropertyTestFailure, propertyTest } from 'xstate/graph';
-import {
-  createPlaywrightSut,
-  createPlaywrightTestModelSession
-} from '../src/playwright.ts';
+import { ModelTestFailure, propertyTest } from 'xstate/graph';
+import { createPlaywrightSut } from '../src/playwright.ts';
 import { FakePage } from './fakePage.ts';
 import { constant, integer, randomAdapter, record } from './randomAdapter.ts';
 
@@ -68,7 +65,7 @@ describe('createPlaywrightSut', () => {
 
   it('reports a divergence naming the step for a broken page', async () => {
     const page = new FakePage({ broken: true });
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(counterMachine, {
         adapter,
@@ -77,10 +74,10 @@ describe('createPlaywrightSut', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     expect(failure.message).toMatch(/diverged/);
     const lastStep = failure.trace.steps.at(-1)!;
     expect(lastStep.event.type).toBe('INC');
@@ -152,13 +149,13 @@ describe('createPlaywrightSut', () => {
       classify: () => {},
       target: () => {}
     });
-    await session.send({ type: 'INC', value: 2 });
-    await session.send({ type: 'INC', value: 1 });
+    await session.send({ type: 'INC', value: 2 }, { snapshot: undefined! });
+    await session.send({ type: 'INC', value: 1 }, { snapshot: undefined! });
     await session.checkpoint!('after inc');
 
     expect(page.routes).toEqual(['**/api/increment']);
     expect(page.screenshots).toEqual(['shots/after-inc.png']);
-    expect(await session.read()).toBe(3);
+    expect(await session.read!()).toBe(3);
   });
 
   it('throws for an event with no configured action', async () => {
@@ -180,26 +177,22 @@ describe('createPlaywrightSut', () => {
       target: () => {}
     });
 
-    await expect(session.send({ type: 'RESET' })).rejects.toThrow(
-      /No Playwright action configured for event "RESET"/
-    );
+    await expect(
+      session.send({ type: 'RESET' }, { snapshot: undefined! })
+    ).rejects.toThrow(/No Playwright action configured for event "RESET"/);
   });
 });
 
-describe('createPlaywrightTestModelSession', () => {
+describe('createPlaywrightSut state assertions', () => {
   it('runs events and state assertions against the page', async () => {
     const page = new FakePage();
     const result = await propertyTest(counterMachine, {
       adapter,
       events,
-      test: createPlaywrightTestModelSession<
-        FakePage,
-        CounterSnapshot,
-        CounterEvent
-      >(page, {
+      sut: createPlaywrightSut<FakePage, CounterSnapshot, CounterEvent>(page, {
         events: {
-          INC: async (p, step) => {
-            await p.fill('#amount', String(step.event.value));
+          INC: async (p, event) => {
+            await p.fill('#amount', String(event.value));
           },
           RESET: async (p) => {
             await p.click('#reset');
@@ -227,29 +220,28 @@ describe('createPlaywrightTestModelSession', () => {
       propertyTest(counterMachine, {
         adapter,
         events,
-        test: createPlaywrightTestModelSession<
-          FakePage,
-          CounterSnapshot,
-          CounterEvent
-        >(page, {
-          events: {
-            INC: async (p, step) => {
-              await p.fill('#amount', String(step.event.value));
+        sut: createPlaywrightSut<FakePage, CounterSnapshot, CounterEvent>(
+          page,
+          {
+            events: {
+              INC: async (p, event) => {
+                await p.fill('#amount', String(event.value));
+              },
+              RESET: async (p) => {
+                await p.click('#reset');
+              }
             },
-            RESET: async (p) => {
-              await p.click('#reset');
-            }
-          },
-          states: {
-            '*': async (p, snapshot) => {
-              const text = await p.locator('#count').textContent();
-              expect(Number(text)).toBe(snapshot.context.count);
+            states: {
+              '*': async (p, snapshot) => {
+                const text = await p.locator('#count').textContent();
+                expect(Number(text)).toBe(snapshot.context.count);
+              }
             }
           }
-        }),
+        ),
         invariant: () => {}
       })
-    ).rejects.toBeInstanceOf(PropertyTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailure);
   });
 });
 

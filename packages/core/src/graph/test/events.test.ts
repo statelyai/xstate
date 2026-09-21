@@ -1,5 +1,5 @@
 import { createMachine, setup, types } from '../../index.ts';
-import { createTestModel } from '../index.ts';
+import { createTestModel, fromTestParam } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 
 describe('events', () => {
@@ -88,18 +88,20 @@ describe('events', () => {
 
     for (const path of testModel.getShortestPaths()) {
       await path.test({
-        events: {
-          PAY: ({ event }) => {
-            // no `Extract<...>` cast needed: the payload survives
-            event.amount satisfies number;
-            values.push(event.amount);
-          },
-          CANCEL: ({ event }) => {
-            event.type satisfies 'CANCEL';
-            // @ts-expect-error `amount` only exists on `PAY`
-            event.amount;
+        sut: fromTestParam({
+          events: {
+            PAY: ({ event }) => {
+              // no `Extract<...>` cast needed: the payload survives
+              event.amount satisfies number;
+              values.push(event.amount);
+            },
+            CANCEL: ({ event }) => {
+              event.type satisfies 'CANCEL';
+              // @ts-expect-error `amount` only exists on `PAY`
+              event.amount;
+            }
           }
-        }
+        })
       });
     }
 

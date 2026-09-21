@@ -1,28 +1,28 @@
 import type {
-  PropertyCoverage,
-  PropertyCoverageDimension,
-  PropertyEventCaseCounts,
-  PropertyExplorationBounds
-} from './propertyCoverage.ts';
+  TestCoverage,
+  TestCoverageDimension,
+  TestEventCaseCounts,
+  TestExplorationBounds
+} from './coverage.ts';
 
-/** Options for {@link formatPropertyCoverage}. */
-export interface FormatPropertyCoverageOptions {
+/** Options for {@link formatTestCoverage}. */
+export interface FormatTestCoverageOptions {
   /** `'text'` (default) renders plain text; `'markdown'` renders tables. */
   readonly format?: 'text' | 'markdown';
 }
 
-/** Options for {@link formatPropertyCoverageJUnit}. */
-export interface FormatPropertyCoverageJUnitOptions {
+/** Options for {@link formatTestCoverageJUnit}. */
+export interface FormatTestCoverageJUnitOptions {
   readonly suiteName?: string;
 }
 
-/** Options for {@link formatPropertyCoverageHTML}. */
-export interface FormatPropertyCoverageHTMLOptions {
+/** Options for {@link formatTestCoverageHTML}. */
+export interface FormatTestCoverageHTMLOptions {
   readonly title?: string;
 }
 
 /** A JSON-safe summary of a single coverage dimension. */
-export interface PropertyCoverageDimensionJSON {
+export interface TestCoverageDimensionJSON {
   readonly total: number;
   readonly covered: number;
   readonly ratio: number;
@@ -33,8 +33,8 @@ export interface PropertyCoverageDimensionJSON {
   readonly unknown: string[];
 }
 
-/** The stable, versioned JSON representation of a {@link PropertyCoverage}. */
-export interface PropertyCoverageJSON {
+/** The stable, versioned JSON representation of a {@link TestCoverage}. */
+export interface TestCoverageJSON {
   readonly formatVersion: 1;
   readonly totals: {
     readonly runs: number;
@@ -50,12 +50,12 @@ export interface PropertyCoverageJSON {
     readonly sutComparisons: number;
     readonly oracleComparisons: number;
   };
-  readonly dimensions: Record<string, PropertyCoverageDimensionJSON>;
+  readonly dimensions: Record<string, TestCoverageDimensionJSON>;
   readonly guardOutcomes: Record<
     string,
     { readonly passed: number; readonly failed: number }
   >;
-  readonly eventCases: Record<string, PropertyEventCaseCounts>;
+  readonly eventCases: Record<string, TestEventCaseCounts>;
   readonly dynamicTransitions: Record<
     string,
     {
@@ -114,8 +114,8 @@ export interface PropertyCoverageJSON {
   };
 }
 
-/** Thresholds accepted by {@link assertPropertyCoverage}. */
-export type PropertyCoverageThresholds = {
+/** Thresholds accepted by {@link assertTestCoverage}. */
+export type TestCoverageThresholds = {
   readonly [K in DimensionKey]?: number;
 };
 
@@ -145,13 +145,13 @@ const DIMENSION_KEYS: readonly DimensionKey[] = [
 ];
 
 function getDimension(
-  coverage: PropertyCoverage,
+  coverage: TestCoverage,
   key: DimensionKey
-): PropertyCoverageDimension {
+): TestCoverageDimension {
   return coverage[key];
 }
 
-function totalOf(dimension: PropertyCoverageDimension): number {
+function totalOf(dimension: TestCoverageDimension): number {
   return (
     dimension.covered.length +
     dimension.uncovered.length +
@@ -171,7 +171,7 @@ function percentage(covered: number, total: number): string {
  * Renders a coverage id in a human-readable form. Ids are stable JSON strings;
  * ids that are not recognized are rendered as-is.
  */
-export function formatPropertyCoverageId(id: string): string {
+export function formatTestCoverageId(id: string): string {
   let parsed: unknown;
   try {
     parsed = JSON.parse(id);
@@ -187,7 +187,7 @@ export function formatPropertyCoverageId(id: string): string {
     return `${source} --${eventType}--> #${String(index)}`;
   }
   if (kind === 'guard' && rest.length === 1) {
-    return `guard of ${formatPropertyCoverageId(String(rest[0]))}`;
+    return `guard of ${formatTestCoverageId(String(rest[0]))}`;
   }
   if (kind === 'event-case' && rest.length === 2) {
     const [eventType, caseName] = rest as [string, string];
@@ -196,10 +196,7 @@ export function formatPropertyCoverageId(id: string): string {
   return id;
 }
 
-function dimensionLine(
-  name: string,
-  dimension: PropertyCoverageDimension
-): string {
+function dimensionLine(name: string, dimension: TestCoverageDimension): string {
   const total = totalOf(dimension);
   const covered = dimension.covered.length;
   return (
@@ -210,7 +207,7 @@ function dimensionLine(
   );
 }
 
-function explorationLines(exploration: PropertyExplorationBounds): string[] {
+function explorationLines(exploration: TestExplorationBounds): string[] {
   const lines = [
     `runs: configured ${exploration.configuredRuns ?? 'n/a'}, ` +
       `completed ${exploration.completedRuns}, ` +
@@ -261,7 +258,7 @@ function listLines(title: string, ids: readonly string[]): string[] {
   }
   return [
     `${title}:`,
-    ...[...ids].sort().map((id) => `  - ${formatPropertyCoverageId(id)}`)
+    ...[...ids].sort().map((id) => `  - ${formatTestCoverageId(id)}`)
   ];
 }
 
@@ -276,7 +273,7 @@ function markdownTable(
   ];
 }
 
-function formatText(coverage: PropertyCoverage): string {
+function formatText(coverage: TestCoverage): string {
   const lines: string[] = ['Property coverage', ''];
   for (const key of DIMENSION_KEYS) {
     lines.push(dimensionLine(key, getDimension(coverage, key)));
@@ -297,7 +294,7 @@ function formatText(coverage: PropertyCoverage): string {
     lines.push('guard outcomes:');
     for (const [id, outcome] of guardOutcomes) {
       lines.push(
-        `  - ${formatPropertyCoverageId(id)}: ${outcome.passed} passed, ${
+        `  - ${formatTestCoverageId(id)}: ${outcome.passed} passed, ${
           outcome.failed
         } failed`
       );
@@ -310,7 +307,7 @@ function formatText(coverage: PropertyCoverage): string {
     lines.push('event cases:');
     for (const [id, counts] of eventCases) {
       lines.push(
-        `  - ${formatPropertyCoverageId(id)}: ${counts.generated} generated, ${
+        `  - ${formatTestCoverageId(id)}: ${counts.generated} generated, ${
           counts.applicable
         } applicable, ${counts.executed} executed, ${counts.ignored} ignored`
       );
@@ -346,7 +343,7 @@ function formatText(coverage: PropertyCoverage): string {
   return lines.join('\n');
 }
 
-function formatMarkdown(coverage: PropertyCoverage): string {
+function formatMarkdown(coverage: TestCoverage): string {
   const lines: string[] = ['# Property coverage', ''];
   lines.push(
     ...markdownTable(
@@ -381,7 +378,7 @@ function formatMarkdown(coverage: PropertyCoverage): string {
     const dimension = getDimension(coverage, key);
     for (const status of ['uncovered', 'unreachable', 'unknown'] as const) {
       for (const id of [...dimension[status]].sort()) {
-        outstanding.push([key, status, formatPropertyCoverageId(id)]);
+        outstanding.push([key, status, formatTestCoverageId(id)]);
       }
     }
   }
@@ -405,7 +402,7 @@ function formatMarkdown(coverage: PropertyCoverage): string {
       ...markdownTable(
         ['Guard', 'Passed', 'Failed'],
         guardOutcomes.map(([id, outcome]) => [
-          formatPropertyCoverageId(id),
+          formatTestCoverageId(id),
           String(outcome.passed),
           String(outcome.failed)
         ])
@@ -424,7 +421,7 @@ function formatMarkdown(coverage: PropertyCoverage): string {
       ...markdownTable(
         ['Case', 'Generated', 'Applicable', 'Executed', 'Ignored'],
         eventCases.map(([id, counts]) => [
-          formatPropertyCoverageId(id),
+          formatTestCoverageId(id),
           String(counts.generated),
           String(counts.applicable),
           String(counts.executed),
@@ -477,10 +474,10 @@ function formatMarkdown(coverage: PropertyCoverage): string {
   return lines.join('\n');
 }
 
-/** Formats a {@link PropertyCoverage} as human-readable text or markdown. */
-export function formatPropertyCoverage(
-  coverage: PropertyCoverage,
-  options: FormatPropertyCoverageOptions = {}
+/** Formats a {@link TestCoverage} as human-readable text or markdown. */
+export function formatTestCoverage(
+  coverage: TestCoverage,
+  options: FormatTestCoverageOptions = {}
 ): string {
   return options.format === 'markdown'
     ? formatMarkdown(coverage)
@@ -488,8 +485,8 @@ export function formatPropertyCoverage(
 }
 
 function dimensionToJSON(
-  dimension: PropertyCoverageDimension
-): PropertyCoverageDimensionJSON {
+  dimension: TestCoverageDimension
+): TestCoverageDimensionJSON {
   const total = totalOf(dimension);
   const covered = dimension.covered.length;
   return {
@@ -504,11 +501,9 @@ function dimensionToJSON(
   };
 }
 
-/** Converts a {@link PropertyCoverage} to stable, versioned, JSON-safe data. */
-export function propertyCoverageToJSON(
-  coverage: PropertyCoverage
-): PropertyCoverageJSON {
-  const dimensions: Record<string, PropertyCoverageDimensionJSON> = {};
+/** Converts a {@link TestCoverage} to stable, versioned, JSON-safe data. */
+export function testCoverageToJSON(coverage: TestCoverage): TestCoverageJSON {
+  const dimensions: Record<string, TestCoverageDimensionJSON> = {};
   for (const key of DIMENSION_KEYS) {
     dimensions[key] = dimensionToJSON(getDimension(coverage, key));
   }
@@ -635,12 +630,12 @@ function escapeXML(value: string): string {
 }
 
 /**
- * Formats a {@link PropertyCoverage} as JUnit XML, with one `<testcase>` per
+ * Formats a {@link TestCoverage} as JUnit XML, with one `<testcase>` per
  * transition and per state node.
  */
-export function formatPropertyCoverageJUnit(
-  coverage: PropertyCoverage,
-  options: FormatPropertyCoverageJUnitOptions = {}
+export function formatTestCoverageJUnit(
+  coverage: TestCoverage,
+  options: FormatTestCoverageJUnitOptions = {}
 ): string {
   const suiteName = options.suiteName ?? 'property-coverage';
   const cases: string[] = [];
@@ -666,7 +661,7 @@ export function formatPropertyCoverageJUnit(
     entries.sort(([left], [right]) => left.localeCompare(right));
     for (const [id, status] of entries) {
       tests++;
-      const name = escapeXML(formatPropertyCoverageId(id));
+      const name = escapeXML(formatTestCoverageId(id));
       if (status === 'covered') {
         cases.push(`    <testcase classname="${key}" name="${name}" />`);
       } else if (status === 'uncovered') {
@@ -718,10 +713,10 @@ function escapeHTML(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** Formats a {@link PropertyCoverage} as a self-contained HTML document. */
-export function formatPropertyCoverageHTML(
-  coverage: PropertyCoverage,
-  options: FormatPropertyCoverageHTMLOptions = {}
+/** Formats a {@link TestCoverage} as a self-contained HTML document. */
+export function formatTestCoverageHTML(
+  coverage: TestCoverage,
+  options: FormatTestCoverageHTMLOptions = {}
 ): string {
   const title = options.title ?? 'Property coverage';
   const cards = DIMENSION_KEYS.map((key) => {
@@ -747,7 +742,7 @@ export function formatPropertyCoverageHTML(
         rows.push(
           `<tr><td>${escapeHTML(key)}</td><td>${escapeHTML(
             status
-          )}</td><td>${escapeHTML(formatPropertyCoverageId(id))}</td></tr>`
+          )}</td><td>${escapeHTML(formatTestCoverageId(id))}</td></tr>`
         );
       }
     }
@@ -799,9 +794,9 @@ export function formatPropertyCoverageHTML(
  * covered ratio — `covered / (covered + uncovered)` — is below its threshold.
  * Thresholds are ratios between `0` and `1`.
  */
-export function assertPropertyCoverage(
-  coverage: PropertyCoverage,
-  thresholds: PropertyCoverageThresholds
+export function assertTestCoverage(
+  coverage: TestCoverage,
+  thresholds: TestCoverageThresholds
 ): void {
   const failures: string[] = [];
   for (const key of DIMENSION_KEYS) {
@@ -825,7 +820,7 @@ export function assertPropertyCoverage(
     throw new Error(
       `Property coverage thresholds not met:\n${failures
         .map((failure) => `  - ${failure}`)
-        .join('\n')}\n\n${formatPropertyCoverage(coverage)}`
+        .join('\n')}\n\n${formatTestCoverage(coverage)}`
     );
   }
 }

@@ -1,13 +1,13 @@
 import * as fc from 'fast-check';
 import { createMachine, SimulatedClock, types } from 'xstate';
 import {
-  PropertyTestFailure,
+  ModelTestFailure,
   createTestModel,
   fastCheckAdapter,
   propertyTest,
-  replayPropertyTest
+  replayTest
 } from '../src/index.ts';
-import type { PropertyTestAdapter } from '../src/index.ts';
+import type { TestAdapter } from '../src/index.ts';
 
 describe('advanced property testing', () => {
   it('records exact parallel, guarded, and eventless transitions', async () => {
@@ -259,7 +259,7 @@ describe('advanced property testing', () => {
         })
       }
     });
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
 
     try {
       await propertyTest(machine, {
@@ -287,10 +287,10 @@ describe('advanced property testing', () => {
         }
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     expect(failure.trace.events).toEqual([
       { type: 'CREATE', id: 'created' },
       { type: 'USE', id: 'created' }
@@ -301,14 +301,14 @@ describe('advanced property testing', () => {
     ]);
 
     await expect(
-      replayPropertyTest(machine, failure.fixture!, {
+      replayTest(machine, failure.fixture!, {
         invariant: ({ event }) => {
           if (event?.type === 'USE') {
             throw new Error('portable replay');
           }
         }
       })
-    ).rejects.toBeInstanceOf(PropertyTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailure);
   });
 
   it('covers dynamic definitions while keeping their outcomes unknown', async () => {
@@ -359,7 +359,7 @@ describe('advanced property testing', () => {
         c: {}
       }
     });
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(machine, {
         seed: 1,
@@ -373,7 +373,7 @@ describe('advanced property testing', () => {
         }
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
     expect(failure.trace.steps).toHaveLength(1);
@@ -433,7 +433,7 @@ describe('advanced property testing', () => {
     expect(successful.coverage.prefixSteps).toBe(3);
     expect(successful.coverage.frontiers.covered).toHaveLength(1);
 
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(model, {
         seed: 9,
@@ -446,7 +446,7 @@ describe('advanced property testing', () => {
         }
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
     expect(failure.trace.prefixEvents).toEqual([{ type: 'ACTIVATE' }]);
     expect(failure.trace.events).toHaveLength(1);
@@ -484,7 +484,7 @@ describe('advanced property testing', () => {
         })
       }
     });
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(machine, {
         seed: 11,
@@ -518,10 +518,10 @@ describe('advanced property testing', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     expect(failure.trace.events).toHaveLength(1);
     const cause = failure.cause as {
       model: number;
@@ -609,9 +609,9 @@ describe('advanced property testing', () => {
           await runner.dispose();
         }
       }
-    } as PropertyTestAdapter;
+    } as TestAdapter;
     let disposed = 0;
-    let failure!: PropertyTestFailure;
+    let failure!: ModelTestFailure;
     try {
       await propertyTest(machine, {
         adapter,
@@ -660,7 +660,7 @@ describe('advanced property testing', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as PropertyTestFailure;
+      failure = error as ModelTestFailure;
     }
 
     expect(failure.fixture?.temporalFailure).toMatchObject({
@@ -682,9 +682,9 @@ describe('advanced property testing', () => {
     ]);
     expect(disposed).toBe(1);
 
-    let replayFailure!: PropertyTestFailure;
+    let replayFailure!: ModelTestFailure;
     try {
-      await replayPropertyTest(machine, failure.fixture!, {
+      await replayTest(machine, failure.fixture!, {
         invariant: () => {},
         temporal: [
           {
@@ -697,14 +697,14 @@ describe('advanced property testing', () => {
         ]
       });
     } catch (error) {
-      replayFailure = error as PropertyTestFailure;
+      replayFailure = error as ModelTestFailure;
     }
-    expect(replayFailure).toBeInstanceOf(PropertyTestFailure);
+    expect(replayFailure).toBeInstanceOf(ModelTestFailure);
     expect(replayFailure.fixture?.temporalFailure?.id).toBe('stay-active');
 
     const incompatible = createMachine({ id: 'timeline', version: '2' });
     await expect(
-      replayPropertyTest(incompatible, failure.fixture!, {
+      replayTest(incompatible, failure.fixture!, {
         invariant: () => {}
       })
     ).rejects.toThrow('machine version');
@@ -743,7 +743,7 @@ describe('advanced property testing', () => {
           await runner.dispose();
         }
       }
-    } as PropertyTestAdapter;
+    } as TestAdapter;
 
     const result = await propertyTest(machine, {
       adapter,
@@ -763,7 +763,7 @@ describe('advanced property testing', () => {
 
   it('shrinks generated checkpoint and stop commands', async () => {
     const machine = createMachine({});
-    let checkpointFailure!: PropertyTestFailure;
+    let checkpointFailure!: ModelTestFailure;
     let active = 0;
     let created = 0;
     try {
@@ -796,7 +796,7 @@ describe('advanced property testing', () => {
         invariant: () => {}
       });
     } catch (error) {
-      checkpointFailure = error as PropertyTestFailure;
+      checkpointFailure = error as ModelTestFailure;
     }
     expect(checkpointFailure.trace.commands).toHaveLength(1);
     expect(checkpointFailure.trace.commands[0]).toMatchObject({
@@ -805,7 +805,7 @@ describe('advanced property testing', () => {
     expect(created).toBeGreaterThan(1);
     expect(active).toBe(0);
 
-    let stopFailure!: PropertyTestFailure;
+    let stopFailure!: ModelTestFailure;
     try {
       await propertyTest(machine, {
         seed: 32,
@@ -818,7 +818,7 @@ describe('advanced property testing', () => {
         }
       });
     } catch (error) {
-      stopFailure = error as PropertyTestFailure;
+      stopFailure = error as ModelTestFailure;
     }
     expect(stopFailure.trace.commands).toEqual([{ type: 'stop' }]);
   });

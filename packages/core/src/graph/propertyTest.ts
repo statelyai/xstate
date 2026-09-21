@@ -17,12 +17,11 @@ import {
 } from '../transition.ts';
 import { TestModel } from './TestModel.ts';
 import {
-  createPropertyCoverage,
+  createTestCoverage,
   declarePropertyEventCase,
   declarePropertyFrontier,
-  finalizePropertyCoverage,
+  finalizeTestCoverage,
   getPropertyConfigurationId,
-  getPropertyEventCaseId,
   parsePropertyEventCaseId,
   incrementCoverage,
   recordPropertyEventCase,
@@ -32,33 +31,39 @@ import {
   recordPropertySnapshot,
   recordPropertyTransitions,
   resetPropertyTransitionPairs,
-  type MutablePropertyCoverage,
-  type PropertyCoverage,
-  type PropertyCoverageDimension,
-  type PropertyStoppedBecause,
-  type PropertyExplorationBounds,
-  type PropertyExplorationFrontier,
-  type PropertyExplorationSeed,
-  type PropertyExplorationSwarm,
-  type PropertyExplorationTarget
-} from './propertyCoverage.ts';
+  type MutableTestCoverage,
+  type TestCoverage,
+  type TestCoverageDimension,
+  type TestStoppedBecause,
+  type TestExplorationBounds,
+  type TestExplorationFrontier,
+  type TestExplorationSeed,
+  type TestExplorationSwarm,
+  type TestExplorationTarget
+} from './coverage.ts';
+import {
+  assertTestWeight,
+  isEventDescriptorObject,
+  normalizeEventDescriptors,
+  type AnyTestEventDescriptor
+} from './eventDescriptors.ts';
 import { getShortestPaths } from './shortestPaths.ts';
-import type { StatePath, Step, TestParam } from './types.ts';
+import type { StatePath } from './types.ts';
 
 export type {
-  PropertyCoverage,
-  PropertyCoverageDimension,
-  PropertyLabelCoverage,
-  PropertyStoppedBecause,
-  PropertyCoverageStatus,
-  PropertyDynamicTransitionCoverage,
-  PropertyEventCaseCounts,
-  PropertyExplorationBounds,
-  PropertyExplorationFrontier,
-  PropertyExplorationSeed,
-  PropertyExplorationSwarm,
-  PropertyExplorationTarget
-} from './propertyCoverage.ts';
+  TestCoverage,
+  TestCoverageDimension,
+  TestLabelCoverage,
+  TestStoppedBecause,
+  TestCoverageStatus,
+  TestDynamicTransitionCoverage,
+  TestEventCaseCounts,
+  TestExplorationBounds,
+  TestExplorationFrontier,
+  TestExplorationSeed,
+  TestExplorationSwarm,
+  TestExplorationTarget
+} from './coverage.ts';
 
 export interface PropertyGeneratorKind {
   readonly target: unknown;
@@ -70,7 +75,7 @@ export type PropertyGenerator<
   TValue
 > = (TKind & { readonly target: TValue })['generator'];
 
-export interface PropertyReplayMetadata {
+export interface TestReplayMetadata {
   readonly engine: string;
   readonly engineVersion?: string;
   readonly seed?: number;
@@ -86,10 +91,10 @@ export interface PropertyReplayMetadata {
  * invoked/spawned actors run and `after` transitions are reachable through
  * generated `advance` commands.
  */
-export type PropertyTestMode = 'pure' | 'executed';
+export type TestMode = 'pure' | 'executed';
 
 /** A resolved actor outcome queued for a stubbed invoke source. */
-export type PropertyActorOutcome =
+export type TestActorOutcome =
   | { readonly ok: true; readonly output: unknown }
   | { readonly ok: false; readonly error: unknown };
 
@@ -99,13 +104,13 @@ export type PropertyActorOutcome =
  * Recorded into replay fixtures so a failure can be replayed against stubbed
  * actors instead of the real ones.
  */
-export interface PropertyOutcomeRecord {
+export interface TestOutcomeRecord {
   readonly src: string;
   readonly occurrence: number;
-  readonly outcome: PropertyActorOutcome;
+  readonly outcome: TestActorOutcome;
 }
 
-export type PropertyCommand<TEvent extends EventObject = EventObject> =
+export type TestCommand<TEvent extends EventObject = EventObject> =
   | {
       readonly type: 'event';
       readonly event: TEvent;
@@ -123,7 +128,7 @@ export type PropertyCommand<TEvent extends EventObject = EventObject> =
       /** Queues the next resolution of a stubbed invoke source. */
       readonly type: 'outcome';
       readonly src: string;
-      readonly outcome: PropertyActorOutcome;
+      readonly outcome: TestActorOutcome;
     }
   | { readonly type: 'stop' };
 
@@ -132,9 +137,7 @@ export type PropertyCommand<TEvent extends EventObject = EventObject> =
  * an invoked actor's `onDone`/`onError`/`onSnapshot`, a delayed transition, a
  * `sendTo`/`raise`, or a child actor's own transition.
  */
-export interface PropertyActorTimelineEntry<
-  TSnapshot extends Snapshot<unknown>
-> {
+export interface TestActorTimelineEntry<TSnapshot extends Snapshot<unknown>> {
   readonly kind: 'actorEvent';
   readonly index: number;
   /** `'root'` when the tested actor transitioned, `'child'` otherwise. */
@@ -151,14 +154,14 @@ export interface PropertyActorTimelineEntry<
   readonly observation?: undefined;
 }
 
-export interface PropertyComparedObservation {
+export interface TestComparedObservation {
   /** The model projection that was compared. */
   readonly model: unknown;
   /** The value observed on the reference oracle or the system under test. */
   readonly observed: unknown;
 }
 
-export interface PropertyObservation {
+export interface TestObservation {
   /**
    * The model projection of the reference oracle when one is configured,
    * otherwise the model projection of the system under test. Prefer the
@@ -167,53 +170,53 @@ export interface PropertyObservation {
    */
   readonly model: unknown;
   /** Present when a reference oracle is configured. */
-  readonly reference?: PropertyComparedObservation;
+  readonly reference?: TestComparedObservation;
   /** Present when a system under test is configured. */
-  readonly sut?: PropertyComparedObservation;
+  readonly sut?: TestComparedObservation;
 }
 
-export interface PropertyEventTimelineEntry<
+export interface TestEventTimelineEntry<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
   readonly kind: 'event';
   readonly index: number;
-  readonly command: Extract<PropertyCommand<TEvent>, { type: 'event' }>;
+  readonly command: Extract<TestCommand<TEvent>, { type: 'event' }>;
   readonly previousSnapshot: TSnapshot;
   readonly snapshot: TSnapshot;
   readonly effects: readonly unknown[];
   readonly transitionIds: readonly string[];
   readonly guardIds: readonly string[];
   readonly activeStateIds: readonly string[];
-  readonly observation?: PropertyObservation;
+  readonly observation?: TestObservation;
 }
 
-export interface PropertyRuntimeTimelineEntry<
+export interface TestRuntimeTimelineEntry<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
   readonly kind: 'command';
   readonly index: number;
-  readonly command: Exclude<PropertyCommand<TEvent>, { type: 'event' }>;
+  readonly command: Exclude<TestCommand<TEvent>, { type: 'event' }>;
   readonly previousSnapshot: TSnapshot;
   readonly snapshot: TSnapshot;
   readonly effects: readonly unknown[];
   readonly transitionIds: readonly string[];
   readonly guardIds: readonly string[];
-  readonly observation?: PropertyObservation;
+  readonly observation?: TestObservation;
 }
 
-export type PropertyTimelineEntry<
+export type TestTimelineEntry<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > =
-  | PropertyEventTimelineEntry<TSnapshot, TEvent>
-  | PropertyRuntimeTimelineEntry<TSnapshot, TEvent>
-  | PropertyActorTimelineEntry<TSnapshot>;
+  | TestEventTimelineEntry<TSnapshot, TEvent>
+  | TestRuntimeTimelineEntry<TSnapshot, TEvent>
+  | TestActorTimelineEntry<TSnapshot>;
 
-export interface PortablePropertyTimelineEntry {
+export interface PortableTestTimelineEntry {
   readonly kind: 'event' | 'command';
-  readonly command: PropertyCommand;
+  readonly command: TestCommand;
 }
 
 export interface PortableTemporalFailure {
@@ -225,7 +228,7 @@ export interface PortableTemporalFailure {
   readonly atStep: number;
 }
 
-export interface PortablePropertyReplayFixture {
+export interface TestFixture {
   readonly formatVersion: 2;
   readonly machine?: {
     readonly id?: string;
@@ -234,7 +237,7 @@ export interface PortablePropertyReplayFixture {
   readonly start:
     | { readonly type: 'input'; readonly input: unknown }
     | { readonly type: 'snapshot'; readonly snapshot: unknown };
-  readonly timeline: readonly PortablePropertyTimelineEntry[];
+  readonly timeline: readonly PortableTestTimelineEntry[];
   /**
    * The step the recorded run failed at. Absent on fixtures recorded from a
    * passing run, such as the ones an offline property suite is built from.
@@ -243,10 +246,10 @@ export interface PortablePropertyReplayFixture {
   readonly temporalFailure?: PortableTemporalFailure;
   /** Event case ids enabled for the run, when swarm testing was used. */
   readonly swarm?: readonly string[];
-  /** Executed-mode runs only. See {@link PropertyOutcomeRecord}. */
-  readonly mode?: PropertyTestMode;
+  /** Executed-mode runs only. See {@link TestOutcomeRecord}. */
+  readonly mode?: TestMode;
   /** Actor outcomes observed during an executed-mode run, in resolution order. */
-  readonly outcomes?: readonly PropertyOutcomeRecord[];
+  readonly outcomes?: readonly TestOutcomeRecord[];
 }
 
 interface LegacyPortablePropertyReplayFixture {
@@ -260,7 +263,7 @@ interface LegacyPortablePropertyReplayFixture {
   readonly failedAt: number;
 }
 
-export interface PropertyTestAdapterResult {
+export interface TestAdapterResult {
   readonly runs: number;
   readonly exploration: {
     readonly configuredRuns: number | null;
@@ -271,7 +274,7 @@ export interface PropertyTestAdapterResult {
     readonly truncated?: boolean;
     readonly truncationReasons?: readonly string[];
   };
-  readonly replay?: PropertyReplayMetadata;
+  readonly replay?: TestReplayMetadata;
   readonly error?: unknown;
 }
 
@@ -287,7 +290,7 @@ export interface PropertyGeneratedCommand {
   readonly src?: string;
 }
 
-export interface PropertyTestAdapterRequest<
+export interface TestAdapterRequest<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
@@ -310,32 +313,38 @@ export interface PropertyTestAdapterRequest<
   readonly createRunner: () => PropertyScenarioRunner<TSnapshot, TEvent>;
 }
 
-export interface PropertyTestAdapter<
+export interface TestAdapter<
   TKind extends PropertyGeneratorKind = PropertyGeneratorKind
 > {
   readonly kind?: TKind;
   run<TSnapshot extends Snapshot<unknown>, TEvent extends EventObject>(
-    request: PropertyTestAdapterRequest<TSnapshot, TEvent>
-  ): Promise<PropertyTestAdapterResult>;
+    request: TestAdapterRequest<TSnapshot, TEvent>
+  ): Promise<TestAdapterResult>;
 }
 
-export interface PropertySutContext<
+export interface TestSutContext<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
-> extends PropertyLabelRecorders {
+> extends TestLabelRecorders {
   readonly logic: ActorLogic<TSnapshot, TEvent, unknown>;
   readonly input: unknown;
   readonly snapshot: TSnapshot | undefined;
 }
 
-export interface PropertySut<
+export interface TestSut<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
   readonly create: (
-    context: PropertySutContext<TSnapshot, TEvent>
-  ) => PropertySutSession<TEvent> | Promise<PropertySutSession<TEvent>>;
-  readonly projectModel: (snapshot: TSnapshot) => unknown;
+    context: TestSutContext<TSnapshot, TEvent>
+  ) =>
+    | TestSutSession<TSnapshot, TEvent>
+    | Promise<TestSutSession<TSnapshot, TEvent>>;
+  /**
+   * Projects the model snapshot onto the shape `read()` returns. Required only
+   * when the session reads observations back for comparison.
+   */
+  readonly projectModel?: (snapshot: TSnapshot) => unknown;
   readonly projectSut?: (observed: unknown) => unknown;
   readonly equivalent?: (
     model: unknown,
@@ -344,11 +353,13 @@ export interface PropertySut<
 }
 
 /** Metadata about the step an event belongs to, passed to `send`. */
-export interface PropertySutSendContext {
+export interface TestSutSendContext<TSnapshot = unknown> {
+  /** The model snapshot after the event was applied to the model. */
+  readonly snapshot: TSnapshot;
   /**
    * The internal generated event case id, when the event came from a
    * generator. Absent for prefix, clock, and replayed events. It is an opaque
-   * string; use {@link PropertySutSendContext.case} to identify a case.
+   * string; use {@link TestSutSendContext.case} to identify a case.
    */
   readonly caseId?: string;
   /**
@@ -362,12 +373,26 @@ export interface PropertySutSendContext {
   };
 }
 
-export interface PropertySutSession<TEvent extends EventObject> {
+export interface TestSutSession<
+  TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
+  TEvent extends EventObject = EventObject
+> {
   readonly send: (
     event: TEvent,
-    context?: PropertySutSendContext
+    context: TestSutSendContext<TSnapshot>
   ) => void | Promise<void>;
-  readonly read: () => unknown | Promise<unknown>;
+  /**
+   * Reads the current observable state of the system under test. Compared
+   * against `projectModel(snapshot)` after every stable step when both are
+   * present.
+   */
+  readonly read?: () => unknown | Promise<unknown>;
+  /**
+   * Per-state assertions run after every stable step, keyed by state value (or
+   * `'#id'`), with `'*'` as the fallthrough. Overrides the top-level `states`
+   * option when present.
+   */
+  readonly states?: TestStateAssertions<TSnapshot, TEvent>;
   readonly settle?: () => void | Promise<void>;
   readonly advance?: (
     milliseconds: number
@@ -377,39 +402,34 @@ export interface PropertySutSession<TEvent extends EventObject> {
   readonly dispose?: () => void | Promise<void>;
 }
 
-export interface PropertyTestModelSession<
+/**
+ * Per-state assertions, keyed by state value (`'green'`, `'a.b'`), by state
+ * node id (`'#some.id'`), or `'*'` as the fallthrough when nothing else
+ * matches. Run after every stable step in both `propertyTest()` and
+ * `testPaths()`.
+ */
+export interface TestStateAssertions<
   TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
+  TEvent extends EventObject = EventObject
 > {
-  readonly params: TestParam<TSnapshot, TEvent>;
-  readonly dispose?: () => void | Promise<void>;
+  readonly [stateKey: string]: (
+    snapshot: TSnapshot,
+    session: TestSutSession<TSnapshot, TEvent> | undefined
+  ) => void | Promise<void>;
 }
 
-export interface PropertyTestModelExecution<
+export interface TestReferenceContext<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> extends TestSutContext<TSnapshot, TEvent> {}
+
+export interface TestReference<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
   readonly create: (
-    context: PropertySutContext<TSnapshot, TEvent>
-  ) =>
-    | PropertyTestModelSession<TSnapshot, TEvent>
-    | Promise<PropertyTestModelSession<TSnapshot, TEvent>>;
-}
-
-export interface PropertyReferenceContext<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> extends PropertySutContext<TSnapshot, TEvent> {}
-
-export interface PropertyReferenceOracle<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> {
-  readonly create: (
-    context: PropertyReferenceContext<TSnapshot, TEvent>
-  ) =>
-    | PropertyReferenceSession<TEvent>
-    | Promise<PropertyReferenceSession<TEvent>>;
+    context: TestReferenceContext<TSnapshot, TEvent>
+  ) => TestReferenceSession<TEvent> | Promise<TestReferenceSession<TEvent>>;
   readonly projectModel: (snapshot: TSnapshot) => unknown;
   readonly projectReference?: (observed: unknown) => unknown;
   readonly equivalent?: (
@@ -418,7 +438,7 @@ export interface PropertyReferenceOracle<
   ) => boolean | Promise<boolean>;
 }
 
-export interface PropertyReferenceSession<TEvent extends EventObject> {
+export interface TestReferenceSession<TEvent extends EventObject> {
   readonly transition: (event: TEvent) => void | Promise<void>;
   readonly read: () => unknown | Promise<unknown>;
   readonly stop?: () => void | Promise<void>;
@@ -433,7 +453,7 @@ type EventForType<
 type EventPayload<TEvent extends EventObject> = Omit<TEvent, 'type'>;
 
 /** Records a statistic for the current run. */
-export interface PropertyLabelRecorders {
+export interface TestLabelRecorders {
   /**
    * Records `name` (optionally with `value`) for the current run. Labels are
    * aggregated across the campaign into `coverage.labels`.
@@ -449,10 +469,10 @@ export interface PropertyLabelRecorders {
   readonly target: (observation: number, label?: string) => void;
 }
 
-export interface PropertyInvariantContext<
+export interface TestInvariantContext<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
-> extends PropertyLabelRecorders {
+> extends TestLabelRecorders {
   readonly initialSnapshot: TSnapshot;
   readonly previousSnapshot: TSnapshot;
   readonly snapshot: TSnapshot;
@@ -461,14 +481,12 @@ export interface PropertyInvariantContext<
   readonly step: number;
 }
 
-export type PropertyInvariant<
+export type TestInvariant<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
-> = (
-  context: PropertyInvariantContext<TSnapshot, TEvent>
-) => void | Promise<void>;
+> = (context: TestInvariantContext<TSnapshot, TEvent>) => void | Promise<void>;
 
-export interface PropertyEventDescriptor<
+export interface TestEventDescriptor<
   TGenerator,
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -487,7 +505,7 @@ export interface PropertyEventDescriptor<
   readonly resolve?: never;
 }
 
-export interface PropertyResolvedEventDescriptor<
+export interface TestResolvedEventDescriptor<
   TGenerator,
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -510,31 +528,24 @@ export interface PropertyResolvedEventDescriptor<
   }) => boolean;
 }
 
-type AnyPropertyEventDescriptor<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> =
-  | PropertyEventDescriptor<unknown, TSnapshot, TEvent>
-  | PropertyResolvedEventDescriptor<unknown, TSnapshot, TEvent>;
-
 type PropertyEventGenerator<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TKind extends PropertyGeneratorKind
 > =
   | PropertyGenerator<TKind, EventPayload<TEvent>>
-  | PropertyEventDescriptor<
+  | TestEventDescriptor<
       PropertyGenerator<TKind, EventPayload<TEvent>>,
       TSnapshot,
       TEvent
     >
-  | PropertyResolvedEventDescriptor<
+  | TestResolvedEventDescriptor<
       PropertyGenerator<TKind, unknown>,
       TSnapshot,
       TEvent
     >;
 
-export type PropertyEventGenerators<
+export type TestEventGenerators<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TKind extends PropertyGeneratorKind
@@ -548,14 +559,14 @@ export type PropertyEventGenerators<
       >[];
 };
 
-export type PropertyTemporalPredicate<
+export type TestTemporalPredicate<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > = (
-  context: PropertyInvariantContext<TSnapshot, TEvent>
+  context: TestInvariantContext<TSnapshot, TEvent>
 ) => boolean | Promise<boolean>;
 
-export type PropertyTemporal<
+export type TestTemporal<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > =
@@ -568,7 +579,7 @@ export type PropertyTemporal<
        * holding. When omitted, the predicate must hold before the run ends.
        */
       readonly within?: number;
-      readonly predicate: PropertyTemporalPredicate<TSnapshot, TEvent>;
+      readonly predicate: TestTemporalPredicate<TSnapshot, TEvent>;
     }
   | {
       readonly type: 'until';
@@ -579,33 +590,33 @@ export type PropertyTemporal<
        * holding. When omitted, `until` must hold before the run ends.
        */
       readonly within?: number;
-      readonly hold: PropertyTemporalPredicate<TSnapshot, TEvent>;
-      readonly until: PropertyTemporalPredicate<TSnapshot, TEvent>;
+      readonly hold: TestTemporalPredicate<TSnapshot, TEvent>;
+      readonly until: TestTemporalPredicate<TSnapshot, TEvent>;
     }
   | {
       /** The predicate must hold on every stable step. */
       readonly type: 'always';
       readonly id: string;
       readonly description?: string;
-      readonly predicate: PropertyTemporalPredicate<TSnapshot, TEvent>;
+      readonly predicate: TestTemporalPredicate<TSnapshot, TEvent>;
     }
   | {
       /** The predicate must never hold on any stable step. */
       readonly type: 'never';
       readonly id: string;
       readonly description?: string;
-      readonly predicate: PropertyTemporalPredicate<TSnapshot, TEvent>;
+      readonly predicate: TestTemporalPredicate<TSnapshot, TEvent>;
     };
 
-export interface PropertyStep<
+export interface TestStep<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
-> extends PropertyEventTimelineEntry<TSnapshot, TEvent> {
+> extends TestEventTimelineEntry<TSnapshot, TEvent> {
   readonly phase: 'prefix' | 'generated';
   readonly event: TEvent;
 }
 
-export interface PropertyTrace<
+export interface TestTrace<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
@@ -616,22 +627,19 @@ export interface PropertyTrace<
   readonly initialEffects: readonly unknown[];
   readonly initialTransitionIds: readonly string[];
   readonly initialGuardIds: readonly string[];
-  readonly timeline: readonly PropertyTimelineEntry<TSnapshot, TEvent>[];
+  readonly timeline: readonly TestTimelineEntry<TSnapshot, TEvent>[];
   readonly prefixEvents: readonly TEvent[];
   readonly events: readonly TEvent[];
-  readonly commands: readonly Exclude<
-    PropertyCommand<TEvent>,
-    { type: 'event' }
-  >[];
-  readonly steps: readonly PropertyStep<TSnapshot, TEvent>[];
+  readonly commands: readonly Exclude<TestCommand<TEvent>, { type: 'event' }>[];
+  readonly steps: readonly TestStep<TSnapshot, TEvent>[];
   readonly finalSnapshot: TSnapshot;
-  readonly finalObservation?: PropertyObservation;
+  readonly finalObservation?: TestObservation;
   /** Event case ids enabled for the run, when swarm testing was used. */
   readonly swarm?: readonly string[];
   /** The mode the run was recorded in. */
-  readonly mode?: PropertyTestMode;
+  readonly mode?: TestMode;
   /** Actor outcomes observed during an executed-mode run, in resolution order. */
-  readonly outcomes?: readonly PropertyOutcomeRecord[];
+  readonly outcomes?: readonly TestOutcomeRecord[];
 }
 
 /**
@@ -642,16 +650,16 @@ export interface PropertyTrace<
 function getPropertyFailureMessage<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
->(summary: string, trace: PropertyTrace<TSnapshot, TEvent>): string {
+>(summary: string, trace: TestTrace<TSnapshot, TEvent>): string {
   try {
-    return `${summary}\n${formatPropertyTrace(trace)}`;
+    return `${summary}\n${formatTestTrace(trace)}`;
   } catch {
     // Never mask the failure with a formatting error.
     return summary;
   }
 }
 
-export class PropertyTestFailure<
+export class ModelTestFailure<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
   TEvent extends EventObject = EventObject
 > extends Error {
@@ -660,14 +668,14 @@ export class PropertyTestFailure<
 
   public constructor(
     summary: string,
-    public readonly trace: PropertyTrace<TSnapshot, TEvent>,
+    public readonly trace: TestTrace<TSnapshot, TEvent>,
     public readonly cause: unknown,
-    public readonly replay?: PropertyReplayMetadata,
-    public readonly fixture?: PortablePropertyReplayFixture,
-    public readonly coverage?: PropertyCoverage
+    public readonly replay?: TestReplayMetadata,
+    public readonly fixture?: TestFixture,
+    public readonly coverage?: TestCoverage
   ) {
     super(getPropertyFailureMessage(summary, trace), { cause });
-    this.name = 'PropertyTestFailure';
+    this.name = 'ModelTestFailure';
     this.summary = summary;
   }
 }
@@ -676,7 +684,7 @@ interface TemporalState<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
-  definition: PropertyTemporal<TSnapshot, TEvent>;
+  definition: TestTemporal<TSnapshot, TEvent>;
   satisfied: boolean;
 }
 
@@ -684,31 +692,6 @@ interface TemporalState<
  * Structural, key-order insensitive deep equality used to compare model
  * projections against reference/SUT observations. Cycle-safe.
  */
-/**
- * Distinguishes the descriptor form (`{ generate, case?, weight?, ... }`) from
- * a bare generator. Generators are opaque adapter values that can themselves
- * be objects with a `generate` *method* (fast-check arbitraries have one), so
- * a `generate` key only marks a descriptor when it does not hold a function;
- * any of the descriptor-only keys marks one regardless.
- */
-function isPropertyDescriptorObject(value: unknown): boolean {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-  if (
-    'case' in value ||
-    'when' in value ||
-    'resolve' in value ||
-    'weight' in value
-  ) {
-    return true;
-  }
-  return (
-    Object.prototype.hasOwnProperty.call(value, 'generate') &&
-    typeof (value as { generate: unknown }).generate !== 'function'
-  );
-}
-
 export function defaultEquivalent(left: unknown, right: unknown): boolean {
   return deepEqual(left, right, new Map());
 }
@@ -799,23 +782,6 @@ function deepEqual(
   );
 }
 
-function assertPropertyWeight(
-  weight: number | undefined,
-  location: string
-): number {
-  if (weight === undefined) {
-    return 1;
-  }
-  if (typeof weight !== 'number' || !Number.isFinite(weight) || weight <= 0) {
-    throw new Error(
-      `Property ${location} has an invalid \`weight\` (${String(
-        weight
-      )}). Weights must be positive, finite numbers.`
-    );
-  }
-  return weight;
-}
-
 function assertEventPayload(
   payload: unknown,
   type: string,
@@ -846,20 +812,17 @@ function assertEventPayload(
  * record) supplies one, which is what lets fast-check shrink service results.
  */
 export class PropertyOutcomeRegistry {
-  private queued = new Map<string, PropertyActorOutcome[]>();
-  private waiting = new Map<
-    string,
-    ((outcome: PropertyActorOutcome) => void)[]
-  >();
+  private queued = new Map<string, TestActorOutcome[]>();
+  private waiting = new Map<string, ((outcome: TestActorOutcome) => void)[]>();
 
   /** Called by a stub actor when it starts. */
-  public request(src: string): Promise<PropertyActorOutcome> {
+  public request(src: string): Promise<TestActorOutcome> {
     const queue = this.queued.get(src);
     const next = queue?.shift();
     if (next) {
       return Promise.resolve(next);
     }
-    return new Promise<PropertyActorOutcome>((resolve) => {
+    return new Promise<TestActorOutcome>((resolve) => {
       const waiters = this.waiting.get(src);
       if (waiters) {
         waiters.push(resolve);
@@ -870,7 +833,7 @@ export class PropertyOutcomeRegistry {
   }
 
   /** Resolves the oldest pending stub for `src`, or queues for the next one. */
-  public provide(src: string, outcome: PropertyActorOutcome): void {
+  public provide(src: string, outcome: TestActorOutcome): void {
     const waiters = this.waiting.get(src);
     const waiter = waiters?.shift();
     if (waiter) {
@@ -886,7 +849,7 @@ export class PropertyOutcomeRegistry {
   }
 
   /** Pre-loads recorded outcomes so a replay never calls a real service. */
-  public seed(records: readonly PropertyOutcomeRecord[]): void {
+  public seed(records: readonly TestOutcomeRecord[]): void {
     for (const record of records) {
       this.provide(record.src, record.outcome);
     }
@@ -959,7 +922,7 @@ class PropertyExecutionEngine<
   private readonly srcByActorId = new Map<string, string>();
   private readonly resolvedBySrc = new Map<string, number>();
   /** Outcomes observed this run, in resolution order. */
-  public readonly outcomes: PropertyOutcomeRecord[] = [];
+  public readonly outcomes: TestOutcomeRecord[] = [];
 
   public constructor(
     logic: ActorLogic<TSnapshot, TEvent, unknown>,
@@ -1029,7 +992,7 @@ class PropertyExecutionEngine<
    * `coverage`, and returns one {@link DrainedTransition} per transition.
    */
   public consume(
-    coverage: MutablePropertyCoverage
+    coverage: MutableTestCoverage
   ): readonly DrainedTransition<TSnapshot>[] {
     const buffered = this.buffer;
     this.buffer = [];
@@ -1092,10 +1055,10 @@ class PropertyExecutionEngine<
 
 /** Executed-mode wiring handed to a {@link PropertyScenarioRunner}. */
 export interface PropertyExecutionConfig {
-  readonly mode: PropertyTestMode;
+  readonly mode: TestMode;
   readonly registry: PropertyOutcomeRegistry;
   /** Outcomes pre-loaded before the run starts (replay). */
-  readonly seededOutcomes?: readonly PropertyOutcomeRecord[];
+  readonly seededOutcomes?: readonly TestOutcomeRecord[];
 }
 
 /** A single `target()` observation, recorded against the timeline. */
@@ -1115,17 +1078,14 @@ export class PropertyScenarioRunner<
   private initialEffects: readonly unknown[] = [];
   private initialTransitionIds: readonly string[] = [];
   private initialGuardIds: readonly string[] = [];
-  private readonly timeline: PropertyTimelineEntry<TSnapshot, TEvent>[] = [];
+  private readonly timeline: TestTimelineEntry<TSnapshot, TEvent>[] = [];
   private readonly temporal: TemporalState<TSnapshot, TEvent>[];
   private stableStep = 0;
   private started = false;
   private finished = false;
-  private sutSession: PropertySutSession<TEvent> | undefined;
-  private referenceSession: PropertyReferenceSession<TEvent> | undefined;
-  private testModelSession:
-    | PropertyTestModelSession<TSnapshot, TEvent>
-    | undefined;
-  private lastObservation: PropertyObservation | undefined;
+  private sutSession: TestSutSession<TSnapshot, TEvent> | undefined;
+  private referenceSession: TestReferenceSession<TEvent> | undefined;
+  private lastObservation: TestObservation | undefined;
   private readonly inconclusiveTemporalIds: string[] = [];
   private generatedCommandCount = 0;
   private readonly labelsSeen = new Set<string>();
@@ -1133,7 +1093,7 @@ export class PropertyScenarioRunner<
   private swarmCaseIds: readonly string[] | undefined;
   private swarmEnabled: ReadonlySet<string> | undefined;
   private targetFunction:
-    | ((context: PropertyInvariantContext<TSnapshot, TEvent>) => number)
+    | ((context: TestInvariantContext<TSnapshot, TEvent>) => number)
     | undefined;
   private readonly targetObservations: PropertyTargetObservation[] = [];
 
@@ -1176,15 +1136,13 @@ export class PropertyScenarioRunner<
 
   /** Evaluates `target` on every stable step. See the `target` option. */
   public setTargetFunction(
-    targetFunction: (
-      context: PropertyInvariantContext<TSnapshot, TEvent>
-    ) => number
+    targetFunction: (context: TestInvariantContext<TSnapshot, TEvent>) => number
   ): void {
     this.targetFunction = targetFunction;
   }
 
   /** Outcomes observed while the executed run was alive. */
-  private executionOutcomes: readonly PropertyOutcomeRecord[] | undefined;
+  private executionOutcomes: readonly TestOutcomeRecord[] | undefined;
 
   /** Observations recorded with `target()` during this run. */
   public getTargetObservations(): readonly PropertyTargetObservation[] {
@@ -1205,21 +1163,17 @@ export class PropertyScenarioRunner<
       | undefined,
     private readonly prefixEvents: readonly TEvent[],
     private readonly frontierId: string | undefined,
-    private readonly sut: PropertySut<TSnapshot, TEvent> | undefined,
+    private readonly sut: TestSut<TSnapshot, TEvent> | undefined,
     private readonly testModel: TestModel<TSnapshot, TEvent, unknown>,
-    private readonly testModelExecution:
-      | PropertyTestModelExecution<TSnapshot, TEvent>
-      | undefined,
-    private readonly reference:
-      | PropertyReferenceOracle<TSnapshot, TEvent>
-      | undefined,
-    private readonly invariant: PropertyInvariant<TSnapshot, TEvent>,
-    temporal: readonly PropertyTemporal<TSnapshot, TEvent>[],
+    private readonly states: TestStateAssertions<TSnapshot, TEvent> | undefined,
+    private readonly reference: TestReference<TSnapshot, TEvent> | undefined,
+    private readonly invariant: TestInvariant<TSnapshot, TEvent> | undefined,
+    temporal: readonly TestTemporal<TSnapshot, TEvent>[],
     private readonly eventDescriptors: ReadonlyMap<
       string,
-      AnyPropertyEventDescriptor<TSnapshot, TEvent>
+      AnyTestEventDescriptor<TSnapshot, TEvent>
     >,
-    private readonly coverage: MutablePropertyCoverage,
+    private readonly coverage: MutableTestCoverage,
     private readonly executionConfig?: PropertyExecutionConfig
   ) {
     this.temporal = temporal.map((definition) => ({
@@ -1296,9 +1250,6 @@ export class PropertyScenarioRunner<
     }
     if (this.sut) {
       this.sutSession = await this.sut.create(context);
-    }
-    if (this.testModelExecution) {
-      this.testModelSession = await this.testModelExecution.create(context);
     }
     await this.checkStable(
       undefined,
@@ -1405,7 +1356,7 @@ export class PropertyScenarioRunner<
     await this.run(event, caseId);
   }
 
-  public async replay(command: PropertyCommand<TEvent>): Promise<void> {
+  public async replay(command: TestCommand<TEvent>): Promise<void> {
     this.assertStarted();
     if (command.type === 'event') {
       await this.executeEvent(
@@ -1447,10 +1398,7 @@ export class PropertyScenarioRunner<
   }
 
   /** Queues the next resolution of the stubbed invoke source `src`. */
-  public async outcome(
-    src: string,
-    outcome: PropertyActorOutcome
-  ): Promise<void> {
+  public async outcome(src: string, outcome: TestActorOutcome): Promise<void> {
     this.assertStarted();
     this.recordGeneratedCommand();
     if (!this.execution || !this.executionConfig) {
@@ -1462,7 +1410,7 @@ export class PropertyScenarioRunner<
     const drained = this.execution.consume(this.coverage);
     this.snapshot = this.execution.getSnapshot();
     this.recordSnapshot(this.snapshot);
-    const entry: PropertyRuntimeTimelineEntry<TSnapshot, TEvent> = {
+    const entry: TestRuntimeTimelineEntry<TSnapshot, TEvent> = {
       kind: 'command',
       index: this.timeline.length,
       command: { type: 'outcome', src, outcome },
@@ -1480,7 +1428,7 @@ export class PropertyScenarioRunner<
       this.snapshot,
       []
     );
-    (entry as { observation?: PropertyObservation }).observation = observation;
+    (entry as { observation?: TestObservation }).observation = observation;
   }
 
   public async advance(milliseconds: number): Promise<void> {
@@ -1496,7 +1444,7 @@ export class PropertyScenarioRunner<
       // no events.
       const advancedFrom = this.snapshot;
       this.coverage.clockAdvances++;
-      const pureEntry: PropertyRuntimeTimelineEntry<TSnapshot, TEvent> = {
+      const pureEntry: TestRuntimeTimelineEntry<TSnapshot, TEvent> = {
         kind: 'command',
         index: this.timeline.length,
         command: { type: 'advance', milliseconds, deliveredEvents: [] },
@@ -1513,13 +1461,13 @@ export class PropertyScenarioRunner<
         this.snapshot,
         []
       );
-      (pureEntry as { observation?: PropertyObservation }).observation =
+      (pureEntry as { observation?: TestObservation }).observation =
         pureObservation;
       return;
     }
     const previousSnapshot = this.snapshot;
     const events = await this.sutSession.advance(milliseconds);
-    const command: Extract<PropertyCommand<TEvent>, { type: 'advance' }> = {
+    const command: Extract<TestCommand<TEvent>, { type: 'advance' }> = {
       type: 'advance',
       milliseconds,
       deliveredEvents: events.slice()
@@ -1562,7 +1510,7 @@ export class PropertyScenarioRunner<
     this.snapshot = this.execution!.getSnapshot();
     this.recordSnapshot(this.snapshot);
     this.coverage.clockAdvances++;
-    const entry: PropertyRuntimeTimelineEntry<TSnapshot, TEvent> = {
+    const entry: TestRuntimeTimelineEntry<TSnapshot, TEvent> = {
       kind: 'command',
       index: this.timeline.length,
       command: { type: 'advance', milliseconds, deliveredEvents: [] },
@@ -1580,13 +1528,13 @@ export class PropertyScenarioRunner<
       this.snapshot,
       []
     );
-    (entry as { observation?: PropertyObservation }).observation = observation;
+    (entry as { observation?: TestObservation }).observation = observation;
   }
 
   public async checkpoint(label?: string): Promise<void> {
     this.assertStarted();
     this.recordGeneratedCommand();
-    const entry: PropertyRuntimeTimelineEntry<TSnapshot, TEvent> = {
+    const entry: TestRuntimeTimelineEntry<TSnapshot, TEvent> = {
       kind: 'command',
       index: this.timeline.length,
       command: { type: 'checkpoint', label },
@@ -1601,7 +1549,7 @@ export class PropertyScenarioRunner<
     this.coverage.checkpoints++;
     const observation = await this.compareObservations();
     this.lastObservation = observation;
-    (entry as { observation?: PropertyObservation }).observation = observation;
+    (entry as { observation?: TestObservation }).observation = observation;
   }
 
   public async stop(): Promise<void> {
@@ -1644,7 +1592,7 @@ export class PropertyScenarioRunner<
     this.coverage.steps++;
     this.coverage.generatedSteps++;
     this.recordSnapshot(snapshot);
-    const entry: PropertyRuntimeTimelineEntry<TSnapshot, TEvent> = {
+    const entry: TestRuntimeTimelineEntry<TSnapshot, TEvent> = {
       kind: 'command',
       index: this.timeline.length,
       command: { type: 'stop' },
@@ -1662,7 +1610,7 @@ export class PropertyScenarioRunner<
       snapshot,
       effects
     );
-    (entry as { observation?: PropertyObservation }).observation = observation;
+    (entry as { observation?: TestObservation }).observation = observation;
   }
 
   public finish(): void {
@@ -1721,7 +1669,6 @@ export class PropertyScenarioRunner<
       }
     }
     for (const dispose of [
-      this.testModelSession?.dispose,
       this.sutSession?.dispose,
       this.referenceSession?.dispose
     ]) {
@@ -1733,7 +1680,6 @@ export class PropertyScenarioRunner<
     }
     this.sutSession = undefined;
     this.referenceSession = undefined;
-    this.testModelSession = undefined;
     if (errors.length) {
       throw new AggregateError(errors, 'Property scenario disposal failed');
     }
@@ -1743,14 +1689,14 @@ export class PropertyScenarioRunner<
     return this.snapshot;
   }
 
-  public getTrace(): PropertyTrace<TSnapshot, TEvent> {
+  public getTrace(): TestTrace<TSnapshot, TEvent> {
     const steps = this.timeline
       .filter(
-        (entry): entry is PropertyEventTimelineEntry<TSnapshot, TEvent> =>
+        (entry): entry is TestEventTimelineEntry<TSnapshot, TEvent> =>
           entry.kind === 'event'
       )
       .map(
-        (entry): PropertyStep<TSnapshot, TEvent> => ({
+        (entry): TestStep<TSnapshot, TEvent> => ({
           ...entry,
           phase: entry.command.phase,
           event: entry.command.event
@@ -1776,7 +1722,7 @@ export class PropertyScenarioRunner<
         .map((step) => step.event),
       commands: this.timeline
         .filter(
-          (entry): entry is PropertyRuntimeTimelineEntry<TSnapshot, TEvent> =>
+          (entry): entry is TestRuntimeTimelineEntry<TSnapshot, TEvent> =>
             entry.kind === 'command'
         )
         .map((entry) => entry.command),
@@ -1847,6 +1793,7 @@ export class PropertyScenarioRunner<
     if (sendToSut) {
       const parsedCase = caseId ? parsePropertyEventCaseId(caseId) : undefined;
       await this.sutSession?.send(event, {
+        snapshot,
         ...(caseId === undefined ? {} : { caseId }),
         ...(parsedCase ? { case: parsedCase } : {})
       });
@@ -1858,7 +1805,7 @@ export class PropertyScenarioRunner<
       this.coverage.generatedSteps++;
     }
     this.recordSnapshot(snapshot);
-    const entry: PropertyEventTimelineEntry<TSnapshot, TEvent> = {
+    const entry: TestEventTimelineEntry<TSnapshot, TEvent> = {
       kind: 'event',
       index: this.timeline.length,
       command: { type: 'event', event, phase, origin, caseId },
@@ -1871,20 +1818,6 @@ export class PropertyScenarioRunner<
     };
     this.timeline.push(entry);
     this.pushActorEntries(previousSnapshot, drained);
-    if (sendToSut && this.testModelSession) {
-      try {
-        await this.testModel.testTransition(this.testModelSession.params, {
-          event,
-          state: snapshot
-        } satisfies Step<TSnapshot, TEvent>);
-      } catch (cause) {
-        this.fail(
-          `Test model event executor failed for ${JSON.stringify(event)}`,
-          cause,
-          this.stableStep
-        );
-      }
-    }
     const observation = await this.checkStable(
       event,
       previousSnapshot,
@@ -1892,7 +1825,7 @@ export class PropertyScenarioRunner<
       effects,
       compare
     );
-    (entry as { observation?: PropertyObservation }).observation = observation;
+    (entry as { observation?: TestObservation }).observation = observation;
   }
 
   private async checkStable(
@@ -1901,42 +1834,32 @@ export class PropertyScenarioRunner<
     snapshot: TSnapshot,
     effects: readonly unknown[],
     compare = true
-  ): Promise<PropertyObservation | undefined> {
+  ): Promise<TestObservation | undefined> {
     const step = this.stableStep++;
     const observation = compare ? await this.compareObservations() : undefined;
     this.lastObservation = observation;
-    if (this.testModelSession) {
+    await this.checkStateAssertions(snapshot, step);
+    if (this.invariant) {
+      this.coverage.invariantChecks++;
       try {
-        await this.testModel.testState(this.testModelSession.params, snapshot);
+        await this.invariant({
+          initialSnapshot: this.initialSnapshot,
+          previousSnapshot,
+          snapshot,
+          event,
+          effects,
+          step,
+          label: this.label,
+          classify: this.classify,
+          target: this.target
+        });
       } catch (cause) {
         this.fail(
-          `Test model state assertion failed after ${step} step${
-            step === 1 ? '' : 's'
-          }`,
+          `Property invariant failed after ${step} step${step === 1 ? '' : 's'}`,
           cause,
           step
         );
       }
-    }
-    this.coverage.invariantChecks++;
-    try {
-      await this.invariant({
-        initialSnapshot: this.initialSnapshot,
-        previousSnapshot,
-        snapshot,
-        event,
-        effects,
-        step,
-        label: this.label,
-        classify: this.classify,
-        target: this.target
-      });
-    } catch (cause) {
-      this.fail(
-        `Property invariant failed after ${step} step${step === 1 ? '' : 's'}`,
-        cause,
-        step
-      );
     }
     if (this.targetFunction) {
       this.target(
@@ -1967,8 +1890,63 @@ export class PropertyScenarioRunner<
     return observation;
   }
 
+  /**
+   * Runs the per-state assertions and any `meta.test` hooks that apply to
+   * `snapshot`. Both entry points reach this on every stable step.
+   */
+  private async checkStateAssertions(
+    snapshot: TSnapshot,
+    step: number
+  ): Promise<void> {
+    const states = this.sutSession?.states ?? this.states;
+    const session = this.sutSession;
+    const failed = (cause: unknown) =>
+      this.fail(
+        `State assertion failed after ${step} step${step === 1 ? '' : 's'}: ${
+          cause instanceof Error ? cause.message : String(cause)
+        }`,
+        cause,
+        step
+      );
+    if (states) {
+      const matcher = this.testModel.options.stateMatcher;
+      const keys = Object.keys(states).filter(
+        (stateKey) => stateKey !== '*' && matcher(snapshot, stateKey)
+      );
+      if (!keys.length && '*' in states) {
+        keys.push('*');
+      }
+      for (const key of keys) {
+        try {
+          await states[key](snapshot, session);
+        } catch (cause) {
+          failed(cause);
+        }
+      }
+    }
+    const getMeta = (snapshot as { getMeta?: () => Record<string, unknown> })
+      .getMeta;
+    if (typeof getMeta !== 'function') {
+      return;
+    }
+    for (const meta of Object.values(getMeta.call(snapshot))) {
+      const test = (meta as { test?: unknown } | undefined)?.test;
+      if (typeof test !== 'function') {
+        continue;
+      }
+      try {
+        await (test as (session: unknown, snapshot: TSnapshot) => unknown)(
+          session,
+          snapshot
+        );
+      } catch (cause) {
+        failed(cause);
+      }
+    }
+  }
+
   private async checkTemporal(
-    context: PropertyInvariantContext<TSnapshot, TEvent>
+    context: TestInvariantContext<TSnapshot, TEvent>
   ): Promise<void> {
     for (const state of this.temporal) {
       if (state.satisfied) {
@@ -2008,7 +1986,7 @@ export class PropertyScenarioRunner<
     }
   }
 
-  private failTemporal(definition: PropertyTemporal<TSnapshot, TEvent>): never {
+  private failTemporal(definition: TestTemporal<TSnapshot, TEvent>): never {
     recordPropertyTemporal(this.coverage, definition.id, 'failed');
     const failure: PortableTemporalFailure = {
       type: definition.type,
@@ -2028,35 +2006,38 @@ export class PropertyScenarioRunner<
     );
   }
 
-  private async compareObservations(): Promise<
-    PropertyObservation | undefined
-  > {
-    if (!this.reference && !this.sut) {
+  private async compareObservations(): Promise<TestObservation | undefined> {
+    // A SUT without both `projectModel` and a session `read()` only executes
+    // effects; there is nothing to compare.
+    const comparableSut =
+      this.sut?.projectModel && this.sutSession?.read ? this.sut : undefined;
+    if (!this.reference && !comparableSut) {
+      await this.sutSession?.settle?.();
       return undefined;
     }
     await this.sutSession?.settle?.();
     const referenceRaw = await this.referenceSession?.read();
-    const sutRaw = await this.sutSession?.read();
+    const sutRaw = await this.sutSession?.read?.();
     const model = this.reference
       ? this.reference.projectModel(this.snapshot)
-      : this.sut!.projectModel(this.snapshot);
+      : comparableSut!.projectModel!(this.snapshot);
     const reference = this.reference
       ? this.reference.projectReference
         ? this.reference.projectReference(referenceRaw)
         : referenceRaw
       : undefined;
-    const sut = this.sut
-      ? this.sut.projectSut
-        ? this.sut.projectSut(sutRaw)
+    const sut = comparableSut
+      ? comparableSut.projectSut
+        ? comparableSut.projectSut(sutRaw)
         : sutRaw
       : undefined;
-    const sutModel = this.sut
-      ? this.sut.projectModel(this.snapshot)
+    const sutModel = comparableSut
+      ? comparableSut.projectModel!(this.snapshot)
       : undefined;
-    const observation: PropertyObservation = {
+    const observation: TestObservation = {
       model,
       reference: this.reference ? { model, observed: reference } : undefined,
-      sut: this.sut ? { model: sutModel, observed: sut } : undefined
+      sut: comparableSut ? { model: sutModel, observed: sut } : undefined
     };
     let referenceMatches = true;
     let sutMatches = true;
@@ -2066,10 +2047,10 @@ export class PropertyScenarioRunner<
         ? await this.reference.equivalent(model, reference)
         : defaultEquivalent(model, reference);
     }
-    if (this.sut) {
+    if (comparableSut) {
       this.coverage.sutComparisons++;
-      sutMatches = this.sut.equivalent
-        ? await this.sut.equivalent(sutModel, sut)
+      sutMatches = comparableSut.equivalent
+        ? await comparableSut.equivalent(sutModel, sut)
         : defaultEquivalent(sutModel, sut);
     }
     if (!referenceMatches || !sutMatches) {
@@ -2090,10 +2071,10 @@ export class PropertyScenarioRunner<
     return observation;
   }
 
-  private replaceLastObservation(observation: PropertyObservation | undefined) {
+  private replaceLastObservation(observation: TestObservation | undefined) {
     const last = this.timeline.at(-1);
     if (last) {
-      (last as { observation?: PropertyObservation }).observation = observation;
+      (last as { observation?: TestObservation }).observation = observation;
     }
   }
 
@@ -2161,14 +2142,14 @@ export class PropertyScenarioRunner<
     failedAt: number,
     temporalFailure?: PortableTemporalFailure
   ): never {
-    let fixture: PortablePropertyReplayFixture | undefined;
+    let fixture: TestFixture | undefined;
     try {
       fixture = this.getReplayFixture(failedAt, temporalFailure);
     } catch {
       // Never mask the underlying failure with a fixture-construction error.
       fixture = undefined;
     }
-    throw new PropertyTestFailure(
+    throw new ModelTestFailure(
       message,
       this.getTrace(),
       cause,
@@ -2180,7 +2161,7 @@ export class PropertyScenarioRunner<
   private getReplayFixture(
     failedAt: number,
     temporalFailure?: PortableTemporalFailure
-  ): PortablePropertyReplayFixture {
+  ): TestFixture {
     const identity = this.logic as { id?: string; version?: string };
     if (this.startingSnapshot && !this.serializeStartingSnapshot) {
       throw new Error(
@@ -2204,13 +2185,13 @@ export class PropertyScenarioRunner<
           (
             entry
           ): entry is
-            | PropertyEventTimelineEntry<TSnapshot, TEvent>
-            | PropertyRuntimeTimelineEntry<TSnapshot, TEvent> =>
+            | TestEventTimelineEntry<TSnapshot, TEvent>
+            | TestRuntimeTimelineEntry<TSnapshot, TEvent> =>
             entry.kind !== 'actorEvent'
         )
         .map((entry) => ({
           kind: entry.kind,
-          command: entry.command as PropertyCommand
+          command: entry.command as TestCommand
         })),
       failedAt,
       temporalFailure,
@@ -2277,38 +2258,84 @@ export type PropertyCommandGenerator<
   | PropertyGenerator<TKind, TValue>
   | PropertyCommandDescriptor<PropertyGenerator<TKind, TValue>>;
 
-export interface PropertyTestOptions<
+/**
+ * The options both entry points share: what to send, what to send it to, and
+ * what to assert. `testPaths()` adds its own path options; `propertyTest()`
+ * adds {@link PropertyOptions}.
+ */
+export interface TestOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput,
-  TKind extends PropertyGeneratorKind
+  TKind extends PropertyGeneratorKind = PropertyGeneratorKind
 > {
-  readonly adapter: PropertyTestAdapter<TKind>;
   /**
    * `'pure'` (the default) steps the machine through `transition()`, so no
    * effects run. `'executed'` runs a real actor on a `SimulatedClock`:
    * invoked and spawned actors start, `onDone`/`onError`/`onSnapshot` fire,
    * and `after` transitions are reached with generated `advance` commands.
    */
-  readonly mode?: PropertyTestMode;
+  readonly mode?: TestMode;
   /**
    * Actor logic substituted for the machine's named invoke/spawn sources
    * before the campaign runs, via `machine.provide({ actors })`. Executed
    * mode only.
    */
   readonly actors?: Readonly<Record<string, ActorLogic<any, any, any>>>;
+  readonly events?: TestEventGenerators<TSnapshot, TEvent, TKind>;
+  readonly sut?: TestSut<TSnapshot, TEvent>;
+  /**
+   * Per-state assertions run after every stable step. A `states` map on the
+   * SUT session takes precedence over this one.
+   */
+  readonly states?: TestStateAssertions<TSnapshot, TEvent>;
+  readonly reference?: TestReference<TSnapshot, TEvent>;
+  readonly input?: TInput;
+  readonly start?: {
+    readonly snapshot: TSnapshot;
+    readonly serializeSnapshot: (snapshot: TSnapshot) => unknown;
+  };
+  /**
+   * Evaluated on every stable step. The campaign keeps the best (highest)
+   * observed value, reports it as `coverage.exploration.target`, and, with
+   * `frontiers: { strategy: 'target' }`, replays the prefixes that reached it
+   * as frontiers for the next batch. Equivalent to calling `target()` from
+   * the invariant.
+   */
+  readonly target?: (
+    context: TestInvariantContext<TSnapshot, TEvent>
+  ) => number;
+  /**
+   * Called once per run, after the runner has finished and been disposed.
+   * `passed` is `false` when the run ended in a property failure.
+   */
+  readonly collect?: (
+    trace: TestTrace<TSnapshot, TEvent>,
+    info: { readonly passed: boolean; readonly runIndex: number }
+  ) => void;
+  readonly invariant?: TestInvariant<TSnapshot, TEvent>;
+  readonly temporal?: readonly TestTemporal<TSnapshot, TEvent>[];
+  /** Minimum label frequencies the campaign must reach. */
+  readonly expectLabels?: TestLabelExpectations;
+}
+
+/** The options only `propertyTest()` accepts. */
+export interface PropertyOptions<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TKind extends PropertyGeneratorKind = PropertyGeneratorKind
+> {
+  readonly adapter: TestAdapter<TKind>;
   /**
    * Invoke source names whose actors are replaced by a stub that resolves
    * from a generated `outcome` command, so the adapter shrinks service
-   * results alongside events. Executed mode only.
+   * results alongside events. Executed mode only, and property-only: path
+   * generation walks the pure state graph, which does not model invoked
+   * actors.
    */
   readonly outcomes?: {
-    readonly [src: string]: PropertyCommandGenerator<
-      TKind,
-      PropertyActorOutcome
-    >;
+    readonly [src: string]: PropertyCommandGenerator<TKind, TestActorOutcome>;
   };
-  readonly events: PropertyEventGenerators<TSnapshot, TEvent, TKind>;
   readonly commands?: {
     readonly advance?: PropertyCommandGenerator<TKind, number>;
     readonly checkpoint?: PropertyCommandGenerator<
@@ -2316,14 +2343,6 @@ export interface PropertyTestOptions<
       { readonly label?: string }
     >;
     readonly stop?: PropertyCommandGenerator<TKind, Record<string, never>>;
-  };
-  readonly sut?: PropertySut<TSnapshot, TEvent>;
-  readonly test?: PropertyTestModelExecution<TSnapshot, TEvent>;
-  readonly reference?: PropertyReferenceOracle<TSnapshot, TEvent>;
-  readonly input?: TInput;
-  readonly start?: {
-    readonly snapshot: TSnapshot;
-    readonly serializeSnapshot: (snapshot: TSnapshot) => unknown;
   };
   readonly frontiers?:
     | readonly StatePath<TSnapshot, TEvent>[]
@@ -2338,41 +2357,27 @@ export interface PropertyTestOptions<
    */
   readonly swarm?: boolean | PropertySwarmOptions;
   /**
-   * Evaluated on every stable step. The campaign keeps the best (highest)
-   * observed value, reports it as `coverage.exploration.target`, and, with
-   * `frontiers: { strategy: 'target' }`, replays the prefixes that reached it
-   * as frontiers for the next batch. Equivalent to calling `target()` from
-   * the invariant.
-   */
-  readonly target?: (
-    context: PropertyInvariantContext<TSnapshot, TEvent>
-  ) => number;
-  /**
-   * Called once per run, after the runner has finished and been disposed.
-   * `passed` is `false` when the run ended in a property failure.
-   */
-  readonly collect?: (
-    trace: PropertyTrace<TSnapshot, TEvent>,
-    info: { readonly passed: boolean; readonly runIndex: number }
-  ) => void;
-  readonly invariant: PropertyInvariant<TSnapshot, TEvent>;
-  readonly temporal?: readonly PropertyTemporal<TSnapshot, TEvent>[];
-  /**
    * Stops the campaign as soon as the condition holds. Coverage is
    * re-evaluated between batches of `batchRuns` runs. Without `until` (and
    * without `frontiers: 'auto'`) the adapter is invoked exactly once.
    */
-  readonly until?: PropertyStopCondition;
+  readonly until?: TestStopCondition;
   /** Runs per batch in a batched campaign. Defaults to 25. */
   readonly batchRuns?: number;
   /** Total runs a batched campaign may complete. Defaults to 100. */
   readonly maxRuns?: number;
-  /** Minimum label frequencies the campaign must reach. */
-  readonly expectLabels?: PropertyLabelExpectations;
 }
 
+export type PropertyTestOptions<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject,
+  TInput,
+  TKind extends PropertyGeneratorKind = PropertyGeneratorKind
+> = TestOptions<TSnapshot, TEvent, TInput, TKind> &
+  PropertyOptions<TSnapshot, TEvent, TKind>;
+
 /** Minimum frequencies required of labels recorded during the campaign. */
-export interface PropertyLabelExpectations {
+export interface TestLabelExpectations {
   readonly [name: string]: {
     /** Minimum share of completed runs that must record the label, `0`..`1`. */
     readonly min?: number;
@@ -2385,7 +2390,7 @@ export interface PropertyLabelExpectations {
  * Ratios are `covered / (covered + uncovered)`. Every listed key must hold;
  * `any` holds when at least one of its conditions does.
  */
-export interface PropertyStopConditionObject {
+export interface TestStopConditionObject {
   readonly stateNodes?: number;
   readonly transitions?: number;
   readonly transitionPairs?: number;
@@ -2395,12 +2400,12 @@ export interface PropertyStopConditionObject {
   readonly requirements?: number;
   readonly runs?: number;
   readonly timeMs?: number;
-  readonly any?: readonly PropertyStopCondition[];
+  readonly any?: readonly TestStopCondition[];
 }
 
-export type PropertyStopCondition =
-  | PropertyStopConditionObject
-  | ((coverage: PropertyCoverage) => boolean);
+export type TestStopCondition =
+  | TestStopConditionObject
+  | ((coverage: TestCoverage) => boolean);
 
 /** Swarm testing options. See the `swarm` option. */
 export interface PropertySwarmOptions {
@@ -2438,12 +2443,12 @@ const DEFAULT_MAX_RUNS = 100;
 const DEFAULT_MAX_FRONTIERS = 5;
 const DEFAULT_FRONTIER_SEARCH_LIMIT = 1000;
 
-function getCoverageRatio(dimension: PropertyCoverageDimension): number {
+function getCoverageRatio(dimension: TestCoverageDimension): number {
   const considered = dimension.covered.length + dimension.uncovered.length;
   return considered ? dimension.covered.length / considered : 1;
 }
 
-function getEventCaseRatio(coverage: PropertyCoverage): number {
+function getEventCaseRatio(coverage: TestCoverage): number {
   const cases = Object.values(coverage.eventCases);
   if (!cases.length) {
     return 1;
@@ -2451,10 +2456,10 @@ function getEventCaseRatio(coverage: PropertyCoverage): number {
   return cases.filter((counts) => counts.executed > 0).length / cases.length;
 }
 
-/** Evaluates a {@link PropertyStopCondition} against aggregated coverage. */
-export function evaluatePropertyStopCondition(
-  condition: PropertyStopCondition,
-  coverage: PropertyCoverage,
+/** Evaluates a {@link TestStopCondition} against aggregated coverage. */
+export function evaluateTestStopCondition(
+  condition: TestStopCondition,
+  coverage: TestCoverage,
   elapsedMs: number
 ): boolean {
   if (typeof condition === 'function') {
@@ -2485,7 +2490,7 @@ export function evaluatePropertyStopCondition(
   if (condition.any?.length) {
     clauses.push(
       condition.any.some((nested) =>
-        evaluatePropertyStopCondition(nested, coverage, elapsedMs)
+        evaluateTestStopCondition(nested, coverage, elapsedMs)
       )
     );
   }
@@ -2526,7 +2531,7 @@ function selectUncoveredFrontiers<
   TEvent extends EventObject
 >(
   paths: readonly StatePath<TSnapshot, TEvent>[],
-  coverage: PropertyCoverage,
+  coverage: TestCoverage,
   maxFrontiers: number
 ): StatePath<TSnapshot, TEvent>[] {
   const uncoveredBySource = new Map<string, number>();
@@ -2573,8 +2578,8 @@ function selectUncoveredFrontiers<
 }
 
 function getLabelExpectationFailures(
-  expectations: PropertyLabelExpectations,
-  coverage: PropertyCoverage
+  expectations: TestLabelExpectations,
+  coverage: TestCoverage
 ): string[] {
   const failures: string[] = [];
   for (const [name, expectation] of Object.entries(expectations)) {
@@ -2610,16 +2615,17 @@ function getFrontierId<
 }
 
 interface PropertyExplorationAccumulator {
-  mode: PropertyTestMode;
+  strategy: 'property' | 'paths';
+  mode: TestMode;
   configuredRuns: number;
   configuredRunsOverride: number | null;
-  stoppedBecause: PropertyStoppedBecause;
+  stoppedBecause: TestStoppedBecause;
   configuredRunsUnknown: boolean;
   completedRuns: number;
   maximumSequenceLength: number | null;
   maximumSequenceLengthUnknown: boolean;
-  frontiers: PropertyExplorationFrontier[];
-  seeds: PropertyExplorationSeed[];
+  frontiers: TestExplorationFrontier[];
+  seeds: TestExplorationSeed[];
   swarmRuns: number;
   swarmEnabledTotal: number;
   swarmUsed: boolean;
@@ -2652,9 +2658,9 @@ function createSwarmRng(seed: number): () => number {
 }
 
 function finalizeExploration(
-  coverage: MutablePropertyCoverage,
+  coverage: MutableTestCoverage,
   accumulator: PropertyExplorationAccumulator
-): PropertyExplorationBounds {
+): TestExplorationBounds {
   const maximumSequenceLength = accumulator.maximumSequenceLengthUnknown
     ? null
     : accumulator.maximumSequenceLength;
@@ -2665,6 +2671,7 @@ function finalizeExploration(
     accumulator.truncationReasons.add('maximum sequence length reached');
   }
   return {
+    strategy: accumulator.strategy,
     mode: accumulator.mode,
     configuredRuns:
       accumulator.configuredRunsOverride ??
@@ -2682,13 +2689,13 @@ function finalizeExploration(
           averageEnabled: accumulator.swarmRuns
             ? accumulator.swarmEnabledTotal / accumulator.swarmRuns
             : 0
-        } satisfies PropertyExplorationSwarm)
+        } satisfies TestExplorationSwarm)
       : null,
     target: {
       best: accumulator.targetBest,
       label: accumulator.targetLabel,
       improvements: accumulator.targetImprovements
-    } satisfies PropertyExplorationTarget,
+    } satisfies TestExplorationTarget,
     truncated: accumulator.truncationReasons.size > 0,
     truncationReasons: [...accumulator.truncationReasons].sort()
   };
@@ -2719,8 +2726,8 @@ export async function propertyTest<
     InputFromSource<TSource>,
     TKind
   >
-): Promise<{ coverage: PropertyCoverage }> {
-  const mode: PropertyTestMode = options.mode ?? 'pure';
+): Promise<{ coverage: TestCoverage }> {
+  const mode: TestMode = options.mode ?? 'pure';
   if (mode === 'pure' && (options.actors || options.outcomes)) {
     throw new Error(
       "Property `actors` and `outcomes` require `mode: 'executed'`"
@@ -2745,75 +2752,35 @@ export async function propertyTest<
         baseModel.options
       )
     : baseModel;
-  const eventDescriptors = new Map<
-    string,
-    AnyPropertyEventDescriptor<
+  const { cases: events, descriptors: eventDescriptors } =
+    normalizeEventDescriptors<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
-    >
-  >();
-  const events = Object.entries(options.events).flatMap(
-    ([type, configured]) => {
-      const cases = Array.isArray(configured) ? configured : [configured];
-      return cases.map((eventCase) => {
-        const descriptor: AnyPropertyEventDescriptor<
-          SnapshotFromSource<TSource>,
-          EventFromSource<TSource>
-        > = isPropertyDescriptorObject(eventCase)
-          ? (eventCase as AnyPropertyEventDescriptor<
-              SnapshotFromSource<TSource>,
-              EventFromSource<TSource>
-            >)
-          : { generate: eventCase };
-        const caseName = descriptor.case ?? 'default';
-        if (!caseName) {
-          throw new Error(
-            `Property event case for "${type}" must not be empty`
-          );
-        }
-        const caseId = getPropertyEventCaseId(type, caseName);
-        if (eventDescriptors.has(caseId)) {
-          throw new Error(
-            `Property event case "${caseName}" is duplicated for "${type}"`
-          );
-        }
-        eventDescriptors.set(caseId, descriptor);
-        return {
-          type,
-          caseId,
-          generator: descriptor.generate,
-          weight: assertPropertyWeight(
-            descriptor.weight,
-            `event case "${caseName}" for "${type}"`
-          )
-        };
-      });
-    }
-  );
+    >((options.events ?? {}) as Readonly<Record<string, unknown>>);
   const commands: PropertyGeneratedCommand[] = [];
   for (const type of ['advance', 'checkpoint', 'stop'] as const) {
     const configured = options.commands?.[type];
     if (configured === undefined) {
       continue;
     }
-    const descriptor = isPropertyDescriptorObject(configured)
+    const descriptor = isEventDescriptorObject(configured)
       ? (configured as PropertyCommandDescriptor<unknown>)
       : { generate: configured as unknown };
     commands.push({
       type,
       generator: descriptor.generate,
-      weight: assertPropertyWeight(descriptor.weight, `"${type}" command`)
+      weight: assertTestWeight(descriptor.weight, `"${type}" command`)
     });
   }
   for (const [src, configured] of Object.entries(options.outcomes ?? {})) {
-    const descriptor = isPropertyDescriptorObject(configured)
+    const descriptor = isEventDescriptorObject(configured)
       ? (configured as PropertyCommandDescriptor<unknown>)
       : { generate: configured as unknown };
     commands.push({
       type: 'outcome',
       src,
       generator: descriptor.generate,
-      weight: assertPropertyWeight(
+      weight: assertTestWeight(
         descriptor.weight,
         `"outcome" command for "${src}"`
       )
@@ -2824,11 +2791,12 @@ export async function propertyTest<
       'Property tests starting from a snapshot require a `start.serializeSnapshot` function'
     );
   }
-  const coverage = createPropertyCoverage(model.testLogic);
+  const coverage = createTestCoverage(model.testLogic);
   for (const event of events) {
     declarePropertyEventCase(coverage, event.caseId, event.weight);
   }
   const exploration: PropertyExplorationAccumulator = {
+    strategy: 'property',
     mode,
     configuredRuns: 0,
     configuredRunsOverride: null,
@@ -2950,7 +2918,7 @@ export async function propertyTest<
       frozenSwarm = enabled;
     }
     let trace:
-      | PropertyTrace<SnapshotFromSource<TSource>, EventFromSource<TSource>>
+      | TestTrace<SnapshotFromSource<TSource>, EventFromSource<TSource>>
       | undefined;
     try {
       trace = runner.getTrace();
@@ -2971,7 +2939,7 @@ export async function propertyTest<
         .filter(
           (
             entry
-          ): entry is PropertyEventTimelineEntry<
+          ): entry is TestEventTimelineEntry<
             SnapshotFromSource<TSource>,
             EventFromSource<TSource>
           > => entry.kind === 'event'
@@ -3054,7 +3022,7 @@ export async function propertyTest<
             EventFromSource<TSource>,
             unknown
           >,
-          options.test,
+          options.states,
           options.reference,
           options.invariant,
           options.temporal ?? [],
@@ -3133,14 +3101,14 @@ export async function propertyTest<
 
     if (result.error !== undefined) {
       exploration.stoppedBecause = 'failure';
-      if (result.error instanceof PropertyTestFailure) {
-        throw new PropertyTestFailure(
+      if (result.error instanceof ModelTestFailure) {
+        throw new ModelTestFailure(
           result.error.summary,
           result.error.trace,
           result.error.cause,
           result.replay,
           result.error.fixture,
-          finalizePropertyCoverage(
+          finalizeTestCoverage(
             coverage,
             finalizeExploration(coverage, exploration)
           )
@@ -3153,10 +3121,7 @@ export async function propertyTest<
   };
 
   const snapshotCoverage = () =>
-    finalizePropertyCoverage(
-      coverage,
-      finalizeExploration(coverage, exploration)
-    );
+    finalizeTestCoverage(coverage, finalizeExploration(coverage, exploration));
   const getStaticRunBudget = (frontierContext: Scenario) =>
     frontierContext
       ? typeof frontierOptions?.runsPerFrontier === 'function'
@@ -3287,7 +3252,7 @@ export async function propertyTest<
       }
       if (
         options.until &&
-        evaluatePropertyStopCondition(
+        evaluateTestStopCondition(
           options.until,
           snapshotCoverage(),
           Date.now() - startedAt
@@ -3310,7 +3275,7 @@ export async function propertyTest<
         `Property label expectations were not met:\n${failures
           .map((failure) => `  - ${failure}`)
           .join('\n')}`
-      ) as Error & { coverage: PropertyCoverage };
+      ) as Error & { coverage: TestCoverage };
       error.name = 'PropertyLabelExpectationError';
       error.coverage = finalCoverage;
       throw error;
@@ -3332,7 +3297,7 @@ export async function propertyTest<
  * legitimately records fewer clock entries than `deliveredEvents`.
  */
 function assertReplayFixtureClockEvents(
-  fixture: PortablePropertyReplayFixture | LegacyPortablePropertyReplayFixture
+  fixture: TestFixture | LegacyPortablePropertyReplayFixture
 ): void {
   const timeline = normalizeFixtureTimeline(fixture);
   for (let index = 0; index < timeline.length; index++) {
@@ -3361,8 +3326,8 @@ function assertReplayFixtureClockEvents(
 }
 
 function normalizeFixtureTimeline(
-  fixture: PortablePropertyReplayFixture | LegacyPortablePropertyReplayFixture
-): readonly PortablePropertyTimelineEntry[] {
+  fixture: TestFixture | LegacyPortablePropertyReplayFixture
+): readonly PortableTestTimelineEntry[] {
   if (fixture.formatVersion === 2) {
     return fixture.timeline;
   }
@@ -3389,12 +3354,12 @@ function normalizeFixtureTimeline(
 }
 
 /**
- * Thrown by `replayPropertyTest()` when a fixture recorded from a failing run
+ * Thrown by `replayTest()` when a fixture recorded from a failing run
  * replays without reproducing that failure — the regression is fixed, or the
  * machine no longer behaves the way the fixture recorded.
  */
-export class PropertyReplayNotReproducedError extends Error {
-  public override readonly name = 'PropertyReplayNotReproducedError';
+export class ReplayNotReproducedError extends Error {
+  public override readonly name = 'ReplayNotReproducedError';
 
   public constructor(
     /** The step the fixture recorded the failure at. */
@@ -3406,29 +3371,29 @@ export class PropertyReplayNotReproducedError extends Error {
   }
 }
 
-export async function replayPropertyTest<
+export async function replayTest<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 >(
   source: TSource,
-  fixture: PortablePropertyReplayFixture | LegacyPortablePropertyReplayFixture,
+  fixture: TestFixture | LegacyPortablePropertyReplayFixture,
   options: {
-    readonly invariant: PropertyInvariant<
+    readonly invariant?: TestInvariant<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
     >;
-    readonly temporal?: readonly PropertyTemporal<
+    readonly temporal?: readonly TestTemporal<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
     >[];
-    readonly reference?: PropertyReferenceOracle<
+    readonly reference?: TestReference<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
     >;
-    readonly sut?: PropertySut<
+    readonly sut?: TestSut<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
     >;
-    readonly test?: PropertyTestModelExecution<
+    readonly states?: TestStateAssertions<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>
     >;
@@ -3441,25 +3406,23 @@ export async function replayPropertyTest<
      * recorded an outcome for is replaced by a stub that replays those
      * outcomes, so no real service is called.
      */
-    readonly mode?: PropertyTestMode;
+    readonly mode?: TestMode;
     /** Actor logic to provide before replaying. Executed mode only. */
     readonly actors?: Readonly<Record<string, ActorLogic<any, any, any>>>;
     /**
      * `'failure'` (the default) expects the fixture to reproduce its recorded
-     * failure, and throws {@link PropertyReplayNotReproducedError} when it
+     * failure, and throws {@link ReplayNotReproducedError} when it
      * does not. `'pass'` expects the whole timeline to replay cleanly, and
      * lets any property failure through.
      */
     readonly expect?: 'failure' | 'pass';
   }
-): Promise<
-  PropertyTrace<SnapshotFromSource<TSource>, EventFromSource<TSource>>
-> {
+): Promise<TestTrace<SnapshotFromSource<TSource>, EventFromSource<TSource>>> {
   const baseModel =
     source instanceof TestModel
       ? source
       : new TestModel(source as ActorLogic<any, any, any>);
-  const mode: PropertyTestMode =
+  const mode: TestMode =
     options.mode ??
     (fixture.formatVersion === 2 ? fixture.mode : undefined) ??
     'pure';
@@ -3514,7 +3477,7 @@ export async function replayPropertyTest<
       'Property replay fixture contains a snapshot but no restoreSnapshot function was provided'
     );
   }
-  const coverage = createPropertyCoverage(model.testLogic);
+  const coverage = createTestCoverage(model.testLogic);
   coverage.runs = 1;
   const serializedStartingSnapshot =
     fixture.start.type === 'snapshot' ? fixture.start.snapshot : undefined;
@@ -3537,7 +3500,7 @@ export async function replayPropertyTest<
       EventFromSource<TSource>,
       unknown
     >,
-    options.test,
+    options.states,
     options.reference,
     options.invariant,
     options.temporal ?? [],
@@ -3561,9 +3524,7 @@ export async function replayPropertyTest<
     await runner.start();
     assertReplayFixtureClockEvents(fixture);
     for (const entry of normalizeFixtureTimeline(fixture)) {
-      const command = entry.command as PropertyCommand<
-        EventFromSource<TSource>
-      >;
+      const command = entry.command as TestCommand<EventFromSource<TSource>>;
       await runner.replay(command);
       if (failedAt !== undefined && runner.getStableStep() > failedAt) {
         // The recorded failure step has been replayed; anything after it was
@@ -3575,9 +3536,7 @@ export async function replayPropertyTest<
     if (options.expect === 'pass') {
       return runner.getTrace();
     }
-    throw new PropertyReplayNotReproducedError(
-      failedAt ?? runner.getStableStep()
-    );
+    throw new ReplayNotReproducedError(failedAt ?? runner.getStableStep());
   } finally {
     await runner.dispose();
   }
@@ -3591,10 +3550,10 @@ function serializeSnapshot<TSnapshot extends Snapshot<unknown>>(
     : snapshot;
 }
 
-export function serializePropertyTrace<
+export function serializeTestTrace<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
->(trace: PropertyTrace<TSnapshot, TEvent>): unknown {
+>(trace: TestTrace<TSnapshot, TEvent>): unknown {
   return {
     start:
       trace.start.type === 'snapshot'
@@ -3633,10 +3592,10 @@ export function serializePropertyTrace<
   };
 }
 
-export function formatPropertyTrace<
+export function formatTestTrace<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
->(trace: PropertyTrace<TSnapshot, TEvent>): string {
+>(trace: TestTrace<TSnapshot, TEvent>): string {
   const lines = [
     `start ${JSON.stringify(serializeSnapshot(trace.initialSnapshot))}`
   ];

@@ -1,13 +1,9 @@
 import type { EventObject, Snapshot } from 'xstate';
 import type {
-  PropertySut,
-  PropertySutContext,
-  PropertySutSendContext,
-  PropertySutSession,
-  PropertyTestModelExecution,
-  PropertyTestModelSession,
-  Step,
-  TestParam
+  TestSut,
+  TestSutContext,
+  TestSutSendContext,
+  TestSutSession
 } from 'xstate/graph';
 
 /**
@@ -51,10 +47,23 @@ export interface PlaywrightSutConfig<
       TEvent extends { type: TType } ? TEvent : never
     >;
   };
-  /** Projects the DOM to a value comparable with the model projection. */
-  readonly read: (page: TPage) => unknown | Promise<unknown>;
+  /**
+   * Projects the DOM to a value comparable with the model projection. Omit it
+   * (together with `projectModel`) to assert through `states` instead.
+   */
+  readonly read?: (page: TPage) => unknown | Promise<unknown>;
   /** Projects the model snapshot to a value comparable with the page projection. */
-  readonly projectModel: (snapshot: TSnapshot) => unknown;
+  readonly projectModel?: (snapshot: TSnapshot) => unknown;
+  /**
+   * Per-state assertions run after every stable step, keyed by state value (or
+   * `'#id'`), with `'*'` as the fallthrough.
+   */
+  readonly states?: {
+    readonly [stateKey: string]: (
+      page: TPage,
+      snapshot: TSnapshot
+    ) => void | Promise<void>;
+  };
   /** Normalizes the value read from the page before comparison. */
   readonly projectSut?: (observed: unknown) => unknown;
   /** Compares model and page projections. Defaults to deep equality. */
@@ -190,7 +199,7 @@ function sanitizeLabel(label: string): string {
 }
 
 /**
- * Creates a `PropertySut` that drives a Playwright page as the system under
+ * Creates a `TestSut` that drives a Playwright page as the system under
  * test for `propertyTest()`.
  */
 export function createPlaywrightSut<
@@ -200,17 +209,17 @@ export function createPlaywrightSut<
 >(
   page: TPage,
   config: PlaywrightSutConfig<TPage, TSnapshot, TEvent>
-): PropertySut<TSnapshot, TEvent> {
+): TestSut<TSnapshot, TEvent> {
   const caseOf = config.caseOf ?? (defaultCaseOf as (event: TEvent) => string);
   const screenshotDir = config.screenshotDir ?? 'property-screenshots';
 
   return {
-    projectModel: config.projectModel,
+    ...(config.projectModel ? { projectModel: config.projectModel } : {}),
     ...(config.projectSut ? { projectSut: config.projectSut } : {}),
     ...(config.equivalent ? { equivalent: config.equivalent } : {}),
     create: async (
-      _context: PropertySutContext<TSnapshot, TEvent>
-    ): Promise<PropertySutSession<TEvent>> => {
+      _context: TestSutContext<TSnapshot, TEvent>
+    ): Promise<TestSutSession<TSnapshot, TEvent>> => {
       await config.reset?.(page);
       let appliedCase: string | undefined;
       let checkpoints = 0;
@@ -218,7 +227,10 @@ export function createPlaywrightSut<
       const mockPage = trackRoutes(page, installedRoutes);
 
       return {
-        send: async (event: TEvent, context?: PropertySutSendContext) => {
+        send: async (
+          event: TEvent,
+          context?: TestSutSendContext<TSnapshot>
+        ) => {
           // The generated event case is authoritative when the property runner
           // supplies one; `caseOf` remains the fallback.
           const resolved = resolveMock(
@@ -245,7 +257,17 @@ export function createPlaywrightSut<
           }
           await action(page, event);
         },
-        read: () => config.read(page),
+        ...(config.read ? { read: () => config.read!(page) } : {}),
+        ...(config.states
+          ? {
+              states: Object.fromEntries(
+                Object.entries(config.states).map(([key, assertion]) => [
+                  key,
+                  (snapshot: TSnapshot) => assertion(page, snapshot)
+                ])
+              )
+            }
+          : {}),
         settle: async () => {
           if (config.settle) {
             await config.settle(page);
@@ -275,107 +297,6 @@ export function createPlaywrightSut<
         dispose: async () => {
           await releaseRoutes(page, installedRoutes);
           await config.dispose?.(page);
-        }
-      };
-    }
-  };
-}
-
-export interface PlaywrightTestModelParams<
-  TPage extends PlaywrightPage,
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> {
-  /** Performs each event against the page. */
-  readonly events?: {
-    readonly [TType in TEvent['type']]?: (
-      page: TPage,
-      step: Step<TSnapshot, TEvent extends { type: TType } ? TEvent : never>
-    ) => void | Promise<void>;
-  };
-  /** Asserts the page matches the model for a serialized state. */
-  readonly states?: {
-    readonly [key: string]: (
-      page: TPage,
-      snapshot: TSnapshot
-    ) => void | Promise<void>;
-  };
-  /** Per-case `page.route()` setup, keyed by the case resolved by `caseOf`. */
-  readonly mocks?: {
-    readonly [caseId: string]: PlaywrightMock<TPage>;
-  };
-  /** Resolves the mock case for an event. Defaults to `event.type`. */
-  readonly caseOf?: (event: TEvent) => string | undefined;
-  /** Runs once when a scenario session is created. */
-  readonly reset?: (page: TPage) => void | Promise<void>;
-  /** Runs when a scenario session is disposed. */
-  readonly dispose?: (page: TPage) => void | Promise<void>;
-}
-
-/**
- * Creates a `PropertyTestModelExecution` for the `test` option of
- * `propertyTest()`, so a Playwright page can be driven with the
- * `TestParam`-style `events`/`states` assertions instead of SUT projections.
- */
-export function createPlaywrightTestModelSession<
-  TPage extends PlaywrightPage,
-  TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
-  TEvent extends EventObject = EventObject
->(
-  page: TPage,
-  params: PlaywrightTestModelParams<TPage, TSnapshot, TEvent>
-): PropertyTestModelExecution<TSnapshot, TEvent> {
-  const caseOf = params.caseOf ?? (defaultCaseOf as (event: TEvent) => string);
-
-  return {
-    create: async (
-      _context: PropertySutContext<TSnapshot, TEvent>
-    ): Promise<PropertyTestModelSession<TSnapshot, TEvent>> => {
-      await params.reset?.(page);
-      let appliedCase: string | undefined;
-      const installedRoutes: InstalledRoute[] = [];
-      const mockPage = trackRoutes(page, installedRoutes);
-
-      const events: Record<
-        string,
-        (step: Step<TSnapshot, TEvent>) => Promise<void>
-      > = {};
-      for (const type of Object.keys(params.events ?? {})) {
-        const action = (
-          params.events as unknown as Record<
-            string,
-            (page: TPage, step: Step<TSnapshot, TEvent>) => void | Promise<void>
-          >
-        )[type];
-        events[type] = async (step) => {
-          const resolved = resolveMock(
-            params.mocks as
-              | Record<string, PlaywrightMock<TPage> | undefined>
-              | undefined,
-            undefined,
-            caseOf(step.event)
-          );
-          if (resolved && resolved.key !== appliedCase) {
-            await resolved.mock(mockPage);
-            appliedCase = resolved.key;
-          }
-          await action(page, step);
-        };
-      }
-
-      const states: Record<string, (snapshot: TSnapshot) => Promise<void>> = {};
-      for (const key of Object.keys(params.states ?? {})) {
-        const assertion = params.states![key];
-        states[key] = async (snapshot) => {
-          await assertion(page, snapshot);
-        };
-      }
-
-      return {
-        params: { events, states } as unknown as TestParam<TSnapshot, TEvent>,
-        dispose: async () => {
-          await releaseRoutes(page, installedRoutes);
-          await params.dispose?.(page);
         }
       };
     }

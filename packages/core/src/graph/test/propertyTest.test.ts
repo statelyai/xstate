@@ -1,13 +1,13 @@
 import { createAsyncLogic, createMachine, types } from '../../index.ts';
 import {
-  PropertyTestFailure,
+  ModelTestFailure,
   createTestModel,
-  formatPropertyTrace,
+  formatTestTrace,
   propertyTest,
-  serializePropertyTrace,
+  serializeTestTrace,
   type PropertyScenarioRunner,
-  type PropertyTestAdapter,
-  type PropertyTestAdapterResult
+  type TestAdapter,
+  type TestAdapterResult
 } from '../index.ts';
 import {
   constant,
@@ -39,11 +39,11 @@ const noop = () => {};
 
 async function captureFailure(
   run: () => Promise<unknown>
-): Promise<PropertyTestFailure> {
+): Promise<ModelTestFailure> {
   try {
     await run();
   } catch (error) {
-    return error as PropertyTestFailure;
+    return error as ModelTestFailure;
   }
   throw new Error('Expected the property test to fail');
 }
@@ -81,7 +81,7 @@ describe('propertyTest with the in-repo random adapter', () => {
     expect(coverage.runs).toBe(2);
   });
 
-  it('reports a PropertyTestFailure with trace, fixture, coverage and replay', async () => {
+  it('reports a ModelTestFailure with trace, fixture, coverage and replay', async () => {
     const failure = await captureFailure(() =>
       propertyTest(counterMachine, {
         adapter: randomAdapter({ seed: 1, numRuns: 10, maxCommands: 5 }),
@@ -92,7 +92,7 @@ describe('propertyTest with the in-repo random adapter', () => {
       })
     );
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailure);
     expect(failure.trace.steps.length).toBeGreaterThan(0);
     expect(failure.trace.events).toEqual([{ type: 'INC', value: 5 }]);
     expect(failure.fixture).toMatchObject({
@@ -122,10 +122,10 @@ describe('propertyTest with the in-repo random adapter', () => {
     // The trace is part of the message, so reporters that only print the
     // stack still show the counterexample.
     expect(failure.message).toBe(
-      `${failure.summary}\n${formatPropertyTrace(failure.trace)}`
+      `${failure.summary}\n${formatTestTrace(failure.trace)}`
     );
     expect(
-      failure.stack?.startsWith(`PropertyTestFailure: ${failure.message}`)
+      failure.stack?.startsWith(`ModelTestFailure: ${failure.message}`)
     ).toBe(true);
   });
 
@@ -320,8 +320,8 @@ describe('propertyTest with the in-repo random adapter', () => {
 
   it('exposes the non-generated `canRun` overload on the scenario runner', async () => {
     const decisions: boolean[] = [];
-    const adapter: PropertyTestAdapter<RandomGeneratorKind> = {
-      async run(request): Promise<PropertyTestAdapterResult> {
+    const adapter: TestAdapter<RandomGeneratorKind> = {
+      async run(request): Promise<TestAdapterResult> {
         const runner = request.createRunner() as PropertyScenarioRunner<
           any,
           any
@@ -368,7 +368,7 @@ describe('property trace serialization', () => {
 
   it('serializes a trace to JSON-safe data', async () => {
     const failure = await getFailureTrace();
-    const serialized = serializePropertyTrace(failure.trace) as any;
+    const serialized = serializeTestTrace(failure.trace) as any;
 
     expect(() => JSON.stringify(serialized)).not.toThrow();
     expect(JSON.parse(JSON.stringify(serialized))).toEqual(serialized);
@@ -393,7 +393,7 @@ describe('property trace serialization', () => {
 
   it('formats a trace for humans', async () => {
     const failure = await getFailureTrace();
-    const formatted = formatPropertyTrace(failure.trace);
+    const formatted = formatTestTrace(failure.trace);
 
     expect(formatted).toContain('"INC"');
     expect(formatted).toMatch(/^start /);

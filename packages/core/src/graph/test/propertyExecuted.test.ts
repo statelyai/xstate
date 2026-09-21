@@ -1,7 +1,7 @@
 import { createAsyncLogic, createMachine, types } from '../../index.ts';
-import { propertyTest, replayPropertyTest } from '../propertyTest.ts';
-import type { PortablePropertyReplayFixture } from '../propertyTest.ts';
-import { PropertyTestFailure } from '../propertyTest.ts';
+import { propertyTest, replayTest } from '../propertyTest.ts';
+import type { TestFixture } from '../propertyTest.ts';
+import { ModelTestFailure } from '../propertyTest.ts';
 import {
   constant,
   integer,
@@ -93,14 +93,14 @@ describe('executed property mode', () => {
           throw new Error('reached success');
         }
       }
-    }).catch((cause) => cause as PropertyTestFailure);
+    }).catch((cause) => cause as ModelTestFailure);
 
-    expect(error).toBeInstanceOf(PropertyTestFailure);
-    const kinds = (error as PropertyTestFailure).trace.timeline.map(
+    expect(error).toBeInstanceOf(ModelTestFailure);
+    const kinds = (error as ModelTestFailure).trace.timeline.map(
       (entry) => entry.kind
     );
     expect(kinds).toContain('actorEvent');
-    const actorEntries = (error as PropertyTestFailure).trace.timeline.filter(
+    const actorEntries = (error as ModelTestFailure).trace.timeline.filter(
       (entry) => entry.kind === 'actorEvent'
     );
     expect(
@@ -128,10 +128,10 @@ describe('executed property mode', () => {
           throw new Error('reached success');
         }
       }
-    }).catch((cause) => cause)) as PropertyTestFailure;
+    }).catch((cause) => cause)) as ModelTestFailure;
 
-    expect(failure).toBeInstanceOf(PropertyTestFailure);
-    const fixture = failure.fixture as PortablePropertyReplayFixture;
+    expect(failure).toBeInstanceOf(ModelTestFailure);
+    const fixture = failure.fixture as TestFixture;
     expect(fixture.mode).toBe('executed');
     expect(fixture.outcomes).toEqual([
       { src: 'fetcher', occurrence: 0, outcome: { ok: true, output: 42 } }
@@ -139,7 +139,7 @@ describe('executed property mode', () => {
 
     realCalls = 0;
     // No `actors` are provided: the recorded outcomes drive stub actors.
-    const replayError = await replayPropertyTest(machine, fixture, {
+    const replayError = await replayTest(machine, fixture, {
       invariant: ({ snapshot }) => {
         if ((snapshot as any).value === 'success') {
           throw new Error('reached success');
@@ -147,7 +147,7 @@ describe('executed property mode', () => {
       }
     }).catch((cause) => cause as Error);
 
-    expect(replayError).toBeInstanceOf(PropertyTestFailure);
+    expect(replayError).toBeInstanceOf(ModelTestFailure);
     expect(realCalls).toBe(0);
   });
 
