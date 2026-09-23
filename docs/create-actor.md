@@ -40,6 +40,7 @@ const actor = createActor(machine, { input: { userId: 'u_1' } });
 | `snapshot` | persisted snapshot | Starts the actor from a [persisted snapshot](persistence.md). Actions are not re-executed; invocations restart and children are restored. |
 | `inspect` | function or observer | Receives [inspection](inspection.md) events. |
 | `onRejectedEvent` | `(rejection) => void` | Dead-letter hook for events rejected at the delivery boundary. See [inspection](inspection.md) and [internal events](internal-events.md). Observed on the root actor only. |
+| `onUnhandledEvent` | `(event, snapshot) => void` | Called when this state machine actor receives an event that no transition handles. Internal `xstate.*` events are not reported. See [unhandled events](transitions.md#unhandled-events). |
 | `clock` | `{ setTimeout, clearTimeout, now? }` | Controls [delays](delays.md) and [timeouts](timeouts.md). Use `SimulatedClock` in [tests](testing.md). |
 | `logger` | `(...args) => void` | Used by `log(...)` actions. Defaults to `console.log`. |
 | `registryKey` | `string` | Registers the actor in the [system](systems.md) under this key. |

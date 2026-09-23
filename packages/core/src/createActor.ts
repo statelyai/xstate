@@ -975,6 +975,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     let snapshot = this._snapshot;
     try {
       const [nextSnapshot, effects] = nextState;
+      if (
+        nextSnapshot === previousSnapshot &&
+        !effects.length &&
+        // State machine snapshots only; other logic may ignore events freely.
+        'machine' in (previousSnapshot as object) &&
+        !event.type.startsWith('xstate.')
+      ) {
+        this._reportUnhandledEvent(event);
+      }
       snapshot = nextSnapshot;
       this._setSnapshot(snapshot);
       executeExecutableEffects(effects, this._actorScope);
@@ -989,6 +998,31 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     if (event.type === XSTATE_STOP) {
       this._stopProcedure();
       this._complete();
+    }
+  }
+
+  private _warnedUnhandledTypes?: Set<string>;
+
+  private _reportUnhandledEvent(event: EventFromLogic<TLogic>): void {
+    if (this.system._hasInspectionObservers?.() ?? true) {
+      this.system._sendInspectionEvent({
+        type: '@xstate.event.unhandled',
+        actorRef: this,
+        event,
+        snapshot: this._snapshot
+      });
+    }
+    safeCall(() => this.options.onUnhandledEvent?.(event, this._snapshot));
+    if (isDevelopment) {
+      const warned = (this._warnedUnhandledTypes ??= new Set());
+      if (!warned.has(event.type)) {
+        warned.add(event.type);
+        console.warn(
+          `Actor ${this.id} received event "${event.type}" in state ${JSON.stringify(
+            (this._snapshot as { value?: unknown }).value
+          )} with no matching transition`
+        );
+      }
     }
   }
 

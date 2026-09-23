@@ -1920,6 +1920,10 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *   type was sent from outside its owning actor. Carries the `event`,
    *   `sourceRef`, `reason`, and — for boundary rejections — `issues` and
    *   `error`.
+   * - `@xstate.event.unhandled` - A state machine actor received an event that
+   *   no transition handled (the snapshot is unchanged and no effects ran).
+   *   Carries the `event` and the unchanged `snapshot`. Internal `xstate.*`
+   *   events are not reported.
    *
    * @example
    *
@@ -2001,6 +2005,19 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Only observed when this actor is the root of its system.
    */
   onRejectedEvent?: (rejection: EventRejection) => void;
+
+  /**
+   * Called when this state machine actor processes an event that no
+   * transition handled: the snapshot is unchanged and no effects ran.
+   * Internal `xstate.*` events are not reported.
+   *
+   * @param event The unhandled event.
+   * @param snapshot The actor's (unchanged) snapshot.
+   */
+  onUnhandledEvent?: (
+    event: EventFromLogic<TLogic>,
+    snapshot: SnapshotFrom<TLogic>
+  ) => void;
 }
 
 export type AnyActor = ActorInstance<any, any, any, any>;

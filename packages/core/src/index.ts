@@ -147,6 +147,7 @@ export type {
   InspectionEvent,
   ActorInspectionEvent,
   DeadLetterInspectionEvent,
+  UnhandledEventInspectionEvent,
   TransitionInspectionEvent,
   ActionRecord,
   SentRecord
@@ -188,6 +189,7 @@ export {
 } from './utils.ts';
 export {
   transition,
+  isUnhandled,
   initialTransition,
   getMicrosteps,
   getInitialMicrosteps,

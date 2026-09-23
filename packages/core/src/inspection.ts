@@ -130,14 +130,32 @@ export interface DeadLetterInspectionEvent extends BaseInspectionEventProperties
 }
 
 /**
+ * Emitted when a state machine actor processes an event that no transition
+ * handled: the snapshot is unchanged and no effects ran. Not emitted for
+ * internal `xstate.*` events.
+ *
+ * @public
+ */
+export interface UnhandledEventInspectionEvent extends BaseInspectionEventProperties {
+  type: '@xstate.event.unhandled';
+  /** The event that no transition handled. */
+  event: AnyEventObject;
+  /** The actor's (unchanged) snapshot. */
+  snapshot: Snapshot<unknown>;
+}
+
+/**
  * A lossless inspection protocol:
  *
  * - `@xstate.actor` — actor topology (identity + parent), drawable up front.
  * - `@xstate.transition` — every transition facet: event, snapshot, source,
  *   microsteps, executed actions, and sent/scheduled events.
  * - `@xstate.deadletter` — events that could not be delivered.
+ * - `@xstate.event.unhandled` — events a machine actor received but no
+ *   transition handled.
  */
 export type InspectionEvent =
   | ActorInspectionEvent
   | TransitionInspectionEvent
-  | DeadLetterInspectionEvent;
+  | DeadLetterInspectionEvent
+  | UnhandledEventInspectionEvent;

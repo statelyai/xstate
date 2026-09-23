@@ -2353,6 +2353,10 @@ export function macrostep(
 } {
   let nextSnapshot = snapshot;
   const microsteps: Microstep[] = initialMicrosteps.slice();
+  // Whether a transition handled the external event. A handled event always
+  // yields a new snapshot object, so `result[0] === snapshot` (with no
+  // effects) identifies an unhandled event.
+  let handled = false;
 
   function removeTerminatedChild(terminalEvent: EventObject) {
     if (
@@ -2394,6 +2398,15 @@ export function macrostep(
   }
 
   function completeMacrostep() {
+    if (handled && nextSnapshot === snapshot) {
+      nextSnapshot = cloneMachineSnapshot(snapshot, {});
+      if (microsteps.at(-1)?.[0] === snapshot) {
+        microsteps[microsteps.length - 1] = [
+          nextSnapshot,
+          microsteps.at(-1)![1]
+        ];
+      }
+    }
     const effects = microsteps.flatMap(([, actions]) => actions);
     const starts = deriveDeferredStarts(effects);
     const shouldTerminate =
@@ -2515,6 +2528,7 @@ export function macrostep(
       removeTerminatedChild(currentEvent);
       return completeMacrostep();
     }
+    handled = transitions.length > 0;
     const step = microstep(
       transitions,
       snapshot,

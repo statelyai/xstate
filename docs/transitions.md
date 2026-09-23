@@ -114,6 +114,23 @@ on: {
 }
 ```
 
+## Unhandled events
+
+An event is unhandled when no transition in the active states, including wildcard transitions, handles it. A transition function that returns `undefined` and enqueues nothing does not handle the event. An unhandled event leaves the actor unchanged.
+
+The pure `transition(logic, snapshot, event)` API returns the same snapshot object and no effects for an unhandled event. A handled event always returns a new snapshot object, even when a transition function returns `{}`. Use `isUnhandled(...)` to check:
+
+```ts
+import { isUnhandled, transition } from 'xstate';
+
+const result = transition(machine, snapshot, event);
+if (isUnhandled(snapshot, result)) {
+  // no transition handled `event`
+}
+```
+
+A running actor reports an unhandled event through the `onUnhandledEvent` option of `createActor(...)` and the `@xstate.event.unhandled` [inspection](inspection.md) event. Development builds also log a warning once per event type per actor. Internal `xstate.*` events are not reported.
+
 ## TypeScript
 
 Transition targets are checked against authored state paths. Event schemas narrow `event` inside transition functions.
