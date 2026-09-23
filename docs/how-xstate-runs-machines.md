@@ -35,6 +35,15 @@ event received
   → subscribers are notified
 ```
 
+One event may take at most `maxIterations` microsteps (default `1000`). A machine that exceeds the bound, usually through a cycle of `always` transitions or raised events, throws an `InfiniteTransitionError` whose message names the actor, the event and the last five states visited. Raise the bound for machines that legitimately take more steps:
+
+```ts
+const machine = createMachine({
+  options: { maxIterations: 5000 },
+  // ...
+});
+```
+
 An actor's subscribers receive one snapshot per processed event, not one per microstep. If a `submit` event lands on a state whose `always` immediately forwards to another state, subscribers see only the final state.
 
 ## When effects run

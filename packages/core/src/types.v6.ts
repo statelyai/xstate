@@ -227,11 +227,11 @@ type InternalEventDescriptorFor<TEvent extends EventObject> = [TEvent] extends [
  */
 export interface MachineOptions {
   /**
-   * Maximum number of microsteps allowed before throwing an infinite loop
-   * error. Defaults to `Infinity` (no limit). Set to a finite number to enable
-   * infinite loop detection.
+   * Maximum number of microsteps one macrostep may take before an
+   * `InfiniteTransitionError` is thrown. Raise it for machines that
+   * legitimately take many eventless or raised-event steps per event.
    *
-   * @default Infinity
+   * @default 1000
    */
   maxIterations?: number;
 }

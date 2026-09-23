@@ -2347,6 +2347,49 @@ export function getTransitionResult(
   };
 }
 
+/** The default microstep bound for one macrostep. */
+const DEFAULT_MAX_ITERATIONS = 1000;
+
+/**
+ * Thrown when one macrostep takes more microsteps than the machine's
+ * `options.maxIterations` (default `1000`) without reaching a stable state,
+ * usually because eventless transitions or raised events form a cycle.
+ *
+ * @public
+ */
+export class InfiniteTransitionError extends Error {
+  /** The id of the actor that was transitioning, if any. */
+  public readonly actorId: string | undefined;
+  /** The event being processed. */
+  public readonly event: EventObject;
+  /** The microstep bound that was exceeded. */
+  public readonly maxIterations: number;
+  /** The last (up to 5) state values visited, oldest first. */
+  public readonly states: StateValue[];
+
+  constructor(
+    actorId: string | undefined,
+    event: EventObject,
+    maxIterations: number,
+    states: StateValue[]
+  ) {
+    super(
+      `Infinite transition loop in actor "${actorId}" processing event "${
+        event.type
+      }": more than ${maxIterations} microsteps without reaching a stable state. Last states: ${states
+        .map((value) => JSON.stringify(value))
+        .join(
+          ' -> '
+        )}. Check for a cycle of eventless transitions or raised events, or raise the bound with createMachine({ options: { maxIterations } }).`
+    );
+    this.name = 'InfiniteTransitionError';
+    this.actorId = actorId;
+    this.event = event;
+    this.maxIterations = maxIterations;
+    this.states = states.slice();
+  }
+}
+
 export function macrostep(
   snapshot: AnyMachineSnapshot,
   event: EventObject,
@@ -2557,22 +2600,25 @@ export function macrostep(
   }
 
   let shouldSelectEventlessTransitions = true;
-  const maxIterations = snapshot.machine.options?.maxIterations ?? Infinity;
+  const maxIterations =
+    snapshot.machine.options?.maxIterations ?? DEFAULT_MAX_ITERATIONS;
   let iterationCount = 0;
+  // The last few state values visited, for the infinite-loop error.
+  const recentStates: StateValue[] = [];
 
-  let microstepCount = 0;
   while (nextSnapshot.status === 'active') {
-    microstepCount++;
-    if (microstepCount > 1000) {
-      throw new Error('Microstep count exceeded 1000');
-    }
     iterationCount++;
     if (iterationCount > maxIterations) {
-      throw new Error(
-        isDevelopment
-          ? `Infinite loop detected: the machine has processed more than ${maxIterations} microsteps without reaching a stable state. This usually happens when there's a cycle of transitions (e.g., eventless transitions or raised events causing state A -> B -> C -> A).`
-          : `Infinite loop detected (>${maxIterations} microsteps)`
+      throw new InfiniteTransitionError(
+        actorScope.self?.id,
+        event,
+        maxIterations,
+        recentStates
       );
+    }
+    recentStates.push(nextSnapshot.value);
+    if (recentStates.length > 5) {
+      recentStates.shift();
     }
 
     let selectionResults: TransitionSelectionResults | undefined;

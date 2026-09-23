@@ -466,10 +466,7 @@ export class StateMachine<
       ...Object.keys(this.schemas?.internalEvents ?? {}),
       ...(this.config.internalEvents ?? [])
     ];
-    this.options = {
-      maxIterations: Infinity,
-      ...this.config.options
-    };
+    this.options = { ...this.config.options };
 
     this.transition = this.transition.bind(this);
     this.initialTransition = this.initialTransition.bind(this);
