@@ -10,6 +10,22 @@ runs:
       run: node scripts/check-built-types.mjs
       shell: bash
 
+    - name: Packed consumer
+      run: pnpm check:packed
+      shell: bash
+
+    - name: Export stability
+      run: node scripts/check-export-stability.mjs
+      shell: bash
+
+    - name: Bundle size
+      run: pnpm bench:size
+      shell: bash
+
+    - name: Type error quality
+      run: pnpm bench:type-errors --check
+      shell: bash
+
     - name: Oxlint
       run: pnpm lint
       shell: bash

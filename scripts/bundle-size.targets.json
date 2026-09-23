@@ -1,0 +1,5 @@
+{
+  "minimal-machine": {
+    "targetGzipBytes": 21000
+  }
+}
