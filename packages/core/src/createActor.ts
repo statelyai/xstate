@@ -871,6 +871,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       case 'error':
         this._error((this._snapshot as Snapshot<unknown>).error);
         return this;
+      case 'stopped':
+        // A restored stopped snapshot is terminal: the actor does not process
+        // events or run transitions.
+        this._stopProcedure();
+        this._complete();
+        return this;
     }
 
     if (!this._parent) {
