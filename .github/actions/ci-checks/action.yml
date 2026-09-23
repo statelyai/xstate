@@ -15,7 +15,7 @@ runs:
       shell: bash
 
     - name: Export stability
-      run: node scripts/check-export-stability.mjs
+      run: pnpm check:exports
       shell: bash
 
     - name: Bundle size
