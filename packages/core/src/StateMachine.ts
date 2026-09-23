@@ -198,6 +198,7 @@ type ProvidedActors<
     : never;
 };
 
+/** @public */
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject,

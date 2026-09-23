@@ -68,6 +68,8 @@ type GetPathOptions<
  *
  * The test model is used to generate test paths, which are used to verify that
  * states in the model are reachable in the SUT.
+ *
+ * @public
  */
 export class TestModel<
   TSnapshot extends Snapshot<unknown>,
@@ -410,6 +412,7 @@ function serializeMachineTransition(
  *
  *   - `events`: an object mapping string event types (e.g., `SUBMIT`) to an event
  *       test config (e.g., `{exec: () => {...}, cases: [...]}`)
+ * @public
  */
 export function createTestModel<TMachine extends AnyStateMachine>(
   machine: TMachine,
