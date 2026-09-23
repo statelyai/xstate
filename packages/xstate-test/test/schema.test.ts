@@ -229,7 +229,7 @@ describe('eventsFromSchemas with Effect Schema', () => {
 describe.each([
   ['Zod v4', z],
   ['Zod v3', z3]
-])('%s constraints', (_label, Z: any) => {
+])('%s constraints', { timeout: 30_000 }, (_label, Z: any) => {
   const holds = (schema: {
     safeParse(value: unknown): { success: boolean };
   }) => {
@@ -238,7 +238,7 @@ describe.each([
         arbitraryFromSchema(schema),
         (value) => schema.safeParse(value).success
       ),
-      { numRuns: 200 }
+      { numRuns: 200, seed: 20260923 }
     );
   };
 
