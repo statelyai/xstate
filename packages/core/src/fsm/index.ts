@@ -10,6 +10,7 @@ export {
   type FSMTransition,
   type FSMTransitionConfig,
   type FSMTransitionFunction,
+  type FSMTransitionResult,
   type FSMSnapshot,
   type FSMSetupConfig,
   type FSMSetupReturn

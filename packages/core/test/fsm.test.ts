@@ -10,9 +10,12 @@ describe('createFSM', () => {
       }
     });
 
-    const next = machine.transition(machine.initialState, { type: 'toggle' });
+    const [next, effects] = machine.transition(machine.initialState, {
+      type: 'toggle'
+    });
 
-    expect(next).toEqual({ value: 'on', context: {} });
+    expect(next).toEqual({ status: 'active', value: 'on', context: {} });
+    expect(effects).toEqual([]);
   });
 
   it('supports pure function transitions with context updates', () => {
@@ -35,12 +38,16 @@ describe('createFSM', () => {
       }
     });
 
-    const next = machine.transition(machine.initialState, {
+    const [next] = machine.transition(machine.initialState, {
       type: 'increment',
       by: 2
     });
 
-    expect(next).toEqual({ value: 'ready', context: { count: 2 } });
+    expect(next).toEqual({
+      status: 'active',
+      value: 'ready',
+      context: { count: 2 }
+    });
   });
 
   it('preserves snapshot identity for no-op context patches', () => {
@@ -52,7 +59,7 @@ describe('createFSM', () => {
       }
     });
 
-    expect(machine.transition(machine.initialState, { type: 'noop' })).toBe(
+    expect(machine.transition(machine.initialState, { type: 'noop' })[0]).toBe(
       machine.initialState
     );
   });
@@ -64,7 +71,7 @@ describe('createFSM', () => {
     });
 
     expect(
-      machine.transition(machine.initialState, { type: 'constructor' })
+      machine.transition(machine.initialState, { type: 'constructor' })[0]
     ).toBe(machine.initialState);
   });
 });

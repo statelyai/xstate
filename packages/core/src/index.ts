@@ -70,6 +70,7 @@ export {
   type FSMTransition,
   type FSMTransitionConfig,
   type FSMTransitionFunction,
+  type FSMTransitionResult,
   type FSMSnapshot
 } from './fsm.ts';
 export { createMachineFromConfig } from './createMachineFromConfig.ts';

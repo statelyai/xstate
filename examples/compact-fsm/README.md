@@ -24,7 +24,7 @@ The demo drives three machines: a toggle with no context, a PIN keypad with type
 
 ## When to use it, and what is missing
 
-`xstate/fsm` is a pure function of `(state, event)`. It has no actor: nothing is started, nothing is scheduled, nothing subscribes. Per the source (`packages/core/src/fsm.ts`), the entry point exports only `createFSM`, `setup` and `types`, and the config surface is `{ id?, initial, context?, states: { [name]: { on? } } }` — nothing else. That means there are no:
+`xstate/fsm` is a pure function of `(state, event)` that returns `[nextState, effects]`, where `effects` is always empty. The entry point has no actor runtime: nothing is started, nothing is scheduled, nothing subscribes. The same logic can be passed to `createActor` from `xstate` when you need a running actor. Per the source (`packages/core/src/fsm.ts`), the entry point exports only `createFSM`, `setup` and `types`, and the config surface is `{ id?, initial, context?, states: { [name]: { on? } } }` — nothing else. That means there are no:
 
 - actions, `assign`, `raise`, `emit` or `enqueue`
 - entry/exit actions
@@ -42,4 +42,4 @@ Two runtime details worth knowing: an event with no matching transition returns 
 
 ## Inspect it
 
-There is nothing to inspect. `xstate/fsm` never creates an actor, so there is no snapshot stream for [Stately Inspector](https://stately.ai/docs/inspector) to subscribe to and `@statelyai/sdk` is not a dependency of this example. To inspect a machine like this, build it with `createMachine` from `xstate`, run it with `createActor`, and pass `inspect` — see [machine-input-output](../machine-input-output) for that wiring.
+There is nothing to inspect. `xstate/fsm` never creates an actor, so there is no snapshot stream for [Stately Inspector](https://stately.ai/docs/inspector) to subscribe to and `@statelyai/sdk` is not a dependency of this example. To inspect a machine like this, run it with `createActor` from `xstate` and pass `inspect` — see [machine-input-output](../machine-input-output) for that wiring.

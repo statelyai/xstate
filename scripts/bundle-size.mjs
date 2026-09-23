@@ -63,7 +63,7 @@ const PROFILES = {
         active: { on: { toggle: 'inactive' } }
       }
     });
-    console.log(logic.transition(logic.initialState, { type: 'toggle' }).value);
+    console.log(logic.transition(logic.initialState, { type: 'toggle' })[0].value);
   `
   },
   'fsm-entrypoint-logic': {
@@ -77,7 +77,7 @@ const PROFILES = {
         active: { on: { toggle: 'inactive' } }
       }
     });
-    console.log(logic.transition(logic.initialState, { type: 'toggle' }).value);
+    console.log(logic.transition(logic.initialState, { type: 'toggle' })[0].value);
   `
   },
   'minimal-machine': {
@@ -107,7 +107,7 @@ const PROFILES = {
         active: { on: { toggle: 'inactive' } }
       }
     });
-    console.log(machine.transition(machine.initialState, { type: 'toggle' }).value);
+    console.log(machine.transition(machine.initialState, { type: 'toggle' })[0].value);
   `
   },
   'fsm-setup': {
@@ -126,7 +126,7 @@ const PROFILES = {
         active: { on: { toggle: 'inactive' } }
       }
     });
-    console.log(machine.transition(machine.initialState, { type: 'toggle' }).value);
+    console.log(machine.transition(machine.initialState, { type: 'toggle' })[0].value);
   `
   },
   'custom-logic-actor': {

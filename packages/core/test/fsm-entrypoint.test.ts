@@ -20,6 +20,6 @@ describe('xstate/fsm', () => {
 
     expect(
       machine.transition(machine.initialState, { type: 'toggle' })
-    ).toEqual({ value: 'active', context: {} });
+    ).toEqual([{ status: 'active', value: 'active', context: {} }, []]);
   });
 });
