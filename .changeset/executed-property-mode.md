@@ -25,6 +25,6 @@ await propertyTest(machine, {
 });
 ```
 
-Failure fixtures from an executed run record every actor outcome, so `replayPropertyTest()` reproduces the failure against stub actors without calling the real services. Traces gain `'actorEvent'` timeline entries showing what the actor system did on its own, and `coverage.exploration.mode` reports which mode a campaign used.
+Failure fixtures from an executed run record every actor outcome, so `replayTest()` reproduces the failure against stub actors without calling the real services. Traces gain `'actorEvent'` timeline entries showing what the actor system did on its own, and `coverage.exploration.mode` reports which mode a campaign used.
 
-Pure mode is unchanged and remains the default.
+Pure mode remains the default.

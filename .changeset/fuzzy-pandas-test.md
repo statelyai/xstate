@@ -3,8 +3,8 @@
 '@xstate/test': minor
 ---
 
-Add generator-neutral property testing to `xstate/graph` and a FastCheck
-adapter. `propertyTest()` runs generated event and command sequences through the
+Added generator-neutral property testing to `xstate/graph`, with a fast-check
+adapter in `@xstate/test`. `propertyTest()` runs generated event and command sequences through the
 pure transition path and checks invariants and temporal properties, with
 portable replay fixtures, graph frontiers, coverage reporting, and optional
 reference-oracle and SUT equivalence. Counterexample shrinking is provided by

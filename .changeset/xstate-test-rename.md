@@ -2,32 +2,41 @@
 '@xstate/test': minor
 ---
 
-`@xstate/fast-check` is now `@xstate/test` 2.0, and fast-check is wired in for you.
-
-`propertyTest()` and `generatePropertySuite()` are re-exported from `@xstate/test` with the fast-check adapter already applied, so fast-check's options (`seed`, `numRuns`, `maxCommands`, `scheduler`, `replayPath`, …) are written at the top level:
+`@xstate/test` 2.0 is model-based and property-based testing for XState v6,
+built on fast-check. It re-exports the testing API of `xstate/graph` and adds
+fast-check-backed versions of `propertyTest()`, `testPaths()`, and
+`generateTestSuite()` that take fast-check's options (`seed`, `numRuns`,
+`maxCommands`, `replayPath`, `scheduler`, …) at the top level:
 
 ```ts
-import { propertyTest } from '@xstate/test';
+import * as fc from 'fast-check';
+import { propertyTest, testPaths } from '@xstate/test';
 
-await propertyTest(machine, {
+await propertyTest(cartMachine, {
   seed: 1,
   numRuns: 100,
-  maxCommands: 8,
-  events: { INC: fc.record({ value: fc.integer() }) },
-  invariant: ({ snapshot }) => {
-    expect(snapshot.context.count).toBeGreaterThanOrEqual(0);
-  }
+  events: { ADD: fc.record({ sku: fc.constantFrom('apple', 'pear') }) },
+  sut: cartSut
+});
+
+await testPaths(cartMachine, {
+  events: { ADD: fc.record({ sku: fc.constantFrom('apple', 'pear') }) },
+  sut: cartSut
 });
 ```
 
-Event generators are derived from the machine's `schemas.events` when it declares them, so `events` only has to name the generators you want to control. Pass `deriveEvents: false` to opt out.
+`testPaths()` samples fast-check arbitraries into concrete payloads before
+traversal. Both functions derive generators from the machine's
+`schemas.events` for every event type `events` does not configure; pass
+`deriveEvents: false` to turn that off. `fastCheckAdapter()` is exported for
+the generator-neutral functions in `xstate/graph`, and passing `adapter`
+overrides the built-in one.
 
-The whole property-testing surface — `replayPropertyTest`, `describePropertySuite`, `formatPropertyCoverage`, `assertPropertyCoverage`, `checkLinearizable`, `PropertyTestFailure` and the rest — is re-exported from `@xstate/test`, so it is the only import a test file needs. `fastCheckAdapter` is still exported, and passing `adapter` still overrides the implicit one.
+`fast-check` is a required peer dependency. `@xstate/test/playwright` is a
+subpath export for testing Playwright pages.
 
-`@xstate/test-playwright` has been folded in as the `@xstate/test/playwright` subpath export. `fast-check` is now a required peer dependency.
-
-Migrating:
-
-- From `@xstate/fast-check`: rename the import, and replace `adapter: fastCheckAdapter({ ... })` with the same options spelled at the top level.
-- From `@xstate/test` 0.x: `createModel().withEvents()` is replaced by `propertyTest()`.
-- From `@xstate/test` 1.0 beta: `createTestModel()` now lives in `xstate/graph` (and is re-exported here).
+Migrating from `@xstate/test` 1.0 beta: `createTestModel()` and the path
+functions now live in `xstate/graph` and are re-exported here; `path.test()`
+takes a `sut` instead of `{ events, states }` (see `fromTestParam()`).
+Migrating from 0.x: `createModel(machine).withEvents({ ... })` is replaced by
+`testPaths(machine, { events, sut })`.

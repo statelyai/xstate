@@ -3,8 +3,8 @@
 '@xstate/test': minor
 ---
 
-Property test coverage now reports two more dimensions, and event cases and
-commands can be weighted.
+Property test coverage reports transition pairs and requirements, and event
+cases and commands can be weighted.
 
 `coverage.transitionPairs` reports which pairs of transitions ran back to back
 within a run, and `coverage.requirements` reports requirement ids declared via

@@ -371,7 +371,7 @@ export interface DescribeTestSuiteOptions<
   readonly it?: (name: string, fn: () => Promise<void> | void) => unknown;
   /** Defaults to the ambient `describe`, when one exists. */
   readonly describe?: (name: string, fn: () => void) => unknown;
-  /** The `describe` block name. Defaults to the suite's machine id. */
+  /** The `describe` block name. Defaults to `property suite (<machine id>)`. */
   readonly name?: string;
 }
 

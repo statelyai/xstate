@@ -35,4 +35,4 @@ coverage.exploration.target; // { best, label, improvements }
 
 `collect(trace, { passed, runIndex })` is called after every run finishes, which is how offline suites now record their fixtures.
 
-`replayPropertyTest()` accepts `expect: 'failure' | 'pass'` and throws the typed `PropertyReplayNotReproducedError` (with a `step`) when a recorded failure no longer reproduces. Replay fixtures recorded from a passing run no longer carry a `failedAt` step.
+`replayTest()` accepts `expect: 'failure' | 'pass'` and throws `ReplayNotReproducedError` (with a `step`) when a recorded failure no longer reproduces. Replay fixtures recorded from a passing run have no `failedAt` step.

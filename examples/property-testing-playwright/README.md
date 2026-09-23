@@ -22,4 +22,12 @@ pnpm test
 `createPlaywrightSut()` returns the one `sut` shape both entry points take, so
 the same configuration runs under `testPaths()` by swapping the call.
 
+> **Warning:** `states` keys other than `'*'` currently match only when the
+> test is given `createTestModel(formMachine)` instead of `formMachine`, so the
+> `review` assertion in `form.spec.ts` does not run yet. See
+> [Oracles](../../packages/xstate-test#oracles) in the package README.
+
+The [`@xstate/test` README](../../packages/xstate-test#test-a-web-page-with-playwright)
+documents every `createPlaywrightSut()` option.
+
 This example is not run in CI, because it needs a browser download.

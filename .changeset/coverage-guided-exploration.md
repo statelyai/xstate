@@ -26,8 +26,8 @@ Shrinking still only shortens the generated continuation.
 
 `label(name, value?)` and `classify(condition, name)` are available on the
 invariant, temporal, SUT, and reference contexts. Occurrences are aggregated
-into `coverage.labels`, rendered by `formatPropertyCoverage()` and
-`propertyCoverageToJSON()`, and can be required with `expectLabels`:
+into `coverage.labels`, rendered by `formatTestCoverage()` and
+`testCoverageToJSON()`, and can be required with `expectLabels`:
 
 ```ts
 await propertyTest(machine, {
@@ -39,6 +39,6 @@ await propertyTest(machine, {
 });
 ```
 
-`PropertyTestFailure.message` now includes the formatted trace, so reporters
-that print only the stack still show the counterexample. The short message
-remains available as `PropertyTestFailure.summary`.
+`ModelTestFailure.message` includes the formatted trace, so reporters that
+print only the stack still show the counterexample. The short message is
+`ModelTestFailure.summary`.

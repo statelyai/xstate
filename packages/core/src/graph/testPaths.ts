@@ -78,10 +78,13 @@ export interface PathOptions<
     | PathGenerator<TSnapshot, TEvent, TInput>;
   /** Executes a single path built from this literal event sequence. */
   readonly fromEvents?: readonly TEvent[];
-  /** Traversal limit. */
+  /** Traversal limit. Traversal throws once it is exceeded. Defaults to `Infinity`. */
   readonly limit?: number;
+  /** Keeps only the paths that end in a state matching this predicate. */
   readonly toState?: (snapshot: TSnapshot) => boolean;
+  /** Starts traversal from this snapshot instead of the initial state. */
   readonly fromState?: TSnapshot;
+  /** Stops expanding a state when this returns `true`. */
   readonly stopWhen?: (snapshot: TSnapshot) => boolean;
   /**
    * Concrete values sampled from each event case's `generate` before
@@ -94,11 +97,13 @@ export interface PathOptions<
    * a case leaves the other cases' payloads unchanged.
    */
   readonly seed?: number;
+  /** Identifies a traversal state. Two snapshots with the same string are one node. */
   readonly serializeState?: (
     snapshot: TSnapshot,
     event: TEvent | undefined,
     previousSnapshot?: TSnapshot
   ) => string;
+  /** Identifies a traversal event. */
   readonly serializeEvent?: (event: TEvent) => string;
   /**
    * Keeps paths that are prefixes of longer paths instead of dropping them.

@@ -335,6 +335,7 @@ export interface TestSut<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
+  /** Creates a fresh session for one run. Called once per run and shrink attempt. */
   readonly create: (
     context: TestSutContext<TSnapshot, TEvent>
   ) =>
@@ -345,7 +346,9 @@ export interface TestSut<
    * when the session reads observations back for comparison.
    */
   readonly projectModel?: (snapshot: TSnapshot) => unknown;
+  /** Normalizes the value `read()` returns before comparison. Defaults to identity. */
   readonly projectSut?: (observed: unknown) => unknown;
+  /** Compares the two projections. Defaults to {@link defaultEquivalent}. */
   readonly equivalent?: (
     model: unknown,
     sut: unknown
@@ -373,10 +376,12 @@ export interface TestSutSendContext<TSnapshot = unknown> {
   };
 }
 
+/** One run's connection to the system under test, returned by `TestSut.create()`. */
 export interface TestSutSession<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
   TEvent extends EventObject = EventObject
 > {
+  /** Performs `event` against the system under test. */
   readonly send: (
     event: TEvent,
     context: TestSutSendContext<TSnapshot>
@@ -393,12 +398,20 @@ export interface TestSutSession<
    * option when present.
    */
   readonly states?: TestStateAssertions<TSnapshot, TEvent>;
+  /** Waits for the system under test to become quiescent before each comparison. */
   readonly settle?: () => void | Promise<void>;
+  /**
+   * Advances the system under test's own clock, returning the events it
+   * delivered. They are applied to the model before the next comparison.
+   */
   readonly advance?: (
     milliseconds: number
   ) => readonly TEvent[] | Promise<readonly TEvent[]>;
+  /** Handles a `checkpoint` command. */
   readonly checkpoint?: (label?: string) => void | Promise<void>;
+  /** Handles a `stop` command. */
   readonly stop?: () => void | Promise<void>;
+  /** Tears the session down at the end of the run, whether it passed or failed. */
   readonly dispose?: () => void | Promise<void>;
 }
 
@@ -423,14 +436,18 @@ export interface TestReferenceContext<
   TEvent extends EventObject
 > extends TestSutContext<TSnapshot, TEvent> {}
 
+/** A second implementation of the model's logic, compared with it on every stable step. */
 export interface TestReference<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
+  /** Creates a fresh reference session for one run. */
   readonly create: (
     context: TestReferenceContext<TSnapshot, TEvent>
   ) => TestReferenceSession<TEvent> | Promise<TestReferenceSession<TEvent>>;
+  /** Projects the model snapshot onto the shape the reference's `read()` returns. */
   readonly projectModel: (snapshot: TSnapshot) => unknown;
+  /** Normalizes the value the reference's `read()` returns. Defaults to identity. */
   readonly projectReference?: (observed: unknown) => unknown;
   readonly equivalent?: (
     model: unknown,
@@ -659,6 +676,11 @@ function getPropertyFailureMessage<
   }
 }
 
+/**
+ * Thrown by `propertyTest()`, `testPaths()`, and `replayTest()` when an
+ * oracle fails. Carries the trace, a portable replay fixture, and the coverage
+ * accumulated up to the failure.
+ */
 export class ModelTestFailure<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
   TEvent extends EventObject = EventObject
@@ -2284,27 +2306,40 @@ export interface TestOptions<
   readonly actors?: Readonly<Record<string, ActorLogic<any, any, any>>>;
   /**
    * Invoke source names whose actors are replaced by a stub that resolves from
-   * an `outcome` command instead of running for real. Executed mode only.
+   * an `outcome` command instead of running for real.
    *
    * `propertyTest()` generates the outcomes, so the adapter shrinks service
-   * results alongside events. `testPaths()` samples them, the same way it
-   * samples event payloads, and routes the sampled outcome through the
-   * `xstate.done.actor` / `xstate.error.actor` step the traversal took. A
-   * source that a path resolves but that is not declared here is stubbed with
-   * a synthesized outcome.
+   * results alongside events; it requires `mode: 'executed'`. `testPaths()`
+   * samples them, the same way it samples event payloads, in either mode: pure
+   * mode sends the sampled `output` or `error` as the payload of the
+   * `xstate.done.actor` / `xstate.error.actor` step the traversal took, and
+   * executed mode resolves the stub with it. In executed mode, a source that a
+   * path resolves but that is not declared here is stubbed with a synthesized
+   * outcome.
    */
   readonly outcomes?: {
     readonly [src: string]: PropertyCommandGenerator<TKind, TestActorOutcome>;
   };
+  /**
+   * Event types a run may send, keyed by type: a generator for the payload, an
+   * event descriptor, or an array of either.
+   */
   readonly events?: TestEventGenerators<TSnapshot, TEvent, TKind>;
+  /** The system under test, compared with the model after every stable step. */
   readonly sut?: TestSut<TSnapshot, TEvent>;
   /**
    * Per-state assertions run after every stable step. A `states` map on the
    * SUT session takes precedence over this one.
    */
   readonly states?: TestStateAssertions<TSnapshot, TEvent>;
+  /** A second implementation compared with the model after every stable step. */
   readonly reference?: TestReference<TSnapshot, TEvent>;
+  /** Machine input for every run. */
   readonly input?: TInput;
+  /**
+   * Starts every run from `snapshot` instead of the initial state.
+   * `serializeSnapshot` produces the value recorded in replay fixtures.
+   */
   readonly start?: {
     readonly snapshot: TSnapshot;
     readonly serializeSnapshot: (snapshot: TSnapshot) => unknown;
@@ -2327,7 +2362,9 @@ export interface TestOptions<
     trace: TestTrace<TSnapshot, TEvent>,
     info: { readonly passed: boolean; readonly runIndex: number }
   ) => void;
+  /** Checked on every stable step; throws to fail the run. */
   readonly invariant?: TestInvariant<TSnapshot, TEvent>;
+  /** Temporal properties checked on every stable step. */
   readonly temporal?: readonly TestTemporal<TSnapshot, TEvent>[];
   /** Minimum label frequencies the campaign must reach. */
   readonly expectLabels?: TestLabelExpectations;
@@ -2339,7 +2376,12 @@ export interface PropertyOptions<
   TEvent extends EventObject,
   TKind extends PropertyGeneratorKind = PropertyGeneratorKind
 > {
+  /** The generator engine. `@xstate/test` supplies the fast-check one. */
   readonly adapter: TestAdapter<TKind>;
+  /**
+   * Generators for runtime commands: `advance` (milliseconds), `checkpoint`
+   * (`{ label? }`), and `stop` (`{}`).
+   */
   readonly commands?: {
     readonly advance?: PropertyCommandGenerator<TKind, number>;
     readonly checkpoint?: PropertyCommandGenerator<
@@ -2348,6 +2390,11 @@ export interface PropertyOptions<
     >;
     readonly stop?: PropertyCommandGenerator<TKind, Record<string, never>>;
   };
+  /**
+   * Prefixes to start runs from: fixed paths, `{ paths, select,
+   * runsPerFrontier }`, `'auto'` (coverage-guided), or
+   * `{ strategy: 'target' }` (targeted search).
+   */
   readonly frontiers?:
     | readonly StatePath<TSnapshot, TEvent>[]
     | PropertyFrontierOptions<TSnapshot, TEvent>
@@ -2383,7 +2430,7 @@ export type PropertyTestOptions<
 /** Minimum frequencies required of labels recorded during the campaign. */
 export interface TestLabelExpectations {
   readonly [name: string]: {
-    /** Minimum share of completed runs that must record the label, `0`..`1`. */
+    /** Minimum share of attempted runs that must record the label, `0`..`1`. */
     readonly min?: number;
     /** Minimum total occurrences of the label. */
     readonly minCount?: number;
@@ -2719,6 +2766,13 @@ function provideActors<TLogic>(
   return (provide as (sources: unknown) => TLogic).call(logic, { actors });
 }
 
+/**
+ * Runs generated event and command sequences against the model, and the
+ * system under test when one is given, checking every oracle on every stable
+ * step. Resolves with the campaign's coverage and throws a
+ * {@link ModelTestFailure} on the first failure. Requires an `adapter`;
+ * `@xstate/test` exports a version with fast-check built in.
+ */
 export async function propertyTest<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>,
   TKind extends PropertyGeneratorKind
@@ -3375,6 +3429,10 @@ export class ReplayNotReproducedError extends Error {
   }
 }
 
+/**
+ * Replays a {@link TestFixture} without a generator. Resolves with the
+ * replayed trace; see the `expect` option for how failures are reported.
+ */
 export async function replayTest<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 >(
@@ -3554,6 +3612,7 @@ function serializeSnapshot<TSnapshot extends Snapshot<unknown>>(
     : snapshot;
 }
 
+/** Converts a trace to JSON-safe data, calling `toJSON()` on snapshots. */
 export function serializeTestTrace<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -3596,6 +3655,7 @@ export function serializeTestTrace<
   };
 }
 
+/** Renders a trace as the human-readable text used in failure messages. */
 export function formatTestTrace<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject

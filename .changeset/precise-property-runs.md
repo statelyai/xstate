@@ -3,25 +3,22 @@
 '@xstate/test': minor
 ---
 
-Improve property testing accuracy, replay, and coverage:
+Property test accuracy, replay, and coverage:
 
-- Add the `always` and `never` temporal operators, checked on every stable step.
-  Bounded `eventually`/`until` properties whose `within` window did not elapse
-  before the run ended are now reported as inconclusive instead of failing.
-- Report a clear error when an event generator produces a non-object payload,
+- The `always` and `never` temporal operators are checked on every stable
+  step. A bounded `eventually` or `until` property whose `within` window has
+  not elapsed when a run ends is reported as inconclusive, not failed.
+- An event generator that produces a non-object payload fails with an error
   naming the event case and pointing at `resolve`.
-- Report exact execution metrics: `coverage.exploration` now includes
-  `attemptedRuns` alongside `completedRuns` and `configuredRuns`.
-- `replayPropertyTest()` accepts a `sut` implementation, stops at the recorded
-  `failedAt` step, and throws when the recorded failure does not reproduce.
-  Model, reference, and SUT projections are compared with structural,
-  key-order insensitive deep equality, exported as `defaultEquivalent`.
-- Report reachability correctly for states reachable only through a history
-  state's default target, an `invoke` `onDone`/`onError`/`onSnapshot`
-  transition, or a state's `onDone` transition.
-- Inspection events for microsteps are emitted again when transition details are
-  collected. `transition()` no longer allocates a details object, so pure
-  transitions stay on the fast path.
+- `coverage.exploration` reports `attemptedRuns`, including shrink attempts,
+  alongside `completedRuns` and `configuredRuns`.
+- `replayTest()` accepts a `sut`, stops at the recorded `failedAt` step, and
+  throws when the recorded failure does not reproduce. Model, reference, and
+  SUT projections are compared with structural, key-order-insensitive deep
+  equality, exported as `defaultEquivalent`.
+- Coverage reports states that are reachable only through a history state's
+  default target, an invoke's `onDone`/`onError`/`onSnapshot` transition, or a
+  state's `onDone` transition as reachable.
 
 ```ts
 await propertyTest(machine, {

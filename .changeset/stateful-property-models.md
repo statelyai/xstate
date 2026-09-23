@@ -3,9 +3,9 @@
 '@xstate/test': minor
 ---
 
-Extend `propertyTest()` with fresh model-testing sessions, multiple named cases
-per event type, and symbolic event values resolved from the current model
-snapshot. Model-testing event executors now receive the complete typed event.
+`propertyTest()` accepts several named cases per event type, and symbolic
+event values resolved from the current model snapshot. Each run creates a
+fresh system-under-test session.
 
 ```ts
 await propertyTest(createTestModel(machine), {
@@ -21,9 +21,19 @@ await propertyTest(createTestModel(machine), {
       }
     }
   },
-  test: {
-    create: () => ({ params: modelTestParams, dispose: stopApplication })
+  sut: {
+    create: () => {
+      const app = startApplication();
+      return {
+        send: (event) => app.dispatch(event),
+        dispose: () => app.stop()
+      };
+    }
   },
   invariant
 });
 ```
+
+fast-check shrinks the generated value, and the resolved event is what gets
+recorded, so replay fixtures do not depend on the resolver. Returning
+`undefined` from `resolve` makes the case inapplicable for that step.

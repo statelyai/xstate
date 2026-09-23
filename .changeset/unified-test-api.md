@@ -3,87 +3,80 @@
 '@xstate/test': major
 ---
 
-Path-based and property-based testing are now one API with two generation
-strategies. `testPaths()` walks the machine's state graph; `propertyTest()`
-generates randomized sequences. They take the same options, run through the
-same engine, and return the same coverage object and failure type.
-
-**One `events` shape.** Path generation accepts the descriptor map
-`propertyTest()` already took — a bare generator, `{ case, generate, resolve,
-when, weight }`, or an array of either. `generate` is sampled into `samples`
-(default `3`) concrete payloads before traversal, seeded by `seed`. `when` and
-`resolve` apply identically on both sides. In `@xstate/test`, fast-check
-arbitraries are sampled automatically.
-
-**One `sut`.** `TestParam` (`events` executors plus `states` assertions) and the
-`test.create` option are replaced by a single `sut`:
+Path-based and property-based model testing in `xstate/graph` are now one API
+with two ways of generating event sequences. `testPaths()` walks the machine's
+state graph; `propertyTest()` generates random sequences. Both take the same
+`events`, `sut`, `states`, `invariant`, `temporal`, and `reference` options,
+return the same coverage object, and throw the same `ModelTestFailure`.
 
 ```ts
-// Before
-await path.test({
-  events: { INC: ({ event }) => store.dispatch(event) },
-  states: { active: (snapshot) => expect(rendered()).toBe(snapshot.context.count) }
-});
+import { testPaths } from 'xstate/graph';
 
-// After
-await path.test({
+const { coverage, results } = await testPaths(machine, {
+  pathGenerator: 'simple',
+  events: {
+    ADD: [
+      { case: 'apple', generate: () => ({ sku: 'apple' }) },
+      { case: 'pear', generate: () => ({ sku: 'pear' }) }
+    ]
+  },
   sut: {
-    create: () => ({
-      send: (event) => store.dispatch(event),
-      states: {
-        active: (snapshot) => expect(rendered()).toBe(snapshot.context.count)
-      }
-    })
+    create: () => {
+      const cart = createCart();
+      return {
+        send: (event) => cart.dispatch(event),
+        read: () => cart.items()
+      };
+    },
+    projectModel: (snapshot) => snapshot.context.items
   }
 });
 ```
 
-`states` can also be written at the top level, without a `sut`. Per-state
-`meta.test` hooks run in both entry points. `fromTestParam({ events, states })`
-converts the old shape in one call. `createPlaywrightTestModelSession()` is
-gone; `createPlaywrightSut()` now takes optional `read`/`projectModel` and an
-optional `states` map.
+`testPaths()` resolves with `{ coverage, results }`, where each result is
+`{ path, passed, error }`, and throws a `ModelTestFailure` with a trace, a
+portable replay fixture, and coverage on the first failing path. Event
+generators are sampled into `samples` (default `3`) payloads per event case
+before traversal, seeded by `seed`. The graph includes `onDone`, `onError`,
+and `after` transitions: in pure mode they are sent as internal events, and
+with `mode: 'executed'` they become stubbed actor outcomes and clock advances.
 
-**`testPaths()`.** `testPaths(machine, options)` returns `{ coverage, results }`
-and throws the same `ModelTestFailure` — with trace, portable fixture, and
-coverage — that `propertyTest()` throws. `TestModel#testPaths()` and
-`TestModel#testPath()` run through the same engine, so paths now get coverage,
-labels, requirements, transition pairs, and replayable fixtures.
-`coverage.exploration.strategy` is `'paths'` or `'property'`, with `pathCount`
-and `pathGenerator` on the path side.
+Breaking changes to `TestModel`:
 
-**Renamed exports.** Shared names dropped their `Property` prefix:
-`PropertyCoverage` → `TestCoverage`, `PropertySut` → `TestSut`,
-`PropertySutSession` → `TestSutSession`, `PropertyTrace` → `TestTrace`,
-`PropertyTestFailure` → `ModelTestFailure`, `PortablePropertyReplayFixture` →
-`TestFixture`, `PropertySuite` → `TestSuite`, `PropertyInvariant` →
-`TestInvariant`, `PropertyTemporal` → `TestTemporal`,
-`PropertyReferenceOracle` → `TestReference`,
-`PropertyReplayNotReproducedError` → `ReplayNotReproducedError`,
-`formatPropertyCoverage()` → `formatTestCoverage()`, `propertyCoverageToJSON()`
-→ `testCoverageToJSON()`, `formatPropertyCoverageJUnit()` →
-`formatTestCoverageJUnit()`, `formatPropertyCoverageHTML()` →
-`formatTestCoverageHTML()`, `assertPropertyCoverage()` → `assertTestCoverage()`,
-`formatPropertyTrace()` → `formatTestTrace()`, `serializePropertyTrace()` →
-`serializeTestTrace()`, `replayPropertyTest()` → `replayTest()`,
-`generatePropertySuite()` → `generateTestSuite()`, `replayPropertySuite()` →
-`replayTestSuite()`, `describePropertySuite()` → `describeTestSuite()`. The old
-names remain as deprecated aliases. `propertyTest()` and
-`PropertyScenarioRunner` keep their names.
+- `path.test()` and `model.testPath()` take the same options as `testPaths()`
+  instead of a `TestParam` (`{ events, states }`). Move event executors into a
+  `sut`, or wrap the old object with `fromTestParam()`:
 
-**Removed.** These have no deprecated alias:
+  ```ts
+  // Before
+  await path.test({
+    events: { SUBMIT: ({ event }) => submit(event.value) },
+    states: { submitted: () => expect(isSubmitted()).toBe(true) }
+  });
 
-- `TestPathResult` and `TestStepResult` → `TestPathRunResult` (`{ path, passed,
-  error }`), returned in the `results` array of `testPaths()`. Per-step results
-  are no longer collected; use the `ModelTestFailure` trace instead.
-- `TestModel#testState()` and `TestModel#testTransition()` → the `states` option
-  (or `sut.states`), which runs after every stable step.
-- `createPlaywrightTestModelSession()` and `PlaywrightTestModelParams` →
-  `createPlaywrightSut()`, which takes optional `read`/`projectModel` and an
-  optional `states` map.
-- `TestPath#test(params)` and `TestModel#testPath(path, params)` no longer take
-  the `{ events, states }` `TestParam`; they take the shared options, so the
-  executors move to `sut` (or `fromTestParam({ events, states })`).
-- `testPaths()` rejects `outcomes` and `commands`: path generation walks the
-  pure state graph, which models neither invoked actors nor `after`
-  transitions. Use `propertyTest()` with `mode: 'executed'` for those.
+  // After
+  await path.test({
+    sut: {
+      create: () => ({
+        send: (event) => (event.type === 'SUBMIT' ? submit(event.value) : undefined),
+        states: { submitted: () => expect(isSubmitted()).toBe(true) }
+      })
+    }
+  });
+
+  // Or, unchanged executors
+  await path.test({ sut: fromTestParam({ events, states }) });
+  ```
+
+  Executors passed to `fromTestParam()` receive the full typed event, so
+  payload fields no longer need a cast.
+
+- `path.test()` resolves with `TestPathRunResult` (`{ path, passed, error }`).
+  `TestPathResult` and `TestStepResult` are removed; use the
+  `ModelTestFailure` trace for per-step detail.
+- `model.testState()` and `model.testTransition()` are removed. Use the
+  `states` option, which runs after every stable step.
+
+`model.testPaths(paths?, options?)` runs several paths through the same engine
+as `testPaths()`. Functions in a state node's `meta.test` run on every stable
+step, and receive the SUT session and the snapshot.

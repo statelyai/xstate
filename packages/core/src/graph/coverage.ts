@@ -16,11 +16,17 @@ export type TestCoverageStatus =
   | 'unreachable'
   | 'unknown';
 
+/** One coverage dimension, with its ids grouped by status. */
 export interface TestCoverageDimension {
+  /** Hits per id. */
   readonly counts: Readonly<Record<string, number>>;
+  /** Ids hit at least once. */
   readonly covered: readonly string[];
+  /** Reachable ids that were never hit. */
   readonly uncovered: readonly string[];
+  /** Ids that cannot be reached from the start state. */
   readonly unreachable: readonly string[];
+  /** Ids whose reachability cannot be decided statically. */
   readonly unknown: readonly string[];
 }
 
@@ -165,7 +171,13 @@ interface TestTemporalCoverage {
   readonly inconclusive: readonly string[];
 }
 
+/**
+ * What a campaign exercised, resolved by `propertyTest()` and `testPaths()`.
+ * Relative to the supplied event cases and bounds; not a claim of complete
+ * behavioral coverage.
+ */
 export interface TestCoverage {
+  /** Runs attempted, including shrink attempts. */
   readonly runs: number;
   readonly steps: number;
   readonly skipped: number;
@@ -178,27 +190,37 @@ export interface TestCoverage {
   readonly stops: number;
   readonly sutComparisons: number;
   readonly oracleComparisons: number;
+  /** Serialized snapshots observed during the campaign. */
   readonly states: TestCoverageDimension;
+  /** State node ids. */
   readonly stateNodes: TestCoverageDimension;
+  /** Sets of simultaneously active state nodes. */
   readonly configurations: TestCoverageDimension;
+  /** Snapshot statuses, such as `active` and `done`. */
   readonly statuses: TestCoverageDimension;
   /** Delivered event types. This does not describe payload-domain coverage. */
   readonly eventTypes: TestCoverageDimension;
   /** Lifecycle counts for the event cases supplied to `propertyTest()`. */
   readonly eventCases: Readonly<Record<string, TestEventCaseCounts>>;
+  /** Transition definitions, attributed from the microsteps XState took. */
   readonly transitions: TestCoverageDimension;
   /** Pairs of consecutive executed transitions, as `${t1} -> ${t2}`. */
   readonly transitionPairs: TestTransitionPairCoverageDimension;
   /** Requirement ids declared via `meta.requirements`. */
   readonly requirements: TestRequirementCoverageDimension;
+  /** Transitions whose target is computed at runtime, with the targets observed. */
   readonly dynamicTransitions: Readonly<
     Record<string, TestDynamicTransitionCoverage>
   >;
+  /** Guard ids, with pass/fail counts in `outcomes`. */
   readonly guards: TestGuardCoverageDimension;
+  /** Frontier ids from the `frontiers` option. */
   readonly frontiers: TestCoverageDimension;
   /** Labels recorded with `label()`/`classify()`, keyed by label name. */
   readonly labels: Readonly<Record<string, TestLabelCoverage>>;
+  /** Temporal property ids by outcome. */
   readonly temporal: TestTemporalCoverage;
+  /** The bounds, budgets, and seeds the campaign ran with. */
   readonly exploration: TestExplorationBounds;
 }
 

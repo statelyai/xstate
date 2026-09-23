@@ -1,12 +1,11 @@
 # Property testing a shopping cart
 
-The hello world for [`@xstate/test`](../../packages/xstate-test). A cart
-machine, a hand-written implementation of the same cart, and four tests: one
-that checks the model against itself, one that checks the implementation
-against the model, one that walks the model's state graph instead of
-generating sequences, and one that replays a recorded counterexample.
+The reference example for [`@xstate/test`](../../packages/xstate-test). A cart
+machine is the model, a hand-written `CartStore` is the implementation, and six
+tests check one against the other with `propertyTest()` and `testPaths()`. One
+deliberate bug shows what a failure looks like and how to replay it.
 
-Run them with:
+Run the tests from this directory:
 
 ```bash
 pnpm test
@@ -14,32 +13,60 @@ pnpm test
 
 ## Files
 
-| File | What it is |
+| File | Contents |
 | --- | --- |
-| `src/cart.machine.ts` | The model. Event payloads are declared as Zod schemas, so the generators are derived from them. |
-| `src/cart-store.ts` | A plain `CartStore` class that mirrors the machine. Setting `CART_BUG=1` introduces one deliberate defect. |
-| `src/cart.test.ts` | The four tests. |
+| `src/cart.machine.ts` | The model. Event payloads are declared as Zod schemas, so generators are derived from them. Checkout invokes a `pay` actor. |
+| `src/cart-store.ts` | `CartStore`, the implementation. `CART_BUG=1` makes `REMOVE` leave the SKU in the cart at quantity zero. |
+| `src/cart.test.ts` | The six tests. |
 
-## Test 1: the model on its own
+## The model
 
-`propertyTest()` generates sequences of `ADD`, `REMOVE` and `CHECKOUT`, runs
-them, and checks that the cart never holds an item at quantity zero and that a
-run eventually reaches `done`.
+The cart has three states: `shopping`, `paying`, and `done`. In `shopping`,
+`ADD` adds a quantity of a SKU, `REMOVE` takes a SKU out, and `CHECKOUT` moves
+to `paying` when the cart is not empty. `paying` invokes `pay`. `onDone` moves
+to `done`, and `onError` returns to `shopping` with the error recorded in
+`lastError`.
 
-Three things are worth pointing at:
+The event schemas are Zod schemas:
 
-- **`ADD` and `CHECKOUT` have no entry in `events`.** They are derived from the
-  machine's `schemas.events`. Only `REMOVE` is configured, because it has to
-  name a SKU the cart actually holds: `generate: fc.nat()` produces a
-  shrinkable index, and `resolve` turns it into an existing SKU, or `undefined`
-  when the cart is empty so the event is skipped.
-- **`mode: 'executed'` runs real actors.** The `pay` actor is replaced by a
-  generated outcome, so both `onDone` and `onError` are reached without a
-  network call.
-- **`until: { transitions: 1 }` stops the campaign early**, as soon as every
-  transition has been covered, rather than always running the full budget.
+```ts
+events: {
+  ADD: z.object({
+    sku: z.string().min(1),
+    qty: z.number().int().min(1).max(5)
+  }),
+  REMOVE: z.object({ sku: z.string() }),
+  CHECKOUT: z.object({})
+}
+```
 
-`formatTestCoverage(coverage)` prints what the campaign reached:
+`propertyTest()` derives a generator for every event type that `events` does
+not configure, and honors the constraints: the `ADD` generator only produces
+non-empty SKUs and integer quantities from 1 to 5.
+
+## The six tests
+
+### 1. `checks out, and never holds an item at quantity zero`
+
+`propertyTest()` checks the model on its own. There is no `sut`.
+
+- `events` configures only `REMOVE`. `ADD` and `CHECKOUT` are derived from the
+  schemas. `REMOVE` must name a SKU that is in the cart, so it is a
+  descriptor: `generate: fc.nat()` produces a shrinkable index, and `resolve`
+  maps it to one of the SKUs in the current snapshot, or returns `undefined`
+  when the cart is empty, which skips the event.
+- `mode: 'executed'` runs the machine as an actor, so the `pay` invocation
+  starts. `outcomes.pay` replaces `pay` with a stub whose result is generated:
+  a receipt or a declined card. Both `onDone` and `onError` are reached
+  without a network call.
+- `invariant` checks that every quantity in the cart is above zero.
+- `temporal` declares that a run reaches `done` within 20 steps. A run that
+  ends sooner without reaching `done` is inconclusive, not failed.
+- `until: { transitions: 1 }` stops the campaign once every transition has
+  been taken.
+
+`formatTestCoverage(coverage)` prints (the list of unknown transition pairs is
+cut):
 
 ```
 Test coverage
@@ -55,6 +82,13 @@ transitionPairs: 9/24 covered (37.5%), 0 uncovered, 0 unreachable, 15 unknown
 requirements: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 frontiers: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 
+unknown states:
+  - (runtime serialized states)
+unknown configurations:
+  - (runtime configurations)
+unknown transitionPairs:
+  - ["transition","cart.paying","xstate.done.actor",0] -> ["transition","cart.paying","xstate.error.actor",0]
+  ...
 event cases:
   - ADD / default: 37 generated, 36 applicable, 36 executed, 1 ignored
   - CHECKOUT / default: 22 generated, 21 applicable, 21 executed, 1 ignored
@@ -72,46 +106,35 @@ exploration:
   seed ["frontier","initial"]: engine fast-check, seed 1, path n/a
 ```
 
+The campaign stopped after 25 of 100 runs because every transition was
+covered. An event case is `ignored` when it is not applicable: `REMOVE` on an
+empty cart, where `resolve` returns `undefined`, or any event outside
+`shopping`. `transitionPairs` lists a pair as `unknown` when a transition's
+target is computed by a function, as most transitions in this machine are.
 `assertTestCoverage(coverage, { transitions: 1 })` then fails the test if a
-later change leaves a transition unexercised.
+later change leaves a transition untaken.
 
-## Test 2: the implementation against the model
+### 2. `matches the model`
 
-The second test adds a `sut`: `create` builds a `CartStore`, `send` dispatches
-the generated event to it, and `read` returns its cart contents.
-`projectModel` says which part of the model snapshot to compare against — here,
-`context.items`.
+The test adds a `sut`. `create()` builds a new `CartStore` for each run, `send`
+dispatches each event to it, and `read()` returns its items. `projectModel`
+selects the part of the model to compare, `context.items`. After every step,
+the two must be deeply equal.
 
-The cart contents are the only thing the two implementations must agree on, so
-`deriveEvents: false` keeps `CHECKOUT` out of the generated events; the
-checkout path is covered by test 1.
+The cart contents are the only thing the store and the machine are compared
+on, so the test sets `deriveEvents: false` and configures only `ADD` and
+`REMOVE`. Test 1 covers checkout.
 
-A second `it` sets `CART_BUG=1` and asserts that the run fails. The defect is
-small — `REMOVE` leaves the SKU in the cart at quantity zero instead of taking
-it out — and the counterexample is shrunk down to the two events that expose
-it:
+### 3. `reports a counterexample when the store is buggy`
 
-```
-Property observation diverged
-start {"status":"active","context":{"items":{}},"value":"shopping", ...}
-0. generated/generator {"sku":"apple","qty":1,"type":"ADD"} -> {"status":"active","context":{"items":{"apple":1}},"value":"shopping", ...}
-   transitions ["transition","cart.shopping","ADD",0]
-   observations {"model":{"apple":1},"sut":{"model":{"apple":1},"observed":{"apple":1}}}
-1. generated/generator {"sku":"apple","type":"REMOVE"} -> {"status":"active","context":{"items":{}},"value":"shopping", ...}
-   transitions ["transition","cart.shopping","REMOVE",0]
-   observations {"model":{},"sut":{"model":{},"observed":{"apple":0}}}
-```
+The same options, with `CART_BUG=1` set. `propertyTest()` throws a
+`ModelTestFailure`, and fast-check shrinks the sequence to the two events
+that expose the bug. The next section shows the failure.
 
-The last line is the divergence: the model dropped `apple`, the store kept it
-at zero.
+### 4. `walks every simple path`
 
-## Test 3: the same machine, walked instead of generated
-
-`testPaths()` takes the same `events`, the same oracles, and the same
-`mode: 'executed'`. Only the generation keys change: `pathGenerator` picks the
-traversal, `samples` decides how many concrete payloads each event case
-contributes to the graph, and `stopWhen` bounds a cart that would otherwise
-grow forever.
+`testPaths()` runs the same machine with the same kind of options. The
+generation options are different:
 
 ```ts
 const { coverage, results } = await testPaths(cartMachine, {
@@ -119,65 +142,166 @@ const { coverage, results } = await testPaths(cartMachine, {
   pathGenerator: 'simple',
   samples: 1,
   seed: 3,
-  events: { ADD, REMOVE },
+  events: {
+    ADD: [
+      { case: 'apple', generate: fc.constant({ sku: 'apple', qty: 1 }) },
+      { case: 'pear', generate: fc.constant({ sku: 'pear', qty: 1 }) }
+    ],
+    REMOVE: [
+      { case: 'apple', generate: fc.constant({ sku: 'apple' }) },
+      { case: 'pear', generate: fc.constant({ sku: 'pear' }) }
+    ]
+  },
   stopWhen: (snapshot) =>
     Object.values(snapshot.context.items).some((qty) => qty >= 2),
   mode: 'executed',
-  outcomes: { pay: fc.constant({ ok: true, output: { receiptId: 'rcpt_1' } }) }
+  outcomes: {
+    pay: fc.constant({ ok: true, output: { receiptId: 'rcpt_1' } })
+  },
+  invariant: ({ snapshot }) => {
+    /* the invariant from test 1 */
+  }
 });
 ```
 
-The graph already contains the invoked actor's branches: `paying` has an
-`xstate.done.actor` and an `xstate.error.actor` transition, so the traversal
-routes through both. In `mode: 'executed'` each of those steps is replayed as
-an `outcome` command against a stubbed `pay` — the sampled outcome for the
-branch that was taken, or a synthesized one for a branch `outcomes` does not
-declare. An `after` transition works the same way, as a generated `advance`.
-In the default `mode: 'pure'` the internal event is simply sent, carrying the
-sampled `output` or `error` as its payload.
+- Each event case names a fixed SKU. A graph edge must lead to the same state
+  every time it is taken, so the shrinkable index from test 1 does not fit
+  here.
+- `samples: 1` draws one payload per case, which keeps the graph small.
+- `stopWhen` stops expanding a state once a quantity reaches 2. Without it the
+  cart, and the graph, grow without bound.
+- `pathGenerator: 'simple'` walks every simple path. The default shortest
+  paths would never take `REMOVE`, because removing the only item returns to a
+  state that is already reachable.
+- The state graph contains the `xstate.done.actor` and `xstate.error.actor`
+  transitions out of `paying`. In executed mode, each of those steps becomes
+  an `outcome` command against a stubbed `pay`. `outcomes` declares only a
+  success, so the error branch resolves with a synthesized failure.
 
-Two of the generation keys are there for traversal's sake. `pathGenerator:
-'simple'` walks every simple path, not only the shortest one to each state, so
-a `REMOVE` that leads somewhere already reachable is still exercised. And
-`ADD` and `REMOVE` are declared as one case per SKU rather than as the
-shrinkable index the property tests use, because a graph edge has to be the
-same edge every time it is visited.
-
-The coverage object is the one `propertyTest()` returns, so the same
-formatters and assertions apply. Only `exploration` says which strategy ran:
+The coverage object has the same shape as in test 1. Only `exploration` shows
+the strategy (event case and exploration lines):
 
 ```
 transitions: 5/5 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
+...
 event cases:
   - ADD / apple: 287 generated, 287 applicable, 287 executed, 0 ignored
   - ADD / pear: 287 generated, 287 applicable, 287 executed, 0 ignored
   - CHECKOUT / default: 208 generated, 208 applicable, 208 executed, 0 ignored
   - REMOVE / apple: 121 generated, 121 applicable, 121 executed, 0 ignored
   - REMOVE / pear: 121 generated, 121 applicable, 121 executed, 0 ignored
+temporal: 0 satisfied, 0 failed, 0 inconclusive
 
 exploration:
   runs: configured 164, completed 164, attempted 164
   sequence length: max 12, max observed 12
   stopped because: budget
+  truncated: true (maximum sequence length reached)
+  frontier ["frontier","initial"]: prefix 0, budget n/a, configured 164, completed 164, attempted 164
   seed ["frontier","initial"]: engine paths, seed n/a, path n/a
 ```
 
-`expect(coverage.transitions.uncovered).toEqual([])` then holds: traversal
-reaches every transition the machine declares.
+164 paths ran, one run each. `CHECKOUT` was not configured, so traversal sent
+it as a bare `{ type: 'CHECKOUT' }`. The test asserts that
+`coverage.transitions.uncovered` is empty and that
+`coverage.exploration.strategy` is `'paths'`.
 
-A second `it` points the same traversal at the buggy store. Removing the only
-item returns the cart to its starting state, so no shortest path covers
-`REMOVE` on its own; a literal sequence does, and `fromEvents` walks `ADD`
-then `REMOVE` against it. The failure is a `ModelTestFailure` with the same
-trace, fixture, and coverage that `propertyTest()` produces —
-`coverage.exploration.strategy` is the only difference.
+### 5. `reports the same failure class when the store is buggy`
 
-## Test 4: replaying the counterexample
+`testPaths()` against the buggy store, with `fromEvents` instead of a
+generator: the single path `ADD apple`, then `REMOVE apple`. It throws the
+same `ModelTestFailure`, with a trace, a fixture, and coverage. Only
+`failure.coverage.exploration.strategy` differs: `'paths'`.
 
-A `ModelTestFailure` carries a `fixture`: a portable, plain-JSON record of
-the sequence that failed. `replayTest(machine, fixture, options)`
-re-runs exactly that sequence and expects the same failure, throwing
-`ReplayNotReproducedError` if the failure no longer happens.
+### 6. `replays a recorded counterexample`
 
-Committing a fixture turns a generated counterexample into an ordinary
-regression test that needs no generator and no seed.
+The test produces the failure from test 3, takes `failure.fixture`, and
+replays it with `replayTest()`. The replay stops at the recorded failing step
+and throws the same `ModelTestFailure`. No generator runs.
+
+## What a failure looks like
+
+With `CART_BUG=1`, test 3 fails with this `ModelTestFailure` message:
+
+```
+Property observation diverged
+start {"status":"active","context":{"items":{},"lastError":null},"value":"shopping","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
+0. generated/generator {"sku":"apple","qty":1,"type":"ADD"} -> {"status":"active","context":{"items":{"apple":1},"lastError":null},"value":"shopping","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
+   transitions ["transition","cart.shopping","ADD",0]
+   observations {"model":{"apple":1},"sut":{"model":{"apple":1},"observed":{"apple":1}}}
+1. generated/generator {"sku":"apple","type":"REMOVE"} -> {"status":"active","context":{"items":{},"lastError":null},"value":"shopping","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
+   transitions ["transition","cart.shopping","REMOVE",0]
+   observations {"model":{},"sut":{"model":{},"observed":{"apple":0}}}
+```
+
+Read it from the bottom. Step 1 sent `REMOVE apple`. The model's projection is
+`{}`, and the store's is `{"apple":0}`: the store kept the SKU at quantity
+zero. The first line is `failure.summary`, and the rest is
+`formatTestTrace(failure.trace)`.
+
+`failure.fixture` records the same sequence as JSON:
+
+```json
+{
+  "formatVersion": 2,
+  "machine": { "id": "cart" },
+  "start": { "type": "input" },
+  "timeline": [
+    {
+      "kind": "event",
+      "command": {
+        "type": "event",
+        "event": { "sku": "apple", "qty": 1, "type": "ADD" },
+        "phase": "generated",
+        "origin": "generator",
+        "caseId": "[\"event-case\",\"ADD\",\"default\"]"
+      }
+    },
+    {
+      "kind": "event",
+      "command": {
+        "type": "event",
+        "event": { "sku": "apple", "type": "REMOVE" },
+        "phase": "generated",
+        "origin": "generator",
+        "caseId": "[\"event-case\",\"REMOVE\",\"default\"]"
+      }
+    }
+  ],
+  "failedAt": 3
+}
+```
+
+Save it as `src/cart-remove.fixture.json` and replay it:
+
+```ts
+import { replayTest, type TestFixture } from '@xstate/test';
+import fixture from './cart-remove.fixture.json';
+
+await replayTest(cartMachine, fixture as TestFixture, {
+  sut: {
+    create: () => {
+      const store = new CartStore();
+      return {
+        send: (event: CartEvent) => store.dispatch(event),
+        read: () => store.getState().items
+      };
+    },
+    projectModel: (snapshot) => snapshot.context.items
+  }
+});
+```
+
+With the bug present, `replayTest()` throws the same `ModelTestFailure`. With
+the bug fixed, it throws `ReplayNotReproducedError`:
+`Property replay did not reproduce the recorded failure at step 3`. Pass
+`expect: 'pass'` to keep the fixture as a regression test that must pass.
+
+`failure.replay` holds the fast-check replay data instead:
+`{ "engine": "fast-check", "seed": 2, "path": "0:2:1:1:1:1", "replayPath": "EBK:F" }`.
+Passing `seed`, `path`, and `replayPath` to `propertyTest()` with the options
+from test 2 reruns the shrunk case directly. That depends on the generators
+and the fast-check version staying the same; the fixture does not.
+
+See [Replay a failure](../../packages/xstate-test#replay-a-failure) in the
+package README for the options `replayTest()` accepts.
