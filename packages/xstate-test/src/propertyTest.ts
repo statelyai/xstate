@@ -37,6 +37,7 @@ import {
   type FastCheckAdapterOptions,
   type FastCheckGeneratorKind
 } from './adapter.ts';
+import { resolveFailuresOption, type FailuresOption } from './failures.ts';
 import { eventsFromSchemas, isTypeOnlySchema } from './schema.ts';
 
 /**
@@ -72,8 +73,15 @@ const ADAPTER_OPTION_KEY_SET: ReadonlySet<string> = new Set(
   ADAPTER_OPTION_KEYS
 );
 
-/** The schema-derivation option shared by the wrappers. */
+/** The options the wrappers add to, or reshape from, `xstate/graph`. */
 interface DeriveEventsOptions {
+  /**
+   * Saves the fixture of a failing campaign to disk, and replays saved
+   * fixtures before the next campaign. `true` uses the defaults: the
+   * `.xstate-test` directory and `replay: 'first'`. A `TestFailureStore`
+   * object is used as-is.
+   */
+  readonly failures?: FailuresOption;
   /**
    * Derives a generator, via `eventsFromSchemas()`, for every event type the
    * machine declares in `schemas.events` and that `events` does not already
@@ -100,7 +108,7 @@ export type FastCheckPropertyTestOptions<
   TInput
 > = Omit<
   PropertyTestOptions<TSnapshot, TEvent, TInput, FastCheckGeneratorKind>,
-  'adapter' | 'events'
+  'adapter' | 'events' | 'failures'
 > &
   FastCheckAdapterOptions &
   DeriveEventsOptions & {
@@ -208,11 +216,14 @@ function resolveOptions(source: unknown, options: object): object {
   const { adapterOptions, rest } = splitOptions(
     options as Record<string, unknown>
   );
-  const { deriveEvents, adapter, events, ...propertyOptions } = rest as {
-    deriveEvents?: boolean;
-    adapter?: unknown;
-    events?: Record<string, unknown>;
-  };
+  const { deriveEvents, adapter, events, failures, ...propertyOptions } =
+    rest as {
+      deriveEvents?: boolean;
+      adapter?: unknown;
+      events?: Record<string, unknown>;
+      failures?: FailuresOption;
+    };
+  const failureStore = resolveFailuresOption(failures);
   const derived =
     deriveEvents === false ? undefined : deriveMissingEvents(source, events);
   const { maxRuns } = propertyOptions as { maxRuns?: number };
@@ -224,7 +235,8 @@ function resolveOptions(source: unknown, options: object): object {
       ? { maxRuns: adapterOptions.numRuns }
       : {}),
     events: derived ? { ...derived, ...events } : (events ?? {}),
-    adapter: adapter ?? fastCheckAdapter(adapterOptions)
+    adapter: adapter ?? fastCheckAdapter(adapterOptions),
+    ...(failureStore ? { failures: failureStore } : {})
   };
 }
 
@@ -281,7 +293,10 @@ export type FastCheckTestPathsOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput
-> = Omit<TestPathsOptions<TSnapshot, TEvent, TInput>, 'events' | 'outcomes'> &
+> = Omit<
+  TestPathsOptions<TSnapshot, TEvent, TInput>,
+  'events' | 'outcomes' | 'failures'
+> &
   DeriveEventsOptions & {
     readonly events?: TestEventGenerators<
       TSnapshot,
@@ -381,11 +396,13 @@ export async function testPaths<
 ): Promise<
   TestPathsResult<SnapshotFromSource<TSource>, EventFromSource<TSource>>
 > {
-  const { deriveEvents, events, outcomes, ...rest } = options as {
+  const { deriveEvents, events, outcomes, failures, ...rest } = options as {
     deriveEvents?: boolean;
     events?: Record<string, unknown>;
     outcomes?: Record<string, unknown>;
+    failures?: FailuresOption;
   } & Record<string, unknown>;
+  const failureStore = resolveFailuresOption(failures);
   const derived =
     deriveEvents === false ? undefined : deriveMissingEvents(source, events);
   const merged = derived ? { ...derived, ...events } : (events ?? {});
@@ -395,6 +412,7 @@ export async function testPaths<
     source as any,
     {
       ...rest,
+      ...(failureStore ? { failures: failureStore } : {}),
       ...(outcomes
         ? {
             outcomes: sampleArbitraries(outcomes, samples, seed, 'outcome:')

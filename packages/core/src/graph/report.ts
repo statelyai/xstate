@@ -68,6 +68,15 @@ export interface TestCoverageJSON {
     readonly satisfied: string[];
     readonly failed: string[];
     readonly inconclusive: string[];
+    readonly counts: Record<
+      string,
+      {
+        readonly satisfied: number;
+        readonly failed: number;
+        readonly inconclusive: number;
+      }
+    >;
+    readonly warnings: string[];
   };
   readonly labels: Record<
     string,
@@ -82,6 +91,7 @@ export interface TestCoverageJSON {
     readonly configuredRuns: number | null;
     readonly completedRuns: number;
     readonly attemptedRuns: number;
+    readonly shrinkRuns: number;
     readonly maximumSequenceLength: number | null;
     readonly maximumObservedSequenceLength: number;
     readonly truncated: boolean;
@@ -228,7 +238,8 @@ function explorationLines(exploration: TestExplorationBounds): string[] {
   const lines = [
     `runs: configured ${exploration.configuredRuns ?? 'n/a'}, ` +
       `completed ${exploration.completedRuns}, ` +
-      `attempted ${exploration.attemptedRuns}`,
+      `attempted ${exploration.attemptedRuns}` +
+      (exploration.shrinkRuns ? `, shrinking ${exploration.shrinkRuns}` : ''),
     `sequence length: max ${exploration.maximumSequenceLength ?? 'n/a'}, ` +
       `max observed ${exploration.maximumObservedSequenceLength}`,
     `stopped because: ${exploration.stoppedBecause}`,
@@ -276,6 +287,25 @@ function explorationLines(exploration: TestExplorationBounds): string[] {
     );
   }
   return lines;
+}
+
+/** One line per temporal property with its run counts, then the warnings. */
+function temporalLines(coverage: TestCoverage, indent: string): string[] {
+  return [
+    ...Object.entries(coverage.temporal.counts)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(
+        ([id, counts]) =>
+          `${indent}- ${id}: ${counts.satisfied} satisfied, ${counts.failed} failed, ${counts.inconclusive} inconclusive${
+            coverage.temporal.failed.includes(id) && !counts.failed
+              ? ' (never held)'
+              : ''
+          }`
+      ),
+    ...coverage.temporal.warnings.map(
+      (warning) => `${indent}warning: ${warning}`
+    )
+  ];
 }
 
 function listLines(title: string, ids: readonly string[]): string[] {
@@ -359,9 +389,7 @@ function formatText(coverage: TestCoverage): string {
   }
   lines.push(
     `temporal: ${coverage.temporal.satisfied.length} satisfied, ${coverage.temporal.failed.length} failed, ${coverage.temporal.inconclusive.length} inconclusive`,
-    ...listLines('  satisfied', coverage.temporal.satisfied),
-    ...listLines('  failed', coverage.temporal.failed),
-    ...listLines('  inconclusive', coverage.temporal.inconclusive),
+    ...temporalLines(coverage, '  '),
     '',
     'exploration:',
     ...explorationLines(coverage.exploration).map((line) => `  ${line}`)
@@ -493,6 +521,24 @@ function formatMarkdown(coverage: TestCoverage): string {
       ])
     ),
     '',
+    ...(Object.keys(coverage.temporal.counts).length
+      ? [
+          ...markdownTable(
+            ['Property', 'Satisfied runs', 'Failed runs', 'Inconclusive runs'],
+            Object.entries(coverage.temporal.counts)
+              .sort(([left], [right]) => left.localeCompare(right))
+              .map(([id, counts]) => [
+                id,
+                String(counts.satisfied),
+                String(counts.failed),
+                String(counts.inconclusive)
+              ])
+          ),
+          ''
+        ]
+      : []),
+    ...coverage.temporal.warnings.map((warning) => `> Warning: ${warning}`),
+    ...(coverage.temporal.warnings.length ? [''] : []),
     '## Exploration',
     '',
     ...explorationLines(coverage.exploration).map((line) => `- ${line}`)
@@ -587,7 +633,13 @@ export function testCoverageToJSON(coverage: TestCoverage): TestCoverageJSON {
     temporal: {
       satisfied: [...coverage.temporal.satisfied],
       failed: [...coverage.temporal.failed],
-      inconclusive: [...coverage.temporal.inconclusive]
+      inconclusive: [...coverage.temporal.inconclusive],
+      counts: Object.fromEntries(
+        Object.entries(coverage.temporal.counts)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([id, counts]) => [id, { ...counts }])
+      ),
+      warnings: [...coverage.temporal.warnings]
     },
     labels: Object.fromEntries(
       Object.entries(coverage.labels)
@@ -606,6 +658,7 @@ export function testCoverageToJSON(coverage: TestCoverage): TestCoverageJSON {
       configuredRuns: coverage.exploration.configuredRuns,
       completedRuns: coverage.exploration.completedRuns,
       attemptedRuns: coverage.exploration.attemptedRuns,
+      shrinkRuns: coverage.exploration.shrinkRuns,
       maximumSequenceLength: coverage.exploration.maximumSequenceLength,
       maximumObservedSequenceLength:
         coverage.exploration.maximumObservedSequenceLength,
@@ -807,6 +860,9 @@ export function formatTestCoverageHTML(
       : '<p>Everything declared was covered.</p>',
     '<h2>Temporal</h2>',
     `<p>${coverage.temporal.satisfied.length} satisfied, ${coverage.temporal.failed.length} failed, ${coverage.temporal.inconclusive.length} inconclusive</p>`,
+    ...coverage.temporal.warnings.map(
+      (warning) => `<p><strong>Warning:</strong> ${escapeHTML(warning)}</p>`
+    ),
     '<h2>Exploration</h2>',
     `<ul>${explorationItems}</ul>`,
     '</body>',
@@ -849,4 +905,55 @@ export function assertTestCoverage(
         .join('\n')}\n\n${formatTestCoverage(coverage)}`
     );
   }
+}
+
+function formatShare(share: number): string {
+  return `${(share * 100).toFixed(1)}%`.padStart(6);
+}
+
+/**
+ * Formats the distribution of generated data: how executed events split
+ * across event cases, and the share of runs that recorded each label. Shrink
+ * attempts are not counted. Pass `statistics: true` to `propertyTest()` or
+ * `testPaths()` to print it after a passing campaign.
+ */
+export function formatTestStatistics(coverage: TestCoverage): string {
+  const runs =
+    coverage.exploration.attemptedRuns - coverage.exploration.shrinkRuns;
+  const lines = [`Test statistics (${runs} run${runs === 1 ? '' : 's'})`];
+  const eventCases = Object.entries(coverage.eventCases).sort(
+    ([left], [right]) => left.localeCompare(right)
+  );
+  const executed = eventCases.reduce(
+    (total, [, counts]) => total + counts.executed,
+    0
+  );
+  if (eventCases.length) {
+    lines.push('', 'event cases (share of executed events):');
+    for (const [id, counts] of eventCases) {
+      lines.push(
+        `  ${formatShare(executed ? counts.executed / executed : 0)}  ${formatTestCoverageId(
+          id
+        )}: ${counts.executed} executed, ${counts.ignored} ignored`
+      );
+    }
+  }
+  const labels = Object.entries(coverage.labels).sort(([left], [right]) =>
+    left.localeCompare(right)
+  );
+  if (labels.length) {
+    lines.push('', 'labels (share of runs):');
+    for (const [name, label] of labels) {
+      const values = Object.entries(label.values)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([value, count]) => `${value}=${count}`)
+        .join(', ');
+      lines.push(
+        `  ${formatShare(label.share)}  ${name}: ${label.count} recorded${
+          values ? ` (${values})` : ''
+        }`
+      );
+    }
+  }
+  return lines.join('\n');
 }

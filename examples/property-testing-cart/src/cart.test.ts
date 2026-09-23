@@ -2,36 +2,40 @@ import * as fc from 'fast-check';
 import type { SnapshotFrom } from 'xstate';
 import {
   assertTestCoverage,
+  eventsFromSchemas,
   formatTestCoverage,
+  pick,
   propertyTest,
   testPaths,
   ModelTestFailure,
   replayTest,
   type TestFixture
 } from '@xstate/test';
+import { it as modelIt } from '@xstate/test/vitest';
 import { CartStore, type CartEvent } from './cart-store.ts';
 import { cartMachine } from './cart.machine.ts';
+
+type CartSnapshot = SnapshotFrom<typeof cartMachine>;
 
 /**
  * `REMOVE` only makes sense for a SKU that is in the cart, and the SKUs are
  * invented by `ADD` during the run, so there is nothing to generate up front.
- * `generate` produces a shrinkable index and `resolve` turns it into whichever
- * SKU the cart holds at that step; returning `undefined` skips the event.
+ * `pick()` generates a shrinkable index into the SKUs the cart holds at that
+ * step, and skips the event when the cart is empty.
  */
-const removeAnItemInTheCart = {
-  generate: fc.nat(),
-  resolve: ({
-    snapshot,
-    generated
-  }: {
-    snapshot: SnapshotFrom<typeof cartMachine>;
-    generated: unknown;
-  }) => {
-    const skus = Object.keys(snapshot.context.items);
-    return skus.length
-      ? { sku: skus[(generated as number) % skus.length] }
-      : undefined;
-  }
+const removeAnItemInTheCart = pick(
+  (snapshot: CartSnapshot) => Object.keys(snapshot.context.items),
+  (sku) => ({ sku })
+);
+
+/** The cart's buttons exist only while shopping. */
+const whileShopping = ({ snapshot }: { snapshot: CartSnapshot }) =>
+  snapshot.matches('shopping');
+
+/** Generators derived from the machine's Zod event schemas. */
+const derived = eventsFromSchemas(cartMachine) as {
+  ADD: fc.Arbitrary<{ sku: string; qty: number }>;
+  CHECKOUT: fc.Arbitrary<{}>;
 };
 
 describe('cart', () => {
@@ -40,8 +44,14 @@ describe('cart', () => {
       seed: 1,
       numRuns: 100,
       maxCommands: 10,
-      // `ADD` and `CHECKOUT` come from the machine's Zod event schemas.
-      events: { REMOVE: removeAnItemInTheCart },
+      // Every event is offered only while shopping, as a page would disable
+      // the cart's buttons during payment. `ADD` and `CHECKOUT` payloads come
+      // from the machine's Zod event schemas.
+      events: {
+        ADD: { generate: derived.ADD, when: whileShopping },
+        REMOVE: { ...removeAnItemInTheCart, when: whileShopping },
+        CHECKOUT: { generate: derived.CHECKOUT, when: whileShopping }
+      },
       // Real actors run, so `pay` resolves and `onDone`/`onError` fire.
       mode: 'executed',
       outcomes: {
@@ -57,12 +67,23 @@ describe('cart', () => {
       },
       temporal: [
         {
-          type: 'eventually',
-          id: 'checks-out',
-          within: 20,
-          predicate: ({ snapshot }) => snapshot.matches('done')
+          // While paying, only the payment outcome can happen, so the next
+          // step leaves `paying`.
+          type: 'respond',
+          id: 'payment-settles',
+          within: 1,
+          trigger: ({ snapshot }) => snapshot.matches('paying'),
+          response: ({ snapshot }) => !snapshot.matches('paying')
+        },
+        {
+          // Some run must see a declined payment.
+          type: 'sometimes',
+          id: 'declined',
+          predicate: ({ snapshot }) => snapshot.context.lastError !== null
         }
       ],
+      // Some run must check out.
+      reachable: ['#cart.done'],
       // Stop as soon as every transition has been covered.
       until: { transitions: 1 }
     });
@@ -108,28 +129,23 @@ describe('cart', () => {
       await propertyTest(cartMachine, options);
     });
 
-    it('reports a counterexample when the store is buggy', async () => {
-      process.env.CART_BUG = '1';
-      let failure!: ModelTestFailure;
-      try {
-        await propertyTest(cartMachine, options);
-      } catch (error) {
-        failure = error as ModelTestFailure;
-      } finally {
-        delete process.env.CART_BUG;
-      }
-
-      expect(failure).toBeInstanceOf(ModelTestFailure);
-      // The counterexample is shrunk to the shortest sequence that diverges:
-      // add an item, remove it, and the store still holds it at zero.
-      expect(failure.message).toContain('REMOVE');
-      const lastStep = failure.trace.timeline.at(-1);
-      expect(lastStep?.kind).toBe('event');
-      expect(lastStep?.kind === 'event' && lastStep.command).toMatchObject({
-        type: 'event',
-        event: { type: 'REMOVE' }
+    describe('with CART_BUG=1', () => {
+      beforeAll(() => {
+        process.env.CART_BUG = '1';
       });
-      console.log(failure.message);
+      afterAll(() => {
+        delete process.env.CART_BUG;
+      });
+
+      // The counterexample is shrunk to the shortest sequence that diverges:
+      // add an item, remove it, and the store still holds it at zero. The
+      // failure is saved under `.xstate-test/` and replayed first next time.
+      modelIt.model.fails(
+        'reports a counterexample when the store is buggy',
+        cartMachine,
+        options,
+        { message: /Property observation diverged[\s\S]*REMOVE/ }
+      );
     });
   });
 

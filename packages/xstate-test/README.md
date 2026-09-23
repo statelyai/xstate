@@ -285,6 +285,27 @@ that is already in the cart. fast-check shrinks the generated value, and the
 resolved event is what gets recorded, so replay fixtures do not depend on the
 resolver.
 
+`pick(select, toPayload?)` builds such a descriptor. `select` lists the
+candidates in the current snapshot, and `toPayload` turns the picked one into
+the payload; without it, the candidate is the payload. The case is
+inapplicable when `select` returns an empty array. The index into the
+candidates is generated with `fc.nat()`, so a failing run shrinks towards the
+first candidate. The snapshot type is inferred from the machine:
+
+```ts
+import { pick } from '@xstate/test';
+
+events: {
+  REMOVE: pick(
+    (snapshot) => Object.keys(snapshot.context.items),
+    (sku) => ({ sku })
+  )
+}
+```
+
+`pick()` from `xstate/graph` does the same with a plain `(rng) => index`
+generator, for `testPaths()` and custom adapters in `xstate/graph`.
+
 `propertyTest()` sends only the event types that `events` configures, plus the
 types it derives from schemas (see
 [Derive event generators from schemas](#derive-event-generators-from-schemas)).
@@ -332,10 +353,19 @@ stable step:
 | Oracle | Option | Fails when |
 | --- | --- | --- |
 | Invariant | `invariant` | The function throws. |
-| Temporal property | `temporal` | An `always`, `never`, `eventually`, or `until` property is violated. |
+| Temporal property | `temporal` | An `always`, `never`, `eventually`, `until`, or `respond` property is violated. |
 | SUT comparison | `sut.projectModel` with `session.read` | The SUT's observation differs from the model's projection. |
 | State assertions | `states`, `session.states`, `meta.test` | An assertion for a matching state throws. |
+| SUT check | `session.check` | The function throws, such as the page oracles of `@xstate/test/playwright`. |
 | Reference implementation | `reference` | A second implementation of the same logic disagrees with the model. |
+
+Two oracles are checked once, when the campaign ends, and fail it with a
+`TestCampaignError`:
+
+| Oracle | Option | Fails when |
+| --- | --- | --- |
+| `sometimes` property | `temporal` | The predicate held on no step of any run. |
+| Reachability | `reachable` | No run entered a listed state. |
 
 `states` is keyed by state value (`'shopping'`, `'form.email'`), by state node
 id (`'#cart.shopping'`), or `'*'`, which runs when no other key matches. A
@@ -609,12 +639,62 @@ test('the form matches its model', async ({ page }) => {
 Put navigation in `reset`. It runs at the start of every run, and without it a
 run starts from the page the previous run left behind.
 
-Two defaults apply to every step:
+These defaults apply to every step:
 
-- `settle` waits for `page.waitForLoadState('networkidle')` before each
-  comparison.
+- `settle` waits for `page.waitForLoadState('load')`, then for pending
+  microtasks, before each comparison. Pass `settle` to wait for something
+  specific, such as `(page) => expect(page.locator('#step')).toBeVisible()`.
+  Playwright discourages waiting for `'networkidle'`.
 - `advance` calls `page.clock.runFor(ms)`. Call `page.clock.install()` before
   navigating for it to have an effect.
+- The page oracles fail the step when the page threw an uncaught exception,
+  logged a console error, left a promise rejection unhandled, or received a
+  response with a status of 400 or above.
+
+The page oracles are checked after every stable step. Choose them with
+`oracles`. In the object form, oracles you leave out are off:
+
+```ts
+sut: createPlaywrightSut(page, {
+  events,
+  read,
+  projectModel,
+  // Fail on console warnings too, and only on server errors.
+  oracles: { pageError: true, console: 'warn', http: 500, unhandledRejection: true }
+})
+```
+
+`oracles: false` turns them all off. Responses to requests that a `mocks`
+route handled are not checked, so a mocked `500` does not fail the step. A
+failing oracle fails the run with `SUT check failed after N steps`, and its
+cause is a `PlaywrightOracleError` whose `messages` list what the page
+reported.
+
+To attach failure artifacts to the Playwright report, pass the `testInfo`
+fixture:
+
+```ts
+test('the form matches its model', async ({ page }, testInfo) => {
+  await propertyTest(formMachine, {
+    events,
+    sut: createPlaywrightSut(page, {
+      events: formActions,
+      read,
+      projectModel,
+      testInfo,
+      step: (name, body) => test.step(name, body)
+    })
+  });
+});
+```
+
+With `testInfo`, every run records a Playwright trace. When the campaign
+fails, the failing run's trace, a `fixture.json` with the `TestFixture`, and
+a screenshot of the page are attached. The failing run is the shrunk
+counterexample. `trace: 'on'` also attaches the last run's trace when the
+campaign passes, and `screenshots: 'every-step'` attaches one screenshot per
+stable step of the failing run. `step` wraps each event action, so the report
+lists one step per event.
 
 To stub network calls per event case, use `mocks`. The key is
 `"<type>.<case>"` or `"<case>"`:
@@ -645,6 +725,146 @@ mock is applied and when the run ends.
 [`examples/property-testing-playwright`](../../examples/property-testing-playwright)
 is a runnable version. All options are listed under
 [`createPlaywrightSut()`](#createplaywrightsut) in the reference.
+
+### Run model tests with Vitest
+
+`@xstate/test/vitest` registers a model test in one call. `it.model` runs
+`propertyTest()`, and `it.paths` runs `testPaths()`:
+
+```ts
+import { it } from '@xstate/test/vitest';
+
+it.model('the cart matches the model', cartMachine, {
+  events,
+  sut: cartSut
+});
+
+it.paths('every path matches the model', cartMachine, {
+  pathGenerator: 'simple',
+  events,
+  sut: cartSut,
+  stopWhen: (snapshot) =>
+    Object.values(snapshot.context.items).some((qty) => qty >= 2)
+});
+```
+
+Each test:
+
+- saves failures, keyed by the test file and the test's full name, and
+  replays them first on the next run. See
+  [Save failures and replay them first](#save-failures-and-replay-them-first).
+  Pass `failures: false` to turn this off, or `failures: { dir, replay }` to
+  change the directory or the replay mode.
+- sets the test timeout to `until.timeMs` plus 5 seconds when `until` has a
+  `timeMs`. A fourth argument sets the timeout explicitly.
+- prints `formatTestCoverage(coverage)` when the campaign fails.
+- stores `testCoverageToJSON(coverage)` as `task.meta.xstateTestCoverage`,
+  where custom reporters can read it.
+
+`it.model.fails` passes only when the campaign fails, and, with `message`,
+only when the failure message matches:
+
+```ts
+it.model.fails('finds the remove bug', cartMachine, buggyOptions, {
+  message: /Property observation diverged/
+});
+```
+
+`it` and `test` from `@xstate/test/vitest` use Vitest's global `it` and
+`test`, so they need `test.globals: true`. Without globals, wrap Vitest's own:
+
+```ts
+import { it as vitestIt } from 'vitest';
+import { withModelTests } from '@xstate/test/vitest';
+
+const it = withModelTests(vitestIt);
+```
+
+`vitest` is an optional peer dependency. `@xstate/test/vitest` imports only
+its types.
+
+### Check liveness and reachability
+
+`always` and `never` check every step. Three more checks cover behavior that
+must happen:
+
+- `respond` requires every step on which `trigger` holds to be followed,
+  within `within` steps, by a step on which `response` holds. The response may
+  hold on the trigger step itself.
+- `sometimes` requires the predicate to hold on at least one step of at least
+  one run. A run in which it never holds does not fail; the campaign fails
+  when no run satisfied it.
+- `reachable` lists states that at least one run must enter, as state values,
+  state node ids, or tags.
+
+This cart machine invokes `pay` from a `paying` state, which moves to `done`
+on success and back to `shopping` on failure, as in the
+[cart example](../../examples/property-testing-cart):
+
+```ts
+const whileShopping = ({ snapshot }) => snapshot.matches('shopping');
+
+await propertyTest(cartMachine, {
+  events: {
+    ADD: { generate: fc.record({ sku }), when: whileShopping },
+    CHECKOUT: { generate: fc.constant({}), when: whileShopping }
+  },
+  mode: 'executed',
+  outcomes: {
+    pay: fc.oneof(
+      fc.constant({ ok: true as const, output: {} }),
+      fc.constant({ ok: false as const, error: 'declined' })
+    )
+  },
+  temporal: [
+    {
+      type: 'respond',
+      id: 'payment-settles',
+      within: 1,
+      trigger: ({ snapshot }) => snapshot.matches('paying'),
+      response: ({ snapshot }) => !snapshot.matches('paying')
+    },
+    {
+      type: 'sometimes',
+      id: 'declined',
+      predicate: ({ snapshot }) => snapshot.context.lastError !== null
+    }
+  ],
+  reachable: ['#cart.done']
+});
+```
+
+`payment-settles` holds because `when` offers the cart's events only while
+shopping: after `CHECKOUT`, the next step is the payment's outcome. Without
+`when`, an `ADD` the machine ignores while paying would be a step without a
+response.
+
+When no run satisfies a `sometimes` property or enters a `reachable` state,
+the campaign throws a `TestCampaignError`:
+
+```
+Campaign assertions failed:
+  - sometimes "declined" did not hold in 100 run(s)
+  - reachable "#cart.done" was not entered in 100 run(s)
+```
+
+`coverage.temporal.counts` records, per property, how many runs satisfied it,
+failed it, and ended before it was decided. A `reachable` target appears as
+`reachable:<target>`.
+
+A bounded property whose `within` is larger than the longest sequence a
+campaign can produce can never fail. The campaign lists it in
+`coverage.temporal.warnings`, and `formatTestCoverage()` prints the warning
+under `temporal`:
+
+```
+temporal: 1 satisfied, 0 failed, 0 inconclusive
+  - checks-out: 2 satisfied, 0 failed, 23 inconclusive
+  warning: eventually "checks-out" has within 20, but the longest sequence is 10 steps, so it can never fail
+```
+
+The longest sequence is `maxCommands` for `propertyTest()`, plus the longest
+frontier prefix, and the longest path for `testPaths()`.
 
 ### Gate CI on coverage
 
@@ -708,7 +928,41 @@ await propertyTest(cartMachine, {
 ```
 
 `min` is the share of attempted runs, from `0` to `1`, that recorded the label
-at least once. `minCount` is a minimum total number of occurrences.
+at least once. `minCount` is a minimum total number of occurrences. Shrink
+attempts are not counted.
+
+### Inspect the distribution of generated data
+
+`statistics: true` prints how executed events split across event cases, and
+the share of runs that recorded each label, after a passing campaign:
+
+```ts
+await propertyTest(cartMachine, {
+  seed: 1,
+  events,
+  statistics: true,
+  invariant: ({ snapshot, classify }) => {
+    classify(Object.keys(snapshot.context.items).length >= 2, 'two-skus');
+  }
+});
+```
+
+```
+Test statistics (100 runs)
+
+event cases (share of executed events):
+   32.6%  ADD / default: 115 executed, 39 ignored
+   35.7%  CHECKOUT / default: 126 executed, 44 ignored
+   31.7%  REMOVE / default: 112 executed, 35 ignored
+
+labels (share of runs):
+   14.0%  two-skus: 26 recorded
+```
+
+`formatTestStatistics(coverage)` returns the same text for any coverage
+object. Runs started while fast-check shrinks a counterexample are left out
+of the labels and the event cases; `coverage.exploration.shrinkRuns` counts
+them.
 
 ### Replay a failure
 
@@ -757,6 +1011,52 @@ await propertyTest(cartMachine, {
 
 This depends on the same generators and the same fast-check version, which
 the fixture does not.
+
+### Save failures and replay them first
+
+`failures` saves the fixture of a failing campaign to disk, and replays saved
+fixtures before the next campaign:
+
+```ts
+await propertyTest(cartMachine, {
+  events,
+  sut: cartSut,
+  failures: { dir: '.xstate-test', key: 'cart-store' }
+});
+```
+
+A failing campaign writes `<dir>/<key>/<hash>.json`, with the fixture, the
+summary, and the fast-check seed, and adds a line to the failure message.
+`<hash>` is the first 12 hexadecimal digits of the fixture's SHA-256 hash:
+
+```
+Saved: .xstate-test/cart-store/<hash>.json
+```
+
+The next campaign replays every saved fixture with `replayTest()` before it
+generates anything. A fixture that still fails throws that failure at once,
+with `(replayed from <file>)` added to its summary. A fixture that no longer
+fails is deleted, and the campaign runs.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `dir` | `'.xstate-test'` | The directory failures are saved in. |
+| `replay` | `'first'` | `'first'` replays saved fixtures, then runs the campaign. `'only'` replays them and skips the campaign. `false` saves without replaying. |
+| `key` | machine id and a hash | The subdirectory of `dir`. Defaults to the machine's `id` plus a hash of the event cases, the oracles configured, and the mode. |
+
+`failures: true` uses the defaults. `testPaths()` accepts the same option.
+Two tests that run the same machine with different oracles, such as a
+`sut` that differs only in its implementation, share the default key; set
+`key` so each replays only its own failures.
+
+Add `.xstate-test/` to `.gitignore` to keep failures local, or commit it so
+CI replays the failures found on developer machines first. A run that
+starts from a `start` snapshot is not saved.
+
+`createFailureDatabase(options)` returns the store `failures` creates. Any
+object with `load(key)`, `onFailure(fixture, key, failure)`, and optionally
+`remove(stored, key)` works as a store, such as one backed by a database;
+this is the `TestFailureStore` that `xstate/graph` accepts.
 
 ### Record an offline regression suite
 
@@ -998,6 +1298,8 @@ fast-check integration:
 | `propertyTest(source, options)` | Runs a random-sequence campaign. Resolves with `{ coverage }`. |
 | `testPaths(source, options?)` | Runs generated paths. Resolves with `{ coverage, results }`. |
 | `generateTestSuite(source, options)` | Records an offline suite from a passing campaign. |
+| `pick(select, toPayload?)` | An event case that picks its payload from the current snapshot, with a fast-check index. |
+| `createFailureDatabase(options?)` | The file-system store behind the `failures` option. |
 | `fastCheckAdapter(options?)` | The fast-check `TestAdapter`, for `xstate/graph` functions. |
 | `extractReplayPath(counterexample)` | Reads `replayPath` from a raw `fc.commands()` counterexample. |
 | `eventsFromSchemas(machine, options?)` | Derives the `events` map from `schemas.events`. |
@@ -1007,9 +1309,11 @@ fast-check integration:
 | `getCurrentScheduler()` | The running `fc.Scheduler`, or `undefined`. |
 
 The `propertyTest()`, `testPaths()`, and `generateTestSuite()` exported here
-take fast-check options at the top level and derive events from schemas. The
-versions in `xstate/graph` take an explicit `adapter` (or, for `testPaths()`,
-plain `(rng) => value` generators) and derive nothing.
+take fast-check options at the top level, derive events from schemas, and
+accept `failures: true` or `{ dir, replay, key }`. The versions in
+`xstate/graph` take an explicit `adapter` (or, for `testPaths()`, plain
+`(rng) => value` generators), derive nothing, and take a `TestFailureStore`
+as `failures`.
 
 From `xstate/graph`, also available from `@xstate/test`:
 
@@ -1020,6 +1324,9 @@ From `xstate/graph`, also available from `@xstate/test`:
 | `formatTestTrace(trace)`, `serializeTestTrace(trace)` | Render a trace as text, or as JSON-safe data. |
 | `defaultEquivalent(a, b)` | The default projection comparison. |
 | `formatTestCoverage`, `formatTestCoverageJUnit`, `formatTestCoverageHTML`, `testCoverageToJSON`, `formatTestCoverageId` | Coverage reports. |
+| `formatTestStatistics(coverage)` | The event-case and label distribution `statistics: true` prints. |
+| `TestCampaignError` | Thrown when a `sometimes` property or a `reachable` target is never satisfied. |
+| `pick(select, toPayload?)` | `pick()` with a plain `(rng) => index` generator. Shadowed by the fast-check version in `@xstate/test`. |
 | `assertTestCoverage(coverage, thresholds)` | Throws when coverage is below thresholds. |
 | `replayTestSuite`, `replayTestSuiteFixture`, `describeTestSuite`, `serializeTestSuite`, `parseTestSuite`, `formatTestSuiteFixtureTitle` | Offline suites. |
 | `checkLinearizable(history, model, options?)` | Linearizability check. |
@@ -1035,7 +1342,8 @@ Subpath entrypoints:
 
 | Entrypoint | Exports |
 | --- | --- |
-| `@xstate/test/playwright` | `createPlaywrightSut`, and the types `PlaywrightPage`, `PlaywrightSutConfig`, `PlaywrightEventAction`, `PlaywrightMock`. |
+| `@xstate/test/playwright` | `createPlaywrightSut`, `PlaywrightOracleError`, and the types `PlaywrightPage`, `PlaywrightSutConfig`, `PlaywrightEventAction`, `PlaywrightMock`, `PlaywrightOracles`, `PlaywrightTestInfo`. |
+| `@xstate/test/vitest` | `it` and `test` with `.model` and `.paths`, and `withModelTests`. |
 | `@xstate/test/effect-schema` | `eventsFromSchemas` with Effect Schema support, `fromEffectSchema`, `fromEffectSchemas`. |
 | `@xstate/test/schema` | `eventsFromSchemas`, `arbitraryFromSchema`, `mergeEventGenerators`. |
 
@@ -1052,6 +1360,9 @@ Subpath entrypoints:
 | `states` | none | Per-state assertions, run after every stable step. |
 | `invariant` | none | `(context) => void`. Throws to fail the step. |
 | `temporal` | `[]` | Temporal properties. See [Temporal properties](#temporal-properties). |
+| `reachable` | none | State values, `'#id'` state node ids, or tags that at least one run must enter. |
+| `failures` | none | Saves failing fixtures and replays them first. `true`, `{ dir?, replay?, key? }`, or a `TestFailureStore`. |
+| `statistics` | `false` | Prints `formatTestStatistics(coverage)` after a passing campaign. |
 | `reference` | none | A second implementation compared with the model. |
 | `mode` | `'pure'` | `'pure'` or `'executed'`. See [Modes](#modes). |
 | `actors` | none | Logic substituted for named actor sources. Executed mode only. |
@@ -1140,7 +1451,8 @@ options to fast-check:
 | `maxCommands` | Maximum generated commands per run. |
 | `scheduler` | `true` or `{ act }`. See [Test concurrency](#test-concurrency). |
 | `endOnFailure`, `interruptAfterTimeLimit`, `markInterruptAsFailure`, `skipAllAfterTimeLimit`, `timeout`, `maxSkipsPerRun` | Run limits. |
-| `verbose`, `reporter`, `asyncReporter`, `includeErrorInReport` | Reporting. |
+| `reporter`, `asyncReporter` | Called with fast-check's run details after every adapter run: once per campaign, or once per batch with `until` or `frontiers`. |
+| `verbose`, `includeErrorInReport` | With `verbose` set to `1` (or `true`) or above, the failure message ends with fast-check's report, `fc.defaultReportMessage()`. |
 | `randomType`, `unbiased`, `skipEqualValues`, `ignoreEqualValues`, `plugins` | Generation. |
 
 ### `sut`
@@ -1153,6 +1465,7 @@ options to fast-check:
 | `projectModel(snapshot)` | Projects the model snapshot to compare with `read()`. |
 | `projectSut(observed)` | Normalizes the value from `read()`. Defaults to identity. |
 | `equivalent(model, observed)` | Compares the projections. Defaults to `defaultEquivalent`. |
+| `complete({ passed, failure })` | Called once when the campaign ends, after every session was disposed. `failure` is the error the campaign throws. |
 
 `TestSutSession`, returned by `create()`:
 
@@ -1165,7 +1478,8 @@ options to fast-check:
 | `advance(ms)` | Advances the SUT's clock and returns the events that fired. |
 | `checkpoint(label?)` | Handles a `checkpoint` command. |
 | `stop()` | Handles a `stop` command. |
-| `dispose()` | Tears the session down at the end of the run. |
+| `check()` | Runs after every stable step, after the comparison. Throws to fail the step with `SUT check failed after N steps`. |
+| `dispose({ passed, failure })` | Tears the session down at the end of the run. `failure` is the run's `ModelTestFailure`, when an oracle failed. |
 
 `reference` has the same structure: `create()` returns
 `{ transition(event), read(), stop?, dispose? }`, and `projectModel` is
@@ -1182,9 +1496,12 @@ checked on every stable step:
 | `never` | `predicate` | `predicate` is true on some step. |
 | `eventually` | `predicate`, `within?` | `predicate` is not true within `within` steps, or before the run ends. |
 | `until` | `hold`, `until`, `within?` | `hold` stops holding before `until` holds, or `until` does not hold within `within` steps or before the run ends. |
+| `respond` | `trigger`, `response`, `within?` | A step on which `trigger` holds is not followed by a step on which `response` holds within `within` steps, or before the run ends. The response may hold on the trigger step. |
+| `sometimes` | `predicate` | `predicate` holds on no step of any run. Checked when the campaign ends. |
 
 With `within`, a run that ends before `within` steps is **inconclusive**, not
-failed, and the id is listed in `coverage.temporal.inconclusive`.
+failed. An id that is inconclusive in every run and satisfied in none is
+listed in `coverage.temporal.inconclusive`.
 
 ### Coverage
 
@@ -1198,8 +1515,8 @@ failed, and the id is listed in `coverage.temporal.inconclusive`.
 | `requirements` | A dimension of `meta.requirements` ids plus `sources`, the state nodes and transitions that declare each id. |
 | `eventCases` | `{ [caseId]: { weight, generated, applicable, executed, ignored } }`. |
 | `dynamicTransitions` | Hits and observed targets for transitions whose target is computed. |
-| `labels` | `{ [name]: { count, values, share } }`. `share` is the fraction of attempted runs that recorded the label. |
-| `temporal` | `satisfied`, `failed`, and `inconclusive` property ids. |
+| `labels` | `{ [name]: { count, values, share } }`. `share` is the fraction of attempted runs that recorded the label. Shrink attempts are not counted. |
+| `temporal` | `satisfied`, `failed`, and `inconclusive` property ids; `counts`, `{ [id]: { satisfied, failed, inconclusive } }` in runs; and `warnings` for bounds that can never fail. |
 | `exploration` | `TestExplorationBounds`. See below. |
 | `runs`, `steps`, `skipped`, `prefixSteps`, `generatedSteps`, `invariantChecks`, `temporalChecks`, `clockAdvances`, `checkpoints`, `stops`, `sutComparisons`, `oracleComparisons` | Counters. |
 
@@ -1211,11 +1528,12 @@ failed, and the id is listed in `coverage.temporal.inconclusive`.
 | `pathCount`, `pathGenerator` | Paths only. |
 | `mode` | `'pure'` or `'executed'`. |
 | `configuredRuns`, `completedRuns`, `attemptedRuns` | `attemptedRuns` includes shrink attempts. |
+| `shrinkRuns` | Runs started after the first failing run, while the counterexample was shrunk. |
 | `maximumSequenceLength`, `maximumObservedSequenceLength` | Configured and observed sequence lengths. |
 | `frontiers`, `seeds` | Per-frontier budgets, and the adapter seeds and paths used. |
 | `swarm` | `{ runs, averageEnabled }`, or `null`. |
 | `target` | `{ best, label, improvements }`. `best` is `-Infinity` when unused. |
-| `stoppedBecause` | `'until'`, `'budget'`, `'failure'`, or `'paths'` (`testPaths()` ran every path). |
+| `stoppedBecause` | `'until'`, `'budget'`, `'failure'`, `'paths'` (`testPaths()` ran every path), or `'replay'` (`failures.replay` was `'only'`). |
 | `truncated`, `truncationReasons` | Why exploration was cut short. |
 | `pendingActorSteps` | Executed-mode steps that settled while an invoked or spawned actor's asynchronous work was still in flight. Those timeline entries list the actors in `pendingActors`. |
 
@@ -1231,7 +1549,7 @@ transition that declares it is covered.
 | Field | Description |
 | --- | --- |
 | `summary` | The short message, such as `Property observation diverged`. `testPaths()` prefixes it with the failing path: `Path 2 (ADD → REMOVE) failed: …`. |
-| `message` | `summary` and the cause's message; a `Reproduce:` line with the fast-check `seed`, `path`, and `replayPath`; a `Fixture:` line when `fixture` is set; `Shrunk N time(s)` when fast-check shrank the counterexample; then `formatTestTrace(trace)`. |
+| `message` | `summary` and the cause's message; a `Reproduce:` line with the fast-check `seed`, `path`, and `replayPath`; a `Fixture:` line when `fixture` is set; `Shrunk N time(s)` when fast-check shrank the counterexample; `Saved: <file>` when `failures` saved it; then `formatTestTrace(trace)`, and fast-check's report when `verbose` is set. |
 | `trace` | `TestTrace`: `start`, `initialSnapshot`, `timeline`, `events`, `commands`, `steps`, `finalSnapshot`, `finalObservation`, `swarm`, `mode`, `outcomes`. |
 | `cause` | The error thrown by the oracle or the SUT. |
 | `fixture` | A `TestFixture` for `replayTest()`. |
@@ -1371,7 +1689,7 @@ assignable.
 | `states` | none | `(page, snapshot) => void` per state key. |
 | `projectSut` | identity | Normalizes the value from `read`. |
 | `equivalent` | deep equality | Compares the projections. |
-| `settle` | `page.waitForLoadState('networkidle')` | Runs before each comparison. |
+| `settle` | `page.waitForLoadState('load')`, then a microtask flush | Runs before each comparison. |
 | `advance` | `page.clock.runFor(ms)` | Handles `advance` commands. May return delivered events. |
 | `checkpoint` | screenshot | Writes `<screenshotDir>/<label>.png`, or `checkpoint-<n>.png` without a label. |
 | `screenshotDir` | `'property-screenshots'` | Directory for checkpoint screenshots. |
@@ -1380,6 +1698,14 @@ assignable.
 | `dispose` | none | Runs when a run's session is disposed. |
 | `mocks` | none | `(page) => void` per case key, run before the event action. |
 | `caseOf` | `event.case ?? event.type` | Mock key for events without a generated case: prefix, clock, and replayed events. |
+| `oracles` | `'defaults'` | Page oracles checked after every stable step. `'defaults'` is `{ pageError: true, console: 'error', http: 400, unhandledRejection: true }`. `false`, or an object in which omitted oracles are off. |
+| `testInfo` | none | Playwright's `testInfo`. Failure artifacts are attached to it. Required when `trace` or `screenshots` is on. |
+| `trace` | `'retain-on-failure'` with `testInfo`, else `'off'` | Records a trace per run with `page.context().tracing`. `'retain-on-failure'` attaches the failing run's trace; `'on'` also attaches the last run's trace of a passing campaign. Left alone when tracing is already running. |
+| `screenshots` | `'on-failure'` with `testInfo`, else `'off'` | `'on-failure'` attaches a screenshot of the page at the end of the failing run; `'every-step'` attaches one per stable step of the failing run. |
+| `step` | none | `(name, body) => Promise`, such as `(name, body) => test.step(name, body)`. Wraps each event action. |
+
+A failing campaign with `testInfo` also attaches `fixture.json`, the failure's
+`TestFixture`.
 
 ## Migrating from `@xstate/test` 0.x and 1.0 beta
 
@@ -1491,6 +1817,6 @@ await testPaths(machine, {
 | Shrinking | Yes, with `propertyTest()` | Yes | No | No |
 | Oracles | SUT comparison, invariants, temporal properties, state assertions, reference | Assertions in each command | Assertions in each test | State assertions |
 | Coverage | States, transitions, guards, pairs, requirements, event cases | None | None | State nodes |
-| Replay | Portable JSON fixtures, and fast-check seeds | Seeds and paths | Traces | None |
+| Replay | Portable JSON fixtures, a failure database replayed first, and fast-check seeds | Seeds and paths | Traces | None |
 | Invoked actors and delays | `mode: 'executed'` with stubbed outcomes and a simulated clock | Hand-written | Real services and `page.clock` | Not modeled |
 | UI | `@xstate/test/playwright` | Manual | Native | Manual executors |

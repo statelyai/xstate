@@ -54,7 +54,8 @@ import {
   releaseActiveOutcomeRegistry,
   setActiveOutcomeRegistry
 } from './outcomes.ts';
-import { createSeededRng } from './utils.ts';
+import { formatTestStatistics } from './report.ts';
+import { createSeededRng, fnv1a } from './utils.ts';
 import type { StatePath } from './types.ts';
 
 export type {
@@ -237,10 +238,10 @@ export interface PortableTestTimelineEntry {
 }
 
 export interface PortableTemporalFailure {
-  readonly type: 'eventually' | 'until' | 'always' | 'never';
+  readonly type: 'eventually' | 'until' | 'always' | 'never' | 'respond';
   readonly id: string;
   readonly description?: string;
-  /** Only present for bounded (`eventually`/`until`) temporal properties. */
+  /** Only present for bounded (`eventually`/`until`/`respond`) properties. */
   readonly within?: number;
   readonly atStep: number;
 }
@@ -298,6 +299,11 @@ export interface TestAdapterResult {
   };
   readonly replay?: TestReplayMetadata;
   readonly error?: unknown;
+  /**
+   * Engine-specific text appended to the failure message, such as fast-check's
+   * report when `verbose` is set.
+   */
+  readonly report?: string;
 }
 
 export interface PropertyGeneratedCommand {
@@ -375,6 +381,27 @@ export interface TestSut<
     model: unknown,
     sut: unknown
   ) => boolean | Promise<boolean>;
+  /**
+   * Called once when the campaign ends, after every session was disposed.
+   * `failure` is the error the campaign throws, if any. Use it to publish
+   * artifacts collected for the final counterexample.
+   */
+  readonly complete?: (result: TestSutCompleteContext) => void | Promise<void>;
+}
+
+/** Passed to {@link TestSut.complete}. */
+export interface TestSutCompleteContext {
+  readonly passed: boolean;
+  /** The error the campaign throws. Usually a {@link ModelTestFailure}. */
+  readonly failure?: unknown;
+}
+
+/** Passed to {@link TestSutSession.dispose}. */
+export interface TestSutDisposeContext {
+  /** `false` when the run ended in a failure. */
+  readonly passed: boolean;
+  /** The failure the run ended in, when an oracle failed. */
+  readonly failure?: ModelTestFailure<any, any>;
 }
 
 /** Metadata about the step an event belongs to, passed to `send`. */
@@ -433,8 +460,13 @@ export interface TestSutSession<
   readonly checkpoint?: (label?: string) => void | Promise<void>;
   /** Handles a `stop` command. */
   readonly stop?: () => void | Promise<void>;
+  /**
+   * Checks the system under test after every stable step, after the
+   * comparison. Throws to fail the step.
+   */
+  readonly check?: () => void | Promise<void>;
   /** Tears the session down at the end of the run, whether it passed or failed. */
-  readonly dispose?: () => void | Promise<void>;
+  readonly dispose?: (context: TestSutDisposeContext) => void | Promise<void>;
 }
 
 /** Dotted state-value paths of a machine's `value` type: `'a'`, `'a.b'`. */
@@ -581,7 +613,8 @@ export interface TestEventDescriptor<
 export interface TestResolvedEventDescriptor<
   TGenerator,
   TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TGenerated = unknown
 > {
   readonly generate: TGenerator;
   readonly case?: string;
@@ -590,11 +623,16 @@ export interface TestResolvedEventDescriptor<
    * number. Defaults to `1`.
    */
   readonly weight?: number;
-  /** Resolves a shrinkable symbolic value against the current model snapshot. */
-  readonly resolve: (context: {
+  /**
+   * Resolves a shrinkable symbolic value against the current model snapshot.
+   * Returning `undefined` makes the case inapplicable.
+   */
+  // A method, so a descriptor whose `generated` is narrower (such as the one
+  // `pick()` returns) is assignable where `generated` is `unknown`.
+  resolve(context: {
     readonly snapshot: TSnapshot;
-    readonly generated: unknown;
-  }) => EventPayload<TEvent> | undefined;
+    readonly generated: TGenerated;
+  }): EventPayload<TEvent> | undefined;
   readonly when?: (context: {
     readonly snapshot: TSnapshot;
     readonly event: TEvent;
@@ -679,6 +717,35 @@ export type TestTemporal<
       readonly id: string;
       readonly description?: string;
       readonly predicate: TestTemporalPredicate<TSnapshot, TEvent>;
+    }
+  | {
+      /**
+       * The predicate must hold on at least one stable step of at least one
+       * run. Checked when the campaign ends: a run in which it never holds
+       * does not fail.
+       */
+      readonly type: 'sometimes';
+      readonly id: string;
+      readonly description?: string;
+      readonly predicate: TestTemporalPredicate<TSnapshot, TEvent>;
+    }
+  | {
+      /**
+       * Every step on which `trigger` holds must be followed by a step on
+       * which `response` holds. The response may hold on the trigger step
+       * itself.
+       */
+      readonly type: 'respond';
+      readonly id: string;
+      readonly description?: string;
+      /**
+       * Fails as soon as this many stable steps elapse after a trigger
+       * without a response. When omitted, the response must hold before the
+       * run ends.
+       */
+      readonly within?: number;
+      readonly trigger: TestTemporalPredicate<TSnapshot, TEvent>;
+      readonly response: TestTemporalPredicate<TSnapshot, TEvent>;
     };
 
 export interface TestStep<
@@ -751,7 +818,8 @@ function getPropertyFailureMessage<
   cause: unknown,
   replay: TestReplayMetadata | undefined,
   fixture: TestFixture | undefined,
-  format: TestFailureFormatOptions<TSnapshot> | undefined
+  format: TestFailureFormatOptions<TSnapshot> | undefined,
+  extras: TestFailureExtras | undefined
 ): string {
   const causeMessage = getCauseMessage(cause);
   const lines = [
@@ -775,12 +843,24 @@ function getPropertyFailureMessage<
   if (replay?.numShrinks) {
     lines.push(`Shrunk ${replay.numShrinks} time(s)`);
   }
+  lines.push(...(extras?.notes ?? []));
   try {
     lines.push('', formatTestTrace(trace, format));
   } catch {
     // Never mask the failure with a formatting error.
   }
+  if (extras?.report) {
+    lines.push('', extras.report);
+  }
   return lines.join('\n');
+}
+
+/** Lines added to a {@link ModelTestFailure} message after it was built. */
+export interface TestFailureExtras {
+  /** Printed after the `Reproduce:` and `Fixture:` lines, such as `Saved: …`. */
+  readonly notes?: readonly string[];
+  /** Printed after the trace, such as fast-check's verbose report. */
+  readonly report?: string;
 }
 
 /**
@@ -813,15 +893,90 @@ export class ModelTestFailure<
     public readonly fixture?: TestFixture,
     public readonly coverage?: TestCoverage,
     /** How the message renders snapshots. Kept so rethrows render the same. */
-    public readonly format?: TestFailureFormatOptions<TSnapshot>
+    public readonly format?: TestFailureFormatOptions<TSnapshot>,
+    /** Extra message lines. Kept so rethrows render the same. */
+    public readonly extras?: TestFailureExtras
   ) {
     super(
-      getPropertyFailureMessage(summary, trace, cause, replay, fixture, format),
+      getPropertyFailureMessage(
+        summary,
+        trace,
+        cause,
+        replay,
+        fixture,
+        format,
+        extras
+      ),
       { cause }
     );
     this.name = 'ModelTestFailure';
     this.summary = summary;
   }
+}
+
+/**
+ * Thrown when a campaign completes without a counterexample but a
+ * campaign-level assertion does not hold: a `sometimes` property that held in
+ * no run, or a `reachable` target that no run entered.
+ */
+export class TestCampaignError extends Error {
+  public override readonly name = 'TestCampaignError';
+
+  public constructor(
+    /** One line per assertion that did not hold. */
+    public readonly failures: readonly string[],
+    public readonly coverage: TestCoverage
+  ) {
+    super(
+      `Campaign assertions failed:\n${failures
+        .map((failure) => `  - ${failure}`)
+        .join('\n')}`
+    );
+  }
+}
+
+/** One saved failure, as a {@link TestFailureStore} loads it. */
+export interface TestStoredFailure {
+  readonly fixture: TestFixture;
+  /** Where the failure is stored, such as a file path. Used in messages. */
+  readonly location?: string;
+}
+
+/**
+ * Persists failing fixtures and replays them before the next campaign. Both
+ * entry points accept one as `failures`; `@xstate/test` provides a
+ * file-system implementation.
+ */
+export interface TestFailureStore {
+  /**
+   * The key fixtures are stored under. Defaults to the machine id plus a hash
+   * of the configured event cases and oracles.
+   */
+  readonly key?: string;
+  /**
+   * `'first'` (the default) replays stored fixtures before the campaign and
+   * fails on the first one that still reproduces. `'only'` replays them and
+   * skips the campaign. `false` replays nothing.
+   */
+  readonly replay?: 'first' | 'only' | false;
+  /** Loads the fixtures stored under `key`. */
+  readonly load: (
+    key: string
+  ) => readonly TestStoredFailure[] | Promise<readonly TestStoredFailure[]>;
+  /**
+   * Stores the fixture of a failing campaign. Returns its location, which is
+   * added to the failure message as `Saved: <location>`.
+   */
+  readonly onFailure: (
+    fixture: TestFixture,
+    key: string,
+    failure: ModelTestFailure<any, any>
+  ) => string | void | Promise<string | void>;
+  /** Removes a stored fixture that no longer reproduces. */
+  readonly remove?: (
+    stored: TestStoredFailure,
+    key: string
+  ) => void | Promise<void>;
 }
 
 interface TemporalState<
@@ -830,6 +985,8 @@ interface TemporalState<
 > {
   definition: TestTemporal<TSnapshot, TEvent>;
   satisfied: boolean;
+  /** `respond` only: the step of the oldest trigger still awaiting a response. */
+  pendingSince?: number;
 }
 
 /**
@@ -1258,14 +1415,38 @@ export class PropertyScenarioRunner<
     | ((context: TestInvariantContext<TSnapshot, TEvent>) => number)
     | undefined;
   private readonly targetObservations: PropertyTargetObservation[] = [];
+  /** Set for runs the adapter starts while shrinking a counterexample. */
+  private shrinkRun = false;
+  /** The failure this run ended in, if an oracle failed. */
+  private failure: ModelTestFailure<TSnapshot, TEvent> | undefined;
 
   /** Records a label for this run. */
   public readonly label = (
     name: string,
     value?: string | number | boolean
   ): void => {
+    if (this.shrinkRun) {
+      return;
+    }
     recordPropertyLabel(this.coverage, name, value, this.labelsSeen);
   };
+
+  /**
+   * Marks this run as a shrink attempt: its labels and event cases are left
+   * out of the campaign's statistics.
+   */
+  public markShrinkRun(): void {
+    this.shrinkRun = true;
+  }
+
+  private recordEventCase(
+    caseId: string,
+    stage: 'generated' | 'applicable' | 'executed' | 'ignored'
+  ): void {
+    if (!this.shrinkRun) {
+      recordPropertyEventCase(this.coverage, caseId, stage);
+    }
+  }
 
   /** Records `name` when `condition` holds. */
   public readonly classify = (condition: boolean, name: string): void => {
@@ -1453,7 +1634,7 @@ export class PropertyScenarioRunner<
   }
 
   private canRunResolved(event: TEvent | undefined, caseId: string): boolean {
-    recordPropertyEventCase(this.coverage, caseId, 'generated');
+    this.recordEventCase(caseId, 'generated');
     const descriptor = this.eventDescriptors.get(caseId);
     const canRun =
       (this.swarmEnabled?.has(caseId) ?? true) &&
@@ -1462,9 +1643,9 @@ export class PropertyScenarioRunner<
       (descriptor?.when?.({ snapshot: this.snapshot, event }) ?? true);
     if (!canRun) {
       this.coverage.skipped++;
-      recordPropertyEventCase(this.coverage, caseId, 'ignored');
+      this.recordEventCase(caseId, 'ignored');
     } else {
-      recordPropertyEventCase(this.coverage, caseId, 'applicable');
+      this.recordEventCase(caseId, 'applicable');
     }
     return canRun;
   }
@@ -1503,7 +1684,7 @@ export class PropertyScenarioRunner<
   public async run(event: TEvent, caseId: string): Promise<void> {
     this.assertStarted();
     this.recordGeneratedCommand();
-    recordPropertyEventCase(this.coverage, caseId, 'executed');
+    this.recordEventCase(caseId, 'executed');
     await this.executeEvent(
       event,
       'generated',
@@ -1798,7 +1979,21 @@ export class PropertyScenarioRunner<
         continue;
       }
       const definition = state.definition;
-      if (definition.type !== 'eventually' && definition.type !== 'until') {
+      if (definition.type === 'sometimes') {
+        // A run in which it never held decides nothing; the campaign checks
+        // that some run satisfied it.
+        recordPropertyTemporal(this.coverage, definition.id, 'inconclusive');
+        continue;
+      }
+      if (definition.type === 'respond' && state.pendingSince === undefined) {
+        recordPropertyTemporal(this.coverage, definition.id, 'satisfied');
+        continue;
+      }
+      if (
+        definition.type !== 'eventually' &&
+        definition.type !== 'until' &&
+        definition.type !== 'respond'
+      ) {
         // `always`/`never` are checked on every stable step; reaching the end
         // of the run without a failure means the property held.
         recordPropertyTemporal(this.coverage, definition.id, 'satisfied');
@@ -1843,12 +2038,16 @@ export class PropertyScenarioRunner<
         releaseActiveOutcomeRegistry(this.executionConfig.registry);
       }
     }
+    const disposeContext: TestSutDisposeContext = {
+      passed: this.finished,
+      ...(this.failure ? { failure: this.failure } : {})
+    };
     for (const dispose of [
       this.sutSession?.dispose,
       this.referenceSession?.dispose
     ]) {
       try {
-        await dispose?.();
+        await dispose?.(disposeContext);
       } catch (error) {
         errors.push(error);
       }
@@ -2015,6 +2214,17 @@ export class PropertyScenarioRunner<
     const observation = compare ? await this.compareObservations() : undefined;
     this.lastObservation = observation;
     await this.checkStateAssertions(snapshot, step);
+    if (this.sutSession?.check) {
+      try {
+        await this.sutSession.check();
+      } catch (cause) {
+        this.fail(
+          `SUT check failed after ${step} step${step === 1 ? '' : 's'}`,
+          cause,
+          step
+        );
+      }
+    }
     if (this.invariant) {
       this.coverage.invariantChecks++;
       try {
@@ -2142,6 +2352,33 @@ export class PropertyScenarioRunner<
         }
         continue;
       }
+      if (definition.type === 'sometimes') {
+        if (await definition.predicate(context)) {
+          state.satisfied = true;
+          recordPropertyTemporal(this.coverage, definition.id, 'satisfied');
+        }
+        continue;
+      }
+      if (definition.type === 'respond') {
+        let responded: boolean | undefined;
+        const response = async () =>
+          (responded ??= await definition.response(context));
+        if (state.pendingSince !== undefined) {
+          if (await response()) {
+            state.pendingSince = undefined;
+          }
+        } else if ((await definition.trigger(context)) && !(await response())) {
+          state.pendingSince = context.step;
+        }
+        if (
+          state.pendingSince !== undefined &&
+          definition.within !== undefined &&
+          context.step - state.pendingSince >= definition.within
+        ) {
+          this.failTemporal(definition);
+        }
+        continue;
+      }
       if (definition.type === 'eventually') {
         state.satisfied = await definition.predicate(context);
       } else if (await definition.until(context)) {
@@ -2162,14 +2399,18 @@ export class PropertyScenarioRunner<
     }
   }
 
-  private failTemporal(definition: TestTemporal<TSnapshot, TEvent>): never {
+  private failTemporal(
+    definition: Exclude<TestTemporal<TSnapshot, TEvent>, { type: 'sometimes' }>
+  ): never {
     recordPropertyTemporal(this.coverage, definition.id, 'failed');
     const failure: PortableTemporalFailure = {
       type: definition.type,
       id: definition.id,
       description: definition.description,
       within:
-        definition.type === 'eventually' || definition.type === 'until'
+        definition.type === 'eventually' ||
+        definition.type === 'until' ||
+        definition.type === 'respond'
           ? definition.within
           : undefined,
       atStep: this.stableStep - 1
@@ -2366,7 +2607,7 @@ export class PropertyScenarioRunner<
       // Never mask the underlying failure with a fixture-construction error.
       fixture = undefined;
     }
-    throw new ModelTestFailure(
+    this.failure = new ModelTestFailure(
       message,
       this.getTrace(),
       cause,
@@ -2375,6 +2616,7 @@ export class PropertyScenarioRunner<
       undefined,
       this.formatOptions
     );
+    throw this.failure;
   }
 
   private getReplayFixture(
@@ -2633,8 +2875,24 @@ export interface TestOptions<
   readonly invariant?: TestInvariant<TSnapshot, TEvent>;
   /** Temporal properties checked on every stable step. */
   readonly temporal?: readonly TestTemporal<TSnapshot, TEvent>[];
+  /**
+   * States that at least one run must enter, as state values (`'a.b'`), state
+   * node ids (`'#machine.a'`), or tags. Checked when the campaign ends. Each
+   * target is reported in `coverage.temporal` as `reachable:<target>`.
+   */
+  readonly reachable?: readonly string[];
   /** Minimum label frequencies the campaign must reach. */
   readonly expectLabels?: TestLabelExpectations;
+  /**
+   * Saves the fixture of a failing campaign, and replays saved fixtures
+   * before the next one. See {@link TestFailureStore}.
+   */
+  readonly failures?: TestFailureStore;
+  /**
+   * Prints `formatTestStatistics(coverage)` after a passing campaign: the
+   * distribution of executed event cases and the share of runs per label.
+   */
+  readonly statistics?: boolean;
   /**
    * Projects a snapshot onto the value printed for each step of a failure
    * trace. Defaults to `{ value, context }` for machine snapshots.
@@ -2996,6 +3254,7 @@ function finalizeExploration(
     stoppedBecause: accumulator.stoppedBecause,
     completedRuns: accumulator.completedRuns,
     attemptedRuns: coverage.runs,
+    shrinkRuns: coverage.shrinkRuns,
     maximumSequenceLength,
     maximumObservedSequenceLength: coverage.maximumObservedSequenceLength,
     frontiers: accumulator.frontiers.slice(),
@@ -3017,6 +3276,79 @@ function finalizeExploration(
     truncationReasons: [...accumulator.truncationReasons].sort(),
     pendingActorSteps: coverage.pendingActorSteps
   };
+}
+
+/**
+ * Warns about bounded temporal properties whose bound exceeds the longest
+ * sequence the campaign can produce: they can never fail.
+ */
+function getVacuityWarnings(
+  temporal: readonly TestTemporal<any, any>[],
+  exploration: TestExplorationBounds
+): string[] {
+  if (exploration.maximumSequenceLength === null) {
+    return [];
+  }
+  const longest =
+    exploration.maximumSequenceLength +
+    Math.max(
+      0,
+      ...exploration.frontiers.map((frontier) => frontier.prefixLength)
+    );
+  const warnings: string[] = [];
+  for (const definition of temporal) {
+    if (
+      (definition.type === 'eventually' ||
+        definition.type === 'until' ||
+        definition.type === 'respond') &&
+      definition.within !== undefined &&
+      definition.within > longest
+    ) {
+      warnings.push(
+        `${definition.type} "${definition.id}" has within ${definition.within}, but the longest sequence is ${longest} steps, so it can never fail`
+      );
+    }
+  }
+  return warnings;
+}
+
+/** Matches a `reachable` target against a snapshot. */
+function matchesReachableTarget(
+  model: TestModel<any, any, any>,
+  snapshot: Snapshot<unknown>,
+  target: string
+): boolean {
+  if (model.options.stateMatcher(snapshot, target)) {
+    return true;
+  }
+  const hasTag = (snapshot as { hasTag?: (tag: string) => boolean }).hasTag;
+  return typeof hasTag === 'function' && hasTag.call(snapshot, target);
+}
+
+/**
+ * The default {@link TestFailureStore} key: the machine id plus a hash of the
+ * event cases and oracles, so campaigns that test the same machine
+ * differently do not replay each other's fixtures.
+ */
+function getDefaultFailureKey(
+  logic: unknown,
+  caseIds: readonly string[],
+  temporal: readonly TestTemporal<any, any>[],
+  options: TestOptions<any, any, any, any>
+): string {
+  const signature = JSON.stringify({
+    events: [...caseIds].sort(),
+    temporal: temporal.map(({ type, id }) => `${type}:${id}`).sort(),
+    invariant: !!options.invariant,
+    sut: !!options.sut,
+    reference: !!options.reference,
+    states: Object.keys(options.states ?? {}).sort(),
+    mode: options.mode ?? 'pure'
+  });
+  const id = (logic as { id?: unknown }).id;
+  return `${typeof id === 'string' && id ? id : 'machine'}-${fnv1a(signature)
+    .toString(16)
+    .padStart(8, '0')}`;
 }
 
 /**
@@ -3102,6 +3434,18 @@ export async function propertyTest<
       'Property tests starting from a snapshot require a `start.serializeSnapshot` function'
     );
   }
+  const temporal: readonly TestTemporal<
+    SnapshotFromSource<TSource>,
+    EventFromSource<TSource>
+  >[] = [
+    ...(options.temporal ?? []),
+    ...(options.reachable ?? []).map((target) => ({
+      type: 'sometimes' as const,
+      id: `reachable:${target}`,
+      predicate: ({ snapshot }: { snapshot: Snapshot<unknown> }) =>
+        matchesReachableTarget(model, snapshot, target)
+    }))
+  ];
   const coverage = createTestCoverage(model.testLogic);
   for (const event of events) {
     declarePropertyEventCase(coverage, event.caseId, event.weight);
@@ -3215,6 +3559,66 @@ export async function propertyTest<
   >[] = [];
   const targetFrontierLimit =
     targetFrontierOptions?.maxFrontiers ?? DEFAULT_MAX_FRONTIERS;
+  let failureSeen = false;
+  const failureStore = options.failures;
+  const failureKey = failureStore
+    ? (failureStore.key ??
+      getDefaultFailureKey(
+        model.testLogic,
+        events.map((event) => event.caseId),
+        temporal,
+        options
+      ))
+    : undefined;
+  const complete = async (result: TestSutCompleteContext) => {
+    try {
+      await options.sut?.complete?.(result);
+    } catch {
+      // Publishing artifacts must not mask the campaign's result.
+    }
+  };
+  /** Saves the failure's fixture and adds `Saved: <location>` to its message. */
+  const saveFailure = async (
+    failure: ModelTestFailure<any, any>
+  ): Promise<ModelTestFailure<any, any>> => {
+    if (
+      !failureStore ||
+      !failure.fixture ||
+      // A fixture that starts from a snapshot needs `restoreSnapshot` to
+      // replay, which the options do not carry.
+      failure.fixture.start.type !== 'input'
+    ) {
+      return failure;
+    }
+    let note: string;
+    try {
+      const location = await failureStore.onFailure(
+        failure.fixture,
+        failureKey!,
+        failure
+      );
+      if (!location) {
+        return failure;
+      }
+      note = `Saved: ${location}`;
+    } catch (error) {
+      // A store that cannot write must not hide the counterexample.
+      note = `Not saved: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    return new ModelTestFailure(
+      failure.summary,
+      failure.trace,
+      failure.cause,
+      failure.replay,
+      failure.fixture,
+      failure.coverage,
+      failure.format,
+      {
+        ...failure.extras,
+        notes: [...(failure.extras?.notes ?? []), note]
+      }
+    );
+  };
 
   const recordRun = (
     runner: PropertyScenarioRunner<
@@ -3225,6 +3629,10 @@ export async function propertyTest<
     enabled: readonly string[] | undefined
   ): void => {
     const passed = runner.isFinished();
+    if (!passed) {
+      // Every later run the adapter starts is a shrink attempt.
+      failureSeen = true;
+    }
     if (swarmOptions && !passed && !frozenSwarm) {
       frozenSwarm = enabled;
     }
@@ -3315,6 +3723,9 @@ export async function propertyTest<
       },
       createRunner: () => {
         coverage.runs++;
+        if (failureSeen) {
+          coverage.shrinkRuns++;
+        }
         const runIndex = (runOffset ?? 0) + scenarioRunCount++;
         const runner = new PropertyScenarioRunner(
           model.testLogic as ActorLogic<
@@ -3336,7 +3747,7 @@ export async function propertyTest<
           options.states,
           options.reference,
           options.invariant,
-          options.temporal ?? [],
+          temporal,
           eventDescriptors,
           coverage,
           mode === 'executed'
@@ -3351,6 +3762,9 @@ export async function propertyTest<
           runner.setTargetFunction(options.target);
         }
         runner.setFormatSnapshot(options.formatSnapshot);
+        if (failureSeen) {
+          runner.markShrinkRun();
+        }
         let enabled: readonly string[] | undefined;
         if (swarmOptions) {
           enabled = frozenSwarm ?? selectSwarmCases(runIndex);
@@ -3420,27 +3834,80 @@ export async function propertyTest<
     if (result.error !== undefined) {
       exploration.stoppedBecause = 'failure';
       if (result.error instanceof ModelTestFailure) {
-        throw new ModelTestFailure(
-          result.error.summary,
-          result.error.trace,
-          result.error.cause,
-          result.replay,
-          result.error.fixture,
-          finalizeTestCoverage(
-            coverage,
-            finalizeExploration(coverage, exploration)
-          ),
-          result.error.format
+        const failure = await saveFailure(
+          new ModelTestFailure(
+            result.error.summary,
+            result.error.trace,
+            result.error.cause,
+            result.replay,
+            result.error.fixture,
+            snapshotCoverage(),
+            result.error.format,
+            result.report
+              ? { ...result.error.extras, report: result.report }
+              : result.error.extras
+          )
         );
+        await complete({ passed: false, failure });
+        throw failure;
       }
-      throw result.error instanceof Error
-        ? result.error
-        : new Error('Property adapter failed', { cause: result.error });
+      const error =
+        result.error instanceof Error
+          ? result.error
+          : new Error('Property adapter failed', { cause: result.error });
+      await complete({ passed: false, failure: error });
+      throw error;
     }
   };
 
-  const snapshotCoverage = () =>
-    finalizeTestCoverage(coverage, finalizeExploration(coverage, exploration));
+  const snapshotCoverage = () => {
+    const bounds = finalizeExploration(coverage, exploration);
+    coverage.temporal.warnings = getVacuityWarnings(temporal, bounds);
+    return finalizeTestCoverage(coverage, bounds);
+  };
+
+  if (failureStore && failureStore.replay !== false) {
+    for (const stored of await failureStore.load(failureKey!)) {
+      try {
+        await replayTest(model as TestModel<any, any, any>, stored.fixture, {
+          invariant: options.invariant,
+          temporal,
+          reference: options.reference,
+          sut: options.sut,
+          states: options.states,
+          formatSnapshot: options.formatSnapshot,
+          actors: options.actors
+        } as never);
+      } catch (error) {
+        if (error instanceof ReplayNotReproducedError) {
+          // The failure is fixed, or the model changed: forget it.
+          await failureStore.remove?.(stored, failureKey!);
+          continue;
+        }
+        if (error instanceof ModelTestFailure) {
+          const failure = new ModelTestFailure(
+            `${error.summary} (replayed from ${stored.location ?? 'the failure store'})`,
+            error.trace,
+            error.cause,
+            error.replay,
+            error.fixture,
+            error.coverage,
+            error.format,
+            error.extras
+          );
+          await complete({ passed: false, failure });
+          throw failure;
+        }
+        throw error;
+      }
+    }
+    if (failureStore.replay === 'only') {
+      exploration.stoppedBecause = 'replay';
+      const replayed = snapshotCoverage();
+      await complete({ passed: true });
+      return { coverage: replayed };
+    }
+  }
   const getStaticRunBudget = (frontierContext: Scenario) =>
     frontierContext
       ? typeof frontierOptions?.runsPerFrontier === 'function'
@@ -3584,6 +4051,29 @@ export async function propertyTest<
   }
 
   const finalCoverage = snapshotCoverage();
+  const campaignFailures: string[] = [];
+  const completedRuns = finalCoverage.exploration.completedRuns;
+  const reachableCount = options.reachable?.length ?? 0;
+  for (const [index, definition] of temporal.entries()) {
+    if (
+      definition.type !== 'sometimes' ||
+      finalCoverage.temporal.satisfied.includes(definition.id)
+    ) {
+      continue;
+    }
+    coverage.temporal.campaignFailed.add(definition.id);
+    const reachableIndex = index - (temporal.length - reachableCount);
+    campaignFailures.push(
+      reachableIndex >= 0
+        ? `reachable "${options.reachable![reachableIndex]}" was not entered in ${completedRuns} run(s)`
+        : `sometimes "${definition.id}" did not hold in ${completedRuns} run(s)`
+    );
+  }
+  if (campaignFailures.length) {
+    const error = new TestCampaignError(campaignFailures, snapshotCoverage());
+    await complete({ passed: false, failure: error });
+    throw error;
+  }
   if (options.expectLabels) {
     const failures = getLabelExpectationFailures(
       options.expectLabels,
@@ -3597,10 +4087,15 @@ export async function propertyTest<
       ) as Error & { coverage: TestCoverage };
       error.name = 'PropertyLabelExpectationError';
       error.coverage = finalCoverage;
+      await complete({ passed: false, failure: error });
       throw error;
     }
   }
 
+  if (options.statistics) {
+    console.log(formatTestStatistics(finalCoverage));
+  }
+  await complete({ passed: true });
   return { coverage: finalCoverage };
 }
 

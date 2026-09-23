@@ -107,7 +107,12 @@ export interface TestExplorationTarget {
 }
 
 /** Why a property campaign stopped running batches. */
-export type TestStoppedBecause = 'until' | 'budget' | 'failure' | 'paths';
+export type TestStoppedBecause =
+  | 'until'
+  | 'budget'
+  | 'failure'
+  | 'paths'
+  | 'replay';
 
 export interface TestExplorationBounds {
   /**
@@ -128,6 +133,12 @@ export interface TestExplorationBounds {
   readonly completedRuns: number;
   /** Runner creations, including shrink attempts. */
   readonly attemptedRuns: number;
+  /**
+   * Runs started after the first failing run, while the adapter shrank the
+   * counterexample. Included in `attemptedRuns`; excluded from `labels` and
+   * `eventCases`.
+   */
+  readonly shrinkRuns: number;
   readonly maximumSequenceLength: number | null;
   readonly maximumObservedSequenceLength: number;
   readonly frontiers: readonly TestExplorationFrontier[];
@@ -141,7 +152,8 @@ export interface TestExplorationBounds {
   /**
    * `'until'` when a stop condition was met, `'failure'` when a
    * counterexample ended the campaign, `'budget'` when the configured runs
-   * were exhausted, `'paths'` when `testPaths()` executed every path.
+   * were exhausted, `'paths'` when `testPaths()` executed every path, and
+   * `'replay'` when `failures.replay` was `'only'` and no campaign ran.
    */
   readonly stoppedBecause: TestStoppedBecause;
   /**
@@ -161,21 +173,41 @@ export interface TestLabelCoverage {
   readonly values: Readonly<Record<string, number>>;
   /**
    * Runs in which the label was recorded at least once, over attempted runs
-   * (including runs that failed or were shrunk). Always between `0` and `1`.
+   * that were not shrink attempts. Always between `0` and `1`.
    */
   readonly share: number;
 }
 
-interface TestTemporalCoverage {
+/** Per-run outcomes of one temporal property. */
+export interface TestTemporalCounts {
+  /** Runs in which the property held. */
+  readonly satisfied: number;
+  /** Runs the property failed. */
+  readonly failed: number;
+  /** Runs that ended before the property was decided. */
+  readonly inconclusive: number;
+}
+
+export interface TestTemporalCoverage {
   /** Temporal definitions satisfied in at least one run. */
   readonly satisfied: readonly string[];
-  /** Temporal definitions that caused a run to fail. */
+  /**
+   * Temporal definitions that caused a run to fail, and `sometimes` or
+   * `reachable` definitions that held in no run of the campaign.
+   */
   readonly failed: readonly string[];
   /**
-   * Bounded `eventually`/`until` definitions whose `within` bound was never
-   * reached before the run ended, and which were never satisfied.
+   * Definitions that were inconclusive in every run that checked them, and
+   * satisfied in none.
    */
   readonly inconclusive: readonly string[];
+  /** Per-id run counts. */
+  readonly counts: Readonly<Record<string, TestTemporalCounts>>;
+  /**
+   * Bounded definitions that can never fail with the configured bounds, such
+   * as an `eventually` whose `within` exceeds the longest sequence.
+   */
+  readonly warnings: readonly string[];
 }
 
 /**
@@ -283,10 +315,16 @@ export interface MutableTestCoverage {
     { count: number; values: Record<string, number>; runs: number }
   >;
   temporal: {
-    satisfied: Set<string>;
-    failed: Set<string>;
-    inconclusive: Set<string>;
+    counts: Record<
+      string,
+      { satisfied: number; failed: number; inconclusive: number }
+    >;
+    /** Campaign-level failures of `sometimes` and `reachable`. */
+    campaignFailed: Set<string>;
+    warnings: string[];
   };
+  /** Runs started after the first failing run. */
+  shrinkRuns: number;
   transitionIds: WeakMap<AnyTransitionDefinition, string>;
   guardIds: WeakMap<AnyTransitionDefinition, string>;
   guardOutcomes: Record<string, { passed: number; failed: number }>;
@@ -663,10 +701,11 @@ export function createTestCoverage(logic: unknown): MutableTestCoverage {
     frontiers: dimension(),
     labels: {},
     temporal: {
-      satisfied: new Set(),
-      failed: new Set(),
-      inconclusive: new Set()
+      counts: {},
+      campaignFailed: new Set(),
+      warnings: []
     },
+    shrinkRuns: 0,
     transitionIds: new WeakMap(),
     guardIds: new WeakMap(),
     guardOutcomes: {},
@@ -977,6 +1016,7 @@ export function finalizeTestCoverage(
     configuredRuns: null,
     completedRuns: coverage.runs,
     attemptedRuns: coverage.runs,
+    shrinkRuns: coverage.shrinkRuns,
     maximumSequenceLength: null,
     maximumObservedSequenceLength: coverage.maximumObservedSequenceLength,
     frontiers: [],
@@ -989,9 +1029,12 @@ export function finalizeTestCoverage(
     pendingActorSteps: coverage.pendingActorSteps
   }
 ): TestCoverage {
-  // Labels are recorded by every attempted run, including failing and shrinking
-  // ones, so the share is taken over attempted runs and clamped.
-  const labelRuns = exploration.attemptedRuns || coverage.runs;
+  // Shrink attempts record no labels, so the share is taken over the attempted
+  // runs that were not shrink attempts, and clamped.
+  const labelRuns =
+    (exploration.attemptedRuns || coverage.runs) - coverage.shrinkRuns;
+  const temporalCounts = coverage.temporal.counts;
+  const temporalIds = Object.keys(temporalCounts).sort();
   return {
     runs: coverage.runs,
     steps: coverage.steps,
@@ -1062,11 +1105,23 @@ export function finalizeTestCoverage(
         ])
     ),
     temporal: {
-      satisfied: [...coverage.temporal.satisfied].sort(),
-      failed: [...coverage.temporal.failed].sort(),
-      inconclusive: [...coverage.temporal.inconclusive]
-        .filter((id) => !coverage.temporal.satisfied.has(id))
-        .sort()
+      satisfied: temporalIds.filter((id) => temporalCounts[id].satisfied > 0),
+      failed: [
+        ...new Set([
+          ...temporalIds.filter((id) => temporalCounts[id].failed > 0),
+          ...coverage.temporal.campaignFailed
+        ])
+      ].sort(),
+      inconclusive: temporalIds.filter(
+        (id) =>
+          temporalCounts[id].inconclusive > 0 &&
+          temporalCounts[id].satisfied === 0 &&
+          !coverage.temporal.campaignFailed.has(id)
+      ),
+      counts: Object.fromEntries(
+        temporalIds.map((id) => [id, { ...temporalCounts[id] }])
+      ),
+      warnings: coverage.temporal.warnings.slice()
     },
     exploration
   };
@@ -1095,12 +1150,18 @@ export function recordPropertyLabel(
   }
 }
 
+/** Records one run's outcome for a temporal property. */
 export function recordPropertyTemporal(
   coverage: MutableTestCoverage,
   id: string,
   outcome: 'satisfied' | 'failed' | 'inconclusive'
 ): void {
-  coverage.temporal[outcome].add(id);
+  const counts = (coverage.temporal.counts[id] ??= {
+    satisfied: 0,
+    failed: 0,
+    inconclusive: 0
+  });
+  counts[outcome]++;
 }
 
 export function declarePropertyFrontier(

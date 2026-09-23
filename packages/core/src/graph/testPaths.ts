@@ -572,7 +572,10 @@ function withPathExploration(
       pathCount,
       pathGenerator,
       stoppedBecause:
-        coverage.exploration.stoppedBecause === 'failure' ? 'failure' : 'paths',
+        coverage.exploration.stoppedBecause === 'failure' ||
+        coverage.exploration.stoppedBecause === 'replay'
+          ? coverage.exploration.stoppedBecause
+          : 'paths',
       truncated: truncationReasons.length > 0,
       truncationReasons
     }
@@ -868,7 +871,8 @@ export async function testPaths<
       : { serializeEvent: options.serializeEvent })
   };
 
-  const generatePaths = <T>(generate: () => T): T => {
+  // A declaration, since preconstruct's parser reads `<T>(` as JSX.
+  function generatePaths<T>(generate: () => T): T {
     try {
       return generate();
     } catch (error) {
@@ -883,7 +887,7 @@ export async function testPaths<
       }
       throw error;
     }
-  };
+  }
 
   let pathGeneratorKind: TestPathGeneratorKind = 'shortest';
   let paths: readonly StatePath<TSnapshot, TEvent>[];
@@ -1039,7 +1043,8 @@ export async function testPaths<
         error.replay,
         error.fixture,
         withPathExploration(error.coverage, paths.length, pathGeneratorKind),
-        error.format
+        error.format,
+        error.extras
       );
     }
     throw error;

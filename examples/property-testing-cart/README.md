@@ -18,6 +18,7 @@ pnpm test
 | `src/cart.machine.ts` | The model. Event payloads are declared as Zod schemas, so generators are derived from them. Checkout invokes a `pay` actor. |
 | `src/cart-store.ts` | `CartStore`, the implementation. `CART_BUG=1` makes `REMOVE` leave the SKU in the cart at quantity zero. |
 | `src/cart.test.ts` | The six tests. |
+| `.gitignore` | Ignores `.xstate-test/`, where failing fixtures are saved. |
 
 ## The model
 
@@ -50,20 +51,32 @@ non-empty SKUs and integer quantities from 1 to 5.
 
 `propertyTest()` checks the model on its own. There is no `sut`.
 
-- `events` configures only `REMOVE`. `ADD` and `CHECKOUT` are derived from the
-  schemas. `REMOVE` must name a SKU that is in the cart, so it is a
-  descriptor: `generate: fc.nat()` produces a shrinkable index, and `resolve`
-  maps it to one of the SKUs in the current snapshot, or returns `undefined`
-  when the cart is empty, which skips the event.
+- Every event case has `when: whileShopping`, so events are generated only in
+  `shopping`, as a page disables the cart's buttons during payment. The `ADD`
+  and `CHECKOUT` generators come from `eventsFromSchemas(cartMachine)`, which
+  derives them from the Zod schemas; `when` requires a descriptor, so they are
+  not left to implicit derivation.
+- `REMOVE` must name a SKU that is in the cart, so it is built with `pick()`:
+  it generates a shrinkable index into the SKUs in the current snapshot, and
+  skips the event when the cart is empty.
 - `mode: 'executed'` runs the machine as an actor, so the `pay` invocation
   starts. `outcomes.pay` replaces `pay` with a stub whose result is generated:
   a receipt or a declined card. Both `onDone` and `onError` are reached
   without a network call.
 - `invariant` checks that every quantity in the cart is above zero.
-- `temporal` declares that a run reaches `done` within 20 steps. A run that
-  ends sooner without reaching `done` is inconclusive, not failed.
+- `temporal` declares two properties. `respond` requires every step in
+  `paying` to be followed, within one step, by a step outside `paying`. It
+  holds because only the payment outcome can happen while paying. A run that
+  ends in `paying` is inconclusive, not failed. `sometimes` requires some run
+  to see a declined payment.
+- `reachable: ['#cart.done']` requires some run to check out.
 - `until: { transitions: 1 }` stops the campaign once every transition has
   been taken.
+
+A bounded property whose `within` exceeds `maxCommands` can never fail. An
+earlier version of this test declared that a run reaches `done` within 20
+steps, with `maxCommands: 10`; the coverage report now warns about such a
+property.
 
 `formatTestCoverage(coverage)` prints:
 
@@ -77,21 +90,22 @@ statuses: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 eventTypes: 6/6 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 transitions: 5/5 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 guards: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
-transitionPairs: 9/9 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
+transitionPairs: 8/8 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 requirements: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 frontiers: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 
 event cases:
-  - ADD / default: 37 generated, 36 applicable, 36 executed, 1 ignored
-  - CHECKOUT / default: 22 generated, 21 applicable, 21 executed, 1 ignored
-  - REMOVE / default: 30 generated, 15 applicable, 15 executed, 15 ignored
-temporal: 1 satisfied, 0 failed, 0 inconclusive
-  satisfied:
-  - checks-out
+  - ADD / default: 37 generated, 31 applicable, 31 executed, 6 ignored
+  - CHECKOUT / default: 30 generated, 27 applicable, 27 executed, 3 ignored
+  - REMOVE / default: 22 generated, 7 applicable, 7 executed, 15 ignored
+temporal: 3 satisfied, 0 failed, 0 inconclusive
+  - declined: 5 satisfied, 0 failed, 20 inconclusive
+  - payment-settles: 23 satisfied, 0 failed, 2 inconclusive
+  - reachable:#cart.done: 3 satisfied, 0 failed, 22 inconclusive
 
 exploration:
   runs: configured 100, completed 25, attempted 25
-  sequence length: max 10, max observed 8
+  sequence length: max 10, max observed 9
   stopped because: until
   frontier ["frontier","initial"]: prefix 0, budget 25, configured 25, completed 25, attempted 25
   seed ["frontier","initial"]: engine fast-check, seed 1, path n/a
@@ -99,8 +113,9 @@ exploration:
 
 The campaign stopped after 25 of 100 runs because every transition was
 covered. An event case is `ignored` when it is not applicable: `REMOVE` on an
-empty cart, where `resolve` returns `undefined`, or any event outside
-`shopping`. Most transitions in this machine compute their target with a
+empty cart, where `pick()` has nothing to pick, or any event outside
+`shopping`, where `when` returns `false`. The `temporal` lines count runs:
+`payment-settles` was inconclusive in the 2 runs that ended in `paying`. Most transitions in this machine compute their target with a
 function, so `transitionPairs` declares no pairs up front; the 9 listed are
 the pairs the runs took.
 `assertTestCoverage(coverage, { transitions: 1 })` then fails the test if a
@@ -119,9 +134,27 @@ on, so the test sets `deriveEvents: false` and configures only `ADD` and
 
 ### 3. `reports a counterexample when the store is buggy`
 
-The same options, with `CART_BUG=1` set. `propertyTest()` throws a
-`ModelTestFailure`, and fast-check shrinks the sequence to the two events
-that expose the bug. The next section shows the failure.
+The same options, with `CART_BUG=1` set, registered with `it.model.fails`
+from `@xstate/test/vitest`:
+
+```ts
+modelIt.model.fails(
+  'reports a counterexample when the store is buggy',
+  cartMachine,
+  options,
+  { message: /Property observation diverged[\s\S]*REMOVE/ }
+);
+```
+
+The test passes only when the campaign fails with a matching message.
+`propertyTest()` throws a `ModelTestFailure`, and fast-check shrinks the
+sequence to the two events that expose the bug. The next section shows the
+failure.
+
+`it.model` saves the failing fixture in
+`.xstate-test/<test file and name>/<hash>.json`, and the next run replays it
+before generating anything, so the test fails at once. The directory is in
+`.gitignore`. Commit it instead to replay the failures found locally in CI.
 
 ### 4. `walks every simple path`
 
@@ -219,6 +252,7 @@ Property observation diverged
 Reproduce: seed 2, path "1:2:1:1:1", replayPath "CBDH:K"
 Fixture: failure.fixture (replayTest)
 Shrunk 4 time(s)
+Saved: .xstate-test/src-cart.test.ts-cart-against-the-CartStore-implementation-with-CART_BUG-1-reports-a-counterexample-when-the-store-is-buggy/77f7aa8ad648.json
 
 start {"value":"shopping","context":{"items":{},"lastError":null}}
 1. generator ADD {"sku":"apple","qty":1} -> {"value":"shopping","context":{"items":{"apple":1},"lastError":null}}
@@ -230,7 +264,10 @@ start {"value":"shopping","context":{"items":{},"lastError":null}}
 
 The first line is `failure.summary`. `Reproduce` gives the fast-check
 `seed`, `path`, and `replayPath` that rerun this counterexample, and `Shrunk`
-counts the shrinking steps fast-check took to reach it. The numbered lines
+counts the shrinking steps fast-check took to reach it. `Saved` is the file
+the next run replays first; that run's message starts with
+`Property observation diverged (replayed from <file>)` and has no
+`Reproduce` line, since nothing was generated. The numbered lines
 are `formatTestTrace(failure.trace)`: each step's origin (`generator`), its
 event, and the model's `{ value, context }` after it. Step 2 sent
 `REMOVE apple`. The model's projection is `{}`, and the store's is

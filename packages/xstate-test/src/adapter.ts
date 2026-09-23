@@ -446,6 +446,18 @@ class FastCheckAdapter implements TestAdapter<FastCheckGeneratorKind> {
       property as fc.IAsyncProperty<unknown[]>,
       parameters as fc.Parameters<unknown[]>
     );
+    // `fc.check` returns the run details instead of reporting them, so the
+    // reporters are called here, once per adapter run.
+    if (this.options.asyncReporter) {
+      await this.options.asyncReporter(result as fc.RunDetails<unknown>);
+    } else if (this.options.reporter) {
+      this.options.reporter(result as fc.RunDetails<unknown>);
+    }
+    // `verbose` is a boolean or a `VerbosityLevel`; `true` is level 1.
+    const report =
+      result.failed && Number(this.options.verbose ?? 0) >= 1
+        ? fc.defaultReportMessage(result)
+        : undefined;
 
     const configuredRuns = result.runConfiguration.numRuns ?? 100;
     const truncationReasons: string[] = [];
@@ -476,6 +488,7 @@ class FastCheckAdapter implements TestAdapter<FastCheckGeneratorKind> {
     return {
       runs: result.numRuns,
       exploration,
+      ...(report ? { report } : {}),
       error:
         result.errorInstance ??
         new Error(

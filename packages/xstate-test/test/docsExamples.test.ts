@@ -20,9 +20,14 @@ import {
   parseTestSuite as parseTestSuiteFromGraph
 } from 'xstate/graph';
 import * as z from 'zod';
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { it as vitestIt } from 'vitest';
 import {
   ModelTestFailure,
   ReplayNotReproducedError,
+  TestCampaignError,
   assertTestCoverage,
   checkLinearizable,
   createTestModel,
@@ -34,6 +39,7 @@ import {
   generateTestSuite,
   getCurrentScheduler,
   mergeEventGenerators,
+  pick,
   propertyTest,
   replayTest,
   runParallelPropertyCommands,
@@ -46,6 +52,8 @@ import {
 } from '../src/index.ts';
 import { fromEffectSchemas } from '../src/effect-schema.ts';
 import { createPlaywrightSut } from '../src/playwright.ts';
+import { it as modelIt, withModelTests } from '../src/vitest.ts';
+import { FakePage, FakeTestInfo } from './fakePage.ts';
 
 // ---------------------------------------------------------------- Quick start
 
@@ -581,9 +589,7 @@ describe('README: How-to guides', () => {
       })
     });
     expect(page.gotos).toBe(25);
-    expect(page.loadStates.every((state) => state === 'networkidle')).toBe(
-      true
-    );
+    expect(page.loadStates.every((state) => state === 'load')).toBe(true);
   });
 
   it('Test a web page with Playwright: mocks per case', async () => {
@@ -992,6 +998,338 @@ describe('README: Migrating from @xstate/test 0.x and 1.0 beta', () => {
     expect(new Set(filled)).toEqual(new Set(['apple', 'pear']));
   });
 });
+
+// ------------------------------------------- Oracles, failures, and Vitest
+
+/** A cart that pays through an invoked `pay` actor, as in the cart example. */
+const payingCartMachine = setup({
+  schemas: {
+    context: types<{
+      items: Record<string, number>;
+      lastError: string | null;
+    }>(),
+    events: {
+      ADD: types<{ sku: string }>(),
+      CHECKOUT: types<{}>()
+    }
+  },
+  actors: {
+    pay: createAsyncLogic({ run: async () => ({}) })
+  }
+}).createMachine({
+  id: 'cart',
+  context: { items: {}, lastError: null },
+  initial: 'shopping',
+  states: {
+    shopping: {
+      on: {
+        ADD: ({ context, event }) => ({
+          context: {
+            ...context,
+            items: {
+              ...context.items,
+              [event.sku]: (context.items[event.sku] ?? 0) + 1
+            }
+          }
+        }),
+        CHECKOUT: ({ context }) =>
+          Object.keys(context.items).length ? { target: 'paying' } : undefined
+      }
+    },
+    paying: {
+      invoke: {
+        src: 'pay',
+        onDone: { target: 'done' },
+        onError: ({ context, event }) => ({
+          target: 'shopping',
+          context: { ...context, lastError: String(event.error) }
+        })
+      }
+    },
+    done: { type: 'final' }
+  }
+});
+
+const failuresDir = mkdtempSync(join(tmpdir(), 'xstate-test-docs-'));
+afterAll(() => {
+  rmSync(failuresDir, { recursive: true, force: true });
+});
+
+describe('README: Concepts (pick)', () => {
+  it('Events: pick()', async () => {
+    const { coverage } = await propertyTest(cartMachine, {
+      seed: 1,
+      events: {
+        ...events,
+        REMOVE: pick(
+          (snapshot) => Object.keys(snapshot.context.items),
+          (sku) => ({ sku })
+        )
+      },
+      sut: cartSut
+    });
+    const remove = coverage.eventCases['["event-case","REMOVE","default"]'];
+    expect(remove.executed).toBeGreaterThan(0);
+    // An empty cart has nothing to pick, so the case is inapplicable.
+    expect(remove.ignored).toBeGreaterThan(0);
+  });
+});
+
+describe('README: How-to guides (oracles, failures, and Vitest)', () => {
+  it('Test a web page with Playwright: page oracles', async () => {
+    const page = new FakePage();
+    const sut = createPlaywrightSut(page, {
+      events: { INC: (page) => page.click('#inc') },
+      read: (page) => page.app.count,
+      projectModel: () => 0,
+      // Fail on console warnings too, and only on server errors.
+      oracles: {
+        pageError: true,
+        console: 'warn',
+        http: 500,
+        unhandledRejection: true
+      }
+    });
+    const session = await sut.create({} as never);
+    page.emitResponse(404, '/missing');
+    page.emitConsole('warning', 'careful');
+    await expect(session.check!()).rejects.toMatchObject({
+      name: 'PlaywrightOracleError',
+      messages: ['console.warning: careful']
+    });
+    await session.dispose!({ passed: true });
+  });
+
+  it('Test a web page with Playwright: failure artifacts', async () => {
+    const counterMachine = createMachine({
+      schemas: {
+        context: types<{ count: number }>(),
+        events: { INC: types<{}>() }
+      },
+      context: { count: 0 },
+      on: { INC: ({ context }) => ({ context: { count: context.count + 1 } }) }
+    });
+    const page = new FakePage({ broken: true });
+    const testInfo = new FakeTestInfo();
+    const steps: string[] = [];
+    const test = {
+      step: async (name: string, body: () => Promise<void>) => {
+        steps.push(name);
+        await body();
+      }
+    };
+
+    await expect(
+      propertyTest(counterMachine, {
+        seed: 1,
+        events: { INC: fc.constant({}) },
+        sut: createPlaywrightSut(page, {
+          reset: (page) => page.click('#reset'),
+          events: { INC: (page) => page.click('#inc') },
+          read: (page) => page.app.count,
+          projectModel: (snapshot) => snapshot.context.count,
+          testInfo,
+          step: (name, body) => test.step(name, body)
+        })
+      })
+    ).rejects.toBeInstanceOf(ModelTestFailure);
+    expect(steps).toContain('INC');
+    expect(testInfo.attachments.map(({ name }) => name)).toEqual([
+      'fixture.json',
+      'trace',
+      'failure.png'
+    ]);
+  });
+
+  describe('Run model tests with Vitest', () => {
+    modelIt.model('the cart matches the model', cartMachine, {
+      seed: 1,
+      events,
+      sut: cartSut
+    });
+
+    modelIt.paths('every path matches the model', cartMachine, {
+      pathGenerator: 'simple',
+      events,
+      sut: cartSut,
+      stopWhen: (snapshot) =>
+        Object.values(snapshot.context.items).some((qty) => qty >= 2)
+    });
+
+    const buggyOptions = {
+      seed: 1,
+      events,
+      sut: createCartSut({ buggy: true }),
+      failures: { dir: join(failuresDir, 'vitest') }
+    };
+    modelIt.model.fails('finds the remove bug', cartMachine, buggyOptions, {
+      message: /Property observation diverged/
+    });
+
+    const it = withModelTests(vitestIt);
+    it.model('withModelTests wraps Vitest’s own it', cartMachine, {
+      seed: 1,
+      events,
+      sut: cartSut,
+      failures: false
+    });
+  });
+
+  it('Check liveness and reachability', async () => {
+    const sku = fc.constantFrom('apple', 'pear');
+    const whileShopping = ({
+      snapshot
+    }: {
+      snapshot: SnapshotFrom<typeof payingCartMachine>;
+    }) => snapshot.matches('shopping');
+
+    const { coverage } = await propertyTest(payingCartMachine, {
+      seed: 1,
+      events: {
+        ADD: { generate: fc.record({ sku }), when: whileShopping },
+        CHECKOUT: { generate: fc.constant({}), when: whileShopping }
+      },
+      mode: 'executed',
+      outcomes: {
+        pay: fc.oneof(
+          fc.constant({ ok: true as const, output: {} }),
+          fc.constant({ ok: false as const, error: 'declined' })
+        )
+      },
+      temporal: [
+        {
+          type: 'respond',
+          id: 'payment-settles',
+          within: 1,
+          trigger: ({ snapshot }) => snapshot.matches('paying'),
+          response: ({ snapshot }) => !snapshot.matches('paying')
+        },
+        {
+          type: 'sometimes',
+          id: 'declined',
+          predicate: ({ snapshot }) => snapshot.context.lastError !== null
+        }
+      ],
+      reachable: ['#cart.done']
+    });
+    expect(coverage.temporal.satisfied).toEqual([
+      'declined',
+      'payment-settles',
+      'reachable:#cart.done'
+    ]);
+
+    // Payments never fail, and nothing checks out: both assertions fail.
+    let error!: TestCampaignError;
+    try {
+      await propertyTest(payingCartMachine, {
+        seed: 1,
+        events: { ADD: fc.record({ sku }) },
+        mode: 'executed',
+        outcomes: { pay: fc.constant({ ok: true as const, output: {} }) },
+        temporal: [
+          {
+            type: 'sometimes',
+            id: 'declined',
+            predicate: ({ snapshot }) => snapshot.context.lastError !== null
+          }
+        ],
+        reachable: ['#cart.done']
+      });
+    } catch (caught) {
+      error = caught as TestCampaignError;
+    }
+    expect(error).toBeInstanceOf(TestCampaignError);
+    expect(error.message).toBe(
+      [
+        'Campaign assertions failed:',
+        '  - sometimes "declined" did not hold in 100 run(s)',
+        '  - reachable "#cart.done" was not entered in 100 run(s)'
+      ].join('\n')
+    );
+
+    const vacuous = await propertyTest(payingCartMachine, {
+      seed: 1,
+      maxCommands: 10,
+      events: { ADD: fc.record({ sku }) },
+      temporal: [
+        {
+          type: 'eventually',
+          id: 'checks-out',
+          within: 20,
+          predicate: ({ snapshot }) => snapshot.matches('done')
+        }
+      ]
+    });
+    expect(formatTestCoverage(vacuous.coverage)).toContain(
+      '  warning: eventually "checks-out" has within 20, but the longest sequence is 10 steps, so it can never fail'
+    );
+  });
+
+  it('Inspect the distribution of generated data', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      await propertyTest(cartMachine, {
+        seed: 1,
+        events,
+        statistics: true,
+        invariant: ({ snapshot, classify }) => {
+          classify(Object.keys(snapshot.context.items).length >= 2, 'two-skus');
+        }
+      });
+      expect(log.mock.calls[0][0]).toBe(STATISTICS_OUTPUT);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it('Save failures and replay them first', async () => {
+    const dir = join(failuresDir, '.xstate-test');
+    const options = {
+      seed: 1,
+      events,
+      failures: { dir, key: 'cart-store' }
+    };
+    let failure!: ModelTestFailure;
+    try {
+      await propertyTest(cartMachine, {
+        ...options,
+        sut: createCartSut({ buggy: true })
+      });
+    } catch (error) {
+      failure = error as ModelTestFailure;
+    }
+    expect(failure.message).toMatch(
+      new RegExp(`\nSaved: ${dir}/cart-store/[0-9a-f]{12}\\.json\n`)
+    );
+    const [saved] = readdirSync(join(dir, 'cart-store'));
+
+    await expect(
+      propertyTest(cartMachine, {
+        ...options,
+        sut: createCartSut({ buggy: true })
+      })
+    ).rejects.toThrow(
+      `Property observation diverged (replayed from ${join(dir, 'cart-store', saved)})`
+    );
+
+    // Fixed: the saved failure no longer reproduces, so it is deleted.
+    await propertyTest(cartMachine, { ...options, sut: cartSut });
+    expect(readdirSync(join(dir, 'cart-store'))).toEqual([]);
+  });
+});
+
+/** The output pasted under "Inspect the distribution of generated data". */
+const STATISTICS_OUTPUT = [
+  'Test statistics (100 runs)',
+  '',
+  'event cases (share of executed events):',
+  '   32.6%  ADD / default: 115 executed, 39 ignored',
+  '   35.7%  CHECKOUT / default: 126 executed, 44 ignored',
+  '   31.7%  REMOVE / default: 112 executed, 35 ignored',
+  '',
+  'labels (share of runs):',
+  '   14.0%  two-skus: 26 recorded'
+].join('\n');
 
 // ------------------------------------------------------- Playwright page fake
 

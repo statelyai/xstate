@@ -60,7 +60,7 @@ describe('createPlaywrightSut', () => {
     });
 
     expect(result.coverage.runs).toBe(10);
-    expect(page.loadStates).toContain('networkidle');
+    expect(page.loadStates).toContain('load');
   });
 
   it('reports a divergence naming the step for a broken page', async () => {
@@ -408,7 +408,9 @@ describe('per-case mocks', () => {
     await session.send({ type: 'INC', value: 1 }, { snapshot: undefined! });
     page.unrouteError = new Error('unroute failed');
 
-    await expect(session.dispose!()).rejects.toThrow('unroute failed');
+    await expect(session.dispose!({ passed: true })).rejects.toThrow(
+      'unroute failed'
+    );
     expect(disposed).toEqual(['dispose']);
   });
 });

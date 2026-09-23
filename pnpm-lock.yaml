@@ -3251,6 +3251,9 @@ importers:
       fast-check:
         specifier: ^4.9.0
         version: 4.10.0
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@17.6.3)(jsdom@26.1.0)(sass@1.97.3)(stylus@0.55.0)(supports-color@5.5.0)(terser@5.49.0)
       xstate:
         specifier: workspace:^
         version: link:../core

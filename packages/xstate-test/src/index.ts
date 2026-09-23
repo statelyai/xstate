@@ -30,6 +30,12 @@ export {
   type FastCheckSchedulerOptions,
   type FastCheckSchedulerReport
 } from './adapter.ts';
+export { pick } from './pick.ts';
+export {
+  createFailureDatabase,
+  type FailureDatabaseOptions,
+  type FailuresOption
+} from './failures.ts';
 export {
   getCurrentScheduler,
   withScheduledReference,

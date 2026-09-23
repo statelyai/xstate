@@ -179,3 +179,85 @@ export function sampleGenerator(
   }
   return values;
 }
+
+/**
+ * The event descriptor `pick()` returns: a shrinkable index in `generate`,
+ * and a `resolve` that picks the item at that index from the current snapshot.
+ */
+export interface TestPickDescriptor<
+  TGenerator,
+  TSnapshot extends Snapshot<unknown>,
+  TPayload
+> {
+  readonly generate: TGenerator;
+  resolve(context: {
+    readonly snapshot: TSnapshot;
+    readonly generated: number;
+  }): TPayload | undefined;
+}
+
+/**
+ * Builds a {@link TestPickDescriptor} around any index generator. `pick()` in
+ * `xstate/graph` and in `@xstate/test` differ only in the generator.
+ */
+export function createPickDescriptor<
+  TGenerator,
+  TSnapshot extends Snapshot<unknown>,
+  TItem,
+  TPayload
+>(
+  generate: TGenerator,
+  select: (snapshot: TSnapshot) => readonly TItem[],
+  toPayload: ((item: TItem, snapshot: TSnapshot) => TPayload) | undefined
+): TestPickDescriptor<TGenerator, TSnapshot, TPayload> {
+  return {
+    generate,
+    resolve: ({ snapshot, generated }) => {
+      const items = select(snapshot);
+      if (!items.length) {
+        return undefined;
+      }
+      const item = items[Math.abs(Math.trunc(generated)) % items.length];
+      return toPayload
+        ? toPayload(item, snapshot)
+        : (item as unknown as TPayload);
+    }
+  };
+}
+
+/**
+ * An event case whose payload refers to something in the current snapshot,
+ * such as an item that is already in a cart. `select` lists the candidates;
+ * the case is inapplicable when it returns none. `toPayload` turns the picked
+ * candidate into the event payload, and defaults to using it as the payload.
+ *
+ * This version samples a plain `(rng) => index` generator, for `testPaths()`
+ * and custom adapters. `pick()` from `@xstate/test` generates the index with
+ * fast-check, so it shrinks towards the first candidate.
+ *
+ * ```ts
+ * events: {
+ *   REMOVE: pick(
+ *     (snapshot) => Object.keys(snapshot.context.items),
+ *     (sku) => ({ sku })
+ *   )
+ * }
+ * ```
+ */
+export function pick<TSnapshot extends Snapshot<unknown>, TPayload>(
+  select: (snapshot: TSnapshot) => readonly TPayload[]
+): TestPickDescriptor<TestGenerator<number>, TSnapshot, TPayload>;
+export function pick<TSnapshot extends Snapshot<unknown>, TItem, TPayload>(
+  select: (snapshot: TSnapshot) => readonly TItem[],
+  toPayload: (item: TItem, snapshot: TSnapshot) => TPayload
+): TestPickDescriptor<TestGenerator<number>, TSnapshot, TPayload>;
+export function pick<TSnapshot extends Snapshot<unknown>, TItem, TPayload>(
+  select: (snapshot: TSnapshot) => readonly TItem[],
+  toPayload?: (item: TItem, snapshot: TSnapshot) => TPayload
+): TestPickDescriptor<TestGenerator<number>, TSnapshot, TPayload> {
+  return createPickDescriptor(
+    (rng: () => number) => Math.floor(rng() * 0x7fffffff),
+    select,
+    toPayload
+  );
+}

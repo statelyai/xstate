@@ -7,6 +7,7 @@
   "exports": {
     ".": "./dist/xstate-test.js",
     "./schema": "./dist/xstate-test-schema.js",
+    "./vitest": "./dist/xstate-test-vitest.js",
     "./playwright": "./dist/xstate-test-playwright.js",
     "./effect-schema": "./dist/xstate-test-effect-schema.js",
     "./package.json": "./package.json"
@@ -24,6 +25,7 @@
   "peerDependencies": {
     "effect": "4.0.0-beta.106",
     "fast-check": "^4.9.0",
+    "vitest": "^3.0.0",
     "xstate": "workspace:^",
     "zod": "^3.25.0 || ^4.0.0"
   },
@@ -31,6 +33,7 @@
     "@playwright/test": "^1.40.0",
     "effect": "4.0.0-beta.106",
     "fast-check": "^4.9.0",
+    "vitest": "^3.2.7",
     "xstate": "workspace:^",
     "zod": "^4.4.3"
   },
@@ -40,11 +43,15 @@
       "./index.ts",
       "./effect-schema.ts",
       "./schema.ts",
-      "./playwright.ts"
+      "./playwright.ts",
+      "./vitest.ts"
     ]
   },
   "peerDependenciesMeta": {
     "effect": {
+      "optional": true
+    },
+    "vitest": {
       "optional": true
     },
     "zod": {

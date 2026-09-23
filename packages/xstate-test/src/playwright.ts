@@ -1,8 +1,11 @@
 import type { EventObject, Snapshot } from 'xstate';
 import type {
+  TestFixture,
   TestStateAssertions,
   TestSut,
+  TestSutCompleteContext,
   TestSutContext,
+  TestSutDisposeContext,
   TestSutSendContext,
   TestSutSession
 } from 'xstate/graph';
@@ -23,6 +26,64 @@ export interface PlaywrightPage {
   readonly clock?: {
     readonly runFor?: (ticks: any) => Promise<void>;
   };
+  readonly context?: () => {
+    readonly tracing?: {
+      readonly start?: (options?: any) => Promise<void>;
+      readonly stop?: (options?: any) => Promise<void>;
+    };
+  };
+  readonly on?: (event: any, listener: any) => unknown;
+  readonly off?: (event: any, listener: any) => unknown;
+  readonly addInitScript?: (script: any, arg?: any) => Promise<unknown>;
+}
+
+/**
+ * The subset of Playwright's `TestInfo` this package uses. The `testInfo`
+ * fixture of `@playwright/test` is assignable to it.
+ */
+export interface PlaywrightTestInfo {
+  readonly attach: (
+    name: string,
+    options: {
+      /** A string or a `Buffer`. */
+      readonly body?: any;
+      readonly path?: string;
+      readonly contentType?: string;
+    }
+  ) => Promise<void>;
+  readonly outputPath: (...pathSegments: string[]) => string;
+}
+
+/**
+ * The page-level oracles `createPlaywrightSut()` checks after every stable
+ * step. Keys left out are off.
+ */
+export interface PlaywrightOracles {
+  /** Fails on uncaught exceptions in the page (`pageerror`). */
+  readonly pageError?: boolean;
+  /** Fails on console messages of this level or above. */
+  readonly console?: 'error' | 'warn' | false;
+  /**
+   * Fails on responses with at least this status code. Responses to requests
+   * a `mocks` route handled are ignored.
+   */
+  readonly http?: number | false;
+  /** Fails on unhandled promise rejections in the page. */
+  readonly unhandledRejection?: boolean;
+}
+
+/** Thrown by a session's `check()` when a page-level oracle fails. */
+export class PlaywrightOracleError extends Error {
+  public override readonly name = 'PlaywrightOracleError';
+
+  public constructor(public readonly messages: readonly string[]) {
+    super(
+      `The page reported ${messages.length} error${
+        messages.length === 1 ? '' : 's'
+      }:\n${messages.map((message) => `  - ${message}`).join('\n')}`,
+      { cause: messages }
+    );
+  }
 }
 
 /** A Playwright action bound to a generated event. */
@@ -74,7 +135,8 @@ export interface PlaywrightSutConfig<
   ) => boolean | Promise<boolean>;
   /**
    * Waits for the page to become quiescent before every comparison. Defaults to
-   * `page.waitForLoadState('networkidle')` when the page provides it.
+   * `page.waitForLoadState('load')` followed by a microtask flush. Pass a
+   * function to wait for something specific, such as a locator.
    */
   readonly settle?: (page: TPage) => void | Promise<void>;
   /**
@@ -117,6 +179,82 @@ export interface PlaywrightSutConfig<
    * otherwise `event.type`.
    */
   readonly caseOf?: (event: TEvent) => string | undefined;
+  /**
+   * Page-level oracles checked after every stable step. `'defaults'` (the
+   * default) fails on uncaught exceptions, console errors, unhandled
+   * rejections, and responses with a status of 400 or above. `false` turns
+   * them all off.
+   */
+  readonly oracles?: 'defaults' | false | PlaywrightOracles;
+  /**
+   * Where failure artifacts are attached. Pass Playwright's `testInfo`
+   * fixture. Required when `trace` or `screenshots` is on.
+   */
+  readonly testInfo?: PlaywrightTestInfo;
+  /**
+   * Records a Playwright trace per run. `'retain-on-failure'` attaches the
+   * trace of the failing run; `'on'` also attaches the last run's trace when
+   * the campaign passes. Defaults to `'retain-on-failure'` with `testInfo`,
+   * and `'off'` without.
+   */
+  readonly trace?: 'off' | 'retain-on-failure' | 'on';
+  /**
+   * `'on-failure'` attaches a screenshot of the page when the failing run
+   * ends; `'every-step'` attaches one per stable step of the failing run.
+   * Defaults to `'on-failure'` with `testInfo`, and `'off'` without.
+   */
+  readonly screenshots?: 'off' | 'on-failure' | 'every-step';
+  /**
+   * Wraps each event action, such as Playwright's `test.step`, so the report
+   * shows one step per event.
+   */
+  readonly step?: (name: string, body: () => Promise<void>) => Promise<unknown>;
+}
+
+const DEFAULT_ORACLES: Required<PlaywrightOracles> = {
+  pageError: true,
+  console: 'error',
+  http: 400,
+  unhandledRejection: true
+};
+
+/** Marks the console messages the rejection listener writes. */
+const REJECTION_PREFIX = '[xstate-test] unhandledrejection: ';
+
+const REJECTION_SCRIPT = `window.addEventListener('unhandledrejection', function (event) {
+  var reason = event.reason;
+  console.error(${JSON.stringify(REJECTION_PREFIX)} + (reason && reason.message ? reason.message : String(reason)));
+});`;
+
+function resolveOracles(
+  oracles: PlaywrightSutConfig<any, any, any>['oracles']
+): Required<PlaywrightOracles> | undefined {
+  if (oracles === false) {
+    return undefined;
+  }
+  if (oracles === undefined || oracles === 'defaults') {
+    return DEFAULT_ORACLES;
+  }
+  return {
+    pageError: oracles.pageError ?? false,
+    console: oracles.console ?? false,
+    http: oracles.http ?? false,
+    unhandledRejection: oracles.unhandledRejection ?? false
+  };
+}
+
+function formatStepName(event: EventObject): string {
+  const { type, ...payload } = event as EventObject & Record<string, unknown>;
+  return Object.keys(payload).length
+    ? `${type} ${JSON.stringify(payload)}`
+    : type;
+}
+
+/** What the last failing session left behind, attached when the campaign ends. */
+interface FailureArtifacts {
+  readonly trace?: string;
+  readonly screenshot?: Uint8Array;
+  readonly steps: readonly Uint8Array[];
 }
 
 function defaultCaseOf(event: EventObject): string {
@@ -132,7 +270,8 @@ type InstalledRoute = readonly unknown[];
  */
 function trackRoutes<TPage extends PlaywrightPage>(
   page: TPage,
-  installed: InstalledRoute[]
+  installed: InstalledRoute[],
+  mockedRequests: WeakSet<object>
 ): TPage {
   if (typeof (page as { route?: unknown }).route !== 'function') {
     return page;
@@ -144,7 +283,19 @@ function trackRoutes<TPage extends PlaywrightPage>(
         return value;
       }
       if (property === 'route') {
-        return (...args: unknown[]) => {
+        return (url: unknown, handler: unknown, ...rest: unknown[]) => {
+          // Requests a mock handles are exempt from the `http` oracle.
+          const tracked =
+            typeof handler === 'function'
+              ? (route: { request?: () => unknown }, ...more: unknown[]) => {
+                  const request = (more[0] ?? route?.request?.()) as unknown;
+                  if (request && typeof request === 'object') {
+                    mockedRequests.add(request);
+                  }
+                  return handler(route, ...more);
+                }
+              : handler;
+          const args = [url, tracked, ...rest];
           installed.push(args);
           return value.apply(target, args);
         };
@@ -202,7 +353,7 @@ function sanitizeLabel(label: string): string {
 
 /**
  * Creates a `TestSut` that drives a Playwright page as the system under
- * test for `propertyTest()`.
+ * test for `propertyTest()` and `testPaths()`.
  */
 export function createPlaywrightSut<
   TPage extends PlaywrightPage,
@@ -214,6 +365,18 @@ export function createPlaywrightSut<
 ): TestSut<TSnapshot, TEvent> {
   const caseOf = config.caseOf ?? (defaultCaseOf as (event: TEvent) => string);
   const screenshotDir = config.screenshotDir ?? 'property-screenshots';
+  const testInfo = config.testInfo;
+  const trace = config.trace ?? (testInfo ? 'retain-on-failure' : 'off');
+  const screenshots = config.screenshots ?? (testInfo ? 'on-failure' : 'off');
+  if (!testInfo && (trace !== 'off' || screenshots !== 'off')) {
+    throw new Error(
+      "`trace` and `screenshots` attach their files to `testInfo`; pass Playwright's `testInfo` fixture to `createPlaywrightSut()`."
+    );
+  }
+  const oracles = resolveOracles(config.oracles);
+  let rejectionScriptInstalled = false;
+  let lastFailure: FailureArtifacts | undefined;
+  let lastPassingTrace: string | undefined;
 
   return {
     ...(config.projectModel ? { projectModel: config.projectModel } : {}),
@@ -222,11 +385,88 @@ export function createPlaywrightSut<
     create: async (
       _context: TestSutContext<TSnapshot, TEvent>
     ): Promise<TestSutSession<TSnapshot, TEvent>> => {
+      const collected: string[] = [];
+      const mockedRequests = new WeakSet<object>();
+      const listeners: [string, (payload: any) => void][] = [];
+      if (oracles && typeof page.on === 'function') {
+        if (oracles.unhandledRejection && !rejectionScriptInstalled) {
+          // Init scripts accumulate, so it is installed once per SUT.
+          rejectionScriptInstalled = true;
+          await page.addInitScript?.(REJECTION_SCRIPT);
+        }
+        listeners.push(
+          [
+            'pageerror',
+            (error: unknown) => {
+              if (oracles.pageError) {
+                collected.push(
+                  `pageerror: ${error instanceof Error ? error.message : String(error)}`
+                );
+              }
+            }
+          ],
+          [
+            'console',
+            (message: { type: () => string; text: () => string }) => {
+              const text = message.text();
+              if (text.startsWith(REJECTION_PREFIX)) {
+                if (oracles.unhandledRejection) {
+                  collected.push(
+                    `unhandledrejection: ${text.slice(REJECTION_PREFIX.length)}`
+                  );
+                }
+                return;
+              }
+              const type = message.type();
+              if (
+                (type === 'error' && oracles.console) ||
+                (type === 'warning' && oracles.console === 'warn')
+              ) {
+                collected.push(`console.${type}: ${text}`);
+              }
+            }
+          ],
+          [
+            'response',
+            (response: {
+              status: () => number;
+              url: () => string;
+              request: () => { method: () => string };
+            }) => {
+              if (
+                oracles.http === false ||
+                response.status() < oracles.http ||
+                mockedRequests.has(response.request())
+              ) {
+                return;
+              }
+              collected.push(
+                `HTTP ${response.status()} ${response.request().method()} ${response.url()}`
+              );
+            }
+          ]
+        );
+        for (const [event, listener] of listeners) {
+          page.on(event, listener);
+        }
+      }
+      const tracing = trace === 'off' ? undefined : page.context?.().tracing;
+      let tracingStarted = false;
+      if (tracing?.start) {
+        try {
+          await tracing.start({ screenshots: true, snapshots: true });
+          tracingStarted = true;
+        } catch {
+          // Tracing is already running, for example from Playwright's own
+          // `trace` setting; that trace records the run instead.
+        }
+      }
       await config.reset?.(page);
       let appliedCase: string | undefined;
       let checkpoints = 0;
+      const stepScreenshots: Uint8Array[] = [];
       const installedRoutes: InstalledRoute[] = [];
-      const mockPage = trackRoutes(page, installedRoutes);
+      const mockPage = trackRoutes(page, installedRoutes, mockedRequests);
 
       return {
         send: async (
@@ -260,6 +500,12 @@ export function createPlaywrightSut<
               `No Playwright action configured for event "${event.type}"`
             );
           }
+          if (config.step) {
+            await config.step(formatStepName(event), async () => {
+              await action(page, event);
+            });
+            return;
+          }
           await action(page, event);
         },
         ...(config.read ? { read: () => config.read!(page) } : {}),
@@ -278,7 +524,20 @@ export function createPlaywrightSut<
             await config.settle(page);
             return;
           }
-          await page.waitForLoadState?.('networkidle');
+          await page.waitForLoadState?.('load');
+          // Lets listeners for events the page has already emitted run.
+          await new Promise<void>((resolve) => queueMicrotask(resolve));
+        },
+        check: async () => {
+          if (screenshots === 'every-step') {
+            const shot = await page.screenshot?.();
+            if (shot) {
+              stepScreenshots.push(shot);
+            }
+          }
+          if (collected.length) {
+            throw new PlaywrightOracleError(collected.splice(0));
+          }
         },
         advance: async (milliseconds: number) => {
           if (config.advance) {
@@ -299,14 +558,91 @@ export function createPlaywrightSut<
           });
         },
         ...(config.stop ? { stop: () => config.stop!(page) } : {}),
-        dispose: async () => {
+        dispose: async ({ passed }: TestSutDisposeContext) => {
           try {
+            for (const [event, listener] of listeners) {
+              page.off?.(event, listener);
+            }
+            if (!passed) {
+              const screenshot =
+                screenshots === 'on-failure'
+                  ? await page.screenshot?.()
+                  : undefined;
+              let tracePath: string | undefined;
+              if (tracingStarted) {
+                // Every failing run overwrites the same file, so the file
+                // left is the last failing run's: the shrunk counterexample.
+                tracePath = testInfo!.outputPath(
+                  'xstate-test-failure-trace.zip'
+                );
+                await tracing!.stop!({ path: tracePath });
+              }
+              lastFailure = {
+                ...(tracePath ? { trace: tracePath } : {}),
+                ...(screenshot ? { screenshot } : {}),
+                steps: stepScreenshots.slice()
+              };
+            } else if (tracingStarted) {
+              if (trace === 'on') {
+                // Each passing run overwrites the last one's trace.
+                lastPassingTrace = testInfo!.outputPath(
+                  'xstate-test-trace.zip'
+                );
+                await tracing!.stop!({ path: lastPassingTrace });
+              } else {
+                await tracing!.stop!();
+              }
+            }
             await releaseRoutes(page, installedRoutes);
           } finally {
             await config.dispose?.(page);
           }
         }
       };
+    },
+    complete: async ({ passed, failure }: TestSutCompleteContext) => {
+      const artifacts = lastFailure;
+      const passingTrace = lastPassingTrace;
+      lastFailure = undefined;
+      lastPassingTrace = undefined;
+      if (!testInfo) {
+        return;
+      }
+      if (passed) {
+        if (passingTrace) {
+          await testInfo.attach('trace', {
+            path: passingTrace,
+            contentType: 'application/zip'
+          });
+        }
+        return;
+      }
+      const fixture = (failure as { fixture?: TestFixture } | undefined)
+        ?.fixture;
+      if (fixture) {
+        await testInfo.attach('fixture.json', {
+          body: JSON.stringify(fixture, null, 2),
+          contentType: 'application/json'
+        });
+      }
+      if (artifacts?.trace) {
+        await testInfo.attach('trace', {
+          path: artifacts.trace,
+          contentType: 'application/zip'
+        });
+      }
+      if (artifacts?.screenshot) {
+        await testInfo.attach('failure.png', {
+          body: artifacts.screenshot,
+          contentType: 'image/png'
+        });
+      }
+      for (const [index, shot] of (artifacts?.steps ?? []).entries()) {
+        await testInfo.attach(`step-${index}.png`, {
+          body: shot,
+          contentType: 'image/png'
+        });
+      }
     }
   };
 }
