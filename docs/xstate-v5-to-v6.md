@@ -6,7 +6,7 @@ description: Every API change from v5 to v6, organized by area, with before-and-
 
 XState v6 is currently in alpha (`npm install xstate@alpha`). It is a major release that simplifies the authoring experience and unifies actions, guards, and transitions under a single **inline function** model. Most v5 concepts still exist - they are expressed differently.
 
-This guide is organized by area. Skim the **Quick reference** below, then jump to the sections relevant to your codebase. Upgrade one machine at a time and run its tests after each change.
+This guide is organized by area. Skim the **Quick reference** below, then jump to the sections relevant to your codebase. Upgrade one machine at a time and run its tests after each change. To install v6 next to v5 and to automate part of the migration, see [§27](#27-codemod-and-side-by-side-installs).
 
 ---
 
@@ -35,6 +35,11 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 | `actor.send({ type: 'INC' })`                           | `actor.send(...)` keeps working; new typed `actor.trigger.INC()`                                                                    |
 | `@xstate/immer`                                         | removed - return updated `context` patches directly                                                                                 |
 | `@xstate/inspect`                                       | removed - use `inspect` option on `createActor`, `actor.subscribe`, or [`@statelyai/inspect`](https://github.com/statelyai/inspect) |
+| `sendTo('child', ev)` with no running `child`           | dead letter with reason `'missingTarget'`; the sender stays `active` (§26)                                                          |
+| `tsTypes` (typegen)                                     | removed; declare types with `schemas` (§3)                                                                                          |
+| `machine.implementations`                               | `machine.sources`                                                                                                                   |
+| `snapshot._nodes`                                       | `snapshot.nodes`                                                                                                                    |
+| `spawn('name')` in a `context` factory                  | `spawn(actors.name)`                                                                                                                |
 
 ---
 
@@ -75,7 +80,7 @@ In v6, every `entry`, `exit`, and transition handler is a **single function** th
 - **Transition handlers** (`on`, `always`, `after`, `onTimeout`, `onDone`, `onError`) - may return a target, a new `context`, `reenter`, or `meta`.
 - **Entry / exit actions** - may return a new `context` (or `children`). They **cannot** return a `target`; entry/exit cannot transition.
 
-Returned `context` values are shallow patches. Omitted top-level keys are preserved when the current context is compatible with the next state. If a transition targets a state with narrower `schemas.context`, include the keys needed to satisfy that target state's context.
+Returned `context` values are patches. XState merges a patch into the current context at the top level (`{ ...context, ...patch }`): omitted keys keep their current values, and a nested object in the patch replaces the current value of that key. If a transition targets a state with a narrower `schemas.context`, the patch type requires the keys needed to satisfy that state's context.
 
 ### Entry / exit actions
 
@@ -457,6 +462,63 @@ createMachine({
 ### Inferred context (no schema)
 
 If you omit `schemas.context`, the context type is inferred from the literal `context` value or from the `({ input }) => ...` factory.
+
+### Typegen removed
+
+`tsTypes` and generated `*.typegen.ts` files are not supported in v6. Declare types with `schemas`. In development builds, `createMachine(...)` throws on a leftover `tsTypes` key with the message ``"tsTypes" (typegen) was removed. Declare contracts under `schemas` (or `setup({ schemas })`).``
+
+### Per-state context types
+
+v6 has no typestates. To type context per state, declare a `schemas.context` for that state in `setup({ states })`. The state schema refines the root context schema, so it declares only the fields that the state narrows:
+
+```ts
+import { assertEvent, createActor, setup } from 'xstate';
+import { z } from 'zod';
+
+const machine = setup({
+  schemas: {
+    context: z.object({ user: z.string().nullable() }),
+    events: { LOAD: z.object({ name: z.string() }) }
+  },
+  states: {
+    idle: { schemas: { context: z.object({ user: z.null() }) } },
+    success: { schemas: { context: z.object({ user: z.string() }) } }
+  }
+}).createMachine({
+  initial: 'idle',
+  context: { user: null },
+  states: {
+    idle: {
+      on: {
+        LOAD: ({ event }) => ({
+          target: 'success',
+          context: { user: event.name }
+        })
+      }
+    },
+    success: {
+      entry: ({ context, event }) => {
+        context.user; // string
+        assertEvent(event, 'LOAD');
+        event.name; // string
+      }
+    }
+  }
+});
+
+const snapshot = createActor(machine).start().getSnapshot();
+snapshot.context.user; // string | null
+if (snapshot.matches('success')) {
+  snapshot.context.user; // string
+}
+```
+
+This is a different model from typestates, not a translation of them:
+
+- Actions and transitions declared on a state see that state's narrowed context. A transition into `success` must return a `context` patch that satisfies the `success` schema.
+- `snapshot.context` has the root context type. `snapshot.matches(...)` narrows it. For a parallel state, `matches` narrows context for each region named in the matched value.
+- Narrowing applies to context only. `entry`, `exit`, and transition functions still receive the machine's event union, so use `assertEvent` to narrow `event`.
+- The schemas are compile-time types. XState validates context against them at runtime only when runtime validation is enabled.
 
 ---
 
@@ -1002,6 +1064,14 @@ The `xstate/fsm` subpath exports the pure `createFSM` API plus a lightweight
 `setup`/`types` facade for typed events, context, and state snapshots. See
 [compact finite state machines](fsm.md) for its exact supported surface.
 
+### Renamed members and identifiers
+
+- `machine.implementations` is now `machine.sources`, and the `MachineImplementationsFrom` type is now `MachineSourcesFrom`.
+- `snapshot._nodes` is now `snapshot.nodes`. It lists the active state nodes.
+- The `spawn` function passed to a `context` factory accepts actor logic only. Replace `spawn('worker')` with `spawn(actors.worker)`, using the `actors` argument of the same factory.
+- Transition arrays are not accepted, in `on` or in `always`. Select among targets in one transition function (see §15).
+- Actor `sessionId`s are unique across actor systems and have the form `<systemId>:<n>`, where `systemId` is random. v5 used `x:<n>`. Code that parsed or compared `sessionId`s across systems must not rely on the format.
+
 ---
 
 ## 17. Removed packages
@@ -1108,6 +1178,10 @@ const actor2 = createActor(machine, { snapshot: restored }).start();
 ```
 
 Child actors, async logic with effects, and listener-resume semantics are all part of the rehydrated surface.
+
+### Persisted format
+
+XState owns the `formatVersion` field of a persisted machine snapshot. Snapshots persisted by v6 alphas before the beta have no `formatVersion` and cannot be restored: `upgradePersistedSnapshot()` throws `PersistedSnapshotFormatError` for them, and `createActor(machine, { snapshot })` reports the same error through the actor's error snapshot. `getPersistedSnapshot()` returns a JSON-shaped object that the host serializes, and development builds warn when `context`, `output`, `error`, or state input holds a value that does not survive a JSON round-trip. Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below. See [Persistence](persistence.md) for the format rules.
 
 ### Snapshot versioning
 
@@ -1341,8 +1415,128 @@ so `system.get('receiver')` is available without casts.
 
 ---
 
+## 25. Actor ownership
+
+A child actor has one of two owners.
+
+An **invoked actor** is owned by the state that declares it. XState starts it when the state is entered and stops it when the state is exited. Its result arrives through that state's `onDone` and `onError` transitions.
+
+A **spawned actor** is owned by the actor that spawned it, not by a state. It keeps running after the state that spawned it is exited. It stops when you call `enq.stop(ref)`, when its parent stops, or when its parent errors. The parent receives its completion and failure as `xstate.done.actor` and `xstate.error.actor` events carrying its `actorId`. Use `enq.subscribeTo(ref, mappers)` or `enq.listen(ref, type, mapper)` to map its lifecycle or emitted events to parent events (see §9).
+
+```ts
+states: {
+  active: {
+    invoke: { id: 'poller', src: pollerLogic },
+    entry: (_, enq) => {
+      enq.spawn(workerLogic, { id: 'worker' });
+    },
+    on: { NEXT: 'inactive' }
+  },
+  inactive: {}
+}
+```
+
+After `NEXT`, `snapshot.children` contains `worker` and no longer contains `poller`.
+
+---
+
+## 26. Missing send targets and error precedence
+
+### Sending to a missing target
+
+In v5, `sendTo('worker', event)` threw when no child `worker` existed, and `sendParent(event)` threw in a root actor. The throw put the sending actor into an error state.
+
+In v6, `enq.sendTo(...)` to a missing target does not error the sender. A missing target is an `undefined` ref, a child id with no running child, or `parent` in a root actor. The event becomes a dead letter with reason `'missingTarget'`:
+
+- The sender stays `active`, and state `onError` handlers do not run.
+- The root actor's `onRejectedEvent` option receives the event with `reason: 'missingTarget'` and the requested `targetId`.
+- Inspectors receive an `@xstate.deadLetter` event.
+- Development builds log a warning such as `Actor "sender" sent event "PING" to missing target "worker"; the event was not delivered (missingTarget).`
+
+A machine that sends to an optional child checks for the child before sending:
+
+```ts
+// v5
+on: {
+  PING: {
+    guard: ({ self }) => self.getSnapshot().children.worker !== undefined,
+    actions: sendTo('worker', { type: 'PING' })
+  }
+}
+```
+
+```ts
+// v6
+on: {
+  PING: ({ children }, enq) => {
+    if (children.worker) {
+      enq.sendTo(children.worker, { type: 'PING' });
+    }
+  }
+}
+```
+
+Without the check, the send is a dead letter and development builds warn. When `worker` is absent, the v6 function enqueues nothing and returns `undefined`, so the event is unhandled; return `{}` to handle it without a transition. If a missing child indicates a bug in your application, drop the check and report `missingTarget` rejections from `onRejectedEvent`.
+
+### Error precedence
+
+An error thrown by a transition function, an effect, or a child actor is resolved by the first step that applies:
+
+1. The `onError` of the nearest active state that handles the error recovers it. The actor stays `active`.
+2. Otherwise the actor's status becomes `'error'`, and the actor stops all of its children, invoked and spawned.
+3. Subscribers with an `error` observer receive the error.
+4. If no subscriber has an `error` observer, the error is reported once as unhandled.
+
+A failed child reaches its parent as an `xstate.error.actor` event with `actorId` and `error` fields, which the parent resolves by the same steps. Select one child's failure with `matches: { actorId }` (see [Internal lifecycle events](#internal-lifecycle-events)). [Lifecycle and errors](lifecycle-and-errors.md) lists the full rules.
+
+---
+
+## 27. Codemod and side-by-side installs
+
+### Codemod
+
+<!-- CLI and transforms from packages/xstate-codemod/src/cli.ts and src/transforms/index.ts -->
+
+The `@xstate/codemod` package provides the `xstate-codemod` CLI. Review the changes with `--dry`, then run it again without `--dry` to write them:
+
+```bash
+npx @xstate/codemod migrate "src/**/*.ts" --dry
+npx @xstate/codemod migrate "src/**/*.ts"
+```
+
+It runs these transforms in order. `--transform name,name` selects a subset.
+
+| Transform             | Effect                                                                                                                                                                                                                                                                      |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rename-imports`      | Renames `interpret` to `createActor`, `Interpreter` to `Actor`, and `fromCallback`, `fromObservable`, and `fromEventObservable` to their `create*Logic` names, including usages. Import aliases are kept.                                                                  |
+| `string-targets`      | Wraps bare string transition values under `on`, `after`, `onDone`, `onError`, and `always` in `{ target: '...' }` inside `createMachine` and `createStateConfig` configs.                                                                                                   |
+| `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal.                                                                                                                         |
+| `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, and `fromTransition`, with a suggested replacement. |
+
+The codemod does not convert action creators or guard combinators. Rewrite each reported `assign`, `raise`, `sendTo`, or other action creator as an inline function by hand (§1, §2). The transforms read and write imports from `'xstate'` only.
+
+### Running v5 and v6 side by side
+
+Install v6 under an npm alias next to v5:
+
+```bash
+npm install xstate-v6@npm:xstate@alpha
+```
+
+`package.json` then lists `"xstate-v6": "npm:xstate@^6.0.0-alpha.<n>"` next to `"xstate"`. Import each version by its package name:
+
+```ts
+import { createMachine as createV5Machine } from 'xstate';
+import { createMachine } from 'xstate-v6';
+```
+
+Migrate one file at a time: run the codemod on it, finish the manual changes, then change its `'xstate'` imports to `'xstate-v6'`. When no v5 imports remain, remove the alias and install `xstate@alpha` as `xstate`.
+
+---
+
 ## Migration checklist
 
+- [ ] Run `xstate-codemod migrate --dry`, apply it, and migrate the APIs it reports by hand (§27)
 - [ ] Replace every `assign({...})` with an inline function returning a shallow `{ context: {...} }` patch
 - [ ] Replace every `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stopChild` with the corresponding `enq.*` call
 - [ ] Replace `enqueueActions(...)` with a regular inline `(args, enq) => { ... }` function
@@ -1357,6 +1551,11 @@ so `system.get('receiver')` is available without casts.
 - [ ] Drop dependencies on `@xstate/immer` and `@xstate/inspect`; update inspection to `actor.subscribe`, the `inspect` option, or `@statelyai/inspect`
 - [ ] Remove imports of `SetupReturn`, `GuardArgs`, `GuardPredicate`, `Inspected*Event`, `PromiseActorLogic`, and `fromPromise` (use `createAsyncLogic`)
 - [ ] Drain/migrate any v5 persisted snapshots - the v6 snapshot shape is not binary-compatible
+- [ ] Discard snapshots persisted by pre-beta v6 alphas; they have no `formatVersion`
+- [ ] Remove `tsTypes` and generated `*.typegen.ts` files
+- [ ] Replace transition arrays in `on` and `always` with one transition function
+- [ ] Rename `machine.implementations` to `machine.sources` and `snapshot._nodes` to `snapshot.nodes`; replace `spawn('name')` in `context` factories with `spawn(actors.name)`
+- [ ] Check for optional children before `enq.sendTo`, or report `missingTarget` dead letters from `onRejectedEvent`
 - [ ] Run `pnpm typecheck` and `pnpm test` to surface remaining issues
 
 ---
