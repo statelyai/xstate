@@ -1,16 +1,16 @@
 import {
-  Action,
-  AnyActorLogic,
-  AnyActorRef,
-  AnyEventObject,
-  AnyStateMachine,
-  EventObject,
-  MachineContext,
-  MetaObject
-} from '../types';
-import { Next_StateNodeConfig } from '../types.v6';
-import { createMachine } from '../createMachine';
-import { parseDelayToMilliseconds } from '../delay';
+  _parseDelayToMilliseconds as parseDelayToMilliseconds,
+  createMachine,
+  type Action,
+  type AnyActorLogic,
+  type AnyActorRef,
+  type AnyEventObject,
+  type AnyStateMachine,
+  type EventObject,
+  type MachineContext,
+  type MetaObject,
+  type StateNodeConfig as Next_StateNodeConfig
+} from 'xstate';
 
 function delayToMs(delay: string | number): number {
   const parsedDelay = parseDelayToMilliseconds(delay);

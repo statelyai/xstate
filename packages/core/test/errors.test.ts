@@ -16,8 +16,6 @@ import {
   setup
 } from '../src';
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
-import { createMachineFromSCXMLConfig } from '../src/scxml/runtime';
-import { compileSCXML } from '../src/scxml/scxml';
 import z from 'zod';
 
 // mocked reportUnhandledError due to unknown issue with vitest and global error
@@ -1510,57 +1508,6 @@ describe('error handling', () => {
     expect(errorSpy).toHaveBeenCalledWith(
       'invoked actor initialization failed'
     );
-  });
-
-  it('state onError catches SCXML error.communication from failed sends', () => {
-    const errorSpy = vi.fn();
-    const json = compileSCXML(`
-      <scxml xmlns="http://www.w3.org/2005/07/scxml" initial="active" version="1.0" datamodel="ecmascript">
-        <state id="active">
-          <onentry>
-            <send event="PING" target="#_scxml_missing"/>
-          </onentry>
-        </state>
-        <state id="failed"/>
-      </scxml>
-    `);
-
-    json.states!.active.onError = {
-      target: '#failed',
-      actions: [
-        {
-          type: 'captureError',
-          params: { '@expr': 'event', '@lang': 'test' }
-        }
-      ]
-    };
-
-    const machine = createMachineFromSCXMLConfig(json, {
-      actions: {
-        captureError: (event) => {
-          errorSpy({
-            type: event.type,
-            message: getErrorMessage(event.error)
-          });
-        }
-      },
-      evaluators: {
-        test: ({ source, scope }) => {
-          if (source === 'event') {
-            return scope.event;
-          }
-        }
-      }
-    });
-
-    const actor = createActor(machine).start();
-
-    expect(actor.getSnapshot().value).toBe('failed');
-    expect(actor.getSnapshot().status).toBe('active');
-    expect(errorSpy).toHaveBeenCalledWith({
-      type: 'xstate.error.communication',
-      message: 'Unable to dispatch event to target: #_scxml_missing'
-    });
   });
 
   it('state onError catches communication errors from undefined send targets', () => {

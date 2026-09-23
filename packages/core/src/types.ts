@@ -1191,7 +1191,12 @@ export interface AnyStateMachine extends AnyActorLogic {
   root: AnyStateNode;
   /** @internal */
   _hasEventlessTransitions?: boolean;
-  /** @internal Adapter hooks for actor-local transition evaluation state. */
+  /**
+   * Adapter hooks for actor-local transition evaluation state. Used by
+   * `@xstate/scxml`; not part of the stable API.
+   *
+   * @experimental
+   */
   _microstepHooks?:
     | {
         begin(self: AnyActor): void;

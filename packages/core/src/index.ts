@@ -139,6 +139,8 @@ export type {
   SentRecord
 } from './inspection.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
+/** @experimental Used by `@xstate/scxml`; not part of the stable API. */
+export { parseDelayToMilliseconds as _parseDelayToMilliseconds } from './delay.ts';
 export { type Spawner } from './spawn.ts';
 export { isMachineSnapshot, type MachineSnapshot } from './State.ts';
 export { StateMachine } from './StateMachine.ts';

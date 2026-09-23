@@ -980,6 +980,7 @@ These exports have been **removed** from `xstate`:
 - Deprecated snapshot helpers: `getInitialSnapshot(logic, input?)` and `getNextSnapshot(logic, snapshot, event)`. Use `initialTransition(logic, input?)` and `transition(logic, snapshot, event)`; the snapshot is the first element of the returned tuple.
 - Deprecated type aliases: `NoInfer` (use the built-in `NoInfer`), `AnyInterpreter` (use `AnyActor`), and `ResolvedStateMachineTypes`
 - `xstate/graph`: `getStateNodes(stateNode)` (all descendant state nodes) is renamed to `getDescendantStateNodes(stateNode)`. The root `getStateNodes(stateNode, stateValue)` export from `xstate` is unchanged.
+- The `xstate/scxml` entry point. `createMachineFromSCXML` moved to the separate `@xstate/scxml` package (`npm i @xstate/scxml`).
 
 `SpecialTargets` (the `Parent`/`Internal` enum) is still exported from `'xstate'` via `types.ts` and continues to work.
 
@@ -1246,11 +1247,11 @@ no JSON representation.
 ### SCXML
 
 `createMachineFromSCXML(scxml)` creates an XState machine from an SCXML
-document. Import it from the opt-in `xstate/scxml` entry point so the XML parser
-does not become part of the main `xstate` module graph.
+document. Install and import it from the separate `@xstate/scxml` package so the
+XML parser does not become a dependency of `xstate`.
 
 ```ts
-import { createMachineFromSCXML } from 'xstate/scxml';
+import { createMachineFromSCXML } from '@xstate/scxml';
 
 const machine = createMachineFromSCXML(scxml);
 ```
