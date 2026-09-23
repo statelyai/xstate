@@ -2396,7 +2396,7 @@ export type AnyActorScope = ActorScope<
 
 export type SnapshotStatus = 'active' | 'done' | 'error' | 'stopped';
 
-export type Snapshot<TOutput> =
+export type Snapshot<TOutput, TError = unknown> =
   | {
       status: 'active';
       output: undefined;
@@ -2410,7 +2410,7 @@ export type Snapshot<TOutput> =
   | {
       status: 'error';
       output: undefined;
-      error: unknown;
+      error: TError;
     }
   | {
       status: 'stopped';

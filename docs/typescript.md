@@ -91,6 +91,22 @@ entry: ({ event }) => {
 Without `schemas.children`, these events are not added. `on` handlers still
 narrow to their own event type.
 
+## Async logic errors
+
+`createAsyncLogic({ schemas: { error } })` types the actor's `error` snapshot
+field and `event.error` in the invoking machine's `onError`. The schema is
+type-only. Without it, the error is `unknown`:
+
+```ts
+const fetchUser = createAsyncLogic({
+  schemas: { error: z.object({ code: z.string() }) },
+  run: async () => ({ name: 'David' })
+});
+
+// in an invoke of fetchUser
+onError: ({ event }) => event.error.code; // string
+```
+
 ## Checked delay names
 
 When delays are declared with `setup({ delays })` or `createMachine({ delays })`,
