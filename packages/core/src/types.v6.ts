@@ -1360,7 +1360,7 @@ export interface Next_RegularStateNodeConfig<
    * in an interpreter.
    */
   after?: {
-    [K in NoInfer<TDelays> | number]?:
+    [K in NoInfer<TDelays> | number | DelayDurationKey]?:
       | Next_StaticTransitionConfig<
           TContext,
           AfterEvent,
@@ -1644,30 +1644,85 @@ type DelayNamesFromConfig<TConfig> = TConfig extends {
   ? Extract<keyof TDelays, string>
   : string;
 
+/**
+ * @public Duration-string `after` keys, which are parsed rather than looked
+ * up.
+ */
+export type DelayDurationKey =
+  | `${number}`
+  | `${number}ms`
+  | `${number}s`
+  | `P${string}`;
+
 // Checks only `after` keys (and nested `states`): a bad `after` key is accepted
 // structurally, so it needs validation here. A bad `timeout` string is already
 // rejected by the `timeout?:` field type, so it needs no branch.
-type InvalidDelayReferences<TConfig, TDelays extends string> =
-  | (TConfig extends { after: infer TAfter }
-      ? Exclude<Extract<keyof TAfter, string>, TDelays>
-      : never)
-  | (TConfig extends { states: infer TStates }
-      ? TStates extends Record<string, unknown>
-        ? {
-            [K in keyof TStates]: InvalidDelayReferences<TStates[K], TDelays>;
-          }[keyof TStates]
-        : never
-      : never);
+type InvalidDelayReferences<TConfig, TDelays extends string> = 0 extends 1 &
+  TConfig
+  ? never
+  :
+      | (TConfig extends { after: infer TAfter }
+          ? Exclude<Extract<keyof TAfter, string>, TDelays | DelayDurationKey>
+          : never)
+      | (TConfig extends { states: infer TStates }
+          ? TStates extends Record<string, unknown>
+            ? {
+                [K in keyof TStates]: InvalidDelayReferences<
+                  TStates[K],
+                  TDelays
+                >;
+              }[keyof TStates]
+            : never
+          : never);
 
-export type ValidateDelayReferences<TConfig> =
-  string extends DelayNamesFromConfig<TConfig>
+type InvalidDelayReferenceErrors<
+  TConfig,
+  TDelays extends string
+> = (TConfig extends { after: infer TAfter }
+  ? [
+      Exclude<Extract<keyof TAfter, string>, TDelays | DelayDurationKey>
+    ] extends [never]
+    ? {}
+    : {
+        after: {
+          [K in Exclude<
+            Extract<keyof TAfter, string>,
+            TDelays | DelayDurationKey
+          >]: `Delay '${K}' is not declared in delays.`;
+        };
+      }
+  : {}) &
+  (TConfig extends { states: infer TStates }
+    ? TStates extends Record<string, unknown>
+      ? {
+          states: {
+            [K in keyof TStates]: InvalidDelayReferenceErrors<
+              TStates[K],
+              TDelays
+            >;
+          };
+        }
+      : {}
+    : {});
+
+/**
+ * @public Rejects `after` keys that are neither a declared delay name, a number nor a
+ * duration string. Only applies when delay names are known; the error is
+ * reported at the offending key.
+ */
+export type ValidateDelayNames<
+  TConfig,
+  TDelays extends string
+> = string extends TDelays
+  ? unknown
+  : [InvalidDelayReferences<TConfig, TDelays>] extends [never]
     ? unknown
-    : InvalidDelayReferences<
-          TConfig,
-          DelayNamesFromConfig<TConfig>
-        > extends never
-      ? unknown
-      : never;
+    : InvalidDelayReferenceErrors<TConfig, TDelays>;
+
+export type ValidateDelayReferences<TConfig> = ValidateDelayNames<
+  TConfig,
+  DelayNamesFromConfig<TConfig>
+>;
 
 type UndeclaredEventDescriptors<
   TConfig,
@@ -1718,7 +1773,7 @@ type UndeclaredEventDescriptorErrors<
     : {});
 
 /**
- * Rejects `on` keys that match no declared event type. Only applies when the
+ * @public Rejects `on` keys that match no declared event type. Only applies when the
  * event union is closed (e.g. `schemas.events` is declared); wildcards,
  * partial wildcards and reserved `xstate.*` event types are always allowed.
  * The error is reported at the offending key.

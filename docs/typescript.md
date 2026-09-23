@@ -73,6 +73,19 @@ inferred types, including when registered actors are used in inline transitions
 or invokes. Declaration output retains event, state, input and child-actor
 contracts without exposing each inline callback's full contextual type.
 
+## Checked delay names
+
+When delays are declared with `setup({ delays })` or `createMachine({ delays })`,
+each `after` key must be a declared delay name, a number of milliseconds, or a
+duration string such as `'5s'`. Without declared delays, any key is accepted.
+
+```ts
+after: {
+  retryDelya: { target: 'retrying' }
+  // Type error: Delay 'retryDelya' is not declared in delays.
+}
+```
+
 ## Runtime validation
 
 <!-- runtime validation API and boundaries from packages/core/src/validation.types.ts, packages/core/src/validation/index.ts, and packages/core/src/setup.ts -->
