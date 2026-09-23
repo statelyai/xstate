@@ -126,3 +126,20 @@ export function createErrorPlatformEvent(
 export function createInitEvent(input: unknown) {
   return { type: XSTATE_INIT, input } as const;
 }
+
+// Terminations whose completion `transitionChild` already delivered to the
+// parent. Identity-keyed: the same object flows from the effect's exec through
+// any host runtime's `terminateActor` into the actor, so the local default
+// publishes to observers without relaying the completion a second time.
+const foldedTerminations = new WeakSet<object>();
+
+/** @internal */
+export function markFoldedTermination<T extends object>(termination: T): T {
+  foldedTerminations.add(termination);
+  return termination;
+}
+
+/** @internal */
+export function isFoldedTermination(termination: object): boolean {
+  return foldedTerminations.has(termination);
+}

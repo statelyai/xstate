@@ -14,10 +14,12 @@ import {
 } from '../system.ts';
 import type { InspectionEvent } from '../inspection.ts';
 import { initialTransition, transition } from '../transition.ts';
+import { transitionChild } from '../childSnapshot.ts';
 import type {
   AnyActor,
   AnyActorLogic,
   AnyEventObject,
+  AnyStateMachine,
   CustomExecutableActionObject,
   EventFromLogic,
   ExecutableActionObjectFromLogic,
@@ -192,6 +194,25 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
   transition(
     snapshot: SnapshotFrom<TLogic>,
     event: EventFromLogic<TLogic>
+  ): [
+    snapshot: DurableSnapshot<TLogic>,
+    effects: DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
+  ];
+  /**
+   * Delivers `event` to the actor at `address` within the snapshot's embedded
+   * actor tree and returns the next root snapshot, like `transitionChild(…)`.
+   * Completions fold upward in the same call, and every effect of the
+   * cascade is tagged under one `transitionIndex`: one journal entry
+   * `(address, event)` produces one root snapshot.
+   *
+   * With the root's address, this is `transition(snapshot, event)`.
+   *
+   * @experimental
+   */
+  transitionChild(
+    snapshot: SnapshotFrom<TLogic>,
+    address: string,
+    event: AnyEventObject
   ): [
     snapshot: DurableSnapshot<TLogic>,
     effects: DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
@@ -569,6 +590,22 @@ export function createDurable<TLogic extends AnyActorLogic>(
         )
       );
       return [installSystemRuntime(nextSnapshot), tagEffects(effects)];
+    },
+    transitionChild(snapshot, address, event) {
+      const [nextSnapshot, effects] = withSystemInspector(inspect, () =>
+        withExecutionIdentity(executionIdentity, () =>
+          transitionChild(
+            logic as unknown as AnyStateMachine,
+            snapshot as never,
+            address,
+            event
+          )
+        )
+      );
+      return [
+        installSystemRuntime(nextSnapshot as DurableSnapshot<TLogic>),
+        tagEffects(effects as ExecutableActionObjectFromLogic<TLogic>[])
+      ];
     },
     getActorRef(snapshot, address) {
       const root = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;

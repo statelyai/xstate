@@ -20,6 +20,7 @@ import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
   rejectUndeliverableEvent,
   deliverEvent,
+  startActor as startActorLocally,
   stopActor as stopActorLocally,
   terminateActor as terminateActorLocally,
   runStep
@@ -837,7 +838,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     if (override) {
       return override(actor);
     }
-    actor.start();
+    startActorLocally(actor);
   }
 
   public stopActor(actor: AnyActor): void | PromiseLike<void> {

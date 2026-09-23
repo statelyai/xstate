@@ -209,7 +209,13 @@ export {
 export {
   deliverEvent,
   runStep,
+  startActor,
   stopActor,
   terminateActor
 } from './runtimeHelpers.ts';
+export {
+  getChildSnapshot,
+  withChildSnapshot,
+  transitionChild
+} from './childSnapshot.ts';
 export { waitFor } from './waitFor.ts';

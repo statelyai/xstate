@@ -193,8 +193,10 @@ scheduleTimer: (source, id, delay) => {
 entry contains its deterministic `id`, declared `delay`, delivery type, event
 and logical target. It intentionally has no host deadline or remaining-time
 field: persist that bookkeeping atomically with accepting `scheduleTimer`.
-For a child timer, retain `source.address`; after restoring the tree,
-`durable.getActorRef(snapshot, address)` resolves the current timer source.
+For a child timer, retain `source.address` and deliver the firing with
+`transitionChild(snapshot, source.address, { type: 'xstate.timer', id })`
+(`durable.transitionChild` in a durable execution). See
+[Child actors in a whole-tree checkpoint](#child-actors-in-a-whole-tree-checkpoint).
 
 When a state exits before its timer fires, the transition removes the entry
 from `snapshot.timers` and emits `cancelTimer(source, id)`. Stopping an actor
@@ -224,26 +226,38 @@ batch), so "effects executed" means "safe to checkpoint and suspend". Hosts
 whose step or activity model forbids concurrent entries can rely on that
 ordering, including for the operations a stop cascade initiates. Calls to
 `executeEffects` themselves must not overlap; starting a new batch before the
-previous call settles throws. A rejected batch may be retried, but retries
-re-run every operation in it — including local delivery to co-located
-children — so a retried batch can re-deliver events the first attempt already
-delivered. Hosts that retry need idempotent operations, keyed by the effect
-ID.
+previous call settles throws.
 
-Delivery is at-most-once with pairwise sender-to-receiver ordering: for a
-given pair of actors, events sent from the first to the second are enqueued
-in send order, and an undeliverable event is dropped rather than retried.
-This matches the Erlang and Akka defaults. A dropped event is reported
-through the `deadLetter` runtime operation (and a `@xstate.deadLetter`
-inspection event) — observability, not retry. Ordering is not transitive
+Effects execute at least once. A rejected batch may be retried, and a retried
+or replayed batch re-runs every operation in it, including local delivery to
+co-located children. Every runtime operation must therefore be idempotent,
+keyed by the effect ID (`<transitionIndex>:<effectIndex>`). Timers are keyed
+by `(source.address, id)`.
+
+Event delivery between actors is at-most-once per accepted operation, with
+pairwise sender-to-receiver ordering: for a given pair of actors, events sent
+from the first to the second are enqueued in send order, and an undeliverable
+event is dead-lettered rather than retried. This matches the Erlang and Akka
+defaults. A dead letter is reported through the `deadLetter` runtime
+operation (and a `@xstate.deadLetter` inspection event) — observability, not
+retry. Ordering is not transitive
 across intermediaries. The durable path is stronger — the handoff queue serializes
 every operation of an execution globally. A host `sendEvent` that routes
 remotely is responsible for preserving pairwise ordering on its transport.
 
+Stale inputs are ignored, not errors. A timer firing whose timer is no longer
+pending is ignored, and a child completion that carries a different
+incarnation (`sessionId`) than the child currently at that id is dropped. Do
+not construct completion events yourself: they lack the incarnation and
+bypass that check, and development builds warn about them. `transition()` and
+`transitionChild()` deliver completions for co-located children. Incarnations
+of local children do not survive persist and restore unless `executionId` is
+pinned.
+
 Because every handoff queues, a runtime operation must never await another
 runtime operation of the same execution through the actor system — it would
-wait behind itself. The `deliverEvent`, `stopActor` and `terminateActor`
-helpers exported from `xstate` expose the local behaviors and are always safe
+wait behind itself. The `deliverEvent`, `startActor`, `stopActor` and
+`terminateActor` helpers exported from `xstate` expose the local behaviors and are always safe
 to call directly. An implemented runtime operation replaces the local
 behavior entirely, including its bookkeeping — a `stopActor` that only journals
 must call the `stopActor` helper for the local stop cascade, and a `sendEvent`
@@ -259,6 +273,23 @@ event reaches `enqueueRootEvent`, or `sendEvent` when the adapter implements
 the broader routing override, and belongs in the host's mailbox. Producing one
 without either hook throws, since delivering it locally to the inert root
 would silently lose it.
+
+Lifecycle operations do host bookkeeping and then call the local helper. They
+never compute transitions: calling `transition()` or `executeEffects()` inside
+`startActor`, `stopActor` or `terminateActor` produces a snapshot the drive
+loop never stores, overlaps the running batch, and re-runs initialization.
+Change the state of other actors only at the top of the drive loop, with
+`transitionChild(snapshot, address, event)` addressed from effect
+descriptors.
+
+- `startActor(actor)`: record the start, then call the `startActor` helper.
+  It flushes the child's initial effects through the installed runtime, so a
+  grandchild's `scheduleTimer` reaches the host.
+- `stopActor(actor)`: clean up host state for `actor.address`, such as its
+  alarms, then call the `stopActor` helper.
+- `terminateActor(actor, termination)`: notification only. In a whole-tree
+  checkpoint, `transition()` or `transitionChild()` already delivered the
+  completion to the parent.
 
 ### Journaling rules
 
@@ -343,6 +374,70 @@ across the whole live actor tree, including transitions computed by the pure
 path. This is host observability, not part of the durable contract: use it
 for operation logs, tracing and test instrumentation, and keep the adapter
 itself pure physics.
+
+## Child actors in a whole-tree checkpoint
+
+A host that stores the whole actor tree in one checkpoint, such as one
+document per root, transitions nested children with the pure API instead of
+running them as live actors. These functions operate on restored snapshots,
+the same kind `transition()` accepts and returns:
+
+- `getChildSnapshot(snapshot, address)` returns the snapshot of the actor at
+  `address`, or `undefined` when no co-located actor has that address.
+- `withChildSnapshot(snapshot, address, childSnapshot)` returns a new root
+  snapshot in which that actor reports `childSnapshot`. The original snapshot
+  is unchanged.
+- `transitionChild(machine, snapshot, address, event)` delivers `event` to
+  the actor at `address` and returns `[nextSnapshot, effects]` for the root.
+  With the root's address, it is the same as `transition()`.
+
+Addresses are absolute, as in effect descriptors: `root/worker/retry`. When
+the child reaches a final state or fails, `transitionChild()` delivers its
+completion to the parent in the same call, and continues up the tree until
+an ancestor stays active. The returned effects include each actor's
+`@xstate.terminate` effect. Executing it notifies observers and the host's
+`terminateActor`, but does not deliver the completion a second time. This
+assumes a single writer: one host loop owns the checkpoint, and nothing
+transitions the tree between a child's completion and its parent's reaction.
+
+In the following example, `root` invokes `worker`, which invokes `retry`.
+After 1000 ms, `retry` moves from `idle` to its final state `ended`; `worker`
+and `root` each move to a final state on their child's `onDone`. The host
+stored `source.address` and `id` when it accepted `scheduleTimer`:
+
+```ts
+import { executeEffects, transitionChild } from 'xstate';
+
+async function onTimer(address: string, id: string) {
+  // address: 'root/worker/retry', id: 'xstate.after.1000.retry.idle'
+  const snapshot = rootMachine.restoreSnapshot(await loadSnapshot());
+  const [next, effects] = transitionChild(rootMachine, snapshot, address, {
+    type: 'xstate.timer',
+    id
+  });
+  // effects, in order:
+  //   cancelTimer (root/worker/retry), terminate root/worker/retry,
+  //   stop root/worker/retry, terminate root/worker,
+  //   stop root/worker, terminate root
+  await executeEffects(effects, runtime);
+  // next.status === 'done'
+  await saveSnapshot(rootMachine.getPersistedSnapshot(next));
+}
+```
+
+A timer fires as `{ type: 'xstate.timer', id }`, not as its `xstate.after.*`
+event. A stale firing, where the timer was canceled or its state exited,
+returns the snapshot unchanged with no effects. An unknown address throws,
+for example when the actor already completed; check it with
+`getChildSnapshot()` first, or drop the alarm. An address whose path crosses
+a child persisted with `{ embedChildren: false }` throws, since that child's
+state lives with another runtime. Hosts that store each actor separately use
+`transition()` per actor and route completions from the `@xstate.terminate`
+effect descriptor.
+
+In a durable execution, `durable.transitionChild(snapshot, address, event)`
+tags every effect of the cascade under one `transitionIndex`, so one journal
+entry `(address, event)` produces one root snapshot on replay.
 
 ## Rejected events
 

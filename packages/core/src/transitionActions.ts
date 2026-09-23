@@ -8,7 +8,10 @@ import {
   type SubscriptionMappers
 } from './actors/subscription.ts';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
-import { createErrorPlatformEvent } from './eventUtils.ts';
+import {
+  createErrorPlatformEvent,
+  markFoldedTermination
+} from './eventUtils.ts';
 import {
   getActorIdPrefix,
   parseGeneratedActorId,
@@ -169,7 +172,27 @@ function execTerminateEffect(
     this.status === 'done'
       ? { status: 'done', output: this.output, error: undefined }
       : { status: 'error', output: undefined, error: this.error };
+  if ((this as { [foldedTerminateEffect]?: true })[foldedTerminateEffect]) {
+    markFoldedTermination(termination);
+  }
   return runtime.terminateActor!(this.actor, termination);
+}
+
+const foldedTerminateEffect = Symbol('xstate.foldedTerminate');
+
+/**
+ * Marks a `@xstate.terminate` effect whose completion event was already
+ * delivered to the parent (`transitionChild` folds completions upward). Its
+ * default execution publishes to observers but does not relay the completion
+ * again. The marker is non-enumerable, so descriptors and journals are
+ * unaffected.
+ *
+ * @internal
+ */
+export function markFoldedTerminateEffect(
+  effect: TerminateExecutableActionObject
+): void {
+  Object.defineProperty(effect, foldedTerminateEffect, { value: true });
 }
 
 function execRaiseEffect(
