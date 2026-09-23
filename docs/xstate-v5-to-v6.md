@@ -39,6 +39,7 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 | `tsTypes` (typegen)                                     | removed; declare types with `schemas` (§3)                                                                                          |
 | `machine.implementations`                               | `machine.sources`                                                                                                                   |
 | `snapshot._nodes`                                       | `snapshot.nodes`                                                                                                                    |
+| `systemId` (`createActor`, `invoke`, spawn options)     | `registryKey`; look up with `system.get(registryKey)`                                                                               |
 | `spawn('name')` in a `context` factory                  | `spawn(actors.name)`                                                                                                                |
 
 ---
@@ -1068,6 +1069,7 @@ The `xstate/fsm` subpath exports the pure `createFSM` API plus a lightweight
 
 - `machine.implementations` is now `machine.sources`, and the `MachineImplementationsFrom` type is now `MachineSourcesFrom`.
 - `snapshot._nodes` is now `snapshot.nodes`. It lists the active state nodes.
+- The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). `systemId` is not accepted as an option.
 - The `spawn` function passed to a `context` factory accepts actor logic only. Replace `spawn('worker')` with `spawn(actors.worker)`, using the `actors` argument of the same factory.
 - Transition arrays are not accepted, in `on` or in `always`. Select among targets in one transition function (see §15).
 - Actor `sessionId`s are unique across actor systems and have the form `<systemId>:<n>`, where `systemId` is random. v5 used `x:<n>`. Code that parsed or compared `sessionId`s across systems must not rely on the format.
