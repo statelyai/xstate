@@ -612,7 +612,13 @@ export type TransitionConfigFunction<
     TDelayMap,
     TChildren
   > & { input: TInput },
-  enq: EnqueueObject<TEvent, TEmitted, SystemRegistry, TActorMap, TChildren>
+  enq: EnqueueObject<
+    TEvent,
+    TEmitted,
+    SystemRegistry,
+    Compute<CallbackActors<TActorMap>>,
+    TChildren
+  >
 ) => {
   target?: string | string[];
   // target?: keyof TSS['states'];
@@ -621,6 +627,21 @@ export type TransitionConfigFunction<
   meta?: TMeta;
   input?: Record<string, unknown>;
 } | void;
+
+/**
+ * The actor-logic surface available in inline callbacks. The outer `Compute`
+ * at each use site is necessary: otherwise declaration emit repeats the
+ * registered machine's structural type in every callback signature.
+ */
+export type CallbackActors<T extends Sources['actors']> = {
+  [K in keyof T]: ActorLogic<
+    OpaqueMachineSnapshot<SnapshotFrom<T[K]>>,
+    EventFromLogic<T[K]>,
+    InputFrom<T[K]>,
+    AnyActorSystem,
+    EmittedFrom<T[K]>
+  >;
+};
 
 type TransitionFunctionArgs<
   TContext,
@@ -655,7 +676,7 @@ type TransitionFunctionArgs<
   children: TChildren;
   system: AnyActorSystem;
   actions: TActionMap;
-  actors: TActorMap;
+  actors: Compute<CallbackActors<TActorMap>>;
   guards: TGuardMap;
   delays: TDelayMap;
 } & OutputArg<TCurrentEvent>;

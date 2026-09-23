@@ -45,7 +45,8 @@ import {
   SingleOrArray,
   AfterEvent,
   TimeoutEvent,
-  ErrorEvent
+  ErrorEvent,
+  CallbackActors
 } from './types.ts';
 import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
@@ -2663,6 +2664,35 @@ type SetupMachineStateSchema<
       >
     : Cast<TConfig, StateSchema>;
 
+// Keep inline invoke logic visible to consumers such as @xstate/effect while
+// excluding contextual callback types from the emitted state schema.
+type PublicInvoke<T> = T extends readonly (infer TEntry)[]
+  ? readonly PublicInvoke<TEntry>[]
+  : T extends { src: infer TSrc }
+    ? { src: TSrc }
+    : never;
+
+// Do not use Pick<T, K>: declaration emit embeds the entire inferred T in it.
+type PublicStateField<T, K extends keyof StateSchema> =
+  T extends Record<K, infer TValue> ? { [P in K]: TValue } : {};
+
+type PublicStateSchema<T extends StateSchema> = {
+  input: T extends { input: infer TInput } ? TInput : undefined;
+} & PublicStateField<T, 'id'> &
+  PublicStateField<T, 'route'> &
+  PublicStateField<T, 'type'> &
+  PublicStateField<T, 'history'> &
+  PublicStateField<T, 'target'> &
+  PublicStateField<T, 'initial'> &
+  PublicStateField<T, 'contextSchema'> &
+  PublicStateField<T, 'outputSchema'> &
+  (T extends { invoke: infer TInvoke }
+    ? { invoke: PublicInvoke<TInvoke> }
+    : {}) &
+  (T extends { states: infer TStates extends Record<string, StateSchema> }
+    ? { states: { [K in keyof TStates]: PublicStateSchema<TStates[K]> } }
+    : {});
+
 /** Machine config without setup-declared state contracts. */
 type SetupMachineConfigBase<
   _TStateSchemas extends Record<string, SetupStateSchema>,
@@ -3662,7 +3692,7 @@ type StateTransitionContextMapper<
     children: TChildren;
     system: SystemRuntime<TSystemRegistry>;
     actions: TActionMap;
-    actors: TActorMap;
+    actors: Compute<CallbackActors<TActorMap>>;
     guards: TGuardMap;
     delays: TDelayMap;
   } & OutputArg<TExpressionEvent>
@@ -3752,12 +3782,18 @@ type StateTransitionFunction<
     children: TChildren;
     system: SystemRuntime<TSystemRegistry>;
     actions: TActionMap;
-    actors: TActorMap;
+    actors: Compute<CallbackActors<TActorMap>>;
     guards: TGuardMap;
     delays: TDelayMap;
     input: TInput;
   } & OutputArg<TExpressionEvent>,
-  enq: EnqueueObject<TEvent, TEmitted, TSystemRegistry, TActorMap, TChildren>
+  enq: EnqueueObject<
+    TEvent,
+    TEmitted,
+    TSystemRegistry,
+    Compute<CallbackActors<TActorMap>>,
+    TChildren
+  >
 ) => StateTransitionResult<
   TStateSchemas,
   TContext,
@@ -4212,7 +4248,7 @@ export interface SetupReturn<
     SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig, TStates>,
     SetupEmitted<TSchemas, TEmittedSchemaMap>,
     SetupMeta<TSchemas, TMetaSchema>,
-    SetupMachineStateSchema<TConfig, TStates>,
+    PublicStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
     MergeSourceMaps<
       SetupActions<TSchemas, TSetupActionMap>,
       MergeSourceMaps<InferActions<TActionSchemaMap>, TActionMap>
