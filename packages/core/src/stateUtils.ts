@@ -2374,7 +2374,7 @@ export class InfiniteTransitionError extends Error {
     states: StateValue[]
   ) {
     super(
-      `Infinite transition loop in actor "${actorId}" processing event "${
+      `Infinite loop detected in actor "${actorId}" processing event "${
         event.type
       }": more than ${maxIterations} microsteps without reaching a stable state. Last states: ${states
         .map((value) => JSON.stringify(value))
