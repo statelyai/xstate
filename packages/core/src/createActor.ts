@@ -339,14 +339,27 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         this._initialEffects = effects.length ? effects : undefined;
       }
     } catch (err) {
-      // if we get here then it means that we assign a value to this._snapshot that is not of the correct type
-      // we can't get the true `TSnapshot & { status: 'error'; }`, it's impossible
-      // so right now this is a lie of sorts
-      this._setSnapshot({
-        status: 'error',
-        output: undefined,
-        error: err
-      } as SnapshotFrom<TLogic>);
+      const restoreErrorSnapshot =
+        persistedState &&
+        (
+          this.logic as {
+            _createRestoreErrorSnapshot?: (
+              persisted: unknown,
+              error: unknown
+            ) => SnapshotFrom<TLogic>;
+          }
+        )._createRestoreErrorSnapshot?.(persistedState, err);
+      // Machine logic keeps its snapshot shape on restore failures. Otherwise
+      // we can't get the true `TSnapshot & { status: 'error'; }`, so this is a
+      // lie of sorts.
+      this._setSnapshot(
+        restoreErrorSnapshot ??
+          ({
+            status: 'error',
+            output: undefined,
+            error: err
+          } as SnapshotFrom<TLogic>)
+      );
       // discard any functions deferred during the failed initial snapshot
       // computation so they can't run against an inconsistent actor
       if (this._deferred) {

@@ -89,4 +89,21 @@ describe('restoring terminal snapshots', () => {
     );
     expect(error).toHaveBeenCalledExactlyOnceWith(snapshot.error);
   });
+
+  it('restore failure yields a machine snapshot with matches()', () => {
+    const persisted = createActor(machine).start().getPersistedSnapshot();
+    const invalid = { ...persisted, value: 'missing' } as typeof persisted;
+    const actor = createActor(machine, { snapshot: invalid });
+    const error = vi.fn();
+    actor.subscribe({ error });
+    actor.start();
+
+    const snapshot = actor.getSnapshot();
+    expect(snapshot.status).toBe('error');
+    expect(typeof snapshot.matches).toBe('function');
+    expect(typeof snapshot.can).toBe('function');
+    expect(snapshot.children).toEqual({});
+    expect(snapshot.nodes).toEqual([machine.root]);
+    expect(error).toHaveBeenCalledExactlyOnceWith(snapshot.error);
+  });
 });

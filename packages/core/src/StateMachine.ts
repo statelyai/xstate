@@ -1351,6 +1351,42 @@ export class StateMachine<
    */
   public _json?: Record<string, unknown>;
 
+  /**
+   * @internal Builds a machine-shaped `'error'` snapshot (root configuration,
+   * no children) for a persisted snapshot that failed to restore, so
+   * consumers keep `matches()`, `can()` and friends.
+   */
+  public _createRestoreErrorSnapshot(
+    persisted: unknown,
+    error: unknown
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta,
+    TConfig
+  > {
+    const context = (persisted as { context?: unknown } | undefined)?.context;
+    return cloneMachineSnapshot(
+      createMachineSnapshot(
+        {
+          context:
+            context && typeof context === 'object'
+              ? (context as TContext)
+              : ({} as TContext),
+          _nodes: [this.root],
+          children: {},
+          status: 'active'
+        },
+        this
+      ),
+      { status: 'error', error }
+    ) as any;
+  }
+
   public restoreSnapshot(
     snapshot: Snapshot<unknown>,
     actorScope?: ActorScope<
