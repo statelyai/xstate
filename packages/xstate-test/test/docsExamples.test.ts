@@ -1075,6 +1075,42 @@ describe('README: Concepts (pick)', () => {
   });
 });
 
+describe('README: Concepts (events)', () => {
+  const checkoutCase = '["event-case","CHECKOUT","default"]';
+
+  it('sends events the current state has no transition for', async () => {
+    // Only `CHECKOUT` on an empty cart: the machine has no enabled
+    // transition, yet every generated event is sent and counted as executed.
+    const { coverage } = await propertyTest(cartMachine, {
+      seed: 1,
+      numRuns: 10,
+      events: { CHECKOUT: fc.constant({}) },
+      sut: cartSut
+    });
+    const checkout = coverage.eventCases[checkoutCase];
+    expect(checkout.executed).toBeGreaterThan(0);
+    expect(checkout.ignored).toBe(0);
+  });
+
+  it('skips unhandled events with snapshot.can(event)', async () => {
+    const { coverage } = await propertyTest(cartMachine, {
+      seed: 1,
+      numRuns: 10,
+      events: {
+        CHECKOUT: {
+          generate: fc.constant({}),
+          when: ({ snapshot, event }) => snapshot.can(event)
+        }
+      },
+      sut: cartSut
+    });
+    const checkout = coverage.eventCases[checkoutCase];
+    expect(checkout.generated).toBeGreaterThan(0);
+    expect(checkout.executed).toBe(0);
+    expect(checkout.ignored).toBe(checkout.generated);
+  });
+});
+
 describe('README: How-to guides (oracles, failures, and Vitest)', () => {
   it('Test a web page with Playwright: page oracles', async () => {
     const page = new FakePage();

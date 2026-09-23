@@ -15,18 +15,22 @@
     </main>
     <script>
       const steps = ['name', 'email', 'review'];
+      // `?bug` plants a defect for the failing test in `form.spec.ts`.
+      const bug = new URLSearchParams(location.search).has('bug');
       const state = { step: 'name', name: '', email: '', error: '' };
 
       const stepEl = document.querySelector('#step');
       const errorEl = document.querySelector('#error');
       const fieldEl = document.querySelector('#field');
       const summaryEl = document.querySelector('#summary');
+      const nextEl = document.querySelector('#next');
 
       function render() {
         stepEl.textContent = state.step;
         errorEl.textContent = state.error;
         fieldEl.value = state.step === 'email' ? state.email : state.name;
         fieldEl.disabled = state.step === 'review' || state.step === 'done';
+        nextEl.textContent = state.step === 'review' ? 'Submit' : 'Next';
         summaryEl.textContent =
           state.step === 'review' || state.step === 'done'
             ? `${state.name} <${state.email}>`
@@ -38,7 +42,10 @@
           return state.name.trim().length > 0 ? '' : 'name is required';
         }
         if (state.step === 'email') {
-          return state.email.includes('@') ? '' : 'email is invalid';
+          const valid = bug
+            ? state.email.length > 0
+            : state.email.includes('@');
+          return valid ? '' : 'email is invalid';
         }
         return '';
       }
@@ -53,7 +60,10 @@
         render();
       });
 
-      document.querySelector('#next').addEventListener('click', () => {
+      nextEl.addEventListener('click', () => {
+        if (state.step === 'done') {
+          return;
+        }
         if (state.step === 'review') {
           state.step = 'done';
           state.error = '';

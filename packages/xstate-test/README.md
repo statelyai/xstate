@@ -186,8 +186,14 @@ event cases:
   - REMOVE / default: 147 generated, 112 applicable, 112 executed, 35 ignored
 ```
 
-An event case is `ignored` when the machine does not accept it in the current
-state, such as `CHECKOUT` on an empty cart.
+An event case is `ignored` when it is not applicable to the current step. Here,
+that is every event generated after `CHECKOUT` reaches the final `checkedOut`
+state and the actor stops. A case is also inapplicable when its `when` returns
+`false`, its `resolve` or `pick()` returns nothing, or `swarm` leaves it out of
+the run. Whether the machine has a transition for the event does not matter:
+`CHECKOUT` on an empty cart is sent to the machine and the cart, the machine
+stays in `shopping`, and the case counts as executed. See [Events](#events) to
+skip such events.
 
 ### Walk the state graph with `testPaths()`
 
@@ -279,6 +285,22 @@ events: {
 | `when` | Returns `false` to make the case inapplicable for the current snapshot and event. |
 | `resolve` | Turns the generated value into a payload using the current model snapshot. Returning `undefined` makes the case inapplicable. |
 | `weight` | Relative generation frequency under `propertyTest()`. Defaults to `1`. |
+
+The runner sends an applicable event even when the current state has no
+transition for it. The machine does not change, the event reaches the SUT, and
+the step checks that the SUT ignores it too. To send only events the machine
+handles in the current state, use `snapshot.can(event)`:
+
+```ts
+events: {
+  CHECKOUT: {
+    generate: fc.constant({}),
+    when: ({ snapshot, event }) => snapshot.can(event)
+  }
+}
+```
+
+`CHECKOUT` on an empty cart is then `ignored` rather than executed.
 
 `resolve` is for payloads that must refer to the current state, such as an item
 that is already in the cart. fast-check shrinks the generated value, and the

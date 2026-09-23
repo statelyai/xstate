@@ -16,9 +16,12 @@ export const formMachine = createMachine({
   states: {
     name: {
       on: {
-        FILL: ({ context, event }) => ({
-          context: { name: event.value, error: '' }
-        }),
+        // The page clears the error on `input`, which a fill that leaves the
+        // value unchanged does not fire.
+        FILL: ({ context, event }) =>
+          event.value === context.name
+            ? undefined
+            : { context: { name: event.value, error: '' } },
         NEXT: ({ context }) =>
           context.name.trim().length > 0
             ? { target: 'email', context: { error: '' } }
@@ -27,9 +30,10 @@ export const formMachine = createMachine({
     },
     email: {
       on: {
-        FILL: ({ context, event }) => ({
-          context: { email: event.value, error: '' }
-        }),
+        FILL: ({ context, event }) =>
+          event.value === context.email
+            ? undefined
+            : { context: { email: event.value, error: '' } },
         BACK: () => ({ target: 'name', context: { error: '' } }),
         NEXT: ({ context }) =>
           context.email.includes('@')
