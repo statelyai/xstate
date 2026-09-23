@@ -1357,9 +1357,6 @@ From `xstate/graph`, also available from `@xstate/test`:
 | `getShortestPaths`, `getSimplePaths`, `getPathsFromEvents` | Path generators. |
 | `fromTestParam(testParam)` | Converts a 1.0 beta `{ events, states }` object to a `sut`. Deprecated. |
 
-Names with a `Property` prefix that also exist with a `Test` prefix, such as
-`PropertyCoverage` and `formatPropertyCoverage()`, are deprecated aliases.
-
 Subpath entrypoints:
 
 | Entrypoint | Exports |

@@ -3,36 +3,6 @@ import * as graph from '../index.ts';
 import { testPaths, fromTestParam } from '../testPaths.ts';
 import type { Step } from '../types.ts';
 
-/** Every deprecated value alias and the export it must be identical to. */
-const DEPRECATED_VALUE_ALIASES: ReadonlyArray<readonly [string, string]> = [
-  ['PropertyTestFailure', 'ModelTestFailure'],
-  ['PropertyReplayNotReproducedError', 'ReplayNotReproducedError'],
-  ['formatPropertyTrace', 'formatTestTrace'],
-  ['serializePropertyTrace', 'serializeTestTrace'],
-  ['replayPropertyTest', 'replayTest'],
-  ['assertPropertyCoverage', 'assertTestCoverage'],
-  ['formatPropertyCoverage', 'formatTestCoverage'],
-  ['formatPropertyCoverageHTML', 'formatTestCoverageHTML'],
-  ['formatPropertyCoverageJUnit', 'formatTestCoverageJUnit'],
-  ['formatPropertyCoverageId', 'formatTestCoverageId'],
-  ['propertyCoverageToJSON', 'testCoverageToJSON'],
-  ['describePropertySuite', 'describeTestSuite'],
-  ['generatePropertySuite', 'generateTestSuite'],
-  ['replayPropertySuite', 'replayTestSuite'],
-  ['replayPropertySuiteFixture', 'replayTestSuiteFixture'],
-  ['serializePropertySuite', 'serializeTestSuite'],
-  ['parsePropertySuite', 'parseTestSuite'],
-  ['formatPropertySuiteFixtureTitle', 'formatTestSuiteFixtureTitle']
-];
-
-describe('deprecated aliases', () => {
-  it.each(DEPRECATED_VALUE_ALIASES)('`%s` is `%s`', (alias, target) => {
-    const exports = graph as unknown as Record<string, unknown>;
-    expect(exports[alias]).toBeDefined();
-    expect(exports[alias]).toBe(exports[target]);
-  });
-});
-
 const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'off',

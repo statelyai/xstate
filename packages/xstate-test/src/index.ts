@@ -13,11 +13,9 @@
 export * from 'xstate/graph';
 
 export {
-  generatePropertySuite,
   generateTestSuite,
   propertyTest,
   testPaths,
-  type FastCheckGeneratePropertySuiteOptions,
   type FastCheckGenerateTestSuiteOptions,
   type FastCheckPropertyTestOptions,
   type FastCheckTestPathsOptions

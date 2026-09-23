@@ -13,7 +13,6 @@ export { getShortestPaths } from './shortestPaths.ts';
 export { getSimplePaths } from './simplePaths.ts';
 export * from './propertyTest.ts';
 export * from './testPaths.ts';
-export * from './deprecated.ts';
 export * from './eventDescriptors.ts';
 export * from './suite.ts';
 export * from './types.ts';

@@ -424,19 +424,3 @@ export async function testPaths<
     TestPathsResult<SnapshotFromSource<TSource>, EventFromSource<TSource>>
   >;
 }
-
-/**
- * Pre-2.0 name for {@link generateTestSuite}. Re-exported here (rather than
- * inherited from `xstate/graph`) so it keeps the implicit fast-check adapter;
- * the generator-neutral one requires an explicit `adapter`.
- *
- * @deprecated Use `generateTestSuite()`.
- */
-export const generatePropertySuite = generateTestSuite;
-
-/** @deprecated Use {@link FastCheckGenerateTestSuiteOptions}. */
-export type FastCheckGeneratePropertySuiteOptions<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject,
-  TInput
-> = FastCheckGenerateTestSuiteOptions<TSnapshot, TEvent, TInput>;
