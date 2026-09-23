@@ -1,3 +1,5 @@
+import isDevelopment from '#is-development';
+import { diagnoseAuthorConfig } from './devDiagnostics.ts';
 import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
@@ -319,23 +321,20 @@ export function createMachine<
 
 // Implementation
 export function createMachine(config: any): any {
-  return new StateMachine<
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any, // TEmitted
-    any, // TMeta
-    any, // TStateSchema
-    any,
-    any,
-    any,
-    any,
-    any
-  >(config) as any;
+  if (isDevelopment) {
+    diagnoseAuthorConfig(config);
+  }
+  return new StateMachine(config) as any;
+}
+
+/**
+ * Builds a machine from a config produced by a compiler (JSON, SCXML) without
+ * running the author-config v5 diagnostics.
+ *
+ * @internal
+ */
+export function createMachineFromCompiledConfig(config: any): any {
+  return new StateMachine(config) as any;
 }
 
 export function createStateConfig<
