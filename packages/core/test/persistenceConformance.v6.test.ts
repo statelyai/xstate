@@ -167,16 +167,36 @@ describe('non-JSON payload warning (dev)', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const circular: Record<string, unknown> = {};
     circular.self = circular;
-    const machine = createMachine({ context: { circular } });
-    // persistContext itself does not guard against cycles; the warning is
-    // emitted first so the offending path is visible.
+    const machine = createMachine({ id: 'cyclic', context: { circular } });
+    // The warning is emitted before persisting rejects the cycle.
     expect(() => createActor(machine).getPersistedSnapshot()).toThrow(
-      RangeError
+      new Error(
+        'Cannot persist actor "cyclic": circular reference at context.circular.self'
+      )
     );
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn.mock.calls[0][0]).toContain(
       "(circular reference) at 'context.circular.self'"
     );
+    warn.mockRestore();
+  });
+
+  it('rejects a circular context with its path, and persists shared references', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const item: Record<string, unknown> = { name: 'a' };
+    item.parent = { items: [item] };
+    const machine = createMachine({ id: 'list', context: { items: [item] } });
+    expect(() => createActor(machine).getPersistedSnapshot()).toThrow(
+      'Cannot persist actor "list": circular reference at context.items[0].parent.items[0]'
+    );
+
+    const shared = { a: 1 };
+    const sharing = createMachine({
+      context: { left: shared, right: { nested: shared } }
+    });
+    expect(createActor(sharing).getPersistedSnapshot()).toMatchObject({
+      context: { left: { a: 1 }, right: { nested: { a: 1 } } }
+    });
     warn.mockRestore();
   });
 

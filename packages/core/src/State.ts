@@ -604,7 +604,7 @@ export function getPersistedSnapshot<
   } = snapshot;
 
   if (isDevelopment) {
-    // Before persistContext, which does not guard against cycles.
+    // Before persistContext, which rejects cycles with an error.
     warnOnNonJsonPayload(
       {
         context,
@@ -721,7 +721,10 @@ export function getPersistedSnapshot<
   const persisted: Record<string, unknown> = {
     formatVersion: PERSISTED_SNAPSHOT_FORMAT_VERSION,
     ...jsonValues,
-    context: persistContext(context) as any,
+    context: persistContext(
+      context,
+      () => getSnapshotActorRef(snapshot)?.actor.id ?? machine.id
+    ) as any,
     children: childrenJson,
     timers: timersJson,
     historyValue: serializeHistoryValue(jsonValues.historyValue)
@@ -757,7 +760,15 @@ function warnOnNonJsonPayload(
   }
 }
 
-function persistContext(contextPart: Record<string, unknown>) {
+function persistContext(
+  contextPart: Record<string, unknown>,
+  getActorId: () => string,
+  path = 'context',
+  ancestors: object[] = []
+) {
+  // `ancestors` is the current descent path: a shared, non-circular object
+  // reached twice is fine; one that contains itself is not JSON.
+  ancestors.push(contextPart);
   let copy: typeof contextPart | undefined;
   for (const key in contextPart) {
     const value = contextPart[key];
@@ -771,7 +782,20 @@ function persistContext(contextPart: Record<string, unknown>) {
           id: (value as any as AnyActor).id
         };
       } else {
-        const result = persistContext(value as typeof contextPart);
+        const valuePath = Array.isArray(contextPart)
+          ? `${path}[${key}]`
+          : `${path}.${key}`;
+        if (ancestors.includes(value)) {
+          throw new Error(
+            `Cannot persist actor "${getActorId()}": circular reference at ${valuePath}`
+          );
+        }
+        const result = persistContext(
+          value as typeof contextPart,
+          getActorId,
+          valuePath,
+          ancestors
+        );
         if (result !== value) {
           copy ??= Array.isArray(contextPart)
             ? (contextPart.slice() as typeof contextPart)
@@ -781,5 +805,6 @@ function persistContext(contextPart: Record<string, unknown>) {
       }
     }
   }
+  ancestors.pop();
   return copy ?? contextPart;
 }
