@@ -13,13 +13,13 @@ const xstateArg = args.find((arg) => arg.startsWith('--xstate='));
 const xstatePath = xstateArg
   ? xstateArg.slice('--xstate='.length)
   : join(root, 'packages/core/dist/xstate.development.cjs.js');
-const {
-  createActor,
-  createFSM,
-  createMachine,
-  initialTransition,
-  transition
-} = require(xstatePath);
+const { createActor, createMachine, initialTransition, transition } = require(
+  xstatePath
+);
+// `createFSM` is only exported from the `xstate/fsm` entry.
+const { createFSM } = require(
+  xstatePath.replace(/xstate(\.[^/\\]*)$/, 'xstate-fsm$1')
+);
 
 const timeArg = args.find((arg) => arg.startsWith('--time='));
 const warmupArg = args.find((arg) => arg.startsWith('--warmup='));

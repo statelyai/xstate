@@ -1,7 +1,4 @@
 {
-  "fsm-logic": {
-    "maxGzipBytes": 400
-  },
   "fsm-entrypoint-logic": {
     "maxGzipBytes": 400
   },

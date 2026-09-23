@@ -979,6 +979,7 @@ These exports have been **removed** from `xstate`:
 - `ActorLogic.executeEffects` has been removed. Actor logic returns executable effects directly.
 - Deprecated snapshot helpers: `getInitialSnapshot(logic, input?)` and `getNextSnapshot(logic, snapshot, event)`. Use `initialTransition(logic, input?)` and `transition(logic, snapshot, event)`; the snapshot is the first element of the returned tuple.
 - Deprecated type aliases: `NoInfer` (use the built-in `NoInfer`), `AnyInterpreter` (use `AnyActor`), and `ResolvedStateMachineTypes`
+- `xstate/graph`: `getStateNodes(stateNode)` (all descendant state nodes) is renamed to `getDescendantStateNodes(stateNode)`. The root `getStateNodes(stateNode, stateValue)` export from `xstate` is unchanged.
 
 `SpecialTargets` (the `Parent`/`Internal` enum) is still exported from `'xstate'` via `types.ts` and continues to work.
 
@@ -986,7 +987,6 @@ These exports have been **added**:
 
 - `setup` (reshaped - see §4) and `createSystem` for typed system registries
 - Setup state contract types: `SetupStateSchema`, `SetupStateSchemas`, `SetupStateType`
-- `createFSM` and its related types for tiny, pure flat finite state machines: `FSM`, `FSMArgs`, `FSMConfig`, `FSMContextPatch`, `FSMSnapshot`, `FSMStateConfig`, `FSMTransition`, `FSMTransitionConfig`, `FSMTransitionFunction`
 - `createStateConfig`
 - `checkStateIn`
 - `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
@@ -1000,7 +1000,7 @@ These exports have been **added**:
 - `ActorLogic.start(snapshot, scope, options?)` receives `options.restored` so logic can distinguish restoration from a fresh start.
 - `actor.select(selector)` - derived, subscribable views
 
-The `xstate/fsm` subpath exports the pure `createFSM` API plus a lightweight
+The `xstate/fsm` subpath (not the root `xstate` entry) exports the pure `createFSM` API and its `FSM*` types, plus a lightweight
 `setup`/`types` facade for typed events, context, and state snapshots. See
 [compact finite state machines](fsm.md) for its exact supported surface.
 

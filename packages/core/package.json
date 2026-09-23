@@ -123,10 +123,6 @@
   "files": [
     "dist",
     "actors",
-    "actions",
-    "invoke",
-    "guards",
-    "dev",
     "graph",
     "scxml",
     "validation",

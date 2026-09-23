@@ -52,20 +52,6 @@ const { minify: terserMinify } = preconstructRequire('terser');
 // Each profile is source code for a hypothetical app entry; what survives
 // tree-shaking is what users actually pay for.
 const PROFILES = {
-  'fsm-logic': {
-    capabilities: ['fsm', 'construction'],
-    source: `
-    import { createFSM } from 'xstate';
-    const logic = createFSM({
-      initial: 'inactive',
-      states: {
-        inactive: { on: { toggle: 'active' } },
-        active: { on: { toggle: 'inactive' } }
-      }
-    });
-    console.log(logic.transition(logic.initialState, { type: 'toggle' }).value);
-  `
-  },
   'fsm-entrypoint-logic': {
     capabilities: ['fsm', 'construction', 'subpath'],
     source: `
@@ -510,7 +496,6 @@ const PROFILES = {
 };
 
 const EXPECTED_LOGS = {
-  'fsm-logic': [['active']],
   'fsm-entrypoint-logic': [['active']],
   'minimal-machine': [['active']],
   'minimal-fsm': [['active']],
@@ -735,9 +720,7 @@ try {
           code: measuredCode,
           expectedLogs: EXPECTED_LOGS[name],
           exports:
-            name === 'kitchen-sink'
-              ? ['createMachine', 'createActor', 'createFSM']
-              : []
+            name === 'kitchen-sink' ? ['createMachine', 'createActor'] : []
         });
       }
     }
