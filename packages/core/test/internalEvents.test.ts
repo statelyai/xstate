@@ -21,13 +21,12 @@ describe('internalEvents', () => {
       states: { idle: { on: { GO: {}, TICK: {} } } }
     });
     const actor = createActor(machine);
-    const publicEvent: SendableEventFromLogic<typeof machine> = { type: 'GO' };
+    type Sendable = SendableEventFromLogic<typeof machine>;
+    const publicEvent: Sendable = { type: 'GO' };
     expect(publicEvent.type).toBe('GO');
     if (false) {
       // @ts-expect-error Config-level internal events are not public.
-      const internalEvent: SendableEventFromLogic<typeof machine> = {
-        type: 'TICK'
-      };
+      const internalEvent: Sendable = { type: 'TICK' };
       // @ts-expect-error External callers cannot send an internal event.
       actor.send({ type: 'TICK' });
       // @ts-expect-error Internal events have no public trigger method.
