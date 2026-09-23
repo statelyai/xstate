@@ -764,9 +764,45 @@ export function createTransitionEnqueue(
     });
   }
 
-  return createEnqueueObject(props, (action, ...args) => {
-    pushBuiltInAction(actions, action, ...args);
+  // The handle is only valid while its function runs; `closeTransitionEnqueue`
+  // invalidates it once the function returns.
+  let closed = false;
+  const guard =
+    <T extends (...args: any[]) => any>(fn: T) =>
+    (...args: Parameters<T>) =>
+      closed ? lateEnqueueCall() : fn(...args);
+  for (const key of Object.keys(props) as (keyof typeof props)[]) {
+    (props as any)[key] = guard((props as any)[key]);
+  }
+  const enqueue = createEnqueueObject(
+    props,
+    guard((action, ...args) => {
+      pushBuiltInAction(actions, action, ...args);
+    })
+  );
+  enqueueClosers.set(enqueue, () => {
+    closed = true;
   });
+  return enqueue;
+}
+
+const enqueueClosers = new WeakMap<object, () => void>();
+
+/**
+ * @internal Invalidates an enqueue handle after the function it was passed
+ * to returned. Later `enq.*` calls throw in development and no-op in
+ * production.
+ */
+export function closeTransitionEnqueue(enqueue: object): void {
+  enqueueClosers.get(enqueue)?.();
+}
+
+/** @internal Handles an `enq.*` call made after its function returned. */
+export function lateEnqueueCall(): any {
+  if (isDevelopment) {
+    throw new Error('enq.* called after the transition function returned');
+  }
+  return undefined;
 }
 
 function getBuiltInActionFields(

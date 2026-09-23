@@ -55,7 +55,9 @@ import {
   assertChildIdFree,
   createEnqueueObject,
   createTerminationEffect,
+  closeTransitionEnqueue,
   createTransitionEnqueue,
+  lateEnqueueCall,
   createSendToEffect,
   deriveDeferredStarts,
   mergeContextPatch,
@@ -1497,6 +1499,7 @@ function microstep(
               input
             };
         const res = transitionFn(args, enqueue);
+        closeTransitionEnqueue(enqueue);
 
         if (res?.context !== undefined) {
           updatedContext = mergeContextPatch(context, res.context);
@@ -2280,18 +2283,21 @@ export function getTransitionResult(
   if (transition.to) {
     const actions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
-    const res = options?.selectionResult?.reusable
-      ? options.selectionResult.result
-      : transition.to(
-          getTransitionArgs(),
-          createTransitionEnqueue(
-            actorScope,
-            actions,
-            internalEvents,
-            true,
-            options?.resolveActions ?? true
-          )
-        );
+    let res;
+    if (options?.selectionResult?.reusable) {
+      res = options.selectionResult.result;
+    } else {
+      const enqueue = createTransitionEnqueue(
+        actorScope,
+        actions,
+        internalEvents,
+        true,
+        options?.resolveActions ?? true
+      );
+      res = transition.to(getTransitionArgs(), enqueue);
+      closeTransitionEnqueue(enqueue);
+      assertSyncTransitionResult(res, event, transition.source.id);
+    }
 
     const targets = res?.target
       ? resolveTarget(transition.source, toArray(res.target) as string[])
@@ -2654,9 +2660,32 @@ export function hasEffect(
   return false;
 }
 
-const triggerTransitionEffect = () => {
+// Depth of in-flight selection-phase transition function calls; the shared
+// selection enqueue is only valid while one runs.
+let selectionDepth = 0;
+const triggerTransitionEffect = (): any => {
+  if (!selectionDepth) {
+    return lateEnqueueCall();
+  }
   throw transitionEffectSignal;
 };
+
+/**
+ * Throws when a transition function returned a promise. The promise's
+ * rejection is observed so it is never reported as unhandled.
+ */
+function assertSyncTransitionResult(
+  res: unknown,
+  event: EventObject,
+  sourceId: string
+): void {
+  if (res && typeof (res as PromiseLike<unknown>).then === 'function') {
+    void Promise.resolve(res as PromiseLike<unknown>).catch(() => {});
+    throw new Error(
+      `Transition functions must be synchronous. Transition for event "${event.type}" in state "${sourceId}" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.`
+    );
+  }
+}
 let transitionEffectEnqueue: ReturnType<typeof createEnqueueObject> | undefined;
 function getTransitionEffectEnqueue() {
   return (transitionEffectEnqueue ??= createEnqueueObject(
@@ -2690,6 +2719,7 @@ function evaluateTransitionFunction(
     transitionEffectTargets.push(parent);
   }
 
+  selectionDepth++;
   try {
     res = transitionTo(
       withActorScope(
@@ -2715,10 +2745,12 @@ function evaluateTransitionFunction(
     }
     throw err;
   } finally {
+    selectionDepth--;
     if (parent) {
       transitionEffectTargets.pop();
     }
   }
+  assertSyncTransitionResult(res, event, sourceId);
 
   return { enabled: res !== undefined, result: res, reusable: true };
 }

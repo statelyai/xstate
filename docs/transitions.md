@@ -62,6 +62,8 @@ submit: ({ context, event }, enq) => {
 
 Returning `undefined` prevents the transition.
 
+Transition functions must be synchronous. A transition function that returns a promise throws an execution error, which a state `onError` can recover. Move async work into an invoked or spawned actor, or into an effect enqueued with `enq(...)`. The `enq` handle is only valid while the function runs: calling `enq.*` after the function returned throws in development and does nothing in production.
+
 `always` runs without an external event. `after` runs after a delay. `onDone`, `onError` and `onTimeout` handle actor outcomes.
 
 Use targetless transitions for edits that keep a form on the same step. Use re-entering transitions to restart a timer, subscription or invoked request.
