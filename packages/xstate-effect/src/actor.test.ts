@@ -1,3 +1,4 @@
+import { expectTypeOf } from 'vitest';
 import { Cause, Duration, Effect, Exit, Fiber, Scope, Stream } from 'effect';
 import {
   createMachine,
@@ -399,6 +400,28 @@ describe('join', () => {
 
     error satisfies { code: 'X' } | ActorStoppedError;
     expect(error).toEqual(failure);
+  });
+
+  it('exposes machine errors as unknown and preserves the thrown value', async () => {
+    const failure = { code: 'MACHINE_FAILURE' };
+    const machine = createMachine({
+      on: {
+        FAIL: () => {
+          throw failure;
+        }
+      }
+    });
+    const error = await runScoped(
+      Effect.gen(function* () {
+        const actor = yield* createEffectActor(machine);
+        const result = join(actor);
+        expectTypeOf<Effect.Error<typeof result>>().toEqualTypeOf<unknown>();
+        afterSubscribe(actor, () => actor.send({ type: 'FAIL' }));
+        return yield* Effect.flip(result);
+      })
+    );
+
+    expect(error).toBe(failure);
   });
 
   it('fails with ActorStoppedError when the actor is stopped', async () => {
