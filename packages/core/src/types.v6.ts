@@ -1669,6 +1669,77 @@ export type ValidateDelayReferences<TConfig> =
       ? unknown
       : never;
 
+type UndeclaredEventDescriptors<
+  TConfig,
+  TAllowed extends string
+> = 0 extends 1 & TConfig
+  ? never
+  :
+      | (TConfig extends { on: infer TOn }
+          ? Exclude<Extract<keyof TOn, string>, TAllowed>
+          : never)
+      | (TConfig extends { states: infer TStates }
+          ? TStates extends Record<string, unknown>
+            ? {
+                [K in keyof TStates]: UndeclaredEventDescriptors<
+                  TStates[K],
+                  TAllowed
+                >;
+              }[keyof TStates]
+            : never
+          : never);
+
+type UndeclaredEventDescriptorErrors<
+  TConfig,
+  TAllowed extends string
+> = (TConfig extends { on: infer TOn }
+  ? [Exclude<Extract<keyof TOn, string>, TAllowed>] extends [never]
+    ? {}
+    : {
+        on: {
+          [K in Exclude<
+            Extract<keyof TOn, string>,
+            TAllowed
+          >]: `Event type '${K}' is not declared in schemas.events.`;
+        };
+      }
+  : {}) &
+  (TConfig extends { states: infer TStates }
+    ? TStates extends Record<string, unknown>
+      ? {
+          states: {
+            [K in keyof TStates]: UndeclaredEventDescriptorErrors<
+              TStates[K],
+              TAllowed
+            >;
+          };
+        }
+      : {}
+    : {});
+
+/**
+ * Rejects `on` keys that match no declared event type. Only applies when the
+ * event union is closed (e.g. `schemas.events` is declared); wildcards,
+ * partial wildcards and reserved `xstate.*` event types are always allowed.
+ * The error is reported at the offending key.
+ */
+export type ValidateEventDescriptors<
+  TConfig,
+  TEvent extends EventObject
+> = string extends TEvent['type']
+  ? unknown
+  : [
+        UndeclaredEventDescriptors<
+          TConfig,
+          EventDescriptor<TEvent> | `xstate.${string}`
+        >
+      ] extends [never]
+    ? unknown
+    : UndeclaredEventDescriptorErrors<
+        TConfig,
+        EventDescriptor<TEvent> | `xstate.${string}`
+      >;
+
 type IsHistoryStateConfig<TConfig> = TConfig extends { type: 'history' }
   ? true
   : TConfig extends { history: false | undefined }

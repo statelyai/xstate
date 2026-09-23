@@ -25,6 +25,13 @@ scripts/type-error-fixtures/guardNameTypo.ts(14,7): error TS2769: No overload ma
     Object literal may only specify known properties, but 'choices' does not exist in type 'StateSchema & Next_ChoiceStateNodeConfig<{ ready: boolean; }, { type: string; }, string, never, never, Record<string, (...args: any[]) => void | { context?: any; children?: any; }>, Record<string, AnyActorLogic>, Record<...>, Record<...>>'. Did you mean to write 'choice'?
 ```
 
+## onEventKeyTypo.ts
+
+```
+scripts/type-error-fixtures/onEventKeyTypo.ts(19,9): error TS2322: Type '{ target: "active"; }' is not assignable to type '{ readonly target: "active"; } & "Event type 'TOGLE' is not declared in schemas.events."'.
+  Type '{ target: "active"; }' is not assignable to type '"Event type 'TOGLE' is not declared in schemas.events."'.
+```
+
 ## targetTypo.ts
 
 ```

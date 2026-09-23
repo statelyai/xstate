@@ -69,6 +69,7 @@ import {
   Next_TransitionConfigOrTarget,
   FinalStateConfigOutput,
   OutputFromConfig,
+  ValidateEventDescriptors,
   ValidateHistoryDefaults,
   ValidateStateTargets,
   WithDefault
@@ -4221,6 +4222,10 @@ export interface SetupReturn<
       > &
       ValidateSetupDelayReferences<TConfig, TSetupDelays> &
       ValidateSetupStateContracts<TConfig, TStates> &
+      ValidateEventDescriptors<
+        TConfig,
+        NoInfer<SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>>
+      > &
       ValidateRegistryKeys<
         TConfig,
         TSystemRegistry,

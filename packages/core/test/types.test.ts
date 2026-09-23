@@ -1016,8 +1016,8 @@ describe('states', () => {
         }
       },
       type: 'parallel',
-      // @ts-expect-error
       states: {
+        // @ts-expect-error
         underline: underlineState
       }
     });
@@ -1297,6 +1297,7 @@ describe('events', () => {
         }
       },
       on: {
+        // @ts-expect-error - no declared event type matches this descriptor
         'mouse.doubleClick': {}
       }
     });
@@ -1322,6 +1323,7 @@ describe('events', () => {
         }
       },
       on: {
+        // @ts-expect-error - no declared event type matches this descriptor
         'mouse.doubleClick': {}
       }
     });
@@ -1360,6 +1362,7 @@ describe('events', () => {
         }
       },
       on: {
+        // @ts-expect-error - no declared event type matches this descriptor
         'keypress.*': {}
       }
     });

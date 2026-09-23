@@ -55,6 +55,19 @@ on: {
 
 Use `assertEvent(...)` only when shared code must narrow a union to one or more known event types.
 
+## Checked event keys
+
+When `schemas.events` is declared, each key in an `on` map must match a
+declared event type. Wildcards (`'*'`, `'user.*'`) and reserved `xstate.*`
+event types are always allowed. Without `schemas.events`, any key is accepted.
+
+```ts
+on: {
+  toggel: { target: 'active' }
+  // Type error: Event type 'toggel' is not declared in schemas.events.
+}
+```
+
 Machines returned by `setup(...).createMachine(...)` can be exported with their
 inferred types, including when registered actors are used in inline transitions
 or invokes. Declaration output retains event, state, input and child-actor
