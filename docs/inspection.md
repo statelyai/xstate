@@ -19,7 +19,7 @@ Inspection emits three event types:
 | --- | --- |
 | `@xstate.actor` | Actor identity and parent information. |
 | `@xstate.transition` | The event, snapshot, source, target and microsteps. |
-| `@xstate.deadletter` | An event that could not be delivered. |
+| `@xstate.deadLetter` | An event that could not be delivered. |
 
 Every event type carries `rootId`, the session ID of the root actor, and `actorRef`, the actor the event is about. Session IDs are unique across actors, so `rootId` identifies the system and `actorRef.sessionId` identifies an actor within it.
 
@@ -45,7 +45,7 @@ Every event type carries `rootId`, the session ID of the root actor, and `actorR
 | `actions` | The executed actions, as `{ type, params }`. |
 | `sent` | Events relayed to other actors, as `{ targetRef, targetId, event, delay, id }`. |
 
-`@xstate.deadletter` announces an undeliverable event: one sent to a stopped actor, an event whose payload failed its declared schema, or an [internal event](internal-events.md) type sent from outside its owning actor. Delivery is at-most-once, so this is observability, not retry. A dead letter is not an actor error; the target actor keeps running and its snapshot is unchanged.
+`@xstate.deadLetter` announces an undeliverable event: one sent to a stopped actor, an event whose payload failed its declared schema, or an [internal event](internal-events.md) type sent from outside its owning actor. Delivery is at-most-once, so this is observability, not retry. A dead letter is not an actor error; the target actor keeps running and its snapshot is unchanged.
 
 | Property | Description |
 | --- | --- |
@@ -71,5 +71,5 @@ event.actorRef; // '@xstate.actor' and '@xstate.transition'
 event.parentRef, event.id, event.src, event.snapshot; // '@xstate.actor'
 event.event, event.snapshot, event.sourceRef, event.targetRef; // '@xstate.transition'
 event.microsteps, event.actions, event.sent; // '@xstate.transition'
-event.event, event.reason, event.issues, event.error; // '@xstate.deadletter'
+event.event, event.reason, event.issues, event.error; // '@xstate.deadLetter'
 ```

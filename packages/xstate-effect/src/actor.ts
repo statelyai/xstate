@@ -401,6 +401,6 @@ export function deadLetters(
   return Stream.filter(
     inspect(actor),
     (event): event is DeadLetterInspectionEvent =>
-      event.type === '@xstate.deadletter'
+      event.type === '@xstate.deadLetter'
   );
 }

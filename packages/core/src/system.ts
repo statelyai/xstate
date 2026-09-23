@@ -896,7 +896,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     detail?: DeadLetterDetail
   ): void | PromiseLike<void> {
     this._sendInspectionEvent({
-      type: '@xstate.deadletter',
+      type: '@xstate.deadLetter',
       actorRef: target,
       sourceRef: source,
       event,

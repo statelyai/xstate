@@ -109,7 +109,7 @@ describe('internalEvents', () => {
     actor.system.runtime = { sendEvent: () => {} };
     const deadLetters: any[] = [];
     actor.system.inspect((inspectionEvent) => {
-      if (inspectionEvent.type === '@xstate.deadletter') {
+      if (inspectionEvent.type === '@xstate.deadLetter') {
         deadLetters.push(inspectionEvent);
       }
     });

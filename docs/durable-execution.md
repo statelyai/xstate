@@ -234,7 +234,7 @@ Delivery is at-most-once with pairwise sender-to-receiver ordering: for a
 given pair of actors, events sent from the first to the second are enqueued
 in send order, and an undeliverable event is dropped rather than retried.
 This matches the Erlang and Akka defaults. A dropped event is reported
-through the `deadLetter` runtime operation (and a `@xstate.deadletter`
+through the `deadLetter` runtime operation (and a `@xstate.deadLetter`
 inspection event) — observability, not retry. Ordering is not transitive
 across intermediaries. The durable path is stronger — the handoff queue serializes
 every operation of an execution globally. A host `sendEvent` that routes
@@ -365,7 +365,7 @@ const durable = createDurable(machine, {
 ```
 
 Without an adapter `deadLetter`, the effect falls back to the local behavior:
-a `@xstate.deadletter` inspection event and a development-mode warning.
+a `@xstate.deadLetter` inspection event and a development-mode warning.
 
 Events the machine raises to itself are not boundary events. A delayed raised
 event that fails its schema throws from `transition()` and errors the

@@ -1096,7 +1096,7 @@ on: {
 
 ## 20. Persistence / rehydration
 
-Persisted snapshots round-trip through `JSON.stringify` and rehydrate via `createActor(machine, { snapshot })`. The internal shape changed, so v5 persisted snapshots are **not** binary-compatible with v6 - drain or migrate stored state during your rollout.
+Persisted snapshots round-trip through `JSON.stringify` and rehydrate via `createActor(machine, { snapshot })`. The internal shape changed, so v5 persisted snapshots are **not** binary-compatible with v6 - drain or migrate stored state during your rollout. Every v6 persisted machine snapshot carries `formatVersion: 1`; restoring a snapshot without it (or with a newer one) throws `PersistedSnapshotFormatError` — see [Format version and compatibility](persistence.md#format-version-and-compatibility).
 
 ```ts
 const snapshot = actor.getPersistedSnapshot();

@@ -30,6 +30,10 @@ import {
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
 import { isRemoteActorRef } from './remoteActorRef.ts';
+import {
+  findNonJsonPath,
+  PERSISTED_SNAPSHOT_FORMAT_VERSION
+} from './persistedSnapshotFormat.ts';
 
 const emptySnapshotRecord = Object.freeze({});
 
@@ -599,6 +603,19 @@ export function getPersistedSnapshot<
     ...jsonValues
   } = snapshot;
 
+  if (isDevelopment) {
+    // Before persistContext, which does not guard against cycles.
+    warnOnNonJsonPayload(
+      {
+        context,
+        output: jsonValues.output,
+        error: jsonValues.error,
+        stateInputs: _stateInputs
+      },
+      machine.id
+    );
+  }
+
   const childrenJson: Record<string, unknown> = {};
   const timersJson: Record<string, unknown> = {};
 
@@ -702,6 +719,7 @@ export function getPersistedSnapshot<
   }
 
   const persisted: Record<string, unknown> = {
+    formatVersion: PERSISTED_SNAPSHOT_FORMAT_VERSION,
     ...jsonValues,
     context: persistContext(context) as any,
     children: childrenJson,
@@ -722,6 +740,21 @@ export function getPersistedSnapshot<
   }
 
   return persisted as Snapshot<unknown>;
+}
+
+function warnOnNonJsonPayload(
+  persisted: Record<string, unknown>,
+  machineId: string
+) {
+  for (const key of ['context', 'output', 'error', 'stateInputs']) {
+    const found = findNonJsonPath(persisted[key], key);
+    if (found) {
+      console.warn(
+        `Persisted snapshot of machine '${machineId}' contains a non-JSON value (${found.kind}) at '${found.path}'. Persisted snapshots must be JSON-serializable; this value will be lost or throw in JSON.stringify.`
+      );
+      return;
+    }
+  }
 }
 
 function persistContext(contextPart: Record<string, unknown>) {

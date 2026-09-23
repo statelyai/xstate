@@ -86,4 +86,4 @@ const program = Effect.gen(function* () {
 });
 ```
 
-`deadLetters` is `inspect` filtered to `@xstate.deadletter` events.
+`deadLetters` is `inspect` filtered to `@xstate.deadLetter` events.

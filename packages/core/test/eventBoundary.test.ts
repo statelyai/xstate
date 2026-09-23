@@ -62,7 +62,7 @@ describe('event boundary: reject and report', () => {
     expect(rejections[0].issues?.length).toBeGreaterThan(0);
 
     const rejected = inspection.find(
-      (event) => event.type === '@xstate.deadletter'
+      (event) => event.type === '@xstate.deadLetter'
     );
     expect(rejected).toMatchObject({
       event: { type: 'GO', count: 'oops' },

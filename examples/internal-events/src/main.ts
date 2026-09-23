@@ -88,8 +88,8 @@ const actor = createActor(uploadMachine, {
     );
   },
   inspect: (event) => {
-    // The same rejections reach inspection observers as `@xstate.deadletter`.
-    if (event.type === '@xstate.deadletter') {
+    // The same rejections reach inspection observers as `@xstate.deadLetter`.
+    if (event.type === '@xstate.deadLetter') {
       log(`  inspected as ${event.type}: "${event.event.type}"`);
     }
     inspector?.inspect(event);

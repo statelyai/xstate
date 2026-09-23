@@ -424,7 +424,7 @@ describe('runtime schema validation', () => {
 
     expect(actor.getSnapshot().status).toBe('active');
     const rejected = inspection.find(
-      (event) => event.type === '@xstate.deadletter'
+      (event) => event.type === '@xstate.deadLetter'
     );
     expect(rejected).toBeDefined();
     expect(rejected).toMatchObject({

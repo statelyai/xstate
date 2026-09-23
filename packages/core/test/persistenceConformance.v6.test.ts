@@ -14,14 +14,190 @@ import {
   createActor,
   createMachine,
   getInitialSnapshot,
+  PERSISTED_SNAPSHOT_FORMAT_VERSION,
+  PersistedSnapshotFormatError,
+  upgradePersistedSnapshot,
   setup,
   SimulatedClock
 } from '../src/index.ts';
+import { StateMachine } from '../src/StateMachine.ts';
+import Ajv2020 from 'ajv/dist/2020';
+import persistedSnapshotSchema from '../src/persistedSnapshot.schema.json';
 
 /** Canonical JSON round-trip of a persisted snapshot. */
 function roundTrip(persisted: unknown): any {
   return JSON.parse(JSON.stringify(persisted));
 }
+
+/**
+ * Every machine envelope produced in this file — root and nested machine
+ * children, which persist through the same method — is validated against
+ * `src/persistedSnapshot.schema.json` after a JSON round-trip.
+ */
+const validateEnvelope = new Ajv2020({ allErrors: true }).compile(
+  persistedSnapshotSchema
+);
+const envelopeErrors: unknown[] = [];
+let validatedEnvelopes = 0;
+const originalGetPersistedSnapshot =
+  StateMachine.prototype.getPersistedSnapshot;
+beforeAll(() => {
+  vi.spyOn(StateMachine.prototype, 'getPersistedSnapshot').mockImplementation(
+    function (
+      this: StateMachine<
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any
+      >,
+      ...args
+    ) {
+      const persisted = originalGetPersistedSnapshot.apply(this, args);
+      let json: unknown;
+      try {
+        json = roundTrip(persisted);
+      } catch {
+        // Non-JSON payloads are the host's problem (see the dev warning).
+        return persisted;
+      }
+      validatedEnvelopes++;
+      if (!validateEnvelope(json)) {
+        envelopeErrors.push(validateEnvelope.errors);
+      }
+      return persisted;
+    }
+  );
+});
+afterEach(() => {
+  expect(envelopeErrors.splice(0)).toEqual([]);
+});
+afterAll(() => {
+  vi.restoreAllMocks();
+  expect(validatedEnvelopes).toBeGreaterThan(0);
+});
+
+describe('persisted snapshot format version', () => {
+  const machine = createMachine({
+    id: 'fmt',
+    initial: 'a',
+    states: { a: {} }
+  });
+
+  it('stamps formatVersion 1 on root and nested machine envelopes', () => {
+    const parent = createMachine({
+      id: 'parent',
+      actors: { child: machine },
+      invoke: { id: 'child', src: 'child' }
+    });
+    const persisted = roundTrip(createActor(parent).getPersistedSnapshot());
+    expect(PERSISTED_SNAPSHOT_FORMAT_VERSION).toBe(1);
+    expect(persisted.formatVersion).toBe(1);
+    expect(persisted.children.child.snapshot.formatVersion).toBe(1);
+  });
+
+  it('rejects a snapshot without formatVersion', () => {
+    const { formatVersion: _, ...legacy } = roundTrip(
+      createActor(machine).getPersistedSnapshot()
+    );
+    expect(() => machine.restoreSnapshot(legacy)).toThrow(
+      PersistedSnapshotFormatError
+    );
+    expect(() => upgradePersistedSnapshot(legacy)).toThrow(
+      /predates the XState v6 beta snapshot format/
+    );
+
+    const actor = createActor(machine, { snapshot: legacy });
+    actor.subscribe({ error: () => {} });
+    expect(actor.getSnapshot().status).toBe('error');
+    expect(actor.getSnapshot().error).toBeInstanceOf(
+      PersistedSnapshotFormatError
+    );
+  });
+
+  it('rejects a snapshot with a newer formatVersion', () => {
+    const newer = {
+      ...roundTrip(createActor(machine).getPersistedSnapshot()),
+      formatVersion: 2
+    };
+    expect(() => machine.restoreSnapshot(newer)).toThrow(
+      /newer than this XState version supports/
+    );
+  });
+
+  it('upgradePersistedSnapshot returns a v1 snapshot unchanged', () => {
+    const persisted = roundTrip(createActor(machine).getPersistedSnapshot());
+    expect(upgradePersistedSnapshot(persisted)).toBe(persisted);
+  });
+
+  it('does not require formatVersion on a live snapshot', () => {
+    const live = createActor(machine).getSnapshot();
+    expect(() => machine.restoreSnapshot(live)).not.toThrow();
+  });
+});
+
+describe('non-JSON payload warning (dev)', () => {
+  it.each([
+    ['function', { fn: () => {} }, 'context.fn'],
+    ['symbol', { list: [Symbol('s')] }, 'context.list[0]'],
+    ['bigint', { n: 1n }, 'context.n'],
+    ['Map', { m: new Map() }, 'context.m'],
+    ['Set', { nested: { s: new Set() } }, 'context.nested.s']
+  ])('warns once for a %s', (kind, context, path) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const machine = createMachine({ context: context as any });
+    createActor(machine).getPersistedSnapshot();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain(`(${kind}) at '${path}'`);
+    warn.mockRestore();
+  });
+
+  it('warns for a circular reference', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    const machine = createMachine({ context: { circular } });
+    // persistContext itself does not guard against cycles; the warning is
+    // emitted first so the offending path is visible.
+    expect(() => createActor(machine).getPersistedSnapshot()).toThrow(
+      RangeError
+    );
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain(
+      "(circular reference) at 'context.circular.self'"
+    );
+    warn.mockRestore();
+  });
+
+  it('does not warn for JSON values, Dates, shared references, or actor refs', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const shared = { a: 1 };
+    const machine = createMachine({
+      context: ({ spawn }) => ({
+        date: new Date(0),
+        left: shared,
+        right: shared,
+        ref: spawn(createMachine({}))
+      })
+    });
+    createActor(machine).getPersistedSnapshot({
+      __unsafeAllowInlineActors: true
+    } as any);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
 
 describe('#5077 re-persistability of children', () => {
   it('a transition-spawned registered child survives a JSON round-trip and re-persists', () => {

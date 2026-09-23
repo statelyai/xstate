@@ -1186,12 +1186,12 @@ describe('dead letters', () => {
     ]);
   });
 
-  it('emits a @xstate.deadletter inspection event', () => {
+  it('emits a @xstate.deadLetter inspection event', () => {
     const seen: string[] = [];
     const machine = createMachine({ id: 'p', initial: 'a', states: { a: {} } });
     const actor = createActor(machine, {
       inspect: (ev) => {
-        if (ev.type === '@xstate.deadletter') {
+        if (ev.type === '@xstate.deadLetter') {
           seen.push(`${ev.event.type}:${ev.reason}`);
         }
       }

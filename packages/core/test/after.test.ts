@@ -382,7 +382,9 @@ describe('delayed transitions', () => {
 
     let service = createActor(createMyMachine()).start();
 
-    const persistedSnapshot = JSON.parse(JSON.stringify(service.getSnapshot()));
+    const persistedSnapshot = JSON.parse(
+      JSON.stringify(service.getPersistedSnapshot())
+    );
 
     service = createActor(createMyMachine(), {
       snapshot: persistedSnapshot

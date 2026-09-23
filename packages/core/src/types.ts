@@ -1808,6 +1808,8 @@ export type PersistedActorRef = {
 export type PersistedSnapshotFrom<TMachine extends AnyStateMachine> =
   Snapshot<unknown> &
     PersistedSnapshotFor<TMachine> & {
+      /** Library-owned envelope format version. */
+      formatVersion: 1;
       context: ContextFrom<TMachine>;
       children: Record<string, PersistedActorRef>;
       [key: string]: unknown;
@@ -1915,7 +1917,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *   transition with flat, always-present fields: `event`, `snapshot`,
    *   `sourceRef`, `microsteps`, executed `actions`, and `sent`/scheduled
    *   events.
-   * - `@xstate.deadletter` - An event could not be delivered: the target actor
+   * - `@xstate.deadLetter` - An event could not be delivered: the target actor
    *   stopped, the payload failed its declared schema, or an internal event
    *   type was sent from outside its owning actor. Carries the `event`,
    *   `sourceRef`, `reason`, and — for boundary rejections — `issues` and
