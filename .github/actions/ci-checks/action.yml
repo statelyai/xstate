@@ -19,7 +19,7 @@ runs:
       shell: bash
 
     - name: Typecheck
-      run: pnpm typecheck && pnpm typecheck:adapter-consumers && pnpm typecheck:fsm-only
+      run: pnpm typecheck
       shell: bash
 
     - name: Typecheck examples

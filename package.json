@@ -43,8 +43,9 @@
     "format:check": "oxfmt --check .",
     "lint": "oxlint --quiet --report-unused-disable-directives-severity=error && oxlint --quiet --report-unused-disable-directives-severity=error -c .oxlintrc.templates.json templates",
     "lint:fix": "oxlint --fix --report-unused-disable-directives-severity=error && oxlint --fix --report-unused-disable-directives-severity=error -c .oxlintrc.templates.json templates",
-    "typecheck": "tsc",
-    "typecheck:adapter-consumers": "tsc -p tsconfig.exact-optional.json",
+    "typecheck": "pnpm typecheck:packages && pnpm typecheck:adapter-consumers && pnpm typecheck:fsm-only",
+    "typecheck:packages": "tsc",
+    "typecheck:adapter-consumers": "node scripts/typecheck-adapter-consumers.mjs",
     "typecheck:examples": "node ./scripts/typecheck-examples.js",
     "typecheck:fsm-only": "node scripts/typecheck-fsm-only.mjs",
     "test": "vitest run",
@@ -106,7 +107,7 @@
     }
   },
   "lint-staged": {
-    "!(CLAUDE).{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc,json5,md,mdx,css,scss,less,yml,yaml,html}": "oxfmt --write"
+    "!(CLAUDE).{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc,json5,css,scss,less,yml,yaml,html}": "oxfmt --write"
   },
   "packageManager": "pnpm@11.8.0+sha512.c1f5e7c4cb241c8f174b743851d82f42b802324afc8b0f116b96adb15aa06664948dde36960a3ba1079ba5b4b29dd0140135b94b5b5f5263592249d68e555f26"
 }
