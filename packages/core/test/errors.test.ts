@@ -1563,39 +1563,124 @@ describe('error handling', () => {
     });
   });
 
-  it('state onError catches communication errors from undefined send targets', () => {
-    const errorSpy = vi.fn();
-    const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            NEXT: (_, enq) => {
-              enq.sendTo(undefined, { type: 'PING' });
+  describe('missing send targets', () => {
+    function observe(machine: any) {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      cleanups.push(() => warn.mockRestore());
+      const rejections: any[] = [];
+      const deadLetters: any[] = [];
+      const errorSpy = vi.fn();
+      const onErrorSpy = vi.fn();
+      const actor = createActor(machine, {
+        onRejectedEvent: (rejection) => rejections.push(rejection),
+        inspect: (ev) => {
+          if (ev.type === '@xstate.deadletter') deadLetters.push(ev);
+        }
+      });
+      actor.subscribe({ error: errorSpy });
+      actor.start();
+      return { actor, warn, rejections, deadLetters, errorSpy, onErrorSpy };
+    }
+
+    function machineSending(
+      send: (args: any, enq: any) => void,
+      onErrorSpy: () => void
+    ) {
+      return createMachine({
+        id: 'sender',
+        initial: 'active',
+        states: {
+          active: {
+            on: { NEXT: send },
+            onError: () => {
+              onErrorSpy();
+              return { target: 'failed' };
             }
           },
-          onError: ({ event }) => {
-            errorSpy({
-              type: event.type,
-              message: getErrorMessage(event.error)
-            });
-            return {
-              target: 'failed'
-            };
-          }
-        },
-        failed: {}
-      }
+          failed: {}
+        }
+      });
+    }
+
+    it('dead-letters a send to an undefined ref without erroring the actor', () => {
+      const onErrorSpy = vi.fn();
+      const { actor, warn, rejections, deadLetters, errorSpy } = observe(
+        machineSending((_, enq) => {
+          enq.sendTo(undefined, { type: 'PING' });
+        }, onErrorSpy)
+      );
+      actor.send({ type: 'NEXT' });
+
+      expect(actor.getSnapshot().status).toBe('active');
+      expect(actor.getSnapshot().value).toBe('active');
+      expect(onErrorSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(rejections).toEqual([
+        expect.objectContaining({
+          event: { type: 'PING' },
+          reason: 'missingTarget',
+          sourceRef: actor,
+          targetRef: undefined,
+          targetId: undefined
+        })
+      ]);
+      expect(deadLetters).toEqual([
+        expect.objectContaining({
+          actorRef: actor,
+          sourceRef: actor,
+          reason: 'missingTarget',
+          event: { type: 'PING' }
+        })
+      ]);
+      expect(warn).toHaveBeenCalledWith(
+        'Actor "sender" sent event "PING" to missing target undefined; the event was not delivered (missingTarget).'
+      );
     });
 
-    const actor = createActor(machine).start();
-    actor.send({ type: 'NEXT' });
+    it('dead-letters a send to an unknown child id without erroring the actor', () => {
+      const onErrorSpy = vi.fn();
+      const { actor, warn, rejections, errorSpy } = observe(
+        machineSending((_, enq) => {
+          enq.sendTo('worker', { type: 'PING' });
+        }, onErrorSpy)
+      );
+      actor.send({ type: 'NEXT' });
 
-    expect(actor.getSnapshot().value).toBe('failed');
-    expect(actor.getSnapshot().status).toBe('active');
-    expect(errorSpy).toHaveBeenCalledWith({
-      type: 'xstate.error.communication',
-      message: 'Unable to send event to an undefined actor'
+      expect(actor.getSnapshot().status).toBe('active');
+      expect(actor.getSnapshot().value).toBe('active');
+      expect(onErrorSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(rejections).toEqual([
+        expect.objectContaining({
+          reason: 'missingTarget',
+          targetId: 'worker',
+          sourceRef: actor
+        })
+      ]);
+      expect(warn).toHaveBeenCalledWith(
+        'Actor "sender" sent event "PING" to missing target "worker"; the event was not delivered (missingTarget).'
+      );
+    });
+
+    it('dead-letters a send to the parent of a root actor', () => {
+      const onErrorSpy = vi.fn();
+      const { actor, rejections, errorSpy } = observe(
+        machineSending(({ parent }, enq) => {
+          enq.sendTo(parent, { type: 'PING' });
+        }, onErrorSpy)
+      );
+      actor.send({ type: 'NEXT' });
+
+      expect(actor.getSnapshot().status).toBe('active');
+      expect(onErrorSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(rejections).toEqual([
+        expect.objectContaining({
+          reason: 'missingTarget',
+          sourceRef: actor,
+          targetRef: undefined
+        })
+      ]);
     });
   });
 });

@@ -75,7 +75,7 @@ export type EffectDescriptor =
       kind: 'builtin';
       type: '@xstate.deadLetter';
       source: string | undefined;
-      target: string;
+      target: string | undefined;
       event: unknown;
       reason: string;
       issues: unknown;
@@ -157,7 +157,7 @@ export function getEffectDescriptor(
         kind: 'builtin',
         type: '@xstate.sendTo',
         source: effect.source.address,
-        target: effect.target.address,
+        target: effect.target?.address,
         incarnation: isRemoteActorRef(effect.target)
           ? effect.target.sessionId
           : undefined,
@@ -196,7 +196,7 @@ export function getEffectDescriptor(
         kind: 'builtin',
         type: '@xstate.deadLetter',
         source: effect.source?.address,
-        target: effect.target.address,
+        target: effect.target?.address,
         event: effect.event,
         reason: effect.reason,
         issues: effect.detail?.issues,

@@ -8,6 +8,7 @@ import {
   ActorFromLogic,
   ActorRefFromLogic,
   EventObject,
+  EventRejection,
   createActor,
   createMachine
 } from '../src/index.ts';
@@ -2824,8 +2825,10 @@ describe('sendTo', () => {
     expect(received).toHaveBeenCalledOnce();
   });
 
-  it('should raise a communication error for an unknown declared child id', () => {
+  it('should dead-letter a send to an unknown declared child id', () => {
     const errorSpy = vi.fn();
+    const rejections: EventRejection[] = [];
+    vi.spyOn(console, 'warn').mockImplementationOnce(() => {});
     const childMachine = createMachine({
       schemas: {
         events: {
@@ -2856,19 +2859,22 @@ describe('sendTo', () => {
       }
     });
 
-    const parent = createActor(parentMachine).start();
+    const parent = createActor(parentMachine, {
+      onRejectedEvent: (r) => rejections.push(r)
+    }).start();
     parent.send({ type: 'SEND' });
 
-    expect(parent.getSnapshot().value).toBe('failed');
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: "Unable to send event to unknown child 'worker'"
-      })
-    );
+    expect(parent.getSnapshot().value).toBe('active');
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(rejections).toEqual([
+      expect.objectContaining({ reason: 'missingTarget', targetId: 'worker' })
+    ]);
   });
 
   it('should not resolve inherited properties as declared child ids', () => {
     const errorSpy = vi.fn();
+    const rejections: EventRejection[] = [];
+    vi.spyOn(console, 'warn').mockImplementationOnce(() => {});
     const childMachine = createMachine({
       schemas: {
         events: {
@@ -2899,15 +2905,16 @@ describe('sendTo', () => {
       }
     });
 
-    const parent = createActor(parentMachine).start();
+    const parent = createActor(parentMachine, {
+      onRejectedEvent: (r) => rejections.push(r)
+    }).start();
     parent.send({ type: 'SEND' });
 
-    expect(parent.getSnapshot().value).toBe('failed');
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: "Unable to send event to unknown child 'toString'"
-      })
-    );
+    expect(parent.getSnapshot().value).toBe('active');
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(rejections).toEqual([
+      expect.objectContaining({ reason: 'missingTarget', targetId: 'toString' })
+    ]);
   });
 
   it('should be able to send an event to an actor', () => {

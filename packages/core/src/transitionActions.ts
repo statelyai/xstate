@@ -8,7 +8,6 @@ import {
   type SubscriptionMappers
 } from './actors/subscription.ts';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
-import { createErrorPlatformEvent } from './eventUtils.ts';
 import {
   getActorIdPrefix,
   parseGeneratedActorId,
@@ -91,7 +90,7 @@ export function createEmitEffect(
 
 function execDeadLetterEffect(
   this: DeadLetterExecutableActionObject,
-  runtime: EffectRuntime = this.target.system
+  runtime: EffectRuntime = (this.target ?? this.source)!.system
 ): void | PromiseLike<void> {
   return runtime.deadLetter!(
     this.source,
@@ -119,6 +118,36 @@ export function createDeadLetterEffect(
     event,
     reason,
     detail,
+    params: undefined,
+    args: []
+  };
+}
+
+/**
+ * @internal Creates a dead-letter effect for an `enq.sendTo` whose target is
+ * an undefined ref, an unknown child id, or the parent of a root actor.
+ */
+function createMissingTargetEffect(
+  actorScope: AnyActorScope,
+  event: AnyEventObject,
+  targetId: string | undefined
+): DeadLetterExecutableActionObject {
+  return {
+    kind: 'builtin',
+    type: '@xstate.deadLetter',
+    exec: execDeadLetterEffect,
+    source: actorScope.self,
+    target: undefined,
+    event,
+    reason: 'missingTarget',
+    detail: {
+      targetId,
+      error: new Error(
+        targetId !== undefined
+          ? `Unable to send event to unknown child '${targetId}'`
+          : 'Unable to send event to an undefined actor'
+      )
+    },
     params: undefined,
     args: []
   };
@@ -657,15 +686,8 @@ export function createTransitionEnqueue(
       return actor;
     },
     sendTo: (actor, event, options) => {
-      if (!actor) {
-        internalEvents.push(
-          createErrorPlatformEvent('communication', {
-            message: 'Unable to send event to an undefined actor',
-            event
-          })
-        );
-        return;
-      }
+      // A missing target (undefined ref, unknown child id, or `parent` of a
+      // root actor) resolves to a dead letter in `resolveActionsWithContext`.
       pushBuiltInAction(
         actions,
         builtInActions['@xstate.sendTo'],
@@ -1003,8 +1025,7 @@ export function resolveActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
-  actions: AnyAction[],
-  internalEvents?: EventObject[]
+  actions: AnyAction[]
 ): [AnyMachineSnapshot, ExecutableActionObject[]] {
   let intermediateSnapshot = currentSnapshot;
   const executableActions: ExecutableActionObject[] = [];
@@ -1040,18 +1061,19 @@ export function resolveActionsWithContext(
 
     if (
       actionRecord?.action === builtInActions['@xstate.sendTo'] &&
-      typeof actionRecord.args[1] === 'string'
+      (!actionRecord.args[1] || typeof actionRecord.args[1] === 'string')
     ) {
-      const childId = actionRecord.args[1];
-      const target = Object.hasOwn(intermediateSnapshot.children, childId)
-        ? intermediateSnapshot.children[childId]
-        : undefined;
+      const childId: string | undefined = actionRecord.args[1] || undefined;
+      const target =
+        childId !== undefined &&
+        Object.hasOwn(intermediateSnapshot.children, childId)
+          ? intermediateSnapshot.children[childId]
+          : undefined;
       if (!target) {
-        internalEvents?.push(
-          createErrorPlatformEvent('communication', {
-            message: `Unable to send event to unknown child '${childId}'`,
-            event: actionRecord.args[2]
-          })
+        // Boundary fault: the event is dead-lettered and the sender keeps
+        // running; a missing target is never an actor error.
+        executableActions.push(
+          createMissingTargetEffect(actorScope, actionRecord.args[2], childId)
         );
         continue;
       }

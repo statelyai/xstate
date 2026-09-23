@@ -3128,8 +3128,11 @@ export interface DeadLetterExecutableActionObject extends BaseExecutableActionOb
   type: '@xstate.deadLetter';
   /** The actor that sent the event, or `undefined` for an external send. */
   source: AnyActor | undefined;
-  /** The actor that rejected the event. */
-  target: AnyActor;
+  /**
+   * The actor that rejected the event, or `undefined` when the send target
+   * was missing (`reason: 'missingTarget'`).
+   */
+  target: AnyActor | undefined;
   /** The rejected event. */
   event: AnyEventObject;
   /** Why the event was rejected, such as `'invalidEvent'`. */

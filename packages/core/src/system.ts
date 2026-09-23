@@ -282,13 +282,16 @@ export function bookSessionId(system: AnyActorSystem): string {
 /**
  * Why an event was not delivered: `'invalidEvent'` (payload failed its
  * declared schema), `'internalEvent'` (an internal event type sent from
- * outside its owning actor) or `'stopped'` (the target actor already
- * stopped). Hosts may report additional reasons.
+ * outside its owning actor), `'stopped'` (the target actor already stopped)
+ * or `'missingTarget'` (`enq.sendTo` received an undefined ref, an unknown
+ * child id, or the `parent` of a root actor). Hosts may report additional
+ * reasons.
  */
 export type EventRejectionReason =
   | 'invalidEvent'
   | 'internalEvent'
   | 'stopped'
+  | 'missingTarget'
   | (string & {});
 
 /** Extra detail attached to a dead letter. */
@@ -297,6 +300,11 @@ export interface DeadLetterDetail {
   issues?: readonly StandardSchemaV1.Issue[];
   /** The underlying error describing the rejection. */
   error?: Error;
+  /**
+   * The unresolved target id for `missingTarget` rejections (the child id
+   * passed to `enq.sendTo`), when one was given.
+   */
+  targetId?: string | undefined;
 }
 
 /**
@@ -387,7 +395,7 @@ export interface ActorSystemRuntime {
    */
   deadLetter(
     source: AnyActor | undefined,
-    target: AnyActor,
+    target: AnyActor | undefined,
     event: AnyEventObject,
     reason: EventRejectionReason,
     detail?: DeadLetterDetail
@@ -890,14 +898,15 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
 
   public deadLetter(
     source: AnyActor | undefined,
-    target: AnyActor,
+    target: AnyActor | undefined,
     event: AnyEventObject,
     reason: EventRejectionReason,
     detail?: DeadLetterDetail
   ): void | PromiseLike<void> {
     this._sendInspectionEvent({
       type: '@xstate.deadletter',
-      actorRef: target,
+      // A missing target has no ref; the sender owns the dead letter.
+      actorRef: (target ?? source)!,
       sourceRef: source,
       event,
       reason,
@@ -907,7 +916,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     this._onRejectedEvent?.({
       event,
       targetRef: target,
-      targetId: target.id,
+      targetId: target?.id ?? detail?.targetId,
       sourceRef: source,
       eventOrigin: source ? 'actor' : 'external',
       reason,
@@ -920,7 +929,13 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     }
     if (isDevelopment) {
       console.warn(
-        `Event "${event.type}" to actor "${target.id}" was not delivered (${reason}).`
+        target
+          ? `Event "${event.type}" to actor "${target.id}" was not delivered (${reason}).`
+          : `Actor "${source?.id}" sent event "${event.type}" to missing target ${
+              detail?.targetId !== undefined
+                ? `"${detail.targetId}"`
+                : 'undefined'
+            }; the event was not delivered (${reason}).`
       );
     }
   }

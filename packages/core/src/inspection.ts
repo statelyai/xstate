@@ -104,8 +104,10 @@ export interface TransitionInspectionEvent extends BaseInspectionEventProperties
 
 /**
  * Emitted when an event could not be delivered to its target actor (a dead
- * letter): a send to a stopped actor, an invalid external event payload, or
- * an internal event type sent from outside its owning actor.
+ * letter): a send to a stopped actor, an invalid external event payload, an
+ * internal event type sent from outside its owning actor, or an `enq.sendTo`
+ * whose target is missing. For a missing target, `actorRef` is the sending
+ * actor.
  *
  * A dead letter is not an actor error: the target actor's snapshot is
  * unchanged.
@@ -117,8 +119,8 @@ export interface DeadLetterInspectionEvent extends BaseInspectionEventProperties
   /** The undelivered event. */
   event: AnyEventObject;
   /**
-   * Why the event was not delivered: `'stopped'`, `'invalidEvent'` or
-   * `'internalEvent'`.
+   * Why the event was not delivered: `'stopped'`, `'invalidEvent'`,
+   * `'internalEvent'` or `'missingTarget'`.
    */
   reason: EventRejectionReason;
   /** Standard Schema issues for `'invalidEvent'` dead letters. */
