@@ -19,7 +19,7 @@ import {
   useActorRef as useSvelteActorRef,
   useMachine as useSvelteMachine,
   useSelector as useSvelteSelector
-} from '../../packages/xstate-svelte/dist/xstate-svelte.cjs.mjs';
+} from '../../packages/xstate-svelte/dist/xstate-svelte.js';
 import {
   useActor as useVueActor,
   useActorRef as useVueActorRef,
