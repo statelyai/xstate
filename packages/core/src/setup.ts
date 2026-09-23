@@ -2673,7 +2673,7 @@ type PublicInvoke<T> = T extends readonly (infer TEntry)[]
     : never;
 
 // Do not use Pick<T, K>: declaration emit embeds the entire inferred T in it.
-type PublicStateField<T, K extends keyof StateSchema> =
+type PublicStateField<T, K extends PropertyKey> =
   T extends Record<K, infer TValue> ? { [P in K]: TValue } : {};
 
 type PublicStateSchema<T extends StateSchema> = {
@@ -2686,6 +2686,7 @@ type PublicStateSchema<T extends StateSchema> = {
   PublicStateField<T, 'initial'> &
   PublicStateField<T, 'contextSchema'> &
   PublicStateField<T, 'outputSchema'> &
+  PublicStateField<T, 'internalEvents'> &
   (T extends { invoke: infer TInvoke }
     ? { invoke: PublicInvoke<TInvoke> }
     : {}) &
