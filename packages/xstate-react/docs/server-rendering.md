@@ -29,12 +29,12 @@ The same applies to actors created in a request handler: stop them when the requ
 
 ## Render-only initial state
 
-When the server only needs to render markup and will not run the machine, `getInitialSnapshot(logic, input?)` computes the initial snapshot without creating an actor.
+When the server only needs to render markup and will not run the machine, `initialTransition(logic, input?)` computes the initial snapshot without creating an actor.
 
 ```tsx
-import { getInitialSnapshot } from 'xstate';
+import { initialTransition } from 'xstate';
 
-const snapshot = getInitialSnapshot(checkoutMachine, { orderId });
+const [snapshot] = initialTransition(checkoutMachine, { orderId });
 const heading = snapshot.matches('review') ? 'Review order' : 'Checkout';
 ```
 
@@ -80,7 +80,7 @@ import { createActorContext } from '@xstate/react';
 export const CheckoutContext = createActorContext(checkoutMachine);
 ```
 
-Server components can still do machine work, such as computing a snapshot with `getInitialSnapshot(...)` or running an actor to completion, and pass the result down as a serializable prop:
+Server components can still do machine work, such as computing a snapshot with `initialTransition(...)` or running an actor to completion, and pass the result down as a serializable prop:
 
 ```tsx
 // app/checkout/page.tsx — server component

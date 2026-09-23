@@ -63,7 +63,7 @@ import {
 } from './transitionActions.ts';
 import { parseDurationToMilliseconds } from './delay.ts';
 import { transitionEffectSignal, transitionEffectTargets } from './system.ts';
-import { isInertActorScope } from './getNextSnapshot.ts';
+import { isInertActorScope } from './inertActorScope.ts';
 import {
   getActorScopeParent,
   isLazyActorScope,

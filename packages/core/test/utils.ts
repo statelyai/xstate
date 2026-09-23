@@ -1,7 +1,7 @@
 import {
   AnyMachineSnapshot,
   AnyStateMachine,
-  getNextSnapshot,
+  transition,
   matchesState,
   StateValue
 } from '../src/index.ts';
@@ -26,7 +26,7 @@ export function testMultiTransition(
     if (typeof state === 'string') {
       state = resolveSerializedStateValue(machine, state);
     }
-    const nextState = getNextSnapshot(machine, state, {
+    const [nextState] = transition(machine, state, {
       type: eventType
     });
     return nextState;

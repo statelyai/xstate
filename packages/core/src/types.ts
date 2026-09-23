@@ -90,8 +90,6 @@ export type Cast<A, B> = A extends B ? A : B;
 // https://github.com/microsoft/TypeScript/pull/61077
 // but even with those fixes native NoInfer still doesn't work - further issues have to be reproduced and fixed
 export type DoNotInfer<T> = [T][T extends any ? 0 : any];
-/** @deprecated Use the built-in `NoInfer` type instead */
-export type NoInfer<T> = DoNotInfer<T>;
 export type LowInfer<T> = T & NonNullable<unknown>;
 
 export type MetaObject = Record<string, any>;
@@ -2005,9 +2003,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
 
 export type AnyActor = ActorInstance<any, any, any, any>;
 
-/** @deprecated Use `AnyActor` instead. */
-export type AnyInterpreter = AnyActor;
-
 // Based on RxJS types
 export type Observer<T> = {
   next?: (value: T) => void;
@@ -2951,27 +2946,6 @@ export interface StateMachineTypes {
   emitted: EventObject;
 }
 
-/** @deprecated */
-export interface ResolvedStateMachineTypes<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TTag extends string,
-  TEmitted extends EventObject = EventObject
-> {
-  context: TContext;
-  events: TEvent;
-  actors: TActor;
-  actions: TAction;
-  guards: TGuard;
-  delays: TDelay;
-  tags: TTag;
-  emitted: TEmitted;
-}
-
 export type GetConcreteByKey<
   T,
   TKey extends keyof T,
@@ -3269,7 +3243,7 @@ export type EnqueueObject<
   >(
     target: TTarget,
     event: SendableEventFromActorRef<
-      NoInfer<
+      DoNotInfer<
         TTarget extends keyof TChildren & string ? TChildren[TTarget] : TTarget
       >
     >,

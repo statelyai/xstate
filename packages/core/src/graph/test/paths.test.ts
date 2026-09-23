@@ -1,8 +1,4 @@
-import {
-  createMachine,
-  getInitialSnapshot,
-  getNextSnapshot
-} from '../../index.ts';
+import { createMachine, initialTransition, transition } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 
@@ -47,13 +43,13 @@ describe('testModel.testPaths(...)', () => {
     );
 
     const paths = testModel.getPaths((logic, options) => {
-      const initialState = getInitialSnapshot(logic);
+      const [initialState] = initialTransition(logic);
       const events =
         typeof options.events === 'function'
           ? options.events(initialState)
           : (options.events ?? []);
 
-      const nextState = getNextSnapshot(logic, initialState, events[0]);
+      const [nextState] = transition(logic, initialState, events[0]);
       return [
         {
           state: nextState,

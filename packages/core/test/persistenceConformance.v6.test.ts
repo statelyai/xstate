@@ -3,7 +3,7 @@
  *
  * Six+ open v5 issues are believed fixed by the v6 persistence rewrite: logical
  * snapshot timers, snapshot versioning + `migrate`, children registered on
- * `snapshot.children`, and `getInitialSnapshot` single-init. Each `describe`
+ * `snapshot.children`, and `initialTransition` single-init. Each `describe`
  * proves or disproves one issue via the canonical JSON round-trip:
  *
  * Const persisted = actor.getPersistedSnapshot(); const json =
@@ -13,7 +13,7 @@
 import {
   createActor,
   createMachine,
-  getInitialSnapshot,
+  initialTransition,
   setup,
   SimulatedClock
 } from '../src/index.ts';
@@ -150,7 +150,7 @@ describe('#5077 re-persistability of children', () => {
       }
     });
 
-    expect(() => getInitialSnapshot(parent)).toThrow(
+    expect(() => initialTransition(parent)).toThrow(
       "Actor source 'child' is not provided"
     );
   });
@@ -615,7 +615,7 @@ describe('#5013 unserializable event to stopped actor (dev)', () => {
   });
 });
 
-describe('#4774 getInitialSnapshot single init', () => {
+describe('#4774 initialTransition single init', () => {
   it('runs the context factory exactly once', () => {
     let initCount = 0;
     const machine = createMachine({
@@ -627,7 +627,7 @@ describe('#4774 getInitialSnapshot single init', () => {
       states: { a: {} }
     });
 
-    getInitialSnapshot(machine);
+    initialTransition(machine);
 
     expect(initCount).toBe(1);
   });

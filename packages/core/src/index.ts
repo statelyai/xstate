@@ -142,7 +142,6 @@ export type {
   SetupStateSchemas,
   SetupStateType
 } from './setup.ts';
-export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export type {
   InspectionEvent,
   ActorInspectionEvent,

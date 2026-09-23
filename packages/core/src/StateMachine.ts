@@ -15,7 +15,7 @@ import {
   createInertActorScope,
   isInertActorScope,
   setInertActorScopeSnapshot
-} from './getNextSnapshot.ts';
+} from './inertActorScope.ts';
 import { withActorSelf } from './actorScope.ts';
 import {
   createMachineSnapshot,
