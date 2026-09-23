@@ -612,7 +612,13 @@ export type TransitionConfigFunction<
     TDelayMap,
     TChildren
   > & { input: TInput },
-  enq: EnqueueObject<TEvent, TEmitted, SystemRegistry, TActorMap, TChildren>
+  enq: EnqueueObject<
+    TEvent,
+    TEmitted,
+    SystemRegistry,
+    Compute<CallbackActors<TActorMap>>,
+    TChildren
+  >
 ) => {
   target?: string | string[];
   // target?: keyof TSS['states'];
@@ -621,6 +627,29 @@ export type TransitionConfigFunction<
   meta?: TMeta;
   input?: Record<string, unknown>;
 } | void;
+
+// The compact callback projection must retain a machine's public send protocol.
+declare const sendableEvent: unique symbol;
+
+type SendableEventCarrier<TEvent extends EventObject> = {
+  readonly [sendableEvent]?: TEvent;
+};
+
+/**
+ * The actor-logic surface available in inline callbacks. The outer `Compute`
+ * at each use site is necessary: otherwise declaration emit repeats the
+ * registered machine's structural type in every callback signature.
+ */
+export type CallbackActors<T extends Sources['actors']> = {
+  [K in keyof T]: ActorLogic<
+    OpaqueMachineSnapshot<SnapshotFrom<T[K]>>,
+    EventFromLogic<T[K]>,
+    InputFrom<T[K]>,
+    AnyActorSystem,
+    EmittedFrom<T[K]>
+  > &
+    SendableEventCarrier<SendableEventFromLogic<T[K]>>;
+};
 
 type TransitionFunctionArgs<
   TContext,
@@ -655,7 +684,7 @@ type TransitionFunctionArgs<
   children: TChildren;
   system: AnyActorSystem;
   actions: TActionMap;
-  actors: TActorMap;
+  actors: Compute<CallbackActors<TActorMap>>;
   guards: TGuardMap;
   delays: TDelayMap;
 } & OutputArg<TCurrentEvent>;
@@ -2221,7 +2250,7 @@ export type ActorRefFrom<T> =
             infer _TSystem,
             infer TEmitted
           >
-        ? ActorRef<TSnapshot, TEvent, TEmitted>
+        ? ActorRef<TSnapshot, TEvent, TEmitted, SendableEventFromLogic<T>>
         : never;
 
 export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
@@ -2243,7 +2272,9 @@ export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
     infer TInternalEvent
   >
     ? SendableEventFromMachine<TEvent, TInternalEvent, TConfig>
-    : EventFromLogic<TLogic>;
+    : TLogic extends SendableEventCarrier<infer TSendableEvent>
+      ? TSendableEvent
+      : EventFromLogic<TLogic>;
 
 type OpaqueMachineSnapshot<TSnapshot extends Snapshot<unknown>> =
   TSnapshot extends MachineSnapshot<
