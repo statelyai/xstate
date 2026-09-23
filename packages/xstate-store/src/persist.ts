@@ -118,6 +118,7 @@ export type PersistOptions<
 
 // Internal helpers
 const PERSIST_INTERNALS: unique symbol = Symbol.for('xstate-store-persist');
+const PERSIST_REVISION: unique symbol = Symbol('xstate-store-persist-revision');
 
 interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   options: PersistOptions<TContext, TEvent>;
@@ -126,6 +127,8 @@ interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   pendingEvents: TEvent[] | null;
   pendingCheckpoint: unknown;
   flushTimeoutId: ReturnType<typeof setTimeout> | null;
+  pendingWrite: Promise<void> | null;
+  lastScheduledRevision: number;
   flush: () => void | Promise<void>;
 }
 
@@ -206,6 +209,24 @@ function migrateEventsIfNeeded<TEvent extends EventObject>(
   return stored.events;
 }
 
+function enqueueWrite(
+  internals: PersistInternals<any, any>,
+  write: () => void | Promise<void>
+): void | Promise<void> {
+  const result = internals.pendingWrite
+    ? internals.pendingWrite.then(write, write)
+    : write();
+  if (result instanceof Promise) {
+    const pending = result.finally(() => {
+      if (internals.pendingWrite === pending) {
+        internals.pendingWrite = null;
+      }
+    });
+    internals.pendingWrite = pending;
+    return pending;
+  }
+}
+
 function writeSnapshotToStorage<TContext>(
   internals: PersistInternals<TContext>,
   context: TContext
@@ -219,19 +240,21 @@ function writeSnapshotToStorage<TContext>(
     version: options.version ?? 0
   };
 
-  try {
-    const serialized = serializeSnapshotValue(options, value);
-    const result = storage.setItem(options.name, serialized);
-    if (result instanceof Promise) {
-      return result
-        .then(() => options.onDone?.(contextToPersist))
-        .catch((err) => options.onError?.(err));
-    }
+  return enqueueWrite(internals, () => {
+    try {
+      const serialized = serializeSnapshotValue(options, value);
+      const result = storage.setItem(options.name, serialized);
+      if (result instanceof Promise) {
+        return result
+          .then(() => options.onDone?.(contextToPersist))
+          .catch((err) => options.onError?.(err));
+      }
 
-    options.onDone?.(contextToPersist);
-  } catch (err) {
-    options.onError?.(err);
-  }
+      options.onDone?.(contextToPersist);
+    } catch (err) {
+      options.onError?.(err);
+    }
+  });
 }
 
 function writeEventsToStorage<TEvent extends EventObject>(
@@ -250,19 +273,21 @@ function writeEventsToStorage<TEvent extends EventObject>(
     value.checkpoint = checkpoint;
   }
 
-  try {
-    const serialized = serializeEventValue(options, value);
-    const result = storage.setItem(options.name, serialized);
-    if (result instanceof Promise) {
-      return result
-        .then(() => options.onDone?.(events))
-        .catch((err) => options.onError?.(err));
-    }
+  return enqueueWrite(internals, () => {
+    try {
+      const serialized = serializeEventValue(options, value);
+      const result = storage.setItem(options.name, serialized);
+      if (result instanceof Promise) {
+        return result
+          .then(() => options.onDone?.(events))
+          .catch((err) => options.onError?.(err));
+      }
 
-    options.onDone?.(events);
-  } catch (err) {
-    options.onError?.(err);
-  }
+      options.onDone?.(events);
+    } catch (err) {
+      options.onError?.(err);
+    }
+  });
 }
 
 function createInternals<TContext, TEvent extends EventObject>(
@@ -277,6 +302,8 @@ function createInternals<TContext, TEvent extends EventObject>(
     pendingEvents: null,
     pendingCheckpoint: null,
     flushTimeoutId: null,
+    pendingWrite: null,
+    lastScheduledRevision: 0,
     flush: () => {
       if (internals.flushTimeoutId !== null) {
         clearTimeout(internals.flushTimeoutId);
@@ -284,25 +311,20 @@ function createInternals<TContext, TEvent extends EventObject>(
       }
       if (isEventStrategy(options)) {
         if (internals.pendingEvents !== null) {
-          const result = writeEventsToStorage(
-            internals,
-            internals.pendingEvents,
-            internals.pendingCheckpoint
-          );
+          const events = internals.pendingEvents;
+          const checkpoint = internals.pendingCheckpoint;
           internals.pendingEvents = null;
           internals.pendingCheckpoint = null;
-          return result;
+          return writeEventsToStorage(internals, events, checkpoint);
         }
       } else {
         if (internals.pendingContext !== null) {
-          const result = writeSnapshotToStorage(
-            internals as any,
-            internals.pendingContext as TContext
-          );
+          const context = internals.pendingContext;
           internals.pendingContext = null;
-          return result;
+          return writeSnapshotToStorage(internals as any, context as TContext);
         }
       }
+      return internals.pendingWrite ?? undefined;
     }
   };
 
@@ -349,6 +371,7 @@ function persistSnapshotFromLogic<
 
         // Async storage — can't hydrate synchronously
         if (storedValue instanceof Promise) {
+          void storedValue.catch((error) => options.onError?.(error));
           return {
             ...baseSnapshot,
             _persist: { hydrated: false },
@@ -432,9 +455,12 @@ function persistSnapshotFromLogic<
       // Delegate to wrapped logic
       const [nextSnapshot, effects] = logic.transition(snapshot, event);
 
+      const revision = (snapshot[PERSIST_REVISION] ?? 0) + 1;
+
       // Preserve _persist metadata
       const snapshotWithMeta = {
         ...nextSnapshot,
+        [PERSIST_REVISION]: revision,
         _persist: snapshot._persist ?? { hydrated: false },
         [PERSIST_INTERNALS]: internals
       };
@@ -449,31 +475,23 @@ function persistSnapshotFromLogic<
         return [snapshotWithMeta, effects];
       }
 
-      // Schedule storage write
-      if (throttleMs > 0) {
-        // Throttled: buffer context, schedule delayed write
-        internals.pendingContext = options.pick
-          ? (options.pick(nextSnapshot.context) as any)
-          : nextSnapshot.context;
-
-        if (internals.flushTimeoutId === null) {
-          const persistEffect = () => {
+      // Commit before wrapped effects can trigger another event. Subscribers can
+      // already have committed a newer eligible event before effects begin.
+      const persistEffect = () => {
+        if (revision <= internals.lastScheduledRevision) return;
+        internals.lastScheduledRevision = revision;
+        if (throttleMs > 0) {
+          internals.pendingContext = nextSnapshot.context;
+          if (internals.flushTimeoutId === null) {
             internals.flushTimeoutId = setTimeout(() => {
               void internals.flush();
             }, throttleMs);
-          };
-          return [snapshotWithMeta, [...effects, persistEffect]];
+          }
+        } else {
+          void writeSnapshotToStorage(internals as any, nextSnapshot.context);
         }
-
-        return [snapshotWithMeta, effects];
-      }
-
-      // Immediate write as effect
-      const persistEffect = () => {
-        void writeSnapshotToStorage(internals as any, nextSnapshot.context);
       };
-
-      return [snapshotWithMeta, [...effects, persistEffect]];
+      return [snapshotWithMeta, [persistEffect, ...effects]];
     }
   };
 
@@ -531,6 +549,7 @@ function persistEventFromLogic<
         const storedValue = storage.getItem(options.name);
 
         if (storedValue instanceof Promise) {
+          void storedValue.catch((error) => options.onError?.(error));
           return {
             ...baseSnapshot,
             _persistEvents: [],
@@ -605,6 +624,7 @@ function persistEventFromLogic<
           return [
             {
               ...replayedSnapshot,
+              [PERSIST_REVISION]: snapshot[PERSIST_REVISION],
               _persistEvents: events,
               _persistCheckpoint: parsed.checkpoint ?? null,
               _persist: { ...snapshot._persist, hydrated: true },
@@ -631,9 +651,12 @@ function persistEventFromLogic<
       const prevEvents: TEvent[] = snapshot._persistEvents ?? [];
       const prevCheckpoint: unknown = snapshot._persistCheckpoint ?? null;
 
+      const revision = (snapshot[PERSIST_REVISION] ?? 0) + 1;
+
       // Preserve metadata
       const snapshotWithMeta = {
         ...nextSnapshot,
+        [PERSIST_REVISION]: revision,
         _persistEvents: prevEvents,
         _persistCheckpoint: prevCheckpoint,
         _persist: snapshot._persist ?? { hydrated: false },
@@ -667,29 +690,22 @@ function persistEventFromLogic<
         _persistCheckpoint: nextCheckpoint
       };
 
-      // Schedule storage write
-      if (throttleMs > 0) {
-        internals.pendingEvents = nextEvents;
-        internals.pendingCheckpoint = nextCheckpoint;
-
-        if (internals.flushTimeoutId === null) {
-          const persistEffect = () => {
+      const persistEffect = () => {
+        if (revision <= internals.lastScheduledRevision) return;
+        internals.lastScheduledRevision = revision;
+        if (throttleMs > 0) {
+          internals.pendingEvents = nextEvents;
+          internals.pendingCheckpoint = nextCheckpoint;
+          if (internals.flushTimeoutId === null) {
             internals.flushTimeoutId = setTimeout(() => {
               void internals.flush();
             }, throttleMs);
-          };
-          return [snapshotWithEvents, [...effects, persistEffect]];
+          }
+        } else {
+          void writeEventsToStorage(internals, nextEvents, nextCheckpoint);
         }
-
-        return [snapshotWithEvents, effects];
-      }
-
-      // Immediate write as effect
-      const persistEffect = () => {
-        void writeEventsToStorage(internals, nextEvents, nextCheckpoint);
       };
-
-      return [snapshotWithEvents, [...effects, persistEffect]];
+      return [snapshotWithEvents, [persistEffect, ...effects]];
     }
   };
 
@@ -873,11 +889,21 @@ export function clearStorage(store: {
   if (!internals) {
     throw new Error('clearStorage: store does not have a persist extension');
   }
-  return internals.storage.removeItem(internals.options.name);
+  if (internals.flushTimeoutId !== null) {
+    clearTimeout(internals.flushTimeoutId);
+    internals.flushTimeoutId = null;
+  }
+  internals.pendingContext = null;
+  internals.pendingEvents = null;
+  internals.pendingCheckpoint = null;
+  return enqueueWrite(internals, () =>
+    internals.storage.removeItem(internals.options.name)
+  );
 }
 
 /**
- * Forces an immediate write of any pending throttled context to storage.
+ * Flushes pending throttled updates and waits for already queued async writes.
+ * Synchronous storage writes complete before this function returns.
  *
  * @example
  *

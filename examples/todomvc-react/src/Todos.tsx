@@ -43,11 +43,12 @@ export function Todos() {
 
   // Capture initial state of browser hash
   useEffect(() => {
-    window.location.hash.slice(2) &&
+    if (window.location.hash.slice(2)) {
       send({
         type: 'filter.change',
         filter: window.location.hash.slice(2) as TodosFilter
       });
+    }
   }, []);
 
   const numActiveTodos = todos.filter((todo) => !todo.completed).length;

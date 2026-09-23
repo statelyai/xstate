@@ -612,7 +612,13 @@ export type TransitionConfigFunction<
     TDelayMap,
     TChildren
   > & { input: TInput },
-  enq: EnqueueObject<TEvent, TEmitted, SystemRegistry, TActorMap, TChildren>
+  enq: EnqueueObject<
+    TEvent,
+    TEmitted,
+    SystemRegistry,
+    Compute<CallbackActors<TActorMap>>,
+    TChildren
+  >
 ) => {
   target?: string | string[];
   // target?: keyof TSS['states'];
@@ -621,6 +627,29 @@ export type TransitionConfigFunction<
   meta?: TMeta;
   input?: Record<string, unknown>;
 } | void;
+
+// The compact callback projection must retain a machine's public send protocol.
+declare const sendableEvent: unique symbol;
+
+type SendableEventCarrier<TEvent extends EventObject> = {
+  readonly [sendableEvent]?: TEvent;
+};
+
+/**
+ * The actor-logic surface available in inline callbacks. The outer `Compute`
+ * at each use site is necessary: otherwise declaration emit repeats the
+ * registered machine's structural type in every callback signature.
+ */
+export type CallbackActors<T extends Sources['actors']> = {
+  [K in keyof T]: ActorLogic<
+    OpaqueMachineSnapshot<SnapshotFrom<T[K]>>,
+    EventFromLogic<T[K]>,
+    InputFrom<T[K]>,
+    AnyActorSystem,
+    EmittedFrom<T[K]>
+  > &
+    SendableEventCarrier<SendableEventFromLogic<T[K]>>;
+};
 
 type TransitionFunctionArgs<
   TContext,
@@ -655,7 +684,7 @@ type TransitionFunctionArgs<
   children: TChildren;
   system: AnyActorSystem;
   actions: TActionMap;
-  actors: TActorMap;
+  actors: Compute<CallbackActors<TActorMap>>;
   guards: TGuardMap;
   delays: TDelayMap;
 } & OutputArg<TCurrentEvent>;
@@ -1164,6 +1193,13 @@ export interface AnyStateMachine extends AnyActorLogic {
   root: AnyStateNode;
   /** @internal */
   _hasEventlessTransitions?: boolean;
+  /** @internal Adapter hooks for actor-local transition evaluation state. */
+  _microstepHooks?:
+    | {
+        begin(self: AnyActor): void;
+        drain(self: AnyActor): AnyEventObject[];
+      }
+    | undefined;
   /** @internal */
   idMap: Map<string, AnyStateNode>;
   options?: { maxIterations?: number };
@@ -1747,10 +1783,33 @@ export type PersistedMachineIdentity<
  * Unlike {@link PersistedSnapshotFor}, which is only the restore-time identity
  * brand, this describes the persisted snapshot's actual shape.
  */
+/**
+ * One entry in a persisted snapshot's `children`.
+ *
+ * @remarks
+ * An embedded child carries its own persisted `snapshot` — the co-locating
+ * runtime's whole-tree checkpoint. A child persisted by address
+ * (`getPersistedSnapshot({ embedChildren: false })`) and a remote handle carry
+ * `remote: true` instead, leaving each child's state with the runtime that
+ * owns it.
+ */
+export type PersistedActorRef = {
+  /** The child's logical address, stable across incarnations. */
+  address?: string;
+  /** The registered source key the child is restored from. */
+  src: string;
+  registryKey?: string;
+  syncSnapshot?: boolean;
+} & (
+  | { snapshot: unknown; remote?: undefined }
+  | { snapshot?: undefined; remote: true; incarnation?: string }
+);
+
 export type PersistedSnapshotFrom<TMachine extends AnyStateMachine> =
   Snapshot<unknown> &
     PersistedSnapshotFor<TMachine> & {
       context: ContextFrom<TMachine>;
+      children: Record<string, PersistedActorRef>;
       [key: string]: unknown;
     } & (undefined extends TMachine['version']
       ? { machine?: PersistedMachineIdentity<TMachine> }
@@ -2191,7 +2250,7 @@ export type ActorRefFrom<T> =
             infer _TSystem,
             infer TEmitted
           >
-        ? ActorRef<TSnapshot, TEvent, TEmitted>
+        ? ActorRef<TSnapshot, TEvent, TEmitted, SendableEventFromLogic<T>>
         : never;
 
 export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
@@ -2213,7 +2272,9 @@ export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
     infer TInternalEvent
   >
     ? SendableEventFromMachine<TEvent, TInternalEvent, TConfig>
-    : EventFromLogic<TLogic>;
+    : TLogic extends SendableEventCarrier<infer TSendableEvent>
+      ? TSendableEvent
+      : EventFromLogic<TLogic>;
 
 type OpaqueMachineSnapshot<TSnapshot extends Snapshot<unknown>> =
   TSnapshot extends MachineSnapshot<

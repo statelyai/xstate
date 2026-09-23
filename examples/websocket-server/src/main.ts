@@ -1,5 +1,5 @@
 import { createActor, setup, types } from 'xstate';
-import { WebSocket, WebSocketServer } from 'ws';
+import { type RawData, WebSocket, WebSocketServer } from 'ws';
 import { createInspector } from '@statelyai/sdk';
 
 const inspector = process.env.INSPECT ? createInspector() : undefined;
@@ -9,6 +9,13 @@ const log = (message: string) =>
 
 const wait = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** `ws` delivers a frame as a `Buffer`, an `ArrayBuffer`, or a list of chunks. */
+const decodeFrame = (data: RawData) => {
+  if (Buffer.isBuffer(data)) return data.toString();
+  if (Array.isArray(data)) return Buffer.concat(data).toString();
+  return Buffer.from(data).toString();
+};
 
 /** The transport. Sockets live outside the machines, keyed by session id. */
 const sockets = new Map<string, WebSocket>();
@@ -184,7 +191,7 @@ wss.on('connection', (socket) => {
     server.send({
       type: 'incoming',
       sessionId,
-      message: JSON.parse(String(data))
+      message: JSON.parse(decodeFrame(data))
     });
   });
   socket.on('close', () => {
@@ -201,9 +208,11 @@ log(`server: listening on ws://localhost:${port}`);
 const connectClient = async (user: string) => {
   const socket = new WebSocket(`ws://localhost:${port}`);
   await new Promise<void>((resolve) => socket.on('open', () => resolve()));
-  socket.on('message', (data) => log(`client ${user}: <- ${String(data)}`));
+  socket.on('message', (data) =>
+    log(`client ${user}: <- ${decodeFrame(data)}`)
+  );
   socket.on('close', (code, reason) =>
-    log(`client ${user}: socket closed (${code} ${reason})`)
+    log(`client ${user}: socket closed (${code} ${reason.toString()})`)
   );
   socket.send(JSON.stringify({ type: 'hello', user }));
   return socket;

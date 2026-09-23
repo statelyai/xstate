@@ -1,7 +1,11 @@
 import path from 'node:path';
 import ts from 'typescript';
 
-const FIXTURES = ['narrowed-context', 'strict-targets'] as const;
+const FIXTURES = [
+  'narrowed-context',
+  'strict-targets',
+  'registered-child-parent'
+] as const;
 
 const COMPILER_OPTIONS: ts.CompilerOptions = {
   strict: true,
@@ -77,6 +81,10 @@ describe.each(FIXTURES)(
     it('emits without diagnostics', () => {
       expect(formatDiagnostics(diagnostics)).toBe('');
       expect(declaration).toBeDefined();
+      if (name === 'registered-child-parent') {
+        expect(Buffer.byteLength(declaration!)).toBeLessThan(500_000);
+        expect(declaration!.match(/readonly c0: \{/g)).toHaveLength(1);
+      }
     });
 
     // A consumer importing 'xstate' can only name what the package entry point
@@ -85,6 +93,7 @@ describe.each(FIXTURES)(
     // fails there with TS2742/TS4023, so every name emit reaches for must be
     // public — not merely exported from the module it lives in.
     it('names only types the package entry point exports', () => {
+      if (!declaration) return;
       const checker = program.getTypeChecker();
       const resolve = (symbol: ts.Symbol) =>
         symbol.flags & ts.SymbolFlags.Alias
@@ -98,7 +107,7 @@ describe.each(FIXTURES)(
       );
 
       const privateNames: string[] = [];
-      for (const [specifier, names] of referencedTypes(declaration!)) {
+      for (const [specifier, names] of referencedTypes(declaration)) {
         const source = program.getSourceFile(
           path.resolve(path.dirname(file), specifier)
         );
@@ -120,6 +129,96 @@ describe.each(FIXTURES)(
 
       expect(privateNames).toEqual([]);
     });
+
+    if (name === 'registered-child-parent') {
+      it('preserves types in the emitted declaration', () => {
+        const consumerFile = fixturePath('registered-child-consumer');
+        const declarationFile = [...emitted.keys()].find((fileName) =>
+          fileName.endsWith('registered-child-parent.d.ts')
+        )!;
+        const host = ts.createCompilerHost({
+          ...COMPILER_OPTIONS,
+          noEmit: true
+        });
+        const readFile = host.readFile.bind(host);
+        const fileExists = host.fileExists.bind(host);
+        host.readFile = (fileName) =>
+          fileName === file
+            ? undefined
+            : (emitted.get(fileName) ?? readFile(fileName));
+        host.fileExists = (fileName) =>
+          fileName !== file && (emitted.has(fileName) || fileExists(fileName));
+        const consumerProgram = ts.createProgram(
+          [consumerFile],
+          { ...COMPILER_OPTIONS, emitDeclarationOnly: false, noEmit: true },
+          host
+        );
+        expect(consumerProgram.getSourceFile(declarationFile)).toBeDefined();
+        expect(consumerProgram.getSourceFile(file)).toBeUndefined();
+        expect(
+          formatDiagnostics(ts.getPreEmitDiagnostics(consumerProgram))
+        ).toBe('');
+      });
+    }
   },
   30_000
 );
+
+it('emits a registered child across many invoked states', () => {
+  const count = 30;
+  const eventKeys = Array.from({ length: count * 8 }, (_, i) => `e${i}`);
+  const file = fixturePath('many-invoked-states');
+  const source = `
+import { setup, types } from '../../../src/index.ts';
+import { childMachine } from './registered-child.ts';
+
+const parentSetup = setup({
+  schemas: {
+    context: types<{ token: string }>(),
+    events: { ${eventKeys.map((key) => `${key}: types<{ value: string }>()`).join(',')} }
+  },
+  actors: { child: childMachine }
+});
+
+${Array.from(
+  { length: count },
+  (_, i) =>
+    `const p${i} = parentSetup.createStateConfig({
+    invoke: {
+      src: 'child',
+      input: ({ context }) => ({ token: context.token })
+    },
+    on: { ${eventKeys
+      .slice(i * 8, (i + 1) * 8)
+      .map((key) => `${key}: { target: 'p${(i + 1) % count}' }`)
+      .join(',')} }
+  });`
+).join('\n')}
+
+export const parentMachine = parentSetup.createMachine({
+  context: { token: '' },
+  initial: 'p0',
+  states: { ${Array.from({ length: count }, (_, i) => `p${i}`).join(',')} }
+});
+`;
+  const host = ts.createCompilerHost(COMPILER_OPTIONS);
+  const readFile = host.readFile.bind(host);
+  const fileExists = host.fileExists.bind(host);
+  host.readFile = (fileName) =>
+    fileName === file ? source : readFile(fileName);
+  host.fileExists = (fileName) => fileName === file || fileExists(fileName);
+  const program = ts.createProgram([file, indexPath], COMPILER_OPTIONS, host);
+  let declaration = '';
+  const emitResult = program.emit(undefined, (fileName, contents) => {
+    if (fileName.endsWith('many-invoked-states.d.ts')) {
+      declaration = contents;
+    }
+  });
+  const diagnostics = [
+    ...ts.getPreEmitDiagnostics(program),
+    ...emitResult.diagnostics
+  ].filter((diagnostic) => diagnostic.file?.fileName === file);
+  expect(formatDiagnostics(diagnostics)).toBe('');
+  expect(Buffer.byteLength(declaration)).toBeLessThan(100_000);
+  expect(declaration.match(/readonly p0: \{/g)).toHaveLength(1);
+}, 30_000);

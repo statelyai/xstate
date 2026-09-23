@@ -1,33 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useActor } from '@xstate/react';
 import { Popover, OverlayTrigger, Button } from 'react-bootstrap';
-import { RickCharacters } from '../../services/RickApi';
-import { RMEpisode, ClueProps } from '../../common/types';
+import { ClueProps } from '../../common/types';
 import { TriviaMachineContext } from '../../context/AppContext';
+import { clueMachine } from './clueMachine';
 
 const Clue = (props: ClueProps) => {
   const isClueOpened = TriviaMachineContext.useSelector(
     (state) => state.context.isClueOpened
   );
   const triviaActorRef = TriviaMachineContext.useActorRef();
-  const [episode, setEpisode] = useState<RMEpisode | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    if (props.episode) {
-      RickCharacters.getClue(props.episode)
-        .then((data: RMEpisode) => {
-          if (isMounted) setEpisode(data);
-        })
-        .catch((err) => {
-          console.log(err);
-        });
-    } else {
-      setEpisode(null);
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, [props.episode]);
+  // The parent keys this component by episode, so a new character mounts a
+  // fresh actor with the new `input` instead of re-running an effect.
+  const [snapshot] = useActor(clueMachine, {
+    input: { url: props.episode }
+  });
+  const episode = snapshot.context.episode;
 
   const popover = (
     <Popover id="popover-basic">

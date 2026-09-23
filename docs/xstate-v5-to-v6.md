@@ -318,6 +318,8 @@ guards: {
 
 The `types: {} as { context: ..., events: ... }` shim is replaced by **Standard Schema**-compatible runtime schemas. Zod is the canonical choice.
 
+A leftover `types` key is a compile error in v6 rather than dead configuration, so the compiler finds every one of them for you. `xstate-codemod migrate --transform types-to-schemas` rewrites them.
+
 If you want types without a runtime schema library (the closest equivalent to v5's type-only `types`), use `types<T>()`:
 
 ```ts

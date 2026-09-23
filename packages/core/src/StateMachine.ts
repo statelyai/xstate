@@ -58,6 +58,7 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
+  AnyStateMachine,
   AnyMachineSnapshot,
   AnyTransitionDefinition,
   Equals,
@@ -231,12 +232,14 @@ export class StateMachine<
   TEmitted
 > {
   /**
-   * @internal Type-only marker for the actor's internal event protocol. Not
+   * Type-only marker for the actor's internal event protocol. `actor.send` and
+   * `actor.trigger` read it to drop internal events from the public protocol,
+   * so it must survive `stripInternal` into the published declarations. Not
    * `declare` (the build's babel pipeline rejects declare class fields); the
    * one `undefined` property this emits per machine instance is inert.
    */
   readonly _internalEventType!: TInternalEvent;
-  /** @internal Type-only marker for transition metadata. */
+  /** Type-only marker for transition metadata. Never assigned at runtime. */
   readonly _transitionMetaType!: TTransitionMeta;
 
   /**
@@ -279,6 +282,10 @@ export class StateMachine<
   public internalEventDescriptors: ReadonlyArray<string>;
   /** @internal Skips eventless-selection scans for machines without `always`. */
   public _hasEventlessTransitions: boolean;
+
+  /** @internal Adapter hooks for actor-local transition evaluation state. */
+  public _microstepHooks?: AnyStateMachine['_microstepHooks'];
+
   constructor(
     /** The raw config used to create the machine. */
     public config: Next_MachineConfig<
@@ -541,6 +548,7 @@ export class StateMachine<
     ) as unknown as this;
     // Providing sources does not change the serializable definition.
     provided._json = this._json;
+    provided._microstepHooks = this._microstepHooks;
     return provided;
   }
 
@@ -927,6 +935,7 @@ export class StateMachine<
     actorScope: AnyActorScope,
     selectionResults?: TransitionSelectionResults
   ): Array<AnyTransitionDefinition> {
+    this._microstepHooks?.begin(actorScope.self);
     return (
       transitionNode(
         this.root,

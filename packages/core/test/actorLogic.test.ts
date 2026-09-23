@@ -404,7 +404,7 @@ describe('promise logic (createAsyncLogic)', () => {
         });
         const second = await enq.step('second', async () => {
           secondStepExecutions++;
-          return new Promise<number>(() => {});
+          return secondStepExecutions === 1 ? new Promise<number>(() => {}) : 2;
         });
 
         return first + second;
@@ -428,7 +428,9 @@ describe('promise logic (createAsyncLogic)', () => {
     expect(firstStepExecutions).toBe(1);
     expect(secondStepExecutions).toBe(1);
 
-    const persistedSnapshot = actor.getPersistedSnapshot();
+    const persistedSnapshot = JSON.parse(
+      JSON.stringify(actor.getPersistedSnapshot())
+    );
     actor.stop();
 
     const restoredActor = createActor(logic, {
@@ -436,15 +438,6 @@ describe('promise logic (createAsyncLogic)', () => {
     }).start();
 
     await waitFor(restoredActor, () => runExecutions === 2);
-
-    expect(firstStepExecutions).toBe(1);
-    expect(secondStepExecutions).toBe(1);
-
-    restoredActor.send({
-      type: 'xstate.logic.effect.resolve',
-      key: 'second',
-      output: 2
-    });
 
     const doneSnapshot = await waitFor(
       restoredActor,
@@ -459,7 +452,7 @@ describe('promise logic (createAsyncLogic)', () => {
     });
     expect(runExecutions).toBe(2);
     expect(firstStepExecutions).toBe(1);
-    expect(secondStepExecutions).toBe(1);
+    expect(secondStepExecutions).toBe(2);
   });
   it('should rerun an unresolved promise from an active persisted snapshot', async () => {
     let createdPromises = 0;

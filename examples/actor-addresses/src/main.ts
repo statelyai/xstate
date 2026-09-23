@@ -103,7 +103,7 @@ restored.stop();
 
 log('\n4. location transparency: persist children by address only');
 const owner = createActor(orderMachine).start();
-const byAddress = owner.getPersistedSnapshot({ embedChildren: false }) as any;
+const byAddress = owner.getPersistedSnapshot({ embedChildren: false });
 log(`   persisted entry: ${JSON.stringify(byAddress.children.auditor)}`);
 
 // The children live in this process; the restored actor only holds handles to

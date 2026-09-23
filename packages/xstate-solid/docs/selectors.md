@@ -31,6 +31,11 @@ The diff clones plain objects and arrays. Functions, class instances and other n
 
 `useActor(...)` uses this internally: its first tuple member is `fromActorRef(actorRef)()`.
 
+<!-- observation semantics from ../src/fromActorRef.ts and ../src/createImmutable.ts -->
+The subscription reconciles changes made during component setup. Array/object replacements preserve the new container shape and do not mutate the actor's context. Circular and shared references remain intact.
+
+When an actor fails, the accessor updates to its error snapshot. Read `snapshot().status` and `snapshot().error` to render the failure; the adapter does not throw it into an error boundary.
+
 ## Change detection
 
 There is no `compare` argument, because there is nothing to compare: the store only notifies the paths that changed. A memo over the store adds Solid's own equality check on top.

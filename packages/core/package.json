@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "6.0.0-alpha.58",
+  "version": "6.0.0-alpha.59",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "bin": {
@@ -159,7 +159,7 @@
   },
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/core#readme",
   "devDependencies": {
-    "@scion-scxml/test-framework": "^2.0.15",
+    "@scion-scxml/test-framework": "2.0.16",
     "ajv": "^8.12.0",
     "pkg-up": "^3.1.0",
     "rxjs": "^7.8.1",
