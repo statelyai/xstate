@@ -54,12 +54,18 @@ describe('testModel.testPaths(...)', () => {
           : (options.events ?? []);
 
       const nextState = getNextSnapshot(logic, initialState, events[0]);
+      // Each step records the state its event led to; the first step is the
+      // initial state, reached by `xstate.init`.
       return [
         {
           state: nextState,
           steps: [
             {
               state: initialState,
+              event: { type: '@xstate.init' } as never
+            },
+            {
+              state: nextState,
               event: events[0]
             }
           ],

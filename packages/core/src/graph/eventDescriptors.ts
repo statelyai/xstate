@@ -1,5 +1,6 @@
 import type { EventObject, Snapshot } from '../index.ts';
 import { getPropertyEventCaseId } from './coverage.ts';
+import { fnv1a } from './utils.ts';
 
 /**
  * A value generator usable by the generator-neutral path runner.
@@ -144,33 +145,12 @@ export function normalizeEventDescriptors<
   return { cases, descriptors };
 }
 
-/** FNV-1a over a string, as an unsigned 32-bit integer. */
-export function fnv1a(value: string): number {
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < value.length; index++) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-}
-
 /**
  * The per-case seed used when sampling payloads. Deriving it from the case id
  * keeps each case's samples stable when other cases are added or removed.
  */
 export function deriveCaseSeed(seed: number, caseId: string): number {
   return (seed ^ fnv1a(caseId)) >>> 0;
-}
-
-/** A deterministic 32-bit PRNG (mulberry32), seeded by `seed`. */
-export function createSeededRng(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 /** Draws `count` values from a {@link TestGenerator}. */

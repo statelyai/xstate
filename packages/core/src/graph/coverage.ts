@@ -107,7 +107,7 @@ export interface TestExplorationTarget {
 }
 
 /** Why a property campaign stopped running batches. */
-export type TestStoppedBecause = 'until' | 'budget' | 'failure';
+export type TestStoppedBecause = 'until' | 'budget' | 'failure' | 'paths';
 
 export interface TestExplorationBounds {
   /**
@@ -141,9 +141,16 @@ export interface TestExplorationBounds {
   /**
    * `'until'` when a stop condition was met, `'failure'` when a
    * counterexample ended the campaign, `'budget'` when the configured runs
-   * were exhausted.
+   * were exhausted, `'paths'` when `testPaths()` executed every path.
    */
   readonly stoppedBecause: TestStoppedBecause;
+  /**
+   * Executed-mode steps that settled while an invoked or spawned actor's
+   * asynchronous work was still in flight. Each such timeline entry lists the
+   * actors in `pendingActors`. Non-zero means some results may have landed
+   * in a later step than the one that started them.
+   */
+  readonly pendingActorSteps: number;
 }
 
 /** Aggregated occurrences of a label recorded with `label()`/`classify()`. */
@@ -284,6 +291,7 @@ export interface MutableTestCoverage {
   guardIds: WeakMap<AnyTransitionDefinition, string>;
   guardOutcomes: Record<string, { passed: number; failed: number }>;
   maximumObservedSequenceLength: number;
+  pendingActorSteps: number;
 }
 
 function dimension(): MutableDimension {
@@ -481,10 +489,10 @@ function registerTransition(
  * quadratically, so large machines report a truncated universe rather than
  * spending unbounded time and memory on it.
  */
-const TRANSITION_PAIR_UNIVERSE_LIMIT = 5000;
+const TRANSITION_PAIR_UNIVERSE_LIMIT = 2000;
 /**
- * Machines with more transitions than this skip pair enumeration entirely:
- * the double loop below is O(T^2).
+ * Machines with more transitions than this skip pair enumeration entirely,
+ * since even the static pair universe can grow as O(T^2).
  */
 const TRANSITION_PAIR_MACHINE_LIMIT = 500;
 
@@ -510,6 +518,10 @@ interface RegisteredTransition {
  * `(t1, t2)` is possible when `t2`'s source node is within the configuration
  * `t1` can leave behind, approximated as the descendants-or-self of `t1`'s
  * targets (or of its own source when `t1` is targetless).
+ *
+ * Only pairs of static transitions are declared. A dynamic transition's target
+ * is unknown until it runs, so pairs involving one are not part of the
+ * universe; when observed at runtime they are still reported as covered.
  */
 function declareTransitionPairs(
   coverage: MutableTestCoverage,
@@ -521,9 +533,20 @@ function declareTransitionPairs(
     coverage.transitionPairsTruncated = true;
     return;
   }
+  const staticTransitions = registered.filter((entry) => !entry.transition.to);
+  const bySource = new Map<string, RegisteredTransition[]>();
+  for (const entry of staticTransitions) {
+    const sourceId = entry.transition.source.id;
+    let entries = bySource.get(sourceId);
+    if (!entries) {
+      entries = [];
+      bySource.set(sourceId, entries);
+    }
+    entries.push(entry);
+  }
   const descendants = new Map<string, Set<string>>();
   let declared = 0;
-  for (const first of registered) {
+  for (const first of staticTransitions) {
     const roots = first.transition.target?.length
       ? first.transition.target
       : [first.transition.source];
@@ -539,31 +562,27 @@ function declareTransitionPairs(
         reachableSources.add(id);
       }
     }
-    for (const second of registered) {
-      const dynamic = !!first.transition.to || !!second.transition.to;
-      if (!dynamic && !reachableSources.has(second.transition.source.id)) {
-        continue;
-      }
-      if (declared >= TRANSITION_PAIR_UNIVERSE_LIMIT) {
-        coverage.transitionPairsTruncated = true;
-        return;
-      }
-      declared++;
-      const secondDeclaration = coverage.transitions.declarations.get(
-        second.id
-      );
-      declare(
-        coverage.transitionPairs,
-        getPropertyTransitionPairId(first.id, second.id),
-        {
-          unreachable:
-            !!firstDeclaration?.unreachable || !!secondDeclaration?.unreachable,
-          unknown:
-            dynamic ||
-            !!firstDeclaration?.unknown ||
-            !!secondDeclaration?.unknown
+    for (const sourceId of reachableSources) {
+      for (const second of bySource.get(sourceId) ?? []) {
+        if (declared >= TRANSITION_PAIR_UNIVERSE_LIMIT) {
+          coverage.transitionPairsTruncated = true;
+          return;
         }
-      );
+        declared++;
+        const secondDeclaration = coverage.transitions.declarations.get(
+          second.id
+        );
+        declare(
+          coverage.transitionPairs,
+          getPropertyTransitionPairId(first.id, second.id),
+          {
+            unreachable:
+              !!firstDeclaration?.unreachable ||
+              !!secondDeclaration?.unreachable,
+            unknown: !!firstDeclaration?.unknown || !!secondDeclaration?.unknown
+          }
+        );
+      }
     }
   }
 }
@@ -651,7 +670,8 @@ export function createTestCoverage(logic: unknown): MutableTestCoverage {
     transitionIds: new WeakMap(),
     guardIds: new WeakMap(),
     guardOutcomes: {},
-    maximumObservedSequenceLength: 0
+    maximumObservedSequenceLength: 0,
+    pendingActorSteps: 0
   };
   const machine = logic as Partial<AnyStateMachine>;
   if (!machine.root) {
@@ -965,7 +985,8 @@ export function finalizeTestCoverage(
     target: { best: -Infinity, improvements: 0 },
     truncated: false,
     truncationReasons: [],
-    stoppedBecause: 'budget'
+    stoppedBecause: 'budget',
+    pendingActorSteps: coverage.pendingActorSteps
   }
 ): TestCoverage {
   // Labels are recorded by every attempted run, including failing and shrinking

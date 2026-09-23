@@ -157,7 +157,7 @@ describe('coverage-guided frontiers', () => {
     expect(prefix.every((event) => event.type === 'GO')).toBe(true);
     expect(failure!.trace.events.at(-1)).toEqual({ type: 'DEEP' });
     expect(prefix.length + failure!.trace.events.length).toBe(6);
-    expect(failure!.message).toContain('prefix/frontier');
+    expect(failure!.message).toContain('1. prefix GO');
   });
 });
 

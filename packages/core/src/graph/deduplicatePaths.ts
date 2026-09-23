@@ -2,9 +2,17 @@ import { StatePath } from './index.ts';
 import { EventObject, Snapshot } from '../index.ts';
 import { simpleStringify } from './utils.ts';
 
+interface EventTrieNode {
+  readonly children: Map<string, EventTrieNode>;
+}
+
 /**
  * Deduplicates your paths so that A -> B is not executed separately to A -> B
  * -> C
+ *
+ * Paths are returned longest first (stable for equal lengths). A path is
+ * dropped when its event sequence is a prefix of, or equal to, the event
+ * sequence of a path already kept.
  */
 export const deduplicatePaths = <
   TSnapshot extends Snapshot<unknown>,
@@ -13,60 +21,45 @@ export const deduplicatePaths = <
   paths: StatePath<TSnapshot, TEvent>[],
   serializeEvent: (event: TEvent) => string = simpleStringify
 ): StatePath<TSnapshot, TEvent>[] => {
-  /** Put all paths on the same level so we can dedup them */
-  const allPathsWithEventSequence: Array<{
-    path: StatePath<TSnapshot, TEvent>;
-    eventSequence: string[];
-  }> = [];
+  const pathsWithEventSequence = paths.map((path) => ({
+    path,
+    eventSequence: path.steps.map((step) => serializeEvent(step.event))
+  }));
 
-  paths.forEach((path) => {
-    allPathsWithEventSequence.push({
-      path,
-      eventSequence: path.steps.map((step) => serializeEvent(step.event))
-    });
-  });
-
-  // Sort by path length, descending
-  allPathsWithEventSequence.sort(
+  // Sort by path length, descending (stable), so every kept path is at least
+  // as long as any path checked against it.
+  pathsWithEventSequence.sort(
     (a, z) => z.path.steps.length - a.path.steps.length
   );
 
-  const superpathsWithEventSequence: typeof allPathsWithEventSequence = [];
+  // Trie of the event sequences of kept paths: a path is a prefix of a kept
+  // path exactly when its whole sequence can be walked from the root.
+  const root: EventTrieNode = { children: new Map() };
+  const kept: StatePath<TSnapshot, TEvent>[] = [];
 
-  /** Filter out the paths that are subpaths of superpaths */
-  pathLoop: for (const pathWithEventSequence of allPathsWithEventSequence) {
-    // Check each existing superpath to see if the path is a subpath of it
-    superpathLoop: for (const superpathWithEventSequence of superpathsWithEventSequence) {
-      // oxlint-disable-next-line typescript/no-for-in-array
-      for (const i in pathWithEventSequence.eventSequence) {
-        // Check event sequence to determine if path is subpath, e.g.:
-        //
-        // This will short-circuit the check
-        // ['a', 'b', 'c', 'd'] (superpath)
-        // ['a', 'b', 'x']      (path)
-        //
-        // This will not short-circuit; path is subpath
-        // ['a', 'b', 'c', 'd'] (superpath)
-        // ['a', 'b', 'c']      (path)
-        if (
-          pathWithEventSequence.eventSequence[i] !==
-          superpathWithEventSequence.eventSequence[i]
-        ) {
-          // If the path is different from the superpath,
-          // continue to the next superpath
-          continue superpathLoop;
-        }
+  for (const { path, eventSequence } of pathsWithEventSequence) {
+    let node: EventTrieNode | undefined = root;
+    for (const event of eventSequence) {
+      node = node.children.get(event);
+      if (!node) {
+        break;
       }
-
-      // If we reached here, path is subpath of superpath
-      // Continue & do not add path to superpaths
-      continue pathLoop;
+    }
+    if (node && kept.length > 0) {
+      continue;
     }
 
-    // If we reached here, path is not a subpath of any existing superpaths
-    // So add it to the superpaths
-    superpathsWithEventSequence.push(pathWithEventSequence);
+    let insertAt = root;
+    for (const event of eventSequence) {
+      let child = insertAt.children.get(event);
+      if (!child) {
+        child = { children: new Map() };
+        insertAt.children.set(event, child);
+      }
+      insertAt = child;
+    }
+    kept.push(path);
   }
 
-  return superpathsWithEventSequence.map((path) => path.path);
+  return kept;
 };

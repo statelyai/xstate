@@ -144,11 +144,28 @@ const DIMENSION_KEYS: readonly DimensionKey[] = [
   'frontiers'
 ];
 
+/**
+ * Coverage declares a `(runtime …)` placeholder in the dimensions whose
+ * universe is only known at runtime (serialized states, configurations). It
+ * marks the universe as open-ended; it is not an item, so reports leave it out
+ * of the counts and lists.
+ */
+function isRuntimePlaceholder(id: string): boolean {
+  return id.startsWith('(runtime ');
+}
+
 function getDimension(
   coverage: TestCoverage,
   key: DimensionKey
 ): TestCoverageDimension {
-  return coverage[key];
+  const dimension = coverage[key];
+  if (!dimension.unknown.some(isRuntimePlaceholder)) {
+    return dimension;
+  }
+  return {
+    ...dimension,
+    unknown: dimension.unknown.filter((id) => !isRuntimePlaceholder(id))
+  };
 }
 
 function totalOf(dimension: TestCoverageDimension): number {
@@ -228,11 +245,20 @@ function explorationLines(exploration: TestExplorationBounds): string[] {
             `${exploration.target.improvements} improvements`
         ]
       : []),
-    `truncated: ${exploration.truncated}${
-      exploration.truncationReasons.length
-        ? ` (${[...exploration.truncationReasons].sort().join(', ')})`
-        : ''
-    }`
+    ...(exploration.truncated
+      ? [
+          `truncated: true${
+            exploration.truncationReasons.length
+              ? ` (${[...exploration.truncationReasons].sort().join(', ')})`
+              : ''
+          }`
+        ]
+      : []),
+    ...(exploration.pendingActorSteps
+      ? [
+          `pending actors: ${exploration.pendingActorSteps} step(s) settled with actor work in flight`
+        ]
+      : [])
   ];
   for (const frontier of exploration.frontiers) {
     lines.push(

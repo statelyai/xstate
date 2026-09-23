@@ -315,4 +315,100 @@ describe('per-case mocks', () => {
     // Every route a mock installed is unrouted when its session is disposed.
     expect(page.installedRoutes).toEqual([]);
   });
+
+  const sessionContext = {
+    logic: counterMachine as never,
+    input: undefined,
+    snapshot: undefined,
+    label: () => {},
+    classify: () => {},
+    target: () => {}
+  };
+
+  it("unroutes the previous case's routes before applying another case's mock", async () => {
+    const page = new FakePage();
+    const sut = createPlaywrightSut<FakePage, CounterSnapshot, CounterEvent>(
+      page,
+      {
+        events: {
+          INC: async (p, event) => {
+            await p.fill('#amount', String(event.value));
+          },
+          RESET: async (p) => {
+            await p.click('#reset');
+          }
+        },
+        mocks: {
+          'INC.small': async (p) => {
+            p.routeLog.push('mock INC.small');
+            await p.route('**/api/small', (route) =>
+              route.fulfill({ status: 200 })
+            );
+          },
+          'INC.large': async (p) => {
+            p.routeLog.push('mock INC.large');
+            await p.route('**/api/large', (route) =>
+              route.fulfill({ status: 200 })
+            );
+          }
+        }
+      }
+    );
+
+    const session = await sut.create(sessionContext);
+    await session.send(
+      { type: 'INC', value: 1 },
+      { snapshot: undefined!, case: { type: 'INC', name: 'small' } }
+    );
+    await session.send(
+      { type: 'INC', value: 3 },
+      { snapshot: undefined!, case: { type: 'INC', name: 'large' } }
+    );
+
+    expect(page.routeLog).toEqual([
+      'mock INC.small',
+      'route **/api/small',
+      'unroute **/api/small',
+      'mock INC.large',
+      'route **/api/large'
+    ]);
+    expect(page.installedRoutes.map((entry) => entry.url)).toEqual([
+      '**/api/large'
+    ]);
+  });
+
+  it('runs config.dispose when unroute throws, then surfaces the error', async () => {
+    const page = new FakePage();
+    const disposed: string[] = [];
+    const sut = createPlaywrightSut<FakePage, CounterSnapshot, CounterEvent>(
+      page,
+      {
+        events: {
+          INC: async (p, event) => {
+            await p.fill('#amount', String(event.value));
+          },
+          RESET: async (p) => {
+            await p.click('#reset');
+          }
+        },
+        mocks: {
+          INC: async (p) => {
+            await p.route('**/api/increment', (route) =>
+              route.fulfill({ status: 200 })
+            );
+          }
+        },
+        dispose: () => {
+          disposed.push('dispose');
+        }
+      }
+    );
+
+    const session = await sut.create(sessionContext);
+    await session.send({ type: 'INC', value: 1 }, { snapshot: undefined! });
+    page.unrouteError = new Error('unroute failed');
+
+    await expect(session.dispose!()).rejects.toThrow('unroute failed');
+    expect(disposed).toEqual(['dispose']);
+  });
 });

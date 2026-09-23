@@ -8,7 +8,6 @@ import type {
 } from '../index.ts';
 import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
 import { createActor } from '../createActor.ts';
-import { createAsyncLogic } from '../actors/promise.ts';
 import { SimulatedClock } from '../SimulatedClock.ts';
 import type { InspectionEvent } from '../inspection.ts';
 import {
@@ -48,6 +47,14 @@ import {
   type AnyTestEventDescriptor
 } from './eventDescriptors.ts';
 import { getShortestPaths } from './shortestPaths.ts';
+import {
+  createOutcomeStub,
+  PropertyOutcomeRegistry,
+  provideActors,
+  releaseActiveOutcomeRegistry,
+  setActiveOutcomeRegistry
+} from './outcomes.ts';
+import { createSeededRng } from './utils.ts';
 import type { StatePath } from './types.ts';
 
 export type {
@@ -81,6 +88,8 @@ export interface TestReplayMetadata {
   readonly seed?: number;
   readonly path?: string;
   readonly replayPath?: string;
+  /** How many times the engine shrank the counterexample, when it reports it. */
+  readonly numShrinks?: number;
   readonly data?: unknown;
 }
 
@@ -189,6 +198,12 @@ export interface TestEventTimelineEntry<
   readonly guardIds: readonly string[];
   readonly activeStateIds: readonly string[];
   readonly observation?: TestObservation;
+  /**
+   * Executed mode only: invoked or spawned actors whose asynchronous work was
+   * still in flight when the step settled. Their results may land in a later
+   * step, so the step is not reproducible from the trace alone.
+   */
+  readonly pendingActors?: readonly string[];
 }
 
 export interface TestRuntimeTimelineEntry<
@@ -204,6 +219,8 @@ export interface TestRuntimeTimelineEntry<
   readonly transitionIds: readonly string[];
   readonly guardIds: readonly string[];
   readonly observation?: TestObservation;
+  /** See {@link TestEventTimelineEntry.pendingActors}. */
+  readonly pendingActors?: readonly string[];
 }
 
 export type TestTimelineEntry<
@@ -250,6 +267,11 @@ export interface TestFixture {
   readonly mode?: TestMode;
   /** Actor outcomes observed during an executed-mode run, in resolution order. */
   readonly outcomes?: readonly TestOutcomeRecord[];
+  /**
+   * Invoke sources the recorded run replaced with outcome stubs, including
+   * ones that never resolved. A replay stubs every one of them.
+   */
+  readonly stubs?: readonly string[];
 }
 
 interface LegacyPortablePropertyReplayFixture {
@@ -415,21 +437,55 @@ export interface TestSutSession<
   readonly dispose?: () => void | Promise<void>;
 }
 
+/** Dotted state-value paths of a machine's `value` type: `'a'`, `'a.b'`. */
+type StateValuePaths<TValue> = TValue extends string
+  ? TValue
+  : TValue extends object
+    ? {
+        [K in keyof TValue & string]: K | `${K}.${StateValuePaths<TValue[K]>}`;
+      }[keyof TValue & string]
+    : never;
+
+/**
+ * The keys a {@link TestStateAssertions} map suggests: every state-value path
+ * of the snapshot's `value`, and `'*'`. Any other string, such as a
+ * `'#node.id'`, is accepted too.
+ */
+export type TestStateKey<TSnapshot extends Snapshot<unknown>> =
+  | '*'
+  | `#${string}`
+  | (TSnapshot extends { readonly value: infer TValue }
+      ? StateValuePaths<TValue>
+      : never);
+
+/** One per-state assertion. See {@link TestStateAssertions}. */
+export type TestStateAssertion<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject = EventObject
+> = (
+  snapshot: TSnapshot,
+  session: TestSutSession<TSnapshot, TEvent> | undefined
+) => void | Promise<void>;
+
 /**
  * Per-state assertions, keyed by state value (`'green'`, `'a.b'`), by state
  * node id (`'#some.id'`), or `'*'` as the fallthrough when nothing else
  * matches. Run after every stable step in both `propertyTest()` and
  * `testPaths()`.
  */
-export interface TestStateAssertions<
+export type TestStateAssertions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject = EventObject
-> {
-  readonly [stateKey: string]: (
-    snapshot: TSnapshot,
-    session: TestSutSession<TSnapshot, TEvent> | undefined
-  ) => void | Promise<void>;
-}
+> = {
+  readonly [TKey in TestStateKey<TSnapshot>]?: TestStateAssertion<
+    TSnapshot,
+    TEvent
+  >;
+} & {
+  readonly [stateKey: string]:
+    | TestStateAssertion<TSnapshot, TEvent>
+    | undefined;
+};
 
 export interface TestReferenceContext<
   TSnapshot extends Snapshot<unknown>,
@@ -659,6 +715,28 @@ export interface TestTrace<
   readonly outcomes?: readonly TestOutcomeRecord[];
 }
 
+/** Options that shape how a {@link ModelTestFailure} message is rendered. */
+export interface TestFailureFormatOptions<
+  TSnapshot extends Snapshot<unknown> = Snapshot<unknown>
+> {
+  /**
+   * Projects a snapshot onto the value printed in the failure trace. Defaults
+   * to `{ value, context }` for machine snapshots, plus `status`, `output`,
+   * `error`, and `tags` when they carry information.
+   */
+  readonly formatSnapshot?: (snapshot: TSnapshot) => unknown;
+}
+
+function getCauseMessage(cause: unknown): string | undefined {
+  if (cause instanceof Error) {
+    return cause.message || cause.name;
+  }
+  if (typeof cause === 'string') {
+    return cause;
+  }
+  return undefined;
+}
+
 /**
  * Builds the full failure message before `Error` captures the stack. The
  * formatted trace is part of the message so reporters that only print
@@ -667,13 +745,42 @@ export interface TestTrace<
 function getPropertyFailureMessage<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
->(summary: string, trace: TestTrace<TSnapshot, TEvent>): string {
+>(
+  summary: string,
+  trace: TestTrace<TSnapshot, TEvent>,
+  cause: unknown,
+  replay: TestReplayMetadata | undefined,
+  fixture: TestFixture | undefined,
+  format: TestFailureFormatOptions<TSnapshot> | undefined
+): string {
+  const causeMessage = getCauseMessage(cause);
+  const lines = [
+    causeMessage && !summary.includes(causeMessage)
+      ? `${summary}: ${causeMessage}`
+      : summary
+  ];
+  const reproduce = [
+    ...(replay?.seed === undefined ? [] : [`seed ${replay.seed}`]),
+    ...(replay?.path === undefined ? [] : [`path "${replay.path}"`]),
+    ...(replay?.replayPath === undefined
+      ? []
+      : [`replayPath "${replay.replayPath}"`])
+  ];
+  if (reproduce.length) {
+    lines.push(`Reproduce: ${reproduce.join(', ')}`);
+  }
+  if (fixture) {
+    lines.push('Fixture: failure.fixture (replayTest)');
+  }
+  if (replay?.numShrinks) {
+    lines.push(`Shrunk ${replay.numShrinks} time(s)`);
+  }
   try {
-    return `${summary}\n${formatTestTrace(trace)}`;
+    lines.push('', formatTestTrace(trace, format));
   } catch {
     // Never mask the failure with a formatting error.
-    return summary;
   }
+  return lines.join('\n');
 }
 
 /**
@@ -685,6 +792,16 @@ export class ModelTestFailure<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
   TEvent extends EventObject = EventObject
 > extends Error {
+  /**
+   * `instanceof` narrows to the default type arguments rather than `any`, so
+   * `error.trace` stays typed in a `catch` block.
+   */
+  public static override [Symbol.hasInstance](
+    value: unknown
+  ): value is ModelTestFailure {
+    return Function.prototype[Symbol.hasInstance].call(this, value);
+  }
+
   /** The short message, without the formatted trace. */
   public readonly summary: string;
 
@@ -694,9 +811,14 @@ export class ModelTestFailure<
     public readonly cause: unknown,
     public readonly replay?: TestReplayMetadata,
     public readonly fixture?: TestFixture,
-    public readonly coverage?: TestCoverage
+    public readonly coverage?: TestCoverage,
+    /** How the message renders snapshots. Kept so rethrows render the same. */
+    public readonly format?: TestFailureFormatOptions<TSnapshot>
   ) {
-    super(getPropertyFailureMessage(summary, trace), { cause });
+    super(
+      getPropertyFailureMessage(summary, trace, cause, replay, fixture, format),
+      { cause }
+    );
     this.name = 'ModelTestFailure';
     this.summary = summary;
   }
@@ -825,95 +947,12 @@ function assertEventPayload(
   }
 }
 
-/**
- * Queues and hands out actor outcomes for stubbed invoke sources.
- *
- * A stub actor asks the registry for its outcome when it starts. If an
- * outcome is already queued for its source it resolves immediately; otherwise
- * the stub stays pending until an `outcome` command (or a seeded replay
- * record) supplies one, which is what lets fast-check shrink service results.
- */
-export class PropertyOutcomeRegistry {
-  private queued = new Map<string, TestActorOutcome[]>();
-  private waiting = new Map<string, ((outcome: TestActorOutcome) => void)[]>();
-
-  /** Called by a stub actor when it starts. */
-  public request(src: string): Promise<TestActorOutcome> {
-    const queue = this.queued.get(src);
-    const next = queue?.shift();
-    if (next) {
-      return Promise.resolve(next);
-    }
-    return new Promise<TestActorOutcome>((resolve) => {
-      const waiters = this.waiting.get(src);
-      if (waiters) {
-        waiters.push(resolve);
-      } else {
-        this.waiting.set(src, [resolve]);
-      }
-    });
-  }
-
-  /** Resolves the oldest pending stub for `src`, or queues for the next one. */
-  public provide(src: string, outcome: TestActorOutcome): void {
-    const waiters = this.waiting.get(src);
-    const waiter = waiters?.shift();
-    if (waiter) {
-      waiter(outcome);
-      return;
-    }
-    const queue = this.queued.get(src);
-    if (queue) {
-      queue.push(outcome);
-    } else {
-      this.queued.set(src, [outcome]);
-    }
-  }
-
-  /** Pre-loads recorded outcomes so a replay never calls a real service. */
-  public seed(records: readonly TestOutcomeRecord[]): void {
-    for (const record of records) {
-      this.provide(record.src, record.outcome);
-    }
-  }
-
-  public reset(): void {
-    this.queued = new Map();
-    this.waiting = new Map();
-  }
-}
-
-let activeOutcomeRegistry: PropertyOutcomeRegistry | undefined;
-
-/**
- * Builds the stub {@link ActorLogic} that replaces an invoke source named
- * `src`. The registry is read when the stub starts — always inside the
- * owning runner's step — so one stub built per campaign serves every run.
- */
-function createOutcomeStub(src: string): ActorLogic<any, any, any> {
-  return createAsyncLogic({
-    run: async () => {
-      const registry = activeOutcomeRegistry;
-      if (!registry) {
-        throw new Error(
-          `Property outcome stub for "${src}" ran outside an executed-mode property run`
-        );
-      }
-      const outcome = await registry.request(src);
-      if (outcome.ok) {
-        return outcome.output;
-      }
-      throw outcome.error instanceof Error
-        ? outcome.error
-        : new Error(String(outcome.error));
-    }
-  }) as unknown as ActorLogic<any, any, any>;
-}
-
 /** Microtask turns awaited per drain round. */
 const DRAIN_MICROTASKS = 8;
-/** Drain rounds awaited before an executed step is considered settled. */
-const MAX_DRAIN_ROUNDS = 20;
+/** Upper bound on drain rounds awaited before an executed step is settled. */
+const MAX_DRAIN_ROUNDS = 40;
+/** Consecutive rounds without new inspection events that settle a step. */
+const QUIET_DRAIN_ROUNDS = 2;
 
 interface DrainedTransition<TSnapshot extends Snapshot<unknown>> {
   readonly source: 'root' | 'child';
@@ -949,7 +988,9 @@ class PropertyExecutionEngine<
   public constructor(
     logic: ActorLogic<TSnapshot, TEvent, unknown>,
     input: unknown,
-    startingSnapshot: TSnapshot | undefined
+    startingSnapshot: TSnapshot | undefined,
+    /** Invoke sources replaced by outcome stubs; they wait by design. */
+    private readonly stubbedSources: ReadonlySet<string> = new Set()
   ) {
     const actor = createActor(logic as any, {
       clock: this.clock,
@@ -985,28 +1026,122 @@ class PropertyExecutionEngine<
 
   /**
    * Runs microtasks and macrotasks until the inspection stream stops growing.
-   * The actor's own timers are on the simulated clock, so nothing here can
-   * fire a delayed transition; only already-pending promises settle.
+   * Rounds alternate between `setImmediate` and a zero `setTimeout`, so work
+   * queued on either macrotask queue (a promise actor awaiting
+   * `setTimeout(0)`, say) settles within the step that started it. While a
+   * child actor has asynchronous work in flight, a step settles only after
+   * {@link QUIET_DRAIN_ROUNDS} consecutive rounds without new inspection
+   * events; otherwise one quiet round suffices. The actor's own timers are on
+   * the simulated clock, so nothing here can fire a delayed transition.
    */
   public async drain(): Promise<void> {
+    let quietRounds = 0;
     for (let round = 0; round < MAX_DRAIN_ROUNDS; round++) {
       const seen = this.buffer.length;
       for (let turn = 0; turn < DRAIN_MICROTASKS; turn++) {
         await Promise.resolve();
       }
       await new Promise<void>((resolve) => {
-        // `setImmediate` runs before timers, so draining is cheaper where it
-        // exists (Node); browsers and Deno fall back to a zero timeout.
-        if (typeof setImmediate === 'function') {
+        if (round % 2 === 0 && typeof setImmediate === 'function') {
           setImmediate(resolve);
         } else {
           setTimeout(resolve, 0);
         }
       });
-      if (this.buffer.length === seen) {
+      quietRounds = this.buffer.length === seen ? quietRounds + 1 : 0;
+      if (
+        quietRounds >= QUIET_DRAIN_ROUNDS ||
+        (quietRounds > 0 && !this.getPendingActors().length)
+      ) {
         return;
       }
     }
+  }
+
+  /**
+   * Direct children of the tested actor whose asynchronous work (a promise
+   * body, for instance) is still in flight. Stubbed invoke sources are left
+   * out: they wait for an `outcome` command by design.
+   */
+  public getPendingActors(): string[] {
+    const children =
+      (this.actor.getSnapshot() as { children?: Record<string, unknown> })
+        .children ?? {};
+    const pending: string[] = [];
+    for (const [id, child] of Object.entries(children)) {
+      const src = this.srcByActorId.get(
+        (child as { id?: string } | undefined)?.id ?? id
+      );
+      if (src !== undefined && this.stubbedSources.has(src)) {
+        continue;
+      }
+      const snapshot = (
+        child as { getSnapshot?: () => unknown } | undefined
+      )?.getSnapshot?.() as
+        | { status?: string; effects?: Record<string, unknown> }
+        | undefined;
+      if (snapshot?.status !== 'active' || !snapshot.effects) {
+        continue;
+      }
+      const inFlight = Object.entries(snapshot.effects).some(
+        ([key, effect]) =>
+          key !== 'callback' &&
+          (effect as { status?: unknown } | undefined)?.status === 'active'
+      );
+      if (inFlight) {
+        pending.push(id);
+      }
+    }
+    return pending.sort();
+  }
+
+  /**
+   * The milliseconds until the pending `xstate.after` timer for `event` is
+   * due on the simulated clock, or `undefined` when no such timer is
+   * scheduled on the tested actor.
+   */
+  public getAfterTimerRemaining(event: {
+    readonly delay?: unknown;
+    readonly stateId?: unknown;
+  }): number | undefined {
+    const timers =
+      (
+        this.actor.getSnapshot() as {
+          timers?: Record<string, { readonly event?: EventObject }>;
+        }
+      ).timers ?? {};
+    const timerId = Object.keys(timers).find((id) => {
+      const timerEvent = timers[id]?.event as
+        | { type?: string; delay?: unknown; stateId?: unknown }
+        | undefined;
+      return (
+        timerEvent?.type === 'xstate.after' &&
+        timerEvent.delay === event.delay &&
+        timerEvent.stateId === event.stateId
+      );
+    });
+    if (timerId === undefined) {
+      return undefined;
+    }
+    const system = (
+      this.rootRef as {
+        system?: {
+          getSnapshot?: () => {
+            _scheduledTimers?: Record<
+              string,
+              { source: unknown; id: string; dueAt: number }
+            >;
+          };
+        };
+      }
+    ).system;
+    const scheduled = Object.values(
+      system?.getSnapshot?.()._scheduledTimers ?? {}
+    ).find((timer) => timer.source === this.rootRef && timer.id === timerId);
+    if (!scheduled) {
+      return undefined;
+    }
+    return Math.max(0, scheduled.dueAt - this.clock.now());
   }
 
   /**
@@ -1081,6 +1216,11 @@ export interface PropertyExecutionConfig {
   readonly registry: PropertyOutcomeRegistry;
   /** Outcomes pre-loaded before the run starts (replay). */
   readonly seededOutcomes?: readonly TestOutcomeRecord[];
+  /**
+   * Invoke sources replaced by an outcome stub. Recorded into replay fixtures
+   * so a replay stubs the same sources, including ones that never resolved.
+   */
+  readonly stubbedSources?: readonly string[];
 }
 
 /** A single `target()` observation, recorded against the timeline. */
@@ -1154,6 +1294,15 @@ export class PropertyScenarioRunner<
   public setSwarm(caseIds: readonly string[]): void {
     this.swarmCaseIds = caseIds;
     this.swarmEnabled = new Set(caseIds);
+  }
+
+  private formatOptions: TestFailureFormatOptions<TSnapshot> | undefined;
+
+  /** Sets how failure messages render snapshots. See `formatSnapshot`. */
+  public setFormatSnapshot(
+    formatSnapshot: ((snapshot: TSnapshot) => unknown) | undefined
+  ): void {
+    this.formatOptions = formatSnapshot ? { formatSnapshot } : undefined;
   }
 
   /** Evaluates `target` on every stable step. See the `target` option. */
@@ -1240,11 +1389,12 @@ export class PropertyScenarioRunner<
       this.executionConfig.registry.seed(
         this.executionConfig.seededOutcomes ?? []
       );
-      activeOutcomeRegistry = this.executionConfig.registry;
+      setActiveOutcomeRegistry(this.executionConfig.registry);
       this.execution = new PropertyExecutionEngine(
         this.logic,
         this.input,
-        this.startingSnapshot
+        this.startingSnapshot,
+        new Set(this.executionConfig.stubbedSources ?? [])
       );
       this.execution.start();
       await this.execution.drain();
@@ -1443,6 +1593,7 @@ export class PropertyScenarioRunner<
       guardIds: []
     };
     this.timeline.push(entry);
+    this.markPendingActors(entry);
     this.pushActorEntries(previousSnapshot, drained);
     const observation = await this.checkStable(
       undefined,
@@ -1543,6 +1694,7 @@ export class PropertyScenarioRunner<
       guardIds: []
     };
     this.timeline.push(entry);
+    this.markPendingActors(entry);
     this.pushActorEntries(previousSnapshot, drained);
     const observation = await this.checkStable(
       undefined,
@@ -1625,6 +1777,7 @@ export class PropertyScenarioRunner<
       guardIds
     };
     this.timeline.push(entry);
+    this.markPendingActors(entry);
     this.pushActorEntries(previousSnapshot, drained);
     const observation = await this.checkStable(
       undefined,
@@ -1686,8 +1839,8 @@ export class PropertyScenarioRunner<
         errors.push(error);
       }
       this.execution = undefined;
-      if (activeOutcomeRegistry === this.executionConfig?.registry) {
-        activeOutcomeRegistry = undefined;
+      if (this.executionConfig) {
+        releaseActiveOutcomeRegistry(this.executionConfig.registry);
       }
     }
     for (const dispose of [
@@ -1839,6 +1992,7 @@ export class PropertyScenarioRunner<
       activeStateIds: this.getActiveStateIds(snapshot)
     };
     this.timeline.push(entry);
+    this.markPendingActors(entry);
     this.pushActorEntries(previousSnapshot, drained);
     const observation = await this.checkStable(
       event,
@@ -1940,7 +2094,7 @@ export class PropertyScenarioRunner<
       }
       for (const key of keys) {
         try {
-          await states[key](snapshot, session);
+          await states[key]?.(snapshot, session);
         } catch (cause) {
           failed(cause);
         }
@@ -2101,6 +2255,47 @@ export class PropertyScenarioRunner<
   }
 
   /**
+   * Records, on an executed step's timeline entry, the child actors whose
+   * asynchronous work was still in flight when the step settled.
+   */
+  private markPendingActors(
+    entry:
+      | TestEventTimelineEntry<TSnapshot, TEvent>
+      | TestRuntimeTimelineEntry<TSnapshot, TEvent>
+  ): void {
+    if (!this.execution) {
+      return;
+    }
+    const pending = this.execution.getPendingActors();
+    if (!pending.length) {
+      return;
+    }
+    (entry as { pendingActors?: readonly string[] }).pendingActors = pending;
+    this.coverage.pendingActorSteps++;
+  }
+
+  /**
+   * Executed mode only: the milliseconds until the tested actor's pending
+   * `xstate.after` timer for `event` is due, or `undefined` when none is
+   * scheduled.
+   */
+  public getAfterTimerRemaining(event: EventObject): number | undefined {
+    return this.execution?.getAfterTimerRemaining(
+      event as { delay?: unknown; stateId?: unknown }
+    );
+  }
+
+  /**
+   * Fails the run with `summary`, recording a trace and a replay fixture the
+   * same way an oracle failure does. Used by drivers that detect the run
+   * departed from the sequence they planned.
+   */
+  public diverge(summary: string, cause?: unknown): never {
+    this.assertStarted();
+    this.fail(summary, cause, Math.max(0, this.stableStep - 1));
+  }
+
+  /**
    * Appends one timeline entry per transition the actor system performed on
    * its own during an executed step: invoked/spawned actor lifecycle events,
    * delayed transitions, and relayed sends.
@@ -2176,7 +2371,9 @@ export class PropertyScenarioRunner<
       this.getTrace(),
       cause,
       undefined,
-      fixture
+      fixture,
+      undefined,
+      this.formatOptions
     );
   }
 
@@ -2213,7 +2410,7 @@ export class PropertyScenarioRunner<
         )
         .map((entry) => ({
           kind: entry.kind,
-          command: entry.command as TestCommand
+          command: toPortableValue(entry.command) as TestCommand
         })),
       failedAt,
       temporalFailure,
@@ -2221,11 +2418,81 @@ export class PropertyScenarioRunner<
       ...(this.execution
         ? {
             mode: 'executed' as const,
-            outcomes: this.execution.outcomes.slice()
+            outcomes: toPortableValue(
+              this.execution.outcomes.slice()
+            ) as TestOutcomeRecord[],
+            ...(this.executionConfig?.stubbedSources?.length
+              ? { stubs: [...this.executionConfig.stubbedSources].sort() }
+              : {})
           }
         : {})
     };
   }
+}
+
+/**
+ * Replaces every `Error` in `value` with `{ xstate$$error: true, name,
+ * message }`, which JSON can carry: `JSON.stringify(new Error('x'))` is `{}`.
+ * Fixtures are portable data, so this runs on everything they record;
+ * `replayTest()` turns the marked objects back into errors.
+ */
+function toPortableValue(value: unknown, seen = new Map<object, unknown>()) {
+  if (value instanceof Error) {
+    return { xstate$$error: true, name: value.name, message: value.message };
+  }
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+  if (seen.has(value)) {
+    return seen.get(value);
+  }
+  if (Array.isArray(value)) {
+    const copy: unknown[] = [];
+    seen.set(value, copy);
+    for (const item of value) {
+      copy.push(toPortableValue(item, seen));
+    }
+    return copy;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    // Class instances (dates, actor refs, ...) keep their own `toJSON`.
+    return value;
+  }
+  const copy: Record<string, unknown> = {};
+  seen.set(value, copy);
+  for (const [key, nested] of Object.entries(value)) {
+    copy[key] = toPortableValue(nested, seen);
+  }
+  return copy;
+}
+
+/** Reverses {@link toPortableValue}'s error encoding. */
+function fromPortableValue(value: unknown): unknown {
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map(fromPortableValue);
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    return value;
+  }
+  const record = value as Record<string, unknown>;
+  if (record.xstate$$error === true && typeof record.message === 'string') {
+    const error = new Error(record.message);
+    if (typeof record.name === 'string') {
+      error.name = record.name;
+    }
+    return error;
+  }
+  return Object.fromEntries(
+    Object.entries(record).map(([key, nested]) => [
+      key,
+      fromPortableValue(nested)
+    ])
+  );
 }
 
 type LogicFromSource<TSource> =
@@ -2368,6 +2635,11 @@ export interface TestOptions<
   readonly temporal?: readonly TestTemporal<TSnapshot, TEvent>[];
   /** Minimum label frequencies the campaign must reach. */
   readonly expectLabels?: TestLabelExpectations;
+  /**
+   * Projects a snapshot onto the value printed for each step of a failure
+   * trace. Defaults to `{ value, context }` for machine snapshots.
+   */
+  readonly formatSnapshot?: (snapshot: TSnapshot) => unknown;
 }
 
 /** The options only `propertyTest()` accepts. */
@@ -2697,15 +2969,9 @@ interface PropertyTargetCandidate<
   readonly state: TSnapshot;
 }
 
-/** A small, dependency-free PRNG, used to pick swarm subsets. */
+/** The swarm-subset PRNG: mulberry32 on a seed offset from the campaign's. */
 function createSwarmRng(seed: number): () => number {
-  let a = (seed ^ 0x9e3779b9) >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+  return createSeededRng(seed ^ 0x9e3779b9);
 }
 
 function finalizeExploration(
@@ -2748,22 +3014,9 @@ function finalizeExploration(
       improvements: accumulator.targetImprovements
     } satisfies TestExplorationTarget,
     truncated: accumulator.truncationReasons.size > 0,
-    truncationReasons: [...accumulator.truncationReasons].sort()
+    truncationReasons: [...accumulator.truncationReasons].sort(),
+    pendingActorSteps: coverage.pendingActorSteps
   };
-}
-
-/** Applies `actors` to a machine, rejecting logic that cannot be provided. */
-function provideActors<TLogic>(
-  logic: TLogic,
-  actors: Readonly<Record<string, ActorLogic<any, any, any>>>
-): TLogic {
-  const provide = (logic as { provide?: unknown }).provide;
-  if (typeof provide !== 'function') {
-    throw new Error(
-      'Property `actors` and `outcomes` require a state machine; the provided actor logic has no `provide()`'
-    );
-  }
-  return (provide as (sources: unknown) => TLogic).call(logic, { actors });
 }
 
 /**
@@ -3086,11 +3339,18 @@ export async function propertyTest<
           options.temporal ?? [],
           eventDescriptors,
           coverage,
-          mode === 'executed' ? { mode, registry: outcomeRegistry } : undefined
+          mode === 'executed'
+            ? {
+                mode,
+                registry: outcomeRegistry,
+                stubbedSources: Object.keys(options.outcomes ?? {})
+              }
+            : undefined
         );
         if (options.target) {
           runner.setTargetFunction(options.target);
         }
+        runner.setFormatSnapshot(options.formatSnapshot);
         let enabled: readonly string[] | undefined;
         if (swarmOptions) {
           enabled = frozenSwarm ?? selectSwarmCases(runIndex);
@@ -3169,7 +3429,8 @@ export async function propertyTest<
           finalizeTestCoverage(
             coverage,
             finalizeExploration(coverage, exploration)
-          )
+          ),
+          result.error.format
         );
       }
       throw result.error instanceof Error
@@ -3462,6 +3723,10 @@ export async function replayTest<
     readonly restoreSnapshot?: (
       snapshot: unknown
     ) => SnapshotFromSource<TSource>;
+    /** See the `formatSnapshot` option of `propertyTest()`. */
+    readonly formatSnapshot?: (
+      snapshot: SnapshotFromSource<TSource>
+    ) => unknown;
     /**
      * Defaults to the mode recorded in the fixture. In `'executed'` mode the
      * replay drives a real actor, and every invoke source the fixture
@@ -3488,8 +3753,9 @@ export async function replayTest<
     options.mode ??
     (fixture.formatVersion === 2 ? fixture.mode : undefined) ??
     'pure';
-  const recordedOutcomes =
-    fixture.formatVersion === 2 ? (fixture.outcomes ?? []) : [];
+  const recordedOutcomes = (
+    fixture.formatVersion === 2 ? fromPortableValue(fixture.outcomes ?? []) : []
+  ) as readonly TestOutcomeRecord[];
   const outcomeRegistry = new PropertyOutcomeRegistry();
   // Sources the fixture replays explicitly through `outcome` commands must not
   // also be pre-seeded at start: that would provide each outcome twice and
@@ -3505,9 +3771,17 @@ export async function replayTest<
   const providedActors: Record<string, ActorLogic<any, any, any>> = {
     ...options.actors
   };
+  // Every source the recorded run stubbed is stubbed again, including ones
+  // that never resolved: a real actor in their place would change the run.
+  const stubbedSources = [
+    ...new Set([
+      ...(fixture.formatVersion === 2 ? (fixture.stubs ?? []) : []),
+      ...recordedOutcomes.map((record) => record.src)
+    ])
+  ];
   if (mode === 'executed') {
-    for (const record of recordedOutcomes) {
-      providedActors[record.src] ??= createOutcomeStub(record.src);
+    for (const src of stubbedSources) {
+      providedActors[src] ??= createOutcomeStub(src);
     }
   }
   const model = Object.keys(providedActors).length
@@ -3572,10 +3846,12 @@ export async function replayTest<
       ? {
           mode,
           registry: outcomeRegistry,
-          seededOutcomes
+          seededOutcomes,
+          stubbedSources
         }
       : undefined
   );
+  runner.setFormatSnapshot(options.formatSnapshot);
   const failedAt = fixture.failedAt;
   try {
     // `start()` creates the reference/SUT/test-model sessions one after the
@@ -3586,7 +3862,9 @@ export async function replayTest<
     await runner.start();
     assertReplayFixtureClockEvents(fixture);
     for (const entry of normalizeFixtureTimeline(fixture)) {
-      const command = entry.command as TestCommand<EventFromSource<TSource>>;
+      const command = fromPortableValue(entry.command) as TestCommand<
+        EventFromSource<TSource>
+      >;
       await runner.replay(command);
       if (failedAt !== undefined && runner.getStableStep() > failedAt) {
         // The recorded failure step has been replayed; anything after it was
@@ -3655,37 +3933,197 @@ export function serializeTestTrace<
   };
 }
 
-/** Renders a trace as the human-readable text used in failure messages. */
+/**
+ * The default failure-trace projection: `{ value, context }` for machine
+ * snapshots, plus `status`, `output`, `error`, and `tags` when they carry
+ * information. Other snapshots are printed without their runtime bookkeeping.
+ */
+export function defaultFormatSnapshot(snapshot: Snapshot<unknown>): unknown {
+  const json = serializeSnapshot(snapshot);
+  if (!json || typeof json !== 'object') {
+    return json;
+  }
+  const {
+    value,
+    context,
+    status,
+    output,
+    error,
+    tags,
+    _nextTimerId: _timerId,
+    timers: _timers,
+    children: _children,
+    historyValue: _historyValue,
+    sessionId: _sessionId,
+    ...rest
+  } = json as Record<string, unknown>;
+  const hasValue = 'value' in (json as object);
+  const projected: Record<string, unknown> = hasValue
+    ? { value, context }
+    : { ...rest, ...(context === undefined ? {} : { context }) };
+  if (hasValue) {
+    if (status !== undefined && status !== 'active') {
+      projected.status = status;
+    }
+  } else if (status !== undefined) {
+    projected.status = status;
+  }
+  if (output !== undefined) {
+    projected.output = output;
+  }
+  if (error !== undefined) {
+    projected.error = error;
+  }
+  if (Array.isArray(tags) ? tags.length > 0 : tags !== undefined) {
+    projected.tags = tags;
+  }
+  return projected;
+}
+
+function stringifyForTrace(value: unknown): string {
+  try {
+    const json = JSON.stringify(value, (_key, nested: unknown) =>
+      nested instanceof Error
+        ? { name: nested.name, message: nested.message }
+        : typeof nested === 'bigint'
+          ? `${nested}n`
+          : nested
+    );
+    return json === undefined ? String(value) : json;
+  } catch {
+    return String(value);
+  }
+}
+
+function formatEventForTrace(event: EventObject): string {
+  // `sessionId` names one incarnation of an invoked actor; it differs on
+  // every run, so it is noise in a message meant to be compared.
+  const {
+    type,
+    sessionId: _sessionId,
+    ...payload
+  } = event as EventObject & Record<string, unknown>;
+  if (type === 'xstate.timer' && typeof payload.id === 'string') {
+    // The scheduler's delivery event; its id names the delayed event.
+    return payload.id;
+  }
+  return Object.keys(payload).length
+    ? `${type} ${stringifyForTrace(payload)}`
+    : type;
+}
+
+function getEventOrigin(
+  event: EventObject,
+  fallback: string
+): 'timer' | 'outcome' | string {
+  if (
+    event.type === 'xstate.after' ||
+    event.type === 'xstate.timer' ||
+    event.type.startsWith('xstate.after.')
+  ) {
+    return 'timer';
+  }
+  if (
+    event.type === 'xstate.done.actor' ||
+    event.type === 'xstate.error.actor' ||
+    event.type.startsWith('xstate.done.actor.') ||
+    event.type.startsWith('xstate.error.actor.')
+  ) {
+    return 'outcome';
+  }
+  return fallback;
+}
+
+/**
+ * Renders a trace as the human-readable text used in failure messages: one
+ * line per step, `N. <origin> <event> -> <state>`, where `<state>` is the
+ * snapshot projected through `formatSnapshot`. In executed mode, the events
+ * the tested actor then processed on its own follow their step as `↳` lines;
+ * child actors' own transitions are left out.
+ */
 export function formatTestTrace<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
->(trace: TestTrace<TSnapshot, TEvent>): string {
-  const lines = [
-    `start ${JSON.stringify(serializeSnapshot(trace.initialSnapshot))}`
-  ];
+>(
+  trace: TestTrace<TSnapshot, TEvent>,
+  options: TestFailureFormatOptions<TSnapshot> = {}
+): string {
+  const format = (snapshot: TSnapshot): string =>
+    stringifyForTrace(
+      (options.formatSnapshot ?? defaultFormatSnapshot)(snapshot)
+    );
+  const lines = [`start ${format(trace.initialSnapshot)}`];
+  const pushObservation = (observation: TestObservation | undefined) => {
+    for (const [name, compared] of [
+      ['reference', observation?.reference],
+      ['sut', observation?.sut]
+    ] as const) {
+      if (!compared || defaultEquivalent(compared.model, compared.observed)) {
+        continue;
+      }
+      lines.push(
+        `   ${name} diverged`,
+        `     model:    ${stringifyForTrace(compared.model)}`,
+        `     observed: ${stringifyForTrace(compared.observed)}`
+      );
+    }
+  };
+  let step = 0;
   for (const entry of trace.timeline) {
     if (entry.kind === 'actorEvent') {
-      lines.push(
-        `${entry.index}. actor(${entry.source}:${entry.actorId}) ${JSON.stringify(entry.event)} -> ${JSON.stringify(serializeSnapshot(entry.snapshot))}`
-      );
-      if (entry.transitionIds.length) {
-        lines.push(`   transitions ${entry.transitionIds.join(', ')}`);
+      if (entry.source === 'root') {
+        lines.push(
+          `   ↳ ${getEventOrigin(entry.event, 'actor')} ${formatEventForTrace(
+            entry.event
+          )} -> ${format(entry.snapshot)}`
+        );
       }
       continue;
     }
+    step++;
     if (entry.kind === 'event') {
-      lines.push(
-        `${entry.index}. ${entry.command.phase}/${entry.command.origin} ${JSON.stringify(entry.command.event)} -> ${JSON.stringify(serializeSnapshot(entry.snapshot))}`
+      const { command } = entry;
+      const origin = getEventOrigin(
+        command.event,
+        command.origin === 'frontier' ? 'prefix' : command.origin
       );
-      if (entry.transitionIds.length) {
-        lines.push(`   transitions ${entry.transitionIds.join(', ')}`);
-      }
+      lines.push(
+        `${step}. ${origin} ${formatEventForTrace(command.event)} -> ${format(
+          entry.snapshot
+        )}`
+      );
     } else {
-      lines.push(`${entry.index}. command ${JSON.stringify(entry.command)}`);
+      const { command } = entry;
+      switch (command.type) {
+        case 'advance':
+          lines.push(
+            `${step}. timer advance ${command.milliseconds}ms -> ${format(
+              entry.snapshot
+            )}`
+          );
+          break;
+        case 'outcome':
+          lines.push(
+            `${step}. outcome ${command.src} ${stringifyForTrace(
+              command.outcome
+            )} -> ${format(entry.snapshot)}`
+          );
+          break;
+        case 'checkpoint':
+          lines.push(
+            `${step}. checkpoint${
+              command.label === undefined ? '' : ` ${command.label}`
+            }`
+          );
+          break;
+        default:
+          lines.push(`${step}. stop -> ${format(entry.snapshot)}`);
+      }
     }
-    if (entry.observation) {
-      lines.push(`   observations ${JSON.stringify(entry.observation)}`);
+    if (entry.pendingActors?.length) {
+      lines.push(`   pending actors: ${entry.pendingActors.join(', ')}`);
     }
+    pushObservation(entry.observation);
   }
   return lines.join('\n');
 }

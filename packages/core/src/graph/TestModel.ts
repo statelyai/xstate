@@ -78,7 +78,7 @@ export class TestModel<
       serializeTransition: (state, event) =>
         `${simpleStringify(state)}|${event?.type}`,
       events: [],
-      stateMatcher: (_, stateKey) => stateKey === '*',
+      stateMatcher: matchesStateKey,
       logger: {
         log: console.log.bind(console),
         error: console.error.bind(console)
@@ -236,6 +236,35 @@ export class TestModel<
   }
 }
 
+/**
+ * The default `stateMatcher`: `'*'` matches every snapshot; on a state machine
+ * snapshot, `'#id'` matches when the state node with that id is active and any
+ * other key matches through `snapshot.matches(key)`. Node ids are compared
+ * rather than node objects, so snapshots of a `machine.provide()`d copy match
+ * too.
+ */
+function matchesStateKey(snapshot: Snapshot<unknown>, stateKey: string) {
+  if (stateKey === '*') {
+    return true;
+  }
+  const machineSnapshot = snapshot as {
+    nodes?: readonly { id: string }[];
+    matches?: (stateValue: string) => boolean;
+  };
+  if (stateKey.startsWith('#')) {
+    const id = stateKey.slice(1);
+    return !!machineSnapshot.nodes?.some((node) => node.id === id);
+  }
+  if (typeof machineSnapshot.matches !== 'function') {
+    return false;
+  }
+  try {
+    return machineSnapshot.matches(stateKey);
+  } catch {
+    return false;
+  }
+}
+
 function stateValuesEqual(
   a: StateValue | undefined,
   b: StateValue | undefined
@@ -363,11 +392,6 @@ export function createTestModel<TMachine extends AnyStateMachine>(
           serializeEvent
         }
       )}` as SerializedSnapshot;
-    },
-    stateMatcher: (state, key) => {
-      return key.startsWith('#')
-        ? (state as any).nodes.includes(machine.getStateNodeById(key))
-        : (state as any).matches(key);
     },
     events: (state) => {
       const events =

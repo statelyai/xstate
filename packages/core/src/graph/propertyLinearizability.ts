@@ -1,6 +1,6 @@
 import type { AnyActorLogic, EventFromLogic, SnapshotFrom } from '../types.ts';
 import { initialTransition, transition } from '../transition.ts';
-import type { TestSutContext } from './propertyTest.ts';
+import { defaultEquivalent, type TestSutContext } from './propertyTest.ts';
 
 /**
  * One completed operation of a concurrent history: the event that was sent
@@ -53,44 +53,6 @@ export interface LinearizabilityResult<TEvent = unknown> {
 
 const DEFAULT_MAXIMUM_EXPLORED = 100_000;
 
-function defaultEqualResponse(model: unknown, observed: unknown): boolean {
-  return deepEqual(model, observed);
-}
-
-/** Structural equality over plain JSON-like values. */
-export function deepEqual(a: unknown, b: unknown): boolean {
-  if (Object.is(a, b)) {
-    return true;
-  }
-  if (
-    typeof a !== 'object' ||
-    typeof b !== 'object' ||
-    a === null ||
-    b === null
-  ) {
-    return false;
-  }
-  if (Array.isArray(a) || Array.isArray(b)) {
-    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
-      return false;
-    }
-    return a.every((item, index) => deepEqual(item, b[index]));
-  }
-  const aKeys = Object.keys(a as Record<string, unknown>);
-  const bKeys = Object.keys(b as Record<string, unknown>);
-  if (aKeys.length !== bKeys.length) {
-    return false;
-  }
-  return aKeys.every(
-    (key) =>
-      Object.prototype.hasOwnProperty.call(b, key) &&
-      deepEqual(
-        (a as Record<string, unknown>)[key],
-        (b as Record<string, unknown>)[key]
-      )
-  );
-}
-
 function defaultSerializeState(state: unknown): string | undefined {
   try {
     return JSON.stringify(state);
@@ -134,7 +96,7 @@ export function checkLinearizable<TState, TEvent>(
   options: LinearizabilityOptions = {}
 ): LinearizabilityResult<TEvent> {
   const maxExplored = options.maxExplored ?? DEFAULT_MAXIMUM_EXPLORED;
-  const equalResponse = model.equalResponse ?? defaultEqualResponse;
+  const equalResponse = model.equalResponse ?? defaultEquivalent;
   const serializeState = model.serializeState ?? defaultSerializeState;
   const entries = history.slice();
   const remaining = entries.map(() => true);

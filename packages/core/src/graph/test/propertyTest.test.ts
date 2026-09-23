@@ -122,7 +122,13 @@ describe('propertyTest with the in-repo random adapter', () => {
     // The trace is part of the message, so reporters that only print the
     // stack still show the counterexample.
     expect(failure.message).toBe(
-      `${failure.summary}\n${formatTestTrace(failure.trace)}`
+      [
+        `${failure.summary}: ${(failure.cause as Error).message}`,
+        'Reproduce: seed 1',
+        'Fixture: failure.fixture (replayTest)',
+        '',
+        formatTestTrace(failure.trace)
+      ].join('\n')
     );
     expect(
       failure.stack?.startsWith(`ModelTestFailure: ${failure.message}`)
@@ -395,16 +401,19 @@ describe('property trace serialization', () => {
     const failure = await getFailureTrace();
     const formatted = formatTestTrace(failure.trace);
 
-    expect(formatted).toContain('"INC"');
     expect(formatted).toMatch(/^start /);
-    expect(formatted.split('\n')[1]).toMatch(/^0\. generated\/generator /);
+    expect(formatted.split('\n')[1]).toBe(
+      '1. generator INC {"value":5} -> {"value":{},"context":{"count":5}}'
+    );
     expect(failure.message).toContain('Property invariant failed after 1 step');
-    expect(failure.message).toBe(`${failure.summary}\n${formatted}`);
+    expect(failure.message.endsWith(formatted)).toBe(true);
     expect(failure.message).toMatchInlineSnapshot(`
-      "Property invariant failed after 1 step
-      start {"status":"active","context":{"count":0},"value":{},"children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
-      0. generated/generator {"value":5,"type":"INC"} -> {"status":"active","context":{"count":5},"value":{},"children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
-         transitions ["transition","counter","INC",0]"
+      "Property invariant failed after 1 step: expected 5 to be less than 5
+      Reproduce: seed 1
+      Fixture: failure.fixture (replayTest)
+
+      start {"value":{},"context":{"count":0}}
+      1. generator INC {"value":5} -> {"value":{},"context":{"count":5}}"
     `);
   });
 });

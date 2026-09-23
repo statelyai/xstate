@@ -303,12 +303,12 @@ describe('error path trace', () => {
       } catch (err: any) {
         expect(err.message).toEqual(expect.stringContaining('test error'));
         expect(err.message).toMatchInlineSnapshot(`
-          "State assertion failed after 2 steps: test error
-          start {"status":"active","context":{},"value":"first","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
-          0. generated/generator {"type":"NEXT_1"} -> {"status":"active","context":{},"value":"second","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
-             transitions ["transition","(machine).first","NEXT_1",0]
-          1. generated/generator {"type":"NEXT_2"} -> {"status":"active","context":{},"value":"third","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
-             transitions ["transition","(machine).second","NEXT_2",0]"
+          "Path 1 (Reaches state "third": @xstate.init → NEXT_1 → NEXT_2) failed: state assertion failed after 2 steps: test error
+          Fixture: failure.fixture (replayTest)
+
+          start {"value":"first","context":{}}
+          1. generator NEXT_1 -> {"value":"second","context":{}}
+          2. generator NEXT_2 -> {"value":"third","context":{}}"
         `);
         return;
       }

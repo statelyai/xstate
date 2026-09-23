@@ -12,6 +12,16 @@ import {
 } from '../src/index.ts';
 import { eventsFromSchemas as eventsFromSchemasWithEffect } from '../src/effect-schema.ts';
 
+enum NumericEnum {
+  A,
+  B
+}
+
+enum MixedEnum {
+  A = 0,
+  B = 'b'
+}
+
 const sample = <T>(arbitrary: fc.Arbitrary<T>, numRuns = 20): T[] =>
   fc.sample(arbitrary, { seed: 7, numRuns });
 
@@ -264,9 +274,276 @@ describe.each([
           sku: Z.string().min(1),
           qty: Z.number().int().min(1).max(5)
         })
-    ]
+    ],
+    [
+      'numeric enum',
+      () => (Z === z ? z.enum(NumericEnum) : z3.nativeEnum(NumericEnum))
+    ],
+    [
+      'mixed enum',
+      () => (Z === z ? z.enum(MixedEnum) : z3.nativeEnum(MixedEnum))
+    ],
+    ['record with enum keys', () => Z.record(Z.enum(['a', 'b']), Z.number())],
+    ['number gt(0).min(0)', () => Z.number().gt(0).min(0)],
+    ['number min(0).gt(0)', () => Z.number().min(0).gt(0)],
+    ['number lt(0).max(0)', () => Z.number().lt(0).max(0)],
+    ['number negative', () => Z.number().negative()],
+    ['number lt(0)', () => Z.number().lt(0)],
+    ['number positive', () => Z.number().positive()],
+    ['number nonpositive', () => Z.number().nonpositive()],
+    ['number int multipleOf(0.5)', () => Z.number().int().multipleOf(0.5)],
+    [
+      'number multipleOf(2).multipleOf(3)',
+      () => Z.number().multipleOf(2).multipleOf(3)
+    ],
+    [
+      'number multipleOf(0.25).multipleOf(0.1)',
+      () => Z.number().multipleOf(0.25).multipleOf(0.1)
+    ],
+    ['number multipleOf(0.1)', () => Z.number().multipleOf(0.1)],
+    [
+      'number multipleOf(0.1) range',
+      () => Z.number().multipleOf(0.1).gt(0.3).lte(0.7)
+    ],
+    ['number multipleOf(0.01)', () => Z.number().multipleOf(0.01)],
+    ['string email max', () => Z.string().email().max(10)],
+    ['string email min', () => Z.string().email().min(24)],
+    ['string uuid length', () => Z.string().uuid().length(36)],
+    [
+      'string regex max',
+      () =>
+        Z.string()
+          .regex(/^[a-f]{2,8}$/)
+          .max(4)
+    ],
+    ['string url max', () => Z.string().url().max(40)],
+    ['set of enum at capacity', () => Z.set(Z.enum(['a', 'b'])).min(2)],
+    ['lazy', () => Z.object({ name: Z.lazy(() => Z.string().min(1)) })]
   ])('generates values satisfying %s', (_name, build) => {
     holds(build());
+  });
+
+  it('generates only real numeric enum values', () => {
+    const schema = Z === z ? z.enum(NumericEnum) : z3.nativeEnum(NumericEnum);
+    expect(new Set(sample(arbitraryFromSchema(schema), 100))).toEqual(
+      new Set([NumericEnum.A, NumericEnum.B])
+    );
+  });
+
+  it('never generates -0 below an exclusive 0 bound', () => {
+    for (const value of sample(
+      arbitraryFromSchema(Z.number().negative()),
+      500
+    )) {
+      expect(Object.is(value, -0)).toBe(false);
+    }
+  });
+
+  it.each([
+    ['email with startsWith', () => Z.string().email().startsWith('ab')],
+    [
+      'regex with endsWith',
+      () =>
+        Z.string()
+          .regex(/^[a-z]+$/)
+          .endsWith('z')
+    ],
+    ['two formats', () => Z.string().email().uuid()]
+  ])('rejects %s, naming the path', (_name, build) => {
+    expect(() => arbitraryFromSchema(build(), {}, 'evt.field')).toThrowError(
+      /Unsupported combination .* at 'evt\.field'/
+    );
+  });
+
+  it.each<[string, () => any]>([
+    ['email shorter than any address', () => Z.string().email().max(5)],
+    ['uuid of the wrong length', () => Z.string().uuid().max(10)],
+    ['set larger than its literal domain', () => Z.set(Z.literal('a')).min(2)],
+    [
+      'set larger than its union domain',
+      () => Z.set(Z.union([Z.boolean(), Z.null()])).min(4)
+    ],
+    // Zod v4 rejects `.min(5).max(2)` on a string when it is declared.
+    ...(Z === z3
+      ? [
+          ['string min above max', () => Z.string().min(5).max(2)] as [
+            string,
+            () => any
+          ]
+        ]
+      : []),
+    ['array min above max', () => Z.array(Z.number()).min(5).max(2)],
+    ['empty number range', () => Z.number().gt(1).lt(1)],
+    ['empty bigint range', () => Z.bigint().min(5n).max(1n)],
+    ['empty date range', () => Z.date().min(new Date(10)).max(new Date(0))],
+    ['nonpositive and positive', () => Z.number().positive().max(0)]
+  ])(
+    'reports an unsatisfiable %s, naming the path',
+    (_name, build) => {
+      expect(() =>
+        sample(arbitraryFromSchema(build(), {}, 'evt.field'), 5)
+      ).toThrowError(/Unsatisfiable Zod schema at 'evt\.field'/);
+    },
+    5000
+  );
+
+  it('bounds filters instead of hanging', () => {
+    expect(() =>
+      sample(
+        arbitraryFromSchema(Z.string().regex(/^a+$/).min(200), {}, 'evt.field'),
+        5
+      )
+    ).toThrowError(
+      /Could not generate a value satisfying .* at 'evt\.field' after 1000 attempts/
+    );
+  }, 5000);
+
+  it('reports a recursive lazy schema, naming the path', () => {
+    const node: any = Z.object({
+      name: Z.string(),
+      children: Z.lazy(() => Z.array(node))
+    });
+    expect(() => arbitraryFromSchema(node, {}, 'evt')).toThrowError(
+      /Recursive Zod schema at 'evt\.children\[\]'/
+    );
+  });
+});
+
+describe('Zod v4-only schemas', () => {
+  const holds = (schema: z.ZodType) => {
+    fc.assert(
+      fc.property(
+        arbitraryFromSchema(schema),
+        (value) => schema.safeParse(value).success
+      ),
+      { numRuns: 200 }
+    );
+  };
+
+  it.each([
+    ['partialRecord', () => z.partialRecord(z.enum(['a', 'b']), z.number())],
+    [
+      'record with literal keys',
+      () => z.record(z.literal(['x', 'y']), z.string())
+    ],
+    ['exactOptional', () => z.object({ a: z.string().exactOptional() })],
+    ['uuidv4', () => z.uuidv4()],
+    ['uuidv6', () => z.uuidv6()],
+    ['uuidv7', () => z.uuidv7()],
+    ['guid', () => z.guid()],
+    ['z.int().multipleOf(0.5)', () => z.int().multipleOf(0.5)],
+    ['email().max(8)', () => z.email().max(8)]
+  ])('generates values satisfying %s', (_name, build) => {
+    holds(build());
+  });
+
+  it('generates every key of a record with enum keys', () => {
+    for (const value of sample(
+      arbitraryFromSchema(z.record(z.enum(['a', 'b']), z.number()))
+    )) {
+      expect(Object.keys(value as object).sort()).toEqual(['a', 'b']);
+    }
+  });
+
+  it('keeps partialRecord keys optional', () => {
+    const keyCounts = sample(
+      arbitraryFromSchema(z.partialRecord(z.enum(['a', 'b']), z.number())),
+      50
+    ).map((value) => Object.keys(value as object).length);
+    expect(keyCounts).toContain(0);
+  });
+
+  it('omits exactOptional keys instead of generating undefined', () => {
+    const values = sample(
+      arbitraryFromSchema(z.object({ a: z.string().exactOptional() })),
+      100
+    ) as Record<string, unknown>[];
+    expect(values.some((value) => !('a' in value))).toBe(true);
+    for (const value of values) {
+      if ('a' in value) {
+        expect(typeof value.a).toBe('string');
+      }
+    }
+  });
+
+  it('reports a recursive getter-based object, naming the path', () => {
+    const Node = z.object({
+      name: z.string(),
+      get children() {
+        return z.array(Node);
+      }
+    });
+    expect(() => arbitraryFromSchema(Node, {}, 'evt')).toThrowError(
+      /Recursive Zod schema at 'evt\.children\[\]'/
+    );
+  });
+
+  it('reports a recursive z.lazy schema, naming the path', () => {
+    const tree: z.ZodType = z.lazy(() =>
+      z.object({ value: z.number(), next: tree.optional() })
+    );
+    expect(() => arbitraryFromSchema(tree, {}, 'evt')).toThrowError(
+      /Recursive Zod schema at 'evt\.next'/
+    );
+  });
+});
+
+describe('eventsFromSchemas with wildcard schema keys', () => {
+  const machine = createMachine({
+    schemas: {
+      events: {
+        'user.*': z.object({ id: z.string().min(1) }),
+        'user.special': z.object({ special: z.literal(true) }),
+        '*': z.object({ any: z.boolean() })
+      }
+    },
+    on: {
+      'user.login': () => ({}),
+      'user.logout': () => ({}),
+      'user.special': () => ({}),
+      other: () => ({})
+    }
+  } as any);
+
+  it.each(['empty', 'skip'] as const)(
+    'derives matching event types from the wildcard schema (%s)',
+    (eventsWithoutSchema) => {
+      const events = eventsFromSchemas(machine, {
+        eventsWithoutSchema
+      }) as Record<string, fc.Arbitrary<Record<string, unknown>>>;
+
+      expect(Object.keys(events).sort()).toEqual([
+        'other',
+        'user.login',
+        'user.logout',
+        'user.special'
+      ]);
+      for (const type of ['user.login', 'user.logout']) {
+        for (const value of sample(events[type])) {
+          expect(typeof value.id).toBe('string');
+          expect((value.id as string).length).toBeGreaterThan(0);
+        }
+      }
+      for (const value of sample(events['user.special'])) {
+        expect(value).toEqual({ special: true });
+      }
+      for (const value of sample(events.other)) {
+        expect(typeof value.any).toBe('boolean');
+      }
+    }
+  );
+
+  it('generates events the machine accepts', async () => {
+    const events = eventsFromSchemas(machine) as Record<
+      string,
+      fc.Arbitrary<Record<string, unknown>>
+    >;
+    const { validate } = (machine as any).eventSchema['~standard'];
+    for (const [type, arbitrary] of Object.entries(events)) {
+      for (const payload of sample(arbitrary)) {
+        expect((await validate({ type, ...payload })).issues).toBeUndefined();
+      }
+    }
   });
 });
 

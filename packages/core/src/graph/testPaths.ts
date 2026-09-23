@@ -10,7 +10,6 @@ import { getAllOwnEvents } from '../utils.ts';
 import type { TestModel } from './TestModel.ts';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
-  createSeededRng,
   deriveCaseSeed,
   isEventDescriptorObject,
   normalizeEventDescriptors,
@@ -32,9 +31,13 @@ import {
   type TestActorOutcome,
   type TestMode,
   type TestOptions,
-  type PropertyGeneratorKind
+  type PropertyGeneratorKind,
+  defaultFormatSnapshot
 } from './propertyTest.ts';
+import { resolveTraversalOptions } from './graph.ts';
+import { createOutcomeStub, provideActors } from './outcomes.ts';
 import { getShortestPaths } from './shortestPaths.ts';
+import { createSeededRng } from './utils.ts';
 import { getSimplePaths } from './simplePaths.ts';
 import { getPathsFromEvents } from './pathFromEvents.ts';
 import type {
@@ -78,7 +81,12 @@ export interface PathOptions<
     | PathGenerator<TSnapshot, TEvent, TInput>;
   /** Executes a single path built from this literal event sequence. */
   readonly fromEvents?: readonly TEvent[];
-  /** Traversal limit. Traversal throws once it is exceeded. Defaults to `Infinity`. */
+  /**
+   * The most traversal steps path generation takes before it gives up and
+   * throws. Defaults to `10_000`. A machine whose context grows without bound
+   * reaches it, since every distinct context is a distinct state; merge
+   * equivalent states with `serializeState`, or prune with `stopWhen`.
+   */
   readonly limit?: number;
   /** Keeps only the paths that end in a state matching this predicate. */
   readonly toState?: (snapshot: TSnapshot) => boolean;
@@ -143,6 +151,8 @@ export type TestExecutionOptions<
 >;
 
 const DEFAULT_SAMPLES = 3;
+/** Default traversal bound; see {@link PathOptions.limit}. */
+const DEFAULT_TRAVERSAL_LIMIT = 10_000;
 
 /** Internal event types path generation drives explicitly. */
 const DONE_ACTOR_EVENT = 'xstate.done.actor';
@@ -211,35 +221,17 @@ function sampleTestOutcomes(
   return sampled;
 }
 
-/** Resolves an `after` delay reference to the milliseconds to advance. */
-function resolveTestDelay(logic: unknown, delayRef: number | string): number {
-  if (typeof delayRef === 'number') {
-    return delayRef;
-  }
-  const configured = (
-    logic as { sources?: { delays?: Record<string, unknown> } }
-  )?.sources?.delays?.[delayRef];
-  if (typeof configured === 'number') {
-    return configured;
-  }
-  throw new Error(
-    `Cannot advance the clock for the delayed transition "${delayRef}": ${
-      configured === undefined
-        ? `the machine declares no \`delays.${delayRef}\``
-        : `\`delays.${delayRef}\` is computed at runtime, and path generation needs a fixed number`
-    }. Provide a numeric delay, or run this case through \`propertyTest()\` with a generated \`advance\` command.`
-  );
-}
-
-/** How an internal path step is driven in executed mode. */
-interface InternalStepPlan {
+/** How an internal path step is driven, and how a step is checked. */
+interface PathRunPlan<TSnapshot extends Snapshot<unknown>> {
   readonly mode: TestMode;
   readonly outcomeByEvent: WeakMap<
     object,
     { readonly src: string; readonly outcome: TestActorOutcome }
   >;
-  readonly delayByEvent: WeakMap<object, number | string>;
-  readonly resolveDelay: (delayRef: number | string) => number;
+  /** Traversal state identity; a step passes when both sides serialize equal. */
+  readonly serialize: (snapshot: TSnapshot) => string;
+  /** Renders a snapshot in divergence messages. */
+  readonly format: (snapshot: TSnapshot) => string;
 }
 
 const LEGACY_EVENT_EXECUTOR_MESSAGE =
@@ -269,22 +261,17 @@ function assertGeneratedPayload(value: unknown, type: string): void {
 }
 
 /**
- * Detects the pre-2.0 `TestParam` shape (`{ events, states }`, both maps of
- * functions, and nothing else) passed where the unified options are expected.
- *
- * `events` generators and top-level `states` assertions are both functions in
- * the unified API too, so the presence of a `sut` — which `TestParam` has no
- * equivalent of — settles the ambiguity in favor of the new shape.
+ * Whether the options have the pre-2.0 `TestParam` shape: `events` and
+ * `states` both maps of functions, and no `sut`. The unified API allows that
+ * shape too (bare `(rng) => payload` generators plus top-level `states`), so
+ * it only decides how a generator that does not produce a payload is
+ * reported, never whether the options are rejected up front.
  */
-export function assertNotTestParam(options: unknown): void {
-  if (!options || typeof options !== 'object') {
-    return;
-  }
-  const { events, states, sut } = options as {
-    events?: unknown;
-    states?: unknown;
-    sut?: unknown;
-  };
+function hasTestParamShape(options: {
+  readonly events?: unknown;
+  readonly states?: unknown;
+  readonly sut?: unknown;
+}): boolean {
   const isFunctionMap = (value: unknown): boolean => {
     if (!value || typeof value !== 'object') {
       return false;
@@ -295,9 +282,11 @@ export function assertNotTestParam(options: unknown): void {
       entries.every((entry) => typeof entry === 'function')
     );
   };
-  if (sut === undefined && isFunctionMap(events) && isFunctionMap(states)) {
-    throw new Error(LEGACY_EVENT_EXECUTOR_MESSAGE);
-  }
+  return (
+    options.sut === undefined &&
+    isFunctionMap(options.events) &&
+    isFunctionMap(options.states)
+  );
 }
 
 /**
@@ -311,7 +300,8 @@ function createEventExpander<
   cases: readonly NormalizedEventCase<TSnapshot, TEvent>[],
   samples: number,
   seed: number,
-  caseIds: WeakMap<object, string>
+  caseIds: WeakMap<object, string>,
+  testParamShaped: boolean
 ) {
   const drawn = new Map<string, readonly unknown[]>();
   const byType = new Map<string, NormalizedEventCase<TSnapshot, TEvent>[]>();
@@ -320,9 +310,40 @@ function createEventExpander<
       // Each case draws from its own stream so that adding an event type does
       // not shift the payloads sampled for the cases already declared.
       const rng = createSeededRng(deriveCaseSeed(seed, eventCase.caseId));
-      const values = sampleGenerator(eventCase.generator, rng, samples);
+      // A pre-2.0 executor has the same shape as a bare generator, so it is
+      // only told apart by what it does when called with the PRNG.
+      const legacyCandidate =
+        testParamShaped &&
+        typeof eventCase.generator === 'function' &&
+        !eventCase.descriptor.resolve;
+      let values: unknown[];
+      try {
+        values = sampleGenerator(eventCase.generator, rng, samples);
+      } catch (cause) {
+        if (legacyCandidate) {
+          throw new Error(
+            `Event "${eventCase.type}" threw when called as a payload generator. ${LEGACY_EVENT_EXECUTOR_MESSAGE}`,
+            { cause }
+          );
+        }
+        throw cause;
+      }
       if (!eventCase.descriptor.resolve) {
         for (const value of values) {
+          if (
+            legacyCandidate &&
+            typeof (value as { then?: unknown } | undefined)?.then ===
+              'function'
+          ) {
+            // An async executor was started with the PRNG; its rejection is
+            // not the error worth reporting.
+            (value as PromiseLike<unknown>).then(undefined, () => {});
+          }
+          if (legacyCandidate && value === undefined) {
+            throw new Error(
+              `Event "${eventCase.type}" generated \`undefined\` instead of an event payload object. ${LEGACY_EVENT_EXECUTOR_MESSAGE}`
+            );
+          }
           assertGeneratedPayload(value, eventCase.type);
         }
       }
@@ -370,9 +391,32 @@ function createEventExpander<
   };
 }
 
+function formatEventForPath(event: EventObject): string {
+  const { type, ...payload } = event as EventObject & Record<string, unknown>;
+  return Object.keys(payload).length
+    ? `${type} ${JSON.stringify(payload)}`
+    : type;
+}
+
+/** A short, human-readable name for a path: its event types, in order. */
+function describePath(path: StatePath<any, any>): string {
+  const described = (path as { description?: unknown }).description;
+  if (typeof described === 'string' && described) {
+    return described;
+  }
+  const events = path.steps
+    .map((step) => step.event.type)
+    .filter((type) => type !== XSTATE_INIT);
+  return events.length ? events.join(' → ') : 'initial state';
+}
+
 /**
  * An adapter that executes a fixed list of paths instead of generating
  * command sequences. One path is one run; there is no shrinking.
+ *
+ * After every step the run's snapshot is compared with the snapshot the
+ * traversal planned for that step, so a run that departs from its path fails
+ * instead of passing on a different path.
  */
 function createPathAdapter<
   TSnapshot extends Snapshot<unknown>,
@@ -381,7 +425,7 @@ function createPathAdapter<
   paths: readonly StatePath<TSnapshot, TEvent>[],
   caseIds: WeakMap<object, string>,
   results: TestPathRunResult<TSnapshot, TEvent>[],
-  plan: InternalStepPlan
+  plan: PathRunPlan<TSnapshot>
 ): TestAdapter<any> {
   return {
     async run<TS extends Snapshot<unknown>, TE extends EventObject>(
@@ -403,8 +447,16 @@ function createPathAdapter<
         let pathError: unknown;
         try {
           await runner.start();
-          for (const step of steps) {
+          for (let index = 0; index < steps.length; index++) {
+            const step = steps[index];
             const event = step.event;
+            const diverge = (reason: string): never =>
+              runner.diverge(`Path diverged at step ${index + 1}: ${reason}`, {
+                expected: step.state,
+                actual: runner.getSnapshot()
+              });
+            const describeStatus = () =>
+              `the model is ${plan.format(runner.getSnapshot())}`;
             if (plan.mode === 'executed') {
               const resolved = plan.outcomeByEvent.get(
                 event as unknown as object
@@ -412,21 +464,38 @@ function createPathAdapter<
               if (resolved) {
                 // The invoke source is stubbed, so the step resolves it with
                 // the outcome traversal took this branch for.
-                if (runner.canRunOutcome()) {
-                  await runner.outcome(resolved.src, resolved.outcome);
+                if (!runner.canRunOutcome()) {
+                  diverge(
+                    `${formatEventForPath(event)} could not be resolved: ${describeStatus()}`
+                  );
                 }
-                continue;
-              }
-              const delayRef = plan.delayByEvent.get(
-                event as unknown as object
-              );
-              if (delayRef !== undefined) {
-                await runner.advance(plan.resolveDelay(delayRef));
-                continue;
-              }
-              if (event.type === DONE_STATE_EVENT) {
+                await runner.outcome(resolved.src, resolved.outcome);
+              } else if (event.type === AFTER_EVENT) {
+                // Advance exactly to the timer's due time: earlier timers
+                // already fired on earlier steps, and time spent in enclosing
+                // states counts towards it.
+                await runner.advance(
+                  runner.getAfterTimerRemaining(event) ??
+                    diverge(
+                      `no timer is pending for ${formatEventForPath(event)}: ${describeStatus()}`
+                    )
+                );
+              } else if (event.type === DONE_STATE_EVENT) {
                 // Raised by the machine itself once the region reaches its
                 // final state; there is nothing to drive.
+                continue;
+              }
+              if (resolved || event.type === AFTER_EVENT) {
+                if (
+                  plan.serialize(runner.getSnapshot()) !==
+                  plan.serialize(step.state)
+                ) {
+                  diverge(
+                    `expected ${plan.format(step.state)}, got ${plan.format(
+                      runner.getSnapshot()
+                    )}`
+                  );
+                }
                 continue;
               }
             }
@@ -434,9 +503,21 @@ function createPathAdapter<
               caseIds.get(event as unknown as object) ??
               getPropertyEventCaseId(event.type, 'default');
             if (!runner.canRun(event, caseId)) {
-              continue;
+              diverge(
+                `${formatEventForPath(event)} could not be sent: ${describeStatus()}`
+              );
             }
             await runner.run(event, caseId);
+            if (
+              plan.serialize(runner.getSnapshot()) !==
+              plan.serialize(step.state)
+            ) {
+              diverge(
+                `expected ${plan.format(step.state)}, got ${plan.format(
+                  runner.getSnapshot()
+                )}`
+              );
+            }
           }
           runner.finish();
         } catch (cause) {
@@ -478,13 +559,22 @@ function withPathExploration(
   pathCount: number,
   pathGenerator: TestPathGeneratorKind
 ): TestCoverage {
+  // Paths are a fixed plan, not a budget: reaching the longest path is not a
+  // truncation, and running every path is why the campaign stopped.
+  const truncationReasons = coverage.exploration.truncationReasons.filter(
+    (reason) => reason !== 'maximum sequence length reached'
+  );
   return {
     ...coverage,
     exploration: {
       ...coverage.exploration,
       strategy: 'paths',
       pathCount,
-      pathGenerator
+      pathGenerator,
+      stoppedBecause:
+        coverage.exploration.stoppedBecause === 'failure' ? 'failure' : 'paths',
+      truncated: truncationReasons.length > 0,
+      truncationReasons
     }
   };
 }
@@ -508,6 +598,17 @@ type InputFromSource<T> =
       ? TInput
       : never;
 
+/** What `testPaths()` resolves with. */
+export interface TestPathsResult<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+> {
+  readonly coverage: TestCoverage;
+  readonly results: readonly TestPathRunResult<TSnapshot, TEvent>[];
+}
+
+const AFTER_TIMER_PREFIX = 'xstate.after.';
+
 /**
  * Executes model paths against a system under test.
  *
@@ -526,17 +627,12 @@ export async function testPaths<
     EventFromSource<TSource>,
     InputFromSource<TSource>
   > = {} as never
-): Promise<{
-  readonly coverage: TestCoverage;
-  readonly results: readonly TestPathRunResult<
-    SnapshotFromSource<TSource>,
-    EventFromSource<TSource>
-  >[];
-}> {
+): Promise<
+  TestPathsResult<SnapshotFromSource<TSource>, EventFromSource<TSource>>
+> {
   type TSnapshot = SnapshotFromSource<TSource>;
   type TEvent = EventFromSource<TSource>;
 
-  assertNotTestParam(options);
   if ((options as Record<string, unknown>).commands !== undefined) {
     throw new Error(
       '`commands` is not supported by path generation; use `propertyTest()`. Paths decide their own `advance` and `outcome` commands from the internal events the traversal took.'
@@ -552,14 +648,27 @@ export async function testPaths<
   }
 
   // Duck-typed rather than `instanceof TestModel`: `TestModel` imports this
-  // module, so a value import here would be an import cycle. Only the logic is
-  // needed for traversal; `propertyTest()` normalizes the source itself.
-  const testLogic = (
+  // module, so a value import here would be an import cycle.
+  const sourceModel =
     typeof (source as { getShortestPaths?: unknown }).getShortestPaths ===
     'function'
-      ? (source as unknown as TestModel<TSnapshot, TEvent, unknown>).testLogic
-      : source
+      ? (source as unknown as TestModel<TSnapshot, TEvent, unknown>)
+      : undefined;
+  const baseLogic = (
+    sourceModel ? sourceModel.testLogic : source
   ) as ActorLogic<TSnapshot, TEvent, unknown>;
+  // Sources named in `outcomes` may have no implementation at all; they are
+  // stubbed for traversal (and for pure-mode runs), since only the sampled
+  // outcomes are ever used in their place.
+  const outcomeSources = Object.keys(options.outcomes ?? {});
+  const testLogic = outcomeSources.length
+    ? provideActors(
+        baseLogic,
+        Object.fromEntries(
+          outcomeSources.map((src) => [src, createOutcomeStub(src)])
+        )
+      )
+    : baseLogic;
   const { cases } = normalizeEventDescriptors<TSnapshot, TEvent>(
     (options.events ?? {}) as Readonly<Record<string, unknown>>
   );
@@ -568,7 +677,8 @@ export async function testPaths<
     cases,
     samples,
     options.seed ?? 0,
-    caseIds
+    caseIds,
+    hasTestParamShape(options)
   );
 
   const mode: TestMode = options.mode ?? 'pure';
@@ -583,7 +693,16 @@ export async function testPaths<
     object,
     { readonly src: string; readonly outcome: TestActorOutcome }
   >();
-  const delayByEvent = new WeakMap<object, number | string>();
+
+  /**
+   * Virtual time. Timers fire in due order, so a state offers only its
+   * earliest-due `after` transition, where "due" counts the time already
+   * spent in enclosing states along the path that reached it. Timer objects
+   * keep their identity across transitions that do not reschedule them.
+   */
+  const virtualNow = new WeakMap<object, number>();
+  const timerScheduledAt = new WeakMap<object, number>();
+  const afterFiresAt = new WeakMap<object, number>();
 
   /**
    * Turns one synthesized internal event into the concrete events traversal
@@ -591,12 +710,7 @@ export async function testPaths<
    */
   const expandInternalEvent = (event: AnyEventObject): TEvent[] => {
     if (event.type === AFTER_EVENT) {
-      const offered = { ...event } as unknown as TEvent;
-      delayByEvent.set(
-        offered as unknown as object,
-        (event as unknown as { delay: number | string }).delay
-      );
-      return [offered];
+      return [{ ...event } as unknown as TEvent];
     }
     const ok = event.type === DONE_ACTOR_EVENT;
     const src = invokeSrcById.get(
@@ -629,11 +743,56 @@ export async function testPaths<
     });
   };
 
+  /** Keeps only the earliest-due `after` events, recording their due time. */
+  const selectDueAfterEvents = (
+    snapshot: TSnapshot,
+    afterEvents: readonly TEvent[]
+  ): TEvent[] => {
+    if (!afterEvents.length) {
+      return [];
+    }
+    const now = virtualNow.get(snapshot as object) ?? 0;
+    const timers =
+      (
+        snapshot as {
+          timers?: Record<string, { readonly delay?: unknown } | undefined>;
+        }
+      ).timers ?? {};
+    for (const timer of Object.values(timers)) {
+      if (timer && !timerScheduledAt.has(timer)) {
+        timerScheduledAt.set(timer, now);
+      }
+    }
+    const due = afterEvents.map((event) => {
+      const { delay, stateId } = event as unknown as {
+        delay: number | string;
+        stateId: string;
+      };
+      const timer = timers[`${AFTER_TIMER_PREFIX}${delay}.${stateId}`];
+      const milliseconds =
+        typeof timer?.delay === 'number'
+          ? timer.delay
+          : typeof delay === 'number'
+            ? delay
+            : Infinity;
+      return (timer ? timerScheduledAt.get(timer)! : now) + milliseconds;
+    });
+    const earliest = Math.min(...due);
+    return afterEvents.filter((event, index) => {
+      if (due[index] !== earliest) {
+        return false;
+      }
+      afterFiresAt.set(event as unknown as object, earliest);
+      return true;
+    });
+  };
+
   const traversalEvents = (snapshot: TSnapshot): readonly TEvent[] => {
     // A machine's own events exclude anything only a wildcard (`'*'`) handler
     // accepts, so the declared types are unioned in rather than replaced.
     const types = new Set<string>(expander.declaredTypes);
     const internal: TEvent[] = [];
+    const afterEvents: TEvent[] = [];
     if (typeof (snapshot as { nodes?: unknown }).nodes === 'object') {
       for (const stateNode of (
         snapshot as unknown as {
@@ -652,7 +811,9 @@ export async function testPaths<
           // Internal events carry the fields the transition matches on
           // (`actorId`, `delay`, `stateId`), so they are offered whole rather
           // than as a bare `{ type }` template.
-          internal.push(...expandInternalEvent(event as AnyEventObject));
+          (type === AFTER_EVENT ? afterEvents : internal).push(
+            ...expandInternalEvent(event as AnyEventObject)
+          );
         }
       }
     }
@@ -661,25 +822,67 @@ export async function testPaths<
     );
     return [
       ...templates.flatMap((template) => expander.expand(snapshot, template)),
-      ...internal
+      ...internal,
+      ...selectDueAfterEvents(snapshot, afterEvents)
     ];
   };
 
+  const limit = options.limit ?? DEFAULT_TRAVERSAL_LIMIT;
+  const identity = resolveTraversalOptions(
+    testLogic as never,
+    {
+      ...(options.serializeState === undefined
+        ? {}
+        : { serializeState: options.serializeState })
+    } as never
+  ).serializeState as (
+    snapshot: TSnapshot,
+    event: TEvent | undefined,
+    previousSnapshot: TSnapshot | undefined
+  ) => string;
   const traversalOptions: TraversalOptions<TSnapshot, TEvent, unknown> = {
     events: traversalEvents,
     input: options.input,
-    ...(options.limit === undefined ? {} : { limit: options.limit }),
+    limit,
     ...(options.toState === undefined ? {} : { toState: options.toState }),
     ...(options.fromState === undefined
       ? {}
       : { fromState: options.fromState }),
     ...(options.stopWhen === undefined ? {} : { stopWhen: options.stopWhen }),
-    ...(options.serializeState === undefined
-      ? {}
-      : { serializeState: options.serializeState }),
+    // Every state is serialized before its events are expanded, which is
+    // where its virtual time is fixed: the time it was reached at.
+    serializeState: (snapshot, event, previousSnapshot) => {
+      if (!virtualNow.has(snapshot as object)) {
+        const previousNow = previousSnapshot
+          ? (virtualNow.get(previousSnapshot as object) ?? 0)
+          : 0;
+        virtualNow.set(
+          snapshot as object,
+          event ? (afterFiresAt.get(event) ?? previousNow) : previousNow
+        );
+      }
+      return identity(snapshot, event, previousSnapshot);
+    },
     ...(options.serializeEvent === undefined
       ? {}
       : { serializeEvent: options.serializeEvent })
+  };
+
+  const generatePaths = <T>(generate: () => T): T => {
+    try {
+      return generate();
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'Traversal limit exceeded'
+      ) {
+        throw new Error(
+          `Path generation exceeded \`limit\` (${limit} traversal steps) before it exhausted the model. A machine whose context grows without bound never runs out of states, because every distinct context is a distinct state. Pass \`serializeState\` to merge equivalent states, prune traversal with \`stopWhen\` or \`toState\`, or raise \`limit\`.`,
+          { cause: error }
+        );
+      }
+      throw error;
+    }
   };
 
   let pathGeneratorKind: TestPathGeneratorKind = 'shortest';
@@ -691,22 +894,28 @@ export async function testPaths<
     pathGeneratorKind = 'events';
     // The literal sequence is the event list; the expander must not replace it.
     const { events: _traversalEvents, ...fromEventsOptions } = traversalOptions;
-    paths = getPathsFromEvents(
-      testLogic,
-      options.fromEvents as TEvent[],
-      fromEventsOptions as never
+    paths = generatePaths(() =>
+      getPathsFromEvents(
+        testLogic,
+        options.fromEvents as TEvent[],
+        fromEventsOptions as never
+      )
     );
   } else {
     let generated: readonly StatePath<TSnapshot, TEvent>[];
     if (typeof options.pathGenerator === 'function') {
       pathGeneratorKind = 'custom';
-      generated = options.pathGenerator(testLogic, traversalOptions as never);
+      const pathGenerator = options.pathGenerator;
+      generated = generatePaths(() =>
+        pathGenerator(testLogic, traversalOptions as never)
+      );
     } else {
       pathGeneratorKind = options.pathGenerator ?? 'shortest';
-      generated =
+      generated = generatePaths(() =>
         pathGeneratorKind === 'simple'
           ? getSimplePaths(testLogic, traversalOptions)
-          : getShortestPaths(testLogic, traversalOptions);
+          : getShortestPaths(testLogic, traversalOptions)
+      );
     }
     paths = options.allowDuplicatePaths
       ? generated
@@ -743,12 +952,21 @@ export async function testPaths<
     }
   }
 
+  const formatSnapshot = (options.formatSnapshot ?? defaultFormatSnapshot) as (
+    snapshot: TSnapshot
+  ) => unknown;
   const results: TestPathRunResult<TSnapshot, TEvent>[] = [];
   const adapter = createPathAdapter(paths, caseIds, results, {
     mode,
     outcomeByEvent,
-    delayByEvent,
-    resolveDelay: (delayRef) => resolveTestDelay(testLogic, delayRef)
+    serialize: (snapshot) => identity(snapshot, undefined, undefined),
+    format: (snapshot) => {
+      try {
+        return JSON.stringify(formatSnapshot(snapshot)) ?? String(snapshot);
+      } catch {
+        return String(snapshot);
+      }
+    }
   });
   const {
     paths: _paths,
@@ -778,10 +996,22 @@ export async function testPaths<
     }
     Object.assign(stubs, configuredOutcomes ?? {});
   }
+  // Pure-mode runs step the stubbed logic too, so a source named in
+  // `outcomes` needs no implementation. Executed mode stubs through
+  // `outcomes` instead, which `propertyTest()` provides itself.
+  const runSource =
+    mode === 'pure' && outcomeSources.length
+      ? sourceModel
+        ? new (sourceModel.constructor as new (
+            logic: unknown,
+            modelOptions: unknown
+          ) => unknown)(testLogic, sourceModel.options)
+        : testLogic
+      : source;
 
   try {
     const { coverage } = await propertyTest(
-      source as never,
+      runSource as never,
       {
         ...(shared as object),
         adapter,
@@ -795,13 +1025,21 @@ export async function testPaths<
     };
   } catch (error) {
     if (error instanceof ModelTestFailure && error.coverage) {
+      const failedIndex = results.length - 1;
+      const failedPath = results[failedIndex]?.path;
+      const detail = error.summary.replace(/^Property /, '');
       throw new ModelTestFailure(
-        error.summary,
+        failedPath
+          ? `Path ${failedIndex + 1} (${describePath(failedPath)}) failed: ${
+              detail.charAt(0).toLowerCase() + detail.slice(1)
+            }`
+          : error.summary,
         error.trace,
         error.cause,
         error.replay,
         error.fixture,
-        withPathExploration(error.coverage, paths.length, pathGeneratorKind)
+        withPathExploration(error.coverage, paths.length, pathGeneratorKind),
+        error.format
       );
     }
     throw error;
@@ -842,7 +1080,10 @@ export function fromTestParam<
           previous = sendContext.snapshot;
           await executor?.({ event, state });
         },
-        states: params.states as TestStateAssertions<TSnapshot, TEvent>
+        states: params.states as unknown as TestStateAssertions<
+          TSnapshot,
+          TEvent
+        >
       };
     }
   };

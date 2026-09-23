@@ -177,10 +177,15 @@ describe('testPaths with invoke and `after` branches', () => {
     expect(coverage.transitions.uncovered).toEqual([]);
   });
 
-  it('explains a delay it cannot resolve to a number', async () => {
-    await expect(
-      testPaths(computedDelayMachine, { mode: 'executed' })
-    ).rejects.toThrow(/computed at runtime/);
+  it('advances to a delay computed at runtime', async () => {
+    // Executed mode reads the due time off the actor's scheduled timer, so
+    // the delay does not have to be a number in the machine config.
+    const { coverage, results } = await testPaths(computedDelayMachine, {
+      mode: 'executed'
+    });
+
+    expect(results.every(({ passed }) => passed)).toBe(true);
+    expect(covered(coverage, 'xstate.after')).toBe(true);
   });
 
   it('replays an executed path fixture without the real service', async () => {

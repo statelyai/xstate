@@ -151,9 +151,9 @@ describe('README: Quick start', () => {
     const report = formatTestCoverage(coverage);
 
     expect(dimensionLines(report).slice(0, 6)).toEqual([
-      'states: 2/3 covered (66.7%), 0 uncovered, 0 unreachable, 1 unknown',
+      'states: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown',
       'stateNodes: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown',
-      'configurations: 2/3 covered (66.7%), 0 uncovered, 0 unreachable, 1 unknown',
+      'configurations: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown',
       'statuses: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown',
       'eventTypes: 4/4 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown',
       'transitions: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown'
@@ -176,9 +176,9 @@ describe('README: Quick start', () => {
 
     expect(results).toHaveLength(15);
     expect(dimensionLines(formatTestCoverage(coverage)).slice(0, 6)).toEqual([
-      'states: 2/3 covered (66.7%), 0 uncovered, 0 unreachable, 1 unknown',
+      'states: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown',
       'stateNodes: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown',
-      'configurations: 2/3 covered (66.7%), 0 uncovered, 0 unreachable, 1 unknown',
+      'configurations: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown',
       'statuses: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown',
       'eventTypes: 4/4 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown',
       'transitions: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown'
@@ -681,7 +681,15 @@ describe('README: How-to guides', () => {
     // The failure the docs page pastes: `REMOVE pear` leaves `pear` at zero.
     expect(failure.summary).toBe('Property observation diverged');
     expect(failure.message).toContain(
-      'observations {"model":{},"sut":{"model":{},"observed":{"pear":0}}}'
+      [
+        '2. generator REMOVE {"sku":"pear"} -> {"value":"shopping","context":{"items":{}}}',
+        '   sut diverged',
+        '     model:    {}',
+        '     observed: {"pear":0}'
+      ].join('\n')
+    );
+    expect(failure.message).toContain(
+      'Reproduce: seed 1, path "1:2:1:2:3", replayPath "N:B"'
     );
     // The fixture is JSON-safe: round-trip it the way a committed file would.
     const fixture = JSON.parse(JSON.stringify(failure.fixture)) as TestFixture;

@@ -65,30 +65,22 @@ non-empty SKUs and integer quantities from 1 to 5.
 - `until: { transitions: 1 }` stops the campaign once every transition has
   been taken.
 
-`formatTestCoverage(coverage)` prints (the list of unknown transition pairs is
-cut):
+`formatTestCoverage(coverage)` prints:
 
 ```
 Test coverage
 
-states: 3/4 covered (75.0%), 0 uncovered, 0 unreachable, 1 unknown
+states: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 stateNodes: 4/4 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
-configurations: 3/4 covered (75.0%), 0 uncovered, 0 unreachable, 1 unknown
+configurations: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 statuses: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 eventTypes: 6/6 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 transitions: 5/5 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 guards: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
-transitionPairs: 9/24 covered (37.5%), 0 uncovered, 0 unreachable, 15 unknown
+transitionPairs: 9/9 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 requirements: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 frontiers: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 
-unknown states:
-  - (runtime serialized states)
-unknown configurations:
-  - (runtime configurations)
-unknown transitionPairs:
-  - ["transition","cart.paying","xstate.done.actor",0] -> ["transition","cart.paying","xstate.error.actor",0]
-  ...
 event cases:
   - ADD / default: 37 generated, 36 applicable, 36 executed, 1 ignored
   - CHECKOUT / default: 22 generated, 21 applicable, 21 executed, 1 ignored
@@ -101,7 +93,6 @@ exploration:
   runs: configured 100, completed 25, attempted 25
   sequence length: max 10, max observed 8
   stopped because: until
-  truncated: false
   frontier ["frontier","initial"]: prefix 0, budget 25, configured 25, completed 25, attempted 25
   seed ["frontier","initial"]: engine fast-check, seed 1, path n/a
 ```
@@ -109,8 +100,9 @@ exploration:
 The campaign stopped after 25 of 100 runs because every transition was
 covered. An event case is `ignored` when it is not applicable: `REMOVE` on an
 empty cart, where `resolve` returns `undefined`, or any event outside
-`shopping`. `transitionPairs` lists a pair as `unknown` when a transition's
-target is computed by a function, as most transitions in this machine are.
+`shopping`. Most transitions in this machine compute their target with a
+function, so `transitionPairs` declares no pairs up front; the 9 listed are
+the pairs the runs took.
 `assertTestCoverage(coverage, { transitions: 1 })` then fails the test if a
 later change leaves a transition untaken.
 
@@ -195,8 +187,7 @@ temporal: 0 satisfied, 0 failed, 0 inconclusive
 exploration:
   runs: configured 164, completed 164, attempted 164
   sequence length: max 12, max observed 12
-  stopped because: budget
-  truncated: true (maximum sequence length reached)
+  stopped because: paths
   frontier ["frontier","initial"]: prefix 0, budget n/a, configured 164, completed 164, attempted 164
   seed ["frontier","initial"]: engine paths, seed n/a, path n/a
 ```
@@ -225,19 +216,25 @@ With `CART_BUG=1`, test 3 fails with this `ModelTestFailure` message:
 
 ```
 Property observation diverged
-start {"status":"active","context":{"items":{},"lastError":null},"value":"shopping","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
-0. generated/generator {"sku":"apple","qty":1,"type":"ADD"} -> {"status":"active","context":{"items":{"apple":1},"lastError":null},"value":"shopping","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
-   transitions ["transition","cart.shopping","ADD",0]
-   observations {"model":{"apple":1},"sut":{"model":{"apple":1},"observed":{"apple":1}}}
-1. generated/generator {"sku":"apple","type":"REMOVE"} -> {"status":"active","context":{"items":{},"lastError":null},"value":"shopping","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
-   transitions ["transition","cart.shopping","REMOVE",0]
-   observations {"model":{},"sut":{"model":{},"observed":{"apple":0}}}
+Reproduce: seed 2, path "1:2:1:1:1", replayPath "CBDH:K"
+Fixture: failure.fixture (replayTest)
+Shrunk 4 time(s)
+
+start {"value":"shopping","context":{"items":{},"lastError":null}}
+1. generator ADD {"sku":"apple","qty":1} -> {"value":"shopping","context":{"items":{"apple":1},"lastError":null}}
+2. generator REMOVE {"sku":"apple"} -> {"value":"shopping","context":{"items":{},"lastError":null}}
+   sut diverged
+     model:    {}
+     observed: {"apple":0}
 ```
 
-Read it from the bottom. Step 1 sent `REMOVE apple`. The model's projection is
-`{}`, and the store's is `{"apple":0}`: the store kept the SKU at quantity
-zero. The first line is `failure.summary`, and the rest is
-`formatTestTrace(failure.trace)`.
+The first line is `failure.summary`. `Reproduce` gives the fast-check
+`seed`, `path`, and `replayPath` that rerun this counterexample, and `Shrunk`
+counts the shrinking steps fast-check took to reach it. The numbered lines
+are `formatTestTrace(failure.trace)`: each step's origin (`generator`), its
+event, and the model's `{ value, context }` after it. Step 2 sent
+`REMOVE apple`. The model's projection is `{}`, and the store's is
+`{"apple":0}`: the store kept the SKU at quantity zero.
 
 `failure.fixture` records the same sequence as JSON:
 

@@ -138,9 +138,9 @@ test('the cart matches the model', async () => {
 The coverage report starts with one line per dimension:
 
 ```
-states: 2/3 covered (66.7%), 0 uncovered, 0 unreachable, 1 unknown
+states: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 stateNodes: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
-configurations: 2/3 covered (66.7%), 0 uncovered, 0 unreachable, 1 unknown
+configurations: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 statuses: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 eventTypes: 4/4 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 transitions: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
@@ -188,16 +188,19 @@ remove: (sku: string) => {
 
 ```
 Property observation diverged
-start {"status":"active","context":{"items":{}},"value":"shopping","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
-0. generated/generator {"sku":"pear","type":"ADD"} -> {"status":"active","context":{"items":{"pear":1}},"value":"shopping","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
-   transitions ["transition","cart.shopping","ADD",0]
-   observations {"model":{"pear":1},"sut":{"model":{"pear":1},"observed":{"pear":1}}}
-1. generated/generator {"sku":"pear","type":"REMOVE"} -> {"status":"active","context":{"items":{}},"value":"shopping","children":{},"timers":{},"historyValue":{},"_nextTimerId":0,"tags":[]}
-   transitions ["transition","cart.shopping","REMOVE",0]
-   observations {"model":{},"sut":{"model":{},"observed":{"pear":0}}}
+Reproduce: seed 1, path "1:2:1:2:3", replayPath "N:B"
+Fixture: failure.fixture (replayTest)
+Shrunk 4 time(s)
+
+start {"value":"shopping","context":{"items":{}}}
+1. generator ADD {"sku":"pear"} -> {"value":"shopping","context":{"items":{"pear":1}}}
+2. generator REMOVE {"sku":"pear"} -> {"value":"shopping","context":{"items":{}}}
+   sut diverged
+     model:    {}
+     observed: {"pear":0}
 ```
 
-Step 1 is the divergence. After `REMOVE pear`, the machine's projection is `{}` and the cart's is `{"pear":0}`.
+The first line is `failure.summary`. `Reproduce` lists the fast-check `seed`, `path`, and `replayPath` that rerun the same counterexample, and `Shrunk` counts the shrinking steps fast-check took to reach it. Each numbered line is a step: where the event came from (`generator` for a generated event), the event, and the model's `{ value, context }` after it. Step 2 is the divergence: after `REMOVE pear`, the machine's projection is `{}` and the cart's is `{"pear":0}`.
 
 ## Replay a failure
 

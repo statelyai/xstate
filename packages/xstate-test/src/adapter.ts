@@ -334,7 +334,7 @@ class FastCheckAdapter implements TestAdapter<FastCheckGeneratorKind> {
     }
     if (!weighted.length) {
       throw new Error(
-        'Property tests require at least one event or command generator'
+        'Property tests require at least one event or command generator. Generators are derived only from runtime schemas in `schemas.events`: event types declared with a type-only `types<...>()` schema, or with no schema, are skipped, so configure them in `events`.'
       );
     }
     // `fc.commands` samples uniformly across the arbitraries it is given, so
@@ -359,6 +359,9 @@ class FastCheckAdapter implements TestAdapter<FastCheckGeneratorKind> {
       false
     >(commands, {
       maxCommands: this.options.maxCommands,
+      // Without an explicit `size`, fast-check derives the sequence length
+      // from its default size and never reaches a `maxCommands` above ~10.
+      ...(this.options.maxCommands === undefined ? {} : { size: 'max' }),
       replayPath: this.options.replayPath
     });
     let schedulerReport: FastCheckSchedulerReport | undefined;
@@ -485,6 +488,7 @@ class FastCheckAdapter implements TestAdapter<FastCheckGeneratorKind> {
         seed: result.seed,
         path: result.counterexamplePath ?? undefined,
         replayPath: extractReplayPath(result.counterexample?.[0]),
+        numShrinks: result.numShrinks,
         ...(schedulerReport ? { data: { scheduler: schedulerReport } } : {})
       }
     };

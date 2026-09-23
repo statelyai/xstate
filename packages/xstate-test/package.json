@@ -22,8 +22,7 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@playwright/test": ">=1.40",
-    "effect": ">=4.0.0-beta.100 <5",
+    "effect": "4.0.0-beta.106",
     "fast-check": "^4.9.0",
     "xstate": "workspace:^",
     "zod": "^3.25.0 || ^4.0.0"
@@ -45,9 +44,6 @@
     ]
   },
   "peerDependenciesMeta": {
-    "@playwright/test": {
-      "optional": true
-    },
     "effect": {
       "optional": true
     },

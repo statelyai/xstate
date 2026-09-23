@@ -22,6 +22,10 @@ export class FakePage {
   public readonly routes: string[] = [];
   /** The route handlers currently installed, as Playwright would hold them. */
   public readonly installedRoutes: { url: string; handler: unknown }[] = [];
+  /** Every `route()` and `unroute()` call, in order, as `"route <url>"` or `"unroute <url>"`. */
+  public readonly routeLog: string[] = [];
+  /** When set, `unroute()` rejects with this error. */
+  public unrouteError: Error | undefined;
   public readonly loadStates: string[] = [];
   private pending: { remaining: number; amount: number }[] = [];
   private failRequests = false;
@@ -92,6 +96,7 @@ export class FakePage {
     handler: (route: { fulfill: (response: unknown) => void }) => void
   ): Promise<void> {
     this.routes.push(url);
+    this.routeLog.push(`route ${url}`);
     this.installedRoutes.push({ url, handler });
     handler({
       fulfill: (response) => {
@@ -102,6 +107,10 @@ export class FakePage {
   }
 
   public unroute(url: string, handler?: unknown): Promise<void> {
+    this.routeLog.push(`unroute ${url}`);
+    if (this.unrouteError) {
+      return Promise.reject(this.unrouteError);
+    }
     const index = this.installedRoutes.findIndex(
       (entry) =>
         entry.url === url &&

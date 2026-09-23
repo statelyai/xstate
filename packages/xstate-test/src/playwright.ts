@@ -1,5 +1,6 @@
 import type { EventObject, Snapshot } from 'xstate';
 import type {
+  TestStateAssertions,
   TestSut,
   TestSutContext,
   TestSutSendContext,
@@ -104,8 +105,9 @@ export interface PlaywrightSutConfig<
    * is the case resolved by `caseOf`. Use it to steer an invoked service to
    * success or failure on different generated paths.
    *
-   * Routes installed by a mock are unrouted when the scenario session is
-   * disposed, so handlers do not accumulate across runs.
+   * Routes installed by a mock are unrouted before another case's mock is
+   * applied and when the scenario session is disposed, so handlers do not
+   * leak across cases or runs.
    */
   readonly mocks?: {
     readonly [caseId: string]: PlaywrightMock<TPage>;
@@ -126,7 +128,7 @@ type InstalledRoute = readonly unknown[];
 
 /**
  * Wraps a page so every `route()` a mock installs is recorded and can be
- * removed again when the session is disposed.
+ * removed again when another case's mock is applied or the session is disposed.
  */
 function trackRoutes<TPage extends PlaywrightPage>(
   page: TPage,
@@ -241,6 +243,9 @@ export function createPlaywrightSut<
             caseOf(event)
           );
           if (resolved && resolved.key !== appliedCase) {
+            // Remove the previous case's routes so its handlers stop
+            // intercepting before the new case's mock installs its own.
+            await releaseRoutes(page, installedRoutes);
             await resolved.mock(mockPage);
             appliedCase = resolved.key;
           }
@@ -265,7 +270,7 @@ export function createPlaywrightSut<
                   key,
                   (snapshot: TSnapshot) => assertion(page, snapshot)
                 ])
-              )
+              ) as unknown as TestStateAssertions<TSnapshot, TEvent>
             }
           : {}),
         settle: async () => {
@@ -295,8 +300,11 @@ export function createPlaywrightSut<
         },
         ...(config.stop ? { stop: () => config.stop!(page) } : {}),
         dispose: async () => {
-          await releaseRoutes(page, installedRoutes);
-          await config.dispose?.(page);
+          try {
+            await releaseRoutes(page, installedRoutes);
+          } finally {
+            await config.dispose?.(page);
+          }
         }
       };
     }

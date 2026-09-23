@@ -233,20 +233,44 @@ describe('cart', () => {
 
   it('replays a recorded counterexample', async () => {
     process.env.CART_BUG = '1';
-    let fixture: TestFixture | undefined;
     try {
-      await propertyTest(cartMachine, {
-        seed: 2,
-        numRuns: 100,
-        maxCommands: 12,
-        deriveEvents: false,
-        events: {
-          ADD: fc.record({
-            sku: fc.constantFrom('apple', 'pear', 'plum'),
-            qty: fc.integer({ min: 1, max: 5 })
-          }),
-          REMOVE: removeAnItemInTheCart
-        },
+      let fixture: TestFixture | undefined;
+      try {
+        await propertyTest(cartMachine, {
+          seed: 2,
+          numRuns: 100,
+          maxCommands: 12,
+          deriveEvents: false,
+          events: {
+            ADD: fc.record({
+              sku: fc.constantFrom('apple', 'pear', 'plum'),
+              qty: fc.integer({ min: 1, max: 5 })
+            }),
+            REMOVE: removeAnItemInTheCart
+          },
+          sut: {
+            create: () => {
+              const store = new CartStore();
+              return {
+                send: (event: CartEvent) => store.dispatch(event),
+                read: () => store.getState().items
+              };
+            },
+            projectModel: (snapshot) => snapshot.context.items
+          },
+          invariant: () => {}
+        });
+      } catch (error) {
+        fixture = (error as ModelTestFailure).fixture;
+      }
+
+      expect(fixture).toBeDefined();
+
+      // The fixture is plain JSON: commit it and the same failure is reproduced
+      // without generating anything. `replayTest()` expects the recorded
+      // failure to happen again, and throws `ReplayNotReproducedError`
+      // when it does not.
+      const reproduced = replayTest(cartMachine, fixture!, {
         sut: {
           create: () => {
             const store = new CartStore();
@@ -259,30 +283,9 @@ describe('cart', () => {
         },
         invariant: () => {}
       });
-    } catch (error) {
-      fixture = (error as ModelTestFailure).fixture;
+      await expect(reproduced).rejects.toBeInstanceOf(ModelTestFailure);
+    } finally {
+      delete process.env.CART_BUG;
     }
-
-    expect(fixture).toBeDefined();
-
-    // The fixture is plain JSON: commit it and the same failure is reproduced
-    // without generating anything. `replayTest()` expects the recorded
-    // failure to happen again, and throws `ReplayNotReproducedError`
-    // when it does not.
-    const reproduced = replayTest(cartMachine, fixture!, {
-      sut: {
-        create: () => {
-          const store = new CartStore();
-          return {
-            send: (event: CartEvent) => store.dispatch(event),
-            read: () => store.getState().items
-          };
-        },
-        projectModel: (snapshot) => snapshot.context.items
-      },
-      invariant: () => {}
-    });
-    await expect(reproduced).rejects.toBeInstanceOf(ModelTestFailure);
-    delete process.env.CART_BUG;
   });
 });

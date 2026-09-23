@@ -86,6 +86,52 @@ describe('checkLinearizable', () => {
     expect(result.witness?.map((entry) => entry.id)).toEqual(['b', 'a']);
   });
 
+  it('compares responses by Date, Map and Set contents', () => {
+    const dateModel = {
+      initial: 0,
+      apply: (state: number) => ({
+        state,
+        response: {
+          at: new Date(0),
+          tags: new Map([['a', 1]]),
+          ids: new Set([1])
+        }
+      })
+    };
+    const entry = (
+      response: unknown
+    ): LinearizabilityEntry<{ type: 'read' }> => ({
+      id: 'a',
+      invocation: { type: 'read' },
+      response,
+      start: 0,
+      end: 1
+    });
+    const expected = {
+      at: new Date(0),
+      tags: new Map([['a', 1]]),
+      ids: new Set([1])
+    };
+
+    expect(checkLinearizable([entry(expected)], dateModel).linearizable).toBe(
+      true
+    );
+    expect(
+      checkLinearizable([entry({ ...expected, at: new Date(1) })], dateModel)
+        .linearizable
+    ).toBe(false);
+    expect(
+      checkLinearizable(
+        [entry({ ...expected, tags: new Map([['a', 2]]) })],
+        dateModel
+      ).linearizable
+    ).toBe(false);
+    expect(
+      checkLinearizable([entry({ ...expected, ids: new Set([2]) })], dateModel)
+        .linearizable
+    ).toBe(false);
+  });
+
   it('reports truncation when the exploration bound is hit', () => {
     const history: LinearizabilityEntry<RegisterEvent>[] = Array.from(
       { length: 6 },

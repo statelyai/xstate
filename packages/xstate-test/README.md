@@ -173,9 +173,9 @@ printed coverage starts with:
 ```
 Test coverage
 
-states: 2/3 covered (66.7%), 0 uncovered, 0 unreachable, 1 unknown
+states: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 stateNodes: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
-configurations: 2/3 covered (66.7%), 0 uncovered, 0 unreachable, 1 unknown
+configurations: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 statuses: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 eventTypes: 4/4 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 transitions: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
@@ -217,9 +217,9 @@ Each `fc` arbitrary is sampled into three concrete payloads before traversal
 15 paths
 Test coverage
 
-states: 2/3 covered (66.7%), 0 uncovered, 0 unreachable, 1 unknown
+states: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 stateNodes: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
-configurations: 2/3 covered (66.7%), 0 uncovered, 0 unreachable, 1 unknown
+configurations: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 statuses: 2/2 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 eventTypes: 4/4 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 transitions: 3/3 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
@@ -341,12 +341,6 @@ stable step:
 id (`'#cart.shopping'`), or `'*'`, which runs when no other key matches. A
 `states` map on the session replaces the top-level one. Functions in a state
 node's `meta.test` run too, and receive the session and the snapshot.
-
-> **Warning:** `states` keys other than `'*'` currently match only when the
-> source is a test model, so pass `createTestModel(machine)` instead of
-> `machine` when you use them. `testPaths()` also rejects a top-level `states`
-> map without a `sut` when every `events` entry is a bare generator; give it a
-> `sut`, or write the events as descriptors.
 
 ### Modes
 
@@ -522,6 +516,8 @@ contains `xstate.done.actor` and `xstate.error.actor` transitions. It samples
   with no matching outcome gets a synthesized one: `{ ok: true, output: undefined }`
   or `{ ok: false, error: new Error('generated failure') }`.
 
+A source named in `outcomes` needs no implementation in either mode.
+
 ```ts
 const { coverage } = await testPaths(orderMachine, {
   mode: 'executed',
@@ -536,7 +532,12 @@ error branch resolves with a synthesized failure.
 
 Executed mode is deterministic for everything that goes through the actor
 system and the simulated clock. Real network calls, timers created outside the
-actor clock, `Date.now()`, and `Math.random()` are not intercepted.
+actor clock, `Date.now()`, and `Math.random()` are not intercepted. A step
+settles once the actor system has produced no new events for two consecutive
+macrotask turns. An invoked actor whose promise is still pending at that point
+is listed in the step's `pendingActors`, and
+`coverage.exploration.pendingActorSteps` counts such steps: its result may
+land in a later step.
 
 ### Test delayed transitions
 
@@ -552,9 +553,11 @@ await propertyTest(orderMachine, {
 });
 ```
 
-`testPaths()` needs no configuration. For each `xstate.after` step a path
-takes, it advances the clock by that delay. The delay must be a number, or a
-named delay declared as a number in the machine's `delays`.
+`testPaths()` needs no configuration. Traversal offers only the `after`
+transition that is due first, counting the time already spent in enclosing
+states. In executed mode, each `xstate.after` step advances the clock to that
+timer's due time, read from the actor's scheduler, so a delay computed at
+runtime works too.
 
 In pure mode, the model has no clock. A SUT that owns its clock can implement
 `session.advance(ms)` and return the events that fired; the runner applies
@@ -637,7 +640,8 @@ sut: createPlaywrightSut(page, {
 ```
 
 A mock runs before the event action, only when the resolved case differs from
-the last one applied. Routes a mock installs are removed when the run ends.
+the last one applied. Routes a mock installs are removed before another case's
+mock is applied and when the run ends.
 [`examples/property-testing-playwright`](../../examples/property-testing-playwright)
 is a runnable version. All options are listed under
 [`createPlaywrightSut()`](#createplaywrightsut) in the reference.
@@ -1074,7 +1078,7 @@ In addition to the shared options (`PathOptions`):
 | `fromEvents` | none | Runs the single path built from this event sequence. |
 | `samples` | `3` | Payloads sampled from each event case and outcome generator. An integer of at least `1`. |
 | `seed` | `0` | Sampling seed. Each case samples from its own stream, so adding a case leaves the other cases' payloads unchanged. |
-| `limit` | `Infinity` | Traversal limit. Traversal throws `Traversal limit exceeded` beyond it. |
+| `limit` | `10_000` | Traversal steps before path generation throws. A context that grows without bound reaches it; merge states with `serializeState` or prune with `stopWhen`. |
 | `stopWhen` | none | Stops expanding a state when it returns `true`. |
 | `toState` | none | Keeps only paths that end in a matching state. |
 | `fromState` | initial state | Starts traversal from this snapshot. |
@@ -1083,7 +1087,14 @@ In addition to the shared options (`PathOptions`):
 
 `testPaths()` rejects `commands`. It resolves with `results`, one
 `{ path, passed, error }` per path, and sets `coverage.exploration.strategy`
-to `'paths'`. It throws on the first failing path.
+to `'paths'` and `stoppedBecause` to `'paths'`. It throws on the first failing
+path.
+
+After every step, the run's snapshot is compared with the snapshot traversal
+planned for that step, using `serializeState`. A run that departs from its
+path, such as an event the machine no longer accepts or a service that
+resolved on its own, fails with
+`Path diverged at step N: expected <state>, got <state>`.
 
 ### `propertyTest()` options
 
@@ -1094,7 +1105,7 @@ In addition to the shared options (`PropertyOptions`):
 | `commands` | none | Generators for `advance` (milliseconds), `checkpoint` (`{ label? }`), and `stop` (`{}`) commands. Each may be `{ generate, weight }`. |
 | `until` | none | Stop condition. See below. Enables batching. |
 | `batchRuns` | `25` | Runs per batch when batching. |
-| `maxRuns` | `100` | Total runs when batching. |
+| `maxRuns` | `100` | Total runs when batching. In `@xstate/test`, defaults to `numRuns` when that is set. |
 | `frontiers` | none | An array of paths, `{ paths, select?, runsPerFrontier? }`, `'auto'`, `{ strategy: 'uncovered', maxFrontiers?, runsPerFrontier?, limit? }`, or `{ strategy: 'target', maxFrontiers?, runsPerFrontier? }`. |
 | `swarm` | `false` | `true`, or `{ minCases?, seed? }`. |
 | `adapter` | fast-check | Replaces the generator engine. Required in `xstate/graph`. |
@@ -1183,7 +1194,7 @@ failed, and the id is listed in `coverage.temporal.inconclusive`.
 | --- | --- |
 | `states`, `stateNodes`, `configurations`, `statuses`, `eventTypes`, `transitions`, `frontiers` | `TestCoverageDimension`: `counts`, `covered`, `uncovered`, `unreachable`, `unknown`. |
 | `guards` | A dimension plus `outcomes`: `{ [guardId]: { passed, failed } }`. |
-| `transitionPairs` | A dimension of `"<first> -> <second>"` ids plus `truncated`. Enumeration stops at 5,000 pairs. |
+| `transitionPairs` | A dimension of `"<first> -> <second>"` ids plus `truncated`. Only pairs of transitions with static targets are declared up front, up to 2,000; a pair involving a transition whose target is computed by a function appears once a run takes it. |
 | `requirements` | A dimension of `meta.requirements` ids plus `sources`, the state nodes and transitions that declare each id. |
 | `eventCases` | `{ [caseId]: { weight, generated, applicable, executed, ignored } }`. |
 | `dynamicTransitions` | Hits and observed targets for transitions whose target is computed. |
@@ -1204,8 +1215,9 @@ failed, and the id is listed in `coverage.temporal.inconclusive`.
 | `frontiers`, `seeds` | Per-frontier budgets, and the adapter seeds and paths used. |
 | `swarm` | `{ runs, averageEnabled }`, or `null`. |
 | `target` | `{ best, label, improvements }`. `best` is `-Infinity` when unused. |
-| `stoppedBecause` | `'until'`, `'budget'`, or `'failure'`. |
+| `stoppedBecause` | `'until'`, `'budget'`, `'failure'`, or `'paths'` (`testPaths()` ran every path). |
 | `truncated`, `truncationReasons` | Why exploration was cut short. |
+| `pendingActorSteps` | Executed-mode steps that settled while an invoked or spawned actor's asynchronous work was still in flight. Those timeline entries list the actors in `pendingActors`. |
 
 In executed mode, guard coverage comes from the guarded transitions that were
 taken, so `guards.outcomes` stays empty.
@@ -1218,17 +1230,27 @@ transition that declares it is covered.
 
 | Field | Description |
 | --- | --- |
-| `summary` | The short message, such as `Property observation diverged`. |
-| `message` | `summary` followed by `formatTestTrace(trace)`. |
+| `summary` | The short message, such as `Property observation diverged`. `testPaths()` prefixes it with the failing path: `Path 2 (ADD → REMOVE) failed: …`. |
+| `message` | `summary` and the cause's message; a `Reproduce:` line with the fast-check `seed`, `path`, and `replayPath`; a `Fixture:` line when `fixture` is set; `Shrunk N time(s)` when fast-check shrank the counterexample; then `formatTestTrace(trace)`. |
 | `trace` | `TestTrace`: `start`, `initialSnapshot`, `timeline`, `events`, `commands`, `steps`, `finalSnapshot`, `finalObservation`, `swarm`, `mode`, `outcomes`. |
 | `cause` | The error thrown by the oracle or the SUT. |
 | `fixture` | A `TestFixture` for `replayTest()`. |
-| `replay` | fast-check metadata: `engine`, `engineVersion`, `seed`, `path`, `replayPath`, `data`. |
+| `replay` | fast-check metadata: `engine`, `engineVersion`, `seed`, `path`, `replayPath`, `numShrinks`, `data`. |
 | `coverage` | Coverage up to the failure. |
 
 `trace.timeline` entries have a `kind`: `'event'`, `'command'` (`advance`,
 `checkpoint`, `outcome`, `stop`), or, in executed mode, `'actorEvent'` for a
 transition the actor system made on its own.
+
+`formatTestTrace(trace, { formatSnapshot })` prints one line per entry:
+`N. <origin> <event> -> <state>`. The origin is `generator`, `prefix`, or
+`clock` for sent events, `timer` for `xstate.after` events and `advance`
+commands, `outcome` for invoke results, and `actor(<id>)` for a child actor's
+own transition. `<state>` is `formatSnapshot(snapshot)`, which defaults to
+`{ value, context }`; pass `formatSnapshot` to `propertyTest()`,
+`testPaths()`, or `replayTest()` to print something else. A step whose SUT or
+reference observation differs from the model adds `model:` and `observed:`
+lines.
 
 ### `TestFixture`
 
@@ -1243,8 +1265,13 @@ interface TestFixture {
   swarm?: string[];
   mode?: 'pure' | 'executed';
   outcomes?: { src: string; occurrence: number; outcome: TestActorOutcome }[];
+  stubs?: string[]; // invoke sources the run stubbed, resolved or not
 }
 ```
+
+Errors in commands and outcomes are recorded as
+`{ xstate$$error: true, name, message }`, since `JSON.stringify()` turns an
+`Error` into `{}`. `replayTest()` turns them back into `Error` objects.
 
 A `TestCommand` is `{ type: 'event', event, phase, origin, caseId? }`,
 `{ type: 'advance', milliseconds, deliveredEvents }`,
@@ -1318,12 +1345,17 @@ Each run:
 Supported Zod (v3 and v4) kinds: `object`, `interface`, `string`, `number`,
 `int`, `bigint`, `boolean`, `date`, `literal`, `enum`, `nativeEnum`, `union`,
 `array`, `set`, `tuple`, `record`, `optional`, `nullable`, `default`,
-`prefault`, `catch`, `readonly`, `nonoptional`, `null`, `undefined`, `void`,
-`any`, and `unknown`. Mapped checks: lengths, numeric ranges, `int`,
+`prefault`, `catch`, `readonly`, `nonoptional`, `lazy`, `null`, `undefined`,
+`void`, `any`, and `unknown`. Mapped checks: lengths, numeric ranges, `int`,
 `multipleOf`, `email`, `uuid`, `url`, `regex`, `startsWith`, `endsWith`,
 `includes`, `trim`, `toLowerCase`, and `toUpperCase`. An unsupported kind or
-check throws an error naming the schema path, such as `'SET.when'`. A `type`
-field in a generated payload is removed.
+check, a recursive schema, a string with two formats, or a schema that no value
+satisfies throws an error naming the schema path, such as `'SET.when'`. A
+`type` field in a generated payload is removed.
+
+A handled event type without its own schema key uses the schema of the first
+wildcard key it matches, such as `'user.*'`, in both `eventsWithoutSchema`
+modes.
 
 ### `createPlaywrightSut()`
 

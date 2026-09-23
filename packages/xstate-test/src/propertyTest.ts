@@ -29,6 +29,7 @@ import {
   type TestSuite,
   type TestAdapter,
   type PropertyTestOptions,
+  type TestPathsResult,
   TestModel
 } from 'xstate/graph';
 import {
@@ -214,8 +215,14 @@ function resolveOptions(source: unknown, options: object): object {
   };
   const derived =
     deriveEvents === false ? undefined : deriveMissingEvents(source, events);
+  const { maxRuns } = propertyOptions as { maxRuns?: number };
   return {
     ...propertyOptions,
+    // A batched campaign (`until`, `frontiers: 'auto'`) is bounded by
+    // `maxRuns`, so a `numRuns` given without one bounds it instead.
+    ...(maxRuns === undefined && typeof adapterOptions.numRuns === 'number'
+      ? { maxRuns: adapterOptions.numRuns }
+      : {}),
     events: derived ? { ...derived, ...events } : (events ?? {}),
     adapter: adapter ?? fastCheckAdapter(adapterOptions)
   };
@@ -284,7 +291,9 @@ export type FastCheckTestPathsOptions<
     /**
      * Invoke sources whose outcomes are sampled from fast-check arbitraries
      * and routed through the `xstate.done.actor` / `xstate.error.actor` steps
-     * traversal took. Executed mode only.
+     * traversal took. In pure mode the sampled `output` or `error` is the
+     * payload of that step's event; in executed mode the source is stubbed
+     * and the stub resolves with it.
      */
     readonly outcomes?: TestPathsOptions<
       TSnapshot,
@@ -304,9 +313,10 @@ function isArbitrary(value: unknown): value is fc.Arbitrary<unknown> {
 }
 
 /**
- * Replaces every fast-check arbitrary with a plain `(rng) => value` generator
+ * Replaces every fast-check arbitrary with a `{ sample(rng) }` generator
  * backed by `fc.sample`, so `xstate/graph` can expand it without depending on
- * fast-check.
+ * fast-check. An object rather than a function, so `testPaths()` never
+ * mistakes it for a pre-2.0 event executor.
  */
 function sampleArbitraries(
   events: Record<string, unknown> | undefined,
@@ -325,7 +335,7 @@ function sampleArbitraries(
       numRuns: Math.max(1, samples)
     });
     let index = 0;
-    return () => values[index++ % values.length];
+    return { sample: () => values[index++ % values.length] };
   };
   const one = (eventCase: unknown, type: string): unknown => {
     if (!isEventDescriptorObject(eventCase)) {
@@ -368,7 +378,9 @@ export async function testPaths<
     EventFromSource<TSource>,
     InputFromSource<TSource>
   > = {} as never
-) {
+): Promise<
+  TestPathsResult<SnapshotFromSource<TSource>, EventFromSource<TSource>>
+> {
   const { deriveEvents, events, outcomes, ...rest } = options as {
     deriveEvents?: boolean;
     events?: Record<string, unknown>;
@@ -390,7 +402,9 @@ export async function testPaths<
         : {}),
       events: sampleArbitraries(merged, samples, seed)
     } as any
-  );
+  ) as Promise<
+    TestPathsResult<SnapshotFromSource<TSource>, EventFromSource<TSource>>
+  >;
 }
 
 /**
