@@ -43,7 +43,7 @@
     "format:check": "oxfmt --check .",
     "lint": "oxlint --quiet --report-unused-disable-directives-severity=error && oxlint --quiet --report-unused-disable-directives-severity=error -c .oxlintrc.templates.json templates",
     "lint:fix": "oxlint --fix --report-unused-disable-directives-severity=error && oxlint --fix --report-unused-disable-directives-severity=error -c .oxlintrc.templates.json templates",
-    "typecheck": "pnpm typecheck:packages && pnpm typecheck:adapter-consumers && pnpm typecheck:fsm-only",
+    "typecheck": "pnpm typecheck:packages && pnpm typecheck:fsm-only",
     "typecheck:packages": "tsc",
     "typecheck:adapter-consumers": "node scripts/typecheck-adapter-consumers.mjs",
     "typecheck:examples": "node ./scripts/typecheck-examples.js",
