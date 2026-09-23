@@ -1613,6 +1613,19 @@ export class StateMachine<
       getAllStateNodes(getStateNodes(this.root, snapshotData.value))
     );
 
+    if (isDevelopment && snapshotData.status === 'active') {
+      // Restored snapshots are opaque: eventless transitions are not
+      // re-evaluated on restore. Detected structurally; guards never run.
+      const eventlessNode = nodes.find(
+        (node) => node.always?.length || node.type === 'choice'
+      );
+      if (eventlessNode) {
+        console.warn(
+          `Restored snapshot is in state "${eventlessNode.id}" which has eventless transitions; they are not re-evaluated until the next event`
+        );
+      }
+    }
+
     const {
       version: _persistedSnapshotVersion,
       // The legacy system-wide counter: superseded by per-snapshot

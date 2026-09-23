@@ -22,6 +22,8 @@ const restored = createActor(machine, {
 }).start();
 ```
 
+A restored snapshot is opaque: restoring runs no transitions and re-executes no actions. `always` transitions and choice states in the restored configuration are not re-evaluated until the next event, even if their guards would now pass. Development builds warn when the restored state has eventless transitions.
+
 Persisted snapshots may include child actor state. Keep the actor logic compatible with snapshots already stored by your application.
 
 Persistence is useful for a checkout resumed after a refresh and a backend order workflow resumed by a later request.
