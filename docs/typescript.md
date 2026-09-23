@@ -73,6 +73,24 @@ inferred types, including when registered actors are used in inline transitions
 or invokes. Declaration output retains event, state, input and child-actor
 contracts without exposing each inline callback's full contextual type.
 
+## Child completion events
+
+Children declared in `schemas.children` add their `xstate.done.actor` and
+`xstate.error.actor` events to the event union seen by `entry`, `exit`, guards
+and transition functions. `event.actorId` is the declared child id, and
+`event.output` is that child's output type:
+
+```ts
+entry: ({ event }) => {
+  assertEvent(event, 'xstate.done.actor');
+  event.actorId; // 'fetch'
+  event.output; // output of the logic declared for `fetch`
+}
+```
+
+Without `schemas.children`, these events are not added. `on` handlers still
+narrow to their own event type.
+
 ## Checked delay names
 
 When delays are declared with `setup({ delays })` or `createMachine({ delays })`,

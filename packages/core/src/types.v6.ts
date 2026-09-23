@@ -480,6 +480,22 @@ type HasExplicitChildren<
     ? false
     : true;
 
+/**
+ * @public Completion events (`xstate.done.actor` / `xstate.error.actor`) of
+ * the children declared in `schemas.children`, keyed by `actorId`. Folded into
+ * the event union seen by `entry`, `exit`, guards and transition functions.
+ */
+export type ChildCompletionEvents<
+  TChildren extends Record<string, AnyActorRef | undefined>
+> =
+  HasExplicitChildren<TChildren> extends true
+    ? Values<{
+        [K in keyof TChildren & string]:
+          | DoneActorEvent<OutputFrom<NonNullable<TChildren[K]>>, K>
+          | ErrorActorEvent<ErrorFrom<NonNullable<TChildren[K]>>, K>;
+      }>
+    : never;
+
 type ChildIdForLogic<
   TLogic extends AnyActorLogic,
   TChildren extends Record<string, AnyActorRef | undefined>

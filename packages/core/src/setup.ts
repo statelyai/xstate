@@ -69,6 +69,7 @@ import {
   Next_TransitionConfigOrTarget,
   FinalStateConfigOutput,
   OutputFromConfig,
+  ChildCompletionEvents,
   DelayDurationKey,
   ValidateDelayNames,
   ValidateEventDescriptors,
@@ -4086,7 +4087,13 @@ export interface SetupReturn<
       TTagSchema,
       TChildrenSchemaMap,
       SetupContext<TSchemas, TContextSchema>,
-      SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>,
+      | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
+      | ChildCompletionEvents<
+          Cast<
+            MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
+            Record<string, AnyActorRef | undefined>
+          >
+        >,
       Cast<
         MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -4127,7 +4134,13 @@ export interface SetupReturn<
       TTagSchema,
       TChildrenSchemaMap,
       SetupContext<TSchemas, TContextSchema>,
-      SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>,
+      | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
+      | ChildCompletionEvents<
+          Cast<
+            MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
+            Record<string, AnyActorRef | undefined>
+          >
+        >,
       Cast<
         MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>

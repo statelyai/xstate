@@ -16,6 +16,7 @@ import {
   Compute
 } from './types.ts';
 import {
+  ChildCompletionEvents,
   Sources,
   DelayMapFromNames,
   InferChildren,
@@ -159,7 +160,13 @@ export function createMachine<
       TChildrenSchemaMap,
       InferOutput<TContextSchema, MachineContext>,
       | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>,
+      | InferInternalEvents<TInternalEventSchemaMap>
+      | ChildCompletionEvents<
+          Cast<
+            MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+            Record<string, AnyActorRef | undefined>
+          >
+        >,
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -268,7 +275,13 @@ export function createMachine<
       TChildrenSchemaMap,
       WidenLiterals<TContext>,
       | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>,
+      | InferInternalEvents<TInternalEventSchemaMap>
+      | ChildCompletionEvents<
+          Cast<
+            MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+            Record<string, AnyActorRef | undefined>
+          >
+        >,
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
