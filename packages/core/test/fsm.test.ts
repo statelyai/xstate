@@ -74,4 +74,33 @@ describe('createFSM', () => {
       machine.transition(machine.initialState, { type: 'constructor' })[0]
     ).toBe(machine.initialState);
   });
+
+  it('materializes output and error as own snapshot properties', () => {
+    const machine = createFSM({
+      initial: 'inactive',
+      context: { count: 0 },
+      states: {
+        inactive: { on: { toggle: 'active' } },
+        active: {}
+      }
+    });
+    const keys = ['status', 'value', 'context', 'output', 'error'];
+    const [next] = machine.transition(machine.initialState, {
+      type: 'toggle'
+    });
+
+    for (const snapshot of [
+      machine.initialState,
+      machine.getInitialSnapshot(),
+      next
+    ]) {
+      expect(Object.keys(snapshot)).toEqual(keys);
+      const roundTripped = JSON.parse(
+        JSON.stringify(snapshot, (_, value) =>
+          value === undefined ? null : value
+        )
+      );
+      expect(Object.keys(roundTripped)).toEqual(keys);
+    }
+  });
 });

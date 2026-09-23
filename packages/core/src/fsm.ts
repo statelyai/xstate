@@ -415,13 +415,18 @@ export function createFSM<
 > {
   type TState = keyof TStates & string;
   type TSnapshot = FSMSnapshot<TContext, TState>;
-  // `output` and `error` are always `undefined` for an FSM snapshot, so they
-  // are left off the runtime object to keep the entry small.
-  const initialState = {
-    status: 'active',
-    value: config.initial,
-    context: config.context ?? ({} as TContext)
-  } as TSnapshot;
+  const createSnapshot = (value: TState, context: TContext) =>
+    ({
+      status: 'active',
+      value,
+      context,
+      output: undefined,
+      error: undefined
+    }) as TSnapshot;
+  const initialState = createSnapshot(
+    config.initial,
+    config.context ?? ({} as TContext)
+  );
 
   return {
     id: config.id,
@@ -455,7 +460,7 @@ export function createFSM<
       return [
         target === value && context === snapshot.context
           ? snapshot
-          : ({ status: 'active', value: target, context } as TSnapshot),
+          : createSnapshot(target, context),
         []
       ];
     }
