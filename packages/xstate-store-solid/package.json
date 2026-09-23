@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store-solid",
-  "version": "2.0.1-alpha.0",
+  "version": "2.0.1-alpha.1",
   "type": "module",
   "description": "XState Store for Solid.js",
   "keywords": [
@@ -37,7 +37,7 @@
   "devDependencies": {
     "@solidjs/testing-library": "^0.8.10",
     "solid-js": "^1.9.12",
-    "vite": "^5.4.21",
+    "vite": "^6.4.3",
     "vite-plugin-solid": "^2.11.6",
     "zod": "^4.4.3"
   },

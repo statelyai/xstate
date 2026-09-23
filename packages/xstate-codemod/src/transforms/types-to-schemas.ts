@@ -52,16 +52,14 @@ function unionToEventMap(
     ) {
       return undefined;
     }
-    const literalText = typePropTypeNode.getText(); // e.g. 'inc' with quotes
-    const eventType = stripQuotes(literalText);
-    if (eventType === undefined) {
-      return undefined;
-    }
+    const literal = typePropTypeNode.getFirstChild();
+    if (!literal || !Node.isStringLiteral(literal)) return undefined;
+    const eventType = literal.getLiteralValue();
 
     // Build payload object type text from the remaining props.
     const payloadProps = props
       .filter((p) => p.getName() !== 'type')
-      .map((p) => p.getText());
+      .map((p) => p.getText().replace(/[;,]\s*$/, ''));
     const payload = payloadProps.length
       ? `{ ${payloadProps.join('; ')} }`
       : `{}`;
@@ -69,11 +67,6 @@ function unionToEventMap(
   }
 
   return entries;
-}
-
-function stripQuotes(text: string): string | undefined {
-  const m = text.match(/^['"`](.*)['"`]$/s);
-  return m ? m[1] : undefined;
 }
 
 function getKey(prop: PropertyAssignment): string | undefined {
@@ -115,7 +108,7 @@ function convertTypesProperty(
   }
 
   const lit = typeNode;
-  const schemaEntries: string[] = [];
+  const schemaEntries: Array<(helper: string) => string> = [];
   let usedTypes = false;
   let eventsLeftBehind = false;
 
@@ -136,16 +129,17 @@ function convertTypesProperty(
         );
         continue;
       }
-      const mapEntries = map.map(
-        (e) => `${JSON.stringify(e.eventType)}: types<${e.payload}>()`
-      );
-      // Use bare identifiers for keys where valid; JSON.stringify keeps quotes,
-      // which is always valid as an object key.
-      schemaEntries.push(`events: {\n    ${mapEntries.join(',\n    ')}\n  }`);
+      schemaEntries.push((helper) => {
+        const mapEntries = map.map(
+          (e) => `${JSON.stringify(e.eventType)}: ${helper}<${e.payload}>()`
+        );
+        return `events: {\n    ${mapEntries.join(',\n    ')}\n  }`;
+      });
       usedTypes = true;
     } else {
       // context, input, output, emitted, tags, meta, ... → types<T>()
-      schemaEntries.push(`${key}: types<${valueTypeNode.getText()}>()`);
+      const valueType = valueTypeNode.getText();
+      schemaEntries.push((helper) => `${key}: ${helper}<${valueType}>()`);
       usedTypes = true;
     }
   }
@@ -154,11 +148,15 @@ function convertTypesProperty(
     return false;
   }
 
-  if (usedTypes) {
-    ensureNamedImport(configObj.getSourceFile(), 'types');
+  const helper = usedTypes
+    ? ensureNamedImport(configObj.getSourceFile(), 'types', configObj)
+    : undefined;
+  if (!helper) {
+    notes.push("left 'types' unchanged: no xstate runtime import available");
+    return false;
   }
 
-  const schemasText = `schemas: {\n  ${schemaEntries.join(',\n  ')}\n}`;
+  const schemasText = `schemas: {\n  ${schemaEntries.map((entry) => entry(helper)).join(',\n  ')}\n}`;
 
   if (eventsLeftBehind) {
     // Keep the original `types` property (holding only the un-migratable

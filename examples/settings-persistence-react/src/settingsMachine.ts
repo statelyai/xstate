@@ -154,7 +154,6 @@ export const settingsMachine = setup({
     // Only changes what the user sees when `theme` is `'system'`, but the
     // machine always tracks the OS preference so the toggle is instant.
     systemThemeChanged: ({ context, event }, enq) => {
-      const next = { ...context, systemDark: event.dark };
       enq(applyTheme, effectiveTheme(context.theme, event.dark));
       return { context: { systemDark: event.dark } };
     },

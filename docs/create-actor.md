@@ -108,7 +108,7 @@ Every processed event notifies subscribers, including an event that takes no tra
 
 ## Errors
 
-An error thrown in a transition function, action or invoked actor moves the actor to an `error` snapshot and stops it. Handle it with the `error` observer, or with an `onError` transition inside the machine (see [lifecycle and errors](lifecycle-and-errors.md)).
+An error thrown in a transition function, action or invoked actor moves the actor to an `error` snapshot and stops it, including its children and their timers and subscriptions. Handle it with the `error` observer, or with an `onError` transition inside the machine (see [lifecycle and errors](lifecycle-and-errors.md)).
 
 ```ts
 actor.subscribe({

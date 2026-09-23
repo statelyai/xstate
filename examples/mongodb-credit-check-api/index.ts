@@ -21,7 +21,7 @@ app.post('/workflows', async (_req, res) => {
       .json({ message: 'New workflow created successfully', workflowId });
   } catch (err) {
     console.log(err);
-    res.status(500).send(`Error starting workflow. Details: ${err}`);
+    res.status(500).send(`Error starting workflow. Details: ${String(err)}`);
   }
 });
 
@@ -36,7 +36,7 @@ app.post('/workflows/:workflowId', async (req, res) => {
   } catch (err) {
     // A real API would map error types to status codes.
     console.log(err);
-    res.status(500).send(`Error sending event. Details: ${err}`);
+    res.status(500).send(`Error sending event. Details: ${String(err)}`);
     return;
   }
 
@@ -73,7 +73,7 @@ app.get('/', (_req, res) => {
   `);
 });
 
-initDbConnection().then(() => {
+void initDbConnection().then(() => {
   app.listen(4242, () => {
     console.log('Server listening on port 4242');
   });

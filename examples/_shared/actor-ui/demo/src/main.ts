@@ -1,13 +1,17 @@
-import { createActor, createMachine } from 'xstate';
+import { createActor, setup, types } from 'xstate';
 import { mountActorUI } from '../../src/index.ts';
 
-const toggleMachine = createMachine({
+const toggleMachine = setup({
+  schemas: {
+    context: types<{ toggles: number }>(),
+    events: {
+      toggle: types<{}>(),
+      reset: types<{}>()
+    }
+  }
+}).createMachine({
   id: 'toggle',
   initial: 'inactive',
-  types: {
-    context: {} as { toggles: number },
-    events: {} as { type: 'toggle' } | { type: 'reset' }
-  },
   context: { toggles: 0 },
   states: {
     inactive: {

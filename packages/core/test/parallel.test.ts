@@ -1,5 +1,5 @@
 import z from 'zod';
-import { createMachine, createActor, StateValue } from '../src/index.ts';
+import { createMachine, createActor, StateValue, types } from '../src/index.ts';
 
 import { testMultiTransition, trackEntries } from './utils.ts';
 
@@ -1458,7 +1458,7 @@ describe('parallel onDone output aggregation', () => {
   it('should resolve dynamic output functions before aggregation', () => {
     const outputSpy = vi.fn();
     const machine = createMachine({
-      types: {} as { context: { count: number } },
+      schemas: { context: types<{ count: number }>() },
       context: { count: 10 },
       initial: 'processing',
       states: {
