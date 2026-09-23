@@ -173,7 +173,7 @@ describe('error precedence', () => {
             }
           },
           b: {
-            on: { NEXT: 'a' }
+            on: { NEXT: { target: 'a' } }
           }
         }
       })
