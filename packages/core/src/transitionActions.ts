@@ -180,6 +180,14 @@ function execStartEffect(
   this: StartExecutableActionObject,
   runtime: EffectRuntime = this.actor.system
 ): void | PromiseLike<void> {
+  // A child stopped before its deferred start (spawned and stopped in the
+  // same transition) stays stopped; actors cannot be restarted.
+  if (
+    (this.actor as { _processingStatus?: number })._processingStatus ===
+    2 /* ProcessingStatus.Stopped */
+  ) {
+    return;
+  }
   return runtime.startActor!(this.actor);
 }
 

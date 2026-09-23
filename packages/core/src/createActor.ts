@@ -808,7 +808,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     if (this._processingStatus === ProcessingStatus.Stopped) {
-      return this;
+      const status = (this._snapshot as Snapshot<unknown>).status;
+      if (status === 'done' || status === 'error') {
+        // A terminated actor has nothing left to start.
+        return this;
+      }
+      // Actors are single-use: a stopped actor cannot be restarted.
+      throw new Error(
+        `Actor ${this.id} was stopped and cannot be restarted. Create a new actor with createActor().`
+      );
     }
 
     if (this._syncSnapshot) {

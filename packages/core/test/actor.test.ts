@@ -2090,7 +2090,7 @@ describe('actors', () => {
     createActor(machine).start();
     expect(actors).toEqual({});
   });
-  it('does not restart the root actor after it has been stopped', () => {
+  it('throws when a stopped root actor is started again', () => {
     const entry = vi.fn();
     const pingAction = vi.fn();
     const machine = createMachine({
@@ -2108,13 +2108,25 @@ describe('actors', () => {
     expect(entry).toHaveBeenCalledTimes(1);
 
     actor.stop();
-    actor.start();
+    // Actors are single-use: restarting a stopped actor throws, and the
+    // actor stays stopped.
+    expect(() => actor.start()).toThrow(
+      `Actor ${actor.id} was stopped and cannot be restarted. Create a new actor with createActor().`
+    );
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     actor.send({ type: 'PING' });
+    warn.mockRestore();
 
-    // A stopped actor cannot be (re)started; start() must be a no-op, so the
-    // subsequent event must not be processed (an unguarded restart would
-    // resurrect the mailbox and accept it).
     expect(actor.getSnapshot().status).toBe('stopped');
     expect(pingAction).not.toHaveBeenCalled();
+  });
+
+  it('throws when an actor stopped before starting is started', () => {
+    const actor = createActor(createMachine({}));
+    actor.stop();
+
+    expect(() => actor.start()).toThrow(
+      `Actor ${actor.id} was stopped and cannot be restarted. Create a new actor with createActor().`
+    );
   });
 });

@@ -71,7 +71,7 @@ const actor = createActor(machine, {
 
 | Member | Description |
 | --- | --- |
-| `start()` | Starts the actor and emits the initial snapshot. Calling it twice is a no-op. |
+| `start()` | Starts the actor and emits the initial snapshot. Calling it on a running actor is a no-op. Actors are single-use: calling it after `stop()` throws; create a new actor with `createActor()` instead. |
 | `stop()` | Stops the actor, its children and its timers, and completes observers. |
 | `send(event)` | Sends an event to the actor. |
 | `trigger` | Typed per-event shorthand for `send(...)`, e.g. `actor.trigger.submit()`. See [TypeScript](typescript.md). |
