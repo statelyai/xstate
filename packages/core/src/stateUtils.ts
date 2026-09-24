@@ -1897,8 +1897,16 @@ function microstep(
         mutStateNodeSet.add(stateNodeToEnter);
         const actions: AnyAction[] = [];
 
+        // A top-level final state completes the machine, so (as in SCXML) its
+        // invocations never start.
+        const completesRoot =
+          stateNodeToEnter.type === 'final' &&
+          !!stateNodeToEnter.parent &&
+          !stateNodeToEnter.parent.parent &&
+          stateNodeToEnter.parent.type !== 'parallel';
+
         let invoked = false;
-        for (const invokeDef of stateNodeToEnter.invoke) {
+        for (const invokeDef of completesRoot ? [] : stateNodeToEnter.invoke) {
           invoked = true;
 
           let src = invokeDef.logic;

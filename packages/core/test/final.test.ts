@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   createMachine,
   createActor,
+  createCallbackLogic,
   initialTransition,
   transition
 } from '../src/index.ts';
@@ -1591,6 +1592,33 @@ describe('final states', () => {
       expect(warn).toHaveBeenCalledWith(
         'State "m.done" is final and declares "invoke", "on", "after"; final states cannot run actors or take transitions.'
       );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('does not start actors invoked by a top-level final state', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.fn();
+    try {
+      const machine = createMachine({
+        initial: 'done',
+        states: {
+          done: {
+            type: 'final',
+            invoke: { src: createCallbackLogic(() => spy()) }
+          }
+        }
+      });
+      const [, effects] = initialTransition(machine);
+      expect(effects.map((effect) => effect.type)).toEqual([
+        '@xstate.terminate'
+      ]);
+
+      const actorRef = createActor(machine).start();
+
+      expect(actorRef.getSnapshot().status).toBe('done');
+      expect(spy).not.toHaveBeenCalled();
     } finally {
       warn.mockRestore();
     }
