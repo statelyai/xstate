@@ -1487,7 +1487,7 @@ An error thrown by a transition function, an effect, or a child actor is resolve
 1. The `onError` of the nearest active state that handles the error recovers it. The actor stays `active`.
 2. Otherwise the actor's status becomes `'error'`, and the actor stops all of its children, invoked and spawned.
 3. Subscribers with an `error` observer receive the error.
-4. If no subscriber has an `error` observer, the error is reported once as unhandled.
+4. The error is reported once as unhandled (`reportUnhandledError`) if any subscriber lacks an `error` observer, even when another subscriber has one, or if the actor has no subscribers and no parent. Observers installed by runtime integrations (`passive: true`) are not counted. The report runs one macrotask later; subscribing with an `error` observer before then suppresses it.
 
 A failed child reaches its parent as an `xstate.error.actor` event with `actorId` and `error` fields, which the parent resolves by the same steps. Select one child's failure with `matches: { actorId }` (see [Internal lifecycle events](#internal-lifecycle-events)). [Lifecycle and errors](lifecycle-and-errors.md) lists the full rules.
 
@@ -1514,6 +1514,8 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 | `string-targets`      | Wraps bare string transition values under `on`, `after`, `onDone`, `onError`, and `always` in `{ target: '...' }` inside `createMachine` and `createStateConfig` configs.                                                                                                   |
 | `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal.                                                                                                                         |
 | `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, and `fromTransition`, with a suggested replacement. |
+
+`string-targets` wraps string elements inside transition arrays but keeps the arrays. v6 rejects transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`), and no transform reports them. Find them by hand and replace each with one transition function (§15, §16).
 
 The codemod does not convert action creators or guard combinators. Rewrite each reported `assign`, `raise`, `sendTo`, or other action creator as an inline function by hand (§1, §2). The transforms read and write imports from `'xstate'` only.
 
