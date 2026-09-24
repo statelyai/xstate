@@ -98,6 +98,8 @@ onUnmounted(() => {
 
 The actor is running before any descendant's `setup` runs. `useActorRef(...)` starts its actor in `onMounted`, which runs after the descendants have mounted.
 
+Server rendering runs `setup` on the server too, so this recipe also starts the actor there. [Server rendering](server-rendering.md) assumes actors start when the component mounts in the browser. In a server-rendered app, create and provide the actor in `setup`, and call `actorRef.start()` in `onMounted`. `useActorRef(...)` already defers `start()` to `onMounted`.
+
 ## Module-scope actors
 
 An actor created at module scope lives for the lifetime of the page, independent of any component.
@@ -135,7 +137,9 @@ app.mount('#app');
 
 `app.onUnmount(...)` requires Vue 3.5 or later.
 
-This suits one global concern per app, such as a session or a toast queue. It has real costs: the actor is never stopped, tests share state between cases, and on a server the module is shared by every request. Use `provide`/`inject` for anything scoped to a route, a request or a user. See [Server rendering](server-rendering.md).
+A module-level actor outlives any single app instance. Stop it in `app.onUnmount(...)` only when one app owns it, as in this example, where `main.ts` mounts a single app. When several apps or non-Vue code share the actor, leave it running for the life of the page.
+
+This suits one global concern per app, such as a session or a toast queue. It has real costs: tests share state between cases, and on a server the module is shared by every request. Use `provide`/`inject` for anything scoped to a route, a request or a user. See [Server rendering](server-rendering.md).
 
 ## Actor systems
 
