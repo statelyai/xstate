@@ -24,8 +24,9 @@ const boom = new Error('boom');
  * resolved by the first applicable step:
  *
  * 1. The nearest enclosing state's `onError` (the actor stays active).
- * 2. Subscribers with an `error` observer (no global report).
- * 3. `reportUnhandledError` when no subscriber observes the error.
+ * 2. Subscribers with an `error` observer.
+ * 3. `reportUnhandledError` (once) when any non-passive subscriber lacks an
+ *    `error` observer, even if other subscribers received the error.
  */
 describe('error precedence', () => {
   it('(a) an execution error recovered by state-level onError does not reach subscribers', async () => {
@@ -295,5 +296,27 @@ describe('error precedence', () => {
         error: boom
       })
     );
+  });
+
+  it('(j) mixed subscribers: error observer receives it and reportUnhandledError fires once', async () => {
+    const actor = createActor(
+      createMachine({
+        on: {
+          FAIL: () => {
+            throw boom;
+          }
+        }
+      })
+    );
+    const error = vi.fn();
+    actor.subscribe({ error });
+    actor.subscribe({ next: () => {} });
+    actor.start();
+    actor.send({ type: 'FAIL' });
+    await sleep(10);
+
+    expect(actor.getSnapshot().status).toBe('error');
+    expect(error).toHaveBeenCalledExactlyOnceWith(boom);
+    expect(reported).toHaveBeenCalledExactlyOnceWith(boom);
   });
 });
