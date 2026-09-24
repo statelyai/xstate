@@ -113,4 +113,99 @@ describe('async transition functions', () => {
 
     expect(unhandled).not.toHaveBeenCalled();
   });
+
+  it('treats an async two-argument entry function as an execution error recoverable by onError', () => {
+    const actor = createActor(
+      createMachine({
+        initial: 'idle',
+        states: {
+          idle: {
+            on: { GO: { target: 'loading' } },
+            onError: { target: 'failed' }
+          },
+          loading: {
+            entry: (async (_: unknown, enq: any) => {
+              enq.raise({ type: 'noop' });
+            }) as any
+          },
+          failed: {}
+        }
+      })
+    ).start();
+    actor.send({ type: 'GO' });
+
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(actor.getSnapshot().value).toBe('failed');
+  });
+
+  it('throws a sync-only error when an entry or exit function returns a promise', () => {
+    const entryMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: { on: { GO: { target: 'loading' } } },
+        loading: { entry: (async (_: unknown, _enq: any) => {}) as any }
+      }
+    });
+    const [entrySnapshot] = initialTransition(entryMachine);
+    expect(() =>
+      transition(entryMachine, entrySnapshot, { type: 'GO' })
+    ).toThrow(
+      'Entry functions must be synchronous. The entry function of state "(machine).loading" returned a promise (event "GO").'
+    );
+
+    const exitMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          exit: (async (_: unknown, _enq: any) => {}) as any,
+          on: { GO: { target: 'next' } }
+        },
+        next: {}
+      }
+    });
+    const [exitSnapshot] = initialTransition(exitMachine);
+    expect(() => transition(exitMachine, exitSnapshot, { type: 'GO' })).toThrow(
+      'Exit functions must be synchronous. The exit function of state "(machine).idle" returned a promise (event "GO").'
+    );
+  });
+
+  it('throws when enq.* is called after an entry function returned', () => {
+    let handle: any;
+    const actor = createActor(
+      createMachine({
+        entry: (_, enq) => {
+          handle = enq;
+        }
+      })
+    ).start();
+
+    expect(handle).toBeDefined();
+    expect(() => handle.raise({ type: 'late' })).toThrow(
+      'enq.* called after the transition function returned'
+    );
+    expect(actor.getSnapshot().status).toBe('active');
+  });
+
+  it('does not leak an unhandled rejection from an async entry function', async () => {
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      const actor = createActor(
+        createMachine({
+          entry: (async (_: unknown, enq: any) => {
+            await Promise.resolve();
+            enq.raise({ type: 'late' });
+          }) as any
+        })
+      );
+      actor.subscribe({ error: () => {} });
+      actor.start();
+      expect(actor.getSnapshot().status).toBe('error');
+      await sleep(10);
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+
+    expect(unhandled).not.toHaveBeenCalled();
+  });
 });

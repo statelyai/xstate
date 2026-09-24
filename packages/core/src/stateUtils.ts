@@ -1452,7 +1452,9 @@ function microstep(
       transitionFn: any,
       context: MachineContext,
       children: AnyMachineSnapshot['children'],
-      input: Record<string, unknown> | undefined
+      input: Record<string, unknown> | undefined,
+      kind: 'entry' | 'exit',
+      stateNodeId: string
     ): [
       actions: any[],
       context: MachineContext | undefined,
@@ -1498,8 +1500,13 @@ function microstep(
               delays: currentSnapshot.machine.sources.delays,
               input
             };
-        const res = transitionFn(args, enqueue);
-        closeTransitionEnqueue(enqueue);
+        let res;
+        try {
+          res = transitionFn(args, enqueue);
+        } finally {
+          closeTransitionEnqueue(enqueue);
+        }
+        assertSyncTransitionResult(res, event, stateNodeId, kind);
 
         if (res?.context !== undefined) {
           updatedContext = mergeContextPatch(context, res.context);
@@ -1588,7 +1595,9 @@ function microstep(
               exitStateNode.exit,
               nextState.context,
               currentSnapshot.children,
-              stateInput
+              stateInput,
+              'exit',
+              exitStateNode.id
             )
           : [[], undefined, undefined];
         if (internalEvents?.length) {
@@ -1963,7 +1972,9 @@ function microstep(
               stateNodeToEnter.entry,
               context,
               children,
-              stateInput
+              stateInput,
+              'entry',
+              stateNodeToEnter.id
             );
           actions.push(...resultActions);
           if (nextInternalEvents?.length) {
@@ -2156,7 +2167,9 @@ function microstep(
             stateNode.exit,
             nextState.context,
             nextState.children,
-            stateInput
+            stateInput,
+            'exit',
+            stateNode.id
           );
           allExitActions.push(...exitActions);
           if (nextInternalEvents?.length) {
@@ -2717,18 +2730,21 @@ const triggerTransitionEffect = (): any => {
 };
 
 /**
- * Throws when a transition function returned a promise. The promise's
+ * Throws when a transition, entry, or exit function returned a promise. The promise's
  * rejection is observed so it is never reported as unhandled.
  */
 function assertSyncTransitionResult(
   res: unknown,
   event: EventObject,
-  sourceId: string
+  sourceId: string,
+  kind?: 'entry' | 'exit'
 ): void {
   if (res && typeof (res as PromiseLike<unknown>).then === 'function') {
     void Promise.resolve(res as PromiseLike<unknown>).catch(() => {});
     throw new Error(
-      `Transition functions must be synchronous. Transition for event "${event.type}" in state "${sourceId}" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.`
+      kind
+        ? `${kind === 'entry' ? 'Entry' : 'Exit'} functions must be synchronous. The ${kind} function of state "${sourceId}" returned a promise (event "${event.type}"). Move async work into an invoked or spawned actor, or enq.effect.`
+        : `Transition functions must be synchronous. Transition for event "${event.type}" in state "${sourceId}" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.`
     );
   }
 }
