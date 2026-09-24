@@ -91,7 +91,11 @@ One actor is created per component instance. It starts in an effect after mount 
 
 React StrictMode disconnects and immediately reconnects effects in development. `useActor` and `useActorRef` defer cleanup by one microtask, so that immediate reconnect cancels the pending stop and preserves the actor and its children. A real unmount still stops the actor. If an actor was stopped externally before an effect reconnects, the hooks create a fresh actor from the same logic and options; an actor that completed naturally (`done` or `error`) is left alone.
 
-Changing the logic identity between renders is handled separately: when the config of the logic passed in differs from the running actor's, a new actor is created from the current logic and seeded with the previous actor's persisted snapshot, so the component keeps its state. Implementations swapped with `machine.provide({ ... })` in the component body keep the same config, so they update the running actor in place rather than replacing it. A guard or action defined in render always sees the latest props.
+The logic passed on the first render is used for the component's lifetime, like a `useState` initializer. Passing a different machine on a later render does not replace the actor, so a machine created in the component body needs no `useMemo`. Implementations swapped with `machine.provide({ ... })` in the component body keep the same config and update the running actor in place, so a guard or action defined in render always sees the latest props. To vary a running actor, pass `input` or send an event. To switch to a different machine, remount the component with a `key`:
+
+```tsx
+<Editor key={mode} machine={mode === 'draft' ? draftMachine : reviewMachine} />
+```
 
 `useMachine(...)` is a deprecated alias for `useActor(machine, options)`. It accepts state machines only. Use `useActor(...)`.
 

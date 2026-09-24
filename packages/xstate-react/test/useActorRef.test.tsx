@@ -31,7 +31,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     const { rerender } = render(<App machine={first} />);
     const original = ref!;
     observer.mockClear();
-    rerender(<App machine={second} />);
+    rerender(<App key="second" machine={second} />);
     expect(ref!).not.toBe(original);
     expect(observer).toHaveBeenCalledExactlyOnceWith(ref!.getSnapshot());
     observer.mockClear();
@@ -425,7 +425,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     await testWaitFor(() => expect(count.textContent).toBe('42'));
   });
 
-  it('should be able to rerender with a new machine', () => {
+  it('should switch to a new machine when the component key changes', () => {
     const machine1 = createMachine({
       initial: 'a',
       states: { a: {} }
@@ -441,21 +441,12 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
-    function Test() {
-      const [machine, setMachine] = React.useState(machine1);
+    function Test({ machine }: { machine: typeof machine2 }) {
       const actorRef = useActorRef(machine);
       const value = useSelector(actorRef, (state) => state.value);
 
       return (
         <>
-          <button
-            type="button"
-            onClick={() => {
-              setMachine(machine2 as any);
-            }}
-          >
-            Reload machine
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -471,7 +462,27 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       );
     }
 
-    render(<Test />);
+    function App() {
+      const [machine, setMachine] = React.useState(machine1);
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setMachine(machine2 as any);
+            }}
+          >
+            Reload machine
+          </button>
+          <Test
+            key={machine === machine1 ? 'one' : 'two'}
+            machine={machine as any}
+          />
+        </>
+      );
+    }
+
+    render(<App />);
 
     fireEvent.click(screen.getByText('Reload machine'));
     fireEvent.click(screen.getByText('Send event'));
@@ -479,7 +490,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     expect(screen.getByText('b')).toBeTruthy();
   });
 
-  it('should be able to rehydrate an incoming new machine using the persisted state of the previous one', () => {
+  it('should keep the first machine when a different machine is passed later', () => {
     const machine1 = createMachine({
       initial: 'a',
       states: {
@@ -500,9 +511,12 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
       }
     });
 
+    const refs = new Set<unknown>();
+
     function Test() {
       const [machine, setMachine] = React.useState(machine1);
       const actorRef = useActorRef(machine);
+      refs.add(actorRef);
       const value = useSelector(actorRef, (state) => state.value);
 
       return (
@@ -536,87 +550,43 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
     fireEvent.click(screen.getByText('Reload machine'));
     fireEvent.click(screen.getByText('Send event'));
 
-    expect(screen.getByText('c')).toBeTruthy();
+    // machine1 is still in use: 'b' has no transitions there.
+    expect(screen.getByText('b')).toBeTruthy();
+    expect(refs.size).toBe(1);
   });
 
-  it('all renders should be consistent - a value derived in render should be derived from the latest source', () => {
-    let detectedInconsistency = false;
-
-    const machine1 = createMachine({
-      tags: ['m1']
-    });
-
-    const machine2 = createMachine({
-      tags: ['m2']
-    });
+  it('should not loop or reset state when a machine factory is called on every render', () => {
+    let renders = 0;
 
     function Test() {
-      const [machine, setMachine] = React.useState(machine1);
-      const actorRef = useActorRef(machine);
-      const tag = useSelector(actorRef, (state) => [...state.tags][0]);
-
-      detectedInconsistency ||= machine.config.tags![0] !== tag;
+      renders++;
+      const [snapshot, send] = useMachine(
+        createMachine({
+          context: { count: 0 },
+          on: {
+            INC: ({ context }) => ({
+              context: { count: context.count + 1 }
+            })
+          }
+        })
+      );
 
       return (
-        <>
-          <button
-            type="button"
-            onClick={() => {
-              setMachine(machine2 as any);
-            }}
-          >
-            Reload machine
-          </button>
-        </>
+        <button type="button" onClick={() => send({ type: 'INC' })}>
+          {snapshot.context.count}
+        </button>
       );
     }
 
     render(<Test />);
+    const button = screen.getByRole('button');
 
-    fireEvent.click(screen.getByText('Reload machine'));
+    fireEvent.click(button);
+    fireEvent.click(button);
+    fireEvent.click(button);
 
-    expect(detectedInconsistency).toBe(false);
-  });
-
-  it('all commits should be consistent - a value derived in render should be derived from the latest source', () => {
-    let detectedInconsistency = false;
-
-    const machine1 = createMachine({
-      tags: ['m1']
-    });
-
-    const machine2 = createMachine({
-      tags: ['m2']
-    });
-
-    function Test() {
-      React.useEffect(() => {
-        detectedInconsistency ||= machine.config.tags![0] !== tag;
-      });
-
-      const [machine, setMachine] = React.useState(machine1);
-      const actorRef = useActorRef(machine);
-      const tag = useSelector(actorRef, (state) => [...state.tags][0]);
-
-      return (
-        <>
-          <button
-            type="button"
-            onClick={() => {
-              setMachine(machine2 as any);
-            }}
-          >
-            Reload machine
-          </button>
-        </>
-      );
-    }
-
-    render(<Test />);
-
-    fireEvent.click(screen.getByText('Reload machine'));
-
-    expect(detectedInconsistency).toBe(false);
+    expect(button.textContent).toBe('3');
+    expect(renders).toBeLessThan(20);
   });
 
   it("should execute action bound to a specific machine's instance when the action is provided in render", () => {

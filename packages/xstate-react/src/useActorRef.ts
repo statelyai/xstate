@@ -25,26 +25,19 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
     IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): [Actor<TLogic>, (actorRef: Actor<TLogic>) => void] {
-  let [actorRef, setActorRef] = useState(() => {
+  const [actorRef, setActorRef] = useState(() => {
     return createActor(logic, options);
   });
 
-  if (logic.config !== (actorRef.logic as any).config) {
-    const newActorRef = createActor(logic, {
-      ...options,
-      snapshot: (actorRef.getPersistedSnapshot as any)({
-        __unsafeAllowInlineActors: true
-      })
-    });
-    setActorRef(newActorRef);
-    actorRef = newActorRef;
-  }
-
+  // The logic passed on the first render is used for the hook's lifetime.
+  // Later renders only contribute implementations provided with
+  // `machine.provide()` for the same machine config.
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
   useIsomorphicLayoutEffect(() => {
-    (actorRef.logic as any as AnyStateMachine).sources = (
-      logic as any as AnyStateMachine
-    ).sources;
+    const currentLogic = actorRef.logic as any as AnyStateMachine;
+    if (logic.config === currentLogic.config) {
+      currentLogic.sources = (logic as any as AnyStateMachine).sources;
+    }
   });
 
   return [actorRef, setActorRef];
@@ -129,7 +122,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   }, [actorRef, observerOrListener]);
 
   useActorLifecycle(actorRef, setActorRef, () =>
-    createActor(machine, actorRef.options)
+    createActor(actorRef.logic, actorRef.options)
   );
 
   return actorRef;
