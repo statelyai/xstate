@@ -175,6 +175,35 @@ describe('Fast Refresh', () => {
     expect(snapshot.children.worker.getSnapshot().context).toBe(1);
   });
 
+  it('delivers snapshots a restarted child emits while starting', () => {
+    const seen: unknown[] = [];
+    const createParent = (child: any) =>
+      createMachine({
+        id: 'parent',
+        actors: { child },
+        invoke: {
+          id: 'child',
+          src: ({ actors }: any) => actors.child,
+          onSnapshot: ({ event }: any) => {
+            seen.push(event.snapshot.context);
+          }
+        }
+      } as any);
+
+    const app = mount(
+      createParent(createLogic({ context: 'v1', run: () => undefined }))
+    );
+    const original = app.actorRef;
+    seen.length = 0;
+
+    app.refreshTo(
+      createParent(createLogic({ context: 'v2', run: () => undefined }))
+    );
+
+    expect(app.actorRef).toBe(original);
+    expect(seen).toEqual(['v2']);
+  });
+
   it('keeps the first machine when the machine changes without a refresh', () => {
     const v1 = createEditor();
     let actorRef!: any;

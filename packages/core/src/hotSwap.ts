@@ -147,6 +147,10 @@ export function hotSwapActorLogic(
     return false;
   }
 
+  // Install the replacements in the committed snapshot before starting them:
+  // a child that emits while starting is matched against the parent's
+  // current children, and the old refs would reject it as stale.
+  const replacements: AnyActor[] = [];
   for (const [childId, child, logic] of restarts) {
     actor._stopChild(child);
     const restarted = actor.system.createActorRef(logic, {
@@ -158,7 +162,7 @@ export function hotSwapActorLogic(
       input: (child as { options?: { input?: unknown } }).options?.input
     });
     children[childId] = restarted;
-    restarted.start();
+    replacements.push(restarted);
   }
 
   if (actor.src === actor.logic) {
@@ -168,6 +172,9 @@ export function hotSwapActorLogic(
   const next = buildSnapshot();
   actor._setSnapshot(next);
   actor._next(next);
+  for (const restarted of replacements) {
+    restarted.start();
+  }
   return true;
 }
 
