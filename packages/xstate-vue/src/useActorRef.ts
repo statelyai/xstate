@@ -9,7 +9,8 @@ import {
   createActor,
   toObserver,
   type IsNotNever,
-  type RequiredActorOptionsKeys
+  type RequiredActorOptionsKeys,
+  type RequiredActorOptionsFor
 } from 'xstate';
 
 export function useActorRef<TLogic extends AnyActorLogic>(
@@ -18,9 +19,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     RequiredActorOptionsKeys<TLogic>
   > extends true
     ? [
-        options: ActorOptions<TLogic> & {
-          [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-        },
+        options: ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>,
         observerOrListener?:
           | Observer<SnapshotFrom<TLogic>>
           | ((value: SnapshotFrom<TLogic>) => void)

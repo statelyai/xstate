@@ -11,17 +11,14 @@ import {
   toObserver,
   type ConditionalRequired,
   type IsNotNever,
-  type RequiredActorOptionsKeys
+  type RequiredActorOptionsKeys,
+  type RequiredActorOptionsFor
 } from 'xstate';
 
 export function useIdleActorRef<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: ConditionalRequired<
-    [
-      options?: ActorOptions<TLogic> & {
-        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-      }
-    ],
+    [options?: ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>],
     IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): [Actor<TLogic>, (actorRef: Actor<TLogic>) => void] {
@@ -102,9 +99,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     RequiredActorOptionsKeys<TLogic>
   > extends true
     ? [
-        options: ActorOptions<TLogic> & {
-          [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-        },
+        options: ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>,
         observerOrListener?:
           | Observer<SnapshotFrom<TLogic>>
           | ((value: SnapshotFrom<TLogic>) => void)

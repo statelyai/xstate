@@ -57,7 +57,8 @@ export { assertEvent } from './assert.ts';
 export {
   Actor,
   createActor,
-  type RequiredActorOptionsKeys as RequiredActorOptionsKeys
+  type RequiredActorOptionsKeys as RequiredActorOptionsKeys,
+  type RequiredActorOptionsFor
 } from './createActor.ts';
 export { createMachine, createStateConfig } from './createMachine.ts';
 export {

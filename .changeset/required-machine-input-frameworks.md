@@ -5,4 +5,4 @@
 '@xstate/solid': patch
 ---
 
-`useActor`, `useActorRef` and `useMachine` now require `input` for machines that declare a required input schema, matching `createActor`.
+`useActor`, `useActorRef` and `useMachine` now require `input` for machines that declare a required input schema, matching `createActor`. Passing a persisted `snapshot` instead of `input` is allowed.

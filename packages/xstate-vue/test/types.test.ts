@@ -1,4 +1,4 @@
-import { createMachine, types } from 'xstate';
+import { createActor, createMachine, types } from 'xstate';
 import { useActor, useActorRef, useMachine } from '../src/index.ts';
 
 describe('types', () => {
@@ -18,6 +18,15 @@ describe('types', () => {
       useActor(machine, { input: { id: 'a' } });
       useActorRef(machine, { input: { id: 'a' } });
       useMachine(machine, { input: { id: 'a' } });
+
+      const snapshot = createActor(machine, {
+        input: { id: 'a' }
+      }).getPersistedSnapshot();
+      useActorRef(machine, { snapshot });
+      useActor(machine, { snapshot });
+      useMachine(machine, { snapshot });
+      // @ts-expect-error input or snapshot is required
+      useActorRef(machine, {});
     };
 
     expect(check).toBeTypeOf('function');

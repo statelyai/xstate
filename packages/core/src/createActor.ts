@@ -1290,20 +1290,26 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
   undefined extends InputFrom<TLogic> ? never : 'input';
 
 /**
- * Options accepted by {@link createActor}. When the logic requires input, the
- * options must provide `input`, unless they restore a persisted `snapshot`.
+ * The options `createActor` (and framework hooks) require for `TLogic`:
+ * `{ input }` or a persisted `{ snapshot }` when the logic requires input,
+ * otherwise nothing.
+ *
+ * @public
  */
+export type RequiredActorOptionsFor<TLogic extends AnyActorLogic> = [
+  RequiredActorOptionsKeys<TLogic>
+] extends [never]
+  ? {}
+  :
+      | { [K in RequiredActorOptionsKeys<TLogic>]: unknown }
+      | { snapshot: NonNullable<ActorOptions<TLogic>['snapshot']> };
+
+/** Options accepted by {@link createActor}. */
 type CreateActorOptionsArgs<TLogic extends AnyActorLogic> = [
   RequiredActorOptionsKeys<TLogic>
 ] extends [never]
   ? [options?: ActorOptions<TLogic>]
-  : [
-      options: ActorOptions<TLogic> &
-        (
-          | { [K in RequiredActorOptionsKeys<TLogic>]: unknown }
-          | { snapshot: NonNullable<ActorOptions<TLogic>['snapshot']> }
-        )
-    ];
+  : [options: ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>];
 
 /**
  * Creates a new actor instance for the given actor logic with the provided
