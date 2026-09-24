@@ -2825,6 +2825,47 @@ describe('sendTo', () => {
     expect(received).toHaveBeenCalledOnce();
   });
 
+  it('should send to a child spawned with an empty-string id', () => {
+    const received = vi.fn();
+    const rejections: EventRejection[] = [];
+    const childMachine = createMachine({
+      schemas: {
+        events: {
+          PING: z.object({})
+        }
+      },
+      on: {
+        PING: () => {
+          received();
+        }
+      }
+    });
+    const parentMachine = createMachine({
+      schemas: {
+        children: {
+          '': z.custom<ActorRefFromLogic<typeof childMachine>>()
+        }
+      },
+      on: {
+        START: (_, enq) => {
+          enq.spawn(childMachine, { id: '' });
+        },
+        SEND: (_, enq) => {
+          enq.sendTo('', { type: 'PING' });
+        }
+      }
+    });
+
+    const parent = createActor(parentMachine, {
+      onRejectedEvent: (r) => rejections.push(r)
+    }).start();
+    parent.send({ type: 'START' });
+    parent.send({ type: 'SEND' });
+
+    expect(received).toHaveBeenCalledOnce();
+    expect(rejections).toEqual([]);
+  });
+
   it('should dead-letter a send to an unknown declared child id', () => {
     const errorSpy = vi.fn();
     const rejections: EventRejection[] = [];

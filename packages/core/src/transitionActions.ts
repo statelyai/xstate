@@ -1105,9 +1105,10 @@ export function resolveActionsWithContext(
 
     if (
       actionRecord?.action === builtInActions['@xstate.sendTo'] &&
-      (!actionRecord.args[1] || typeof actionRecord.args[1] === 'string')
+      (actionRecord.args[1] === undefined ||
+        typeof actionRecord.args[1] === 'string')
     ) {
-      const childId: string | undefined = actionRecord.args[1] || undefined;
+      const childId: string | undefined = actionRecord.args[1];
       const target =
         childId !== undefined &&
         Object.hasOwn(intermediateSnapshot.children, childId)
