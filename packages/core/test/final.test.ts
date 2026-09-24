@@ -1571,4 +1571,56 @@ describe('final states', () => {
 
     expect(actorRef.getSnapshot().output).toBe(null);
   });
+
+  it('warns when a top-level final state declares invoke, on or after', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      createMachine({
+        id: 'm',
+        initial: 'done',
+        states: {
+          done: {
+            type: 'final',
+            invoke: { src: createMachine({}) },
+            on: { go: {} },
+            after: { 100: {} }
+          }
+        }
+      });
+
+      expect(warn).toHaveBeenCalledWith(
+        'State "m.done" is final and declares "invoke", "on", "after"; final states cannot run actors or take transitions.'
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('does not warn for nested, parallel-region or plain top-level final states', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'inner',
+            states: {
+              inner: { type: 'final', on: { go: {} } }
+            }
+          },
+          done: { type: 'final' }
+        }
+      });
+      createMachine({
+        type: 'parallel',
+        states: {
+          region: { type: 'final', on: { go: {} } }
+        }
+      });
+
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });

@@ -184,6 +184,9 @@ export class StateNode<
     this.schemas = this.config.schemas;
 
     validateStateNodeConfig(this);
+    if (isDevelopment) {
+      warnOnTopLevelFinalStateBehavior(this);
+    }
 
     this.order = this.machine.idMap.size;
     this.machine.idMap.set(this.id, this);
@@ -392,6 +395,36 @@ function validateStateNodeConfig(stateNode: AnyStateNode) {
         );
       }
     }
+  }
+}
+
+const FINAL_STATE_IGNORED_KEYS = ['invoke', 'on', 'after'] as const;
+
+/**
+ * Entering a final child of a compound root completes the machine, so that
+ * state's `invoke`, `on` and `after` never run. Warn instead of silently
+ * ignoring them. Final regions of a parallel root do not complete the machine
+ * on their own and are not checked.
+ */
+function warnOnTopLevelFinalStateBehavior(stateNode: AnyStateNode): void {
+  if (
+    stateNode.type !== 'final' ||
+    !stateNode.parent ||
+    stateNode.parent.parent ||
+    stateNode.parent.type === 'parallel'
+  ) {
+    return;
+  }
+  const config = stateNode.config as Record<string, unknown>;
+  const declared = FINAL_STATE_IGNORED_KEYS.filter(
+    (key) => config[key] !== undefined
+  );
+  if (declared.length) {
+    console.warn(
+      `State "${stateNode.id}" is final and declares ${declared
+        .map((key) => `"${key}"`)
+        .join(', ')}; final states cannot run actors or take transitions.`
+    );
   }
 }
 
