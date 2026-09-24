@@ -21,4 +21,6 @@ const [next, effects] = transitionChild(
 next.status; // 'done'
 ```
 
+Folded `@xstate.terminate` effects pass `completionDelivered: true` in the termination they hand to `runtime.terminateActor`. A custom runtime that copies or queues the termination must keep that field; `terminateActor(actor, termination)` then notifies observers without delivering the completion to the parent a second time.
+
 A completion event built by hand has no `sessionId`, which bypasses stale-completion protection. Development builds now warn once per actor when one is delivered.

@@ -324,6 +324,44 @@ describe('getChildSnapshot / withChildSnapshot / transitionChild', () => {
     expect(sent).toEqual([]);
   });
 
+  it('a runtime that copies the termination before terminateActor still does not relay a folded completion', async () => {
+    const sent: AnyEventObject[] = [];
+    const recorded: object[] = [];
+    const runtime = {
+      sendEvent: (_s: AnyActor | undefined, _t: AnyActor, event: any) => {
+        sent.push(event);
+      },
+      terminateActor: (actor: AnyActor, termination: any) => {
+        const copy = { ...termination };
+        recorded.push(copy);
+        return terminateActor(actor, copy);
+      },
+      stopActor: stopActor,
+      cancelTimer: () => {}
+    };
+    const [, effects] = transitionChild(
+      root,
+      restoreFresh() as never,
+      'root/worker/retry',
+      { type: 'xstate.timer', id: RETRY_TIMER }
+    );
+    for (const effect of effects) {
+      const actor = ((effect as any).actor ?? (effect as any).source) as
+        | AnyActor
+        | undefined;
+      if (actor) {
+        actor.system.runtime = runtime;
+      }
+    }
+    await executeEffects(effects, runtime);
+    expect(recorded).toContainEqual(
+      expect.objectContaining({ status: 'done', completionDelivered: true })
+    );
+    expect(sent.filter((event) => event.type === 'xstate.done.actor')).toEqual(
+      []
+    );
+  });
+
   it('stale timer id → unchanged snapshot (===) and no effects', () => {
     const snapshot = restoreFresh();
 

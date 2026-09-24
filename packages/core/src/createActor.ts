@@ -5,8 +5,7 @@ import { XSTATE_STOP } from './constants.ts';
 import {
   createDoneActorEvent,
   createErrorActorEvent,
-  createInitEvent,
-  isFoldedTermination
+  createInitEvent
 } from './eventUtils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { symbolObservable } from './symbolObservable.ts';
@@ -1015,7 +1014,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       this._next(this._snapshot);
       this._stopProcedure();
       this._complete();
-      if (this._parent && !isFoldedTermination(termination)) {
+      if (this._parent && !termination.completionDelivered) {
         this.system._relay(
           this,
           this._parent,
@@ -1028,7 +1027,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       this._error(
         termination.error,
         undefined,
-        !isFoldedTermination(termination)
+        !termination.completionDelivered
       );
     }
   }
