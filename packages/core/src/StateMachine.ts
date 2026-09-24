@@ -1209,7 +1209,9 @@ export class StateMachine<
         ? attachSnapshotActorRef(resolvedActorScope, macroState)
         : this._attachPureActorRef(macroState, resolvedActorScope, true);
       const effects = this._collectEffects(microsteps);
-      if (this.validator) {
+      // Error snapshots may carry synthetic context (e.g. when the context
+      // factory throws); validating them would mask the original error.
+      if (this.validator && macroState.status !== 'error') {
         assertValid(this.validator, {
           kind: 'result',
           logic: this,
