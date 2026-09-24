@@ -6615,6 +6615,34 @@ it('createSystem registry keys typecheck registryKey usage', () => {
   }
 });
 
+it('createSystem().createActor requires input for required-input machines', () => {
+  const machine = setup({
+    schemas: { input: z.object({ id: z.string() }) }
+  }).createMachine({});
+  const receiver = createCallbackLogic<{ type: 'HELLO' }>(() => {});
+  const app = createSystem({ registry: { receiver } });
+
+  if (false) {
+    // @ts-expect-error input is required
+    app.createActor(machine);
+    // @ts-expect-error input is required
+    app.createActor(machine, {});
+    app.createActor(machine, { input: { id: 'a' } });
+
+    const persisted = app
+      .createActor(machine, { input: { id: 'a' } })
+      .getPersistedSnapshot();
+    app.createActor(machine, { snapshot: persisted });
+    app.createActor(machine, { state: persisted });
+
+    // optional-input logic still accepts no options
+    app.createActor(receiver);
+    app.createActor(receiver, { registryKey: 'receiver' });
+    // @ts-expect-error registry key expects the registered logic
+    app.createActor(machine, { input: { id: 'a' }, registryKey: 'receiver' });
+  }
+});
+
 describe('invoke onDone inference with heterogeneous actor maps', () => {
   const numberLogic = createAsyncLogic({ run: async () => 42 });
   const stringLogic = createAsyncLogic({ run: async () => 'hello' });

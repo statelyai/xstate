@@ -9,6 +9,7 @@ import { StateMachine } from './StateMachine.ts';
 import {
   createActor as createActorFromLogic,
   type Actor,
+  type RequiredActorOptionsFor,
   type RequiredActorOptionsKeys
 } from './createActor.ts';
 import {
@@ -4605,14 +4606,22 @@ export const setup = function setupImplementation<
   };
 } as SetupFunction;
 
+type SystemActorOptions<
+  TLogic extends AnyActorLogic,
+  TSystemRegistry extends SystemRegistry
+> = Omit<ActorOptions<TLogic>, 'registryKey'> & {
+  registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
+};
+
 type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
   createActor<TLogic extends AnyActorLogic>(
     logic: TLogic,
-    options?: Omit<ActorOptions<TLogic>, 'registryKey'> & {
-      registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
-    } & {
-      [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-    }
+    ...[options]: [RequiredActorOptionsKeys<TLogic>] extends [never]
+      ? [options?: SystemActorOptions<TLogic, TSystemRegistry>]
+      : [
+          options: SystemActorOptions<TLogic, TSystemRegistry> &
+            RequiredActorOptionsFor<TLogic>
+        ]
   ): Actor<TLogic>;
   get: SystemRuntime<TSystemRegistry>['get'];
   getAll: SystemRuntime<TSystemRegistry>['getAll'];
@@ -4648,7 +4657,7 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
   };
 
   return {
-    createActor(logic, options) {
+    createActor(logic, ...[options]) {
       const actor = createActorFromLogic(logic, {
         ...options,
         _systemRef: runtimeRef
