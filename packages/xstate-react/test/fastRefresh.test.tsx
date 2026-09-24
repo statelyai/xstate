@@ -240,6 +240,28 @@ describe('Fast Refresh', () => {
     expect(app.actorRef.getSnapshot().value).toEqual({ on: 'a' });
   });
 
+  it('derives the state value when an active state gains substates', () => {
+    const v1 = createEditor();
+    const app = mount(v1);
+    const original = app.actorRef;
+    act(() => original.send({ type: 'NEXT' }));
+
+    const v2 = createMachine({
+      id: 'editor',
+      initial: 'idle',
+      states: {
+        idle: { on: { NEXT: { target: 'editing' } } },
+        editing: { initial: 'typing', states: { typing: {} } }
+      }
+    });
+    app.refreshTo(v2);
+
+    expect(app.actorRef).toBe(original);
+    const snapshot = app.actorRef.getSnapshot();
+    expect(snapshot.value).toEqual({ editing: 'typing' });
+    expect(snapshot.matches({ editing: 'typing' })).toBe(true);
+  });
+
   it('keeps the first machine when the machine changes without a refresh', () => {
     const v1 = createEditor();
     let actorRef!: any;

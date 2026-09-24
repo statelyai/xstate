@@ -1,6 +1,10 @@
 import { ProcessingStatus } from './createActor.ts';
 import { createMachineSnapshot } from './State.ts';
-import { getAllStateNodes, getStateNodes } from './stateUtils.ts';
+import {
+  getAllStateNodes,
+  getStateNodes,
+  getStateValue
+} from './stateUtils.ts';
 import type {
   AnyActor,
   AnyActorLogic,
@@ -54,6 +58,10 @@ export function hotSwapActorLogic(
   const nodes = Array.from(
     getAllStateNodes(getStateNodes(machine.root, snapshot.value))
   );
+  // An active atomic state may have gained substates, whose initial states
+  // are now active too; derive the value from the resolved configuration so
+  // `value` and the active nodes agree.
+  const value = getStateValue(machine.root, nodes);
 
   const historyValue: HistoryValue = {};
   for (const key of Object.keys(snapshot.historyValue ?? {})) {
@@ -128,7 +136,7 @@ export function hotSwapActorLogic(
         error: data.error,
         context: data.context,
         _nodes: nodes,
-        value: data.value,
+        value,
         children,
         timers: data.timers,
         historyValue,
