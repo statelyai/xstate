@@ -97,6 +97,12 @@ The logic passed on the first render is used for the component's lifetime, like 
 <Editor key={mode} machine={mode === 'draft' ? draftMachine : reviewMachine} />
 ```
 
+### Hot reloading
+
+In development builds, when React Fast Refresh re-renders a component after the machine's module was edited, the hooks keep the running actor and switch it to the edited machine. The current state value and context carry over as they are, without serializing, so context that holds DOM elements or cyclic objects is kept. Invoked actors whose logic did not change keep running; the others restart.
+
+The hooks start a fresh actor from the edited machine instead when the current state no longer exists in it, when its `id` changed, or when its configured validator rejects the current context. Production builds never switch machines.
+
 `useMachine(...)` is a deprecated alias for `useActor(machine, options)`. It accepts state machines only. Use `useActor(...)`.
 
 ## TypeScript

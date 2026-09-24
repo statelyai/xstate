@@ -49,4 +49,4 @@ export const Toggler = () => {
 
 <!-- observer lifecycle from src/useActorRef.ts -->
 
-Pass a snapshot listener or observer as the third argument to `useActorRef(logic, options, observer)`. It subscribes before the actor starts. When the hook replaces an externally stopped actor, the observer follows the replacement, even when the callback identity stays the same. Unmounting unsubscribes the observer and stops the actor.
+Pass a snapshot listener or observer as the third argument to `useActorRef(logic, options, observer)`. It subscribes before the actor starts. When the hook replaces the actor (after an external stop, or a Fast Refresh that cannot keep it), the observer follows the replacement, even when the callback identity stays the same. Unmounting unsubscribes the observer and stops the actor.
