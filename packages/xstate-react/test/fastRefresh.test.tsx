@@ -204,6 +204,42 @@ describe('Fast Refresh', () => {
     expect(seen).toEqual(['v2']);
   });
 
+  it('starts a fresh actor when a remembered history state was removed', () => {
+    const createHistoryMachine = (withHistory: boolean) =>
+      createMachine({
+        id: 'player',
+        initial: 'on',
+        states: {
+          on: {
+            initial: 'a',
+            states: {
+              a: { on: { NEXT: { target: 'b' } } },
+              b: {},
+              ...(withHistory ? { hist: { type: 'history', target: 'a' } } : {})
+            },
+            on: { OFF: { target: 'off' } }
+          },
+          off: {
+            on: {
+              ON: { target: withHistory ? 'on.hist' : 'on' },
+              NOOP: {}
+            }
+          }
+        }
+      } as any);
+
+    const app = mount(createHistoryMachine(true));
+    const original = app.actorRef;
+    act(() => original.send({ type: 'NEXT' }));
+    act(() => original.send({ type: 'OFF' }));
+    expect(Object.keys(original.getSnapshot().historyValue)).toHaveLength(1);
+
+    app.refreshTo(createHistoryMachine(false));
+
+    expect(app.actorRef).not.toBe(original);
+    expect(app.actorRef.getSnapshot().value).toEqual({ on: 'a' });
+  });
+
   it('keeps the first machine when the machine changes without a refresh', () => {
     const v1 = createEditor();
     let actorRef!: any;

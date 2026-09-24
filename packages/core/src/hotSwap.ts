@@ -58,12 +58,15 @@ export function hotSwapActorLogic(
   const historyValue: HistoryValue = {};
   for (const key of Object.keys(snapshot.historyValue ?? {})) {
     const resolved: AnyStateNode[] = [];
-    for (const item of snapshot.historyValue[key]!) {
-      try {
-        resolved.push(machine.getStateNodeById(item.id));
-      } catch {
+    try {
+      if (machine.getStateNodeById(key).type !== 'history') {
         return false;
       }
+      for (const item of snapshot.historyValue[key]!) {
+        resolved.push(machine.getStateNodeById(item.id));
+      }
+    } catch {
+      return false;
     }
     historyValue[key] = resolved;
   }
