@@ -941,7 +941,11 @@ type StateAction<
       >
     >[0],
     'params'
-  > & { input: TInput },
+  > & {
+    input: TInput;
+    /** The state node being entered (`entry`) or exited (`exit`). */
+    stateNode: AnyStateNode;
+  },
   enqueue: EnqueueObject<
     TEvent,
     TEmittedEvent,

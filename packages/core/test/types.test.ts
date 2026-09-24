@@ -6778,3 +6778,29 @@ it('generic aliases preserve invocation metadata, state input, and transition ch
     children
   ]).toEqual([true, true, true, true, true, true]);
 });
+
+describe('entry/exit stateNode', () => {
+  it('provides the state node to entry and exit but not to transitions', () => {
+    createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          entry: ({ stateNode }) => {
+            stateNode.id satisfies string;
+            stateNode.key satisfies string;
+            stateNode.path satisfies string[];
+          },
+          exit: ({ stateNode }, enq) => {
+            enq(() => stateNode.id satisfies string);
+          },
+          on: {
+            // @ts-expect-error transition functions do not receive stateNode
+            next: ({ stateNode }) => {
+              noop(stateNode);
+            }
+          }
+        }
+      }
+    });
+  });
+});

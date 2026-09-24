@@ -1450,7 +1450,8 @@ function microstep(
       transitionFn: any,
       context: MachineContext,
       children: AnyMachineSnapshot['children'],
-      input: Record<string, unknown> | undefined
+      input: Record<string, unknown> | undefined,
+      stateNode: AnyStateNode
     ): [
       actions: any[],
       context: MachineContext | undefined,
@@ -1479,7 +1480,8 @@ function microstep(
                 actors: currentSnapshot.machine.sources.actors,
                 guards: currentSnapshot.machine.sources.guards,
                 delays: currentSnapshot.machine.sources.delays,
-                input
+                input,
+                stateNode
               },
               actorScope
             )
@@ -1494,7 +1496,8 @@ function microstep(
               actors: currentSnapshot.machine.sources.actors,
               guards: currentSnapshot.machine.sources.guards,
               delays: currentSnapshot.machine.sources.delays,
-              input
+              input,
+              stateNode
             };
         const res = transitionFn(args, enqueue);
 
@@ -1519,11 +1522,12 @@ function microstep(
                     children: args.children,
                     actions: args.actions,
                     actors: args.actors,
-                    input
+                    input,
+                    stateNode
                   },
                   actorScope
                 )
-              : { ...args, input },
+              : { ...args, input, stateNode },
             enqueue
           ),
         '_special' in transitionFn ? { _special: true } : {}
@@ -1585,7 +1589,8 @@ function microstep(
               exitStateNode.exit,
               nextState.context,
               currentSnapshot.children,
-              stateInput
+              stateInput,
+              exitStateNode
             )
           : [[], undefined, undefined];
         if (internalEvents?.length) {
@@ -1962,7 +1967,8 @@ function microstep(
               stateNodeToEnter.entry,
               context,
               children,
-              stateInput
+              stateInput,
+              stateNodeToEnter
             );
           actions.push(...resultActions);
           if (nextInternalEvents?.length) {
@@ -2157,7 +2163,8 @@ function microstep(
             stateNode.exit,
             nextState.context,
             nextState.children,
-            stateInput
+            stateInput,
+            stateNode
           );
           allExitActions.push(...exitActions);
           if (nextInternalEvents?.length) {
