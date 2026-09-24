@@ -78,6 +78,39 @@ describe('child completion events in resolver event unions', () => {
     expect(true).toBe(true);
   });
 
+  it('narrows completion events when only children are declared', () => {
+    setup({
+      actors: { fetchUser },
+      schemas: { children }
+    }).createMachine({
+      invoke: { id: 'fetch', src: 'fetchUser' },
+      entry: ({ event }) => {
+        assertEvent(event, 'xstate.done.actor');
+        expectType<'fetch'>(event.actorId);
+        expectType<string>(event.output.name);
+      },
+      on: {
+        go: ({ event }) => {
+          expectType<{ type: string }>(event);
+          // @ts-expect-error - `go` handlers never see completion events
+          event.output;
+        }
+      }
+    });
+
+    createMachine({
+      schemas: { children },
+      invoke: { id: 'fetch', src: fetchUser },
+      entry: ({ event }) => {
+        assertEvent(event, 'xstate.done.actor');
+        expectType<'fetch'>(event.actorId);
+        expectType<string>(event.output.name);
+      }
+    });
+
+    expect(true).toBe(true);
+  });
+
   it('does not add completion events without declared children', () => {
     setup({
       schemas: { events: { go: z.object({}) } }
