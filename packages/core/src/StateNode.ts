@@ -185,7 +185,7 @@ export class StateNode<
 
     validateStateNodeConfig(this);
     if (isDevelopment) {
-      warnOnTopLevelFinalStateBehavior(this);
+      warnOnFinalStateBehavior(this);
     }
 
     this.order = this.machine.idMap.size;
@@ -322,6 +322,10 @@ export class StateNode<
     actorScope: AnyActorScope,
     selectionResults?: TransitionSelectionResults
   ): Array<AnyTransitionDefinition> | undefined {
+    // Final states are inert: as in SCXML, they take no transitions.
+    if (this.type === 'final') {
+      return undefined;
+    }
     const descriptorKey = getEventDescriptorKey(event);
     let candidates = this._candidateCache?.get(descriptorKey);
     if (!candidates) {
@@ -401,18 +405,11 @@ function validateStateNodeConfig(stateNode: AnyStateNode) {
 const FINAL_STATE_IGNORED_KEYS = ['invoke', 'on', 'after'] as const;
 
 /**
- * Entering a final child of a compound root completes the machine, so that
- * state's `invoke`, `on` and `after` never run. Warn instead of silently
- * ignoring them. Final regions of a parallel root do not complete the machine
- * on their own and are not checked.
+ * Final states are inert: their `invoke`, `on` and `after` never run. Warn
+ * instead of silently ignoring them.
  */
-function warnOnTopLevelFinalStateBehavior(stateNode: AnyStateNode): void {
-  if (
-    stateNode.type !== 'final' ||
-    !stateNode.parent ||
-    stateNode.parent.parent ||
-    stateNode.parent.type === 'parallel'
-  ) {
+function warnOnFinalStateBehavior(stateNode: AnyStateNode): void {
+  if (stateNode.type !== 'final') {
     return;
   }
   const config = stateNode.config as Record<string, unknown>;

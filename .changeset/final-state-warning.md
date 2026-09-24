@@ -2,6 +2,16 @@
 'xstate': patch
 ---
 
-In development, `createMachine` now warns when a top-level final state declares `invoke`, `on` or `after`. Entering that state completes the machine, so these never run.
+Final states are now inert everywhere, including final regions of a parallel state, matching SCXML: they take no transitions and their invoked actors are not created or started. In development, `createMachine` warns when any final state declares `invoke`, `on` or `after`.
 
-Actors invoked by a top-level final state are no longer created or started, matching SCXML.
+Move transitions off a final region onto a non-final state:
+
+```ts
+region: {
+  initial: 'active',
+  states: {
+    active: { on: { NEXT: { target: 'done' } } },
+    done: { type: 'final' }
+  }
+}
+```

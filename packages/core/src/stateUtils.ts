@@ -1114,11 +1114,6 @@ function removeConflictingTransitions(
       if (hasIntersection(getExitSet(t1), getExitSet(t2))) {
         if (isDescendant(t1.source, t2.source)) {
           transitionsToRemove.add(t2);
-        } else if (t2.source.type === 'final' && t1.source.type !== 'final') {
-          // A transition sourced in a final state yields to a conflicting
-          // transition from a live state, so a done region doesn't keep
-          // consuming events its siblings can still handle.
-          transitionsToRemove.add(t2);
         } else {
           t1Preempted = true;
           break;
@@ -1897,16 +1892,12 @@ function microstep(
         mutStateNodeSet.add(stateNodeToEnter);
         const actions: AnyAction[] = [];
 
-        // A top-level final state completes the machine, so (as in SCXML) its
-        // invocations never start.
-        const completesRoot =
-          stateNodeToEnter.type === 'final' &&
-          !!stateNodeToEnter.parent &&
-          !stateNodeToEnter.parent.parent &&
-          stateNodeToEnter.parent.type !== 'parallel';
-
+        // Final states are inert, so (as in SCXML) their invocations never
+        // start.
         let invoked = false;
-        for (const invokeDef of completesRoot ? [] : stateNodeToEnter.invoke) {
+        for (const invokeDef of stateNodeToEnter.type === 'final'
+          ? []
+          : stateNodeToEnter.invoke) {
           invoked = true;
 
           let src = invokeDef.logic;

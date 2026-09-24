@@ -1624,10 +1624,11 @@ describe('final states', () => {
     }
   });
 
-  it('does not warn for nested, parallel-region or plain top-level final states', () => {
+  it('warns when a nested or parallel-region final state declares on', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       createMachine({
+        id: 'nested',
         initial: 'a',
         states: {
           a: {
@@ -1635,18 +1636,70 @@ describe('final states', () => {
             states: {
               inner: { type: 'final', on: { go: {} } }
             }
-          },
-          done: { type: 'final' }
+          }
         }
       });
       createMachine({
+        id: 'par',
         type: 'parallel',
         states: {
           region: { type: 'final', on: { go: {} } }
         }
       });
 
+      expect(warn.mock.calls.map((call) => call[0])).toEqual([
+        'State "nested.a.inner" is final and declares "on"; final states cannot run actors or take transitions.',
+        'State "par.region" is final and declares "on"; final states cannot run actors or take transitions.'
+      ]);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('does not warn for plain final states', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'inner',
+            states: { inner: { type: 'final' } }
+          },
+          done: { type: 'final' }
+        }
+      });
+
       expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('final regions under a parallel state take no transitions and start no actors', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.fn();
+    try {
+      const machine = createMachine({
+        type: 'parallel',
+        states: {
+          a: {
+            type: 'final',
+            invoke: { src: createCallbackLogic(() => spy()) },
+            on: { go: { target: '#b-x' } }
+          },
+          b: {
+            initial: 'idle',
+            states: { idle: {}, x: { id: 'b-x' } }
+          }
+        }
+      });
+
+      const actorRef = createActor(machine).start();
+      actorRef.send({ type: 'go' });
+
+      expect(spy).not.toHaveBeenCalled();
+      expect(actorRef.getSnapshot().value).toEqual({ a: {}, b: 'idle' });
     } finally {
       warn.mockRestore();
     }
