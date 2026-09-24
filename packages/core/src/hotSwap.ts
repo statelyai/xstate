@@ -22,7 +22,8 @@ import type {
  * are stopped and restarted from the new machine's logic. Returns `false`,
  * leaving the actor unchanged, when the actor is not a running machine actor
  * with the same machine id, a state or history id does not exist on the new
- * machine, a child's logic cannot be resolved, or the new machine's validator
+ * machine, a child's logic cannot be resolved, context or a pending timer
+ * references a child that would restart, or the new machine's validator
  * rejects the snapshot.
  *
  * @internal
@@ -93,6 +94,21 @@ export function hotSwapActorLogic(
       children[childId] = child;
     } else {
       restarts.push([childId, child, logic]);
+    }
+  }
+
+  // Context and pending timers may hold a child that would restart. Context
+  // is user-owned and timers were scheduled against the old ref, so neither
+  // can be rebound safely; start a fresh actor instead.
+  if (restarts.length) {
+    const restarting = new Set<unknown>(restarts.map(([, child]) => child));
+    if (
+      Object.values(snapshot.timers ?? {}).some((timer) =>
+        restarting.has(timer.target)
+      ) ||
+      holdsActorRef(snapshot.context, restarting, new Set())
+    ) {
+      return false;
     }
   }
 
@@ -183,6 +199,42 @@ function resolveChildLogic(
   return typeof logic === 'string'
     ? machine.sources.actors[logic]
     : (logic as AnyActorLogic | undefined);
+}
+
+/**
+ * Whether `value` holds any of `refs`, searching plain objects, arrays, maps
+ * and sets. Actor refs are recognized the way persisted context recognizes
+ * them and are not searched into.
+ */
+function holdsActorRef(
+  value: unknown,
+  refs: Set<unknown>,
+  visited: Set<object>
+): boolean {
+  if (!value || typeof value !== 'object' || visited.has(value)) {
+    return false;
+  }
+  visited.add(value);
+  if ('sessionId' in value && 'send' in value && 'ref' in value) {
+    return refs.has(value);
+  }
+  let items: Iterable<unknown>;
+  if (value instanceof Map || value instanceof Set) {
+    items = value.values();
+  } else {
+    const proto = Object.getPrototypeOf(value);
+    if (!Array.isArray(value) && proto !== Object.prototype && proto !== null) {
+      // Class instances and host objects (DOM nodes) are not traversed.
+      return false;
+    }
+    items = Object.values(value);
+  }
+  for (const item of items) {
+    if (holdsActorRef(item, refs, visited)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**

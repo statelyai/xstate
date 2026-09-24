@@ -146,6 +146,35 @@ describe('Fast Refresh', () => {
     expect(before.other.getSnapshot().status).toBe('stopped');
   });
 
+  it('starts a fresh actor when context holds a child that would restart', () => {
+    const createParent = (worker: any) =>
+      createMachine({
+        id: 'parent',
+        actors: { worker },
+        context: { ref: undefined as any },
+        entry: ({ actors }: any, enq: any) => ({
+          context: { ref: enq.spawn(actors.worker, { id: 'worker' }) }
+        })
+      } as any);
+
+    const app = mount(
+      createParent(createLogic({ context: 0, run: () => undefined }))
+    );
+    const original = app.actorRef;
+    expect(original.getSnapshot().context.ref).toBe(
+      original.getSnapshot().children.worker
+    );
+
+    app.refreshTo(
+      createParent(createLogic({ context: 1, run: () => undefined }))
+    );
+
+    expect(app.actorRef).not.toBe(original);
+    const snapshot = app.actorRef.getSnapshot();
+    expect(snapshot.context.ref).toBe(snapshot.children.worker);
+    expect(snapshot.children.worker.getSnapshot().context).toBe(1);
+  });
+
   it('keeps the first machine when the machine changes without a refresh', () => {
     const v1 = createEditor();
     let actorRef!: any;
