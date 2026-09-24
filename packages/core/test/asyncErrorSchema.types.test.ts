@@ -3,6 +3,7 @@ import {
   createActor,
   createAsyncLogic,
   setup,
+  TimeoutError,
   type ErrorFrom
 } from '../src/index.ts';
 
@@ -77,6 +78,53 @@ describe('async logic `schemas.error`', () => {
       run: async ({ input }) => input.id
     });
     expectType<{ code: string }>({} as ErrorFrom<typeof inputAndError>);
+
+    expect(true).toBe(true);
+  });
+
+  it('includes `TimeoutError` when a `timeout` is configured', () => {
+    const withTimeout = createAsyncLogic({
+      schemas: { error: z.object({ code: z.string() }) },
+      timeout: '30s',
+      run: async () => 42
+    });
+    expectType<{ code: string } | TimeoutError>(
+      {} as ErrorFrom<typeof withTimeout>
+    );
+
+    const withTimeoutAndOutput = createAsyncLogic({
+      schemas: {
+        output: z.object({ name: z.string() }),
+        error: z.object({ code: z.string() })
+      },
+      timeout: 1000,
+      run: async () => ({ name: 'David' })
+    });
+
+    setup({ actors: { withTimeout, withTimeoutAndOutput } }).createMachine({
+      invoke: [
+        {
+          src: 'withTimeout',
+          onError: ({ event }) => {
+            // @ts-expect-error - may be a `TimeoutError`
+            event.error.code;
+            if (!(event.error instanceof TimeoutError)) {
+              expectType<string>(event.error.code);
+            }
+            if ('code' in event.error) {
+              expectType<string>(event.error.code);
+            }
+          }
+        },
+        {
+          src: 'withTimeoutAndOutput',
+          onError: ({ event }) => {
+            // @ts-expect-error - may be a `TimeoutError`
+            event.error.code;
+          }
+        }
+      ]
+    });
 
     expect(true).toBe(true);
   });

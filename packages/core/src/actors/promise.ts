@@ -132,6 +132,16 @@ export class TimeoutError extends Error {
 }
 
 /**
+ * The error type of async logic: the `schemas.error` output, plus
+ * {@link TimeoutError} when a `timeout` is configured.
+ */
+export type AsyncLogicError<TErrorSchema extends StandardSchemaV1, TTimeout> = [
+  TTimeout
+] extends [undefined]
+  ? StandardSchemaV1.InferOutput<TErrorSchema>
+  : StandardSchemaV1.InferOutput<TErrorSchema> | TimeoutError;
+
+/**
  * Represents an actor created by `createAsyncLogic`.
  *
  * The type of `self` within the actor's logic.
@@ -233,7 +243,8 @@ export function createAsyncLogic<
   const TInputSchema extends StandardSchemaV1,
   const TOutputSchema extends StandardSchemaV1,
   TEmitted extends EventObject = EventObject,
-  const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1
+  const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TTimeout extends number | string | undefined = undefined
 >(
   asyncLogic: LogicConfig<
     StandardSchemaV1.InferOutput<TOutputSchema>,
@@ -248,12 +259,12 @@ export function createAsyncLogic<
       output: TOutputSchema;
       error?: TErrorSchema;
     };
-  }
+  } & { timeout?: TTimeout }
 ): AsyncActorLogic<
   StandardSchemaV1.InferOutput<TOutputSchema>,
   StandardSchemaV1.InferOutput<TInputSchema>,
   TEmitted,
-  StandardSchemaV1.InferOutput<TErrorSchema>
+  AsyncLogicError<TErrorSchema, TTimeout>
 > & { id?: string };
 export function createAsyncLogic<
   const TInputSchema extends StandardSchemaV1,
@@ -263,7 +274,8 @@ export function createAsyncLogic<
     StandardSchemaV1.InferOutput<TInputSchema>,
     TEmitted
   > = LogicFunction<any, StandardSchemaV1.InferOutput<TInputSchema>, TEmitted>,
-  const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1
+  const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TTimeout extends number | string | undefined = undefined
 >(
   asyncLogic: Omit<
     LogicConfig<
@@ -276,18 +288,19 @@ export function createAsyncLogic<
   > & {
     schemas: { input: TInputSchema; output?: never; error?: TErrorSchema };
     run: TLogicFunction;
-  }
+  } & { timeout?: TTimeout }
 ): AsyncActorLogic<
   AsyncLogicFunctionOutput<TLogicFunction>,
   StandardSchemaV1.InferOutput<TInputSchema>,
   TEmitted,
-  StandardSchemaV1.InferOutput<TErrorSchema>
+  AsyncLogicError<TErrorSchema, TTimeout>
 > & { id?: string };
 export function createAsyncLogic<
   const TOutputSchema extends StandardSchemaV1,
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject,
-  const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1
+  const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TTimeout extends number | string | undefined = undefined
 >(
   asyncLogic: LogicConfig<
     StandardSchemaV1.InferOutput<TOutputSchema>,
@@ -298,27 +311,28 @@ export function createAsyncLogic<
     TErrorSchema
   > & {
     schemas: { input?: never; output: TOutputSchema; error?: TErrorSchema };
-  }
+  } & { timeout?: TTimeout }
 ): AsyncActorLogic<
   StandardSchemaV1.InferOutput<TOutputSchema>,
   TInput,
   TEmitted,
-  StandardSchemaV1.InferOutput<TErrorSchema>
+  AsyncLogicError<TErrorSchema, TTimeout>
 > & { id?: string };
 export function createAsyncLogic<
   TOutput,
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject,
-  const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1
+  const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1,
+  TTimeout extends number | string | undefined = undefined
 >(
   asyncLogic: Omit<LogicConfig<TOutput, TInput, TEmitted>, 'schemas'> & {
     schemas: { input?: never; output?: never; error: TErrorSchema };
-  }
+  } & { timeout?: TTimeout }
 ): AsyncActorLogic<
   TOutput,
   TInput,
   TEmitted,
-  StandardSchemaV1.InferOutput<TErrorSchema>
+  AsyncLogicError<TErrorSchema, TTimeout>
 > & { id?: string };
 export function createAsyncLogic<
   TOutput,
