@@ -450,9 +450,11 @@ export function createFSM<
             ? transition({ context, event })
             : transition) || {};
       // Copy only when the patch changes a value, so a no-op patch keeps the
-      // current snapshot. After the first copy every key matches.
-      for (const key in patch) {
-        if (patch[key] !== context[key]) {
+      // current snapshot. After the first copy every key matches. Iterate a
+      // spread copy so inherited keys, which the spread below ignores, are
+      // skipped.
+      for (const key in { ...patch }) {
+        if (patch![key] !== context[key]) {
           context = { ...context, ...patch };
         }
       }

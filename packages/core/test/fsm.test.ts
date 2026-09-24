@@ -64,6 +64,32 @@ describe('createFSM', () => {
     );
   });
 
+  it('applies only own context patch keys', () => {
+    const machine = createFSM<
+      { count: number; inherited?: number },
+      { type: 'inherited' } | { type: 'own' }
+    >({
+      context: { count: 0 },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            inherited: () => ({ context: Object.create({ inherited: 1 }) }),
+            own: () => ({ context: { count: 1 } })
+          }
+        }
+      }
+    });
+
+    expect(
+      machine.transition(machine.initialState, { type: 'inherited' })[0]
+    ).toBe(machine.initialState);
+
+    const [next] = machine.transition(machine.initialState, { type: 'own' });
+    expect(next).not.toBe(machine.initialState);
+    expect(next.context).toEqual({ count: 1 });
+  });
+
   it('ignores inherited event names', () => {
     const machine = createFSM({
       initial: 'idle',
