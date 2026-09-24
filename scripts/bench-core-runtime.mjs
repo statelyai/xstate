@@ -2,7 +2,8 @@
 
 import { performance } from 'node:perf_hooks';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fileURLToPath } from 'node:url';
 
@@ -11,15 +12,61 @@ const require = createRequire(import.meta.url);
 const args = process.argv.slice(2);
 const xstateArg = args.find((arg) => arg.startsWith('--xstate='));
 const xstatePath = xstateArg
-  ? xstateArg.slice('--xstate='.length)
+  ? resolve(xstateArg.slice('--xstate='.length))
   : join(root, 'packages/core/dist/xstate.development.cjs.js');
+const xstateFsmArg = args.find((arg) => arg.startsWith('--xstate-fsm='));
 const { createActor, createMachine, initialTransition, transition } = require(
   xstatePath
 );
-// `createFSM` is only exported from the `xstate/fsm` entry.
-const { createFSM } = require(
-  xstatePath.replace(/xstate(\.[^/\\]*)$/, 'xstate-fsm$1')
-);
+
+// Resolves a conditional `exports` target, preferring the development build
+// when the root bundle is one.
+function resolveExportTarget(target, conditions) {
+  if (typeof target === 'string') return target;
+  if (!target || typeof target !== 'object') return undefined;
+  for (const [key, value] of Object.entries(target)) {
+    if (key === 'types' || !conditions.includes(key)) continue;
+    const resolved = resolveExportTarget(value, conditions);
+    if (resolved) return resolved;
+  }
+  return undefined;
+}
+
+// `createFSM` is only exported from the `xstate/fsm` entry. Resolve it from
+// the package that owns `--xstate`, falling back to filename rewriting.
+function resolveFsmPath() {
+  if (xstateFsmArg) return resolve(xstateFsmArg.slice('--xstate-fsm='.length));
+  for (let dir = dirname(xstatePath); ; dir = dirname(dir)) {
+    const pkgPath = join(dir, 'package.json');
+    if (existsSync(pkgPath)) {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+      const conditions = basename(xstatePath).includes('.development.')
+        ? ['development', 'require', 'node', 'default']
+        : ['require', 'node', 'default'];
+      const target = resolveExportTarget(pkg.exports?.['./fsm'], conditions);
+      if (target) return join(dir, target);
+      break;
+    }
+    if (dirname(dir) === dir) break;
+  }
+  const rewritten = xstatePath.replace(/xstate(\.[^/\\]*)$/, 'xstate-fsm$1');
+  return rewritten === xstatePath ? undefined : rewritten;
+}
+
+const xstateFsmPath = resolveFsmPath();
+let createFSM;
+try {
+  ({ createFSM } = xstateFsmPath ? require(xstateFsmPath) : {});
+} catch (err) {
+  throw new Error(
+    `Unable to load the xstate/fsm bundle from "${xstateFsmPath}". Pass --xstate-fsm=<path>.\n${err.message}`
+  );
+}
+if (typeof createFSM !== 'function') {
+  throw new Error(
+    `createFSM not found${xstateFsmPath ? ` in "${xstateFsmPath}"` : ''}. Pass --xstate-fsm=<path> pointing at the xstate/fsm bundle.`
+  );
+}
 
 const timeArg = args.find((arg) => arg.startsWith('--time='));
 const warmupArg = args.find((arg) => arg.startsWith('--warmup='));
