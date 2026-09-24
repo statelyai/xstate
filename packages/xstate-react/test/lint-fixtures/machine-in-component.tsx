@@ -1,5 +1,7 @@
 import { useMachine } from '@xstate/react';
 import { createStore } from '@xstate/store';
+import * as React from 'react';
+import { forwardRef, memo } from 'react';
 import { createMachine, setup } from 'xstate';
 
 export function Counter() {
@@ -21,3 +23,23 @@ export const Form = function () {
   const onSubmit = () => createMachine({});
   return <form onSubmit={onSubmit} />;
 };
+
+export const Memoized = memo(() => {
+  const [snapshot] = useMachine(createMachine({}));
+  return <p>{String(snapshot.value)}</p>;
+});
+
+export const Wrapped = React.memo(() => {
+  const [snapshot] = useMachine(createMachine({}));
+  return <p>{String(snapshot.value)}</p>;
+});
+
+export const Field = forwardRef<HTMLInputElement>(function (_props, ref) {
+  const [snapshot] = useMachine(setup({}).createMachine({}));
+  return <input ref={ref} value={String(snapshot.value)} />;
+});
+
+export const Input = React.forwardRef<HTMLInputElement>((_props, ref) => {
+  const [snapshot] = useMachine(createMachine({}));
+  return <input ref={ref} value={String(snapshot.value)} />;
+});

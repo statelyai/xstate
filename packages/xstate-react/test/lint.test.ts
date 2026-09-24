@@ -72,10 +72,10 @@ describe('xstate/no-machine-in-component', () => {
     expect(result.status, result.stdout + result.stderr).toBe(0);
   }, 60_000);
 
-  it('reports machines and stores created in component and hook bodies', () => {
+  it('reports machines and stores created in component and hook bodies, including memo and forwardRef components', () => {
     const diagnostics = lint('machine-in-component.tsx');
 
-    expect(diagnostics).toHaveLength(4);
+    expect(diagnostics).toHaveLength(8);
     expect(
       diagnostics.every(
         (diagnostic) =>

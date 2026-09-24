@@ -9,14 +9,15 @@
 // created on every render is discarded on every render after the first.
 // Calls inside a `useMemo` or `useState` initializer callback are allowed.
 //
-// Limitation: the name comes from the function declaration or the variable it
-// is assigned to. A component wrapped in `memo(...)` or `forwardRef(...)`
-// without a named inner function is not recognized.
+// The name comes from the function declaration or the variable it is assigned
+// to, looking through `memo(...)`, `forwardRef(...)`, `React.memo(...)` and
+// `React.forwardRef(...)` wrappers: `const Foo = memo(() => ...)` is `Foo`.
 import { definePlugin, defineRule } from '@oxlint/plugins';
 import type { ESTree } from '@oxlint/plugins';
 
 const FACTORY_NAMES = new Set(['createMachine', 'createStore']);
 const INITIALIZER_HOOKS = new Set(['useMemo', 'useState']);
+const COMPONENT_WRAPPERS = new Set(['memo', 'forwardRef']);
 
 type FunctionNode = ESTree.ArrowFunctionExpression | ESTree.Function;
 
@@ -65,7 +66,17 @@ const functionName = (fn: FunctionNode): string | undefined => {
   if (fn.type !== 'ArrowFunctionExpression' && fn.id) {
     return fn.id.name;
   }
-  const { parent } = fn;
+  // Look through component wrappers: `const Foo = memo(() => ...)`.
+  let node: ESTree.Node = fn;
+  let { parent } = fn;
+  while (
+    parent.type === 'CallExpression' &&
+    parent.arguments[0] === node &&
+    COMPONENT_WRAPPERS.has(calleeName(parent) ?? '')
+  ) {
+    node = parent;
+    parent = parent.parent;
+  }
   if (parent.type === 'VariableDeclarator' && parent.id.type === 'Identifier') {
     return parent.id.name;
   }
