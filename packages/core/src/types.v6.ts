@@ -1660,15 +1660,40 @@ type DelayNamesFromConfig<TConfig> = TConfig extends {
   ? Extract<keyof TDelays, string>
   : string;
 
+// Integer digits. `${bigint}` rejects decimals, exponents and whitespace.
+type DurationInt = `${bigint}`;
+// Fractional digits, which may have leading zeros (`1.05s`).
+type DurationFraction = DurationInt | `0${DurationInt}` | `00${DurationInt}`;
+type DurationDecimal =
+  | DurationInt
+  | `${DurationInt}.${DurationFraction}`
+  | `.${DurationFraction}`;
+type IsoDateParts =
+  | `${DurationInt}W`
+  | `${DurationInt}D`
+  | `${DurationInt}W${DurationInt}D`;
+// Only the seconds component may be fractional.
+type IsoSeconds = `${DurationInt}` | `${DurationInt}.${DurationFraction}`;
+type IsoTimeParts =
+  | `${DurationInt}H`
+  | `${DurationInt}M`
+  | `${IsoSeconds}S`
+  | `${DurationInt}H${DurationInt}M`
+  | `${DurationInt}H${IsoSeconds}S`
+  | `${DurationInt}M${IsoSeconds}S`
+  | `${DurationInt}H${DurationInt}M${IsoSeconds}S`;
+
 /**
  * @public Duration-string `after` keys, which are parsed rather than looked
- * up.
+ * up: numeric strings (milliseconds), `ms` / `s` suffixes (case-insensitive)
+ * and uppercase ISO 8601 durations (`PT1M30S`, `P1D`, `P1DT12H`).
  */
 export type DelayDurationKey =
   | `${number}`
-  | `${number}ms`
-  | `${number}s`
-  | `P${string}`;
+  | `${DurationInt}${'ms' | 'MS' | 'Ms' | 'mS'}`
+  | `${DurationDecimal}${'s' | 'S'}`
+  | `P${IsoDateParts}`
+  | `P${IsoDateParts | ''}T${IsoTimeParts}`;
 
 // Checks only `after` keys (and nested `states`): a bad `after` key is accepted
 // structurally, so it needs validation here. A bad `timeout` string is already
