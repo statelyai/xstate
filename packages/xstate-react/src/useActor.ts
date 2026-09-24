@@ -67,7 +67,9 @@ export function useActor<TLogic extends AnyActorLogic>(
     throw snapshotWithStatus.error;
   }
 
-  useActorLifecycle(actorRef, setActorRef, () => createActor(logic, options));
+  useActorLifecycle(actorRef, setActorRef, () =>
+    createActor(logic, options as ActorOptions<TLogic>)
+  );
 
   return [actorSnapshot, actorRef.send, actorRef];
 }

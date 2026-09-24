@@ -29,6 +29,8 @@ const machine = setup({
 });
 ```
 
+A declared input schema makes `input` required: `createActor(machine)` is a type error until you pass `{ input }` (or restore a `snapshot`). Framework hooks such as `useActor`, `useActorRef` and `useMachine` inherit the same requirement.
+
 Structural state contracts are checked only when declared. For example,
 `type: 'parallel'` forbids `initial`, while `type: 'compound'` requires one.
 `setup(...)` can supply those defaults, so the machine config may omit them.

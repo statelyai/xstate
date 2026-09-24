@@ -26,7 +26,7 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
   >
 ): [Actor<TLogic>, (actorRef: Actor<TLogic>) => void] {
   let [actorRef, setActorRef] = useState(() => {
-    return createActor(logic, options);
+    return createActor(logic, options as ActorOptions<TLogic>);
   });
 
   if (logic.config !== (actorRef.logic as any).config) {

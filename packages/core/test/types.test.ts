@@ -9,6 +9,7 @@ import {
 import {
   ActorRefFrom,
   ActorRefFromLogic,
+  ActorOptions,
   AnyActorLogic,
   AnyActorRef,
   AnyMachineSnapshot,
@@ -2949,7 +2950,7 @@ describe('invoke', () => {
     noop(anyLogic);
     noop(anyMachine);
 
-    const actor = createActor(machine);
+    const actor = createActor(machine, { input: { value: 'a' } });
     const anyActorRef: AnyActorRef = actor;
     const anySnapshot: AnyMachineSnapshot = actor.getSnapshot();
 
@@ -5069,6 +5070,7 @@ describe('input', () => {
 
     createActor(machine, {
       input: {
+        // @ts-expect-error count must be a number
         count: ''
       }
     });
@@ -5083,7 +5085,50 @@ describe('input', () => {
       }
     });
 
+    // @ts-expect-error input is required
     createActor(machine);
+    // @ts-expect-error input is required
+    createActor(machine, {});
+    createActor(machine, { input: { count: 1 } });
+  });
+
+  it('should require input declared by a setup input schema', () => {
+    const machine = setup({
+      schemas: {
+        input: z.object({ id: z.string() })
+      }
+    }).createMachine({});
+
+    // @ts-expect-error input is required
+    createActor(machine);
+    // @ts-expect-error input is required
+    createActor(machine.provide({}));
+    createActor(machine, { input: { id: 'a' } });
+  });
+
+  it('should not require input when the input schema is optional', () => {
+    const machine = createMachine({
+      schemas: {
+        input: z.object({ id: z.string() }).optional()
+      }
+    });
+
+    createActor(machine);
+  });
+
+  it('should not require input when restoring a snapshot', () => {
+    const machine = createMachine({
+      schemas: {
+        input: z.object({ id: z.string() })
+      }
+    });
+    const persisted = createActor(machine, {
+      input: { id: 'a' }
+    }).getPersistedSnapshot();
+
+    createActor(machine, { snapshot: persisted });
+    // @ts-expect-error input is required without a snapshot
+    createActor(machine, { inspect: () => {} });
   });
 
   it('should not require input when not defined', () => {
@@ -6339,6 +6384,7 @@ describe('createActor', () => {
       run: ({}: { input: number }) => Promise.resolve(100)
     });
 
+    // @ts-expect-error input is required
     createActor(logic);
   });
 
@@ -6486,15 +6532,15 @@ it('Actor<T> should be assignable to ActorRefFromLogic<T>', () => {
 
   class ActorThing<T extends AnyActorLogic> {
     actorRef: ActorRefFromLogic<T>;
-    constructor(actorLogic: T) {
-      const actor = createActor(actorLogic);
+    constructor(actorLogic: T, options: ActorOptions<T>) {
+      const actor = createActor(actorLogic, options);
 
       actor satisfies ActorRefFromLogic<typeof actorLogic>;
       this.actorRef = actor;
     }
   }
 
-  new ActorThing(logic);
+  new ActorThing(logic, {});
 });
 
 it('createSystem registry keys typecheck registryKey usage', () => {

@@ -60,6 +60,7 @@ import {
   InferActions,
   InferGuards,
   Sources,
+  InferMachineInput,
   InferOutput,
   InferEvents,
   InferInternalEvents,
@@ -1379,7 +1380,7 @@ type SetupTags<TSchemas, TTagSchema extends StandardSchemaV1> = [
 type SetupInput<TSchemas, TInputSchema extends StandardSchemaV1> = [
   SetupSchema<TSchemas, 'input'>
 ] extends [never]
-  ? InferOutput<TInputSchema, unknown>
+  ? InferMachineInput<TInputSchema>
   : InferOutput<SetupSchema<TSchemas, 'input'>, unknown>;
 
 type SetupOutput<TSchemas, TOutputSchema extends StandardSchemaV1> = [
@@ -4090,7 +4091,7 @@ export interface SetupReturn<
       TSchemas,
       TTagSchema
     >,
-    TInput = unknown,
+    _TInput = unknown,
     const TStateKeys extends string = SetupStateKey<TStates>,
     const TConfig extends SetupMachineConfig<
       TStates,
@@ -4243,9 +4244,7 @@ export interface SetupReturn<
     >,
     StateValueFromStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
     TTag & string,
-    [SetupSchema<TSchemas, 'input'>] extends [never]
-      ? TInput
-      : SetupInput<TSchemas, TInputSchema>,
+    SetupInput<TSchemas, TInputSchema>,
     SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig, TStates>,
     SetupEmitted<TSchemas, TEmittedSchemaMap>,
     SetupMeta<TSchemas, TMetaSchema>,

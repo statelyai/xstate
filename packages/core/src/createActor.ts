@@ -1280,8 +1280,30 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 }
 
+/**
+ * `'input'` when creating an actor from `TLogic` requires input (its input type
+ * does not accept `undefined`), otherwise `never`.
+ *
+ * @public
+ */
 export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
   undefined extends InputFrom<TLogic> ? never : 'input';
+
+/**
+ * Options accepted by {@link createActor}. When the logic requires input, the
+ * options must provide `input`, unless they restore a persisted `snapshot`.
+ */
+type CreateActorOptionsArgs<TLogic extends AnyActorLogic> = [
+  RequiredActorOptionsKeys<TLogic>
+] extends [never]
+  ? [options?: ActorOptions<TLogic>]
+  : [
+      options: ActorOptions<TLogic> &
+        (
+          | { [K in RequiredActorOptionsKeys<TLogic>]: unknown }
+          | { snapshot: NonNullable<ActorOptions<TLogic>['snapshot']> }
+        )
+    ];
 
 /**
  * Creates a new actor instance for the given actor logic with the provided
@@ -1324,9 +1346,7 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
  */
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options?: ActorOptions<TLogic> & {
-    [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-  }
+  ...[options]: CreateActorOptionsArgs<TLogic>
 ): Actor<TLogic> {
   return new Actor(logic, options);
 }

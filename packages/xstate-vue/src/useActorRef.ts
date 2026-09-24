@@ -32,7 +32,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
           | ((value: SnapshotFrom<TLogic>) => void)
       ]
 ): Actor<TLogic> {
-  const actorRef = createActor(actorLogic, options);
+  const actorRef = createActor(actorLogic, options as ActorOptions<TLogic>);
 
   let sub: Subscription;
   onMounted(() => {

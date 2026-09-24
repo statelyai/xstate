@@ -159,6 +159,7 @@ describe('useActor', () => {
     });
 
     const Component = () => {
+      // @ts-expect-error input is required
       const _ = useActor(withInputMachine);
       return <></>;
     };
@@ -199,6 +200,7 @@ describe('useActorRef', () => {
     });
 
     const Component = () => {
+      // @ts-expect-error input is required
       const _ = useActorRef(withInputMachine);
       return <></>;
     };

@@ -20,7 +20,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): ActorRefFrom<TLogic> {
-  const actorRef = createActor(logic, options);
+  const actorRef = createActor(logic, options as ActorOptions<TLogic>);
 
   onMount(() => {
     actorRef.start();
