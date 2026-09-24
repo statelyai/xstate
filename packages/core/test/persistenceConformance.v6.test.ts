@@ -153,7 +153,10 @@ describe('non-JSON payload warning (dev)', () => {
     ['symbol', { list: [Symbol('s')] }, 'context.list[0]'],
     ['bigint', { n: 1n }, 'context.n'],
     ['Map', { m: new Map() }, 'context.m'],
-    ['Set', { nested: { s: new Set() } }, 'context.nested.s']
+    ['Set', { nested: { s: new Set() } }, 'context.nested.s'],
+    ['NaN', { score: NaN }, 'context.score'],
+    ['Infinity', { list: [Infinity] }, 'context.list[0]'],
+    ['-Infinity', { min: -Infinity }, 'context.min']
   ])('warns once for a %s', (kind, context, path) => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const machine = createMachine({ context: context as any });
@@ -197,6 +200,14 @@ describe('non-JSON payload warning (dev)', () => {
     expect(createActor(sharing).getPersistedSnapshot()).toMatchObject({
       context: { left: { a: 1 }, right: { nested: { a: 1 } } }
     });
+    warn.mockRestore();
+  });
+
+  it('does not warn for an undefined property', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const machine = createMachine({ context: { result: undefined } });
+    createActor(machine).getPersistedSnapshot();
+    expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 

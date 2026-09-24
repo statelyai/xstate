@@ -87,13 +87,14 @@ try {
 
 ### Payload values
 
-The envelope is JSON-shaped. Serializing it is the host's job: call `JSON.stringify` or another serializer before storing it. `context`, `output`, `error` and state inputs must contain only JSON values.
+The envelope is JSON-shaped. Serializing it is the host's job: call `JSON.stringify` or another serializer before storing it. `context`, `output`, `error` and state inputs must contain only JSON values. JSON omits properties whose value is `undefined` and writes `NaN` and `Infinity` as `null`; the development warning below covers the latter, not `undefined`.
 
 In development builds, `getPersistedSnapshot()` warns once per call with the path of the first value that does not survive a JSON round-trip:
 
 - functions
 - symbols
 - `BigInt` values (`JSON.stringify` throws)
+- `NaN`, `Infinity` and `-Infinity` (serialize to `null`)
 - circular references (`JSON.stringify` throws)
 - `Map` and `Set` instances (serialize to `{}`)
 

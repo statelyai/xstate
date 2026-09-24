@@ -73,8 +73,9 @@ export function upgradePersistedSnapshot<T extends Snapshot<unknown>>(
 
 /**
  * Returns the path of the first value in `value` that does not survive
- * `JSON.stringify` → `JSON.parse` (functions, symbols, bigints, Maps, Sets,
- * circular references), or `undefined`. Dates and actor refs are skipped.
+ * `JSON.stringify` → `JSON.parse` (functions, symbols, bigints, non-finite
+ * numbers, Maps, Sets, circular references), or `undefined`. Dates, actor refs
+ * and `undefined` properties (omitted by JSON) are skipped.
  */
 export function findNonJsonPath(
   value: unknown,
@@ -92,6 +93,11 @@ export function findNonJsonPath(
         return { path: currentPath, kind: 'symbol' };
       case 'bigint':
         return { path: currentPath, kind: 'bigint' };
+      case 'number':
+        // NaN and ±Infinity serialize as `null`.
+        return Number.isFinite(current)
+          ? undefined
+          : { path: currentPath, kind: String(current) };
       case 'object':
         break;
       default:
