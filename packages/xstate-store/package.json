@@ -20,11 +20,7 @@
   },
   "sideEffects": false,
   "files": [
-    "dist",
-    "undo",
-    "persist",
-    "reset",
-    "validate"
+    "dist"
   ],
   "repository": {
     "type": "git",
