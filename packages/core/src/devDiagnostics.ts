@@ -67,7 +67,28 @@ function checkTransitions(
   }
 }
 
+function checkInitialTransition(initial: any, stateId: string): void {
+  if (!initial || typeof initial !== 'object') return;
+  const where = `Initial transition of state "${stateId}"`;
+  const unguarded =
+    'Initial transitions cannot be guarded; use an "always" transition on the target state to redirect conditionally.';
+  if (initial.cond !== undefined) {
+    throw new Error(`${where} uses "cond", which was removed. ${unguarded}`);
+  }
+  if (initial.guard !== undefined) {
+    throw new Error(
+      `${where} uses an object-form "guard", which was removed. ${unguarded}`
+    );
+  }
+  if (initial.actions !== undefined) {
+    throw new Error(
+      `${where} uses "actions", which was removed. Use a \`to: (args, enq) => { ... }\` function on the initial transition and queue effects on "enq", or an "entry" function on the target state.`
+    );
+  }
+}
+
 function checkStateNode(node: any, stateId: string): void {
+  checkInitialTransition(node.initial, stateId);
   if (node.activities !== undefined) {
     console.warn(
       `State "${stateId}": "activities" ${IGNORED_ROOT_KEYS.activities}`

@@ -122,6 +122,43 @@ describe('v5 config diagnostics', () => {
     );
   });
 
+  it('throws on `actions` in a root object-form `initial`', () => {
+    expect(() =>
+      createMachine({
+        initial: { target: 'ready', actions: 'initialize' },
+        states: { ready: {} }
+      } as any)
+    ).toThrowError(
+      'Initial transition of state "(machine)" uses "actions", which was removed.'
+    );
+  });
+
+  it('throws on `cond` in a nested object-form `initial`', () => {
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: { target: 'x', cond: () => true },
+            states: { x: {} }
+          }
+        }
+      } as any)
+    ).toThrowError(
+      'Initial transition of state "(machine).a" uses "cond", which was removed.'
+    );
+  });
+
+  it('accepts an object-form `initial` with `target` and `input`', () => {
+    const warn = warnSpy();
+    const machine = createMachine({
+      initial: { target: 'ready', input: { n: 1 } },
+      states: { ready: {} }
+    });
+    createActor(machine).start();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it.each(['types', 'tsTypes', 'schema'])('throws on `%s`', (key) => {
     expect(() => createMachine({ [key]: {} } as any)).toThrowError(
       /replaced by "schemas"|was removed\. Declare contracts under `schemas`/
