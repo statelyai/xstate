@@ -99,9 +99,16 @@ The logic passed on the first render is used for the component's lifetime, like 
 
 ### Hot reloading
 
-In development builds, when React Fast Refresh re-renders a component after the machine's module was edited, the hooks keep the running actor and switch it to the edited machine. The current state value and context carry over as they are, without serializing, so context that holds DOM elements or cyclic objects is kept. Invoked actors whose logic did not change keep running; the others restart.
+In development builds, when React Fast Refresh re-renders a component after the machine's module was edited, the hooks keep the running actor and switch it to the edited machine. The current state and context carry over in memory, without serializing, so context that holds DOM elements or cyclic objects is kept. If an active state gained child states, their initial states become active. Invoked and spawned actors whose logic did not change keep running; the others restart.
 
-The hooks start a fresh actor from the edited machine instead when the current state no longer exists in it, when its `id` changed, or when its configured validator rejects the current context. Production builds never switch machines.
+The hooks start a fresh actor from the edited machine instead when:
+
+- the current state no longer exists in it, or its `id` changed
+- a remembered history state no longer exists in it
+- context or a pending delayed event refers to an actor that would restart
+- its configured validator rejects the current context
+
+Production builds never switch machines.
 
 `useMachine(...)` is a deprecated alias for `useActor(machine, options)`. It accepts state machines only. Use `useActor(...)`.
 
