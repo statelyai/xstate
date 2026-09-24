@@ -435,6 +435,13 @@ state lives with another runtime. Hosts that store each actor separately use
 `transition()` per actor and route completions from the `@xstate.terminate`
 effect descriptor.
 
+After `transitionChild()`, only the actors on the transitioned path are
+rebound to the new tree. Actors off that path keep their previous system view,
+so `system.get()` called from a sibling actor returns the child as it was
+before the transition. Look up the current child from the returned root
+snapshot instead, with `getChildSnapshot(next, address)` or, in a durable
+execution, `durable.getActorRef(next, address)`.
+
 In a durable execution, `durable.transitionChild(snapshot, address, event)`
 tags every effect of the cascade under one `transitionIndex`, so one journal
 entry `(address, event)` produces one root snapshot on replay.

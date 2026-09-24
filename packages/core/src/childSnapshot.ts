@@ -9,7 +9,6 @@ import {
 } from './snapshotActorRef.ts';
 import { encodeAddressSegment, getRootActorId } from './system.ts';
 import { transition } from './transition.ts';
-import { markFoldedTerminateEffect } from './transitionActions.ts';
 import type {
   AnyActor,
   AnyActorLogic,
@@ -322,7 +321,9 @@ export function transitionChild<T extends AnyStateMachine>(
     // parent's stale-completion check applies as in a live runtime. Only
     // remote handles lack a sessionId, and the walk never transitions one.
     const sessionId = ref.sessionId!;
-    markFoldedTerminateEffect(terminate);
+    // Plain data, so copies and descriptors of the effect keep it
+    terminate.completionDelivered = true;
+    terminate.args[1].completionDelivered = true;
     targetEvent =
       terminate.status === 'done'
         ? createDoneActorEvent(id, terminate.output, sessionId)
