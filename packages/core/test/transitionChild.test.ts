@@ -448,6 +448,71 @@ describe('getChildSnapshot / withChildSnapshot / transitionChild', () => {
 });
 
 describe('transitionChild edges', () => {
+  it('non-terminal transitionChild: getActorRef and system.get resolve the new tree; the original snapshot keeps the old one', () => {
+    const pausingRetry = createMachine({
+      id: 'retry',
+      initial: 'idle',
+      states: {
+        idle: { after: { 1000: { target: 'paused' } } },
+        paused: { on: { RESUME: { target: 'resumed' } } },
+        resumed: {}
+      }
+    });
+    const pausingWorker = setup({
+      actors: { retry: pausingRetry }
+    }).createMachine({
+      id: 'worker',
+      invoke: { id: 'retry', src: 'retry', registryKey: 'retrier' }
+    });
+    const machine = setup({ actors: { worker: pausingWorker } }).createMachine({
+      id: 'root',
+      invoke: { id: 'worker', src: 'worker' }
+    });
+    const durable = createDurable(machine, {
+      executionId: 'exec',
+      executeAction: () => {},
+      waitForEvent: () => new Promise(() => {})
+    });
+    const snapshot = restoreFresh(machine as never);
+
+    const [next] = durable.transitionChild(
+      snapshot as never,
+      'root/worker/retry',
+      { type: 'xstate.timer', id: 'xstate.after.1000.retry.idle' }
+    );
+
+    const valueAt = (s: AnyMachineSnapshot, address: string) =>
+      (
+        durable
+          .getActorRef(s as never, address)!
+          .getSnapshot() as AnyMachineSnapshot
+      ).value;
+    expect(valueAt(next, 'root/worker/retry')).toBe('paused');
+    expect(valueAt(snapshot, 'root/worker/retry')).toBe('idle');
+    expect(
+      (durable.getActorRef(next)!.getSnapshot() as AnyMachineSnapshot).children
+        .worker
+    ).toBe(next.children.worker);
+    const system = durable.getActorRef(next)!.system;
+    expect(
+      (system.get('retrier')!.getSnapshot() as AnyMachineSnapshot).value
+    ).toBe('paused');
+    expect(
+      (
+        durable
+          .getActorRef(snapshot as never)!
+          .system.get('retrier')!
+          .getSnapshot() as AnyMachineSnapshot
+      ).value
+    ).toBe('idle');
+
+    const [after] = durable.transitionChild(next, 'root/worker/retry', {
+      type: 'RESUME'
+    });
+    expect(valueAt(after, 'root/worker/retry')).toBe('resumed');
+    expect(valueAt(next, 'root/worker/retry')).toBe('paused');
+  });
+
   it('is transition() for the root address', () => {
     const snapshot = restoreFresh();
     const event = { type: 'xstate.done.actor', actorId: 'worker', output: 1 };

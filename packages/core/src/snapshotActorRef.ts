@@ -317,3 +317,74 @@ export function setSnapshotActorRef(
     }
   } satisfies SnapshotActorRef);
 }
+
+/**
+ * Returns a system view over `base` in which every registered and keyed actor
+ * is passed through `replace`. Everything else (runtime, scheduling, clocks,
+ * inspection) is delegated to `base`. Used when a snapshot tree is path-copied
+ * so the copy's receptionist reports the copied actors while `base` keeps
+ * reporting the originals.
+ *
+ * @internal
+ */
+export function createReboundSystem(
+  base: AnyActor['system'],
+  replace: (actor: AnyActor) => AnyActor
+): AnyActor['system'] {
+  const children = new Map<string, AnyActor>();
+  for (const [sessionId, actor] of base.children) {
+    children.set(sessionId, replace(actor));
+  }
+  const keyedActors = new Map<PropertyKey, AnyActor | undefined>();
+  const reverseKeyedActors = new WeakMap<AnyActor, PropertyKey>();
+  for (const [registryKey, actor] of getKeyedActors(base)) {
+    const next = actor && replace(actor);
+    keyedActors.set(registryKey, next);
+    if (next) {
+      reverseKeyedActors.set(next, registryKey);
+    }
+  }
+  const value = (v: unknown) => ({ value: v, writable: true });
+  // Own data properties shadow the base's accessors and closures alike.
+  return Object.create(base, {
+    children: value(children),
+    _children: value(children),
+    keyedActors: value(keyedActors),
+    _keyedActors: value(keyedActors),
+    reverseKeyedActors: value(reverseKeyedActors),
+    _reverseKeyedActors: value(reverseKeyedActors),
+    _peekChildren: value(() => children),
+    _peekKeyedActors: value(() => keyedActors),
+    get: value((registryKey: PropertyKey) => keyedActors.get(registryKey)),
+    getAll: value(() => Object.fromEntries(keyedActors))
+  });
+}
+
+/**
+ * Re-associates `snapshot` with `actor`, passing every actor in its existing
+ * system view through `replace`. No-op when `snapshot` has no association.
+ *
+ * @internal
+ */
+export function rebindSnapshotActorRef(
+  snapshot: Snapshot<unknown>,
+  actor: AnyActor,
+  replace: (actor: AnyActor) => AnyActor
+): void {
+  const ref = getSnapshotActorRef(snapshot);
+  if (!ref) {
+    return;
+  }
+  const state = ref.systemState;
+  const replaceValues = <K>(map: Map<K, AnyActor | undefined>) =>
+    new Map([...map].map(([key, value]) => [key, value && replace(value)]));
+  snapshotActorRefs.set(snapshot, {
+    actor,
+    systemState: {
+      ...state,
+      root: state.root && replace(state.root),
+      children: state.children && replaceValues(state.children),
+      keyedActors: replaceValues(state.keyedActors)
+    } as SnapshotSystemState
+  });
+}

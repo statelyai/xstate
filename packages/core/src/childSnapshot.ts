@@ -2,7 +2,11 @@ import { XSTATE_TERMINATE } from './constants.ts';
 import { cloneMachineSnapshot } from './State.ts';
 import { createDoneActorEvent, createErrorActorEvent } from './eventUtils.ts';
 import { isRemoteActorRef } from './remoteActorRef.ts';
-import { getSnapshotActorRef } from './snapshotActorRef.ts';
+import {
+  createReboundSystem,
+  getSnapshotActorRef,
+  rebindSnapshotActorRef
+} from './snapshotActorRef.ts';
 import { encodeAddressSegment, getRootActorId } from './system.ts';
 import { transition } from './transition.ts';
 import { markFoldedTerminateEffect } from './transitionActions.ts';
@@ -157,6 +161,11 @@ function replaceChild(
   });
 }
 
+type CopyableActor = AnyActor & {
+  _parent?: AnyActor;
+  _withSnapshot(snapshot: Snapshot<unknown>): CopyableActor;
+};
+
 function mergeChildSnapshot<T extends AnyMachineSnapshot>(
   links: ChildLink[],
   childSnapshot: Snapshot<unknown>
@@ -164,15 +173,39 @@ function mergeChildSnapshot<T extends AnyMachineSnapshot>(
   // Path-clone bottom-up: each ancestor snapshot and the actor that holds it
   // are copied, never mutated, so earlier snapshots (and anything replaying
   // them) keep their own view of the tree.
+  const replacements = new Map<AnyActor, AnyActor>();
+  const copies: Array<[snapshot: Snapshot<unknown>, actor: CopyableActor]> = [];
   let nextSnapshot: Snapshot<unknown> = childSnapshot;
   for (let i = links.length - 1; i >= 0; i--) {
     const { id, ref, parentSnapshot } = links[i];
-    const nextRef = (
-      ref as AnyActor & {
-        _withSnapshot(snapshot: Snapshot<unknown>): AnyActor;
-      }
-    )._withSnapshot(nextSnapshot);
+    const nextRef = (ref as CopyableActor)._withSnapshot(nextSnapshot);
+    replacements.set(ref, nextRef);
+    copies.push([nextSnapshot, nextRef]);
     nextSnapshot = replaceChild(parentSnapshot, id, ref, nextRef);
+  }
+
+  // The cloned root still carries the original root actor (and through it
+  // the original tree). Give it a copy whose snapshot and system view report
+  // the new tree; the original snapshot keeps the old association.
+  const rootRef = getSnapshotActorRef(links[0].parentSnapshot)?.actor as
+    | CopyableActor
+    | undefined;
+  if (rootRef) {
+    const rootCopy = rootRef._withSnapshot(nextSnapshot);
+    replacements.set(rootRef, rootCopy);
+    copies.push([nextSnapshot, rootCopy]);
+  }
+  const replace = (actor: AnyActor) => replacements.get(actor) ?? actor;
+  const baseSystem = (rootRef ?? links[0].ref).system;
+  const system = createReboundSystem(baseSystem, replace);
+  for (const [snapshot, actor] of copies) {
+    if (actor.system === baseSystem) {
+      actor.system = system;
+    }
+    if (actor._parent) {
+      actor._parent = replace(actor._parent);
+    }
+    rebindSnapshotActorRef(snapshot, actor, replace);
   }
   return nextSnapshot as T;
 }
