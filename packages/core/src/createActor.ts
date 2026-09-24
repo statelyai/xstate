@@ -1291,8 +1291,8 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
 
 /**
  * The options `createActor` (and framework hooks) require for `TLogic`:
- * `{ input }` or a persisted `{ snapshot }` when the logic requires input,
- * otherwise nothing.
+ * `{ input }` or a persisted `{ snapshot }` (or deprecated `{ state }`) when
+ * the logic requires input, otherwise nothing.
  *
  * @public
  */
@@ -1302,7 +1302,8 @@ export type RequiredActorOptionsFor<TLogic extends AnyActorLogic> = [
   ? {}
   :
       | { [K in RequiredActorOptionsKeys<TLogic>]: unknown }
-      | { snapshot: NonNullable<ActorOptions<TLogic>['snapshot']> };
+      | { snapshot: NonNullable<ActorOptions<TLogic>['snapshot']> }
+      | { state: NonNullable<ActorOptions<TLogic>['state']> };
 
 /** Options accepted by {@link createActor}. */
 type CreateActorOptionsArgs<TLogic extends AnyActorLogic> = [

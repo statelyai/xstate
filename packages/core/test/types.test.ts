@@ -5127,6 +5127,7 @@ describe('input', () => {
     }).getPersistedSnapshot();
 
     createActor(machine, { snapshot: persisted });
+    createActor(machine, { state: persisted });
     // @ts-expect-error input is required without a snapshot
     createActor(machine, { inspect: () => {} });
   });
