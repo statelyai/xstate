@@ -1,0 +1,10 @@
+{
+  "$schema": "../../../../node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": ["../../../../scripts/oxlint-plugin-xstate-react.ts"],
+  "categories": {
+    "correctness": "off"
+  },
+  "rules": {
+    "xstate/no-machine-in-component": "error"
+  }
+}
