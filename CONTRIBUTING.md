@@ -83,6 +83,14 @@ We are using [changesets](https://github.com/atlassian/changesets) to create "re
 
 `pnpm check:templates` installs and builds all four standalone starter templates with their own frozen lockfiles.
 
+`pnpm check:exports` requires every public `xstate` export to carry exactly one
+`@public`, `@experimental`, or `@internal` stability tag. `@deprecated` must be
+paired with `@public` or `@experimental`.
+
+After `pnpm build`, `pnpm check:packed` packs `xstate` and `@xstate/react`, then
+checks their published files, declarations, ESM/CJS entry points, and production
+builds from a standalone consumer.
+
 Workflow regression tests use in-process actors, simulated clocks, and mocked network, database, filesystem, and subprocess boundaries. Passing these checks does not exercise real MongoDB credentials, external services, or media-file moves. Follow each example's README to run its live integration.
 
 The pinned `@scion-scxml/test-framework@2.0.16` package supplies SCXML fixtures only. Its original fixture files and licensing remain intact; its unused HTTP runner dependencies are removed with scoped pnpm overrides. That runner is intentionally unavailable. Core SCXML tests read the fixtures directly. Happy DOM is a development-only test environment.
