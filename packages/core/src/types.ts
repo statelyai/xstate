@@ -2120,7 +2120,8 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * internal event type sent from outside its owning actor. Rejected events
    * are never delivered and never error the target actor.
    *
-   * Only observed when this actor is the root of its system.
+   * Registers the listener with `actor.system.onRejectedEvent(...)`, which
+   * also accepts listeners added later. Ignored when this actor has a parent.
    */
   onRejectedEvent?: (rejection: EventRejection) => void;
 }

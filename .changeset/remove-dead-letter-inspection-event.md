@@ -12,3 +12,12 @@ createActor(machine, {
   }
 });
 ```
+
+Undelivered events are also available through `system.onRejectedEvent(listener)`, which accepts any number of listeners added at any time and returns a subscription. The `onRejectedEvent` option registers a listener the same way.
+
+```ts
+const subscription = actor.system.onRejectedEvent((rejection) => {
+  console.log(rejection.event.type, rejection.reason);
+});
+subscription.unsubscribe();
+```

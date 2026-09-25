@@ -279,8 +279,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
           clock,
           logger,
           snapshot: resolvedOptions.snapshot ?? resolvedOptions.state,
-          createActorRef,
-          onRejectedEvent: resolvedOptions.onRejectedEvent
+          createActorRef
         }));
 
     if (
@@ -294,6 +293,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     if (inspect && !parent) {
       // Always inspect at the system-level
       this.system.inspect(toObserver(inspect));
+    }
+
+    if (resolvedOptions.onRejectedEvent && !parent) {
+      this.system.onRejectedEvent(resolvedOptions.onRejectedEvent);
     }
 
     this.sessionId = resolvedOptions._sessionId ?? bookSessionId(this.system);

@@ -389,43 +389,9 @@ export function inspect(actor: AnyActorRef): Stream.Stream<InspectionEvent> {
   );
 }
 
-type RejectionListener = (rejection: EventRejection) => void;
-
-const rejectionListeners = new WeakMap<object, Set<RejectionListener>>();
-
 /**
- * Adds a listener to the system's `onRejectedEvent` hook, keeping the hook
- * the actor was created with.
- */
-function listenForRejections(
-  system: AnyActor['system'],
-  listener: RejectionListener
-): Subscription {
-  let listeners = rejectionListeners.get(system);
-  if (!listeners) {
-    const hooked = system as { _onRejectedEvent?: RejectionListener };
-    const original = hooked._onRejectedEvent;
-    const set = new Set<RejectionListener>();
-    listeners = set;
-    rejectionListeners.set(system, set);
-    hooked._onRejectedEvent = (rejection) => {
-      original?.(rejection);
-      for (const each of set) {
-        each(rejection);
-      }
-    };
-  }
-  listeners.add(listener);
-  return {
-    unsubscribe: () => {
-      listeners.delete(listener);
-    }
-  };
-}
-
-/**
- * Streams the events the actor's system could not deliver, as reported to
- * the `onRejectedEvent` option: sends to a stopped actor, invalid external
+ * Streams the events the actor's system could not deliver, as reported by
+ * `system.onRejectedEvent`: sends to a stopped actor, invalid external
  * events and internal events sent from outside their owner. A dead letter is
  * not an actor error. The stream runs until it is interrupted or its scope
  * closes.
@@ -434,9 +400,8 @@ export function deadLetters(actor: AnyActorRef): Stream.Stream<EventRejection> {
   return Stream.callback<EventRejection>((queue) =>
     Effect.acquireRelease(
       Effect.sync(() =>
-        listenForRejections(
-          (actor as unknown as AnyActor).system,
-          (rejection) => {
+        (actor as unknown as AnyActor).system.onRejectedEvent(
+          (rejection: EventRejection) => {
             Queue.offerUnsafe(queue, rejection);
           }
         )

@@ -88,4 +88,4 @@ const program = Effect.gen(function* () {
 });
 ```
 
-`deadLetters` streams the `EventRejection` objects the system reports to its `onRejectedEvent` hook. Dead letters are not inspection events, so `inspect` does not include them.
+`deadLetters` streams the `EventRejection` objects the system reports through `system.onRejectedEvent`, and unsubscribes when the stream ends. Dead letters are not inspection events, so `inspect` does not include them.

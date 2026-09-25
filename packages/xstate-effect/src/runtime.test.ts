@@ -1,6 +1,12 @@
 import { Context, Duration, Effect, Exit, Scope, Stream } from 'effect';
 import { TestClock } from 'effect/testing';
-import { createMachine, setup, type AnyActorRef } from 'xstate';
+import {
+  createActor,
+  createMachine,
+  setup,
+  type AnyActorRef,
+  type EventRejection
+} from 'xstate';
 import {
   EffectActor,
   EffectInterruptedError,
@@ -802,9 +808,15 @@ describe('@xstate/effect runtime', () => {
     await runScoped(
       Effect.gen(function* () {
         const actor = yield* createEffectActor(machine);
-        const listening = () =>
-          (actor.system as { _onRejectedEvent?: unknown })._onRejectedEvent !==
-          undefined;
+        let subscribed = false;
+        const onRejectedEvent = actor.system.onRejectedEvent;
+        actor.system.onRejectedEvent = (
+          listener: (rejection: EventRejection) => void
+        ) => {
+          subscribed = true;
+          return onRejectedEvent.call(actor.system, listener);
+        };
+        const listening = () => subscribed;
 
         yield* Effect.forkScoped(
           Stream.runForEach(deadLetters(actor), (event) =>
@@ -836,6 +848,40 @@ describe('@xstate/effect runtime', () => {
       { reason: 'stopped', type: 'TO_CHILD' },
       { reason: 'stopped', type: 'TO_ROOT' }
     ]);
+  });
+
+  it('streams EventRejection objects and unsubscribes when the stream ends', async () => {
+    const actor = createActor(createMachine({})).start();
+    actor.stop();
+    let active = 0;
+    const onRejectedEvent = actor.system.onRejectedEvent;
+    actor.system.onRejectedEvent = (
+      listener: (rejection: EventRejection) => void
+    ) => {
+      active++;
+      const subscription = onRejectedEvent.call(actor.system, listener);
+      return {
+        unsubscribe: () => {
+          active--;
+          subscription.unsubscribe();
+        }
+      };
+    };
+
+    const collected = Effect.runPromise(
+      Stream.runCollect(Stream.take(deadLetters(actor), 1))
+    );
+    await until(() => active === 1);
+    actor.send({ type: 'FIRST' });
+    const letters: EventRejection[] = Array.from(await collected);
+
+    expect(letters).toHaveLength(1);
+    expect(letters[0]).toMatchObject({
+      event: { type: 'FIRST' },
+      targetRef: actor,
+      reason: 'stopped'
+    });
+    expect(active).toBe(0);
   });
 
   it('accepts a fromEffect config without schemas', async () => {

@@ -44,7 +44,7 @@ Both event types carry `rootId`, the session ID of the root actor, and `actorRef
 | `actions` | The executed actions, as `{ type, params }`. |
 | `sent` | Events relayed to other actors, as `{ targetRef, targetId, event, delay, id }`. |
 
-Events that could not be delivered (dead letters) are not inspection events. Observe them with the `onRejectedEvent` option on `createActor`.
+Events that could not be delivered (dead letters) are not inspection events. Observe them with the `onRejectedEvent` option on `createActor`, or subscribe later with `actor.system.onRejectedEvent(listener)`. See [dead letters](systems.md#dead-letters).
 
 Actor stop is derivable from `snapshot.status` on the actor's final `@xstate.transition` event, so there is no separate stop event. The v5 `@xstate.event`, `@xstate.snapshot`, `@xstate.action` and `@xstate.microstep` events are gone; `@xstate.transition` carries all of them.
 

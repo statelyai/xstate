@@ -15,6 +15,7 @@ import {
 } from './types.ts';
 import { XSTATE_TIMER } from './constants.ts';
 import { toObserver } from './utils.ts';
+import { reportUnhandledError } from './reportUnhandledError.ts';
 import { getAmbientInspector } from './inspectionAmbient.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
@@ -390,8 +391,8 @@ export interface ActorSystemRuntime {
   ): unknown | PromiseLike<unknown>;
   /**
    * Reports an undeliverable event. Delivery stays at-most-once — this is
-   * observability, not retry. The system always calls the root actor's
-   * `onRejectedEvent` hook first; the default then logs in development.
+   * observability, not retry. The system always calls its
+   * `onRejectedEvent` listeners first; the default then logs in development.
    * `detail` carries validation issues and the underlying error for events
    * rejected at the delivery boundary.
    */
@@ -470,6 +471,19 @@ export interface ActorSystem<
       | Observer<InspectionEvent>
       | ((inspectionEvent: InspectionEvent) => void)
   ) => Subscription;
+  /**
+   * Subscribes to events the system could not deliver (dead letters): sends
+   * to a stopped actor, events rejected at the delivery boundary
+   * and internal events sent from outside their owner. Listeners run in
+   * registration order; a listener that throws does not prevent the others.
+   * The `onRejectedEvent` option on `createActor` registers a listener the
+   * same way.
+   *
+   * @public
+   */
+  onRejectedEvent: (
+    listener: (rejection: EventRejection) => void
+  ) => Subscription;
   /** @internal Avoids collecting inspection-only transition metadata. */
   _hasInspectionObservers?: () => boolean;
   /** @internal */
@@ -537,7 +551,7 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
   _reverseKeyedActors?: WeakMap<AnyActor, keyof T['actors']>;
   _inspectionObservers?: Set<Observer<InspectionEvent>>;
   _timerMap?: { [id: ScheduledTimerId]: number };
-  _onRejectedEvent?: (rejection: EventRejection) => void;
+  _rejectionListeners?: Set<(rejection: EventRejection) => void>;
 }
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
@@ -602,10 +616,8 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       logger: (...args: any[]) => void;
       snapshot?: unknown;
       createActorRef: ActorSystem<T>['createActorRef'];
-      onRejectedEvent?: (rejection: EventRejection) => void;
     }
   ) {
-    this._onRejectedEvent = options.onRejectedEvent;
     const restoredSnapshot =
       typeof options.snapshot === 'object' && options.snapshot !== null
         ? (options.snapshot as {
@@ -815,6 +827,19 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     };
   }
 
+  public onRejectedEvent(
+    listener: (rejection: EventRejection) => void
+  ): Subscription {
+    // Wrap so the same function registered twice gets two subscriptions.
+    const entry = (rejection: EventRejection) => listener(rejection);
+    (this._rejectionListeners ??= new Set()).add(entry);
+    return {
+      unsubscribe: () => {
+        this._rejectionListeners?.delete(entry);
+      }
+    };
+  }
+
   public _hasInspectionObservers(): boolean {
     return !!this._inspectionObservers?.size;
   }
@@ -907,16 +932,28 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     reason: EventRejectionReason,
     detail?: DeadLetterDetail
   ): void | PromiseLike<void> {
-    this._onRejectedEvent?.({
-      event,
-      targetRef: target,
-      targetId: target.id,
-      sourceRef: source,
-      eventOrigin: source ? 'actor' : 'external',
-      reason,
-      issues: detail?.issues,
-      error: detail?.error
-    });
+    const listeners = this._rejectionListeners;
+    if (listeners?.size) {
+      const rejection: EventRejection = {
+        event,
+        targetRef: target,
+        targetId: target.id,
+        sourceRef: source,
+        eventOrigin: source ? 'actor' : 'external',
+        reason,
+        issues: detail?.issues,
+        error: detail?.error
+      };
+      // Snapshot so listeners added or removed during delivery do not affect
+      // this rejection.
+      for (const listener of [...listeners]) {
+        try {
+          listener(rejection);
+        } catch (err) {
+          reportUnhandledError(err);
+        }
+      }
+    }
     const override = this.runtime?.deadLetter;
     if (override) {
       return override(source, target, event, reason, detail);
@@ -1037,7 +1074,6 @@ export function createRuntimeSystem<T extends ActorSystemInfo>(
     logger: (...args: any[]) => void;
     snapshot?: unknown;
     createActorRef: ActorSystem<T>['createActorRef'];
-    onRejectedEvent?: (rejection: EventRejection) => void;
   }
 ): ActorSystem<T> {
   return new RuntimeSystem(rootActor, options);
