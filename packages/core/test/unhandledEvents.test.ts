@@ -72,7 +72,8 @@ describe('unhandled events', () => {
     actor.send({ type: 'UNKNOWN' } as any);
 
     const transitions = events.filter(
-      (ev) => ev.type === '@xstate.transition' && ev.event.type === 'UNKNOWN'
+      (ev): ev is Extract<InspectionEvent, { type: '@xstate.transition' }> =>
+        ev.type === '@xstate.transition' && ev.event.type === 'UNKNOWN'
     );
     expect(transitions).toHaveLength(1);
     expect(transitions[0].snapshot).toBe(before);
