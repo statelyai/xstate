@@ -2042,10 +2042,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *   type was sent from outside its owning actor. Carries the `event`,
    *   `sourceRef`, `reason`, and — for boundary rejections — `issues` and
    *   `error`.
-   * - `@xstate.event.unhandled` - A state machine actor received an event that
-   *   no transition handled (the snapshot is unchanged and no effects ran).
-   *   Carries the `event` and the unchanged `snapshot`. Internal `xstate.*`
-   *   events are not reported.
    *
    * @example
    *

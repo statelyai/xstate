@@ -7,7 +7,6 @@ Unhandled events are now observable.
 - `transition(logic, snapshot, event)` returns the same snapshot object and no effects when no transition handles the event. A handled event always returns a new snapshot object, including a transition function that returns `{}`.
 - New `isUnhandled(previousSnapshot, result)` helper.
 - New `onUnhandledEvent(event, snapshot)` option for `createActor(...)`.
-- New `@xstate.event.unhandled` inspection event.
 - Development builds warn once per event type per actor. Internal `xstate.*` events are not reported.
 
 ```ts

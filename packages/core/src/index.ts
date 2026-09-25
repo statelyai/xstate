@@ -147,7 +147,6 @@ export type {
   InspectionEvent,
   ActorInspectionEvent,
   DeadLetterInspectionEvent,
-  UnhandledEventInspectionEvent,
   TransitionInspectionEvent,
   ActionRecord,
   SentRecord

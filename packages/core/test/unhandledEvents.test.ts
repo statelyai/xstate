@@ -61,25 +61,24 @@ describe('unhandled events', () => {
     expect(actor.getSnapshot()).toBe(snapshot);
   });
 
-  it('emits the @xstate.event.unhandled inspection event', () => {
+  it('shows an unhandled event in the inspection stream as a transition with the same snapshot', () => {
     const events: InspectionEvent[] = [];
     const actor = createActor(machine, {
       inspect: (ev) => {
         events.push(ev);
       }
     }).start();
+    const before = actor.getSnapshot();
     actor.send({ type: 'UNKNOWN' } as any);
 
-    expect(
-      events.filter((ev) => ev.type === '@xstate.event.unhandled')
-    ).toEqual([
-      expect.objectContaining({
-        type: '@xstate.event.unhandled',
-        actorRef: actor,
-        event: { type: 'UNKNOWN' },
-        snapshot: actor.getSnapshot()
-      })
-    ]);
+    const transitions = events.filter(
+      (ev) => ev.type === '@xstate.transition' && ev.event.type === 'UNKNOWN'
+    );
+    expect(transitions).toHaveLength(1);
+    expect(transitions[0].snapshot).toBe(before);
+    expect(events.some((ev) => (ev.type as string).includes('unhandled'))).toBe(
+      false
+    );
   });
 
   it('warns once per event type per actor in development', () => {

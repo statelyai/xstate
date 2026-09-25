@@ -1033,14 +1033,6 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   private _warnedUnhandledTypes?: Set<string>;
 
   private _reportUnhandledEvent(event: EventFromLogic<TLogic>): void {
-    if (this.system._hasInspectionObservers?.() ?? true) {
-      this.system._sendInspectionEvent({
-        type: '@xstate.event.unhandled',
-        actorRef: this,
-        event,
-        snapshot: this._snapshot
-      });
-    }
     safeCall(() => this.options.onUnhandledEvent?.(event, this._snapshot));
     if (isDevelopment) {
       const warned = (this._warnedUnhandledTypes ??= new Set());

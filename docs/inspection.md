@@ -20,7 +20,6 @@ Inspection emits four event types:
 | `@xstate.actor` | Actor identity and parent information. |
 | `@xstate.transition` | The event, snapshot, source, target and microsteps. |
 | `@xstate.deadletter` | An event that could not be delivered. |
-| `@xstate.event.unhandled` | An event a machine actor received that no transition handled. |
 
 Every event type carries `rootId`, the session ID of the root actor, and `actorRef`, the actor the event is about. Session IDs are unique across actors, so `rootId` identifies the system and `actorRef.sessionId` identifies an actor within it.
 
@@ -56,7 +55,7 @@ Every event type carries `rootId`, the session ID of the root actor, and `actorR
 | `issues` | Standard Schema issues for `'invalidEvent'` dead letters. |
 | `error` | The underlying error for a delivery-boundary rejection. |
 
-`@xstate.event.unhandled` announces an event that a state machine actor processed without any transition handling it: the snapshot is unchanged and no effects ran. It carries `event` and the unchanged `snapshot`. Internal `xstate.*` events are not reported.
+An event that no transition handled is visible without a separate event type: the `@xstate.transition` event that follows it carries the same `snapshot` reference as the previous transition and an empty `actions` list. Compare references, or use `isUnhandled()` with the pure API.
 
 Actor stop is derivable from `snapshot.status` on the actor's final `@xstate.transition` event, so there is no separate stop event. The v5 `@xstate.event`, `@xstate.snapshot`, `@xstate.action` and `@xstate.microstep` events are gone; `@xstate.transition` carries all of them.
 
@@ -75,5 +74,4 @@ event.parentRef, event.id, event.src, event.snapshot; // '@xstate.actor'
 event.event, event.snapshot, event.sourceRef, event.targetRef; // '@xstate.transition'
 event.microsteps, event.actions, event.sent; // '@xstate.transition'
 event.event, event.reason, event.issues, event.error; // '@xstate.deadletter'
-event.event, event.snapshot; // '@xstate.event.unhandled'
 ```
