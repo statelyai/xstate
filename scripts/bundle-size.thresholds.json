@@ -6,7 +6,7 @@
     "maxGzipBytes": 450
   },
   "minimal-machine": {
-    "maxGzipBytes": 26323
+    "maxGzipBytes": 26265
   },
   "minimal-fsm": {
     "maxGzipBytes": 450
@@ -18,46 +18,46 @@
     "maxGzipBytes": 6887
   },
   "machine-construction": {
-    "maxGzipBytes": 26295
+    "maxGzipBytes": 26245
   },
   "pure-machine": {
-    "maxGzipBytes": 26476
+    "maxGzipBytes": 26426
   },
   "compound": {
-    "maxGzipBytes": 26334
+    "maxGzipBytes": 26275
   },
   "parallel": {
-    "maxGzipBytes": 26347
+    "maxGzipBytes": 26289
   },
   "history": {
-    "maxGzipBytes": 26399
+    "maxGzipBytes": 26340
   },
   "final": {
-    "maxGzipBytes": 26344
+    "maxGzipBytes": 26286
   },
   "eventless": {
-    "maxGzipBytes": 26336
+    "maxGzipBytes": 26279
   },
   "actionful": {
-    "maxGzipBytes": 26341
+    "maxGzipBytes": 26283
   },
   "invoked": {
-    "maxGzipBytes": 27625
+    "maxGzipBytes": 27586
   },
   "delayed": {
-    "maxGzipBytes": 26346
+    "maxGzipBytes": 26288
   },
   "persisted": {
-    "maxGzipBytes": 26361
+    "maxGzipBytes": 26303
   },
   "inspected": {
-    "maxGzipBytes": 26336
+    "maxGzipBytes": 26277
   },
   "machine-and-actors": {
-    "maxGzipBytes": 27688
+    "maxGzipBytes": 27652
   },
   "validated-machine": {
-    "maxGzipBytes": 28059
+    "maxGzipBytes": 28006
   },
   "store-counter": {
     "maxGzipBytes": 2975
@@ -66,12 +66,12 @@
     "maxGzipBytes": 1733
   },
   "react-machine": {
-    "maxGzipBytes": 28046
+    "maxGzipBytes": 27999
   },
   "react-store": {
     "maxGzipBytes": 3316
   },
   "kitchen-sink": {
-    "maxGzipBytes": 36017
+    "maxGzipBytes": 35963
   }
 }
