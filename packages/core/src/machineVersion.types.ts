@@ -1,7 +1,11 @@
 import type { StandardSchemaV1 } from './schema.types.ts';
 import type { EventObject, Snapshot } from './types.ts';
 
-/** Durable machine snapshot fields that a historical snapshot schema describes. */
+/**
+ * Durable machine snapshot fields that a historical snapshot schema describes.
+ *
+ * @public
+ */
 export type PersistedMachineSnapshot = {
   status: Snapshot<unknown>['status'];
   output?: unknown;
@@ -20,16 +24,28 @@ export type PersistedMachineSnapshot = {
   [key: string]: unknown;
 };
 
-/** A Standard Schema for a complete persisted machine snapshot. */
+/**
+ * A Standard Schema for a complete persisted machine snapshot.
+ *
+ * @public
+ */
 export type MachineSnapshotSchema = StandardSchemaV1<
   unknown,
   PersistedMachineSnapshot
 >;
 
-/** A Standard Schema for a complete persisted event object. */
+/**
+ * A Standard Schema for a complete persisted event object.
+ *
+ * @public
+ */
 export type MachineEventSchema = StandardSchemaV1<unknown, EventObject>;
 
-/** Schema-backed capabilities for one machine version. */
+/**
+ * Schema-backed capabilities for one machine version.
+ *
+ * @public
+ */
 export type MachineVersionDescriptor = {
   id: string;
   version: string;

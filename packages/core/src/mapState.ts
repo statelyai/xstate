@@ -41,6 +41,8 @@ type StateSchemaMapper<
  * Traverses all active state nodes (from atomic/leaf states up to root) and
  * collects results from matching `map` functions in the mapper object. Results
  * are ordered leaf-to-root (most specific state first).
+ *
+ * @public
  */
 export function mapState<T extends AnyMachineSnapshot, TResult>(
   snapshot: T,

@@ -7,12 +7,18 @@
 // Usage:
 //   node scripts/bundle-size.mjs            # measure + check thresholds
 //   node scripts/bundle-size.mjs --update   # rewrite thresholds to current sizes
+//   node scripts/bundle-size.mjs --update --force  # allow raising above a target
 //   node scripts/bundle-size.mjs --why      # per-module byte attribution
 //   node scripts/bundle-size.mjs --dist     # diagnose the latest local build
 //   node scripts/bundle-size.mjs --json     # machine-readable results
 //   node scripts/bundle-size.mjs --profile=minimal-machine
 //   node scripts/bundle-size.mjs --verify   # assert output of both minifiers
 //   node scripts/bundle-size.mjs --report   # report without enforcing stale budgets
+//
+// Thresholds are the regression line (exceeding one fails). Targets in
+// scripts/bundle-size.targets.json are goals: a miss is reported on every run
+// but does not fail, and `--update` refuses to raise a threshold above its
+// target unless `--force` is passed.
 //
 // Source is canonical so the gate cannot accidentally measure stale build
 // artifacts. `--dist` requires `preconstruct build` to have run first.
@@ -544,6 +550,7 @@ const EXPECTED_LOGS = {
 
 const args = process.argv.slice(2);
 const update = args.includes('--update');
+const force = args.includes('--force');
 const why = args.includes('--why');
 const json = args.includes('--json');
 const useDist = args.includes('--dist');
@@ -568,6 +575,9 @@ const attribution = {};
 const profileArg = args.find((arg) => arg.startsWith('--profile='));
 const selectedProfile = profileArg?.slice('--profile='.length);
 const thresholdsPath = join(root, 'scripts', 'bundle-size.thresholds.json');
+const targets = JSON.parse(
+  readFileSync(join(root, 'scripts', 'bundle-size.targets.json'), 'utf8')
+);
 
 if (selectedProfile && !PROFILES[selectedProfile]) {
   throw new Error(`Unknown profile: ${selectedProfile}`);
@@ -835,7 +845,48 @@ if (json) {
   }
 }
 
+if (!json) {
+  const targeted = Object.keys(results).filter(
+    (name) => targets[name]?.targetGzipBytes !== undefined
+  );
+  if (targeted.length) console.log('\nTargets (informational, non-failing):');
+  for (const name of targeted) {
+    const { gzipped } = results[name];
+    const target = targets[name].targetGzipBytes;
+    const delta = gzipped - target;
+    console.log(
+      delta > 0
+        ? `  TARGET NOT MET ${name}: ${gzipped} B gz, target ${target} B (${delta} B over)`
+        : `  target met ${name}: ${gzipped} B gz, target ${target} B (${-delta} B under)`
+    );
+  }
+}
+
 if (update) {
+  const previous = JSON.parse(readFileSync(thresholdsPath, 'utf8'));
+  const refused = [];
+  for (const [name, { gzipped }] of Object.entries(results)) {
+    const target = targets[name]?.targetGzipBytes;
+    const old = previous[name]?.maxGzipBytes;
+    if (target !== undefined && gzipped > target && gzipped > (old ?? 0)) {
+      refused.push(
+        `${name}: ${old ?? 'none'} -> ${gzipped} B exceeds target ${target} B`
+      );
+    }
+  }
+  if (refused.length) {
+    const lines = refused.map((line) => `  ${line}`).join('\n');
+    if (!force) {
+      console.error(
+        `\nRefusing to raise thresholds above their targets:\n${lines}\n` +
+          'Rerun with --update --force to accept the increase.'
+      );
+      process.exit(1);
+    }
+    console.warn(
+      `\nWARNING: raising thresholds above their targets (--force):\n${lines}`
+    );
+  }
   const thresholds = {};
   for (const [name, { gzipped }] of Object.entries(results)) {
     // The source bundle is deterministic. Require every increase to be

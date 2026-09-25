@@ -54,6 +54,8 @@ const done = yield* waitFor(
 
 `join` behaves like `Fiber.join`. It succeeds with the actor's `output` when the actor is done, fails with `snapshot.error` when the actor errors, and fails with `ActorStoppedError` when the actor stops without output. It waits for a still-active actor to settle.
 
+The type of `snapshot.error` is `ErrorFrom<TLogic>`. For `fromEffect` logic that is the Effect's `E`. For a machine it is `unknown`, because an action can throw an arbitrary value or an unhandled child error can fail the machine, so `join(machineActor)` has `unknown` in its error channel. Model domain failures as final states and read them from the machine's output; treat a machine-level error as a defect with `Effect.orDie`, or handle it with `Effect.catch`, to keep the rest of the program typed.
+
 ```ts
 const program = Effect.gen(function* () {
   const actor = yield* createEffectActor(fetchUser, { input: { id: '42' } });

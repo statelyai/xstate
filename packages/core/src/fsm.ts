@@ -7,6 +7,7 @@ import type {
 } from './base.types.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
 
+/** @public */
 export type FSMArgs<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -15,9 +16,11 @@ export type FSMArgs<
   event: TEvent;
 };
 
+/** @public */
 export type FSMContextPatch<TContext extends MachineContext> =
   Partial<TContext>;
 
+/** @public */
 export type FSMTransitionConfig<
   TContext extends MachineContext,
   TState extends string
@@ -26,6 +29,7 @@ export type FSMTransitionConfig<
   context?: FSMContextPatch<TContext>;
 };
 
+/** @public */
 export type FSMTransitionFunction<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -41,6 +45,7 @@ type EventForType<TEvent extends EventObject, TType extends string> = [
   ? TEvent
   : Extract<TEvent, { type: TType }>;
 
+/** @public */
 export type FSMTransition<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -65,6 +70,7 @@ type FSMOn<
   >;
 };
 
+/** @public */
 export type FSMStateConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -81,6 +87,7 @@ type FSMContextConfig<TContext extends MachineContext> =
       ? { context?: TContext }
       : { context: TContext };
 
+/** @public */
 export type FSMConfig<
   TContext extends MachineContext = {},
   TEvent extends EventObject = EventObject,
@@ -366,6 +373,7 @@ type FSMSetupMachineConfig<
   };
 } & FSMContextConfig<FSMContextFromStates<TStates, FSMSetupContext<TSchemas>>>;
 
+/** @public */
 export type FSMSetupConfig<
   TSchemas extends FSMSetupSchemas = {},
   TStates extends FSMSetupStates = {}
@@ -374,6 +382,7 @@ export type FSMSetupConfig<
   states?: TStates;
 };
 
+/** @public */
 export type FSMSetupReturn<
   TSchemas extends FSMSetupSchemas,
   TStates extends FSMSetupStates
@@ -389,6 +398,7 @@ export type FSMSetupReturn<
   >;
 };
 
+/** @public */
 export function setup<
   const TSchemas extends FSMSetupSchemas = {},
   const TStates extends FSMSetupStates = {}
@@ -400,6 +410,7 @@ export function setup<
   } as unknown as FSMSetupReturn<TSchemas, TStates>;
 }
 
+/** @public */
 export function createFSM<
   TContext extends MachineContext = {},
   TEvent extends EventObject = EventObject,
