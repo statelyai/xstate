@@ -198,3 +198,18 @@ describe('v6 inspection protocol conformance', () => {
     expect(initEvent).toBeDefined();
   });
 });
+
+// Pins the protocol to exactly two event types: `@xstate.actor` and
+// `@xstate.transition`. Dead letters are observed via `onRejectedEvent`, not
+// inspection. See the POLICY note on `InspectionEvent` in src/inspection.ts
+// before changing this.
+// TODO(#5738): remove once the dead-letter inspection event is gone
+type _InspectionEventTypes = Exclude<
+  InspectionEvent['type'],
+  '@xstate.deadletter'
+>;
+const _protocolIsFixed: [
+  Exclude<_InspectionEventTypes, '@xstate.actor' | '@xstate.transition'>,
+  Exclude<'@xstate.actor' | '@xstate.transition', _InspectionEventTypes>
+] = [undefined as never, undefined as never];
+void _protocolIsFixed;

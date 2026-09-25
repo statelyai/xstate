@@ -156,7 +156,7 @@ export { type Spawner } from './spawn.ts';
 export { isMachineSnapshot, type MachineSnapshot } from './State.ts';
 export { StateMachine } from './StateMachine.ts';
 export { StateNode } from './StateNode.ts';
-export { getStateNodes } from './stateUtils.ts';
+export { getStateNodes, InfiniteTransitionError } from './stateUtils.ts';
 export type {
   ActorSystem,
   ActorSystemRuntime,
@@ -188,6 +188,7 @@ export {
 } from './utils.ts';
 export {
   transition,
+  isUnhandled,
   initialTransition,
   getMicrosteps,
   getInitialMicrosteps,

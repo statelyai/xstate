@@ -22,6 +22,10 @@ const restored = createActor(machine, {
 }).start();
 ```
 
+A restored snapshot is opaque: restoring runs no transitions and re-executes no actions. `always` transitions and choice states in the restored configuration are not re-evaluated until the next event, even if their guards would now pass. Development builds warn when the restored state has eventless transitions.
+
+Restoring a terminal snapshot keeps it terminal. A snapshot with `status: 'done'`, `'error'` or `'stopped'` restores to an actor with that status after `start()`; it runs no transitions and processes no events. For `'error'`, subscribers with an `error` observer receive the persisted error, whether they subscribe before or after `start()`. A snapshot that cannot be restored, such as one whose `value` names a state the machine does not have, produces an actor with an `'error'` snapshot whose `error` describes the failure; `createActor(...)` and `start()` do not throw.
+
 Persisted snapshots may include child actor state. Keep the actor logic compatible with snapshots already stored by your application.
 
 Persistence is useful for a checkout resumed after a refresh and a backend order workflow resumed by a later request.

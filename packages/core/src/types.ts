@@ -2123,6 +2123,19 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * Only observed when this actor is the root of its system.
    */
   onRejectedEvent?: (rejection: EventRejection) => void;
+
+  /**
+   * Called when this state machine actor processes an event that no
+   * transition handled: the snapshot is unchanged and no effects ran.
+   * Internal `xstate.*` events are not reported.
+   *
+   * @param event The unhandled event.
+   * @param snapshot The actor's (unchanged) snapshot.
+   */
+  onUnhandledEvent?: (
+    event: EventFromLogic<TLogic>,
+    snapshot: SnapshotFrom<TLogic>
+  ) => void;
 }
 
 /** @public */
@@ -3341,8 +3354,11 @@ export interface DeadLetterExecutableActionObject extends BaseExecutableActionOb
   type: '@xstate.deadLetter';
   /** The actor that sent the event, or `undefined` for an external send. */
   source: AnyActor | undefined;
-  /** The actor that rejected the event. */
-  target: AnyActor;
+  /**
+   * The actor that rejected the event, or `undefined` when the send target
+   * was missing (`reason: 'missingTarget'`).
+   */
+  target: AnyActor | undefined;
   /** The rejected event. */
   event: AnyEventObject;
   /** Why the event was rejected, such as `'invalidEvent'`. */

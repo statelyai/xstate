@@ -359,6 +359,9 @@ describe('event descriptors', () => {
         [
           "Infix wildcards in transition events are not allowed. Check the "*.event.*" transition.",
         ],
+        [
+          "Actor x:0 received event "event.foo.bar.first.second" in state "start" with no matching transition",
+        ],
       ]
     `);
     warnSpy.mockClear();
@@ -379,6 +382,9 @@ describe('event descriptors', () => {
         ],
         [
           "Infix wildcards in transition events are not allowed. Check the "*.event.*" transition.",
+        ],
+        [
+          "Actor x:0 received event "whatever.event" in state "start" with no matching transition",
         ],
       ]
     `);
@@ -416,6 +422,9 @@ describe('event descriptors', () => {
         [
           "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
         ],
+        [
+          "Actor x:0 received event "eventually.bar.baz" in state "start" with no matching transition",
+        ],
       ]
     `);
     warnSpy.mockClear();
@@ -433,6 +442,9 @@ describe('event descriptors', () => {
         ],
         [
           "Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "*event.*" event.",
+        ],
+        [
+          "Actor x:0 received event "prevent.whatever" in state "start" with no matching transition",
         ],
       ]
     `);

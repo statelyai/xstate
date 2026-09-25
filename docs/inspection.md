@@ -55,6 +55,8 @@ Every event type carries `rootId`, the session ID of the root actor, and `actorR
 | `issues` | Standard Schema issues for `'invalidEvent'` dead letters. |
 | `error` | The underlying error for a delivery-boundary rejection. |
 
+An event that no transition handled is visible without a separate event type: the `@xstate.transition` event that follows it carries the same `snapshot` reference as the previous transition and an empty `actions` list. Compare references, or use `isUnhandled()` with the pure API.
+
 Actor stop is derivable from `snapshot.status` on the actor's final `@xstate.transition` event, so there is no separate stop event. The v5 `@xstate.event`, `@xstate.snapshot`, `@xstate.action` and `@xstate.microstep` events are gone; `@xstate.transition` carries all of them.
 
 Use inspection for developer tools, logs and visualizers. Do not change application state from an inspector.

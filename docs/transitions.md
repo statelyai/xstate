@@ -62,6 +62,8 @@ submit: ({ context, event }, enq) => {
 
 Returning `undefined` prevents the transition.
 
+Transition functions must be synchronous. A transition function that returns a promise throws an execution error, which a state `onError` can recover. Move async work into an invoked or spawned actor, or into an effect enqueued with `enq(...)`. The `enq` handle is only valid while the function runs: calling `enq.*` after the function returned throws in development and does nothing in production.
+
 `always` runs without an external event. `after` runs after a delay. `onDone`, `onError` and `onTimeout` handle actor outcomes.
 
 Use targetless transitions for edits that keep a form on the same step. Use re-entering transitions to restart a timer, subscription or invoked request.
@@ -113,6 +115,23 @@ on: {
       : { target: 'standardReview' }
 }
 ```
+
+## Unhandled events
+
+An event is unhandled when no transition in the active states, including wildcard transitions, handles it. A transition function that returns `undefined` and enqueues nothing does not handle the event. An unhandled event leaves the actor unchanged.
+
+The pure `transition(logic, snapshot, event)` API returns the same snapshot object and no effects for an unhandled event. A handled event always returns a new snapshot object, even when a transition function returns `{}`. Use `isUnhandled(...)` to check:
+
+```ts
+import { isUnhandled, transition } from 'xstate';
+
+const result = transition(machine, snapshot, event);
+if (isUnhandled(snapshot, result)) {
+  // no transition handled `event`
+}
+```
+
+A running actor reports an unhandled event through the `onUnhandledEvent` option of `createActor(...)`. In the [inspection](inspection.md) stream, the `@xstate.transition` event for an unhandled event carries the unchanged snapshot reference. Development builds also log a warning once per event type per actor. Internal `xstate.*` events are not reported.
 
 ## TypeScript
 
