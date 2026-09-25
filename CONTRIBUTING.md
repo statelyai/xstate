@@ -66,7 +66,7 @@ We are using [preconstruct](https://preconstruct.tools/) to build our packages. 
 
 ### Bundle measurements
 
-See [bundle measurements](docs/bundle-size.md) for source and production profiles, behavior verification, and CI size reports.
+Run `pnpm bench:size` locally to measure the source profiles and print the delta to the size target. CI does not check bundle size.
 
 ### Publishing
 
