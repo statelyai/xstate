@@ -5,6 +5,7 @@ import type {
   Snapshot
 } from './types.ts';
 
+/** @experimental */
 export type ActorValidationBoundary =
   | 'input'
   | 'event'
@@ -15,8 +16,10 @@ export type ActorValidationBoundary =
   | 'output'
   | 'child';
 
+/** @experimental */
 export type ActorValidationEventOrigin = 'external' | 'actor' | 'raised';
 
+/** @experimental */
 export type ActorValidationRequest =
   | {
       kind: 'input';
@@ -36,7 +39,11 @@ export type ActorValidationRequest =
       effects: readonly ExecutableActionObject[];
     };
 
-/** Runtime schema validator installed on actor logic. */
+/**
+ * Runtime schema validator installed on actor logic.
+ *
+ * @experimental
+ */
 export interface ActorLogicValidator {
   check(request: ActorValidationRequest): Error | undefined;
 }

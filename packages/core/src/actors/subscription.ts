@@ -8,10 +8,12 @@ import {
 } from '../types';
 import { createAttachedLogic, relayMappedToParent } from './attached.ts';
 
+/** @public */
 export type SubscriptionSnapshot = Snapshot<undefined> & {
   input: SubscriptionInput<any, any, any, any>;
 };
 
+/** @public */
 export interface SubscriptionMappers<
   TSnapshot extends Snapshot<unknown>,
   TOutput,
@@ -22,6 +24,7 @@ export interface SubscriptionMappers<
   error?: (error: unknown) => TMappedEvent;
 }
 
+/** @public */
 export interface SubscriptionInput<
   TSnapshot extends Snapshot<unknown>,
   TOutput,
@@ -32,6 +35,7 @@ export interface SubscriptionInput<
   mappers: TMappers;
 }
 
+/** @public */
 export type SubscriptionActorLogic<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
   TOutput = unknown,
@@ -49,6 +53,7 @@ export type SubscriptionActorLogic<
   EventObject
 >;
 
+/** @public */
 export type SubscriptionActorRef<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
   TOutput = unknown,
@@ -58,6 +63,8 @@ export type SubscriptionActorRef<
 /**
  * Creates actor logic for subscribing to lifecycle events (done/error/snapshot)
  * from another actor. Used internally by `enq.subscribeTo()`.
+ *
+ * @public
  */
 export function createSubscriptionLogic<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
@@ -92,4 +99,5 @@ export function createSubscriptionLogic<
 }
 
 // Singleton logic instance
+/** @public */
 export const subscriptionLogic = /* #__PURE__ */ createSubscriptionLogic();
