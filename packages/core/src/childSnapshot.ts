@@ -113,7 +113,6 @@ function resolvePathOrThrow(
  * `/`-joined path of actor ids from the root, with `/` in an id encoded as
  * `%2F`. The root's own address returns `rootSnapshot`.
  *
- * @public
  * @experimental
  * @example
  *
@@ -219,7 +218,6 @@ function mergeChildSnapshot<T extends AnyMachineSnapshot>(
  * The root's own address returns `childSnapshot`. Throws when no co-located
  * actor has `address`, or when the path crosses a remote reference.
  *
- * @public
  * @experimental
  */
 export function withChildSnapshot<T extends AnyMachineSnapshot>(
@@ -264,7 +262,6 @@ function findTerminateEffect(
  * With the root's own address, this is exactly `transition(rootLogic,
  * rootSnapshot, event)`.
  *
- * @public
  * @experimental
  * @example
  *

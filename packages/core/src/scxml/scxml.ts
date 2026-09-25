@@ -72,6 +72,7 @@ export function sanitizeStateId(id: string) {
   return id.replace(/\./g, '$');
 }
 
+/** @experimental */
 export interface SCXMLConversionOptions {
   resolveResource?: (src: string, kind: 'data' | 'script' | 'invoke') => string;
 }
@@ -1012,6 +1013,8 @@ export function compileSCXML(
  * Expressions and external resources are evaluated using SCXML semantics.
  * Only create machines from trusted SCXML because ECMAScript expressions and
  * script elements execute JavaScript in the current environment.
+ *
+ * @experimental
  */
 export function createMachineFromSCXML(
   xml: string,

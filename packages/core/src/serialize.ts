@@ -10,6 +10,7 @@
 
 import type { AnyStateMachine } from './types.ts';
 
+/** @public */
 export interface CodeExpression {
   '@code': string;
   '@lang': 'ts';
@@ -30,6 +31,8 @@ export interface CodeExpression {
  *   JSON.parse(JSON.stringify(json))
  * );
  * ```
+ *
+ * @public
  */
 export function serializeMachine(
   machine: AnyStateMachine
@@ -176,6 +179,8 @@ function stateNodeConfigToJSON(
 /**
  * Converts a machine config (as passed to `createMachine`) to its JSON-safe
  * definition.
+ *
+ * @public
  */
 export function machineConfigToJSON(
   config: Record<string, unknown>

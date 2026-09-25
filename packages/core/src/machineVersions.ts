@@ -32,12 +32,14 @@ type VersionedStateMachine = AnyStateMachine & {
 
 type VersionEntry = MachineVersionDescriptor;
 
+/** @public */
 export type PersistedSnapshotDataFrom<TMachine extends AnyStateMachine> =
   Snapshot<unknown> & {
     context: ContextFrom<TMachine>;
     [key: string]: unknown;
   };
 
+/** @public */
 export type ParsedPersistedSnapshot<TEntries extends readonly VersionEntry[]> =
   {
     [K in keyof TEntries]: TEntries[K] extends VersionEntry
@@ -54,6 +56,7 @@ export type ParsedPersistedSnapshot<TEntries extends readonly VersionEntry[]> =
       : never;
   }[number];
 
+/** @public */
 export type MachineVersionsOptions<TEntries extends readonly VersionEntry[]> = {
   unversioned?: SnapshotSourceVersion<TEntries>;
 };
@@ -134,11 +137,13 @@ type EventFromEntry<TEntry extends VersionEntry> = TEntry extends {
     ? EventFrom<TEntry>
     : never;
 
+/** @public */
 export type PersistedSnapshotSource = {
   id?: string;
   version?: string;
 };
 
+/** @public */
 export type SnapshotMigrationHandlers<
   TEntries extends readonly VersionEntry[],
   TTarget extends VersionedStateMachine
@@ -155,6 +160,7 @@ export type SnapshotMigrationHandlers<
   ) => MaybePromise<PersistedSnapshotDataFrom<TTarget>>;
 };
 
+/** @public */
 export type MigrateSnapshotOptions<
   TEntries extends readonly VersionEntry[],
   TTargetVersion extends MachineVersion<TEntries>
@@ -166,11 +172,13 @@ export type MigrateSnapshotOptions<
   >;
 };
 
+/** @public */
 export type EventHistorySource = {
   id?: string;
   version?: string;
 };
 
+/** @public */
 export type EventAdapterHandlers<
   TEntries extends readonly VersionEntry[],
   TTarget extends VersionedStateMachine
@@ -185,6 +193,7 @@ export type EventAdapterHandlers<
   ) => MaybePromise<readonly EventFrom<TTarget>[]>;
 };
 
+/** @public */
 export type AdaptEventsOptions<
   TEntries extends readonly VersionEntry[],
   TTargetVersion extends MachineVersion<TEntries>
@@ -309,7 +318,11 @@ async function validateEvents<
   );
 }
 
-/** Creates migration and adaptation utilities for versions of one machine. */
+/**
+ * Creates migration and adaptation utilities for versions of one machine.
+ *
+ * @public
+ */
 export function machineVersions<
   const TEntries extends readonly [VersionEntry, ...VersionEntry[]]
 >(entries: TEntries, options?: MachineVersionsOptions<TEntries>) {

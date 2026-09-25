@@ -196,7 +196,6 @@ export function terminateActor(
  * through the installed runtime. Custom runtimes use this for the default
  * local behavior inside their own `startActor` implementations.
  *
- * @public
  * @experimental
  */
 export function startActor(actor: AnyActor): void {

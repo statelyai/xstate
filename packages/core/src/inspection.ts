@@ -13,6 +13,8 @@ import type { EventRejectionReason } from './system.ts';
  *
  * Carried in {@link TransitionInspectionEvent.actions}, this replaces the v5
  * standalone `@xstate.action` inspection event.
+ *
+ * @experimental
  */
 export interface ActionRecord {
   /** The action type (e.g. the action creator name or `'(anonymous)'`). */
@@ -27,6 +29,8 @@ export interface ActionRecord {
  * Carried in {@link TransitionInspectionEvent.sent}, this captures the send on
  * the _sender's_ transition — including delayed/scheduled sends that may never
  * deliver — distinct from the target actor's own processed-event transition.
+ *
+ * @experimental
  */
 export interface SentRecord {
   /** The actor the event was sent to. */
@@ -61,6 +65,8 @@ interface BaseInspectionEventProperties {
  *
  * Actor _stop_ is derivable from `snapshot.status` on the actor's final
  * `@xstate.transition` event, so there is no separate stop event.
+ *
+ * @experimental
  */
 export interface ActorInspectionEvent extends BaseInspectionEventProperties {
   type: '@xstate.actor';
@@ -82,6 +88,8 @@ export interface ActorInspectionEvent extends BaseInspectionEventProperties {
  * properties. This is a superset of the v5
  * `@xstate.event`/`@xstate.snapshot`/`@xstate.action`/`@xstate.microstep`
  * events.
+ *
+ * @experimental
  */
 export interface TransitionInspectionEvent extends BaseInspectionEventProperties {
   type: '@xstate.transition';
@@ -109,6 +117,8 @@ export interface TransitionInspectionEvent extends BaseInspectionEventProperties
  *
  * A dead letter is not an actor error: the target actor's snapshot is
  * unchanged.
+ *
+ * @experimental
  */
 export interface DeadLetterInspectionEvent extends BaseInspectionEventProperties {
   type: '@xstate.deadLetter';
@@ -134,6 +144,8 @@ export interface DeadLetterInspectionEvent extends BaseInspectionEventProperties
  * - `@xstate.transition` — every transition facet: event, snapshot, source,
  *   microsteps, executed actions, and sent/scheduled events.
  * - `@xstate.deadLetter` — events that could not be delivered.
+ *
+ * @experimental
  */
 export type InspectionEvent =
   | ActorInspectionEvent

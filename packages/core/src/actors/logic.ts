@@ -32,17 +32,20 @@ import {
   Snapshot
 } from '../types.ts';
 
+/** @public */
 export type LogicSnapshot<TContext, TOutput, TInput> = Snapshot<TOutput> & {
   context: TContext;
   input: TInput | undefined;
   effects?: Record<string, LogicEffectState>;
 };
 
+/** @public */
 export type LogicEffectState =
   | { status: 'active' }
   | { status: 'done'; output?: unknown }
   | { status: 'error'; error: unknown };
 
+/** @public */
 export interface LogicArgs<TContext, TEvent extends EventObject, TInput> {
   context: TContext;
   event: TEvent;
@@ -51,11 +54,13 @@ export interface LogicArgs<TContext, TEvent extends EventObject, TInput> {
   self: LogicActorRef<TContext, unknown, TEvent, TInput>;
 }
 
+/** @public */
 export type LogicEffect<
   _TEvent extends EventObject,
   _TEmitted extends EventObject
 > = ExecutableActionObject;
 
+/** @public */
 export interface LogicEnqueue<
   TEvent extends EventObject,
   TEmitted extends EventObject
@@ -74,6 +79,7 @@ export interface LogicEnqueue<
   };
 }
 
+/** @public */
 export type LogicPatch<TContext, TOutput, TInput> = Partial<{
   context: TContext;
   input: TInput | undefined;
@@ -83,6 +89,7 @@ export type LogicPatch<TContext, TOutput, TInput> = Partial<{
   effects: Record<string, LogicEffectState>;
 }>;
 
+/** @public */
 export type LogicFunction<
   TContext,
   TOutput,
@@ -94,6 +101,7 @@ export type LogicFunction<
   enq: LogicEnqueue<TEvent, TEmitted>
 ) => void | LogicPatch<TContext, TOutput, TInput>;
 
+/** @public */
 export interface LogicConfig<
   TContext,
   TOutput,
@@ -145,6 +153,7 @@ interface LogicTransition<
   ): LogicSnapshot<TContext, TOutput, TInput>;
 }
 
+/** @public */
 export type LogicActorLogic<
   TContext,
   TOutput,
@@ -165,6 +174,7 @@ export type LogicActorLogic<
   transition: LogicTransition<TContext, TOutput, TEvent, TInput, TEmitted>;
 };
 
+/** @public */
 export type LogicActorRef<
   TContext,
   TOutput,
@@ -227,6 +237,7 @@ function resolveContext<TContext, TInput>(
     : context;
 }
 
+/** @public */
 export function createLogic<
   TContext,
   const TInputSchema extends StandardSchemaV1,

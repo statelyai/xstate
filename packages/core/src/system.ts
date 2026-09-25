@@ -285,6 +285,8 @@ export function bookSessionId(system: AnyActorSystem): string {
  * declared schema), `'internalEvent'` (an internal event type sent from
  * outside its owning actor) or `'stopped'` (the target actor already
  * stopped). Hosts may report additional reasons.
+ *
+ * @public
  */
 export type EventRejectionReason =
   | 'invalidEvent'
@@ -292,7 +294,11 @@ export type EventRejectionReason =
   | 'stopped'
   | (string & {});
 
-/** Extra detail attached to a dead letter. */
+/**
+ * Extra detail attached to a dead letter.
+ *
+ * @public
+ */
 export interface DeadLetterDetail {
   /** Standard Schema issues for `invalidEvent` rejections. */
   issues?: readonly StandardSchemaV1.Issue[];
@@ -303,6 +309,8 @@ export interface DeadLetterDetail {
 /**
  * Describes an event that was rejected at the delivery boundary instead of
  * being delivered to its target actor (a dead letter).
+ *
+ * @public
  */
 export interface EventRejection extends DeadLetterDetail {
   /** The event that was rejected. */
@@ -318,6 +326,7 @@ export interface EventRejection extends DeadLetterDetail {
   reason: EventRejectionReason;
 }
 
+/** @experimental */
 export interface ActorSystemRuntime {
   /** Publishes a newly created actor to the runtime. */
   spawnActor(
@@ -424,6 +433,7 @@ function createScheduledTimerId(actor: AnyActor, id: string): ScheduledTimerId {
   return `${actor.sessionId}.${id}` as ScheduledTimerId;
 }
 
+/** @public */
 export interface ActorSystem<
   T extends ActorSystemInfo
 > extends ActorSystemRuntime {
@@ -515,6 +525,7 @@ export interface ActorSystem<
   runtime?: Partial<ActorSystemRuntime>;
 }
 
+/** @public */
 export type AnyActorSystem = ActorSystem<any>;
 
 // These optional lazy fields intentionally have no emitted initializers.
