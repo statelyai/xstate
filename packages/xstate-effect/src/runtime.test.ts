@@ -802,12 +802,9 @@ describe('@xstate/effect runtime', () => {
     await runScoped(
       Effect.gen(function* () {
         const actor = yield* createEffectActor(machine);
-        const actorInspect = actor.inspect.bind(actor);
-        let inspecting = false;
-        actor.inspect = ((observer: Parameters<typeof actorInspect>[0]) => {
-          inspecting = true;
-          return actorInspect(observer);
-        }) as typeof actor.inspect;
+        const listening = () =>
+          (actor.system as { _onRejectedEvent?: unknown })._onRejectedEvent !==
+          undefined;
 
         yield* Effect.forkScoped(
           Stream.runForEach(deadLetters(actor), (event) =>
@@ -819,7 +816,7 @@ describe('@xstate/effect runtime', () => {
             })
           )
         );
-        yield* Effect.promise(() => until(() => inspecting));
+        yield* Effect.promise(() => until(listening));
 
         const child = actor.getSnapshot().children.worker!;
         actor.send({ type: 'CANCEL' });

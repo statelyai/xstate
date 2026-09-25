@@ -87,13 +87,7 @@ const actor = createActor(uploadMachine, {
         `(${rejection.reason}) — ${rejection.error?.message}`
     );
   },
-  inspect: (event) => {
-    // The same rejections reach inspection observers as `@xstate.deadLetter`.
-    if (event.type === '@xstate.deadLetter') {
-      log(`  inspected as ${event.type}: "${event.event.type}"`);
-    }
-    inspector?.inspect(event);
-  }
+  inspect: inspector?.inspect
 });
 
 actor.subscribe((snapshot) => log(`state: ${JSON.stringify(snapshot.value)}`));

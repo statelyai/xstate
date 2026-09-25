@@ -5,8 +5,6 @@ import {
   AnyTransitionDefinition,
   Snapshot
 } from './types.ts';
-import type { StandardSchemaV1 } from './schema.types.ts';
-import type { EventRejectionReason } from './system.ts';
 
 /**
  * A record of a single action executed during a transition.
@@ -111,43 +109,18 @@ export interface TransitionInspectionEvent extends BaseInspectionEventProperties
 }
 
 /**
- * Emitted when an event could not be delivered to its target actor (a dead
- * letter): a send to a stopped actor, an invalid external event payload, or
- * an internal event type sent from outside its owning actor.
- *
- * A dead letter is not an actor error: the target actor's snapshot is
- * unchanged.
- *
- * @experimental
- */
-export interface DeadLetterInspectionEvent extends BaseInspectionEventProperties {
-  type: '@xstate.deadLetter';
-  /** The actor that sent the event, or `undefined` when sent externally. */
-  sourceRef: ActorRefLike | undefined;
-  /** The undelivered event. */
-  event: AnyEventObject;
-  /**
-   * Why the event was not delivered: `'stopped'`, `'invalidEvent'` or
-   * `'internalEvent'`.
-   */
-  reason: EventRejectionReason;
-  /** Standard Schema issues for `'invalidEvent'` dead letters. */
-  issues?: readonly StandardSchemaV1.Issue[];
-  /** The underlying error describing a delivery-boundary rejection. */
-  error?: Error;
-}
-
-/**
  * A lossless inspection protocol:
  *
  * - `@xstate.actor` — actor topology (identity + parent), drawable up front.
  * - `@xstate.transition` — every transition facet: event, snapshot, source,
  *   microsteps, executed actions, and sent/scheduled events.
- * - `@xstate.deadLetter` — events that could not be delivered.
+ *
+ * Dead letters are not inspection events; observe them with the
+ * `onRejectedEvent` option.
  *
  * @experimental
  */
-export type InspectionEvent =
-  | ActorInspectionEvent
-  | TransitionInspectionEvent
-  | DeadLetterInspectionEvent;
+// POLICY: do not add event types to this union. New facets belong on
+// `@xstate.transition` or are derived from existing events; dead letters use
+// `onRejectedEvent`.
+export type InspectionEvent = ActorInspectionEvent | TransitionInspectionEvent;

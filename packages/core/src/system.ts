@@ -390,8 +390,8 @@ export interface ActorSystemRuntime {
   ): unknown | PromiseLike<unknown>;
   /**
    * Reports an undeliverable event. Delivery stays at-most-once — this is
-   * observability, not retry: the default logs in development, emits an
-   * inspection event and calls the root actor's `onRejectedEvent` hook.
+   * observability, not retry. The system always calls the root actor's
+   * `onRejectedEvent` hook first; the default then logs in development.
    * `detail` carries validation issues and the underlying error for events
    * rejected at the delivery boundary.
    */
@@ -907,15 +907,6 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     reason: EventRejectionReason,
     detail?: DeadLetterDetail
   ): void | PromiseLike<void> {
-    this._sendInspectionEvent({
-      type: '@xstate.deadLetter',
-      actorRef: target,
-      sourceRef: source,
-      event,
-      reason,
-      issues: detail?.issues,
-      error: detail?.error
-    });
     this._onRejectedEvent?.({
       event,
       targetRef: target,

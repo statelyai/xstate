@@ -1186,20 +1186,27 @@ describe('dead letters', () => {
     ]);
   });
 
-  it('emits a @xstate.deadLetter inspection event', () => {
+  it('reports a dead letter to onRejectedEvent, not inspection', () => {
     const seen: string[] = [];
+    const inspected: string[] = [];
     const machine = createMachine({ id: 'p', initial: 'a', states: { a: {} } });
     const actor = createActor(machine, {
+      onRejectedEvent: (rejection) => {
+        seen.push(`${rejection.event.type}:${rejection.reason}`);
+      },
       inspect: (ev) => {
-        if (ev.type === '@xstate.deadLetter') {
-          seen.push(`${ev.event.type}:${ev.reason}`);
-        }
+        inspected.push(ev.type);
       }
     });
     actor.start();
     actor.stop();
     actor.send({ type: 'LATE' });
     expect(seen).toEqual(['LATE:stopped']);
+    expect(
+      inspected.every(
+        (type) => type === '@xstate.actor' || type === '@xstate.transition'
+      )
+    ).toBe(true);
   });
 });
 

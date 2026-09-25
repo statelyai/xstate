@@ -6,8 +6,8 @@ import type {
   AnyActor,
   AnyActorRef,
   AnyEventObject,
-  DeadLetterInspectionEvent,
   EmittedFrom,
+  EventRejection,
   ErrorFrom,
   InspectionEvent,
   OutputFrom,
@@ -389,18 +389,62 @@ export function inspect(actor: AnyActorRef): Stream.Stream<InspectionEvent> {
   );
 }
 
+type RejectionListener = (rejection: EventRejection) => void;
+
+const rejectionListeners = new WeakMap<object, Set<RejectionListener>>();
+
 /**
- * Streams the events the actor's system could not deliver: sends to a
- * stopped actor, invalid external events and internal events sent from
- * outside their owner. A dead letter is not an actor error. The stream runs
- * until it is interrupted or its scope closes.
+ * Adds a listener to the system's `onRejectedEvent` hook, keeping the hook
+ * the actor was created with.
  */
-export function deadLetters(
-  actor: AnyActorRef
-): Stream.Stream<DeadLetterInspectionEvent> {
-  return Stream.filter(
-    inspect(actor),
-    (event): event is DeadLetterInspectionEvent =>
-      event.type === '@xstate.deadLetter'
+function listenForRejections(
+  system: AnyActor['system'],
+  listener: RejectionListener
+): Subscription {
+  let listeners = rejectionListeners.get(system);
+  if (!listeners) {
+    const hooked = system as { _onRejectedEvent?: RejectionListener };
+    const original = hooked._onRejectedEvent;
+    const set = new Set<RejectionListener>();
+    listeners = set;
+    rejectionListeners.set(system, set);
+    hooked._onRejectedEvent = (rejection) => {
+      original?.(rejection);
+      for (const each of set) {
+        each(rejection);
+      }
+    };
+  }
+  listeners.add(listener);
+  return {
+    unsubscribe: () => {
+      listeners.delete(listener);
+    }
+  };
+}
+
+/**
+ * Streams the events the actor's system could not deliver, as reported to
+ * the `onRejectedEvent` option: sends to a stopped actor, invalid external
+ * events and internal events sent from outside their owner. A dead letter is
+ * not an actor error. The stream runs until it is interrupted or its scope
+ * closes.
+ */
+export function deadLetters(actor: AnyActorRef): Stream.Stream<EventRejection> {
+  return Stream.callback<EventRejection>((queue) =>
+    Effect.acquireRelease(
+      Effect.sync(() =>
+        listenForRejections(
+          (actor as unknown as AnyActor).system,
+          (rejection) => {
+            Queue.offerUnsafe(queue, rejection);
+          }
+        )
+      ),
+      (subscription) =>
+        Effect.sync(() => {
+          subscription.unsubscribe();
+        })
+    )
   );
 }
