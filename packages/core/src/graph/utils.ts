@@ -1,81 +1,8 @@
-import {
-  SerializationConfig,
-  StatePath,
-  TestMeta,
-  TestPathResult
-} from './types.ts';
+import { TestMeta } from './types.ts';
 import { AnyMachineSnapshot, MachineContext } from '../index.ts';
-
-interface TestResultStringOptions extends SerializationConfig<any, any> {
-  formatColor: (color: string, string: string) => string;
-}
 
 export function simpleStringify(value: any): string {
   return JSON.stringify(value);
-}
-
-export function formatPathTestResult(
-  path: StatePath<any, any>,
-  testPathResult: TestPathResult,
-  options?: Partial<TestResultStringOptions>
-): string {
-  const resolvedOptions: TestResultStringOptions = {
-    formatColor: (_color, string) => string,
-    serializeState: simpleStringify,
-    serializeEvent: simpleStringify,
-    ...options
-  };
-
-  const { formatColor, serializeState, serializeEvent } = resolvedOptions;
-
-  const { state } = path;
-
-  const targetStateString = serializeState(
-    state,
-    path.steps.length ? path.steps[path.steps.length - 1].event : undefined
-  );
-
-  let errMessage = '';
-  let hasFailed = false;
-  errMessage +=
-    '\nPath:\n' +
-    testPathResult.steps
-      .map((s, i, steps) => {
-        const stateString = serializeState(
-          s.step.state,
-          i > 0 ? steps[i - 1].step.event : undefined
-        );
-        const eventString = serializeEvent(s.step.event);
-
-        const stateResult = `\tState: ${
-          hasFailed
-            ? formatColor('gray', stateString)
-            : s.state.error
-              ? ((hasFailed = true), formatColor('redBright', stateString))
-              : formatColor('greenBright', stateString)
-        }`;
-        const eventResult = `\tEvent: ${
-          hasFailed
-            ? formatColor('gray', eventString)
-            : s.event.error
-              ? ((hasFailed = true), formatColor('red', eventString))
-              : formatColor('green', eventString)
-        }`;
-
-        return [stateResult, eventResult].join('\n');
-      })
-      .concat(
-        `\tState: ${
-          hasFailed
-            ? formatColor('gray', targetStateString)
-            : testPathResult.state.error
-              ? formatColor('red', targetStateString)
-              : formatColor('green', targetStateString)
-        }`
-      )
-      .join('\n\n');
-
-  return errMessage;
 }
 
 export function getDescription<T, TContext extends MachineContext>(
@@ -107,4 +34,25 @@ export function getDescription<T, TContext extends MachineContext>(
     stateStrings.join(', ') +
     ` ${contextString}`.trim()
   );
+}
+
+/** FNV-1a over a string, as an unsigned 32-bit integer. */
+export function fnv1a(value: string): number {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index++) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+/** A deterministic 32-bit PRNG (mulberry32), seeded by `seed`. */
+export function createSeededRng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }

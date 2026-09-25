@@ -6,7 +6,7 @@ How to generate tests from a machine with `xstate/graph`: the machine is the mod
 
 ## XState features used
 
-`createTestModel` and `getShortestPaths` from the `xstate/graph` subpath, the `events` sample set (one entry per equivalence class, payloads included), `getSimplePaths()`, `path.test({ states, events })`, `path.steps` / `path.state` / `path.description`, and replaying a generated path through a real `createActor`.
+`createTestModel` and `getShortestPaths` from the `xstate/graph` subpath, the `events` sample set (one entry per equivalence class, payloads included), `getSimplePaths()`, `path.test({ sut, states })`, `path.steps` / `path.state` / `path.description`, and replaying a generated path through a real `createActor`.
 
 ## How it works
 
@@ -27,7 +27,7 @@ const testModel = createTestModel(checkoutMachine, {
 });
 ```
 
-**Paths become test cases.** `getSimplePaths()` returns non-looping paths. `path.test()` runs each step: the event executor drives the UI, then the matching `states` assertion checks the UI against the model snapshot the machine reached.
+**Paths become test cases.** `getSimplePaths()` returns non-looping paths. `path.test()` runs each step: the `sut` session's `send` drives the UI, then the matching `states` assertion checks the UI against the model snapshot the machine reached.
 
 ```ts
 it.each(paths.map((path) => [path.description, path] as const))(
@@ -35,7 +35,7 @@ it.each(paths.map((path) => [path.description, path] as const))(
   async (_description, path) => {
     const ui = new CheckoutUi();
     await path.test({
-      events: { back: () => ui.back() /* … */ },
+      sut: { create: () => ({ send: (event) => dispatch(ui, event) }) },
       states: { payment: () => expect(ui.screen).toBe('payment') /* … */ }
     });
   }
@@ -44,7 +44,7 @@ it.each(paths.map((path) => [path.description, path] as const))(
 
 Add a state or a transition to the machine and new test cases appear without writing any.
 
-Event executors receive the event narrowed to its `type`, so payloads are read back through the machine's event union (`Extract<CheckoutEvent, { type: 'pay' }>`).
+`send` receives the event narrowed to the machine's event union, so payloads are read back directly (`event.zip`, `event.card`).
 
 ## Run it
 

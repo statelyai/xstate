@@ -9,16 +9,13 @@ import type {
   SerializedEvent,
   SerializedSnapshot,
   StatePath,
-  Step,
   TraversalOptions,
-  EventExecutor,
   PathGenerator,
   TestModelOptions,
-  TestParam,
-  TestPath,
-  TestPathResult,
-  TestStepResult
+  TestPath
 } from './types.ts';
+import type { TestExecutionOptions, TestPathRunResult } from './testPaths.ts';
+import { testPaths } from './testPaths.ts';
 import {
   EventObject,
   ActorLogic,
@@ -41,11 +38,7 @@ import {
   createShortestPathsGen,
   createSimplePathsGen
 } from './pathGenerators.ts';
-import {
-  formatPathTestResult,
-  getDescription,
-  simpleStringify
-} from './utils.ts';
+import { getDescription, simpleStringify } from './utils.ts';
 import { validateMachine } from './validateMachine.ts';
 
 type GetPathOptions<
@@ -85,7 +78,7 @@ export class TestModel<
       serializeTransition: (state, event) =>
         `${simpleStringify(state)}|${event?.type}`,
       events: [],
-      stateMatcher: (_, stateKey) => stateKey === '*',
+      stateMatcher: matchesStateKey,
       logger: {
         log: console.log.bind(console),
         error: console.error.bind(console)
@@ -182,8 +175,11 @@ export class TestModel<
       .join(' → ');
     return {
       ...statePath,
-      test: (params: TestParam<TSnapshot, TEvent>) =>
-        this.testPath(statePath, params),
+      test: (options?: TestExecutionOptions<TSnapshot, TEvent, unknown>) =>
+        this.testPath(
+          statePath,
+          options as TestExecutionOptions<TSnapshot, TEvent, TInput>
+        ),
       description: isMachineSnapshot(statePath.state)
         ? `Reaches ${getDescription(
             statePath.state as any
@@ -210,111 +206,62 @@ export class TestModel<
     return adjMap;
   }
 
+  /**
+   * Executes `paths` (the shortest paths by default) against the system under
+   * test, returning the same coverage object `propertyTest()` produces.
+   */
+  public async testPaths(
+    paths?: Array<StatePath<TSnapshot, TEvent>>,
+    options?: TestExecutionOptions<TSnapshot, TEvent, TInput>
+  ) {
+    return testPaths(this as any, {
+      ...(options as any),
+      ...(paths ? { paths } : {})
+    });
+  }
+
+  /** Executes a single path. See {@link TestModel.testPaths}. */
   public async testPath(
     path: StatePath<TSnapshot, TEvent>,
-    params: TestParam<TSnapshot, TEvent>,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
-  ): Promise<TestPathResult> {
-    const testPathResult: TestPathResult = {
-      steps: [],
-      state: {
-        error: null
-      }
-    };
-
-    try {
-      for (const step of path.steps) {
-        const testStepResult: TestStepResult = {
-          step,
-          state: { error: null },
-          event: { error: null }
-        };
-
-        testPathResult.steps.push(testStepResult);
-
-        try {
-          await this.testTransition(params, step);
-        } catch (err: any) {
-          testStepResult.event.error = err;
-
-          throw err;
-        }
-
-        try {
-          await this.testState(params, step.state, options);
-        } catch (err: any) {
-          testStepResult.state.error = err;
-
-          throw err;
-        }
-      }
-    } catch (err: any) {
-      // TODO: make option
-      err.message += formatPathTestResult(path, testPathResult, this.options);
-      throw err;
-    }
-
-    return testPathResult;
-  }
-
-  public async testState(
-    params: TestParam<TSnapshot, TEvent>,
-    state: TSnapshot,
-    options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
-  ): Promise<void> {
-    const resolvedOptions = this._resolveOptions(options);
-
-    const stateTestKeys = this._getStateTestKeys(
-      params,
-      state,
-      resolvedOptions
-    );
-
-    for (const stateTestKey of stateTestKeys) {
-      await params.states?.[stateTestKey](state);
-    }
-  }
-
-  private _getStateTestKeys(
-    params: TestParam<TSnapshot, TEvent>,
-    state: TSnapshot,
-    resolvedOptions: TestModelOptions<TSnapshot, TEvent, TInput>
-  ) {
-    const states = params.states || {};
-    const stateTestKeys = Object.keys(states).filter((stateKey) => {
-      return resolvedOptions.stateMatcher(state, stateKey);
-    });
-
-    // Fallthrough state tests
-    if (!stateTestKeys.length && '*' in states) {
-      stateTestKeys.push('*');
-    }
-
-    return stateTestKeys;
-  }
-
-  private _getEventExec(
-    params: TestParam<TSnapshot, TEvent>,
-    step: Step<TSnapshot, TEvent>
-  ) {
-    const eventExec =
-      params.events?.[(step.event as any).type as TEvent['type']];
-
-    return eventExec;
-  }
-
-  public async testTransition(
-    params: TestParam<TSnapshot, TEvent>,
-    step: Step<TSnapshot, TEvent>
-  ): Promise<void> {
-    const eventExec = this._getEventExec(params, step);
-    await (eventExec as EventExecutor<TSnapshot, TEvent>)?.(step);
+    options?: TestExecutionOptions<TSnapshot, TEvent, TInput>
+  ): Promise<TestPathRunResult<TSnapshot, TEvent>> {
+    const { results } = await this.testPaths([path], options);
+    return results[0] as TestPathRunResult<TSnapshot, TEvent>;
   }
 
   private _resolveOptions(
     options?: Partial<TestModelOptions<TSnapshot, TEvent, TInput>>
   ): TestModelOptions<TSnapshot, TEvent, TInput> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
+  }
+}
+
+/**
+ * The default `stateMatcher`: `'*'` matches every snapshot; on a state machine
+ * snapshot, `'#id'` matches when the state node with that id is active and any
+ * other key matches through `snapshot.matches(key)`. Node ids are compared
+ * rather than node objects, so snapshots of a `machine.provide()`d copy match
+ * too.
+ */
+function matchesStateKey(snapshot: Snapshot<unknown>, stateKey: string) {
+  if (stateKey === '*') {
+    return true;
+  }
+  const machineSnapshot = snapshot as {
+    nodes?: readonly { id: string }[];
+    matches?: (stateValue: string) => boolean;
+  };
+  if (stateKey.startsWith('#')) {
+    const id = stateKey.slice(1);
+    return !!machineSnapshot.nodes?.some((node) => node.id === id);
+  }
+  if (typeof machineSnapshot.matches !== 'function') {
+    return false;
+  }
+  try {
+    return machineSnapshot.matches(stateKey);
+  } catch {
+    return false;
   }
 }
 
@@ -445,11 +392,6 @@ export function createTestModel<TMachine extends AnyStateMachine>(
           serializeEvent
         }
       )}` as SerializedSnapshot;
-    },
-    stateMatcher: (state, key) => {
-      return key.startsWith('#')
-        ? (state as any).nodes.includes(machine.getStateNodeById(key))
-        : (state as any).matches(key);
     },
     events: (state) => {
       const events =
