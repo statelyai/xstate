@@ -147,6 +147,15 @@ export interface DeadLetterInspectionEvent extends BaseInspectionEventProperties
  *   microsteps, executed actions, and sent/scheduled events.
  * - `@xstate.deadletter` — events that could not be delivered.
  *
+ * POLICY: do not add event types to this union. The protocol is deliberately
+ * minimal so inspectors can be written against a fixed set. New observable
+ * facets belong as fields on `@xstate.transition` (or on the existing events),
+ * or are derived by the consumer. Examples of derivation: an unhandled event
+ * is a `@xstate.transition` whose `snapshot` is the same reference as the
+ * previous one with no `actions`; actor stop is the final transition's
+ * `snapshot.status`. The `inspection.conformance.v6.test.ts` type test pins
+ * the member list.
+ *
  * @experimental
  */
 export type InspectionEvent =

@@ -198,3 +198,18 @@ describe('v6 inspection protocol conformance', () => {
     expect(initEvent).toBeDefined();
   });
 });
+
+// Pins the protocol to exactly three event types. See the POLICY note on
+// `InspectionEvent` in src/inspection.ts before changing this.
+type _InspectionEventTypes = InspectionEvent['type'];
+const _protocolIsFixed: [
+  Exclude<
+    _InspectionEventTypes,
+    '@xstate.actor' | '@xstate.transition' | '@xstate.deadletter'
+  >,
+  Exclude<
+    '@xstate.actor' | '@xstate.transition' | '@xstate.deadletter',
+    _InspectionEventTypes
+  >
+] = [undefined as never, undefined as never];
+void _protocolIsFixed;
