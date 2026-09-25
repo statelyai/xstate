@@ -24,19 +24,24 @@ import type { EventObject, MachineContext, Values } from './base.types.ts';
 
 export type { EventObject, MachineContext, Values };
 
+/** @internal */
 export type Identity<T> = { [K in keyof T]: T[K] };
 
+/** @internal */
 export type HomomorphicPick<T, K extends keyof any> = {
   [P in keyof T as P & K]: T[P];
 };
+/** @public */
 export type HomomorphicOmit<T, K extends keyof any> = {
   [P in keyof T as Exclude<P, K>]: T[P];
 };
 
+/** @internal */
 export type Invert<T extends Record<PropertyKey, PropertyKey>> = {
   [K in keyof T as T[K]]: K;
 };
 
+/** @internal */
 export type GetParameterizedParams<T extends ParameterizedObject | undefined> =
   T extends any ? ('params' extends keyof T ? T['params'] : undefined) : never;
 
@@ -55,61 +60,83 @@ export type GetParameterizedParams<T extends ParameterizedObject | undefined> =
  *
  * This type can be used to avoid this problem. This union represents the same
  * value space as `unknown`.
+ * @public
  */
 export type NonReducibleUnknown = {} | null | undefined;
+/** @public */
 export type AnyFunction = (...args: any[]) => any;
 
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
+/** @public */
 export type IsNever<T> = [T] extends [never] ? true : false;
+/** @public */
 export type IsNotNever<T> = [T] extends [never] ? false : true;
 
+/** @public */
 export type Compute<A> = { [K in keyof A]: A[K] } & unknown;
+/** @public */
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
+/** @internal */
 export type Elements<T> = T[keyof T & `${number}`];
+/** @internal */
 export type Merge<M, N> = Omit<M, keyof N> & N;
+/** @internal */
 export type IndexByProp<T extends Record<P, string>, P extends keyof T> = {
   [E in T as E[P]]: E;
 };
 
+/** @internal */
 export type IndexByType<T extends { type: string }> = IndexByProp<T, 'type'>;
 
+/** @internal */
 export type IsEmptyObject<T> = keyof T extends never ? true : false;
 
+/** @public */
 export type Equals<A1, A2> =
   (<A>() => A extends A2 ? true : false) extends <A>() => A extends A1
     ? true
     : false
     ? true
     : false;
+/** @public */
 export type IsAny<T> = Equals<T, any>;
+/** @public */
 export type Cast<A, B> = A extends B ? A : B;
 // @TODO: we can't use native `NoInfer` as we need those:
 // https://github.com/microsoft/TypeScript/pull/61092
 // https://github.com/microsoft/TypeScript/pull/61077
 // but even with those fixes native NoInfer still doesn't work - further issues have to be reproduced and fixed
+/** @public */
 export type DoNotInfer<T> = [T][T extends any ? 0 : any];
 export type LowInfer<T> = T & NonNullable<unknown>;
 
+/** @public */
 export type MetaObject = Record<string, any>;
 
+/** @public */
 export type Lazy<T> = () => T;
+/** @public */
 export type MaybeLazy<T> = T | Lazy<T>;
 
+/** @public */
 export type EventPayloadPattern<TEvent extends EventObject> = TEvent extends any
   ? Partial<Omit<TEvent, 'type'>>
   : never;
 
+/** @public */
 export interface AnyEventObject extends EventObject {
   [key: string]: any;
 }
 
+/** @public */
 export interface ParameterizedObject {
   type: string;
   params?: NonReducibleUnknown;
 }
 
+/** @public */
 export type UnifiedArg<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -136,6 +163,7 @@ export type UnifiedArg<
 
 type DoneEventType = 'xstate.done.actor' | 'xstate.done.state';
 
+/** @public */
 export type OutputArg<TEvent extends EventObject> = TEvent extends {
   type: DoneEventType;
   output: infer TOutput;
@@ -143,6 +171,7 @@ export type OutputArg<TEvent extends EventObject> = TEvent extends {
   ? { output: TOutput }
   : { output: undefined };
 
+/** @public */
 export type ActionArgs<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -151,6 +180,7 @@ export type ActionArgs<
   children: Record<string, AnyActor>;
 };
 
+/** @public */
 export type InputFrom<T> =
   // Resolve the actor-logic contract first. Setup-created machines intersect
   // StateMachine with literal identity metadata; inferring StateMachine's
@@ -182,6 +212,7 @@ export type InputFrom<T> =
       ? TInput
       : never;
 
+/** @public */
 export type OutputFrom<T> =
   T extends ActorLogic<
     infer TSnapshot,
@@ -199,6 +230,7 @@ type ErrorFromSnapshot<TSnapshot> = TSnapshot extends { error: infer TError }
   ? Exclude<TError, undefined>
   : unknown;
 
+/** @public */
 export type ErrorFrom<T> = T extends {
   transition: (snapshot: infer TSnapshot, ...args: any[]) => any;
 }
@@ -207,17 +239,20 @@ export type ErrorFrom<T> = T extends {
     ? ErrorFromSnapshot<TSnapshot>
     : never;
 
+/** @internal */
 export type NoRequiredParams<T extends ParameterizedObject> = T extends any
   ? undefined extends T['params']
     ? T['type']
     : never
   : never;
 
+/** @public */
 export type ConditionalRequired<
   T,
   Condition extends boolean
 > = Condition extends true ? Required<T> : T;
 
+/** @internal */
 export type WithDynamicParams<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -241,8 +276,10 @@ export type WithDynamicParams<
     >
   : never;
 
+/** @public */
 export type StateKey = string | AnyMachineSnapshot;
 
+/** @public */
 export interface StateValueMap {
   [key: string]: StateValue | undefined;
 }
@@ -255,11 +292,14 @@ export interface StateValueMap {
  * - For a child atomic state node, this is a string, e.g., `"pending"`.
  * - For complex state nodes, this is an object, e.g., `{ success:
  *   "someChildState" }`.
+ * @public
  */
 export type StateValue = string | StateValueMap;
 
+/** @public */
 export type TransitionTarget = SingleOrArray<string>;
 
+/** @public */
 export type TransitionContextPatch<TContext extends MachineContext> =
   Partial<TContext> & {
     call?: never;
@@ -267,6 +307,7 @@ export type TransitionContextPatch<TContext extends MachineContext> =
     bind?: never;
   };
 
+/** @public */
 export type TransitionContextMapper<
   TContext extends MachineContext,
   TCurrentEvent extends EventObject,
@@ -288,6 +329,7 @@ export type TransitionContextMapper<
   >
 ) => TransitionContextPatch<_TCtx>;
 
+/** @public */
 export interface TransitionConfig<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -333,6 +375,7 @@ export interface TransitionConfig<
   _transitionDomain?: 'internal' | 'external';
 }
 
+/** @public */
 export interface InitialTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -356,6 +399,7 @@ export interface InitialTransitionConfig<
   target: string;
 }
 
+/** @public */
 export type AnyTransitionConfig = TransitionConfig<
   any, // TContext
   any, // TExpressionEvent
@@ -368,6 +412,7 @@ export type AnyTransitionConfig = TransitionConfig<
   any // TDelayMap
 >;
 
+/** @public */
 export interface InvokeDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -479,6 +524,7 @@ export interface InvokeDefinition<
       >;
 }
 
+/** @public */
 export type AnyInvokeDefinition = InvokeDefinition<
   MachineContext,
   EventObject,
@@ -492,6 +538,7 @@ export type AnyInvokeDefinition = InvokeDefinition<
 
 type Delay<TDelay extends string> = TDelay | number;
 
+/** @public */
 export type DelayedTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -530,6 +577,7 @@ export type DelayedTransitions<
       >;
 };
 
+/** @public */
 export type StateTypes =
   | 'atomic'
   | 'compound'
@@ -539,8 +587,10 @@ export type StateTypes =
   | 'history'
   | ({} & string);
 
+/** @public */
 export type SingleOrArray<T> = readonly T[] | T;
 
+/** @public */
 export type StateNodesConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -548,6 +598,7 @@ export type StateNodesConfig<
   [K in string]: StateNode<TContext, TEvent>;
 };
 
+/** @public */
 export type TransitionConfigTarget = string | undefined;
 
 export type TransitionConfigOrTarget<
@@ -586,6 +637,7 @@ export type TransitionConfigOrTarget<
     >
 >;
 
+/** @public */
 export type TransitionConfigFunction<
   TContext extends MachineContext,
   TCurrentEvent extends EventObject,
@@ -637,6 +689,8 @@ type SendableEventCarrier<TEvent extends EventObject> = {
  * The actor-logic surface available in inline callbacks. The outer `Compute`
  * at each use site is necessary: otherwise declaration emit repeats the
  * registered machine's structural type in every callback signature.
+ *
+ * @public
  */
 export type CallbackActors<T extends Sources['actors']> = {
   [K in keyof T]: ActorLogic<
@@ -687,6 +741,7 @@ type TransitionFunctionArgs<
   delays: TDelayMap;
 } & OutputArg<TCurrentEvent>;
 
+/** @public */
 export type AnyTransitionConfigFunction = TransitionConfigFunction<
   any,
   any,
@@ -702,6 +757,7 @@ export type AnyTransitionConfigFunction = TransitionConfigFunction<
   any // TChildren
 >;
 
+/** @public */
 export type TransitionsConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -730,11 +786,13 @@ type PartialEventDescriptor<TEventType extends string> =
     ? `${TLeading}.*` | `${TLeading}.${PartialEventDescriptor<TTail>}`
     : never;
 
+/** @public */
 export type EventDescriptor<TEvent extends EventObject> =
   | TEvent['type']
   | PartialEventDescriptor<TEvent['type']>
   | '*';
 
+/** @public */
 export type NormalizeDescriptor<TDescriptor extends string> =
   TDescriptor extends '*'
     ? string
@@ -798,6 +856,7 @@ type SendableEventFromMachine<
         | InternalEventDescriptorsFromConfig<TEvent, TConfig>
       >;
 
+/** @public */
 export type IsLiteralString<T extends string> = string extends T ? false : true;
 
 type ActorsBySrc<TActor extends ProvidedActor> = {
@@ -1135,6 +1194,7 @@ export type InvokeConfig<
             >;
       };
 
+/** @public */
 export type AnyInvokeConfig = InvokeConfig<
   any,
   any,
@@ -1146,6 +1206,7 @@ export type AnyInvokeConfig = InvokeConfig<
   any // TMeta
 >;
 
+/** @public */
 export type AnyStateNodeConfig = Next_StateNodeConfig<
   any,
   any,
@@ -1168,6 +1229,7 @@ export type AnyStateNodeConfig = Next_StateNodeConfig<
 
 // Accept any StateNode instance regardless of generic parameters
 // Using a union type to handle variance issues with machine.resolveState
+/** @public */
 export type AnyStateNode =
   | StateNode<any, any>
   | StateNode<never, EventObject>
@@ -1182,10 +1244,12 @@ type LoosenMachineSnapshot<TSnapshot> =
       }
     : never;
 
+/** @public */
 export type AnyMachineSnapshot = LoosenMachineSnapshot<
   MachineSnapshot<any, any, any, any, any, any, any, any>
 >;
 
+/** @public */
 export interface AnyStateMachine extends AnyActorLogic {
   id: string;
   root: AnyStateNode;
@@ -1230,13 +1294,16 @@ export interface AnyStateMachine extends AnyActorLogic {
   getPersistedSnapshot(snapshot: any, options?: unknown): Snapshot<unknown>;
 }
 
+/** @public */
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 
+/** @public */
 export type DelayConfig<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject
 > = number | DelayExpr<TContext, TExpressionEvent>;
 
+/** @public */
 export type InitialContext<
   TContext extends MachineContext,
   TActorMap extends Sources['actors'],
@@ -1244,6 +1311,7 @@ export type InitialContext<
   TEvent extends EventObject
 > = TContext | ContextFactory<TContext, TActorMap, TInput, TEvent>;
 
+/** @public */
 export type ContextFactory<
   TContext extends MachineContext,
   TActorMap extends Sources['actors'],
@@ -1274,12 +1342,14 @@ export type ContextFactory<
   >;
 }) => [TContext] extends [never] ? MachineContext : TContext;
 
+/** @public */
 export interface ProvidedActor {
   src: string;
   logic: UnknownActorLogic;
   id?: string | undefined; // `| undefined` is required here for compatibility with `exactOptionalPropertyTypes`, see #4613
 }
 
+/** @public */
 export interface SetupTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1300,6 +1370,7 @@ export interface SetupTypes<
   meta?: TMeta;
 }
 
+/** @public */
 export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1331,6 +1402,7 @@ export interface MachineTypes<
   meta?: TMeta;
 }
 
+/** @public */
 export interface HistoryStateNode<
   TContext extends MachineContext
 > extends StateNode<TContext> {
@@ -1338,12 +1410,16 @@ export interface HistoryStateNode<
   target: string | undefined;
 }
 
+/** @public */
 export type HistoryValue = Record<string, Array<AnyStateNode>>;
 
+/** @public */
 export type PersistedHistoryValue = Record<string, Array<{ id: string }>>;
 
+/** @public */
 export type AnyHistoryValue = HistoryValue;
 
+/** @public */
 export type StateFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = T extends AnyStateMachine
@@ -1352,6 +1428,7 @@ export type StateFrom<
     ? StateSnapshotFromMachine<ReturnType<T>>
     : never;
 
+/** @public */
 export type StateValueFromStateSchema<T extends StateSchema> =
   StateSchema extends T
     ? StateValue
@@ -1485,6 +1562,7 @@ type StateSnapshotFromMachine<T extends AnyStateMachine> =
       >
     : SnapshotFrom<T>;
 
+/** @public */
 export interface DoneActorEvent<
   TOutput = unknown,
   TId extends string = string
@@ -1495,6 +1573,7 @@ export interface DoneActorEvent<
   sessionId: string;
 }
 
+/** @public */
 export interface ErrorActorEvent<
   TErrorData = unknown,
   TId extends string = string
@@ -1505,6 +1584,7 @@ export interface ErrorActorEvent<
   sessionId: string;
 }
 
+/** @public */
 export interface ErrorPlatformEvent<
   TErrorData = unknown,
   TKind extends string = string
@@ -1513,8 +1593,10 @@ export interface ErrorPlatformEvent<
   error: TErrorData;
 }
 
+/** @public */
 export type ErrorEvent = ErrorActorEvent | ErrorPlatformEvent;
 
+/** @public */
 export interface SnapshotEvent<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>
 > extends EventObject {
@@ -1524,6 +1606,7 @@ export interface SnapshotEvent<
   snapshot: TSnapshot;
 }
 
+/** @public */
 export interface DoneStateEvent<
   TOutput = unknown,
   TId extends string = string
@@ -1533,27 +1616,32 @@ export interface DoneStateEvent<
   output: TOutput;
 }
 
+/** @public */
 export interface AfterEvent extends EventObject {
   type: 'xstate.after';
   delay: number | string;
   stateId: string;
 }
 
+/** @public */
 export interface TimeoutEvent extends EventObject {
   type: 'xstate.timeout';
   stateId: string;
 }
 
+/** @public */
 export interface ActorTimeoutEvent extends EventObject {
   type: 'xstate.timeout.actor';
   actorId: string;
   sessionId?: string;
 }
 
+/** @public */
 export enum SpecialTargets {
   Internal = '#_internal'
 }
 
+/** @public */
 export type Mapper<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -1582,6 +1670,7 @@ export type Mapper<
   } & OutputArg<TExpressionEvent>
 ) => TResult;
 
+/** @public */
 export interface TransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1616,8 +1705,10 @@ export interface TransitionDefinition<
       }) => Record<string, unknown>);
 }
 
+/** @public */
 export type AnyTransitionDefinition = TransitionDefinition<any, any>;
 
+/** @public */
 export type InitialTransitionDefinition<TMeta extends MetaObject = any> = {
   source: AnyStateNode;
   target: AnyStateNode[] | undefined;
@@ -1634,6 +1725,7 @@ export type InitialTransitionDefinition<TMeta extends MetaObject = any> = {
   to?: ((...args: any[]) => any) | undefined;
 };
 
+/** @public */
 export type TransitionDefinitionMap<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1644,6 +1736,7 @@ export type TransitionDefinitionMap<
   >;
 };
 
+/** @public */
 export type DelayExpr<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -1653,6 +1746,7 @@ export type DelayExpr<
   stateNode: AnyStateNode;
 }) => number;
 
+/** @public */
 export interface DelayedTransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1661,12 +1755,14 @@ export interface DelayedTransitionDefinition<
   delay: number | string | DelayExpr<TContext, TEvent>;
 }
 
+/** @public */
 export interface StateLike<TContext extends MachineContext> {
   value: StateValue;
   context: TContext;
   event: EventObject;
 }
 
+/** @public */
 export interface StateConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -1711,7 +1807,11 @@ export interface StateConfig<
   >;
 }
 
-/** A deterministic delayed-delivery declaration owned by a logic snapshot. */
+/**
+ * A deterministic delayed-delivery declaration owned by a logic snapshot.
+ *
+ * @public
+ */
 export interface LogicalTimer {
   id: string;
   delay: number;
@@ -1727,7 +1827,11 @@ export interface LogicalTimer {
   startedAt?: number;
 }
 
-/** The logical input delivered to a timer's source when its runtime delay ends. */
+/**
+ * The logical input delivered to a timer's source when its runtime delay ends.
+ *
+ * @public
+ */
 export interface TimerEvent extends EventObject {
   type: 'xstate.timer';
   id: string;
@@ -1757,12 +1861,17 @@ type PersistedSnapshotLogicIdentity<TLogic> = TLogic extends {
  * says nothing about the snapshot's shape. To annotate a value produced by
  * {@link Actor.getPersistedSnapshot}, use {@link PersistedSnapshotFrom}
  * instead.
+ * @public
  */
 export type PersistedSnapshotFor<TLogic> = {
   readonly [persistedSnapshotLogic]: PersistedSnapshotLogicIdentity<TLogic>;
 };
 
-/** The identity stamp persisted by a machine that declares a `version`. */
+/**
+ * The identity stamp persisted by a machine that declares a `version`.
+ *
+ * @public
+ */
 export type PersistedMachineIdentity<
   TMachine extends AnyStateMachine = AnyStateMachine
 > = {
@@ -1795,6 +1904,7 @@ export type PersistedMachineIdentity<
  * (`getPersistedSnapshot({ embedChildren: false })`) and a remote handle carry
  * `remote: true` instead, leaving each child's state with the runtime that
  * owns it.
+ * @public
  */
 export type PersistedActorRef = {
   /** The child's logical address, stable across incarnations. */
@@ -1808,6 +1918,7 @@ export type PersistedActorRef = {
   | { snapshot?: undefined; remote: true; incarnation?: string }
 );
 
+/** @public */
 export type PersistedSnapshotFrom<TMachine extends AnyStateMachine> =
   Snapshot<unknown> &
     PersistedSnapshotFor<TMachine> & {
@@ -1818,7 +1929,11 @@ export type PersistedSnapshotFrom<TMachine extends AnyStateMachine> =
       ? { machine?: PersistedMachineIdentity<TMachine> }
       : { machine: PersistedMachineIdentity<TMachine> });
 
-/** The persisted snapshot produced by `actor.getPersistedSnapshot()`. */
+/**
+ * The persisted snapshot produced by `actor.getPersistedSnapshot()`.
+ *
+ * @public
+ */
 export type PersistedSnapshotOf<TLogic extends AnyActorLogic> =
   TLogic extends AnyStateMachine
     ? PersistedSnapshotFrom<TLogic>
@@ -1828,6 +1943,8 @@ export type PersistedSnapshotOf<TLogic extends AnyActorLogic> =
  * A persisted snapshot restorable into the given actor logic: any snapshot
  * created by logic with the same machine `id` is accepted, regardless of
  * version (version mismatches are handled at runtime, e.g. by `migrate`).
+ *
+ * @public
  */
 export type RestorablePersistedSnapshotFor<TLogic> = {
   readonly [persistedSnapshotLogic]: TLogic extends {
@@ -1837,6 +1954,7 @@ export type RestorablePersistedSnapshotFor<TLogic> = {
     : never;
 };
 
+/** @public */
 export interface ActorOptions<TLogic extends AnyActorLogic> {
   /**
    * The clock that is responsible for setting and clearing timeouts, such as
@@ -2006,9 +2124,11 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   onRejectedEvent?: (rejection: EventRejection) => void;
 }
 
+/** @public */
 export type AnyActor = ActorInstance<any, any, any, any>;
 
 // Based on RxJS types
+/** @public */
 export type Observer<T> = {
   next?: (value: T) => void;
   error?: (err: unknown) => void;
@@ -2022,22 +2142,27 @@ export type Observer<T> = {
   passive?: boolean;
 };
 
+/** @public */
 export interface Subscription {
   unsubscribe(): void;
 }
 
+/** @public */
 export interface Readable<T> extends Subscribable<T> {
   get: () => T;
 }
 
+/** @public */
 export interface InteropObservable<T> {
   [Symbol.observable]: () => InteropSubscribable<T>;
 }
 
+/** @public */
 export interface InteropSubscribable<T> {
   subscribe(observer: Observer<T>): Subscription;
 }
 
+/** @public */
 export interface Subscribable<T> extends InteropSubscribable<T> {
   subscribe(observer: Observer<T>): Subscription;
   subscribe(
@@ -2056,6 +2181,7 @@ type EventDescriptorMatches<
     ? true
     : false;
 
+/** @public */
 export type ExtractEvent<
   TEvent extends EventObject,
   TDescriptor extends EventDescriptor<TEvent>
@@ -2073,10 +2199,12 @@ export type ExtractEvent<
       : never
     : never;
 
+/** @public */
 export interface BaseActorRef<TEvent extends EventObject> {
   send: (event: TEvent) => void;
 }
 
+/** @public */
 export interface ActorLike<
   TCurrent,
   TEvent extends EventObject
@@ -2093,6 +2221,8 @@ export interface ActorLike<
  * or runtime internals. A concrete `Actor` satisfies this interface, so APIs
  * should accept `ActorRef` whenever they only need to send events, read
  * snapshots, or listen to emitted events.
+ *
+ * @public
  */
 export interface ActorRef<
   TSnapshot extends Snapshot<unknown>,
@@ -2116,6 +2246,7 @@ type EventPayload<
   TType extends TEvent['type']
 > = HomomorphicOmit<ExtractEvent<TEvent, TType>, 'type'>;
 
+/** @public */
 export type ActorTrigger<TEvent extends EventObject> = {
   [K in TEvent['type']]: {} extends EventPayload<TEvent, K>
     ? () => void
@@ -2129,6 +2260,8 @@ export type ActorTrigger<TEvent extends EventObject> = {
  * management code. Public consumer APIs should prefer `ActorRef` unless they
  * genuinely need lifecycle control such as starting, stopping, or accessing
  * system-owned runtime state.
+ *
+ * @public
  */
 export interface ActorRuntime<
   TSnapshot extends Snapshot<unknown>,
@@ -2181,6 +2314,8 @@ export interface ActorRuntime<
  * `ActorInstance` combines the consumer `ActorRef` contract with runtime
  * lifecycle capabilities. Values returned by `createActor(...)` and
  * `spawn(...)` naturally satisfy narrower `ActorRef` contracts.
+ *
+ * @public
  */
 export interface ActorInstance<
   TSnapshot extends Snapshot<unknown>,
@@ -2198,6 +2333,8 @@ export interface ActorInstance<
  * Internals and action/guard sources receive this shape because `self` can
  * participate in runtime-owned behavior while still being usable wherever an
  * `ActorRef` is expected.
+ *
+ * @public
  */
 export type ActorSelf<
   TSnapshot extends Snapshot<unknown>,
@@ -2208,6 +2345,7 @@ export type ActorSelf<
   ActorRef<TSnapshot, TEvent, TEmitted, TSendEvent>;
 
 // TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
+/** @public */
 export type ActorRefFrom<T> =
   T extends StateMachine<
     infer TContext,
@@ -2253,6 +2391,7 @@ export type ActorRefFrom<T> =
         ? ActorRef<TSnapshot, TEvent, TEmitted, SendableEventFromLogic<T>>
         : never;
 
+/** @public */
 export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
   TLogic extends StateMachine<
     infer _TContext,
@@ -2299,6 +2438,7 @@ type OpaqueMachineSnapshot<TSnapshot extends Snapshot<unknown>> =
       >
     : TSnapshot;
 
+/** @public */
 export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
   OpaqueMachineSnapshot<SnapshotFrom<T>>,
   EventFromLogic<T>,
@@ -2306,13 +2446,18 @@ export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
   SendableEventFromLogic<T>
 >;
 
+/** @public */
 export interface AnyActorRef extends Subscribable<any>, InteropObservable<any> {
   send(event: any): void;
   getSnapshot(): any;
   on(type: string, handler: (emitted: any) => void): Subscription;
 }
 
-/** The concrete actor instance type produced from actor logic. */
+/**
+ * The concrete actor instance type produced from actor logic.
+ *
+ * @public
+ */
 export type ActorFromLogic<T extends AnyActorLogic> = ActorInstance<
   SnapshotFrom<T>,
   EventFromLogic<T>,
@@ -2335,12 +2480,16 @@ type SendableEventFromActorRef<
       : never
     : never;
 
+/** @public */
 export type ActorRefLike = Pick<AnyActor, 'sessionId' | 'send' | 'getSnapshot'>;
 
+/** @public */
 export type UnknownActorRef = ActorRef<Snapshot<unknown>, EventObject>;
 
+/** @public */
 export type DevToolsAdapter = (service: AnyActor) => void;
 
+/** @public */
 export type MachineSourcesFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > =
@@ -2368,6 +2517,7 @@ export type MachineSourcesFrom<
       }
     : never;
 
+/** @public */
 export interface ActorScope<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -2386,6 +2536,7 @@ export interface ActorScope<
   actionExecutor: ActionExecutor;
 }
 
+/** @public */
 export type AnyActorScope = ActorScope<
   any, // TSnapshot
   any, // TEvent
@@ -2394,8 +2545,10 @@ export type AnyActorScope = ActorScope<
   any // TSendEvent
 >;
 
+/** @public */
 export type SnapshotStatus = 'active' | 'done' | 'error' | 'stopped';
 
+/** @public */
 export type Snapshot<TOutput> =
   | {
       status: 'active';
@@ -2418,6 +2571,7 @@ export type Snapshot<TOutput> =
       error: undefined;
     };
 
+/** @public */
 export type ActorLogicTransitionResult<
   TSnapshot extends Snapshot<unknown>,
   TEffect = ExecutableActionObject
@@ -2430,6 +2584,7 @@ export type ActorLogicTransitionResult<
  * @template TEvent - The type of the event object.
  * @template TInput - The type of the input.
  * @template TSystem - The type of the actor system.
+ * @public
  */
 export interface ActorLogic<
   in out TSnapshot extends Snapshot<unknown>, // it's invariant because it's also part of `ActorScope["self"]["getSnapshot"]`
@@ -2526,6 +2681,7 @@ export interface ActorLogic<
   ) => TEvent | undefined;
 }
 
+/** @public */
 export interface AnyActorLogic {
   config?: unknown;
   validator?: import('./validation.types.ts').ActorLogicValidator | undefined;
@@ -2545,6 +2701,7 @@ export interface AnyActorLogic {
   getExecutionErrorEvent?(snapshot: any, error: unknown): any;
 }
 
+/** @public */
 export type UnknownActorLogic = ActorLogic<
   any, // snapshot
   any, // event
@@ -2553,6 +2710,7 @@ export type UnknownActorLogic = ActorLogic<
   any // emitted
 >;
 
+/** @public */
 export type SnapshotFrom<T> =
   ReturnTypeOrValue<T> extends infer R
     ? R extends ActorRef<infer TSnapshot, infer _, infer __>
@@ -2577,6 +2735,7 @@ export type SnapshotFrom<T> =
             : never
     : never;
 
+/** @public */
 export type EventFromLogic<TLogic extends AnyActorLogic> =
   TLogic extends ActorLogic<
     infer _TSnapshot,
@@ -2588,6 +2747,7 @@ export type EventFromLogic<TLogic extends AnyActorLogic> =
     ? TEvent
     : never;
 
+/** @public */
 export type EmittedFrom<TLogic extends AnyActorLogic> =
   TLogic extends StateMachine<
     infer _TContext,
@@ -2652,12 +2812,14 @@ type ResolveEventType<T> = T extends infer R
         : never
   : never;
 
+/** @public */
 export type EventFrom<
   T,
   K extends Prop<TEvent, 'type'> = never,
   TEvent extends EventObject = ResolveEventType<T>
 > = IsNever<K> extends true ? TEvent : ExtractEvent<TEvent, K>;
 
+/** @public */
 export type ContextFrom<T> =
   T extends StateMachine<
     infer TContext,
@@ -2693,26 +2855,33 @@ export type ContextFrom<T> =
           : never
         : never;
 
+/** @public */
 export type InferEvent<E extends EventObject> = {
   [T in E['type']]: { type: T } & Extract<E, { type: T }>;
 }[E['type']];
 
+/** @public */
 export type TODO = any;
 
+/** @public */
 export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
   StateFrom<TMachine>['matches']
 >[0];
 
+/** @public */
 export type TagsFrom<TMachine extends AnyStateMachine> = Parameters<
   StateFrom<TMachine>['hasTag']
 >[0];
 
+/** @public */
 export interface ActorSystemInfo {
   actors: Record<string, AnyActorRef>;
 }
 
+/** @public */
 export type SystemRegistry = Record<string, AnyActorLogic>;
 
+/** @public */
 export type RegistryKeyForLogic<
   TLogic extends AnyActorLogic,
   TSystemRegistry extends SystemRegistry
@@ -2727,10 +2896,12 @@ export type RegistryKeyForLogic<
         : never;
     }>;
 
+/** @public */
 export type RequiredActorOptions<TActor extends ProvidedActor> =
   | (undefined extends TActor['id'] ? never : 'id')
   | (undefined extends InputFrom<TActor['logic']> ? never : 'input');
 
+/** @public */
 export type RequiredLogicInput<TLogic extends AnyActorLogic> =
   undefined extends InputFrom<TLogic> ? never : 'input';
 
@@ -2753,6 +2924,7 @@ type NonConcreteActors<TActor extends ProvidedActor> = TActor extends any
     : never
   : never;
 
+/** @public */
 export type ToChildren<TActor extends ProvidedActor> =
   // only proceed further if all configured `src`s are literal strings
   string extends TActor['src']
@@ -2776,6 +2948,7 @@ export type ToChildren<TActor extends ProvidedActor> =
           }[NonConcreteActors<TActor> extends never ? 'exclude' : 'include']
       >;
 
+/** @public */
 export type StateSchema = {
   id?: string;
   route?: unknown;
@@ -2808,6 +2981,7 @@ export type StateSchema = {
   description?: unknown;
 };
 
+/** @public */
 export type StateSchemaFrom<T extends AnyStateMachine> =
   T extends StateMachine<
     infer _TContext,
@@ -2828,6 +3002,7 @@ export type StateSchemaFrom<T extends AnyStateMachine> =
     ? TStateSchema
     : never;
 
+/** @public */
 export type StateId<
   TSchema extends StateSchema,
   TKey extends string = '(machine)',
@@ -2852,7 +3027,11 @@ export type StateId<
         }>
       : never);
 
-/** Maps state IDs to their input types based on the StateSchema. */
+/**
+ * Maps state IDs to their input types based on the StateSchema.
+ *
+ * @public
+ */
 export type StateIdInputs<
   TSchema extends StateSchema,
   TKey extends string = '(machine)',
@@ -2907,6 +3086,7 @@ type ContextFromChildStateValue<
     TChildValue
   >;
 
+/** @public */
 export type StateContextFromStateValue<
   TSchema extends StateSchema,
   TFallbackContext extends MachineContext,
@@ -2930,6 +3110,7 @@ export type StateContextFromStateValue<
   : TFallbackContext) &
   MachineContext;
 
+/** @public */
 export type RoutableStateId<TSchema extends StateSchema> =
   | (TSchema extends { route: any; id: string } ? `#${TSchema['id']}` : never)
   | (TSchema['states'] extends Record<string, any>
@@ -2940,6 +3121,7 @@ export type RoutableStateId<TSchema extends StateSchema> =
         }>
       : never);
 
+/** @public */
 export interface StateMachineTypes {
   context: MachineContext;
   events: EventObject;
@@ -2951,6 +3133,7 @@ export interface StateMachineTypes {
   emitted: EventObject;
 }
 
+/** @internal */
 export type GetConcreteByKey<
   T,
   TKey extends keyof T,
@@ -2975,6 +3158,7 @@ type GroupStateKeys<T extends StateSchema, S extends keyof T['states']> = {
   leaf: _GroupStateKeys<T, S & string>[1];
 };
 
+/** @public */
 export type ToStateValue<T extends StateSchema> = T extends {
   states: Record<infer S, any>;
 }
@@ -2999,6 +3183,7 @@ export type ToStateValue<T extends StateSchema> = T extends {
             : never)
   : {};
 
+/** @public */
 export interface BaseExecutableActionObject {
   params: NonReducibleUnknown;
   args: unknown[];
@@ -3007,11 +3192,16 @@ export interface BaseExecutableActionObject {
   ): void | PromiseLike<void> | undefined;
 }
 
-/** The terminal result published when an actor completes or errors. */
+/**
+ * The terminal result published when an actor completes or errors.
+ *
+ * @public
+ */
 export type ActorTermination =
   | { status: 'done'; output: unknown; error: undefined }
   | { status: 'error'; output: undefined; error: unknown };
 
+/** @public */
 export interface CustomExecutableActionObject<
   TType extends string = string & {}
 > extends BaseExecutableActionObject {
@@ -3020,6 +3210,7 @@ export interface CustomExecutableActionObject<
   action: ((...args: any[]) => void | PromiseLike<void>) | undefined;
 }
 
+/** @public */
 export interface EmitExecutableActionObject<
   TType extends string = string & {}
 > extends BaseExecutableActionObject {
@@ -3029,6 +3220,7 @@ export interface EmitExecutableActionObject<
   event: EventObject & { type: TType };
 }
 
+/** @public */
 export interface SpawnExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
   type: '@xstate.spawn';
@@ -3041,6 +3233,7 @@ export interface SpawnExecutableActionObject extends BaseExecutableActionObject 
   args: Parameters<(typeof builtInActions)['@xstate.spawn']>;
 }
 
+/** @public */
 export interface StartExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
   type: '@xstate.start';
@@ -3050,6 +3243,7 @@ export interface StartExecutableActionObject extends BaseExecutableActionObject 
   args: Parameters<(typeof builtInActions)['@xstate.start']>;
 }
 
+/** @public */
 export interface RaiseExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
   type: '@xstate.raise';
@@ -3060,6 +3254,7 @@ export interface RaiseExecutableActionObject extends BaseExecutableActionObject 
   args: Parameters<(typeof builtInActions)['@xstate.raise']>;
 }
 
+/** @public */
 export interface SendToExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
   type: '@xstate.sendTo';
@@ -3071,6 +3266,7 @@ export interface SendToExecutableActionObject extends BaseExecutableActionObject
   args: Parameters<(typeof builtInActions)['@xstate.sendTo']>;
 }
 
+/** @public */
 export interface CancelExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
   type: '@xstate.cancel';
@@ -3079,6 +3275,7 @@ export interface CancelExecutableActionObject extends BaseExecutableActionObject
   args: Parameters<(typeof builtInActions)['@xstate.cancel']>;
 }
 
+/** @public */
 export interface StopExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
   type: '@xstate.stop';
@@ -3088,7 +3285,11 @@ export interface StopExecutableActionObject extends BaseExecutableActionObject {
   args: Parameters<(typeof builtInActions)['@xstate.stop']>;
 }
 
-/** An executable effect that publishes an actor's terminal result. */
+/**
+ * An executable effect that publishes an actor's terminal result.
+ *
+ * @public
+ */
 export type TerminateExecutableActionObject = BaseExecutableActionObject & {
   kind: 'builtin';
   type: '@xstate.terminate';
@@ -3101,6 +3302,8 @@ export type TerminateExecutableActionObject = BaseExecutableActionObject & {
 /**
  * An executable effect that reports an event rejected at the delivery boundary
  * (a dead letter). The snapshot paired with this effect is unchanged.
+ *
+ * @public
  */
 export interface DeadLetterExecutableActionObject extends BaseExecutableActionObject {
   kind: 'builtin';
@@ -3117,6 +3320,7 @@ export interface DeadLetterExecutableActionObject extends BaseExecutableActionOb
   args: [];
 }
 
+/** @public */
 export type BuiltInExecutableActionObject = Values<{
   '@xstate.spawn': SpawnExecutableActionObject;
   '@xstate.start': StartExecutableActionObject;
@@ -3128,6 +3332,7 @@ export type BuiltInExecutableActionObject = Values<{
   '@xstate.deadLetter': DeadLetterExecutableActionObject;
 }>;
 
+/** @public */
 export type SpecialExecutableAction = BuiltInExecutableActionObject;
 
 type TransitionExecutableActionObject<TType extends string = never> =
@@ -3139,6 +3344,7 @@ type KnownSourceKeys<TSourceMap> = string extends keyof TSourceMap
   ? never
   : Extract<keyof TSourceMap, string>;
 
+/** @public */
 export type ExecutableActionObjectFromLogic<T extends AnyActorLogic> =
   T extends StateMachine<
     any,
@@ -3159,11 +3365,13 @@ export type ExecutableActionObjectFromLogic<T extends AnyActorLogic> =
     ? TransitionExecutableActionObject<KnownSourceKeys<TActionMap>>
     : ExecutableActionObject;
 
+/** @public */
 export type ExecutableActionObject<TType extends string = string & {}> =
   | BuiltInExecutableActionObject
   | EmitExecutableActionObject
   | CustomExecutableActionObject<TType>;
 
+/** @public */
 export interface ToExecutableAction<
   T extends ParameterizedObject
 > extends CustomExecutableActionObject<T['type']> {
@@ -3172,9 +3380,14 @@ export interface ToExecutableAction<
   action: undefined;
 }
 
+/** @public */
 export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;
 
-/** Mappers for subscribeTo - maps lifecycle events to machine events */
+/**
+ * Mappers for subscribeTo - maps lifecycle events to machine events
+ *
+ * @public
+ */
 export interface SubscribeToMappers<
   TSnapshot extends Snapshot<unknown>,
   TOutput,
@@ -3221,6 +3434,7 @@ type EnqueueSpawner<
   ): ActorFromLogic<TLogic>;
 };
 
+/** @public */
 export type EnqueueObject<
   TEvent extends EventObject,
   TEmittedEvent extends EventObject,
@@ -3289,6 +3503,7 @@ export type EnqueueObject<
   ) => AnyActor;
 };
 
+/** @public */
 export type Action<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -3331,6 +3546,7 @@ export type Action<
   children?: Record<string, AnyActor | undefined>;
 } | void;
 
+/** @public */
 export type AnyAction =
   | Action<
       MachineContext,

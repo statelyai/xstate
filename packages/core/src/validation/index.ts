@@ -14,6 +14,7 @@ import { matchesEventDescriptor } from '../utils.ts';
 
 const actorValidationErrorSymbol = Symbol.for('xstate.actorValidationError');
 
+/** @experimental */
 export type ActorValidationReason =
   | 'invalid'
   | 'unknownEvent'
@@ -22,6 +23,7 @@ export type ActorValidationReason =
   | 'asyncValidationUnsupported'
   | 'schemaThrew';
 
+/** @experimental */
 export interface ActorValidationErrorOptions {
   reason: ActorValidationReason;
   boundary: ActorValidationBoundary;
@@ -34,7 +36,11 @@ export interface ActorValidationErrorOptions {
   cause?: unknown;
 }
 
-/** A structured failure produced by `standardSchemaValidator()`. */
+/**
+ * A structured failure produced by `standardSchemaValidator()`.
+ *
+ * @experimental
+ */
 export class ActorValidationError extends Error {
   public readonly [actorValidationErrorSymbol] = true;
   public readonly reason: ActorValidationReason;
@@ -62,6 +68,7 @@ export class ActorValidationError extends Error {
   }
 }
 
+/** @experimental */
 export function isActorValidationError(
   value: unknown
 ): value is ActorValidationError {
@@ -72,6 +79,7 @@ export function isActorValidationError(
   );
 }
 
+/** @experimental */
 export interface StandardSchemaValidatorOptions {
   unknownEvents?: 'error' | 'ignore';
   unknownEmitted?: 'error' | 'ignore';
@@ -96,7 +104,11 @@ interface ActorSchemas {
   emitted?: Record<string, StandardSchemaV1>;
 }
 
-/** Creates a synchronous, assertion-only Standard Schema validator. */
+/**
+ * Creates a synchronous, assertion-only Standard Schema validator.
+ *
+ * @experimental
+ */
 export function standardSchemaValidator(
   options: StandardSchemaValidatorOptions = {}
 ): ActorLogicValidator {

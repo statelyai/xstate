@@ -26,6 +26,7 @@ import { getAllOwnEvents, matchesEvent } from '../utils.ts';
  *
  * @public
  * @param stateNode State node to recursively get child state nodes from
+ * @public
  */
 export function getDescendantStateNodes(stateNode: {
   states: Record<string, AnyStateNode | StateNode<never, EventObject>>;
@@ -54,6 +55,7 @@ function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
   return children;
 }
 
+/** @public */
 export function serializeSnapshot(snapshot: Snapshot<any>): SerializedSnapshot {
   const { value, context } = snapshot as any;
   return JSON.stringify({
@@ -113,6 +115,7 @@ function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   return traversalOptions;
 }
 
+/** @public */
 export function toDirectedGraph(
   stateMachine: AnyStateNode | AnyStateMachine
 ): DirectedGraphNode {
@@ -230,6 +233,7 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
   return traversalConfig;
 }
 
+/** @public */
 export function joinPaths<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject

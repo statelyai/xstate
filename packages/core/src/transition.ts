@@ -68,6 +68,8 @@ function attachMicrostepActorRefs(
  * `nextSnapshot` and `actions` to execute.
  *
  * This is a pure function that does not execute `actions`.
+ *
+ * @public
  */
 export function transition<T extends AnyActorLogic>(
   logic: T,
@@ -100,6 +102,8 @@ export function transition<T extends AnyActorLogic>(
  * previous state).
  *
  * This is a pure function that does not execute `actions`.
+ *
+ * @public
  */
 export function initialTransition<T extends AnyActorLogic>(
   logic: T,
@@ -149,6 +153,8 @@ function inspectPureTransition(
  * microsteps, where each microstep is a tuple of `[snapshot, actions]`.
  *
  * This is a pure function that does not execute `actions`.
+ *
+ * @public
  */
 export function getMicrosteps<T extends AnyStateMachine>(
   machine: T,
@@ -173,6 +179,8 @@ export function getMicrosteps<T extends AnyStateMachine>(
  * actions]`.
  *
  * This is a pure function that does not execute `actions`.
+ *
+ * @public
  */
 export function getInitialMicrosteps<T extends AnyStateMachine>(
   machine: T,
@@ -235,6 +243,7 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
  * @param state - The current machine snapshot
  * @returns Array of transition definitions from the current state, in
  *   deterministic order
+ * @public
  */
 export function getNextTransitions(
   state: AnyMachineSnapshot
