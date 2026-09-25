@@ -16,6 +16,7 @@ import {
 } from './types.ts';
 import { createMockActorScope } from './actorScope.ts';
 
+/** @public */
 export function getShortestPaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<

@@ -58,10 +58,12 @@
     "bench:size:update": "node scripts/bundle-size.mjs --update",
     "bench:core-runtime": "node scripts/bench-core-runtime.mjs",
     "bench:type-errors": "node scripts/type-error-quality.mjs",
+    "check:exports": "node scripts/check-export-stability.mjs",
+    "check:packed": "node scripts/check-packed-consumer.mjs",
     "changeset": "changeset",
     "release": "changeset publish",
     "version": "changeset version",
-    "test:tooling": "node --test scripts/typecheck-examples.test.cjs"
+    "test:tooling": "node --test scripts/typecheck-examples.test.cjs scripts/check-export-stability.test.mjs"
   },
   "repository": {
     "type": "git",

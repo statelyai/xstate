@@ -903,6 +903,7 @@ export function getStateNodeByPath(
  * Returns the state nodes represented by the current state value.
  *
  * @param stateValue The state value or State instance
+ * @public
  */
 export function getStateNodes(
   stateNode: AnyStateNode,

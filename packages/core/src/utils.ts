@@ -24,6 +24,7 @@ import type {
   TransitionConfigTarget
 } from './types.ts';
 
+/** @public */
 export function matchesState(
   parentStateId: StateValue,
   childStateId: StateValue
@@ -53,6 +54,7 @@ export function matchesState(
   });
 }
 
+/** @public */
 export function checkStateIn(
   snapshot: AnyMachineSnapshot,
   stateValue: StateValue
@@ -111,6 +113,7 @@ function toStateValue(stateValue: StateLike<any> | StateValue): StateValue {
   return pathToStateValue(statePath);
 }
 
+/** @public */
 export function pathToStateValue(statePath: string[]): StateValue {
   if (statePath.length === 1) {
     return statePath[0];
@@ -292,6 +295,7 @@ export function normalizeTarget<
   return toArray(target);
 }
 
+/** @public */
 export function toObserver<T>(
   nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,
@@ -342,6 +346,7 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
     : configSrc;
 }
 
+/** @experimental */
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
   return [...new Set([...snapshot.nodes.flatMap((sn) => sn.ownEvents)])];
 }

@@ -6833,3 +6833,60 @@ describe('entry/exit stateNode', () => {
     });
   });
 });
+
+it('generic state node containers keep arbitrary metadata as any', () => {
+  // Ported intent of v5 #5712/#5718. `any` assigns both ways, so check that the
+  // meta slots stay `any` instead of widening to `MetaObject`.
+  type IsAny<T> = 0 extends 1 & T ? true : false;
+  type TransitionMetaOf<T extends import('../src').AnyStateNode> =
+    T['transitions'] extends Map<any, (infer TTransition)[]>
+      ? TTransition extends { meta?: infer TMeta }
+        ? TMeta
+        : never
+      : never;
+  type NodeMetaIsAny<T extends import('../src').AnyStateNode> = [
+    IsAny<T['meta']>,
+    IsAny<TransitionMetaOf<T>>
+  ];
+
+  const root: NodeMetaIsAny<import('../src').AnyStateMachine['root']> = [
+    true,
+    true
+  ];
+  const history: NodeMetaIsAny<
+    import('../src').AnyHistoryValue[string][number]
+  > = [true, true];
+  const snapshot: NodeMetaIsAny<
+    import('../src').AnyMachineSnapshot['nodes'][number]
+  > = [true, true];
+  const config: NodeMetaIsAny<
+    import('../src').AnyStateConfig['_nodes'][number]
+  > = [true, true];
+  const historyNode: NodeMetaIsAny<import('../src').HistoryStateNode<any>> = [
+    true,
+    true
+  ];
+  const graphNode: NodeMetaIsAny<
+    import('../src/graph').DirectedGraphNode['stateNode']
+  > = [true, true];
+  const graphTransition: IsAny<
+    import('../src/graph').DirectedGraphEdge['transition']['meta']
+  > = true;
+  const transition: IsAny<import('../src').AnyTransitionDefinition['meta']> =
+    true;
+
+  expect(
+    [
+      root,
+      history,
+      snapshot,
+      config,
+      historyNode,
+      graphNode,
+      graphTransition,
+      transition
+    ]
+      .flat()
+      .every(Boolean)
+  ).toBe(true);
+});

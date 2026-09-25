@@ -76,6 +76,7 @@ import {
   WithDefault
 } from './types.v6.ts';
 
+/** @public */
 export type SetupConfig<
   TSchemas extends SetupSchemas,
   TStates extends Record<string, SetupStateSchema>,
@@ -147,6 +148,7 @@ type MergedSetupSchemas<TBaseSchemas, TExtendSchemas> = {
         : never;
 };
 
+/** @public */
 export type AnySetupConfig = SetupConfig<
   SetupSchemas,
   Record<string, SetupStateSchema>,
@@ -342,10 +344,12 @@ type MachineConfigSchemas<TConfig> = TConfig extends {
   ? TSchemas
   : {};
 
+/** @public */
 export type SystemConfig<TSystemRegistry extends SystemRegistry> = {
   registry?: TSystemRegistry;
 };
 
+/** @public */
 export type SystemActorMap<TSystemRegistry extends SystemRegistry> = {
   [K in keyof TSystemRegistry & string]: ActorRefFromLogic<TSystemRegistry[K]>;
 };
@@ -359,6 +363,7 @@ type MachineIdentity<TConfig> = {
     : undefined;
 };
 
+/** @public */
 export type SystemRuntime<TSystemRegistry extends SystemRegistry> = Omit<
   AnyActorSystem,
   'get' | 'getAll'
@@ -4006,7 +4011,11 @@ type RootInitialTransitionWithInput<
       >;
     }[RootSetupStateIdTarget<TStateSchemas>];
 
-/** Return type of setup() */
+/**
+ * Return type of setup()
+ *
+ * @public
+ */
 export interface SetupReturn<
   TStates extends Record<string, SetupStateSchema> = Record<
     string,
@@ -4378,6 +4387,7 @@ type SetupConfigDelays<TConfig> = TConfig extends { delays?: infer TDelays }
     : {}
   : {};
 
+/** @public */
 export type SetupReturnFromConfig<
   TConfig extends AnySetupConfig,
   TSystemRegistry extends SystemRegistry = SystemRegistry
@@ -4489,6 +4499,7 @@ type SetupFunction<TSystemRegistry extends SystemRegistry = SystemRegistry> = {
  *   }
  * });
  * ```
+ * @public
  */
 export const setup = function setupImplementation<
   const TSchemas extends SetupSchemas = {},
@@ -4633,6 +4644,7 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
   setup: SetupFunction<TSystemRegistry>;
 };
 
+/** @public */
 export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
   _config: SystemConfig<TSystemRegistry> = {}
 ): SystemBuilder<TSystemRegistry> {

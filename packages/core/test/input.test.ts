@@ -1,5 +1,6 @@
 import { of } from 'rxjs';
-import { createActor, createLogic, createMachine } from '../src';
+import { createActor, createLogic, createMachine, setup } from '../src';
+import { standardSchemaValidator } from '../src/validation/index.ts';
 import {
   createCallbackLogic,
   createObservableLogic,
@@ -81,6 +82,58 @@ describe('input', () => {
     const snapshot = createActor(machine).getSnapshot();
 
     expect(snapshot.status).toBe('error');
+  });
+
+  it('should retain the machine snapshot interface when resolving input throws', () => {
+    const machine = createMachine({
+      schemas: {
+        input: z.object({
+          greeting: z.string()
+        }),
+        context: z.object({
+          message: z.string()
+        })
+      },
+      context: ({ input }) => ({
+        message: `Hello, ${input.greeting}`
+      }),
+      initial: 'saving',
+      states: {
+        saving: {}
+      }
+    });
+
+    // @ts-expect-error input is required
+    const snapshot = createActor(machine).getSnapshot();
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.matches('saving')).toBe(true);
+  });
+
+  it('should retain the machine snapshot interface and factory error when resolving input throws with result validation', () => {
+    const factoryError = new Error('factory failed');
+    const machine = setup({
+      validator: standardSchemaValidator(),
+      schemas: {
+        context: z.object({
+          message: z.string()
+        })
+      }
+    }).createMachine({
+      context: () => {
+        throw factoryError;
+      },
+      initial: 'saving',
+      states: {
+        saving: {}
+      }
+    });
+
+    const snapshot = createActor(machine).getSnapshot();
+
+    expect(typeof snapshot.matches).toBe('function');
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.error).toBe(factoryError);
   });
 
   it('should be a type error if input is not expected yet provided', () => {

@@ -69,6 +69,7 @@ interface StateNodeOptions<
   _machine: AnyStateMachine;
 }
 
+/** @public */
 export class StateNode<
   TContext extends MachineContext = MachineContext,
   TEvent extends EventObject = EventObject,
