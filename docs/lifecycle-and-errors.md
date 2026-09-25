@@ -17,7 +17,7 @@ Handle invoked actor failures with `onError`. Model expected outcomes as events 
 
 Stopping a parent also stops its children.
 
-Undeliverable events are dead letters, not errors. A send to a stopped actor or to a missing target (`enq.sendTo(undefined, ...)`, an unknown child id, or `parent` in a root actor) leaves the sender `active` and reports the event through `onRejectedEvent`, the `@xstate.deadletter` inspection event and a development warning.
+Undeliverable events are dead letters, not errors. A send to a stopped actor or to a missing target (`enq.sendTo(undefined, ...)`, an unknown child id, or `parent` in a root actor) leaves the sender `active` and reports the event through `onRejectedEvent` and a development warning.
 
 Async actors receive an abort signal. Callback actors can return a cleanup function. Use both to release network requests, sockets and event listeners when an actor stops.
 

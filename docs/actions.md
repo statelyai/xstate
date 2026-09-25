@@ -30,7 +30,7 @@ entry: ({ context }, enq) => {
 
 Provide reusable named action sources through `setup(...)`.
 
-`enq.sendTo(...)` to a missing target (an `undefined` ref, a child id with no running child, or `parent` in a root actor) does not error the sender. The event becomes a dead letter with reason `'missingTarget'`: the root actor's `onRejectedEvent` option receives it, inspectors receive an `@xstate.deadletter` event and development builds log a warning that names the sender and the target.
+`enq.sendTo(...)` to a missing target (an `undefined` ref, a child id with no running child, or `parent` in a root actor) does not error the sender. The event becomes a dead letter with reason `'missingTarget'`: the root actor's `onRejectedEvent` option receives it (with `reason`, `targetId` and `sourceRef`) and development builds log a warning that names the sender and the target.
 
 Actions are fire-and-forget. XState does not wait for a promise returned by an action. Use invoked async logic when the result changes what happens next.
 

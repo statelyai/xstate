@@ -1568,18 +1568,14 @@ describe('error handling', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       cleanups.push(() => warn.mockRestore());
       const rejections: any[] = [];
-      const deadLetters: any[] = [];
       const errorSpy = vi.fn();
       const onErrorSpy = vi.fn();
       const actor = createActor(machine, {
-        onRejectedEvent: (rejection) => rejections.push(rejection),
-        inspect: (ev) => {
-          if (ev.type === '@xstate.deadletter') deadLetters.push(ev);
-        }
+        onRejectedEvent: (rejection) => rejections.push(rejection)
       });
       actor.subscribe({ error: errorSpy });
       actor.start();
-      return { actor, warn, rejections, deadLetters, errorSpy, onErrorSpy };
+      return { actor, warn, rejections, errorSpy, onErrorSpy };
     }
 
     function machineSending(
@@ -1604,7 +1600,7 @@ describe('error handling', () => {
 
     it('dead-letters a send to an undefined ref without erroring the actor', () => {
       const onErrorSpy = vi.fn();
-      const { actor, warn, rejections, deadLetters, errorSpy } = observe(
+      const { actor, warn, rejections, errorSpy } = observe(
         machineSending((_, enq) => {
           enq.sendTo(undefined, { type: 'PING' });
         }, onErrorSpy)
@@ -1622,14 +1618,6 @@ describe('error handling', () => {
           sourceRef: actor,
           targetRef: undefined,
           targetId: undefined
-        })
-      ]);
-      expect(deadLetters).toEqual([
-        expect.objectContaining({
-          actorRef: actor,
-          sourceRef: actor,
-          reason: 'missingTarget',
-          event: { type: 'PING' }
         })
       ]);
       expect(warn).toHaveBeenCalledWith(

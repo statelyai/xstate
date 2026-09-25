@@ -13,7 +13,7 @@ const actor = createActor(machine, {
 });
 ```
 
-Inspection emits four event types:
+Inspection emits three event types:
 
 | Type | Contains |
 | --- | --- |
@@ -51,7 +51,7 @@ Every event type carries `rootId`, the session ID of the root actor, and `actorR
 | --- | --- |
 | `sourceRef` | The actor that sent the event, or `undefined` when sent externally. |
 | `event` | The undelivered event. |
-| `reason` | Why delivery failed: `'stopped'`, `'invalidEvent'`, `'internalEvent'` or `'missingTarget'`. For `'missingTarget'`, `actorRef` is the sending actor. |
+| `reason` | Why delivery failed: `'stopped'`, `'invalidEvent'` or `'internalEvent'`. |
 | `issues` | Standard Schema issues for `'invalidEvent'` dead letters. |
 | `error` | The underlying error for a delivery-boundary rejection. |
 

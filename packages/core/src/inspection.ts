@@ -145,9 +145,11 @@ export interface DeadLetterInspectionEvent extends BaseInspectionEventProperties
  * - `@xstate.actor` — actor topology (identity + parent), drawable up front.
  * - `@xstate.transition` — every transition facet: event, snapshot, source,
  *   microsteps, executed actions, and sent/scheduled events.
- * - `@xstate.deadletter` — events that could not be delivered.
  *
- * POLICY: do not add event types to this union. The protocol is deliberately
+ * POLICY: the protocol is exactly `@xstate.actor` and `@xstate.transition`. Do
+ * not add event types to this union. Dead letters (undeliverable events) are
+ * not inspection events: observe them with the `onRejectedEvent` actor option,
+ * the `deadLetter` runtime operation, or the development warning. The protocol is deliberately
  * minimal so inspectors can be written against a fixed set. New observable
  * facets belong as fields on `@xstate.transition` (or on the existing events),
  * or are derived by the consumer. Examples of derivation: an unhandled event
