@@ -110,6 +110,7 @@ export type Cast<A, B> = A extends B ? A : B;
 // but even with those fixes native NoInfer still doesn't work - further issues have to be reproduced and fixed
 /** @public */
 export type DoNotInfer<T> = [T][T extends any ? 0 : any];
+/** @public */
 export type LowInfer<T> = T & NonNullable<unknown>;
 
 /** @public */
