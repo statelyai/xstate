@@ -3,8 +3,7 @@ import {
   createMachine,
   createActor,
   transition,
-  initialTransition,
-  getNextSnapshot
+  initialTransition
 } from '../src/index.ts';
 
 const idMachine = createMachine({

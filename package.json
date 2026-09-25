@@ -41,6 +41,7 @@
     "fix": "manypkg fix",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
+    "check:files": "node scripts/check-package-files.mjs",
     "lint": "oxlint --quiet --report-unused-disable-directives-severity=error && oxlint --quiet --report-unused-disable-directives-severity=error -c .oxlintrc.templates.json templates",
     "lint:fix": "oxlint --fix --report-unused-disable-directives-severity=error && oxlint --fix --report-unused-disable-directives-severity=error -c .oxlintrc.templates.json templates",
     "typecheck": "tsc",

@@ -44,6 +44,12 @@ export function parseDurationToMilliseconds(
   );
 }
 
+/**
+ * Converts a delay (milliseconds or an ISO 8601 duration string) to
+ * milliseconds. Exported for `@xstate/scxml`; not part of the stable API.
+ *
+ * @experimental
+ */
 export function parseDelayToMilliseconds(
   delay: string | number | undefined
 ): number | undefined {

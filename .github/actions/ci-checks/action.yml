@@ -18,6 +18,10 @@ runs:
       run: pnpm check:exports
       shell: bash
 
+    - name: Package files
+      run: pnpm check:files
+      shell: bash
+
     - name: Bundle size
       run: pnpm bench:size
       shell: bash

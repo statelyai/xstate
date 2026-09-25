@@ -24,16 +24,17 @@ import { getAllOwnEvents, matchesEvent } from '../utils.ts';
 /**
  * Returns all state nodes of the given `node`.
  *
+ * @public
  * @param stateNode State node to recursively get child state nodes from
  * @public
  */
-export function getStateNodes(stateNode: {
+export function getDescendantStateNodes(stateNode: {
   states: Record<string, AnyStateNode | StateNode<never, EventObject>>;
 }): AnyStateNode[] {
   const { states } = stateNode;
   const nodes = Object.keys(states).reduce((accNodes, stateKey) => {
     const childStateNode = states[stateKey] as AnyStateNode;
-    const childStateNodes = getStateNodes(childStateNode);
+    const childStateNodes = getDescendantStateNodes(childStateNode);
 
     accNodes.push(childStateNode, ...childStateNodes);
     return accNodes;

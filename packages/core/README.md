@@ -13,7 +13,7 @@
 
 <!-- runtime dependencies and public entry points from package.json -->
 
-XState is a state management and orchestration solution for JavaScript and TypeScript apps. The main `xstate` entry point has _zero_ runtime dependencies; the optional `xstate/scxml` entry point uses an XML parser. XState is useful for frontend and backend application logic.
+XState is a state management and orchestration solution for JavaScript and TypeScript apps. The `xstate` package has _zero_ runtime dependencies. XState is useful for frontend and backend application logic.
 
 It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
 
@@ -57,9 +57,9 @@ runtime schemas, serialization and inspection.
 
 📑 Inspired by the [SCXML specification](https://www.w3.org/TR/scxml/)
 
-<!-- public SCXML entry point from src/scxml/index.ts -->
+<!-- public SCXML entry point from packages/xstate-scxml/src/index.ts -->
 
-Create machines from SCXML documents with the opt-in `xstate/scxml` entry point. See the [SCXML guide](../../docs/scxml.md).
+Create machines from SCXML documents with the separate [`@xstate/scxml`](../xstate-scxml) package. See the [SCXML guide](../../docs/scxml.md).
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 

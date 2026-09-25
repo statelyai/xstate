@@ -1,6 +1,6 @@
 /**
- * SCXML machine creation and conversion utilities for the `xstate/scxml`
- * entry point. Only createMachineFromSCXML and SCXMLConversionOptions are
+ * SCXML machine creation and conversion utilities for the `@xstate/scxml`
+ * package. Only createMachineFromSCXML and SCXMLConversionOptions are
  * public; the compiler representation remains internal.
  */
 import { SaxesParser } from 'saxes';
@@ -23,8 +23,11 @@ import {
   TransitionJSON,
   createMachineFromSCXMLConfig
 } from './runtime.ts';
-import { parseDelayToMilliseconds } from '../delay.ts';
-import { AnyStateMachine, SpecialTargets } from '../types.ts';
+import {
+  _parseDelayToMilliseconds as parseDelayToMilliseconds,
+  SpecialTargets,
+  type AnyStateMachine
+} from 'xstate';
 
 interface XMLElement {
   type?: 'element' | 'text' | 'cdata' | 'comment';

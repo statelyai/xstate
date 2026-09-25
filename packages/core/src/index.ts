@@ -60,18 +60,6 @@ export {
   type RequiredActorOptionsKeys as RequiredActorOptionsKeys
 } from './createActor.ts';
 export { createMachine, createStateConfig } from './createMachine.ts';
-export {
-  createFSM,
-  type FSM,
-  type FSMArgs,
-  type FSMConfig,
-  type FSMContextPatch,
-  type FSMStateConfig,
-  type FSMTransition,
-  type FSMTransitionConfig,
-  type FSMTransitionFunction,
-  type FSMSnapshot
-} from './fsm.ts';
 export { createMachineFromConfig } from './createMachineFromConfig.ts';
 export type {
   ActionJSON,
@@ -142,7 +130,6 @@ export type {
   SetupStateSchemas,
   SetupStateType
 } from './setup.ts';
-export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export type {
   InspectionEvent,
   ActorInspectionEvent,
@@ -152,6 +139,8 @@ export type {
   SentRecord
 } from './inspection.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
+/** @experimental Used by `@xstate/scxml`; not part of the stable API. */
+export { parseDelayToMilliseconds as _parseDelayToMilliseconds } from './delay.ts';
 export { type Spawner } from './spawn.ts';
 export { isMachineSnapshot, type MachineSnapshot } from './State.ts';
 export { StateMachine } from './StateMachine.ts';

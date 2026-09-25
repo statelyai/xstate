@@ -1,5 +1,5 @@
-import { createActor } from '../src/index.ts';
-import { createMachineFromSCXML } from '../src/scxml/index.ts';
+import { createActor } from 'xstate';
+import { createMachineFromSCXML } from '../src/index.ts';
 
 it('handles failed SCXML conditions without requiring a state entry', () => {
   const machine =

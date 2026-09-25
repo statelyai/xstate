@@ -18,7 +18,7 @@ const finalSnapshot = await waitFor(actor, (snapshot) =>
 );
 ```
 
-Use `initialTransition(...)` and `transition(...)` for pure calculations. They do not start actors or run effects; the returned actions describe the effects that an actor would execute. The older `getInitialSnapshot(...)` and `getNextSnapshot(...)` are deprecated aliases that return only the snapshot. Use `SimulatedClock` to test delays without waiting for real time.
+Use `initialTransition(...)` and `transition(...)` for pure calculations. They do not start actors or run effects; the returned actions describe the effects that an actor would execute. Use `SimulatedClock` to test delays without waiting for real time.
 
 For example, a route loader can calculate an initial view without starting a long-lived actor. A timeout test can advance a simulated clock to the retry state.
 

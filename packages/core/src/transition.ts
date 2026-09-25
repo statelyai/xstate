@@ -4,7 +4,7 @@ import {
   attachSnapshotActorRef,
   createInertActorScope,
   setInertActorScopeSnapshot
-} from './getNextSnapshot';
+} from './inertActorScope';
 import {
   getProperAncestors,
   initialMicrostep,
