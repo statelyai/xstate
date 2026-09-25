@@ -17,6 +17,7 @@ import { getAdjacencyMap } from './adjacency.ts';
 import { alterPath } from './alterPath.ts';
 import { createMockActorScope } from './actorScope.ts';
 
+/** @public */
 export function getSimplePaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<

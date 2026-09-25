@@ -8,6 +8,7 @@ import {
   MachineSnapshot
 } from '..';
 
+/** @public */
 export type AnyStateNode = StateNode<any, any>;
 
 type JSONSerializable<T extends object, U> = T & {
@@ -23,6 +24,7 @@ type DirectedGraphLabel = JSONSerializable<
   }
 >;
 
+/** @public */
 export type DirectedGraphEdge = JSONSerializable<
   {
     id: string;
@@ -39,6 +41,7 @@ export type DirectedGraphEdge = JSONSerializable<
 >;
 
 // Based on https://www.eclipse.org/elk/documentation/tooldevelopers/graphdatastructure/jsonformat.html
+/** @public */
 export type DirectedGraphNode = JSONSerializable<
   {
     id: string;
@@ -63,6 +66,7 @@ interface StatePlan<
   paths: Array<StatePath<TSnapshot, TEvent>>;
 }
 
+/** @public */
 export interface StatePath<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -78,6 +82,7 @@ export interface StatePath<
   weight: number;
 }
 
+/** @public */
 export interface StatePlanMap<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -85,6 +90,7 @@ export interface StatePlanMap<
   [key: string]: StatePlan<TSnapshot, TEvent>;
 }
 
+/** @public */
 export interface Step<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -95,6 +101,7 @@ export interface Step<
   state: TSnapshot;
 }
 
+/** @public */
 export type Steps<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -105,12 +112,14 @@ type ExtractEvent<
   TType extends TEvent['type']
 > = TEvent extends { type: TType } ? TEvent : never;
 
+/** @public */
 export interface VisitedContext<TState, TEvent> {
   vertices: Set<SerializedSnapshot>;
   edges: Set<SerializedEvent>;
   a?: TState | TEvent; // TODO: remove
 }
 
+/** @public */
 export interface SerializationConfig<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -133,6 +142,7 @@ type SerializationOptions<
   >
 >;
 
+/** @public */
 export type TraversalOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -147,6 +157,7 @@ export type TraversalOptions<
     >
   >;
 
+/** @public */
 export interface TraversalConfig<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -168,9 +179,12 @@ export interface TraversalConfig<
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };
 
+/** @public */
 export type SerializedSnapshot = Brand<string, 'state'>;
+/** @public */
 export type SerializedEvent = Brand<string, 'event'>;
 
+/** @public */
 export interface TestMeta<T, TContext extends MachineContext> {
   test?: (
     testContext: T,
@@ -204,6 +218,7 @@ export interface TestMeta<T, TContext extends MachineContext> {
 interface TestStateResult {
   error: null | Error;
 }
+/** @public */
 export interface TestStepResult {
   step: Step<any, any>;
   state: TestStateResult;
@@ -212,6 +227,7 @@ export interface TestStepResult {
   };
 }
 
+/** @public */
 export interface TestParam<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -227,6 +243,7 @@ export interface TestParam<
   };
 }
 
+/** @public */
 export interface TestPath<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -238,6 +255,7 @@ export interface TestPath<
    */
   test: (params: TestParam<TSnapshot, TEvent>) => Promise<TestPathResult>;
 }
+/** @public */
 export interface TestPathResult {
   steps: TestStepResult[];
   state: TestStateResult;
@@ -246,12 +264,15 @@ export interface TestPathResult {
 /**
  * Executes an effect using the `testContext` and `event` that triggers the
  * represented `event`.
+ *
+ * @public
  */
 export type EventExecutor<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > = (step: Step<TSnapshot, TEvent>) => Promise<any> | void;
 
+/** @public */
 export interface TestModelOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -269,6 +290,7 @@ export interface TestModelOptions<
   ) => string;
 }
 
+/** @public */
 export type PathGenerator<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -278,6 +300,7 @@ export type PathGenerator<
   options: TraversalOptions<TSnapshot, TEvent, TInput>
 ) => Array<StatePath<TSnapshot, TEvent>>;
 
+/** @public */
 export interface AdjacencyValue<TState, TEvent> {
   state: TState;
   transitions: {
@@ -288,6 +311,7 @@ export interface AdjacencyValue<TState, TEvent> {
   };
 }
 
+/** @public */
 export interface AdjacencyMap<TState, TEvent> {
   [key: SerializedSnapshot]: AdjacencyValue<TState, TEvent>;
 }

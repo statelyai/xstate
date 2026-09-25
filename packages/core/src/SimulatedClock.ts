@@ -1,5 +1,6 @@
 import { Clock } from './system.ts';
 
+/** @public */
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 export interface SimulatedClock extends Clock {
   start(speed: number): void;

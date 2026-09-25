@@ -42,6 +42,7 @@ function compactSnapshotRecord<T extends object>(value: T | undefined): T {
     : (emptySnapshotRecord as T);
 }
 
+/** @public */
 export function isMachineSnapshot(value: unknown): value is AnyMachineSnapshot {
   return (
     !!value &&
@@ -321,6 +322,7 @@ interface StoppedMachineSnapshot<
   error: undefined;
 }
 
+/** @public */
 export type MachineSnapshot<
   TContext extends MachineContext,
   TEvent extends EventObject,

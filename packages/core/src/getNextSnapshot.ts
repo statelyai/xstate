@@ -291,7 +291,10 @@ export function createInertActorScope<T extends AnyActorLogic>(
   return actorScope;
 }
 
-/** @deprecated Use `initialTransition(…)` instead. */
+/**
+ * @deprecated Use `initialTransition(…)` instead.
+ * @public
+ */
 export function getInitialSnapshot<T extends AnyActorLogic>(
   actorLogic: T,
   ...[input]: undefined extends InputFrom<T>
@@ -334,6 +337,7 @@ export function getInitialSnapshot<T extends AnyActorLogic>(
  * console.log(nextSnapshot2.value);
  * // =>'red'
  * ```
+ * @public
  */
 export function getNextSnapshot<T extends AnyActorLogic>(
   actorLogic: T,

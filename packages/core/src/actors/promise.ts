@@ -16,6 +16,7 @@ import {
 } from '../types.ts';
 import { createLogic as createBaseLogic } from './logic.ts';
 
+/** @public */
 export type AsyncSnapshot<TOutput, TInput, TError = unknown> = Snapshot<
   TOutput,
   TError
@@ -32,6 +33,7 @@ export type AsyncSnapshot<TOutput, TInput, TError = unknown> = Snapshot<
 const XSTATE_ASYNC_RESOLVE = 'xstate.async.resolve';
 const XSTATE_ASYNC_REJECT = 'xstate.async.reject';
 
+/** @public */
 export type AsyncActorLogic<
   TOutput,
   TInput = unknown,
@@ -45,6 +47,7 @@ export type AsyncActorLogic<
   TEmitted
 >;
 
+/** @public */
 export type AsyncActorRef<TOutput> = ActorRefFromLogic<
   AsyncActorLogic<TOutput, unknown>
 >;
@@ -55,6 +58,7 @@ type AsyncActor<
   TEmitted extends EventObject = EventObject
 > = ActorFromLogic<AsyncActorLogic<TOutput, TInput, TEmitted>>;
 
+/** @public */
 export interface LogicArgs<TOutput, TInput> {
   /** Data that was provided to the async actor. */
   input: TInput;
@@ -66,6 +70,7 @@ export interface LogicArgs<TOutput, TInput> {
   signal: AbortSignal;
 }
 
+/** @public */
 export interface LogicEnqueue<TEmitted extends EventObject> {
   /** Emits an event that can be observed with `actor.on(...)`. */
   emit: (emitted: TEmitted) => void;
@@ -81,6 +86,7 @@ export interface LogicEnqueue<TEmitted extends EventObject> {
   ) => Promise<TStepOutput>;
 }
 
+/** @public */
 export type LogicFunction<
   TOutput,
   TInput = NonReducibleUnknown,
@@ -94,6 +100,7 @@ type AsyncLogicFunctionOutput<
   TLogicFunction extends (...args: any[]) => PromiseLike<any>
 > = Awaited<ReturnType<TLogicFunction>>;
 
+/** @public */
 export interface LogicConfig<
   TOutput,
   TInput = NonReducibleUnknown,
@@ -124,6 +131,7 @@ export interface LogicConfig<
   run: LogicFunction<TOutput, TInput, TEmitted>;
 }
 
+/** @public */
 export class TimeoutError extends Error {
   constructor(timeout: number | string) {
     super(`Async logic timed out after ${timeout}.`);
@@ -134,6 +142,8 @@ export class TimeoutError extends Error {
 /**
  * The error type of async logic: the `schemas.error` output, plus
  * {@link TimeoutError} when a `timeout` is configured.
+ *
+ * @public
  */
 export type AsyncLogicError<TErrorSchema extends StandardSchemaV1, TTimeout> = [
   TTimeout
@@ -238,6 +248,7 @@ export type AsyncLogicError<TErrorSchema extends StandardSchemaV1, TTimeout> = [
  *   - `emit` - Emits an event that can be observed with `actor.on(...)`
  *
  * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
+ * @public
  */
 export function createAsyncLogic<
   const TInputSchema extends StandardSchemaV1,

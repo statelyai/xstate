@@ -10,6 +10,7 @@ import { resolveTraversalOptions } from './graph.ts';
 import { alterPath } from './alterPath.ts';
 import { createMockActorScope } from './actorScope.ts';
 
+/** @public */
 export function getPathsFromEvents<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,

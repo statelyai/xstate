@@ -282,6 +282,7 @@ export type AnyMachineSchemas = MachineSchemas<
 type RemovedTypesKey =
   '`types` was replaced by `schemas` in v6. Declare `context`, `events` and the other contracts under `schemas`, or run `xstate-codemod migrate --transform types-to-schemas`.';
 
+/** @public */
 export type Next_MachineConfig<
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
@@ -418,6 +419,8 @@ export type Next_MachineConfig<
  * number }`), since `createMachine`'s `const` state-schema inference would
  * otherwise freeze context at its initial literal type and make every context
  * update a type error.
+ *
+ * @public
  */
 export type WidenLiterals<T> = T extends string
   ? string
@@ -714,6 +717,8 @@ type InlineInvokeConfig<
  *   against that logic's input type.
  * - A branch for inline (unregistered) actor logic values, whose `input` cannot
  *   be correlated (the config is not generic over inline logic).
+ *
+ * @public
  */
 export type Next_InvokeConfig<
   TContext extends MachineContext,
@@ -1075,6 +1080,7 @@ type Next_ChoiceConfigFunction<
   >
 ) => Next_ChoiceTarget<TMeta>;
 
+/** @public */
 export type Next_StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1521,6 +1527,7 @@ type Next_StaticTransitionConfig<
     | ((args: { context: any; event: any }) => Record<string, unknown>);
 };
 
+/** @public */
 export type Next_TransitionConfigOrTarget<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -1596,6 +1603,7 @@ export type Next_TransitionConfigOrTarget<
 
 export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;
 
+/** @public */
 export interface Sources {
   actions: Record<
     string,
