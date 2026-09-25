@@ -130,6 +130,8 @@ function createActorRef(
  * system-owned internals. It also satisfies the narrower `ActorRef` contract,
  * so consumer APIs should accept `ActorRef` when they only need to send events
  * or read snapshots.
+ *
+ * @public
  */
 export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   SnapshotFrom<TLogic>,
@@ -1341,6 +1343,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 }
 
+/** @public */
 export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
   undefined extends InputFrom<TLogic> ? never : 'input';
 
@@ -1382,6 +1385,7 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
  *   {@link createObservableLogic}, {@link createLogic}, and
  *   {@link createAsyncLogic}.
  * @param options - Actor options
+ * @public
  */
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,

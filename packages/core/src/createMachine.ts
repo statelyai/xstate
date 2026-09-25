@@ -110,6 +110,7 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
  * @param config The state machine configuration.
  * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })`
  *   to provide machine sources instead.
+ * @public
  */
 // Overload 1: With schemas.context — context type inferred from schema
 export function createMachine<
@@ -338,6 +339,7 @@ export function createMachine(config: any): any {
   >(config) as any;
 }
 
+/** @public */
 export function createStateConfig<
   TContextSchema extends StandardSchemaV1,
   TEventSchema extends StandardSchemaV1,

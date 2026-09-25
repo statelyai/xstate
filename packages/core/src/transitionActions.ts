@@ -1049,13 +1049,18 @@ export function deriveDeferredStarts(
   return [...attachedStarts, ...childStarts];
 }
 
+/** @public */
 export function isBuiltInExecutableAction(
   action: ExecutableActionObject
 ): action is SpecialExecutableAction {
   return action.kind === 'builtin';
 }
 
-/** Executes transition effects sequentially, awaiting each runtime operation. */
+/**
+ * Executes transition effects sequentially, awaiting each runtime operation.
+ *
+ * @public
+ */
 export async function executeEffects(
   effects: readonly ExecutableActionObject[],
   runtime?: Partial<ActorSystemRuntime>

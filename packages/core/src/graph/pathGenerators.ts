@@ -2,6 +2,7 @@ import { getShortestPaths, getSimplePaths } from './index.ts';
 import { EventObject, Snapshot } from '../index.ts';
 import { PathGenerator } from './types.ts';
 
+/** @public */
 export const createShortestPathsGen =
   <
     TSnapshot extends Snapshot<unknown>,
@@ -14,6 +15,7 @@ export const createShortestPathsGen =
     return paths;
   };
 
+/** @public */
 export const createSimplePathsGen =
   <
     TSnapshot extends Snapshot<unknown>,

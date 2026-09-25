@@ -9,10 +9,12 @@ import {
 } from '../types';
 import { createAttachedLogic, relayMappedToParent } from './attached.ts';
 
+/** @public */
 export type ListenerSnapshot = Snapshot<undefined> & {
   input: ListenerInput<any, any>;
 };
 
+/** @public */
 export interface ListenerInput<
   TEmitted extends EventObject,
   TMappedEvent extends EventObject
@@ -22,6 +24,7 @@ export interface ListenerInput<
   mapper: (event: TEmitted) => TMappedEvent;
 }
 
+/** @public */
 export type ListenerActorLogic<
   TEmitted extends EventObject = EventObject,
   TMappedEvent extends EventObject = EventObject
@@ -33,6 +36,7 @@ export type ListenerActorLogic<
   EventObject
 >;
 
+/** @public */
 export type ListenerActorRef<
   TEmitted extends EventObject = EventObject,
   TMappedEvent extends EventObject = EventObject
@@ -41,6 +45,8 @@ export type ListenerActorRef<
 /**
  * Creates actor logic for listening to emitted events from another actor. Used
  * internally by `enq.listen()`.
+ *
+ * @public
  */
 export function createListenerLogic<
   TEmitted extends EventObject = EventObject,
@@ -73,4 +79,5 @@ export function createListenerLogic<
 }
 
 // Singleton logic instance
+/** @public */
 export const listenerLogic = /* #__PURE__ */ createListenerLogic();
