@@ -1193,13 +1193,6 @@ export class StateMachine<
     beginSpawnAllocation(resolvedActorScope);
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
-    const preInitialState = this._getPreInitialState(
-      resolvedActorScope,
-      initEvent
-    );
-    const contextSpawnEffects = Object.values(preInitialState.children)
-      .filter(Boolean)
-      .map((actor) => createSpawnEffect(actor as AnyActor));
     const finalizeInitialResult = (
       macroState: AnyMachineSnapshot,
       microsteps: ReadonlyArray<
@@ -1216,7 +1209,9 @@ export class StateMachine<
         ? attachSnapshotActorRef(resolvedActorScope, macroState)
         : this._attachPureActorRef(macroState, resolvedActorScope, true);
       const effects = this._collectEffects(microsteps);
-      if (this.validator) {
+      // Error snapshots may carry synthetic context (e.g. when the context
+      // factory throws); validating them would mask the original error.
+      if (this.validator && macroState.status !== 'error') {
         assertValid(this.validator, {
           kind: 'result',
           logic: this,
@@ -1226,6 +1221,33 @@ export class StateMachine<
       }
       return [returnedSnapshot as SnapshotFrom<this>, effects];
     };
+
+    let preInitialState: AnyMachineSnapshot;
+    try {
+      preInitialState = this._getPreInitialState(resolvedActorScope, initEvent);
+    } catch (error) {
+      // Keep the machine snapshot shape (e.g. `matches`) on error snapshots
+      // when initialization (e.g. the context factory) throws.
+      const errorSnapshot = cloneMachineSnapshot(
+        createMachineSnapshot(
+          {
+            context:
+              typeof this.config.context !== 'function' && this.config.context
+                ? this.config.context
+                : ({} as TContext),
+            _nodes: [this.root],
+            children: {},
+            status: 'active'
+          },
+          this
+        ),
+        { status: 'error', error }
+      );
+      return finalizeInitialResult(errorSnapshot, []);
+    }
+    const contextSpawnEffects = Object.values(preInitialState.children)
+      .filter(Boolean)
+      .map((actor) => createSpawnEffect(actor as AnyActor));
 
     try {
       const [nextState, initialActions] = initialMicrostep(
