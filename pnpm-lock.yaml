@@ -72,6 +72,9 @@ importers:
       '@manypkg/cli':
         specifier: ^0.22.0
         version: 0.22.0
+      '@oxlint/plugins':
+        specifier: ^1.76.0
+        version: 1.83.0
       '@preconstruct/cli':
         specifier: ^2.8.13
         version: 2.8.13(patch_hash=82a06b653c9f788a0f512c5e29072a75da8bac46ad0cea0a652d8e77a997928a)
@@ -6177,6 +6180,10 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [win32]
+
+  '@oxlint/plugins@1.83.0':
+    resolution: {integrity: sha512-qD64wr6SS1DL7YbJQ8WWjyUfFfrJsvAy9Vo0sG/PYUQy30w0uemN2h6j4xuvj4noyETDpzcGC20sv+FH7GrN5A==, tarball: https://registry.npmjs.org/@oxlint/plugins/-/plugins-1.83.0.tgz}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
   '@parcel/watcher-android-arm64@2.6.0':
     resolution: {integrity: sha512-trgpLSCKRC/huFjXX/Smh+0sWe4+YtKfktIToiMl59ghz7z+qkH6kMvNnUbLyRs9N11t8l4svSCs1+5B3rOAhA==, tarball: https://registry.npmjs.org/@parcel/watcher-android-arm64/-/watcher-android-arm64-2.6.0.tgz}
@@ -13344,6 +13351,8 @@ snapshots:
 
   '@oxlint/binding-win32-x64-msvc@1.76.0':
     optional: true
+
+  '@oxlint/plugins@1.83.0': {}
 
   '@parcel/watcher-android-arm64@2.6.0':
     optional: true

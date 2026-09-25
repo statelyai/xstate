@@ -6,7 +6,7 @@
       "name": "jsdoc-js",
       "specifier": "eslint-plugin-jsdoc"
     },
-    "./scripts/oxlint-plugin-xstate-effect.mjs"
+    "./scripts/oxlint-plugin-xstate-effect.ts"
   ],
   "categories": {
     "correctness": "off"
@@ -20,11 +20,18 @@
     "node": true
   },
   "ignorePatterns": [
-    "{docs,examples,templates}/",
+    "docs/",
+    // Templates are standalone scaffolds with their own lockfiles and are not
+    // installed into this workspace, so type-aware rules have no program to
+    // work with. `pnpm lint` covers them in a second, non-type-aware pass
+    // configured by `.oxlintrc.templates.json`.
+    "templates/",
     "**/dist",
     "**/*.test.*",
     "packages/xstate-effect/test/lint-fixtures/",
-    "**/*.svelte",
+    // Svelte SFCs in `packages/` are covered by `pnpm --filter @xstate/svelte
+    // svelte-check` in CI; oxlint only lints the ones under examples/templates.
+    "packages/**/*.svelte",
     "scripts/jest-utils/"
   ],
   "rules": {
@@ -102,7 +109,12 @@
     "valid-typeof": "error",
     "no-array-constructor": "error",
     "no-unused-expressions": "error",
-    "prefer-const": ["error", { "destructuring": "all" }],
+    "prefer-const": [
+      "error",
+      {
+        "destructuring": "all"
+      }
+    ],
     "typescript/await-thenable": "error",
     "typescript/ban-ts-comment": "error",
     "typescript/no-array-delete": "error",
@@ -227,6 +239,15 @@
       "files": ["**/*.{js,cjs}"],
       "rules": {
         "typescript/no-require-imports": "off"
+      }
+    },
+    {
+      // Examples stub out their I/O so they run with no database, API key or
+      // network. Those stubs are `async` because that is the shape the example
+      // is teaching, not because they await anything.
+      "files": ["examples/**"],
+      "rules": {
+        "typescript/require-await": "off"
       }
     }
   ]

@@ -13,8 +13,10 @@ export class TaskQueue {
     this.status = 'idle';
   }
 
-  async addTask(task: () => Promise<void>): Promise<void> {
+  // Returns `void`: callers enqueue from synchronous subscriber callbacks and
+  // never await the drain.
+  addTask(task: () => Promise<void>): void {
     this.taskQueue.push(task);
-    await this.processQueue();
+    void this.processQueue();
   }
 }

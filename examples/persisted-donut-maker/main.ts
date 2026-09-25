@@ -38,7 +38,7 @@ actor.subscribe({
       '\nEnter the next event to send:'
     );
 
-    fs.writeFile(FILENAME, JSON.stringify(actor.getPersistedSnapshot()));
+    void fs.writeFile(FILENAME, JSON.stringify(actor.getPersistedSnapshot()));
   },
   complete() {
     console.log('workflow completed', actor.getSnapshot().output);

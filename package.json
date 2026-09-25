@@ -41,8 +41,8 @@
     "fix": "manypkg fix",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "lint": "oxlint --quiet --report-unused-disable-directives-severity=error",
-    "lint:fix": "oxlint --fix --report-unused-disable-directives-severity=error",
+    "lint": "oxlint --quiet --report-unused-disable-directives-severity=error && oxlint --quiet --report-unused-disable-directives-severity=error -c .oxlintrc.templates.json templates",
+    "lint:fix": "oxlint --fix --report-unused-disable-directives-severity=error && oxlint --fix --report-unused-disable-directives-severity=error -c .oxlintrc.templates.json templates",
     "typecheck": "tsc",
     "typecheck:adapter-consumers": "tsc -p tsconfig.exact-optional.json",
     "typecheck:examples": "node ./scripts/typecheck-examples.js",
@@ -58,10 +58,12 @@
     "bench:size:update": "node scripts/bundle-size.mjs --update",
     "bench:core-runtime": "node scripts/bench-core-runtime.mjs",
     "bench:type-errors": "node scripts/type-error-quality.mjs",
+    "check:exports": "node scripts/check-export-stability.mjs",
+    "check:packed": "node scripts/check-packed-consumer.mjs",
     "changeset": "changeset",
     "release": "changeset publish",
     "version": "changeset version",
-    "test:tooling": "node --test scripts/typecheck-examples.test.cjs"
+    "test:tooling": "node --test scripts/typecheck-examples.test.cjs scripts/check-export-stability.test.mjs"
   },
   "repository": {
     "type": "git",
@@ -82,6 +84,7 @@
     "@babel/preset-typescript": "^7.29.7",
     "@changesets/cli": "^3.0.0",
     "@manypkg/cli": "^0.22.0",
+    "@oxlint/plugins": "^1.76.0",
     "@preconstruct/cli": "^2.8.13",
     "@types/node": "25.2.1",
     "@typescript/native": "npm:typescript@^7.0.2",

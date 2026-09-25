@@ -132,4 +132,6 @@ Anything that touches the Effect context must be a declared action or a declared
 
 An inline action that returns an Effect does not run it. `enq(() => Effect.log('saved'))` creates the Effect and discards it, because XState only awaits returned promises.
 
-This repository ships an oxlint rule, `xstate-effect/no-inline-effect` in `scripts/oxlint-plugin-xstate-effect.mjs`, that reports both mistakes: an Effect returned from an inline enqueue callback, and inline Effect logic passed to `enq.spawn`. The rule recognizes an Effect by the root identifier `Effect`, so an Effect produced by a helper function is not reported.
+This repository ships an oxlint rule, `xstate-effect/no-inline-effect` in `scripts/oxlint-plugin-xstate-effect.ts`, that reports both mistakes: an Effect returned from an inline enqueue callback, and inline Effect logic passed to `enq.spawn`. The rule recognizes an Effect by the root identifier `Effect`, so an Effect produced by a helper function is not reported.
+
+To copy the plugin into another project, install `@oxlint/plugins` as a development dependency and add the plugin file to oxlint's `jsPlugins` configuration. Loading the TypeScript source requires Node.js 22.18+ or a newer release with native TypeScript support.

@@ -67,6 +67,7 @@ const emptyLogic = /* #__PURE__ */ createLogic<undefined, undefined>({
   run: () => undefined
 });
 
+/** @public */
 export function createEmptyActor(): ActorFromLogic<typeof emptyLogic> {
   return createActor(emptyLogic);
 }

@@ -50,19 +50,27 @@ export async function getDurableActor({
 
   const actor = createActor(machine, { snapshot, inspect: inspector?.inspect });
 
-  actor.subscribe({
-    next: async () => {
-      const result = await collections.machineStates?.replaceOne(
-        { workflowId },
-        { workflowId, persistedState: actor.getPersistedSnapshot() },
-        { upsert: true }
-      );
+  const persistSnapshot = async () => {
+    const result = await collections.machineStates?.replaceOne(
+      { workflowId },
+      { workflowId, persistedState: actor.getPersistedSnapshot() },
+      { upsert: true }
+    );
 
-      if (!result?.acknowledged) {
-        throw new Error(
-          'Error persisting actor state. Verify the db connection is configured correctly.'
-        );
-      }
+    if (!result?.acknowledged) {
+      throw new Error(
+        'Error persisting actor state. Verify the db connection is configured correctly.'
+      );
+    }
+  };
+
+  actor.subscribe({
+    // `next` is synchronous, so the write is started and reported separately
+    // rather than returned.
+    next: () => {
+      persistSnapshot().catch((err: unknown) => {
+        console.log('Error persisting actor state:', err);
+      });
     },
     error: (err) => {
       console.log('Error in actor subscription:', err);

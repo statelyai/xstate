@@ -132,7 +132,7 @@ export const creditCheckMachine = setup({
           target: 'enteringInformation',
           context: {
             ...context,
-            ErrorMessage: `Failed to verify credentials. Details: ${event.error}`
+            ErrorMessage: `Failed to verify credentials. Details: ${String(event.error)}`
           }
         })
       }
