@@ -1,5 +1,12 @@
 # xstate
 
+## 6.0.0-alpha.60
+
+### Patch Changes
+
+- 6b1a631: Machine snapshots keep their machine-specific methods, such as `snapshot.matches(...)`, when initialization fails (for example, when the `context` factory throws).
+- 2b6ee77: Fix declaration emit for machines with registered actors and many inline callbacks.
+
 ## 6.0.0-alpha.59
 
 ### Patch Changes
