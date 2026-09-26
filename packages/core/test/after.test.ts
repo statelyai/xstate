@@ -124,6 +124,28 @@ describe('delayed transitions', () => {
     expect(actorRef.getSnapshot().value).toBe('done');
   });
 
+  it('should error on a delay that is neither a delay name nor a duration', () => {
+    const actorRef = createActor(
+      createMachine({
+        initial: 'pending',
+        states: {
+          pending: {
+            after: {
+              Pfoo: { target: 'done' }
+            }
+          },
+          done: {}
+        }
+      })
+    );
+    actorRef.subscribe({ error: () => {} });
+    actorRef.start();
+
+    const snapshot = actorRef.getSnapshot();
+    expect(snapshot.status).toBe('error');
+    expect((snapshot.error as Error).message).toMatch(/Invalid delay "Pfoo"/);
+  });
+
   it('should prefer a delay source value over the parsed ISO8601 duration', () => {
     vi.useFakeTimers();
 

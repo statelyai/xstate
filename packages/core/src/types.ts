@@ -2188,12 +2188,50 @@ type EventDescriptorMatches<
     ? true
     : false;
 
+type LiteralEventMatching<
+  TEvent extends EventObject,
+  TDescriptor
+> = TEvent extends any
+  ? string extends TEvent['type']
+    ? never
+    : TEvent['type'] extends TDescriptor
+      ? TEvent
+      : never
+  : never;
+
+/**
+ * A catch-all event union (`{ type: string }` plus literal members, e.g.
+ * declared children's completion events) narrows an exact descriptor to its
+ * literal members, falling back to the catch-all members when none match
+ * (and for the `string` index key of `on`). Wildcard descriptors keep the
+ * whole union.
+ */
+type ExtractEventFromCatchAll<
+  TEvent extends EventObject,
+  TDescriptor
+> = TDescriptor extends `${string}*`
+  ? TEvent
+  : string extends TDescriptor
+    ? CatchAllEvent<TEvent>
+    : LiteralEventMatching<TEvent, TDescriptor> extends infer TLiteral extends
+          TEvent
+      ? [TLiteral] extends [never]
+        ? CatchAllEvent<TEvent>
+        : TLiteral
+      : never;
+
+type CatchAllEvent<TEvent extends EventObject> = TEvent extends any
+  ? string extends TEvent['type']
+    ? TEvent
+    : never
+  : never;
+
 /** @public */
 export type ExtractEvent<
   TEvent extends EventObject,
   TDescriptor extends EventDescriptor<TEvent>
 > = string extends TEvent['type']
-  ? TEvent
+  ? ExtractEventFromCatchAll<TEvent, TDescriptor>
   : NormalizeDescriptor<TDescriptor> extends infer TNormalizedDescriptor
     ? TEvent extends any
       ? // true is the check type here to match both true and boolean
@@ -2556,7 +2594,7 @@ export type AnyActorScope = ActorScope<
 export type SnapshotStatus = 'active' | 'done' | 'error' | 'stopped';
 
 /** @public */
-export type Snapshot<TOutput> =
+export type Snapshot<TOutput, TError = unknown> =
   | {
       status: 'active';
       output: undefined;
@@ -2570,7 +2608,7 @@ export type Snapshot<TOutput> =
   | {
       status: 'error';
       output: undefined;
-      error: unknown;
+      error: TError;
     }
   | {
       status: 'stopped';

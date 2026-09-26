@@ -86,7 +86,13 @@ function getConfiguredDelayValue(
     return referencedDelay;
   }
 
-  return parseDurationToMilliseconds(delay) ?? delay;
+  const parsedDelay = parseDurationToMilliseconds(delay);
+  if (parsedDelay === undefined) {
+    throw new Error(
+      `Invalid delay "${delay}": not a configured delay name or a valid duration string (e.g. "500ms", "1.5s", "PT1M30S").`
+    );
+  }
+  return parsedDelay;
 }
 
 function resolveDelay(

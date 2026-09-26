@@ -154,11 +154,15 @@ describe('types', () => {
       }
     });
 
-    // @ts-expect-error - slotDuration222 is not a declared delay
     s.createMachine({
       initial: 'sleep',
       states: {
-        sleep: { after: { slotDuration222: { target: 'awake' } } },
+        sleep: {
+          after: {
+            // @ts-expect-error - slotDuration222 is not a declared delay
+            slotDuration222: { target: 'awake' }
+          }
+        },
         awake: {}
       }
     });

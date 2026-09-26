@@ -55,10 +55,70 @@ on: {
 
 Use `assertEvent(...)` only when shared code must narrow a union to one or more known event types.
 
+## Checked event keys
+
+When `schemas.events` is declared, each key in an `on` map must match a
+declared event type. Wildcards (`'*'`, `'user.*'`) and reserved `xstate.*`
+event types are always allowed. Without `schemas.events`, any key is accepted.
+
+```ts
+on: {
+  toggel: { target: 'active' }
+  // Type error: Event type 'toggel' is not declared in schemas.events.
+}
+```
+
 Machines returned by `setup(...).createMachine(...)` can be exported with their
 inferred types, including when registered actors are used in inline transitions
 or invokes. Declaration output retains event, state, input and child-actor
 contracts without exposing each inline callback's full contextual type.
+
+## Child completion events
+
+Children declared in `schemas.children` add their `xstate.done.actor` and
+`xstate.error.actor` events to the event union seen by `entry`, `exit`, guards
+and transition functions. `event.actorId` is the declared child id, and
+`event.output` is that child's output type:
+
+```ts
+entry: ({ event }) => {
+  assertEvent(event, 'xstate.done.actor');
+  event.actorId; // 'fetch'
+  event.output; // output of the logic declared for `fetch`
+}
+```
+
+Without `schemas.children`, these events are not added. `on` handlers still
+narrow to their own event type.
+
+## Async logic errors
+
+`createAsyncLogic({ schemas: { error } })` types the actor's `error` snapshot
+field and `event.error` in the invoking machine's `onError`. The schema is
+type-only. Without it, the error is `unknown`:
+
+```ts
+const fetchUser = createAsyncLogic({
+  schemas: { error: z.object({ code: z.string() }) },
+  run: async () => ({ name: 'David' })
+});
+
+// in an invoke of fetchUser
+onError: ({ event }) => event.error.code; // string
+```
+
+## Checked delay names
+
+When delays are declared with `setup({ delays })` or `createMachine({ delays })`,
+each `after` key must be a declared delay name, a number of milliseconds, or a
+duration string such as `'5s'`. Without declared delays, any key is accepted.
+
+```ts
+after: {
+  retryDelya: { target: 'retrying' }
+  // Type error: Delay 'retryDelya' is not declared in delays.
+}
+```
 
 ## Runtime validation
 
