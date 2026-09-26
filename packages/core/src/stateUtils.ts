@@ -298,30 +298,13 @@ export function getEventDescriptorKey(event: EventObject): string {
   return legacyType ? `${event.type}|${legacyType}` : event.type;
 }
 
-const actorsWarnedMissingSession = new WeakSet<object>();
-
 export function matchesActorSession(
   event: EventObject,
   snapshot: AnyMachineSnapshot,
   actorId: string
 ): boolean {
   const child = snapshot.children[actorId];
-  if (!child) {
-    return true;
-  }
-  if (!('sessionId' in event)) {
-    if (
-      isDevelopment &&
-      child.sessionId !== undefined &&
-      (event.type === 'xstate.done.actor' ||
-        event.type === 'xstate.error.actor') &&
-      !actorsWarnedMissingSession.has(child)
-    ) {
-      actorsWarnedMissingSession.add(child);
-      console.warn(
-        `Completion event for actor '${child.address}' has no sessionId; stale-completion protection is bypassed — deliver completions via transition()/transitionChild().`
-      );
-    }
+  if (!child || !('sessionId' in event)) {
     return true;
   }
   // One rule: a ref that knows its incarnation compares it; a remote handle

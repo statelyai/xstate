@@ -211,55 +211,6 @@ export function durableExecutionConformance({
       });
     }
 
-    if (capabilities.has('timers') && capabilities.has('actors')) {
-      it('fires a grandchild timer and completes the tree through its parents', async () => {
-        const retry = createMachine({
-          initial: 'idle',
-          states: {
-            idle: { after: { 100: { target: 'ended' } } },
-            ended: { type: 'final' }
-          }
-        });
-        const worker = setup({ actors: { retry } }).createMachine({
-          initial: 'running',
-          states: {
-            running: {
-              invoke: { id: 'retry', src: 'retry', onDone: { target: 'done' } }
-            },
-            done: { type: 'final' }
-          }
-        });
-        const machine = setup({ actors: { worker } }).createMachine({
-          output: 'tree completed',
-          initial: 'running',
-          states: {
-            running: {
-              invoke: {
-                id: 'worker',
-                src: 'worker',
-                onDone: { target: 'done' }
-              }
-            },
-            done: { type: 'final' }
-          }
-        });
-        const execution = await createHarness().start(machine, undefined);
-
-        await execution.advanceTime(99);
-        expect(execution.getSnapshot().status).toBe('active');
-        await execution.advanceTime(1);
-
-        await expect(execution.result).resolves.toBe('tree completed');
-        expect(execution.operations).toContainEqual(
-          expect.objectContaining({
-            type: 'timer.schedule',
-            actorId: 'retry',
-            delay: 100
-          })
-        );
-      });
-    }
-
     if (capabilities.has('actorCommunication')) {
       it('routes messages between parent and child actors', async () => {
         const child = createMachine({

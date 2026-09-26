@@ -38,8 +38,6 @@ By default a persisted snapshot embeds each child's persisted state, producing a
 const persisted = actor.getPersistedSnapshot({ embedChildren: false });
 ```
 
-To transition a nested child inside a whole-tree checkpoint, see [Child actors in a whole-tree checkpoint](durable-execution.md#child-actors-in-a-whole-tree-checkpoint).
-
 The option applies to the whole tree, not to a single placement boundary. Persisting by address requires each child to have a registered source key (a string `src`); `spawn(actors.worker)`, `enq.spawn(actors.worker)` and `enq.spawn('worker')` retain that key, while inline actor logic cannot be referenced by address. The string form makes the exact identity explicit when aliases share logic. Restoring an address-only child produces a location-transparent handle: sends to it route through the [system runtime](durable-execution.md), and its snapshot exposes lifecycle only, since a full snapshot is the last value an actor published and only co-located actors observe it. Install the system runtime before sending to a restored handle — without one, there is no route to the actor it references.
 
 Persisted children changed shape in v6: each entry carries an `address` field and either an embedded `snapshot` or a `remote: true` marker. A remote entry may also carry an opaque `incarnation` token, round-tripped verbatim: XState never stamps one, but a host that does gets stale-completion protection on the referencing side and the token on journaled `sendTo` descriptors.

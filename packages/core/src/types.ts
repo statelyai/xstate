@@ -3229,20 +3229,9 @@ export interface BaseExecutableActionObject {
  *
  * @public
  */
-export type ActorTermination = (
+export type ActorTermination =
   | { status: 'done'; output: unknown; error: undefined }
-  | { status: 'error'; output: undefined; error: unknown }
-) & {
-  /**
-   * `true` when the completion was already delivered to the parent (for
-   * example, folded upward by `transitionChild(…)`). Terminating the actor
-   * then publishes to observers without relaying the completion again. Keep
-   * this field when copying or queueing a termination.
-   *
-   * @experimental
-   */
-  completionDelivered?: true;
-};
+  | { status: 'error'; output: undefined; error: unknown };
 
 /** @public */
 export interface CustomExecutableActionObject<

@@ -191,18 +191,6 @@ export function terminateActor(
 }
 
 /**
- * Starts an actor: registers it with its system and flushes the effects
- * computed when it was created (for example a spawned child's initial timers)
- * through the installed runtime. Custom runtimes use this for the default
- * local behavior inside their own `startActor` implementations.
- *
- * @experimental
- */
-export function startActor(actor: AnyActor): void {
-  actor.start();
-}
-
-/**
  * Stops an actor without producing a completion result. Custom runtimes use
  * this for the default local behavior inside their own `stopActor`
  * implementations.

@@ -1019,7 +1019,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       this._next(this._snapshot);
       this._stopProcedure();
       this._complete();
-      if (this._parent && !termination.completionDelivered) {
+      if (this._parent) {
         this.system._relay(
           this,
           this._parent,
@@ -1029,37 +1029,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       return;
     }
     if (termination.status === 'error') {
-      this._error(
-        termination.error,
-        undefined,
-        !termination.completionDelivered
-      );
+      this._error(termination.error);
     }
-  }
-
-  /**
-   * Returns a copy of this actor that reports `snapshot`, leaving this actor
-   * (and every snapshot that references it) untouched. Identity — `id`,
-   * `address`, `sessionId`, `src`, `registryKey`, parent — is shared.
-   *
-   * @internal
-   */
-  public _withSnapshot(snapshot: SnapshotFrom<TLogic>): Actor<TLogic> {
-    const copy = Object.assign(
-      Object.create(Object.getPrototypeOf(this)),
-      this
-    ) as Actor<TLogic>;
-    copy._snapshot = snapshot;
-    copy.ref = copy;
-    copy._actorScope = copy as unknown as typeof copy._actorScope;
-    copy._boundSend = undefined;
-    copy._trigger = undefined;
-    copy._boundProcess = undefined;
-    copy.mailbox = undefined;
-    copy.observers = undefined;
-    copy.eventListeners = undefined;
-    copy._deferred = undefined;
-    return copy;
   }
 
   /** @internal */
@@ -1108,11 +1079,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     });
   }
 
-  private _error(
-    err: unknown,
-    previousSnapshot?: SnapshotFrom<TLogic>,
-    relayToParent = true
-  ): void {
+  private _error(err: unknown, previousSnapshot?: SnapshotFrom<TLogic>): void {
     this._stopProcedure();
     // Transition calculation or effect execution may fail before child stop
     // effects run. Keep the previous snapshot's children when calculation has
@@ -1178,7 +1145,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
     this.eventListeners?.clear();
 
-    if (this._parent && relayToParent) {
+    if (this._parent) {
       this.system._relay(
         this,
         this._parent,

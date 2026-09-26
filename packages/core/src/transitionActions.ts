@@ -169,9 +169,6 @@ function execTerminateEffect(
     this.status === 'done'
       ? { status: 'done', output: this.output, error: undefined }
       : { status: 'error', output: undefined, error: this.error };
-  if (this.completionDelivered) {
-    termination.completionDelivered = true;
-  }
   return runtime.terminateActor!(this.actor, termination);
 }
 

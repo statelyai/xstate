@@ -70,7 +70,6 @@ export type EffectDescriptor =
       status: 'done' | 'error';
       output: unknown;
       error: unknown;
-      completionDelivered?: true;
     }
   | {
       kind: 'builtin';
@@ -190,8 +189,7 @@ export function getEffectDescriptor(
         id: effect.id,
         status: effect.status,
         output: effect.output,
-        error: effect.error,
-        ...(effect.completionDelivered && { completionDelivered: true })
+        error: effect.error
       };
     case '@xstate.deadLetter':
       return {
