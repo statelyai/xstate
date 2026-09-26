@@ -66,7 +66,9 @@ We are using [preconstruct](https://preconstruct.tools/) to build our packages. 
 
 ### Bundle measurements
 
-See [bundle measurements](docs/bundle-size.md) for source and production profiles, behavior verification, and CI size reports.
+See [bundle measurements](docs/bundle-size.md) for source and production
+profiles, behavior verification, and threshold updates. Run these checks
+locally; CI does not currently check bundle size.
 
 ### Publishing
 
@@ -81,6 +83,14 @@ We are using [changesets](https://github.com/atlassian/changesets) to create "re
 `node scripts/typecheck-examples.js` checks every example with a `tsconfig.json`, including referenced projects behind solution configs; pass project names or paths to select examples. Any compiler failure exits nonzero. `examples/readme.md` has no project configuration and is skipped. Every current TypeScript example has a build script and participates in the CI gate.
 
 `pnpm check:templates` installs and builds all four standalone starter templates with their own frozen lockfiles.
+
+`pnpm check:exports` requires every public `xstate` export to carry exactly one
+`@public`, `@experimental`, or `@internal` stability tag. `@deprecated` must be
+paired with `@public` or `@experimental`.
+
+After `pnpm build`, `pnpm check:packed` packs `xstate` and `@xstate/react`, then
+checks their published files, declarations, ESM/CJS entry points, and production
+builds from a standalone consumer.
 
 Workflow regression tests use in-process actors, simulated clocks, and mocked network, database, filesystem, and subprocess boundaries. Passing these checks does not exercise real MongoDB credentials, external services, or media-file moves. Follow each example's README to run its live integration.
 
