@@ -242,6 +242,31 @@ on: {
 }
 ```
 
+### Typed done and error events
+
+When children are declared in `schemas.children`, `entry`, `exit` and transition functions that can receive any event include `xstate.done.actor` and `xstate.error.actor` in their event type, narrowed by `actorId`. After narrowing, `event.actorId` is the declared id and `event.output` has the child's output type. `event.error` is `unknown`. A handler under `on` for a user event, such as `on.retry`, still receives only that event.
+
+```ts
+setup({
+  actors: { fetchUser },
+  schemas: {
+    events: { retry: z.object({}) },
+    children: {
+      fetch: z.custom<ActorRefFromLogic<typeof fetchUser>>()
+    }
+  }
+}).createMachine({
+  invoke: { id: 'fetch', src: 'fetchUser' },
+  entry: ({ event }) => {
+    assertEvent(event, 'xstate.done.actor');
+    event.actorId; // 'fetch'
+    event.output.name; // string
+  }
+});
+```
+
+Without `schemas.children`, these events are not part of the event type. Declaring `schemas.events` is not required for the narrowing.
+
 ## Invoke cheatsheet
 
 ```ts

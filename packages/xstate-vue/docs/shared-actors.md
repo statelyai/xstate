@@ -5,6 +5,8 @@ description: Provide one actor to Vue descendants with provide and inject.
 
 Create the actor once in a parent component, then share the reference with Vue's `provide` and `inject`. Descendants read what they need with [`useSelector(...)`](selectors.md).
 
+`@xstate/vue` has no `createActorContext`. Vue's `provide` and `inject` already form a typed registry scoped to the component tree, so a shared actor is an actor reference passed through them. Pinia shares stores the same way.
+
 ## A typed injection key
 
 ```ts
@@ -66,6 +68,38 @@ Every consumer subscribes to the same actor and re-renders only when its own sel
 
 The actor's lifetime is the provider's lifetime: unmounting `CheckoutProvider` stops the actor and everything it invoked. Mount the provider at the level where the state should live: a cart above the checkout routes, or a session actor above the whole app shell.
 
+## Create the actor yourself
+
+A provider can create the actor with `createActor(...)` instead of `useActorRef(...)`. The provider then owns the actor's lifecycle: start it in `setup`, and stop it in `onUnmounted`.
+
+```vue
+<!-- CheckoutProvider.vue -->
+<script setup lang="ts">
+import { onUnmounted, provide } from 'vue';
+import { createActor } from 'xstate';
+import { checkoutMachine } from './checkoutMachine';
+import { checkoutKey } from './checkoutKey';
+
+const props = defineProps<{ cartId: string }>();
+
+const actorRef = createActor(checkoutMachine, {
+  input: { cartId: props.cartId }
+}).start();
+
+provide(checkoutKey, actorRef);
+
+onUnmounted(() => {
+  actorRef.stop();
+});
+</script>
+
+<template><slot /></template>
+```
+
+The actor is running before any descendant's `setup` runs. `useActorRef(...)` starts its actor in `onMounted`, which runs after the descendants have mounted.
+
+Server rendering runs `setup` on the server too, so this recipe also starts the actor there. [Server rendering](server-rendering.md) assumes actors start when the component mounts in the browser. In a server-rendered app, create and provide the actor in `setup`, and call `actorRef.start()` in `onMounted`. `useActorRef(...)` already defers `start()` to `onMounted`.
+
 ## Module-scope actors
 
 An actor created at module scope lives for the lifetime of the page, independent of any component.
@@ -82,7 +116,30 @@ export const sessionActor = createActor(sessionMachine).start();
 const user = useSelector(sessionActor, (snapshot) => snapshot.context.user);
 ```
 
-This suits one global concern per app, such as a session or a toast queue. It has real costs: the actor is never stopped, tests share state between cases, and on a server the module is shared by every request. Use `provide`/`inject` for anything scoped to a route, a request or a user. See [Server rendering](server-rendering.md).
+To keep components from importing the actor module, provide it on the app with a typed key. Every component in the app can then `inject(sessionKey)`.
+
+```ts
+// main.ts
+import { createApp } from 'vue';
+import App from './App.vue';
+import { sessionActor } from './sessionActor';
+import { sessionKey } from './sessionKey';
+
+const app = createApp(App);
+
+app.provide(sessionKey, sessionActor);
+app.onUnmount(() => {
+  sessionActor.stop();
+});
+
+app.mount('#app');
+```
+
+`app.onUnmount(...)` requires Vue 3.5 or later.
+
+A module-level actor outlives any single app instance. Stop it in `app.onUnmount(...)` only when one app owns it, as in this example, where `main.ts` mounts a single app. When several apps or non-Vue code share the actor, leave it running for the life of the page.
+
+This suits one global concern per app, such as a session or a toast queue. It has real costs: tests share state between cases, and on a server the module is shared by every request. Use `provide`/`inject` for anything scoped to a route, a request or a user. See [Server rendering](server-rendering.md).
 
 ## Actor systems
 
