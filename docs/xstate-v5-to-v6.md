@@ -1341,6 +1341,35 @@ so `system.get('receiver')` is available without casts.
 
 ---
 
+## Leftover v5 keys
+
+In development builds, `createMachine(...)` and `setup(...).createMachine(...)` check hand-written configs for v5 keys that v6 would otherwise ignore or misread. Machines built with `createMachineFromConfig(...)` or `createMachineFromSCXML(...)` are not checked. Production builds skip the check.
+
+These keys throw an error:
+
+| v5 key | Where | v6 replacement |
+| --- | --- | --- |
+| `cond` | transition object | inline transition function; return `undefined` to reject the event |
+| `guard` | transition object | inline transition function; call named guards with `guards.name(...)` |
+| `actions` | transition object | inline transition function `(args, enq) => { ... }`; call named actions with `enq(actions.name, params)` |
+| string or array `entry` / `exit` | state node | a single inline function `(args, enq) => { ... }` |
+| `types` | machine config | `schemas` (or `setup({ schemas })`) |
+| `tsTypes` | machine config | `schemas` (typegen was removed) |
+| `schema` | machine config | `schemas` |
+
+These keys log a warning:
+
+| v5 key | v6 replacement |
+| --- | --- |
+| `services` | `actors` (or `setup({ actors })`) |
+| `activities` | `invoke` |
+| `predictableActionArguments` | removed; effects always run in order |
+| `preserveActionOrder` | removed; effects always run in order |
+| `strict` | removed |
+| `devTools` | the `inspect` option on `createActor(...)` |
+
+---
+
 ## Migration checklist
 
 - [ ] Replace every `assign({...})` with an inline function returning a shallow `{ context: {...} }` patch

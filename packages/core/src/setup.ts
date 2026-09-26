@@ -1,3 +1,5 @@
+import isDevelopment from '#is-development';
+import { diagnoseAuthorConfig } from './devDiagnostics.ts';
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
 import type {
   SetupSchemas,
@@ -4595,19 +4597,19 @@ export const setup = function setupImplementation<
       const mergedGuards = mergeMaps(guards, machineConfig.guards);
       const mergedDelays = mergeMaps(delays, machineConfig.delays);
 
-      return new StateMachine(
-        {
-          ...machineConfig,
-          ...(mergedSchemas ? { schemas: mergedSchemas } : undefined),
-          ...(mergedStates ? { states: mergedStates } : undefined),
-          ...(mergedActions ? { actions: mergedActions } : undefined),
-          ...(mergedActors ? { actors: mergedActors } : undefined),
-          ...(mergedGuards ? { guards: mergedGuards } : undefined),
-          ...(mergedDelays ? { delays: mergedDelays } : undefined)
-        } as any,
-        undefined,
-        validator
-      ) as any;
+      const config = {
+        ...machineConfig,
+        ...(mergedSchemas ? { schemas: mergedSchemas } : undefined),
+        ...(mergedStates ? { states: mergedStates } : undefined),
+        ...(mergedActions ? { actions: mergedActions } : undefined),
+        ...(mergedActors ? { actors: mergedActors } : undefined),
+        ...(mergedGuards ? { guards: mergedGuards } : undefined),
+        ...(mergedDelays ? { delays: mergedDelays } : undefined)
+      } as any;
+      if (isDevelopment) {
+        diagnoseAuthorConfig(config);
+      }
+      return new StateMachine(config, undefined, validator) as any;
     },
     createStateConfig(...args: unknown[]) {
       return args.length > 1 ? args[1] : args[0];

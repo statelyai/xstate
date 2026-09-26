@@ -9,7 +9,7 @@ import {
   MetaObject
 } from '../types';
 import { Next_StateNodeConfig } from '../types.v6';
-import { createMachine } from '../createMachine';
+import { createMachineFromCompiledConfig } from '../createMachine';
 import { parseDelayToMilliseconds } from '../delay';
 
 function delayToMs(delay: string | number): number {
@@ -2518,7 +2518,7 @@ export function createMachineFromSCXMLConfig(
         }
       : {};
 
-  const machine = createMachine({
+  const machine = createMachineFromCompiledConfig({
     ...rootNodeConfig,
     ...contextConfig,
     version: json.version
