@@ -376,8 +376,11 @@ export function rebindSnapshotActorRef(
     return;
   }
   const state = ref.systemState;
-  const replaceValues = <K>(map: Map<K, AnyActor | undefined>) =>
-    new Map([...map].map(([key, value]) => [key, value && replace(value)]));
+  function replaceValues<K>(map: Map<K, AnyActor | undefined>) {
+    return new Map(
+      [...map].map(([key, value]) => [key, value && replace(value)])
+    );
+  }
   snapshotActorRefs.set(snapshot, {
     actor,
     systemState: {
