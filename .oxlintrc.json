@@ -6,7 +6,8 @@
       "name": "jsdoc-js",
       "specifier": "eslint-plugin-jsdoc"
     },
-    "./scripts/oxlint-plugin-xstate-effect.ts"
+    "./scripts/oxlint-plugin-xstate-effect.ts",
+    "./scripts/oxlint-plugin-xstate-react.ts"
   ],
   "categories": {
     "correctness": "off"
@@ -29,6 +30,7 @@
     "**/dist",
     "**/*.test.*",
     "packages/xstate-effect/test/lint-fixtures/",
+    "packages/xstate-react/test/lint-fixtures/",
     // Svelte SFCs in `packages/` are covered by `pnpm --filter @xstate/svelte
     // svelte-check` in CI; oxlint only lints the ones under examples/templates.
     "packages/**/*.svelte",
@@ -239,6 +241,14 @@
       "files": ["**/*.{js,cjs}"],
       "rules": {
         "typescript/no-require-imports": "off"
+      }
+    },
+    {
+      // Hooks keep the first machine they receive, so a machine created in a
+      // component body is discarded on every later render.
+      "files": ["examples/**", "packages/xstate-react/test/**"],
+      "rules": {
+        "xstate/no-machine-in-component": "error"
       }
     },
     {

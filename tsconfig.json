@@ -18,6 +18,7 @@
     "**/examples",
     "**/templates",
     "scripts/type-error-fixtures",
-    "packages/xstate-effect/test/lint-fixtures"
+    "packages/xstate-effect/test/lint-fixtures",
+    "packages/xstate-react/test/lint-fixtures"
   ]
 }
