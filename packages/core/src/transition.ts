@@ -97,6 +97,30 @@ export function transition<T extends AnyActorLogic>(
 }
 
 /**
+ * Returns `true` when `result` (from {@link transition}) means no transition
+ * handled the event: the snapshot is the same object as `previousSnapshot`
+ * and there are no effects. A handled event always yields a new snapshot
+ * object, even when nothing in it changed.
+ *
+ * @example
+ *
+ * ```ts
+ * const result = transition(machine, snapshot, event);
+ * if (isUnhandled(snapshot, result)) {
+ *   console.warn(`Unhandled event: ${event.type}`);
+ * }
+ * ```
+ *
+ * @public
+ */
+export function isUnhandled(
+  previousSnapshot: unknown,
+  result: readonly [snapshot: unknown, effects: readonly unknown[]]
+): boolean {
+  return result[0] === previousSnapshot && result[1].length === 0;
+}
+
+/**
  * Given actor `logic` and optional `input`, returns a tuple of the
  * `nextSnapshot` and `actions` to execute from the initial transition (no
  * previous state).

@@ -55,7 +55,9 @@ import {
   assertChildIdFree,
   createEnqueueObject,
   createTerminationEffect,
+  closeTransitionEnqueue,
   createTransitionEnqueue,
+  lateEnqueueCall,
   createSendToEffect,
   deriveDeferredStarts,
   mergeContextPatch,
@@ -1451,7 +1453,9 @@ function microstep(
       transitionFn: any,
       context: MachineContext,
       children: AnyMachineSnapshot['children'],
-      input: Record<string, unknown> | undefined
+      input: Record<string, unknown> | undefined,
+      kind: 'entry' | 'exit',
+      stateNodeId: string
     ): [
       actions: any[],
       context: MachineContext | undefined,
@@ -1497,7 +1501,13 @@ function microstep(
               delays: currentSnapshot.machine.sources.delays,
               input
             };
-        const res = transitionFn(args, enqueue);
+        let res;
+        try {
+          res = transitionFn(args, enqueue);
+        } finally {
+          closeTransitionEnqueue(enqueue);
+        }
+        assertSyncTransitionResult(res, event, stateNodeId, kind);
 
         if (res?.context !== undefined) {
           updatedContext = mergeContextPatch(context, res.context);
@@ -1586,7 +1596,9 @@ function microstep(
               exitStateNode.exit,
               nextState.context,
               currentSnapshot.children,
-              stateInput
+              stateInput,
+              'exit',
+              exitStateNode.id
             )
           : [[], undefined, undefined];
         if (internalEvents?.length) {
@@ -1601,8 +1613,7 @@ function microstep(
           nextState,
           event,
           actorScope,
-          exitActions,
-          internalQueue
+          exitActions
         );
         nextState = resolvedState;
         executableActions.push(...resolvedActions);
@@ -1616,8 +1627,7 @@ function microstep(
             nextState,
             event,
             actorScope,
-            invokeStopActions,
-            internalQueue
+            invokeStopActions
           );
           nextState = stoppedState;
           executableActions.push(...stopEffects);
@@ -1963,7 +1973,9 @@ function microstep(
               stateNodeToEnter.entry,
               context,
               children,
-              stateInput
+              stateInput,
+              'entry',
+              stateNodeToEnter.id
             );
           actions.push(...resultActions);
           if (nextInternalEvents?.length) {
@@ -2021,8 +2033,7 @@ function microstep(
           nextState,
           event,
           actorScope,
-          actions,
-          internalQueue
+          actions
         );
         nextState = resolvedState;
         actions.length = 0;
@@ -2129,8 +2140,7 @@ function microstep(
         nextState,
         event,
         actorScope,
-        transitionActions,
-        internalQueue
+        transitionActions
       );
     nextState = resolvedTransitionState;
     executableActions.push(...transitionExecutableActions);
@@ -2158,7 +2168,9 @@ function microstep(
             stateNode.exit,
             nextState.context,
             nextState.children,
-            stateInput
+            stateInput,
+            'exit',
+            stateNode.id
           );
           allExitActions.push(...exitActions);
           if (nextInternalEvents?.length) {
@@ -2171,8 +2183,7 @@ function microstep(
         nextState,
         event,
         actorScope,
-        allExitActions,
-        internalQueue
+        allExitActions
       );
       nextState = resolvedState;
       executableActions.push(...resolvedActions);
@@ -2286,18 +2297,21 @@ export function getTransitionResult(
   if (transition.to) {
     const actions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
-    const res = options?.selectionResult?.reusable
-      ? options.selectionResult.result
-      : transition.to(
-          getTransitionArgs(),
-          createTransitionEnqueue(
-            actorScope,
-            actions,
-            internalEvents,
-            true,
-            options?.resolveActions ?? true
-          )
-        );
+    let res;
+    if (options?.selectionResult?.reusable) {
+      res = options.selectionResult.result;
+    } else {
+      const enqueue = createTransitionEnqueue(
+        actorScope,
+        actions,
+        internalEvents,
+        true,
+        options?.resolveActions ?? true
+      );
+      res = transition.to(getTransitionArgs(), enqueue);
+      closeTransitionEnqueue(enqueue);
+      assertSyncTransitionResult(res, event, transition.source.id);
+    }
 
     const targets = res?.target
       ? resolveTarget(transition.source, toArray(res.target) as string[])
@@ -2347,6 +2361,49 @@ export function getTransitionResult(
   };
 }
 
+/** The default microstep bound for one macrostep. */
+const DEFAULT_MAX_ITERATIONS = 1000;
+
+/**
+ * Thrown when one macrostep takes more microsteps than the machine's
+ * `options.maxIterations` (default `1000`) without reaching a stable state,
+ * usually because eventless transitions or raised events form a cycle.
+ *
+ * @public
+ */
+export class InfiniteTransitionError extends Error {
+  /** The id of the actor that was transitioning, if any. */
+  public readonly actorId: string | undefined;
+  /** The event being processed. */
+  public readonly event: EventObject;
+  /** The microstep bound that was exceeded. */
+  public readonly maxIterations: number;
+  /** The last (up to 5) state values visited, oldest first. */
+  public readonly states: StateValue[];
+
+  constructor(
+    actorId: string | undefined,
+    event: EventObject,
+    maxIterations: number,
+    states: StateValue[]
+  ) {
+    super(
+      `Infinite loop detected in actor "${actorId}" processing event "${
+        event.type
+      }": more than ${maxIterations} microsteps without reaching a stable state. Last states: ${states
+        .map((value) => JSON.stringify(value))
+        .join(
+          ' -> '
+        )}. Check for a cycle of eventless transitions or raised events, or raise the bound with createMachine({ options: { maxIterations } }).`
+    );
+    this.name = 'InfiniteTransitionError';
+    this.actorId = actorId;
+    this.event = event;
+    this.maxIterations = maxIterations;
+    this.states = states.slice();
+  }
+}
+
 export function macrostep(
   snapshot: AnyMachineSnapshot,
   event: EventObject,
@@ -2359,6 +2416,10 @@ export function macrostep(
 } {
   let nextSnapshot = snapshot;
   const microsteps: Microstep[] = initialMicrosteps.slice();
+  // Whether a transition handled the external event. A handled event always
+  // yields a new snapshot object, so `result[0] === snapshot` (with no
+  // effects) identifies an unhandled event.
+  let handled = false;
 
   function removeTerminatedChild(terminalEvent: EventObject) {
     if (
@@ -2400,6 +2461,15 @@ export function macrostep(
   }
 
   function completeMacrostep() {
+    if (handled && nextSnapshot === snapshot) {
+      nextSnapshot = cloneMachineSnapshot(snapshot, {});
+      if (microsteps.at(-1)?.[0] === snapshot) {
+        microsteps[microsteps.length - 1] = [
+          nextSnapshot,
+          microsteps.at(-1)![1]
+        ];
+      }
+    }
     const effects = microsteps.flatMap(([, actions]) => actions);
     const starts = deriveDeferredStarts(effects);
     const shouldTerminate =
@@ -2521,6 +2591,7 @@ export function macrostep(
       removeTerminatedChild(currentEvent);
       return completeMacrostep();
     }
+    handled = transitions.length > 0;
     const step = microstep(
       transitions,
       snapshot,
@@ -2543,22 +2614,25 @@ export function macrostep(
   }
 
   let shouldSelectEventlessTransitions = true;
-  const maxIterations = snapshot.machine.options?.maxIterations ?? Infinity;
+  const maxIterations =
+    snapshot.machine.options?.maxIterations ?? DEFAULT_MAX_ITERATIONS;
   let iterationCount = 0;
+  // The last few state values visited, for the infinite-loop error.
+  const recentStates: StateValue[] = [];
 
-  let microstepCount = 0;
   while (nextSnapshot.status === 'active') {
-    microstepCount++;
-    if (microstepCount > 1000) {
-      throw new Error('Microstep count exceeded 1000');
-    }
     iterationCount++;
     if (iterationCount > maxIterations) {
-      throw new Error(
-        isDevelopment
-          ? `Infinite loop detected: the machine has processed more than ${maxIterations} microsteps without reaching a stable state. This usually happens when there's a cycle of transitions (e.g., eventless transitions or raised events causing state A -> B -> C -> A).`
-          : `Infinite loop detected (>${maxIterations} microsteps)`
+      throw new InfiniteTransitionError(
+        actorScope.self?.id,
+        event,
+        maxIterations,
+        recentStates
       );
+    }
+    recentStates.push(nextSnapshot.value);
+    if (recentStates.length > 5) {
+      recentStates.shift();
     }
 
     let selectionResults: TransitionSelectionResults | undefined;
@@ -2646,9 +2720,35 @@ export function hasEffect(
   return false;
 }
 
-const triggerTransitionEffect = () => {
+// Depth of in-flight selection-phase transition function calls; the shared
+// selection enqueue is only valid while one runs.
+let selectionDepth = 0;
+const triggerTransitionEffect = (): any => {
+  if (!selectionDepth) {
+    return lateEnqueueCall();
+  }
   throw transitionEffectSignal;
 };
+
+/**
+ * Throws when a transition, entry, or exit function returned a promise. The promise's
+ * rejection is observed so it is never reported as unhandled.
+ */
+function assertSyncTransitionResult(
+  res: unknown,
+  event: EventObject,
+  sourceId: string,
+  kind?: 'entry' | 'exit'
+): void {
+  if (res && typeof (res as PromiseLike<unknown>).then === 'function') {
+    void Promise.resolve(res as PromiseLike<unknown>).catch(() => {});
+    throw new Error(
+      kind
+        ? `${kind === 'entry' ? 'Entry' : 'Exit'} functions must be synchronous. The ${kind} function of state "${sourceId}" returned a promise (event "${event.type}"). Move async work into an invoked or spawned actor, or enq.effect.`
+        : `Transition functions must be synchronous. Transition for event "${event.type}" in state "${sourceId}" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.`
+    );
+  }
+}
 let transitionEffectEnqueue: ReturnType<typeof createEnqueueObject> | undefined;
 function getTransitionEffectEnqueue() {
   return (transitionEffectEnqueue ??= createEnqueueObject(
@@ -2682,6 +2782,7 @@ function evaluateTransitionFunction(
     transitionEffectTargets.push(parent);
   }
 
+  selectionDepth++;
   try {
     res = transitionTo(
       withActorScope(
@@ -2707,10 +2808,12 @@ function evaluateTransitionFunction(
     }
     throw err;
   } finally {
+    selectionDepth--;
     if (parent) {
       transitionEffectTargets.pop();
     }
   }
+  assertSyncTransitionResult(res, event, sourceId);
 
   return { enabled: res !== undefined, result: res, reusable: true };
 }

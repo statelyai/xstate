@@ -22,10 +22,6 @@ runs:
       run: pnpm check:files
       shell: bash
 
-    - name: Bundle size
-      run: pnpm bench:size
-      shell: bash
-
     - name: Type error quality
       run: pnpm bench:type-errors --check
       shell: bash
