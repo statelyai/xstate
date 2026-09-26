@@ -1,18 +1,18 @@
 {
   "fsm-logic": {
-    "maxGzipBytes": 389
+    "maxGzipBytes": 450
   },
   "fsm-entrypoint-logic": {
-    "maxGzipBytes": 389
+    "maxGzipBytes": 450
   },
   "minimal-machine": {
     "maxGzipBytes": 26265
   },
   "minimal-fsm": {
-    "maxGzipBytes": 389
+    "maxGzipBytes": 450
   },
   "fsm-setup": {
-    "maxGzipBytes": 483
+    "maxGzipBytes": 540
   },
   "custom-logic-actor": {
     "maxGzipBytes": 6887

@@ -10,9 +10,12 @@ describe('createFSM', () => {
       }
     });
 
-    const next = machine.transition(machine.initialState, { type: 'toggle' });
+    const [next, effects] = machine.transition(machine.initialState, {
+      type: 'toggle'
+    });
 
-    expect(next).toEqual({ value: 'on', context: {} });
+    expect(next).toEqual({ status: 'active', value: 'on', context: {} });
+    expect(effects).toEqual([]);
   });
 
   it('supports pure function transitions with context updates', () => {
@@ -35,12 +38,16 @@ describe('createFSM', () => {
       }
     });
 
-    const next = machine.transition(machine.initialState, {
+    const [next] = machine.transition(machine.initialState, {
       type: 'increment',
       by: 2
     });
 
-    expect(next).toEqual({ value: 'ready', context: { count: 2 } });
+    expect(next).toEqual({
+      status: 'active',
+      value: 'ready',
+      context: { count: 2 }
+    });
   });
 
   it('preserves snapshot identity for no-op context patches', () => {
@@ -52,9 +59,35 @@ describe('createFSM', () => {
       }
     });
 
-    expect(machine.transition(machine.initialState, { type: 'noop' })).toBe(
+    expect(machine.transition(machine.initialState, { type: 'noop' })[0]).toBe(
       machine.initialState
     );
+  });
+
+  it('applies only own context patch keys', () => {
+    const machine = createFSM<
+      { count: number; inherited?: number },
+      { type: 'inherited' } | { type: 'own' }
+    >({
+      context: { count: 0 },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            inherited: () => ({ context: Object.create({ inherited: 1 }) }),
+            own: () => ({ context: { count: 1 } })
+          }
+        }
+      }
+    });
+
+    expect(
+      machine.transition(machine.initialState, { type: 'inherited' })[0]
+    ).toBe(machine.initialState);
+
+    const [next] = machine.transition(machine.initialState, { type: 'own' });
+    expect(next).not.toBe(machine.initialState);
+    expect(next.context).toEqual({ count: 1 });
   });
 
   it('ignores inherited event names', () => {
@@ -64,7 +97,36 @@ describe('createFSM', () => {
     });
 
     expect(
-      machine.transition(machine.initialState, { type: 'constructor' })
+      machine.transition(machine.initialState, { type: 'constructor' })[0]
     ).toBe(machine.initialState);
+  });
+
+  it('materializes output and error as own snapshot properties', () => {
+    const machine = createFSM({
+      initial: 'inactive',
+      context: { count: 0 },
+      states: {
+        inactive: { on: { toggle: 'active' } },
+        active: {}
+      }
+    });
+    const keys = ['status', 'value', 'context', 'output', 'error'];
+    const [next] = machine.transition(machine.initialState, {
+      type: 'toggle'
+    });
+
+    for (const snapshot of [
+      machine.initialState,
+      machine.getInitialSnapshot(),
+      next
+    ]) {
+      expect(Object.keys(snapshot)).toEqual(keys);
+      const roundTripped = JSON.parse(
+        JSON.stringify(snapshot, (_, value) =>
+          value === undefined ? null : value
+        )
+      );
+      expect(Object.keys(roundTripped)).toEqual(keys);
+    }
   });
 });

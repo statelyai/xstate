@@ -116,21 +116,49 @@ type FSMConfigForStates<
   };
 };
 
-/** @public */
+/**
+ * A snapshot of a compact FSM. `status`, `output`, and `error` match the
+ * snapshot shape shared by all actor logic, so an FSM can run in
+ * `createActor`. An FSM snapshot is always `'active'`.
+ *
+ * @public
+ */
 export type FSMSnapshot<
   TContext extends MachineContext,
   TState extends string
 > = {
+  status: 'active';
   value: TState;
   context: TContext;
+  output: undefined;
+  error: undefined;
 };
 
-/** @public */
+/**
+ * The result of an FSM transition: `[nextSnapshot, effects]`. FSMs have no
+ * effects, so `effects` is always empty. The tuple matches the
+ * `(snapshot, event) => [snapshot, effects]` protocol shared with full XState
+ * actor logic.
+ *
+ * @public
+ */
+export type FSMTransitionResult<TSnapshot> = [
+  nextSnapshot: TSnapshot,
+  effects: never[]
+];
+
+/**
+ * Pure logic returned by `createFSM`. It structurally satisfies `ActorLogic`,
+ * so it works with `createActor`, `transition`, and `initialTransition` from
+ * `xstate`.
+ *
+ * @public
+ */
 export type FSM<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TState extends string,
-  TSnapshot extends { value: TState; context: MachineContext } = FSMSnapshot<
+  TSnapshot extends FSMSnapshot<MachineContext, TState> = FSMSnapshot<
     TContext,
     TState
   >,
@@ -139,7 +167,13 @@ export type FSM<
   readonly id: string | undefined;
   readonly config: TConfig;
   readonly initialState: TSnapshot;
-  transition(snapshot: TSnapshot, event: TEvent): TSnapshot;
+  transition(
+    snapshot: TSnapshot,
+    event: TEvent
+  ): FSMTransitionResult<TSnapshot>;
+  initialTransition(input?: unknown): FSMTransitionResult<TSnapshot>;
+  getInitialSnapshot(actorScope?: unknown, input?: unknown): TSnapshot;
+  getPersistedSnapshot(snapshot: TSnapshot): TSnapshot;
 };
 
 type FSMSetupSchemas = Pick<SetupSchemas, 'context' | 'events'>;
@@ -205,10 +239,10 @@ type FSMSetupSnapshot<
 > = [keyof TStates] extends [never]
   ? FSMSnapshot<TGlobalContext, keyof TMachineStates & string>
   : {
-      [K in keyof TMachineStates & string]: {
-        value: K;
-        context: FSMSetupStateContext<K, TStates, TGlobalContext>;
-      };
+      [K in keyof TMachineStates & string]: FSMSnapshot<
+        FSMSetupStateContext<K, TStates, TGlobalContext>,
+        K
+      >;
     }[keyof TMachineStates & string];
 
 type FSMSetupTargetTransitionConfig<
@@ -391,60 +425,57 @@ export function createFSM<
   FSMConfigForStates<TContext, TEvent, TStates>
 > {
   type TState = keyof TStates & string;
-  const initialState: FSMSnapshot<TContext, TState> = {
-    value: config.initial,
-    context: config.context ?? ({} as TContext)
-  };
+  type TSnapshot = FSMSnapshot<TContext, TState>;
+  const createSnapshot = (value: TState, context: TContext) =>
+    ({
+      status: 'active',
+      value,
+      context,
+      output: undefined,
+      error: undefined
+    }) as TSnapshot;
+  const initialState = createSnapshot(
+    config.initial,
+    config.context ?? ({} as TContext)
+  );
 
   return {
     id: config.id,
     config,
     initialState,
+    initialTransition: () => [initialState, []],
+    getInitialSnapshot: () => initialState,
+    getPersistedSnapshot: (snapshot) => snapshot,
     transition(snapshot, event) {
-      const stateConfig = config.states[snapshot.value];
-      const transitions = stateConfig?.on as
+      let { value, context } = snapshot;
+      const transitions = config.states[value]?.on as
         | Record<string, FSMTransition<TContext, TEvent, TState> | undefined>
         | undefined;
       const transition =
-        transitions && Object.hasOwn(transitions, event.type)
-          ? transitions[event.type]
-          : undefined;
-
-      if (transition === undefined) {
-        return snapshot;
-      }
-
-      const args = { context: snapshot.context, event };
-      const result =
-        typeof transition === 'function'
-          ? transition(args)
-          : typeof transition === 'string'
-            ? { target: transition }
-            : transition;
-
-      if (!result) {
-        return snapshot;
-      }
-
-      const contextPatch = result.context;
-      let context = snapshot.context;
-      if (contextPatch !== undefined) {
-        const nextContext = { ...snapshot.context, ...contextPatch };
-        if (
-          Object.keys(contextPatch).some(
-            (key) => nextContext[key] !== snapshot.context[key]
-          )
-        ) {
-          context = nextContext;
+        Object.hasOwn(transitions || {}, event.type) &&
+        transitions![event.type];
+      const { target = value, context: patch } =
+        (typeof transition === 'string'
+          ? { target: transition }
+          : typeof transition === 'function'
+            ? transition({ context, event })
+            : transition) || {};
+      // Copy only when the patch changes a value, so a no-op patch keeps the
+      // current snapshot. After the first copy every key matches. Iterate a
+      // spread copy so inherited keys, which the spread below ignores, are
+      // skipped.
+      for (const key in { ...patch }) {
+        if (patch![key] !== context[key]) {
+          context = { ...context, ...patch };
         }
       }
-      const value = result.target ?? snapshot.value;
 
-      if (value === snapshot.value && context === snapshot.context) {
-        return snapshot;
-      }
-
-      return { value, context };
+      return [
+        target === value && context === snapshot.context
+          ? snapshot
+          : createSnapshot(target, context),
+        []
+      ];
     }
   };
 }

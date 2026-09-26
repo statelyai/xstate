@@ -984,7 +984,7 @@ These exports have been **added**:
 
 - `setup` (reshaped - see §4) and `createSystem` for typed system registries
 - Setup state contract types: `SetupStateSchema`, `SetupStateSchemas`, `SetupStateType`
-- `createFSM` and its related types for tiny, pure flat finite state machines: `FSM`, `FSMArgs`, `FSMConfig`, `FSMContextPatch`, `FSMSnapshot`, `FSMStateConfig`, `FSMTransition`, `FSMTransitionConfig`, `FSMTransitionFunction`
+- `createFSM` and its related types for tiny, pure flat finite state machines: `FSM`, `FSMArgs`, `FSMConfig`, `FSMContextPatch`, `FSMSnapshot`, `FSMStateConfig`, `FSMTransition`, `FSMTransitionConfig`, `FSMTransitionFunction`, `FSMTransitionResult`
 - `createStateConfig`
 - `checkStateIn`
 - `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
@@ -999,8 +999,10 @@ These exports have been **added**:
 - `actor.select(selector)` - derived, subscribable views
 
 The `xstate/fsm` subpath exports the pure `createFSM` API plus a lightweight
-`setup`/`types` facade for typed events, context, and state snapshots. See
-[compact finite state machines](fsm.md) for its exact supported surface.
+`setup`/`types` facade for typed events, context, and state snapshots.
+`fsm.transition(snapshot, event)` returns `[nextSnapshot, effects]`, the same
+protocol as other actor logic, so `createActor(fsm)` runs an FSM as an actor.
+See [compact finite state machines](fsm.md) for its exact supported surface.
 
 ---
 

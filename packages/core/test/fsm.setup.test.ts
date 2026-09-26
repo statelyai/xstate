@@ -58,28 +58,34 @@ describe('xstate/fsm setup', () => {
     });
 
     expect(machine.initialState).toEqual({
+      status: 'active',
       value: 'loading',
       context: { status: 'loading' }
     });
 
-    expect(machine.transition(machine.initialState, { type: 'retry' })).toEqual(
-      {
-        value: 'loading',
-        context: { status: 'loading' }
-      }
-    );
+    expect(
+      machine.transition(machine.initialState, { type: 'retry' })[0]
+    ).toEqual({
+      status: 'active',
+      value: 'loading',
+      context: { status: 'loading' }
+    });
 
-    expect(machine.transition(machine.initialState, { type: 'load' })).toEqual({
+    expect(
+      machine.transition(machine.initialState, { type: 'load' })[0]
+    ).toEqual({
+      status: 'active',
       value: 'loaded',
       context: { status: 'loaded', user: { id: 'static' } }
     });
 
-    const next = machine.transition(machine.initialState, {
+    const [next] = machine.transition(machine.initialState, {
       type: 'resolve',
       user: { id: '1' }
     });
 
     expect(next).toEqual({
+      status: 'active',
       value: 'loaded',
       context: { status: 'loaded', user: { id: '1' } }
     });
@@ -196,7 +202,7 @@ describe('xstate/fsm setup', () => {
       }
     });
 
-    const next = machine.transition(machine.initialState, {
+    const [next] = machine.transition(machine.initialState, {
       type: 'review',
       draft: 'Ready'
     });
@@ -207,6 +213,7 @@ describe('xstate/fsm setup', () => {
     }
 
     expect(next).toEqual({
+      status: 'active',
       value: 'reviewing',
       context: { requestId: 'req-1', draft: 'Ready' }
     });
