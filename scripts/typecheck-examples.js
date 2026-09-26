@@ -50,6 +50,26 @@ function resolveTool(directory, tool) {
   );
 }
 
+/**
+ * Stale `tsconfig*.tsbuildinfo` files make incremental `tsc` report spurious
+ * errors (e.g. "Return type annotation circularly references itself"), so
+ * delete them before checking.
+ *
+ * @param {string} directory
+ */
+function deleteBuildInfo(directory) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name !== 'node_modules' && entry.name !== '.git') {
+        deleteBuildInfo(entryPath);
+      }
+    } else if (/^tsconfig.*\.tsbuildinfo$/.test(entry.name)) {
+      fs.rmSync(entryPath, { force: true });
+    }
+  }
+}
+
 let failed = false;
 for (const directory of examples) {
   const config = path.join(directory, 'tsconfig.json');
@@ -60,6 +80,7 @@ for (const directory of examples) {
   }
 
   console.log(`Checking ${directory}`);
+  deleteBuildInfo(directory);
   try {
     const ts = require(
       path.dirname(
@@ -81,6 +102,9 @@ for (const directory of examples) {
         undefined,
         project
       );
+      if (parsed.options.tsBuildInfoFile) {
+        fs.rmSync(parsed.options.tsBuildInfoFile, { force: true });
+      }
       for (const reference of parsed.projectReferences ?? []) {
         checkProject(ts.resolveProjectReferencePath(reference));
       }

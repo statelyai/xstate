@@ -185,6 +185,9 @@ export class StateNode<
     this.schemas = this.config.schemas;
 
     validateStateNodeConfig(this);
+    if (isDevelopment) {
+      warnOnFinalStateBehavior(this);
+    }
 
     this.order = this.machine.idMap.size;
     this.machine.idMap.set(this.id, this);
@@ -320,6 +323,10 @@ export class StateNode<
     actorScope: AnyActorScope,
     selectionResults?: TransitionSelectionResults
   ): Array<AnyTransitionDefinition> | undefined {
+    // Final states are inert: as in SCXML, they take no transitions.
+    if (this.type === 'final') {
+      return undefined;
+    }
     const descriptorKey = getEventDescriptorKey(event);
     let candidates = this._candidateCache?.get(descriptorKey);
     if (!candidates) {
@@ -393,6 +400,29 @@ function validateStateNodeConfig(stateNode: AnyStateNode) {
         );
       }
     }
+  }
+}
+
+const FINAL_STATE_IGNORED_KEYS = ['invoke', 'on', 'after'] as const;
+
+/**
+ * Final states are inert: their `invoke`, `on` and `after` never run. Warn
+ * instead of silently ignoring them.
+ */
+function warnOnFinalStateBehavior(stateNode: AnyStateNode): void {
+  if (stateNode.type !== 'final') {
+    return;
+  }
+  const config = stateNode.config as Record<string, unknown>;
+  const declared = FINAL_STATE_IGNORED_KEYS.filter(
+    (key) => config[key] !== undefined
+  );
+  if (declared.length) {
+    console.warn(
+      `State "${stateNode.id}" is final and declares ${declared
+        .map((key) => `"${key}"`)
+        .join(', ')}; final states cannot run actors or take transitions.`
+    );
   }
 }
 

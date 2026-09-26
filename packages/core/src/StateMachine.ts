@@ -242,6 +242,13 @@ export class StateMachine<
   readonly _internalEventType!: TInternalEvent;
   /** Type-only marker for transition metadata. Never assigned at runtime. */
   readonly _transitionMetaType!: TTransitionMeta;
+  /**
+   * Type-only marker for the declared input type. `getInitialSnapshot` takes
+   * input optionally, so inferring input from it always adds `undefined`;
+   * `InputFrom` reads this carrier instead. Method-shaped so it stays
+   * bivariant like `getInitialSnapshot`. Never assigned at runtime.
+   */
+  readonly _inputType!: { carry(input: TInput): void }['carry'];
 
   /**
    * Type-level carriers for the machine's source maps and state schema. Type

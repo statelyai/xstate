@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { ActorRefFrom, createMachine } from 'xstate';
+import { ActorRefFrom, createActor, createMachine } from 'xstate';
 import {
   useActor,
   useActorRef,
@@ -159,6 +159,7 @@ describe('useActor', () => {
     });
 
     const Component = () => {
+      // @ts-expect-error input is required
       const _ = useActor(withInputMachine);
       return <></>;
     };
@@ -184,6 +185,28 @@ describe('useActor', () => {
 });
 
 describe('useActorRef', () => {
+  it('should not require input when restoring a snapshot', () => {
+    const machine = createMachine({
+      schemas: { input: z.object({ value: z.number() }) }
+    });
+    const snapshot = createActor(machine, {
+      input: { value: 1 }
+    }).getPersistedSnapshot();
+
+    // Type-only checks: the hooks need a component to run.
+    const check = () => {
+      useActorRef(machine, { snapshot });
+      useActor(machine, { snapshot });
+      useMachine(machine, { snapshot });
+      // @ts-expect-error input or snapshot is required
+      useActorRef(machine);
+      // @ts-expect-error input or snapshot is required
+      useActorRef(machine, {});
+    };
+
+    expect(check).toBeTypeOf('function');
+  });
+
   it('should require input to be specified when defined', () => {
     const withInputMachine = createMachine({
       // types: {} as { input: { value: number } },
@@ -199,6 +222,7 @@ describe('useActorRef', () => {
     });
 
     const Component = () => {
+      // @ts-expect-error input is required
       const _ = useActorRef(withInputMachine);
       return <></>;
     };

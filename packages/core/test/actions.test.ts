@@ -1258,6 +1258,50 @@ describe('entry/exit actions', () => {
         'enter: a.a2'
       ]);
     });
+
+    it('passes the entered/exited state node to entry and exit', () => {
+      const log: string[] = [];
+      const machine = createMachine({
+        id: 'm',
+        initial: 'a',
+        on: { leave: { target: '.b' } },
+        states: {
+          b: {},
+          a: {
+            initial: 'a1',
+            entry: ({ stateNode }) => {
+              log.push(`entry ${stateNode.id} ${stateNode.key}`);
+            },
+            exit: ({ stateNode }) => {
+              log.push(`exit ${stateNode.id} ${stateNode.path.join('.')}`);
+            },
+            states: {
+              a1: {
+                entry: ({ stateNode }, enq) => {
+                  enq(() => log.push(`entry ${stateNode.id}`));
+                },
+                exit: ({ stateNode }, enq) => {
+                  enq(() => log.push(`exit ${stateNode.id}`));
+                },
+                on: { next: { target: 'a2' } }
+              },
+              a2: {}
+            }
+          }
+        }
+      });
+
+      const actor = createActor(machine).start();
+      actor.send({ type: 'next' });
+      actor.send({ type: 'leave' });
+
+      expect(log).toEqual([
+        'entry m.a a',
+        'entry m.a.a1',
+        'exit m.a.a1',
+        'exit m.a a'
+      ]);
+    });
   });
   describe('parallel states', () => {
     it('should return entry action defined on parallel state', () => {

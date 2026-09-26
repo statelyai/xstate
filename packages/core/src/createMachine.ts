@@ -19,6 +19,7 @@ import {
   Sources,
   DelayMapFromNames,
   InferChildren,
+  InferMachineInput,
   InferOutput,
   SchemaOrConfigOutput,
   InferEvents,
@@ -132,7 +133,7 @@ export function createMachine<
   TDelayMap extends Sources['delays'],
   TDelays extends string,
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
-  TInput,
+  _TInput,
   const TSS extends StateSchema
 >(
   config: TSS &
@@ -189,7 +190,7 @@ export function createMachine<
   >,
   StateValueFromStateSchema<TSS>,
   TTag & string,
-  TInput,
+  InferMachineInput<TInputSchema>,
   SchemaOrConfigOutput<TOutputSchema, TSS>,
   WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
   InferOutput<TMetaSchema, MetaObject>, // TMeta
@@ -234,7 +235,7 @@ export function createMachine<
   TDelays extends string = string,
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string =
     StandardSchemaV1.InferOutput<TTagSchema> & string,
-  TInput = unknown,
+  _TInput = unknown,
   const TSS extends StateSchema = StateSchema
 >(
   config: TSS &
@@ -303,7 +304,7 @@ export function createMachine<
   >,
   StateValueFromStateSchema<TSS>,
   TTag & string,
-  TInput,
+  InferMachineInput<TInputSchema>,
   SchemaOrConfigOutput<TOutputSchema, TSS>,
   WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
   InferOutput<TMetaSchema, MetaObject>, // TMeta

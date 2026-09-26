@@ -61,16 +61,20 @@ describe('parallel state conformance', () => {
     expect(actor.getSnapshot().context.count).toBe(1);
   });
 
-  // Bug 3 — #4793: after a transition from a final region, subsequent events
-  // in sibling regions are dropped
-  it('sibling region events should still be handled after a final region transitions', () => {
+  // Bug 3 — #4793: after a cross-region transition, subsequent events in
+  // sibling regions are dropped. Final states are inert, so the transition
+  // lives on a non-final state of the region.
+  it('sibling region events should still be handled after a cross-region transition', () => {
     const machine = createMachine({
       id: 'question-flow',
       type: 'parallel',
       states: {
         value1: {
-          type: 'final',
-          on: { NEXT: { target: '#question-flow.value2.shown' } }
+          initial: 'x',
+          states: {
+            x: { on: { NEXT: { target: '#question-flow.value2.shown' } } },
+            done: { type: 'final' }
+          }
         },
         value2: {
           id: 'value2',
@@ -95,7 +99,7 @@ describe('parallel state conformance', () => {
 
     actor.send({ type: 'NEXT' });
     expect(actor.getSnapshot().value).toEqual({
-      value1: {},
+      value1: 'x',
       value2: 'shown',
       value3: 'hidden'
     });
@@ -104,7 +108,7 @@ describe('parallel state conformance', () => {
     // A cross-region transition only exits the region containing its
     // targets, so value2 stays 'shown' while value3 advances.
     expect(actor.getSnapshot().value).toEqual({
-      value1: {},
+      value1: 'x',
       value2: 'shown',
       value3: 'shown'
     });

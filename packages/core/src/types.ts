@@ -188,35 +188,40 @@ export type ActionArgs<
 
 /** @public */
 export type InputFrom<T> =
-  // Resolve the actor-logic contract first. Setup-created machines intersect
-  // StateMachine with literal identity metadata; inferring StateMachine's
-  // generic parameters through that intersection widens optional input.
-  T extends ActorLogic<
-    infer _TSnapshot,
-    infer _TEvent,
-    infer TInput,
-    infer _TSystem,
-    infer _TEmitted
-  >
-    ? TInput
-    : T extends StateMachine<
-          infer _TContext,
+  // Machines carry their exact declared input on `_inputType`; inferring it
+  // from `getInitialSnapshot` would add `undefined` (the parameter is
+  // optional there) and make every machine input look optional.
+  T extends { _inputType: (input: infer TMachineInput) => void }
+    ? TMachineInput
+    : // Resolve the actor-logic contract first. Setup-created machines intersect
+      // StateMachine with literal identity metadata; inferring StateMachine's
+      // generic parameters through that intersection widens optional input.
+      T extends ActorLogic<
+          infer _TSnapshot,
           infer _TEvent,
-          infer _TChildren,
-          infer _TStateValue,
-          infer _TTag,
           infer TInput,
-          infer _TOutput,
-          infer _TEmitted,
-          infer _TMeta,
-          infer _TStateSchema,
-          infer _TActionMap,
-          infer _TActorMap,
-          infer _TGuardMap,
-          infer _TDelayMap
+          infer _TSystem,
+          infer _TEmitted
         >
       ? TInput
-      : never;
+      : T extends StateMachine<
+            infer _TContext,
+            infer _TEvent,
+            infer _TChildren,
+            infer _TStateValue,
+            infer _TTag,
+            infer TInput,
+            infer _TOutput,
+            infer _TEmitted,
+            infer _TMeta,
+            infer _TStateSchema,
+            infer _TActionMap,
+            infer _TActorMap,
+            infer _TGuardMap,
+            infer _TDelayMap
+          >
+        ? TInput
+        : never;
 
 /** @public */
 export type OutputFrom<T> =
