@@ -195,7 +195,7 @@ These are free functions that take any XState `ActorRef`, including the `EffectA
 | `waitFor(actor, predicate, { timeout })` | `Effect<Snapshot, ActorStoppedError \| Cause.TimeoutError>` |
 | `join(actor)`                            | `Effect<Output, ErrorFrom<Logic> \| ActorStoppedError>`     |
 | `inspect(actor)`                         | `Stream<InspectionEvent>`                                   |
-| `deadLetters(actor)`                     | `Stream<DeadLetterInspectionEvent>`                         |
+| `deadLetters(actor)`                     | `Stream<EventRejection>`                                    |
 
 `send` and `waitFor` are dual: each takes the actor first, or returns a function of the actor so it can be piped.
 

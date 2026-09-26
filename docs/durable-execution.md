@@ -224,21 +224,32 @@ batch), so "effects executed" means "safe to checkpoint and suspend". Hosts
 whose step or activity model forbids concurrent entries can rely on that
 ordering, including for the operations a stop cascade initiates. Calls to
 `executeEffects` themselves must not overlap; starting a new batch before the
-previous call settles throws. A rejected batch may be retried, but retries
-re-run every operation in it — including local delivery to co-located
-children — so a retried batch can re-deliver events the first attempt already
-delivered. Hosts that retry need idempotent operations, keyed by the effect
-ID.
+previous call settles throws.
 
-Delivery is at-most-once with pairwise sender-to-receiver ordering: for a
-given pair of actors, events sent from the first to the second are enqueued
-in send order, and an undeliverable event is dropped rather than retried.
-This matches the Erlang and Akka defaults. A dropped event is reported
-through the `deadLetter` runtime operation (and a `@xstate.deadletter`
-inspection event) — observability, not retry. Ordering is not transitive
+Effects execute at least once. A rejected batch may be retried, and a retried
+or replayed batch re-runs every operation in it, including local delivery to
+co-located children. Every runtime operation must therefore be idempotent,
+keyed by the effect ID (`<transitionIndex>:<effectIndex>`). Timers are keyed
+by `(source.address, id)`.
+
+Event delivery between actors is at-most-once per accepted operation, with
+pairwise sender-to-receiver ordering: for a given pair of actors, events sent
+from the first to the second are enqueued in send order, and an undeliverable
+event is dead-lettered rather than retried. This matches the Erlang and Akka
+defaults. A dead letter is reported through the `deadLetter` runtime
+operation (and the `onRejectedEvent` hook) — observability, not
+retry. Ordering is not transitive
 across intermediaries. The durable path is stronger — the handoff queue serializes
 every operation of an execution globally. A host `sendEvent` that routes
 remotely is responsible for preserving pairwise ordering on its transport.
+
+Stale inputs are ignored, not errors. A timer firing whose timer is no longer
+pending is ignored, and a child completion that carries a different
+incarnation (`sessionId`) than the child currently at that id is dropped. Do
+not construct completion events yourself: they lack the incarnation and
+bypass that check. `transition()` delivers completions for co-located
+children. Incarnations of local children do not survive persist and restore
+unless `executionId` is pinned.
 
 Because every handoff queues, a runtime operation must never await another
 runtime operation of the same execution through the actor system — it would
@@ -259,6 +270,18 @@ event reaches `enqueueRootEvent`, or `sendEvent` when the adapter implements
 the broader routing override, and belongs in the host's mailbox. Producing one
 without either hook throws, since delivering it locally to the inert root
 would silently lose it.
+
+Lifecycle operations do host bookkeeping and then call the local helper. They
+never compute transitions: calling `transition()` or `executeEffects()` inside
+`startActor`, `stopActor` or `terminateActor` produces a snapshot the drive
+loop never stores, overlaps the running batch, and re-runs initialization.
+Change the state of other actors only at the top of the drive loop.
+
+- `startActor(actor)`: record the start, then call `actor.start()`.
+- `stopActor(actor)`: clean up host state for `actor.address`, such as its
+  alarms, then call the `stopActor` helper.
+- `terminateActor(actor, termination)`: record the result, then call the
+  `terminateActor` helper, which delivers the completion to the parent.
 
 ### Journaling rules
 
@@ -365,7 +388,7 @@ const durable = createDurable(machine, {
 ```
 
 Without an adapter `deadLetter`, the effect falls back to the local behavior:
-a `@xstate.deadletter` inspection event and a development-mode warning.
+the `onRejectedEvent` hook and a development-mode warning.
 
 Events the machine raises to itself are not boundary events. A delayed raised
 event that fails its schema throws from `transition()` and errors the

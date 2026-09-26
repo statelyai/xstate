@@ -17,11 +17,156 @@ import {
   setup,
   SimulatedClock
 } from '../src/index.ts';
+import { StateMachine } from '../src/StateMachine.ts';
+import Ajv2020 from 'ajv/dist/2020';
+import persistedSnapshotSchema from '../src/persistedSnapshot.schema.json';
 
 /** Canonical JSON round-trip of a persisted snapshot. */
 function roundTrip(persisted: unknown): any {
   return JSON.parse(JSON.stringify(persisted));
 }
+
+/**
+ * Every machine envelope produced in this file — root and nested machine
+ * children, which persist through the same method — is validated against
+ * `src/persistedSnapshot.schema.json` after a JSON round-trip.
+ */
+const validateEnvelope = new Ajv2020({ allErrors: true }).compile(
+  persistedSnapshotSchema
+);
+const envelopeErrors: unknown[] = [];
+let validatedEnvelopes = 0;
+const originalGetPersistedSnapshot =
+  StateMachine.prototype.getPersistedSnapshot;
+beforeAll(() => {
+  vi.spyOn(StateMachine.prototype, 'getPersistedSnapshot').mockImplementation(
+    function (
+      this: StateMachine<
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any,
+        any
+      >,
+      ...args
+    ) {
+      const persisted = originalGetPersistedSnapshot.apply(this, args);
+      let json: unknown;
+      try {
+        json = roundTrip(persisted);
+      } catch {
+        // Non-JSON payloads are the host's problem (see the dev warning).
+        return persisted;
+      }
+      validatedEnvelopes++;
+      if (!validateEnvelope(json)) {
+        envelopeErrors.push(validateEnvelope.errors);
+      }
+      return persisted;
+    }
+  );
+});
+afterEach(() => {
+  expect(envelopeErrors.splice(0)).toEqual([]);
+});
+afterAll(() => {
+  vi.restoreAllMocks();
+  expect(validatedEnvelopes).toBeGreaterThan(0);
+});
+
+describe('non-JSON payload warning (dev)', () => {
+  it.each([
+    ['function', { fn: () => {} }, 'context.fn'],
+    ['symbol', { list: [Symbol('s')] }, 'context.list[0]'],
+    ['bigint', { n: 1n }, 'context.n'],
+    ['Map', { m: new Map() }, 'context.m'],
+    ['Set', { nested: { s: new Set() } }, 'context.nested.s'],
+    ['NaN', { score: NaN }, 'context.score'],
+    ['Infinity', { list: [Infinity] }, 'context.list[0]'],
+    ['-Infinity', { min: -Infinity }, 'context.min']
+  ])('warns once for a %s', (kind, context, path) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const machine = createMachine({ context: context as any });
+    createActor(machine).getPersistedSnapshot();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain(`(${kind}) at '${path}'`);
+    warn.mockRestore();
+  });
+
+  it('warns for a circular reference', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    const machine = createMachine({ id: 'cyclic', context: { circular } });
+    // The warning is emitted before persisting rejects the cycle.
+    expect(() => createActor(machine).getPersistedSnapshot()).toThrow(
+      new Error(
+        'Cannot persist actor "cyclic": circular reference at context.circular.self'
+      )
+    );
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain(
+      "(circular reference) at 'context.circular.self'"
+    );
+    warn.mockRestore();
+  });
+
+  it('rejects a circular context with its path, and persists shared references', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const item: Record<string, unknown> = { name: 'a' };
+    item.parent = { items: [item] };
+    const machine = createMachine({ id: 'list', context: { items: [item] } });
+    expect(() => createActor(machine).getPersistedSnapshot()).toThrow(
+      'Cannot persist actor "list": circular reference at context.items[0].parent.items[0]'
+    );
+
+    const shared = { a: 1 };
+    const sharing = createMachine({
+      context: { left: shared, right: { nested: shared } }
+    });
+    expect(createActor(sharing).getPersistedSnapshot()).toMatchObject({
+      context: { left: { a: 1 }, right: { nested: { a: 1 } } }
+    });
+    warn.mockRestore();
+  });
+
+  it('does not warn for an undefined property', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const machine = createMachine({ context: { result: undefined } });
+    createActor(machine).getPersistedSnapshot();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('does not warn for JSON values, Dates, shared references, or actor refs', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const shared = { a: 1 };
+    const machine = createMachine({
+      context: ({ spawn }) => ({
+        date: new Date(0),
+        left: shared,
+        right: shared,
+        ref: spawn(createMachine({}))
+      })
+    });
+    createActor(machine).getPersistedSnapshot({
+      __unsafeAllowInlineActors: true
+    } as any);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
 
 describe('#5077 re-persistability of children', () => {
   it('a transition-spawned registered child survives a JSON round-trip and re-persists', () => {

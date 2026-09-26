@@ -47,10 +47,9 @@ actor.send({ type: 'tick' });
 // does not error; its state is unchanged.
 ```
 
-A rejected event never enters the machine. The rejection is reported three ways:
+A rejected event never enters the machine. The rejection is reported two ways:
 
 - The `onRejectedEvent` dead-letter hook on `createActor` options receives an `EventRejection` object with the `event`, `targetId`, `sourceRef`, `eventOrigin` (`'external'` or `'actor'`), `reason` and `error`.
-- [Inspection](inspection.md) observers receive a `@xstate.deadletter` inspection event with the same fields.
 - In development mode, a console warning describes the rejection.
 
 Internal events are still ordinary events in every other respect. They appear

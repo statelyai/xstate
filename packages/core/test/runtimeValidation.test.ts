@@ -11,6 +11,7 @@ import {
   createSystem,
   createObservableLogic,
   type DeadLetterExecutableActionObject,
+  type EventRejection,
   initialTransition,
   setup,
   transition,
@@ -410,23 +411,23 @@ describe('runtime schema validation', () => {
     expect(() => initialTransition(create('ignore'))).not.toThrow();
   });
 
-  it('surfaces boundary rejections through inspection without erroring the actor', () => {
+  it('surfaces boundary rejections through onRejectedEvent without erroring the actor', () => {
     const inspection: any[] = [];
+    const rejections: EventRejection[] = [];
     const machine = setup({
       validator: standardSchemaValidator(),
       schemas: { events: { GO: z.object({ value: z.number() }) } }
     }).createMachine({});
     const actor = createActor(machine, {
-      inspect: (event) => inspection.push(event)
+      inspect: (event) => inspection.push(event),
+      onRejectedEvent: (rejection) => rejections.push(rejection)
     });
     actor.start();
     actor.send({ type: 'GO', value: 'x' } as any);
 
     expect(actor.getSnapshot().status).toBe('active');
-    const rejected = inspection.find(
-      (event) => event.type === '@xstate.deadletter'
-    );
-    expect(rejected).toBeDefined();
+    expect(rejections).toHaveLength(1);
+    const [rejected] = rejections;
     expect(rejected).toMatchObject({
       event: { type: 'GO', value: 'x' },
       sourceRef: undefined,

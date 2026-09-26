@@ -30,6 +30,7 @@ import {
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
 import { isRemoteActorRef } from './remoteActorRef.ts';
+import { findNonJsonPath } from './persistedSnapshotFormat.ts';
 
 const emptySnapshotRecord = Object.freeze({});
 
@@ -601,6 +602,19 @@ export function getPersistedSnapshot<
     ...jsonValues
   } = snapshot;
 
+  if (isDevelopment) {
+    // Before persistContext, which rejects cycles with an error.
+    warnOnNonJsonPayload(
+      {
+        context,
+        output: jsonValues.output,
+        error: jsonValues.error,
+        stateInputs: _stateInputs
+      },
+      machine.id
+    );
+  }
+
   const childrenJson: Record<string, unknown> = {};
   const timersJson: Record<string, unknown> = {};
 
@@ -705,7 +719,10 @@ export function getPersistedSnapshot<
 
   const persisted: Record<string, unknown> = {
     ...jsonValues,
-    context: persistContext(context) as any,
+    context: persistContext(
+      context,
+      () => getSnapshotActorRef(snapshot)?.actor.id ?? machine.id
+    ) as any,
     children: childrenJson,
     timers: timersJson,
     historyValue: serializeHistoryValue(jsonValues.historyValue)
@@ -726,7 +743,30 @@ export function getPersistedSnapshot<
   return persisted as Snapshot<unknown>;
 }
 
-function persistContext(contextPart: Record<string, unknown>) {
+function warnOnNonJsonPayload(
+  persisted: Record<string, unknown>,
+  machineId: string
+) {
+  for (const key of ['context', 'output', 'error', 'stateInputs']) {
+    const found = findNonJsonPath(persisted[key], key);
+    if (found) {
+      console.warn(
+        `Persisted snapshot of machine '${machineId}' contains a non-JSON value (${found.kind}) at '${found.path}'. Persisted snapshots must be JSON-serializable; this value will be lost or throw in JSON.stringify.`
+      );
+      return;
+    }
+  }
+}
+
+function persistContext(
+  contextPart: Record<string, unknown>,
+  getActorId: () => string,
+  path = 'context',
+  ancestors: object[] = []
+) {
+  // `ancestors` is the current descent path: a shared, non-circular object
+  // reached twice is fine; one that contains itself is not JSON.
+  ancestors.push(contextPart);
   let copy: typeof contextPart | undefined;
   for (const key in contextPart) {
     const value = contextPart[key];
@@ -740,7 +780,20 @@ function persistContext(contextPart: Record<string, unknown>) {
           id: (value as any as AnyActor).id
         };
       } else {
-        const result = persistContext(value as typeof contextPart);
+        const valuePath = Array.isArray(contextPart)
+          ? `${path}[${key}]`
+          : `${path}.${key}`;
+        if (ancestors.includes(value)) {
+          throw new Error(
+            `Cannot persist actor "${getActorId()}": circular reference at ${valuePath}`
+          );
+        }
+        const result = persistContext(
+          value as typeof contextPart,
+          getActorId,
+          valuePath,
+          ancestors
+        );
         if (result !== value) {
           copy ??= Array.isArray(contextPart)
             ? (contextPart.slice() as typeof contextPart)
@@ -750,5 +803,6 @@ function persistContext(contextPart: Record<string, unknown>) {
       }
     }
   }
+  ancestors.pop();
   return copy ?? contextPart;
 }

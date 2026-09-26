@@ -6,8 +6,7 @@ import {
   setup,
   transition,
   type AnyEventObject,
-  type EventRejection,
-  type InspectionEvent
+  type EventRejection
 } from '../src/index.ts';
 import { standardSchemaValidator } from '../src/validation/index.ts';
 import { createDurable } from '../src/durable/index.ts';
@@ -40,10 +39,8 @@ const createValidatedMachine = () =>
 describe('event boundary: reject and report', () => {
   it('rejects an invalid external event on send without erroring the actor', () => {
     const rejections: EventRejection[] = [];
-    const inspection: InspectionEvent[] = [];
     const actor = createActor(createValidatedMachine(), {
-      onRejectedEvent: (rejection) => rejections.push(rejection),
-      inspect: (event) => inspection.push(event)
+      onRejectedEvent: (rejection) => rejections.push(rejection)
     }).start();
 
     actor.send({ type: 'GO', count: 'oops' } as any);
@@ -55,20 +52,14 @@ describe('event boundary: reject and report', () => {
     expect(rejections).toHaveLength(1);
     expect(rejections[0]).toMatchObject({
       event: { type: 'GO', count: 'oops' },
+      targetRef: actor,
       targetId: actor.id,
+      sourceRef: undefined,
       eventOrigin: 'external',
       reason: 'invalidEvent'
     });
     expect(rejections[0].issues?.length).toBeGreaterThan(0);
-
-    const rejected = inspection.find(
-      (event) => event.type === '@xstate.deadletter'
-    );
-    expect(rejected).toMatchObject({
-      event: { type: 'GO', count: 'oops' },
-      sourceRef: undefined,
-      reason: 'invalidEvent'
-    });
+    expect(rejections[0].error).toBeInstanceOf(Error);
 
     // the actor still processes valid events afterwards
     actor.send({ type: 'GO', count: 1 });
