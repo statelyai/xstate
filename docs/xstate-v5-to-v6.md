@@ -65,7 +65,7 @@ Beyond simplifying the action/guard surface, v6 introduces a number of features 
 | [`actor.select`](#22-actorselect)                                                 | Derive a subscribable, memoized selection from an actor's snapshot - `actor.select(s => s.context.x)`.                                                                                            |
 | [Route states](#23-route-states)                                                  | A state with `route` can be navigated to directly via `actor.send({ type: 'xstate.route', to: '#id' })`, gated by an inline route guard/resolver.                                                 |
 | [Actor registry](#24-actor-registry)                                              | `actor.system.get(registryKey)` / `system.get(registryKey)` look up actors by `registryKey` without passing refs. The root actor can be named via `system.createActor(machine, { registryKey })`. |
-| [Snapshot versioning](#20-persistence--rehydration)                               | `version` on the machine is stamped onto persisted snapshots and checked on restore.                                                                                                              |
+| [Snapshot versioning](#20-persistence--rehydration)                               | `version` on the machine is stamped onto persisted snapshots; `machineVersions()` migrates older snapshots. Snapshots restore leniently, with no format version field.                            |
 | [Serialization](#21-machine-as-data-serialization-json-configs-scxml)             | `serializeMachine` / `machineConfigToJSON` / `createMachineFromConfig` are now public - round-trip a machine to/from a plain JSON config.                                                         |
 | [`createMachineFromConfig`](#21-machine-as-data-serialization-json-configs-scxml) | Build a machine from a plain JSON config with serialized actions - useful for SCXML round-trip, persistence, or storing machines as data.                                                         |
 | [`initial: { target, input }`](#5-state-input)                                    | Object form for `initial` lets you provide state input on initialization.                                                                                                                         |
@@ -1183,7 +1183,9 @@ Child actors, async logic with effects, and listener-resume semantics are all pa
 
 ### Persisted format
 
-XState owns the `formatVersion` field of a persisted machine snapshot. Snapshots persisted by v6 alphas before the beta have no `formatVersion` and cannot be restored: `upgradePersistedSnapshot()` throws `PersistedSnapshotFormatError` for them, and `createActor(machine, { snapshot })` reports the same error through the actor's error snapshot. `getPersistedSnapshot()` returns a JSON-shaped object that the host serializes, and development builds warn when `context`, `output`, `error`, or state input holds a value that does not survive a JSON round-trip. Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below. See [Persistence](persistence.md) for the format rules.
+`getPersistedSnapshot()` returns a JSON-shaped object, and `createActor(machine, { snapshot })` restores it leniently: the snapshot has no format version field, and XState reads the fields it recognizes. Snapshots persisted by v6 alphas restore without a migration step when the machine's states still resolve. Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below.
+
+The host serializes the payload. Development builds warn when `context`, `output`, `error`, or state input holds a value that does not survive a JSON round-trip: functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`. Persisting a snapshot whose `context` contains a circular reference throws a named error. See [Persistence](persistence.md) for the format rules.
 
 ### Snapshot versioning
 
@@ -1555,7 +1557,7 @@ Migrate one file at a time: run the codemod on it, finish the manual changes, th
 - [ ] Drop dependencies on `@xstate/immer` and `@xstate/inspect`; update inspection to `actor.subscribe`, the `inspect` option, or `@statelyai/inspect`
 - [ ] Remove imports of `SetupReturn`, `GuardArgs`, `GuardPredicate`, `Inspected*Event`, `PromiseActorLogic`, and `fromPromise` (use `createAsyncLogic`)
 - [ ] Drain/migrate any v5 persisted snapshots - the v6 snapshot shape is not binary-compatible
-- [ ] Discard snapshots persisted by pre-beta v6 alphas; they have no `formatVersion`
+- [ ] Check that persisted `context` holds only JSON values; development builds warn on functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`
 - [ ] Remove `tsTypes` and generated `*.typegen.ts` files
 - [ ] Replace transition arrays in `on` and `always` with one transition function
 - [ ] Rename `machine.implementations` to `machine.sources` and `snapshot._nodes` to `snapshot.nodes`; replace `spawn('name')` in `context` factories with `spawn(actors.name)`
