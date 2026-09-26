@@ -115,12 +115,19 @@ export interface TransitionInspectionEvent extends BaseInspectionEventProperties
  * - `@xstate.transition` — every transition facet: event, snapshot, source,
  *   microsteps, executed actions, and sent/scheduled events.
  *
- * Dead letters are not inspection events; observe them with the
- * `onRejectedEvent` option.
+ * POLICY: the protocol is exactly `@xstate.actor` and `@xstate.transition`. Do
+ * not add event types to this union. Dead letters (undeliverable events) are
+ * not inspection events: observe them with `system.onRejectedEvent`, the
+ * `onRejectedEvent` actor option, the `deadLetter` runtime operation, or the
+ * development warning. The protocol is deliberately
+ * minimal so inspectors can be written against a fixed set. New observable
+ * facets belong as fields on `@xstate.transition` (or on the existing events),
+ * or are derived by the consumer. Examples of derivation: an unhandled event
+ * is a `@xstate.transition` whose `snapshot` is the same reference as the
+ * previous one with no `actions`; actor stop is the final transition's
+ * `snapshot.status`. The `inspection.conformance.v6.test.ts` type test pins
+ * the member list.
  *
  * @experimental
  */
-// POLICY: do not add event types to this union. New facets belong on
-// `@xstate.transition` or are derived from existing events; dead letters use
-// `onRejectedEvent`.
 export type InspectionEvent = ActorInspectionEvent | TransitionInspectionEvent;
