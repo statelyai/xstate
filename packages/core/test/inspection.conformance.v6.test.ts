@@ -4,7 +4,8 @@ import {
   SimulatedClock,
   InspectionEvent,
   ActorInspectionEvent,
-  TransitionInspectionEvent
+  TransitionInspectionEvent,
+  type EventRejection
 } from '../src';
 import { XSTATE_INIT } from '../src/constants';
 
@@ -197,19 +198,32 @@ describe('v6 inspection protocol conformance', () => {
     );
     expect(initEvent).toBeDefined();
   });
-});
 
-// Pins the protocol to exactly two event types: `@xstate.actor` and
-// `@xstate.transition`. Dead letters are observed via `onRejectedEvent`, not
-// inspection. See the POLICY note on `InspectionEvent` in src/inspection.ts
-// before changing this.
-// TODO(#5738): remove once the dead-letter inspection event is gone
-type _InspectionEventTypes = Exclude<
-  InspectionEvent['type'],
-  '@xstate.deadletter'
->;
-const _protocolIsFixed: [
-  Exclude<_InspectionEventTypes, '@xstate.actor' | '@xstate.transition'>,
-  Exclude<'@xstate.actor' | '@xstate.transition', _InspectionEventTypes>
-] = [undefined as never, undefined as never];
-void _protocolIsFixed;
+  it('the protocol is exactly @xstate.actor and @xstate.transition', () => {
+    // POLICY: do not add event types to this union. New facets belong on
+    // `@xstate.transition` or are derived; dead letters use `onRejectedEvent`.
+    expectTypeOf<InspectionEvent['type']>().toEqualTypeOf<
+      '@xstate.actor' | '@xstate.transition'
+    >();
+  });
+
+  it('reports dead letters through onRejectedEvent, not inspection', () => {
+    const types = new Set<string>();
+    const rejections: EventRejection[] = [];
+    const actor = createActor(buildMachine(), {
+      inspect: (e) => types.add(e.type),
+      onRejectedEvent: (rejection) => rejections.push(rejection)
+    }).start();
+    actor.stop();
+    actor.send({ type: 'LATE' } as any);
+
+    expect([...types].sort()).toEqual(['@xstate.actor', '@xstate.transition']);
+    expect(rejections).toHaveLength(1);
+    expect(rejections[0]).toMatchObject({
+      event: { type: 'LATE' },
+      targetRef: actor,
+      sourceRef: undefined,
+      reason: 'stopped'
+    });
+  });
+});

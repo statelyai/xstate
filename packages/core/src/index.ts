@@ -146,7 +146,6 @@ export { getInitialSnapshot, getNextSnapshot } from './getNextSnapshot.ts';
 export type {
   InspectionEvent,
   ActorInspectionEvent,
-  DeadLetterInspectionEvent,
   TransitionInspectionEvent,
   ActionRecord,
   SentRecord
