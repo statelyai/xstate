@@ -1,5 +1,11 @@
 # @xstate/effect
 
+## 0.1.0-alpha.3
+
+### Patch Changes
+
+- f5ea38e: Clarify that joining a machine exposes unknown errors, distinguish stopped actors from failed actors, and provide a typed oxlint plugin for strict TypeScript projects.
+
 ## 0.1.0-alpha.2
 
 ### Minor Changes
