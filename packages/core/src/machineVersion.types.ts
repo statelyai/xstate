@@ -7,8 +7,6 @@ import type { EventObject, Snapshot } from './types.ts';
  * @public
  */
 export type PersistedMachineSnapshot = {
-  /** Library-owned envelope format; see `PERSISTED_SNAPSHOT_FORMAT_VERSION`. */
-  formatVersion?: number;
   status: Snapshot<unknown>['status'];
   output?: unknown;
   error?: unknown;

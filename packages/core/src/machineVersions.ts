@@ -1,5 +1,4 @@
 import type { StandardSchemaV1 } from './schema.types.ts';
-import { PERSISTED_SNAPSHOT_FORMAT_VERSION } from './persistedSnapshotFormat.ts';
 import type {
   MachineEventSchema,
   MachineSnapshotSchema,
@@ -278,7 +277,6 @@ async function finalizeSnapshot<TTarget extends VersionedStateMachine>(
     target.snapshotSchema,
     {
       ...snapshot,
-      formatVersion: PERSISTED_SNAPSHOT_FORMAT_VERSION,
       machine: { id: target.id, version: target.version },
       version: target.version
     },

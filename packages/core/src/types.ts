@@ -1923,8 +1923,6 @@ export type PersistedActorRef = {
 export type PersistedSnapshotFrom<TMachine extends AnyStateMachine> =
   Snapshot<unknown> &
     PersistedSnapshotFor<TMachine> & {
-      /** Library-owned envelope format version. */
-      formatVersion: 1;
       context: ContextFrom<TMachine>;
       children: Record<string, PersistedActorRef>;
       [key: string]: unknown;

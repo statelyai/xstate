@@ -67,7 +67,7 @@ describe('rehydration', () => {
       });
 
       const persistedState = JSON.stringify(
-        createActor(machine).start().getPersistedSnapshot()
+        createActor(machine).start().getSnapshot()
       );
       const restoredState = JSON.parse(persistedState);
       const service = createActor(machine, {

@@ -88,11 +88,6 @@ export {
 } from './serialize.ts';
 export { mapState } from './mapState.ts';
 export {
-  PERSISTED_SNAPSHOT_FORMAT_VERSION,
-  PersistedSnapshotFormatError,
-  upgradePersistedSnapshot
-} from './persistedSnapshotFormat.ts';
-export {
   machineVersions,
   type AdaptEventsOptions,
   type EventAdapterHandlers,

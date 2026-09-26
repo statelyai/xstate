@@ -99,7 +99,6 @@ import { assertValid } from './validation.ts';
 import type { ActorLogicValidator } from './validation.types.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
 import type { PersistedMachineSnapshot } from './machineVersion.types.ts';
-import { upgradePersistedSnapshot } from './persistedSnapshotFormat.ts';
 
 const STATE_IDENTIFIER = '#';
 
@@ -1419,11 +1418,6 @@ export class StateMachine<
       'root' in snapshotMachine
         ? undefined
         : snapshotMachine;
-    if (!snapshotMachine || persistedMachine) {
-      // A persisted envelope (not a live snapshot): check the library-owned
-      // format before reading any other field.
-      snapshot = upgradePersistedSnapshot(snapshot);
-    }
     const legacyPersistedVersion: string | undefined = (snapshot as any)
       .version;
     const persistedVersion: string | undefined =
@@ -1647,7 +1641,6 @@ export class StateMachine<
 
     const {
       version: _persistedSnapshotVersion,
-      formatVersion: _formatVersion,
       // The legacy system-wide counter: superseded by per-snapshot
       // `_nextActorIds` plus the child-id fold below; dropped so old and new
       // snapshots round-trip to the same shape.

@@ -30,10 +30,7 @@ import {
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
 import { isRemoteActorRef } from './remoteActorRef.ts';
-import {
-  findNonJsonPath,
-  PERSISTED_SNAPSHOT_FORMAT_VERSION
-} from './persistedSnapshotFormat.ts';
+import { findNonJsonPath } from './persistedSnapshotFormat.ts';
 
 const emptySnapshotRecord = Object.freeze({});
 
@@ -721,7 +718,6 @@ export function getPersistedSnapshot<
   }
 
   const persisted: Record<string, unknown> = {
-    formatVersion: PERSISTED_SNAPSHOT_FORMAT_VERSION,
     ...jsonValues,
     context: persistContext(
       context,

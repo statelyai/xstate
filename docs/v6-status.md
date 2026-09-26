@@ -10,7 +10,7 @@ XState v6 is published under the `alpha` tag: `npm install xstate@alpha`. This p
 | Stage | npm tag | What can change |
 | --- | --- | --- |
 | Alpha | `alpha` | Any API. Persisted snapshots from one alpha may not restore in the next. |
-| Beta | `beta` | Only APIs tagged `@experimental`. Frozen APIs receive additive changes and bug fixes. Persisted snapshots carry a `formatVersion` and restore across betas. |
+| Beta | `beta` | Only APIs tagged `@experimental`. Frozen APIs receive additive changes and bug fixes. Persisted snapshots restore across betas. |
 | Stable | `latest` | Semantic versioning. Experimental APIs may still change in minor releases until they are promoted. |
 
 Beta starts when every export carries a stability tag, the CI gates in this repository (bundle size, packed-package type check, export stability) pass, and the persisted snapshot envelope is versioned.
@@ -35,7 +35,7 @@ Every exported symbol carries one JSDoc tag. A CI check fails on an untagged exp
 - `xstate/graph`.
 - `xstate/fsm` (`createFSM`).
 - Machine-definition serialization: `serializeMachine`, `machineConfigToJSON`, `createMachineFromConfig`, and the `MachineJSON` shape. The contract is the serialization conformance test suite in `packages/core/test`. `createMachineFromConfig` revives a runnable machine and does not recreate static type inference.
-- The persisted snapshot envelope: `formatVersion`, `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers`. Fields starting with `_` are private. See [persistence](persistence.md).
+- The persisted snapshot envelope: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers`. Fields starting with `_` are private. See [persistence](persistence.md).
 
 ## Experimental through 6.0
 

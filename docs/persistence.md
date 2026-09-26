@@ -40,48 +40,19 @@ const persisted = actor.getPersistedSnapshot({ embedChildren: false });
 
 The option applies to the whole tree, not to a single placement boundary. Persisting by address requires each child to have a registered source key (a string `src`); `spawn(actors.worker)`, `enq.spawn(actors.worker)` and `enq.spawn('worker')` retain that key, while inline actor logic cannot be referenced by address. The string form makes the exact identity explicit when aliases share logic. Restoring an address-only child produces a location-transparent handle: sends to it route through the [system runtime](durable-execution.md), and its snapshot exposes lifecycle only, since a full snapshot is the last value an actor published and only co-located actors observe it. Install the system runtime before sending to a restored handle — without one, there is no route to the actor it references.
 
-Persisted children changed shape in v6: each entry carries an `address` field and either an embedded `snapshot` or a `remote: true` marker. A remote entry may also carry an opaque `incarnation` token, round-tripped verbatim: XState never stamps one, but a host that does gets stale-completion protection on the referencing side and the token on journaled `sendTo` descriptors.
+Persisted children changed shape in v6: each entry carries an `address` field and either an embedded `snapshot` or a `remote: true` marker. A remote entry may also carry an opaque `incarnation` token, round-tripped verbatim: XState never stamps one, but a host that does gets stale-completion protection on the referencing side and the token on journaled `sendTo` descriptors. Snapshots persisted by earlier versions restore unchanged; migrate them with [`machineVersions`](#migrate-machine-versions) if you validate their shape.
 
 A timer persisted from a running actor carries its wall-clock start (`startedAt`), and restoring the snapshot schedules the remaining time toward the original deadline — a timer past due fires immediately. Snapshots produced by pure transitions carry no timestamp (they stay byte-deterministic across replays), so restoring one restarts each timer with its declared delay; durable hosts own timer scheduling through the [system runtime](durable-execution.md) instead.
 
 An actor's address is the `/`-joined path of actor ids from the root, such as `order/worker:0`. It is stable across persistence and restore, unlike `sessionId`, which identifies one incarnation. Generated child ids are recorded in each snapshot's `_nextActorIds`, so restored actors keep numbering where they left off.
 
-## Format version and compatibility
+## Compatibility
 
-Every persisted machine snapshot carries `formatVersion: 1`. Nested machine children carry their own `formatVersion` inside `children[id].snapshot`. Snapshots of other actor logic (async, callback, transition, observable) have no `formatVersion`; they are nested inside a machine envelope.
+A persisted snapshot is a plain JSON-shaped object. Restoring one is lenient: XState reads the fields it knows and does not check a format marker.
 
-`formatVersion` and `machine.version` are separate:
+These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers`, `machine` and `version`. `packages/core/src/persistedSnapshot.schema.json` (JSON Schema draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
 
-| Field | Owner | Changes when | Handled by |
-| --- | --- | --- | --- |
-| `formatVersion` | XState | The envelope shape changes | `upgradePersistedSnapshot()` |
-| `machine.version` | Your application | Your states, context or children change | `migrate`, `machineVersions().migrateSnapshot()` |
-
-Restoring a machine snapshot checks `formatVersion` before anything else:
-
-- Missing: throws `PersistedSnapshotFormatError`. The snapshot predates the v6 beta format, and no upgrade path exists.
-- Greater than `PERSISTED_SNAPSHOT_FORMAT_VERSION`: throws `PersistedSnapshotFormatError`. The snapshot was written by a newer XState version.
-- Equal or lower: the snapshot is readable. Every XState release with the same major version reads format 1.
-
-`createActor(machine, { snapshot })` reports the error through the actor's error snapshot, like other restore errors. Call `upgradePersistedSnapshot()` to check a stored snapshot before creating an actor:
-
-```ts
-import { PersistedSnapshotFormatError, upgradePersistedSnapshot } from 'xstate';
-
-try {
-  const snapshot = upgradePersistedSnapshot(JSON.parse(stored));
-  createActor(machine, { snapshot }).start();
-} catch (error) {
-  if (error instanceof PersistedSnapshotFormatError) {
-    // Discard the stored snapshot and start fresh.
-    createActor(machine).start();
-  } else {
-    throw error;
-  }
-}
-```
-
-`upgradePersistedSnapshot()` returns format 1 snapshots unchanged. Future library-owned format changes are upgraded there. `machineVersions().migrateSnapshot()` stamps `formatVersion: 1` on its result.
+Changes to your own machine are handled with `machine.version`: migrate stored snapshots with `migrate` or `machineVersions().migrateSnapshot()`. See [Migrate machine versions](#migrate-machine-versions).
 
 ### Payload values
 
@@ -100,15 +71,11 @@ In development builds, `getPersistedSnapshot()` warns once per call with the pat
 
 Actor refs in `context` persist as `{ xstate$type: 'actorRef', id }` and are not reported.
 
-### Envelope fields
-
-`packages/core/src/persistedSnapshot.schema.json` (JSON Schema draft 2020-12) describes the format 1 envelope: `formatVersion`, `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers`, `machine` and `version`. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
-
 ### In-flight children
 
 A restored child with work in flight restarts: an async logic child runs `run` again, and a callback logic child runs its callback again. Record each external call with [`enq.step()`](actor-logic.md) so a restored actor reuses completed outcomes instead of repeating them.
 
-`packages/core/test/persistenceConformance.v6.test.ts` is the contract for this section. It validates every envelope it produces against the schema.
+`packages/core/test/persistenceConformance.v6.test.ts` is the shape contract for this section. It validates every envelope it produces against the schema.
 
 ## Migrate machine versions
 

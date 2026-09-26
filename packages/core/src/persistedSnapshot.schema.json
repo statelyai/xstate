@@ -1,11 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://stately.ai/schemas/xstate/persisted-snapshot/v1.json",
-  "title": "XState persisted machine snapshot (formatVersion 1)",
+  "title": "XState persisted machine snapshot",
   "description": "The JSON envelope returned by getPersistedSnapshot() for machine logic, after JSON.stringify/JSON.parse. Nested machine children carry their own envelope in children[id].snapshot; other actor logic (async, callback, transition, observable) persists its own snapshot shape there. Fields prefixed with '_' are private runtime bookkeeping: they round-trip verbatim, but their shape is not part of the contract.",
   "type": "object",
   "required": [
-    "formatVersion",
     "status",
     "value",
     "context",
@@ -14,10 +13,6 @@
     "historyValue"
   ],
   "properties": {
-    "formatVersion": {
-      "description": "Library-owned envelope format. Distinct from machine.version.",
-      "const": 1
-    },
     "status": { "enum": ["active", "done", "error", "stopped"] },
     "value": { "$ref": "#/$defs/stateValue" },
     "context": {
@@ -97,7 +92,7 @@
         "registryKey": { "type": "string" },
         "syncSnapshot": { "type": "boolean" },
         "snapshot": {
-          "description": "Embedded persisted snapshot of the child's logic. A machine child's snapshot is itself a formatVersion 1 envelope."
+          "description": "Embedded persisted snapshot of the child's logic. A machine child's snapshot is itself a persisted machine snapshot envelope."
         },
         "remote": {
           "description": "The child is referenced by address; its state lives with another runtime.",

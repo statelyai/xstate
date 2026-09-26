@@ -1,9 +1,4 @@
-import {
-  createActor,
-  createMachine,
-  types,
-  upgradePersistedSnapshot
-} from '../src';
+import { createActor, createMachine, types } from '../src';
 import type { PersistedSnapshotFrom, Snapshot } from '../src';
 
 describe('persisted snapshot round-trip types', () => {
@@ -149,22 +144,6 @@ describe('persisted snapshot round-trip types', () => {
     snapshot.context.count satisfies number;
 
     createActor(machine, { snapshot });
-  });
-
-  it('should type formatVersion as 1', () => {
-    const machine = createMachine({
-      initial: 'a',
-      states: { a: {} }
-    });
-
-    const snapshot = createActor(machine).getPersistedSnapshot();
-
-    snapshot.formatVersion satisfies 1;
-    // @ts-expect-error
-    snapshot.formatVersion satisfies 2;
-
-    const upgraded = upgradePersistedSnapshot(snapshot);
-    upgraded.formatVersion satisfies 1;
   });
 
   it('should be assignable to PersistedSnapshotFrom<typeof machine> for a versioned machine', () => {

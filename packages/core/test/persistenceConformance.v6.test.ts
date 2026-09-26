@@ -14,9 +14,6 @@ import {
   createActor,
   createMachine,
   getInitialSnapshot,
-  PERSISTED_SNAPSHOT_FORMAT_VERSION,
-  PersistedSnapshotFormatError,
-  upgradePersistedSnapshot,
   setup,
   SimulatedClock
 } from '../src/index.ts';
@@ -86,65 +83,6 @@ afterEach(() => {
 afterAll(() => {
   vi.restoreAllMocks();
   expect(validatedEnvelopes).toBeGreaterThan(0);
-});
-
-describe('persisted snapshot format version', () => {
-  const machine = createMachine({
-    id: 'fmt',
-    initial: 'a',
-    states: { a: {} }
-  });
-
-  it('stamps formatVersion 1 on root and nested machine envelopes', () => {
-    const parent = createMachine({
-      id: 'parent',
-      actors: { child: machine },
-      invoke: { id: 'child', src: 'child' }
-    });
-    const persisted = roundTrip(createActor(parent).getPersistedSnapshot());
-    expect(PERSISTED_SNAPSHOT_FORMAT_VERSION).toBe(1);
-    expect(persisted.formatVersion).toBe(1);
-    expect(persisted.children.child.snapshot.formatVersion).toBe(1);
-  });
-
-  it('rejects a snapshot without formatVersion', () => {
-    const { formatVersion: _, ...legacy } = roundTrip(
-      createActor(machine).getPersistedSnapshot()
-    );
-    expect(() => machine.restoreSnapshot(legacy)).toThrow(
-      PersistedSnapshotFormatError
-    );
-    expect(() => upgradePersistedSnapshot(legacy)).toThrow(
-      /predates the XState v6 beta snapshot format/
-    );
-
-    const actor = createActor(machine, { snapshot: legacy });
-    actor.subscribe({ error: () => {} });
-    expect(actor.getSnapshot().status).toBe('error');
-    expect(actor.getSnapshot().error).toBeInstanceOf(
-      PersistedSnapshotFormatError
-    );
-  });
-
-  it('rejects a snapshot with a newer formatVersion', () => {
-    const newer = {
-      ...roundTrip(createActor(machine).getPersistedSnapshot()),
-      formatVersion: 2
-    };
-    expect(() => machine.restoreSnapshot(newer)).toThrow(
-      /newer than this XState version supports/
-    );
-  });
-
-  it('upgradePersistedSnapshot returns a v1 snapshot unchanged', () => {
-    const persisted = roundTrip(createActor(machine).getPersistedSnapshot());
-    expect(upgradePersistedSnapshot(persisted)).toBe(persisted);
-  });
-
-  it('does not require formatVersion on a live snapshot', () => {
-    const live = createActor(machine).getSnapshot();
-    expect(() => machine.restoreSnapshot(live)).not.toThrow();
-  });
 });
 
 describe('non-JSON payload warning (dev)', () => {
