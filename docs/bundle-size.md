@@ -19,8 +19,9 @@ pnpm bench:size --dist                   # Inspect the latest production build
 ```
 
 Add `--baseline=<commit>` to compare the current profiles with source at that
-commit. CI runs the default threshold check. A threshold is the regression line
-and fails when exceeded; a target in `scripts/bundle-size.targets.json` is an
+commit. CI does not currently run the bundle-size check, so run it locally
+before changing bundle-sensitive code. A threshold is the regression line and
+fails when exceeded; a target in `scripts/bundle-size.targets.json` is an
 informational goal and does not fail the run.
 
 When a source-size increase is intentional, run `pnpm bench:size:update`, review

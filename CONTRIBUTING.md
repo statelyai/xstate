@@ -67,7 +67,8 @@ We are using [preconstruct](https://preconstruct.tools/) to build our packages. 
 ### Bundle measurements
 
 See [bundle measurements](docs/bundle-size.md) for source and production
-profiles, behavior verification, and threshold updates.
+profiles, behavior verification, and threshold updates. Run these checks
+locally; CI does not currently check bundle size.
 
 ### Publishing
 
