@@ -1,5 +1,4 @@
 ---
-'xstate': minor
 '@xstate/test': minor
 ---
 

@@ -1,11 +1,11 @@
 ---
-'xstate': minor
+'@xstate/test': minor
 ---
 
 Added coverage report formatters for `propertyTest()` and `testPaths()`. The `coverage` object they resolve with can now be rendered as text or markdown, exported as stable JSON, JUnit XML or a self-contained HTML page, and asserted against thresholds.
 
 ```ts
-import { assertTestCoverage, formatTestCoverage } from 'xstate/graph';
+import { assertTestCoverage, formatTestCoverage } from '@xstate/test';
 
 const { coverage } = await propertyTest(machine, { adapter, events, invariant });
 

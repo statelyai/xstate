@@ -325,9 +325,6 @@ events: {
 }
 ```
 
-`pick()` from `xstate/graph` does the same with a plain `(rng) => index`
-generator, for `testPaths()` and custom adapters in `xstate/graph`.
-
 `propertyTest()` sends only the event types that `events` configures, plus the
 types it derives from schemas (see
 [Derive event generators from schemas](#derive-event-generators-from-schemas)).
@@ -1078,7 +1075,7 @@ starts from a `start` snapshot is not saved.
 `createFailureDatabase(options)` returns the store `failures` creates. Any
 object with `load(key)`, `onFailure(fixture, key, failure)`, and optionally
 `remove(stored, key)` works as a store, such as one backed by a database;
-this is the `TestFailureStore` that `xstate/graph` accepts.
+this is the `TestFailureStore` interface.
 
 ### Record an offline regression suite
 
@@ -1098,11 +1095,11 @@ const suite = await generateTestSuite(cartMachine, {
 await writeFile('cart.suite.json', serializeTestSuite(suite));
 ```
 
-Replaying needs only `xstate/graph`, so CI does not need fast-check:
+Replaying generates nothing, so the suite runs the same way every time:
 
 ```ts
 import { readFile } from 'node:fs/promises';
-import { describeTestSuite, parseTestSuite } from 'xstate/graph';
+import { describeTestSuite, parseTestSuite } from '@xstate/test';
 
 const suite = parseTestSuite(await readFile('cart.suite.json', 'utf8'));
 
@@ -1226,6 +1223,8 @@ events: {
 is replayed as-is, and shrinking only shortens the generated continuation:
 
 ```ts
+import { createTestModel } from 'xstate/graph';
+
 const model = createTestModel(cartMachine);
 
 await propertyTest(model, {
@@ -1300,8 +1299,8 @@ value back into a snapshot.
 
 ### Write a custom adapter
 
-`propertyTest()` from `@xstate/test` uses the built-in fast-check adapter.
-`propertyTest()` from `xstate/graph` takes any `adapter`: an object with a
+`propertyTest()` uses the built-in fast-check adapter unless you pass
+`adapter`: an object with a
 `run(request)` method that drives runners and returns a result. See
 [`TestAdapter`](#testadapter) in the reference for the request and the runner
 lifecycle, and
@@ -1312,8 +1311,7 @@ adapter without shrinking.
 
 ### Exports
 
-`@xstate/test` re-exports everything from `xstate/graph` and adds the
-fast-check integration:
+The fast-check-backed entry points and helpers:
 
 | Export | Description |
 | --- | --- |
@@ -1322,7 +1320,7 @@ fast-check integration:
 | `generateTestSuite(source, options)` | Records an offline suite from a passing campaign. |
 | `pick(select, toPayload?)` | An event case that picks its payload from the current snapshot, with a fast-check index. |
 | `createFailureDatabase(options?)` | The file-system store behind the `failures` option. |
-| `fastCheckAdapter(options?)` | The fast-check `TestAdapter`, for `xstate/graph` functions. |
+| `fastCheckAdapter(options?)` | The fast-check `TestAdapter`. |
 | `extractReplayPath(counterexample)` | Reads `replayPath` from a raw `fc.commands()` counterexample. |
 | `eventsFromSchemas(machine, options?)` | Derives the `events` map from `schemas.events`. |
 | `arbitraryFromSchema(schema, options?)` | Converts one Zod schema to an arbitrary. |
@@ -1330,14 +1328,11 @@ fast-check integration:
 | `withScheduledSut(sut)`, `withScheduledReference(reference)` | Route async boundaries through the run's scheduler. |
 | `getCurrentScheduler()` | The running `fc.Scheduler`, or `undefined`. |
 
-The `propertyTest()`, `testPaths()`, and `generateTestSuite()` exported here
-take fast-check options at the top level, derive events from schemas, and
-accept `failures: true` or `{ dir, replay, key }`. The versions in
-`xstate/graph` take an explicit `adapter` (or, for `testPaths()`, plain
-`(rng) => value` generators), derive nothing, and take a `TestFailureStore`
-as `failures`.
+`propertyTest()`, `testPaths()`, and `generateTestSuite()` take fast-check
+options at the top level, derive events from schemas, and accept
+`failures: true`, `{ dir, replay, key }`, or a `TestFailureStore`.
 
-From `xstate/graph`, also available from `@xstate/test`:
+Replay, reporting, suites, and linearizability:
 
 | Export | Description |
 | --- | --- |
@@ -1348,13 +1343,10 @@ From `xstate/graph`, also available from `@xstate/test`:
 | `formatTestCoverage`, `formatTestCoverageJUnit`, `formatTestCoverageHTML`, `testCoverageToJSON`, `formatTestCoverageId` | Coverage reports. |
 | `formatTestStatistics(coverage)` | The event-case and label distribution `statistics: true` prints. |
 | `TestCampaignError` | Thrown when a `sometimes` property or a `reachable` target is never satisfied. |
-| `pick(select, toPayload?)` | `pick()` with a plain `(rng) => index` generator. Shadowed by the fast-check version in `@xstate/test`. |
 | `assertTestCoverage(coverage, thresholds)` | Throws when coverage is below thresholds. |
 | `replayTestSuite`, `replayTestSuiteFixture`, `describeTestSuite`, `serializeTestSuite`, `parseTestSuite`, `formatTestSuiteFixtureTitle` | Offline suites. |
 | `checkLinearizable(history, model, options?)` | Linearizability check. |
 | `runParallelPropertyCommands(machine, options)` | Concurrent branches checked for linearizability. |
-| `createTestModel(machine, options?)`, `TestModel` | Path generation and execution on a model. |
-| `getShortestPaths`, `getSimplePaths`, `getPathsFromEvents` | Path generators. |
 | `fromTestParam(testParam)` | Converts a 1.0 beta `{ events, states }` object to a `sut`. Deprecated. |
 
 Subpath entrypoints:
@@ -1438,7 +1430,7 @@ In addition to the shared options (`PropertyOptions`):
 | `maxRuns` | `100` | Total runs when batching. In `@xstate/test`, defaults to `numRuns` when that is set. |
 | `frontiers` | none | An array of paths, `{ paths, select?, runsPerFrontier? }`, `'auto'`, `{ strategy: 'uncovered', maxFrontiers?, runsPerFrontier?, limit? }`, or `{ strategy: 'target', maxFrontiers?, runsPerFrontier? }`. |
 | `swarm` | `false` | `true`, or `{ minCases?, seed? }`. |
-| `adapter` | fast-check | Replaces the generator engine. Required in `xstate/graph`. |
+| `adapter` | fast-check | Replaces the generator engine. |
 
 Without `until` and without `frontiers: 'auto'` or `{ strategy: 'target' }`,
 the adapter runs once with its own `numRuns`.
@@ -1725,13 +1717,13 @@ A failing campaign with `testInfo` also attaches `fixture.json`, the failure's
 ## Migrating from `@xstate/test` 0.x and 1.0 beta
 
 `@xstate/test` 2.0 requires XState v6. `createTestModel()` and the path
-functions moved to `xstate/graph` and are re-exported from `@xstate/test`.
+functions moved to `xstate/graph`.
 
 ### From 1.0 beta
 
-The 1.0 beta `TestParam` object, `{ events, states }`, is replaced by the `sut`
-option. `path.test()` and `model.testPath()` take the same options as
-`testPaths()`.
+`path.test({ events, states })` from `xstate/graph` still runs a single path.
+The `sut` option of `testPaths()` replaces it, and adds coverage and replay
+fixtures. Pass `paths` to run specific paths.
 
 Before:
 
@@ -1755,7 +1747,8 @@ const model = createTestModel(machine);
 
 for (const path of model.getShortestPaths()) {
   it(path.description, async () => {
-    await path.test({
+    await testPaths(model, {
+      paths: [path],
       sut: {
         create: () => ({
           send: (event) => (event.type === 'SUBMIT' ? page.click('#submit') : undefined),
@@ -1770,8 +1763,7 @@ for (const path of model.getShortestPaths()) {
 To keep the old object for now, wrap it: `sut: fromTestParam({ events, states })`.
 Event executors receive the full typed event.
 
-Or replace the loop with one `testPaths()` call, which adds coverage and
-replay fixtures:
+Or replace the loop with one `testPaths()` call:
 
 ```ts
 await testPaths(machine, { sut: fromTestParam({ events, states }) });
@@ -1782,7 +1774,7 @@ Other changes:
 | 1.0 beta | 2.0 |
 | --- | --- |
 | `createTestMachine(config)` | `createMachine(config)` |
-| `path.testSync(params)` | `await path.test(options)` |
+| `path.testSync(params)` | `await path.test(params)` |
 | `model.testState(state, params)`, `model.testTransition(step, params)` | The `states` option, checked on every stable step. |
 | `TestPathResult`, `TestStepResult` | `TestPathRunResult`: `{ path, passed, error }`. Use `ModelTestFailure.trace` for step detail. |
 | `meta.test(testContext, state)` | `meta.test(session, snapshot)`: the first argument is the SUT session. |
@@ -1794,7 +1786,7 @@ Other changes:
 | `createModel(machine).withEvents({ E: { exec, cases } })` | `events: { E: [...] }` for payloads, and `sut.create().send` for `exec`. |
 | `model.getShortestPathPlans()`, `plan.paths` | `testPaths(machine, options)`, or `createTestModel(machine).getShortestPaths()`. |
 | `model.getSimplePathPlans()` | `testPaths(machine, { pathGenerator: 'simple' })`. |
-| `path.test(page)` | `path.test({ sut })`. The SUT session holds the page. |
+| `path.test(page)` | `testPaths(machine, { sut })`. The SUT session holds the page. |
 | `meta.test(page, state)` | `meta.test(session, snapshot)`, or `states` on the session. |
 | `model.testCoverage()` | `assertTestCoverage(coverage, { stateNodes: 1 })`. |
 

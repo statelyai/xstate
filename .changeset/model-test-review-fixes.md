@@ -1,5 +1,4 @@
 ---
-'xstate': patch
 '@xstate/test': patch
 ---
 
@@ -23,4 +22,3 @@ Model-based and property-based testing fixes:
 - `testPaths()` coverage reports `stoppedBecause: 'paths'`, text reports print `truncated` only when true and leave the `(runtime …)` placeholders out of the counts, and transition pairs are declared only between transitions with static targets.
 - Zod schema derivation generates valid values for numeric enums, exhaustive enum-keyed records, tied exclusive bounds, combined and fractional `multipleOf`, `exactOptional`, `lazy`, and wildcard event keys, and throws a path-named error for unsupported, unsatisfiable, or recursive schemas instead of hanging.
 - `createPlaywrightSut()` removes a case's routes before another case's mock is applied.
-- `xstate/graph` no longer exports the internal helpers `fnv1a`, `createSeededRng`, `assertNotTestParam`, `PropertyOutcomeRegistry`, and `deepEqual`.

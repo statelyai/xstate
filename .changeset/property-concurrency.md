@@ -1,6 +1,5 @@
 ---
 '@xstate/test': minor
-'xstate': minor
 ---
 
 Property tests can now look for concurrency bugs.
@@ -23,7 +22,7 @@ await propertyTest(counterMachine, {
 });
 ```
 
-`xstate/graph` also gained a linearizability checker. `checkLinearizable(history,
+`@xstate/test` also gained a linearizability checker. `checkLinearizable(history,
 model)` decides whether a history of overlapping operations could have come from
 some sequential order, returning a witness order when it could.
 `runParallelPropertyCommands(machine, { prefix, branches, sut })` runs a

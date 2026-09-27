@@ -1,5 +1,4 @@
 ---
-'xstate': minor
 '@xstate/test': minor
 ---
 
@@ -10,8 +9,8 @@ references, and a statistics view.
 - `failures` saves the fixture of a failing campaign and replays saved
   fixtures before the next campaign. A fixture that still fails fails the
   test at once; one that no longer fails is deleted. `propertyTest()` and
-  `testPaths()` from `@xstate/test` write to `.xstate-test/`; the versions in
-  `xstate/graph` accept any `TestFailureStore`.
+  `testPaths()` from `@xstate/test` write to `.xstate-test/`; `failures` also
+  accepts any `TestFailureStore`.
 
   ```ts
   await propertyTest(cartMachine, {
