@@ -481,7 +481,7 @@ describe('failure messages', () => {
   });
 });
 
-describe('xstate/graph exports', () => {
+describe('engine exports', () => {
   it('does not export internal helpers', () => {
     for (const name of [
       'fnv1a',
