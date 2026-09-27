@@ -112,6 +112,7 @@ type _GroupTestValues<TTestValue extends string | TestValue> =
  * @param config The state machine configuration.
  * @param options DEPRECATED: use `setup({ ... })` or `machine.provide({ ... })`
  *   to provide machine sources instead.
+ * @public
  */
 // Overload 1: With schemas.context — context type inferred from schema
 export function createMachine<
@@ -331,12 +332,13 @@ export function createMachine(config: any): any {
  * Builds a machine from a config produced by a compiler (JSON, SCXML) without
  * running the author-config v5 diagnostics.
  *
- * @internal
+ * @experimental Used by `@xstate/scxml`; not part of the stable API.
  */
 export function createMachineFromCompiledConfig(config: any): any {
   return new StateMachine(config) as any;
 }
 
+/** @public */
 export function createStateConfig<
   TContextSchema extends StandardSchemaV1,
   TEventSchema extends StandardSchemaV1,

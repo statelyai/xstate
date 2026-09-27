@@ -1,5 +1,5 @@
 import { createMachine } from '../src/index.ts';
-import { createInertActorScope } from '../src/getNextSnapshot.ts';
+import { createInertActorScope } from '../src/inertActorScope.ts';
 
 describe('machine.microstep()', () => {
   it('should return an array of states from all microsteps', () => {

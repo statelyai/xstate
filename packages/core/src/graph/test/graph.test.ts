@@ -13,7 +13,7 @@ import {
   getPathsFromEvents,
   getShortestPaths,
   getSimplePaths,
-  getStateNodes,
+  getDescendantStateNodes,
   joinPaths,
   toDirectedGraph
 } from '../index.ts';
@@ -185,9 +185,9 @@ describe('@xstate/graph', () => {
     }
   });
 
-  describe('getStateNodes()', () => {
+  describe('getDescendantStateNodes()', () => {
     it('should return an array of all nodes', () => {
-      const nodes = getStateNodes(lightMachine);
+      const nodes = getDescendantStateNodes(lightMachine);
       expect(nodes.every((node) => node instanceof StateNode)).toBe(true);
       expect(nodes.map((node) => node.id).sort()).toEqual([
         'light.green',
@@ -201,7 +201,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return an array of all nodes (parallel)', () => {
-      const nodes = getStateNodes(parallelMachine);
+      const nodes = getDescendantStateNodes(parallelMachine);
       expect(nodes.every((node) => node instanceof StateNode)).toBe(true);
       expect(nodes.map((node) => node.id).sort()).toEqual([
         'p.a',

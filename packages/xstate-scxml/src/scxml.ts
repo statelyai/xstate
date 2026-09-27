@@ -1,6 +1,6 @@
 /**
- * SCXML machine creation and conversion utilities for the `xstate/scxml`
- * entry point. Only createMachineFromSCXML and SCXMLConversionOptions are
+ * SCXML machine creation and conversion utilities for the `@xstate/scxml`
+ * package. Only createMachineFromSCXML and SCXMLConversionOptions are
  * public; the compiler representation remains internal.
  */
 import { SaxesParser } from 'saxes';
@@ -23,8 +23,11 @@ import {
   TransitionJSON,
   createMachineFromSCXMLConfig
 } from './runtime.ts';
-import { parseDelayToMilliseconds } from '../delay.ts';
-import { AnyStateMachine, SpecialTargets } from '../types.ts';
+import {
+  _parseDelayToMilliseconds as parseDelayToMilliseconds,
+  SpecialTargets,
+  type AnyStateMachine
+} from 'xstate';
 
 interface XMLElement {
   type?: 'element' | 'text' | 'cdata' | 'comment';
@@ -72,6 +75,7 @@ export function sanitizeStateId(id: string) {
   return id.replace(/\./g, '$');
 }
 
+/** @experimental */
 export interface SCXMLConversionOptions {
   resolveResource?: (src: string, kind: 'data' | 'script' | 'invoke') => string;
 }
@@ -1012,6 +1016,8 @@ export function compileSCXML(
  * Expressions and external resources are evaluated using SCXML semantics.
  * Only create machines from trusted SCXML because ECMAScript expressions and
  * script elements execute JavaScript in the current environment.
+ *
+ * @experimental
  */
 export function createMachineFromSCXML(
   xml: string,

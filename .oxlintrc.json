@@ -6,7 +6,7 @@
       "name": "jsdoc-js",
       "specifier": "eslint-plugin-jsdoc"
     },
-    "./scripts/oxlint-plugin-xstate-effect.mjs"
+    "./scripts/oxlint-plugin-xstate-effect.ts"
   ],
   "categories": {
     "correctness": "off"

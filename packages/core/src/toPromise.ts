@@ -22,6 +22,7 @@ import { AnyActorRef, OutputFrom } from './types.ts';
  * console.log(output);
  * // logs { count: 42 }
  * ```
+ * @public
  */
 export function toPromise<T extends AnyActorRef>(
   actor: T

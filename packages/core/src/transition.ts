@@ -4,7 +4,7 @@ import {
   attachSnapshotActorRef,
   createInertActorScope,
   setInertActorScopeSnapshot
-} from './getNextSnapshot';
+} from './inertActorScope';
 import {
   getProperAncestors,
   initialMicrostep,
@@ -68,6 +68,8 @@ function attachMicrostepActorRefs(
  * `nextSnapshot` and `actions` to execute.
  *
  * This is a pure function that does not execute `actions`.
+ *
+ * @public
  */
 export function transition<T extends AnyActorLogic>(
   logic: T,
@@ -95,11 +97,37 @@ export function transition<T extends AnyActorLogic>(
 }
 
 /**
+ * Returns `true` when `result` (from {@link transition}) means no transition
+ * handled the event: the snapshot is the same object as `previousSnapshot`
+ * and there are no effects. A handled event always yields a new snapshot
+ * object, even when nothing in it changed.
+ *
+ * @example
+ *
+ * ```ts
+ * const result = transition(machine, snapshot, event);
+ * if (isUnhandled(snapshot, result)) {
+ *   console.warn(`Unhandled event: ${event.type}`);
+ * }
+ * ```
+ *
+ * @public
+ */
+export function isUnhandled(
+  previousSnapshot: unknown,
+  result: readonly [snapshot: unknown, effects: readonly unknown[]]
+): boolean {
+  return result[0] === previousSnapshot && result[1].length === 0;
+}
+
+/**
  * Given actor `logic` and optional `input`, returns a tuple of the
  * `nextSnapshot` and `actions` to execute from the initial transition (no
  * previous state).
  *
  * This is a pure function that does not execute `actions`.
+ *
+ * @public
  */
 export function initialTransition<T extends AnyActorLogic>(
   logic: T,
@@ -149,6 +177,8 @@ function inspectPureTransition(
  * microsteps, where each microstep is a tuple of `[snapshot, actions]`.
  *
  * This is a pure function that does not execute `actions`.
+ *
+ * @public
  */
 export function getMicrosteps<T extends AnyStateMachine>(
   machine: T,
@@ -173,6 +203,8 @@ export function getMicrosteps<T extends AnyStateMachine>(
  * actions]`.
  *
  * This is a pure function that does not execute `actions`.
+ *
+ * @public
  */
 export function getInitialMicrosteps<T extends AnyStateMachine>(
   machine: T,
@@ -235,6 +267,7 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
  * @param state - The current machine snapshot
  * @returns Array of transition definitions from the current state, in
  *   deterministic order
+ * @public
  */
 export function getNextTransitions(
   state: AnyMachineSnapshot
