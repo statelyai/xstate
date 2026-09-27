@@ -141,21 +141,6 @@ export type TestPathsOptions<
 > = TestOptions<TSnapshot, TEvent, TInput, TKind> &
   PathOptions<TSnapshot, TEvent, TInput>;
 
-/**
- * The shared options, without the keys that select which paths to run.
- *
- * @experimental
- */
-export type TestExecutionOptions<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject,
-  TInput,
-  TKind extends PropertyGeneratorKind = SeededGeneratorKind
-> = Omit<
-  TestPathsOptions<TSnapshot, TEvent, TInput, TKind>,
-  'paths' | 'pathGenerator' | 'fromEvents'
->;
-
 const DEFAULT_SAMPLES = 3;
 /** Default traversal bound; see {@link PathOptions.limit}. */
 const DEFAULT_TRAVERSAL_LIMIT = 10_000;

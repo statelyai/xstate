@@ -1,8 +1,4 @@
 import { createMachine, types } from 'xstate';
-import {
-  pick as graphPick,
-  testPaths as graphTestPaths
-} from '../src/engine/index.ts';
 import { pick, propertyTest, testPaths } from '../src/index.ts';
 import { expectTypeOf, it } from 'vitest';
 
@@ -44,14 +40,6 @@ it('infers the snapshot and checks the payload of pick()', () => {
     void testPaths(cartMachine, {
       events: {
         REMOVE: pick(
-          (snapshot) => Object.keys(snapshot.context.items),
-          (sku) => ({ sku })
-        )
-      }
-    });
-    void graphTestPaths(cartMachine, {
-      events: {
-        REMOVE: graphPick(
           (snapshot) => Object.keys(snapshot.context.items),
           (sku) => ({ sku })
         )
