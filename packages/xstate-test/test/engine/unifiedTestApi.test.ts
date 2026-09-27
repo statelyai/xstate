@@ -1,6 +1,6 @@
 import { createMachine, types } from 'xstate';
-import { testPaths, fromTestParam } from '../../src/engine/testPaths.ts';
-import { getSimplePaths, type Step } from 'xstate/graph';
+import { testPaths } from '../../src/engine/testPaths.ts';
+import { getSimplePaths } from 'xstate/graph';
 
 const toggleMachine = createMachine({
   id: 'toggle',
@@ -78,25 +78,6 @@ describe('legacy `TestParam` detection', () => {
         }
       })
     ).rejects.toThrow(/pre-2\.0 event executor/);
-  });
-});
-
-describe('fromTestParam', () => {
-  it('passes the source snapshot as `step.state`', async () => {
-    const states: unknown[] = [];
-    await testPaths(toggleMachine, {
-      sut: fromTestParam({
-        events: {
-          TOGGLE: (step: Step<any, any>) => {
-            states.push((step.state as any).value);
-          }
-        }
-      })
-    });
-
-    // Every step starts from `off` or `on`; the *source* of the first step is
-    // always `off`, whereas the resulting snapshot would be `on`.
-    expect(states[0]).toBe('off');
   });
 });
 

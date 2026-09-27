@@ -1347,7 +1347,6 @@ Replay, reporting, suites, and linearizability:
 | `replayTestSuite`, `replayTestSuiteFixture`, `describeTestSuite`, `serializeTestSuite`, `parseTestSuite`, `formatTestSuiteFixtureTitle` | Offline suites. |
 | `checkLinearizable(history, model, options?)` | Linearizability check. |
 | `runParallelPropertyCommands(machine, options)` | Concurrent branches checked for linearizability. |
-| `fromTestParam(testParam)` | Converts a 1.0 beta `{ events, states }` object to a `sut`. Deprecated. |
 
 Subpath entrypoints:
 
@@ -1757,15 +1756,6 @@ for (const path of model.getShortestPaths()) {
     });
   });
 }
-```
-
-To keep the old object for now, wrap it: `sut: fromTestParam({ events, states })`.
-Event executors receive the full typed event.
-
-Or replace the loop with one `testPaths()` call:
-
-```ts
-await testPaths(machine, { sut: fromTestParam({ events, states }) });
 ```
 
 Other changes:

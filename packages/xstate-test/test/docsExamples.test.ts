@@ -34,7 +34,6 @@ import {
   formatTestCoverage,
   formatTestCoverageHTML,
   formatTestCoverageJUnit,
-  fromTestParam,
   generateTestSuite,
   getCurrentScheduler,
   mergeEventGenerators,
@@ -945,24 +944,6 @@ describe('README: Migrating from @xstate/test 0.x and 1.0 beta', () => {
     }
     expect(clicked).toEqual(['#submit']);
     expect(checked).toEqual(['submitted']);
-
-    const typedEvents: string[] = [];
-    await testPaths(model, {
-      sut: fromTestParam({
-        events: {
-          SUBMIT: ({ event }) => {
-            typedEvents.push(event.type);
-          }
-        },
-        states: {
-          submitted: () => {
-            checked.push('from-test-param');
-          }
-        }
-      })
-    });
-    expect(typedEvents).toEqual(['SUBMIT']);
-    expect(checked).toContain('from-test-param');
   });
 
   it('From 0.x', async () => {

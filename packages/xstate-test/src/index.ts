@@ -30,7 +30,6 @@ export {
   formatTestStatistics,
   formatTestSuiteFixtureTitle,
   formatTestTrace,
-  fromTestParam,
   isEventDescriptorObject,
   normalizeEventDescriptors,
   parseTestSuite,

@@ -1,5 +1,4 @@
 import type { ActorLogic, AnyEventObject, EventObject, Snapshot } from 'xstate';
-import { initialTransition } from 'xstate';
 import { XSTATE_INIT } from './constants.ts';
 import type { TestModel } from 'xstate/graph';
 import { deduplicatePaths } from './deduplicatePaths.ts';
@@ -16,8 +15,6 @@ import { getPropertyEventCaseId, type TestCoverage } from './coverage.ts';
 import {
   ModelTestFailure,
   propertyTest,
-  type TestSut,
-  type TestStateAssertions,
   type PropertyScenarioRunner,
   type TestAdapter,
   type TestAdapterRequest,
@@ -36,12 +33,7 @@ import {
   getSimplePaths,
   serializeSnapshot
 } from 'xstate/graph';
-import type {
-  PathGenerator,
-  StatePath,
-  TestParam,
-  TraversalOptions
-} from 'xstate/graph';
+import type { PathGenerator, StatePath, TraversalOptions } from 'xstate/graph';
 
 /**
  * How `testPaths()` produced the paths it executed.
@@ -249,7 +241,7 @@ interface PathRunPlan<TSnapshot extends Snapshot<unknown>> {
 }
 
 const LEGACY_EVENT_EXECUTOR_MESSAGE =
-  'A pre-2.0 event executor was passed as an event generator. `events` now declares how event *payloads* are generated; the functions that drive the system under test belong in `sut`. Wrap the old shape with `fromTestParam({ events, states })`, or write the `sut` directly.';
+  'A pre-2.0 event executor was passed as an event generator. `events` now declares how event *payloads* are generated; the functions that drive the system under test belong in `sut`. Write the `sut` directly.';
 
 /**
  * A `generate` value without a `resolve` must produce the event payload, so a
@@ -1062,47 +1054,6 @@ export async function testPaths<
     }
     throw error;
   }
-}
-
-/**
- * Adapts the pre-2.0 `{ events, states }` shape to the unified `sut` option.
- *
- * ```ts
- * await testPaths(machine, { sut: fromTestParam({ events, states }) });
- * ```
- *
- * @deprecated Write the `sut` directly.
- * @experimental
- */
-export function fromTestParam<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
->(params: TestParam<TSnapshot, TEvent>): TestSut<TSnapshot, TEvent> {
-  return {
-    create: (context) => {
-      // `Step.state` was the snapshot the event was sent *from*, so the shim
-      // keeps the previous snapshot rather than passing the resulting one.
-      let previous =
-        (context.snapshot as TSnapshot | undefined) ??
-        (initialTransition(context.logic, context.input)[0] as TSnapshot);
-      return {
-        send: async (event, sendContext) => {
-          const executor = (
-            params.events as
-              | Record<string, ((step: unknown) => unknown) | undefined>
-              | undefined
-          )?.[event.type];
-          const state = previous;
-          previous = sendContext.snapshot;
-          await executor?.({ event, state });
-        },
-        states: params.states as unknown as TestStateAssertions<
-          TSnapshot,
-          TEvent
-        >
-      };
-    }
-  };
 }
 
 /** Whether `logic` is a state machine (duck-typed, as `xstate/graph` does). */
