@@ -4,9 +4,15 @@ import { createMachine } from 'xstate';
 import { useActorRef } from '../src/index.ts';
 
 const refresh = vi.hoisted(() => ({ signal: {} as object }));
-vi.mock('../src/fastRefresh.ts', () => ({
-  useFastRefreshSignal: () => refresh.signal
-}));
+// `useActorRef` detects a refresh through its only zero-dependency `useMemo`.
+vi.mock('react', async (importOriginal) => {
+  const React = await importOriginal<typeof import('react')>();
+  return {
+    ...React,
+    useMemo: (factory: () => unknown, deps: unknown[]) =>
+      deps.length === 0 ? refresh.signal : React.useMemo(factory, deps)
+  };
+});
 vi.mock('#is-development', () => ({ default: false }));
 
 const createToggle = (extra: Record<string, any> = {}) =>

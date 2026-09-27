@@ -105,6 +105,7 @@ The hooks start a fresh actor from the edited machine instead when:
 
 - the current state no longer exists in it, or its `id` changed
 - a remembered history state no longer exists in it
+- an invoked actor's `src` is a function, or names an actor it does not provide
 - context or a pending delayed event refers to an actor that would restart
 - its configured validator rejects the current context
 

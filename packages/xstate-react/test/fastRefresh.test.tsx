@@ -8,9 +8,15 @@ import { useActorRef } from '../src/index.ts';
 // Stands in for React Fast Refresh: replacing `refresh.signal` makes the next
 // render look like a refresh re-render.
 const refresh = vi.hoisted(() => ({ signal: {} as object }));
-vi.mock('../src/fastRefresh.ts', () => ({
-  useFastRefreshSignal: () => refresh.signal
-}));
+// `useActorRef` detects a refresh through its only zero-dependency `useMemo`.
+vi.mock('react', async (importOriginal) => {
+  const React = await importOriginal<typeof import('react')>();
+  return {
+    ...React,
+    useMemo: (factory: () => unknown, deps: unknown[]) =>
+      deps.length === 0 ? refresh.signal : React.useMemo(factory, deps)
+  };
+});
 
 function simulateRefresh() {
   refresh.signal = {};
@@ -125,8 +131,8 @@ describe('Fast Refresh', () => {
         id: 'parent',
         actors: { stable, other },
         invoke: [
-          { id: 'stable', src: ({ actors }: any) => actors.stable },
-          { id: 'other', src: ({ actors }: any) => actors.other }
+          { id: 'stable', src: 'stable' },
+          { id: 'other', src: 'other' }
         ]
       });
 
@@ -183,7 +189,7 @@ describe('Fast Refresh', () => {
         actors: { child },
         invoke: {
           id: 'child',
-          src: ({ actors }: any) => actors.child,
+          src: 'child',
           onSnapshot: ({ event }: any) => {
             seen.push(event.snapshot.context);
           }

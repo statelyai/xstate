@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   Actor,
@@ -15,7 +15,6 @@ import {
   type IsNotNever,
   type RequiredActorOptionsKeys
 } from 'xstate';
-import { useFastRefreshSignal } from './fastRefresh.ts';
 
 export function useIdleActorRef<TLogic extends AnyActorLogic>(
   logic: TLogic,
@@ -31,7 +30,11 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
   const [actorRef, setActorRef] = useState(() => {
     return createActor(logic, options);
   });
-  const refreshSignal = useFastRefreshSignal();
+  // An object whose identity changes only when React Fast Refresh re-renders
+  // this component. Fast Refresh ignores dependency lists while it applies an
+  // update, so a `useMemo` with no dependencies recomputes during a refresh
+  // and at no other time.
+  const refreshSignal = useMemo(() => ({}), []);
   const refreshSignalRef = useRef(refreshSignal);
 
   // The logic passed on the first render is used for the hook's lifetime.
