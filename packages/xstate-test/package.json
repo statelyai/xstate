@@ -23,7 +23,7 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "effect": "4.0.0-beta.106",
+    "effect": "^4.0.0-beta.106",
     "fast-check": "^4.9.0",
     "vitest": "^3.0.0",
     "xstate": "workspace:^",
