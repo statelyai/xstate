@@ -9,6 +9,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.35",
+    "@xstate/test": "workspace:*",
+    "fast-check": "^4.9.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7"
   },

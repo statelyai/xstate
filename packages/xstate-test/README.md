@@ -1738,7 +1738,8 @@ After:
 import { getShortestPaths } from 'xstate/graph';
 
 for (const path of getShortestPaths(machine)) {
-  it(path.description, async () => {
+  const title = path.steps.map((step) => step.event.type).join(' → ');
+  it(title, async () => {
     await testPaths(machine, {
       paths: [path],
       sut: {

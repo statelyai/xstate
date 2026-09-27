@@ -1,5 +1,5 @@
 import { createMachine } from '../../index.ts';
-import { adjacencyMapToArray, createTestModel } from '../index.ts';
+import { adjacencyMapToArray, getAdjacencyMap } from '../index.ts';
 
 describe('adjacency maps', () => {
   it('model generates an adjacency map (converted to an array)', () => {
@@ -32,10 +32,8 @@ describe('adjacency maps', () => {
         }
       }
     });
-    const model = createTestModel(machine);
-
     expect(
-      adjacencyMapToArray(model.getAdjacencyMap()).map(
+      adjacencyMapToArray(getAdjacencyMap(machine, {})).map(
         ({ state, event, nextState }) =>
           `Given Mario is ${state.value}, when ${event.type}, then ${nextState.value}`
       )
@@ -47,23 +45,8 @@ describe('adjacency maps', () => {
         "Given Mario is standing, when up, then jumping",
         "Given Mario is walking, when up, then jumping",
         "Given Mario is walking, when stop, then standing",
-        "Given Mario is walking, when up, then jumping",
-        "Given Mario is walking, when stop, then standing",
         "Given Mario is crouching, when release_down, then standing",
         "Given Mario is jumping, when land, then standing",
-        "Given Mario is jumping, when land, then standing",
-        "Given Mario is standing, when left, then walking",
-        "Given Mario is standing, when right, then walking",
-        "Given Mario is standing, when down, then crouching",
-        "Given Mario is standing, when up, then jumping",
-        "Given Mario is standing, when left, then walking",
-        "Given Mario is standing, when right, then walking",
-        "Given Mario is standing, when down, then crouching",
-        "Given Mario is standing, when up, then jumping",
-        "Given Mario is standing, when left, then walking",
-        "Given Mario is standing, when right, then walking",
-        "Given Mario is standing, when down, then crouching",
-        "Given Mario is standing, when up, then jumping",
       ]
     `);
   });
@@ -90,7 +73,7 @@ describe('adjacency maps', () => {
       }
     });
 
-    const arr = adjacencyMapToArray(createTestModel(machine).getAdjacencyMap());
+    const arr = adjacencyMapToArray(getAdjacencyMap(machine, {}));
 
     expect(
       arr.map((x) => ({
@@ -99,28 +82,23 @@ describe('adjacency maps', () => {
         nextState: x.nextState.value
       }))
     ).toMatchInlineSnapshot(`
-[
-  {
-    "event": "TIMER",
-    "nextState": "yellow",
-    "state": "green",
-  },
-  {
-    "event": "TIMER",
-    "nextState": "red",
-    "state": "yellow",
-  },
-  {
-    "event": "TIMER",
-    "nextState": "green",
-    "state": "red",
-  },
-  {
-    "event": "TIMER",
-    "nextState": "yellow",
-    "state": "green",
-  },
-]
-`);
+      [
+        {
+          "event": "TIMER",
+          "nextState": "yellow",
+          "state": "green",
+        },
+        {
+          "event": "TIMER",
+          "nextState": "red",
+          "state": "yellow",
+        },
+        {
+          "event": "TIMER",
+          "nextState": "green",
+          "state": "red",
+        },
+      ]
+    `);
   });
 });
