@@ -1002,8 +1002,10 @@ These exports have been **added**:
 - `actor.select(selector)` - derived, subscribable views
 
 The `xstate/fsm` subpath (not the root `xstate` entry) exports the pure `createFSM` API and its `FSM*` types, plus a lightweight
-`setup`/`types` facade for typed events, context, and state snapshots. See
-[compact finite state machines](fsm.md) for its exact supported surface.
+`setup`/`types` facade for typed events, context, and state snapshots.
+`fsm.transition(snapshot, event)` returns `[nextSnapshot, effects]`, the same
+protocol as other actor logic, so `createActor(fsm)` runs an FSM as an actor.
+See [compact finite state machines](fsm.md) for its exact supported surface.
 
 ---
 

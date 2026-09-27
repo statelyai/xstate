@@ -34,8 +34,10 @@ const machine = createFSM({
 });
 
 let state = machine.initialState;
-state = machine.transition(state, { type: 'toggle' });
+[state] = machine.transition(state, { type: 'toggle' });
 ```
+
+The FSM is also actor logic, so `createActor(machine)` from `xstate` runs it.
 
 For typed context, event payloads, or state-specific context snapshots, use
 `setup` and `types` from `xstate/fsm`. These schemas are type-only in this

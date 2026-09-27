@@ -318,7 +318,7 @@ function makeFSMTransitionBench(makeFSM, event) {
   const fsm = makeFSM();
   let snapshot = fsm.initialState;
   return () => {
-    snapshot = fsm.transition(snapshot, event);
+    [snapshot] = fsm.transition(snapshot, event);
   };
 }
 
