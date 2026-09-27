@@ -556,7 +556,7 @@ Assert with `waitFor` for a state the actor should reach, and with `join` for th
 
 Observe with `inspect` for every inspection event and `deadLetters` for events the system could not deliver. A test that ends with no dead letters confirms that every event it sent was accepted.
 
-Path generation in `xstate/graph` (`getShortestPaths`, `getSimplePaths`, `createTestModel`) operates on the machine, not on a running actor, so it works on an Effect-backed machine unchanged. Execute the generated paths against an actor from `createEffectActor`.
+Path generation in `xstate/graph` (`getShortestPaths`, `getSimplePaths`) operates on the machine, not on a running actor, so it works on an Effect-backed machine unchanged. Execute the generated paths against an actor from `createEffectActor`, or run them with `testPaths()` from `@xstate/test`.
 
 ## Retries and supervision
 

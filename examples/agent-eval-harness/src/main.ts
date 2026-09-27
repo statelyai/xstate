@@ -1,5 +1,5 @@
 import { setup, types } from 'xstate';
-import { createTestModel } from 'xstate/graph';
+import { getSimplePaths } from 'xstate/graph';
 
 const log = (message: string) => console.log(message);
 
@@ -54,11 +54,12 @@ const agentMachine = setup({
 type Snapshot = ReturnType<(typeof agentMachine)['getInitialSnapshot']>;
 
 /**
- * `createTestModel` from `xstate/graph` wraps the machine with path
- * generation. The `events` option supplies one sample payload per equivalence
- * class: `ask` has two, because the question length picks the branch.
+ * `getSimplePaths` from `xstate/graph` enumerates non-looping paths. The
+ * `events` option supplies one sample payload per equivalence class: `ask` has
+ * two, because the question length picks the branch. `toState` keeps only the
+ * paths that end in a final state, which is where a full agent run ends.
  */
-const testModel = createTestModel(agentMachine, {
+const paths = getSimplePaths(agentMachine, {
   events: [
     { type: 'ask', question: 'how do statecharts work' },
     { type: 'ask', question: 'why' },
@@ -66,14 +67,7 @@ const testModel = createTestModel(agentMachine, {
     { type: 'retrieved' },
     { type: 'answer' },
     { type: 'abort' }
-  ]
-});
-
-/**
- * `getSimplePaths` enumerates non-looping paths. `toState` keeps only the
- * paths that end in a final state, which is where a full agent run ends.
- */
-const paths = testModel.getSimplePaths({
+  ],
   toState: (snapshot) => snapshot.status === 'done'
 });
 
@@ -100,15 +94,14 @@ let failures = 0;
 const visited = new Set<string>();
 
 for (const [index, path] of paths.entries()) {
-  log(`path ${index + 1}: ${path.description}`);
+  const events = path.steps.map((step) => step.event.type).join(' → ');
+  log(
+    `path ${index + 1}: reaches ${JSON.stringify(path.state.value)}: ${events}`
+  );
 
-  // Each step holds the snapshot *before* its event; `path.state` is the end.
-  const snapshots: Snapshot[] = [
-    ...path.steps.map((step) => step.state),
-    path.state
-  ];
-
-  for (const snapshot of snapshots) {
+  // Each step holds the snapshot *after* its event; the first step is the
+  // initial snapshot, reached by `@xstate.init`.
+  for (const { state: snapshot } of path.steps) {
     visited.add(String(snapshot.value));
     for (const invariant of invariants) {
       if (!invariant.holds(snapshot)) {

@@ -172,6 +172,22 @@ test('every simple path matches the model', async () => {
 
 Use `testPaths()` when the reachable graph is finite and you want every path through it. Use `propertyTest()` when payloads, ordering, or timing matter.
 
+### Generate paths without running them
+
+`xstate/graph` generates paths and does not run them. `getShortestPaths(logic, options)`, `getSimplePaths(logic, options)`, and `getPathsFromEvents(logic, events, options)` return `{ state, steps, weight }` objects. Pass any of them to `testPaths()` to run them against the implementation:
+
+```ts
+import { getShortestPaths } from 'xstate/graph';
+
+const paths = getShortestPaths(cartMachine, {
+  events: [{ type: 'ADD', sku: 'apple' }, { type: 'CHECKOUT' }]
+});
+
+await testPaths(cartMachine, { paths, sut: cartSut });
+```
+
+`xstate/graph` in v5 also exported `createTestModel` and `TestModel`. v6 removes them; `testPaths()` replaces `path.test()`.
+
 ## Read a failure
 
 Change `remove` so that it sets the quantity of a SKU in the cart to zero instead of deleting it:
@@ -261,3 +277,4 @@ fast-check chooses whether each charge succeeds or fails, when the result arrive
 - [Test a web page with Playwright](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#test-a-web-page-with-playwright).
 - [Derive event generators from Zod or Effect schemas](https://github.com/statelyai/xstate/tree/next/packages/xstate-test#derive-event-generators-from-schemas).
 - [Test transitions and actors directly](testing.md).
+- [Work through the checkout example](https://github.com/statelyai/xstate/tree/next/examples/model-based-testing), which runs every simple path and random sequences against a plain class.

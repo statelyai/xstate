@@ -1,107 +1,11 @@
 import z from 'zod';
 import { createMachine } from '../../index.ts';
-import { createTestModel } from '../index.ts';
-import { testUtils } from './testUtils.ts';
+import { getShortestPaths } from '../index.ts';
 
 describe('events', () => {
-  it('should allow for representing many cases', async () => {
-    const feedbackMachine = createMachine({
-      id: 'feedback',
-      // types: {
-      //   events: {} as Events
-      // },
-      schemas: {
-        events: {
-          CLICK_BAD: z.object({}),
-          CLICK_GOOD: z.object({}),
-          SUBMIT: z.object({ value: z.string() }),
-          CLOSE: z.object({}),
-          ESC: z.object({})
-        }
-      },
-      initial: 'question',
-      states: {
-        question: {
-          on: {
-            CLICK_GOOD: { target: 'thanks' },
-            CLICK_BAD: { target: 'form' },
-            CLOSE: { target: 'closed' },
-            ESC: { target: 'closed' }
-          }
-        },
-        form: {
-          on: {
-            // SUBMIT: [
-            //   {
-            //     target: 'thanks',
-            //     guard: ({ event }) => !!event.value.length
-            //   },
-            //   {
-            //     target: '.invalid'
-            //   }
-            // ],
-            SUBMIT: ({ event }) => {
-              if (event.value.length > 0) {
-                return { target: 'thanks' };
-              }
-              return { target: '.invalid' };
-            },
-            CLOSE: { target: 'closed' },
-            ESC: { target: 'closed' }
-          },
-          initial: 'valid',
-          states: {
-            valid: {},
-            invalid: {}
-          }
-        },
-        thanks: {
-          on: {
-            CLOSE: { target: 'closed' },
-            ESC: { target: 'closed' }
-          }
-        },
-        closed: {
-          type: 'final'
-        }
-      }
-    });
-
-    const testModel = createTestModel(feedbackMachine, {
-      events: [
-        { type: 'SUBMIT', value: 'something' },
-        { type: 'SUBMIT', value: '' }
-      ]
-    });
-
-    await testUtils.testModel(testModel, {});
-  });
-
-  it('should not throw an error for unimplemented events', () => {
-    const testMachine = createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          on: { ACTIVATE: { target: 'active' } }
-        },
-        active: {}
-      }
-    });
-
-    const testModel = createTestModel(testMachine);
-
-    expect(async () => {
-      await testUtils.testModel(testModel, {});
-    }).not.toThrow();
-  });
-
-  it('should allow for dynamic generation of cases based on state', async () => {
+  it('should allow for dynamic generation of cases based on state', () => {
     const values = [1, 2, 3];
     const testMachine = createMachine({
-      // types: {} as {
-      //   context: { values: number[] };
-      //   events: { type: 'EVENT'; value: number };
-      // },
       schemas: {
         context: z.object({
           values: z.array(z.number())
@@ -117,11 +21,6 @@ describe('events', () => {
       states: {
         a: {
           on: {
-            // EVENT: [
-            //   { guard: ({ event }) => event.value === 1, target: 'b' },
-            //   { guard: ({ event }) => event.value === 2, target: 'c' },
-            //   { guard: ({ event }) => event.value === 3, target: 'd' }
-            // ]
             EVENT: ({ event }) => {
               if (event.value === 1) {
                 return { target: 'b' };
@@ -139,26 +38,16 @@ describe('events', () => {
       }
     });
 
-    const testedEvents: any[] = [];
-
-    const testModel = createTestModel(testMachine, {
+    const paths = getShortestPaths(testMachine, {
       events: (state) =>
         state.context.values.map((value) => ({ type: 'EVENT', value }) as const)
     });
 
-    const paths = testModel.getShortestPaths();
-
-    expect(paths.length).toBe(3);
-
-    await testUtils.testPaths(paths, {
-      events: {
-        EVENT: ({ event }) => {
-          testedEvents.push(event);
-        }
-      }
-    });
-
-    expect(testedEvents).toMatchInlineSnapshot(`
+    expect(
+      paths
+        .filter((path) => path.steps.length > 1)
+        .map((path) => path.steps[1].event)
+    ).toMatchInlineSnapshot(`
       [
         {
           "type": "EVENT",
@@ -178,9 +67,8 @@ describe('events', () => {
 });
 
 describe('state limiting', () => {
-  it('should limit states with filter option', () => {
+  it('should limit states with stopWhen option', () => {
     const machine = createMachine({
-      // types: {} as { context: { count: number } },
       schemas: {
         context: z.object({
           count: z.number()
@@ -203,22 +91,21 @@ describe('state limiting', () => {
       }
     });
 
-    const testModel = createTestModel(machine);
-
-    const testPaths = testModel.getShortestPaths({
+    const paths = getShortestPaths(machine, {
       stopWhen: (state) => {
         return state.context.count >= 5;
       }
     });
 
-    expect(testPaths).toHaveLength(1);
+    expect(paths.map((path) => path.state.context.count)).toEqual([
+      0, 1, 2, 3, 4, 5
+    ]);
   });
 });
 
 // https://github.com/statelyai/xstate/issues/1935
 it('prevents infinite recursion based on a provided limit', () => {
   const machine = createMachine({
-    // types: {} as { context: { count: number } },
     schemas: {
       context: z.object({
         count: z.number()
@@ -237,266 +124,48 @@ it('prevents infinite recursion based on a provided limit', () => {
     }
   });
 
-  const model = createTestModel(machine);
-
   expect(() => {
-    model.getShortestPaths({ limit: 100 });
+    getShortestPaths(machine, { limit: 100 });
   }).toThrowErrorMatchingInlineSnapshot(`[Error: Traversal limit exceeded]`);
 });
 
-describe('test model options', () => {
-  it('options.testState(...) should test state', async () => {
-    const testedStates: any[] = [];
-
-    const model = createTestModel(
-      createMachine({
-        initial: 'inactive',
-        states: {
-          inactive: {
-            on: {
-              NEXT: { target: 'active' }
-            }
-          },
-          active: {}
-        }
-      })
-    );
-
-    await testUtils.testModel(model, {
-      states: {
-        '*': (state) => {
-          testedStates.push(state.value);
-        }
-      }
-    });
-
-    expect(testedStates).toEqual(['inactive', 'active']);
-  });
-});
-
-// https://github.com/statelyai/xstate/issues/1538
-it('tests transitions', async () => {
-  expect.assertions(2);
+it('should traverse with input', () => {
   const machine = createMachine({
-    initial: 'first',
-    states: {
-      first: {
-        on: { NEXT: { target: 'second' } }
-      },
-      second: {}
-    }
-  });
-
-  const model = createTestModel(machine);
-
-  const paths = model.getShortestPaths({
-    toState: (state) => state.matches('second')
-  });
-
-  await paths[0].test({
-    events: {
-      NEXT: (step) => {
-        expect(step).toHaveProperty('event');
-        expect(step).toHaveProperty('state');
-      }
-    }
-  });
-});
-
-// https://github.com/statelyai/xstate/issues/982
-it('Event in event executor should contain payload from case', async () => {
-  const machine = createMachine({
-    initial: 'first',
-    states: {
-      first: {
-        on: { NEXT: { target: 'second' } }
-      },
-      second: {}
-    }
-  });
-
-  const obj = {};
-
-  const nonSerializableData = () => 42;
-
-  const model = createTestModel(machine, {
-    events: [{ type: 'NEXT', payload: 10, fn: nonSerializableData } as any]
-  });
-
-  const paths = model.getShortestPaths({
-    toState: (state) => state.matches('second')
-  });
-
-  await model.testPath(
-    paths[0],
-    {
-      events: {
-        NEXT: (step) => {
-          expect(step.event).toEqual({
-            type: 'NEXT',
-            payload: 10,
-            fn: nonSerializableData
-          });
-        }
-      }
-    },
-    obj
-  );
-});
-
-describe('state tests', () => {
-  it('should test states', async () => {
-    // a (1)
-    // a -> b (2)
-    expect.assertions(2);
-
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: { NEXT: { target: 'b' } }
-        },
-        b: {}
-      }
-    });
-
-    const model = createTestModel(machine);
-
-    await testUtils.testModel(model, {
-      states: {
-        a: (state) => {
-          expect(state.value).toEqual('a');
-        },
-        b: (state) => {
-          expect(state.value).toEqual('b');
-        }
-      }
-    });
-  });
-
-  it('should test wildcard state for non-matching states', async () => {
-    // a (1)
-    // a -> b (2)
-    // a -> c (2)
-    expect.assertions(4);
-
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: { NEXT: { target: 'b' }, OTHER: { target: 'c' } }
-        },
-        b: {},
-        c: {}
-      }
-    });
-
-    const model = createTestModel(machine);
-
-    await testUtils.testModel(model, {
-      states: {
-        a: (state) => {
-          expect(state.value).toEqual('a');
-        },
-        b: (state) => {
-          expect(state.value).toEqual('b');
-        },
-        '*': (state) => {
-          expect(state.value).toEqual('c');
-        }
-      }
-    });
-  });
-
-  it('should test nested states', async () => {
-    const testedStateValues: any[] = [];
-
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: { NEXT: { target: 'b' } }
-        },
-        b: {
-          initial: 'b1',
-          states: {
-            b1: {}
-          }
-        }
-      }
-    });
-
-    const model = createTestModel(machine);
-
-    await testUtils.testModel(model, {
-      states: {
-        a: (state) => {
-          testedStateValues.push('a');
-          expect(state.value).toEqual('a');
-        },
-        b: (state) => {
-          testedStateValues.push('b');
-          expect(state.matches('b')).toBe(true);
-        },
-        'b.b1': (state) => {
-          testedStateValues.push('b.b1');
-          expect(state.value).toEqual({ b: 'b1' });
-        }
-      }
-    });
-    expect(testedStateValues).toMatchInlineSnapshot(`
-      [
-        "a",
-        "b",
-        "b.b1",
-      ]
-    `);
-  });
-
-  it('should test with input', () => {
-    const machine = createMachine({
-      schemas: {
-        input: z.object({
-          name: z.string()
-        }),
-        context: z.object({
-          name: z.string()
-        })
-      },
-      context: (x) => ({
-        name: x.input.name
+    schemas: {
+      input: z.object({
+        name: z.string()
       }),
-      initial: 'checking',
-      states: {
-        checking: {
-          // always: [
-          //   { guard: (x) => x.context.name.length > 3, target: 'longName' },
-          //   { target: 'shortName' }
-          // ]
-          always: ({ context }) => {
-            if (context.name.length > 3) {
-              return { target: 'longName' };
-            }
-            return { target: 'shortName' };
+      context: z.object({
+        name: z.string()
+      })
+    },
+    context: (x) => ({
+      name: x.input.name
+    }),
+    initial: 'checking',
+    states: {
+      checking: {
+        always: ({ context }) => {
+          if (context.name.length > 3) {
+            return { target: 'longName' };
           }
-        },
-        longName: {},
-        shortName: {}
-      }
-    });
-
-    const model = createTestModel(machine);
-
-    const path1 = model.getShortestPaths({
-      input: { name: 'ed' }
-    });
-
-    expect(path1[0].steps.map((s) => s.state.value)).toEqual(['shortName']);
-
-    const path2 = model.getShortestPaths({
-      input: { name: 'edward' }
-    });
-
-    expect(path2[0].steps.map((s) => s.state.value)).toEqual(['longName']);
+          return { target: 'shortName' };
+        }
+      },
+      longName: {},
+      shortName: {}
+    }
   });
+
+  const path1 = getShortestPaths(machine, {
+    input: { name: 'ed' }
+  });
+
+  expect(path1[0].steps.map((s) => s.state.value)).toEqual(['shortName']);
+
+  const path2 = getShortestPaths(machine, {
+    input: { name: 'edward' }
+  });
+
+  expect(path2[0].steps.map((s) => s.state.value)).toEqual(['longName']);
 });

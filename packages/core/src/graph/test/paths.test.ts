@@ -1,6 +1,6 @@
-import { createMachine, initialTransition, transition } from '../../index.ts';
-import { createTestModel } from '../index.ts';
-import { testUtils } from './testUtils.ts';
+import { createMachine } from '../../index.ts';
+import { getShortestPaths, getSimplePaths, joinPaths } from '../index.ts';
+import type { StatePath } from '../index.ts';
 
 const multiPathMachine = createMachine({
   initial: 'a',
@@ -26,223 +26,71 @@ const multiPathMachine = createMachine({
   }
 });
 
-describe('testModel.testPaths(...)', () => {
-  it('custom path generators can be provided', async () => {
-    const testModel = createTestModel(
-      createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: { target: 'b' }
-            }
-          },
-          b: {}
-        }
-      })
-    );
+function eventTypes(path: StatePath<any, any>): string {
+  return path.steps.map((step) => step.event.type).join(' → ');
+}
 
-    const paths = testModel.getPaths((logic, options) => {
-      const [initialState] = initialTransition(logic);
-      const events =
-        typeof options.events === 'function'
-          ? options.events(initialState)
-          : (options.events ?? []);
+describe('getSimplePaths', () => {
+  it('returns one path per reachable state', () => {
+    const paths = getSimplePaths(multiPathMachine);
 
-      const [nextState] = transition(logic, initialState, events[0]);
-      return [
-        {
-          state: nextState,
-          steps: [
-            {
-              state: initialState,
-              event: events[0]
-            }
-          ],
-          weight: 1
-        }
-      ];
-    });
-
-    await testUtils.testPaths(paths, {});
+    expect(paths).toHaveLength(5);
   });
 
-  describe('When the machine only has one path', () => {
-    it('Should only follow that path', () => {
-      const machine = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: { target: 'b' }
-            }
-          },
-          b: {
-            on: {
-              EVENT: { target: 'c' }
-            }
-          },
-          c: {}
-        }
-      });
-
-      const model = createTestModel(machine);
-
-      const paths = model.getShortestPaths();
-
-      expect(paths).toHaveLength(1);
-    });
-  });
-
-  describe('getSimplePaths', () => {
-    it('Should dedup simple path paths', () => {
-      const model = createTestModel(multiPathMachine);
-
-      const paths = model.getSimplePaths();
-
-      expect(paths).toHaveLength(2);
-    });
-
-    it('Should not dedup simple path paths if deduplicate: false', () => {
-      const model = createTestModel(multiPathMachine);
-
-      const paths = model.getSimplePaths({
-        allowDuplicatePaths: true
-      });
-
-      expect(paths).toHaveLength(5);
-    });
-
-    it('should support filtering disabled events', () => {
-      const machine = createMachine({
-        id: 'guarded-test-model',
-        initial: 'start',
-        context: { allowed: false as boolean },
-        states: {
-          start: {
-            on: { NEXT: { target: 'idle' } }
-          },
-          idle: {
-            on: {
-              PROCEED: ({ context }) => {
-                if (context.allowed) {
-                  return { target: 'done' };
-                }
-              },
-              ALLOW: () => ({
-                context: {
-                  allowed: true
-                }
-              })
-            }
-          },
-          done: {
-            type: 'final'
+  it('should support filtering disabled events', () => {
+    const machine = createMachine({
+      id: 'guarded-test-model',
+      initial: 'start',
+      context: { allowed: false as boolean },
+      states: {
+        start: {
+          on: { NEXT: { target: 'idle' } }
+        },
+        idle: {
+          on: {
+            PROCEED: ({ context }) => {
+              if (context.allowed) {
+                return { target: 'done' };
+              }
+            },
+            ALLOW: () => ({
+              context: {
+                allowed: true
+              }
+            })
           }
+        },
+        done: {
+          type: 'final'
         }
-      });
-
-      const model = createTestModel(machine);
-
-      const paths = model.getSimplePaths({
-        filterEvents: (state, event) => state.can(event),
-        toState: (state) => state.status === 'done'
-      });
-
-      expect(paths.map((path) => path.description)).toEqual([
-        'Reaches state "done"({"allowed":true}): @xstate.init → NEXT → ALLOW → PROCEED'
-      ]);
+      }
     });
-  });
-});
 
-describe('path.description', () => {
-  it('Should write a readable description including the target state and the path', () => {
-    const model = createTestModel(multiPathMachine);
+    const paths = getSimplePaths(machine, {
+      filterEvents: (state, event) => state.can(event),
+      toState: (state) => state.status === 'done'
+    });
 
-    const paths = model.getShortestPaths();
-
-    expect(paths.map((path) => path.description)).toEqual([
-      'Reaches state "d": @xstate.init → EVENT → EVENT → EVENT',
-      'Reaches state "e": @xstate.init → EVENT → EVENT → EVENT_2'
+    expect(paths.map(eventTypes)).toEqual([
+      '@xstate.init → NEXT → ALLOW → PROCEED'
     ]);
   });
 });
 
 describe('transition coverage', () => {
-  it('path generation should cover all transitions by default', () => {
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            NEXT: { target: 'b' },
-            END: { target: 'b' }
-          }
-        },
-        b: {
-          on: {
-            PREV: { target: 'a' },
-            RESTART: { target: 'a' }
-          }
-        }
-      }
-    });
+  it('shortest paths reach every state', () => {
+    const paths = getShortestPaths(multiPathMachine);
 
-    const model = createTestModel(machine);
-
-    const paths = model.getShortestPaths();
-
-    expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
-      [
-        "Reaches state "a": @xstate.init → NEXT → PREV",
-        "Reaches state "a": @xstate.init → NEXT → RESTART",
-        "Reaches state "b": @xstate.init → END",
-      ]
-    `);
-  });
-
-  it('transition coverage should consider guarded transitions', () => {
-    function valid(value: number): boolean {
-      return value > 10;
-    }
-
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            // NEXT: [{ guard: 'valid', target: 'b' }, { target: 'b' }]
-            NEXT: ({ event }) => {
-              if (valid((event as any).value)) {
-                return { target: 'b' };
-              }
-              return { target: 'b' };
-            }
-          }
-        },
-        b: {}
-      }
-    });
-
-    const model = createTestModel(machine);
-
-    const paths = model.getShortestPaths({
-      events: [
-        { type: 'NEXT', value: 0 } as any,
-        { type: 'NEXT', value: 100 } as any,
-        { type: 'NEXT', value: 1000 } as any
-      ]
-    });
-
-    // { value: 1000 } already covered by first guarded transition
-    expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
-      [
-        "Reaches state "b": @xstate.init → NEXT ({"value":0}) → NEXT ({"value":0})",
-        "Reaches state "b": @xstate.init → NEXT ({"value":100})",
-        "Reaches state "b": @xstate.init → NEXT ({"value":1000})",
-      ]
-    `);
+    expect(paths.map((path) => path.state.value)).toEqual([
+      'a',
+      'b',
+      'c',
+      'd',
+      'e'
+    ]);
+    expect(paths.map(eventTypes)).toContain(
+      '@xstate.init → EVENT → EVENT → EVENT_2'
+    );
   });
 
   it('transition coverage should consider multiple transitions with the same target', () => {
@@ -268,18 +116,18 @@ describe('transition coverage', () => {
       }
     });
 
-    const model = createTestModel(machine);
+    const paths = getSimplePaths(machine);
 
-    const paths = model.getShortestPaths();
-
-    expect(paths.map((p) => p.description)).toEqual([
-      `Reaches state "a": @xstate.init → GO_TO_B → GO_TO_A`,
-      `Reaches state "a": @xstate.init → GO_TO_C → GO_TO_A`
-    ]);
+    expect(paths.map(eventTypes)).toEqual(
+      expect.arrayContaining([
+        '@xstate.init → GO_TO_B',
+        '@xstate.init → GO_TO_C'
+      ])
+    );
   });
 });
 
-describe('getShortestPathsTo', () => {
+describe('toState', () => {
   const machine = createMachine({
     initial: 'open',
     states: {
@@ -295,8 +143,9 @@ describe('getShortestPathsTo', () => {
       }
     }
   });
+
   it('Should find a path to a non-initial target state', () => {
-    const closedPaths = createTestModel(machine).getShortestPaths({
+    const closedPaths = getShortestPaths(machine, {
       toState: (state) => state.matches('closed')
     });
 
@@ -304,7 +153,7 @@ describe('getShortestPathsTo', () => {
   });
 
   it('Should find a path to an initial target state', () => {
-    const openPaths = createTestModel(machine).getShortestPaths({
+    const openPaths = getShortestPaths(machine, {
       toState: (state) => state.matches('open')
     });
 
@@ -312,33 +161,33 @@ describe('getShortestPathsTo', () => {
   });
 });
 
-describe('getShortestPathsFrom', () => {
-  it('should get shortest paths from array of paths', () => {
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            NEXT: { target: 'b' },
-            OTHER: { target: 'b' },
-            TO_C: { target: 'c' },
-            TO_D: { target: 'd' },
-            TO_E: { target: 'e' }
-          }
-        },
-        b: {
-          on: {
-            TO_C: { target: 'c' },
-            TO_D: { target: 'd' }
-          }
-        },
-        c: {},
-        d: {},
-        e: {}
-      }
-    });
-    const model = createTestModel(machine);
-    const pathsToB = model.getShortestPaths({
+describe('paths from paths', () => {
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        on: {
+          NEXT: { target: 'b' },
+          OTHER: { target: 'b' },
+          TO_C: { target: 'c' },
+          TO_D: { target: 'd' },
+          TO_E: { target: 'e' }
+        }
+      },
+      b: {
+        on: {
+          TO_C: { target: 'c' },
+          TO_D: { target: 'd' }
+        }
+      },
+      c: {},
+      d: {},
+      e: {}
+    }
+  });
+
+  it('should join shortest paths from the end of other paths', () => {
+    const pathsToB = getSimplePaths(machine, {
       toState: (state) => state.matches('b')
     });
 
@@ -346,60 +195,18 @@ describe('getShortestPathsFrom', () => {
     // a (OTHER) -> b
     expect(pathsToB).toHaveLength(2);
 
-    const shortestPaths = model.getShortestPathsFrom(pathsToB);
+    const joined = pathsToB.flatMap((path) =>
+      getShortestPaths(machine, {
+        fromState: path.state,
+        toState: (state) => state.matches('c') || state.matches('d')
+      }).map((next) => joinPaths(path, next))
+    );
 
     // a (NEXT) -> b (TO_C) -> c
     // a (OTHER) -> b (TO_C) -> c
     // a (NEXT) -> b (TO_D) -> d
     // a (OTHER) -> b (TO_D) -> d
-    expect(shortestPaths).toHaveLength(4);
-
-    expect(shortestPaths.every((path) => path.steps.length === 3)).toBeTruthy();
-  });
-
-  describe('getSimplePathsFrom', () => {
-    it('should get simple paths from array of paths', () => {
-      const machine = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              NEXT: { target: 'b' },
-              OTHER: { target: 'b' },
-              TO_C: { target: 'c' },
-              TO_D: { target: 'd' },
-              TO_E: { target: 'e' }
-            }
-          },
-          b: {
-            on: {
-              TO_C: { target: 'c' },
-              TO_D: { target: 'd' }
-            }
-          },
-          c: {},
-          d: {},
-          e: {}
-        }
-      });
-      const model = createTestModel(machine);
-      const pathsToB = model.getSimplePaths({
-        toState: (state) => state.matches('b')
-      });
-
-      // a (NEXT) -> b
-      // a (OTHER) -> b
-      expect(pathsToB).toHaveLength(2);
-
-      const simplePaths = model.getSimplePathsFrom(pathsToB);
-
-      // a (NEXT) -> b (TO_C) -> c
-      // a (OTHER) -> b (TO_C) -> c
-      // a (NEXT) -> b (TO_D) -> d
-      // a (OTHER) -> b (TO_D) -> d
-      expect(simplePaths).toHaveLength(4);
-
-      expect(simplePaths.every((path) => path.steps.length === 3)).toBeTruthy();
-    });
+    expect(joined).toHaveLength(4);
+    expect(joined.every((path) => path.steps.length === 3)).toBeTruthy();
   });
 });

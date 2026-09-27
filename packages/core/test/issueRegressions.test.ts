@@ -12,7 +12,7 @@ import {
   toPromise,
   types
 } from '../src/index.ts';
-import { createTestModel } from '../src/graph/index.ts';
+import { getShortestPaths } from '../src/graph/index.ts';
 import { z } from 'zod';
 
 function roundTrip(persisted: unknown): any {
@@ -259,9 +259,9 @@ describe('misc', () => {
     }
   });
 
-  it('#4146 test model only takes a guarded transition while the guard passes', async () => {
+  it('#4146 path traversal only takes a guarded transition while the guard passes', () => {
     const cond = (context: { counter: number }) => context.counter === 0;
-    const model = createTestModel(
+    const paths = getShortestPaths(
       createMachine({
         initial: 'idle',
         schemas: {
@@ -281,21 +281,11 @@ describe('misc', () => {
       })
     );
 
-    const paths = model.getShortestPaths();
     // INC is taken once: the second INC fails the guard and is not a step
     expect(paths.map((p) => p.steps.map((s) => s.event.type))).toEqual([
+      ['@xstate.init'],
       ['@xstate.init', 'INC']
     ]);
-
-    const incExecutor = vi.fn();
-    for (const path of paths) {
-      await path.test({
-        events: {
-          // `state` is the snapshot after INC was taken
-          INC: ({ state }) => incExecutor(state.context.counter)
-        }
-      });
-    }
-    expect(incExecutor.mock.calls).toEqual([[1]]);
+    expect(paths[1].state.context.counter).toBe(1);
   });
 });

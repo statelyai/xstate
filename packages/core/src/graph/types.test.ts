@@ -1,6 +1,6 @@
 import z from 'zod';
 import { createMachine } from '../index.ts';
-import { createTestModel, getShortestPaths } from './index.ts';
+import { getShortestPaths } from './index.ts';
 
 describe('getShortestPath types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {
@@ -178,54 +178,5 @@ describe('getShortestPath types', () => {
     getShortestPaths(machine, {
       serializeState: () => ''
     });
-  });
-});
-
-describe('createTestModel types', () => {
-  it('`EventExecutor` should be passed event with type that corresponds to its key', () => {
-    const machine = createMachine({
-      id: 'test',
-      // types: {
-      //   events: {} as
-      //     | { type: 'a'; valueA: boolean }
-      //     | { type: 'b'; valueB: number }
-      // },
-      schemas: {
-        events: {
-          a: z.object({ valueA: z.boolean() }),
-          b: z.object({ valueB: z.number() })
-        }
-      },
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            a: { target: '#test.b' }
-          }
-        },
-        b: {
-          on: {
-            b: { target: '#test.a' }
-          }
-        }
-      }
-    });
-
-    for (const path of createTestModel(machine).getShortestPaths()) {
-      path.test({
-        events: {
-          a: ({ event }) => {
-            ((_accept: 'a') => {})(event.type);
-            // @ts-expect-error
-            ((_accept: 'b') => {})(event.type);
-          },
-          b: ({ event }) => {
-            // @ts-expect-error
-            ((_accept: 'a') => {})(event.type);
-            ((_accept: 'b') => {})(event.type);
-          }
-        }
-      });
-    }
   });
 });
