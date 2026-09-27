@@ -23,12 +23,12 @@ Create the actor inside the component tree and share it with `provide`/`inject` 
 When the server needs the state but not a running actor, compute it without starting anything.
 
 ```ts
-import { getInitialSnapshot } from 'xstate';
+import { initialTransition } from 'xstate';
 
-const snapshot = getInitialSnapshot(checkoutMachine, { cartId });
+const [snapshot] = initialTransition(checkoutMachine, { cartId });
 ```
 
-`getInitialSnapshot(...)` and `getNextSnapshot(...)` are pure: no effects, no invoked actors, no cleanup. They are the safe way to derive markup on the server.
+`initialTransition(...)` and `transition(...)` are pure: no effects, no invoked actors, no cleanup. They are the safe way to derive markup on the server.
 
 ## Hydrating with a persisted snapshot
 

@@ -15,7 +15,7 @@ import {
   createInertActorScope,
   isInertActorScope,
   setInertActorScopeSnapshot
-} from './getNextSnapshot.ts';
+} from './inertActorScope.ts';
 import { withActorSelf } from './actorScope.ts';
 import {
   createMachineSnapshot,
@@ -284,7 +284,12 @@ export class StateMachine<
   /** @internal Skips eventless-selection scans for machines without `always`. */
   public _hasEventlessTransitions: boolean;
 
-  /** @internal Adapter hooks for actor-local transition evaluation state. */
+  /**
+   * Adapter hooks for actor-local transition evaluation state. Used by
+   * `@xstate/scxml`; not part of the stable API.
+   *
+   * @experimental
+   */
   public _microstepHooks?: AnyStateMachine['_microstepHooks'];
 
   constructor(

@@ -12,12 +12,12 @@ That is acceptable for pure state, but not for effects. Decide per machine which
 When the server needs the state but not a running actor, compute it without starting anything.
 
 ```ts
-import { getInitialSnapshot } from 'xstate';
+import { initialTransition } from 'xstate';
 
-const snapshot = getInitialSnapshot(checkoutMachine, { cartId });
+const [snapshot] = initialTransition(checkoutMachine, { cartId });
 ```
 
-`getInitialSnapshot(...)` and `getNextSnapshot(...)` are pure: no effects, no invoked actors, no cleanup. They are the safe way to derive markup on the server.
+`initialTransition(...)` and `transition(...)` are pure: no effects, no invoked actors, no cleanup. They are the safe way to derive markup on the server.
 
 ## Keep effects out of the server pass
 

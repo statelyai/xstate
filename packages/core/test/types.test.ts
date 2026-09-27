@@ -37,7 +37,7 @@ import {
   types,
   toPromise
 } from '../src/index';
-import { createInertActorScope } from '../src/getNextSnapshot';
+import { createInertActorScope } from '../src/inertActorScope';
 import type {
   DoneActorEvent,
   EventObject,

@@ -110,11 +110,6 @@ export type Cast<A, B> = A extends B ? A : B;
 // but even with those fixes native NoInfer still doesn't work - further issues have to be reproduced and fixed
 /** @public */
 export type DoNotInfer<T> = [T][T extends any ? 0 : any];
-/**
- * @deprecated Use the built-in `NoInfer` type instead
- * @public
- */
-export type NoInfer<T> = DoNotInfer<T>;
 /** @public */
 export type LowInfer<T> = T & NonNullable<unknown>;
 
@@ -1261,7 +1256,12 @@ export interface AnyStateMachine extends AnyActorLogic {
   root: AnyStateNode;
   /** @internal */
   _hasEventlessTransitions?: boolean;
-  /** @internal Adapter hooks for actor-local transition evaluation state. */
+  /**
+   * Adapter hooks for actor-local transition evaluation state. Used by
+   * `@xstate/scxml`; not part of the stable API.
+   *
+   * @experimental
+   */
   _microstepHooks?:
     | {
         begin(self: AnyActor): void;
@@ -2139,12 +2139,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
 
 /** @public */
 export type AnyActor = ActorInstance<any, any, any, any>;
-
-/**
- * @deprecated Use `AnyActor` instead.
- * @public
- */
-export type AnyInterpreter = AnyActor;
 
 // Based on RxJS types
 /** @public */
@@ -3152,30 +3146,6 @@ export interface StateMachineTypes {
   emitted: EventObject;
 }
 
-/**
- * @deprecated
- * @public
- */
-export interface ResolvedStateMachineTypes<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TTag extends string,
-  TEmitted extends EventObject = EventObject
-> {
-  context: TContext;
-  events: TEvent;
-  actors: TActor;
-  actions: TAction;
-  guards: TGuard;
-  delays: TDelay;
-  tags: TTag;
-  emitted: TEmitted;
-}
-
 /** @internal */
 export type GetConcreteByKey<
   T,
@@ -3508,7 +3478,7 @@ export type EnqueueObject<
   >(
     target: TTarget,
     event: SendableEventFromActorRef<
-      NoInfer<
+      DoNotInfer<
         TTarget extends keyof TChildren & string ? TChildren[TTarget] : TTarget
       >
     >,

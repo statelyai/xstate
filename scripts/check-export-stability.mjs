@@ -17,10 +17,11 @@ const entries = [
   'actors/index.ts',
   'graph/index.ts',
   'fsm/index.ts',
-  'scxml/index.ts',
   'durable/index.ts',
   'validation/index.ts'
-].map((file) => join(coreSrc, file));
+]
+  .map((file) => join(coreSrc, file))
+  .concat(join(root, 'packages/xstate-scxml/src/index.ts'));
 
 const STABILITY = ['public', 'experimental', 'internal'];
 
