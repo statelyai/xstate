@@ -348,7 +348,7 @@ describe('advanced property testing', () => {
     ).rejects.toBeInstanceOf(ModelTestFailure);
   });
 
-  it('covers dynamic definitions while keeping their outcomes unknown', async () => {
+  it('covers dynamic transition definitions', async () => {
     const machine = createMachine({
       id: 'dynamic',
       schemas: {
@@ -376,14 +376,11 @@ describe('advanced property testing', () => {
       invariant: () => {}
     });
 
-    const [id, dynamic] = Object.entries(result.coverage.dynamicTransitions)[0];
-    expect(result.coverage.transitions.covered).toContain(id);
+    const id = result.coverage.transitions.covered.find((id) =>
+      id.includes('MOVE')
+    );
+    expect(id).toBeDefined();
     expect(result.coverage.transitions.unknown).not.toContain(id);
-    expect(dynamic).toEqual({
-      hits: expect.any(Number),
-      observedTargetIds: ['dynamic.left', 'dynamic.right'],
-      outcomeCompleteness: 'unknown'
-    });
   });
 
   it('keeps SCXML macrostep transition coverage distinct from visitation', async () => {

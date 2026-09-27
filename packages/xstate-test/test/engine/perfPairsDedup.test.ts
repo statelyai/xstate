@@ -88,7 +88,9 @@ describe('transition pair universe', () => {
     const coverage = createTestCoverage(machine);
     const pairs = getPairUniverse(coverage);
     const declared = [...coverage.transitionPairs.declarations.keys()];
-    const jump = Object.keys(coverage.dynamicTransitions)[0];
+    const jump = [...coverage.transitions.declarations.keys()].find((id) =>
+      id.includes('JUMP')
+    )!;
 
     expect(jump).toBeDefined();
     expect(declared.length).toBeGreaterThan(0);

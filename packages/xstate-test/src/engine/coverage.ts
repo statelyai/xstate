@@ -71,13 +71,6 @@ export interface TestEventCaseCounts {
 }
 
 /** @experimental */
-export interface TestDynamicTransitionCoverage {
-  readonly hits: number;
-  readonly observedTargetIds: readonly string[];
-  readonly outcomeCompleteness: 'unknown';
-}
-
-/** @experimental */
 export interface TestExplorationFrontier {
   readonly id: string;
   readonly prefixLength: number;
@@ -282,10 +275,6 @@ export interface TestCoverage {
   readonly transitionPairs: TestTransitionPairCoverageDimension;
   /** Requirement ids declared via `meta.requirements`. */
   readonly requirements: TestRequirementCoverageDimension;
-  /** Transitions whose target is computed at runtime, with the targets observed. */
-  readonly dynamicTransitions: Readonly<
-    Record<string, TestDynamicTransitionCoverage>
-  >;
   /** Frontier ids from the `frontiers` option. */
   readonly frontiers: TestCoverageDimension;
   /** Labels recorded with `label()`/`classify()`, keyed by label name. */
@@ -333,14 +322,6 @@ export interface MutableTestCoverage {
   requirementsByStateNode: Map<string, readonly string[]>;
   requirementsByTransition: Map<string, readonly string[]>;
   previousTransitionIds: readonly string[] | null;
-  dynamicTransitions: Record<
-    string,
-    {
-      hits: number;
-      observedTargetIds: Set<string>;
-      outcomeCompleteness: 'unknown';
-    }
-  >;
   frontiers: MutableDimension;
   labels: Record<
     string,
@@ -565,7 +546,6 @@ function registerTransition(
     index
   ]);
   const sourceUnreachable = !reachable.has(transition.source.id);
-  const dynamic = !!transition.to;
   coverage.transitionIds.set(transition, id);
   declare(coverage.transitions, id, {
     unreachable: sourceUnreachable && !reachabilityUnknown,
@@ -575,13 +555,6 @@ function registerTransition(
     unreachable: sourceUnreachable && !reachabilityUnknown,
     unknown: sourceUnreachable && reachabilityUnknown
   });
-  if (dynamic) {
-    coverage.dynamicTransitions[id] = {
-      hits: 0,
-      observedTargetIds: new Set(),
-      outcomeCompleteness: 'unknown'
-    };
-  }
   return id;
 }
 
@@ -759,7 +732,6 @@ export function createTestCoverage(logic: unknown): MutableTestCoverage {
     requirementsByStateNode: new Map(),
     requirementsByTransition: new Map(),
     previousTransitionIds: null,
-    dynamicTransitions: {},
     frontiers: dimension(),
     labels: {},
     temporal: {
@@ -880,31 +852,14 @@ export function recordPropertySnapshot(
 export function recordPropertyTransitions(
   coverage: MutableTestCoverage,
   event: EventObject,
-  transitions: readonly AnyTransitionDefinition[],
-  resolutions: readonly {
-    readonly transition: AnyTransitionDefinition;
-    readonly targetIds: readonly string[];
-  }[] = []
+  transitions: readonly AnyTransitionDefinition[]
 ): readonly string[] {
   incrementCoverage(coverage.eventTypes, event.type);
-  const resolvedTargets = new Map(
-    resolutions.map((resolution) => [
-      resolution.transition,
-      resolution.targetIds
-    ])
-  );
   const ids: string[] = [];
   for (const selected of transitions) {
     const id = getPropertyTransitionId(coverage, selected);
     ids.push(id);
     incrementCoverage(coverage.transitions, id);
-    const dynamic = coverage.dynamicTransitions[id];
-    if (dynamic) {
-      dynamic.hits++;
-      for (const targetId of resolvedTargets.get(selected) ?? []) {
-        dynamic.observedTargetIds.add(targetId);
-      }
-    }
     recordRequirements(coverage, coverage.requirementsByTransition.get(id));
   }
   if (ids.length) {
@@ -1088,18 +1043,6 @@ export function finalizeTestCoverage(
           .map(([id, sources]) => [id, [...sources].sort()])
       )
     },
-    dynamicTransitions: Object.fromEntries(
-      Object.entries(coverage.dynamicTransitions)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([id, dynamic]) => [
-          id,
-          {
-            hits: dynamic.hits,
-            observedTargetIds: [...dynamic.observedTargetIds].sort(),
-            outcomeCompleteness: dynamic.outcomeCompleteness
-          }
-        ])
-    ),
     frontiers: finalizeDimension(coverage.frontiers),
     labels: Object.fromEntries(
       Object.entries(coverage.labels)
@@ -1184,16 +1127,10 @@ export function declarePropertyFrontier(
   declare(coverage.frontiers, id);
 }
 
-interface TransitionResolution {
-  readonly transition: AnyTransitionDefinition;
-  readonly targetIds: readonly string[];
-}
-
 type TransitionWithDetails = [
   snapshot: Snapshot<unknown>,
   effects: readonly unknown[],
-  transitions: readonly AnyTransitionDefinition[],
-  resolutions: readonly TransitionResolution[]
+  transitions: readonly AnyTransitionDefinition[]
 ];
 
 type MachineMicrosteps = ReadonlyArray<
@@ -1213,85 +1150,7 @@ function isStateMachine(logic: AnyActorLogic): logic is AnyStateMachine {
   );
 }
 
-function getActiveNodes(snapshot: Snapshot<unknown>): readonly AnyStateNode[] {
-  return (snapshot as { nodes?: readonly AnyStateNode[] }).nodes ?? [];
-}
-
-function isDescendantOf(node: AnyStateNode, ancestor: AnyStateNode): boolean {
-  for (let current = node.parent; current; current = current.parent) {
-    if (current === ancestor) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Derives the targets a microstep entered: the deepest newly active state
- * nodes that were not entered by default (as an initial state or a parallel
- * region of another newly entered node). A target that was already active
- * (re-entered) is not observable this way.
- */
-function getEnteredTargets(
-  previous: Snapshot<unknown>,
-  next: Snapshot<unknown>
-): AnyStateNode[] {
-  const previousIds = new Set(getActiveNodes(previous).map((node) => node.id));
-  const entered = getActiveNodes(next).filter(
-    (node) => !previousIds.has(node.id)
-  );
-  const enteredIds = new Set(entered.map((node) => node.id));
-  const explicit = entered.filter((node) => {
-    const parent = node.parent;
-    if (!parent || !enteredIds.has(parent.id)) {
-      return true;
-    }
-    return !(
-      parent.type === 'parallel' ||
-      (parent.initial?.target ?? []).some((target) => target.id === node.id)
-    );
-  });
-  return explicit.filter(
-    (node) => !explicit.some((other) => isDescendantOf(other, node))
-  );
-}
-
-/**
- * Resolves the observed targets of the dynamic (`to`) transitions taken in
- * each microstep from consecutive microstep snapshots.
- */
-function getDynamicResolutions(
-  initial: Snapshot<unknown> | undefined,
-  microsteps: MachineMicrosteps
-): TransitionResolution[] {
-  const resolutions: TransitionResolution[] = [];
-  let previous = initial;
-  for (const [snapshot, , transitions] of microsteps) {
-    const dynamic = transitions.filter((candidate) => candidate.to);
-    if (previous && dynamic.length) {
-      const entered = getEnteredTargets(previous, snapshot);
-      const staticTargets = transitions.flatMap((candidate) =>
-        candidate.to ? [] : (candidate.target ?? [])
-      );
-      const targetIds = entered
-        .filter(
-          (node) =>
-            !staticTargets.some(
-              (target) => target === node || isDescendantOf(node, target)
-            )
-        )
-        .map((node) => node.id);
-      for (const candidate of dynamic) {
-        resolutions.push({ transition: candidate, targetIds });
-      }
-    }
-    previous = snapshot;
-  }
-  return resolutions;
-}
-
 function withMicrostepDetails(
-  initial: Snapshot<unknown> | undefined,
   result: readonly [Snapshot<unknown>, readonly unknown[]],
   getSteps: () => MachineMicrosteps
 ): TransitionWithDetails {
@@ -1305,15 +1164,13 @@ function withMicrostepDetails(
   return [
     result[0],
     result[1],
-    microsteps.flatMap(([, , transitions]) => transitions),
-    getDynamicResolutions(initial, microsteps)
+    microsteps.flatMap(([, , transitions]) => transitions)
   ];
 }
 
 /**
  * The pure `transition()`, also returning the transitions taken (from
- * `getMicrosteps()`) and the observed targets of dynamic transitions for
- * coverage attribution.
+ * `getMicrosteps()`) for coverage attribution.
  */
 export function transitionWithDetails(
   logic: AnyActorLogic,
@@ -1324,9 +1181,9 @@ export function transitionWithDetails(
   // An unhandled (or rejected) event returns the same snapshot object and
   // takes no transitions.
   if (!isStateMachine(logic) || result[0] === snapshot) {
-    return [result[0], result[1], [], []];
+    return [result[0], result[1], []];
   }
-  return withMicrostepDetails(snapshot, result, () =>
+  return withMicrostepDetails(result, () =>
     getMicrosteps(logic, snapshot as never, event as never)
   );
 }
@@ -1338,9 +1195,9 @@ export function initialTransitionWithDetails(
 ): TransitionWithDetails {
   const result = initialTransition(logic, input as never);
   if (!isStateMachine(logic)) {
-    return [result[0], result[1], [], []];
+    return [result[0], result[1], []];
   }
-  return withMicrostepDetails(undefined, result, () =>
+  return withMicrostepDetails(result, () =>
     getInitialMicrosteps(logic, input as never)
   );
 }

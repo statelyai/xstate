@@ -60,7 +60,6 @@ export type {
   TestLabelCoverage,
   TestStoppedBecause,
   TestCoverageStatus,
-  TestDynamicTransitionCoverage,
   TestEventCaseCounts,
   TestExplorationBounds,
   TestExplorationFrontier,
@@ -1620,15 +1619,14 @@ export class PropertyScenarioRunner<
 
   public async start(): Promise<void> {
     resetPropertyTransitionPairs(this.coverage);
-    const [initial, effects, selected, resolutions] = this.startingSnapshot
-      ? [this.startingSnapshot, [], [], []]
+    const [initial, effects, selected] = this.startingSnapshot
+      ? [this.startingSnapshot, [], []]
       : initialTransitionWithDetails(this.logic, this.input);
     const snapshot = initial as TSnapshot;
     this.initialTransitionIds = recordPropertyTransitions(
       this.coverage,
       { type: XSTATE_INIT },
-      selected,
-      resolutions
+      selected
     );
     let initialSnapshot = snapshot;
     let initialEffects = effects;
@@ -1988,17 +1986,19 @@ export class PropertyScenarioRunner<
       effects = [];
       transitionIds = [];
     } else {
-      const [pureSnapshot, pureEffects, selected, resolutions] =
-        transitionWithDetails(this.logic, previousSnapshot, {
+      const [pureSnapshot, pureEffects, selected] = transitionWithDetails(
+        this.logic,
+        previousSnapshot,
+        {
           type: XSTATE_STOP
-        } as TEvent);
+        } as TEvent
+      );
       snapshot = pureSnapshot as TSnapshot;
       effects = pureEffects;
       transitionIds = recordPropertyTransitions(
         this.coverage,
         { type: XSTATE_STOP },
-        selected,
-        resolutions
+        selected
       );
     }
     this.snapshot = snapshot;
@@ -2201,16 +2201,14 @@ export class PropertyScenarioRunner<
       effects = primary?.effects ?? [];
       transitionIds = primary?.transitionIds ?? [];
     } else {
-      const [pureSnapshot, pureEffects, selected, resolutions] =
-        transitionWithDetails(this.logic, previousSnapshot, event);
+      const [pureSnapshot, pureEffects, selected] = transitionWithDetails(
+        this.logic,
+        previousSnapshot,
+        event
+      );
       snapshot = pureSnapshot as TSnapshot;
       effects = pureEffects;
-      transitionIds = recordPropertyTransitions(
-        this.coverage,
-        event,
-        selected,
-        resolutions
-      );
+      transitionIds = recordPropertyTransitions(this.coverage, event, selected);
     }
     this.snapshot = snapshot;
     if (this.referenceSession) {

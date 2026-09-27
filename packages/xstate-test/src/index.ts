@@ -89,7 +89,6 @@ export {
   type TestCoverageJSON,
   type TestCoverageStatus,
   type TestCoverageThresholds,
-  type TestDynamicTransitionCoverage,
   type TestEventCaseCounts,
   type TestEventDescriptor,
   type TestEventGenerators,

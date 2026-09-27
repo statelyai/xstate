@@ -72,14 +72,6 @@ export interface TestCoverageJSON {
   };
   readonly dimensions: Record<string, TestCoverageDimensionJSON>;
   readonly eventCases: Record<string, TestEventCaseCounts>;
-  readonly dynamicTransitions: Record<
-    string,
-    {
-      readonly hits: number;
-      readonly observedTargetIds: string[];
-      readonly outcomeCompleteness: string;
-    }
-  >;
   readonly temporal: {
     readonly satisfied: string[];
     readonly failed: string[];
@@ -599,18 +591,6 @@ export function testCoverageToJSON(coverage: TestCoverage): TestCoverageJSON {
             applicable: counts.applicable,
             executed: counts.executed,
             ignored: counts.ignored
-          }
-        ])
-    ),
-    dynamicTransitions: Object.fromEntries(
-      Object.entries(coverage.dynamicTransitions)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([id, dynamic]) => [
-          id,
-          {
-            hits: dynamic.hits,
-            observedTargetIds: [...dynamic.observedTargetIds],
-            outcomeCompleteness: dynamic.outcomeCompleteness
           }
         ])
     ),

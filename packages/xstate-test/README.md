@@ -1524,7 +1524,6 @@ listed in `coverage.temporal.inconclusive`.
 | `transitionPairs` | A dimension of `"<first> -> <second>"` ids plus `truncated`. Only pairs of transitions with static targets are declared up front, up to 2,000; a pair involving a transition whose target is computed by a function appears once a run takes it. |
 | `requirements` | A dimension of `meta.requirements` ids plus `sources`, the state nodes and transitions that declare each id. |
 | `eventCases` | `{ [caseId]: { weight, generated, applicable, executed, ignored } }`. |
-| `dynamicTransitions` | Hits and observed targets for transitions whose target is computed. |
 | `labels` | `{ [name]: { count, values, share } }`. `share` is the fraction of attempted runs that recorded the label. Shrink attempts are not counted. |
 | `temporal` | `satisfied`, `failed`, and `inconclusive` property ids; `counts`, `{ [id]: { satisfied, failed, inconclusive } }` in runs; and `warnings` for bounds that can never fail. |
 | `exploration` | `TestExplorationBounds`. See below. |
