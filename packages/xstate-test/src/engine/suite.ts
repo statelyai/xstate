@@ -14,7 +14,6 @@ import type {
   Snapshot,
   SnapshotFrom
 } from 'xstate';
-import type { TestModel } from 'xstate/graph';
 import { testCoverageToJSON, type TestCoverageJSON } from './report.ts';
 import {
   propertyTest,
@@ -42,17 +41,10 @@ export interface TestSuite {
   readonly coverage: TestCoverageJSON;
 }
 
-type LogicFromSource<TSource> =
-  TSource extends TestModel<infer TSnapshot, infer TEvent, infer TInput>
-    ? ActorLogic<TSnapshot, TEvent, TInput>
-    : TSource;
-
-type SnapshotFromSource<TSource> = SnapshotFrom<LogicFromSource<TSource>>;
+type SnapshotFromSource<TSource> = SnapshotFrom<TSource>;
 type EventFromSource<TSource> =
-  LogicFromSource<TSource> extends ActorLogic<any, infer TEvent, any>
-    ? TEvent
-    : never;
-type InputFromSource<TSource> = InputFrom<LogicFromSource<TSource>>;
+  TSource extends ActorLogic<any, infer TEvent, any> ? TEvent : never;
+type InputFromSource<TSource> = InputFrom<TSource>;
 
 /** @experimental */
 export interface GenerateTestSuiteOptions<
@@ -184,7 +176,7 @@ function selectFixtures(
  * @experimental
  */
 export async function generateTestSuite<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>,
+  TSource extends ActorLogic<any, any, any>,
   TKind extends PropertyGeneratorKind
 >(
   source: TSource,
@@ -212,9 +204,7 @@ export async function generateTestSuite<
     }
   });
 
-  const logic = (
-    'testLogic' in (source as any) ? (source as any).testLogic : (source as any)
-  ) as { id?: string; version?: string };
+  const logic = source as { id?: string; version?: string };
   const machine =
     logic.id || logic.version
       ? { id: logic.id, version: logic.version }
@@ -261,7 +251,7 @@ export async function generateTestSuite<
 
 /** @experimental */
 export interface ReplayTestSuiteOptions<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
+  TSource extends ActorLogic<any, any, any>
 > {
   readonly invariant: TestInvariant<
     SnapshotFromSource<TSource>,
@@ -303,7 +293,7 @@ export interface TestSuiteReplayResult {
  * @experimental
  */
 export async function replayTestSuiteFixture<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
+  TSource extends ActorLogic<any, any, any>
 >(
   source: TSource,
   fixture: TestFixture,
@@ -321,7 +311,7 @@ export async function replayTestSuiteFixture<
  * @experimental
  */
 export async function replayTestSuite<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
+  TSource extends ActorLogic<any, any, any>
 >(
   source: TSource,
   suite: TestSuite,
@@ -375,7 +365,7 @@ export function formatTestSuiteFixtureTitle(
 
 /** @experimental */
 export interface DescribeTestSuiteOptions<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
+  TSource extends ActorLogic<any, any, any>
 > extends ReplayTestSuiteOptions<TSource> {
   /** Defaults to the ambient `it`. */
   readonly it?: (name: string, fn: () => Promise<void> | void) => unknown;
@@ -390,9 +380,7 @@ export interface DescribeTestSuiteOptions<
  * `it`/`describe` pair.
  * @experimental
  */
-export function describeTestSuite<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
->(
+export function describeTestSuite<TSource extends ActorLogic<any, any, any>>(
   suite: TestSuite,
   source: TSource,
   options: DescribeTestSuiteOptions<TSource>

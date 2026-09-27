@@ -12,11 +12,10 @@ import {
   testCoverageToJSON,
   type TestCoverage
 } from './engine/index.ts';
-import type { TestModel } from 'xstate/graph';
 import type { FailuresOption } from './failures.ts';
 import { propertyTest, testPaths } from './propertyTest.ts';
 
-type Source = ActorLogic<any, any, any> | TestModel<any, any, any>;
+type Source = ActorLogic<any, any, any>;
 
 /** The parts of Vitest's test context the model tests read. */
 interface ModelTestContext {

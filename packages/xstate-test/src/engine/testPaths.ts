@@ -1,6 +1,5 @@
 import type { ActorLogic, AnyEventObject, EventObject, Snapshot } from 'xstate';
 import { XSTATE_INIT } from './constants.ts';
-import type { TestModel } from 'xstate/graph';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   deriveCaseSeed,
@@ -574,23 +573,11 @@ function withPathExploration(
 }
 
 type SnapshotFromSource<T> =
-  T extends TestModel<infer TSnapshot, any, any>
-    ? TSnapshot
-    : T extends ActorLogic<infer TSnapshot, any, any>
-      ? TSnapshot
-      : never;
+  T extends ActorLogic<infer TSnapshot, any, any> ? TSnapshot : never;
 type EventFromSource<T> =
-  T extends TestModel<any, infer TEvent, any>
-    ? TEvent
-    : T extends ActorLogic<any, infer TEvent, any>
-      ? TEvent
-      : never;
+  T extends ActorLogic<any, infer TEvent, any> ? TEvent : never;
 type InputFromSource<T> =
-  T extends TestModel<any, any, infer TInput>
-    ? TInput
-    : T extends ActorLogic<any, any, infer TInput>
-      ? TInput
-      : never;
+  T extends ActorLogic<any, any, infer TInput> ? TInput : never;
 
 /**
  * What `testPaths()` resolves with.
@@ -617,9 +604,7 @@ const AFTER_TIMER_PREFIX = 'xstate.after.';
  * command sequences there.
  * @experimental
  */
-export async function testPaths<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
->(
+export async function testPaths<TSource extends ActorLogic<any, any, any>>(
   source: TSource,
   options: TestPathsOptions<
     SnapshotFromSource<TSource>,
@@ -646,16 +631,7 @@ export async function testPaths<
     );
   }
 
-  // Duck-typed rather than `instanceof TestModel`: `TestModel` imports this
-  // module, so a value import here would be an import cycle.
-  const sourceModel =
-    typeof (source as { getShortestPaths?: unknown }).getShortestPaths ===
-    'function'
-      ? (source as unknown as TestModel<TSnapshot, TEvent, unknown>)
-      : undefined;
-  const baseLogic = (
-    sourceModel ? sourceModel.testLogic : source
-  ) as ActorLogic<TSnapshot, TEvent, unknown>;
+  const baseLogic = source as unknown as ActorLogic<TSnapshot, TEvent, unknown>;
   // Sources named in `outcomes` may have no implementation at all; they are
   // stubbed for traversal (and for pure-mode runs), since only the sampled
   // outcomes are ever used in their place.
@@ -907,8 +883,8 @@ export async function testPaths<
       pathGeneratorKind = options.pathGenerator ?? 'shortest';
       generated = generatePaths(() =>
         pathGeneratorKind === 'simple'
-          ? getSimplePaths(testLogic, traversalOptions)
-          : getShortestPaths(testLogic, traversalOptions)
+          ? getSimplePaths(testLogic, traversalOptions as never)
+          : getShortestPaths(testLogic, traversalOptions as never)
       );
     }
     paths = options.allowDuplicatePaths
@@ -994,14 +970,7 @@ export async function testPaths<
   // `outcomes` needs no implementation. Executed mode stubs through
   // `outcomes` instead, which `propertyTest()` provides itself.
   const runSource =
-    mode === 'pure' && outcomeSources.length
-      ? sourceModel
-        ? new (sourceModel.constructor as new (
-            logic: unknown,
-            modelOptions: unknown
-          ) => unknown)(testLogic, sourceModel.options)
-        : testLogic
-      : source;
+    mode === 'pure' && outcomeSources.length ? testLogic : source;
 
   try {
     const { coverage } = await propertyTest(

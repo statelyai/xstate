@@ -11,7 +11,7 @@ import {
   propertyTest,
   replayTest
 } from '../src/index.ts';
-import { createTestModel } from 'xstate/graph';
+import { getPathsFromEvents } from 'xstate/graph';
 
 const counterMachine = createMachine({
   schemas: {
@@ -31,8 +31,8 @@ const counterMachine = createMachine({
 });
 
 describe('propertyTest with FastCheck', () => {
-  it('accepts machines and test models and checks every macrostep', async () => {
-    for (const source of [counterMachine, createTestModel(counterMachine)]) {
+  it('accepts machines and checks every macrostep', async () => {
+    for (const source of [counterMachine]) {
       const checked: number[] = [];
       const result = await propertyTest(source, {
         seed: 42,
@@ -54,8 +54,8 @@ describe('propertyTest with FastCheck', () => {
     }
   });
 
-  it('reuses TestModel executors and state assertions with a fresh session per run', async () => {
-    const model = createTestModel(counterMachine);
+  it('reuses sut executors and state assertions with a fresh session per run', async () => {
+    const model = counterMachine;
     let created = 0;
     let disposed = 0;
     let active = 0;
@@ -102,8 +102,8 @@ describe('propertyTest with FastCheck', () => {
     expect(stateAssertions).toBe(eventExecutions + created);
   });
 
-  it('disposes TestModel sessions across failure shrinking', async () => {
-    const model = createTestModel(counterMachine);
+  it('disposes sut sessions across failure shrinking', async () => {
+    const model = counterMachine;
     let created = 0;
     let disposed = 0;
 
@@ -256,8 +256,8 @@ describe('propertyTest with FastCheck', () => {
         }
       }
     });
-    const model = createTestModel(machine, { events: [{ type: 'GO' }] });
-    const frontier = model.getPathsFromEvents([{ type: 'GO' }])[0];
+    const model = machine;
+    const frontier = getPathsFromEvents(machine, [{ type: 'GO' }])[0];
     expect(frontier).toBeDefined();
     let failure!: ModelTestFailure;
 

@@ -9,7 +9,6 @@ import { XSTATE_INIT, XSTATE_STOP } from './constants.ts';
 import { createActor } from 'xstate';
 import { SimulatedClock } from 'xstate';
 import type { InspectionEvent } from 'xstate';
-import { TestModel } from 'xstate/graph';
 import {
   createTestCoverage,
   declarePropertyEventCase,
@@ -1588,7 +1587,6 @@ export class PropertyScenarioRunner<
     private readonly prefixEvents: readonly TEvent[],
     private readonly frontierId: string | undefined,
     private readonly sut: TestSut<TSnapshot, TEvent> | undefined,
-    private readonly testModel: TestModel<TSnapshot, TEvent, unknown>,
     private readonly states: TestStateAssertions<TSnapshot, TEvent> | undefined,
     private readonly reference: TestReference<TSnapshot, TEvent> | undefined,
     private readonly invariant: TestInvariant<TSnapshot, TEvent> | undefined,
@@ -2333,9 +2331,8 @@ export class PropertyScenarioRunner<
         step
       );
     if (states) {
-      const matcher = this.testModel.options.stateMatcher;
       const keys = Object.keys(states).filter(
-        (stateKey) => stateKey !== '*' && matcher(snapshot, stateKey)
+        (stateKey) => stateKey !== '*' && matchesStateKey(snapshot, stateKey)
       );
       if (!keys.length && '*' in states) {
         keys.push('*');
@@ -2774,17 +2771,10 @@ function fromPortableValue(value: unknown): unknown {
   );
 }
 
-type LogicFromSource<TSource> =
-  TSource extends TestModel<infer TSnapshot, infer TEvent, infer TInput>
-    ? ActorLogic<TSnapshot, TEvent, TInput>
-    : TSource;
-
-type SnapshotFromSource<TSource> = SnapshotFrom<LogicFromSource<TSource>>;
+type SnapshotFromSource<TSource> = SnapshotFrom<TSource>;
 type EventFromSource<TSource> =
-  LogicFromSource<TSource> extends ActorLogic<any, infer TEvent, any>
-    ? TEvent
-    : never;
-type InputFromSource<TSource> = InputFrom<LogicFromSource<TSource>>;
+  TSource extends ActorLogic<any, infer TEvent, any> ? TEvent : never;
+type InputFromSource<TSource> = InputFrom<TSource>;
 
 /** @experimental */
 interface PropertyFrontierContext<
@@ -3378,11 +3368,10 @@ function getVacuityWarnings(
 
 /** Matches a `reachable` target against a snapshot. */
 function matchesReachableTarget(
-  model: TestModel<any, any, any>,
   snapshot: Snapshot<unknown>,
   target: string
 ): boolean {
-  if (model.options.stateMatcher(snapshot, target)) {
+  if (matchesStateKey(snapshot, target)) {
     return true;
   }
   const hasTag = (snapshot as { hasTag?: (tag: string) => boolean }).hasTag;
@@ -3424,7 +3413,7 @@ function getDefaultFailureKey(
  * @experimental
  */
 export async function propertyTest<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>,
+  TSource extends ActorLogic<any, any, any>,
   TKind extends PropertyGeneratorKind
 >(
   source: TSource,
@@ -3448,20 +3437,11 @@ export async function propertyTest<
   for (const src of Object.keys(options.outcomes ?? {})) {
     providedActors[src] = createOutcomeStub(src);
   }
-  const baseModel =
-    source instanceof TestModel
-      ? source
-      : new TestModel(source as ActorLogic<any, any, any>, {
-          stateMatcher: matchesStateKey
-        });
   // Coverage ids are keyed by transition-definition identity, so the machine
   // that gets provided must be the same one coverage is declared from.
-  const model = Object.keys(providedActors).length
-    ? new TestModel(
-        provideActors(baseModel.testLogic, providedActors),
-        baseModel.options
-      )
-    : baseModel;
+  const logic = Object.keys(providedActors).length
+    ? provideActors(source as ActorLogic<any, any, any>, providedActors)
+    : (source as ActorLogic<any, any, any>);
   const { cases: events, descriptors: eventDescriptors } =
     normalizeEventDescriptors<
       SnapshotFromSource<TSource>,
@@ -3510,10 +3490,10 @@ export async function propertyTest<
       type: 'sometimes' as const,
       id: `reachable:${target}`,
       predicate: ({ snapshot }: { snapshot: Snapshot<unknown> }) =>
-        matchesReachableTarget(model, snapshot, target)
+        matchesReachableTarget(snapshot, target)
     }))
   ];
-  const coverage = createTestCoverage(model.testLogic);
+  const coverage = createTestCoverage(logic);
   for (const event of events) {
     declarePropertyEventCase(coverage, event.caseId, event.weight);
   }
@@ -3631,7 +3611,7 @@ export async function propertyTest<
   const failureKey = failureStore
     ? (failureStore.key ??
       getDefaultFailureKey(
-        model.testLogic,
+        logic,
         events.map((event) => event.caseId),
         temporal,
         options
@@ -3795,7 +3775,7 @@ export async function propertyTest<
         }
         const runIndex = (runOffset ?? 0) + scenarioRunCount++;
         const runner = new PropertyScenarioRunner(
-          model.testLogic as ActorLogic<
+          logic as ActorLogic<
             SnapshotFromSource<TSource>,
             EventFromSource<TSource>,
             unknown
@@ -3806,11 +3786,6 @@ export async function propertyTest<
           prefixEvents,
           frontierContext?.id,
           options.sut,
-          model as TestModel<
-            SnapshotFromSource<TSource>,
-            EventFromSource<TSource>,
-            unknown
-          >,
           options.states,
           options.reference,
           options.invariant,
@@ -3936,7 +3911,7 @@ export async function propertyTest<
   if (failureStore && failureStore.replay !== false) {
     for (const stored of await failureStore.load(failureKey!)) {
       try {
-        await replayTest(model as TestModel<any, any, any>, stored.fixture, {
+        await replayTest(logic, stored.fixture, {
           invariant: options.invariant,
           temporal,
           reference: options.reference,
@@ -4006,7 +3981,7 @@ export async function propertyTest<
         return shortestPaths;
       }
       try {
-        shortestPaths = getShortestPaths(model.testLogic as any, {
+        shortestPaths = getShortestPaths(logic as any, {
           input: options.input,
           limit: autoFrontierOptions?.limit ?? DEFAULT_FRONTIER_SEARCH_LIMIT
         }) as StatePath<
@@ -4258,9 +4233,7 @@ export class ReplayNotReproducedError extends Error {
  * replayed trace; see the `expect` option for how failures are reported.
  * @experimental
  */
-export async function replayTest<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
->(
+export async function replayTest<TSource extends ActorLogic<any, any, any>>(
   source: TSource,
   fixture: TestFixture | LegacyPortablePropertyReplayFixture,
   options: {
@@ -4309,12 +4282,6 @@ export async function replayTest<
     readonly expect?: 'failure' | 'pass';
   }
 ): Promise<TestTrace<SnapshotFromSource<TSource>, EventFromSource<TSource>>> {
-  const baseModel =
-    source instanceof TestModel
-      ? source
-      : new TestModel(source as ActorLogic<any, any, any>, {
-          stateMatcher: matchesStateKey
-        });
   const mode: TestMode =
     options.mode ??
     (fixture.formatVersion === 2 ? fixture.mode : undefined) ??
@@ -4350,13 +4317,10 @@ export async function replayTest<
       providedActors[src] ??= createOutcomeStub(src);
     }
   }
-  const model = Object.keys(providedActors).length
-    ? new TestModel(
-        provideActors(baseModel.testLogic, providedActors),
-        baseModel.options
-      )
-    : baseModel;
-  const identity = model.testLogic as { id?: string; version?: string };
+  const logic = Object.keys(providedActors).length
+    ? provideActors(source as ActorLogic<any, any, any>, providedActors)
+    : (source as ActorLogic<any, any, any>);
+  const identity = logic as { id?: string; version?: string };
   if (fixture.machine?.id && fixture.machine.id !== identity.id) {
     throw new Error(
       `Property replay fixture targets machine "${fixture.machine.id}", received "${identity.id ?? '(anonymous)'}"`
@@ -4379,12 +4343,12 @@ export async function replayTest<
       'Property replay fixture contains a snapshot but no restoreSnapshot function was provided'
     );
   }
-  const coverage = createTestCoverage(model.testLogic);
+  const coverage = createTestCoverage(logic);
   coverage.runs = 1;
   const serializedStartingSnapshot =
     fixture.start.type === 'snapshot' ? fixture.start.snapshot : undefined;
   const runner = new PropertyScenarioRunner(
-    model.testLogic as ActorLogic<
+    logic as ActorLogic<
       SnapshotFromSource<TSource>,
       EventFromSource<TSource>,
       unknown
@@ -4397,11 +4361,6 @@ export async function replayTest<
     [],
     undefined,
     options.sut,
-    model as TestModel<
-      SnapshotFromSource<TSource>,
-      EventFromSource<TSource>,
-      unknown
-    >,
     options.states,
     options.reference,
     options.invariant,

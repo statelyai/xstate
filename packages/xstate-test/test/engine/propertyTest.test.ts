@@ -8,7 +8,7 @@ import {
   type TestAdapter,
   type TestAdapterResult
 } from '../../src/engine/index.ts';
-import { createTestModel } from 'xstate/graph';
+import { getPathsFromEvents } from 'xstate/graph';
 import {
   constant,
   integer,
@@ -69,16 +69,6 @@ describe('propertyTest with the in-repo random adapter', () => {
     expect(coverage.statuses.counts.active).toBeGreaterThan(0);
     expect(coverage.exploration.configuredRuns).toBe(5);
     expect(coverage.exploration.maximumSequenceLength).toBe(3);
-  });
-
-  it('accepts a TestModel as the source', async () => {
-    const { coverage } = await propertyTest(createTestModel(counterMachine), {
-      adapter: randomAdapter({ seed: 3, numRuns: 2, maxCommands: 2 }),
-      events: { INC: constant({ value: 1 }) },
-      invariant: noop
-    });
-
-    expect(coverage.runs).toBe(2);
   });
 
   it('reports a ModelTestFailure with trace, fixture, coverage and replay', async () => {
@@ -310,8 +300,8 @@ describe('propertyTest with the in-repo random adapter', () => {
         active: { on: { GO: { target: 'idle' } } }
       }
     });
-    const model = createTestModel(machine, { events: [{ type: 'GO' }] });
-    const frontier = model.getPathsFromEvents([{ type: 'GO' }])[0];
+    const model = machine;
+    const frontier = getPathsFromEvents(machine, [{ type: 'GO' }])[0];
     expect(frontier).toBeDefined();
 
     await expect(

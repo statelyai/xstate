@@ -1222,14 +1222,12 @@ events: {
 is replayed as-is, and shrinking only shortens the generated continuation:
 
 ```ts
-import { createTestModel } from 'xstate/graph';
+import { getShortestPaths } from 'xstate/graph';
 
-const model = createTestModel(cartMachine);
-
-await propertyTest(model, {
+await propertyTest(cartMachine, {
   events,
   frontiers: {
-    paths: model.getShortestPaths({
+    paths: getShortestPaths(cartMachine, {
       toState: (snapshot) => Object.keys(snapshot.context.items).length > 0,
       stopWhen: (snapshot) =>
         Object.values(snapshot.context.items).some((qty) => qty >= 2)
@@ -1711,14 +1709,13 @@ A failing campaign with `testInfo` also attaches `fixture.json`, the failure's
 
 ## Migrating from `@xstate/test` 0.x and 1.0 beta
 
-`@xstate/test` 2.0 requires XState v6. `createTestModel()` and the path
-functions moved to `xstate/graph`.
+`@xstate/test` 2.0 requires XState v6. The path functions
+(`getShortestPaths()`, `getSimplePaths()`) moved to `xstate/graph`.
 
 ### From 1.0 beta
 
-`path.test({ events, states })` from `xstate/graph` still runs a single path.
-The `sut` option of `testPaths()` replaces it, and adds coverage and replay
-fixtures. Pass `paths` to run specific paths.
+The `sut` option of `testPaths()` replaces `path.test({ events, states })`,
+and adds coverage and replay fixtures. Pass `paths` to run specific paths.
 
 Before:
 
@@ -1738,11 +1735,11 @@ for (const path of model.getShortestPaths()) {
 After:
 
 ```ts
-const model = createTestModel(machine);
+import { getShortestPaths } from 'xstate/graph';
 
-for (const path of model.getShortestPaths()) {
+for (const path of getShortestPaths(machine)) {
   it(path.description, async () => {
-    await testPaths(model, {
+    await testPaths(machine, {
       paths: [path],
       sut: {
         create: () => ({
@@ -1760,7 +1757,7 @@ Other changes:
 | 1.0 beta | 2.0 |
 | --- | --- |
 | `createTestMachine(config)` | `createMachine(config)` |
-| `path.testSync(params)` | `await path.test(params)` |
+| `path.testSync(params)` | `await testPaths(machine, { paths: [path], sut })` |
 | `model.testState(state, params)`, `model.testTransition(step, params)` | The `states` option, checked on every stable step. |
 | `TestPathResult`, `TestStepResult` | `TestPathRunResult`: `{ path, passed, error }`. Use `ModelTestFailure.trace` for step detail. |
 | `meta.test(testContext, state)` | `meta.test(session, snapshot)`: the first argument is the SUT session. |
@@ -1770,7 +1767,7 @@ Other changes:
 | 0.x | 2.0 |
 | --- | --- |
 | `createModel(machine).withEvents({ E: { exec, cases } })` | `events: { E: [...] }` for payloads, and `sut.create().send` for `exec`. |
-| `model.getShortestPathPlans()`, `plan.paths` | `testPaths(machine, options)`, or `createTestModel(machine).getShortestPaths()`. |
+| `model.getShortestPathPlans()`, `plan.paths` | `testPaths(machine, options)`, or `getShortestPaths(machine)` from `xstate/graph`. |
 | `model.getSimplePathPlans()` | `testPaths(machine, { pathGenerator: 'simple' })`. |
 | `path.test(page)` | `testPaths(machine, { sut })`. The SUT session holds the page. |
 | `meta.test(page, state)` | `meta.test(session, snapshot)`, or `states` on the session. |

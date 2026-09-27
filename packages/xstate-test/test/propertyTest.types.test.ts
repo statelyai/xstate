@@ -1,7 +1,6 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import { fastCheckAdapter, propertyTest, testPaths } from '../src/index.ts';
-import { createTestModel } from 'xstate/graph';
 import { expectTypeOf, it } from 'vitest';
 
 const machine = createMachine({
@@ -20,7 +19,7 @@ const machine = createMachine({
   }
 });
 
-it('infers machine and TestModel property APIs', () => {
+it('infers machine property APIs', () => {
   if (false) {
     void propertyTest(machine, {
       events: {
@@ -85,7 +84,7 @@ it('infers machine and TestModel property APIs', () => {
       invariant: () => {}
     });
 
-    void propertyTest(createTestModel(machine), {
+    void propertyTest(machine, {
       events: { INC: fc.record({ value: fc.integer() }) },
       sut: {
         create: () => ({

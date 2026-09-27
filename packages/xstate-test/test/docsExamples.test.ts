@@ -48,7 +48,7 @@ import {
   type TestFixture,
   type TestSut
 } from '../src/index.ts';
-import { createTestModel } from 'xstate/graph';
+import { getShortestPaths } from 'xstate/graph';
 import { fromEffectSchemas } from '../src/effect-schema.ts';
 import { createPlaywrightSut } from '../src/playwright.ts';
 import { it as modelIt, withModelTests } from '../src/vitest.ts';
@@ -287,9 +287,9 @@ describe('README: Concepts', () => {
     expect(disposed).toBe(created);
   });
 
-  it('Oracles: states keys match state values and ids on a test model', async () => {
+  it('Oracles: states keys match state values and ids', async () => {
     const hits = new Set<string>();
-    await testPaths(createTestModel(cartMachine), {
+    await testPaths(cartMachine, {
       // A descriptor rather than a bare arbitrary: `testPaths()` samples bare
       // arbitraries into functions, and a map of functions next to `states`
       // without a `sut` is rejected as a pre-2.0 `TestParam`.
@@ -836,12 +836,11 @@ describe('README: How-to guides', () => {
       expect.arrayContaining([5, 1, 0.5])
     );
 
-    const model = createTestModel(cartMachine);
-    const frontier = await propertyTest(model, {
+    const frontier = await propertyTest(cartMachine, {
       seed: 1,
       events,
       frontiers: {
-        paths: model.getShortestPaths({
+        paths: getShortestPaths(cartMachine, {
           toState: (snapshot) => Object.keys(snapshot.context.items).length > 0,
           stopWhen: (snapshot) =>
             Object.values(snapshot.context.items).some((qty) => qty >= 2)
@@ -925,9 +924,8 @@ describe('README: Migrating from @xstate/test 0.x and 1.0 beta', () => {
       }
     };
 
-    const model = createTestModel(signupMachine);
-    for (const path of model.getShortestPaths()) {
-      await testPaths(model, {
+    for (const path of getShortestPaths(signupMachine)) {
+      await testPaths(signupMachine, {
         paths: [path],
         sut: {
           create: () => ({

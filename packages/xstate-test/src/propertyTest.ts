@@ -31,7 +31,6 @@ import {
   type PropertyTestOptions,
   type TestPathsResult
 } from './engine/index.ts';
-import type { TestModel } from 'xstate/graph';
 import {
   fastCheckAdapter,
   type FastCheckAdapterOptions,
@@ -143,17 +142,10 @@ export type FastCheckGenerateTestSuiteOptions<
     keyof PropertyTestOptions<TSnapshot, TEvent, TInput, FastCheckGeneratorKind>
   >;
 
-type LogicFromSource<TSource> =
-  TSource extends TestModel<infer TSnapshot, infer TEvent, infer TInput>
-    ? ActorLogic<TSnapshot, TEvent, TInput>
-    : TSource;
-
-type SnapshotFromSource<TSource> = SnapshotFrom<LogicFromSource<TSource>>;
+type SnapshotFromSource<TSource> = SnapshotFrom<TSource>;
 type EventFromSource<TSource> =
-  LogicFromSource<TSource> extends ActorLogic<any, infer TEvent, any>
-    ? TEvent
-    : never;
-type InputFromSource<TSource> = InputFrom<LogicFromSource<TSource>>;
+  TSource extends ActorLogic<any, infer TEvent, any> ? TEvent : never;
+type InputFromSource<TSource> = InputFrom<TSource>;
 
 /**
  * Derives generators for the event types the machine declares a runtime schema
@@ -168,8 +160,7 @@ function deriveMissingEvents(
   source: unknown,
   events: Record<string, unknown> | undefined
 ): Record<string, unknown> | undefined {
-  const logic = (source as { testLogic?: unknown })?.testLogic ?? source;
-  const schemas = (logic as AnyStateMachine | undefined)?.schemas?.events as
+  const schemas = (source as AnyStateMachine | undefined)?.schemas?.events as
     | Record<string, unknown>
     | undefined;
   if (!schemas) {
@@ -253,9 +244,7 @@ function resolveOptions(source: unknown, options: object): object {
  *
  * @experimental
  */
-export async function propertyTest<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
->(
+export async function propertyTest<TSource extends ActorLogic<any, any, any>>(
   source: TSource,
   options: FastCheckPropertyTestOptions<
     SnapshotFromSource<TSource>,
@@ -276,7 +265,7 @@ export async function propertyTest<
  * @experimental
  */
 export async function generateTestSuite<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
+  TSource extends ActorLogic<any, any, any>
 >(
   source: TSource,
   options: FastCheckGenerateTestSuiteOptions<
@@ -395,9 +384,7 @@ function sampleArbitraries(
  *
  * @experimental
  */
-export async function testPaths<
-  TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
->(
+export async function testPaths<TSource extends ActorLogic<any, any, any>>(
   source: TSource,
   options: FastCheckTestPathsOptions<
     SnapshotFromSource<TSource>,

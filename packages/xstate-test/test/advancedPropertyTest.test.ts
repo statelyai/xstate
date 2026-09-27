@@ -6,7 +6,7 @@ import {
   propertyTest,
   replayTest
 } from '../src/index.ts';
-import { createTestModel } from 'xstate/graph';
+import { getShortestPaths } from 'xstate/graph';
 import type { TestAdapter } from '../src/index.ts';
 
 describe('advanced property testing', () => {
@@ -438,19 +438,17 @@ describe('advanced property testing', () => {
         }
       }
     });
-    const model = createTestModel(machine, {
+    const model = machine;
+    const frontiers = getShortestPaths(machine, {
       events: [{ type: 'ACTIVATE' }],
       serializeState: (snapshot) => JSON.stringify(snapshot.value)
-    });
-    const frontiers = model
-      .getShortestPaths()
-      .filter(
-        (path) =>
-          path.steps.filter(
-            (step) => (step.event.type as string) !== '@xstate.init'
-          ).length === 1 &&
-          path.steps.some((step) => step.event.type === 'ACTIVATE')
-      );
+    }).filter(
+      (path) =>
+        path.steps.filter(
+          (step) => (step.event.type as string) !== '@xstate.init'
+        ).length === 1 &&
+        path.steps.some((step) => step.event.type === 'ACTIVATE')
+    );
     const successful = await propertyTest(model, {
       seed: 3,
       numRuns: 100,
