@@ -64,6 +64,8 @@ The [xstate.js.org](https://xstate.js.org) landing page is currently stored at `
 
 We are using [preconstruct](https://preconstruct.tools/) to build our packages. It comes with a handy trick which allows us to always use source files of packages contained in this monorepo. It creates hook/redirecting files in place of dist files during development. This always happens after installing packages (during `postinstall` step) and you shouldn't be worried about it, but if you actually build packages you destroy those redirecting files and to run tests, typechecking etc correctly you need to bring them back by running `pnpm postinstall`.
 
+One check reads the built output on purpose: `pnpm typecheck:adapter-consumers` compiles a consumer against the adapters' generated declarations with `exactOptionalPropertyTypes: true`, which is how it catches type problems that only published types expose. It needs `pnpm build` first and tells you so if the declarations are missing or older than the sources. It is not part of `pnpm typecheck` for that reason; CI runs it directly after the build. Run `pnpm postinstall` afterwards to restore the redirecting files.
+
 ### Bundle measurements
 
 See [bundle measurements](docs/bundle-size.md) for source and production profiles, behavior verification, and CI size reports.

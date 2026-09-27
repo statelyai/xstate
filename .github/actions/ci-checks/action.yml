@@ -10,6 +10,12 @@ runs:
       run: node scripts/check-built-types.mjs
       shell: bash
 
+    # Checks the built declarations, so it belongs with the build rather than
+    # with `pnpm typecheck`, which runs against `src`.
+    - name: Typecheck adapter consumers
+      run: pnpm typecheck:adapter-consumers
+      shell: bash
+
     - name: Packed consumer
       run: pnpm check:packed
       shell: bash
@@ -35,7 +41,7 @@ runs:
       shell: bash
 
     - name: Typecheck
-      run: pnpm typecheck && pnpm typecheck:adapter-consumers && pnpm typecheck:fsm-only
+      run: pnpm typecheck
       shell: bash
 
     - name: Typecheck examples
