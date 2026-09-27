@@ -15,13 +15,6 @@ import {
 } from 'xstate';
 import { getDescendantStateNodes } from 'xstate/graph';
 
-/** @experimental */
-export type TestCoverageStatus =
-  | 'covered'
-  | 'uncovered'
-  | 'unreachable'
-  | 'unknown';
-
 /**
  * One coverage dimension, with its ids grouped by status.
  *
@@ -184,7 +177,7 @@ export interface TestExplorationBounds {
  *
  * @experimental
  */
-export interface TestLabelCoverage {
+interface TestLabelCoverage {
   /** Total number of times the label was recorded across all runs. */
   readonly count: number;
   /** Occurrences per recorded value. Labels without a value are not listed. */
@@ -201,7 +194,7 @@ export interface TestLabelCoverage {
  *
  * @experimental
  */
-export interface TestTemporalCounts {
+interface TestTemporalCounts {
   /** Runs in which the property held. */
   readonly satisfied: number;
   /** Runs the property failed. */
@@ -215,7 +208,7 @@ export interface TestTemporalCounts {
  *
  * @experimental
  */
-export interface TestTemporalCoverage {
+interface TestTemporalCoverage {
   /** Temporal definitions satisfied in at least one run. */
   readonly satisfied: readonly string[];
   /**

@@ -57,17 +57,7 @@ import type { StatePath } from 'xstate/graph';
 export type {
   TestCoverage,
   TestCoverageDimension,
-  TestLabelCoverage,
-  TestStoppedBecause,
-  TestCoverageStatus,
-  TestEventCaseCounts,
-  TestExplorationBounds,
-  TestExplorationFrontier,
-  TestExplorationSeed,
-  TestExplorationSwarm,
-  TestExplorationTarget,
-  TestTemporalCounts,
-  TestTemporalCoverage
+  TestExplorationBounds
 } from './coverage.ts';
 
 /** @experimental */
@@ -77,10 +67,9 @@ export interface PropertyGeneratorKind {
 }
 
 /** @experimental */
-export type PropertyGenerator<
-  TKind extends PropertyGeneratorKind,
-  TValue
-> = (TKind & { readonly target: TValue })['generator'];
+type PropertyGenerator<TKind extends PropertyGeneratorKind, TValue> = (TKind & {
+  readonly target: TValue;
+})['generator'];
 
 /** @experimental */
 export interface TestReplayMetadata {
@@ -155,7 +144,7 @@ export type TestCommand<TEvent extends EventObject = EventObject> =
  * `sendTo`/`raise`, or a child actor's own transition.
  * @experimental
  */
-export interface TestActorTimelineEntry<TSnapshot extends Snapshot<unknown>> {
+interface TestActorTimelineEntry<TSnapshot extends Snapshot<unknown>> {
   readonly kind: 'actorEvent';
   readonly index: number;
   /** `'root'` when the tested actor transitioned, `'child'` otherwise. */
@@ -172,7 +161,7 @@ export interface TestActorTimelineEntry<TSnapshot extends Snapshot<unknown>> {
 }
 
 /** @experimental */
-export interface TestComparedObservation {
+interface TestComparedObservation {
   /** The model projection that was compared. */
   readonly model: unknown;
   /** The value observed on the reference oracle or the system under test. */
@@ -321,7 +310,7 @@ export interface TestAdapterResult {
 }
 
 /** @experimental */
-export interface PropertyGeneratedCommand {
+interface PropertyGeneratedCommand {
   readonly type: 'advance' | 'checkpoint' | 'stop' | 'outcome';
   readonly generator: unknown;
   /** Relative generation weight. `1` unless configured otherwise. */
@@ -561,7 +550,7 @@ export type TestStateAssertions<
 };
 
 /** @experimental */
-export interface TestReferenceContext<
+interface TestReferenceContext<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > extends TestSutContext<TSnapshot, TEvent> {}
@@ -609,7 +598,7 @@ type EventPayload<TEvent extends EventObject> = Omit<TEvent, 'type'>;
  *
  * @experimental
  */
-export interface TestLabelRecorders {
+interface TestLabelRecorders {
   /**
    * Records `name` (optionally with `value`) for the current run. Labels are
    * aggregated across the campaign into `coverage.labels`.
@@ -665,7 +654,7 @@ export interface TestEventDescriptor<
 }
 
 /** @experimental */
-export interface TestResolvedEventDescriptor<
+interface TestResolvedEventDescriptor<
   TGenerator,
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -727,7 +716,7 @@ export type TestEventGenerators<
 };
 
 /** @experimental */
-export type TestTemporalPredicate<
+type TestTemporalPredicate<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > = (
@@ -2798,7 +2787,7 @@ type EventFromSource<TSource> =
 type InputFromSource<TSource> = InputFrom<LogicFromSource<TSource>>;
 
 /** @experimental */
-export interface PropertyFrontierContext<
+interface PropertyFrontierContext<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
@@ -2808,7 +2797,7 @@ export interface PropertyFrontierContext<
 }
 
 /** @experimental */
-export interface PropertyFrontierOptions<
+interface PropertyFrontierOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > {
@@ -2827,17 +2816,14 @@ export interface PropertyFrontierOptions<
  * what distinguishes the descriptor form.
  * @experimental
  */
-export interface PropertyCommandDescriptor<TGenerator> {
+interface PropertyCommandDescriptor<TGenerator> {
   readonly generate: TGenerator;
   /** Positive, finite relative generation weight. Defaults to `1`. */
   readonly weight?: number;
 }
 
 /** @experimental */
-export type PropertyCommandGenerator<
-  TKind extends PropertyGeneratorKind,
-  TValue
-> =
+type PropertyCommandGenerator<TKind extends PropertyGeneratorKind, TValue> =
   | PropertyGenerator<TKind, TValue>
   | PropertyCommandDescriptor<PropertyGenerator<TKind, TValue>>;
 
@@ -2958,7 +2944,7 @@ export interface TestOptions<
  *
  * @experimental
  */
-export interface PropertyOptions<
+interface PropertyOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TKind extends PropertyGeneratorKind = PropertyGeneratorKind
@@ -3020,7 +3006,7 @@ export type PropertyTestOptions<
  *
  * @experimental
  */
-export interface TestLabelExpectations {
+interface TestLabelExpectations {
   readonly [name: string]: {
     /** Minimum share of attempted runs that must record the label, `0`..`1`. */
     readonly min?: number;
@@ -3034,7 +3020,7 @@ export interface TestLabelExpectations {
  * `any` holds when at least one of its conditions does.
  * @experimental
  */
-export interface TestStopConditionObject {
+interface TestStopConditionObject {
   readonly stateNodes?: number;
   readonly transitions?: number;
   readonly transitionPairs?: number;
@@ -3056,7 +3042,7 @@ export type TestStopCondition =
  *
  * @experimental
  */
-export interface PropertySwarmOptions {
+interface PropertySwarmOptions {
   /**
    * The fewest event cases a run may enable. Defaults to half the declared
    * cases, rounded up.
@@ -3071,7 +3057,7 @@ export interface PropertySwarmOptions {
  *
  * @experimental
  */
-export interface PropertyTargetFrontierOptions {
+interface PropertyTargetFrontierOptions {
   readonly strategy: 'target';
   /** Best-scoring prefixes carried into the next batch. Defaults to 5. */
   readonly maxFrontiers?: number;
@@ -3084,7 +3070,7 @@ export interface PropertyTargetFrontierOptions {
  *
  * @experimental
  */
-export interface PropertyAutoFrontierOptions {
+interface PropertyAutoFrontierOptions {
   readonly strategy: 'uncovered';
   /** Frontiers explored per batch. Defaults to 5. */
   readonly maxFrontiers?: number;
@@ -3117,7 +3103,7 @@ function getEventCaseRatio(coverage: TestCoverage): number {
  *
  * @experimental
  */
-export function evaluateTestStopCondition(
+function evaluateTestStopCondition(
   condition: TestStopCondition,
   coverage: TestCoverage,
   elapsedMs: number

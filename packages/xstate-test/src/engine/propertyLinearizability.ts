@@ -186,7 +186,7 @@ export function checkLinearizable<TState, TEvent>(
  *
  * @experimental
  */
-export interface ParallelPropertySutSession<TEvent> {
+interface ParallelPropertySutSession<TEvent> {
   /**
    * Sends an event. The resolved value is the operation's response; when it is
    * `undefined` the response is read back with `read()`, which makes a
@@ -198,7 +198,7 @@ export interface ParallelPropertySutSession<TEvent> {
 }
 
 /** @experimental */
-export interface ParallelPropertySut<TSnapshot, TEvent> {
+interface ParallelPropertySut<TSnapshot, TEvent> {
   readonly create: (
     context: TestSutContext<any, any>
   ) =>

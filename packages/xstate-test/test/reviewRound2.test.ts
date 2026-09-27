@@ -1,12 +1,8 @@
 import * as fc from 'fast-check';
 import * as z from 'zod';
 import { createMachine, types, type SnapshotFrom } from 'xstate';
-import {
-  ModelTestFailure,
-  propertyTest,
-  testPaths,
-  type TestStateKey
-} from '../src/index.ts';
+import { ModelTestFailure, propertyTest, testPaths } from '../src/index.ts';
+import type { TestStateKey } from '../src/engine/propertyTest.ts';
 import { expectTypeOf } from 'vitest';
 
 const lightMachine = createMachine({

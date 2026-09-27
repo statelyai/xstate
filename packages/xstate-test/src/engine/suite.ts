@@ -284,7 +284,7 @@ export interface ReplayTestSuiteOptions<
 }
 
 /** @experimental */
-export interface TestSuiteReplayFailure {
+interface TestSuiteReplayFailure {
   readonly fixture: TestFixture;
   readonly index: number;
   readonly title: string;

@@ -267,7 +267,7 @@ counts the shrinking steps fast-check took to reach it. `Saved` is the file
 the next run replays first; that run's message starts with
 `Property observation diverged (replayed from <file>)` and has no
 `Reproduce` line, since nothing was generated. The numbered lines
-are `formatTestTrace(failure.trace)`: each step's origin (`generator`), its
+are the formatted `failure.trace`: each step's origin (`generator`), its
 event, and the model's `{ value, context }` after it. Step 2 sent
 `REMOVE apple`. The model's projection is `{}`, and the store's is
 `{"apple":0}`: the store kept the SKU at quantity zero.

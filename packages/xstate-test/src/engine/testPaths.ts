@@ -40,7 +40,7 @@ import type { PathGenerator, StatePath, TraversalOptions } from 'xstate/graph';
  *
  * @experimental
  */
-export type TestPathGeneratorKind = 'shortest' | 'simple' | 'events' | 'custom';
+type TestPathGeneratorKind = 'shortest' | 'simple' | 'events' | 'custom';
 
 /**
  * The result of executing one path.
@@ -61,7 +61,7 @@ export interface TestPathRunResult<
  *
  * @experimental
  */
-export interface PathOptions<
+interface PathOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
   TInput
@@ -128,7 +128,7 @@ export interface PathOptions<
  * `testPaths()`, so `xstate/graph` never depends on fast-check.
  * @experimental
  */
-export interface SeededGeneratorKind extends PropertyGeneratorKind {
+interface SeededGeneratorKind extends PropertyGeneratorKind {
   readonly generator: TestGenerator<this['target']>;
 }
 

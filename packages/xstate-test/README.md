@@ -358,8 +358,7 @@ sut: {
 or per path. The session it returns is disposed at the end of the run, whether
 the run passed or failed. After every stable step, the runner compares
 `projectSut(read())` with `projectModel(snapshot)` using `equivalent`, which
-defaults to structural, key-order-insensitive deep equality
-(`defaultEquivalent`). Omit `read` and `projectModel` to check the SUT only
+defaults to structural, key-order-insensitive deep equality. Omit `read` and `projectModel` to check the SUT only
 through `states` assertions.
 
 The [session members](#sut) are listed in the reference.
@@ -1338,13 +1337,12 @@ Replay, reporting, suites, and linearizability:
 | --- | --- |
 | `replayTest(source, fixture, options)` | Replays a `TestFixture`. |
 | `ModelTestFailure`, `ReplayNotReproducedError` | Error classes. |
-| `formatTestTrace(trace)`, `serializeTestTrace(trace)` | Render a trace as text, or as JSON-safe data. |
-| `defaultEquivalent(a, b)` | The default projection comparison. |
-| `formatTestCoverage`, `formatTestCoverageJUnit`, `formatTestCoverageHTML`, `testCoverageToJSON`, `formatTestCoverageId` | Coverage reports. |
+| `serializeTestTrace(trace)` | Renders a trace as JSON-safe data. |
+| `formatTestCoverage`, `formatTestCoverageJUnit`, `formatTestCoverageHTML`, `testCoverageToJSON` | Coverage reports. |
 | `formatTestStatistics(coverage)` | The event-case and label distribution `statistics: true` prints. |
 | `TestCampaignError` | Thrown when a `sometimes` property or a `reachable` target is never satisfied. |
 | `assertTestCoverage(coverage, thresholds)` | Throws when coverage is below thresholds. |
-| `replayTestSuite`, `replayTestSuiteFixture`, `describeTestSuite`, `serializeTestSuite`, `parseTestSuite`, `formatTestSuiteFixtureTitle` | Offline suites. |
+| `replayTestSuite`, `replayTestSuiteFixture`, `describeTestSuite`, `serializeTestSuite`, `parseTestSuite` | Offline suites. |
 | `checkLinearizable(history, model, options?)` | Linearizability check. |
 | `runParallelPropertyCommands(machine, options)` | Concurrent branches checked for linearizability. |
 
@@ -1359,8 +1357,7 @@ Subpath entrypoints:
 
 ### Shared options
 
-`propertyTest()`, `testPaths()`, and `generateTestSuite()` accept these
-(`TestOptions`):
+`propertyTest()`, `testPaths()`, and `generateTestSuite()` accept these:
 
 | Option | Default | Description |
 | --- | --- | --- |
@@ -1390,7 +1387,7 @@ The `invariant`, `temporal`, and `target` functions receive a
 
 ### `testPaths()` options
 
-In addition to the shared options (`PathOptions`):
+In addition to the shared options:
 
 | Option | Default | Description |
 | --- | --- | --- |
@@ -1419,7 +1416,7 @@ resolved on its own, fails with
 
 ### `propertyTest()` options
 
-In addition to the shared options (`PropertyOptions`):
+In addition to the shared options:
 
 | Option | Default | Description |
 | --- | --- | --- |
@@ -1474,7 +1471,7 @@ options to fast-check:
 | `create(context)` | Creates a session for one run. `context` has `logic`, `input`, `snapshot` (the start snapshot, if any), `label`, `classify`, and `target`. |
 | `projectModel(snapshot)` | Projects the model snapshot to compare with `read()`. |
 | `projectSut(observed)` | Normalizes the value from `read()`. Defaults to identity. |
-| `equivalent(model, observed)` | Compares the projections. Defaults to `defaultEquivalent`. |
+| `equivalent(model, observed)` | Compares the projections. Defaults to structural deep equality. |
 | `complete({ passed, failure })` | Called once when the campaign ends, after every session was disposed. `failure` is the error the campaign throws. |
 
 `TestSutSession`, returned by `create()`:
@@ -1554,7 +1551,7 @@ transition that declares it is covered.
 | Field | Description |
 | --- | --- |
 | `summary` | The short message, such as `Property observation diverged`. `testPaths()` prefixes it with the failing path: `Path 2 (ADD → REMOVE) failed: …`. |
-| `message` | `summary` and the cause's message; a `Reproduce:` line with the fast-check `seed`, `path`, and `replayPath`; a `Fixture:` line when `fixture` is set; `Shrunk N time(s)` when fast-check shrank the counterexample; `Saved: <file>` when `failures` saved it; then `formatTestTrace(trace)`, and fast-check's report when `verbose` is set. |
+| `message` | `summary` and the cause's message; a `Reproduce:` line with the fast-check `seed`, `path`, and `replayPath`; a `Fixture:` line when `fixture` is set; `Shrunk N time(s)` when fast-check shrank the counterexample; `Saved: <file>` when `failures` saved it; then the trace, one line per entry, and fast-check's report when `verbose` is set. |
 | `trace` | `TestTrace`: `start`, `initialSnapshot`, `timeline`, `events`, `commands`, `steps`, `finalSnapshot`, `finalObservation`, `swarm`, `mode`, `outcomes`. |
 | `cause` | The error thrown by the oracle or the SUT. |
 | `fixture` | A `TestFixture` for `replayTest()`. |
@@ -1565,7 +1562,7 @@ transition that declares it is covered.
 `checkpoint`, `outcome`, `stop`), or, in executed mode, `'actorEvent'` for a
 transition the actor system made on its own.
 
-`formatTestTrace(trace, { formatSnapshot })` prints one line per entry:
+The trace in `message` has one line per entry:
 `N. <origin> <event> -> <state>`. The origin is `generator`, `prefix`, or
 `clock` for sent events, `timer` for `xstate.after` events and `advance`
 commands, `outcome` for invoke results, and `actor(<id>)` for a child actor's

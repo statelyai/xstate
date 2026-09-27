@@ -38,7 +38,7 @@ export interface FormatTestCoverageHTMLOptions {
  *
  * @experimental
  */
-export interface TestCoverageDimensionJSON {
+interface TestCoverageDimensionJSON {
   readonly total: number;
   readonly covered: number;
   readonly ratio: number;
@@ -209,7 +209,7 @@ function percentage(covered: number, total: number): string {
  * ids that are not recognized are rendered as-is.
  * @experimental
  */
-export function formatTestCoverageId(id: string): string {
+function formatTestCoverageId(id: string): string {
   let parsed: unknown;
   try {
     parsed = JSON.parse(id);
