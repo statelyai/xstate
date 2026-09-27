@@ -1,6 +1,6 @@
 import {
   _parseDelayToMilliseconds as parseDelayToMilliseconds,
-  createMachine,
+  _createMachineFromCompiledConfig as createMachineFromCompiledConfig,
   type Action,
   type AnyActorLogic,
   type AnyActorRef,
@@ -2518,7 +2518,7 @@ export function createMachineFromSCXMLConfig(
         }
       : {};
 
-  const machine = createMachine({
+  const machine = createMachineFromCompiledConfig({
     ...rootNodeConfig,
     ...contextConfig,
     version: json.version
