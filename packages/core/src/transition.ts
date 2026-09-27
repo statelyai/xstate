@@ -32,7 +32,6 @@ import {
 } from './transitionActions.ts';
 import {
   createTransitionDetails,
-  type GuardEvaluation,
   type TransitionDetails,
   type TransitionResolution
 } from './actorScope.ts';
@@ -41,7 +40,7 @@ import type { EventObject } from './types';
 
 type MachineMicrostep = [AnyMachineSnapshot, ExecutableActionObject[]];
 
-export type { GuardEvaluation, TransitionResolution } from './actorScope.ts';
+export type { TransitionResolution } from './actorScope.ts';
 
 function attachMicrostepActorRefs(
   microsteps: MachineMicrostep[],
@@ -102,7 +101,6 @@ export function transitionWithDetails<T extends AnyActorLogic>(
   nextSnapshot: SnapshotFrom<T>,
   actions: ExecutableActionObjectFromLogic<T>[],
   transitions: AnyTransitionDefinition[],
-  guards: GuardEvaluation[],
   resolutions: TransitionResolution[]
 ] {
   const [[nextSnapshot, effects], details] = runTransition(
@@ -115,7 +113,6 @@ export function transitionWithDetails<T extends AnyActorLogic>(
     nextSnapshot as SnapshotFrom<T>,
     effects as ExecutableActionObjectFromLogic<T>[],
     details!.transitions,
-    details!.guards,
     details!.resolutions
   ];
 }
@@ -204,7 +201,6 @@ export function initialTransitionWithDetails<T extends AnyActorLogic>(
   SnapshotFrom<T>,
   ExecutableActionObjectFromLogic<T>[],
   AnyTransitionDefinition[],
-  GuardEvaluation[],
   TransitionResolution[]
 ] {
   const [[nextSnapshot, effects], details] = runInitialTransition(
@@ -216,7 +212,6 @@ export function initialTransitionWithDetails<T extends AnyActorLogic>(
     nextSnapshot as SnapshotFrom<T>,
     effects as ExecutableActionObjectFromLogic<T>[],
     details!.transitions,
-    details!.guards,
     details!.resolutions
   ];
 }

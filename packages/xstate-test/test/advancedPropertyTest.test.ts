@@ -27,8 +27,7 @@ describe('advanced property testing', () => {
           states: {
             idle: {
               on: {
-                // Rejects GO unless `allow` is set, so both guard outcomes
-                // are observed.
+                // Rejects GO unless `allow` is set.
                 GO: ({ event }) =>
                   event.allow ? { target: 'allowed' } : undefined,
                 UNUSED: { target: 'idle' }
@@ -64,23 +63,6 @@ describe('advanced property testing', () => {
       id.includes('GO')
     );
     expect(goTransitions).toHaveLength(2);
-    expect(Object.values(result.coverage.guards.outcomes)).toContainEqual({
-      passed: expect.any(Number),
-      failed: expect.any(Number)
-    });
-    expect(
-      Object.values(result.coverage.guards.outcomes).some(
-        ({ passed, failed }) => passed > 0 && failed > 0
-      )
-    ).toBe(true);
-    // Every guard evaluation is counted exactly once, whether it passed or
-    // failed: a passing guard must not be counted by both the transition and
-    // the guard-outcome recording.
-    for (const [id, { passed, failed }] of Object.entries(
-      result.coverage.guards.outcomes
-    )) {
-      expect(result.coverage.guards.counts[id]).toBe(passed + failed);
-    }
     expect(result.coverage.transitions.covered).toEqual(
       expect.arrayContaining([expect.stringContaining('@eventless')])
     );

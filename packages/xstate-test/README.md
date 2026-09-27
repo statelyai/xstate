@@ -427,8 +427,8 @@ when the graph is too large to enumerate.
 
 Both entry points resolve with `{ coverage }`. Coverage counts what the runs
 exercised across these dimensions: `states`, `stateNodes`, `configurations`,
-`statuses`, `eventTypes`, `transitions`, `guards`, `transitionPairs`,
-`requirements`, and `frontiers`. Each dimension sorts its ids into `covered`,
+`statuses`, `eventTypes`, `transitions`, `transitionPairs`, `requirements`,
+and `frontiers`. Each dimension sorts its ids into `covered`,
 `uncovered`, `unreachable`, and `unknown`. Transition hits come from the
 microsteps XState took, not from the states that were visited.
 
@@ -1083,7 +1083,7 @@ this is the `TestFailureStore` that `xstate/graph` accepts.
 ### Record an offline regression suite
 
 `generateTestSuite()` runs a passing campaign and keeps a small set of fixtures
-that preserves the covered transitions, state nodes, and guards:
+that preserves the covered transitions and state nodes:
 
 ```ts
 import { writeFile } from 'node:fs/promises';
@@ -1448,7 +1448,7 @@ key must hold:
 
 | Key | Holds when |
 | --- | --- |
-| `stateNodes`, `transitions`, `transitionPairs`, `guards`, `requirements` | `covered / (covered + uncovered)` is at least the value. |
+| `stateNodes`, `transitions`, `transitionPairs`, `requirements` | `covered / (covered + uncovered)` is at least the value. |
 | `eventCases` | The share of event cases executed at least once is at least the value. |
 | `runs` | At least this many runs completed. |
 | `timeMs` | At least this many milliseconds elapsed. |
@@ -1529,7 +1529,6 @@ listed in `coverage.temporal.inconclusive`.
 | Field | Description |
 | --- | --- |
 | `states`, `stateNodes`, `configurations`, `statuses`, `eventTypes`, `transitions`, `frontiers` | `TestCoverageDimension`: `counts`, `covered`, `uncovered`, `unreachable`, `unknown`. |
-| `guards` | A dimension plus `outcomes`: `{ [guardId]: { passed, failed } }`. |
 | `transitionPairs` | A dimension of `"<first> -> <second>"` ids plus `truncated`. Only pairs of transitions with static targets are declared up front, up to 2,000; a pair involving a transition whose target is computed by a function appears once a run takes it. |
 | `requirements` | A dimension of `meta.requirements` ids plus `sources`, the state nodes and transitions that declare each id. |
 | `eventCases` | `{ [caseId]: { weight, generated, applicable, executed, ignored } }`. |
@@ -1555,9 +1554,6 @@ listed in `coverage.temporal.inconclusive`.
 | `stoppedBecause` | `'until'`, `'budget'`, `'failure'`, `'paths'` (`testPaths()` ran every path), or `'replay'` (`failures.replay` was `'only'`). |
 | `truncated`, `truncationReasons` | Why exploration was cut short. |
 | `pendingActorSteps` | Executed-mode steps that settled while an invoked or spawned actor's asynchronous work was still in flight. Those timeline entries list the actors in `pendingActors`. |
-
-In executed mode, guard coverage comes from the guarded transitions that were
-taken, so `guards.outcomes` stays empty.
 
 Add requirement ids with `meta.requirements` (a string or an array) on state
 nodes and transitions. A requirement is covered when any state node or
@@ -1835,7 +1831,7 @@ await testPaths(machine, {
 | Payloads | Generated, or derived from Zod and Effect schemas | Generated | Hand-written | Fixed `cases` |
 | Shrinking | Yes, with `propertyTest()` | Yes | No | No |
 | Oracles | SUT comparison, invariants, temporal properties, state assertions, reference | Assertions in each command | Assertions in each test | State assertions |
-| Coverage | States, transitions, guards, pairs, requirements, event cases | None | None | State nodes |
+| Coverage | States, transitions, pairs, requirements, event cases | None | None | State nodes |
 | Replay | Portable JSON fixtures, a failure database replayed first, and fast-check seeds | Seeds and paths | Traces | None |
 | Invoked actors and delays | `mode: 'executed'` with stubbed outcomes and a simulated clock | Hand-written | Real services and `page.clock` | Not modeled |
 | UI | `@xstate/test/playwright` | Manual | Native | Manual executors |

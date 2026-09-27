@@ -5,7 +5,6 @@ import type {
   EventObject,
   Snapshot
 } from '../types.ts';
-import type { GuardEvaluation } from '../transition.ts';
 import { getStateNodeByPath } from '../stateUtils.ts';
 import { normalizeTarget } from '../utils.ts';
 import { getDescendantStateNodes } from './graph.ts';
@@ -47,12 +46,6 @@ interface TestTransitionPairCoverageDimension extends TestCoverageDimension {
 interface TestRequirementCoverageDimension extends TestCoverageDimension {
   /** Requirement id to the state nodes and transitions that declare it. */
   readonly sources: Readonly<Record<string, readonly string[]>>;
-}
-
-interface TestGuardCoverageDimension extends TestCoverageDimension {
-  readonly outcomes: Readonly<
-    Record<string, { readonly passed: number; readonly failed: number }>
-  >;
 }
 
 export type TestEventCaseStage =
@@ -287,8 +280,6 @@ export interface TestCoverage {
   readonly dynamicTransitions: Readonly<
     Record<string, TestDynamicTransitionCoverage>
   >;
-  /** Guard ids, with pass/fail counts in `outcomes`. */
-  readonly guards: TestGuardCoverageDimension;
   /** Frontier ids from the `frontiers` option. */
   readonly frontiers: TestCoverageDimension;
   /** Labels recorded with `label()`/`classify()`, keyed by label name. */
@@ -344,7 +335,6 @@ export interface MutableTestCoverage {
       outcomeCompleteness: 'unknown';
     }
   >;
-  guards: MutableDimension;
   frontiers: MutableDimension;
   labels: Record<
     string,
@@ -362,8 +352,6 @@ export interface MutableTestCoverage {
   /** Runs started after the first failing run. */
   shrinkRuns: number;
   transitionIds: WeakMap<AnyTransitionDefinition, string>;
-  guardIds: WeakMap<AnyTransitionDefinition, string>;
-  guardOutcomes: Record<string, { passed: number; failed: number }>;
   maximumObservedSequenceLength: number;
   pendingActorSteps: number;
 }
@@ -547,14 +535,6 @@ function registerTransition(
       outcomeCompleteness: 'unknown'
     };
   }
-  if (transition.guard || transition.to) {
-    const guardId = JSON.stringify(['guard', id]);
-    coverage.guardIds.set(transition, guardId);
-    declare(coverage.guards, guardId, {
-      unreachable: sourceUnreachable && !reachabilityUnknown,
-      unknown: sourceUnreachable && reachabilityUnknown
-    });
-  }
   return id;
 }
 
@@ -733,7 +713,6 @@ export function createTestCoverage(logic: unknown): MutableTestCoverage {
     requirementsByTransition: new Map(),
     previousTransitionIds: null,
     dynamicTransitions: {},
-    guards: dimension(),
     frontiers: dimension(),
     labels: {},
     temporal: {
@@ -743,8 +722,6 @@ export function createTestCoverage(logic: unknown): MutableTestCoverage {
     },
     shrinkRuns: 0,
     transitionIds: new WeakMap(),
-    guardIds: new WeakMap(),
-    guardOutcomes: {},
     maximumObservedSequenceLength: 0,
     pendingActorSteps: 0
   };
@@ -756,8 +733,7 @@ export function createTestCoverage(logic: unknown): MutableTestCoverage {
       coverage.configurations,
       coverage.eventTypes,
       coverage.transitions,
-      coverage.transitionPairs,
-      coverage.guards
+      coverage.transitionPairs
     ]) {
       declare(target, '(not statically enumerable)', { unknown: true });
     }
@@ -861,13 +837,7 @@ export function recordPropertyTransitions(
   resolutions: readonly {
     readonly transition: AnyTransitionDefinition;
     readonly targetIds: readonly string[];
-  }[] = [],
-  /**
-   * Whether the guard of every selected transition should be counted as one
-   * evaluation. Callers that also call {@link recordPropertyGuards} for the
-   * same step must pass `false`, so a passing guard is not counted twice.
-   */
-  countGuards = true
+  }[] = []
 ): readonly string[] {
   incrementCoverage(coverage.eventTypes, event.type);
   const resolvedTargets = new Map(
@@ -886,15 +856,6 @@ export function recordPropertyTransitions(
       dynamic.hits++;
       for (const targetId of resolvedTargets.get(selected) ?? []) {
         dynamic.observedTargetIds.add(targetId);
-      }
-    }
-    if (countGuards) {
-      // Only counted here when the caller has no guard evaluations of its own
-      // (executed mode): otherwise `recordPropertyGuards()` counts every
-      // evaluation, passing or failing, exactly once.
-      const guardId = coverage.guardIds.get(selected);
-      if (guardId) {
-        incrementCoverage(coverage.guards, guardId);
       }
     }
     recordRequirements(coverage, coverage.requirementsByTransition.get(id));
@@ -989,33 +950,6 @@ export function recordPropertyEventCase(
     ignored: number;
   };
   counts[stage]++;
-}
-
-export function recordPropertyGuards(
-  coverage: MutableTestCoverage,
-  evaluations: readonly GuardEvaluation[]
-): readonly string[] {
-  const ids: string[] = [];
-  for (const evaluation of evaluations) {
-    const id =
-      coverage.guardIds.get(evaluation.transition) ??
-      JSON.stringify([
-        'guard',
-        getPropertyTransitionId(coverage, evaluation.transition)
-      ]);
-    ids.push(id);
-    incrementCoverage(coverage.guards, id);
-    const outcomes = (coverage.guardOutcomes[id] ??= {
-      passed: 0,
-      failed: 0
-    });
-    if (evaluation.result) {
-      outcomes.passed++;
-    } else {
-      outcomes.failed++;
-    }
-  }
-  return ids;
 }
 
 function finalizeDimension(dimension: MutableDimension): TestCoverageDimension {
@@ -1119,10 +1053,6 @@ export function finalizeTestCoverage(
           }
         ])
     ),
-    guards: {
-      ...finalizeDimension(coverage.guards),
-      outcomes: { ...coverage.guardOutcomes }
-    },
     frontiers: finalizeDimension(coverage.frontiers),
     labels: Object.fromEntries(
       Object.entries(coverage.labels)

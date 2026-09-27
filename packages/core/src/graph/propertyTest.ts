@@ -24,7 +24,6 @@ import {
   parsePropertyEventCaseId,
   incrementCoverage,
   recordPropertyEventCase,
-  recordPropertyGuards,
   recordPropertyLabel,
   recordPropertyTemporal,
   recordPropertySnapshot,
@@ -172,7 +171,6 @@ export interface TestActorTimelineEntry<TSnapshot extends Snapshot<unknown>> {
   readonly snapshot: TSnapshot;
   readonly effects: readonly unknown[];
   readonly transitionIds: readonly string[];
-  readonly guardIds: readonly string[];
   /** Never set: reference/SUT comparison happens on the settled step. */
   readonly observation?: undefined;
 }
@@ -212,7 +210,6 @@ export interface TestEventTimelineEntry<
   readonly snapshot: TSnapshot;
   readonly effects: readonly unknown[];
   readonly transitionIds: readonly string[];
-  readonly guardIds: readonly string[];
   readonly activeStateIds: readonly string[];
   readonly observation?: TestObservation;
   /**
@@ -235,7 +232,6 @@ export interface TestRuntimeTimelineEntry<
   readonly snapshot: TSnapshot;
   readonly effects: readonly unknown[];
   readonly transitionIds: readonly string[];
-  readonly guardIds: readonly string[];
   readonly observation?: TestObservation;
   /** See {@link TestEventTimelineEntry.pendingActors}. */
   readonly pendingActors?: readonly string[];
@@ -834,7 +830,6 @@ export interface TestTrace<
   readonly initialSnapshot: TSnapshot;
   readonly initialEffects: readonly unknown[];
   readonly initialTransitionIds: readonly string[];
-  readonly initialGuardIds: readonly string[];
   readonly timeline: readonly TestTimelineEntry<TSnapshot, TEvent>[];
   readonly prefixEvents: readonly TEvent[];
   readonly events: readonly TEvent[];
@@ -1206,7 +1201,7 @@ interface DrainedTransition<TSnapshot extends Snapshot<unknown>> {
 
 /**
  * Drives a real actor on a {@link SimulatedClock} and turns its inspection
- * stream into the same transition/guard details the pure path returns.
+ * stream into the same transition details the pure path returns.
  */
 class PropertyExecutionEngine<
   TSnapshot extends Snapshot<unknown>,
@@ -1489,7 +1484,6 @@ export class PropertyScenarioRunner<
   private initialSnapshot!: TSnapshot;
   private initialEffects: readonly unknown[] = [];
   private initialTransitionIds: readonly string[] = [];
-  private initialGuardIds: readonly string[] = [];
   private readonly timeline: TestTimelineEntry<TSnapshot, TEvent>[] = [];
   private readonly temporal: TemporalState<TSnapshot, TEvent>[];
   private stableStep = 0;
@@ -1629,34 +1623,30 @@ export class PropertyScenarioRunner<
 
   public async start(): Promise<void> {
     resetPropertyTransitionPairs(this.coverage);
-    const [snapshot, effects, selected, guards, resolutions]: [
+    const [snapshot, effects, selected, resolutions]: [
       TSnapshot,
       readonly unknown[],
       readonly AnyTransitionDefinition[],
-      readonly import('../transition.ts').GuardEvaluation[],
       readonly import('../transition.ts').TransitionResolution[]
     ] = this.startingSnapshot
-      ? [this.startingSnapshot, [], [], [], []]
+      ? [this.startingSnapshot, [], [], []]
       : (initialTransitionWithDetails(this.logic, this.input as never) as [
           TSnapshot,
           readonly unknown[],
           readonly AnyTransitionDefinition[],
-          readonly import('../transition.ts').GuardEvaluation[],
           readonly import('../transition.ts').TransitionResolution[]
         ]);
     this.initialTransitionIds = recordPropertyTransitions(
       this.coverage,
       { type: XSTATE_INIT },
       selected,
-      resolutions,
-      false
+      resolutions
     );
-    this.initialGuardIds = recordPropertyGuards(this.coverage, guards);
     let initialSnapshot = snapshot;
     let initialEffects = effects;
     if (this.executionConfig?.mode === 'executed') {
       // The pure initial transition above is only used to attribute initial
-      // transition and guard coverage: the `@xstate.init` inspection event
+      // transition coverage: the `@xstate.init` inspection event
       // carries no microsteps. The snapshot the run proceeds from is the real
       // actor's.
       this.executionConfig.registry.reset();
@@ -1826,8 +1816,7 @@ export class PropertyScenarioRunner<
         previousSnapshot: this.snapshot,
         snapshot: this.snapshot,
         effects: [],
-        transitionIds: [],
-        guardIds: []
+        transitionIds: []
       });
     } else if (command.type === 'outcome') {
       if (!this.execution) {
@@ -1863,8 +1852,7 @@ export class PropertyScenarioRunner<
       previousSnapshot,
       snapshot: this.snapshot,
       effects: [],
-      transitionIds: [],
-      guardIds: []
+      transitionIds: []
     };
     this.timeline.push(entry);
     this.markPendingActors(entry);
@@ -1898,8 +1886,7 @@ export class PropertyScenarioRunner<
         previousSnapshot: advancedFrom,
         snapshot: this.snapshot,
         effects: [],
-        transitionIds: [],
-        guardIds: []
+        transitionIds: []
       };
       this.timeline.push(pureEntry);
       const pureObservation = await this.checkStable(
@@ -1927,8 +1914,7 @@ export class PropertyScenarioRunner<
       previousSnapshot,
       snapshot: this.snapshot,
       effects: [],
-      transitionIds: [],
-      guardIds: []
+      transitionIds: []
     });
     for (let index = 0; index < events.length; index++) {
       await this.executeEvent(
@@ -1964,8 +1950,7 @@ export class PropertyScenarioRunner<
       previousSnapshot,
       snapshot: this.snapshot,
       effects: [],
-      transitionIds: [],
-      guardIds: []
+      transitionIds: []
     };
     this.timeline.push(entry);
     this.markPendingActors(entry);
@@ -1989,8 +1974,7 @@ export class PropertyScenarioRunner<
       previousSnapshot: this.snapshot,
       snapshot: this.snapshot,
       effects: [],
-      transitionIds: [],
-      guardIds: []
+      transitionIds: []
     };
     this.timeline.push(entry);
     await this.sutSession?.checkpoint?.(label);
@@ -2007,7 +1991,6 @@ export class PropertyScenarioRunner<
     let snapshot: TSnapshot;
     let effects: readonly unknown[];
     let transitionIds: readonly string[];
-    let guardIds: readonly string[];
     let drained: readonly DrainedTransition<TSnapshot>[] = [];
     if (this.execution) {
       this.execution.stop();
@@ -2016,9 +1999,8 @@ export class PropertyScenarioRunner<
       snapshot = this.execution.getSnapshot();
       effects = [];
       transitionIds = [];
-      guardIds = [];
     } else {
-      const [pureSnapshot, pureEffects, selected, guards, resolutions] =
+      const [pureSnapshot, pureEffects, selected, resolutions] =
         transitionWithDetails(this.logic, previousSnapshot, {
           type: XSTATE_STOP
         } as TEvent);
@@ -2028,10 +2010,8 @@ export class PropertyScenarioRunner<
         this.coverage,
         { type: XSTATE_STOP },
         selected,
-        resolutions,
-        false
+        resolutions
       );
-      guardIds = recordPropertyGuards(this.coverage, guards);
     }
     this.snapshot = snapshot;
     await this.referenceSession?.stop?.();
@@ -2047,8 +2027,7 @@ export class PropertyScenarioRunner<
       previousSnapshot,
       snapshot,
       effects,
-      transitionIds,
-      guardIds
+      transitionIds
     };
     this.timeline.push(entry);
     this.markPendingActors(entry);
@@ -2176,7 +2155,6 @@ export class PropertyScenarioRunner<
       initialSnapshot: this.initialSnapshot,
       initialEffects: this.initialEffects,
       initialTransitionIds: this.initialTransitionIds,
-      initialGuardIds: this.initialGuardIds,
       timeline: this.timeline.slice(),
       prefixEvents: steps
         .filter((step) => step.phase === 'prefix')
@@ -2219,7 +2197,6 @@ export class PropertyScenarioRunner<
     let snapshot: TSnapshot;
     let effects: readonly unknown[];
     let transitionIds: readonly string[];
-    let guardIds: readonly string[];
     let drained: readonly DrainedTransition<TSnapshot>[] = [];
     if (this.execution) {
       this.execution.send(event);
@@ -2235,12 +2212,8 @@ export class PropertyScenarioRunner<
       drained = primaryIndex === -1 ? drained : drained.slice(primaryIndex + 1);
       effects = primary?.effects ?? [];
       transitionIds = primary?.transitionIds ?? [];
-      // The inspection protocol reports the microsteps taken, not the guards
-      // evaluated, so executed mode attributes guard coverage only through
-      // the guarded transitions that were selected.
-      guardIds = [];
     } else {
-      const [pureSnapshot, pureEffects, selected, guards, resolutions] =
+      const [pureSnapshot, pureEffects, selected, resolutions] =
         transitionWithDetails(this.logic, previousSnapshot, event);
       snapshot = pureSnapshot;
       effects = pureEffects;
@@ -2248,10 +2221,8 @@ export class PropertyScenarioRunner<
         this.coverage,
         event,
         selected,
-        resolutions,
-        false
+        resolutions
       );
-      guardIds = recordPropertyGuards(this.coverage, guards);
     }
     this.snapshot = snapshot;
     if (this.referenceSession) {
@@ -2280,7 +2251,6 @@ export class PropertyScenarioRunner<
       snapshot,
       effects,
       transitionIds,
-      guardIds,
       activeStateIds: this.getActiveStateIds(snapshot)
     };
     this.timeline.push(entry);
@@ -2649,8 +2619,7 @@ export class PropertyScenarioRunner<
         previousSnapshot: previous,
         snapshot: transition.snapshot,
         effects: transition.effects,
-        transitionIds: transition.transitionIds,
-        guardIds: []
+        transitionIds: transition.transitionIds
       });
       if (transition.source === 'root') {
         previous = transition.snapshot;
@@ -3083,7 +3052,6 @@ export interface TestStopConditionObject {
   readonly stateNodes?: number;
   readonly transitions?: number;
   readonly transitionPairs?: number;
-  readonly guards?: number;
   /** The share of event cases executed at least once. */
   readonly eventCases?: number;
   readonly requirements?: number;
@@ -3176,7 +3144,6 @@ export function evaluateTestStopCondition(
     'stateNodes',
     'transitions',
     'transitionPairs',
-    'guards',
     'requirements'
   ] as const) {
     const threshold = condition[key];
@@ -4532,7 +4499,6 @@ export function serializeTestTrace<
         : trace.start,
     initialSnapshot: serializeSnapshot(trace.initialSnapshot),
     initialTransitionIds: trace.initialTransitionIds,
-    initialGuardIds: trace.initialGuardIds,
     timeline: trace.timeline.map((entry) => ({
       kind: entry.kind,
       index: entry.index,
@@ -4540,7 +4506,6 @@ export function serializeTestTrace<
       snapshot: serializeSnapshot(entry.snapshot),
       effects: entry.effects,
       transitionIds: entry.transitionIds,
-      guardIds: entry.guardIds,
       ...(entry.kind === 'actorEvent'
         ? {
             source: entry.source,

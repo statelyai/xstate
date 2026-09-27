@@ -9,11 +9,6 @@ export const lazyActorScope = Symbol();
 
 const transitionDetails = Symbol();
 
-export interface GuardEvaluation {
-  readonly transition: AnyTransitionDefinition;
-  readonly result: boolean;
-}
-
 export interface TransitionResolution {
   readonly transition: AnyTransitionDefinition;
   readonly targetIds: readonly string[];
@@ -21,7 +16,6 @@ export interface TransitionResolution {
 
 export interface TransitionDetails {
   readonly transitions: AnyTransitionDefinition[];
-  readonly guards: GuardEvaluation[];
   readonly resolutions: TransitionResolution[];
 }
 
@@ -37,7 +31,6 @@ export function createTransitionDetails(
 ): TransitionDetails {
   const details: TransitionDetails = {
     transitions: [],
-    guards: [],
     resolutions: []
   };
   (actorScope as InternalActorScope)[transitionDetails] = details;

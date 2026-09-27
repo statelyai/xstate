@@ -80,7 +80,7 @@ interface Candidate {
   readonly length: number;
 }
 
-/** The transition, state node and guard ids a single trace exercised. */
+/** The transition and state node ids a single trace exercised. */
 function getTraceElements<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -89,15 +89,9 @@ function getTraceElements<
   for (const id of trace.initialTransitionIds) {
     elements.add(`transition:${id}`);
   }
-  for (const id of trace.initialGuardIds) {
-    elements.add(`guard:${id}`);
-  }
   for (const entry of trace.timeline) {
     for (const id of entry.transitionIds) {
       elements.add(`transition:${id}`);
-    }
-    for (const id of entry.guardIds) {
-      elements.add(`guard:${id}`);
     }
     if (entry.kind === 'event') {
       for (const id of entry.activeStateIds) {

@@ -308,45 +308,6 @@ describe('event descriptors', () => {
   });
 });
 
-describe('guard coverage', () => {
-  it('counts each guard evaluation exactly once', async () => {
-    const guarded = createMachine({
-      id: 'guarded',
-      initial: 'idle',
-      schemas: {
-        context: types<{ count: number }>(),
-        events: { STEP: types<{}>() }
-      },
-      context: { count: 0 },
-      states: {
-        idle: {
-          on: {
-            // Passes only while the count is 0, so both outcomes are observed.
-            STEP: ({ context }) =>
-              context.count === 0
-                ? { context: { count: context.count + 1 } }
-                : undefined
-          }
-        }
-      }
-    });
-
-    const { coverage } = await propertyTest(guarded as any, {
-      adapter: randomAdapter({ seed: 3, numRuns: 5, maxCommands: 8 }),
-      events: { STEP: constant({}) },
-      invariant: () => {}
-    });
-
-    const guards = coverage.guards;
-    const outcomes = guards.outcomes;
-    expect(Object.keys(outcomes).length).toBeGreaterThan(0);
-    for (const [id, outcome] of Object.entries(outcomes)) {
-      expect(outcome.passed + outcome.failed).toBeGreaterThan(0);
-      expect(guards.counts[id]).toBe(outcome.passed + outcome.failed);
-    }
-  });
-});
-
 describe('replay disposal', () => {
   it('disposes sessions created before a later creator throws', async () => {
     const failure = (await propertyTest(toggleMachine, {

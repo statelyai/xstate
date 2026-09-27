@@ -2945,17 +2945,7 @@ export function evaluateCandidate(
       },
       actorScope
     );
-    const result = (candidate.guard as (args: typeof guardArgs) => boolean)(
-      guardArgs
-    );
-    const transitionDetails = getTransitionDetails(actorScope);
-    if (transitionDetails) {
-      transitionDetails.guards.push({
-        transition: candidate,
-        result
-      });
-    }
-    if (!result) {
+    if (!(candidate.guard as (args: typeof guardArgs) => boolean)(guardArgs)) {
       return false;
     }
   }
@@ -2971,12 +2961,6 @@ export function evaluateCandidate(
       candidate.source.id
     );
     selectionResults?.set(candidate, evaluation);
-    // A transition function is the transition's guard: returning `undefined`
-    // rejects the event.
-    getTransitionDetails(actorScope)?.guards.push({
-      transition: candidate,
-      result: evaluation.enabled
-    });
     return evaluation.enabled;
   }
 

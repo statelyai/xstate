@@ -67,7 +67,6 @@ configurations: 4/4 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 statuses: 1/1 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 eventTypes: 4/4 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 transitions: 7/7 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
-guards: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 transitionPairs: 16/16 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 requirements: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown
 frontiers: 0/0 covered (100.0%), 0 uncovered, 0 unreachable, 0 unknown

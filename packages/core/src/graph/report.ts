@@ -71,10 +71,6 @@ export interface TestCoverageJSON {
     readonly oracleComparisons: number;
   };
   readonly dimensions: Record<string, TestCoverageDimensionJSON>;
-  readonly guardOutcomes: Record<
-    string,
-    { readonly passed: number; readonly failed: number }
-  >;
   readonly eventCases: Record<string, TestEventCaseCounts>;
   readonly dynamicTransitions: Record<
     string,
@@ -160,7 +156,6 @@ type DimensionKey =
   | 'statuses'
   | 'eventTypes'
   | 'transitions'
-  | 'guards'
   | 'transitionPairs'
   | 'requirements'
   | 'frontiers';
@@ -172,7 +167,6 @@ const DIMENSION_KEYS: readonly DimensionKey[] = [
   'statuses',
   'eventTypes',
   'transitions',
-  'guards',
   'transitionPairs',
   'requirements',
   'frontiers'
@@ -237,9 +231,6 @@ export function formatTestCoverageId(id: string): string {
   if (kind === 'transition' && rest.length === 3) {
     const [source, eventType, index] = rest as [string, string, unknown];
     return `${source} --${eventType}--> #${String(index)}`;
-  }
-  if (kind === 'guard' && rest.length === 1) {
-    return `guard of ${formatTestCoverageId(String(rest[0]))}`;
   }
   if (kind === 'event-case' && rest.length === 2) {
     const [eventType, caseName] = rest as [string, string];
@@ -368,19 +359,6 @@ function formatText(coverage: TestCoverage): string {
       ...listLines(`unknown ${key}`, dimension.unknown)
     );
   }
-  const guardOutcomes = Object.entries(coverage.guards.outcomes).sort(
-    ([left], [right]) => left.localeCompare(right)
-  );
-  if (guardOutcomes.length) {
-    lines.push('guard outcomes:');
-    for (const [id, outcome] of guardOutcomes) {
-      lines.push(
-        `  - ${formatTestCoverageId(id)}: ${outcome.passed} passed, ${
-          outcome.failed
-        } failed`
-      );
-    }
-  }
   const eventCases = Object.entries(coverage.eventCases).sort(
     ([left], [right]) => left.localeCompare(right)
   );
@@ -469,25 +447,6 @@ function formatMarkdown(coverage: TestCoverage): string {
     );
   } else {
     lines.push('Everything declared was covered.', '');
-  }
-
-  const guardOutcomes = Object.entries(coverage.guards.outcomes).sort(
-    ([left], [right]) => left.localeCompare(right)
-  );
-  if (guardOutcomes.length) {
-    lines.push(
-      '## Guard outcomes',
-      '',
-      ...markdownTable(
-        ['Guard', 'Passed', 'Failed'],
-        guardOutcomes.map(([id, outcome]) => [
-          formatTestCoverageId(id),
-          String(outcome.passed),
-          String(outcome.failed)
-        ])
-      ),
-      ''
-    );
   }
 
   const eventCases = Object.entries(coverage.eventCases).sort(
@@ -629,14 +588,6 @@ export function testCoverageToJSON(coverage: TestCoverage): TestCoverageJSON {
       oracleComparisons: coverage.oracleComparisons
     },
     dimensions,
-    guardOutcomes: Object.fromEntries(
-      Object.entries(coverage.guards.outcomes)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([id, outcome]) => [
-          id,
-          { passed: outcome.passed, failed: outcome.failed }
-        ])
-    ),
     eventCases: Object.fromEntries(
       Object.entries(coverage.eventCases)
         .sort(([left], [right]) => left.localeCompare(right))

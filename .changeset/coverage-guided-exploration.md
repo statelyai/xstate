@@ -14,7 +14,7 @@ Runs are executed in batches of `batchRuns` (default 25) up to `maxRuns`
 const { coverage } = await propertyTest(machine, {
   events: { NEXT: fc.constant({}) },
   invariant,
-  until: { transitions: 1, any: [{ guards: 1 }, { timeMs: 5_000 }] }
+  until: { transitions: 1, any: [{ transitionPairs: 1 }, { timeMs: 5_000 }] }
 });
 
 coverage.exploration.stoppedBecause; // 'until' | 'budget' | 'failure'
