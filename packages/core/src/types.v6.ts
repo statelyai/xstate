@@ -1,8 +1,12 @@
-import {
-  SetupStateSchemas,
-  StandardSchemaV1,
-  TypeSchema
-} from './schema.types.ts';
+import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
+import type {
+  ActionSchemas,
+  GuardSchemas,
+  InferEvents,
+  InferInternalEvents
+} from './base.types.ts';
+
+export type { ActionSchemas, GuardSchemas, InferEvents, InferInternalEvents };
 import { MachineSnapshot } from './State';
 import {
   Action,
@@ -17,6 +21,7 @@ import {
   Compute,
   DoneActorEvent,
   DoNotInfer,
+  ErrorFrom,
   ErrorActorEvent,
   EnqueueObject,
   EventDescriptor,
@@ -53,6 +58,15 @@ export type InferOutput<T extends StandardSchemaV1, U> = Compute<
 >;
 
 /**
+ * The machine input type declared by an input schema, or `unknown` when no
+ * input schema is declared (the unresolved schema parameter infers `unknown`).
+ */
+export type InferMachineInput<T extends StandardSchemaV1> =
+  unknown extends StandardSchemaV1.InferOutput<T>
+    ? unknown
+    : InferOutput<T, unknown>;
+
+/**
  * Extracts the machine output type from the config's `output` property: the
  * return type of an output mapper, or the type of a static output value.
  * Falls back to `TFallback` when the config declares no `output`.
@@ -66,65 +80,49 @@ export type OutputFromConfig<TConfig, TFallback> = TConfig extends {
   : TFallback;
 
 /**
+ * The output type contributed by a single top-level final state: its
+ * `schemas.output` if declared, otherwise its `output` mapper's return type
+ * (or static value), otherwise `undefined` (a final state with no `output`
+ * completes the machine with `undefined` output).
+ */
+export type FinalStateConfigOutput<TStateConfig> = TStateConfig extends {
+  schemas: { output: infer TOutputSchema extends StandardSchemaV1 };
+}
+  ? StandardSchemaV1.InferOutput<TOutputSchema>
+  : OutputFromConfig<TStateConfig, undefined>;
+
+/**
+ * The union of output types across the config's top-level final states, or
+ * `never` when it has none. Reaching a top-level final state completes the
+ * machine with that state's output when no root `output` mapper is declared.
+ */
+type TopLevelFinalOutput<TConfig> = TConfig extends {
+  states: infer TStates;
+}
+  ? {
+      [K in keyof TStates]: TStates[K] extends { type: 'final' }
+        ? FinalStateConfigOutput<TStates[K]>
+        : never;
+    }[keyof TStates]
+  : never;
+
+/**
  * The machine's output type when no output schema is declared in `setup()`: a
  * declared `schemas.output` is authoritative, otherwise the output type is
- * inferred from the config's `output` property.
+ * inferred from the config's `output` property, falling back to the union of
+ * top-level final-state output types.
  */
 export type SchemaOrConfigOutput<
   TOutputSchema extends StandardSchemaV1,
   TConfig
 > = StandardSchemaV1 extends TOutputSchema
-  ? OutputFromConfig<TConfig, InferOutput<TOutputSchema, unknown>>
+  ? OutputFromConfig<
+      TConfig,
+      [TopLevelFinalOutput<TConfig>] extends [never]
+        ? InferOutput<TOutputSchema, unknown>
+        : TopLevelFinalOutput<TConfig>
+    >
   : InferOutput<TOutputSchema, unknown>;
-
-/**
- * Event payloads from schemas (e.g. Zod) are often inferred as optional in
- * output types. Wrapping in Required<> ensures properties defined in the schema
- * are required on the event. Type-only schemas created with the `types()`
- * helper are exempt: their declared type is authoritative, so optional
- * properties stay optional.
- */
-export type InferEvents<
-  TEventSchemaMap extends Record<string, StandardSchemaV1>
-> = Values<{
-  [K in keyof TEventSchemaMap & string]: StandardSchemaV1.InferOutput<
-    TEventSchemaMap[K]
-  > extends infer O
-    ? [O] extends [never]
-      ? never
-      : unknown extends O
-        ? O & { type: K }
-        : [O] extends [void]
-          ? { type: K }
-          : string extends keyof O
-            ? [O[string]] extends [never]
-              ? { type: EventTypeFromSchemaKey<K> }
-              : NormalizeEventPayload<TEventSchemaMap[K], O> & {
-                  type: EventTypeFromSchemaKey<K>;
-                }
-            : NormalizeEventPayload<TEventSchemaMap[K], O> & {
-                type: EventTypeFromSchemaKey<K>;
-              }
-    : never;
-}>;
-
-/** Infers internal events only from explicitly declared schema keys. */
-export type InferInternalEvents<
-  TEventSchemaMap extends Record<string, StandardSchemaV1>
-> = string extends keyof TEventSchemaMap ? never : InferEvents<TEventSchemaMap>;
-
-type EventTypeFromSchemaKey<TKey extends string> = TKey extends '*'
-  ? string
-  : TKey extends `${infer TLeading}.*`
-    ? `${TLeading}.${string}`
-    : TKey;
-
-/**
- * Keeps a type-only schema's payload verbatim; applies Required<> to payloads
- * from validator libraries (see {@link InferEvents}).
- */
-type NormalizeEventPayload<TSchema extends StandardSchemaV1, O> =
-  TSchema extends TypeSchema<any> ? O : Required<O>;
 
 export type InferChildren<
   TChildrenSchemaMap extends Record<string, StandardSchemaV1>
@@ -137,10 +135,6 @@ export type InferChildren<
         ? NormalizeActorRef<StandardSchemaV1.InferOutput<TChildrenSchemaMap[K]>>
         : never;
     };
-
-export type ActionSchemas = Record<string, { params: StandardSchemaV1 }>;
-
-export type GuardSchemas = Record<string, { params: StandardSchemaV1 }>;
 
 export type InferActions<TActionSchemaMap extends ActionSchemas> =
   string extends keyof TActionSchemaMap
@@ -242,11 +236,11 @@ type InternalEventDescriptorFor<TEvent extends EventObject> = [TEvent] extends [
  */
 export interface MachineOptions {
   /**
-   * Maximum number of microsteps allowed before throwing an infinite loop
-   * error. Defaults to `Infinity` (no limit). Set to a finite number to enable
-   * infinite loop detection.
+   * Maximum number of microsteps one macrostep may take before an
+   * `InfiniteTransitionError` is thrown. Raise it for machines that
+   * legitimately take many eventless or raised-event steps per event.
    *
-   * @default Infinity
+   * @default 1000
    */
   maxIterations?: number;
 }
@@ -290,6 +284,14 @@ export type AnyMachineSchemas = MachineSchemas<
   Record<string, StandardSchemaV1>
 >;
 
+/**
+ * The v5 `types` key has no v6 equivalent. Typing it as this message makes the
+ * compiler print the replacement rather than accepting dead configuration.
+ */
+type RemovedTypesKey =
+  '`types` was replaced by `schemas` in v6. Declare `context`, `events` and the other contracts under `schemas`, or run `xstate-codemod migrate --transform types-to-schemas`.';
+
+/** @public */
 export type Next_MachineConfig<
   TContextSchema extends StandardSchemaV1,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
@@ -343,6 +345,11 @@ export type Next_MachineConfig<
   >,
   'output' | 'schemas'
 > & {
+  /**
+   * Declared only so that a leftover v5 `types` key is rejected instead of
+   * being accepted and silently ignored: nothing reads it in v6.
+   */
+  types?: RemovedTypesKey;
   /** @deprecated Declare private event schemas in `schemas.internalEvents`. */
   internalEvents?: readonly InternalEventDescriptorFor<TEvent>[];
   schemas?: MachineSchemas<
@@ -421,6 +428,8 @@ export type Next_MachineConfig<
  * number }`), since `createMachine`'s `const` state-schema inference would
  * otherwise freeze context at its initial literal type and make every context
  * update a type error.
+ *
+ * @public
  */
 export type WidenLiterals<T> = T extends string
   ? string
@@ -482,6 +491,22 @@ type HasExplicitChildren<
   : [keyof TChildren] extends [never]
     ? false
     : true;
+
+/**
+ * @public Completion events (`xstate.done.actor` / `xstate.error.actor`) of
+ * the children declared in `schemas.children`, keyed by `actorId`. Folded into
+ * the event union seen by `entry`, `exit`, guards and transition functions.
+ */
+export type ChildCompletionEvents<
+  TChildren extends Record<string, AnyActorRef | undefined>
+> =
+  HasExplicitChildren<TChildren> extends true
+    ? Values<{
+        [K in keyof TChildren & string]:
+          | DoneActorEvent<OutputFrom<NonNullable<TChildren[K]>>, K>
+          | ErrorActorEvent<ErrorFrom<NonNullable<TChildren[K]>>, K>;
+      }>
+    : never;
 
 type ChildIdForLogic<
   TLogic extends AnyActorLogic,
@@ -701,6 +726,8 @@ type InlineInvokeConfig<
  *   against that logic's input type.
  * - A branch for inline (unregistered) actor logic values, whose `input` cannot
  *   be correlated (the config is not generic over inline logic).
+ *
+ * @public
  */
 export type Next_InvokeConfig<
   TContext extends MachineContext,
@@ -775,7 +802,8 @@ export type Next_InvokeConfig<
             TDelayMap,
             TMeta,
             TSystemRegistry,
-            DoneActorEvent<OutputFrom<TActorMap[K]>>
+            DoneActorEvent<OutputFrom<TActorMap[K]>>,
+            ErrorActorEvent<ErrorFrom<TActorMap[K]>>
           > & {
             id?: ChildIdForLogic<TActorMap[K], TChildren>;
             input?:
@@ -830,7 +858,10 @@ interface Next_InvokeConfigBase<
   TSystemRegistry extends SystemRegistry,
   TDoneEvent extends EventObject = [keyof TActorMap & string] extends [never]
     ? DoneActorEvent<any>
-    : DoneActorEvent<OutputFrom<TActorMap[keyof TActorMap & string]>>
+    : DoneActorEvent<OutputFrom<TActorMap[keyof TActorMap & string]>>,
+  TErrorEvent extends EventObject = [keyof TActorMap & string] extends [never]
+    ? ErrorActorEvent<any>
+    : ErrorActorEvent<ErrorFrom<TActorMap[keyof TActorMap & string]>>
 > {
   id?: string;
   registryKey?: keyof TSystemRegistry & string;
@@ -849,7 +880,7 @@ interface Next_InvokeConfigBase<
   >;
   onError?: Next_TransitionConfigOrTarget<
     TContext,
-    ErrorActorEvent,
+    TErrorEvent,
     TEvent,
     TEmitted,
     TActionMap,
@@ -931,7 +962,11 @@ type StateAction<
       >
     >[0],
     'params'
-  > & { input: TInput },
+  > & {
+    input: TInput;
+    /** The state node being entered (`entry`) or exited (`exit`). */
+    stateNode: AnyStateNode;
+  },
   enqueue: EnqueueObject<
     TEvent,
     TEmittedEvent,
@@ -1058,6 +1093,7 @@ type Next_ChoiceConfigFunction<
   >
 ) => Next_ChoiceTarget<TMeta>;
 
+/** @public */
 export type Next_StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1108,7 +1144,8 @@ export type Next_StateNodeConfig<
       TDelayMap
     >;
 
-interface Next_ChoiceStateNodeConfig<
+/** @public Referenced by emitted declarations of `Next_StateNodeConfig`. */
+export interface Next_ChoiceStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TTag extends string,
@@ -1166,7 +1203,8 @@ interface Next_ChoiceStateNodeConfig<
   target?: never;
 }
 
-interface Next_RegularStateNodeConfig<
+/** @public Referenced by emitted declarations of `Next_StateNodeConfig`. */
+export interface Next_RegularStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TDelays extends string,
@@ -1357,7 +1395,7 @@ interface Next_RegularStateNodeConfig<
    * in an interpreter.
    */
   after?: {
-    [K in NoInfer<TDelays> | number]?:
+    [K in NoInfer<TDelays> | number | DelayDurationKey]?:
       | Next_StaticTransitionConfig<
           TContext,
           AfterEvent,
@@ -1502,6 +1540,7 @@ type Next_StaticTransitionConfig<
     | ((args: { context: any; event: any }) => Record<string, unknown>);
 };
 
+/** @public */
 export type Next_TransitionConfigOrTarget<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -1577,6 +1616,7 @@ export type Next_TransitionConfigOrTarget<
 
 export type WithDefault<T, Default> = IsNever<T> extends true ? Default : T;
 
+/** @public */
 export interface Sources {
   actions: Record<
     string,
@@ -1641,30 +1681,181 @@ type DelayNamesFromConfig<TConfig> = TConfig extends {
   ? Extract<keyof TDelays, string>
   : string;
 
+// Integer digits. `${bigint}` rejects decimals, exponents and whitespace.
+type DurationInt = `${bigint}`;
+// Fractional digits, which may have leading zeros (`1.05s`).
+type DurationFraction = DurationInt | `0${DurationInt}` | `00${DurationInt}`;
+type DurationDecimal =
+  | DurationInt
+  | `${DurationInt}.${DurationFraction}`
+  | `.${DurationFraction}`;
+type IsoDateParts =
+  | `${DurationInt}W`
+  | `${DurationInt}D`
+  | `${DurationInt}W${DurationInt}D`;
+// Only the seconds component may be fractional.
+type IsoSeconds = `${DurationInt}` | `${DurationInt}.${DurationFraction}`;
+type IsoTimeParts =
+  | `${DurationInt}H`
+  | `${DurationInt}M`
+  | `${IsoSeconds}S`
+  | `${DurationInt}H${DurationInt}M`
+  | `${DurationInt}H${IsoSeconds}S`
+  | `${DurationInt}M${IsoSeconds}S`
+  | `${DurationInt}H${DurationInt}M${IsoSeconds}S`;
+
+/**
+ * @public Duration-string `after` keys, which are parsed rather than looked
+ * up: numeric strings (milliseconds), `ms` / `s` suffixes (case-insensitive)
+ * and uppercase ISO 8601 durations (`PT1M30S`, `P1D`, `P1DT12H`).
+ */
+export type DelayDurationKey =
+  | `${number}`
+  | `${DurationInt}${'ms' | 'MS' | 'Ms' | 'mS'}`
+  | `${DurationDecimal}${'s' | 'S'}`
+  | `P${IsoDateParts}`
+  | `P${IsoDateParts | ''}T${IsoTimeParts}`;
+
 // Checks only `after` keys (and nested `states`): a bad `after` key is accepted
 // structurally, so it needs validation here. A bad `timeout` string is already
 // rejected by the `timeout?:` field type, so it needs no branch.
-type InvalidDelayReferences<TConfig, TDelays extends string> =
-  | (TConfig extends { after: infer TAfter }
-      ? Exclude<Extract<keyof TAfter, string>, TDelays>
-      : never)
-  | (TConfig extends { states: infer TStates }
-      ? TStates extends Record<string, unknown>
-        ? {
-            [K in keyof TStates]: InvalidDelayReferences<TStates[K], TDelays>;
-          }[keyof TStates]
-        : never
-      : never);
+type InvalidDelayReferences<TConfig, TDelays extends string> = 0 extends 1 &
+  TConfig
+  ? never
+  :
+      | (TConfig extends { after: infer TAfter }
+          ? Exclude<Extract<keyof TAfter, string>, TDelays | DelayDurationKey>
+          : never)
+      | (TConfig extends { states: infer TStates }
+          ? TStates extends Record<string, unknown>
+            ? {
+                [K in keyof TStates]: InvalidDelayReferences<
+                  TStates[K],
+                  TDelays
+                >;
+              }[keyof TStates]
+            : never
+          : never);
 
-export type ValidateDelayReferences<TConfig> =
-  string extends DelayNamesFromConfig<TConfig>
+type InvalidDelayReferenceErrors<
+  TConfig,
+  TDelays extends string
+> = (TConfig extends { after: infer TAfter }
+  ? [
+      Exclude<Extract<keyof TAfter, string>, TDelays | DelayDurationKey>
+    ] extends [never]
+    ? {}
+    : {
+        after: {
+          [K in Exclude<
+            Extract<keyof TAfter, string>,
+            TDelays | DelayDurationKey
+          >]: `Delay '${K}' is not declared in delays.`;
+        };
+      }
+  : {}) &
+  (TConfig extends { states: infer TStates }
+    ? TStates extends Record<string, unknown>
+      ? {
+          states: {
+            [K in keyof TStates]: InvalidDelayReferenceErrors<
+              TStates[K],
+              TDelays
+            >;
+          };
+        }
+      : {}
+    : {});
+
+/**
+ * @public Rejects `after` keys that are neither a declared delay name, a number nor a
+ * duration string. Only applies when delay names are known; the error is
+ * reported at the offending key.
+ */
+export type ValidateDelayNames<
+  TConfig,
+  TDelays extends string
+> = string extends TDelays
+  ? unknown
+  : [InvalidDelayReferences<TConfig, TDelays>] extends [never]
     ? unknown
-    : InvalidDelayReferences<
+    : InvalidDelayReferenceErrors<TConfig, TDelays>;
+
+export type ValidateDelayReferences<TConfig> = ValidateDelayNames<
+  TConfig,
+  DelayNamesFromConfig<TConfig>
+>;
+
+type UndeclaredEventDescriptors<
+  TConfig,
+  TAllowed extends string
+> = 0 extends 1 & TConfig
+  ? never
+  :
+      | (TConfig extends { on: infer TOn }
+          ? Exclude<Extract<keyof TOn, string>, TAllowed>
+          : never)
+      | (TConfig extends { states: infer TStates }
+          ? TStates extends Record<string, unknown>
+            ? {
+                [K in keyof TStates]: UndeclaredEventDescriptors<
+                  TStates[K],
+                  TAllowed
+                >;
+              }[keyof TStates]
+            : never
+          : never);
+
+type UndeclaredEventDescriptorErrors<
+  TConfig,
+  TAllowed extends string
+> = (TConfig extends { on: infer TOn }
+  ? [Exclude<Extract<keyof TOn, string>, TAllowed>] extends [never]
+    ? {}
+    : {
+        on: {
+          [K in Exclude<
+            Extract<keyof TOn, string>,
+            TAllowed
+          >]: `Event type '${K}' is not declared in schemas.events.`;
+        };
+      }
+  : {}) &
+  (TConfig extends { states: infer TStates }
+    ? TStates extends Record<string, unknown>
+      ? {
+          states: {
+            [K in keyof TStates]: UndeclaredEventDescriptorErrors<
+              TStates[K],
+              TAllowed
+            >;
+          };
+        }
+      : {}
+    : {});
+
+/**
+ * @public Rejects `on` keys that match no declared event type. Only applies when the
+ * event union is closed (e.g. `schemas.events` is declared); wildcards,
+ * partial wildcards and reserved `xstate.*` event types are always allowed.
+ * The error is reported at the offending key.
+ */
+export type ValidateEventDescriptors<
+  TConfig,
+  TEvent extends EventObject
+> = string extends TEvent['type']
+  ? unknown
+  : [
+        UndeclaredEventDescriptors<
           TConfig,
-          DelayNamesFromConfig<TConfig>
-        > extends never
-      ? unknown
-      : never;
+          EventDescriptor<TEvent> | `xstate.${string}`
+        >
+      ] extends [never]
+    ? unknown
+    : UndeclaredEventDescriptorErrors<
+        TConfig,
+        EventDescriptor<TEvent> | `xstate.${string}`
+      >;
 
 type IsHistoryStateConfig<TConfig> = TConfig extends { type: 'history' }
   ? true

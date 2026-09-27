@@ -29,7 +29,10 @@ const QuestionNumber = () => {
         </div>
 
         {context.hasLoaded && context.currentCharacter && (
-          <Clue episode={context.currentCharacter.episode[0]} />
+          <Clue
+            key={context.currentCharacter.episode[0]}
+            episode={context.currentCharacter.episode[0]}
+          />
         )}
       </h1>
     </div>

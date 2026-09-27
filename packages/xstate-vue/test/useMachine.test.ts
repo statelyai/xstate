@@ -1,5 +1,5 @@
 import { fireEvent, render, waitFor } from '@testing-library/vue';
-import { AsyncActorLogic, createActor, createMachine } from 'xstate';
+import { createActor, createMachine } from 'xstate';
 import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
 import UseMachine from './UseMachine.vue';
 
@@ -9,12 +9,6 @@ describe('useMachine', () => {
   };
   const fetchMachine = createMachine({
     id: 'fetch',
-    types: {} as {
-      actors: {
-        src: 'fetchData';
-        logic: AsyncActorLogic<string>;
-      };
-    },
     initial: 'idle',
     context: context as any,
     states: {

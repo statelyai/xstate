@@ -23,6 +23,7 @@ import { matchesEventDescriptor, toArray } from './utils.ts';
  *   // or { type: 'notify'; message: string; level: 'info' | 'error' }
  * },
  * ```
+ * @public
  */
 export function assertEvent<
   TEvent extends EventObject,

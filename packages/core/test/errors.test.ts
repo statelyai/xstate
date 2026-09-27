@@ -8,13 +8,14 @@ import {
   createCallbackLogic,
   createAsyncLogic,
   AnyEventObject,
+  AnyActor,
   ActorLogic,
   Snapshot,
+  SimulatedClock,
+  stopActor,
   setup
 } from '../src';
 import { createMachineFromConfig } from '../src/createMachineFromConfig';
-import { createMachineFromSCXMLConfig } from '../src/scxml/runtime';
-import { compileSCXML } from '../src/scxml/scxml';
 import z from 'zod';
 
 // mocked reportUnhandledError due to unknown issue with vitest and global error
@@ -49,6 +50,182 @@ afterEach(() => {
 });
 
 describe('error handling', () => {
+  it.each(['calculation', 'effect'] as const)(
+    'stops descendants after a parent %s fails',
+    (failure) => {
+      const cleanup = vi.fn();
+      const exit = vi.fn();
+      const timer = vi.fn();
+      const clock = new SimulatedClock();
+      const error = new Error('parent failed');
+      const childLogic = createMachine({
+        initial: 'running',
+        states: {
+          running: {
+            exit,
+            invoke: { id: 'callback', src: createCallbackLogic(() => cleanup) },
+            after: {
+              10: (_, enq) => {
+                enq(timer);
+              }
+            }
+          }
+        }
+      });
+      const actor = createActor(
+        createMachine({
+          invoke: { id: 'child', src: childLogic },
+          on: {
+            FAIL: (_, enq) => {
+              if (failure === 'effect') {
+                enq(() => {
+                  throw error;
+                });
+              } else {
+                throw error;
+              }
+            }
+          }
+        }),
+        { clock }
+      );
+      const onError = vi.fn();
+      actor.subscribe({ error: onError });
+      actor.start();
+      const child = actor.getSnapshot().children.child!;
+      actor.send({ type: 'FAIL' });
+      clock.increment(20);
+      expect(actor.getSnapshot().status).toBe('error');
+      expect(child.getSnapshot().status).toBe('stopped');
+      expect(cleanup).toHaveBeenCalledTimes(1);
+      expect(exit).not.toHaveBeenCalled();
+      expect(timer).not.toHaveBeenCalled();
+      expect(onError).toHaveBeenCalledExactlyOnceWith(error);
+    }
+  );
+
+  it('stops custom-logic children absent from its snapshot after an error', () => {
+    const cleanup = vi.fn();
+    const actor = createActor(
+      createLogic({
+        context: undefined,
+        run: ({ event, self }, enq) => {
+          if (event.type === 'FAIL') {
+            throw new Error('parent failed');
+          }
+          enq.effect('child', () => {
+            createActor(
+              createCallbackLogic(() => cleanup),
+              { parent: self as AnyActor }
+            ).start();
+          });
+        }
+      })
+    );
+    actor.subscribe({ error: () => {} });
+    actor.start();
+    actor.send({ type: 'FAIL' });
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores domain children and foreign actors when custom logic errors', () => {
+    const foreign = createActor(createMachine({})).start();
+    const error = new Error('custom failure');
+    const snapshot = {
+      status: 'active' as const,
+      output: undefined,
+      error: undefined,
+      children: { number: 1, empty: null, domain: { name: 'child' }, foreign }
+    };
+    const actor = createActor({
+      getInitialSnapshot: () => snapshot,
+      initialTransition: () => [snapshot, []],
+      transition: () => {
+        throw error;
+      },
+      getPersistedSnapshot: (value: typeof snapshot) => value
+    });
+    const onError = vi.fn();
+    actor.subscribe({ error: onError });
+    actor.start();
+    actor.send({ type: 'FAIL' });
+    expect(onError).toHaveBeenCalledExactlyOnceWith(error);
+    expect(foreign.getSnapshot().status).toBe('active');
+    foreign.stop();
+  });
+
+  it.each([false, true])(
+    'stops a removed child exactly once when its stop effect ran: %s',
+    (stoppedFirst) => {
+      const cleanup = vi.fn();
+      const error = new Error('effect failed');
+      const actor = createActor(
+        createMachine({
+          invoke: { id: 'child', src: createCallbackLogic(() => cleanup) },
+          on: {
+            FAIL: ({ children }, enq) => {
+              if (stoppedFirst) {
+                enq.stop(children.child);
+              }
+              enq(() => {
+                throw error;
+              });
+              if (!stoppedFirst) {
+                enq.stop(children.child);
+              }
+            }
+          }
+        })
+      );
+      actor.subscribe({ error: () => {} });
+      actor.start();
+      const runtimeStop = vi.fn(stopActor);
+      actor.system.runtime = { stopActor: runtimeStop };
+      actor.send({ type: 'FAIL' });
+      expect(actor.getSnapshot().children.child).toBeUndefined();
+      expect(cleanup).toHaveBeenCalledTimes(1);
+      expect(runtimeStop).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('uses runtime child stops and continues after a child cleanup throws', () => {
+    const originalError = new Error('parent failed');
+    const cleanup = vi.fn();
+    const actor = createActor(
+      createMachine({
+        invoke: [
+          {
+            id: 'bad',
+            src: createCallbackLogic(() => () => {
+              throw new Error('cleanup failed');
+            })
+          },
+          { id: 'good', src: createCallbackLogic(() => cleanup) }
+        ],
+        on: {
+          FAIL: () => {
+            throw originalError;
+          }
+        }
+      })
+    );
+    const onError = vi.fn();
+    actor.subscribe({ error: onError });
+    actor.start();
+    const { bad, good } = actor.getSnapshot().children;
+    bad!.subscribe({ error: () => {} });
+    const runtimeStop = vi.fn(stopActor);
+    actor.system.runtime = { stopActor: runtimeStop };
+    actor.send({ type: 'FAIL' });
+    expect(runtimeStop.mock.calls.map(([child]) => child.id)).toEqual([
+      'bad',
+      'good'
+    ]);
+    expect(good!.getSnapshot().status).toBe('stopped');
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledExactlyOnceWith(originalError);
+  });
+
   // https://github.com/statelyai/xstate/issues/4004
   it('does not cause an infinite loop when an error is thrown in subscribe', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
@@ -1072,6 +1249,78 @@ describe('error handling', () => {
     expect(errorSpy).toHaveBeenCalledWith('transition action failed');
   });
 
+  it('does not report an error that a subscriber observes before the report runs', async () => {
+    const reported: unknown[] = [];
+    installGlobalOnErrorHandler((ev) => {
+      if (getErrorMessage(ev.error) === 'sync failure') {
+        reported.push(ev.error);
+      }
+    });
+    const errorSpy = vi.fn();
+    const actor = createActor(
+      createCallbackLogic(() => {
+        throw new Error('sync failure');
+      })
+    );
+    actor.start();
+    expect(actor.getSnapshot().status).toBe('error');
+    actor.subscribe({ error: errorSpy });
+
+    await sleep(20);
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(reported).toEqual([]);
+  });
+
+  it('reports an error that no subscriber observed', async () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    installGlobalOnErrorHandler((ev) => {
+      expect(getErrorMessage(ev.error)).toBe('sync failure');
+      resolve();
+    });
+    const actor = createActor(
+      createCallbackLogic(() => {
+        throw new Error('sync failure');
+      })
+    );
+    actor.start();
+
+    await promise;
+  });
+
+  it('state onError catches rejected transition action promises', async () => {
+    const errorSpy = vi.fn();
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            NEXT: (_, enq) => {
+              enq(() =>
+                Promise.reject(new Error('transition action rejected'))
+              );
+            }
+          },
+          onError: ({ event }) => {
+            errorSpy(getErrorMessage(event.error));
+            return {
+              target: 'failed'
+            };
+          }
+        },
+        failed: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+    await Promise.resolve();
+
+    expect(actor.getSnapshot().value).toBe('failed');
+    expect(actor.getSnapshot().status).toBe('active');
+    expect(errorSpy).toHaveBeenCalledWith('transition action rejected');
+  });
+
   it('state onError accepts a cross-state context patch (typed against the target state schema)', () => {
     const machine = setup({
       schemas: {
@@ -1261,90 +1510,112 @@ describe('error handling', () => {
     );
   });
 
-  it('state onError catches SCXML error.communication from failed sends', () => {
-    const errorSpy = vi.fn();
-    const json = compileSCXML(`
-      <scxml xmlns="http://www.w3.org/2005/07/scxml" initial="active" version="1.0" datamodel="ecmascript">
-        <state id="active">
-          <onentry>
-            <send event="PING" target="#_scxml_missing"/>
-          </onentry>
-        </state>
-        <state id="failed"/>
-      </scxml>
-    `);
+  describe('missing send targets', () => {
+    function observe(machine: any) {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      cleanups.push(() => warn.mockRestore());
+      const rejections: any[] = [];
+      const errorSpy = vi.fn();
+      const onErrorSpy = vi.fn();
+      const actor = createActor(machine, {
+        onRejectedEvent: (rejection) => rejections.push(rejection)
+      });
+      actor.subscribe({ error: errorSpy });
+      actor.start();
+      return { actor, warn, rejections, errorSpy, onErrorSpy };
+    }
 
-    json.states!.active.onError = {
-      target: '#failed',
-      actions: [
-        {
-          type: 'captureError',
-          params: { '@expr': 'event', '@lang': 'test' }
-        }
-      ]
-    };
-
-    const machine = createMachineFromSCXMLConfig(json, {
-      actions: {
-        captureError: (event) => {
-          errorSpy({
-            type: event.type,
-            message: getErrorMessage(event.error)
-          });
-        }
-      },
-      evaluators: {
-        test: ({ source, scope }) => {
-          if (source === 'event') {
-            return scope.event;
-          }
-        }
-      }
-    });
-
-    const actor = createActor(machine).start();
-
-    expect(actor.getSnapshot().value).toBe('failed');
-    expect(actor.getSnapshot().status).toBe('active');
-    expect(errorSpy).toHaveBeenCalledWith({
-      type: 'xstate.error.communication',
-      message: 'Unable to dispatch event to target: #_scxml_missing'
-    });
-  });
-
-  it('state onError catches communication errors from undefined send targets', () => {
-    const errorSpy = vi.fn();
-    const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            NEXT: (_, enq) => {
-              enq.sendTo(undefined, { type: 'PING' });
+    function machineSending(
+      send: (args: any, enq: any) => void,
+      onErrorSpy: () => void
+    ) {
+      return createMachine({
+        id: 'sender',
+        initial: 'active',
+        states: {
+          active: {
+            on: { NEXT: send },
+            onError: () => {
+              onErrorSpy();
+              return { target: 'failed' };
             }
           },
-          onError: ({ event }) => {
-            errorSpy({
-              type: event.type,
-              message: getErrorMessage(event.error)
-            });
-            return {
-              target: 'failed'
-            };
-          }
-        },
-        failed: {}
-      }
+          failed: {}
+        }
+      });
+    }
+
+    it('dead-letters a send to an undefined ref without erroring the actor', () => {
+      const onErrorSpy = vi.fn();
+      const { actor, warn, rejections, errorSpy } = observe(
+        machineSending((_, enq) => {
+          enq.sendTo(undefined, { type: 'PING' });
+        }, onErrorSpy)
+      );
+      actor.send({ type: 'NEXT' });
+
+      expect(actor.getSnapshot().status).toBe('active');
+      expect(actor.getSnapshot().value).toBe('active');
+      expect(onErrorSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(rejections).toEqual([
+        expect.objectContaining({
+          event: { type: 'PING' },
+          reason: 'missingTarget',
+          sourceRef: actor,
+          targetRef: undefined,
+          targetId: undefined
+        })
+      ]);
+      expect(warn).toHaveBeenCalledWith(
+        'Actor "sender" sent event "PING" to missing target undefined; the event was not delivered (missingTarget).'
+      );
     });
 
-    const actor = createActor(machine).start();
-    actor.send({ type: 'NEXT' });
+    it('dead-letters a send to an unknown child id without erroring the actor', () => {
+      const onErrorSpy = vi.fn();
+      const { actor, warn, rejections, errorSpy } = observe(
+        machineSending((_, enq) => {
+          enq.sendTo('worker', { type: 'PING' });
+        }, onErrorSpy)
+      );
+      actor.send({ type: 'NEXT' });
 
-    expect(actor.getSnapshot().value).toBe('failed');
-    expect(actor.getSnapshot().status).toBe('active');
-    expect(errorSpy).toHaveBeenCalledWith({
-      type: 'xstate.error.communication',
-      message: 'Unable to send event to an undefined actor'
+      expect(actor.getSnapshot().status).toBe('active');
+      expect(actor.getSnapshot().value).toBe('active');
+      expect(onErrorSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(rejections).toEqual([
+        expect.objectContaining({
+          reason: 'missingTarget',
+          targetId: 'worker',
+          sourceRef: actor
+        })
+      ]);
+      expect(warn).toHaveBeenCalledWith(
+        'Actor "sender" sent event "PING" to missing target "worker"; the event was not delivered (missingTarget).'
+      );
+    });
+
+    it('dead-letters a send to the parent of a root actor', () => {
+      const onErrorSpy = vi.fn();
+      const { actor, rejections, errorSpy } = observe(
+        machineSending(({ parent }, enq) => {
+          enq.sendTo(parent, { type: 'PING' });
+        }, onErrorSpy)
+      );
+      actor.send({ type: 'NEXT' });
+
+      expect(actor.getSnapshot().status).toBe('active');
+      expect(onErrorSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(rejections).toEqual([
+        expect.objectContaining({
+          reason: 'missingTarget',
+          sourceRef: actor,
+          targetRef: undefined
+        })
+      ]);
     });
   });
 });

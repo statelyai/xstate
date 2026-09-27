@@ -225,6 +225,18 @@ INSPECT=1 pnpm start
 
 Headless examples may also render their actors with the shared dashboard in [`examples/_shared/actor-ui`](./_shared/actor-ui) instead of writing bespoke UI.
 
+## Linting
+
+Examples are linted by `pnpm lint` from the repository root, with the same rules
+as the packages and with type-aware rules on. `typescript/require-await` is the
+one exception: it is turned off for `examples/**` in `.oxlintrc.json`, because
+examples stub out their I/O so they run with no database, API key or network,
+and those stubs are `async` because that is the shape the example teaches.
+
+Fix what the linter reports rather than adding an inline disable. If a rule
+genuinely does not fit example code, scope the exception to a path in
+`.oxlintrc.json` so the reason is written down in one place.
+
 ## Checklist before opening a PR
 
 - [ ] Directory name follows the naming pattern and matches `package.json` and the README title.
@@ -235,3 +247,4 @@ Headless examples may also render their actors with the shared dashboard in [`ex
 - [ ] `README.md` has all five sections.
 - [ ] Every actor and store the example starts is wired to the inspector in source, and headless examples gate it behind `INSPECT=1`.
 - [ ] The example is added to the coverage matrix in [`readme.md`](./readme.md).
+- [ ] `pnpm lint` and `pnpm format:check` pass from the repository root.

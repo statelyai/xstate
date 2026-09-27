@@ -19,5 +19,5 @@ export type RMEpisode = {
 };
 
 export interface ClueProps {
-  episode: string | null;
+  episode: string;
 }

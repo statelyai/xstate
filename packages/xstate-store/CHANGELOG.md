@@ -1,5 +1,28 @@
 # @xstate/store
 
+## 4.3.0-alpha.3
+
+### Patch Changes
+
+- 69b6663: Fix async atoms losing their dependencies after a request succeeds or fails.
+  Changing a dependency now reloads the value after settlement, including when a
+  custom comparator suppresses an equivalent result.
+- 69b6663: Persist only committed updates when throttling writes. Capability checks, pure transitions, and rejected updates no longer change pending persisted data.
+  
+  Async storage writes now complete in event order per store. `flushStorage(store)` also waits for already queued writes; synchronous storage remains synchronous.
+- 69b6663: Fix writable atom updaters accidentally tracking other atoms, and deliver queued
+  subscriber notifications before rethrowing subscriber errors.
+  
+  Preserve live extension state through snapshot undo/redo and custom restore
+  events. Fix throttled persistence applying `pick` twice or losing changes sent
+  from `onDone`. Report initial async storage read failures through `onError`, and
+  make `clearStorage` cancel buffered writes and wait for queued writes before
+  removing data.
+  
+  Improve large batches of triggered events while preserving their processing and
+  effect order.
+- 69b6663: Preserve the latest persisted state when effects or subscriptions synchronously trigger another event. Snapshot and event persistence now retain commit order with immediate or throttled writes.
+
 ## 4.3.0-alpha.2
 
 ### Patch Changes

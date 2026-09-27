@@ -24,6 +24,7 @@ import type {
   TransitionConfigTarget
 } from './types.ts';
 
+/** @public */
 export function matchesState(
   parentStateId: StateValue,
   childStateId: StateValue
@@ -53,6 +54,7 @@ export function matchesState(
   });
 }
 
+/** @public */
 export function checkStateIn(
   snapshot: AnyMachineSnapshot,
   stateValue: StateValue
@@ -111,6 +113,7 @@ function toStateValue(stateValue: StateLike<any> | StateValue): StateValue {
   return pathToStateValue(statePath);
 }
 
+/** @public */
 export function pathToStateValue(statePath: string[]): StateValue {
   if (statePath.length === 1) {
     return statePath[0];
@@ -150,7 +153,17 @@ export function mapValues(
   const collectionKeys = Object.keys(collection);
   for (let i = 0; i < collectionKeys.length; i++) {
     const key = collectionKeys[i];
-    result[key] = iteratee(collection[key], key, collection, i);
+    const value = iteratee(collection[key], key, collection, i);
+    if (key === '__proto__') {
+      Object.defineProperty(result, key, {
+        value,
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
+    } else {
+      result[key] = value;
+    }
   }
 
   return result;
@@ -282,6 +295,7 @@ export function normalizeTarget<
   return toArray(target);
 }
 
+/** @public */
 export function toObserver<T>(
   nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,
@@ -295,12 +309,18 @@ export function toObserver<T>(
     error: (isObserver ? nextHandler.error : errorHandler)?.bind(self),
     complete: (isObserver ? nextHandler.complete : completionHandler)?.bind(
       self
-    )
+    ),
+    ...(isObserver && nextHandler.passive ? { passive: true } : {})
   };
 }
 
 export function createInvokeId(stateNodeId: string, index: number): string {
   return `${index}.${stateNodeId}`;
+}
+
+/** Whether `value` looks like an actor ref (as persisted context detects them). */
+export function isActorRefLike(value: object): boolean {
+  return 'sessionId' in value && 'send' in value && 'ref' in value;
 }
 
 export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
@@ -331,6 +351,7 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
     : configSrc;
 }
 
+/** @experimental */
 export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
   return [...new Set([...snapshot.nodes.flatMap((sn) => sn.ownEvents)])];
 }

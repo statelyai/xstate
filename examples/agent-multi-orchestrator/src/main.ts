@@ -114,7 +114,7 @@ const orchestrator = setup({
     // Spawn all three workers up front and listen to what they emit. The
     // hand-offs between them are the orchestrator's job, not theirs.
     staffing: {
-      entry: ({ context }, enq) => {
+      entry: (_, enq) => {
         const workers = {} as Record<Role, WorkerRef>;
         for (const role of ['research', 'write', 'review'] as const) {
           const ref = enq.spawn(worker, { id: role, input: { role } });

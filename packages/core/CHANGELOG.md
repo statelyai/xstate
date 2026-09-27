@@ -1,5 +1,165 @@
 # xstate
 
+## 6.0.0-alpha.60
+
+### Patch Changes
+
+- 6b1a631: Machine snapshots keep their machine-specific methods, such as `snapshot.matches(...)`, when initialization fails (for example, when the `context` factory throws).
+- 2b6ee77: Fix declaration emit for machines with registered actors and many inline callbacks.
+
+## 6.0.0-alpha.59
+
+### Patch Changes
+
+- 69b6663: Stop child actors and their timers and subscriptions when an unhandled parent error occurs, including when a stop action has not executed yet.
+  
+  Keep `useActorRef` observers subscribed when the actor is replaced, and subscribe before the replacement starts.
+- 69b6663: Support state names and effect keys such as `__proto__`, `constructor`, and `toString`, including persisted effect restoration. Run every attachment cleanup when an earlier cleanup throws, while preserving the original error.
+- 69b6663: Fix published TypeScript declarations so applications can check XState with `skipLibCheck: false`.
+- 69b6663: Restore callback subscriptions and active keyed effects. Retry interrupted local async steps while reusing completed outcomes and sharing concurrent same-key work. Pending step callers reject when their actor terminates. Interrupted external side effects require idempotency keys.
+  
+  Keep SCXML condition errors and transition evaluation isolated between actors, and process condition errors without waiting for state entry.
+  
+  Replay finite graph event sequences without exploring every reachable state, initialize graph traversal once, and support arbitrary serialized state and event keys. Improve adjacency traversal for large graphs. Keep simulated clocks usable after a timer callback throws.
+- 69b6663: Events declared in `schemas.internalEvents` are now excluded from `actor.send` and `actor.trigger` in the published type declarations, matching the behavior already available when building against source. Both exact keys and wildcard keys are excluded.
+  
+  ```ts
+  const uploadMachine = setup({
+    schemas: {
+      events: { start: types<{}>() },
+      internalEvents: {
+        tick: types<{}>(),
+        'progress.*': types<{ bytes: number }>()
+      }
+    }
+  }).createMachine({
+    /* ... */
+  });
+  
+  const actor = createActor(uploadMachine);
+  
+  actor.send({ type: 'start' }); // ok
+  actor.send({ type: 'tick' }); // type error
+  actor.send({ type: 'progress.chunk', bytes: 256 }); // type error
+  actor.trigger.tick(); // type error: `tick` is not on `trigger`
+  ```
+- 69b6663: A persisted snapshot's `children` is now typed, so reading a persisted child no longer needs a cast. The new `PersistedActorRef` type describes both forms: an embedded child carries its own `snapshot`, while a child persisted by address carries `remote: true` and leaves its state with the runtime that owns it.
+  
+  ```ts
+  const persisted = actor.getPersistedSnapshot({ embedChildren: false });
+  
+  persisted.children.auditor.address; // string | undefined
+  persisted.children.auditor.src; // string
+  ```
+- 69b6663: A leftover v5 `types` key in a machine config is now a compile error instead of being accepted and silently ignored. The error names the replacement:
+  
+  ```ts
+  createMachine({
+    // Error: `types` was replaced by `schemas` in v6. Declare `context`,
+    // `events` and the other contracts under `schemas`, or run
+    // `xstate-codemod migrate --transform types-to-schemas`.
+    types: {} as { context: { count: number } },
+    context: { count: 0 }
+  });
+  ```
+  
+  Declare the contracts under `schemas` instead:
+  
+  ```ts
+  createMachine({
+    schemas: { context: types<{ count: number }>() },
+    context: { count: 0 }
+  });
+  ```
+
+## 6.0.0-alpha.58
+
+### Patch Changes
+
+- a50ea84: Machine output is now inferred as the union of the top-level final states' output types when no `schemas.output` or root `output` is declared. Previously, declaring `schemas.output` was required to get a typed result from `toPromise(actor)` or `snapshot.output`.
+  
+  ```ts
+  const machine = setup({}).createMachine({
+    initial: 'working',
+    states: {
+      working: {
+        on: {
+          resolve: { target: 'succeeded' },
+          reject: { target: 'failed' }
+        }
+      },
+      succeeded: {
+        type: 'final',
+        output: () => ({ status: 'ok' as const })
+      },
+      failed: {
+        type: 'final',
+        output: { status: 'error' as const }
+      }
+    }
+  });
+  
+  // OutputFrom<typeof machine> is
+  // { status: 'ok' } | { status: 'error' }
+  ```
+- 98160ed: Importing only `xstate/fsm` now typechecks on its own. Previously, an fsm-only program failed with `Property 'observable' does not exist on type 'SymbolConstructor'` errors because the `Symbol.observable` type augmentation lived in the main entry. The `xstate/fsm` entry also no longer pulls the main entry's full type surface into the program, so editors and `tsc` check far less code for fsm-only consumers.
+
+## 6.0.0-alpha.57
+
+### Patch Changes
+
+- 50184a8: Fixed declaration emit for machines and setups created with `setup({ states })`.
+  A package that exported one could not be built with `declaration: true`: the
+  emitted types reached for `ActiveStateContext` and a handful of private marker
+  types that were never exported from the package entry point, so consumers saw
+  TS2742 ("cannot be named without a reference to xstate/dist/...") or TS4023 on
+  xstate's internal `unique symbol`s.
+  
+  The types declaration emit needs are now public — `ActiveStateContext`,
+  `RootContextMarker`, `ChoiceStateNodeConfig`, `RegularStateNodeConfig`, and the
+  strict-target markers — and the private state-schema symbols live behind named
+  marker types instead of inline computed keys, so emit references a name rather
+  than expanding a symbol it cannot write down.
+
+## 6.0.0-alpha.56
+
+### Patch Changes
+
+- f7642bf: Fixed generic type helpers that accidentally restricted invocation transition metadata, state input, and transition children. `AnyInvokeDefinition`, `AnyStateNodeConfig`, and `AnyTransitionConfigFunction` now preserve arbitrary types in these positions when inspecting or accepting configurations from different machines.
+
+## 6.0.0-alpha.55
+
+### Minor Changes
+
+- dcc21df: Route rejected promises returned from custom actions to the actor's error handling, so a state's `onError` catches a failed async action instead of leaving an unhandled rejection. A rejection that was previously ignored now errors the actor when no `onError` handles it.
+  
+  ```ts
+  const machine = createMachine({
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          SAVE: (_, enq) => {
+            enq(() => saveToServer()); // returns a Promise
+          }
+        },
+        onError: { target: 'failed' }
+      },
+      failed: {}
+    }
+  });
+  ```
+  
+  Add the `ErrorFrom` type helper. `invoke.onError` events are typed from the invoked actor's error type when the actor logic declares one.
+  
+  Add an optional `passive` flag to `Observer`. A passive observer only tracks the actor's lifecycle and does not count as an error handler, so an unhandled actor error is still reported when every observer with an `error` callback is passive.
+  
+  An unhandled actor error is now reported one macrotask later than before, and a subscriber with an `error` callback that attaches in that window takes the error instead. Tests that advance fake timers by a single tick to observe the report need one more tick.
+
+### Patch Changes
+
+- df13f58: Fix TS4023 when exporting machines with state-level context schemas and function-form transitions while TypeScript declaration generation is enabled.
+
 ## 6.0.0-alpha.54
 
 ### Minor Changes

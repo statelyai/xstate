@@ -10,7 +10,7 @@ A sliding tile puzzle: hierarchical states model the select/move interaction, an
 - Nested (compound) states and `#id` targets
 - Eventless transitions (`always`) to detect the win condition
 - Disabling an event in a substate (`shuffle: undefined`)
-- `useMachine()` from `@xstate/react` and `snapshot.can()`
+- `useActor()` from `@xstate/react` and `snapshot.can()`
 
 ## Run it
 

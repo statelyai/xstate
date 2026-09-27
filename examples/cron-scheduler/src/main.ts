@@ -124,7 +124,7 @@ const schedulerMachine = setup({
     paused: {
       entry: (_, enq) => enq(log, 'paused'),
       on: {
-        resume: ({}, enq) => {
+        resume: (_, enq) => {
           enq(log, 'resumed');
           return { target: 'waiting' };
         },

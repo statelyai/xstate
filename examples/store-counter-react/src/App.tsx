@@ -23,10 +23,10 @@ function GlobalCounter() {
 
   return (
     <div className="card">
-      <button onClick={() => globalStore.send({ type: 'inc', by: 1 })}>
+      <button onClick={() => globalStore.trigger.inc({ by: 1 })}>
         count is {count}
       </button>
-      <button onClick={() => globalStore.send({ type: 'reset' })}>reset</button>
+      <button onClick={() => globalStore.trigger.reset()}>reset</button>
     </div>
   );
 }
@@ -49,10 +49,10 @@ function LocalCounter({ initialCount }: { initialCount: number }) {
 
   return (
     <div className="card">
-      <button onClick={() => store.send({ type: 'inc', by: 1 })}>
+      <button onClick={() => store.trigger.inc({ by: 1 })}>
         count is {count}
       </button>
-      <button onClick={() => store.send({ type: 'reset' })}>reset</button>
+      <button onClick={() => store.trigger.reset()}>reset</button>
     </div>
   );
 }

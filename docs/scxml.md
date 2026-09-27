@@ -6,11 +6,15 @@ title: SCXML
 
 Use `createMachineFromSCXML(...)` to create an XState machine from an [SCXML](https://www.w3.org/TR/scxml/) document.
 
-Import it from the opt-in `xstate/scxml` entry point. The XML parser is kept out of the main `xstate` entry point.
+Install the `@xstate/scxml` package alongside `xstate`. The XML parser is kept out of the `xstate` package.
+
+```bash
+npm i xstate @xstate/scxml
+```
 
 ```ts
 import { createActor } from 'xstate';
-import { createMachineFromSCXML } from 'xstate/scxml';
+import { createMachineFromSCXML } from '@xstate/scxml';
 
 const machine = createMachineFromSCXML(`
   <scxml xmlns="http://www.w3.org/2005/07/scxml"
@@ -49,3 +53,7 @@ If an SCXML document references an external resource and no resolver is provided
 ## Machine JSON
 
 SCXML is compiled through a private representation because SCXML executable content and transition semantics cannot be represented losslessly as ordinary `MachineJSON`. Use `createMachineFromConfig(...)` for serialized XState definitions and `createMachineFromSCXML(...)` for SCXML documents.
+
+## Actor isolation and condition errors
+
+Actors created from the same compiled SCXML machine keep separate transition evaluation state. A failing `cond` raises `error.execution` in the current macrostep, even when the condition prevents state entry. Checking `snapshot.can(event)` does not queue an error for a later real event.

@@ -17,6 +17,7 @@ import { getAdjacencyMap } from './adjacency.ts';
 import { alterPath } from './alterPath.ts';
 import { createMockActorScope } from './actorScope.ts';
 
+/** @public */
 export function getSimplePaths<TLogic extends AnyActorLogic>(
   logic: TLogic,
   options?: TraversalOptions<
@@ -36,7 +37,7 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedSnapshot;
-  const adjacency = getAdjacencyMap(logic, resolvedOptions);
+  const adjacency = getAdjacencyMap(logic, { ...resolvedOptions, fromState });
   const stateMap = new Map<SerializedSnapshot, TState>();
   const visitCtx: VisitedContext<TState, TEvent> = {
     vertices: new Set(),
@@ -46,7 +47,7 @@ export function getSimplePaths<TLogic extends AnyActorLogic>(
   const pathMap: Record<
     SerializedSnapshot,
     { state: TState; paths: Array<StatePath<TState, TEvent>> }
-  > = {};
+  > = Object.create(null);
 
   function util(
     fromStateSerial: SerializedSnapshot,

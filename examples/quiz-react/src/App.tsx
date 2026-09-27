@@ -1,4 +1,4 @@
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
 import { createInspector } from '@statelyai/sdk';
 import { questions, quizMachine, secondsLeft } from './quizMachine';
 import './App.css';
@@ -6,7 +6,7 @@ import './App.css';
 const inspector = createInspector();
 
 function App() {
-  const [state, send] = useMachine(quizMachine, {
+  const [state, send] = useActor(quizMachine, {
     inspect: inspector.inspect
   });
   const { index, score, answers } = state.context;

@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { BehaviorSubject } from 'rxjs';
 import {
   Actor,
-  ActorRef,
   Snapshot,
   SnapshotFrom,
   createActor,
@@ -197,10 +196,6 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   it('should accept input and provide it to the context factory', () => {
     const testMachine = createMachine({
-      types: {} as {
-        context: { foo: string; test: boolean };
-        input: { test: boolean };
-      },
       context: (({ input }: any) => ({
         foo: 'bar',
         test: input.test ?? false
@@ -229,7 +224,6 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
 
   it('should not spawn actors until service is started', async () => {
     const spawnMachine = createMachine({
-      types: {} as { context: { ref?: ActorRef<any, any> } },
       id: 'spawn',
       initial: 'start',
       context: { ref: undefined } as any,
@@ -352,7 +346,6 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
     const { resolve, promise } = Promise.withResolvers<void>();
 
     const toggleMachine = createMachine({
-      types: {} as { context: { latest: number }; events: { type: 'NEXT' } },
       actions: {
         getLatest: () => {}
       },

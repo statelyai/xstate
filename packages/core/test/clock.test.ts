@@ -73,3 +73,15 @@ describe('clock', () => {
     expect(actor.getSnapshot().children.child.getSnapshot().value).toEqual('b');
   });
 });
+
+it('continues flushing future timers after a callback throws', () => {
+  const clock = new SimulatedClock();
+  const fired = vi.fn();
+  clock.setTimeout(() => {
+    throw new Error('timer failed');
+  }, 0);
+  expect(() => clock.increment(1)).toThrow('timer failed');
+  clock.setTimeout(fired, 0);
+  clock.increment(1);
+  expect(fired).toHaveBeenCalledTimes(1);
+});

@@ -15,6 +15,8 @@ const greeting = createActor(greetingMachine, {
 }).start();
 ```
 
+When a machine declares `schemas.input` (directly or through `setup(...)`) and the input type does not accept `undefined`, `createActor` requires the `input` option. Restoring a persisted `snapshot` does not require it.
+
 ## Final output
 
 ```ts
@@ -42,7 +44,7 @@ Actors that run indefinitely may never produce output.
 
 Declare input and output schemas when they cross actor boundaries.
 
-The output type is inferred from the root `output` when `schemas.output` is not declared. A declared `schemas.output` is authoritative and the root `output` is checked against it.
+The output type is inferred from the root `output` when `schemas.output` is not declared. Without a root `output`, the type is the union of the top-level final states' output types. A declared `schemas.output` is authoritative and the root `output` is checked against it.
 
 ```ts
 const machine = setup({}).createMachine({

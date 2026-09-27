@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store-react",
-  "version": "2.1.0-alpha.1",
+  "version": "2.1.0-alpha.2",
   "type": "module",
   "description": "XState Store for React",
   "keywords": [

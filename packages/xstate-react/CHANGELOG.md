@@ -1,5 +1,13 @@
 # Changelog
 
+## 7.0.0-alpha.3
+
+### Patch Changes
+
+- 69b6663: Stop child actors and their timers and subscriptions when an unhandled parent error occurs, including when a stop action has not executed yet.
+  
+  Keep `useActorRef` observers subscribed when the actor is replaced, and subscribe before the replacement starts.
+
 ## 7.0.0-alpha.2
 
 ### Patch Changes

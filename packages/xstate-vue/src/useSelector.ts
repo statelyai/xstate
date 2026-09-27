@@ -41,7 +41,9 @@ export function useSelector<
         next: (emitted) => {
           updateSelectedIfChanged(selector(emitted));
         },
-        error: noop,
+        error: () => {
+          updateSelectedIfChanged(selector(newActor.getSnapshot()));
+        },
         complete: noop
       });
       onCleanup(() => sub.unsubscribe());

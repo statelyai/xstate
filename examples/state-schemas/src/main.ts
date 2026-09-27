@@ -192,10 +192,14 @@ reviewSetup.createStateConfig('reviewing', {
     // In `reviewing` the narrowed fields are non-optional...
     context.draft.trim();
     input.deadline.toFixed();
+    // These two reads exist only to assert a type error, so they are
+    // deliberately unused expressions.
+    /* oxlint-disable no-unused-expressions */
     // @ts-expect-error ...but fields no state declares stay optional
     context.publication.url;
     // @ts-expect-error and `input` only has what this state declares
     input.reviewer;
+    /* oxlint-enable no-unused-expressions */
   }
 });
 

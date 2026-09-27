@@ -14,6 +14,35 @@ import {
   EventFromStoreConfig
 } from '../src/types.ts';
 
+it('processes triggered events breadth-first when handlers append more events', () => {
+  const processed: number[] = [];
+  const effects: number[] = [];
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      start: (_context, _event, enqueue) => {
+        for (let id = 0; id < 100; id++) {
+          enqueue.trigger.item({ id });
+        }
+      },
+      item: (context, event: { id: number }, enqueue) => {
+        processed.push(event.id);
+        if (event.id < 100) {
+          enqueue.trigger.item({ id: event.id + 100 });
+        }
+        enqueue.effect(() => effects.push(event.id));
+        return { count: context.count + 1 };
+      }
+    }
+  });
+
+  store.trigger.start();
+  const expected = Array.from({ length: 200 }, (_, index) => index);
+  expect(processed).toEqual(expected);
+  expect(effects).toEqual(expected);
+  expect(store.getSnapshot().context.count).toBe(200);
+});
+
 it('updates a store with an event without mutating original context', () => {
   const context = { count: 0 };
   const store = createStore({
@@ -224,17 +253,37 @@ it('can be inspected', () => {
   ]);
 });
 
-it('inspection with @statelyai/inspect typechecks correctly', () => {
+it('forwards store snapshots to @statelyai/inspect and unsubscribes', async () => {
   const store = createStore({
-    context: {},
-    on: {}
+    context: { count: 0 },
+    on: { inc: (context) => ({ count: context.count + 1 }) }
+  });
+  const send = vi.fn();
+  const inspector = createBrowserInspector({ autoStart: false, send });
+  const subscription = store.inspect((event) => {
+    inspector.snapshot(event.actorRef, event.snapshot, { event: event.event });
   });
 
-  const inspector = createBrowserInspector({
-    autoStart: false
-  });
-
-  store.inspect(inspector.inspect as any);
+  try {
+    store.trigger.inc();
+    await vi.waitFor(() => {
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: '@xstate.snapshot',
+          event: { type: 'inc' },
+          snapshot: expect.objectContaining({ context: { count: 1 } })
+        })
+      );
+    });
+    subscription.unsubscribe();
+    const sentCount = send.mock.calls.length;
+    store.trigger.inc();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(send).toHaveBeenCalledTimes(sentCount);
+  } finally {
+    subscription.unsubscribe();
+    inspector.stop();
+  }
 });
 
 it('emitted events can be subscribed to', () => {

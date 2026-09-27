@@ -21,6 +21,7 @@
 
 <div>
   <button type="button" on:click={() => (visible = !visible)}>Toggle</button>
+  <button type="button" on:click={() => send({ type: 'INC' })}>Background increment</button>
   {#if visible}
     <!-- inlined version of this doesn't unsubscribe from the store when the content gets hidden, so we need to keep this in a separate component  -->
     <UseActorNonPersistentSubscriptionChild {send} {snapshot} />

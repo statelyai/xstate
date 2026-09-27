@@ -1,4 +1,10 @@
-import { Accessor, createEffect, createMemo, onCleanup } from 'solid-js';
+import {
+  Accessor,
+  createEffect,
+  createMemo,
+  onCleanup,
+  untrack
+} from 'solid-js';
 import { AnyActorRef, SnapshotFrom } from 'xstate';
 import { createImmutable } from './createImmutable.ts';
 
@@ -18,22 +24,21 @@ export function fromActorRef<TActor extends AnyActorRef | undefined>(
     v: actorMemo()?.getSnapshot()
   });
 
-  createEffect<boolean>((isInitialActor) => {
+  createEffect(() => {
     const currentActor = actorMemo();
-    if (!isInitialActor) {
-      setSnapshot({ v: currentActor?.getSnapshot() });
-    }
 
-    if (currentActor) {
-      const { unsubscribe } = currentActor.subscribe({
-        next: (nextSnapshot) => setSnapshot({ v: nextSnapshot }),
-        error: noop,
-        complete: noop
-      });
-      onCleanup(unsubscribe);
-    }
-    return false;
-  }, true);
+    untrack(() => {
+      if (currentActor) {
+        const { unsubscribe } = currentActor.subscribe({
+          next: (nextSnapshot) => setSnapshot({ v: nextSnapshot }),
+          error: () => setSnapshot({ v: currentActor.getSnapshot() }),
+          complete: noop
+        });
+        onCleanup(unsubscribe);
+      }
+      setSnapshot({ v: currentActor?.getSnapshot() });
+    });
+  });
 
   return () => snapshot.v;
 }

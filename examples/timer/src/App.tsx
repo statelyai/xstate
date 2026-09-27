@@ -1,5 +1,5 @@
 import './App.css';
-import { useMachine } from '@xstate/react';
+import { useActor } from '@xstate/react';
 import { createInspector } from '@statelyai/sdk';
 import { timerMachine } from './timerMachine';
 
@@ -19,7 +19,7 @@ function padTime(minsOrSecs: number) {
 }
 
 function App() {
-  const [state, send] = useMachine(timerMachine, {
+  const [state, send] = useActor(timerMachine, {
     inspect: inspector.inspect
   });
   const { minutes, seconds } = convertSecondsToTime(state.context.seconds);

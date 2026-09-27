@@ -14,7 +14,7 @@ Please read [our code of conduct](https://github.com/statelyai/xstate/blob/main/
 
 ## Environment
 
-- Ensure you have a recent version of Node.
+- Use Node 22.18 or newer (CI uses Node 24).
 - Run `corepack enable` once so the pnpm version pinned in `packageManager` is used automatically.
 - Run `pnpm i` to install all needed dev dependencies.
 
@@ -34,9 +34,9 @@ PRs are reviewed promptly and merged in within a day or two (or even within an h
 
 ## Contributing an example
 
-Our [examples](https://github.com/statelyai/xstate/tree/main/examples) are self-contained apps that show how to solve a common problem, integrate another framework (like Vue or Svelte) or build something fun with XState.
+Our [examples](https://github.com/statelyai/xstate/tree/next/examples) are self-contained apps that show how to solve a common problem, integrate another framework (like Vue or Svelte) or build something fun with XState.
 
-To contribute an example, please read the [`readme`](https://github.com/statelyai/xstate/blob/main/examples/readme.md) in the `/examples` folder.
+To contribute an example, please read the [`readme`](https://github.com/statelyai/xstate/blob/next/examples/readme.md) in the `/examples` folder.
 
 ## Submit an issue
 
@@ -64,6 +64,24 @@ The [xstate.js.org](https://xstate.js.org) landing page is currently stored at `
 
 We are using [preconstruct](https://preconstruct.tools/) to build our packages. It comes with a handy trick which allows us to always use source files of packages contained in this monorepo. It creates hook/redirecting files in place of dist files during development. This always happens after installing packages (during `postinstall` step) and you shouldn't be worried about it, but if you actually build packages you destroy those redirecting files and to run tests, typechecking etc correctly you need to bring them back by running `pnpm postinstall`.
 
+### Bundle measurements
+
+See [bundle measurements](docs/bundle-size.md) for source and production profiles, behavior verification, and CI size reports.
+
 ### Publishing
 
-We are using [changesets](https://github.com/atlassian/changesets) to create "release intents" for our packages. When those pop up on master a release PR gets prepared automatically and once it gets merged actual release happen (also automatically).
+We are using [changesets](https://github.com/atlassian/changesets) to create "release intents" for our packages. The Publish workflow handles release intents on `main` and `next`; changes for the v6 alpha belong on `next`.
+
+### Examples and development dependencies
+
+<!-- Maintained check commands from package.json and scripts/check-*.js; fixture overrides from pnpm-workspace.yaml. -->
+
+`pnpm check:examples` typechecks and builds all 49 TypeScript examples, runs every discovered example regression test, and verifies donut persistence through a CLI restart. Run `pnpm build` first so standalone example compilers consume generated package declarations. Node-based writer and occupancy tests run separately through `pnpm test:tooling`; the remaining example tests use Vitest. New example test files are discovered automatically.
+
+`node scripts/typecheck-examples.js` checks every example with a `tsconfig.json`, including referenced projects behind solution configs; pass project names or paths to select examples. Any compiler failure exits nonzero. `examples/readme.md` has no project configuration and is skipped. Every current TypeScript example has a build script and participates in the CI gate.
+
+`pnpm check:templates` installs and builds all four standalone starter templates with their own frozen lockfiles.
+
+Workflow regression tests use in-process actors, simulated clocks, and mocked network, database, filesystem, and subprocess boundaries. Passing these checks does not exercise real MongoDB credentials, external services, or media-file moves. Follow each example's README to run its live integration.
+
+The pinned `@scion-scxml/test-framework@2.0.16` package supplies SCXML fixtures only. Its original fixture files and licensing remain intact; its unused HTTP runner dependencies are removed with scoped pnpm overrides. That runner is intentionally unavailable. Core SCXML tests read the fixtures directly. Happy DOM is a development-only test environment.

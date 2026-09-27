@@ -112,7 +112,7 @@ function undoRedoFromLogic<
       future: any[]
     ): [any, StoreEffect<TEmitted>[]] => {
       if (!options.restore) {
-        return [{ ...historicalSnapshot, past, future }, []];
+        return [{ ...snapshot, ...historicalSnapshot, past, future }, []];
       }
 
       const effects: StoreEffect<TEmitted>[] = [];
@@ -121,6 +121,7 @@ function undoRedoFromLogic<
         triggeredEvents.push(event);
       }) as EnqueueObject<TContext, TEmitted, TEventPayloadMap>;
       let triggeredSnapshot = {
+        ...snapshot,
         ...historicalSnapshot,
         context: options.restore(
           {
@@ -143,8 +144,7 @@ function undoRedoFromLogic<
 
       return [
         {
-          ...historicalSnapshot,
-          context: triggeredSnapshot.context,
+          ...triggeredSnapshot,
           past,
           future
         },

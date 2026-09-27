@@ -1,5 +1,13 @@
 # @xstate/solid
 
+## 3.0.0-alpha.1
+
+### Patch Changes
+
+- 69b6663: Keep selected values current when subscriptions start or resume. Vue and Solid now expose terminal error snapshots, and Solid preserves array/object context changes without changing the actor's source data. Vue uses one snapshot subscription per `useActor` call.
+  
+  React store selectors now honor custom comparisons when the selector argument is omitted.
+
 ## 3.0.0-alpha.0
 
 ### Patch Changes

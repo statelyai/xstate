@@ -44,6 +44,76 @@ it('sets the value of the atom using a function', () => {
   expect(atom.get()).toBe(2);
 });
 
+it('does not subscribe a writable atom to reads inside its updater', () => {
+  const source = createAtom(1);
+  const target = createAtom(10);
+  const observer = vi.fn();
+  const subscription = target.subscribe(observer);
+
+  target.set((previous) => previous + source.get());
+  source.set(2);
+
+  expect(target.get()).toBe(11);
+  expect(observer.mock.calls).toEqual([[11]]);
+  subscription.unsubscribe();
+});
+
+it('drains notifications before rethrowing the first subscriber error', () => {
+  const source = createAtom(0);
+  const unrelated = createAtom(0);
+  const error = new Error('subscriber failed');
+  const first = source.subscribe(() => {
+    throw error;
+  });
+  const observer = vi.fn();
+  const second = source.subscribe(observer);
+  const other = unrelated.subscribe(vi.fn());
+
+  expect(() => source.set(1)).toThrow(error);
+  expect(observer.mock.calls).toEqual([[1]]);
+  unrelated.set(1);
+  expect(observer.mock.calls).toEqual([[1]]);
+  expect(() => source.set(2)).toThrow(error);
+  expect(observer.mock.calls).toEqual([[1], [2]]);
+
+  first.unsubscribe();
+  second.unsubscribe();
+  other.unsubscribe();
+});
+
+it('rethrows undefined and still delivers reentrant notifications', () => {
+  const source = createAtom(0);
+  const nested = createAtom(0);
+  const order: string[] = [];
+  const subscriptions = [
+    nested.subscribe(() => {
+      order.push('nested');
+      throw undefined;
+    }),
+    nested.subscribe(() => {
+      order.push('nested-second');
+      throw new Error('later error');
+    }),
+    source.subscribe(() => {
+      order.push('first');
+      nested.set(1);
+    }),
+    source.subscribe(() => {
+      order.push('second');
+    })
+  ];
+  let didThrow = false;
+  try {
+    source.set(1);
+  } catch (error) {
+    didThrow = true;
+    expect(error).toBeUndefined();
+  }
+  expect(didThrow).toBe(true);
+  expect(order).toEqual(['first', 'second', 'nested', 'nested-second']);
+  subscriptions.forEach((subscription) => subscription.unsubscribe());
+});
+
 it('can set the value to undefined', () => {
   const atom = createAtom<number | undefined>(1);
   expect(atom.get()).toBe(1);
@@ -617,6 +687,89 @@ describe('reducer atoms', () => {
 });
 
 describe('async atoms', () => {
+  it.each(['done', 'error'] as const)(
+    'should recompute after a dependency changes following %s settlement',
+    async (status) => {
+      const count = createAtom(1);
+      const error = new Error('initial failure');
+      const atom = createAsyncAtom(async () => {
+        const value = count.get();
+        if (status === 'error' && value === 1) {
+          throw error;
+        }
+        return value * 2;
+      });
+      const selected = createAtom(() => {
+        const state = atom.get();
+        return state.status === 'done' ? state.data : state.status;
+      });
+      const observer = vi.fn();
+      const subscription = selected.subscribe(observer);
+
+      await Promise.resolve();
+      expect(atom.get()).toEqual(
+        status === 'done' ? { status, data: 2 } : { status, error }
+      );
+      observer.mockClear();
+
+      count.set(2);
+      expect(atom.get()).toEqual({ status: 'pending' });
+      await Promise.resolve();
+
+      expect(atom.get()).toEqual({ status: 'done', data: 4 });
+      expect(observer.mock.calls).toEqual([['pending'], [4]]);
+      subscription.unsubscribe();
+    }
+  );
+
+  it('should recompute lazily after a settled dependency changes', async () => {
+    const count = createAtom(1);
+    const getter = vi.fn(async () => count.get() * 2);
+    const atom = createAsyncAtom(getter);
+
+    expect(getter).not.toHaveBeenCalled();
+    expect(atom.get()).toEqual({ status: 'pending' });
+    await Promise.resolve();
+    expect(atom.get()).toEqual({ status: 'done', data: 2 });
+
+    count.set(2);
+    expect(getter).toHaveBeenCalledTimes(1);
+    expect(atom.get()).toEqual({ status: 'pending' });
+    await Promise.resolve();
+    expect(atom.get()).toEqual({ status: 'done', data: 4 });
+    expect(getter).toHaveBeenCalledTimes(2);
+  });
+
+  it('should retain dependencies when the async comparator suppresses a result', async () => {
+    const count = createAtom(1);
+    const atom = createAsyncAtom(async () => count.get() % 2, {
+      compare: (previous, next) =>
+        next.status === 'pending' ||
+        (previous.status === 'done' &&
+          next.status === 'done' &&
+          previous.data === next.data)
+    });
+    const observer = vi.fn();
+    const subscription = atom.subscribe(observer);
+
+    await Promise.resolve();
+    expect(atom.get()).toEqual({ status: 'done', data: 1 });
+    observer.mockClear();
+
+    count.set(3);
+    await Promise.resolve();
+    expect(observer).not.toHaveBeenCalled();
+
+    count.set(4);
+    await Promise.resolve();
+    expect(atom.get()).toEqual({ status: 'done', data: 0 });
+    expect(observer).toHaveBeenCalledExactlyOnceWith({
+      status: 'done',
+      data: 0
+    });
+    subscription.unsubscribe();
+  });
+
   it('async atoms should work (fulfilled)', async () => {
     const atom = createAsyncAtom(async () => 'hello');
 

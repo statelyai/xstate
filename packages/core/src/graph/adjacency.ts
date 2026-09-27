@@ -21,6 +21,7 @@ function resolveTransitionSnapshot<TSnapshot>(
   return Array.isArray(result) ? result[0] : result;
 }
 
+/** @public */
 export function getAdjacencyMap<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -54,7 +55,7 @@ export function getAdjacencyMap<
       options.input as TInput
     );
 
-  const adj: AdjacencyMap<TSnapshot, TEvent> = {};
+  const adj: AdjacencyMap<TSnapshot, TEvent> = Object.create(null);
 
   let iterations = 0;
   const queue: Array<{
@@ -62,10 +63,14 @@ export function getAdjacencyMap<
     event: TEvent | undefined;
     prevState: TSnapshot | undefined;
   }> = [{ nextState: fromState, event: undefined, prevState: undefined }];
-  const stateMap = new Map<SerializedSnapshot, TSnapshot>();
 
-  while (queue.length) {
-    const { nextState: state, event, prevState } = queue.shift()!;
+  for (let head = 0; head < queue.length; head++) {
+    const { nextState: state, event, prevState } = queue[head];
+    // Release processed entries without shifting the remaining frontier.
+    if (head > 4096 && head * 2 > queue.length) {
+      queue.splice(0, head + 1);
+      head = -1;
+    }
 
     if (iterations++ > limit) {
       throw new Error('Traversal limit exceeded');
@@ -79,11 +84,10 @@ export function getAdjacencyMap<
     if (adj[serializedState]) {
       continue;
     }
-    stateMap.set(serializedState, state);
 
     adj[serializedState] = {
       state,
-      transitions: {}
+      transitions: Object.create(null)
     };
 
     if (stopWhen && stopWhen(state)) {
@@ -119,6 +123,7 @@ export function getAdjacencyMap<
   return adj;
 }
 
+/** @public */
 export function adjacencyMapToArray<TSnapshot, TEvent>(
   adjMap: AdjacencyMap<TSnapshot, TEvent>
 ): Array<{

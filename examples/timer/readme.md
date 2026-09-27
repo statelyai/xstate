@@ -10,7 +10,7 @@ A countdown timer: an interval actor decrements the remaining time, and guarded 
 - `createCallbackLogic()` for the one-second tick
 - Guarded transitions (transition functions that return nothing to block)
 - Eventless transitions (`always`)
-- `useMachine()` from `@xstate/react` and `snapshot.can()`
+- `useActor()` from `@xstate/react` and `snapshot.can()`
 
 ## Run it
 

@@ -3,7 +3,8 @@ import {
   Node,
   ObjectLiteralExpression,
   SourceFile,
-  SyntaxKind
+  SyntaxKind,
+  SymbolFlags
 } from 'ts-morph';
 
 /**
@@ -51,26 +52,61 @@ export function findMachineConfigObjects(
   return result;
 }
 
-/** Returns the `xstate` import declaration, if present. */
-function getXStateImport(sourceFile: SourceFile) {
-  return sourceFile
+/** Finds or adds a runtime helper import and returns its binding at the use site. */
+export function ensureNamedImport(
+  sourceFile: SourceFile,
+  name: string,
+  location: Node = sourceFile
+): string | undefined {
+  const imports = sourceFile
     .getImportDeclarations()
-    .find((imp) => imp.getModuleSpecifierValue() === 'xstate');
-}
+    .filter((imp) => imp.getModuleSpecifierValue() === 'xstate');
+  if (!imports.length) return undefined;
 
-/**
- * Ensures a named import from `xstate` exists (adds it if missing). Only adds
- * when there is already an `xstate` import declaration in the file.
- */
-export function ensureNamedImport(sourceFile: SourceFile, name: string): void {
-  const imp = getXStateImport(sourceFile);
-  if (!imp) {
-    return;
+  const visible = location.getSymbolsInScope(SymbolFlags.Value);
+  for (const imp of imports) {
+    if (imp.isTypeOnly()) continue;
+    for (const spec of imp.getNamedImports()) {
+      if (spec.isTypeOnly() || spec.getName() !== name) continue;
+      const local = (spec.getAliasNode() ?? spec.getNameNode()).getText();
+      if (
+        visible
+          .find((symbol) => symbol.getName() === local)
+          ?.getDeclarations()
+          .includes(spec)
+      ) {
+        return local;
+      }
+    }
   }
-  const existing = imp
-    .getNamedImports()
-    .some((ni) => (ni.getAliasNode() ?? ni.getNameNode()).getText() === name);
-  if (!existing) {
-    imp.addNamedImport(name);
-  }
+
+  // Reserve every identifier, including nested bindings, so the new import is
+  // usable throughout the file without shadowing an existing local value.
+  const identifiers = new Set(
+    sourceFile
+      .getDescendantsOfKind(SyntaxKind.Identifier)
+      .filter((node) => {
+        const parent = node.getParent();
+        return !(
+          (Node.isPropertyAssignment(parent) ||
+            Node.isPropertySignature(parent)) &&
+          parent.getNameNode() === node
+        );
+      })
+      .map((node) => node.getText())
+  );
+  let local = name;
+  let suffix = 1;
+  while (identifiers.has(local)) local = `${name}${suffix++}`;
+  const specifier = { name, ...(local === name ? {} : { alias: local }) };
+  const target = imports.find(
+    (imp) => !imp.isTypeOnly() && !imp.getNamespaceImport()
+  );
+  if (target) target.addNamedImport(specifier);
+  else
+    sourceFile.addImportDeclaration({
+      moduleSpecifier: 'xstate',
+      namedImports: [specifier]
+    });
+  return local;
 }

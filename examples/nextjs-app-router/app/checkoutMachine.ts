@@ -29,7 +29,7 @@ export const checkoutMachine = setup({
     },
     paid: {
       on: {
-        reset: ({ context }) => ({
+        reset: () => ({
           target: 'shopping',
           context: { items: 0 }
         })

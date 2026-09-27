@@ -117,8 +117,16 @@ const startSignup = (input: { source: string }) => {
   const actor = createActor(signupMachine, {
     input: input as never,
     onRejectedEvent: (rejection) => {
+      // A path segment is either a `PropertyKey` or a `{ key }` wrapper.
       const paths = rejection.issues
-        ?.map((issue) => issue.path?.join('.') || '(root)')
+        ?.map(
+          (issue) =>
+            issue.path
+              ?.map((segment) =>
+                String(typeof segment === 'object' ? segment.key : segment)
+              )
+              .join('.') || '(root)'
+        )
         .join(', ');
       log(
         `   dead letter: "${rejection.event.type}" from ${rejection.eventOrigin} ` +

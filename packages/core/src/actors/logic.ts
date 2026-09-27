@@ -2,6 +2,7 @@ import {
   XSTATE_LOGIC_EFFECT_REJECT,
   XSTATE_LOGIC_EFFECT_RESOLVE,
   XSTATE_LOGIC_EFFECT_START,
+  XSTATE_INIT,
   XSTATE_STOP
 } from '../constants.ts';
 import { createInitEvent } from '../eventUtils.ts';
@@ -31,17 +32,20 @@ import {
   Snapshot
 } from '../types.ts';
 
+/** @public */
 export type LogicSnapshot<TContext, TOutput, TInput> = Snapshot<TOutput> & {
   context: TContext;
   input: TInput | undefined;
   effects?: Record<string, LogicEffectState>;
 };
 
+/** @public */
 export type LogicEffectState =
   | { status: 'active' }
   | { status: 'done'; output?: unknown }
   | { status: 'error'; error: unknown };
 
+/** @public */
 export interface LogicArgs<TContext, TEvent extends EventObject, TInput> {
   context: TContext;
   event: TEvent;
@@ -50,11 +54,13 @@ export interface LogicArgs<TContext, TEvent extends EventObject, TInput> {
   self: LogicActorRef<TContext, unknown, TEvent, TInput>;
 }
 
+/** @public */
 export type LogicEffect<
   _TEvent extends EventObject,
   _TEmitted extends EventObject
 > = ExecutableActionObject;
 
+/** @public */
 export interface LogicEnqueue<
   TEvent extends EventObject,
   TEmitted extends EventObject
@@ -73,6 +79,7 @@ export interface LogicEnqueue<
   };
 }
 
+/** @public */
 export type LogicPatch<TContext, TOutput, TInput> = Partial<{
   context: TContext;
   input: TInput | undefined;
@@ -82,6 +89,7 @@ export type LogicPatch<TContext, TOutput, TInput> = Partial<{
   effects: Record<string, LogicEffectState>;
 }>;
 
+/** @public */
 export type LogicFunction<
   TContext,
   TOutput,
@@ -93,6 +101,7 @@ export type LogicFunction<
   enq: LogicEnqueue<TEvent, TEmitted>
 ) => void | LogicPatch<TContext, TOutput, TInput>;
 
+/** @public */
 export interface LogicConfig<
   TContext,
   TOutput,
@@ -144,6 +153,7 @@ interface LogicTransition<
   ): LogicSnapshot<TContext, TOutput, TInput>;
 }
 
+/** @public */
 export type LogicActorLogic<
   TContext,
   TOutput,
@@ -164,6 +174,7 @@ export type LogicActorLogic<
   transition: LogicTransition<TContext, TOutput, TEvent, TInput, TEmitted>;
 };
 
+/** @public */
 export type LogicActorRef<
   TContext,
   TOutput,
@@ -205,10 +216,16 @@ function cleanupLogicEffects(self: AnyActorRef): void {
   if (!state) {
     return;
   }
-  for (const { cleanup } of state.values()) {
-    cleanup?.();
-  }
   effectStates.delete(self);
+  let failure: { error: unknown } | undefined;
+  for (const { cleanup } of state.values()) {
+    try {
+      cleanup?.();
+    } catch (error) {
+      failure ??= { error };
+    }
+  }
+  if (failure) throw failure.error;
 }
 
 function resolveContext<TContext, TInput>(
@@ -220,6 +237,7 @@ function resolveContext<TContext, TInput>(
     : context;
 }
 
+/** @public */
 export function createLogic<
   TContext,
   const TInputSchema extends StandardSchemaV1,
@@ -378,12 +396,23 @@ export function createLogic<
     }
 
     const effects: LogicEffect<TEvent, TEmitted>[] = [];
-    const trackedEffects: Record<string, LogicEffectState> = {};
+    const trackedEffects: Record<string, LogicEffectState> =
+      Object.create(null);
     const enqueueEffect = (
       key: string,
       exec: (runtime?: Partial<ActorSystemRuntime>) => void | (() => void)
     ) => {
-      if (snapshot.effects?.[key]) {
+      const recorded =
+        snapshot.effects &&
+        Object.prototype.hasOwnProperty.call(snapshot.effects, key)
+          ? snapshot.effects[key]
+          : undefined;
+      // Active process-local attachments must be recreated on restore. A
+      // completed effect remains memoized; ordinary events never reattach.
+      if (
+        recorded &&
+        !(event.type === XSTATE_INIT && recorded.status === 'active')
+      ) {
         return;
       }
       effects.push(

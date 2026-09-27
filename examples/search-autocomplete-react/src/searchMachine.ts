@@ -23,7 +23,11 @@ const searchCorpus = createAsyncLogic({
       const timeout = setTimeout(resolve, 600);
       signal.addEventListener('abort', () => {
         clearTimeout(timeout);
-        reject(signal.reason);
+        reject(
+          signal.reason instanceof Error
+            ? signal.reason
+            : new Error('Search aborted')
+        );
       });
     });
 

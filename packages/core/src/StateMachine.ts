@@ -15,7 +15,7 @@ import {
   createInertActorScope,
   isInertActorScope,
   setInertActorScopeSnapshot
-} from './getNextSnapshot.ts';
+} from './inertActorScope.ts';
 import { withActorSelf } from './actorScope.ts';
 import {
   createMachineSnapshot,
@@ -58,6 +58,7 @@ import type {
   AnyActorRef,
   AnyActorScope,
   AnyEventObject,
+  AnyStateMachine,
   AnyMachineSnapshot,
   AnyTransitionDefinition,
   Equals,
@@ -197,6 +198,7 @@ type ProvidedActors<
     : never;
 };
 
+/** @public */
 export class StateMachine<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -231,13 +233,31 @@ export class StateMachine<
   TEmitted
 > {
   /**
-   * @internal Type-only marker for the actor's internal event protocol. Not
+   * Type-only marker for the actor's internal event protocol. `actor.send` and
+   * `actor.trigger` read it to drop internal events from the public protocol,
+   * so it must survive `stripInternal` into the published declarations. Not
    * `declare` (the build's babel pipeline rejects declare class fields); the
    * one `undefined` property this emits per machine instance is inert.
    */
   readonly _internalEventType!: TInternalEvent;
-  /** @internal Type-only marker for transition metadata. */
+  /** Type-only marker for transition metadata. Never assigned at runtime. */
   readonly _transitionMetaType!: TTransitionMeta;
+  /**
+   * Type-only marker for the declared input type. `getInitialSnapshot` takes
+   * input optionally, so inferring input from it always adds `undefined`;
+   * `InputFrom` reads this carrier instead. Method-shaped so it stays
+   * bivariant like `getInitialSnapshot`. Never assigned at runtime.
+   */
+  readonly _inputType!: { carry(input: TInput): void }['carry'];
+
+  /**
+   * Type-level carriers for the machine's source maps and state schema. Type
+   * helpers in integration packages read these to walk a machine's declared
+   * actions, actors and invoked sources. They are never assigned at runtime.
+   */
+  readonly _actionMap!: TActionMap;
+  readonly _actorMap!: TActorMap;
+  readonly _stateSchema!: TConfig;
 
   /** The machine's own version. */
   public version?: string;
@@ -270,6 +290,15 @@ export class StateMachine<
   public internalEventDescriptors: ReadonlyArray<string>;
   /** @internal Skips eventless-selection scans for machines without `always`. */
   public _hasEventlessTransitions: boolean;
+
+  /**
+   * Adapter hooks for actor-local transition evaluation state. Used by
+   * `@xstate/scxml`; not part of the stable API.
+   *
+   * @experimental
+   */
+  public _microstepHooks?: AnyStateMachine['_microstepHooks'];
+
   constructor(
     /** The raw config used to create the machine. */
     public config: Next_MachineConfig<
@@ -450,10 +479,7 @@ export class StateMachine<
       ...Object.keys(this.schemas?.internalEvents ?? {}),
       ...(this.config.internalEvents ?? [])
     ];
-    this.options = {
-      maxIterations: Infinity,
-      ...this.config.options
-    };
+    this.options = { ...this.config.options };
 
     this.transition = this.transition.bind(this);
     this.initialTransition = this.initialTransition.bind(this);
@@ -532,6 +558,7 @@ export class StateMachine<
     ) as unknown as this;
     // Providing sources does not change the serializable definition.
     provided._json = this._json;
+    provided._microstepHooks = this._microstepHooks;
     return provided;
   }
 
@@ -918,6 +945,7 @@ export class StateMachine<
     actorScope: AnyActorScope,
     selectionResults?: TransitionSelectionResults
   ): Array<AnyTransitionDefinition> {
+    this._microstepHooks?.begin(actorScope.self);
     return (
       transitionNode(
         this.root,
@@ -1175,13 +1203,6 @@ export class StateMachine<
     beginSpawnAllocation(resolvedActorScope);
     const initEvent = createInitEvent(input) as unknown as TEvent; // TODO: fix;
     const internalQueue: AnyEventObject[] = [];
-    const preInitialState = this._getPreInitialState(
-      resolvedActorScope,
-      initEvent
-    );
-    const contextSpawnEffects = Object.values(preInitialState.children)
-      .filter(Boolean)
-      .map((actor) => createSpawnEffect(actor as AnyActor));
     const finalizeInitialResult = (
       macroState: AnyMachineSnapshot,
       microsteps: ReadonlyArray<
@@ -1198,7 +1219,9 @@ export class StateMachine<
         ? attachSnapshotActorRef(resolvedActorScope, macroState)
         : this._attachPureActorRef(macroState, resolvedActorScope, true);
       const effects = this._collectEffects(microsteps);
-      if (this.validator) {
+      // Error snapshots may carry synthetic context (e.g. when the context
+      // factory throws); validating them would mask the original error.
+      if (this.validator && macroState.status !== 'error') {
         assertValid(this.validator, {
           kind: 'result',
           logic: this,
@@ -1208,6 +1231,33 @@ export class StateMachine<
       }
       return [returnedSnapshot as SnapshotFrom<this>, effects];
     };
+
+    let preInitialState: AnyMachineSnapshot;
+    try {
+      preInitialState = this._getPreInitialState(resolvedActorScope, initEvent);
+    } catch (error) {
+      // Keep the machine snapshot shape (e.g. `matches`) on error snapshots
+      // when initialization (e.g. the context factory) throws.
+      const errorSnapshot = cloneMachineSnapshot(
+        createMachineSnapshot(
+          {
+            context:
+              typeof this.config.context !== 'function' && this.config.context
+                ? this.config.context
+                : ({} as TContext),
+            _nodes: [this.root],
+            children: {},
+            status: 'active'
+          },
+          this
+        ),
+        { status: 'error', error }
+      );
+      return finalizeInitialResult(errorSnapshot, []);
+    }
+    const contextSpawnEffects = Object.values(preInitialState.children)
+      .filter(Boolean)
+      .map((actor) => createSpawnEffect(actor as AnyActor));
 
     try {
       const [nextState, initialActions] = initialMicrostep(
@@ -1335,6 +1385,42 @@ export class StateMachine<
    * @internal
    */
   public _json?: Record<string, unknown>;
+
+  /**
+   * @internal Builds a machine-shaped `'error'` snapshot (root configuration,
+   * no children) for a persisted snapshot that failed to restore, so
+   * consumers keep `matches()`, `can()` and friends.
+   */
+  public _createRestoreErrorSnapshot(
+    persisted: unknown,
+    error: unknown
+  ): MachineSnapshot<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TOutput,
+    TMeta,
+    TConfig
+  > {
+    const context = (persisted as { context?: unknown } | undefined)?.context;
+    return cloneMachineSnapshot(
+      createMachineSnapshot(
+        {
+          context:
+            context && typeof context === 'object'
+              ? (context as TContext)
+              : ({} as TContext),
+          _nodes: [this.root],
+          children: {},
+          status: 'active'
+        },
+        this
+      ),
+      { status: 'error', error }
+    ) as any;
+  }
 
   public restoreSnapshot(
     snapshot: Snapshot<unknown>,
@@ -1597,6 +1683,19 @@ export class StateMachine<
     const nodes = Array.from(
       getAllStateNodes(getStateNodes(this.root, snapshotData.value))
     );
+
+    if (isDevelopment && snapshotData.status === 'active') {
+      // Restored snapshots are opaque: eventless transitions are not
+      // re-evaluated on restore. Detected structurally; guards never run.
+      const eventlessNode = nodes.find(
+        (node) => node.always?.length || node.type === 'choice'
+      );
+      if (eventlessNode) {
+        console.warn(
+          `Restored snapshot is in state "${eventlessNode.id}" which has eventless transitions; they are not re-evaluated until the next event`
+        );
+      }
+    }
 
     const {
       version: _persistedSnapshotVersion,

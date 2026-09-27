@@ -1,12 +1,70 @@
 import {
   createActor,
   createMachine,
+  setup,
+  types,
   type ActorRefFrom,
-  type EventRejection
+  type EventRejection,
+  type SendableEventFromLogic
 } from '../src';
 import z from 'zod';
 
 describe('internalEvents', () => {
+  it('keeps config-level internal events out of setup machines public protocol', () => {
+    const machine = setup({
+      schemas: {
+        events: { GO: types<{}>(), TICK: types<{}>() }
+      }
+    }).createMachine({
+      internalEvents: ['TICK'] as const,
+      initial: 'idle',
+      states: { idle: { on: { GO: {}, TICK: {} } } }
+    });
+    const actor = createActor(machine);
+    type Sendable = SendableEventFromLogic<typeof machine>;
+    const publicEvent: Sendable = { type: 'GO' };
+    expect(publicEvent.type).toBe('GO');
+    if (false) {
+      // @ts-expect-error Config-level internal events are not public.
+      const internalEvent: Sendable = { type: 'TICK' };
+      // @ts-expect-error External callers cannot send an internal event.
+      actor.send({ type: 'TICK' });
+      // @ts-expect-error Internal events have no public trigger method.
+      actor.trigger.TICK();
+    }
+  });
+
+  it('keeps registered child internal events private for both spawn forms', () => {
+    const child = setup({
+      schemas: { events: { GO: types<{}>(), TICK: types<{}>() } }
+    }).createMachine({
+      internalEvents: ['TICK'] as const,
+      initial: 'idle',
+      states: { idle: { on: { GO: {}, TICK: {} } } }
+    });
+    const parent = setup({ actors: { child } }).createMachine({
+      on: {
+        GO: ({ actors }, enq) => {
+          const byKey = enq.spawn('child');
+          const byLogic = enq.spawn(actors.child);
+          byKey.send({ type: 'GO' });
+          byLogic.send({ type: 'GO' });
+          if (false) {
+            // @ts-expect-error Internal events stay private via the key overload.
+            byKey.send({ type: 'TICK' });
+            // @ts-expect-error Internal events have no public trigger method.
+            byKey.trigger.TICK();
+            // @ts-expect-error Internal events stay private via the logic overload.
+            byLogic.send({ type: 'TICK' });
+            // @ts-expect-error Internal events have no public trigger method.
+            byLogic.trigger.TICK();
+          }
+        }
+      }
+    });
+    expect(parent).toBeDefined();
+  });
+
   it('supports separately declared internal event schemas', async () => {
     const machine = createMachine({
       schemas: {
@@ -34,7 +92,10 @@ describe('internalEvents', () => {
       }
     });
 
-    const actor = createActor(machine).start();
+    const deadLetters: EventRejection[] = [];
+    const actor = createActor(machine, {
+      onRejectedEvent: (rejection) => deadLetters.push(rejection)
+    }).start();
     actor.send({ type: 'start' });
 
     expect(actor.getSnapshot().value).toBe('done');
@@ -49,16 +110,10 @@ describe('internalEvents', () => {
     // the boundary check runs before any host runtime takes ownership of
     // delivery: the internal event is dead-lettered, not handed to the host
     actor.system.runtime = { sendEvent: () => {} };
-    const deadLetters: any[] = [];
-    actor.system.inspect((inspectionEvent) => {
-      if (inspectionEvent.type === '@xstate.deadletter') {
-        deadLetters.push(inspectionEvent);
-      }
-    });
     actor.send({ type: 'tick', count: 2 } as any);
     expect(deadLetters).toHaveLength(1);
     expect(deadLetters[0].reason).toBe('internalEvent');
-    expect(deadLetters[0].error.message).toMatch(
+    expect(deadLetters[0].error?.message).toMatch(
       'Internal event "tick" cannot be sent to actor'
     );
   });

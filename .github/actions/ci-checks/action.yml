@@ -6,6 +6,26 @@ runs:
       run: pnpm build
       shell: bash
 
+    - name: Strict built package declarations
+      run: node scripts/check-built-types.mjs
+      shell: bash
+
+    - name: Packed consumer
+      run: pnpm check:packed
+      shell: bash
+
+    - name: Export stability
+      run: pnpm check:exports
+      shell: bash
+
+    - name: Package files
+      run: pnpm check:files
+      shell: bash
+
+    - name: Type error quality
+      run: pnpm bench:type-errors --check
+      shell: bash
+
     - name: Oxlint
       run: pnpm lint
       shell: bash
@@ -15,11 +35,19 @@ runs:
       shell: bash
 
     - name: Typecheck
-      run: pnpm typecheck && pnpm typecheck:adapter-consumers
+      run: pnpm typecheck && pnpm typecheck:adapter-consumers && pnpm typecheck:fsm-only
+      shell: bash
+
+    - name: Typecheck examples
+      run: pnpm typecheck:examples
       shell: bash
 
     - name: Test
       run: pnpm test --silent
+      shell: bash
+
+    - name: Test tooling
+      run: pnpm test:tooling
       shell: bash
 
     - name: Svelte Check

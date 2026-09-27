@@ -178,10 +178,6 @@ describe('useActor', () => {
 
   it('should accept input', () => {
     const testMachine = createMachine({
-      types: {} as {
-        context: { foo: string; test: boolean };
-        input: { test?: boolean };
-      },
       context: ({ input }) => ({
         foo: 'bar',
         test: false,
@@ -212,7 +208,6 @@ describe('useActor', () => {
   it('should not spawn actors until service is started', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const spawnMachine = createMachine({
-      types: {} as { context: any },
       id: 'spawn',
       initial: 'start',
       context: { ref: undefined } as any,
@@ -301,9 +296,6 @@ describe('useActor', () => {
   it('actions should not have stale data', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const toggleMachine = createMachine({
-      types: {} as {
-        events: { type: 'TOGGLE' };
-      },
       initial: 'inactive',
       actions: {
         doAction: () => {}
@@ -369,9 +361,6 @@ describe('useActor', () => {
     let count = 0;
 
     const machine = createMachine({
-      types: {} as {
-        events: { type: 'EVENT' };
-      },
       initial: 'active',
       context: { count: 0 } as any,
       states: {
@@ -424,15 +413,6 @@ describe('useActor', () => {
 
   it('should capture only array updates', () => {
     const machine = createMachine({
-      types: {} as {
-        context: {
-          item: {
-            counts: Array<{ value: number }>;
-            totals: Array<{ value: number }>;
-          };
-        };
-        events: { type: 'COUNT' } | { type: 'TOTAL' };
-      },
       initial: 'active',
       context: {
         item: {
@@ -502,7 +482,6 @@ describe('useActor', () => {
 
   it('useMachine array with odd number of items should be replaceable', () => {
     const machine = createMachine({
-      types: {},
       initial: 'active',
       context: {
         numbersList: [1, 2, 3, 4, 5]
@@ -546,11 +525,6 @@ describe('useActor', () => {
 
   it('useMachine state should only trigger effect of directly tracked value', () => {
     const counterMachine2 = createMachine({
-      types: {} as {
-        context: {
-          subCount: { subCount1: { subCount2: { count: number } } };
-        };
-      },
       id: 'counter',
       initial: 'active',
       context: { subCount: { subCount1: { subCount2: { count: 0 } } } } as any,
@@ -621,10 +595,6 @@ describe('useActor', () => {
 
   it('should capture only nested value update', () => {
     const machine = createMachine({
-      types: {} as {
-        context: { item: { count: number; total: number } };
-        events: { type: 'COUNT' } | { type: 'TOTAL' };
-      },
       initial: 'active',
       context: {
         item: {
@@ -688,10 +658,6 @@ describe('useActor', () => {
 
   it('Moving objects between arrays should not mutate context', () => {
     const stackMachine = createMachine({
-      types: {} as {
-        context: { current: { value: string }[]; done: { value: string }[] };
-        events: { type: 'next' } | { type: 'prev' };
-      },
       id: 'stack',
       initial: 'active',
       context: {
@@ -1028,12 +994,8 @@ describe('useActor', () => {
 
   it(`should not reevaluate a scope depending on state.matches when state.value doesn't change`, () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    interface MachineContext {
-      counter: number;
-    }
 
     const machine = createMachine({
-      types: {} as { context: MachineContext },
       context: {
         counter: 0
       } as any,
@@ -1312,7 +1274,6 @@ describe('useActor', () => {
     }
 
     const machine = createMachine({
-      types: {} as { context: { getValue: () => number } },
       initial: 'a',
       context: {
         getValue() {
@@ -1356,9 +1317,6 @@ describe('useActor', () => {
 
   it('should not miss initial synchronous updates', () => {
     const m = createMachine({
-      types: {} as {
-        context: { count: number };
-      },
       initial: 'idle',
       context: {
         count: 0
@@ -1437,10 +1395,6 @@ describe('useActor', () => {
       latestValue: { value: number };
     }
     const machine = createMachine({
-      types: {} as {
-        context: Context;
-        events: { type: 'INC' };
-      },
       initial: 'initial',
       context: {
         latestValue
@@ -1664,9 +1618,6 @@ describe('useActor', () => {
   it('child component should be able to send an event to a parent immediately in an effect', () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachine({
-      types: {} as {
-        events: { type: 'FINISH' };
-      },
       initial: 'active',
       states: {
         active: {
@@ -1703,14 +1654,6 @@ describe('useActor', () => {
 
   it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
-      types: {} as {
-        inpit: {
-          value: number;
-        };
-        context: {
-          value: number;
-        };
-      },
       initial: 'initial',
       context: (({ input }: { input: { value: number } }) => ({
         value: input.value
@@ -1752,9 +1695,6 @@ describe('useActor', () => {
     vi.useFakeTimers();
     try {
       const testMachine = createMachine({
-        types: {} as {
-          events: { type: 'START' };
-        },
         id: 'app',
         initial: 'idle',
         states: {
