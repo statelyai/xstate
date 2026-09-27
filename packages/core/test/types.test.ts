@@ -1017,8 +1017,8 @@ describe('states', () => {
         }
       },
       type: 'parallel',
-      // @ts-expect-error
       states: {
+        // @ts-expect-error
         underline: underlineState
       }
     });
@@ -1298,6 +1298,7 @@ describe('events', () => {
         }
       },
       on: {
+        // @ts-expect-error - no declared event type matches this descriptor
         'mouse.doubleClick': {}
       }
     });
@@ -1323,6 +1324,7 @@ describe('events', () => {
         }
       },
       on: {
+        // @ts-expect-error - no declared event type matches this descriptor
         'mouse.doubleClick': {}
       }
     });
@@ -1361,6 +1363,7 @@ describe('events', () => {
         }
       },
       on: {
+        // @ts-expect-error - no declared event type matches this descriptor
         'keypress.*': {}
       }
     });
@@ -5713,7 +5716,6 @@ describe('delays', () => {
   });
 
   it(`should reject delay as key of an after transitions object if it's outside of the defined ones`, () => {
-    // @ts-expect-error
     createMachine({
       // types: {} as {
       //   delays: 'one second' | 'one minute';
@@ -5723,6 +5725,7 @@ describe('delays', () => {
         'one minute': 60000
       },
       after: {
+        // @ts-expect-error
         'unknown delay': { target: '.done' }
       },
       initial: 'done',
@@ -5744,7 +5747,6 @@ describe('delays', () => {
   });
 
   it('should reject nested after delay strings outside of the defined ones', () => {
-    // @ts-expect-error
     createMachine({
       delays: {
         short: 100
@@ -5753,6 +5755,7 @@ describe('delays', () => {
       states: {
         idle: {
           after: {
+            // @ts-expect-error
             unknown: { target: 'done' }
           }
         },
@@ -5762,13 +5765,13 @@ describe('delays', () => {
   });
 
   it('should reject setup-created machine delay strings outside of the defined ones', () => {
-    // @ts-expect-error
     setup({}).createMachine({
       delays: {
         short: 100
       },
       after: {
         short: { target: '.done' },
+        // @ts-expect-error
         unknown: { target: '.done' }
       },
       initial: 'done',
