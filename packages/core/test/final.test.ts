@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   createMachine,
   createActor,
+  createCallbackLogic,
   initialTransition,
   transition
 } from '../src/index.ts';
@@ -1570,5 +1571,137 @@ describe('final states', () => {
     actorRef.send({ type: 'NEXT' });
 
     expect(actorRef.getSnapshot().output).toBe(null);
+  });
+
+  it('warns when a top-level final state declares invoke, on or after', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      createMachine({
+        id: 'm',
+        initial: 'done',
+        states: {
+          done: {
+            type: 'final',
+            invoke: { src: createMachine({}) },
+            on: { go: {} },
+            after: { 100: {} }
+          }
+        }
+      });
+
+      expect(warn).toHaveBeenCalledWith(
+        'State "m.done" is final and declares "invoke", "on", "after"; final states cannot run actors or take transitions.'
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('does not start actors invoked by a top-level final state', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.fn();
+    try {
+      const machine = createMachine({
+        initial: 'done',
+        states: {
+          done: {
+            type: 'final',
+            invoke: { src: createCallbackLogic(() => spy()) }
+          }
+        }
+      });
+      const [, effects] = initialTransition(machine);
+      expect(effects.map((effect) => effect.type)).toEqual([
+        '@xstate.terminate'
+      ]);
+
+      const actorRef = createActor(machine).start();
+
+      expect(actorRef.getSnapshot().status).toBe('done');
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('warns when a nested or parallel-region final state declares on', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      createMachine({
+        id: 'nested',
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'inner',
+            states: {
+              inner: { type: 'final', on: { go: {} } }
+            }
+          }
+        }
+      });
+      createMachine({
+        id: 'par',
+        type: 'parallel',
+        states: {
+          region: { type: 'final', on: { go: {} } }
+        }
+      });
+
+      expect(warn.mock.calls.map((call) => call[0])).toEqual([
+        'State "nested.a.inner" is final and declares "on"; final states cannot run actors or take transitions.',
+        'State "par.region" is final and declares "on"; final states cannot run actors or take transitions.'
+      ]);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('does not warn for plain final states', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'inner',
+            states: { inner: { type: 'final' } }
+          },
+          done: { type: 'final' }
+        }
+      });
+
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('final regions under a parallel state take no transitions and start no actors', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.fn();
+    try {
+      const machine = createMachine({
+        type: 'parallel',
+        states: {
+          a: {
+            type: 'final',
+            invoke: { src: createCallbackLogic(() => spy()) },
+            on: { go: { target: '#b-x' } }
+          },
+          b: {
+            initial: 'idle',
+            states: { idle: {}, x: { id: 'b-x' } }
+          }
+        }
+      });
+
+      const actorRef = createActor(machine).start();
+      actorRef.send({ type: 'go' });
+
+      expect(spy).not.toHaveBeenCalled();
+      expect(actorRef.getSnapshot().value).toEqual({ a: {}, b: 'idle' });
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

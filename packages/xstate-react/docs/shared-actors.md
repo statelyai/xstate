@@ -82,7 +82,9 @@ Place the provider close to the feature it belongs to. A provider at the applica
 
 ## TypeScript
 
-Snapshot, event and actor reference types come from the logic. `Provider` requires `options.input` when the logic requires input.
+Snapshot, event and actor reference types come from the logic.
+
+`input` stays optional on `createActorContext` and on the `Provider` `options` prop, even when the logic requires input, because the actor's options are merged from the `createActorContext(logic, options)` defaults and the `<Provider options>` prop. A missing required input is not a type error; when initialization reads it, the actor starts with an error snapshot.
 
 ```tsx
 const CheckoutContext = createActorContext(checkoutMachine);

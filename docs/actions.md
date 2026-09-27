@@ -11,6 +11,14 @@ entry: ({ context }, enq) => {
 }
 ```
 
+Entry and exit functions also receive `stateNode`, the state node being entered or exited, and `input`, the state's input. Transition functions do not receive `stateNode`.
+
+```ts
+entry: ({ stateNode }, enq) => {
+  enq(() => console.log('Entered', stateNode.id));
+}
+```
+
 ## Built-in actions
 
 <!-- enqueue methods and supported call sites from packages/core/src/types.ts and packages/core/src/stateUtils.ts -->

@@ -1117,11 +1117,6 @@ function removeConflictingTransitions(
       if (hasIntersection(getExitSet(t1), getExitSet(t2))) {
         if (isDescendant(t1.source, t2.source)) {
           transitionsToRemove.add(t2);
-        } else if (t2.source.type === 'final' && t1.source.type !== 'final') {
-          // A transition sourced in a final state yields to a conflicting
-          // transition from a live state, so a done region doesn't keep
-          // consuming events its siblings can still handle.
-          transitionsToRemove.add(t2);
         } else {
           t1Preempted = true;
           break;
@@ -1455,7 +1450,7 @@ function microstep(
       children: AnyMachineSnapshot['children'],
       input: Record<string, unknown> | undefined,
       kind: 'entry' | 'exit',
-      stateNodeId: string
+      stateNode: AnyStateNode
     ): [
       actions: any[],
       context: MachineContext | undefined,
@@ -1484,7 +1479,8 @@ function microstep(
                 actors: currentSnapshot.machine.sources.actors,
                 guards: currentSnapshot.machine.sources.guards,
                 delays: currentSnapshot.machine.sources.delays,
-                input
+                input,
+                stateNode
               },
               actorScope
             )
@@ -1499,7 +1495,8 @@ function microstep(
               actors: currentSnapshot.machine.sources.actors,
               guards: currentSnapshot.machine.sources.guards,
               delays: currentSnapshot.machine.sources.delays,
-              input
+              input,
+              stateNode
             };
         let res;
         try {
@@ -1507,7 +1504,7 @@ function microstep(
         } finally {
           closeTransitionEnqueue(enqueue);
         }
-        assertSyncTransitionResult(res, event, stateNodeId, kind);
+        assertSyncTransitionResult(res, event, stateNode.id, kind);
 
         if (res?.context !== undefined) {
           updatedContext = mergeContextPatch(context, res.context);
@@ -1530,11 +1527,12 @@ function microstep(
                     children: args.children,
                     actions: args.actions,
                     actors: args.actors,
-                    input
+                    input,
+                    stateNode
                   },
                   actorScope
                 )
-              : { ...args, input },
+              : { ...args, input, stateNode },
             enqueue
           ),
         '_special' in transitionFn ? { _special: true } : {}
@@ -1598,7 +1596,7 @@ function microstep(
               currentSnapshot.children,
               stateInput,
               'exit',
-              exitStateNode.id
+              exitStateNode
             )
           : [[], undefined, undefined];
         if (internalEvents?.length) {
@@ -1903,8 +1901,12 @@ function microstep(
         mutStateNodeSet.add(stateNodeToEnter);
         const actions: AnyAction[] = [];
 
+        // Final states are inert, so (as in SCXML) their invocations never
+        // start.
         let invoked = false;
-        for (const invokeDef of stateNodeToEnter.invoke) {
+        for (const invokeDef of stateNodeToEnter.type === 'final'
+          ? []
+          : stateNodeToEnter.invoke) {
           invoked = true;
 
           let src = invokeDef.logic;
@@ -1975,7 +1977,7 @@ function microstep(
               children,
               stateInput,
               'entry',
-              stateNodeToEnter.id
+              stateNodeToEnter
             );
           actions.push(...resultActions);
           if (nextInternalEvents?.length) {
@@ -2170,7 +2172,7 @@ function microstep(
             nextState.children,
             stateInput,
             'exit',
-            stateNode.id
+            stateNode
           );
           allExitActions.push(...exitActions);
           if (nextInternalEvents?.length) {
