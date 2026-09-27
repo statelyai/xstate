@@ -26,7 +26,7 @@ import { isActorRefLike, resolveReferencedActor } from './utils.ts';
  * timer references a child that would restart, or the new machine's validator
  * rejects the snapshot.
  *
- * @internal
+ * @experimental Used by framework integrations; not part of the stable API.
  */
 export function hotSwapActorLogic(
   actorRef: AnyActorRef,

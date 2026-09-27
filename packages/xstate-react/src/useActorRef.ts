@@ -5,10 +5,10 @@ import {
   Actor,
   ActorOptions,
   AnyActorLogic,
-  AnyActorRef,
   AnyStateMachine,
   Observer,
   SnapshotFrom,
+  _hotSwapActorLogic as hotSwapActorLogic,
   createActor,
   toObserver,
   type ConditionalRequired,
@@ -16,13 +16,6 @@ import {
   type RequiredActorOptionsKeys,
   type RequiredActorOptionsFor
 } from 'xstate';
-import * as xstate from 'xstate';
-
-/** `@internal` exports are stripped from xstate's published types. */
-type XStateInternals = {
-  hotSwapActorLogic(actorRef: AnyActorRef, machine: AnyStateMachine): boolean;
-};
-
 export function useIdleActorRef<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: ConditionalRequired<
@@ -58,12 +51,7 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
     // defines the machine. Keep the running actor and carry its live snapshot
     // over to the new machine; start a fresh actor if it cannot be carried.
     if (isDevelopment && refreshed) {
-      if (
-        !(xstate as unknown as XStateInternals).hotSwapActorLogic(
-          actorRef,
-          logic as any as AnyStateMachine
-        )
-      ) {
+      if (!hotSwapActorLogic(actorRef, logic as any as AnyStateMachine)) {
         setActorRef(createActor(logic, options as ActorOptions<TLogic>));
       }
     }
