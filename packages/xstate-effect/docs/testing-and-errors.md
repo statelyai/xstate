@@ -60,13 +60,13 @@ const supervised = Effect.retry(Effect.scoped(program), {
 });
 ```
 
-`join` fails with the machine's typed error, so the schedule sees the actual failure. Retrying `program` without `Effect.scoped` would reuse the outer scope and leak the actors from failed attempts until that scope closes.
+`join` fails when the actor errors or stops before producing output, so the schedule sees the actual failure. For a machine that failure is `unknown` (see [observing actors](observing-actors.md)); narrow it before the retry if the schedule should only see some errors. Retrying `program` without `Effect.scoped` would reuse the outer scope and leak the actors from failed attempts until that scope closes.
 
 ## Errors
 
 | Error | Raised by | Fields |
 | --- | --- | --- |
-| `ActorStoppedError` | `waitFor`, `join` when the actor stops or errors before the awaited result | `actorId: string`, `snapshot: Snapshot<unknown>` |
+| `ActorStoppedError` | `waitFor` when the actor stops or errors; `join` when it stops without output | `actorId: string`, `snapshot: Snapshot<unknown>` |
 | `EffectInterruptedError` | Effect logic interrupted from inside, such as `Effect.interrupt`, reported as `snapshot.error` | `cause: Cause.Cause<never>` |
 | `Cause.TimeoutError` | `waitFor` with `{ timeout }` when no snapshot matches in time | Effect's own error, `_tag: 'TimeoutError'` |
 

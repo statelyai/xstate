@@ -1,10 +1,18 @@
-/** The Standard Schema interface. */
+/**
+ * The Standard Schema interface.
+ *
+ * @public
+ */
 export interface StandardSchemaV1<Input = unknown, Output = Input> {
   /** The Standard Schema properties. */
   readonly '~standard': StandardSchemaV1.Props<Input, Output>;
 }
 
-/** Schemas that can be declared for an individual state node. */
+/**
+ * Schemas that can be declared for an individual state node.
+ *
+ * @public
+ */
 export type SetupStateSchemas = {
   /** Refines the machine's root context schema while this state is active. */
   context?: StandardSchemaV1;
@@ -13,7 +21,11 @@ export type SetupStateSchemas = {
   output?: StandardSchemaV1;
 };
 
-/** A type-only Standard Schema produced by {@link types}. */
+/**
+ * A type-only Standard Schema produced by {@link types}.
+ *
+ * @public
+ */
 export interface TypeSchema<T> extends StandardSchemaV1<T, T> {
   readonly '~standard': StandardSchemaV1.Props<T, T> & {
     readonly vendor: 'xstate.types';
@@ -47,6 +59,7 @@ export interface TypeSchema<T> extends StandardSchemaV1<T, T> {
  * ```
  *
  * Use `types<void>()` for events without a payload.
+ * @public
  */
 export function types<T>(): TypeSchema<T> {
   return {
@@ -58,7 +71,11 @@ export function types<T>(): TypeSchema<T> {
   };
 }
 
-/** Returns true if the value is a type-only schema created by {@link types}. */
+/**
+ * Returns true if the value is a type-only schema created by {@link types}.
+ *
+ * @public
+ */
 export function isTypeSchema(value: unknown): value is TypeSchema<unknown> {
   return (
     !!value &&

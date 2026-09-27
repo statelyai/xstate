@@ -72,6 +72,59 @@ const CheckoutContext = createActorContext(checkoutMachine, {
 
 > **Warning:** The `machine` prop was removed. Passing it throws. Use `logic`.
 
+## Provide implementations
+
+A provider component can take implementations as props and pass them to the shared actor. Build the logic with [`machine.provide({ ... })`](../setup-and-provide.md) and pass it as `logic`; pass input through `options`.
+
+```tsx
+import * as React from 'react';
+import { createActorContext } from '@xstate/react';
+import { checkoutMachine } from './checkoutMachine';
+import type { authorize } from './authorize';
+
+export const CheckoutContext = createActorContext(checkoutMachine);
+
+export function CheckoutProvider({
+  orderId,
+  authorizeLogic,
+  track,
+  children
+}: {
+  orderId: string;
+  authorizeLogic: typeof authorize;
+  track: (params: { name: string }) => void;
+  children: React.ReactNode;
+}) {
+  const [logic] = React.useState(() =>
+    checkoutMachine.provide({
+      actors: { authorize: authorizeLogic },
+      actions: { track }
+    })
+  );
+
+  return (
+    <CheckoutContext.Provider logic={logic} options={{ input: { orderId } }}>
+      {children}
+    </CheckoutContext.Provider>
+  );
+}
+```
+
+The logic is created once, on the first render, and the actor runs with those implementations for the provider's lifetime. To switch to different implementations, change the provider's `key`. React unmounts the old provider, which stops its actor, and mounts a new provider with a new actor.
+
+```tsx
+<CheckoutProvider
+  key={tenant.id}
+  orderId={orderId}
+  authorizeLogic={tenant.authorize}
+  track={tenant.track}
+>
+  <Checkout />
+</CheckoutProvider>
+```
+
+The new actor starts from the machine's initial state. Consumers keep calling `CheckoutContext.useSelector(...)` and `CheckoutContext.useActorRef()` unchanged.
+
 ## When to use it
 
 Use a provider when several components in one subtree need the same actor and the actor's lifetime matches a piece of the UI: a cart shared across checkout steps, a wizard shared across its steps, a media player shared by transport controls and a timeline.
@@ -82,7 +135,9 @@ Place the provider close to the feature it belongs to. A provider at the applica
 
 ## TypeScript
 
-Snapshot, event and actor reference types come from the logic. `Provider` requires `options.input` when the logic requires input.
+Snapshot, event and actor reference types come from the logic.
+
+`input` stays optional on `createActorContext` and on the `Provider` `options` prop, even when the logic requires input, because the actor's options are merged from the `createActorContext(logic, options)` defaults and the `<Provider options>` prop. A missing required input is not a type error; when initialization reads it, the actor starts with an error snapshot.
 
 ```tsx
 const CheckoutContext = createActorContext(checkoutMachine);

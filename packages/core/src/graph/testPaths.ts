@@ -47,10 +47,18 @@ import type {
   TraversalOptions
 } from './types.ts';
 
-/** How `testPaths()` produced the paths it executed. */
+/**
+ * How `testPaths()` produced the paths it executed.
+ *
+ * @experimental
+ */
 export type TestPathGeneratorKind = 'shortest' | 'simple' | 'events' | 'custom';
 
-/** The result of executing one path. */
+/**
+ * The result of executing one path.
+ *
+ * @experimental
+ */
 export interface TestPathRunResult<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -60,7 +68,11 @@ export interface TestPathRunResult<
   readonly error?: unknown;
 }
 
-/** Path-generation options. The counterpart of the property-only options. */
+/**
+ * Path-generation options. The counterpart of the property-only options.
+ *
+ * @experimental
+ */
 export interface PathOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -126,11 +138,13 @@ export interface PathOptions<
  * `(rng) => value` function, or an object with a `sample(rng)` method.
  * `@xstate/test` adapts fast-check arbitraries into this shape before calling
  * `testPaths()`, so `xstate/graph` never depends on fast-check.
+ * @experimental
  */
 export interface SeededGeneratorKind extends PropertyGeneratorKind {
   readonly generator: TestGenerator<this['target']>;
 }
 
+/** @experimental */
 export type TestPathsOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -139,7 +153,11 @@ export type TestPathsOptions<
 > = TestOptions<TSnapshot, TEvent, TInput, TKind> &
   PathOptions<TSnapshot, TEvent, TInput>;
 
-/** The shared options, without the keys that select which paths to run. */
+/**
+ * The shared options, without the keys that select which paths to run.
+ *
+ * @experimental
+ */
 export type TestExecutionOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -601,7 +619,11 @@ type InputFromSource<T> =
       ? TInput
       : never;
 
-/** What `testPaths()` resolves with. */
+/**
+ * What `testPaths()` resolves with.
+ *
+ * @experimental
+ */
 export interface TestPathsResult<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -620,6 +642,7 @@ const AFTER_TIMER_PREFIX = 'xstate.after.';
  * coverage object and the same failure type. They differ only in how the event
  * sequences are produced: traversal of the model's state graph here, generated
  * command sequences there.
+ * @experimental
  */
 export async function testPaths<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
@@ -1059,6 +1082,7 @@ export async function testPaths<
  * ```
  *
  * @deprecated Write the `sut` directly.
+ * @experimental
  */
 export function fromTestParam<
   TSnapshot extends Snapshot<unknown>,

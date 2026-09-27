@@ -16,21 +16,31 @@ declare global {
   }
 }
 
-/** The full definition of an event, with a string `type`. */
+/**
+ * The full definition of an event, with a string `type`.
+ *
+ * @public
+ */
 export type EventObject = {
   /** The type of event that is sent. */
   type: string;
 };
 
+/** @public */
 export type MachineContext = Record<string, any>;
 
+/** @public */
 export type Values<T> = T[keyof T];
 
 export type ActionSchemas = Record<string, { params: StandardSchemaV1 }>;
 
 export type GuardSchemas = Record<string, { params: StandardSchemaV1 }>;
 
-/** State node types that can be declared in a setup state contract. */
+/**
+ * State node types that can be declared in a setup state contract.
+ *
+ * @public
+ */
 export type SetupStateType =
   | 'atomic'
   | 'compound'
@@ -39,6 +49,7 @@ export type SetupStateType =
   | 'history'
   | 'choice';
 
+/** @public */
 export type SetupSchemas = {
   context?: StandardSchemaV1;
   events?: Record<string, StandardSchemaV1>;
@@ -60,6 +71,8 @@ export type SetupSchemas = {
  *
  * Structural fields are contracts/defaults for `createMachine(...)`; machine
  * behavior remains authored in the machine config.
+ *
+ * @public
  */
 export interface SetupStateSchema {
   type?: SetupStateType;
@@ -78,6 +91,8 @@ export interface SetupStateSchema {
  * are required on the event. Type-only schemas created with the `types()`
  * helper are exempt: their declared type is authoritative, so optional
  * properties stay optional.
+ *
+ * @public
  */
 export type InferEvents<
   TEventSchemaMap extends Record<string, StandardSchemaV1>

@@ -70,19 +70,24 @@ export type {
   TestExplorationFrontier,
   TestExplorationSeed,
   TestExplorationSwarm,
-  TestExplorationTarget
+  TestExplorationTarget,
+  TestTemporalCounts,
+  TestTemporalCoverage
 } from './coverage.ts';
 
+/** @experimental */
 export interface PropertyGeneratorKind {
   readonly target: unknown;
   readonly generator: unknown;
 }
 
+/** @experimental */
 export type PropertyGenerator<
   TKind extends PropertyGeneratorKind,
   TValue
 > = (TKind & { readonly target: TValue })['generator'];
 
+/** @experimental */
 export interface TestReplayMetadata {
   readonly engine: string;
   readonly engineVersion?: string;
@@ -100,10 +105,15 @@ export interface TestReplayMetadata {
  * `'executed'` drives a real actor on a {@link SimulatedClock} instead, so
  * invoked/spawned actors run and `after` transitions are reachable through
  * generated `advance` commands.
+ * @experimental
  */
 export type TestMode = 'pure' | 'executed';
 
-/** A resolved actor outcome queued for a stubbed invoke source. */
+/**
+ * A resolved actor outcome queued for a stubbed invoke source.
+ *
+ * @experimental
+ */
 export type TestActorOutcome =
   | { readonly ok: true; readonly output: unknown }
   | { readonly ok: false; readonly error: unknown };
@@ -113,6 +123,7 @@ export type TestActorOutcome =
  * source and by how many actors of that source had already resolved.
  * Recorded into replay fixtures so a failure can be replayed against stubbed
  * actors instead of the real ones.
+ * @experimental
  */
 export interface TestOutcomeRecord {
   readonly src: string;
@@ -120,6 +131,7 @@ export interface TestOutcomeRecord {
   readonly outcome: TestActorOutcome;
 }
 
+/** @experimental */
 export type TestCommand<TEvent extends EventObject = EventObject> =
   | {
       readonly type: 'event';
@@ -146,6 +158,7 @@ export type TestCommand<TEvent extends EventObject = EventObject> =
  * An event the actor system produced on its own during an executed-mode step:
  * an invoked actor's `onDone`/`onError`/`onSnapshot`, a delayed transition, a
  * `sendTo`/`raise`, or a child actor's own transition.
+ * @experimental
  */
 export interface TestActorTimelineEntry<TSnapshot extends Snapshot<unknown>> {
   readonly kind: 'actorEvent';
@@ -164,6 +177,7 @@ export interface TestActorTimelineEntry<TSnapshot extends Snapshot<unknown>> {
   readonly observation?: undefined;
 }
 
+/** @experimental */
 export interface TestComparedObservation {
   /** The model projection that was compared. */
   readonly model: unknown;
@@ -171,6 +185,7 @@ export interface TestComparedObservation {
   readonly observed: unknown;
 }
 
+/** @experimental */
 export interface TestObservation {
   /**
    * The model projection of the reference oracle when one is configured,
@@ -185,6 +200,7 @@ export interface TestObservation {
   readonly sut?: TestComparedObservation;
 }
 
+/** @experimental */
 export interface TestEventTimelineEntry<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -207,6 +223,7 @@ export interface TestEventTimelineEntry<
   readonly pendingActors?: readonly string[];
 }
 
+/** @experimental */
 export interface TestRuntimeTimelineEntry<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -224,6 +241,7 @@ export interface TestRuntimeTimelineEntry<
   readonly pendingActors?: readonly string[];
 }
 
+/** @experimental */
 export type TestTimelineEntry<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -232,11 +250,13 @@ export type TestTimelineEntry<
   | TestRuntimeTimelineEntry<TSnapshot, TEvent>
   | TestActorTimelineEntry<TSnapshot>;
 
+/** @experimental */
 export interface PortableTestTimelineEntry {
   readonly kind: 'event' | 'command';
   readonly command: TestCommand;
 }
 
+/** @experimental */
 export interface PortableTemporalFailure {
   readonly type: 'eventually' | 'until' | 'always' | 'never' | 'respond';
   readonly id: string;
@@ -246,6 +266,7 @@ export interface PortableTemporalFailure {
   readonly atStep: number;
 }
 
+/** @experimental */
 export interface TestFixture {
   readonly formatVersion: 2;
   readonly machine?: {
@@ -286,6 +307,7 @@ interface LegacyPortablePropertyReplayFixture {
   readonly failedAt: number;
 }
 
+/** @experimental */
 export interface TestAdapterResult {
   readonly runs: number;
   readonly exploration: {
@@ -306,6 +328,7 @@ export interface TestAdapterResult {
   readonly report?: string;
 }
 
+/** @experimental */
 export interface PropertyGeneratedCommand {
   readonly type: 'advance' | 'checkpoint' | 'stop' | 'outcome';
   readonly generator: unknown;
@@ -318,6 +341,7 @@ export interface PropertyGeneratedCommand {
   readonly src?: string;
 }
 
+/** @experimental */
 export interface TestAdapterRequest<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -341,6 +365,7 @@ export interface TestAdapterRequest<
   readonly createRunner: () => PropertyScenarioRunner<TSnapshot, TEvent>;
 }
 
+/** @experimental */
 export interface TestAdapter<
   TKind extends PropertyGeneratorKind = PropertyGeneratorKind
 > {
@@ -350,6 +375,7 @@ export interface TestAdapter<
   ): Promise<TestAdapterResult>;
 }
 
+/** @experimental */
 export interface TestSutContext<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -359,6 +385,7 @@ export interface TestSutContext<
   readonly snapshot: TSnapshot | undefined;
 }
 
+/** @experimental */
 export interface TestSut<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -389,14 +416,22 @@ export interface TestSut<
   readonly complete?: (result: TestSutCompleteContext) => void | Promise<void>;
 }
 
-/** Passed to {@link TestSut.complete}. */
+/**
+ * Passed to {@link TestSut.complete}.
+ *
+ * @experimental
+ */
 export interface TestSutCompleteContext {
   readonly passed: boolean;
   /** The error the campaign throws. Usually a {@link ModelTestFailure}. */
   readonly failure?: unknown;
 }
 
-/** Passed to {@link TestSutSession.dispose}. */
+/**
+ * Passed to {@link TestSutSession.dispose}.
+ *
+ * @experimental
+ */
 export interface TestSutDisposeContext {
   /** `false` when the run ended in a failure. */
   readonly passed: boolean;
@@ -404,7 +439,11 @@ export interface TestSutDisposeContext {
   readonly failure?: ModelTestFailure<any, any>;
 }
 
-/** Metadata about the step an event belongs to, passed to `send`. */
+/**
+ * Metadata about the step an event belongs to, passed to `send`.
+ *
+ * @experimental
+ */
 export interface TestSutSendContext<TSnapshot = unknown> {
   /** The model snapshot after the event was applied to the model. */
   readonly snapshot: TSnapshot;
@@ -425,7 +464,11 @@ export interface TestSutSendContext<TSnapshot = unknown> {
   };
 }
 
-/** One run's connection to the system under test, returned by `TestSut.create()`. */
+/**
+ * One run's connection to the system under test, returned by `TestSut.create()`.
+ *
+ * @experimental
+ */
 export interface TestSutSession<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
   TEvent extends EventObject = EventObject
@@ -482,6 +525,7 @@ type StateValuePaths<TValue> = TValue extends string
  * The keys a {@link TestStateAssertions} map suggests: every state-value path
  * of the snapshot's `value`, and `'*'`. Any other string, such as a
  * `'#node.id'`, is accepted too.
+ * @experimental
  */
 export type TestStateKey<TSnapshot extends Snapshot<unknown>> =
   | '*'
@@ -490,7 +534,11 @@ export type TestStateKey<TSnapshot extends Snapshot<unknown>> =
       ? StateValuePaths<TValue>
       : never);
 
-/** One per-state assertion. See {@link TestStateAssertions}. */
+/**
+ * One per-state assertion. See {@link TestStateAssertions}.
+ *
+ * @experimental
+ */
 export type TestStateAssertion<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject = EventObject
@@ -504,6 +552,7 @@ export type TestStateAssertion<
  * node id (`'#some.id'`), or `'*'` as the fallthrough when nothing else
  * matches. Run after every stable step in both `propertyTest()` and
  * `testPaths()`.
+ * @experimental
  */
 export type TestStateAssertions<
   TSnapshot extends Snapshot<unknown>,
@@ -519,12 +568,17 @@ export type TestStateAssertions<
     | undefined;
 };
 
+/** @experimental */
 export interface TestReferenceContext<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > extends TestSutContext<TSnapshot, TEvent> {}
 
-/** A second implementation of the model's logic, compared with it on every stable step. */
+/**
+ * A second implementation of the model's logic, compared with it on every stable step.
+ *
+ * @experimental
+ */
 export interface TestReference<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -543,6 +597,7 @@ export interface TestReference<
   ) => boolean | Promise<boolean>;
 }
 
+/** @experimental */
 export interface TestReferenceSession<TEvent extends EventObject> {
   readonly transition: (event: TEvent) => void | Promise<void>;
   readonly read: () => unknown | Promise<unknown>;
@@ -557,7 +612,11 @@ type EventForType<
 > = Extract<TEvent, { type: TType }>;
 type EventPayload<TEvent extends EventObject> = Omit<TEvent, 'type'>;
 
-/** Records a statistic for the current run. */
+/**
+ * Records a statistic for the current run.
+ *
+ * @experimental
+ */
 export interface TestLabelRecorders {
   /**
    * Records `name` (optionally with `value`) for the current run. Labels are
@@ -574,6 +633,7 @@ export interface TestLabelRecorders {
   readonly target: (observation: number, label?: string) => void;
 }
 
+/** @experimental */
 export interface TestInvariantContext<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -586,11 +646,13 @@ export interface TestInvariantContext<
   readonly step: number;
 }
 
+/** @experimental */
 export type TestInvariant<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > = (context: TestInvariantContext<TSnapshot, TEvent>) => void | Promise<void>;
 
+/** @experimental */
 export interface TestEventDescriptor<
   TGenerator,
   TSnapshot extends Snapshot<unknown>,
@@ -610,6 +672,7 @@ export interface TestEventDescriptor<
   readonly resolve?: never;
 }
 
+/** @experimental */
 export interface TestResolvedEventDescriptor<
   TGenerator,
   TSnapshot extends Snapshot<unknown>,
@@ -656,6 +719,7 @@ type PropertyEventGenerator<
       TEvent
     >;
 
+/** @experimental */
 export type TestEventGenerators<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -670,6 +734,7 @@ export type TestEventGenerators<
       >[];
 };
 
+/** @experimental */
 export type TestTemporalPredicate<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -677,6 +742,7 @@ export type TestTemporalPredicate<
   context: TestInvariantContext<TSnapshot, TEvent>
 ) => boolean | Promise<boolean>;
 
+/** @experimental */
 export type TestTemporal<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -748,6 +814,7 @@ export type TestTemporal<
       readonly response: TestTemporalPredicate<TSnapshot, TEvent>;
     };
 
+/** @experimental */
 export interface TestStep<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -756,6 +823,7 @@ export interface TestStep<
   readonly event: TEvent;
 }
 
+/** @experimental */
 export interface TestTrace<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -782,7 +850,11 @@ export interface TestTrace<
   readonly outcomes?: readonly TestOutcomeRecord[];
 }
 
-/** Options that shape how a {@link ModelTestFailure} message is rendered. */
+/**
+ * Options that shape how a {@link ModelTestFailure} message is rendered.
+ *
+ * @experimental
+ */
 export interface TestFailureFormatOptions<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>
 > {
@@ -855,7 +927,11 @@ function getPropertyFailureMessage<
   return lines.join('\n');
 }
 
-/** Lines added to a {@link ModelTestFailure} message after it was built. */
+/**
+ * Lines added to a {@link ModelTestFailure} message after it was built.
+ *
+ * @experimental
+ */
 export interface TestFailureExtras {
   /** Printed after the `Reproduce:` and `Fixture:` lines, such as `Saved: …`. */
   readonly notes?: readonly string[];
@@ -867,6 +943,7 @@ export interface TestFailureExtras {
  * Thrown by `propertyTest()`, `testPaths()`, and `replayTest()` when an
  * oracle fails. Carries the trace, a portable replay fixture, and the coverage
  * accumulated up to the failure.
+ * @experimental
  */
 export class ModelTestFailure<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
@@ -918,6 +995,7 @@ export class ModelTestFailure<
  * Thrown when a campaign completes without a counterexample but a
  * campaign-level assertion does not hold: a `sometimes` property that held in
  * no run, or a `reachable` target that no run entered.
+ * @experimental
  */
 export class TestCampaignError extends Error {
   public override readonly name = 'TestCampaignError';
@@ -935,7 +1013,11 @@ export class TestCampaignError extends Error {
   }
 }
 
-/** One saved failure, as a {@link TestFailureStore} loads it. */
+/**
+ * One saved failure, as a {@link TestFailureStore} loads it.
+ *
+ * @experimental
+ */
 export interface TestStoredFailure {
   readonly fixture: TestFixture;
   /** Where the failure is stored, such as a file path. Used in messages. */
@@ -946,6 +1028,7 @@ export interface TestStoredFailure {
  * Persists failing fixtures and replays them before the next campaign. Both
  * entry points accept one as `failures`; `@xstate/test` provides a
  * file-system implementation.
+ * @experimental
  */
 export interface TestFailureStore {
   /**
@@ -992,6 +1075,7 @@ interface TemporalState<
 /**
  * Structural, key-order insensitive deep equality used to compare model
  * projections against reference/SUT observations. Cycle-safe.
+ * @experimental
  */
 export function defaultEquivalent(left: unknown, right: unknown): boolean {
   return deepEqual(left, right, new Map());
@@ -1367,7 +1451,11 @@ class PropertyExecutionEngine<
   }
 }
 
-/** Executed-mode wiring handed to a {@link PropertyScenarioRunner}. */
+/**
+ * Executed-mode wiring handed to a {@link PropertyScenarioRunner}.
+ *
+ * @experimental
+ */
 export interface PropertyExecutionConfig {
   readonly mode: TestMode;
   readonly registry: PropertyOutcomeRegistry;
@@ -1380,7 +1468,11 @@ export interface PropertyExecutionConfig {
   readonly stubbedSources?: readonly string[];
 }
 
-/** A single `target()` observation, recorded against the timeline. */
+/**
+ * A single `target()` observation, recorded against the timeline.
+ *
+ * @experimental
+ */
 export interface PropertyTargetObservation {
   readonly value: number;
   readonly label?: string;
@@ -1388,6 +1480,7 @@ export interface PropertyTargetObservation {
   readonly index: number;
 }
 
+/** @experimental */
 export class PropertyScenarioRunner<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -2749,6 +2842,7 @@ type EventFromSource<TSource> =
     : never;
 type InputFromSource<TSource> = InputFrom<LogicFromSource<TSource>>;
 
+/** @experimental */
 export interface PropertyFrontierContext<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -2758,6 +2852,7 @@ export interface PropertyFrontierContext<
   readonly id: string;
 }
 
+/** @experimental */
 export interface PropertyFrontierOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -2775,6 +2870,7 @@ export interface PropertyFrontierOptions<
  * A command generator, optionally paired with a relative generation weight. A
  * bare generator is equivalent to `{ generate, weight: 1 }`; a `weight` key is
  * what distinguishes the descriptor form.
+ * @experimental
  */
 export interface PropertyCommandDescriptor<TGenerator> {
   readonly generate: TGenerator;
@@ -2782,6 +2878,7 @@ export interface PropertyCommandDescriptor<TGenerator> {
   readonly weight?: number;
 }
 
+/** @experimental */
 export type PropertyCommandGenerator<
   TKind extends PropertyGeneratorKind,
   TValue
@@ -2793,6 +2890,7 @@ export type PropertyCommandGenerator<
  * The options both entry points share: what to send, what to send it to, and
  * what to assert. `testPaths()` adds its own path options; `propertyTest()`
  * adds {@link PropertyOptions}.
+ * @experimental
  */
 export interface TestOptions<
   TSnapshot extends Snapshot<unknown>,
@@ -2900,7 +2998,11 @@ export interface TestOptions<
   readonly formatSnapshot?: (snapshot: TSnapshot) => unknown;
 }
 
-/** The options only `propertyTest()` accepts. */
+/**
+ * The options only `propertyTest()` accepts.
+ *
+ * @experimental
+ */
 export interface PropertyOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -2949,6 +3051,7 @@ export interface PropertyOptions<
   readonly maxRuns?: number;
 }
 
+/** @experimental */
 export type PropertyTestOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -2957,7 +3060,11 @@ export type PropertyTestOptions<
 > = TestOptions<TSnapshot, TEvent, TInput, TKind> &
   PropertyOptions<TSnapshot, TEvent, TKind>;
 
-/** Minimum frequencies required of labels recorded during the campaign. */
+/**
+ * Minimum frequencies required of labels recorded during the campaign.
+ *
+ * @experimental
+ */
 export interface TestLabelExpectations {
   readonly [name: string]: {
     /** Minimum share of attempted runs that must record the label, `0`..`1`. */
@@ -2970,6 +3077,7 @@ export interface TestLabelExpectations {
 /**
  * Ratios are `covered / (covered + uncovered)`. Every listed key must hold;
  * `any` holds when at least one of its conditions does.
+ * @experimental
  */
 export interface TestStopConditionObject {
   readonly stateNodes?: number;
@@ -2984,11 +3092,16 @@ export interface TestStopConditionObject {
   readonly any?: readonly TestStopCondition[];
 }
 
+/** @experimental */
 export type TestStopCondition =
   | TestStopConditionObject
   | ((coverage: TestCoverage) => boolean);
 
-/** Swarm testing options. See the `swarm` option. */
+/**
+ * Swarm testing options. See the `swarm` option.
+ *
+ * @experimental
+ */
 export interface PropertySwarmOptions {
   /**
    * The fewest event cases a run may enable. Defaults to half the declared
@@ -2999,7 +3112,11 @@ export interface PropertySwarmOptions {
   readonly seed?: number;
 }
 
-/** Targeted search. See `frontiers: { strategy: 'target' }`. */
+/**
+ * Targeted search. See `frontiers: { strategy: 'target' }`.
+ *
+ * @experimental
+ */
 export interface PropertyTargetFrontierOptions {
   readonly strategy: 'target';
   /** Best-scoring prefixes carried into the next batch. Defaults to 5. */
@@ -3008,7 +3125,11 @@ export interface PropertyTargetFrontierOptions {
   readonly runsPerFrontier?: number;
 }
 
-/** Coverage-guided exploration. See `frontiers: 'auto'`. */
+/**
+ * Coverage-guided exploration. See `frontiers: 'auto'`.
+ *
+ * @experimental
+ */
 export interface PropertyAutoFrontierOptions {
   readonly strategy: 'uncovered';
   /** Frontiers explored per batch. Defaults to 5. */
@@ -3037,7 +3158,11 @@ function getEventCaseRatio(coverage: TestCoverage): number {
   return cases.filter((counts) => counts.executed > 0).length / cases.length;
 }
 
-/** Evaluates a {@link TestStopCondition} against aggregated coverage. */
+/**
+ * Evaluates a {@link TestStopCondition} against aggregated coverage.
+ *
+ * @experimental
+ */
 export function evaluateTestStopCondition(
   condition: TestStopCondition,
   coverage: TestCoverage,
@@ -3357,6 +3482,7 @@ function getDefaultFailureKey(
  * step. Resolves with the campaign's coverage and throws a
  * {@link ModelTestFailure} on the first failure. Requires an `adapter`;
  * `@xstate/test` exports a version with fast-check built in.
+ * @experimental
  */
 export async function propertyTest<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>,
@@ -4171,6 +4297,7 @@ function normalizeFixtureTimeline(
  * Thrown by `replayTest()` when a fixture recorded from a failing run
  * replays without reproducing that failure — the regression is fixed, or the
  * machine no longer behaves the way the fixture recorded.
+ * @experimental
  */
 export class ReplayNotReproducedError extends Error {
   public override readonly name = 'ReplayNotReproducedError';
@@ -4188,6 +4315,7 @@ export class ReplayNotReproducedError extends Error {
 /**
  * Replays a {@link TestFixture} without a generator. Resolves with the
  * replayed trace; see the `expect` option for how failures are reported.
+ * @experimental
  */
 export async function replayTest<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
@@ -4385,7 +4513,11 @@ function serializeSnapshot<TSnapshot extends Snapshot<unknown>>(
     : snapshot;
 }
 
-/** Converts a trace to JSON-safe data, calling `toJSON()` on snapshots. */
+/**
+ * Converts a trace to JSON-safe data, calling `toJSON()` on snapshots.
+ *
+ * @experimental
+ */
 export function serializeTestTrace<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -4432,6 +4564,7 @@ export function serializeTestTrace<
  * The default failure-trace projection: `{ value, context }` for machine
  * snapshots, plus `status`, `output`, `error`, and `tags` when they carry
  * information. Other snapshots are printed without their runtime bookkeeping.
+ * @experimental
  */
 export function defaultFormatSnapshot(snapshot: Snapshot<unknown>): unknown {
   const json = serializeSnapshot(snapshot);
@@ -4535,6 +4668,7 @@ function getEventOrigin(
  * snapshot projected through `formatSnapshot`. In executed mode, the events
  * the tested actor then processed on its own follow their step as `↳` lines;
  * child actors' own transitions are left out.
+ * @experimental
  */
 export function formatTestTrace<
   TSnapshot extends Snapshot<unknown>,

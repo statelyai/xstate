@@ -6,6 +6,7 @@ import { defaultEquivalent, type TestSutContext } from './propertyTest.ts';
  * One completed operation of a concurrent history: the event that was sent
  * (`invocation`), what the system under test answered (`response`), and the
  * interval during which the operation was in flight. Intervals may overlap.
+ * @experimental
  */
 export interface LinearizabilityEntry<TEvent = unknown> {
   readonly id: string | number;
@@ -17,7 +18,11 @@ export interface LinearizabilityEntry<TEvent = unknown> {
   readonly end: number;
 }
 
-/** The sequential specification a history is checked against. */
+/**
+ * The sequential specification a history is checked against.
+ *
+ * @experimental
+ */
 export interface LinearizabilityModel<TState, TEvent = unknown> {
   readonly initial: TState;
   readonly apply: (
@@ -34,6 +39,7 @@ export interface LinearizabilityModel<TState, TEvent = unknown> {
   readonly serializeState?: (state: TState) => string | undefined;
 }
 
+/** @experimental */
 export interface LinearizabilityOptions {
   /**
    * Maximum number of candidate linearization steps to explore before giving
@@ -43,6 +49,7 @@ export interface LinearizabilityOptions {
   readonly maxExplored?: number;
 }
 
+/** @experimental */
 export interface LinearizabilityResult<TEvent = unknown> {
   readonly linearizable: boolean;
   /** The sequential order that explains the history, when one was found. */
@@ -89,6 +96,7 @@ function serializeSnapshotIdentity(state: unknown): string | undefined {
  * end time still outstanding), backtracking whenever a response disagrees with
  * the model, and memoizing `(state, completed set)` pairs so equivalent
  * branches are explored once.
+ * @experimental
  */
 export function checkLinearizable<TState, TEvent>(
   history: readonly LinearizabilityEntry<TEvent>[],
@@ -173,7 +181,11 @@ export function checkLinearizable<TState, TEvent>(
   };
 }
 
-/** The system under test driven by {@link runParallelPropertyCommands}. */
+/**
+ * The system under test driven by {@link runParallelPropertyCommands}.
+ *
+ * @experimental
+ */
 export interface ParallelPropertySutSession<TEvent> {
   /**
    * Sends an event. The resolved value is the operation's response; when it is
@@ -185,6 +197,7 @@ export interface ParallelPropertySutSession<TEvent> {
   readonly dispose?: () => void | Promise<void>;
 }
 
+/** @experimental */
 export interface ParallelPropertySut<TSnapshot, TEvent> {
   readonly create: (
     context: TestSutContext<any, any>
@@ -197,6 +210,7 @@ export interface ParallelPropertySut<TSnapshot, TEvent> {
   readonly projectSut?: (observed: unknown) => unknown;
 }
 
+/** @experimental */
 export interface ParallelPropertyCommandsOptions<TLogic extends AnyActorLogic> {
   /** Events applied sequentially before the concurrent phase starts. */
   readonly prefix?: readonly EventFromLogic<TLogic>[];
@@ -219,6 +233,7 @@ export interface ParallelPropertyCommandsOptions<TLogic extends AnyActorLogic> {
   ) => string | undefined;
 }
 
+/** @experimental */
 export interface ParallelPropertyCommandsResult<
   TEvent
 > extends LinearizabilityResult<TEvent> {
@@ -234,6 +249,7 @@ export interface ParallelPropertyCommandsResult<
  * PropEr: the prefix puts the system in an interesting state, the branches
  * race, and linearizability decides whether the observed responses could have
  * come from any sequential interleaving.
+ * @experimental
  */
 export async function runParallelPropertyCommands<TLogic extends AnyActorLogic>(
   logic: TLogic,

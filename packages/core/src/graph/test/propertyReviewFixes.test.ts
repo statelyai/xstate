@@ -321,20 +321,11 @@ describe('guard coverage', () => {
       states: {
         idle: {
           on: {
-            STEP: [
-              {
-                // Passes half the time, so both outcomes are observed.
-                guard: ({ context }: any) => context.count % 2 === 0,
-                actions: ({ context }: any) => ({
-                  context: { count: context.count + 1 }
-                })
-              },
-              {
-                actions: ({ context }: any) => ({
-                  context: { count: context.count + 1 }
-                })
-              }
-            ] as any
+            // Passes only while the count is 0, so both outcomes are observed.
+            STEP: ({ context }) =>
+              context.count === 0
+                ? { context: { count: context.count + 1 } }
+                : undefined
           }
         }
       }

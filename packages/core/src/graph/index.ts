@@ -1,7 +1,7 @@
 export { TestModel, createTestModel } from './TestModel.ts';
 export { adjacencyMapToArray, getAdjacencyMap } from './adjacency.ts';
 export {
-  getStateNodes,
+  getDescendantStateNodes,
   joinPaths,
   serializeSnapshot,
   toDirectedGraph

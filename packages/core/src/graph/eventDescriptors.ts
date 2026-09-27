@@ -9,6 +9,7 @@ import { fnv1a } from './utils.ts';
  * traversal, so a generator only has to produce a value from a pseudo-random
  * number source. `@xstate/test` additionally accepts fast-check arbitraries and
  * adapts them to this shape.
+ * @experimental
  */
 export type TestGenerator<T> =
   | ((rng: () => number) => T)
@@ -20,6 +21,7 @@ export type TestGenerator<T> =
  * be objects with a `generate` *method* (fast-check arbitraries have one), so
  * a `generate` key only marks a descriptor when it does not hold a function;
  * any of the descriptor-only keys marks one regardless.
+ * @experimental
  */
 export function isEventDescriptorObject(value: unknown): boolean {
   if (!value || typeof value !== 'object') {
@@ -39,6 +41,7 @@ export function isEventDescriptorObject(value: unknown): boolean {
   );
 }
 
+/** @experimental */
 export function assertTestWeight(
   weight: number | undefined,
   location: string
@@ -56,7 +59,11 @@ export function assertTestWeight(
   return weight;
 }
 
-/** The descriptor shape both entry points accept for a single event case. */
+/**
+ * The descriptor shape both entry points accept for a single event case.
+ *
+ * @experimental
+ */
 export interface AnyTestEventDescriptor<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -74,7 +81,11 @@ export interface AnyTestEventDescriptor<
   }) => object | undefined;
 }
 
-/** One declared event case, after normalization. */
+/**
+ * One declared event case, after normalization.
+ *
+ * @experimental
+ */
 export interface NormalizedEventCase<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -91,6 +102,7 @@ export interface NormalizedEventCase<
  * Normalizes the shared `events` option — a map of event type to a bare
  * generator, a descriptor object, or an array of either — into the flat list of
  * declared cases both `propertyTest()` and `testPaths()` work from.
+ * @experimental
  */
 export function normalizeEventDescriptors<
   TSnapshot extends Snapshot<unknown>,
@@ -148,12 +160,17 @@ export function normalizeEventDescriptors<
 /**
  * The per-case seed used when sampling payloads. Deriving it from the case id
  * keeps each case's samples stable when other cases are added or removed.
+ * @experimental
  */
 export function deriveCaseSeed(seed: number, caseId: string): number {
   return (seed ^ fnv1a(caseId)) >>> 0;
 }
 
-/** Draws `count` values from a {@link TestGenerator}. */
+/**
+ * Draws `count` values from a {@link TestGenerator}.
+ *
+ * @experimental
+ */
 export function sampleGenerator(
   generator: unknown,
   rng: () => number,
@@ -183,6 +200,7 @@ export function sampleGenerator(
 /**
  * The event descriptor `pick()` returns: a shrinkable index in `generate`,
  * and a `resolve` that picks the item at that index from the current snapshot.
+ * @experimental
  */
 export interface TestPickDescriptor<
   TGenerator,
@@ -199,6 +217,7 @@ export interface TestPickDescriptor<
 /**
  * Builds a {@link TestPickDescriptor} around any index generator. `pick()` in
  * `xstate/graph` and in `@xstate/test` differ only in the generator.
+ * @experimental
  */
 export function createPickDescriptor<
   TGenerator,
@@ -243,6 +262,7 @@ export function createPickDescriptor<
  *   )
  * }
  * ```
+ * @experimental
  */
 export function pick<TSnapshot extends Snapshot<unknown>, TPayload>(
   select: (snapshot: TSnapshot) => readonly TPayload[]

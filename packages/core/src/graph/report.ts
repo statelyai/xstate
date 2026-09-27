@@ -5,23 +5,39 @@ import type {
   TestExplorationBounds
 } from './coverage.ts';
 
-/** Options for {@link formatTestCoverage}. */
+/**
+ * Options for {@link formatTestCoverage}.
+ *
+ * @experimental
+ */
 export interface FormatTestCoverageOptions {
   /** `'text'` (default) renders plain text; `'markdown'` renders tables. */
   readonly format?: 'text' | 'markdown';
 }
 
-/** Options for {@link formatTestCoverageJUnit}. */
+/**
+ * Options for {@link formatTestCoverageJUnit}.
+ *
+ * @experimental
+ */
 export interface FormatTestCoverageJUnitOptions {
   readonly suiteName?: string;
 }
 
-/** Options for {@link formatTestCoverageHTML}. */
+/**
+ * Options for {@link formatTestCoverageHTML}.
+ *
+ * @experimental
+ */
 export interface FormatTestCoverageHTMLOptions {
   readonly title?: string;
 }
 
-/** A JSON-safe summary of a single coverage dimension. */
+/**
+ * A JSON-safe summary of a single coverage dimension.
+ *
+ * @experimental
+ */
 export interface TestCoverageDimensionJSON {
   readonly total: number;
   readonly covered: number;
@@ -33,7 +49,11 @@ export interface TestCoverageDimensionJSON {
   readonly unknown: string[];
 }
 
-/** The stable, versioned JSON representation of a {@link TestCoverage}. */
+/**
+ * The stable, versioned JSON representation of a {@link TestCoverage}.
+ *
+ * @experimental
+ */
 export interface TestCoverageJSON {
   readonly formatVersion: 1;
   readonly totals: {
@@ -124,7 +144,11 @@ export interface TestCoverageJSON {
   };
 }
 
-/** Thresholds accepted by {@link assertTestCoverage}. */
+/**
+ * Thresholds accepted by {@link assertTestCoverage}.
+ *
+ * @experimental
+ */
 export type TestCoverageThresholds = {
   readonly [K in DimensionKey]?: number;
 };
@@ -197,6 +221,7 @@ function percentage(covered: number, total: number): string {
 /**
  * Renders a coverage id in a human-readable form. Ids are stable JSON strings;
  * ids that are not recognized are rendered as-is.
+ * @experimental
  */
 export function formatTestCoverageId(id: string): string {
   let parsed: unknown;
@@ -546,7 +571,11 @@ function formatMarkdown(coverage: TestCoverage): string {
   return lines.join('\n');
 }
 
-/** Formats a {@link TestCoverage} as human-readable text or markdown. */
+/**
+ * Formats a {@link TestCoverage} as human-readable text or markdown.
+ *
+ * @experimental
+ */
 export function formatTestCoverage(
   coverage: TestCoverage,
   options: FormatTestCoverageOptions = {}
@@ -573,7 +602,11 @@ function dimensionToJSON(
   };
 }
 
-/** Converts a {@link TestCoverage} to stable, versioned, JSON-safe data. */
+/**
+ * Converts a {@link TestCoverage} to stable, versioned, JSON-safe data.
+ *
+ * @experimental
+ */
 export function testCoverageToJSON(coverage: TestCoverage): TestCoverageJSON {
   const dimensions: Record<string, TestCoverageDimensionJSON> = {};
   for (const key of DIMENSION_KEYS) {
@@ -711,6 +744,7 @@ function escapeXML(value: string): string {
 /**
  * Formats a {@link TestCoverage} as JUnit XML, with one `<testcase>` per
  * transition and per state node.
+ * @experimental
  */
 export function formatTestCoverageJUnit(
   coverage: TestCoverage,
@@ -792,7 +826,11 @@ function escapeHTML(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** Formats a {@link TestCoverage} as a self-contained HTML document. */
+/**
+ * Formats a {@link TestCoverage} as a self-contained HTML document.
+ *
+ * @experimental
+ */
 export function formatTestCoverageHTML(
   coverage: TestCoverage,
   options: FormatTestCoverageHTMLOptions = {}
@@ -875,6 +913,7 @@ export function formatTestCoverageHTML(
  * Throws an `Error` containing the formatted coverage text when any dimension's
  * covered ratio — `covered / (covered + uncovered)` — is below its threshold.
  * Thresholds are ratios between `0` and `1`.
+ * @experimental
  */
 export function assertTestCoverage(
   coverage: TestCoverage,
@@ -916,6 +955,7 @@ function formatShare(share: number): string {
  * across event cases, and the share of runs that recorded each label. Shrink
  * attempts are not counted. Pass `statistics: true` to `propertyTest()` or
  * `testPaths()` to print it after a passing campaign.
+ * @experimental
  */
 export function formatTestStatistics(coverage: TestCoverage): string {
   const runs =

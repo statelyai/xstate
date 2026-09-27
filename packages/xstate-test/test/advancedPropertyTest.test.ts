@@ -27,19 +27,14 @@ describe('advanced property testing', () => {
           states: {
             idle: {
               on: {
-                GO: [
-                  {
-                    guard: ({ event }: { event: { allow: boolean } }) =>
-                      event.allow,
-                    target: 'allowed'
-                  },
-                  { target: 'denied' }
-                ] as any,
+                // Rejects GO unless `allow` is set, so both guard outcomes
+                // are observed.
+                GO: ({ event }) =>
+                  event.allow ? { target: 'allowed' } : undefined,
                 UNUSED: { target: 'idle' }
               }
             },
             allowed: {},
-            denied: {},
             unreachable: { on: { NEXT: { target: 'unreachable' } } }
           }
         },
@@ -68,7 +63,7 @@ describe('advanced property testing', () => {
     const goTransitions = result.coverage.transitions.covered.filter((id) =>
       id.includes('GO')
     );
-    expect(goTransitions).toHaveLength(3);
+    expect(goTransitions).toHaveLength(2);
     expect(Object.values(result.coverage.guards.outcomes)).toContainEqual({
       passed: expect.any(Number),
       failed: expect.any(Number)
@@ -89,6 +84,69 @@ describe('advanced property testing', () => {
     expect(result.coverage.transitions.covered).toEqual(
       expect.arrayContaining([expect.stringContaining('@eventless')])
     );
+    // The GO transition function's targets are dynamic, so static
+    // reachability is unknown rather than unreachable.
+    expect(result.coverage.stateNodes.unknown).toContain(
+      'topology.left.unreachable'
+    );
+    expect(result.coverage.transitions.uncovered).toEqual(
+      expect.arrayContaining([expect.stringContaining('UNUSED')])
+    );
+    expect(result.coverage.transitions.unknown).toEqual(
+      expect.arrayContaining([expect.stringContaining('NEXT')])
+    );
+    expect(result.coverage.states.unknown).toContain(
+      '(runtime serialized states)'
+    );
+  });
+
+  it('reports statically unreachable state nodes and transitions', async () => {
+    const machine = createMachine({
+      id: 'topology',
+      schemas: {
+        events: {
+          GO: types<{}>(),
+          NEXT: types<{}>(),
+          UNUSED: types<{}>()
+        }
+      },
+      type: 'parallel',
+      states: {
+        left: {
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                GO: { target: 'allowed' },
+                UNUSED: { target: 'idle' }
+              }
+            },
+            allowed: {},
+            unreachable: { on: { NEXT: { target: 'unreachable' } } }
+          }
+        },
+        right: {
+          initial: 'idle',
+          states: {
+            idle: { on: { GO: { target: 'settling' } } },
+            settling: { always: { target: 'done' } },
+            done: {}
+          }
+        }
+      }
+    });
+
+    const result = await propertyTest(machine, {
+      seed: 21,
+      numRuns: 20,
+      maxCommands: 1,
+      events: {
+        GO: fc.constant({}),
+        NEXT: fc.constant({})
+      },
+      invariant: () => {}
+    });
+
     expect(result.coverage.stateNodes.unreachable).toContain(
       'topology.left.unreachable'
     );
@@ -99,9 +157,6 @@ describe('advanced property testing', () => {
       expect.arrayContaining([expect.stringContaining('NEXT')])
     );
     expect(result.coverage.transitions.unknown).toEqual([]);
-    expect(result.coverage.states.unknown).toContain(
-      '(runtime serialized states)'
-    );
   });
 
   it('separates supplied event cases, event types, and exploration bounds', async () => {

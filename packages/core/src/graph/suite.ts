@@ -31,6 +31,7 @@ import {
   type TestTrace
 } from './propertyTest.ts';
 
+/** @experimental */
 export interface TestSuite {
   readonly formatVersion: 1;
   readonly machineId?: string;
@@ -53,6 +54,7 @@ type EventFromSource<TSource> =
     : never;
 type InputFromSource<TSource> = InputFrom<LogicFromSource<TSource>>;
 
+/** @experimental */
 export interface GenerateTestSuiteOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -185,6 +187,7 @@ function selectFixtures(
  *
  * Only passing runs are recorded: a campaign that finds a counterexample
  * throws, as `propertyTest()` does.
+ * @experimental
  */
 export async function generateTestSuite<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>,
@@ -262,6 +265,7 @@ export async function generateTestSuite<
   };
 }
 
+/** @experimental */
 export interface ReplayTestSuiteOptions<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 > {
@@ -285,6 +289,7 @@ export interface ReplayTestSuiteOptions<
   readonly restoreSnapshot?: (snapshot: unknown) => SnapshotFromSource<TSource>;
 }
 
+/** @experimental */
 export interface TestSuiteReplayFailure {
   readonly fixture: TestFixture;
   readonly index: number;
@@ -292,6 +297,7 @@ export interface TestSuiteReplayFailure {
   readonly error: unknown;
 }
 
+/** @experimental */
 export interface TestSuiteReplayResult {
   readonly passed: number;
   readonly failed: readonly TestSuiteReplayFailure[];
@@ -300,6 +306,7 @@ export interface TestSuiteReplayResult {
 /**
  * Replays one suite fixture. Resolves when the fixture still passes and
  * rejects with the underlying failure when it does not.
+ * @experimental
  */
 export async function replayTestSuiteFixture<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
@@ -314,7 +321,11 @@ export async function replayTestSuiteFixture<
   });
 }
 
-/** Replays every fixture in a suite. Each fixture is expected to pass. */
+/**
+ * Replays every fixture in a suite. Each fixture is expected to pass.
+ *
+ * @experimental
+ */
 export async function replayTestSuite<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 >(
@@ -341,7 +352,11 @@ export async function replayTestSuite<
   return { passed, failed };
 }
 
-/** A stable, human-readable one-line title for a fixture. */
+/**
+ * A stable, human-readable one-line title for a fixture.
+ *
+ * @experimental
+ */
 export function formatTestSuiteFixtureTitle(
   fixture: TestFixture,
   index: number
@@ -364,6 +379,7 @@ export function formatTestSuiteFixtureTitle(
   return `fixture ${index + 1}: ${steps.join(' -> ') || '(no events)'}`;
 }
 
+/** @experimental */
 export interface DescribeTestSuiteOptions<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
 > extends ReplayTestSuiteOptions<TSource> {
@@ -378,6 +394,7 @@ export interface DescribeTestSuiteOptions<
 /**
  * Registers one test per suite fixture with a vitest/jest-compatible
  * `it`/`describe` pair.
+ * @experimental
  */
 export function describeTestSuite<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
@@ -414,7 +431,11 @@ export function describeTestSuite<
   register();
 }
 
-/** Serializes a suite with stable key ordering. */
+/**
+ * Serializes a suite with stable key ordering.
+ *
+ * @experimental
+ */
 export function serializeTestSuite(suite: TestSuite): string {
   return JSON.stringify(
     {
@@ -430,7 +451,11 @@ export function serializeTestSuite(suite: TestSuite): string {
   );
 }
 
-/** Parses a serialized suite, rejecting unknown format versions. */
+/**
+ * Parses a serialized suite, rejecting unknown format versions.
+ *
+ * @experimental
+ */
 export function parseTestSuite(json: string): TestSuite {
   const parsed = JSON.parse(json) as TestSuite;
   if (!parsed || typeof parsed !== 'object') {

@@ -46,7 +46,9 @@ describe('eventsFromSchemas with Zod', () => {
         context: { count: context.count + event.value }
       }),
       SET: () => ({}),
-      RESET: () => ({ context: { count: 0 } })
+      // RESET has no schema on purpose: it exercises `eventsWithoutSchema`.
+      // Undeclared event types are rejected at the type level, so hide it.
+      ...({ RESET: () => ({ context: { count: 0 } }) } as {})
     }
   });
 

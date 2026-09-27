@@ -1,6 +1,6 @@
 import z from 'zod';
 import { createActor, createMachine, createAsyncLogic } from '../src';
-import { createInertActorScope } from '../src/getNextSnapshot';
+import { createInertActorScope } from '../src/inertActorScope';
 
 describe('choice states', () => {
   it('routes through the first matching condition', () => {

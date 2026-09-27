@@ -15,7 +15,7 @@
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
 import { useMachine } from '../src/index.ts';
-import { AsyncActorLogic, createMachine, AnyState } from 'xstate';
+import { createMachine, AnyState } from 'xstate';
 import { createAsyncLogic } from 'xstate/actors';
 
 const context = {
@@ -23,11 +23,8 @@ const context = {
 };
 const fetchMachine = createMachine({
   id: 'fetch',
-  types: {} as {
-    actors: {
-      src: 'fetchData';
-      logic: AsyncActorLogic<string>;
-    };
+  actors: {
+    fetchData: createAsyncLogic({ run: async (): Promise<string> => '' })
   },
   initial: 'idle',
   context: context as any,

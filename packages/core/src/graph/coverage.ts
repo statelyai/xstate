@@ -8,15 +8,20 @@ import type {
 import type { GuardEvaluation } from '../transition.ts';
 import { getStateNodeByPath } from '../stateUtils.ts';
 import { normalizeTarget } from '../utils.ts';
-import { getStateNodes } from './graph.ts';
+import { getDescendantStateNodes } from './graph.ts';
 
+/** @experimental */
 export type TestCoverageStatus =
   | 'covered'
   | 'uncovered'
   | 'unreachable'
   | 'unknown';
 
-/** One coverage dimension, with its ids grouped by status. */
+/**
+ * One coverage dimension, with its ids grouped by status.
+ *
+ * @experimental
+ */
 export interface TestCoverageDimension {
   /** Hits per id. */
   readonly counts: Readonly<Record<string, number>>;
@@ -56,6 +61,7 @@ export type TestEventCaseStage =
   | 'executed'
   | 'ignored';
 
+/** @experimental */
 export interface TestEventCaseCounts {
   /** Effective relative generation weight for this case. Defaults to `1`. */
   readonly weight: number;
@@ -65,12 +71,14 @@ export interface TestEventCaseCounts {
   readonly ignored: number;
 }
 
+/** @experimental */
 export interface TestDynamicTransitionCoverage {
   readonly hits: number;
   readonly observedTargetIds: readonly string[];
   readonly outcomeCompleteness: 'unknown';
 }
 
+/** @experimental */
 export interface TestExplorationFrontier {
   readonly id: string;
   readonly prefixLength: number;
@@ -81,6 +89,7 @@ export interface TestExplorationFrontier {
   readonly attemptedRuns: number;
 }
 
+/** @experimental */
 export interface TestExplorationSeed {
   readonly frontierId: string;
   readonly engine?: string;
@@ -88,7 +97,11 @@ export interface TestExplorationSeed {
   readonly path?: string;
 }
 
-/** Swarm testing statistics. Only present when `swarm` was enabled. */
+/**
+ * Swarm testing statistics. Only present when `swarm` was enabled.
+ *
+ * @experimental
+ */
 export interface TestExplorationSwarm {
   /** Runs that were given a swarm subset of the event cases. */
   readonly runs: number;
@@ -96,7 +109,11 @@ export interface TestExplorationSwarm {
   readonly averageEnabled: number;
 }
 
-/** Targeted-search statistics. Only present when `target` was used. */
+/**
+ * Targeted-search statistics. Only present when `target` was used.
+ *
+ * @experimental
+ */
 export interface TestExplorationTarget {
   /** The best (highest) observed target value, `-Infinity` when none. */
   readonly best: number;
@@ -106,7 +123,11 @@ export interface TestExplorationTarget {
   readonly improvements: number;
 }
 
-/** Why a property campaign stopped running batches. */
+/**
+ * Why a property campaign stopped running batches.
+ *
+ * @experimental
+ */
 export type TestStoppedBecause =
   | 'until'
   | 'budget'
@@ -114,6 +135,7 @@ export type TestStoppedBecause =
   | 'paths'
   | 'replay';
 
+/** @experimental */
 export interface TestExplorationBounds {
   /**
    * `'property'` when the campaign generated command sequences,
@@ -165,7 +187,11 @@ export interface TestExplorationBounds {
   readonly pendingActorSteps: number;
 }
 
-/** Aggregated occurrences of a label recorded with `label()`/`classify()`. */
+/**
+ * Aggregated occurrences of a label recorded with `label()`/`classify()`.
+ *
+ * @experimental
+ */
 export interface TestLabelCoverage {
   /** Total number of times the label was recorded across all runs. */
   readonly count: number;
@@ -178,7 +204,11 @@ export interface TestLabelCoverage {
   readonly share: number;
 }
 
-/** Per-run outcomes of one temporal property. */
+/**
+ * Per-run outcomes of one temporal property.
+ *
+ * @experimental
+ */
 export interface TestTemporalCounts {
   /** Runs in which the property held. */
   readonly satisfied: number;
@@ -188,6 +218,11 @@ export interface TestTemporalCounts {
   readonly inconclusive: number;
 }
 
+/**
+ * Temporal-property outcomes across a campaign.
+ *
+ * @experimental
+ */
 export interface TestTemporalCoverage {
   /** Temporal definitions satisfied in at least one run. */
   readonly satisfied: readonly string[];
@@ -214,6 +249,7 @@ export interface TestTemporalCoverage {
  * What a campaign exercised, resolved by `propertyTest()` and `testPaths()`.
  * Relative to the supplied event cases and bounds; not a claim of complete
  * behavioral coverage.
+ * @experimental
  */
 export interface TestCoverage {
   /** Runs attempted, including shrink attempts. */
@@ -511,7 +547,7 @@ function registerTransition(
       outcomeCompleteness: 'unknown'
     };
   }
-  if (transition.guard) {
+  if (transition.guard || transition.to) {
     const guardId = JSON.stringify(['guard', id]);
     coverage.guardIds.set(transition, guardId);
     declare(coverage.guards, guardId, {
@@ -540,7 +576,7 @@ function getPropertyTransitionPairId(first: string, second: string): string {
 
 function getDescendantIds(node: AnyStateNode): Set<string> {
   const ids = new Set<string>([node.id]);
-  for (const descendant of getStateNodes(node)) {
+  for (const descendant of getDescendantStateNodes(node)) {
     ids.add(descendant.id);
   }
   return ids;
@@ -728,7 +764,7 @@ export function createTestCoverage(logic: unknown): MutableTestCoverage {
     return coverage;
   }
 
-  const nodes = [machine.root, ...getStateNodes(machine.root)];
+  const nodes = [machine.root, ...getDescendantStateNodes(machine.root)];
   const reachable = collectReachableNodes(machine.root);
   const hasReachableDynamicTransition = nodes.some(
     (node) =>

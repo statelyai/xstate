@@ -150,6 +150,82 @@ entry: (_, enq) => {
 
 Listener event types accept wildcards such as `data.*`. Subscription mappers are `snapshot`, `done` and `error`; omit a mapper to ignore that outcome.
 
+## Wrapping logic
+
+Do not wrap a machine by spreading it into a new object:
+
+```ts
+// Unsupported
+const wrapped = { ...checkoutMachine, transition: myTransition };
+```
+
+A machine is a `StateMachine` class instance. The spread copies only its own properties. `transition`, `initialTransition`, `getInitialSnapshot`, `getPersistedSnapshot`, `restoreSnapshot` and `start` are own properties bound to the original machine, so they are copied. The prototype methods are dropped: `provide`, `resolveState`, `microstep`, `getTransitionData`, `getStateNodeById`, `getExecutionErrorEvent` and `isInternalEventType`. An actor running the copy cannot read `getExecutionErrorEvent` from it, and snapshots the copy produces still reference the original machine. The result is not a machine, and XState does not support running it.
+
+Use one of these instead.
+
+To replace implementations, call [`machine.provide({ ... })`](setup-and-provide.md#providing-implementations). It returns a new machine with the same config and the given `actions`, `actors`, `guards` and `delays` merged over the existing ones.
+
+```ts
+const testCheckoutMachine = checkoutMachine.provide({
+  actors: { authorize: fakeAuthorize },
+  actions: { track: () => {} }
+});
+```
+
+To add behavior around a machine's lifecycle, write a parent machine that [invokes](invoke.md) it. The parent forwards events with `enq.sendTo(...)` and reacts to the child's output and errors with `onDone` and `onError`.
+
+```ts
+const checkoutFlow = setup({ actors: { checkout: checkoutMachine } }).createMachine({
+  initial: 'running',
+  states: {
+    running: {
+      invoke: {
+        id: 'checkout',
+        src: 'checkout',
+        onDone: { target: 'finished' },
+        onError: { target: 'failed' }
+      },
+      on: {
+        pay: (_, enq) => {
+          enq.sendTo('checkout', { type: 'pay' });
+        }
+      }
+    },
+    finished: {},
+    failed: {}
+  }
+});
+```
+
+Logic created with `createLogic(...)` or `createAsyncLogic(...)` is a plain object. Compose a new logic object whose `transition` delegates to the inner logic. `withEventLog` returns the same logic type it receives, so the wrapped logic keeps its snapshot and event types.
+
+```ts
+import { type AnyActorLogic, createActor, createLogic } from 'xstate';
+
+function withEventLog<TLogic extends AnyActorLogic>(logic: TLogic): TLogic {
+  return {
+    ...logic,
+    transition: (snapshot, event, actorScope) => {
+      console.log(event.type);
+      return logic.transition(snapshot, event, actorScope);
+    }
+  };
+}
+
+const counterLogic = createLogic({
+  context: { count: 0 },
+  run: ({ context, event }) => {
+    if (event.type !== 'inc') return;
+    return { context: { count: context.count + 1 } };
+  }
+});
+
+const actor = createActor(withEventLog(counterLogic)).start();
+actor.send({ type: 'inc' }); // logs "inc"
+```
+
+The spread copies `initialTransition`, `getInitialSnapshot`, `getPersistedSnapshot`, `restoreSnapshot` and `start` from the inner logic, so persistence and restoration delegate to it. If you build the object without spreading, delegate each of those members to the inner logic as well. `transition` handles events after the actor starts; wrap `initialTransition` too to observe the initial event. Do not pass a machine to a wrapper like this; the spread drops its prototype methods.
+
 ## TypeScript
 
 Actor logic creators infer input, output, events and snapshots from their arguments and schemas.
@@ -170,4 +246,5 @@ enq.effect(exec); // also enq.effect('key', exec)
 enq.step('key', exec); // async logic
 enq.listen(ref, 'data.*', mapper);
 enq.subscribeTo(ref, { done, error });
+machine.provide({ actions, actors, guards, delays });
 ```

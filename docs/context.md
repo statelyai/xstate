@@ -20,13 +20,15 @@ context: ({ input }: { input: { name: string } }) => ({
 
 ## Update context
 
-Return the complete next context from a transition function.
+Return a `context` object from a transition function. XState merges it into the current context at the top level, so keys you omit keep their current values:
 
 ```ts
-increment: ({ context }) => ({
-  context: { ...context, count: context.count + 1 }
-})
+// context before: { count: 0, name: 'Ada' }
+increment: ({ context }) => ({ context: { count: context.count + 1 } })
+// context after: { count: 1, name: 'Ada' }
 ```
+
+The merge is shallow. A nested object in the returned patch replaces the current value of that key; spread the nested object yourself to keep its other fields.
 
 Do not mutate the current context. Keep resources that cannot be serialized outside context.
 

@@ -22,6 +22,7 @@ const instanceStates = /* #__PURE__ */ new WeakMap<
   CallbackInstanceState<any>
 >();
 
+/** @public */
 export type CallbackSnapshot<TInput> = Snapshot<undefined> & {
   input: TInput;
   effects?: Record<
@@ -32,6 +33,7 @@ export type CallbackSnapshot<TInput> = Snapshot<undefined> & {
   >;
 };
 
+/** @public */
 export type CallbackActorLogic<
   TEvent extends EventObject,
   TInput = NonReducibleUnknown,
@@ -79,6 +81,7 @@ export type CallbackActorLogic<
  * ```
  *
  * @see {@link createCallbackLogic}
+ * @public
  */
 export type CallbackActorRef<
   TEvent extends EventObject,
@@ -91,6 +94,7 @@ type Receiver<TEvent extends EventObject> = (
   }['bivarianceHack']
 ) => void;
 
+/** @public */
 export type CallbackLogicFunction<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject,
@@ -124,6 +128,7 @@ export type CallbackLogicFunction<
   emit: (emitted: TEmitted) => void;
 }) => (() => void) | void;
 
+/** @public */
 export interface CallbackLogicConfig<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject,
@@ -203,6 +208,7 @@ export interface CallbackLogicConfig<
  * @returns Callback logic
  * @see {@link CallbackLogicFunction} for more information about the callback function and its object argument
  * @see {@link https://stately.ai/docs/input | Input docs} for more information about how input is passed
+ * @public
  */
 export function createCallbackLogic<
   TEvent extends EventObject,
