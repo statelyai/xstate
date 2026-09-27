@@ -1,6 +1,9 @@
 import * as fc from 'fast-check';
 import type { Snapshot } from 'xstate';
-import { createPickDescriptor, type TestPickDescriptor } from 'xstate/graph';
+import {
+  createPickDescriptor,
+  type TestPickDescriptor
+} from './engine/index.ts';
 
 /**
  * An event case whose payload refers to something in the current snapshot,
@@ -20,6 +23,8 @@ import { createPickDescriptor, type TestPickDescriptor } from 'xstate/graph';
  *   )
  * }
  * ```
+ *
+ * @experimental
  */
 export function pick<TSnapshot extends Snapshot<unknown>, TPayload>(
   select: (snapshot: TSnapshot) => readonly TPayload[]

@@ -29,9 +29,9 @@ import {
   type TestSuite,
   type TestAdapter,
   type PropertyTestOptions,
-  type TestPathsResult,
-  TestModel
-} from 'xstate/graph';
+  type TestPathsResult
+} from './engine/index.ts';
+import type { TestModel } from 'xstate/graph';
 import {
   fastCheckAdapter,
   type FastCheckAdapterOptions,
@@ -101,6 +101,8 @@ interface DeriveEventsOptions {
  * {@link PropertyTestOptions} with the generator kind fixed to fast-check:
  * `events`, `commands` and `outcomes` take `fc.Arbitrary` values, and every
  * fast-check option is accepted at the top level.
+ *
+ * @experimental
  */
 export type FastCheckPropertyTestOptions<
   TSnapshot extends Snapshot<unknown>,
@@ -130,6 +132,7 @@ export type FastCheckPropertyTestOptions<
     >;
   };
 
+/** @experimental */
 export type FastCheckGenerateTestSuiteOptions<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -247,6 +250,8 @@ function resolveOptions(source: unknown, options: object): object {
  * options (`seed`, `numRuns`, `maxCommands`, `scheduler`, …) are top-level
  * options rather than `fastCheckAdapter()` arguments, and `events` is derived
  * from the machine's `schemas.events` when it declares them.
+ *
+ * @experimental
  */
 export async function propertyTest<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
@@ -267,6 +272,8 @@ export async function propertyTest<
 /**
  * Records an offline property suite from a passing campaign, with fast-check
  * as the generator. See `generateTestSuite()` in `xstate/graph`.
+ *
+ * @experimental
  */
 export async function generateTestSuite<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>
@@ -288,6 +295,8 @@ export async function generateTestSuite<
  * {@link TestPathsOptions} with the generator kind fixed to fast-check:
  * `events` takes `fc.Arbitrary` values, which are sampled into concrete
  * payloads before traversal.
+ *
+ * @experimental
  */
 export type FastCheckTestPathsOptions<
   TSnapshot extends Snapshot<unknown>,
@@ -383,6 +392,8 @@ function sampleArbitraries(
  * controls (`pathGenerator`, `limit`, `toState`, `samples`, `seed`). fast-check
  * arbitraries are accepted in `events` and sampled into `samples` concrete
  * payloads before traversal.
+ *
+ * @experimental
  */
 export async function testPaths<
   TSource extends ActorLogic<any, any, any> | TestModel<any, any, any>

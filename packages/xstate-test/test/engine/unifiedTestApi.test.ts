@@ -1,7 +1,6 @@
-import { createMachine, types } from '../../index.ts';
-import * as graph from '../index.ts';
-import { testPaths, fromTestParam } from '../testPaths.ts';
-import type { Step } from '../types.ts';
+import { createMachine, types } from 'xstate';
+import { testPaths, fromTestParam } from '../../src/engine/testPaths.ts';
+import { getSimplePaths, type Step } from 'xstate/graph';
 
 const toggleMachine = createMachine({
   id: 'toggle',
@@ -80,17 +79,6 @@ describe('legacy `TestParam` detection', () => {
       })
     ).rejects.toThrow(/pre-2\.0 event executor/);
   });
-
-  it('rejects the `{ events, states }` shape passed to `path.test()`', async () => {
-    const model = graph.createTestModel(toggleMachine);
-    const [path] = model.getShortestPaths();
-    await expect(
-      path.test({
-        events: { TOGGLE: () => {} },
-        states: { off: () => {} }
-      } as never)
-    ).rejects.toThrow(/pre-2\.0 event executor/);
-  });
 });
 
 describe('fromTestParam', () => {
@@ -153,7 +141,7 @@ describe('per-case seeding', () => {
 describe('allowDuplicatePaths', () => {
   it('deduplicates paths from a custom path generator', async () => {
     const generator: any = (logic: any, options: any) =>
-      graph.getSimplePaths(logic, options);
+      getSimplePaths(logic, options);
 
     const deduplicated = await testPaths(toggleMachine, {
       pathGenerator: generator

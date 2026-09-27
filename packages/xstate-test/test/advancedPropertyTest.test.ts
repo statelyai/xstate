@@ -2,11 +2,11 @@ import * as fc from 'fast-check';
 import { createMachine, SimulatedClock, types } from 'xstate';
 import {
   ModelTestFailure,
-  createTestModel,
   fastCheckAdapter,
   propertyTest,
   replayTest
 } from '../src/index.ts';
+import { createTestModel } from 'xstate/graph';
 import type { TestAdapter } from '../src/index.ts';
 
 describe('advanced property testing', () => {

@@ -1,11 +1,11 @@
-import { createMachine } from '../../index.ts';
+import { createMachine } from 'xstate';
 import {
   describeTestSuite,
   generateTestSuite,
   parseTestSuite,
   replayTestSuite,
   serializeTestSuite
-} from '../index.ts';
+} from '../../src/engine/index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
 const trafficMachine = createMachine({

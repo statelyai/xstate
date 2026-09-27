@@ -1,14 +1,14 @@
-import { createAsyncLogic, createMachine, types } from '../../index.ts';
+import { createAsyncLogic, createMachine, types } from 'xstate';
 import {
   ModelTestFailure,
-  createTestModel,
   formatTestTrace,
   propertyTest,
   serializeTestTrace,
   type PropertyScenarioRunner,
   type TestAdapter,
   type TestAdapterResult
-} from '../index.ts';
+} from '../../src/engine/index.ts';
+import { createTestModel } from 'xstate/graph';
 import {
   constant,
   integer,

@@ -1,4 +1,4 @@
-import { createMachine, SimulatedClock, types } from '../../index.ts';
+import { createMachine, SimulatedClock, types } from 'xstate';
 import {
   ModelTestFailure,
   propertyTest,
@@ -6,9 +6,9 @@ import {
   type TestFixture,
   type TestAdapter,
   type TestTrace
-} from '../propertyTest.ts';
-import { generateTestSuite, replayTestSuite } from '../suite.ts';
-import { runParallelPropertyCommands } from '../propertyLinearizability.ts';
+} from '../../src/engine/propertyTest.ts';
+import { generateTestSuite, replayTestSuite } from '../../src/engine/suite.ts';
+import { runParallelPropertyCommands } from '../../src/engine/propertyLinearizability.ts';
 import {
   constant,
   integer,
@@ -137,7 +137,8 @@ describe('property suites', () => {
       events: { FETCH: constant({}) },
       invariant: () => {}
     });
-    const { formatTestSuiteFixtureTitle } = await import('../suite.ts');
+    const { formatTestSuiteFixtureTitle } =
+      await import('../../src/engine/suite.ts');
     const titles = suite.fixtures.map((fixture, index) =>
       formatTestSuiteFixtureTitle(fixture, index)
     );

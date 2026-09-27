@@ -1,17 +1,20 @@
 import * as fc from 'fast-check';
 import type { AnyStateMachine, EventFrom, SnapshotFrom } from 'xstate';
-import type { TestEventGenerators } from 'xstate/graph';
+import type { TestEventGenerators } from './engine/index.ts';
 import type { FastCheckGeneratorKind } from './adapter.ts';
 
 /**
  * Converts a single payload schema into a FastCheck arbitrary. Returns
  * `undefined` when the converter does not recognize the schema.
+ *
+ * @experimental
  */
 export type SchemaConverter = (
   schema: unknown,
   path: string
 ) => fc.Arbitrary<unknown> | undefined;
 
+/** @experimental */
 export interface EventsFromSchemasOptions {
   /**
    * What to do with event types that the machine handles but that have no
@@ -1246,6 +1249,8 @@ function isStandardSchema(schema: unknown): boolean {
  * Converts a declared payload schema into a FastCheck arbitrary. Only schema
  * libraries whose structure can be inspected are supported; a Standard Schema
  * alone only validates, so nothing can be generated from it.
+ *
+ * @experimental
  */
 export function arbitraryFromSchema(
   schema: unknown,
@@ -1331,6 +1336,8 @@ function matchesEventDescriptor(
  *
  * Type-only event declarations (`types.events`) are erased at runtime and
  * cannot be used here.
+ *
+ * @experimental
  */
 export function eventsFromSchemas<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -1390,6 +1397,8 @@ export function eventsFromSchemas<TMachine extends AnyStateMachine>(
 /**
  * Merges derived generators with explicit ones. Explicit entries win for event
  * types declared in both.
+ *
+ * @experimental
  */
 export function mergeEventGenerators<TDerived, TExplicit>(
   derived: TDerived,

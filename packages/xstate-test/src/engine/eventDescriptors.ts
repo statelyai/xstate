@@ -1,4 +1,4 @@
-import type { EventObject, Snapshot } from '../index.ts';
+import type { EventObject, Snapshot } from 'xstate';
 import { getPropertyEventCaseId } from './coverage.ts';
 import { fnv1a } from './utils.ts';
 

@@ -1,6 +1,6 @@
 import type { SnapshotFrom } from 'xstate';
 import { createMachine, types } from 'xstate';
-import { ModelTestFailure, propertyTest } from 'xstate/graph';
+import { ModelTestFailure, propertyTest } from '../src/engine/index.ts';
 import { createPlaywrightSut } from '../src/playwright.ts';
 import { FakePage } from './fakePage.ts';
 import { constant, integer, randomAdapter, record } from './randomAdapter.ts';

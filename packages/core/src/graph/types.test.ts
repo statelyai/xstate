@@ -1,6 +1,6 @@
 import z from 'zod';
 import { createMachine } from '../index.ts';
-import { createTestModel, fromTestParam, getShortestPaths } from './index.ts';
+import { createTestModel, getShortestPaths } from './index.ts';
 
 describe('getShortestPath types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {
@@ -213,20 +213,18 @@ describe('createTestModel types', () => {
 
     for (const path of createTestModel(machine).getShortestPaths()) {
       path.test({
-        sut: fromTestParam({
-          events: {
-            a: ({ event }) => {
-              ((_accept: 'a') => {})(event.type);
-              // @ts-expect-error
-              ((_accept: 'b') => {})(event.type);
-            },
-            b: ({ event }) => {
-              // @ts-expect-error
-              ((_accept: 'a') => {})(event.type);
-              ((_accept: 'b') => {})(event.type);
-            }
+        events: {
+          a: ({ event }) => {
+            ((_accept: 'a') => {})(event.type);
+            // @ts-expect-error
+            ((_accept: 'b') => {})(event.type);
+          },
+          b: ({ event }) => {
+            // @ts-expect-error
+            ((_accept: 'a') => {})(event.type);
+            ((_accept: 'b') => {})(event.type);
           }
-        })
+        }
       });
     }
   });

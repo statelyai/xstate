@@ -18,7 +18,7 @@ import {
 import {
   describeTestSuite as describeTestSuiteFromGraph,
   parseTestSuite as parseTestSuiteFromGraph
-} from 'xstate/graph';
+} from '../src/engine/index.ts';
 import * as z from 'zod';
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -30,7 +30,6 @@ import {
   TestCampaignError,
   assertTestCoverage,
   checkLinearizable,
-  createTestModel,
   eventsFromSchemas,
   formatTestCoverage,
   formatTestCoverageHTML,
@@ -50,6 +49,7 @@ import {
   type TestFixture,
   type TestSut
 } from '../src/index.ts';
+import { createTestModel } from 'xstate/graph';
 import { fromEffectSchemas } from '../src/effect-schema.ts';
 import { createPlaywrightSut } from '../src/playwright.ts';
 import { it as modelIt, withModelTests } from '../src/vitest.ts';
@@ -928,7 +928,8 @@ describe('README: Migrating from @xstate/test 0.x and 1.0 beta', () => {
 
     const model = createTestModel(signupMachine);
     for (const path of model.getShortestPaths()) {
-      await path.test({
+      await testPaths(model, {
+        paths: [path],
         sut: {
           create: () => ({
             send: (event) =>

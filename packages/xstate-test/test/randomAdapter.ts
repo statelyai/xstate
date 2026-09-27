@@ -13,7 +13,7 @@ import type {
   TestAdapter,
   TestAdapterRequest,
   TestAdapterResult
-} from 'xstate/graph';
+} from '../src/engine/index.ts';
 
 type Rng = () => number;
 

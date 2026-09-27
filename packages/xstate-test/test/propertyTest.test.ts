@@ -7,11 +7,11 @@ import {
 } from 'xstate';
 import {
   ModelTestFailure,
-  createTestModel,
   fastCheckAdapter,
   propertyTest,
   replayTest
 } from '../src/index.ts';
+import { createTestModel } from 'xstate/graph';
 
 const counterMachine = createMachine({
   schemas: {

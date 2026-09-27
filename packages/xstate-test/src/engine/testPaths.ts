@@ -1,13 +1,7 @@
-import type {
-  ActorLogic,
-  AnyEventObject,
-  EventObject,
-  Snapshot
-} from '../index.ts';
-import { XSTATE_INIT } from '../constants.ts';
-import { createMockActorScope } from './actorScope.ts';
-import { getAllOwnEvents } from '../utils.ts';
-import type { TestModel } from './TestModel.ts';
+import type { ActorLogic, AnyEventObject, EventObject, Snapshot } from 'xstate';
+import { initialTransition } from 'xstate';
+import { XSTATE_INIT } from './constants.ts';
+import type { TestModel } from 'xstate/graph';
 import { deduplicatePaths } from './deduplicatePaths.ts';
 import {
   deriveCaseSeed,
@@ -34,18 +28,20 @@ import {
   type PropertyGeneratorKind,
   defaultFormatSnapshot
 } from './propertyTest.ts';
-import { resolveTraversalOptions } from './graph.ts';
 import { createOutcomeStub, provideActors } from './outcomes.ts';
-import { getShortestPaths } from './shortestPaths.ts';
-import { createSeededRng } from './utils.ts';
-import { getSimplePaths } from './simplePaths.ts';
-import { getPathsFromEvents } from './pathFromEvents.ts';
+import { createSeededRng, getAllOwnEvents, simpleStringify } from './utils.ts';
+import {
+  getPathsFromEvents,
+  getShortestPaths,
+  getSimplePaths,
+  serializeSnapshot
+} from 'xstate/graph';
 import type {
   PathGenerator,
   StatePath,
   TestParam,
   TraversalOptions
-} from './types.ts';
+} from 'xstate/graph';
 
 /**
  * How `testPaths()` produced the paths it executed.
@@ -854,14 +850,8 @@ export async function testPaths<
   };
 
   const limit = options.limit ?? DEFAULT_TRAVERSAL_LIMIT;
-  const identity = resolveTraversalOptions(
-    testLogic as never,
-    {
-      ...(options.serializeState === undefined
-        ? {}
-        : { serializeState: options.serializeState })
-    } as never
-  ).serializeState as (
+  const identity = (options.serializeState ??
+    (isMachineLogic(testLogic) ? serializeSnapshot : simpleStringify)) as (
     snapshot: TSnapshot,
     event: TEvent | undefined,
     previousSnapshot: TSnapshot | undefined
@@ -1094,10 +1084,7 @@ export function fromTestParam<
       // keeps the previous snapshot rather than passing the resulting one.
       let previous =
         (context.snapshot as TSnapshot | undefined) ??
-        (context.logic.getInitialSnapshot(
-          createMockActorScope(),
-          context.input
-        ) as TSnapshot);
+        (initialTransition(context.logic, context.input)[0] as TSnapshot);
       return {
         send: async (event, sendContext) => {
           const executor = (
@@ -1116,4 +1103,14 @@ export function fromTestParam<
       };
     }
   };
+}
+
+/** Whether `logic` is a state machine (duck-typed, as `xstate/graph` does). */
+function isMachineLogic(logic: unknown): boolean {
+  const machine = logic as Record<string, unknown>;
+  return (
+    typeof machine.getStateNodeById === 'function' &&
+    typeof machine.resolveState === 'function' &&
+    typeof machine.getTransitionData === 'function'
+  );
 }

@@ -6,7 +6,7 @@
  * `{ sample(rng) }` generators, uniformly random command sequences and no
  * shrinking. Real users should prefer `@xstate/test`.
  */
-import type { EventObject, Snapshot } from '../../index.ts';
+import type { EventObject, Snapshot } from 'xstate';
 import type {
   TestActorOutcome,
   PropertyGeneratorKind,
@@ -14,7 +14,7 @@ import type {
   TestAdapter,
   TestAdapterRequest,
   TestAdapterResult
-} from '../propertyTest.ts';
+} from '../../src/engine/propertyTest.ts';
 
 type Rng = () => number;
 

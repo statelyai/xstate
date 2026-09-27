@@ -8,7 +8,7 @@ import type {
   TestSutDisposeContext,
   TestSutSendContext,
   TestSutSession
-} from 'xstate/graph';
+} from './engine/index.ts';
 
 /**
  * The subset of the Playwright `Page` API this package uses.
@@ -17,6 +17,8 @@ import type {
  * type, so no Playwright import is needed at runtime or at type-check time.
  * Everything is optional because only the parts your configuration reaches for
  * are used.
+ *
+ * @experimental
  */
 export interface PlaywrightPage {
   readonly waitForLoadState?: (state?: any, options?: any) => Promise<void>;
@@ -40,6 +42,8 @@ export interface PlaywrightPage {
 /**
  * The subset of Playwright's `TestInfo` this package uses. The `testInfo`
  * fixture of `@playwright/test` is assignable to it.
+ *
+ * @experimental
  */
 export interface PlaywrightTestInfo {
   readonly attach: (
@@ -57,6 +61,8 @@ export interface PlaywrightTestInfo {
 /**
  * The page-level oracles `createPlaywrightSut()` checks after every stable
  * step. Keys left out are off.
+ *
+ * @experimental
  */
 export interface PlaywrightOracles {
   /** Fails on uncaught exceptions in the page (`pageerror`). */
@@ -72,7 +78,11 @@ export interface PlaywrightOracles {
   readonly unhandledRejection?: boolean;
 }
 
-/** Thrown by a session's `check()` when a page-level oracle fails. */
+/**
+ * Thrown by a session's `check()` when a page-level oracle fails.
+ *
+ * @experimental
+ */
 export class PlaywrightOracleError extends Error {
   public override readonly name = 'PlaywrightOracleError';
 
@@ -86,17 +96,26 @@ export class PlaywrightOracleError extends Error {
   }
 }
 
-/** A Playwright action bound to a generated event. */
+/**
+ * A Playwright action bound to a generated event.
+ *
+ * @experimental
+ */
 export type PlaywrightEventAction<
   TPage extends PlaywrightPage,
   TEvent extends EventObject
 > = (page: TPage, event: TEvent) => void | Promise<void>;
 
-/** Per-event-case network stubbing, applied before the event action runs. */
+/**
+ * Per-event-case network stubbing, applied before the event action runs.
+ *
+ * @experimental
+ */
 export type PlaywrightMock<TPage extends PlaywrightPage> = (
   page: TPage
 ) => void | Promise<unknown>;
 
+/** @experimental */
 export interface PlaywrightSutConfig<
   TPage extends PlaywrightPage,
   TSnapshot extends Snapshot<unknown>,
@@ -354,6 +373,8 @@ function sanitizeLabel(label: string): string {
 /**
  * Creates a `TestSut` that drives a Playwright page as the system under
  * test for `propertyTest()` and `testPaths()`.
+ *
+ * @experimental
  */
 export function createPlaywrightSut<
   TPage extends PlaywrightPage,

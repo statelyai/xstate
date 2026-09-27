@@ -1,5 +1,5 @@
-import { createMachine, types } from '../../index.ts';
-import { propertyTest, type TestTrace } from '../index.ts';
+import { createMachine, types } from 'xstate';
+import { propertyTest, type TestTrace } from '../../src/engine/index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
 const counterMachine = createMachine({

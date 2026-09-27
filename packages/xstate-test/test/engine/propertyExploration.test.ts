@@ -1,10 +1,10 @@
-import { createMachine, types } from '../../index.ts';
+import { createMachine, types } from 'xstate';
 import {
   formatTestCoverage,
   testCoverageToJSON,
   propertyTest,
   type TestCoverage
-} from '../index.ts';
+} from '../../src/engine/index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
 const ringMachine = createMachine({

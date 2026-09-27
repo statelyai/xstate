@@ -1,10 +1,10 @@
-import { createMachine, initialTransition, types } from '../../index.ts';
+import { createMachine, initialTransition, types } from 'xstate';
 import {
   ModelTestFailure,
   propertyTest,
   replayTest,
   type TestFixture
-} from '../index.ts';
+} from '../../src/engine/index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
 const counterMachine = createMachine({

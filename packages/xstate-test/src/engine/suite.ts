@@ -13,8 +13,8 @@ import type {
   InputFrom,
   Snapshot,
   SnapshotFrom
-} from '../index.ts';
-import type { TestModel } from './TestModel.ts';
+} from 'xstate';
+import type { TestModel } from 'xstate/graph';
 import { testCoverageToJSON, type TestCoverageJSON } from './report.ts';
 import {
   propertyTest,

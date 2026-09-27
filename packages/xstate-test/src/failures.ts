@@ -3,9 +3,13 @@ import type {
   TestFailureStore,
   TestFixture,
   TestStoredFailure
-} from 'xstate/graph';
+} from './engine/index.ts';
 
-/** Options for the file-system failure database. See `failures`. */
+/**
+ * Options for the file-system failure database. See `failures`.
+ *
+ * @experimental
+ */
 export interface FailureDatabaseOptions {
   /** The directory failures are saved in. Defaults to `'.xstate-test'`. */
   readonly dir?: string;
@@ -24,7 +28,11 @@ export interface FailureDatabaseOptions {
   readonly key?: string;
 }
 
-/** The accepted values of the `failures` option. */
+/**
+ * The accepted values of the `failures` option.
+ *
+ * @experimental
+ */
 export type FailuresOption =
   | boolean
   | FailureDatabaseOptions
@@ -52,6 +60,8 @@ function sanitizeKey(key: string): string {
  * A {@link TestFailureStore} that saves each failing fixture as
  * `<dir>/<key>/<hash>.json`. Node's `fs` is loaded only when a campaign reads
  * or writes a failure, so importing `@xstate/test` stays free of Node APIs.
+ *
+ * @experimental
  */
 export function createFailureDatabase(
   options: FailureDatabaseOptions = {}

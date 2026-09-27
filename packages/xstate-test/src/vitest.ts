@@ -10,9 +10,9 @@ import type { ActorLogic } from 'xstate';
 import {
   formatTestCoverage,
   testCoverageToJSON,
-  type TestCoverage,
-  type TestModel
-} from 'xstate/graph';
+  type TestCoverage
+} from './engine/index.ts';
+import type { TestModel } from 'xstate/graph';
 import type { FailuresOption } from './failures.ts';
 import { propertyTest, testPaths } from './propertyTest.ts';
 
@@ -33,19 +33,28 @@ interface ModelTestSuite {
   readonly suite?: ModelTestSuite;
 }
 
-/** A Vitest-compatible `it` or `test`: `(name, fn, timeout?) => void`. */
+/**
+ * A Vitest-compatible `it` or `test`: `(name, fn, timeout?) => void`.
+ *
+ * @experimental
+ */
 export type ModelTestBase = (
   name: string,
   fn: (context: any) => Promise<void>,
   timeout?: number
 ) => unknown;
 
-/** What an expected failure must look like. See `it.model.fails`. */
+/**
+ * What an expected failure must look like. See `it.model.fails`.
+ *
+ * @experimental
+ */
 export interface ModelTestFailureExpectation {
   /** A substring of, or a pattern matching, the failure message. */
   readonly message?: string | RegExp;
 }
 
+/** @experimental */
 export interface ModelTestFunction {
   /**
    * Registers a test that runs `propertyTest(source, options)`. Failures are
@@ -70,6 +79,7 @@ export interface ModelTestFunction {
   ): void;
 }
 
+/** @experimental */
 export interface PathsTestFunction {
   /** Registers a test that runs `testPaths(source, options)`. */
   <TSource extends Source>(
@@ -80,7 +90,11 @@ export interface PathsTestFunction {
   ): void;
 }
 
-/** The members `withModelTests()` adds to `it` or `test`. */
+/**
+ * The members `withModelTests()` adds to `it` or `test`.
+ *
+ * @experimental
+ */
 export interface ModelTestAPI {
   readonly model: ModelTestFunction;
   readonly paths: PathsTestFunction;
@@ -178,6 +192,8 @@ function matchesExpectation(
  * const it = withModelTests(vitestIt);
  * it.model('the cart matches the model', cartMachine, { sut });
  * ```
+ *
+ * @experimental
  */
 export function withModelTests<TBase extends ModelTestBase>(
   base: TBase
@@ -292,7 +308,15 @@ function fromGlobal(name: 'it' | 'test'): TestAPI & ModelTestAPI {
   });
 }
 
-/** Vitest's global `it`, with `it.model` and `it.paths`. */
+/**
+ * Vitest's global `it`, with `it.model` and `it.paths`.
+ *
+ * @experimental
+ */
 export const it: TestAPI & ModelTestAPI = fromGlobal('it');
-/** Vitest's global `test`, with `test.model` and `test.paths`. */
+/**
+ * Vitest's global `test`, with `test.model` and `test.paths`.
+ *
+ * @experimental
+ */
 export const test: TestAPI & ModelTestAPI = fromGlobal('test');

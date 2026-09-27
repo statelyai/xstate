@@ -1,7 +1,19 @@
-import { createMachine } from '../../index.ts';
+import { createAsyncLogic, createMachine } from '../../index.ts';
 import { createTestModel } from '../index.ts';
 
 describe.skip('Forbidden attributes', () => {
+  it('Should not let you declare invocations on your test machine', () => {
+    const machine = createMachine({
+      invoke: {
+        src: createAsyncLogic({ run: async () => {} })
+      }
+    });
+
+    expect(() => {
+      createTestModel(machine);
+    }).toThrow('Invocations on test machines are not supported');
+  });
+
   it('Should not let you declare after on your test machine', () => {
     const machine = createMachine({
       after: {

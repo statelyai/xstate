@@ -4,12 +4,12 @@ import type {
   InputFrom,
   Snapshot,
   SnapshotFrom
-} from '../index.ts';
-import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
-import { createActor } from '../createActor.ts';
-import { SimulatedClock } from '../SimulatedClock.ts';
-import type { InspectionEvent } from '../inspection.ts';
-import { TestModel } from './TestModel.ts';
+} from 'xstate';
+import { XSTATE_INIT, XSTATE_STOP } from './constants.ts';
+import { createActor } from 'xstate';
+import { SimulatedClock } from 'xstate';
+import type { InspectionEvent } from 'xstate';
+import { TestModel } from 'xstate/graph';
 import {
   createTestCoverage,
   declarePropertyEventCase,
@@ -42,7 +42,7 @@ import {
   normalizeEventDescriptors,
   type AnyTestEventDescriptor
 } from './eventDescriptors.ts';
-import { getShortestPaths } from './shortestPaths.ts';
+import { getShortestPaths } from 'xstate/graph';
 import {
   createOutcomeStub,
   PropertyOutcomeRegistry,
@@ -52,7 +52,7 @@ import {
 } from './outcomes.ts';
 import { formatTestStatistics } from './report.ts';
 import { createSeededRng, fnv1a } from './utils.ts';
-import type { StatePath } from './types.ts';
+import type { StatePath } from 'xstate/graph';
 
 export type {
   TestCoverage,
@@ -3467,7 +3467,9 @@ export async function propertyTest<
   const baseModel =
     source instanceof TestModel
       ? source
-      : new TestModel(source as ActorLogic<any, any, any>);
+      : new TestModel(source as ActorLogic<any, any, any>, {
+          stateMatcher: matchesStateKey
+        });
   // Coverage ids are keyed by transition-definition identity, so the machine
   // that gets provided must be the same one coverage is declared from.
   const model = Object.keys(providedActors).length
@@ -4326,7 +4328,9 @@ export async function replayTest<
   const baseModel =
     source instanceof TestModel
       ? source
-      : new TestModel(source as ActorLogic<any, any, any>);
+      : new TestModel(source as ActorLogic<any, any, any>, {
+          stateMatcher: matchesStateKey
+        });
   const mode: TestMode =
     options.mode ??
     (fixture.formatVersion === 2 ? fixture.mode : undefined) ??
@@ -4708,4 +4712,33 @@ export function formatTestTrace<
     pushObservation(entry.observation);
   }
   return lines.join('\n');
+}
+
+/**
+ * The `stateMatcher` for models built from bare logic: `'*'` matches every
+ * snapshot; on a state machine snapshot, `'#id'` matches when the state node
+ * with that id is active and any other key matches through
+ * `snapshot.matches(key)`. Node ids are compared rather than node objects, so
+ * snapshots of a `machine.provide()`d copy match too.
+ */
+function matchesStateKey(snapshot: Snapshot<unknown>, stateKey: string) {
+  if (stateKey === '*') {
+    return true;
+  }
+  const machineSnapshot = snapshot as {
+    nodes?: readonly { id: string }[];
+    matches?: (stateValue: string) => boolean;
+  };
+  if (stateKey.startsWith('#')) {
+    const id = stateKey.slice(1);
+    return !!machineSnapshot.nodes?.some((node) => node.id === id);
+  }
+  if (typeof machineSnapshot.matches !== 'function') {
+    return false;
+  }
+  try {
+    return machineSnapshot.matches(stateKey);
+  } catch {
+    return false;
+  }
 }

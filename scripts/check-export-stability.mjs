@@ -1,5 +1,5 @@
-// Verifies that every public export of the `xstate` package carries a
-// stability tag (`@public`, `@experimental`, `@internal`; `@deprecated` must
+// Verifies that every public export of the `xstate` and `@xstate/test`
+// packages carries a stability tag (`@public`, `@experimental`, `@internal`; `@deprecated` must
 // be paired with `@public` or `@experimental`).
 //
 // Usage: node scripts/check-export-stability.mjs [--json] [--list]
@@ -21,7 +21,16 @@ const entries = [
   'validation/index.ts'
 ]
   .map((file) => join(coreSrc, file))
-  .concat(join(root, 'packages/xstate-scxml/src/index.ts'));
+  .concat(join(root, 'packages/xstate-scxml/src/index.ts'))
+  .concat(
+    [
+      'index.ts',
+      'schema.ts',
+      'vitest.ts',
+      'playwright.ts',
+      'effect-schema.ts'
+    ].map((file) => join(root, 'packages/xstate-test/src', file))
+  );
 
 const STABILITY = ['public', 'experimental', 'internal'];
 

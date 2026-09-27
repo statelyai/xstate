@@ -1,5 +1,8 @@
 import { createMachine, types } from 'xstate';
-import { pick as graphPick, testPaths as graphTestPaths } from 'xstate/graph';
+import {
+  pick as graphPick,
+  testPaths as graphTestPaths
+} from '../src/engine/index.ts';
 import { pick, propertyTest, testPaths } from '../src/index.ts';
 import { expectTypeOf, it } from 'vitest';
 

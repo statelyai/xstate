@@ -1,5 +1,5 @@
-import type { AnyActorLogic, EventFromLogic, SnapshotFrom } from '../types.ts';
-import { initialTransition, transition } from '../transition.ts';
+import type { AnyActorLogic, EventFromLogic, SnapshotFrom } from 'xstate';
+import { initialTransition, transition } from 'xstate';
 import { defaultEquivalent, type TestSutContext } from './propertyTest.ts';
 
 /**

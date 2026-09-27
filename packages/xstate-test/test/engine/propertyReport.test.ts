@@ -1,4 +1,4 @@
-import { createMachine } from '../../index.ts';
+import { createMachine } from 'xstate';
 import {
   assertTestCoverage,
   formatTestCoverage,
@@ -7,7 +7,7 @@ import {
   testCoverageToJSON,
   propertyTest,
   type TestCoverage
-} from '../index.ts';
+} from '../../src/engine/index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
 const lightMachine = createMachine({

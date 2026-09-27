@@ -1,7 +1,7 @@
-import { createAsyncLogic, createMachine, types } from '../../index.ts';
-import { propertyTest, replayTest } from '../propertyTest.ts';
-import type { TestFixture } from '../propertyTest.ts';
-import { ModelTestFailure } from '../propertyTest.ts';
+import { createAsyncLogic, createMachine, types } from 'xstate';
+import { propertyTest, replayTest } from '../../src/engine/propertyTest.ts';
+import type { TestFixture } from '../../src/engine/propertyTest.ts';
+import { ModelTestFailure } from '../../src/engine/propertyTest.ts';
 import {
   constant,
   integer,

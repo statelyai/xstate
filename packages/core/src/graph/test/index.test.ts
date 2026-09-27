@@ -1,6 +1,6 @@
 import z from 'zod';
 import { createMachine } from '../../index.ts';
-import { createTestModel, fromTestParam } from '../index.ts';
+import { createTestModel } from '../index.ts';
 import { testUtils } from './testUtils.ts';
 
 describe('events', () => {
@@ -294,14 +294,12 @@ it('tests transitions', async () => {
   });
 
   await paths[0].test({
-    sut: fromTestParam({
-      events: {
-        NEXT: (step: any) => {
-          expect(step).toHaveProperty('event');
-          expect(step).toHaveProperty('state');
-        }
+    events: {
+      NEXT: (step) => {
+        expect(step).toHaveProperty('event');
+        expect(step).toHaveProperty('state');
       }
-    })
+    }
   });
 });
 
@@ -317,6 +315,8 @@ it('Event in event executor should contain payload from case', async () => {
     }
   });
 
+  const obj = {};
+
   const nonSerializableData = () => 42;
 
   const model = createTestModel(machine, {
@@ -327,10 +327,11 @@ it('Event in event executor should contain payload from case', async () => {
     toState: (state) => state.matches('second')
   });
 
-  await model.testPath(paths[0], {
-    sut: fromTestParam({
+  await model.testPath(
+    paths[0],
+    {
       events: {
-        NEXT: (step: any) => {
+        NEXT: (step) => {
           expect(step.event).toEqual({
             type: 'NEXT',
             payload: 10,
@@ -338,8 +339,9 @@ it('Event in event executor should contain payload from case', async () => {
           });
         }
       }
-    })
-  });
+    },
+    obj
+  );
 });
 
 describe('state tests', () => {

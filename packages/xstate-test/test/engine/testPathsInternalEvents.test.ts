@@ -1,10 +1,10 @@
-import { createAsyncLogic, createMachine, types } from '../../index.ts';
+import { createAsyncLogic, createMachine, types } from 'xstate';
 import {
   ModelTestFailure,
   replayTest,
   testPaths,
   type TestCoverage
-} from '../index.ts';
+} from '../../src/engine/index.ts';
 import { constant } from './propertyTestAdapter.ts';
 
 /**

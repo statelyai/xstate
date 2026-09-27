@@ -1,4 +1,4 @@
-import { createMachine, types } from '../../index.ts';
+import { createMachine, types } from 'xstate';
 import {
   ModelTestFailure,
   propertyTest,
@@ -6,7 +6,7 @@ import {
   testPaths,
   type TestCoverage,
   type TestSut
-} from '../index.ts';
+} from '../../src/engine/index.ts';
 import { constant, randomAdapter, record } from './propertyTestAdapter.ts';
 
 /**

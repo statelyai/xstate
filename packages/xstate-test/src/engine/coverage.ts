@@ -5,20 +5,15 @@ import type {
   AnyTransitionDefinition,
   EventObject,
   Snapshot
-} from '../types.ts';
+} from 'xstate';
 import {
-  createTransitionDetails,
-  type TransitionResolution
-} from '../actorScope.ts';
-import {
-  attachSnapshotActorRef,
-  createInertActorScope,
-  setInertActorScopeSnapshot
-} from '../inertActorScope.ts';
-import { finalizeTransitionResult } from '../transitionActions.ts';
-import { getStateNodeByPath } from '../stateUtils.ts';
-import { normalizeTarget } from '../utils.ts';
-import { getDescendantStateNodes } from './graph.ts';
+  getInitialMicrosteps,
+  getMicrosteps,
+  initialTransition,
+  transition,
+  type AnyMachineSnapshot
+} from 'xstate';
+import { getDescendantStateNodes } from 'xstate/graph';
 
 /** @experimental */
 export type TestCoverageStatus =
@@ -465,9 +460,13 @@ function getHistoryDefaultTargets(node: AnyStateNode): AnyStateNode[] {
   if (!parent) {
     return [];
   }
-  const normalized = normalizeTarget(
-    (node.config as { target?: string | string[] }).target
-  );
+  const configTarget = (node.config as { target?: string | string[] }).target;
+  const normalized =
+    configTarget === undefined || configTarget === ''
+      ? undefined
+      : Array.isArray(configTarget)
+        ? configTarget
+        : [configTarget];
   if (!normalized) {
     return parent.type === 'parallel'
       ? [parent]
@@ -480,12 +479,49 @@ function getHistoryDefaultTargets(node: AnyStateNode): AnyStateNode[] {
       continue;
     }
     try {
-      targets.push(getStateNodeByPath(parent, target));
+      targets.push(resolveStateNodePath(parent, target));
     } catch {
       // An unresolvable target contributes no reachability information.
     }
   }
   return targets;
+}
+
+/** Resolves a `'#id'` or (escaped) dot-separated path relative to `node`. */
+function resolveStateNodePath(node: AnyStateNode, path: string): AnyStateNode {
+  if (path.startsWith('#')) {
+    try {
+      return node.machine.getStateNodeById(path);
+    } catch {
+      // fall back to resolving it as a path
+    }
+  }
+  const segments: string[] = [];
+  let segment = '';
+  for (let index = 0; index < path.length; index++) {
+    const char = path[index];
+    if (char === '\\') {
+      segment += path[++index] ?? '';
+    } else if (char === '.') {
+      segments.push(segment);
+      segment = '';
+    } else {
+      segment += char;
+    }
+  }
+  segments.push(segment);
+  let current = node;
+  for (const key of segments) {
+    if (!key.length) {
+      break;
+    }
+    const child = current.states[key];
+    if (!child) {
+      throw new Error(`Child state '${key}' does not exist on '${current.id}'`);
+    }
+    current = child;
+  }
+  return current;
 }
 
 function collectReachableNodes(root: AnyStateNode): Set<string> {
@@ -1148,6 +1184,11 @@ export function declarePropertyFrontier(
   declare(coverage.frontiers, id);
 }
 
+interface TransitionResolution {
+  readonly transition: AnyTransitionDefinition;
+  readonly targetIds: readonly string[];
+}
+
 type TransitionWithDetails = [
   snapshot: Snapshot<unknown>,
   effects: readonly unknown[],
@@ -1155,54 +1196,139 @@ type TransitionWithDetails = [
   resolutions: readonly TransitionResolution[]
 ];
 
+type MachineMicrosteps = ReadonlyArray<
+  readonly [
+    snapshot: AnyMachineSnapshot,
+    effects: readonly unknown[],
+    transitions: readonly AnyTransitionDefinition[]
+  ]
+>;
+
+function isStateMachine(logic: AnyActorLogic): logic is AnyStateMachine {
+  const machine = logic as Partial<AnyStateMachine>;
+  return (
+    !!machine.root &&
+    typeof machine.getStateNodeById === 'function' &&
+    typeof machine.getTransitionData === 'function'
+  );
+}
+
+function getActiveNodes(snapshot: Snapshot<unknown>): readonly AnyStateNode[] {
+  return (snapshot as { nodes?: readonly AnyStateNode[] }).nodes ?? [];
+}
+
+function isDescendantOf(node: AnyStateNode, ancestor: AnyStateNode): boolean {
+  for (let current = node.parent; current; current = current.parent) {
+    if (current === ancestor) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
- * The pure `transition()`, also returning the transitions taken and their
- * resolved targets for coverage attribution.
+ * Derives the targets a microstep entered: the deepest newly active state
+ * nodes that were not entered by default (as an initial state or a parallel
+ * region of another newly entered node). A target that was already active
+ * (re-entered) is not observable this way.
+ */
+function getEnteredTargets(
+  previous: Snapshot<unknown>,
+  next: Snapshot<unknown>
+): AnyStateNode[] {
+  const previousIds = new Set(getActiveNodes(previous).map((node) => node.id));
+  const entered = getActiveNodes(next).filter(
+    (node) => !previousIds.has(node.id)
+  );
+  const enteredIds = new Set(entered.map((node) => node.id));
+  const explicit = entered.filter((node) => {
+    const parent = node.parent;
+    if (!parent || !enteredIds.has(parent.id)) {
+      return true;
+    }
+    return !(
+      parent.type === 'parallel' ||
+      (parent.initial?.target ?? []).some((target) => target.id === node.id)
+    );
+  });
+  return explicit.filter(
+    (node) => !explicit.some((other) => isDescendantOf(other, node))
+  );
+}
+
+/**
+ * Resolves the observed targets of the dynamic (`to`) transitions taken in
+ * each microstep from consecutive microstep snapshots.
+ */
+function getDynamicResolutions(
+  initial: Snapshot<unknown> | undefined,
+  microsteps: MachineMicrosteps
+): TransitionResolution[] {
+  const resolutions: TransitionResolution[] = [];
+  let previous = initial;
+  for (const [snapshot, , transitions] of microsteps) {
+    const dynamic = transitions.filter((candidate) => candidate.to);
+    if (previous && dynamic.length) {
+      const entered = getEnteredTargets(previous, snapshot);
+      const staticTargets = transitions.flatMap((candidate) =>
+        candidate.to ? [] : (candidate.target ?? [])
+      );
+      const targetIds = entered
+        .filter(
+          (node) =>
+            !staticTargets.some(
+              (target) => target === node || isDescendantOf(node, target)
+            )
+        )
+        .map((node) => node.id);
+      for (const candidate of dynamic) {
+        resolutions.push({ transition: candidate, targetIds });
+      }
+    }
+    previous = snapshot;
+  }
+  return resolutions;
+}
+
+function withMicrostepDetails(
+  initial: Snapshot<unknown> | undefined,
+  result: readonly [Snapshot<unknown>, readonly unknown[]],
+  getSteps: () => MachineMicrosteps
+): TransitionWithDetails {
+  let microsteps: MachineMicrosteps;
+  try {
+    microsteps = getSteps();
+  } catch {
+    // The transition result itself already reflects the failure.
+    microsteps = [];
+  }
+  return [
+    result[0],
+    result[1],
+    microsteps.flatMap(([, , transitions]) => transitions),
+    getDynamicResolutions(initial, microsteps)
+  ];
+}
+
+/**
+ * The pure `transition()`, also returning the transitions taken (from
+ * `getMicrosteps()`) and the observed targets of dynamic transitions for
+ * coverage attribution.
  */
 export function transitionWithDetails(
   logic: AnyActorLogic,
   snapshot: Snapshot<unknown>,
   event: EventObject
 ): TransitionWithDetails {
-  const actorScope = createInertActorScope(logic, snapshot);
-  const details = createTransitionDetails(actorScope);
-  setInertActorScopeSnapshot(actorScope, snapshot, false);
-  const [nextSnapshot, effects] = finalizeTransitionResult(
-    actorScope,
-    snapshot,
-    logic.transition(snapshot, event, actorScope)
+  const result = transition(logic, snapshot as never, event as never);
+  // An unhandled (or rejected) event returns the same snapshot object and
+  // takes no transitions.
+  if (!isStateMachine(logic) || result[0] === snapshot) {
+    return [result[0], result[1], [], []];
+  }
+  return withMicrostepDetails(snapshot, result, () =>
+    getMicrosteps(logic, snapshot as never, event as never)
   );
-  setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
-  return [
-    nextSnapshot === snapshot
-      ? nextSnapshot
-      : attachSnapshotActorRef(actorScope, nextSnapshot),
-    effects,
-    details.transitions.length || nextSnapshot === snapshot
-      ? details.transitions
-      : getFastPathTransitions(snapshot, event),
-    details.resolutions
-  ];
-}
-
-/**
- * The machine's fast path (a single unguarded transition out of a top-level
- * atomic state) skips the macrostep, so it records no transitions. When a
- * handled event recorded none, the transition taken is that single candidate.
- */
-function getFastPathTransitions(
-  snapshot: Snapshot<unknown>,
-  event: EventObject
-): readonly AnyTransitionDefinition[] {
-  const { machine, value } = snapshot as Partial<{
-    machine: AnyStateMachine;
-    value: unknown;
-  }>;
-  const candidates =
-    typeof value === 'string'
-      ? machine?.root.states[value]?.transitions.get(event.type)
-      : undefined;
-  return candidates?.length === 1 && !candidates[0].guard ? candidates : [];
 }
 
 /** The pure `initialTransition()`, with the details of {@link transitionWithDetails}. */
@@ -1210,18 +1336,11 @@ export function initialTransitionWithDetails(
   logic: AnyActorLogic,
   input: unknown
 ): TransitionWithDetails {
-  const actorScope = createInertActorScope(logic);
-  const details = createTransitionDetails(actorScope);
-  const [nextSnapshot, effects] = finalizeTransitionResult(
-    actorScope,
-    undefined,
-    logic.initialTransition(input, actorScope)
+  const result = initialTransition(logic, input as never);
+  if (!isStateMachine(logic)) {
+    return [result[0], result[1], [], []];
+  }
+  return withMicrostepDetails(undefined, result, () =>
+    getInitialMicrosteps(logic, input as never)
   );
-  setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
-  return [
-    attachSnapshotActorRef(actorScope, nextSnapshot),
-    effects,
-    details.transitions,
-    details.resolutions
-  ];
 }

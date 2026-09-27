@@ -14,14 +14,22 @@ const effectConverter: SchemaConverter = (schema) =>
     ? (fromEffectSchema(schema as Schema.Top) as fc.Arbitrary<unknown>)
     : undefined;
 
-/** Converts an Effect Schema into a native FastCheck arbitrary. */
+/**
+ * Converts an Effect Schema into a native FastCheck arbitrary.
+ *
+ * @experimental
+ */
 export function fromEffectSchema<TSchema extends Schema.Top>(
   schema: TSchema
 ): fc.Arbitrary<TSchema['Type']> {
   return Schema.toArbitrary(schema)(fc);
 }
 
-/** Converts a keyed payload-schema map for use by `propertyTest()`. */
+/**
+ * Converts a keyed payload-schema map for use by `propertyTest()`.
+ *
+ * @experimental
+ */
 export function fromEffectSchemas<
   TSchemas extends Readonly<Record<string, Schema.Top>>
 >(
@@ -42,6 +50,8 @@ export function fromEffectSchemas<
 /**
  * Same as `eventsFromSchemas` from `@xstate/test`, with Effect Schema
  * support registered.
+ *
+ * @experimental
  */
 export function eventsFromSchemas<TMachine extends AnyStateMachine>(
   machine: TMachine,

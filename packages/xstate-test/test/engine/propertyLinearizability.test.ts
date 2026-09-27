@@ -1,10 +1,10 @@
-import { createMachine } from '../../index.ts';
-import { types } from '../../index.ts';
+import { createMachine } from 'xstate';
+import { types } from 'xstate';
 import {
   checkLinearizable,
   runParallelPropertyCommands,
   type LinearizabilityEntry
-} from '../propertyLinearizability.ts';
+} from '../../src/engine/propertyLinearizability.ts';
 
 type RegisterEvent =
   | { type: 'write'; value: number }

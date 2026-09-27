@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createMachine, SnapshotFrom } from '../../index.ts';
-import { createTestModel, fromTestParam } from '../index.ts';
+import { createTestModel } from '../index.ts';
 import { getDescription } from '../utils.ts';
 
 describe('die hard example', () => {
@@ -164,9 +164,7 @@ describe('die hard example', () => {
     paths.forEach((path) => {
       describe(`path ${getDescription(path.state)}`, () => {
         it(`path ${getDescription(path.state)}`, async () => {
-          await dieHardModel.model.testPath(path, {
-            sut: fromTestParam(dieHardModel.options)
-          });
+          await dieHardModel.model.testPath(path, dieHardModel.options);
         });
       });
     });
@@ -187,9 +185,7 @@ describe('die hard example', () => {
         path.state.value
       )} (${JSON.stringify(path.state.context)})`, () => {
         it(`path ${getDescription(path.state)}`, async () => {
-          await dieHardModel.model.testPath(path, {
-            sut: fromTestParam(dieHardModel.options)
-          });
+          await dieHardModel.model.testPath(path, dieHardModel.options);
         });
       });
     });
@@ -218,9 +214,7 @@ describe('die hard example', () => {
       path.state.value
     )} (${JSON.stringify(path.state.context)})`, () => {
       it(`path ${getDescription(path.state)}`, async () => {
-        await dieHardModel.model.testPath(path, {
-          sut: fromTestParam(dieHardModel.options)
-        });
+        await dieHardModel.model.testPath(path, dieHardModel.options);
       });
     });
 
@@ -254,9 +248,7 @@ describe('die hard example', () => {
       )} (${JSON.stringify(path.state.context)})`, () => {
         describe(`path ${getDescription(path.state)}`, () => {
           it(`reaches the target state`, async () => {
-            await dieHardModel.model.testPath(path, {
-              sut: fromTestParam(dieHardModel.options)
-            });
+            await dieHardModel.model.testPath(path, dieHardModel.options);
           });
         });
       });
@@ -303,12 +295,18 @@ describe('error path trace', () => {
       } catch (err: any) {
         expect(err.message).toEqual(expect.stringContaining('test error'));
         expect(err.message).toMatchInlineSnapshot(`
-          "Path 1 (Reaches state "third": @xstate.init → NEXT_1 → NEXT_2) failed: state assertion failed after 2 steps: test error
-          Fixture: failure.fixture (replayTest)
+          "test error
+          Path:
+          	State: {"value":"first"}
+          	Event: {"type":"@xstate.init"}
 
-          start {"value":"first","context":{}}
-          1. generator NEXT_1 -> {"value":"second","context":{}}
-          2. generator NEXT_2 -> {"value":"third","context":{}}"
+          	State: {"value":"second"} via {"type":"@xstate.init"}
+          	Event: {"type":"NEXT_1"}
+
+          	State: {"value":"third"} via {"type":"NEXT_1"}
+          	Event: {"type":"NEXT_2"}
+
+          	State: {"value":"third"} via {"type":"NEXT_2"}"
         `);
         return;
       }

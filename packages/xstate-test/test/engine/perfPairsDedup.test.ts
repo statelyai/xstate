@@ -1,12 +1,12 @@
-import { createMachine, type EventObject } from '../../index.ts';
+import { createMachine, type EventObject } from 'xstate';
 import {
   createTestCoverage,
   finalizeTestCoverage,
   recordPropertyTransitions
-} from '../coverage.ts';
-import { deduplicatePaths } from '../deduplicatePaths.ts';
-import type { StatePath } from '../types.ts';
-import { simpleStringify } from '../utils.ts';
+} from '../../src/engine/coverage.ts';
+import { deduplicatePaths } from '../../src/engine/deduplicatePaths.ts';
+import type { StatePath } from 'xstate/graph';
+import { simpleStringify } from '../../src/engine/utils.ts';
 
 type AnyPath = StatePath<any, EventObject>;
 

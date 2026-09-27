@@ -1,4 +1,3 @@
-import type { TestExecutionOptions, TestPathRunResult } from './testPaths.ts';
 import {
   EventObject,
   StateNode,
@@ -216,13 +215,19 @@ export interface TestMeta<T, TContext extends MachineContext> {
       ) => string);
   skip?: boolean;
 }
-/**
- * The pre-2.0 executor-and-assertion shape. Convert one to the unified `sut`
- * option with `fromTestParam()`.
- *
- * @deprecated Use the `sut` option instead.
- * @public
- */
+interface TestStateResult {
+  error: null | Error;
+}
+/** @public */
+export interface TestStepResult {
+  step: Step<any, any>;
+  state: TestStateResult;
+  event: {
+    error: null | Error;
+  };
+}
+
+/** @public */
 export interface TestParam<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
@@ -248,9 +253,12 @@ export interface TestPath<
    * Tests and executes each step in `steps` sequentially, and then tests the
    * postcondition that the `state` is reached.
    */
-  test: (
-    options?: TestExecutionOptions<TSnapshot, TEvent, unknown>
-  ) => Promise<TestPathRunResult<TSnapshot, TEvent>>;
+  test: (params: TestParam<TSnapshot, TEvent>) => Promise<TestPathResult>;
+}
+/** @public */
+export interface TestPathResult {
+  steps: TestStepResult[];
+  state: TestStateResult;
 }
 
 /**

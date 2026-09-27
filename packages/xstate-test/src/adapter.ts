@@ -6,14 +6,16 @@ import type {
   TestAdapter,
   TestAdapterRequest,
   TestAdapterResult
-} from 'xstate/graph';
+} from './engine/index.ts';
 import type { EventObject, Snapshot } from 'xstate';
 import { withCurrentScheduler } from './scheduler.ts';
 
+/** @experimental */
 export interface FastCheckGeneratorKind extends PropertyGeneratorKind {
   readonly generator: fc.Arbitrary<this['target']>;
 }
 
+/** @experimental */
 export interface FastCheckSchedulerOptions {
   /**
    * Wraps every task release, for integrations that need their own batching
@@ -22,7 +24,11 @@ export interface FastCheckSchedulerOptions {
   readonly act?: (task: () => Promise<void>) => Promise<void>;
 }
 
-/** A replayable summary of the ordering a scheduled run took. */
+/**
+ * A replayable summary of the ordering a scheduled run took.
+ *
+ * @experimental
+ */
 export interface FastCheckSchedulerReport {
   /** Task ids in the order the scheduler released them. */
   readonly ordering: readonly number[];
@@ -34,6 +40,7 @@ export interface FastCheckSchedulerReport {
   }[];
 }
 
+/** @experimental */
 export interface FastCheckAdapterOptions extends Omit<
   fc.Parameters<unknown>,
   'examples'
@@ -106,6 +113,8 @@ const MAXIMUM_INTEGER_WEIGHT = 1_000_000;
  * `fast-check`'s public typings (checked against fast-check 4.9.0), so this
  * helper is the single place that depends on that shape. It prefers
  * `metadataForReplay()` and falls back to parsing `toString()`.
+ *
+ * @experimental
  */
 export function extractReplayPath(counterexample: unknown): string | undefined {
   if (counterexample === null || counterexample === undefined) {
@@ -508,6 +517,7 @@ class FastCheckAdapter implements TestAdapter<FastCheckGeneratorKind> {
   }
 }
 
+/** @experimental */
 export function fastCheckAdapter(
   options: FastCheckAdapterOptions = {}
 ): TestAdapter<FastCheckGeneratorKind> {

@@ -290,15 +290,9 @@ describe('misc', () => {
     const incExecutor = vi.fn();
     for (const path of paths) {
       await path.test({
-        sut: {
-          create: () => ({
-            // `snapshot` is the model snapshot after INC was taken
-            send: (event, { snapshot }) => {
-              if (event.type === 'INC') {
-                incExecutor(snapshot.context.counter);
-              }
-            }
-          })
+        events: {
+          // `state` is the snapshot after INC was taken
+          INC: ({ state }) => incExecutor(state.context.counter)
         }
       });
     }

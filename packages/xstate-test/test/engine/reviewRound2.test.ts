@@ -1,5 +1,5 @@
-import { createAsyncLogic, createMachine, types } from '../../index.ts';
-import * as graph from '../index.ts';
+import { createAsyncLogic, createMachine, types } from 'xstate';
+import * as graph from '../../src/engine/index.ts';
 import {
   formatTestCoverage,
   ModelTestFailure,
@@ -8,7 +8,7 @@ import {
   testPaths,
   type TestFixture,
   type TestTrace
-} from '../index.ts';
+} from '../../src/engine/index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
 const lightMachine = createMachine({

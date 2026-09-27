@@ -1,5 +1,5 @@
 import type * as fc from 'fast-check';
-import type { TestReference, TestSut, TestSutSession } from 'xstate/graph';
+import type { TestReference, TestSut, TestSutSession } from './engine/index.ts';
 import type { EventObject, Snapshot } from 'xstate';
 
 let currentScheduler: fc.Scheduler | undefined;
@@ -10,6 +10,8 @@ let currentScheduler: fc.Scheduler | undefined;
  *
  * Only defined while a scheduled run is executing, which is exactly when a
  * system under test is created and driven.
+ *
+ * @experimental
  */
 export function getCurrentScheduler(): fc.Scheduler | undefined {
   return currentScheduler;
@@ -46,6 +48,8 @@ function scheduleMethod<TArgs extends unknown[], T>(
  *
  * The wrapper binds to {@link getCurrentScheduler} when the session is created,
  * so it is inert unless the adapter was configured with `scheduler`.
+ *
+ * @experimental
  */
 export function withScheduledSut<
   TSnapshot extends Snapshot<unknown>,
@@ -87,6 +91,8 @@ export function withScheduledSut<
  * Wraps a reference oracle the way {@link withScheduledSut} wraps a system
  * under test: its `transition` and `read` calls resolve under the run's
  * scheduler.
+ *
+ * @experimental
  */
 export function withScheduledReference<
   TSnapshot extends Snapshot<unknown>,

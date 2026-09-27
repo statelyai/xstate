@@ -1,11 +1,7 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
-import {
-  createTestModel,
-  fastCheckAdapter,
-  propertyTest,
-  testPaths
-} from '../src/index.ts';
+import { fastCheckAdapter, propertyTest, testPaths } from '../src/index.ts';
+import { createTestModel } from 'xstate/graph';
 import { expectTypeOf, it } from 'vitest';
 
 const machine = createMachine({
