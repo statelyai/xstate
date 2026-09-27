@@ -1040,6 +1040,10 @@ These exports have been **removed** from `xstate`:
 - v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, `ExecutableActionsFrom`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** - same names, different structure.
 - `transition()` / `initialTransition()` now return `ExecutableActionObject[]` for effects; hand-written actor logic `transition` and `initialTransition` return `[snapshot, effects]` tuples whose effects each provide `exec(runtime?)`.
 - `ActorLogic.executeEffects` has been removed. Actor logic returns executable effects directly.
+- Deprecated snapshot helpers: `getInitialSnapshot(logic, input?)` and `getNextSnapshot(logic, snapshot, event)`. Use `initialTransition(logic, input?)` and `transition(logic, snapshot, event)`; the snapshot is the first element of the returned tuple.
+- Deprecated type aliases: `NoInfer` (use the built-in `NoInfer`), `AnyInterpreter` (use `AnyActor`), and `ResolvedStateMachineTypes`
+- `xstate/graph`: `getStateNodes(stateNode)` (all descendant state nodes) is renamed to `getDescendantStateNodes(stateNode)`. The root `getStateNodes(stateNode, stateValue)` export from `xstate` is unchanged.
+- The `xstate/scxml` entry point. `createMachineFromSCXML` moved to the separate `@xstate/scxml` package (`npm i @xstate/scxml`).
 
 `SpecialTargets` (the `Parent`/`Internal` enum) is still exported from `'xstate'` via `types.ts` and continues to work.
 
@@ -1047,7 +1051,6 @@ These exports have been **added**:
 
 - `setup` (reshaped - see §4) and `createSystem` for typed system registries
 - Setup state contract types: `SetupStateSchema`, `SetupStateSchemas`, `SetupStateType`
-- `createFSM` and its related types for tiny, pure flat finite state machines: `FSM`, `FSMArgs`, `FSMConfig`, `FSMContextPatch`, `FSMSnapshot`, `FSMStateConfig`, `FSMTransition`, `FSMTransitionConfig`, `FSMTransitionFunction`
 - `createStateConfig`
 - `checkStateIn`
 - `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
@@ -1061,9 +1064,11 @@ These exports have been **added**:
 - `ActorLogic.start(snapshot, scope, options?)` receives `options.restored` so logic can distinguish restoration from a fresh start.
 - `actor.select(selector)` - derived, subscribable views
 
-The `xstate/fsm` subpath exports the pure `createFSM` API plus a lightweight
-`setup`/`types` facade for typed events, context, and state snapshots. See
-[compact finite state machines](fsm.md) for its exact supported surface.
+The `xstate/fsm` subpath (not the root `xstate` entry) exports the pure `createFSM` API and its `FSM*` types, plus a lightweight
+`setup`/`types` facade for typed events, context, and state snapshots.
+`fsm.transition(snapshot, event)` returns `[nextSnapshot, effects]`, the same
+protocol as other actor logic, so `createActor(fsm)` runs an FSM as an actor.
+See [compact finite state machines](fsm.md) for its exact supported surface.
 
 ### Renamed members and identifiers
 
@@ -1071,7 +1076,7 @@ The `xstate/fsm` subpath exports the pure `createFSM` API plus a lightweight
 - `snapshot._nodes` is now `snapshot.nodes`. It lists the active state nodes.
 - The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). `systemId` is not accepted as an option.
 - The `spawn` function passed to a `context` factory accepts actor logic only. Replace `spawn('worker')` with `spawn(actors.worker)`, using the `actors` argument of the same factory.
-- Transition arrays are not accepted, in `on` or in `always`. Select among targets in one transition function (see §15).
+- The `createMachine` types do not accept transition arrays in `on` or `always`. Select among targets in one transition function (see §15). JSON configs passed to `createMachineFromConfig(...)` still accept transition arrays.
 - Actor `sessionId`s are unique across actor systems and have the form `<systemId>:<n>`, where `systemId` is random. v5 used `x:<n>`. Code that parsed or compared `sessionId`s across systems must not rely on the format.
 
 ---
@@ -1185,7 +1190,7 @@ Child actors, async logic with effects, and listener-resume semantics are all pa
 
 `getPersistedSnapshot()` returns a JSON-shaped object, and `createActor(machine, { snapshot })` restores it leniently: the snapshot has no format version field, and XState reads the fields it recognizes. Snapshots persisted by v6 alphas restore without a migration step when the machine's states still resolve. Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below.
 
-The host serializes the payload. Development builds warn when `context`, `output`, `error`, or state input holds a value that does not survive a JSON round-trip: functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`. Persisting a snapshot whose `context` contains a circular reference throws a named error. See [Persistence](persistence.md) for the format rules.
+The host serializes the payload. Development builds warn when `context`, `output`, `error`, or state input holds a value that does not survive a JSON round-trip: functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`. Persisting a snapshot whose `context` contains a circular reference throws an error that names the actor and the context path. See [Persistence](persistence.md) for the format rules.
 
 ### Snapshot versioning
 
@@ -1322,11 +1327,11 @@ no JSON representation.
 ### SCXML
 
 `createMachineFromSCXML(scxml)` creates an XState machine from an SCXML
-document. Import it from the opt-in `xstate/scxml` entry point so the XML parser
-does not become part of the main `xstate` module graph.
+document. Install and import it from the separate `@xstate/scxml` package so the
+XML parser does not become a dependency of `xstate`.
 
 ```ts
-import { createMachineFromSCXML } from 'xstate/scxml';
+import { createMachineFromSCXML } from '@xstate/scxml';
 
 const machine = createMachineFromSCXML(scxml);
 ```
@@ -1434,7 +1439,7 @@ states: {
     entry: (_, enq) => {
       enq.spawn(workerLogic, { id: 'worker' });
     },
-    on: { NEXT: 'inactive' }
+    on: { NEXT: { target: 'inactive' } }
   },
   inactive: {}
 }
@@ -1454,7 +1459,7 @@ In v6, `enq.sendTo(...)` to a missing target does not error the sender. A missin
 
 - The sender stays `active`, and state `onError` handlers do not run.
 - The root actor's `onRejectedEvent` option receives the event with `reason: 'missingTarget'` and the requested `targetId`.
-- Inspectors receive an `@xstate.deadLetter` event.
+- `system.onRejectedEvent(listener)` listeners receive the same rejection. Inspectors receive no separate event; the inspection protocol is only `@xstate.actor` and `@xstate.transition`.
 - Development builds log a warning such as `Actor "sender" sent event "PING" to missing target "worker"; the event was not delivered (missingTarget).`
 
 A machine that sends to an optional child checks for the child before sending:
@@ -1517,7 +1522,7 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 | `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal.                                                                                                                         |
 | `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, and `fromTransition`, with a suggested replacement. |
 
-`string-targets` wraps string elements inside transition arrays but keeps the arrays. v6 rejects transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`), and no transform reports them. Find them by hand and replace each with one transition function (§15, §16).
+`string-targets` wraps string elements inside transition arrays but keeps the arrays. The v6 `createMachine` types reject transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`), and no transform reports them. Find them by hand and replace each with one transition function (§15, §16).
 
 The codemod does not convert action creators or guard combinators. Rewrite each reported `assign`, `raise`, `sendTo`, or other action creator as an inline function by hand (§1, §2). The transforms read and write imports from `'xstate'` only.
 
@@ -1537,6 +1542,35 @@ import { createMachine } from 'xstate-v6';
 ```
 
 Migrate one file at a time: run the codemod on it, finish the manual changes, then change its `'xstate'` imports to `'xstate-v6'`. When no v5 imports remain, remove the alias and install `xstate@alpha` as `xstate`.
+
+---
+
+## 28. Leftover v5 keys
+
+In development builds, `createMachine(...)` and `setup(...).createMachine(...)` check hand-written configs for v5 keys that v6 would otherwise ignore or misread. Machines built with `createMachineFromConfig(...)` or `createMachineFromSCXML(...)` are not checked. Production builds skip the check.
+
+These keys throw an error:
+
+| v5 key | Where | v6 replacement |
+| --- | --- | --- |
+| `cond` | transition object | inline transition function; return `undefined` to reject the event |
+| `guard` | transition object | inline transition function; call named guards with `guards.name(...)` |
+| `actions` | transition object | inline transition function `(args, enq) => { ... }`; call named actions with `enq(actions.name, params)` |
+| string or array `entry` / `exit` | state node | a single inline function `(args, enq) => { ... }` |
+| `types` | machine config | `schemas` (or `setup({ schemas })`) |
+| `tsTypes` | machine config | `schemas` (typegen was removed) |
+| `schema` | machine config | `schemas` |
+
+These keys log a warning:
+
+| v5 key | v6 replacement |
+| --- | --- |
+| `services` | `actors` (or `setup({ actors })`) |
+| `activities` | `invoke` |
+| `predictableActionArguments` | removed; effects always run in order |
+| `preserveActionOrder` | removed; effects always run in order |
+| `strict` | removed |
+| `devTools` | the `inspect` option on `createActor(...)` |
 
 ---
 

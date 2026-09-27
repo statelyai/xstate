@@ -21,7 +21,7 @@ import {
   createEventObservableLogic,
   createAsyncLogic
 } from '../src/actors/index.ts';
-import { createInertActorScope } from '../src/getNextSnapshot.ts';
+import { createInertActorScope } from '../src/inertActorScope.ts';
 import { waitFor } from '../src/waitFor.ts';
 import type { Mock } from 'vitest';
 import z from 'zod';

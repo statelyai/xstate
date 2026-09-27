@@ -7,7 +7,7 @@ import {
   MachineContext,
   MetaObject
 } from './types';
-import { createMachine } from './createMachine';
+import { createMachineFromCompiledConfig } from './createMachine';
 import { parseDelayToMilliseconds } from './delay';
 
 function delayToMs(delay: string | number): number {
@@ -55,12 +55,14 @@ interface CustomActionJSON {
   params?: unknown;
 }
 
+/** @public */
 export type ActionJSON =
   | CustomActionJSON
   | BuiltInActionJSON
   | ExpressionJSON
   | CodeJSON;
 
+/** @public */
 export interface GuardJSON {
   type: string;
   params?: unknown;
@@ -89,6 +91,7 @@ interface ChoiceBranchJSON {
   meta?: MetaObject;
 }
 
+/** @public */
 export interface InvokeJSON {
   id?: string;
   registryKey?: string;
@@ -101,6 +104,7 @@ export interface InvokeJSON {
   onTimeout?: TransitionConfigJSON | TransitionConfigJSON[];
 }
 
+/** @public */
 export interface TransitionJSON {
   target?: string | string[];
   matches?: Record<string, unknown>;
@@ -115,6 +119,7 @@ export interface TransitionJSON {
 
 type TransitionConfigJSON = TransitionJSON | ResolvableJSON;
 
+/** @public */
 export interface StateNodeJSON {
   id?: string;
   key?: string;
@@ -150,6 +155,7 @@ export interface StateNodeJSON {
   context?: Record<string, unknown>;
 }
 
+/** @public */
 export interface MachineJSON extends StateNodeJSON {
   '@exprLang'?: string;
   version?: string;
@@ -641,6 +647,7 @@ function assertMachineJSON(
   assertStateNode(json, '$');
 }
 
+/** @public */
 export function createMachineFromConfig(
   json: MachineJSON,
   sources: MachineSources = {}
@@ -1049,7 +1056,7 @@ export function createMachineFromConfig(
           ) as MachineContext
       }
     : {};
-  const machine = createMachine({
+  const machine = createMachineFromCompiledConfig({
     ...iterNode(json),
     ...contextConfig,
     version: json.version

@@ -14,7 +14,7 @@ The actor functions are free functions that take any XState actor reference, inc
 | `waitFor(actor, predicate, { timeout })` | `Effect<Snapshot, ActorStoppedError \| Cause.TimeoutError>` |
 | `join(actor)` | `Effect<Output, ErrorFrom<TLogic> \| ActorStoppedError>` |
 | `inspect(actor)` | `Stream<InspectionEvent>` |
-| `deadLetters(actor)` | `Stream<DeadLetterInspectionEvent>` |
+| `deadLetters(actor)` | `Stream<EventRejection>` |
 
 ## Dual usage
 
@@ -70,7 +70,7 @@ const program = Effect.gen(function* () {
 
 `emitted` streams every event the actor emits, as delivered to `actor.on('*', ...)`. See [emitted events](../emitted-events.md).
 
-`inspect` streams the [inspection events](../inspection.md) of the actor's system: every transition, event delivery and dead letter of the execution. Both streams run until they are interrupted or their scope closes, and interrupting either removes the listener.
+`inspect` streams the [inspection events](../inspection.md) of the actor's system: every actor creation and transition of the execution. Both streams run until they are interrupted or their scope closes, and interrupting either removes the listener.
 
 ## Dead letters
 
@@ -88,4 +88,4 @@ const program = Effect.gen(function* () {
 });
 ```
 
-`deadLetters` is `inspect` filtered to `@xstate.deadletter` events.
+`deadLetters` streams the `EventRejection` objects the system reports through `system.onRejectedEvent`, and unsubscribes when the stream ends. Dead letters are not inspection events, so `inspect` does not include them.

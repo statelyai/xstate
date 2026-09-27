@@ -6,9 +6,9 @@ const log = (message: string) => console.log(message);
 /**
  * 1. The whole API without schemas: a pure transition table.
  *
- * `createFSM` never starts anything. It returns `{ id, config, initialState,
- * transition }`, and `transition(state, event)` is a plain function of the
- * current state and the event.
+ * `createFSM` never starts anything. `transition(state, event)` is a plain
+ * function of the current state and the event that returns
+ * `[nextState, effects]`. FSMs have no effects, so `effects` is always empty.
  */
 const toggleFSM = createFSM({
   id: 'toggle',
@@ -23,13 +23,13 @@ log('=== pure transition table');
 let toggleState = toggleFSM.initialState;
 log(`initial: ${toggleState.value}`);
 for (const _ of [1, 2, 3]) {
-  toggleState = toggleFSM.transition(toggleState, { type: 'toggle' });
+  [toggleState] = toggleFSM.transition(toggleState, { type: 'toggle' });
   log(`toggle -> ${toggleState.value}`);
 }
 
 // An event with no transition in the current state returns the same snapshot
 // object, by reference. There is no error, no warning, and no actor to notify.
-const unchanged = toggleFSM.transition(toggleState, { type: 'toggle-nope' });
+const [unchanged] = toggleFSM.transition(toggleState, { type: 'toggle-nope' });
 log(`unhandled event returns same object: ${unchanged === toggleState}`);
 
 /**
@@ -88,11 +88,14 @@ log('\n=== typed setup FSM');
 
 // Driving an FSM is a fold over events. This is the whole runtime.
 const drive = <TSnapshot, TEvent>(
-  fsm: { transition(snapshot: TSnapshot, event: TEvent): TSnapshot },
+  fsm: { transition(snapshot: TSnapshot, event: TEvent): [TSnapshot, unknown] },
   snapshot: TSnapshot,
   events: TEvent[]
 ) =>
-  events.reduce((current, event) => fsm.transition(current, event), snapshot);
+  events.reduce(
+    (current, event) => fsm.transition(current, event)[0],
+    snapshot
+  );
 
 const wrongPin = drive(keypadFSM, keypadFSM.initialState, [
   { type: 'digit', value: '9' },
@@ -122,7 +125,7 @@ const lockedOut = drive(keypadFSM, keypadFSM.initialState, [
 log(`after three failures: ${lockedOut.value}`);
 log(
   `locked is terminal: ${
-    keypadFSM.transition(lockedOut, { type: 'submit' }) === lockedOut
+    keypadFSM.transition(lockedOut, { type: 'submit' })[0] === lockedOut
   }`
 );
 
@@ -208,7 +211,7 @@ const describe = (snapshot: typeof requestFSM.initialState) => {
   }
 };
 
-const loading = requestFSM.transition(requestFSM.initialState, {
+const [loading] = requestFSM.transition(requestFSM.initialState, {
   type: 'fetch',
   id: 'u_1'
 });
@@ -218,12 +221,12 @@ log(
     requestFSM.transition(loading, {
       type: 'resolve',
       user: { id: 'u_1', name: 'Ada' }
-    })
+    })[0]
   )
 );
 log(
   describe(
-    requestFSM.transition(loading, { type: 'reject', message: 'timeout' })
+    requestFSM.transition(loading, { type: 'reject', message: 'timeout' })[0]
   )
 );
 

@@ -13,6 +13,9 @@
         "src/graph/index.ts"
       ]
     },
+    "packages/xstate-scxml": {
+      "entry": ["src/index.ts"]
+    },
     "packages/xstate-store": {
       "entry": ["src/index.ts"]
     },

@@ -6,8 +6,8 @@ import type {
   AnyActor,
   AnyActorRef,
   AnyEventObject,
-  DeadLetterInspectionEvent,
   EmittedFrom,
+  EventRejection,
   ErrorFrom,
   InspectionEvent,
   OutputFrom,
@@ -390,17 +390,26 @@ export function inspect(actor: AnyActorRef): Stream.Stream<InspectionEvent> {
 }
 
 /**
- * Streams the events the actor's system could not deliver: sends to a
- * stopped actor, invalid external events and internal events sent from
- * outside their owner. A dead letter is not an actor error. The stream runs
- * until it is interrupted or its scope closes.
+ * Streams the events the actor's system could not deliver, as reported by
+ * `system.onRejectedEvent`: sends to a stopped actor, invalid external
+ * events and internal events sent from outside their owner. A dead letter is
+ * not an actor error. The stream runs until it is interrupted or its scope
+ * closes.
  */
-export function deadLetters(
-  actor: AnyActorRef
-): Stream.Stream<DeadLetterInspectionEvent> {
-  return Stream.filter(
-    inspect(actor),
-    (event): event is DeadLetterInspectionEvent =>
-      event.type === '@xstate.deadletter'
+export function deadLetters(actor: AnyActorRef): Stream.Stream<EventRejection> {
+  return Stream.callback<EventRejection>((queue) =>
+    Effect.acquireRelease(
+      Effect.sync(() =>
+        (actor as unknown as AnyActor).system.onRejectedEvent(
+          (rejection: EventRejection) => {
+            Queue.offerUnsafe(queue, rejection);
+          }
+        )
+      ),
+      (subscription) =>
+        Effect.sync(() => {
+          subscription.unsubscribe();
+        })
+    )
   );
 }

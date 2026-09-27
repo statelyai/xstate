@@ -27,6 +27,7 @@ import type {
   SnapshotFrom
 } from '../types.ts';
 
+/** @experimental */
 export interface DurableEffectMetadata {
   /** Stable within one durable execution. */
   id: string;
@@ -34,6 +35,7 @@ export interface DurableEffectMetadata {
   effectIndex: number;
 }
 
+/** @experimental */
 export interface DurableWaitMetadata {
   /** Stable within one durable execution. */
   id: string;
@@ -44,12 +46,15 @@ export interface DurableWaitMetadata {
  * An event addressed to a durable execution's root actor, captured while
  * effects settled. `source` is the live reference of the sending actor when
  * one initiated the send.
+ *
+ * @experimental
  */
 export interface DurableRootEvent<TEvent> {
   event: TEvent;
   source: AnyActor | undefined;
 }
 
+/** @experimental */
 export interface DurableEffect<TEffect> extends DurableEffectMetadata {
   effect: TEffect;
   /**
@@ -77,6 +82,8 @@ export interface DurableEffect<TEffect> extends DurableEffectMetadata {
  * adapter. While the loop is parked, a root-addressed event reaches
  * `enqueueRootEvent`, or the broader `sendEvent` override when implemented,
  * so the host can place it in its own mailbox.
+ *
+ * @experimental
  */
 export interface DurableExecutionAdapter<
   TLogic extends AnyActorLogic
@@ -139,6 +146,7 @@ export interface DurableExecutionAdapter<
   executionId?: string;
 }
 
+/** @experimental */
 export class DurableExecutionCancelledError extends Error {
   constructor() {
     super('Durable execution was stopped');
@@ -146,6 +154,7 @@ export class DurableExecutionCancelledError extends Error {
   }
 }
 
+/** @experimental */
 export class DurableExecutionResumeError extends Error {
   constructor() {
     super(
@@ -160,10 +169,13 @@ export class DurableExecutionResumeError extends Error {
  * intersected with the base `Snapshot` union so the `status`/`output`/`error`
  * discriminant stays visible even when `TLogic` is an unresolved type
  * parameter (a generic host library), where `SnapshotFrom` alone is opaque.
+ *
+ * @experimental
  */
 export type DurableSnapshot<TLogic extends AnyActorLogic> =
   SnapshotFrom<TLogic> & Snapshot<OutputFrom<TLogic>>;
 
+/** @experimental */
 export interface DurableExecution<TLogic extends AnyActorLogic> {
   /**
    * The logical address of this execution's root actor: the logic's own name,
@@ -259,6 +271,7 @@ export interface DurableExecutionOptions {
   inspect?: (inspectionEvent: InspectionEvent) => void;
 }
 
+/** @experimental */
 export function createDurable<TLogic extends AnyActorLogic>(
   logic: TLogic,
   adapter: DurableExecutionAdapter<TLogic>,

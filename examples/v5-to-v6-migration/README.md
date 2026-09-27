@@ -21,7 +21,7 @@ The same feedback machine written twice — [in v5](./V5.md) and [in v6](./src/m
 | `fromCallback`                                          | `createCallbackLogic`                                                                  |
 | `fromObservable` / `fromEventObservable`                | `createObservableLogic` / `createEventObservableLogic`                                 |
 | `fromTransition`                                        | `createLogic` (reducer-style logic with `context` and `run`)                            |
-| `getNextSnapshot(logic, snapshot, event)`               | `transition(logic, snapshot, event)`; `getNextSnapshot` still exists but is deprecated |
+| `getNextSnapshot(logic, snapshot, event)`               | `transition(logic, snapshot, event)`; `getNextSnapshot` is removed |
 | `useMachine(machine)` (`@xstate/react`)                 | `useActor(machine)`; `useMachine` remains as a deprecated alias                        |
 | `machine.provide({ actions, actors, guards, delays })`  | unchanged                                                                              |
 

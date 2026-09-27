@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stately.ai/schemas/xstate/persisted-snapshot/v1.json",
+  "title": "XState persisted machine snapshot",
+  "description": "The JSON envelope returned by getPersistedSnapshot() for machine logic, after JSON.stringify/JSON.parse. Nested machine children carry their own envelope in children[id].snapshot; other actor logic (async, callback, transition, observable) persists its own snapshot shape there. Fields prefixed with '_' are private runtime bookkeeping: they round-trip verbatim, but their shape is not part of the contract.",
+  "type": "object",
+  "required": [
+    "status",
+    "value",
+    "context",
+    "children",
+    "timers",
+    "historyValue"
+  ],
+  "properties": {
+    "status": { "enum": ["active", "done", "error", "stopped"] },
+    "value": { "$ref": "#/$defs/stateValue" },
+    "context": {
+      "description": "Application context. Actor refs are replaced by { xstate$type: 'actorRef', id }."
+    },
+    "output": { "description": "Present when status is 'done'." },
+    "error": { "description": "Present when status is 'error'." },
+    "historyValue": {
+      "description": "History state id -> remembered state node ids.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id"],
+          "properties": { "id": { "type": "string" } },
+          "additionalProperties": false
+        }
+      }
+    },
+    "stateInputs": {
+      "description": "State node id -> resolved state input. Omitted when empty.",
+      "type": "object",
+      "additionalProperties": { "type": "object" }
+    },
+    "children": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/child" }
+    },
+    "timers": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/timer" }
+    },
+    "machine": {
+      "description": "Machine identity. Present only when the machine declares a version.",
+      "type": "object",
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string" },
+        "version": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "version": {
+      "description": "Mirror of machine.version. Present only when the machine declares a version.",
+      "type": "string"
+    }
+  },
+  "patternProperties": {
+    "^_": {
+      "description": "Private runtime bookkeeping (e.g. _nextTimerId, _nextActorIds)."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "stateValue": {
+      "anyOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/stateValue" }
+        }
+      ]
+    },
+    "child": {
+      "type": "object",
+      "required": ["src"],
+      "properties": {
+        "address": {
+          "description": "Logical address, stable across incarnations.",
+          "type": "string"
+        },
+        "src": {
+          "description": "Registered source key the child is restored from.",
+          "type": "string"
+        },
+        "registryKey": { "type": "string" },
+        "syncSnapshot": { "type": "boolean" },
+        "snapshot": {
+          "description": "Embedded persisted snapshot of the child's logic. A machine child's snapshot is itself a persisted machine snapshot envelope."
+        },
+        "remote": {
+          "description": "The child is referenced by address; its state lives with another runtime.",
+          "const": true
+        },
+        "incarnation": {
+          "description": "Host-supplied incarnation token of a remote child.",
+          "type": "string"
+        }
+      },
+      "dependentSchemas": {
+        "remote": { "not": { "required": ["snapshot"] } }
+      },
+      "dependentRequired": { "incarnation": ["remote"] },
+      "additionalProperties": false
+    },
+    "timer": {
+      "type": "object",
+      "required": ["id", "delay", "type", "event", "target"],
+      "properties": {
+        "id": { "type": "string" },
+        "delay": { "type": "number" },
+        "type": { "enum": ["@xstate.raise", "@xstate.sendTo"] },
+        "event": {
+          "type": "object",
+          "required": ["type"],
+          "properties": { "type": { "type": "string" } }
+        },
+        "target": {
+          "description": "'self', a child id, or the parent.",
+          "anyOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "required": ["type"],
+              "properties": { "type": { "const": "parent" } },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "startedAt": {
+          "description": "Wall-clock start (ms). Written only under the wall clock.",
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
