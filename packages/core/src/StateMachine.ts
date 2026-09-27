@@ -757,7 +757,7 @@ export class StateMachine<
 
   private _collectEffects(
     microsteps: ReadonlyArray<
-      readonly [unknown, ReadonlyArray<ExecutableActionObject>]
+      readonly [unknown, ReadonlyArray<ExecutableActionObject>, ...unknown[]]
     >
   ): ExecutableActionObjectFromLogic<this>[] {
     return microsteps.flatMap(
@@ -1206,7 +1206,7 @@ export class StateMachine<
     const finalizeInitialResult = (
       macroState: AnyMachineSnapshot,
       microsteps: ReadonlyArray<
-        readonly [unknown, ReadonlyArray<ExecutableActionObject>]
+        readonly [unknown, ReadonlyArray<ExecutableActionObject>, ...unknown[]]
       >
     ): ActorLogicTransitionResult<
       SnapshotFrom<this>,
