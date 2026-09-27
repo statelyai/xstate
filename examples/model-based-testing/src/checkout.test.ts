@@ -122,6 +122,15 @@ describe('generated paths', () => {
     expect(coverage.transitions.unknown).toEqual([]);
   });
 
+  // `submitAddress(zip=02134)`: the payload keeps paths that differ only in
+  // payload apart.
+  const formatStep = ({ type, ...payload }: { type: string }) => {
+    const fields = Object.entries(payload).map(
+      ([key, value]) => `${key}=${String(value)}`
+    );
+    return fields.length ? `${type}(${fields.join(', ')})` : type;
+  };
+
   // One vitest case per path. Add a state to the machine and new cases
   // appear on their own.
   const paths = getSimplePaths(checkoutMachine, {
@@ -138,7 +147,7 @@ describe('generated paths', () => {
 
   it.each(
     paths.map((path) => [
-      path.steps.map((step) => step.event.type).join(' → '),
+      path.steps.map((step) => formatStep(step.event)).join(' → '),
       path
     ])
   )('%s', async (_description, path) => {

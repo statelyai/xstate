@@ -180,11 +180,15 @@ Use `testPaths()` when the reachable graph is finite and you want every path thr
 import { getShortestPaths } from 'xstate/graph';
 
 const paths = getShortestPaths(cartMachine, {
-  events: [{ type: 'ADD', sku: 'apple' }, { type: 'CHECKOUT' }]
+  events: [{ type: 'ADD', sku: 'apple' }, { type: 'CHECKOUT' }],
+  stopWhen: (snapshot) =>
+    Object.values(snapshot.context.items).some((qty) => qty >= 2)
 });
 
 await testPaths(cartMachine, { paths, sut: cartSut });
 ```
+
+`ADD` can be sent any number of times, so `stopWhen` bounds the traversal the same way it does for `testPaths()`.
 
 `xstate/graph` in v5 also exported `createTestModel` and `TestModel`. v6 removes them; `testPaths()` replaces `path.test()`.
 
