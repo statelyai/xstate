@@ -7,7 +7,7 @@ import {
   MachineContext,
   MetaObject
 } from './types';
-import { createMachine } from './createMachine';
+import { createMachineFromCompiledConfig } from './createMachine';
 import { parseDelayToMilliseconds } from './delay';
 
 function delayToMs(delay: string | number): number {
@@ -1056,7 +1056,7 @@ export function createMachineFromConfig(
           ) as MachineContext
       }
     : {};
-  const machine = createMachine({
+  const machine = createMachineFromCompiledConfig({
     ...iterNode(json),
     ...contextConfig,
     version: json.version

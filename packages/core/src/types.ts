@@ -110,11 +110,6 @@ export type Cast<A, B> = A extends B ? A : B;
 // but even with those fixes native NoInfer still doesn't work - further issues have to be reproduced and fixed
 /** @public */
 export type DoNotInfer<T> = [T][T extends any ? 0 : any];
-/**
- * @deprecated Use the built-in `NoInfer` type instead
- * @public
- */
-export type NoInfer<T> = DoNotInfer<T>;
 /** @public */
 export type LowInfer<T> = T & NonNullable<unknown>;
 
@@ -188,35 +183,40 @@ export type ActionArgs<
 
 /** @public */
 export type InputFrom<T> =
-  // Resolve the actor-logic contract first. Setup-created machines intersect
-  // StateMachine with literal identity metadata; inferring StateMachine's
-  // generic parameters through that intersection widens optional input.
-  T extends ActorLogic<
-    infer _TSnapshot,
-    infer _TEvent,
-    infer TInput,
-    infer _TSystem,
-    infer _TEmitted
-  >
-    ? TInput
-    : T extends StateMachine<
-          infer _TContext,
+  // Machines carry their exact declared input on `_inputType`; inferring it
+  // from `getInitialSnapshot` would add `undefined` (the parameter is
+  // optional there) and make every machine input look optional.
+  T extends { _inputType: (input: infer TMachineInput) => void }
+    ? TMachineInput
+    : // Resolve the actor-logic contract first. Setup-created machines intersect
+      // StateMachine with literal identity metadata; inferring StateMachine's
+      // generic parameters through that intersection widens optional input.
+      T extends ActorLogic<
+          infer _TSnapshot,
           infer _TEvent,
-          infer _TChildren,
-          infer _TStateValue,
-          infer _TTag,
           infer TInput,
-          infer _TOutput,
-          infer _TEmitted,
-          infer _TMeta,
-          infer _TStateSchema,
-          infer _TActionMap,
-          infer _TActorMap,
-          infer _TGuardMap,
-          infer _TDelayMap
+          infer _TSystem,
+          infer _TEmitted
         >
       ? TInput
-      : never;
+      : T extends StateMachine<
+            infer _TContext,
+            infer _TEvent,
+            infer _TChildren,
+            infer _TStateValue,
+            infer _TTag,
+            infer TInput,
+            infer _TOutput,
+            infer _TEmitted,
+            infer _TMeta,
+            infer _TStateSchema,
+            infer _TActionMap,
+            infer _TActorMap,
+            infer _TGuardMap,
+            infer _TDelayMap
+          >
+        ? TInput
+        : never;
 
 /** @public */
 export type OutputFrom<T> =
@@ -1261,7 +1261,12 @@ export interface AnyStateMachine extends AnyActorLogic {
   root: AnyStateNode;
   /** @internal */
   _hasEventlessTransitions?: boolean;
-  /** @internal Adapter hooks for actor-local transition evaluation state. */
+  /**
+   * Adapter hooks for actor-local transition evaluation state. Used by
+   * `@xstate/scxml`; not part of the stable API.
+   *
+   * @experimental
+   */
   _microstepHooks?:
     | {
         begin(self: AnyActor): void;
@@ -2029,7 +2034,7 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *
    * @remarks
    * If a callback function is provided, it can accept an inspection event
-   * argument. The inspection protocol has three event types:
+   * argument. The inspection protocol has two event types:
    *
    * - `@xstate.actor` - An actor ref was created in the system (announces actor
    *   topology: identity + parent).
@@ -2037,11 +2042,9 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    *   transition with flat, always-present fields: `event`, `snapshot`,
    *   `sourceRef`, `microsteps`, executed `actions`, and `sent`/scheduled
    *   events.
-   * - `@xstate.deadletter` - An event could not be delivered: the target actor
-   *   stopped, the payload failed its declared schema, or an internal event
-   *   type was sent from outside its owning actor. Carries the `event`,
-   *   `sourceRef`, `reason`, and — for boundary rejections — `issues` and
-   *   `error`.
+   *
+   * Undelivered events (dead letters) are not inspection events; observe them
+   * with `onRejectedEvent`.
    *
    * @example
    *
@@ -2120,19 +2123,27 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * internal event type sent from outside its owning actor. Rejected events
    * are never delivered and never error the target actor.
    *
-   * Only observed when this actor is the root of its system.
+   * Registers the listener with `actor.system.onRejectedEvent(...)`, which
+   * also accepts listeners added later. Ignored when this actor has a parent.
    */
   onRejectedEvent?: (rejection: EventRejection) => void;
+
+  /**
+   * Called when this state machine actor processes an event that no
+   * transition handled: the snapshot is unchanged and no effects ran.
+   * Internal `xstate.*` events are not reported.
+   *
+   * @param event The unhandled event.
+   * @param snapshot The actor's (unchanged) snapshot.
+   */
+  onUnhandledEvent?: (
+    event: EventFromLogic<TLogic>,
+    snapshot: SnapshotFrom<TLogic>
+  ) => void;
 }
 
 /** @public */
 export type AnyActor = ActorInstance<any, any, any, any>;
-
-/**
- * @deprecated Use `AnyActor` instead.
- * @public
- */
-export type AnyInterpreter = AnyActor;
 
 // Based on RxJS types
 /** @public */
@@ -3178,30 +3189,6 @@ export interface StateMachineTypes {
   emitted: EventObject;
 }
 
-/**
- * @deprecated
- * @public
- */
-export interface ResolvedStateMachineTypes<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TActor extends ProvidedActor,
-  TAction extends ParameterizedObject,
-  TGuard extends ParameterizedObject,
-  TDelay extends string,
-  TTag extends string,
-  TEmitted extends EventObject = EventObject
-> {
-  context: TContext;
-  events: TEvent;
-  actors: TActor;
-  actions: TAction;
-  guards: TGuard;
-  delays: TDelay;
-  tags: TTag;
-  emitted: TEmitted;
-}
-
 /** @internal */
 export type GetConcreteByKey<
   T,
@@ -3379,8 +3366,11 @@ export interface DeadLetterExecutableActionObject extends BaseExecutableActionOb
   type: '@xstate.deadLetter';
   /** The actor that sent the event, or `undefined` for an external send. */
   source: AnyActor | undefined;
-  /** The actor that rejected the event. */
-  target: AnyActor;
+  /**
+   * The actor that rejected the event, or `undefined` when the send target
+   * was missing (`reason: 'missingTarget'`).
+   */
+  target: AnyActor | undefined;
   /** The rejected event. */
   event: AnyEventObject;
   /** Why the event was rejected, such as `'invalidEvent'`. */
@@ -3531,7 +3521,7 @@ export type EnqueueObject<
   >(
     target: TTarget,
     event: SendableEventFromActorRef<
-      NoInfer<
+      DoNotInfer<
         TTarget extends keyof TChildren & string ? TChildren[TTarget] : TTarget
       >
     >,

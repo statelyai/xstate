@@ -78,6 +78,7 @@ describe('input', () => {
       }
     });
 
+    // @ts-expect-error input is required
     const snapshot = createActor(machine).getSnapshot();
 
     expect(snapshot.status).toBe('error');
@@ -102,6 +103,7 @@ describe('input', () => {
       }
     });
 
+    // @ts-expect-error input is required
     const snapshot = createActor(machine).getSnapshot();
 
     expect(snapshot.status).toBe('error');

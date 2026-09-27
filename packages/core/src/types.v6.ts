@@ -58,6 +58,15 @@ export type InferOutput<T extends StandardSchemaV1, U> = Compute<
 >;
 
 /**
+ * The machine input type declared by an input schema, or `unknown` when no
+ * input schema is declared (the unresolved schema parameter infers `unknown`).
+ */
+export type InferMachineInput<T extends StandardSchemaV1> =
+  unknown extends StandardSchemaV1.InferOutput<T>
+    ? unknown
+    : InferOutput<T, unknown>;
+
+/**
  * Extracts the machine output type from the config's `output` property: the
  * return type of an output mapper, or the type of a static output value.
  * Falls back to `TFallback` when the config declares no `output`.
@@ -227,11 +236,11 @@ type InternalEventDescriptorFor<TEvent extends EventObject> = [TEvent] extends [
  */
 export interface MachineOptions {
   /**
-   * Maximum number of microsteps allowed before throwing an infinite loop
-   * error. Defaults to `Infinity` (no limit). Set to a finite number to enable
-   * infinite loop detection.
+   * Maximum number of microsteps one macrostep may take before an
+   * `InfiniteTransitionError` is thrown. Raise it for machines that
+   * legitimately take many eventless or raised-event steps per event.
    *
-   * @default Infinity
+   * @default 1000
    */
   maxIterations?: number;
 }
@@ -953,7 +962,11 @@ type StateAction<
       >
     >[0],
     'params'
-  > & { input: TInput },
+  > & {
+    input: TInput;
+    /** The state node being entered (`entry`) or exited (`exit`). */
+    stateNode: AnyStateNode;
+  },
   enqueue: EnqueueObject<
     TEvent,
     TEmittedEvent,

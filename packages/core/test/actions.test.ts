@@ -8,6 +8,7 @@ import {
   ActorFromLogic,
   ActorRefFromLogic,
   EventObject,
+  EventRejection,
   createActor,
   createMachine
 } from '../src/index.ts';
@@ -1256,6 +1257,50 @@ describe('entry/exit actions', () => {
         'exit: a',
         'enter: a',
         'enter: a.a2'
+      ]);
+    });
+
+    it('passes the entered/exited state node to entry and exit', () => {
+      const log: string[] = [];
+      const machine = createMachine({
+        id: 'm',
+        initial: 'a',
+        on: { leave: { target: '.b' } },
+        states: {
+          b: {},
+          a: {
+            initial: 'a1',
+            entry: ({ stateNode }) => {
+              log.push(`entry ${stateNode.id} ${stateNode.key}`);
+            },
+            exit: ({ stateNode }) => {
+              log.push(`exit ${stateNode.id} ${stateNode.path.join('.')}`);
+            },
+            states: {
+              a1: {
+                entry: ({ stateNode }, enq) => {
+                  enq(() => log.push(`entry ${stateNode.id}`));
+                },
+                exit: ({ stateNode }, enq) => {
+                  enq(() => log.push(`exit ${stateNode.id}`));
+                },
+                on: { next: { target: 'a2' } }
+              },
+              a2: {}
+            }
+          }
+        }
+      });
+
+      const actor = createActor(machine).start();
+      actor.send({ type: 'next' });
+      actor.send({ type: 'leave' });
+
+      expect(log).toEqual([
+        'entry m.a a',
+        'entry m.a.a1',
+        'exit m.a.a1',
+        'exit m.a a'
       ]);
     });
   });
@@ -2824,8 +2869,51 @@ describe('sendTo', () => {
     expect(received).toHaveBeenCalledOnce();
   });
 
-  it('should raise a communication error for an unknown declared child id', () => {
+  it('should send to a child spawned with an empty-string id', () => {
+    const received = vi.fn();
+    const rejections: EventRejection[] = [];
+    const childMachine = createMachine({
+      schemas: {
+        events: {
+          PING: z.object({})
+        }
+      },
+      on: {
+        PING: () => {
+          received();
+        }
+      }
+    });
+    const parentMachine = createMachine({
+      schemas: {
+        children: {
+          '': z.custom<ActorRefFromLogic<typeof childMachine>>()
+        }
+      },
+      on: {
+        START: (_, enq) => {
+          enq.spawn(childMachine, { id: '' });
+        },
+        SEND: (_, enq) => {
+          enq.sendTo('', { type: 'PING' });
+        }
+      }
+    });
+
+    const parent = createActor(parentMachine, {
+      onRejectedEvent: (r) => rejections.push(r)
+    }).start();
+    parent.send({ type: 'START' });
+    parent.send({ type: 'SEND' });
+
+    expect(received).toHaveBeenCalledOnce();
+    expect(rejections).toEqual([]);
+  });
+
+  it('should dead-letter a send to an unknown declared child id', () => {
     const errorSpy = vi.fn();
+    const rejections: EventRejection[] = [];
+    vi.spyOn(console, 'warn').mockImplementationOnce(() => {});
     const childMachine = createMachine({
       schemas: {
         events: {
@@ -2856,19 +2944,22 @@ describe('sendTo', () => {
       }
     });
 
-    const parent = createActor(parentMachine).start();
+    const parent = createActor(parentMachine, {
+      onRejectedEvent: (r) => rejections.push(r)
+    }).start();
     parent.send({ type: 'SEND' });
 
-    expect(parent.getSnapshot().value).toBe('failed');
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: "Unable to send event to unknown child 'worker'"
-      })
-    );
+    expect(parent.getSnapshot().value).toBe('active');
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(rejections).toEqual([
+      expect.objectContaining({ reason: 'missingTarget', targetId: 'worker' })
+    ]);
   });
 
   it('should not resolve inherited properties as declared child ids', () => {
     const errorSpy = vi.fn();
+    const rejections: EventRejection[] = [];
+    vi.spyOn(console, 'warn').mockImplementationOnce(() => {});
     const childMachine = createMachine({
       schemas: {
         events: {
@@ -2899,15 +2990,16 @@ describe('sendTo', () => {
       }
     });
 
-    const parent = createActor(parentMachine).start();
+    const parent = createActor(parentMachine, {
+      onRejectedEvent: (r) => rejections.push(r)
+    }).start();
     parent.send({ type: 'SEND' });
 
-    expect(parent.getSnapshot().value).toBe('failed');
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: "Unable to send event to unknown child 'toString'"
-      })
-    );
+    expect(parent.getSnapshot().value).toBe('active');
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(rejections).toEqual([
+      expect.objectContaining({ reason: 'missingTarget', targetId: 'toString' })
+    ]);
   });
 
   it('should be able to send an event to an actor', () => {

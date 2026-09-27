@@ -4,7 +4,7 @@ import {
   attachSnapshotActorRef,
   createInertActorScope,
   setInertActorScopeSnapshot
-} from './getNextSnapshot';
+} from './inertActorScope';
 import {
   getProperAncestors,
   initialMicrostep,
@@ -94,6 +94,30 @@ export function transition<T extends AnyActorLogic>(
       : attachSnapshotActorRef(actorScope, nextSnapshot);
   inspectPureTransition(actorScope, returnedSnapshot, event);
   return [returnedSnapshot, effects as ExecutableActionObjectFromLogic<T>[]];
+}
+
+/**
+ * Returns `true` when `result` (from {@link transition}) means no transition
+ * handled the event: the snapshot is the same object as `previousSnapshot`
+ * and there are no effects. A handled event always yields a new snapshot
+ * object, even when nothing in it changed.
+ *
+ * @example
+ *
+ * ```ts
+ * const result = transition(machine, snapshot, event);
+ * if (isUnhandled(snapshot, result)) {
+ *   console.warn(`Unhandled event: ${event.type}`);
+ * }
+ * ```
+ *
+ * @public
+ */
+export function isUnhandled(
+  previousSnapshot: unknown,
+  result: readonly [snapshot: unknown, effects: readonly unknown[]]
+): boolean {
+  return result[0] === previousSnapshot && result[1].length === 0;
 }
 
 /**

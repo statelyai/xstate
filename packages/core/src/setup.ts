@@ -1,3 +1,5 @@
+import isDevelopment from '#is-development';
+import { diagnoseAuthorConfig } from './devDiagnostics.ts';
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
 import type {
   SetupSchemas,
@@ -9,6 +11,7 @@ import { StateMachine } from './StateMachine.ts';
 import {
   createActor as createActorFromLogic,
   type Actor,
+  type RequiredActorOptionsFor,
   type RequiredActorOptionsKeys
 } from './createActor.ts';
 import {
@@ -60,6 +63,7 @@ import {
   InferActions,
   InferGuards,
   Sources,
+  InferMachineInput,
   InferOutput,
   InferEvents,
   InferInternalEvents,
@@ -1388,7 +1392,7 @@ type SetupTags<TSchemas, TTagSchema extends StandardSchemaV1> = [
 type SetupInput<TSchemas, TInputSchema extends StandardSchemaV1> = [
   SetupSchema<TSchemas, 'input'>
 ] extends [never]
-  ? InferOutput<TInputSchema, unknown>
+  ? InferMachineInput<TInputSchema>
   : InferOutput<SetupSchema<TSchemas, 'input'>, unknown>;
 
 type SetupOutput<TSchemas, TOutputSchema extends StandardSchemaV1> = [
@@ -4079,7 +4083,7 @@ export interface SetupReturn<
       TSchemas,
       TTagSchema
     >,
-    TInput = unknown,
+    _TInput = unknown,
     const TStateKeys extends string = SetupStateKey<TStates>,
     const TConfig extends SetupMachineConfig<
       TStates,
@@ -4248,9 +4252,7 @@ export interface SetupReturn<
     >,
     StateValueFromStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
     TTag & string,
-    [SetupSchema<TSchemas, 'input'>] extends [never]
-      ? TInput
-      : SetupInput<TSchemas, TInputSchema>,
+    SetupInput<TSchemas, TInputSchema>,
     SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig, TStates>,
     SetupEmitted<TSchemas, TEmittedSchemaMap>,
     SetupMeta<TSchemas, TMetaSchema>,
@@ -4591,19 +4593,19 @@ export const setup = function setupImplementation<
       const mergedGuards = mergeMaps(guards, machineConfig.guards);
       const mergedDelays = mergeMaps(delays, machineConfig.delays);
 
-      return new StateMachine(
-        {
-          ...machineConfig,
-          ...(mergedSchemas ? { schemas: mergedSchemas } : undefined),
-          ...(mergedStates ? { states: mergedStates } : undefined),
-          ...(mergedActions ? { actions: mergedActions } : undefined),
-          ...(mergedActors ? { actors: mergedActors } : undefined),
-          ...(mergedGuards ? { guards: mergedGuards } : undefined),
-          ...(mergedDelays ? { delays: mergedDelays } : undefined)
-        } as any,
-        undefined,
-        validator
-      ) as any;
+      const config = {
+        ...machineConfig,
+        ...(mergedSchemas ? { schemas: mergedSchemas } : undefined),
+        ...(mergedStates ? { states: mergedStates } : undefined),
+        ...(mergedActions ? { actions: mergedActions } : undefined),
+        ...(mergedActors ? { actors: mergedActors } : undefined),
+        ...(mergedGuards ? { guards: mergedGuards } : undefined),
+        ...(mergedDelays ? { delays: mergedDelays } : undefined)
+      } as any;
+      if (isDevelopment) {
+        diagnoseAuthorConfig(config);
+      }
+      return new StateMachine(config, undefined, validator) as any;
     },
     createStateConfig(...args: unknown[]) {
       return args.length > 1 ? args[1] : args[0];
@@ -4613,14 +4615,22 @@ export const setup = function setupImplementation<
   };
 } as SetupFunction;
 
+type SystemActorOptions<
+  TLogic extends AnyActorLogic,
+  TSystemRegistry extends SystemRegistry
+> = Omit<ActorOptions<TLogic>, 'registryKey'> & {
+  registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
+};
+
 type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
   createActor<TLogic extends AnyActorLogic>(
     logic: TLogic,
-    options?: Omit<ActorOptions<TLogic>, 'registryKey'> & {
-      registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
-    } & {
-      [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-    }
+    ...[options]: [RequiredActorOptionsKeys<TLogic>] extends [never]
+      ? [options?: SystemActorOptions<TLogic, TSystemRegistry>]
+      : [
+          options: SystemActorOptions<TLogic, TSystemRegistry> &
+            RequiredActorOptionsFor<TLogic>
+        ]
   ): Actor<TLogic>;
   get: SystemRuntime<TSystemRegistry>['get'];
   getAll: SystemRuntime<TSystemRegistry>['getAll'];
@@ -4629,6 +4639,7 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
       | Observer<InspectionEvent>
       | ((inspectionEvent: InspectionEvent) => void)
   ): Subscription;
+  onRejectedEvent: AnyActorSystem['onRejectedEvent'];
   setup: SetupFunction<TSystemRegistry>;
 };
 
@@ -4637,8 +4648,8 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
   _config: SystemConfig<TSystemRegistry> = {}
 ): SystemBuilder<TSystemRegistry> {
   const runtimeRef: { current?: AnyActorSystem } = {};
-  const pendingObservers: Array<{
-    observer: Parameters<AnyActorSystem['inspect']>[0];
+  const pending: Array<{
+    subscribe: (system: AnyActorSystem) => Subscription;
     subscription?: Subscription;
     active: boolean;
   }> = [];
@@ -4649,15 +4660,37 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
       return;
     }
 
-    for (const entry of pendingObservers) {
+    for (const entry of pending) {
       if (entry.active && !entry.subscription) {
-        entry.subscription = runtime.inspect(entry.observer);
+        entry.subscription = entry.subscribe(runtime);
       }
     }
   };
 
+  // Subscribes now if the system exists; otherwise once the first actor
+  // creates it.
+  const subscribeToSystem = (
+    subscribe: (system: AnyActorSystem) => Subscription
+  ): Subscription => {
+    const runtime = runtimeRef.current;
+
+    if (runtime) {
+      return subscribe(runtime);
+    }
+
+    const entry: (typeof pending)[number] = { subscribe, active: true };
+    pending.push(entry);
+
+    return {
+      unsubscribe() {
+        entry.active = false;
+        entry.subscription?.unsubscribe();
+      }
+    };
+  };
+
   return {
-    createActor(logic, options) {
+    createActor(logic, ...[options]) {
       const actor = createActorFromLogic(logic, {
         ...options,
         _systemRef: runtimeRef
@@ -4674,24 +4707,12 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
       >;
     },
     inspect(observer) {
-      const runtime = runtimeRef.current;
-
-      if (runtime) {
-        return runtime.inspect(observer as any);
-      }
-
-      const entry: (typeof pendingObservers)[number] = {
-        observer: observer as Parameters<AnyActorSystem['inspect']>[0],
-        active: true
-      };
-      pendingObservers.push(entry);
-
-      return {
-        unsubscribe() {
-          entry.active = false;
-          entry.subscription?.unsubscribe();
-        }
-      };
+      return subscribeToSystem((system) =>
+        system.inspect(observer as Parameters<AnyActorSystem['inspect']>[0])
+      );
+    },
+    onRejectedEvent(listener) {
+      return subscribeToSystem((system) => system.onRejectedEvent(listener));
     },
     setup: setup as SetupFunction<TSystemRegistry>
   };

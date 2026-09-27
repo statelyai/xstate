@@ -23,12 +23,12 @@ Create the actor inside the component tree and share it with [Solid context](sha
 When the server needs the state but not a running actor, compute it without creating one.
 
 ```ts
-import { getInitialSnapshot } from 'xstate';
+import { initialTransition } from 'xstate';
 
-const snapshot = getInitialSnapshot(checkoutMachine, { cartId });
+const [snapshot] = initialTransition(checkoutMachine, { cartId });
 ```
 
-`getInitialSnapshot(...)` and `getNextSnapshot(...)` are pure: no effects, no invoked actors, no cleanup. They are the safe way to derive markup on the server, including inside a `"use server"` function.
+`initialTransition(...)` and `transition(...)` are pure: no effects, no invoked actors, no cleanup. They are the safe way to derive markup on the server, including inside a `"use server"` function.
 
 ## Hydrating with a persisted snapshot
 

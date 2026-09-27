@@ -8,7 +8,6 @@ import {
   type SubscriptionMappers
 } from './actors/subscription.ts';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
-import { createErrorPlatformEvent } from './eventUtils.ts';
 import {
   getActorIdPrefix,
   parseGeneratedActorId,
@@ -91,7 +90,7 @@ export function createEmitEffect(
 
 function execDeadLetterEffect(
   this: DeadLetterExecutableActionObject,
-  runtime: EffectRuntime = this.target.system
+  runtime: EffectRuntime = (this.target ?? this.source)!.system
 ): void | PromiseLike<void> {
   return runtime.deadLetter!(
     this.source,
@@ -124,6 +123,36 @@ export function createDeadLetterEffect(
   };
 }
 
+/**
+ * @internal Creates a dead-letter effect for an `enq.sendTo` whose target is
+ * an undefined ref, an unknown child id, or the parent of a root actor.
+ */
+function createMissingTargetEffect(
+  actorScope: AnyActorScope,
+  event: AnyEventObject,
+  targetId: string | undefined
+): DeadLetterExecutableActionObject {
+  return {
+    kind: 'builtin',
+    type: '@xstate.deadLetter',
+    exec: execDeadLetterEffect,
+    source: actorScope.self,
+    target: undefined,
+    event,
+    reason: 'missingTarget',
+    detail: {
+      targetId,
+      error: new Error(
+        targetId !== undefined
+          ? `Unable to send event to unknown child '${targetId}'`
+          : 'Unable to send event to an undefined actor'
+      )
+    },
+    params: undefined,
+    args: []
+  };
+}
+
 /** @internal Creates a directly executable user effect. */
 export function createCustomEffect(
   type: string,
@@ -151,6 +180,14 @@ function execStartEffect(
   this: StartExecutableActionObject,
   runtime: EffectRuntime = this.actor.system
 ): void | PromiseLike<void> {
+  // A child stopped before its deferred start (spawned and stopped in the
+  // same transition) stays stopped; actors cannot be restarted.
+  if (
+    (this.actor as { _processingStatus?: number })._processingStatus ===
+    2 /* ProcessingStatus.Stopped */
+  ) {
+    return;
+  }
   return runtime.startActor!(this.actor);
 }
 
@@ -657,15 +694,8 @@ export function createTransitionEnqueue(
       return actor;
     },
     sendTo: (actor, event, options) => {
-      if (!actor) {
-        internalEvents.push(
-          createErrorPlatformEvent('communication', {
-            message: 'Unable to send event to an undefined actor',
-            event
-          })
-        );
-        return;
-      }
+      // A missing target (undefined ref, unknown child id, or `parent` of a
+      // root actor) resolves to a dead letter in `resolveActionsWithContext`.
       pushBuiltInAction(
         actions,
         builtInActions['@xstate.sendTo'],
@@ -742,9 +772,45 @@ export function createTransitionEnqueue(
     });
   }
 
-  return createEnqueueObject(props, (action, ...args) => {
-    pushBuiltInAction(actions, action, ...args);
+  // The handle is only valid while its function runs; `closeTransitionEnqueue`
+  // invalidates it once the function returns.
+  let closed = false;
+  const guard =
+    <T extends (...args: any[]) => any>(fn: T) =>
+    (...args: Parameters<T>) =>
+      closed ? lateEnqueueCall() : fn(...args);
+  for (const key of Object.keys(props) as (keyof typeof props)[]) {
+    (props as any)[key] = guard((props as any)[key]);
+  }
+  const enqueue = createEnqueueObject(
+    props,
+    guard((action, ...args) => {
+      pushBuiltInAction(actions, action, ...args);
+    })
+  );
+  enqueueClosers.set(enqueue, () => {
+    closed = true;
   });
+  return enqueue;
+}
+
+const enqueueClosers = new WeakMap<object, () => void>();
+
+/**
+ * @internal Invalidates an enqueue handle after the function it was passed
+ * to returned. Later `enq.*` calls throw in development and no-op in
+ * production.
+ */
+export function closeTransitionEnqueue(enqueue: object): void {
+  enqueueClosers.get(enqueue)?.();
+}
+
+/** @internal Handles an `enq.*` call made after its function returned. */
+export function lateEnqueueCall(): any {
+  if (isDevelopment) {
+    throw new Error('enq.* called after the transition function returned');
+  }
+  return undefined;
 }
 
 function getBuiltInActionFields(
@@ -1008,8 +1074,7 @@ export function resolveActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope,
-  actions: AnyAction[],
-  internalEvents?: EventObject[]
+  actions: AnyAction[]
 ): [AnyMachineSnapshot, ExecutableActionObject[]] {
   let intermediateSnapshot = currentSnapshot;
   const executableActions: ExecutableActionObject[] = [];
@@ -1045,18 +1110,20 @@ export function resolveActionsWithContext(
 
     if (
       actionRecord?.action === builtInActions['@xstate.sendTo'] &&
-      typeof actionRecord.args[1] === 'string'
+      (actionRecord.args[1] === undefined ||
+        typeof actionRecord.args[1] === 'string')
     ) {
-      const childId = actionRecord.args[1];
-      const target = Object.hasOwn(intermediateSnapshot.children, childId)
-        ? intermediateSnapshot.children[childId]
-        : undefined;
+      const childId: string | undefined = actionRecord.args[1];
+      const target =
+        childId !== undefined &&
+        Object.hasOwn(intermediateSnapshot.children, childId)
+          ? intermediateSnapshot.children[childId]
+          : undefined;
       if (!target) {
-        internalEvents?.push(
-          createErrorPlatformEvent('communication', {
-            message: `Unable to send event to unknown child '${childId}'`,
-            event: actionRecord.args[2]
-          })
+        // Boundary fault: the event is dead-lettered and the sender keeps
+        // running; a missing target is never an actor error.
+        executableActions.push(
+          createMissingTargetEffect(actorScope, actionRecord.args[2], childId)
         );
         continue;
       }

@@ -11,6 +11,14 @@ entry: ({ context }, enq) => {
 }
 ```
 
+Entry and exit functions also receive `stateNode`, the state node being entered or exited, and `input`, the state's input. Transition functions do not receive `stateNode`.
+
+```ts
+entry: ({ stateNode }, enq) => {
+  enq(() => console.log('Entered', stateNode.id));
+}
+```
+
 ## Built-in actions
 
 <!-- enqueue methods and supported call sites from packages/core/src/types.ts and packages/core/src/stateUtils.ts -->
@@ -29,6 +37,8 @@ entry: ({ context }, enq) => {
 | `enq.subscribeTo(...)` | Map another actor's [snapshots and outcomes](listen-and-subscribe.md) to events for this machine. |
 
 Provide reusable named action sources through `setup(...)`.
+
+`enq.sendTo(...)` to a missing target (an `undefined` ref, a child id with no running child, or `parent` in a root actor) does not error the sender. The event becomes a dead letter with reason `'missingTarget'`: the root actor's `onRejectedEvent` option receives it (with `reason`, `targetId` and `sourceRef`) and development builds log a warning that names the sender and the target.
 
 Actions are fire-and-forget. XState does not wait for a promise returned by an action. Use invoked async logic when the result changes what happens next.
 
