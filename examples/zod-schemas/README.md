@@ -24,7 +24,7 @@ The signup machine accepts one valid submission, then four failures: a malformed
 Three behaviors worth knowing:
 
 - Schemas alone do nothing at runtime. Without `validator: standardSchemaValidator()`, a Zod schema in `schemas` is only a source of types — exactly like `types<T>()`, which never validates. Use `types<T>()` when the data is already trusted, and a Standard Schema plus a validator at the edges where it is not.
-- An event arriving from outside with an invalid payload is rejected before delivery. `send` does not throw, the actor does not transition and does not error — its status stays `active`. The rejection is reported to `onRejectedEvent` with the failing `issues`, and to [inspection](https://stately.ai/docs/inspection) observers as a `@xstate.deadletter` event. A pure `transition(...)` call returns the snapshot unchanged plus a `@xstate.deadLetter` effect.
+- An event arriving from outside with an invalid payload is rejected before delivery. `send` does not throw, the actor does not transition and does not error — its status stays `active`. The rejection is reported to `onRejectedEvent` with the failing `issues`. A pure `transition(...)` call returns the snapshot unchanged plus a `@xstate.deadLetter` effect.
 - Values the machine produces itself — input, context, output, emitted events and delayed raised events — are machine bugs when they fail their schema, so they error the actor, and the pure APIs throw.
 
 ## Inspect it

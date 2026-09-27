@@ -90,7 +90,7 @@ const actor = system.createActor(machine).start();
 
 `createSystem(...).setup(...)` chains into the usual [setup](setup-and-provide.md) API and carries the registry types into every machine built from it. `registryKey` is then checked against the declared registry, and the `system` argument inside transition functions is typed the same way, so no `ActorSystem<...>` cast is needed.
 
-The system builder also owns the runtime system before any actor exists. `system.get(...)`, `system.getAll()` and `system.inspect(...)` work on the builder and forward to the running system once the root actor is created.
+The system builder also owns the runtime system before any actor exists. `system.get(...)`, `system.getAll()`, `system.inspect(...)` and `system.onRejectedEvent(...)` work on the builder and forward to the running system once the root actor is created.
 
 ```ts
 const system = createSystem({ registry: { root: machine } });
@@ -99,6 +99,20 @@ system.get('root'); // undefined before createActor
 const actor = system.createActor(machine, { registryKey: 'root' });
 system.get('root'); // the root actor
 ```
+
+## Dead letters
+
+`system.onRejectedEvent(listener)` subscribes to events the system could not deliver: sends to a stopped actor, events rejected at the delivery boundary and internal events sent from outside their owner. The listener receives an `EventRejection` with the `event`, `targetRef`, `targetId`, `sourceRef`, `eventOrigin`, `reason`, `issues` and `error`. It returns a subscription.
+
+```ts
+const subscription = actor.system.onRejectedEvent((rejection) => {
+  console.warn(rejection.event.type, rejection.reason);
+});
+
+subscription.unsubscribe();
+```
+
+A system accepts any number of listeners, added at any time. Listeners run in registration order, and a listener that throws does not prevent the others from running. The `onRejectedEvent` option on `createActor` registers a listener the same way when the actor is created.
 
 ## TypeScript
 
@@ -110,6 +124,7 @@ Without a declared registry, `system.get(key)` is untyped. Annotate the system w
 const child = enq.spawn(logic, { registryKey: 'service' });
 const service = system.get('service');
 const all = system.getAll();
+const subscription = system.onRejectedEvent((rejection) => {});
 
 const system = createSystem({ registry: { service: logic, root: machine } });
 const actor = system.createActor(machine, { registryKey: 'root' }).start();

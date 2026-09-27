@@ -54,13 +54,37 @@ const lint = (fixture: string): OxlintDiagnostic[] => {
 /** The rule's own message table, keyed by messageId. */
 const messages = async (): Promise<Record<string, string>> => {
   const specifier = pathToFileURL(
-    path.join(repoRoot, 'scripts/oxlint-plugin-xstate-effect.mjs')
+    path.join(repoRoot, 'scripts/oxlint-plugin-xstate-effect.ts')
   ).href;
   const plugin = await import(specifier);
   return plugin.default.rules['no-inline-effect'].meta.messages;
 };
 
 describe('xstate-effect/no-inline-effect', () => {
+  it('supports strict type-aware linting of the plugin itself', () => {
+    const result = spawnSync(
+      'pnpm',
+      [
+        'exec',
+        'oxlint',
+        '--type-aware',
+        ...[
+          'no-unsafe-assignment',
+          'no-unsafe-call',
+          'no-unsafe-member-access',
+          'no-unsafe-argument',
+          'no-unsafe-return',
+          'strict-boolean-expressions'
+        ].flatMap((rule) => ['--deny', `typescript/${rule}`]),
+        'scripts/oxlint-plugin-xstate-effect.ts'
+      ],
+      { cwd: repoRoot, encoding: 'utf8' }
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.status, result.stdout + result.stderr).toBe(0);
+  }, 60_000);
+
   it('reports inline Effect actions and inline spawned Effect logic', async () => {
     const { inlineAction, inlineSpawn } = await messages();
     const diagnostics = lint('inline-effect.ts');

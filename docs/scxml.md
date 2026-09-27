@@ -6,11 +6,15 @@ title: SCXML
 
 Use `createMachineFromSCXML(...)` to create an XState machine from an [SCXML](https://www.w3.org/TR/scxml/) document.
 
-Import it from the opt-in `xstate/scxml` entry point. The XML parser is kept out of the main `xstate` entry point.
+Install the `@xstate/scxml` package alongside `xstate`. The XML parser is kept out of the `xstate` package.
+
+```bash
+npm i xstate @xstate/scxml
+```
 
 ```ts
 import { createActor } from 'xstate';
-import { createMachineFromSCXML } from 'xstate/scxml';
+import { createMachineFromSCXML } from '@xstate/scxml';
 
 const machine = createMachineFromSCXML(`
   <scxml xmlns="http://www.w3.org/2005/07/scxml"

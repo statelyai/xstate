@@ -13,6 +13,7 @@ import {
   getNextTransitions,
   isBuiltInExecutableAction
 } from '../src';
+import { createMachineFromCompiledConfig } from '../src/createMachine.ts';
 import type {
   AnyActor,
   AnyEventObject,
@@ -25,7 +26,7 @@ import { listenerLogic } from '../src/actors/listener';
 import { subscriptionLogic } from '../src/actors/subscription';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_STOP } from '../src/constants';
 import { getSnapshotActorRef } from '../src/snapshotActorRef';
-import { setInertActorMaterializationObserver } from '../src/getNextSnapshot';
+import { setInertActorMaterializationObserver } from '../src/inertActorScope';
 import { z } from 'zod';
 
 const isEffect =
@@ -158,7 +159,8 @@ describe('transition function', () => {
   it('preserves callback argument surfaces while planning lazily', () => {
     let contextKeys: string[] = [];
     let guardKeys: string[] = [];
-    const machine = createMachine({
+    // Object-form guards are only produced by compiled configs.
+    const machine = createMachineFromCompiledConfig({
       context: (args: any) => {
         contextKeys = Object.keys(args).sort();
         return { initialized: true };
