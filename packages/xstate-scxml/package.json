@@ -1,0 +1,53 @@
+{
+  "name": "@xstate/scxml",
+  "version": "1.0.0-alpha.0",
+  "description": "Create XState machines from SCXML documents",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "xstate"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-scxml#readme",
+  "license": "MIT",
+  "main": "dist/xstate-scxml.cjs.js",
+  "module": "dist/xstate-scxml.esm.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/xstate-scxml.cjs.mjs",
+        "default": "./dist/xstate-scxml.cjs.js"
+      },
+      "module": "./dist/xstate-scxml.esm.js",
+      "import": "./dist/xstate-scxml.cjs.mjs",
+      "default": "./dist/xstate-scxml.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "dist/xstate-scxml.cjs.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
+  },
+  "scripts": {},
+  "bugs": {
+    "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "peerDependencies": {
+    "xstate": "workspace:^"
+  },
+  "dependencies": {
+    "saxes": "^6.0.0"
+  },
+  "devDependencies": {
+    "@scion-scxml/test-framework": "2.0.16",
+    "pkg-up": "^3.1.0",
+    "xstate": "workspace:^"
+  }
+}

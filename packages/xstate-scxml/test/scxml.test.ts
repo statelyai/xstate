@@ -1,19 +1,19 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
-import { SimulatedClock } from '../src/SimulatedClock';
 import {
   AnyMachineSnapshot,
   AnyStateMachine,
-  createActor
-} from '../src/index.ts';
+  createActor,
+  getStateNodes,
+  SimulatedClock
+} from 'xstate';
 import {
   SCXMLConversionOptions,
   createMachineFromSCXML,
   sanitizeStateId,
   compileSCXML
-} from '../src/scxml/scxml';
-import { getStateNodes } from '../src/stateUtils';
+} from '../src/scxml.ts';
 
 const TEST_FRAMEWORK = path.dirname(
   pkgUp.sync({
@@ -592,7 +592,7 @@ describe('scxml', () => {
       const scxmlSource =
         overrides[testGroupName] &&
         overrides[testGroupName].indexOf(testName) !== -1
-          ? `./fixtures/scxml/${testGroupName}/${testName}.scxml`
+          ? `./fixtures/${testGroupName}/${testName}.scxml`
           : `${TEST_FRAMEWORK}/test/${testGroupName}/${testName}.scxml`;
       const scxmlPath = path.resolve(__dirname, scxmlSource);
       const scxmlDefinition = fs.readFileSync(scxmlPath, { encoding: 'utf-8' });

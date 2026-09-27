@@ -25,7 +25,7 @@ import { listenerLogic } from '../src/actors/listener';
 import { subscriptionLogic } from '../src/actors/subscription';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_STOP } from '../src/constants';
 import { getSnapshotActorRef } from '../src/snapshotActorRef';
-import { setInertActorMaterializationObserver } from '../src/getNextSnapshot';
+import { setInertActorMaterializationObserver } from '../src/inertActorScope';
 import { z } from 'zod';
 
 const isEffect =

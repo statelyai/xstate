@@ -4633,6 +4633,7 @@ type SystemBuilder<TSystemRegistry extends SystemRegistry> = {
       | Observer<InspectionEvent>
       | ((inspectionEvent: InspectionEvent) => void)
   ): Subscription;
+  onRejectedEvent: AnyActorSystem['onRejectedEvent'];
   setup: SetupFunction<TSystemRegistry>;
 };
 
@@ -4641,8 +4642,8 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
   _config: SystemConfig<TSystemRegistry> = {}
 ): SystemBuilder<TSystemRegistry> {
   const runtimeRef: { current?: AnyActorSystem } = {};
-  const pendingObservers: Array<{
-    observer: Parameters<AnyActorSystem['inspect']>[0];
+  const pending: Array<{
+    subscribe: (system: AnyActorSystem) => Subscription;
     subscription?: Subscription;
     active: boolean;
   }> = [];
@@ -4653,11 +4654,33 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
       return;
     }
 
-    for (const entry of pendingObservers) {
+    for (const entry of pending) {
       if (entry.active && !entry.subscription) {
-        entry.subscription = runtime.inspect(entry.observer);
+        entry.subscription = entry.subscribe(runtime);
       }
     }
+  };
+
+  // Subscribes now if the system exists; otherwise once the first actor
+  // creates it.
+  const subscribeToSystem = (
+    subscribe: (system: AnyActorSystem) => Subscription
+  ): Subscription => {
+    const runtime = runtimeRef.current;
+
+    if (runtime) {
+      return subscribe(runtime);
+    }
+
+    const entry: (typeof pending)[number] = { subscribe, active: true };
+    pending.push(entry);
+
+    return {
+      unsubscribe() {
+        entry.active = false;
+        entry.subscription?.unsubscribe();
+      }
+    };
   };
 
   return {
@@ -4678,24 +4701,12 @@ export function createSystem<const TSystemRegistry extends SystemRegistry = {}>(
       >;
     },
     inspect(observer) {
-      const runtime = runtimeRef.current;
-
-      if (runtime) {
-        return runtime.inspect(observer as any);
-      }
-
-      const entry: (typeof pendingObservers)[number] = {
-        observer: observer as Parameters<AnyActorSystem['inspect']>[0],
-        active: true
-      };
-      pendingObservers.push(entry);
-
-      return {
-        unsubscribe() {
-          entry.active = false;
-          entry.subscription?.unsubscribe();
-        }
-      };
+      return subscribeToSystem((system) =>
+        system.inspect(observer as Parameters<AnyActorSystem['inspect']>[0])
+      );
+    },
+    onRejectedEvent(listener) {
+      return subscribeToSystem((system) => system.onRejectedEvent(listener));
     },
     setup: setup as SetupFunction<TSystemRegistry>
   };

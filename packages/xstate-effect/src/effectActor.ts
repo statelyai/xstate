@@ -196,7 +196,7 @@ export class EffectActor<TLogic extends AnyActorLogic> implements ActorRef<
 
   /**
    * Observes the inspection events of this actor and its children: every
-   * transition, event delivery and dead letter of the execution.
+   * actor creation and transition of the execution.
    */
   inspect(
     observer: Observer<InspectionEvent> | ((event: InspectionEvent) => void)
