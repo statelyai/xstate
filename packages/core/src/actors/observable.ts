@@ -22,6 +22,7 @@ const XSTATE_OBSERVABLE_NEXT = 'xstate.observable.next';
 const XSTATE_OBSERVABLE_ERROR = 'xstate.observable.error';
 const XSTATE_OBSERVABLE_COMPLETE = 'xstate.observable.complete';
 
+/** @public */
 export type ObservableSnapshot<
   TContext,
   TInput extends NonReducibleUnknown
@@ -37,6 +38,7 @@ export type ObservableSnapshot<
   _subscription: Subscription | undefined;
 };
 
+/** @public */
 export type ObservableActorLogic<
   TContext,
   TInput extends NonReducibleUnknown,
@@ -83,6 +85,7 @@ export type ObservableActorLogic<
  *
  * @see {@link createObservableLogic}
  * @see {@link createEventObservableLogic}
+ * @public
  */
 export type ObservableActorRef<TContext> = ActorRefFromLogic<
   ObservableActorLogic<TContext, any>
@@ -94,6 +97,7 @@ type ObservableActor<
   TEmitted extends EventObject = EventObject
 > = ActorFromLogic<ObservableActorLogic<TContext, TInput, TEmitted>>;
 
+/** @public */
 export type ObservableLogicFunction<
   TContext,
   TInput extends NonReducibleUnknown,
@@ -110,6 +114,7 @@ export type ObservableLogicFunction<
   emit: (emitted: TEmitted) => void;
 }) => Subscribable<TContext>;
 
+/** @public */
 export interface ObservableLogicConfig<
   TContext,
   TInput extends NonReducibleUnknown,
@@ -123,6 +128,7 @@ export interface ObservableLogicConfig<
   run: ObservableLogicFunction<TContext, TInput, TEmitted>;
 }
 
+/** @public */
 export type EventObservableLogicFunction<
   TEvent extends EventObject,
   TInput extends NonReducibleUnknown,
@@ -139,6 +145,7 @@ export type EventObservableLogicFunction<
   emit: (emitted: TEmitted) => void;
 }) => Subscribable<TEvent>;
 
+/** @public */
 export interface EventObservableLogicConfig<
   TEvent extends EventObject,
   TInput extends NonReducibleUnknown,
@@ -195,6 +202,7 @@ export interface EventObservableLogicConfig<
  *   Observable, although RxJS is not required to create them.
  * @see {@link https://rxjs.dev} for documentation on RxJS Observable and observable creators.
  * @see {@link Subscribable} interface in XState, which is based on and compatible with RxJS Observable.
+ * @public
  */
 export function createObservableLogic<
   TContext,
@@ -379,6 +387,7 @@ export function createObservableLogic<
  *
  *   It should return a {@link Subscribable}, which is compatible with an RxJS
  *   Observable, although RxJS is not required to create them.
+ * @public
  */
 export function createEventObservableLogic<
   TEvent extends EventObject,

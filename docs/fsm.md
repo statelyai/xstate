@@ -12,7 +12,7 @@ importing `xstate` or loading the full statechart type definitions.
 
 <!-- public exports from packages/core/src/fsm/index.ts; configuration surface from packages/core/src/fsm.ts -->
 
-Without schemas, the API is just a pure transition table:
+Without schemas, the API is a pure transition table:
 
 ```ts
 import { createFSM } from 'xstate/fsm';
@@ -26,9 +26,13 @@ const machine = createFSM({
 });
 
 let state = machine.initialState;
-state = machine.transition(state, { type: 'toggle' });
+[state] = machine.transition(state, { type: 'toggle' });
 console.log(state.value); // 'active'
 ```
+
+`transition` returns a `[nextState, effects]` tuple. FSMs have no effects, so
+`effects` is always an empty array. `xstate/fsm` and full XState actor logic
+share the same `(snapshot, event) => [snapshot, effects]` protocol.
 
 For typed context and event payloads, use the canonical v6 setup shape:
 
@@ -96,7 +100,7 @@ const machine = machineSetup.createFSM({
   }
 });
 
-const state = machine.transition(machine.initialState, {
+const [state] = machine.transition(machine.initialState, {
   type: 'resolve',
   user: { id: '1' }
 });
@@ -108,10 +112,46 @@ if (state.value === 'loaded') {
 }
 ```
 
+## Run as an actor
+
+An FSM is actor logic. Pass it to `createActor` from `xstate` to run it as an
+actor:
+
+```ts
+import { createActor } from 'xstate';
+import { createFSM } from 'xstate/fsm';
+
+const machine = createFSM({
+  initial: 'inactive',
+  states: {
+    inactive: { on: { toggle: 'active' } },
+    active: { on: { toggle: 'inactive' } }
+  }
+});
+
+const actor = createActor(machine).start();
+actor.subscribe((state) => console.log(state.value));
+actor.send({ type: 'toggle' }); // logs 'active'
+```
+
+The pure `transition(logic, snapshot, event)` and `initialTransition(logic)`
+functions from `xstate` also accept an FSM. `actor.getPersistedSnapshot()`
+returns the FSM snapshot as is, and `createActor(machine, { snapshot })`
+restores it.
+
+`xstate/fsm` itself does not import the actor runtime. Importing `createActor`
+from `xstate` adds the runtime to your bundle.
+
+## Behavior
+
 `createFSM` is pure. It does not create or run actors:
 
-- `machine.initialState` is the initial `{ value, context }`.
-- `machine.transition(state, event)` returns the next state.
+- `machine.initialState` is the initial `{ status: 'active', value, context }`.
+  FSM snapshots are always `'active'`. The `output` and `error` fields of the
+  snapshot type are always `undefined` and are not set on the object.
+- `machine.getInitialSnapshot()` returns `machine.initialState`.
+- `machine.transition(state, event)` returns `[nextState, effects]`. `effects`
+  is always empty.
 - Missing transitions return the current state unchanged.
 - A transition can be a state name, `{ target, context }`, or a function that
   receives `{ context, event }` and returns `{ target, context }`. Return
@@ -121,7 +161,7 @@ if (state.value === 'loaded') {
   ignored by the FSM runtime; state `schemas.input` is accepted for upgrade
   compatibility but no input is consumed by this pure API.
 
-The package intentionally has no actions, guards, effects, actors, timers,
-hierarchical or parallel states, persistence, or eventless transitions. Use
+The package intentionally has no actions, guards, effects, timers, child
+actors, hierarchical or parallel states, or eventless transitions. Use
 `createMachine` and `createActor` from `xstate` when the state machine needs
 those statechart or runtime features.

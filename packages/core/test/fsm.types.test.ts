@@ -1,4 +1,8 @@
-import { createFSM } from '../src/fsm.ts';
+import { createFSM, setup, type FSMSnapshot } from '../src/fsm.ts';
+import { types } from '../src/schema.types.ts';
+import { createActor } from '../src/createActor.ts';
+import { initialTransition, transition } from '../src/transition.ts';
+import type { ActorLogic, EventFromLogic, SnapshotFrom } from '../src/types.ts';
 
 type Context =
   | { status: 'idle'; count: number }
@@ -66,5 +70,78 @@ describe('createFSM types', () => {
     machine.transition(machine.initialState, { type: 'unknown' });
     // @ts-expect-error event payload must be a string
     machine.transition(machine.initialState, { type: 'finish', result: 1 });
+  });
+
+  it('satisfies ActorLogic', () => {
+    const machine = createFSM<
+      { count: number },
+      { type: 'inc' },
+      { active: unknown }
+    >({
+      initial: 'active',
+      context: { count: 0 },
+      states: { active: { on: { inc: { context: { count: 1 } } } } }
+    });
+
+    machine satisfies ActorLogic<
+      FSMSnapshot<{ count: number }, 'active'>,
+      { type: 'inc' }
+    >;
+
+    expectTypeOf<SnapshotFrom<typeof machine>>().toEqualTypeOf<
+      FSMSnapshot<{ count: number }, 'active'>
+    >();
+    expectTypeOf<EventFromLogic<typeof machine>>().toEqualTypeOf<{
+      type: 'inc';
+    }>();
+
+    const actor = createActor(machine);
+    actor.send({ type: 'inc' });
+    // @ts-expect-error unknown event
+    actor.send({ type: 'unknown' });
+    actor.getSnapshot().value satisfies 'active';
+    actor.getSnapshot().context.count satisfies number;
+
+    const [, effects] = machine.transition(machine.initialState, {
+      type: 'inc'
+    });
+    expectTypeOf(effects).toEqualTypeOf<never[]>();
+
+    const [next] = transition(machine, machine.initialState, { type: 'inc' });
+    next.context.count satisfies number;
+
+    const [initial] = initialTransition(machine);
+    initial.value satisfies 'active';
+  });
+
+  it('keeps setup snapshot unions for actors', () => {
+    const machine = setup({
+      schemas: {
+        events: { load: types<{ id: string }>() }
+      },
+      states: {
+        idle: {},
+        loaded: { schemas: { context: types<{ id: string }>() } }
+      }
+    }).createFSM({
+      initial: 'idle',
+      context: {},
+      states: {
+        idle: {
+          on: {
+            load: ({ event }) => ({
+              target: 'loaded',
+              context: { id: event.id }
+            })
+          }
+        },
+        loaded: {}
+      }
+    });
+
+    const snapshot = createActor(machine).getSnapshot();
+    if (snapshot.value === 'loaded') {
+      snapshot.context.id satisfies string;
+    }
   });
 });

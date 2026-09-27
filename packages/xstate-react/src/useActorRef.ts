@@ -5,30 +5,33 @@ import {
   Actor,
   ActorOptions,
   AnyActorLogic,
+  AnyActorRef,
   AnyStateMachine,
   Observer,
   SnapshotFrom,
   createActor,
-  hotSwapActorLogic,
   toObserver,
   type ConditionalRequired,
   type IsNotNever,
-  type RequiredActorOptionsKeys
+  type RequiredActorOptionsKeys,
+  type RequiredActorOptionsFor
 } from 'xstate';
+import * as xstate from 'xstate';
+
+/** `@internal` exports are stripped from xstate's published types. */
+type XStateInternals = {
+  hotSwapActorLogic(actorRef: AnyActorRef, machine: AnyStateMachine): boolean;
+};
 
 export function useIdleActorRef<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: ConditionalRequired<
-    [
-      options?: ActorOptions<TLogic> & {
-        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-      }
-    ],
+    [options?: ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>],
     IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): [Actor<TLogic>, (actorRef: Actor<TLogic>) => void] {
   const [actorRef, setActorRef] = useState(() => {
-    return createActor(logic, options);
+    return createActor(logic, options as ActorOptions<TLogic>);
   });
   // An object whose identity changes only when React Fast Refresh re-renders
   // this component. Fast Refresh ignores dependency lists while it applies an
@@ -55,8 +58,13 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
     // defines the machine. Keep the running actor and carry its live snapshot
     // over to the new machine; start a fresh actor if it cannot be carried.
     if (isDevelopment && refreshed) {
-      if (!hotSwapActorLogic(actorRef, logic as any as AnyStateMachine)) {
-        setActorRef(createActor(logic, options));
+      if (
+        !(xstate as unknown as XStateInternals).hotSwapActorLogic(
+          actorRef,
+          logic as any as AnyStateMachine
+        )
+      ) {
+        setActorRef(createActor(logic, options as ActorOptions<TLogic>));
       }
     }
   });
@@ -116,9 +124,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
     RequiredActorOptionsKeys<TLogic>
   > extends true
     ? [
-        options: ActorOptions<TLogic> & {
-          [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-        },
+        options: ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>,
         observerOrListener?:
           | Observer<SnapshotFrom<TLogic>>
           | ((value: SnapshotFrom<TLogic>) => void)

@@ -21,6 +21,7 @@ function resolveTransitionSnapshot<TSnapshot>(
   return Array.isArray(result) ? result[0] : result;
 }
 
+/** @public */
 export function getAdjacencyMap<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject,
@@ -122,6 +123,7 @@ export function getAdjacencyMap<
   return adj;
 }
 
+/** @public */
 export function adjacencyMapToArray<TSnapshot, TEvent>(
   adjMap: AdjacencyMap<TSnapshot, TEvent>
 ): Array<{

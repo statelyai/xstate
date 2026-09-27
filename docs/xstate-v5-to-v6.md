@@ -977,6 +977,10 @@ These exports have been **removed** from `xstate`:
 - v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, `ExecutableActionsFrom`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** - same names, different structure.
 - `transition()` / `initialTransition()` now return `ExecutableActionObject[]` for effects; hand-written actor logic `transition` and `initialTransition` return `[snapshot, effects]` tuples whose effects each provide `exec(runtime?)`.
 - `ActorLogic.executeEffects` has been removed. Actor logic returns executable effects directly.
+- Deprecated snapshot helpers: `getInitialSnapshot(logic, input?)` and `getNextSnapshot(logic, snapshot, event)`. Use `initialTransition(logic, input?)` and `transition(logic, snapshot, event)`; the snapshot is the first element of the returned tuple.
+- Deprecated type aliases: `NoInfer` (use the built-in `NoInfer`), `AnyInterpreter` (use `AnyActor`), and `ResolvedStateMachineTypes`
+- `xstate/graph`: `getStateNodes(stateNode)` (all descendant state nodes) is renamed to `getDescendantStateNodes(stateNode)`. The root `getStateNodes(stateNode, stateValue)` export from `xstate` is unchanged.
+- The `xstate/scxml` entry point. `createMachineFromSCXML` moved to the separate `@xstate/scxml` package (`npm i @xstate/scxml`).
 
 `SpecialTargets` (the `Parent`/`Internal` enum) is still exported from `'xstate'` via `types.ts` and continues to work.
 
@@ -984,7 +988,6 @@ These exports have been **added**:
 
 - `setup` (reshaped - see §4) and `createSystem` for typed system registries
 - Setup state contract types: `SetupStateSchema`, `SetupStateSchemas`, `SetupStateType`
-- `createFSM` and its related types for tiny, pure flat finite state machines: `FSM`, `FSMArgs`, `FSMConfig`, `FSMContextPatch`, `FSMSnapshot`, `FSMStateConfig`, `FSMTransition`, `FSMTransitionConfig`, `FSMTransitionFunction`
 - `createStateConfig`
 - `checkStateIn`
 - `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
@@ -998,9 +1001,11 @@ These exports have been **added**:
 - `ActorLogic.start(snapshot, scope, options?)` receives `options.restored` so logic can distinguish restoration from a fresh start.
 - `actor.select(selector)` - derived, subscribable views
 
-The `xstate/fsm` subpath exports the pure `createFSM` API plus a lightweight
-`setup`/`types` facade for typed events, context, and state snapshots. See
-[compact finite state machines](fsm.md) for its exact supported surface.
+The `xstate/fsm` subpath (not the root `xstate` entry) exports the pure `createFSM` API and its `FSM*` types, plus a lightweight
+`setup`/`types` facade for typed events, context, and state snapshots.
+`fsm.transition(snapshot, event)` returns `[nextSnapshot, effects]`, the same
+protocol as other actor logic, so `createActor(fsm)` runs an FSM as an actor.
+See [compact finite state machines](fsm.md) for its exact supported surface.
 
 ---
 
@@ -1244,11 +1249,11 @@ no JSON representation.
 ### SCXML
 
 `createMachineFromSCXML(scxml)` creates an XState machine from an SCXML
-document. Import it from the opt-in `xstate/scxml` entry point so the XML parser
-does not become part of the main `xstate` module graph.
+document. Install and import it from the separate `@xstate/scxml` package so the
+XML parser does not become a dependency of `xstate`.
 
 ```ts
-import { createMachineFromSCXML } from 'xstate/scxml';
+import { createMachineFromSCXML } from '@xstate/scxml';
 
 const machine = createMachineFromSCXML(scxml);
 ```
@@ -1338,6 +1343,35 @@ root. Entries are removed when their actor stops. With
 `createSystem({ registry })`, `registryKey` is checked against the registry and
 registered actor logic. Transition functions receive the same typed `system`,
 so `system.get('receiver')` is available without casts.
+
+---
+
+## Leftover v5 keys
+
+In development builds, `createMachine(...)` and `setup(...).createMachine(...)` check hand-written configs for v5 keys that v6 would otherwise ignore or misread. Machines built with `createMachineFromConfig(...)` or `createMachineFromSCXML(...)` are not checked. Production builds skip the check.
+
+These keys throw an error:
+
+| v5 key | Where | v6 replacement |
+| --- | --- | --- |
+| `cond` | transition object | inline transition function; return `undefined` to reject the event |
+| `guard` | transition object | inline transition function; call named guards with `guards.name(...)` |
+| `actions` | transition object | inline transition function `(args, enq) => { ... }`; call named actions with `enq(actions.name, params)` |
+| string or array `entry` / `exit` | state node | a single inline function `(args, enq) => { ... }` |
+| `types` | machine config | `schemas` (or `setup({ schemas })`) |
+| `tsTypes` | machine config | `schemas` (typegen was removed) |
+| `schema` | machine config | `schemas` |
+
+These keys log a warning:
+
+| v5 key | v6 replacement |
+| --- | --- |
+| `services` | `actors` (or `setup({ actors })`) |
+| `activities` | `invoke` |
+| `predictableActionArguments` | removed; effects always run in order |
+| `preserveActionOrder` | removed; effects always run in order |
+| `strict` | removed |
+| `devTools` | the `inspect` option on `createActor(...)` |
 
 ---
 

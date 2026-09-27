@@ -13,6 +13,9 @@
         "src/graph/index.ts"
       ]
     },
+    "packages/xstate-scxml": {
+      "entry": ["src/index.ts"]
+    },
     "packages/xstate-store": {
       "entry": ["src/index.ts"]
     },
@@ -31,6 +34,7 @@
     "packages/xstate-store/src/alien.ts",
     // lint rule fixtures, linted through the oxlint CLI by lint.test.ts
     "packages/xstate-effect/test/lint-fixtures/**",
+    "packages/xstate-react/test/lint-fixtures/**",
     // declaration-emit fixtures, compiled by path in declarations.test.ts
     "packages/core/test/fixtures/declarations/**",
     "scripts/**"

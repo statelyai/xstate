@@ -17,6 +17,7 @@ import {
   type RequiredLogicInput
 } from './types.ts';
 
+/** @public */
 export type Spawner<TSystemRegistry extends SystemRegistry = SystemRegistry> = <
   TLogic extends AnyActorLogic
 >(
