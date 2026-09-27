@@ -1,10 +1,21 @@
 import type {
+  AnyActorLogic,
   AnyStateMachine,
   AnyStateNode,
   AnyTransitionDefinition,
   EventObject,
   Snapshot
 } from '../types.ts';
+import {
+  createTransitionDetails,
+  type TransitionResolution
+} from '../actorScope.ts';
+import {
+  attachSnapshotActorRef,
+  createInertActorScope,
+  setInertActorScopeSnapshot
+} from '../inertActorScope.ts';
+import { finalizeTransitionResult } from '../transitionActions.ts';
 import { getStateNodeByPath } from '../stateUtils.ts';
 import { normalizeTarget } from '../utils.ts';
 import { getDescendantStateNodes } from './graph.ts';
@@ -1135,4 +1146,82 @@ export function declarePropertyFrontier(
   id: string
 ): void {
   declare(coverage.frontiers, id);
+}
+
+type TransitionWithDetails = [
+  snapshot: Snapshot<unknown>,
+  effects: readonly unknown[],
+  transitions: readonly AnyTransitionDefinition[],
+  resolutions: readonly TransitionResolution[]
+];
+
+/**
+ * The pure `transition()`, also returning the transitions taken and their
+ * resolved targets for coverage attribution.
+ */
+export function transitionWithDetails(
+  logic: AnyActorLogic,
+  snapshot: Snapshot<unknown>,
+  event: EventObject
+): TransitionWithDetails {
+  const actorScope = createInertActorScope(logic, snapshot);
+  const details = createTransitionDetails(actorScope);
+  setInertActorScopeSnapshot(actorScope, snapshot, false);
+  const [nextSnapshot, effects] = finalizeTransitionResult(
+    actorScope,
+    snapshot,
+    logic.transition(snapshot, event, actorScope)
+  );
+  setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
+  return [
+    nextSnapshot === snapshot
+      ? nextSnapshot
+      : attachSnapshotActorRef(actorScope, nextSnapshot),
+    effects,
+    details.transitions.length || nextSnapshot === snapshot
+      ? details.transitions
+      : getFastPathTransitions(snapshot, event),
+    details.resolutions
+  ];
+}
+
+/**
+ * The machine's fast path (a single unguarded transition out of a top-level
+ * atomic state) skips the macrostep, so it records no transitions. When a
+ * handled event recorded none, the transition taken is that single candidate.
+ */
+function getFastPathTransitions(
+  snapshot: Snapshot<unknown>,
+  event: EventObject
+): readonly AnyTransitionDefinition[] {
+  const { machine, value } = snapshot as Partial<{
+    machine: AnyStateMachine;
+    value: unknown;
+  }>;
+  const candidates =
+    typeof value === 'string'
+      ? machine?.root.states[value]?.transitions.get(event.type)
+      : undefined;
+  return candidates?.length === 1 && !candidates[0].guard ? candidates : [];
+}
+
+/** The pure `initialTransition()`, with the details of {@link transitionWithDetails}. */
+export function initialTransitionWithDetails(
+  logic: AnyActorLogic,
+  input: unknown
+): TransitionWithDetails {
+  const actorScope = createInertActorScope(logic);
+  const details = createTransitionDetails(actorScope);
+  const [nextSnapshot, effects] = finalizeTransitionResult(
+    actorScope,
+    undefined,
+    logic.initialTransition(input, actorScope)
+  );
+  setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
+  return [
+    attachSnapshotActorRef(actorScope, nextSnapshot),
+    effects,
+    details.transitions,
+    details.resolutions
+  ];
 }

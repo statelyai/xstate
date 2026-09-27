@@ -1,6 +1,5 @@
 import type {
   ActorLogic,
-  AnyTransitionDefinition,
   EventObject,
   InputFrom,
   Snapshot,
@@ -10,14 +9,12 @@ import { XSTATE_INIT, XSTATE_STOP } from '../constants.ts';
 import { createActor } from '../createActor.ts';
 import { SimulatedClock } from '../SimulatedClock.ts';
 import type { InspectionEvent } from '../inspection.ts';
-import {
-  initialTransitionWithDetails,
-  transitionWithDetails
-} from '../transition.ts';
 import { TestModel } from './TestModel.ts';
 import {
   createTestCoverage,
   declarePropertyEventCase,
+  initialTransitionWithDetails,
+  transitionWithDetails,
   declarePropertyFrontier,
   finalizeTestCoverage,
   getPropertyConfigurationId,
@@ -1623,19 +1620,10 @@ export class PropertyScenarioRunner<
 
   public async start(): Promise<void> {
     resetPropertyTransitionPairs(this.coverage);
-    const [snapshot, effects, selected, resolutions]: [
-      TSnapshot,
-      readonly unknown[],
-      readonly AnyTransitionDefinition[],
-      readonly import('../transition.ts').TransitionResolution[]
-    ] = this.startingSnapshot
+    const [initial, effects, selected, resolutions] = this.startingSnapshot
       ? [this.startingSnapshot, [], [], []]
-      : (initialTransitionWithDetails(this.logic, this.input as never) as [
-          TSnapshot,
-          readonly unknown[],
-          readonly AnyTransitionDefinition[],
-          readonly import('../transition.ts').TransitionResolution[]
-        ]);
+      : initialTransitionWithDetails(this.logic, this.input);
+    const snapshot = initial as TSnapshot;
     this.initialTransitionIds = recordPropertyTransitions(
       this.coverage,
       { type: XSTATE_INIT },
@@ -2004,7 +1992,7 @@ export class PropertyScenarioRunner<
         transitionWithDetails(this.logic, previousSnapshot, {
           type: XSTATE_STOP
         } as TEvent);
-      snapshot = pureSnapshot;
+      snapshot = pureSnapshot as TSnapshot;
       effects = pureEffects;
       transitionIds = recordPropertyTransitions(
         this.coverage,
@@ -2215,7 +2203,7 @@ export class PropertyScenarioRunner<
     } else {
       const [pureSnapshot, pureEffects, selected, resolutions] =
         transitionWithDetails(this.logic, previousSnapshot, event);
-      snapshot = pureSnapshot;
+      snapshot = pureSnapshot as TSnapshot;
       effects = pureEffects;
       transitionIds = recordPropertyTransitions(
         this.coverage,
