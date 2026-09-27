@@ -18,6 +18,7 @@ import {
   Compute
 } from './types.ts';
 import {
+  ChildCompletionEvents,
   Sources,
   DelayMapFromNames,
   InferChildren,
@@ -29,6 +30,7 @@ import {
   Next_MachineConfig,
   Next_StateNodeConfig,
   ValidateDelayReferences,
+  ValidateEventDescriptors,
   ValidateHistoryDefaults,
   ValidateStateTargets,
   ValidateTopLevelFinalOutputs,
@@ -142,6 +144,13 @@ export function createMachine<
     ValidateDelayReferences<TSS> &
     ValidateHistoryDefaults<TSS> &
     ValidateStateTargets<TSS> &
+    ValidateEventDescriptors<
+      TSS,
+      NoInfer<
+        | InferEvents<TEventSchemaMap>
+        | InferInternalEvents<TInternalEventSchemaMap>
+      >
+    > &
     Next_MachineConfig<
       TContextSchema,
       TEventSchemaMap,
@@ -155,7 +164,13 @@ export function createMachine<
       TChildrenSchemaMap,
       InferOutput<TContextSchema, MachineContext>,
       | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>,
+      | InferInternalEvents<TInternalEventSchemaMap>
+      | ChildCompletionEvents<
+          Cast<
+            MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+            Record<string, AnyActorRef | undefined>
+          >
+        >,
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -244,6 +259,13 @@ export function createMachine<
     ValidateDelayReferences<TSS> &
     ValidateHistoryDefaults<TSS> &
     ValidateStateTargets<TSS> &
+    ValidateEventDescriptors<
+      TSS,
+      NoInfer<
+        | InferEvents<TEventSchemaMap>
+        | InferInternalEvents<TInternalEventSchemaMap>
+      >
+    > &
     Next_MachineConfig<
       StandardSchemaV1,
       TEventSchemaMap,
@@ -257,7 +279,13 @@ export function createMachine<
       TChildrenSchemaMap,
       WidenLiterals<TContext>,
       | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>,
+      | InferInternalEvents<TInternalEventSchemaMap>
+      | ChildCompletionEvents<
+          Cast<
+            MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+            Record<string, AnyActorRef | undefined>
+          >
+        >,
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>

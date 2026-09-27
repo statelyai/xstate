@@ -73,6 +73,10 @@ import {
   Next_TransitionConfigOrTarget,
   FinalStateConfigOutput,
   OutputFromConfig,
+  ChildCompletionEvents,
+  DelayDurationKey,
+  ValidateDelayNames,
+  ValidateEventDescriptors,
   ValidateHistoryDefaults,
   ValidateStateTargets,
   WithDefault
@@ -1581,42 +1585,15 @@ type DelayNamesFromConfig<TConfig> = TConfig extends { delays: infer TDelays }
   ? Extract<keyof TDelays, string>
   : never;
 
-type InvalidDelayReferences<TConfig, TDelays extends string> =
-  | (TConfig extends { after: infer TAfter }
-      ? Exclude<Extract<keyof TAfter, string>, TDelays>
-      : never)
-  | (TConfig extends { timeout: infer TTimeout }
-      ? TTimeout extends string
-        ? TTimeout extends TDelays
-          ? never
-          : TTimeout
-        : never
-      : never)
-  | (TConfig extends { states: infer TStates }
-      ? TStates extends Record<string, unknown>
-        ? {
-            [K in keyof TStates]: InvalidDelayReferences<TStates[K], TDelays>;
-          }[keyof TStates]
-        : never
-      : never);
-
 type ValidateSetupDelayReferences<
   TConfig,
   TSetupDelays extends string
-> = string extends (
+> = ValidateDelayNames<
+  TConfig,
   [TSetupDelays] extends [never]
     ? DelayNamesFromConfigOrString<TConfig>
     : TSetupDelays | DelayNamesFromConfig<TConfig>
-)
-  ? unknown
-  : InvalidDelayReferences<
-        TConfig,
-        [TSetupDelays] extends [never]
-          ? DelayNamesFromConfigOrString<TConfig>
-          : TSetupDelays | DelayNamesFromConfig<TConfig>
-      > extends never
-    ? unknown
-    : never;
+>;
 
 /** Extracts input type from a state schema */
 type StateInput<TStateSchema extends SetupStateSchema> =
@@ -3258,7 +3235,10 @@ type StateNodeConfigWithNestedInputBase<
       StateInput<TStateSchema>
     >;
     after?: {
-      [K in NoInfer<TDelays> | number]?: StateTransitionConfigOrTarget<
+      [K in
+        | NoInfer<TDelays>
+        | number
+        | DelayDurationKey]?: StateTransitionConfigOrTarget<
         SetupStateTransitionSchemas<TSiblingStateSchemas, TStateSchema>,
         ActiveStateContext<TStateSchema, TContext, TContextShape>,
         ActiveStateContextShape<TStateSchema, TContextShape>,
@@ -4120,7 +4100,13 @@ export interface SetupReturn<
       TTagSchema,
       TChildrenSchemaMap,
       SetupContext<TSchemas, TContextSchema>,
-      SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>,
+      | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
+      | ChildCompletionEvents<
+          Cast<
+            MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
+            Record<string, AnyActorRef | undefined>
+          >
+        >,
       Cast<
         MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -4161,7 +4147,13 @@ export interface SetupReturn<
       TTagSchema,
       TChildrenSchemaMap,
       SetupContext<TSchemas, TContextSchema>,
-      SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>,
+      | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
+      | ChildCompletionEvents<
+          Cast<
+            MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
+            Record<string, AnyActorRef | undefined>
+          >
+        >,
       Cast<
         MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -4234,6 +4226,10 @@ export interface SetupReturn<
       > &
       ValidateSetupDelayReferences<TConfig, TSetupDelays> &
       ValidateSetupStateContracts<TConfig, TStates> &
+      ValidateEventDescriptors<
+        TConfig,
+        NoInfer<SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>>
+      > &
       ValidateRegistryKeys<
         TConfig,
         TSystemRegistry,
