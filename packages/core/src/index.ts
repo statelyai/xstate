@@ -106,6 +106,8 @@ export type {
   ActorValidationRequest,
   ActorLogicValidator
 } from './validation.types.ts';
+/** @experimental Used by framework integrations for development hot reloading; not part of the stable API. */
+export { hotSwapActorLogic as _hotSwapActorLogic } from './hotSwap.ts';
 export { createSystem, setup } from './setup.ts';
 export type {
   ActiveStateContext,

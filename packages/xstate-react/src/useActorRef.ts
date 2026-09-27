@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import isDevelopment from '#is-development';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   Actor,
@@ -7,6 +8,7 @@ import {
   AnyStateMachine,
   Observer,
   SnapshotFrom,
+  _hotSwapActorLogic as hotSwapActorLogic,
   createActor,
   toObserver,
   type ConditionalRequired,
@@ -14,7 +16,6 @@ import {
   type RequiredActorOptionsKeys,
   type RequiredActorOptionsFor
 } from 'xstate';
-
 export function useIdleActorRef<TLogic extends AnyActorLogic>(
   logic: TLogic,
   ...[options]: ConditionalRequired<
@@ -22,26 +23,38 @@ export function useIdleActorRef<TLogic extends AnyActorLogic>(
     IsNotNever<RequiredActorOptionsKeys<TLogic>>
   >
 ): [Actor<TLogic>, (actorRef: Actor<TLogic>) => void] {
-  let [actorRef, setActorRef] = useState(() => {
+  const [actorRef, setActorRef] = useState(() => {
     return createActor(logic, options as ActorOptions<TLogic>);
   });
+  // An object whose identity changes only when React Fast Refresh re-renders
+  // this component. Fast Refresh ignores dependency lists while it applies an
+  // update, so a `useMemo` with no dependencies recomputes during a refresh
+  // and at no other time.
+  const refreshSignal = useMemo(() => ({}), []);
+  const refreshSignalRef = useRef(refreshSignal);
 
-  if (logic.config !== (actorRef.logic as any).config) {
-    const newActorRef = createActor(logic, {
-      ...options,
-      snapshot: (actorRef.getPersistedSnapshot as any)({
-        __unsafeAllowInlineActors: true
-      })
-    });
-    setActorRef(newActorRef);
-    actorRef = newActorRef;
-  }
-
+  // The logic passed on the first render is used for the hook's lifetime.
+  // Later renders only contribute implementations provided with
+  // `machine.provide()` for the same machine config.
   // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
   useIsomorphicLayoutEffect(() => {
-    (actorRef.logic as any as AnyStateMachine).sources = (
-      logic as any as AnyStateMachine
-    ).sources;
+    const currentLogic = actorRef.logic as any as AnyStateMachine;
+    const refreshed = refreshSignalRef.current !== refreshSignal;
+    refreshSignalRef.current = refreshSignal;
+
+    if (logic.config === currentLogic.config) {
+      currentLogic.sources = (logic as any as AnyStateMachine).sources;
+      return;
+    }
+
+    // Development hot reloading: Fast Refresh re-evaluated the module that
+    // defines the machine. Keep the running actor and carry its live snapshot
+    // over to the new machine; start a fresh actor if it cannot be carried.
+    if (isDevelopment && refreshed) {
+      if (!hotSwapActorLogic(actorRef, logic as any as AnyStateMachine)) {
+        setActorRef(createActor(logic, options as ActorOptions<TLogic>));
+      }
+    }
   });
 
   return [actorRef, setActorRef];
@@ -124,7 +137,7 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   }, [actorRef, observerOrListener]);
 
   useActorLifecycle(actorRef, setActorRef, () =>
-    createActor(machine, actorRef.options)
+    createActor(actorRef.logic, actorRef.options)
   );
 
   return actorRef;

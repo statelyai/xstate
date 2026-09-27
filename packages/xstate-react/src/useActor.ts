@@ -65,7 +65,7 @@ export function useActor<TLogic extends AnyActorLogic>(
   }
 
   useActorLifecycle(actorRef, setActorRef, () =>
-    createActor(logic, options as ActorOptions<TLogic>)
+    createActor(actorRef.logic, options as ActorOptions<TLogic>)
   );
 
   return [actorSnapshot, actorRef.send, actorRef];

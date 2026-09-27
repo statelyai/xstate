@@ -23,7 +23,7 @@ import type {
   AnyStateNode,
   LogicalTimer
 } from './types.ts';
-import { matchesState } from './utils.ts';
+import { isActorRefLike, matchesState } from './utils.ts';
 import {
   copySnapshotActorRef,
   getSnapshotActorRef,
@@ -771,7 +771,7 @@ function persistContext(
   for (const key in contextPart) {
     const value = contextPart[key];
     if (value && typeof value === 'object') {
-      if ('sessionId' in value && 'send' in value && 'ref' in value) {
+      if (isActorRefLike(value)) {
         copy ??= Array.isArray(contextPart)
           ? (contextPart.slice() as typeof contextPart)
           : { ...contextPart };
