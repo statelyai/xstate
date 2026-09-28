@@ -1,5 +1,74 @@
 # xstate
 
+## 6.0.0-alpha.62
+
+### Minor Changes
+
+- 9003cf1: ### Removed
+  
+  The deprecated top-level `internalEvents` machine config key and the deprecated `state` actor option are removed.
+  
+  Declare private events in `schemas.internalEvents`:
+  
+  ```ts
+  // Before
+  createMachine({
+    schemas: { events: { start: z.object({}), tick: z.object({}) } },
+    internalEvents: ['tick'] as const
+    // ...
+  });
+  
+  // After
+  createMachine({
+    schemas: {
+      events: { start: z.object({}) },
+      internalEvents: { tick: z.object({}) }
+    }
+    // ...
+  });
+  ```
+  
+  Restore a persisted snapshot with the `snapshot` option:
+  
+  ```ts
+  // Before
+  createActor(machine, { state: persistedSnapshot });
+  
+  // After
+  createActor(machine, { snapshot: persistedSnapshot });
+  ```
+  
+  In development builds, a config with a top-level `internalEvents` key throws an error naming `schemas.internalEvents`, and passing `state` to `createActor(...)` throws an error naming `snapshot`.
+
+### Patch Changes
+
+- 5228c00: Infer the current service requirements of actions and actors replaced with `machine.provide`. Require declared actor input in `createActorAtoms`, consistently with `createEffectActor`.
+  
+  Effect tasks and streams now release their resources when they complete, fail or are cancelled. Actor shutdown waits for task cleanup before releasing resources shared for the actor's lifetime. Use `withActorScope` around an acquisition to keep its resource until the owning Effect actor stops:
+  
+  ```ts
+  import { Effect } from 'effect';
+  import { withActorScope } from '@xstate/effect';
+  
+  const session = Effect.acquireRelease(
+    Effect.succeed({ id: 'session' }),
+    () => Effect.log('Session closed')
+  ).pipe(withActorScope);
+  ```
+  
+  Improve XState Effect guides with complete, tested workflow, stream, inspection and React examples.
+- 77cad04: Resolve `after` delays and state timeout functions with context updated by the same state's `entry` function.
+  
+  State timers are scheduled after the entry function's queued actions. Entry cancellation runs before scheduling; cancellation from a later event handler still cancels an active timer.
+  
+  ```ts
+  waiting: {
+    entry: () => ({ context: { ms: 300 } }),
+    after: { d: { target: 'done' } }
+  }
+  // With delays: { d: ({ context }) => context.ms }, waits 300ms.
+  ```
+
 ## 6.0.0-alpha.61
 
 ### Minor Changes
