@@ -24,7 +24,7 @@ Use machine-as-data for cases such as:
 
 ## What survives serialization
 
-States, transitions, targets, serialized action objects, guard references, string actor `src` names, `after` delays, `timeout`/`onTimeout`, `meta`, `description`, `tags`, `output`, `context` values, `version`, and any other JSON-safe data on the config all survive.
+States, transitions, targets, serialized action objects, guard references, string actor `src` names, `after` delays, `timeout`/`onTimeout`, `meta`, `description`, `tags`, `output`, `context` values, internal event names (from `schemas.internalEvents`, as a top-level `internalEvents` array), `version`, and any other JSON-safe data on the config all survive.
 
 Inline functions become code expressions:
 

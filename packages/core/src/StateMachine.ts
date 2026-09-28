@@ -556,6 +556,7 @@ export class StateMachine<
     ) as unknown as this;
     // Providing sources does not change the serializable definition.
     provided._json = this._json;
+    provided.internalEventDescriptors = this.internalEventDescriptors;
     provided._microstepHooks = this._microstepHooks;
     return provided;
   }

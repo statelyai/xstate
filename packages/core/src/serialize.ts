@@ -187,6 +187,17 @@ export function machineConfigToJSON(
 ): Record<string, unknown> {
   const result = stateNodeConfigToJSON(config);
 
+  const internalEvents = Object.keys(
+    ((config.schemas as Record<string, unknown> | undefined)?.internalEvents as
+      | object
+      | undefined) ?? {}
+  );
+  // Only declared internal events are serialized; a stray top-level
+  // `internalEvents` key on the config (removed author API) never leaks.
+  delete result.internalEvents;
+  if (internalEvents.length) {
+    result.internalEvents = internalEvents;
+  }
   if (config.schemas) {
     const schemas: Record<string, unknown> = {};
     for (const key of Object.keys(config.schemas as object)) {

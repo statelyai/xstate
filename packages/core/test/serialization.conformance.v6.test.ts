@@ -16,9 +16,12 @@
  * 4. A machine created from JSON round-trips losslessly (byte-stable).
  */
 import {
+  _createMachineFromCompiledConfig,
   createActor,
   createAsyncLogic,
   createMachine,
+  type AnyStateMachine,
+  type EventRejection,
   serializeMachine,
   setup,
   types
@@ -365,6 +368,80 @@ describe('serializability conformance', () => {
         },
       }
     `);
+  });
+
+  it('internal event names survive and stay internal after revival', () => {
+    const machine = createMachine({
+      schemas: {
+        internalEvents: { tick: types<{}>() }
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            start: { target: 'raising' },
+            tick: { target: 'failed' }
+          }
+        },
+        raising: {
+          entry: (_, enq) => {
+            enq.raise({ type: 'tick' });
+          },
+          on: { tick: { target: 'done' } }
+        },
+        done: {},
+        failed: {}
+      }
+    });
+
+    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    expect(json.internalEvents).toEqual(['tick']);
+
+    const revived = createMachineFromConfig(json, {
+      evaluators: {
+        ts: ({ source, scope }: any) =>
+          Function(`return (${source});`)()(scope, scope.enq)
+      }
+    });
+    expect(serializeMachine(revived)).toEqual(json);
+
+    // a stray top-level `internalEvents` config key (removed author API) is
+    // not serialized
+    const stray = _createMachineFromCompiledConfig({
+      internalEvents: ['stray'],
+      schemas: { internalEvents: { tick: types<{}>() } },
+      initial: 'idle',
+      states: { idle: {} }
+    });
+    expect(serializeMachine(stray).internalEvents).toEqual(['tick']);
+    expect(
+      serializeMachine(
+        _createMachineFromCompiledConfig({
+          internalEvents: ['stray'],
+          initial: 'idle',
+          states: { idle: {} }
+        })
+      )
+    ).not.toHaveProperty('internalEvents');
+
+    for (const logic of [machine, revived] as AnyStateMachine[]) {
+      const rejections: EventRejection[] = [];
+      const actor = createActor(logic, {
+        onRejectedEvent: (rejection) => rejections.push(rejection)
+      }).start();
+
+      // external senders are rejected
+      actor.send({ type: 'tick' });
+      expect(actor.getSnapshot().value).toBe('idle');
+      expect(rejections.map((r) => [r.event.type, r.reason])).toEqual([
+        ['tick', 'internalEvent']
+      ]);
+
+      // raised internal events are accepted
+      actor.send({ type: 'start' });
+      expect(actor.getSnapshot().value).toBe('done');
+      expect(rejections).toHaveLength(1);
+    }
   });
 
   it('JSON-safe unknown data is preserved', () => {

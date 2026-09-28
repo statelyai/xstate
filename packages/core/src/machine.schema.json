@@ -363,6 +363,10 @@
         },
         "context": { "type": "object" },
         "version": { "type": "string" },
+        "internalEvents": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "schemas": { "$ref": "#/$defs/schemas" },
         "actions": { "$ref": "#/$defs/actionDefinitions" },
         "guards": { "$ref": "#/$defs/guardDefinitions" },

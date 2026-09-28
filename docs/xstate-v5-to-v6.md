@@ -921,9 +921,17 @@ const machine = createMachine({
   }
 });
 
-const actor = createActor(machine).start();
-actor.send({ type: 'tick' }); // throws: Internal event "tick" cannot be sent to actor "…" from outside.
+const actor = createActor(machine, {
+  onRejectedEvent: (rejection) => {
+    rejection.reason; // 'internalEvent'
+  }
+}).start();
+actor.send({ type: 'tick' }); // not delivered; does not throw
 ```
+
+Sending an internal event from outside the actor does not throw. The event is
+rejected as a dead letter with reason `'internalEvent'`: it is reported to
+`onRejectedEvent`, and development builds log a warning.
 
 Raised, self-targeted and transition-handler event types include both schema
 maps. `actor.send(...)` and `actor.trigger` include only `schemas.events`.
