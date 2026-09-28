@@ -9,6 +9,31 @@ import {
 function expectType<T>(_v: T) {}
 
 describe('setup() source typing', () => {
+  it('preserves provided action result types and checks their arguments and names', () => {
+    const machine = setup({
+      actions: { record: (_id: string) => {} }
+    }).createMachine({});
+    const provided = machine.provide({ actions: { record: (id) => ({ id }) } });
+    if (false)
+      expectType<{ id: string }>(provided._actionMap.record('release'));
+    const replaced = provided.provide({ actions: { record: (_id) => 42 } });
+    if (false) expectType<number>(replaced._actionMap.record('release'));
+    if (false) {
+      machine.provide({
+        actions: {
+          // @ts-expect-error -- action arguments must match the declared source
+          record: (_id: number) => {}
+        }
+      });
+      machine.provide({
+        actions: {
+          // @ts-expect-error -- only declared source names can be provided
+          unknown: () => {}
+        }
+      });
+    }
+  });
+
   it('contextually types guards and delays from schemas', () => {
     setup({
       schemas: {

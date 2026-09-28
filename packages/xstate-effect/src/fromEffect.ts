@@ -210,6 +210,9 @@ function brandLogic<TLogic extends AnyActorLogic>(
  * an Effect, a function of {@link EffectSourceArgs} returning one, or a config
  * object with `id`, `schemas`, `validator` and `effect`. The logic must be run
  * under `createEffectActor`, which provides the Effect services it declares.
+ * Resources belong to this task's scope and close on completion, failure or
+ * interruption. Use `withActorScope` to retain a resource until the owning
+ * Effect actor stops.
  */
 export function fromEffect<
   const TInputSchema extends EffectSchemaLike,
@@ -373,7 +376,7 @@ export function fromEffect<
       enq.effect(() =>
         startHostedEffect(
           self as AnyActorRef,
-          effect as Effect.Effect<TOutput, TError>,
+          Effect.scoped(effect) as Effect.Effect<TOutput, TError>,
           'fromEffect',
           (exit) => {
             if (self.getSnapshot().status !== 'active') {
@@ -458,7 +461,8 @@ function toLogicSchemas(
  * the actor's `context`. The actor reaches `done` when the stream completes
  * and `error` when it fails. Accepts a Stream, a function of
  * {@link EffectSourceArgs} returning one, or a config object with `id`,
- * `schemas`, `validator` and `stream`.
+ * `schemas`, `validator` and `stream`. Its resources close when the stream
+ * completes, fails or is interrupted.
  */
 export function fromEffectStream<
   const TInputSchema extends EffectSchemaLike,
@@ -558,7 +562,7 @@ export function fromEffectStream<
       enq.effect(() =>
         startHostedEffect(
           self as AnyActorRef,
-          consume as Effect.Effect<void, TError>,
+          Effect.scoped(consume) as Effect.Effect<void, TError>,
           'fromEffectStream',
           (exit) => {
             if (self.getSnapshot().status !== 'active') {
@@ -586,7 +590,8 @@ export function fromEffectStream<
  * Creates actor logic that runs a Stream of events and relays each item to the
  * parent machine as an event, the way `fromEventObservable` does. The actor
  * has no output: it reaches `done` when the stream completes and `error` when
- * it fails. Accepts the same forms as `fromEffectStream`.
+ * it fails. Accepts the same forms as `fromEffectStream`. Its resources close
+ * when the stream completes, fails or is interrupted.
  */
 export function fromEffectEventStream<
   const TInputSchema extends EffectSchemaLike,
@@ -679,7 +684,7 @@ export function fromEffectEventStream<
       enq.effect(() =>
         startHostedEffect(
           self as AnyActorRef,
-          consume as Effect.Effect<void, TError>,
+          Effect.scoped(consume) as Effect.Effect<void, TError>,
           'fromEffectEventStream',
           (exit) => {
             if (self.getSnapshot().status !== 'active') {

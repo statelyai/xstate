@@ -1,8 +1,8 @@
-import { Cause, Context, Effect, Layer } from 'effect';
+import { Cause, Context, Effect, Layer, Schema } from 'effect';
 import { AsyncResult, Atom, AtomRegistry } from 'effect/unstable/reactivity';
 import { createMachine, setup } from 'xstate';
 import { createActorAtoms } from './atom.ts';
-import { fromEffect, setupEffect } from './index.ts';
+import { fromEffect, setupEffect, withActorScope } from './index.ts';
 import { NotReadyError } from './atom.ts';
 
 const until = async (predicate: () => boolean, timeoutMs = 1000) => {
@@ -23,6 +23,76 @@ const counterMachine = createMachine({
 });
 
 describe('createActorAtoms', () => {
+  it.each(['invocation', 'actor'] as const)(
+    'provides the %s resource scope',
+    async (lifetime) => {
+      let released = false;
+      const acquire = Effect.acquireRelease(Effect.succeed('resource'), () =>
+        Effect.sync(() => {
+          released = true;
+        })
+      );
+      const logic =
+        lifetime === 'actor'
+          ? fromEffect(acquire.pipe(withActorScope))
+          : fromEffect(acquire);
+      const registry = AtomRegistry.make();
+      const atoms = createActorAtoms(Atom.runtime(Layer.empty), logic);
+      const unmount = registry.mount(atoms.snapshot);
+      try {
+        await until(() => {
+          const snapshot = registry.get(atoms.snapshot);
+          return (
+            released &&
+            AsyncResult.isSuccess(snapshot) &&
+            snapshot.value.status === 'done'
+          );
+        });
+        const snapshot = registry.get(atoms.snapshot);
+        expect(AsyncResult.isSuccess(snapshot) && snapshot.value.output).toBe(
+          'resource'
+        );
+      } finally {
+        unmount();
+        registry.dispose();
+      }
+    }
+  );
+
+  it('requires and passes the input declared by the logic', async () => {
+    const logic = fromEffect({
+      schemas: { input: Schema.Struct({ id: Schema.String }) },
+      effect: ({ input }) => Effect.succeed(input.id)
+    });
+    const runtime = Atom.runtime(Layer.empty);
+    const invalid = () => {
+      // @ts-expect-error -- required input cannot be omitted
+      createActorAtoms(runtime, logic);
+      // @ts-expect-error -- the options must contain input
+      createActorAtoms(runtime, logic, {});
+      // @ts-expect-error -- input must match the schema
+      createActorAtoms(runtime, logic, { input: { id: 1 } });
+    };
+    void invalid;
+    const registry = AtomRegistry.make();
+    const atoms = createActorAtoms(runtime, logic, {
+      input: { id: 'release' }
+    });
+    const unmount = registry.mount(atoms.snapshot);
+    try {
+      await until(() => {
+        const result = registry.get(atoms.snapshot);
+        return AsyncResult.isSuccess(result) && result.value.status === 'done';
+      });
+      const result = registry.get(atoms.snapshot);
+      expect(AsyncResult.isSuccess(result) && result.value.output).toBe(
+        'release'
+      );
+    } finally {
+      unmount();
+    }
+  });
+
   it('starts the actor on first read and exposes its snapshot', async () => {
     const registry = AtomRegistry.make();
     const runtime = Atom.runtime(Layer.empty);

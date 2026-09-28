@@ -1,4 +1,4 @@
-import { Cause, Context, Effect, Exit, type Fiber, Scope } from 'effect';
+import { Cause, Context, Effect, Exit, Fiber, Scope } from 'effect';
 import type { AnyActor, AnyActorRef } from 'xstate';
 
 export interface EffectHost {
@@ -10,6 +10,8 @@ export interface EffectHost {
   closing?: Fiber.Fiber<void>;
   readonly interruptors: Map<AnyActorRef, Set<() => void>>;
   readonly subscriptions: Map<AnyActorRef, { unsubscribe(): void }>;
+  /** Includes interrupted fibers until their asynchronous finalizers finish. */
+  readonly fibers: Set<Fiber.Fiber<unknown, unknown>>;
 }
 
 const effectHosts = new WeakMap<object, EffectHost>();
@@ -38,7 +40,8 @@ export function createEffectHost(
     context,
     scope,
     interruptors: new Map(),
-    subscriptions: new Map()
+    subscriptions: new Map(),
+    fibers: new Set()
   };
 }
 
@@ -171,9 +174,8 @@ function trackEffect(
  * the actor stops or when the returned function is called; `onExit` is not
  * called after that.
  *
- * This mirrors how Effect's own `unstable/reactivity` bridges callback code:
- * `Effect.runCallbackWith` with the captured services, and a synchronous
- * interruptor kept per actor.
+ * The fiber belongs to the host scope, so closing the owning actor also
+ * waits for asynchronous invocation finalizers.
  */
 export function startHostedEffect<A, E>(
   actor: AnyActorRef,
@@ -201,15 +203,20 @@ export function startHostedEffect<A, E>(
     untrackEffect(actor, host, cancel);
     interrupt();
   };
-  const interrupt = Effect.runCallbackWith(host.context)(traced, {
-    onExit: (exit) => {
-      if (!active) {
-        return;
-      }
-      active = false;
-      untrackEffect(actor, host, cancel);
-      onExit(exit);
+  const fiber = Fiber.runIn(
+    Effect.runForkWith(host.context)(traced),
+    host.scope
+  );
+  const interrupt = () => fiber.interruptUnsafe();
+  host.fibers.add(fiber);
+  fiber.addObserver((exit) => {
+    host.fibers.delete(fiber);
+    if (!active) {
+      return;
     }
+    active = false;
+    untrackEffect(actor, host, cancel);
+    onExit(exit);
   });
   if (active) {
     trackEffect(actor, host, cancel);
@@ -242,10 +249,13 @@ export function runHostedEffect<A, E>(
 }
 
 /**
- * Closes the host scope immediately and runs its finalizers, with the host's
- * services, on a fiber that `createEffectActor`'s release can await.
+ * Finishes hosted task cleanup before closing the owning actor's resources.
+ * `createEffectActor`'s release awaits this fiber before its parent scope closes.
  */
 export function closeEffectHost(host: EffectHost): void {
+  if (host.closing) {
+    return;
+  }
   for (const [actor, interruptors] of host.interruptors) {
     host.interruptors.delete(actor);
     for (const interrupt of interruptors) {
@@ -254,10 +264,12 @@ export function closeEffectHost(host: EffectHost): void {
     host.subscriptions.get(actor)?.unsubscribe();
     host.subscriptions.delete(actor);
   }
-  const finalizers = Scope.closeUnsafe(host.scope, Exit.void);
-  if (finalizers) {
-    host.closing = Effect.runForkWith(host.context)(finalizers);
-  }
+  host.closing = Effect.runForkWith(host.context)(
+    Effect.forEach([...host.fibers], (fiber) => Fiber.interrupt(fiber), {
+      concurrency: 'unbounded',
+      discard: true
+    }).pipe(Effect.andThen(Scope.close(host.scope, Exit.void)))
+  );
 }
 
 /**

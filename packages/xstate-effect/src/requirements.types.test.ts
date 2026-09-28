@@ -1,9 +1,10 @@
-import { Context, Effect } from 'effect';
+import { Context, Effect, Scope } from 'effect';
 import { createMachine, setup, type AnyActorLogic } from 'xstate';
 import {
   createEffectActor,
   fromEffect,
   setupEffect,
+  withActorScope,
   type RequirementsFrom
 } from './index.ts';
 
@@ -49,6 +50,71 @@ const betaLogic = fromEffect(betaEffect);
 const plainLogic = fromEffect(Effect.succeed(1));
 
 describe('RequirementsFrom', () => {
+  it('supplies invocation and owning actor scopes without an application Layer', () => {
+    const task = fromEffect(
+      Effect.acquireRelease(alphaEffect, () => Effect.void)
+    );
+    const shared = fromEffect(
+      Effect.acquireRelease(betaEffect, () => Effect.void).pipe(withActorScope)
+    );
+    true satisfies Equals<RequirementsFrom<typeof task>, AlphaRequirement>;
+    true satisfies Equals<RequirementsFrom<typeof shared>, BetaRequirement>;
+    true satisfies Includes<ActorRequirements<typeof task>, Scope.Scope>;
+  });
+
+  it('tracks services replaced by provided actors', () => {
+    const machine = setup({ actors: { work: alphaLogic } }).createMachine({
+      invoke: { src: 'work' }
+    });
+    const provided = machine.provide({
+      actors: { work: fromEffect(Effect.as(betaEffect, 0)) }
+    });
+    true satisfies Equals<RequirementsFrom<typeof provided>, BetaRequirement>;
+  });
+
+  it('tracks services introduced and replaced by provided actions', () => {
+    const machine = setupEffect({
+      actions: { work: (_args) => Effect.void }
+    }).createMachine({
+      on: { GO: (args, enq) => enq(args.actions.work, args) }
+    });
+    const alpha = machine.provide({ actions: { work: () => alphaEffect } });
+    const beta = alpha.provide({ actions: { work: () => betaEffect } });
+    const plain = beta.provide({ actions: { work: () => {} } });
+    true satisfies Equals<RequirementsFrom<typeof alpha>, AlphaRequirement>;
+    true satisfies Equals<RequirementsFrom<typeof beta>, BetaRequirement>;
+    true satisfies IsNever<RequirementsFrom<typeof plain>>;
+    const parent = setup({ actors: { beta } }).createMachine({
+      invoke: { src: 'beta' }
+    });
+    true satisfies Equals<RequirementsFrom<typeof parent>, BetaRequirement>;
+    const missingService = () => {
+      // @ts-expect-error -- the provided action requires Alpha
+      Effect.runPromise(Effect.scoped(createEffectActor(alpha)));
+    };
+    void missingService;
+  });
+
+  it('retains services of untouched and optionally provided actions', () => {
+    const machine = setupEffect({
+      actions: {
+        first: (_args) => alphaEffect,
+        second: (_args) => alphaEffect
+      }
+    }).createMachine({});
+    const provided = machine.provide({ actions: { first: () => betaEffect } });
+    true satisfies Equals<
+      RequirementsFrom<typeof provided>,
+      AlphaRequirement | BetaRequirement
+    >;
+    const optional: { first?: () => typeof betaEffect } = {};
+    const maybe = machine.provide({ actions: optional });
+    true satisfies Equals<
+      RequirementsFrom<typeof maybe>,
+      AlphaRequirement | BetaRequirement
+    >;
+  });
+
   it('collects requirements from Effect logic directly', () => {
     true satisfies Equals<
       RequirementsFrom<typeof alphaLogic>,

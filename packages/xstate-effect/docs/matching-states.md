@@ -1,53 +1,125 @@
 ---
-title: Matching states
-description: View a machine snapshot as a tagged union.
+title: "XState Effect: Matching states"
+description: Render workflow states with exhaustive Effect Match branches.
 ---
 
-`taggedState(snapshot)` views a machine snapshot as a member of a tagged union, so `Match.tag` and `Match.exhaustive` work on states.
+`taggedState(snapshot)` gives a machine snapshot an Effect-style `_tag`. Use `Match.tag` and `Match.exhaustive` to describe every state of a workflow.
 
-The returned value has four fields:
+In this review example, only the approved state has a `reviewer`. Matching that tag also narrows its context:
+
+<!-- example from examples/effect-workflows/src/matching.ts -->
+
+```ts
+import { Effect, Match, Schema, Stream } from 'effect';
+import {
+  createEffectActor,
+  send,
+  setupEffect,
+  snapshots,
+  taggedState,
+  type TaggedState
+} from '@xstate/effect';
+
+const reviewMachine = setupEffect({
+  states: {
+    approved: {
+      schemas: { context: Schema.Struct({ reviewer: Schema.String }) }
+    }
+  }
+}).createMachine({
+  initial: 'pending',
+  states: {
+    pending: {
+      on: { APPROVE: { target: 'approved', context: { reviewer: 'Ada' } } }
+    },
+    approved: { type: 'final' }
+  }
+});
+
+const describe = Match.type<TaggedState<typeof reviewMachine>>().pipe(
+  Match.tag('pending', () => 'Waiting for review'),
+  Match.tag('approved', ({ context }) => `Approved by ${context.reviewer}`),
+  Match.exhaustive
+);
+
+const program = Effect.gen(function* () {
+  const actor = yield* createEffectActor(reviewMachine);
+  return [
+    ...(yield* snapshots(actor).pipe(
+      Stream.tap((s) =>
+        s.matches('pending') ? send(actor, { type: 'APPROVE' }) : Effect.void
+      ),
+      Stream.map(taggedState),
+      Stream.map(describe),
+      Stream.runCollect
+    ))
+  ];
+});
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result); // ['Waiting for review', 'Approved by Ada']
+```
+
+Adding a state requires adding a matching branch before `Match.exhaustive` will typecheck.
+
+## Tagged state fields
 
 | Field | Description |
 | --- | --- |
-| `_tag` | The state's dotted path, such as `'checkout.paying'`. |
-| `value` | The snapshot's state value. |
-| `context` | That state's context, including any per-state context schema. |
-| `snapshot` | The snapshot itself. |
+| `_tag` | The dotted state path, such as `review.approved`. |
+| `value` | The XState state value. |
+| `context` | The context for that state, including its per-state schema. |
+| `snapshot` | The original snapshot. |
 
-`TaggedState<typeof machine>` names the union for a machine. `TaggedStateFrom<TSnapshot>` names it for a snapshot type. `StateTag<TValue>` is the tag of a single state value.
+- `TaggedState<typeof machine>` names the union for a machine.
+- `TaggedStateFrom<TSnapshot>` names it for a snapshot type.
+- `StateTag<TValue>` names the tag for one state value.
 
-```ts
-import { Match, Stream } from 'effect';
-import { snapshots, taggedState, type TaggedState } from '@xstate/effect';
-
-const describe = Match.type<TaggedState<typeof checkoutMachine>>().pipe(
-  Match.tag('cart', ({ context }) => `${context.items.length} items`),
-  Match.tag('paying', ({ context }) => `paying ${context.paymentId}`),
-  Match.tag('done.paid', 'done.declined', ({ _tag }) => _tag),
-  Match.exhaustive
-);
-
-const labels = snapshots(actor).pipe(
-  Stream.map(taggedState),
-  Stream.map(describe)
-);
-```
-
-Because `context` is the context of that state, a per-state context schema declared in `setupEffect({ states })` narrows with the tag. See [schemas and actions](schemas-and-actions.md).
+Declare per-state context with `setupEffect({ states })`. See [schemas and actions](schemas-and-actions.md).
 
 ## Parallel states
 
-A [parallel state](../parallel-states.md) is in several regions at once, so it has no single dotted path. Its tag stops at the parallel state, and is `'(machine)'` when the machine itself is parallel. Match on `value` or `snapshot.matches` for the regions of a parallel state.
+A parallel workflow can wait for review while building a release. Its `_tag` stops at the parallel state; when the root is parallel, the tag is `'(machine)'`. Inspect `value` or use `snapshot.matches` to read individual regions:
+
+<!-- example from examples/effect-workflows/src/parallel.ts -->
 
 ```ts
-const region = Match.type<TaggedState<typeof parallelMachine>>().pipe(
+import { Effect, Match } from 'effect';
+import {
+  createEffectActor,
+  taggedState,
+  type TaggedState
+} from '@xstate/effect';
+import { createMachine } from 'xstate';
+
+const releaseMachine = createMachine({
+  type: 'parallel',
+  states: {
+    review: { initial: 'pending', states: { pending: {}, approved: {} } },
+    build: { initial: 'running', states: { running: {}, passed: {} } }
+  }
+});
+
+const describe = Match.type<TaggedState<typeof releaseMachine>>().pipe(
   Match.tag('(machine)', ({ snapshot }) =>
-    snapshot.matches({ upload: 'sending' }) ? 'sending' : 'idle'
+    snapshot.matches({ build: 'running' })
+      ? 'Build in progress'
+      : 'Build finished'
   ),
   Match.exhaustive
 );
+
+export const result = await Effect.runPromise(
+  Effect.scoped(
+    Effect.gen(function* () {
+      const actor = yield* createEffectActor(releaseMachine);
+      return describe(taggedState(actor.getSnapshot()));
+    })
+  )
+);
+console.log(result); // 'Build in progress'
 ```
 
-## The `state` atom
+## UI atoms
 
-`createActorAtoms` exposes the same view as its `state` atom, so a UI can match on states without calling `taggedState` itself. See [atoms and React](atoms-and-react.md).
+`createActorAtoms` exposes this same tagged union through its `state` atom. A UI can match on states without calling `taggedState` itself. See [atoms and React](atoms-and-react.md).

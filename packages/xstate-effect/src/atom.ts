@@ -9,7 +9,7 @@ import type {
 } from 'xstate';
 import {
   createEffectActor,
-  type EffectActorOptions
+  type EffectActorOptionsArgs
 } from './createEffectActor.ts';
 import type { EffectActor } from './effectActor.ts';
 import { NotReadyError } from './errors.ts';
@@ -70,7 +70,8 @@ interface MissingRequirements<T> {
 /**
  * Creates atoms for an actor that runs in an `Atom.runtime`. The runtime's
  * Layer must provide every service the logic requires; a missing service is
- * a type error on the `runtime` argument.
+ * a type error on the `runtime` argument. Logic with required input also
+ * requires an options object containing that input.
  *
  * The actor is created with `createEffectActor` inside the `actor` atom's
  * scope, so its lifetime follows the atom: it starts on first read and stops
@@ -84,7 +85,7 @@ export function createActorAtoms<TLogic extends AnyActorLogic, R, ER = never>(
       ? unknown
       : MissingRequirements<Exclude<RequirementsFrom<TLogic>, R>>),
   logic: TLogic,
-  options?: EffectActorOptions<TLogic>
+  ...[options]: EffectActorOptionsArgs<TLogic>
 ): ActorAtoms<TLogic, ER> {
   const host = runtime as Atom.AtomRuntime<any, ER>;
 

@@ -205,7 +205,7 @@ This is useful when a large machine is split across files, or when a checkout fl
 
 ## Providing implementations
 
-`machine.provide(...)` returns a new machine with different `actions`, `guards`, `actors` or `delays`. The machine's structure and types stay the same.
+`machine.provide(...)` returns a new machine with different `actions`, `guards`, `actors` or `delays`. The machine's structure, event protocol and state types stay the same. The returned machine preserves the types of the provided action and actor implementations, so integrations can infer their dependencies.
 
 ```ts
 const testMachine = orderMachine.provide({

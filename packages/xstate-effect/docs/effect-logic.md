@@ -1,128 +1,183 @@
 ---
-title: Effect actor logic
-description: Turn Effects and Streams into actor logic.
+title: "XState Effect: Actor logic"
+description: Use Effect tasks and streams as parts of an event-driven workflow.
 ---
 
-Three functions turn Effect values into [actor logic](../actor-logic.md) that a machine can invoke or spawn. All three must run under `createEffectActor`.
+Turn an Effect or Stream into [actor logic](../../../docs/actor-logic.md) with one of these functions. Start it with `createEffectActor`, or invoke it from a machine running under `createEffectActor`.
 
-| Function | Actor behavior |
+| Function | Use it for |
 | --- | --- |
-| `fromEffect` | Runs an Effect. Output is the Effect's success value. |
-| `fromEffectStream` | Runs a Stream. `context` is the most recent item. |
-| `fromEffectEventStream` | Runs a Stream of events and relays each one to the parent. |
+| `fromEffect` | A task whose result decides the next state. |
+| `fromEffectStream` | A changing value, such as upload progress. |
+| `fromEffectEventStream` | Events that drive a workflow, such as health checks. |
+
+Each accepts a value, a function of actor arguments that returns the value, or a configuration object with `id`, `schemas`, `validator` and `effect` or `stream`.
 
 ## `fromEffect`
 
-`fromEffect` accepts an Effect, a function that returns an Effect, or a config object with `id`, `schemas`, `validator` and `effect`.
+Use `fromEffect` for work the machine waits for: publishing a release, reserving inventory or building a report. The [quick start](quick-start.md) invokes a deployment task and handles success, failure and cancellation.
+
+Here is a complete task with typed input and output:
+
+<!-- example from examples/effect-workflows/src/task.ts -->
 
 ```ts
-fromEffect(Effect.succeed('done'));
+import { Effect, Schema } from 'effect';
+import { createEffectActor, fromEffect, join } from '@xstate/effect';
 
-fromEffect(({ input }: { input: string }) => Effect.succeed(input.length));
-
-fromEffect({
-  id: 'loadUser',
-  schemas: {
-    input: Schema.Struct({ id: Schema.String }),
-    output: Schema.Struct({ id: Schema.String })
-  },
-  effect: ({ input }) => Api.use((api) => api.fetchUser(input.id))
+const buildReport = fromEffect({
+  schemas: { input: Schema.Struct({ orderIds: Schema.Array(Schema.String) }) },
+  effect: ({ input, emit }) =>
+    Effect.sync(() => {
+      emit({ type: 'reportBuilt', count: input.orderIds.length });
+      return { total: input.orderIds.length };
+    })
 });
+
+const program = Effect.gen(function* () {
+  const actor = yield* createEffectActor(buildReport, {
+    input: { orderIds: ['order-1', 'order-2'] }
+  });
+  return yield* join(actor);
+});
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result); // { total: 2 }
 ```
 
-Either schema may be omitted, and the missing type is inferred from the Effect. See [schemas and actions](schemas-and-actions.md) for how schemas are validated.
+- The actor is `active` while the Effect runs.
+- Success puts it in `done` and stores the value in `output`.
+- Failure puts it in `error`; `join` and an invoking machine's `onError` receive the typed error.
+- The task actor has no context of its own.
 
-The actor's snapshot holds no context of its own. It is `active` while the Effect runs, `done` with the Effect's success value as `output`, or `error`.
+### Actor arguments
 
-### `EffectSourceArgs`
-
-The function form receives `EffectSourceArgs<TInput>`:
+The function form receives `EffectSourceArgs<TInput>` once per actor start:
 
 | Field | Description |
 | --- | --- |
 | `input` | The actor's input. |
-| `self` | The actor's own reference. |
-| `system` | The actor [system](../systems.md). |
-| `emit` | Emits an event that `actor.on(...)` and `emitted(actor)` observe. |
+| `self` | The actor's reference. |
+| `system` | The actor system. |
+| `emit` | Emits a notification for `actor.on(...)` and `emitted(actor)`. |
 
-```ts
-fromEffect(({ input, emit }: EffectSourceArgs<{ id: string }>) =>
-  Effect.sync(() => {
-    emit({ type: 'loaded', id: input.id });
-    return input.id;
-  })
-);
-```
+Input and output schemas are optional. Missing types are inferred from the function or Effect. See [schemas and actions](schemas-and-actions.md) for runtime validation.
 
-The function is called once per actor start, so it sees that actor's input.
+### Cancellation and failure
 
-### Exits
+Leaving an invoking state or stopping the actor interrupts the running Effect. Each task runs in its own scope:
 
-The actor's result maps from the Effect's exit.
+- `Effect.acquireRelease` and `Effect.addFinalizer` clean up before a completed or failed task reports its outcome.
+- Cancelling an invocation interrupts the task and runs its cleanup while the parent can continue in another state.
+- Use `withActorScope` for resources that should stay open until the owning actor stops. See [resource lifetimes](actors.md#resource-lifetimes).
 
-| Exit | Actor |
+Use Effect's retry and timeout combinators inside the task.
+
+<details>
+<summary>How Effect exits map to actors</summary>
+
+| Exit | Actor result |
 | --- | --- |
-| Success | Status `done`, value as `output`. |
-| Failure | Status `error` with the `E` value as `error`. `invoke.onError` receives it typed. |
-| Defect | Status `error` with the squashed cause. Defects are not part of the typed error. |
-| Interrupted by the actor stopping or the invoking state exiting | No error. The actor is stopped. |
-| Interrupted from inside the Effect | Status `error` with an `EffectInterruptedError`. |
+| Success | `done`, with the success value as `output`. |
+| Typed failure | `error`, with the failure value as `error`. |
+| Defect | `error`, with the squashed cause. |
+| Interrupted because the actor stopped or the invoking state exited | Stopped, without an error. |
+| Self-interruption inside the Effect | `error`, with `EffectInterruptedError`. |
 
-`Effect.interrupt` inside the Effect is a self-interruption, so it produces an `EffectInterruptedError` carrying the interrupt `cause`. `Effect.timeout` is a failure with `Cause.TimeoutError`, not an interruption. A lost `Effect.race` inside the Effect interrupts only the loser, and the actor completes with the winner.
+`Effect.timeout` fails with `Cause.TimeoutError`. A lost `Effect.race` interrupts only the loser; the actor completes with the winner.
 
-Use `Effect.timeout`, `Effect.retry` and the other Effect combinators inside the Effect. `fromEffect` adds no options of its own for them. See [testing and errors](testing-and-errors.md#retries-and-supervision).
+</details>
 
 ## `fromEffectStream`
 
-`fromEffectStream` exposes the latest stream item as the actor's `context` and reaches `done` with no output when the stream completes. A stream failure puts the actor in the `error` status. It accepts a Stream, a function returning one, or a config object with `id`, `schemas`, `validator` and `stream`.
+Use `fromEffectStream` when consumers need the latest value. For example, upload progress becomes the actor's snapshot context:
+
+<!-- example from examples/effect-workflows/src/latest-stream.ts -->
 
 ```ts
-fromEffectStream(Stream.make(1, 2, 3));
+import { Effect, Option, Stream } from 'effect';
+import { createEffectActor, fromEffectStream, snapshots } from '@xstate/effect';
 
-fromEffectStream({
-  schemas: { input: Schema.Struct({ topic: Schema.String }) },
-  stream: ({ input }) => Stream.fromPubSub(topicPubSub(input.topic))
+// Demo upload progress. Replace with your upload SDK's progress stream.
+const uploadProgress = fromEffectStream(Stream.make(0, 25, 60, 100));
+
+const program = Effect.gen(function* () {
+  const actor = yield* createEffectActor(uploadProgress);
+  return yield* snapshots(actor).pipe(
+    Stream.filter((s) => s.context !== undefined),
+    Stream.map((s) => s.context),
+    Stream.runLast,
+    Effect.map(Option.getOrThrow)
+  );
 });
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result); // 100
 ```
 
-Read the latest item from the actor's snapshot rather than from events:
+The demo stream is finite. Replace it with your upload SDK's progress stream; the actor exposes each new percentage as `snapshot.context`.
 
-```ts
-const ticker = fromEffectStream(Stream.make(1, 2, 3));
-
-const latest = Effect.gen(function* () {
-  const actor = yield* createEffectActor(ticker);
-  const snapshot = yield* waitFor(actor, (s) => s.context !== undefined);
-  return snapshot.context;
-});
-```
+- Context is `undefined` until the first item arrives.
+- Completion puts the actor in `done`, with no output; the last context remains readable.
+- Stream failure puts the actor in `error`.
+- Read changing values with `snapshots`, `waitFor` or a UI selector.
 
 ## `fromEffectEventStream`
 
-`fromEffectEventStream` relays each stream item to the parent machine as an event, the way `fromEventObservable` does. The actor has no output: it reaches `done` when the stream completes and `error` when it fails. It accepts the same forms as `fromEffectStream`.
+Use `fromEffectEventStream` when stream items should trigger transitions. This deployment feed first reports a healthy rollout, then a health failure that requests rollback:
+
+<!-- example from examples/effect-workflows/src/event-stream.ts -->
 
 ```ts
-const machine = createMachine({
-  context: { seen: 0 },
-  schemas: { events: { VALUE: types<{ value: number }>() } },
-  initial: 'active',
+import { Effect, Stream } from 'effect';
+import {
+  createEffectActor,
+  fromEffectEventStream,
+  join,
+  setupEffect
+} from '@xstate/effect';
+
+// A deployment feed drives the workflow, rather than just displaying data.
+const deploymentEvents = fromEffectEventStream(
+  Stream.make({ type: 'HEALTHY' }, { type: 'UNHEALTHY' })
+);
+
+const rolloutMachine = setupEffect({
+  actors: { deploymentEvents }
+}).createMachine({
+  output: () => 'rollback requested',
+  initial: 'monitoring',
   states: {
-    active: {
-      invoke: {
-        src: fromEffectEventStream(
-          Stream.make({ type: 'VALUE', value: 1 }, { type: 'VALUE', value: 2 })
-        )
+    monitoring: {
+      invoke: { src: 'deploymentEvents' },
+      initial: 'checking',
+      states: {
+        checking: { on: { HEALTHY: { target: 'healthy' } } },
+        healthy: {}
       },
-      on: {
-        VALUE: ({ context, event }) => ({
-          context: { seen: context.seen + event.value }
-        })
-      }
-    }
+      on: { UNHEALTHY: { target: 'rollingBack' } }
+    },
+    rollingBack: { type: 'final' }
   }
 });
+
+const program = Effect.gen(function* () {
+  const actor = yield* createEffectActor(rolloutMachine);
+  return yield* join(actor);
+});
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result); // 'rollback requested'
 ```
 
-## Spans
+The stream belongs to `monitoring`, so it stays active when that state moves from `checking` to `healthy`. Leaving `monitoring` stops the stream actor and interrupts its consumption.
 
-Each of the three runs its Effect inside a span named after the function: `fromEffect`, `fromEffectStream` or `fromEffectEventStream`. See [tracing](testing-and-errors.md#tracing).
+- Each item is relayed to the parent machine as an event.
+- Completion puts the stream actor in `done`, with no output.
+- Stream failure puts it in `error`; handle it with the invocation's `onError`.
+
+Use this pattern for WebSocket messages, job updates or subscription feeds that change a workflow's state.
+
+## Tracing
+
+The three functions run inside spans named `fromEffect`, `fromEffectStream` and `fromEffectEventStream`. See [tracing](testing-and-errors.md#tracing).
