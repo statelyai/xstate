@@ -1348,7 +1348,12 @@ function computeExitSet(
   return [...statesToExit];
 }
 
-type Microstep = readonly [AnyMachineSnapshot, ExecutableActionObject[]];
+type Microstep = readonly [
+  AnyMachineSnapshot,
+  ExecutableActionObject[],
+  // The transitions taken in this microstep, when recorded by `macrostep()`
+  transitions?: AnyTransitionDefinition[]
+];
 
 export function initialMicrostep(
   root: AnyStateNode,
@@ -2461,10 +2466,14 @@ export function macrostep(
     nextSnapshot = cloneMachineSnapshot(nextSnapshot, { children });
 
     if (microsteps.length) {
-      const [, lastEffects] = microsteps.at(-1)!;
-      microsteps[microsteps.length - 1] = [nextSnapshot, lastEffects];
+      const [, lastEffects, lastTransitions] = microsteps.at(-1)!;
+      microsteps[microsteps.length - 1] = [
+        nextSnapshot,
+        lastEffects,
+        lastTransitions
+      ];
     } else {
-      microsteps.push([nextSnapshot, []]);
+      microsteps.push([nextSnapshot, [], []]);
     }
   }
 
@@ -2472,9 +2481,11 @@ export function macrostep(
     if (handled && nextSnapshot === snapshot) {
       nextSnapshot = cloneMachineSnapshot(snapshot, {});
       if (microsteps.at(-1)?.[0] === snapshot) {
+        const [, lastEffects, lastTransitions] = microsteps.at(-1)!;
         microsteps[microsteps.length - 1] = [
           nextSnapshot,
-          microsteps.at(-1)![1]
+          lastEffects,
+          lastTransitions
         ];
       }
     }
@@ -2489,13 +2500,14 @@ export function macrostep(
         ? [...starts, createTerminationEffect(actorScope, nextSnapshot)]
         : starts;
       if (microsteps.length) {
-        const [lastSnapshot, lastEffects] = microsteps.at(-1)!;
+        const [lastSnapshot, lastEffects, lastTransitions] = microsteps.at(-1)!;
         microsteps[microsteps.length - 1] = [
           lastSnapshot,
-          [...lastEffects, ...terminalEffects]
+          [...lastEffects, ...terminalEffects],
+          lastTransitions
         ];
       } else {
-        microsteps.push([nextSnapshot, terminalEffects]);
+        microsteps.push([nextSnapshot, terminalEffects, []]);
       }
     }
 
@@ -2506,8 +2518,9 @@ export function macrostep(
     step: Microstep,
     transitions: AnyTransitionDefinition[]
   ) {
-    // collect microsteps; surfaced on the enclosing '@xstate.transition' event
-    // via its `microsteps[]` facet (there is no standalone microstep event)
+    // collect microsteps; their transitions are surfaced on the enclosing
+    // '@xstate.transition' event via its `microsteps[]` facet (there is no
+    // standalone microstep event) and returned by `getMicrosteps()`
     if (
       !isInertActorScope(actorScope) &&
       (event.type === XSTATE_INIT ||
@@ -2518,7 +2531,7 @@ export function macrostep(
       collectedMicrosteps.push(...transitions);
       (actorScope.self as any)._collectedMicrosteps = collectedMicrosteps;
     }
-    microsteps.push(step);
+    microsteps.push([step[0], step[1], transitions]);
   }
 
   // Handle stop event
