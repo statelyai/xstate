@@ -837,30 +837,16 @@ type ExcludeInternalEvents<
     : TEvent
   : never;
 
-type InternalEventDescriptorsFromConfig<
-  TEvent extends EventObject,
-  TConfig
-> = TConfig extends { internalEvents?: readonly EventDescriptor<TEvent>[] }
-  ? TConfig['internalEvents'] extends readonly (infer TDesc)[]
-    ? Extract<TDesc, string>
-    : never
-  : never;
-
 type InternalEventTypes<TInternalEvent extends EventObject> =
   TInternalEvent extends any ? TInternalEvent['type'] : never;
 
 type SendableEventFromMachine<
   TEvent extends EventObject,
-  TInternalEvent extends EventObject,
-  TConfig
+  TInternalEvent extends EventObject
 > =
   IsAny<TInternalEvent> extends true
     ? TEvent
-    : ExcludeInternalEvents<
-        TEvent,
-        | InternalEventTypes<TInternalEvent>
-        | InternalEventDescriptorsFromConfig<TEvent, TConfig>
-      >;
+    : ExcludeInternalEvents<TEvent, InternalEventTypes<TInternalEvent>>;
 
 /** @public */
 export type IsLiteralString<T extends string> = string extends T ? false : true;
@@ -2022,9 +2008,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   snapshot?: Snapshot<unknown> &
     Partial<RestorablePersistedSnapshotFor<DoNotInfer<TLogic>>>;
 
-  /** @deprecated Use `snapshot` instead. */
-  state?: Snapshot<unknown>;
-
   /** The source actor logic. */
   src?: string | AnyActorLogic;
 
@@ -2413,7 +2396,7 @@ export type ActorRefFrom<T> =
     infer TOutput,
     infer TEmitted,
     infer TMeta,
-    infer TConfig,
+    infer _TConfig,
     infer _TActionMap,
     infer _TActorMap,
     infer _TGuardMap,
@@ -2433,7 +2416,7 @@ export type ActorRefFrom<T> =
         >,
         TEvent,
         TEmitted,
-        SendableEventFromMachine<TEvent, TInternalEvent, TConfig>
+        SendableEventFromMachine<TEvent, TInternalEvent>
       >
     : T extends Promise<infer U>
       ? ActorRefFrom<AsyncActorLogic<U>>
@@ -2459,14 +2442,14 @@ export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
     infer _TOutput,
     infer _TEmitted,
     infer _TMeta,
-    infer TConfig,
+    infer _TConfig,
     infer _TActionMap,
     infer _TActorMap,
     infer _TGuardMap,
     infer _TDelayMap,
     infer TInternalEvent
   >
-    ? SendableEventFromMachine<TEvent, TInternalEvent, TConfig>
+    ? SendableEventFromMachine<TEvent, TInternalEvent>
     : TLogic extends SendableEventCarrier<infer TSendableEvent>
       ? TSendableEvent
       : EventFromLogic<TLogic>;

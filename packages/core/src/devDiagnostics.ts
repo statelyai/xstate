@@ -16,7 +16,9 @@ const REMOVED_ROOT_KEYS: Record<string, string> = {
   tsTypes:
     '"tsTypes" (typegen) was removed. Declare contracts under `schemas` (or `setup({ schemas })`).',
   schema:
-    '"schema" was replaced by "schemas". Declare contracts under `schemas` (or `setup({ schemas })`).'
+    '"schema" was replaced by "schemas". Declare contracts under `schemas` (or `setup({ schemas })`).',
+  internalEvents:
+    'The top-level "internalEvents" list was removed. Declare private events under `schemas.internalEvents` instead, e.g. `schemas: { internalEvents: { tick: types<{}>() } }`.'
 };
 
 const IGNORED_ROOT_KEYS: Record<string, string> = {

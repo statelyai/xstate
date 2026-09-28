@@ -927,9 +927,10 @@ actor.send({ type: 'tick' }); // throws: Internal event "tick" cannot be sent to
 
 Raised, self-targeted and transition-handler event types include both schema
 maps. `actor.send(...)` and `actor.trigger` include only `schemas.events`.
-The previous top-level `internalEvents` descriptor list remains supported and
-deprecated; it can be migrated by moving each listed event's schema to
-`schemas.internalEvents`.
+The top-level `internalEvents` descriptor list from the v6 alphas was removed.
+Move each listed event's schema from `schemas.events` to
+`schemas.internalEvents`. In development builds, a config with a top-level
+`internalEvents` key throws an error naming `schemas.internalEvents`.
 
 ---
 
@@ -1036,6 +1037,8 @@ These exports have been **removed** from `xstate`:
 - Promise actor logic surface: `fromPromise`, `PromiseActorLogic`, `PromiseActorRef`, `PromiseSnapshot`
 - Transition actor logic surface: `fromTransition`, `TransitionActorLogic`, `TransitionActorRef`, `TransitionSnapshot`
 - Inspection-event subtypes: `InspectedActionEvent`, `InspectedActorEvent`, `InspectedEventEvent`, `InspectedMicrostepEvent`, `InspectedSnapshotEvent` are gone. The remaining `InspectionEvent` type was reshaped: its `type` is now only `'@xstate.actor' | '@xstate.transition'` (a discriminated union of `ActorInspectionEvent` and `TransitionInspectionEvent`, both also exported).
+- The `state` actor option. Use `snapshot`: `createActor(machine, { snapshot: persisted })`. In development builds, passing `state` throws an error naming `snapshot`.
+- The top-level `internalEvents` machine config key. Use `schemas.internalEvents`; see [Internal events](#12-internal-events).
 - The `devTools` actor option and the `xstate/dev`, `xstate/actions`, and `xstate/guards` subpath exports
 - v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, `ExecutableActionsFrom`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** - same names, different structure.
 - `transition()` / `initialTransition()` now return `ExecutableActionObject[]` for effects; hand-written actor logic `transition` and `initialTransition` return `[snapshot, effects]` tuples whose effects each provide `exec(runtime?)`.

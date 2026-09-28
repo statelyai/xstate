@@ -187,9 +187,6 @@ export function machineConfigToJSON(
 ): Record<string, unknown> {
   const result = stateNodeConfigToJSON(config);
 
-  if (config.internalEvents !== undefined) {
-    result.internalEvents = valueToJSON(config.internalEvents);
-  }
   if (config.schemas) {
     const schemas: Record<string, unknown> = {};
     for (const key of Object.keys(config.schemas as object)) {

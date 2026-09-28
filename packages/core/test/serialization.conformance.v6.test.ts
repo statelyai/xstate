@@ -332,7 +332,6 @@ describe('serializability conformance', () => {
   it('serializable structure survives even when sources do not', () => {
     const machine = createMachine({
       initial: 'idle',
-      internalEvents: ['tick'],
       states: {
         idle: {
           timeout: '5s',
@@ -348,9 +347,6 @@ describe('serializability conformance', () => {
     expect(json).toMatchInlineSnapshot(`
       {
         "initial": "idle",
-        "internalEvents": [
-          "tick",
-        ],
         "states": {
           "expired": {
             "type": "final",

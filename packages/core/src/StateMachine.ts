@@ -317,7 +317,6 @@ export class StateMachine<
       any // TEmitted
     > & {
       schemas?: AnyMachineSchemas;
-      internalEvents?: readonly string[];
     },
     sources?: Sources,
     public validator?: ActorLogicValidator
@@ -475,10 +474,9 @@ export class StateMachine<
         }
       }
     };
-    this.internalEventDescriptors = [
-      ...Object.keys(this.schemas?.internalEvents ?? {}),
-      ...(this.config.internalEvents ?? [])
-    ];
+    this.internalEventDescriptors = Object.keys(
+      this.schemas?.internalEvents ?? {}
+    );
     this.options = { ...this.config.options };
 
     this.transition = this.transition.bind(this);

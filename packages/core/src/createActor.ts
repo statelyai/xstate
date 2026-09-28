@@ -265,6 +265,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     public logic: TLogic,
     options?: ActorOptions<TLogic>
   ) {
+    if (isDevelopment && options && 'state' in options) {
+      throw new Error(
+        'The "state" actor option was removed. Pass the persisted snapshot as "snapshot" instead: createActor(logic, { snapshot }).'
+      );
+    }
     const resolvedOptions = (
       options ? { ...defaultOptions, ...options } : defaultOptions
     ) as ActorOptions<TLogic> & typeof defaultOptions;
@@ -278,7 +283,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         createRuntimeSystem(this, {
           clock,
           logger,
-          snapshot: resolvedOptions.snapshot ?? resolvedOptions.state,
+          snapshot: resolvedOptions.snapshot,
           createActorRef
         }));
 
@@ -321,7 +326,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
 
     // prepare to collect initial microsteps during initialTransition
     this._collectedMicrosteps = undefined;
-    const persistedState = options?.snapshot ?? options?.state;
+    const persistedState = options?.snapshot;
     this._restored = persistedState !== undefined;
     try {
       if (persistedState) {
@@ -1285,7 +1290,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
    * {@link Actor.getSnapshot}. Persisted state represents the internal state of
    * the actor, while snapshots represent the actor's last emitted value.
    *
-   * Can be restored with {@link ActorOptions.state}
+   * Can be restored with {@link ActorOptions.snapshot}
    * @see https://stately.ai/docs/persistence
    */
   public getPersistedSnapshot(options?: {
@@ -1349,7 +1354,7 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
 
 /**
  * The options `createActor` (and framework hooks) require for `TLogic`:
- * `{ input }` or a persisted `{ snapshot }` (or deprecated `{ state }`) when
+ * `{ input }` or a persisted `{ snapshot }` when
  * the logic requires input, otherwise nothing.
  *
  * @public
@@ -1360,8 +1365,7 @@ export type RequiredActorOptionsFor<TLogic extends AnyActorLogic> = [
   ? {}
   :
       | { [K in RequiredActorOptionsKeys<TLogic>]: unknown }
-      | { snapshot: NonNullable<ActorOptions<TLogic>['snapshot']> }
-      | { state: NonNullable<ActorOptions<TLogic>['state']> };
+      | { snapshot: NonNullable<ActorOptions<TLogic>['snapshot']> };
 
 /** Options accepted by {@link createActor}. */
 type CreateActorOptionsArgs<TLogic extends AnyActorLogic> = [

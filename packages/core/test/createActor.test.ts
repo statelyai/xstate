@@ -12,6 +12,15 @@ import {
 import { setTimeout as sleep } from 'node:timers/promises';
 import z from 'zod';
 describe('createActor()', () => {
+  it('throws in development for the removed `state` option', () => {
+    const logic = createMachine({});
+    const persisted = createActor(logic).getPersistedSnapshot();
+    expect(() =>
+      // @ts-expect-error removed; use `snapshot`
+      createActor(logic, { state: persisted })
+    ).toThrow('"snapshot"');
+  });
+
   it('reserves explicit IDs in the generated ID namespace', () => {
     const logic = createMachine({});
     const root = createActor(logic);
