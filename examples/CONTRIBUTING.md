@@ -232,11 +232,13 @@ Headless examples may also render their actors with the shared dashboard in [`ex
 
 ## Checklist before opening a PR
 
-- [ ] Directory name follows the naming pattern and matches `package.json` and the README title.
+- [ ] Directory name follows the naming pattern and matches the README title;
+      the `package.json` name is `@xstate/example-<directory-name>`.
 - [ ] All XState dependencies use `workspace:*`.
 - [ ] Framework versions match the pinned table.
 - [ ] Machine is built with `setup()`; actors use `create*Logic`.
 - [ ] Source is under 300 lines and teaches one concept.
-- [ ] `README.md` has all five sections.
+- [ ] The README (`README.md` for new examples, or an existing `readme.md`) has
+      all five sections.
 - [ ] Every actor and store the example starts is wired to the inspector in source, and headless examples gate it behind `INSPECT=1`.
 - [ ] The example is added to the coverage matrix in [`readme.md`](./readme.md).
