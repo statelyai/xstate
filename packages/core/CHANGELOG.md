@@ -1,5 +1,350 @@
 # xstate
 
+## 6.0.0-alpha.61
+
+### Minor Changes
+
+- 3e024f9: `createAsyncLogic` accepts `schemas.error`. It types the actor's `error` snapshot field and `event.error` in the invoking machine's `onError`. Without it, the error stays `unknown`, so reading properties from it is a type error.
+  
+  ```ts
+  const fetchUser = createAsyncLogic({
+    schemas: {
+      output: z.object({ name: z.string() }),
+      error: z.object({ code: z.string() }),
+    },
+    run: async () => ({ name: "David" }),
+  });
+  
+  setup({ actors: { fetchUser } }).createMachine({
+    invoke: {
+      src: "fetchUser",
+      onError: ({ event }) => {
+        event.error.code; // string
+      },
+    },
+  });
+  ```
+  
+  Without `schemas.error`, narrow `event.error` before reading from it.
+  
+  With a `timeout`, the error type also includes `TimeoutError`, so narrow before reading schema fields:
+  
+  ```ts
+  onError: ({ event }) => {
+    if (event.error instanceof TimeoutError) return;
+    event.error.code; // string
+  };
+  ```
+- 3e024f9: Children declared in `schemas.children` now contribute their completion events to the event union seen by `entry`, `exit`, guards and transition functions. `assertEvent(event, 'xstate.done.actor')` narrows `event.output` to the child's output type, and `event.actorId` to the declared ids.
+  
+  ```ts
+  setup({
+    actors: { fetchUser },
+    schemas: {
+      children: { fetch: z.custom<ActorRefFromLogic<typeof fetchUser>>() }
+    }
+  }).createMachine({
+    invoke: { id: 'fetch', src: 'fetchUser' },
+    entry: ({ event }) => {
+      assertEvent(event, 'xstate.done.actor');
+      event.output.name; // string
+    }
+  });
+  ```
+  
+  Code that assumed every event in these positions is a declared public event may need a narrowing check first.
+- 73fa80b: Entry and exit functions now receive `stateNode`, the state node being entered or exited.
+  
+  ```ts
+  createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        entry: ({ stateNode }, enq) => {
+          enq(() => console.log('Entered', stateNode.id));
+        }
+      }
+    }
+  });
+  ```
+- 11c6f52: `createFSM` from `xstate/fsm` now follows the `(snapshot, event) => [snapshot, effects]` protocol used by all actor logic. `fsm.transition(...)` returns a `[nextSnapshot, effects]` tuple, where `effects` is always empty, and snapshots include `status: 'active'`. An FSM can now run in `createActor` and be passed to `transition()` and `initialTransition()`.
+  
+  Before:
+  
+  ```ts
+  let state = fsm.initialState;
+  state = fsm.transition(state, { type: 'toggle' });
+  ```
+  
+  After:
+  
+  ```ts
+  let state = fsm.initialState;
+  [state] = fsm.transition(state, { type: 'toggle' });
+  
+  // Run it as an actor
+  import { createActor } from 'xstate';
+  
+  const actor = createActor(fsm).start();
+  actor.send({ type: 'toggle' });
+  actor.getSnapshot().value; // 'active'
+  ```
+- 97e9166: `getMicrosteps()` and `getInitialMicrosteps()` now return the transitions taken in each microstep as a third tuple element, including eventless transitions and transitions for raised events.
+  
+  ```ts
+  import { getMicrosteps } from 'xstate';
+  
+  for (const [snapshot, actions, transitions] of getMicrosteps(
+    machine,
+    snapshot,
+    event
+  )) {
+    console.log(transitions.map((t) => `${t.source.id} -> ${t.eventType}`));
+  }
+  ```
+- d62cdc7: One event now has a single microstep bound: `options.maxIterations`, which defaults to `1000`. Exceeding it throws the new exported `InfiniteTransitionError`, whose message names the actor id, the event and the last five states visited. Previously a hard-coded limit of 1000 applied regardless of `maxIterations`, so raising the limit had no effect.
+  
+  ```ts
+  import { createMachine, InfiniteTransitionError } from 'xstate';
+  
+  const machine = createMachine({
+    options: { maxIterations: 5000 },
+    // ...
+  });
+  ```
+- aa49aee: ### Removed
+  
+  - `createFSM` and the `FSM*` types are no longer exported from the root `xstate` entry. Import them from `xstate/fsm`.
+  - The empty `xstate/actions`, `xstate/guards`, `xstate/invoke`, and `xstate/dev` folders are no longer published.
+  
+  ### Changed
+  
+  - `xstate/graph`: `getStateNodes(stateNode)` is renamed to `getDescendantStateNodes(stateNode)` so it no longer shares a name with the root `getStateNodes(stateNode, stateValue)`.
+  
+  ```ts
+  import { createFSM } from 'xstate/fsm';
+  import { getDescendantStateNodes } from 'xstate/graph';
+  ```
+- 8576291: Remove the `@xstate.deadletter` inspection event; observe undelivered events with the `onRejectedEvent` option. The inspection protocol is now exactly `@xstate.actor` and `@xstate.transition`. In `@xstate/effect`, `deadLetters(actor)` now streams `EventRejection` objects.
+  
+  ```ts
+  createActor(machine, {
+    onRejectedEvent: (rejection) => {
+      console.log(rejection.event.type, rejection.reason, rejection.issues);
+    }
+  });
+  ```
+  
+  Undelivered events are also available through `system.onRejectedEvent(listener)`, which accepts any number of listeners added at any time and returns a subscription. The `onRejectedEvent` option registers a listener the same way.
+  
+  ```ts
+  const subscription = actor.system.onRejectedEvent((rejection) => {
+    console.log(rejection.event.type, rejection.reason);
+  });
+  subscription.unsubscribe();
+  ```
+- aa49aee: ### Removed
+  
+  - `getInitialSnapshot(logic, input?)` and `getNextSnapshot(logic, snapshot, event)`. Use `initialTransition(...)` and `transition(...)`, which return `[snapshot, effects]`.
+  - The deprecated type aliases `NoInfer` (use the built-in `NoInfer`), `AnyInterpreter` (use `AnyActor`), and `ResolvedStateMachineTypes`.
+  
+  ```ts
+  import { initialTransition, transition } from 'xstate';
+  
+  const [initial] = initialTransition(machine, input);
+  const [next] = transition(machine, initial, { type: 'NEXT' });
+  ```
+- 97e9166: Removed `createTestModel` and `TestModel` from `xstate/graph`; use `@xstate/test`. The types used only by them (`TestModelOptions`, `TestParam`, `TestPath`, `TestPathResult`, `TestStepResult`, `TestMeta`, `EventExecutor`) and `createShortestPathsGen`/`createSimplePathsGen` are removed too. `xstate/graph` keeps its path traversal functions.
+  
+  ```ts
+  // Before
+  const model = createTestModel(machine, {
+    events: [
+      { type: 'SUBMIT', zip: '12345' },
+      { type: 'SUBMIT', zip: 'abc' },
+      { type: 'CANCEL' }
+    ]
+  });
+  for (const path of model.getShortestPaths()) await path.test(params);
+  
+  // After: `events` is keyed by event type; each payload becomes a named case
+  import * as fc from 'fast-check';
+  import { testPaths } from '@xstate/test';
+  
+  await testPaths(machine, {
+    events: {
+      SUBMIT: [
+        { case: 'valid', generate: fc.constant({ zip: '12345' }) },
+        { case: 'invalid', generate: fc.constant({ zip: 'abc' }) }
+      ]
+    },
+    samples: 1,
+    sut
+  });
+  ```
+  
+  Event types without a payload, such as `CANCEL`, need no entry.
+- 73fa80b: `createActor(machine)` now requires `input` when the machine declares an input schema whose type does not accept `undefined`. Restoring from a persisted `snapshot` does not require `input`.
+  
+  ```ts
+  const machine = setup({
+    schemas: { input: z.object({ id: z.string() }) }
+  }).createMachine({});
+  
+  createActor(machine); // type error
+  createActor(machine, { input: { id: 'a' } }); // ok
+  createActor(machine, { snapshot: persisted }); // ok
+  ```
+- aa49aee: ### Removed
+  
+  - The `xstate/scxml` entry point moved to the new `@xstate/scxml` package. `xstate` no longer depends on `saxes`.
+  
+  ```ts
+  // Before
+  import { createMachineFromSCXML } from 'xstate/scxml';
+  
+  // After (npm i @xstate/scxml)
+  import { createMachineFromSCXML } from '@xstate/scxml';
+  ```
+- d62cdc7: `enq.sendTo(...)` to a missing target no longer errors the sending actor. Sending to an `undefined` ref, to a child id with no running child, or to `parent` from a root actor now produces a dead letter with reason `'missingTarget'`: the actor stays `active`, `onRejectedEvent` receives the event (with `targetId` and `sourceRef`), and development builds log a warning naming the sender and the target. State `onError` handlers no longer receive `xstate.error.communication` for these sends.
+  
+  ```ts
+  const actor = createActor(machine, {
+    onRejectedEvent: (rejection) => {
+      if (rejection.reason === 'missingTarget') {
+        console.log(rejection.event, rejection.targetId);
+      }
+    }
+  });
+  ```
+- d62cdc7: Actors are single-use. Calling `start()` on an actor after `stop()` now throws `Actor <id> was stopped and cannot be restarted. Create a new actor with createActor().` in all builds, instead of silently doing nothing. Calling `start()` on a running actor, or on an actor that already completed or errored, is still a no-op.
+  
+  ```ts
+  actor.stop();
+  actor.start(); // throws
+  
+  const next = createActor(machine).start();
+  ```
+- 3e024f9: When delays are declared (`setup({ delays })` or `createMachine({ delays })`), each `after` key must be a declared delay name, a number of milliseconds or a duration string such as `'5s'`. The error now names the offending key. Duration strings are no longer rejected when named delays are declared. Duration keys are checked against the forms the runtime parses: integer milliseconds (`'250ms'`), decimal seconds (`'1.5s'`) and ISO 8601 durations (`'PT1M30S'`). Malformed keys such as `'Pfoo'` or `'1.5ms'` are type errors.
+  
+  ```ts
+  setup({ delays: { retryDelay: 1_000 } }).createMachine({
+    initial: 'waiting',
+    states: {
+      waiting: {
+        after: {
+          // Type error: Delay 'retryDelya' is not declared in delays.
+          retryDelya: { target: 'retrying' }
+        }
+      },
+      retrying: {}
+    }
+  });
+  ```
+  
+  Fix the name, or declare the delay in `delays`.
+  
+  At runtime, a delay that is neither a configured delay name nor a valid duration string now errors the actor with `Invalid delay "…"` instead of firing immediately.
+- 3e024f9: When `schemas.events` is declared, every key in a state's `on` map must match a declared event type. Wildcards (`'*'`, `'user.*'`) and reserved `xstate.*` event types remain allowed. Machines without `schemas.events` are unchanged.
+  
+  ```ts
+  setup({
+    schemas: { events: { toggle: z.object({}) } }
+  }).createMachine({
+    on: {
+      // Type error: Event type 'toggel' is not declared in schemas.events.
+      toggel: { target: '.active' }
+    }
+  });
+  ```
+  
+  Fix the typo, or declare the event in `schemas.events`.
+- d62cdc7: Unhandled events are now observable.
+  
+  - `transition(logic, snapshot, event)` returns the same snapshot object and no effects when no transition handles the event. A handled event always returns a new snapshot object, including a transition function that returns `{}`.
+  - New `isUnhandled(previousSnapshot, result)` helper.
+  - New `onUnhandledEvent(event, snapshot)` option for `createActor(...)`.
+  - Development builds warn once per event type per actor. Internal `xstate.*` events are not reported.
+  
+  ```ts
+  import { createActor, isUnhandled, transition } from 'xstate';
+  
+  const result = transition(machine, snapshot, { type: 'unknown' });
+  isUnhandled(snapshot, result); // true
+  
+  createActor(machine, {
+    onUnhandledEvent: (event, snapshot) => {
+      console.log(`${event.type} not handled in`, snapshot.value);
+    }
+  });
+  ```
+- ef251fa: Development builds now report leftover v5 configuration (`cond`, `types`, string actions, …) with the v6 replacement instead of ignoring it.
+  
+  ```ts
+  // Before: `cond` was silently ignored, so the transition was always taken
+  createMachine({
+    initial: 'idle',
+    states: {
+      idle: {
+        on: { submit: { target: 'sending', cond: ({ context }) => context.valid } }
+      },
+      sending: {}
+    }
+  });
+  // Now throws: Transition "submit" in state "(machine).idle" uses "cond",
+  // which was removed. Use an inline transition function instead: ...
+  
+  // After
+  createMachine({
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          submit: ({ context }) => {
+            if (!context.valid) return;
+            return { target: 'sending' };
+          }
+        }
+      },
+      sending: {}
+    }
+  });
+  ```
+  
+  `cond`, object-form `guard`, transition `actions`, non-function `entry`/`exit`, `types`, `tsTypes` and `schema` throw. `services`, `activities`, `predictableActionArguments`, `preserveActionOrder`, `strict` and `devTools` log a warning. Machines built with `createMachineFromConfig` or `createMachineFromSCXML` are not checked.
+
+### Patch Changes
+
+- 0fe9afe: React Fast Refresh keeps the running actor and its state when you edit a machine. In development builds, `useActorRef()`, `useActor()` and `useMachine()` switch the running actor to the edited machine, so the current state and context are kept, including context that holds DOM elements or cyclic objects. If the edited machine cannot represent the current state, the actor restarts from the edited machine. Production builds are unaffected.
+- 73fa80b: Final states are now inert everywhere, including final regions of a parallel state, matching SCXML: they take no transitions and their invoked actors are not created or started. In development, `createMachine` warns when any final state declares `invoke`, `on` or `after`.
+  
+  Move transitions off a final region onto a non-final state:
+  
+  ```ts
+  region: {
+    initial: 'active',
+    states: {
+      active: { on: { NEXT: { target: 'done' } } },
+      done: { type: 'final' }
+    }
+  }
+  ```
+- 8576291: Persisting a snapshot whose `context` contains a circular reference now throws a descriptive error instead of a `RangeError` (maximum call stack size exceeded). Shared references that are not circular still persist.
+  
+  ```ts
+  const node: Record<string, unknown> = {};
+  node.self = node;
+  const machine = createMachine({ id: 'tree', context: { node } });
+  
+  createActor(machine).getPersistedSnapshot();
+  // Error: Cannot persist actor "tree": circular reference at context.node.self
+  ```
+- 8576291: In development builds, `getPersistedSnapshot()` warns when `context`, `output`, `error` or state inputs contain a value that does not survive a JSON round-trip: a function, symbol, `BigInt`, `NaN` or `Infinity`, `Map`, `Set` or circular reference. The warning names the path of the first such value.
+- d62cdc7: Restoring a snapshot whose state has `always` transitions or is a choice state now logs a development warning: restored snapshots are not re-evaluated, so those eventless transitions do not run until the next event.
+- d62cdc7: A persisted snapshot that fails to restore (for example, an unknown state in `value` or a machine id mismatch) now produces a full machine snapshot with `status: 'error'` and the failure as `error`, instead of a bare `{ status, output, error }` object. `snapshot.matches(...)`, `snapshot.can(...)` and the other snapshot methods keep working.
+- d62cdc7: Restoring a persisted snapshot with `status: 'stopped'` now yields a stopped actor. Previously the restored actor kept processing events, running transitions and actions while reporting `status: 'stopped'`.
+- d62cdc7: A transition function that returns a promise now throws a descriptive execution error (recoverable with a state `onError`) instead of leaving the actor unchanged with an internal error. The returned promise's rejection is observed, so no unhandled rejection is reported. Calling `enq.*` after the transition function returned now throws in development and does nothing in production.
+
 ## 6.0.0-alpha.60
 
 ### Patch Changes

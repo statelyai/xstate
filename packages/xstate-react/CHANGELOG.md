@@ -1,5 +1,32 @@
 # Changelog
 
+## 7.0.0-alpha.4
+
+### Minor Changes
+
+- 0fe9afe: `useActorRef()`, `useActor()` and `useMachine()` now use the machine passed on the first render for the lifetime of the component, like a `useState` initializer. Passing a different machine object on a later render no longer stops the actor and starts a new one from its persisted snapshot.
+  
+  Creating the machine inside the component no longer resets state or causes render loops, so wrapping it in `useMemo` is no longer needed:
+  
+  ```tsx
+  function Toggle() {
+    // Created on every render; only the first one is used.
+    const [snapshot, send] = useMachine(createMachine({ /* ... */ }));
+    // ...
+  }
+  ```
+  
+  Vary a running machine with `input` or `machine.provide()` (provided implementations are still picked up on every render). To switch to a different machine, change the component's `key`:
+  
+  ```tsx
+  <Editor key={mode} machine={mode === 'draft' ? draftMachine : reviewMachine} />
+  ```
+
+### Patch Changes
+
+- 0fe9afe: React Fast Refresh keeps the running actor and its state when you edit a machine. In development builds, `useActorRef()`, `useActor()` and `useMachine()` switch the running actor to the edited machine, so the current state and context are kept, including context that holds DOM elements or cyclic objects. If the edited machine cannot represent the current state, the actor restarts from the edited machine. Production builds are unaffected.
+- 73fa80b: `useActor`, `useActorRef` and `useMachine` now require `input` for machines that declare a required input schema, matching `createActor`. Passing a persisted `snapshot` instead of `input` is allowed.
+
 ## 7.0.0-alpha.3
 
 ### Patch Changes
