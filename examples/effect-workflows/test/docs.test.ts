@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,6 +8,12 @@ const docs = resolve(exampleRoot, '../../packages/xstate-effect/docs');
 describe('published Effect examples', () => {
   for (const page of readdirSync(docs).filter((name) => name.endsWith('.md'))) {
     const source = readFileSync(resolve(docs, page), 'utf8');
+    it(`${page} links to existing Markdown sources`, () => {
+      for (const [, href] of source.matchAll(/\]\(([^)]+\.md(?:#[^)]*)?)\)/g)) {
+        if (/^[a-z]+:/i.test(href)) continue;
+        expect(existsSync(resolve(docs, href.split('#')[0])), href).toBe(true);
+      }
+    });
     it(`${page} uses the package title`, () => {
       expect(source).toMatch(/^title: "XState Effect: /m);
     });

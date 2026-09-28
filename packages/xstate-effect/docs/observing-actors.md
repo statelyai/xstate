@@ -120,7 +120,93 @@ console.log(result); // [{ type: 'reminder', message: 'Review pending' }]
 
 ## Inspect execution
 
-`inspect(actor)` streams [inspection events](../inspection.md) for the actor's system. Use `Stream.runForEach(inspect(actor), ...)` to record actor creation and transitions. Start that consumer before the events you want to inspect, and keep it in the same scope as the actor.
+`inspect(actor)` streams [inspection events](../../../docs/inspection.md) for the actor's system. Use `Stream.runForEach(inspect(actor), ...)` to record actor creation and transitions. Start that consumer before the events you want to inspect, and keep it in the same scope as the actor.
+
+For a visual inspector, forward `actor.inspect` events through the SDK's `actor`, `event` and `snapshot` methods, using session IDs to identify actors across execution steps. This demo uses the optional `INSPECT=1` flag and releases the subscription and inspector with its Effect scope:
+
+<!-- example from examples/effect-workflows/src/inspection.ts -->
+
+```ts
+import { createInspector } from '@statelyai/sdk';
+import { Effect } from 'effect';
+import type { Snapshot } from 'xstate';
+import {
+  createEffectActor,
+  fromEffect,
+  join,
+  send,
+  setupEffect
+} from '@xstate/effect';
+
+const reviewMachine = setupEffect({
+  actors: { publish: fromEffect(Effect.succeed('Release published')) }
+}).createMachine({
+  id: 'releaseReview',
+  output: () => 'Release published',
+  initial: 'awaitingApproval',
+  states: {
+    awaitingApproval: { on: { APPROVE: { target: 'publishing' } } },
+    publishing: { invoke: { src: 'publish', onDone: { target: 'published' } } },
+    published: { type: 'final' }
+  }
+});
+
+// Keep wire snapshots JSON-safe; actor snapshots contain live child references.
+const inspectorSnapshot = (snapshot: Snapshot<unknown>) => ({
+  status: snapshot.status,
+  ...('value' in snapshot ? { value: snapshot.value } : {})
+});
+
+export const program = Effect.gen(function* () {
+  const inspector = yield* Effect.acquireRelease(
+    Effect.sync(() =>
+      process.env.INSPECT === '1' ? createInspector() : undefined
+    ),
+    (inspector) => Effect.sync(() => inspector?.destroy())
+  );
+  const actor = yield* createEffectActor(reviewMachine);
+  if (inspector) {
+    inspector.actor(actor.sessionId!, {
+      machine: reviewMachine.config,
+      snapshot: inspectorSnapshot(actor.getSnapshot())
+    });
+    yield* Effect.acquireRelease(
+      Effect.sync(() =>
+        actor.inspect((event) => {
+          // Session IDs stay stable across Effect's pure execution steps.
+          const id = event.actorRef.sessionId!;
+          if (event.type === '@xstate.actor') {
+            inspector.actor(id, {
+              parent: event.parentRef?.sessionId,
+              snapshot: inspectorSnapshot(event.snapshot)
+            });
+          } else {
+            inspector.event(id, event.event, {
+              source: event.sourceRef?.sessionId
+            });
+            inspector.snapshot(
+              id,
+              inspectorSnapshot(event.snapshot),
+              event.event
+            );
+            if (event.snapshot.status !== 'active') inspector.stop(id);
+          }
+        })
+      ),
+      (subscription) => Effect.sync(() => subscription.unsubscribe())
+    );
+    // Let the inspector connect before the demo sends its first event.
+    yield* Effect.promise(() => inspector.ready);
+  }
+  yield* send(actor, { type: 'APPROVE' });
+  return yield* join(actor);
+});
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result); // 'Release published'
+```
+
+Run it with `INSPECT=1 pnpm --filter @xstate/example-effect-workflows start`. This opens the Stately inspector and sends machine definitions, snapshots and events to its hosted relay. Without the flag, the demo runs locally.
 
 ## Dead letters
 

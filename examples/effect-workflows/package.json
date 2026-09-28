@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "docs:sync": "node sync-docs.mjs",
-    "start": "tsx src/approval.ts",
+    "start": "tsx src/inspection.ts",
     "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@effect/atom-react": "4.0.0-rc.115",
+    "@statelyai/sdk": "^0.20.1",
     "@xstate/effect": "workspace:*",
     "@xstate/react": "workspace:*",
     "effect": "4.0.0-rc.115",

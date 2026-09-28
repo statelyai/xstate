@@ -36,6 +36,7 @@ Features per example. `—` means not used or not determined.
 | agent-streaming-response        | Node           | —      | —        | yes    | —     | yes    | —           | —     | no  |
 | agent-structured-output         | Node           | —      | —        | yes    | —     | —      | —           | —     | no  |
 | counter                         | Vanilla + Vite | —      | —        | —      | —     | —      | —           | —     | yes |
+| effect-workflows                | Node + React   | —      | yes      | yes    | —     | yes    | —           | —     | yes |
 | express-workflow                | Express        | —      | —        | —      | —     | —      | yes         | —     | no  |
 | fetch                           | Vanilla + Vite | —      | —        | yes    | —     | yes    | —           | —     | yes |
 | friends-list-react              | React          | —      | —        | yes    | yes   | —      | —           | —     | yes |

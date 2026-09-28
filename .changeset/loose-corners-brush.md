@@ -16,3 +16,5 @@ const session = Effect.acquireRelease(
   () => Effect.log('Session closed')
 ).pipe(withActorScope);
 ```
+
+Improve XState Effect guides with complete, tested workflow, stream, inspection and React examples.

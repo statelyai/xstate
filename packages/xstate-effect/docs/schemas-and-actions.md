@@ -3,7 +3,7 @@ title: "XState Effect: Schemas and actions"
 description: Type workflow data and run background work with setupEffect.
 ---
 
-`setupEffect` is the Effect-aware form of XState's [`setup`](../setup-and-provide.md).
+`setupEffect` is the Effect-aware form of XState's [`setup`](../../../docs/setup-and-provide.md).
 
 - Declare input, context, events and output with Effect schemas.
 - Register actions that return Effects.

@@ -47,7 +47,7 @@ console.log(result); // 'expired', with no 30-second wait
 - Add `waitFor`'s `{ timeout }` to bound a wait. With `TestClock`, advance the clock to trigger that timeout too.
 - Use `inspect` for execution traces and `deadLetters` for delivery failures.
 
-XState's [path generation](../model-based-testing.md) works on the machine itself. Execute generated paths against an actor from `createEffectActor`, or use `testPaths()` from `@xstate/test`.
+XState's [path generation](../../../docs/model-based-testing.md) works on the machine itself. Execute generated paths against an actor from `createEffectActor`, or use `testPaths()` from `@xstate/test`.
 
 ## Retry a task
 

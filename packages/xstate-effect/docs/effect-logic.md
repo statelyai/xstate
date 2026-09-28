@@ -3,7 +3,7 @@ title: "XState Effect: Actor logic"
 description: Use Effect tasks and streams as parts of an event-driven workflow.
 ---
 
-Turn an Effect or Stream into [actor logic](../actor-logic.md) with one of these functions. Start it with `createEffectActor`, or invoke it from a machine running under `createEffectActor`.
+Turn an Effect or Stream into [actor logic](../../../docs/actor-logic.md) with one of these functions. Start it with `createEffectActor`, or invoke it from a machine running under `createEffectActor`.
 
 | Function | Use it for |
 | --- | --- |

@@ -1059,6 +1059,9 @@ importers:
       '@effect/atom-react':
         specifier: 4.0.0-rc.115
         version: 4.0.0-rc.115(effect@4.0.0-rc.115)(react@19.1.0)(scheduler@0.27.0)
+      '@statelyai/sdk':
+        specifier: ^0.20.1
+        version: 0.20.3(zod@4.4.3)
       '@xstate/effect':
         specifier: workspace:*
         version: link:../../packages/xstate-effect
