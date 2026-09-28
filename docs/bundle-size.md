@@ -3,8 +3,14 @@
 <!-- commands and behavior from package.json scripts, scripts/bundle-size.mjs, scripts/bundle-size-verify.mjs, scripts/bundle-size.targets.json, scripts/bundle-size.thresholds.json, and .github/actions/ci-checks/action.yml -->
 
 `pnpm bench:size` bundles representative XState, store, and adapter entry points
-from source. It reports esbuild and Terser minified and gzipped sizes, then checks
-the esbuild gzip results against `scripts/bundle-size.thresholds.json`.
+from source and reports esbuild and Terser minified and gzipped sizes. Use it for
+local measurement. CI does not check bundle size.
+
+By default the command also compares the esbuild gzip results against
+`scripts/bundle-size.thresholds.json` and exits non-zero when a profile exceeds
+its threshold. The thresholds are not maintained and may be out of date, so a
+default run can fail on unchanged code. `pnpm bench:size --report` prints the
+sizes without failing.
 
 Useful diagnostics:
 
@@ -18,10 +24,11 @@ pnpm build
 pnpm bench:size --dist                   # Inspect the latest production build
 ```
 
-Add `--baseline=<commit>` to compare the current profiles with source at that
-commit. CI does not currently run the bundle-size check, so run it locally
-before changing bundle-sensitive code. A threshold is the regression line and
-fails when exceeded; a target in `scripts/bundle-size.targets.json` is an
+`--baseline=<rev>` measures the source at that revision instead of the current
+checkout, and requires `--report`. To compare, run
+`pnpm bench:size --report --baseline=<rev>` and `pnpm bench:size --report`
+separately. A threshold in `scripts/bundle-size.thresholds.json` fails the
+default run when exceeded; a target in `scripts/bundle-size.targets.json` is an
 informational goal and does not fail the run.
 
 When a source-size increase is intentional, run `pnpm bench:size:update`, review
