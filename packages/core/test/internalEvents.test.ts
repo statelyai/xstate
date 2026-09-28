@@ -10,13 +10,13 @@ import {
 import z from 'zod';
 
 describe('internalEvents', () => {
-  it('keeps config-level internal events out of setup machines public protocol', () => {
+  it('keeps setup-level internal events out of the public protocol', () => {
     const machine = setup({
       schemas: {
-        events: { GO: types<{}>(), TICK: types<{}>() }
+        events: { GO: types<{}>() },
+        internalEvents: { TICK: types<{}>() }
       }
     }).createMachine({
-      internalEvents: ['TICK'] as const,
       initial: 'idle',
       states: { idle: { on: { GO: {}, TICK: {} } } }
     });
@@ -25,7 +25,7 @@ describe('internalEvents', () => {
     const publicEvent: Sendable = { type: 'GO' };
     expect(publicEvent.type).toBe('GO');
     if (false) {
-      // @ts-expect-error Config-level internal events are not public.
+      // @ts-expect-error Internal events are not public.
       const internalEvent: Sendable = { type: 'TICK' };
       // @ts-expect-error External callers cannot send an internal event.
       actor.send({ type: 'TICK' });
@@ -36,9 +36,11 @@ describe('internalEvents', () => {
 
   it('keeps registered child internal events private for both spawn forms', () => {
     const child = setup({
-      schemas: { events: { GO: types<{}>(), TICK: types<{}>() } }
+      schemas: {
+        events: { GO: types<{}>() },
+        internalEvents: { TICK: types<{}>() }
+      }
     }).createMachine({
-      internalEvents: ['TICK'] as const,
       initial: 'idle',
       states: { idle: { on: { GO: {}, TICK: {} } } }
     });
@@ -122,11 +124,12 @@ describe('internalEvents', () => {
     const machine = createMachine({
       schemas: {
         events: {
-          foo: z.object({}),
+          foo: z.object({})
+        },
+        internalEvents: {
           tick: z.object({})
         }
       },
-      internalEvents: ['tick'] as const,
       initial: 'idle',
       states: {
         idle: {
@@ -151,11 +154,12 @@ describe('internalEvents', () => {
     const machine = createMachine({
       schemas: {
         events: {
-          foo: z.object({}),
+          foo: z.object({})
+        },
+        internalEvents: {
           tick: z.object({})
         }
       },
-      internalEvents: ['tick'] as const,
       initial: 'idle',
       states: {
         idle: {
@@ -189,14 +193,22 @@ describe('internalEvents', () => {
     );
   });
 
+  it('throws in development for the removed top-level internalEvents key', () => {
+    expect(() =>
+      createMachine({
+        // @ts-expect-error removed; use `schemas.internalEvents`
+        internalEvents: ['tick']
+      })
+    ).toThrow('schemas.internalEvents');
+  });
+
   it('rejects sending wildcard-matched internal events from outside', () => {
     const machine = createMachine({
       schemas: {
-        events: {
-          'change.value': z.object({ value: z.string() })
+        internalEvents: {
+          'change.*': z.object({ value: z.string() })
         }
       },
-      internalEvents: ['change.*'] as const,
       initial: 'idle',
       states: {
         idle: {

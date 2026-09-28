@@ -93,16 +93,10 @@ types, and types matched by a wildcard, are removed from what `actor.send` and
 runtime rejection. They remain fully typed inside the machine for `on`
 handlers, guards, actions, `enq.raise` and [transitions](transitions.md).
 
-The legacy top-level form remains supported for migration:
-
-```ts
-schemas: { events: { tick: z.object({}) } },
-internalEvents: ['tick'] as const
-```
-
-It is deprecated; move each listed event to `schemas.internalEvents`. The
-legacy list is useful when a machine's existing public event schemas are being
-split incrementally.
+The top-level `internalEvents: ['tick']` list was removed before 6.0. Move
+each listed event's schema from `schemas.events` to `schemas.internalEvents`.
+In development builds, a machine config with a top-level `internalEvents` key
+throws an error naming `schemas.internalEvents`.
 
 ## Internal events cheatsheet
 

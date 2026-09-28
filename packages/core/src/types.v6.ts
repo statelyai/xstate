@@ -213,12 +213,6 @@ type DistributiveOmit<T, K extends keyof any> = T extends any
   ? Omit<T, K>
   : never;
 
-type InternalEventDescriptorFor<TEvent extends EventObject> = [TEvent] extends [
-  never
-]
-  ? string
-  : EventDescriptor<TEvent>;
-
 /**
  * Runtime options for state machine execution.
  *
@@ -350,8 +344,6 @@ export type Next_MachineConfig<
    * being accepted and silently ignored: nothing reads it in v6.
    */
   types?: RemovedTypesKey;
-  /** @deprecated Declare private event schemas in `schemas.internalEvents`. */
-  internalEvents?: readonly InternalEventDescriptorFor<TEvent>[];
   schemas?: MachineSchemas<
     TContextSchema,
     TEventSchemaMap,

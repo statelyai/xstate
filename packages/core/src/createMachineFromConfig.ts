@@ -167,6 +167,11 @@ export interface MachineJSON extends StateNodeJSON {
     number | string | { duration: number | string | ResolvableJSON }
   >;
   schemas?: Record<string, unknown>;
+  /**
+   * Event types that only the machine itself (and its children) may send;
+   * external senders are rejected with reason `internalEvent`.
+   */
+  internalEvents?: string[];
 }
 
 type EvaluatorSlot =
@@ -1061,6 +1066,14 @@ export function createMachineFromConfig(
     ...contextConfig,
     version: json.version
   }) as unknown as AnyStateMachine;
+  if (json.internalEvents?.length) {
+    // Restored on the machine, not the config: the top-level author key is
+    // gone, so revived names bypass author config entirely.
+    (machine as any).internalEventDescriptors = [
+      ...(machine as any).internalEventDescriptors,
+      ...json.internalEvents
+    ];
+  }
   const provided = machine.provide({
     actions: resolvedSources.actions,
     actors: resolvedSources.actors,

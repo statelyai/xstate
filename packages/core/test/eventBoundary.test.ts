@@ -111,8 +111,7 @@ describe('event boundary: reject and report', () => {
 
   it('rejects queued deliveries of internal event types from outside', () => {
     const machine = createMachine({
-      schemas: { events: { tick: z.object({}) } },
-      internalEvents: ['tick'] as const,
+      schemas: { internalEvents: { tick: z.object({}) } },
       initial: 'idle',
       states: {
         idle: { on: { tick: { target: 'done' } } },
@@ -157,12 +156,13 @@ describe('event boundary: reject and report', () => {
       validator: standardSchemaValidator(),
       schemas: {
         events: {
-          START: z.object({}),
+          START: z.object({})
+        },
+        internalEvents: {
           tick: z.object({ count: z.number() })
         }
       }
     }).createMachine({
-      internalEvents: ['tick'] as const,
       initial: 'idle',
       states: {
         idle: {

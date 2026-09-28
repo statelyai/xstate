@@ -425,12 +425,13 @@ describe('internalEvents', () => {
     const machine = createMachine({
       schemas: {
         events: {
-          foo: z.object({}),
+          foo: z.object({})
+        },
+        internalEvents: {
           tick: z.object({}),
-          'change.value': z.object({ value: z.string() })
+          'change.*': z.object({ value: z.string() })
         }
       },
-      internalEvents: ['tick', 'change.*'],
       on: {
         foo: (_, enq) => {
           enq.raise({ type: 'foo' });
@@ -448,12 +449,13 @@ describe('internalEvents', () => {
     const machine = createMachine({
       schemas: {
         events: {
-          foo: z.object({}),
+          foo: z.object({})
+        },
+        internalEvents: {
           tick: z.object({}),
-          'change.value': z.object({ value: z.string() })
+          'change.*': z.object({ value: z.string() })
         }
       },
-      internalEvents: ['tick', 'change.*'] as const,
       on: {
         foo: {}
       }
@@ -500,28 +502,18 @@ describe('internalEvents', () => {
     void _expectTriggerRejected;
   });
 
-  it('should reject nonexistent and invalid internal event descriptors', () => {
-    createMachine({
-      schemas: {
-        events: {
-          foo: z.object({}),
-          'change.value': z.object({ value: z.string() })
-        }
-      },
-      // @ts-expect-error
-      internalEvents: ['nonexistent'] as const
-    });
-
-    createMachine({
-      schemas: {
-        events: {
-          foo: z.object({}),
-          'change.value': z.object({ value: z.string() })
-        }
-      },
-      // @ts-expect-error
-      internalEvents: ['foo.*.invalid'] as const
-    });
+  it('should reject the removed top-level internalEvents key', () => {
+    if (false) {
+      createMachine({
+        schemas: {
+          events: {
+            foo: z.object({})
+          }
+        },
+        // @ts-expect-error use `schemas.internalEvents`
+        internalEvents: ['foo'] as const
+      });
+    }
   });
 });
 
@@ -5130,7 +5122,10 @@ describe('input', () => {
     }).getPersistedSnapshot();
 
     createActor(machine, { snapshot: persisted });
-    createActor(machine, { state: persisted });
+    if (false) {
+      // @ts-expect-error the removed `state` option does not satisfy the input requirement
+      createActor(machine, { state: persisted });
+    }
     // @ts-expect-error input is required without a snapshot
     createActor(machine, { inspect: () => {} });
   });
@@ -6636,6 +6631,7 @@ it('createSystem().createActor requires input for required-input machines', () =
       .createActor(machine, { input: { id: 'a' } })
       .getPersistedSnapshot();
     app.createActor(machine, { snapshot: persisted });
+    // @ts-expect-error the removed `state` option does not satisfy the input requirement
     app.createActor(machine, { state: persisted });
 
     // optional-input logic still accepts no options
