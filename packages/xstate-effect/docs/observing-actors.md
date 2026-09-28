@@ -116,7 +116,7 @@ console.log(result); // [{ type: 'reminder', message: 'Review pending' }]
 
 `Stream.take(1)` ends this consumer after one reminder. Use `Stream.runForEach` for a subscriber that handles ongoing notifications. Emitted events are not replayed; start the consumer before the events you need to observe.
 
-`emitted` runs until interrupted or its scope closes. It removes its listener when the consumer ends.
+`emitted` ends when the actor completes, errors or stops. Interrupting the consumer also ends it and removes its listener.
 
 ## Inspect execution
 
