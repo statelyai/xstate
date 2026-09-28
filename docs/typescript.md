@@ -31,12 +31,19 @@ const machine = setup({
 
 A declared input schema makes `input` required: `createActor(machine)` is a type error until you pass `{ input }` (or restore a `snapshot`). Framework hooks such as `useActor`, `useActorRef` and `useMachine` inherit the same requirement. `createActorContext` from `@xstate/react` is the exception: `input` stays optional because its options are merged from the context defaults and the `<Provider options>` prop, so a missing input surfaces at runtime as an initialization error instead.
 
+<!-- state-contract typing and declaration emit from packages/core/src/setup.ts and packages/core/test/declarations.test.ts -->
+
 Structural state contracts are checked only when declared. For example,
 `type: 'parallel'` forbids `initial`, while `type: 'compound'` requires one.
 `setup(...)` can supply those defaults, so the machine config may omit them.
 Existing setups that declare only schemas keep their permissive machine-config
 typing. A state-level `schemas.context` is intersected with the root context
 schema, so it can declare only the fields that state narrows.
+
+Machines created with `setup(...).createMachine(...)` can be exported with
+TypeScript declaration generation enabled, including machines with state-level
+context schemas and function-form transitions. No explicit machine type
+annotation is required.
 
 Public schema event keys create typed methods on `actor.trigger`; internal
 schema keys do not appear in the public trigger namespace.
