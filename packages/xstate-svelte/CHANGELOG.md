@@ -1,5 +1,12 @@
 # @xstate/svelte
 
+## 6.0.0-alpha.3
+
+### Patch Changes
+
+- 73fa80b: `useActor`, `useActorRef` and `useMachine` now require `input` for machines that declare a required input schema, matching `createActor`. Passing a persisted `snapshot` instead of `input` is allowed.
+- aa49aee: Publish `@xstate/svelte` as an ES module so `import` resolves to real ESM instead of a CommonJS wrapper. This fixes Vitest and other ESM tooling failing with `require('svelte/store')` errors against Svelte's ESM-only builds. `require('@xstate/svelte')` still works on Node versions that support `require(esm)`.
+
 ## 6.0.0-alpha.2
 
 ### Patch Changes

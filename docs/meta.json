@@ -23,6 +23,7 @@
     "durable-execution",
     "persist-and-restore-actors",
     "testing",
+    "model-based-testing",
     "inspect-actor-systems",
     "troubleshooting",
     "configuration",

@@ -3,9 +3,7 @@ import {
   StateNode,
   TransitionDefinition,
   Snapshot,
-  MachineContext,
-  ActorLogic,
-  MachineSnapshot
+  ActorLogic
 } from '..';
 
 /** @public */
@@ -107,11 +105,6 @@ export type Steps<
   TEvent extends EventObject
 > = Array<Step<TSnapshot, TEvent>>;
 
-type ExtractEvent<
-  TEvent extends EventObject,
-  TType extends TEvent['type']
-> = TEvent extends { type: TType } ? TEvent : never;
-
 /** @public */
 export interface VisitedContext<TState, TEvent> {
   vertices: Set<SerializedSnapshot>;
@@ -183,112 +176,6 @@ type Brand<T, Tag extends string> = T & { __tag: Tag };
 export type SerializedSnapshot = Brand<string, 'state'>;
 /** @public */
 export type SerializedEvent = Brand<string, 'event'>;
-
-/** @public */
-export interface TestMeta<T, TContext extends MachineContext> {
-  test?: (
-    testContext: T,
-    state: MachineSnapshot<
-      TContext,
-      any,
-      any,
-      any,
-      any,
-      any,
-      any, // TMeta
-      any // TStateSchema
-    >
-  ) => Promise<void> | void;
-  description?:
-    | string
-    | ((
-        state: MachineSnapshot<
-          TContext,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any, // TMeta
-          any // TStateSchema
-        >
-      ) => string);
-  skip?: boolean;
-}
-interface TestStateResult {
-  error: null | Error;
-}
-/** @public */
-export interface TestStepResult {
-  step: Step<any, any>;
-  state: TestStateResult;
-  event: {
-    error: null | Error;
-  };
-}
-
-/** @public */
-export interface TestParam<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> {
-  states?: {
-    [key: string]: (state: TSnapshot) => void | Promise<void>;
-  };
-  events?: {
-    [TEventType in TEvent['type']]?: EventExecutor<
-      TSnapshot,
-      ExtractEvent<TEvent, TEventType>
-    >;
-  };
-}
-
-/** @public */
-export interface TestPath<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> extends StatePath<TSnapshot, TEvent> {
-  description: string;
-  /**
-   * Tests and executes each step in `steps` sequentially, and then tests the
-   * postcondition that the `state` is reached.
-   */
-  test: (params: TestParam<TSnapshot, TEvent>) => Promise<TestPathResult>;
-}
-/** @public */
-export interface TestPathResult {
-  steps: TestStepResult[];
-  state: TestStateResult;
-}
-
-/**
- * Executes an effect using the `testContext` and `event` that triggers the
- * represented `event`.
- *
- * @public
- */
-export type EventExecutor<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject
-> = (step: Step<TSnapshot, TEvent>) => Promise<any> | void;
-
-/** @public */
-export interface TestModelOptions<
-  TSnapshot extends Snapshot<unknown>,
-  TEvent extends EventObject,
-  TInput
-> extends TraversalOptions<TSnapshot, TEvent, TInput> {
-  stateMatcher: (state: TSnapshot, stateKey: string) => boolean;
-  logger: {
-    log: (msg: string) => void;
-    error: (msg: string) => void;
-  };
-  serializeTransition: (
-    state: TSnapshot,
-    event: TEvent | undefined,
-    prevState?: TSnapshot
-  ) => string;
-}
 
 /** @public */
 export type PathGenerator<

@@ -4,7 +4,7 @@ import {
   attachSnapshotActorRef,
   createInertActorScope,
   setInertActorScopeSnapshot
-} from './getNextSnapshot';
+} from './inertActorScope';
 import {
   getProperAncestors,
   initialMicrostep,
@@ -33,17 +33,33 @@ import {
 
 import type { EventObject } from './types';
 
-type MachineMicrostep = [AnyMachineSnapshot, ExecutableActionObject[]];
+type MachineMicrostep = [
+  AnyMachineSnapshot,
+  ExecutableActionObject[],
+  AnyTransitionDefinition[]
+];
 
 function attachMicrostepActorRefs(
-  microsteps: MachineMicrostep[],
+  microsteps: ReadonlyArray<
+    readonly [
+      AnyMachineSnapshot,
+      ExecutableActionObject[],
+      AnyTransitionDefinition[]?
+    ]
+  >,
   actorScope: AnyActorScope,
   inputSnapshot?: AnyMachineSnapshot
 ): MachineMicrostep[] {
-  if (!microsteps.length) {
-    return microsteps;
+  const result = microsteps.map(
+    ([snapshot, actions, transitions]): MachineMicrostep => [
+      snapshot,
+      actions,
+      transitions ?? []
+    ]
+  );
+  if (!result.length) {
+    return result;
   }
-  const result = microsteps.slice();
   const finalSnapshot = result.at(-1)![0];
   setInertActorScopeSnapshot(actorScope, finalSnapshot, false);
   if (finalSnapshot !== inputSnapshot) {
@@ -94,6 +110,30 @@ export function transition<T extends AnyActorLogic>(
       : attachSnapshotActorRef(actorScope, nextSnapshot);
   inspectPureTransition(actorScope, returnedSnapshot, event);
   return [returnedSnapshot, effects as ExecutableActionObjectFromLogic<T>[]];
+}
+
+/**
+ * Returns `true` when `result` (from {@link transition}) means no transition
+ * handled the event: the snapshot is the same object as `previousSnapshot`
+ * and there are no effects. A handled event always yields a new snapshot
+ * object, even when nothing in it changed.
+ *
+ * @example
+ *
+ * ```ts
+ * const result = transition(machine, snapshot, event);
+ * if (isUnhandled(snapshot, result)) {
+ *   console.warn(`Unhandled event: ${event.type}`);
+ * }
+ * ```
+ *
+ * @public
+ */
+export function isUnhandled(
+  previousSnapshot: unknown,
+  result: readonly [snapshot: unknown, effects: readonly unknown[]]
+): boolean {
+  return result[0] === previousSnapshot && result[1].length === 0;
 }
 
 /**
@@ -150,7 +190,11 @@ function inspectPureTransition(
 
 /**
  * Given a state `machine`, a `snapshot`, and an `event`, returns an array of
- * microsteps, where each microstep is a tuple of `[snapshot, actions]`.
+ * microsteps, where each microstep is a tuple of `[snapshot, actions,
+ * transitions]`. `transitions` are the transitions taken in that microstep,
+ * including eventless transitions and transitions for raised events; it is
+ * empty for microsteps that take no transition (for example, a stop or timer
+ * microstep).
  *
  * This is a pure function that does not execute `actions`.
  *
@@ -160,23 +204,37 @@ export function getMicrosteps<T extends AnyStateMachine>(
   machine: T,
   snapshot: SnapshotFrom<T>,
   event: EventFromLogic<T>
-): Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]> {
+): Array<
+  [
+    SnapshotFrom<T>,
+    ExecutableActionObjectFromLogic<T>[],
+    AnyTransitionDefinition[]
+  ]
+> {
   const actorScope = createInertActorScope(machine, snapshot);
   beginSpawnAllocation(actorScope);
 
   const { microsteps } = macrostep(snapshot, event, actorScope, []);
 
   return attachMicrostepActorRefs(
-    microsteps as MachineMicrostep[],
+    microsteps,
     actorScope,
     snapshot as AnyMachineSnapshot
-  ) as Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]>;
+  ) as Array<
+    [
+      SnapshotFrom<T>,
+      ExecutableActionObjectFromLogic<T>[],
+      AnyTransitionDefinition[]
+    ]
+  >;
 }
 
 /**
  * Given a state `machine` and optional `input`, returns an array of microsteps
  * from the initial transition, where each microstep is a tuple of `[snapshot,
- * actions]`.
+ * actions, transitions]`. `transitions` are the transitions taken in that
+ * microstep (see {@link getMicrosteps}); it is empty for the first microstep,
+ * which enters the initial states.
  *
  * This is a pure function that does not execute `actions`.
  *
@@ -187,7 +245,13 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
   ...[input]: undefined extends InputFrom<T>
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
-): Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]> {
+): Array<
+  [
+    SnapshotFrom<T>,
+    ExecutableActionObjectFromLogic<T>[],
+    AnyTransitionDefinition[]
+  ]
+> {
   const actorScope = createInertActorScope(machine);
   beginSpawnAllocation(actorScope);
   const initEvent = createInitEvent(input);
@@ -211,13 +275,16 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
     initEvent,
     actorScope,
     internalQueue,
-    [[first[0], [...contextSpawnEffects, ...first[1]]] as MachineMicrostep]
+    [[first[0], [...contextSpawnEffects, ...first[1]], []]]
   );
 
-  return attachMicrostepActorRefs(
-    microsteps as MachineMicrostep[],
-    actorScope
-  ) as Array<[SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]]>;
+  return attachMicrostepActorRefs(microsteps, actorScope) as Array<
+    [
+      SnapshotFrom<T>,
+      ExecutableActionObjectFromLogic<T>[],
+      AnyTransitionDefinition[]
+    ]
+  >;
 }
 
 /**

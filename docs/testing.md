@@ -138,7 +138,10 @@ For an order workflow, test the successful payment path and a declined payment r
 - [Swap implementations with `provide(...)`](setup-and-provide.md).
 - [Read what a snapshot contains](snapshots.md).
 - [Diagnose a machine that is not behaving](troubleshooting.md).
+- [Generate tests from a machine with `@xstate/test`](model-based-testing.md).
 
 ## Replaying a known event sequence
 
 `getPathsFromEvents(logic, events, options)` from `xstate/graph` follows only the supplied event sequence. It can replay finite sequences even when the logic has an unbounded reachable context, such as a counter. It honors `input`, `fromState`, `filterEvents`, `stopWhen`, and `toState`; a filtered or stopped step throws an invalid-transition error. `limit` bounds the number of replayed events. Custom state and event serializers may return any string, including empty strings and names such as `constructor`.
+
+`xstate/graph` only generates paths. To run a path against an implementation and compare it with the machine after every step, pass it to `testPaths(machine, { paths, sut })` from `@xstate/test`. See [Model-based testing](model-based-testing.md).

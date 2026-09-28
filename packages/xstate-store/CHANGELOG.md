@@ -1,5 +1,11 @@
 # @xstate/store
 
+## 4.3.0-alpha.4
+
+### Patch Changes
+
+- aa49aee: Removed nonexistent `undo`, `persist`, `reset`, and `validate` entries from the package's `files` field. Subpath imports such as `@xstate/store/undo` are unaffected; they resolve through `exports`.
+
 ## 4.3.0-alpha.3
 
 ### Patch Changes

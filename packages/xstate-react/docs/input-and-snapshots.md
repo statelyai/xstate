@@ -49,22 +49,33 @@ Pass a snapshot from [`actor.getPersistedSnapshot()`](../persistence.md) to resu
 
 ```tsx
 import { useActor } from '@xstate/react';
+import type { Snapshot } from 'xstate';
 
-function Checkout({ persisted }: { persisted?: Snapshot<unknown> }) {
-  const [snapshot, send] = useActor(checkoutMachine, {
-    snapshot: persisted
-  });
+function Checkout({
+  orderId,
+  persisted
+}: {
+  orderId: string;
+  persisted?: Snapshot<unknown>;
+}) {
+  const [snapshot, send] = useActor(
+    checkoutMachine,
+    persisted ? { snapshot: persisted } : { input: { orderId } }
+  );
 
   return <Step value={snapshot.value} onNext={() => send({ type: 'next' })} />;
 }
 ```
 
-`snapshot: undefined` is the same as passing nothing, so an optional prop or a `localStorage` read that finds nothing needs no branch.
+When the logic requires input, a snapshot that may be missing (an optional prop, or a `localStorage` read that finds nothing) needs a branch that passes `input` instead. Logic without required input accepts `snapshot: undefined`, which is the same as passing nothing.
 
 Save as the actor changes by subscribing to the actor reference. `getPersistedSnapshot()` is a method on the actor, not on the snapshot the subscriber receives.
 
 ```tsx
-const actorRef = useActorRef(checkoutMachine, { snapshot: persisted });
+const actorRef = useActorRef(
+  checkoutMachine,
+  persisted ? { snapshot: persisted } : { input: { orderId } }
+);
 
 useEffect(() => {
   const sub = actorRef.subscribe(() => {

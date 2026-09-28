@@ -44,11 +44,12 @@ describe('createFSM differential behavior', () => {
       let [machineSnapshot] = initialTransition(machine);
 
       for (const event of events) {
-        fsmSnapshot = fsm.transition(fsmSnapshot, event);
+        [fsmSnapshot] = fsm.transition(fsmSnapshot, event);
         [machineSnapshot] = transition(machine, machineSnapshot, event);
       }
 
       expect(fsmSnapshot).toEqual({
+        status: 'active',
         value: machineSnapshot.value,
         context: machineSnapshot.context
       });
@@ -92,11 +93,12 @@ describe('createFSM differential behavior', () => {
       let [machineSnapshot] = initialTransition(machine);
 
       for (const event of events) {
-        fsmSnapshot = fsm.transition(fsmSnapshot, event);
+        [fsmSnapshot] = fsm.transition(fsmSnapshot, event);
         [machineSnapshot] = transition(machine, machineSnapshot, event);
       }
 
       expect(fsmSnapshot).toEqual({
+        status: 'active',
         value: machineSnapshot.value,
         context: machineSnapshot.context
       });

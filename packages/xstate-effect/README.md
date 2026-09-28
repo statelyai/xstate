@@ -195,7 +195,7 @@ These are free functions that take any XState `ActorRef`, including the `EffectA
 | `waitFor(actor, predicate, { timeout })` | `Effect<Snapshot, ActorStoppedError \| Cause.TimeoutError>` |
 | `join(actor)`                            | `Effect<Output, ErrorFrom<Logic> \| ActorStoppedError>`     |
 | `inspect(actor)`                         | `Stream<InspectionEvent>`                                   |
-| `deadLetters(actor)`                     | `Stream<DeadLetterInspectionEvent>`                         |
+| `deadLetters(actor)`                     | `Stream<EventRejection>`                                    |
 
 `send` and `waitFor` are dual: each takes the actor first, or returns a function of the actor so it can be piped.
 
@@ -556,7 +556,7 @@ Assert with `waitFor` for a state the actor should reach, and with `join` for th
 
 Observe with `inspect` for every inspection event and `deadLetters` for events the system could not deliver. A test that ends with no dead letters confirms that every event it sent was accepted.
 
-Path generation in `xstate/graph` (`getShortestPaths`, `getSimplePaths`, `createTestModel`) operates on the machine, not on a running actor, so it works on an Effect-backed machine unchanged. Execute the generated paths against an actor from `createEffectActor`.
+Path generation in `xstate/graph` (`getShortestPaths`, `getSimplePaths`) operates on the machine, not on a running actor, so it works on an Effect-backed machine unchanged. Execute the generated paths against an actor from `createEffectActor`, or run them with `testPaths()` from `@xstate/test`.
 
 ## Retries and supervision
 

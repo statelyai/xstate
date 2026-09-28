@@ -92,7 +92,10 @@ describe('internalEvents', () => {
       }
     });
 
-    const actor = createActor(machine).start();
+    const deadLetters: EventRejection[] = [];
+    const actor = createActor(machine, {
+      onRejectedEvent: (rejection) => deadLetters.push(rejection)
+    }).start();
     actor.send({ type: 'start' });
 
     expect(actor.getSnapshot().value).toBe('done');
@@ -107,16 +110,10 @@ describe('internalEvents', () => {
     // the boundary check runs before any host runtime takes ownership of
     // delivery: the internal event is dead-lettered, not handed to the host
     actor.system.runtime = { sendEvent: () => {} };
-    const deadLetters: any[] = [];
-    actor.system.inspect((inspectionEvent) => {
-      if (inspectionEvent.type === '@xstate.deadletter') {
-        deadLetters.push(inspectionEvent);
-      }
-    });
     actor.send({ type: 'tick', count: 2 } as any);
     expect(deadLetters).toHaveLength(1);
     expect(deadLetters[0].reason).toBe('internalEvent');
-    expect(deadLetters[0].error.message).toMatch(
+    expect(deadLetters[0].error?.message).toMatch(
       'Internal event "tick" cannot be sent to actor'
     );
   });

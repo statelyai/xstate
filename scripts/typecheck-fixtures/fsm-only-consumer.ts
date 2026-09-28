@@ -22,8 +22,13 @@ const machine = createFSM<Context, Event, { active: unknown }>({
   }
 });
 
-const next = machine.transition(machine.initialState, { type: 'inc', by: 1 });
+const [next, effects] = machine.transition(machine.initialState, {
+  type: 'inc',
+  by: 1
+});
 const _count: number = next.context.count;
+const _effects: never[] = effects;
+const _initial = machine.getInitialSnapshot();
 
 const machineWithSchemas = setup({
   schemas: {

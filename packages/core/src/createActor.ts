@@ -279,8 +279,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
           clock,
           logger,
           snapshot: resolvedOptions.snapshot ?? resolvedOptions.state,
-          createActorRef,
-          onRejectedEvent: resolvedOptions.onRejectedEvent
+          createActorRef
         }));
 
     if (
@@ -294,6 +293,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     if (inspect && !parent) {
       // Always inspect at the system-level
       this.system.inspect(toObserver(inspect));
+    }
+
+    if (resolvedOptions.onRejectedEvent && !parent) {
+      this.system.onRejectedEvent(resolvedOptions.onRejectedEvent);
     }
 
     this.sessionId = resolvedOptions._sessionId ?? bookSessionId(this.system);
@@ -341,14 +344,27 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         this._initialEffects = effects.length ? effects : undefined;
       }
     } catch (err) {
-      // if we get here then it means that we assign a value to this._snapshot that is not of the correct type
-      // we can't get the true `TSnapshot & { status: 'error'; }`, it's impossible
-      // so right now this is a lie of sorts
-      this._setSnapshot({
-        status: 'error',
-        output: undefined,
-        error: err
-      } as SnapshotFrom<TLogic>);
+      const restoreErrorSnapshot =
+        persistedState &&
+        (
+          this.logic as {
+            _createRestoreErrorSnapshot?: (
+              persisted: unknown,
+              error: unknown
+            ) => SnapshotFrom<TLogic>;
+          }
+        )._createRestoreErrorSnapshot?.(persistedState, err);
+      // Machine logic keeps its snapshot shape on restore failures. Otherwise
+      // we can't get the true `TSnapshot & { status: 'error'; }`, so this is a
+      // lie of sorts.
+      this._setSnapshot(
+        restoreErrorSnapshot ??
+          ({
+            status: 'error',
+            output: undefined,
+            error: err
+          } as SnapshotFrom<TLogic>)
+      );
       // discard any functions deferred during the failed initial snapshot
       // computation so they can't run against an inconsistent actor
       if (this._deferred) {
@@ -810,7 +826,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     if (this._processingStatus === ProcessingStatus.Stopped) {
-      return this;
+      const status = (this._snapshot as Snapshot<unknown>).status;
+      if (status === 'done' || status === 'error') {
+        // A terminated actor has nothing left to start.
+        return this;
+      }
+      // Actors are single-use: a stopped actor cannot be restarted.
+      throw new Error(
+        `Actor ${this.id} was stopped and cannot be restarted. Create a new actor with createActor().`
+      );
     }
 
     if (this._syncSnapshot) {
@@ -864,6 +888,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         return this;
       case 'error':
         this._error((this._snapshot as Snapshot<unknown>).error);
+        return this;
+      case 'stopped':
+        // A restored stopped snapshot is terminal: the actor does not process
+        // events or run transitions.
+        this._stopProcedure();
+        this._complete();
         return this;
     }
 
@@ -977,6 +1007,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     let snapshot = this._snapshot;
     try {
       const [nextSnapshot, effects] = nextState;
+      if (
+        nextSnapshot === previousSnapshot &&
+        !effects.length &&
+        // State machine snapshots only; other logic may ignore events freely.
+        'machine' in (previousSnapshot as object) &&
+        !event.type.startsWith('xstate.')
+      ) {
+        this._reportUnhandledEvent(event);
+      }
       snapshot = nextSnapshot;
       this._setSnapshot(snapshot);
       executeExecutableEffects(effects, this._actorScope);
@@ -991,6 +1030,23 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     if (event.type === XSTATE_STOP) {
       this._stopProcedure();
       this._complete();
+    }
+  }
+
+  private _warnedUnhandledTypes?: Set<string>;
+
+  private _reportUnhandledEvent(event: EventFromLogic<TLogic>): void {
+    safeCall(() => this.options.onUnhandledEvent?.(event, this._snapshot));
+    if (isDevelopment) {
+      const warned = (this._warnedUnhandledTypes ??= new Set());
+      if (!warned.has(event.type)) {
+        warned.add(event.type);
+        console.warn(
+          `Actor ${this.id} received event "${event.type}" in state ${JSON.stringify(
+            (this._snapshot as { value?: unknown }).value
+          )} with no matching transition`
+        );
+      }
     }
   }
 
@@ -1282,9 +1338,37 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 }
 
-/** @public */
+/**
+ * `'input'` when creating an actor from `TLogic` requires input (its input type
+ * does not accept `undefined`), otherwise `never`.
+ *
+ * @public
+ */
 export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
   undefined extends InputFrom<TLogic> ? never : 'input';
+
+/**
+ * The options `createActor` (and framework hooks) require for `TLogic`:
+ * `{ input }` or a persisted `{ snapshot }` (or deprecated `{ state }`) when
+ * the logic requires input, otherwise nothing.
+ *
+ * @public
+ */
+export type RequiredActorOptionsFor<TLogic extends AnyActorLogic> = [
+  RequiredActorOptionsKeys<TLogic>
+] extends [never]
+  ? {}
+  :
+      | { [K in RequiredActorOptionsKeys<TLogic>]: unknown }
+      | { snapshot: NonNullable<ActorOptions<TLogic>['snapshot']> }
+      | { state: NonNullable<ActorOptions<TLogic>['state']> };
+
+/** Options accepted by {@link createActor}. */
+type CreateActorOptionsArgs<TLogic extends AnyActorLogic> = [
+  RequiredActorOptionsKeys<TLogic>
+] extends [never]
+  ? [options?: ActorOptions<TLogic>]
+  : [options: ActorOptions<TLogic> & RequiredActorOptionsFor<TLogic>];
 
 /**
  * Creates a new actor instance for the given actor logic with the provided
@@ -1328,9 +1412,7 @@ export type RequiredActorOptionsKeys<TLogic extends AnyActorLogic> =
  */
 export function createActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  options?: ActorOptions<TLogic> & {
-    [K in RequiredActorOptionsKeys<TLogic>]: unknown;
-  }
+  ...[options]: CreateActorOptionsArgs<TLogic>
 ): Actor<TLogic> {
   return new Actor(logic, options);
 }

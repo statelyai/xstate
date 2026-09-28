@@ -1,3 +1,5 @@
+import isDevelopment from '#is-development';
+import { diagnoseAuthorConfig } from './devDiagnostics.ts';
 import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
@@ -16,9 +18,11 @@ import {
   Compute
 } from './types.ts';
 import {
+  ChildCompletionEvents,
   Sources,
   DelayMapFromNames,
   InferChildren,
+  InferMachineInput,
   InferOutput,
   SchemaOrConfigOutput,
   InferEvents,
@@ -26,6 +30,7 @@ import {
   Next_MachineConfig,
   Next_StateNodeConfig,
   ValidateDelayReferences,
+  ValidateEventDescriptors,
   ValidateHistoryDefaults,
   ValidateStateTargets,
   ValidateTopLevelFinalOutputs,
@@ -132,13 +137,20 @@ export function createMachine<
   TDelayMap extends Sources['delays'],
   TDelays extends string,
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string,
-  TInput,
+  _TInput,
   const TSS extends StateSchema
 >(
   config: TSS &
     ValidateDelayReferences<TSS> &
     ValidateHistoryDefaults<TSS> &
     ValidateStateTargets<TSS> &
+    ValidateEventDescriptors<
+      TSS,
+      NoInfer<
+        | InferEvents<TEventSchemaMap>
+        | InferInternalEvents<TInternalEventSchemaMap>
+      >
+    > &
     Next_MachineConfig<
       TContextSchema,
       TEventSchemaMap,
@@ -152,7 +164,13 @@ export function createMachine<
       TChildrenSchemaMap,
       InferOutput<TContextSchema, MachineContext>,
       | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>,
+      | InferInternalEvents<TInternalEventSchemaMap>
+      | ChildCompletionEvents<
+          Cast<
+            MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+            Record<string, AnyActorRef | undefined>
+          >
+        >,
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -189,7 +207,7 @@ export function createMachine<
   >,
   StateValueFromStateSchema<TSS>,
   TTag & string,
-  TInput,
+  InferMachineInput<TInputSchema>,
   SchemaOrConfigOutput<TOutputSchema, TSS>,
   WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
   InferOutput<TMetaSchema, MetaObject>, // TMeta
@@ -234,13 +252,20 @@ export function createMachine<
   TDelays extends string = string,
   TTag extends StandardSchemaV1.InferOutput<TTagSchema> & string =
     StandardSchemaV1.InferOutput<TTagSchema> & string,
-  TInput = unknown,
+  _TInput = unknown,
   const TSS extends StateSchema = StateSchema
 >(
   config: TSS &
     ValidateDelayReferences<TSS> &
     ValidateHistoryDefaults<TSS> &
     ValidateStateTargets<TSS> &
+    ValidateEventDescriptors<
+      TSS,
+      NoInfer<
+        | InferEvents<TEventSchemaMap>
+        | InferInternalEvents<TInternalEventSchemaMap>
+      >
+    > &
     Next_MachineConfig<
       StandardSchemaV1,
       TEventSchemaMap,
@@ -254,7 +279,13 @@ export function createMachine<
       TChildrenSchemaMap,
       WidenLiterals<TContext>,
       | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>,
+      | InferInternalEvents<TInternalEventSchemaMap>
+      | ChildCompletionEvents<
+          Cast<
+            MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+            Record<string, AnyActorRef | undefined>
+          >
+        >,
       Cast<
         MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
         Record<string, AnyActorRef | undefined>
@@ -303,7 +334,7 @@ export function createMachine<
   >,
   StateValueFromStateSchema<TSS>,
   TTag & string,
-  TInput,
+  InferMachineInput<TInputSchema>,
   SchemaOrConfigOutput<TOutputSchema, TSS>,
   WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
   InferOutput<TMetaSchema, MetaObject>, // TMeta
@@ -320,23 +351,20 @@ export function createMachine<
 
 // Implementation
 export function createMachine(config: any): any {
-  return new StateMachine<
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any, // TEmitted
-    any, // TMeta
-    any, // TStateSchema
-    any,
-    any,
-    any,
-    any,
-    any
-  >(config) as any;
+  if (isDevelopment) {
+    diagnoseAuthorConfig(config);
+  }
+  return new StateMachine(config) as any;
+}
+
+/**
+ * Builds a machine from a config produced by a compiler (JSON, SCXML) without
+ * running the author-config v5 diagnostics.
+ *
+ * @experimental Used by `@xstate/scxml`; not part of the stable API.
+ */
+export function createMachineFromCompiledConfig(config: any): any {
+  return new StateMachine(config) as any;
 }
 
 /** @public */

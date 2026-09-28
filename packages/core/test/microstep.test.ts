@@ -3,7 +3,7 @@ import {
   getMicrosteps,
   getInitialMicrosteps
 } from '../src/index.ts';
-import { createInertActorScope } from '../src/getNextSnapshot.ts';
+import { createInertActorScope } from '../src/inertActorScope.ts';
 
 describe('machine.microstep()', () => {
   it('should return an array of states from all microsteps', () => {
@@ -257,6 +257,80 @@ describe('getMicrosteps', () => {
     expect(microsteps[0][0].value).toEqual('b');
     expect(microsteps[1][0].value).toEqual('c');
   });
+  it('should return the transitions taken in each microstep', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            GO: (_: any, enq: any) => {
+              enq.raise({ type: 'NEXT' });
+              return { target: 'b' };
+            }
+          }
+        },
+        b: {
+          on: { NEXT: { target: 'c' } }
+        },
+        c: {
+          always: { target: 'd' }
+        },
+        d: {}
+      } as any
+    });
+
+    const actorScope = createInertActorScope(machine);
+    const initialSnapshot = machine.getInitialSnapshot(actorScope);
+
+    const microsteps = getMicrosteps(machine, initialSnapshot, { type: 'GO' });
+
+    expect(microsteps.map(([snapshot]) => snapshot.value)).toEqual([
+      'b',
+      'c',
+      'd'
+    ]);
+    expect(
+      microsteps.map(([, , transitions]) =>
+        transitions.map((t) => [t.source.key, t.eventType])
+      )
+    ).toEqual([[['a', 'GO']], [['b', 'NEXT']], [['c', '']]]);
+  });
+
+  it('should return the transition taken by a single-transition fast path', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: { on: { GO: { target: 'b' } } },
+        b: {}
+      }
+    });
+
+    const actorScope = createInertActorScope(machine);
+    const initialSnapshot = machine.getInitialSnapshot(actorScope);
+
+    const microsteps = getMicrosteps(machine, initialSnapshot, { type: 'GO' });
+
+    expect(microsteps).toHaveLength(1);
+    expect(microsteps[0][2]).toEqual([
+      machine.root.states.a.transitions.get('GO')![0]
+    ]);
+  });
+
+  it('should return no transitions for an unhandled event', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: { a: {} }
+    });
+
+    const actorScope = createInertActorScope(machine);
+    const initialSnapshot = machine.getInitialSnapshot(actorScope);
+
+    const microsteps = getMicrosteps(machine, initialSnapshot, {
+      type: 'UNKNOWN'
+    } as never);
+
+    expect(microsteps.flatMap(([, , transitions]) => transitions)).toEqual([]);
+  });
 });
 
 describe('getInitialMicrosteps', () => {
@@ -301,6 +375,9 @@ describe('getInitialMicrosteps', () => {
     expect(microsteps[0][1]).toHaveLength(1); // entry action for 'a'
     expect(microsteps[1][0].value).toEqual('b');
     expect(microsteps[1][1]).toHaveLength(2); // always action + entry action for 'b'
+    // The first microstep enters the initial states; the second takes `always`
+    expect(microsteps[0][2]).toEqual([]);
+    expect(microsteps[1][2]).toEqual([machine.root.states.a.always![0]]);
   });
 
   it('should work with nested initial states', () => {

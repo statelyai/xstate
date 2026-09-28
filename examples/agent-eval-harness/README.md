@@ -6,9 +6,8 @@ How to test an agent machine by model: generate every simple path through it wit
 
 ## XState features used
 
-- `createTestModel` from the `xstate/graph` subpath, with an `events` array supplying one sample payload per equivalence class
-- `testModel.getSimplePaths({ toState })` to enumerate non-looping paths that end in a final state
-- `path.steps` (each step holds the snapshot before its event) and `path.description`
+- `getSimplePaths(machine, { events, toState })` from the `xstate/graph` subpath, with an `events` array supplying one sample payload per equivalence class, to enumerate non-looping paths that end in a final state
+- `path.steps` (each step holds the snapshot after its event) and `path.state`
 - branching transition functions (the agent clarifies short questions)
 - final states as path terminators
 
@@ -21,7 +20,7 @@ pnpm start
 
 The harness prints every generated path, any invariant violations, and state coverage. It exits non-zero if an invariant fails or a state is unreachable.
 
-Model-based testing lives in core in v6: import from `xstate/graph`, not from a separate package. The same generators (`getSimplePaths`, `getShortestPaths`, `getPathsFromEvents`) are also exported standalone if you do not need a `TestModel`.
+This harness checks the model only. To drive a separate implementation with the same paths and compare it with the model after every step, use `testPaths()` from `@xstate/test`.
 
 ## Inspect it
 

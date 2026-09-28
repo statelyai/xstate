@@ -318,6 +318,11 @@ export function createInvokeId(stateNodeId: string, index: number): string {
   return `${index}.${stateNodeId}`;
 }
 
+/** Whether `value` looks like an actor ref (as persisted context detects them). */
+export function isActorRefLike(value: object): boolean {
+  return 'sessionId' in value && 'send' in value && 'ref' in value;
+}
+
 export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
   const match = src.match(/^xstate\.invoke\.(\d+)\.(.*)/)!;
   if (!match) {

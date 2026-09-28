@@ -2,11 +2,11 @@
 
 ## What it teaches
 
-How to generate tests from a machine with `xstate/graph`: the machine is the model, path generation enumerates the flows through it, and every generated path becomes a vitest case that drives a separate system under test.
+How to generate tests from a machine with `@xstate/test` and `xstate/graph`: the machine is the model, path generation enumerates the flows through it, and every path drives a separate system under test.
 
 ## XState features used
 
-`createTestModel` and `getShortestPaths` from the `xstate/graph` subpath, the `events` sample set (one entry per equivalence class, payloads included), `getSimplePaths()`, `path.test({ states, events })`, `path.steps` / `path.state` / `path.description`, and replaying a generated path through a real `createActor`.
+`testPaths()` and `propertyTest()` from `@xstate/test`, event cases with `when`, a `TestSut` with `read()` and `projectModel()`, `getSimplePaths()` and `getShortestPaths()` from `xstate/graph`, `path.steps` and `path.state`, and replaying a path through a real `createActor`.
 
 ## How it works
 
@@ -14,37 +14,50 @@ How to generate tests from a machine with `xstate/graph`: the machine is the mod
 
 **The system under test.** `checkoutUi.ts` is a plain imperative class that knows nothing about XState. In a real project this would be a component driven through Testing Library, or an HTTP client.
 
-**Sample events.** Path generation needs concrete events, so pass one per equivalence class — including the payloads that select each branch:
+**Event cases.** Each event type lists one case per equivalence class, including the payloads that select each branch. `when` limits each case to the states where the UI offers it:
 
 ```ts
-const testModel = createTestModel(checkoutMachine, {
-  events: [
-    { type: 'submitAddress', zip: '02134' }, // valid
-    { type: 'submitAddress', zip: 'nope' }, // invalid
-    { type: 'pay', card: '4111111111111111' } // approved
-    // …
+const events = {
+  submitAddress: [
+    {
+      case: 'valid zip',
+      generate: fc.constant({ zip: '02134' }),
+      when: enabled
+    },
+    {
+      case: 'invalid zip',
+      generate: fc.constant({ zip: 'nope' }),
+      when: enabled
+    }
   ]
-});
+  // …
+};
 ```
 
-**Paths become test cases.** `getSimplePaths()` returns non-looping paths. `path.test()` runs each step: the event executor drives the UI, then the matching `states` assertion checks the UI against the model snapshot the machine reached.
+**The SUT.** `create()` returns a session whose `send()` drives the UI. After every step, `read()` is compared with `projectModel(snapshot)`, and the `states` assertions for the current state run:
 
 ```ts
-it.each(paths.map((path) => [path.description, path] as const))(
-  '%s',
-  async (_description, path) => {
+const checkoutSut: TestSut<CheckoutSnapshot, CheckoutEvent> = {
+  create: () => {
     const ui = new CheckoutUi();
-    await path.test({
-      events: { back: () => ui.back() /* … */ },
-      states: { payment: () => expect(ui.screen).toBe('payment') /* … */ }
-    });
-  }
-);
+    return {
+      send: (event) => {
+        /* … */
+      },
+      read: () => ({ screen: ui.screen, zip: ui.zip, error: ui.error })
+    };
+  },
+  projectModel: (snapshot) => ({
+    screen: snapshot.value,
+    zip: snapshot.context.zip,
+    error: snapshot.context.error
+  })
+};
 ```
 
-Add a state or a transition to the machine and new test cases appear without writing any.
+**Paths become test cases.** `testPaths(checkoutMachine, { pathGenerator: 'simple', events, sut })` runs every simple path. The test file also calls `getSimplePaths()` from `xstate/graph` and passes each path to `testPaths(checkoutMachine, { paths: [path], sut })`, so each path is its own vitest case. Add a state or a transition to the machine and new test cases appear without writing any.
 
-Event executors receive the event narrowed to its `type`, so payloads are read back through the machine's event union (`Extract<CheckoutEvent, { type: 'pay' }>`).
+**Random sequences.** Simple paths visit each state once, so they never take `retry` from `declined` back to `payment`. `propertyTest()` sends random sequences of the same events and reports the `retry` transition as covered.
 
 ## Run it
 
