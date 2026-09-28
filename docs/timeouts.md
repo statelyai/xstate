@@ -31,7 +31,7 @@ waiting: {
 }
 ```
 
-A timeout can be a function of context, or the name of a [named delay](delays.md).
+A timeout can be a function of context, or the name of a [named delay](delays.md). Context is read after the state's `entry` function has updated it.
 
 ```ts
 const machine = createMachine({

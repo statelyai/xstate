@@ -9,13 +9,35 @@ Use `after` for a transition that occurs after a state has been active for a dur
 loading: { after: { 5_000: { target: 'timedOut' } } }
 ```
 
-The timer starts when the state is entered and is canceled when the state is exited.
+The timer is scheduled after the state's `entry` function and its queued actions, and is canceled when the state is exited.
+
+Cancellation affects timers already scheduled when it runs. An `enq.cancel(...)` in `entry` runs before that state's `after` timer is scheduled. To cancel an active state timer, enqueue cancellation from a later event handler or exit the state.
 
 ## Named delays
 
 ```ts
 const appSetup = setup({ delays: { retryDelay: 1_000 } });
 ```
+
+Delay functions read context after the state's `entry` function has updated it.
+
+```ts
+const machine = setup({
+  delays: { d: ({ context }) => context.ms }
+}).createMachine({
+  context: { ms: 0 },
+  initial: 'waiting',
+  states: {
+    waiting: {
+      entry: () => ({ context: { ms: 300 } }),
+      after: { d: { target: 'done' } }
+    },
+    done: {}
+  }
+});
+```
+
+The delay above is 300ms. It is computed once on each entry to `waiting`; later context updates do not reschedule the timer.
 
 ## Duration formats
 
