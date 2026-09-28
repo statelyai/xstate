@@ -1,5 +1,5 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { createMachine, createActor } from '../src/index.ts';
+import { createMachine, createActor, setup } from '../src/index.ts';
 import { builtInActions } from '../src/actions.ts';
 import z from 'zod';
 
@@ -38,6 +38,85 @@ afterEach(() => {
 });
 
 describe('delayed transitions', () => {
+  it('resolves a named delay with context updated by the same state entry', () => {
+    vi.useFakeTimers();
+
+    const machine = setup({
+      delays: { d: ({ context }) => context.ms }
+    }).createMachine({
+      context: { ms: 0 },
+      initial: 'a',
+      states: {
+        a: { on: { go: { target: 'b' } } },
+        b: {
+          entry: () => ({ context: { ms: 300 } }),
+          after: { d: { target: 'a' } }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'go' });
+    expect(actor.getSnapshot().context.ms).toBe(300);
+
+    vi.advanceTimersByTime(299);
+    expect(actor.getSnapshot().value).toBe('b');
+
+    vi.advanceTimersByTime(1);
+    expect(actor.getSnapshot().value).toBe('a');
+    actor.stop();
+  });
+
+  it('resolves all initial state delays after an enqueue entry context patch', () => {
+    vi.useFakeTimers();
+    const order: string[] = [];
+    const effect = vi.fn();
+    const machine = setup({
+      delays: {
+        first: ({ context }) => {
+          order.push('first');
+          return context.ms + context.offset;
+        },
+        second: ({ context }) => {
+          order.push('second');
+          return context.ms * 2 + context.offset;
+        }
+      }
+    }).createMachine({
+      context: { ms: 0, offset: 20 },
+      initial: 'waiting',
+      states: {
+        waiting: {
+          entry: (_, enq) => {
+            order.push('entry');
+            enq(effect);
+            return { context: { ms: 300 } };
+          },
+          after: {
+            first: { target: 'done' },
+            second: { target: 'done' }
+          }
+        },
+        done: {}
+      }
+    });
+    const actor = createActor(machine).start();
+
+    expect(order).toEqual(['entry', 'first', 'second']);
+    expect(effect).toHaveBeenCalledOnce();
+    expect(
+      Object.values(actor.getSnapshot().timers).map((timer) => timer.delay)
+    ).toEqual([320, 620]);
+
+    vi.advanceTimersByTime(319);
+    expect(actor.getSnapshot().value).toBe('waiting');
+
+    vi.advanceTimersByTime(1);
+    expect(actor.getSnapshot().value).toBe('done');
+    expect(actor.getSnapshot().timers).toEqual({});
+    actor.stop();
+  });
+
   it('does not rely on inferred function names for built-in timer effects', () => {
     vi.useFakeTimers();
     const raise = builtInActions['@xstate.raise'];

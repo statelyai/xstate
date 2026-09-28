@@ -426,11 +426,23 @@ function scheduleDelayedEvent(
 ) {
   const oldEntry = stateNode.entry;
   stateNode.entry = (x: any, enq: any) => {
+    const result =
+      typeof oldEntry === 'function' ? oldEntry(x, enq) : undefined;
+    // The entry context patch is applied by the caller after this wrapper returns.
+    const context =
+      result?.context !== undefined
+        ? mergeContextPatch(x.context, result.context)
+        : x.context;
     enq.raise(resolveEvent(x) as any, {
       id: timerId,
-      delay: resolveScheduledDelay(x)
+      delay: resolveScheduledDelay({
+        context,
+        event: x.event,
+        delays: x.delays,
+        input: x.input
+      })
     });
-    return typeof oldEntry === 'function' ? oldEntry(x, enq) : undefined;
+    return result;
   };
   const oldExit = stateNode.exit;
   stateNode.exit = (_: any, enq: any) => {

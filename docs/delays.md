@@ -17,6 +17,26 @@ The timer starts when the state is entered and is canceled when the state is exi
 const appSetup = setup({ delays: { retryDelay: 1_000 } });
 ```
 
+Delay functions read context after the state's `entry` function has updated it.
+
+```ts
+const machine = setup({
+  delays: { d: ({ context }) => context.ms }
+}).createMachine({
+  context: { ms: 0 },
+  initial: 'waiting',
+  states: {
+    waiting: {
+      entry: () => ({ context: { ms: 300 } }),
+      after: { d: { target: 'done' } }
+    },
+    done: {}
+  }
+});
+```
+
+The delay above is 300ms. It is computed once on each entry to `waiting`; later context updates do not reschedule the timer.
+
 ## Duration formats
 
 A delay is a number of milliseconds, or a duration string: `'250ms'`, `'5s'`, `'1.5s'`, or an ISO 8601 duration such as `'PT1M30S'`, `'PT2H'` or `'P1D'`. Plain `'5m'` and `'1h'` are not accepted.
