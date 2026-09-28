@@ -117,6 +117,47 @@ describe('delayed transitions', () => {
     actor.stop();
   });
 
+  it.each([false, true])(
+    'schedules after entry cancellation and honors later cancellation (cancel after entry: %s)',
+    (cancelAfterEntry) => {
+      vi.useFakeTimers();
+      const timerId = 'xstate.after.100.(machine).waiting';
+      const machine = createMachine({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            entry: (_, enq) => {
+              enq.cancel(timerId);
+            },
+            after: { 100: { target: 'done' } },
+            on: {
+              cancel: (_, enq) => {
+                enq.cancel(timerId);
+              }
+            }
+          },
+          done: {}
+        }
+      });
+      const actor = createActor(machine).start();
+
+      expect(actor.getSnapshot().timers[timerId]).toMatchObject({ delay: 100 });
+      vi.advanceTimersByTime(50);
+      expect(actor.getSnapshot().value).toBe('waiting');
+
+      if (cancelAfterEntry) {
+        actor.send({ type: 'cancel' });
+        expect(actor.getSnapshot().timers).toEqual({});
+      }
+
+      vi.advanceTimersByTime(100);
+      expect(actor.getSnapshot().value).toBe(
+        cancelAfterEntry ? 'waiting' : 'done'
+      );
+      actor.stop();
+    }
+  );
+
   it('does not rely on inferred function names for built-in timer effects', () => {
     vi.useFakeTimers();
     const raise = builtInActions['@xstate.raise'];

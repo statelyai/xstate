@@ -9,7 +9,9 @@ Use `after` for a transition that occurs after a state has been active for a dur
 loading: { after: { 5_000: { target: 'timedOut' } } }
 ```
 
-The timer starts when the state is entered and is canceled when the state is exited.
+The timer is scheduled after the state's `entry` function and its queued actions, and is canceled when the state is exited.
+
+Cancellation affects timers already scheduled when it runs. An `enq.cancel(...)` in `entry` runs before that state's `after` timer is scheduled. To cancel an active state timer, enqueue cancellation from a later event handler or exit the state.
 
 ## Named delays
 
