@@ -198,6 +198,24 @@ type ProvidedActors<
     : never;
 };
 
+// A required override replaces its source; an optional override may leave
+// the original source in place. Keep both types in that case.
+type ProvidedSourceMap<TDeclared, TProvided> = {
+  [K in keyof TDeclared]: K extends keyof TProvided
+    ? {} extends Pick<TProvided, K>
+      ? TDeclared[K] | Exclude<TProvided[K], undefined>
+      : Exclude<TProvided[K], undefined>
+    : TDeclared[K];
+};
+
+// Action implementations may return integration-specific values. Their
+// positional arguments must still match the declared source.
+type ProvidedActionContracts<T> = {
+  [K in keyof T]: T[K] extends (...args: infer TArgs) => any
+    ? (...args: TArgs) => void
+    : never;
+};
+
 /** @public */
 export class StateMachine<
   TContext extends MachineContext,
@@ -260,7 +278,9 @@ export class StateMachine<
   readonly _stateSchema!: TConfig;
 
   /** The machine's own version. */
-  public version?: string;
+  public version: TConfig extends { version: infer TVersion extends string }
+    ? TVersion
+    : undefined;
 
   public schemas: AnyMachineSchemas | undefined;
 
@@ -283,7 +303,9 @@ export class StateMachine<
 
   public root: StateNode<TContext, TEvent, TMeta, TTransitionMeta>;
 
-  public id: string;
+  public id: TConfig extends { id: infer TId extends string }
+    ? TId
+    : '(machine)';
 
   public states: StateNode<TContext, TEvent, TMeta, TTransitionMeta>['states'];
   public events: Array<EventDescriptor<TEvent>>;
@@ -322,7 +344,7 @@ export class StateMachine<
     sources?: Sources,
     public validator?: ActorLogicValidator
   ) {
-    this.id = config.id || '(machine)';
+    this.id = (config.id || '(machine)') as typeof this.id;
     this.sources = {
       actors: config.actors ?? {},
       actions: config.actions ?? {},
@@ -343,7 +365,7 @@ export class StateMachine<
         }
       }
     }
-    this.version = this.config.version;
+    this.version = this.config.version as typeof this.version;
     this.schemas = this.config.schemas;
     this.snapshotSchema = {
       '~standard': {
@@ -517,9 +539,14 @@ export class StateMachine<
   public provide<
     const TProvidedActorMap extends Partial<
       Record<keyof TActorMap & string, AnyActorLogic>
+    > = {},
+    const TProvidedActionMap extends Partial<
+      ProvidedActionContracts<TActionMap>
     > = {}
   >(sources: {
-    actions?: Partial<TActionMap>;
+    actions?: TProvidedActionMap &
+      Partial<ProvidedActionContracts<TActionMap>> &
+      Record<Exclude<keyof TProvidedActionMap, keyof TActionMap>, never>;
     actors?: TProvidedActorMap & ProvidedActors<TActorMap, TProvidedActorMap>;
     // Mapped over the known names (not an index signature) so unknown source
     // names are still rejected, while entries keep typed args/return values.
@@ -531,7 +558,24 @@ export class StateMachine<
     delays?: {
       [K in keyof TDelayMap]?: DelaySourceMap<TContext, TEvent>[string];
     };
-  }): this {
+  }): StateMachine<
+    TContext,
+    TEvent,
+    TChildren,
+    TStateValue,
+    TTag,
+    TInput,
+    TOutput,
+    TEmitted,
+    TMeta,
+    TConfig,
+    ProvidedSourceMap<TActionMap, TProvidedActionMap>,
+    ProvidedSourceMap<TActorMap, TProvidedActorMap>,
+    TGuardMap,
+    TDelayMap,
+    TInternalEvent,
+    TTransitionMeta
+  > {
     const { actions, guards, actors, delays } = this.sources;
 
     const provided = new StateMachine(
@@ -555,7 +599,24 @@ export class StateMachine<
         } as Sources['delays']
       },
       this.validator
-    ) as unknown as this;
+    ) as unknown as StateMachine<
+      TContext,
+      TEvent,
+      TChildren,
+      TStateValue,
+      TTag,
+      TInput,
+      TOutput,
+      TEmitted,
+      TMeta,
+      TConfig,
+      ProvidedSourceMap<TActionMap, TProvidedActionMap>,
+      ProvidedSourceMap<TActorMap, TProvidedActorMap>,
+      TGuardMap,
+      TDelayMap,
+      TInternalEvent,
+      TTransitionMeta
+    >;
     // Providing sources does not change the serializable definition.
     provided._json = this._json;
     provided._microstepHooks = this._microstepHooks;

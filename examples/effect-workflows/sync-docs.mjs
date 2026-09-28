@@ -14,10 +14,11 @@ const pages = [
 for (const page of pages) {
   const original = readFileSync(page, 'utf8');
   const updated = original.replace(
-    /(<!-- example from examples\/effect-workflows\/src\/(.+?) -->\s+```tsx?\n)[\s\S]*?(\n```)/g,
+    /(<!-- example from examples\/effect-workflows\/src\/(.+?) -->\s+```tsx?\n)[\s\S]*?^(```)$/gm,
     (_, opening, name, closing) =>
       opening +
       readFileSync(resolve(exampleRoot, 'src', name), 'utf8').trim() +
+      '\n' +
       closing
   );
   if (updated !== original) writeFileSync(page, updated);

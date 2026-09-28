@@ -1058,7 +1058,7 @@ importers:
     dependencies:
       '@effect/atom-react':
         specifier: 4.0.0-rc.115
-        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(react@19.2.8)(scheduler@0.27.0)
+        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(react@19.1.0)(scheduler@0.27.0)
       '@xstate/effect':
         specifier: workspace:*
         version: link:../../packages/xstate-effect
@@ -1069,18 +1069,18 @@ importers:
         specifier: 4.0.0-rc.115
         version: 4.0.0-rc.115
       react:
-        specifier: ^19.0.0
-        version: 19.2.8
+        specifier: 19.1.0
+        version: 19.1.0
       react-dom:
-        specifier: ^19.0.0
-        version: 19.2.8(react@19.2.8)
+        specifier: 19.1.0
+        version: 19.1.0(react@19.1.0)
       xstate:
         specifier: workspace:*
         version: link:../../packages/core
     devDependencies:
       '@testing-library/react':
         specifier: ^16.2.0
-        version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@types/node':
         specifier: 25.2.1
         version: 25.2.1
@@ -1098,7 +1098,7 @@ importers:
         version: 5.9.3
       use-sync-external-store:
         specifier: ^1.2.0
-        version: 1.6.0(react@19.2.8)
+        version: 1.6.0(react@19.1.0)
       vitest:
         specifier: ^3.2.7
         version: 3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@20.14.5)(jiti@2.7.0)(jsdom@26.1.0)(sass@1.97.3)(supports-color@5.5.0)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0)
@@ -12234,10 +12234,10 @@ snapshots:
 
   '@csstools/css-tokenizer@3.0.4': {}
 
-  '@effect/atom-react@4.0.0-rc.115(effect@4.0.0-rc.115)(react@19.2.8)(scheduler@0.27.0)':
+  '@effect/atom-react@4.0.0-rc.115(effect@4.0.0-rc.115)(react@19.1.0)(scheduler@0.27.0)':
     dependencies:
       effect: 4.0.0-rc.115
-      react: 19.2.8
+      react: 19.1.0
       scheduler: 0.27.0
 
   '@emnapi/core@1.11.0':
@@ -14267,12 +14267,12 @@ snapshots:
       '@types/react': 19.1.8
       '@types/react-dom': 19.1.6(@types/react@19.1.8)
 
-  '@testing-library/react@16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@testing-library/react@16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       '@babel/runtime': 7.29.7
       '@testing-library/dom': 10.4.0
-      react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
     optionalDependencies:
       '@types/react': 19.2.18
       '@types/react-dom': 19.2.4(@types/react@19.2.18)
@@ -18503,6 +18503,10 @@ snapshots:
       '@types/react': 19.1.8
 
   use-sync-external-store@1.5.0(react@19.1.0):
+    dependencies:
+      react: 19.1.0
+
+  use-sync-external-store@1.6.0(react@19.1.0):
     dependencies:
       react: 19.1.0
 

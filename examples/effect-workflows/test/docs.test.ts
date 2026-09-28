@@ -57,6 +57,17 @@ describe('runnable examples', () => {
     ],
     ['emitted', [{ type: 'reminder', message: 'Review pending' }]],
     ['task', { total: 2 }],
+    [
+      'resources',
+      [
+        'prepare release',
+        'remove workspace',
+        'ready for approval',
+        'close cache'
+      ]
+    ],
+    ['provided-actions', 'approval recorded'],
+    ['input-atoms', 'Prepared v1.2.0'],
     ['latest-stream', 100],
     ['event-stream', 'rollback requested'],
     ['matching', ['Waiting for review', 'Approved by Ada']],

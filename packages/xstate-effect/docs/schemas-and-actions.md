@@ -101,10 +101,55 @@ The action function is called synchronously during the transition. The returned 
 - The transition enqueues the action with explicit arguments: `enq(args.actions.audit, args)`.
 - `EffectActionArgs` and `EffectAction` name the argument and action types.
 - An Effect action cannot use the transition's enqueue API after the transition. It can call `self.send` to send a new event.
-- `machine.provide({ actions })` can replace a declared action with another Effect-returning action.
 - A final state or a closing scope can interrupt pending background work. Invoke a task when the workflow must wait for completion.
 
 </details>
+
+## Provide an action
+
+Use `machine.provide({ actions })` to replace an action for a particular environment. The provided machine requires the replacement's services. In this example, an audit implementation adds the `Audit` service:
+
+<!-- example from examples/effect-workflows/src/provided-actions.ts -->
+
+```ts
+import { Context, Effect, Latch } from 'effect';
+import { createEffectActor, send, setupEffect } from '@xstate/effect';
+
+class Audit extends Context.Service<Audit, { record: Effect.Effect<void> }>()(
+  'Audit'
+) {}
+
+const recorded = Latch.makeUnsafe();
+const machine = setupEffect({
+  actions: { audit: (_args) => Effect.void }
+}).createMachine({
+  on: { APPROVE: (args, enq) => enq(args.actions.audit, args) }
+});
+
+const auditedMachine = machine.provide({
+  actions: { audit: () => Audit.use((audit) => audit.record) }
+});
+
+const program = Effect.gen(function* () {
+  // The override adds Audit to this machine's required services.
+  const actor = yield* createEffectActor(auditedMachine);
+  yield* send(actor, { type: 'APPROVE' });
+  yield* recorded.await;
+  return 'approval recorded';
+});
+
+export const result = await Effect.runPromise(
+  program.pipe(
+    Effect.scoped,
+    Effect.provideService(Audit, { record: Effect.asVoid(recorded.open) })
+  )
+);
+console.log(result); // approval recorded
+```
+
+- Other actions and their service requirements stay in place.
+- Replacing the audit with an action that requires a different service updates the required service type again.
+- A plain action can replace an Effect action and remove its service requirement.
 
 ## Declared sources
 

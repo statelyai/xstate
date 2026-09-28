@@ -14,8 +14,8 @@
     "@xstate/effect": "workspace:*",
     "@xstate/react": "workspace:*",
     "effect": "4.0.0-rc.115",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
     "xstate": "workspace:*"
   },
   "devDependencies": {

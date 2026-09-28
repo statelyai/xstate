@@ -28,19 +28,20 @@ import {
   type EffectHost
 } from './internal.ts';
 import type { RequirementsFrom } from './types.ts';
+import { ActorScope } from './actorScope.ts';
 
 const XSTATE_TIMER = 'xstate.timer';
 
 /** Options for {@link createEffectActor}. */
-export interface EffectActorOptions<TLogic extends AnyActorLogic> {
-  /** The actor's input. */
-  readonly input?: InputFrom<TLogic>;
-}
-
-type RequiredInput<TLogic extends AnyActorLogic> =
+export type EffectActorOptions<TLogic extends AnyActorLogic> =
   undefined extends InputFrom<TLogic>
-    ? { input?: InputFrom<TLogic> }
-    : { input: InputFrom<TLogic> };
+    ? { readonly input?: InputFrom<TLogic> }
+    : { readonly input: InputFrom<TLogic> };
+
+export type EffectActorOptionsArgs<TLogic extends AnyActorLogic> =
+  undefined extends InputFrom<TLogic>
+    ? [options?: EffectActorOptions<TLogic>]
+    : [options: EffectActorOptions<TLogic>];
 
 /**
  * Creates and starts an actor as an Effect interpreter over pure transitions.
@@ -58,9 +59,7 @@ type RequiredInput<TLogic extends AnyActorLogic> =
  */
 export function createEffectActor<TLogic extends AnyActorLogic>(
   logic: TLogic,
-  ...[options]: undefined extends InputFrom<TLogic>
-    ? [options?: EffectActorOptions<TLogic>]
-    : [options: EffectActorOptions<TLogic> & RequiredInput<TLogic>]
+  ...[options]: EffectActorOptionsArgs<TLogic>
 ): Effect.Effect<
   EffectActor<TLogic>,
   never,
@@ -71,7 +70,11 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       const parentScope = yield* Effect.scope;
       const actorScope = yield* Scope.fork(parentScope);
       const baseContext = yield* Effect.context<never>();
-      const context = Context.add(baseContext, Scope.Scope, actorScope);
+      const context = Context.add(
+        Context.add(baseContext, Scope.Scope, actorScope),
+        ActorScope,
+        actorScope
+      );
       const host = createEffectHost(context, actorScope);
       const runFork = Effect.runForkWith(context);
       const runPromise = Effect.runPromiseWith(context);

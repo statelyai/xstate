@@ -1,4 +1,4 @@
-import { createActor, createMachine, types } from '../src';
+import { createActor, createMachine, setup, types } from '../src';
 import type { PersistedSnapshotFrom, Snapshot } from '../src';
 
 describe('persisted snapshot round-trip types', () => {
@@ -98,6 +98,24 @@ describe('persisted snapshot round-trip types', () => {
     const snapshot = createActor(provided).getPersistedSnapshot();
 
     createActor(machine, { snapshot });
+    createActor(provided, {
+      snapshot: createActor(machine).getPersistedSnapshot()
+    });
+  });
+
+  it('preserves identity through repeated provision of a versioned setup machine', () => {
+    const machine = setup().createMachine({
+      id: 'checkout',
+      version: '1',
+      initial: 'a',
+      states: { a: {} }
+    });
+    const provided = machine.provide({}).provide({});
+    provided.id satisfies 'checkout';
+    provided.version satisfies '1';
+    createActor(machine, {
+      snapshot: createActor(provided).getPersistedSnapshot()
+    });
     createActor(provided, {
       snapshot: createActor(machine).getPersistedSnapshot()
     });

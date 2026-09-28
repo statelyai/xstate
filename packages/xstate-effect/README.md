@@ -140,11 +140,15 @@ Runnable copies live in [examples/effect-workflows](../../examples/effect-workfl
 
 The actor stops and interrupts its hosted Effects when its enclosing scope closes. Use `Effect.scoped` for a bounded program, or `Layer.effect` to share an actor for an application's lifetime.
 
+- Invoked Effect tasks and streams own their resources and release them on completion, failure or cancellation.
+- Background actions use the owning actor's scope.
+- Use `withActorScope` around resource acquisition to keep a resource until the owning actor stops.
+
 Provide Layers outside the actor's scope, so services remain available during cleanup. Dispose a `ManagedRuntime` when its owner shuts down. See [actors](docs/actors.md).
 
 ### Requirements
 
-`RequirementsFrom<TLogic>` collects services from declared Effect actions, declared actors and inline invocations, including child machines up to 10 levels deep. `createEffectActor` returns `Effect<EffectActor<TLogic>, never, R | Scope>`.
+`RequirementsFrom<TLogic>` collects services from declared Effect actions, declared actors and inline invocations, including child machines up to 10 levels deep. `createEffectActor` returns `Effect<EffectActor<TLogic>, never, R | Scope>`. Provided action and actor overrides update that service union. Actor and invocation scopes are supplied automatically.
 
 <details>
 <summary>Requirement limits</summary>
@@ -234,7 +238,7 @@ See [schemas and actions](docs/schemas-and-actions.md) for a complete audit exam
 
 <!-- atom surface from src/atom.ts -->
 
-`createActorAtoms` from `@xstate/effect/atom` exposes `actor`, `snapshot`, `result`, `send`, `select` and `state`. Its `Atom.runtime` must provide the logic's services.
+`createActorAtoms` from `@xstate/effect/atom` exposes `actor`, `snapshot`, `result`, `send`, `select` and `state`. Its `Atom.runtime` must provide the logic's services. Pass `{ input }` when the logic requires input; missing or mismatched input is a type error.
 
 - Read atoms with `@effect/atom-react` in React, or an `AtomRegistry` elsewhere.
 - The registry owns their lifetime; dispose it when its owner shuts down.

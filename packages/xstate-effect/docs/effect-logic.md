@@ -65,7 +65,13 @@ Input and output schemas are optional. Missing types are inferred from the funct
 
 ### Cancellation and failure
 
-Leaving an invoking state or stopping the actor interrupts the running Effect. Use Effect's retry, timeout and resource combinators inside that Effect.
+Leaving an invoking state or stopping the actor interrupts the running Effect. Each task runs in its own scope:
+
+- `Effect.acquireRelease` and `Effect.addFinalizer` clean up before a completed or failed task reports its outcome.
+- Cancelling an invocation interrupts the task and runs its cleanup while the parent can continue in another state.
+- Use `withActorScope` for resources that should stay open until the owning actor stops. See [resource lifetimes](actors.md#resource-lifetimes).
+
+Use Effect's retry and timeout combinators inside the task.
 
 <details>
 <summary>How Effect exits map to actors</summary>

@@ -14,8 +14,10 @@ import {
   deadLetters,
   emitted,
   fromEffect,
+  fromEffectEventStream,
   fromEffectStream,
-  setupEffect
+  setupEffect,
+  withActorScope
 } from './index.ts';
 
 /**
@@ -52,6 +54,251 @@ const runScoped = async <A, E>(
 };
 
 describe('@xstate/effect runtime', () => {
+  it('finishes task cleanup before releasing resources in the owning actor scope', async () => {
+    const order: string[] = [];
+    let started = false;
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* createEffectActor(
+            fromEffect(
+              Effect.gen(function* () {
+                // Acquire after yielding, once the hosted fiber has been registered.
+                yield* Effect.sleep(1);
+                yield* Effect.acquireRelease(Effect.void, () =>
+                  Effect.sync(() => {
+                    order.push('actor resource');
+                  })
+                ).pipe(withActorScope);
+                yield* Effect.acquireRelease(Effect.void, () =>
+                  Effect.sleep(5).pipe(
+                    Effect.andThen(
+                      Effect.sync(() => {
+                        order.push('task resource');
+                      })
+                    )
+                  )
+                );
+                started = true;
+                return yield* Effect.never;
+              })
+            )
+          );
+          yield* Effect.promise(() => until(() => started));
+        })
+      )
+    );
+    expect(order).toEqual(['task resource', 'actor resource']);
+  });
+
+  it.each(['snapshot', 'event'] as const)(
+    'releases %s stream resources when the invoking state exits',
+    async (kind) => {
+      let started = false;
+      let released = 0;
+      const stream = Stream.unwrap(
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(Effect.void, () =>
+            Effect.sync(() => {
+              released++;
+            })
+          );
+          started = true;
+          return Stream.never;
+        })
+      );
+      const work =
+        kind === 'snapshot'
+          ? fromEffectStream(stream)
+          : fromEffectEventStream(stream);
+      const machine = setup({ actors: { work } }).createMachine({
+        initial: 'working',
+        states: {
+          working: {
+            invoke: { src: 'work' },
+            on: { CANCEL: { target: 'idle' } }
+          },
+          idle: {}
+        }
+      });
+      const actor = await runScoped(createEffectActor(machine));
+      await until(() => started);
+      actor.send({ type: 'CANCEL' });
+      await until(() => released === 1);
+      expect(actor.getSnapshot().matches('idle')).toBe(true);
+      expect(actor.getSnapshot().status).toBe('active');
+    }
+  );
+
+  it.each(['success', 'cancel'] as const)(
+    'keeps explicitly actor-scoped resources after invocation %s',
+    async (outcome) => {
+      let started = false;
+      let interrupted = false;
+      let released = 0;
+      const work = fromEffect(
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(Effect.void, () =>
+            Effect.sleep(5).pipe(
+              Effect.andThen(
+                Effect.sync(() => {
+                  released++;
+                })
+              )
+            )
+          ).pipe(withActorScope);
+          started = true;
+          if (outcome === 'cancel')
+            return yield* Effect.never.pipe(
+              Effect.onInterrupt(() =>
+                Effect.sync(() => {
+                  interrupted = true;
+                })
+              )
+            );
+          return 'complete';
+        })
+      );
+      const machine = setup({ actors: { work } }).createMachine({
+        initial: 'working',
+        states: {
+          working: {
+            invoke: { src: 'work', onDone: { target: 'idle' } },
+            on: { CANCEL: { target: 'idle' } }
+          },
+          idle: {}
+        }
+      });
+      await Effect.runPromise(
+        Effect.scoped(
+          Effect.gen(function* () {
+            const actor = yield* createEffectActor(machine);
+            yield* Effect.promise(() => until(() => started));
+            if (outcome === 'cancel') {
+              actor.send({ type: 'CANCEL' });
+              yield* Effect.promise(() => until(() => interrupted));
+            }
+            yield* Effect.promise(() =>
+              until(() => actor.getSnapshot().matches('idle'))
+            );
+            expect(released).toBe(0);
+            expect(actor.getSnapshot().status).toBe('active');
+          })
+        )
+      );
+      expect(released).toBe(1);
+    }
+  );
+
+  it('runs an action override with a newly required service', async () => {
+    class Audit extends Context.Service<
+      Audit,
+      { record: Effect.Effect<void> }
+    >()('ProvidedAudit') {}
+    let recorded = false;
+    const machine = setupEffect({ actions: { audit: (_args) => Effect.void } })
+      .createMachine({
+        on: { GO: (args, enq) => enq(args.actions.audit, args) }
+      })
+      .provide({
+        actions: { audit: () => Audit.use((audit) => audit.record) }
+      });
+    const actor = await runScoped(
+      createEffectActor(machine).pipe(
+        Effect.provideService(Audit, {
+          record: Effect.sync(() => {
+            recorded = true;
+          })
+        })
+      )
+    );
+    actor.send({ type: 'GO' });
+    await until(() => recorded);
+    expect(actor.getSnapshot().status).toBe('active');
+  });
+
+  it.each(['success', 'failure', 'cancel'] as const)(
+    'releases invocation resources on %s while the parent stays active',
+    async (outcome) => {
+      let started = false;
+      let released = 0;
+      const work = fromEffect(
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(Effect.void, () =>
+            Effect.sync(() => {
+              released++;
+            })
+          );
+          started = true;
+          yield* Effect.sleep(5);
+          if (outcome === 'failure') return yield* Effect.fail('failed');
+          if (outcome === 'cancel') return yield* Effect.never;
+          return 'complete';
+        })
+      );
+      const machine = setup({ actors: { work } }).createMachine({
+        context: { releasedAtOutcome: 0 },
+        initial: 'working',
+        states: {
+          working: {
+            invoke: {
+              src: 'work',
+              onDone: {
+                target: 'idle',
+                context: () => ({ releasedAtOutcome: released })
+              },
+              onError: {
+                target: 'idle',
+                context: () => ({ releasedAtOutcome: released })
+              }
+            },
+            on: { CANCEL: { target: 'idle' } }
+          },
+          idle: {}
+        }
+      });
+      const actor = await runScoped(createEffectActor(machine));
+      await until(() => started);
+      if (outcome === 'cancel') actor.send({ type: 'CANCEL' });
+      await until(() => actor.getSnapshot().matches('idle'));
+      await until(() => released === 1);
+      expect(actor.getSnapshot().status).toBe('active');
+      expect(released).toBe(1);
+      if (outcome !== 'cancel')
+        expect(actor.getSnapshot().context.releasedAtOutcome).toBe(1);
+    }
+  );
+
+  it('awaits asynchronous invocation finalizers before the enclosing scope closes', async () => {
+    let started = false;
+    let released = false;
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          yield* createEffectActor(
+            fromEffect(
+              Effect.gen(function* () {
+                yield* Effect.addFinalizer(() =>
+                  Effect.sleep(10).pipe(
+                    Effect.andThen(
+                      Effect.sync(() => {
+                        released = true;
+                      })
+                    )
+                  )
+                );
+                started = true;
+                return yield* Effect.never;
+              })
+            )
+          );
+          yield* Effect.promise(() => until(() => started));
+        })
+      )
+    );
+    expect(released).toBe(true);
+  });
+
   it('stops the actor and interrupts its Effect when the enclosing scope closes', async () => {
     let started = false;
     let interrupted = false;

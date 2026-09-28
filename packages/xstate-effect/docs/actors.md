@@ -17,17 +17,74 @@ The enclosing scope owns the actor. When that scope closes, the actor stops and 
 
 - `Effect.scoped(program)` closes the scope when `program` finishes.
 - `actor.stop()` stops the actor explicitly.
-- `Effect.addFinalizer` and `Effect.acquireRelease` in hosted Effects register cleanup with the actor's scope. That cleanup runs when the actor stops.
+- Tasks created with `fromEffect`, `fromEffectStream` and `fromEffectEventStream` have their own scopes. Their resources are released when the task completes, fails or is interrupted.
+- Background Effect actions use the owning actor's scope. Their resources are released when that actor stops.
+- Use `withActorScope` around a resource acquisition to keep it until the owning actor stops.
 - The enclosing scope waits for the actor's finalizers before finishing its own cleanup.
 
 Provide application Layers outside `Effect.scoped`, with `program.pipe(Effect.scoped, Effect.provide(AppLayer))`, so services remain available while actor cleanup runs.
 
-<details>
-<summary>Invocation lifetime and resource lifetime</summary>
+### Resource lifetimes
 
-Leaving an invoking state interrupts its child's running Effect. Finalizers registered with the actor-hosted `Scope` live until the owning Effect actor stops. Use an inner `Effect.scoped` when a resource should be released as soon as that individual operation finishes or is interrupted.
+This release task owns a temporary workspace and opens a cache for the rest of the workflow. The workspace closes before the machine handles `onDone`; the cache closes when the owning actor stops.
 
-</details>
+<!-- example from examples/effect-workflows/src/resources.ts -->
+
+```ts
+import { Effect } from 'effect';
+import {
+  createEffectActor,
+  fromEffect,
+  waitFor,
+  withActorScope
+} from '@xstate/effect';
+import { setup } from 'xstate';
+
+const events: string[] = [];
+const prepareRelease = fromEffect(
+  Effect.gen(function* () {
+    // Keep the shared cache open for the rest of the release workflow.
+    yield* Effect.acquireRelease(
+      Effect.succeed({ name: 'release-cache' }),
+      () => Effect.sync(() => events.push('close cache'))
+    ).pipe(withActorScope);
+
+    // This temporary workspace belongs to this invocation.
+    yield* Effect.acquireRelease(
+      Effect.succeed({ directory: '/tmp/release' }),
+      () => Effect.sync(() => events.push('remove workspace'))
+    );
+    events.push('prepare release');
+    return 'artifact ready';
+  })
+);
+
+const releaseMachine = setup({ actors: { prepareRelease } }).createMachine({
+  initial: 'preparing',
+  states: {
+    preparing: {
+      invoke: { src: 'prepareRelease', onDone: { target: 'ready' } }
+    },
+    ready: {}
+  }
+});
+
+const program = Effect.gen(function* () {
+  const actor = yield* createEffectActor(releaseMachine);
+  yield* waitFor(actor, (snapshot) => snapshot.matches('ready'));
+  events.push('ready for approval');
+  // The workspace is gone; the cache stays open while the actor is alive.
+});
+
+await Effect.runPromise(Effect.scoped(program));
+export const result = events;
+console.log(result);
+// ['prepare release', 'remove workspace', 'ready for approval', 'close cache']
+```
+
+The resource objects in this demo are local stand-ins. Replace their acquisition and release Effects with your file, connection or subscription APIs.
+
+`withActorScope` uses the scope of the root actor created by `createEffectActor`, including when called from a nested invocation. Apply it to the acquisition whose lifetime you want to extend.
 
 ## Provide an actor as a service
 
@@ -107,7 +164,7 @@ The `EffectActor` handle supports:
 - inline `invoke.src` logic, at the root or in a state;
 - those same sources inside child machines, up to 10 levels of nesting.
 
-`createEffectActor` returns `Effect<EffectActor<TLogic>, never, R | Scope>`, where `R` is that service union. TypeScript checks that you provide those services before running the program.
+`createEffectActor` returns `Effect<EffectActor<TLogic>, never, R | Scope>`, where `R` is that service union. TypeScript checks that you provide those services before running the program. Overrides passed to `machine.provide` contribute their current services, replacing the requirements of the sources they override. Actor and invocation scopes are supplied automatically.
 
 Declare spawned Effect logic in `actors` and spawn it by name. See [declared sources](schemas-and-actions.md#declared-sources).
 

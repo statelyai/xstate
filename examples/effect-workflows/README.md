@@ -24,8 +24,9 @@ pnpm --filter @xstate/example-effect-workflows test
 - `observe.ts` and `emitted.ts`: state history, final output and reminders.
 - `task.ts`, `latest-stream.ts` and `event-stream.ts`: tasks, upload progress and rollout health events.
 - `matching.ts` and `parallel.ts`: exhaustive state matching and parallel regions.
-- `actions.ts`: runtime schema validation and background audit work.
-- `atoms.ts`, `react.tsx` and `selector.tsx`: atom ownership and React consumers.
+- `actions.ts` and `provided-actions.ts`: runtime schema validation, background audits and service requirements after overrides.
+- `resources.ts`: invocation cleanup and resources retained with `withActorScope`.
+- `atoms.ts`, `input-atoms.ts`, `react.tsx` and `selector.tsx`: atom ownership, required input and React consumers.
 - `clock.ts`, `retry.ts`, `supervision.ts` and `errors.ts`: deadlines, retries and typed failures.
 
 Run individual `.ts` examples with `pnpm --filter @xstate/example-effect-workflows exec tsx src/clock.ts`. The React components are exercised by the React tests.

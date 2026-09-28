@@ -2665,6 +2665,7 @@ type PublicStateField<T, K extends PropertyKey> =
 type PublicStateSchema<T extends StateSchema> = {
   input: T extends { input: infer TInput } ? TInput : undefined;
 } & PublicStateField<T, 'id'> &
+  PublicStateField<T, 'version'> &
   PublicStateField<T, 'route'> &
   PublicStateField<T, 'type'> &
   PublicStateField<T, 'history'> &

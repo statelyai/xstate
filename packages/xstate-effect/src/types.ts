@@ -1,6 +1,7 @@
-import type { Effect } from 'effect';
+import type { Effect, Scope } from 'effect';
 import type { EffectLogicBrand } from './fromEffect.ts';
 import { effectActionBrand } from './brands.ts';
+import type { ActorScope } from './actorScope.ts';
 
 /** The `R` channel of an Effect type, or `never` for anything else. */
 export type EffectRequirements<T> =
@@ -79,7 +80,8 @@ type RequirementsFromStateSchema<TSchema, TDepth extends Depth> =
 /**
  * Collects the Effect service requirements of an actor logic.
  *
- * For Effect logic this is the logic's own `R`. For a state machine it is the
+ * Actor and invocation scopes are supplied by the host and excluded here.
+ * For Effect logic this is the remaining `R`. For a state machine it is the
  * union of the requirements of its registered Effect actions, its registered
  * Effect actors, the Effect logic passed inline as `invoke.src` anywhere in
  * its state tree, and — recursively — the requirements of any child machine
@@ -87,14 +89,17 @@ type RequirementsFromStateSchema<TSchema, TDepth extends Depth> =
  */
 export type RequirementsFrom<T, TDepth extends Depth = MaxDepth> =
   T extends EffectLogicBrand<any, infer R>
-    ? R
+    ? Exclude<R, ActorScope | Scope.Scope>
     : T extends {
           readonly _actionMap: infer TActionMap;
           readonly _actorMap: infer TActorMap;
           readonly _stateSchema: infer TStateSchema;
         }
       ?
-          | RequirementsFromActions<TActionMap>
+          | Exclude<
+              RequirementsFromActions<TActionMap>,
+              ActorScope | Scope.Scope
+            >
           | ([TDepth] extends [0]
               ? never
               :
