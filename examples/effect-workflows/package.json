@@ -1,0 +1,31 @@
+{
+  "name": "@xstate/example-effect-workflows",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "docs:sync": "node sync-docs.mjs",
+    "start": "tsx src/approval.ts",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/atom-react": "4.0.0-rc.115",
+    "@xstate/effect": "workspace:*",
+    "@xstate/react": "workspace:*",
+    "effect": "4.0.0-rc.115",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "xstate": "workspace:*"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.2.0",
+    "@types/node": "^20.19.35",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3",
+    "use-sync-external-store": "^1.2.0",
+    "vitest": "^3.2.7"
+  }
+}

@@ -1,42 +1,39 @@
 ---
-title: Actors
-description: Create, scope and provide Effect-backed actors.
+title: "XState Effect: Actors"
+description: Create actors whose lifetime and dependencies belong to an Effect application.
 ---
 
-`createEffectActor(logic, options?)` starts actor logic as an Effect interpreter and returns `Effect<EffectActor<TLogic>, never, R | Scope>`, where `R` is the union of Effect services the logic requires.
+`createEffectActor(logic, options?)` starts an actor and returns its handle as a scoped Effect.
 
-```ts
-const program = Effect.gen(function* () {
-  const actor = yield* createEffectActor(machine, { input: { orderId: '42' } });
-  return actor.getSnapshot().value;
-});
-```
+- Pass `options.input` when the logic requires input.
+- Provide the services required by its declared actions and child actors.
+- Use `Effect.scoped` for a bounded program, or a Layer for an application service.
 
-`options.input` is the actor's input, typed by the logic. It is required when the logic's input type does not include `undefined`, and optional otherwise.
-
-The returned handle is an `EffectActor`. It implements XState's [actor reference](../create-actor.md) contract (`send`, `getSnapshot`, `subscribe`, `on`) and adds `inspect`, `getPersistedSnapshot` and `stop`, so the [actor functions](observing-actors.md) in this package, `useSelector` from `@xstate/react` and the inspection APIs all accept it.
+The [quick start](quick-start.md) shows an actor with input and a deployment service.
 
 ## Lifetime
 
-The actor is a scoped resource. It stops, and every Effect it hosts is interrupted, when the enclosing `Scope` closes. Use `Effect.scoped` to close the scope when the program finishes.
+The enclosing scope owns the actor. When that scope closes, the actor stops and its hosted Effects are interrupted.
 
-```ts
-await Effect.runPromise(Effect.scoped(program));
-```
+- `Effect.scoped(program)` closes the scope when `program` finishes.
+- `actor.stop()` stops the actor explicitly.
+- `Effect.addFinalizer` and `Effect.acquireRelease` in hosted Effects register cleanup with the actor's scope. That cleanup runs when the actor stops.
+- The enclosing scope waits for the actor's finalizers before finishing its own cleanup.
 
-Effects hosted by the actor see a `Scope` that closes when the actor stops. `Effect.addFinalizer` and `Effect.acquireRelease` inside those Effects release with the actor, not with the Effect that registered them.
+Provide application Layers outside `Effect.scoped`, with `program.pipe(Effect.scoped, Effect.provide(AppLayer))`, so services remain available while actor cleanup runs.
 
-Provide Layers outside `Effect.scoped`, so their resources are released after the actor has stopped:
+<details>
+<summary>Invocation lifetime and resource lifetime</summary>
 
-```ts
-await Effect.runPromise(program.pipe(Effect.scoped, Effect.provide(AppLayer)));
-```
+Leaving an invoking state interrupts its child's running Effect. Finalizers registered with the actor-hosted `Scope` live until the owning Effect actor stops. Use an inner `Effect.scoped` when a resource should be released as soon as that individual operation finishes or is interrupted.
 
-`actor.stop()` stops the actor and closes the actor's scope. The release step of `createEffectActor` waits for the actor scope's finalizers before the enclosing scope continues closing.
+</details>
 
 ## Provide an actor as a service
 
-An actor built by `createEffectActor` is a scoped Effect, so `Layer.effect` turns it into a service. Type the service as `EffectActor<typeof machine>`. The actor starts when the Layer is built and stops when the Layer's scope closes.
+Use `Layer.effect` to share one actor across requests. This review actor stays alive across calls to the `ManagedRuntime`:
+
+<!-- example from examples/effect-workflows/src/actor-service.ts -->
 
 ```ts
 import { Context, Effect, Layer, ManagedRuntime } from 'effect';
@@ -46,73 +43,80 @@ import {
   waitFor,
   type EffectActor
 } from '@xstate/effect';
+import { createMachine } from 'xstate';
 
-class CheckoutActor extends Context.Service<
-  CheckoutActor,
-  EffectActor<typeof checkoutMachine>
->()('@app/CheckoutActor') {}
+const reviewMachine = createMachine({
+  initial: 'pending',
+  states: {
+    pending: { on: { APPROVE: { target: 'approved' } } },
+    approved: {}
+  }
+});
 
-const CheckoutActorLayer = Layer.effect(
-  CheckoutActor,
-  createEffectActor(checkoutMachine)
+class ReviewActor extends Context.Service<
+  ReviewActor,
+  EffectActor<typeof reviewMachine>
+>()('@app/ReviewActor') {}
+
+const ReviewActorLayer = Layer.effect(
+  ReviewActor,
+  createEffectActor(reviewMachine)
 );
+const runtime = ManagedRuntime.make(ReviewActorLayer);
+
+try {
+  const snapshot = await runtime.runPromise(
+    Effect.gen(function* () {
+      const actor = yield* ReviewActor;
+      yield* send(actor, { type: 'APPROVE' });
+      return yield* waitFor(actor, (s) => s.matches('approved'));
+    })
+  );
+  console.log(snapshot.value); // 'approved'
+} finally {
+  await runtime.dispose();
+}
 ```
 
-The Layer's requirements are the machine's requirements, so provide them as you would for any other Layer:
+- The Layer starts the actor when it is built.
+- `EffectActor<typeof reviewMachine>` types the service and its events.
+- `runtime.dispose()` closes the runtime, stops the actor and releases its resources. Call it when your application shuts down.
 
-```ts
-const AppLayer = CheckoutActorLayer.pipe(Layer.provide(PaymentsLayer));
-```
-
-At an edge that is not itself an Effect, build the Layer once with a `ManagedRuntime` and run individual Effects against it:
-
-```ts
-const runtime = ManagedRuntime.make(AppLayer);
-
-const paid = await runtime.runPromise(
-  Effect.gen(function* () {
-    const actor = yield* CheckoutActor;
-    yield* send(actor, { type: 'PAY' });
-    return yield* waitFor(actor, (s) => s.matches('paid'));
-  })
-);
-
-await runtime.dispose();
-```
-
-`runtime.dispose()` closes the runtime's scope, which stops the actor and releases the Layers it was built from. Call it when the process shuts down.
+If the machine requires services, provide their Layers to the actor Layer with `Layer.provide`.
 
 ## Clock
 
-XState timers, meaning [`after` transitions](../delays.md) and delayed sends, use the Effect `Clock` service. In production this is the live clock. In tests, `TestClock` from `effect/testing` drives them without real time passing.
+`after` transitions and delayed sends use Effect's `Clock`. In tests, `TestClock` advances those timers without waiting for real time. See the [complete deadline example](testing-and-errors.md#testclock).
 
-```ts
-import { TestClock } from 'effect/testing';
+Timers are interrupted when the actor stops.
 
-const program = Effect.gen(function* () {
-  const actor = yield* createEffectActor(machine);
-  yield* TestClock.adjust('5 seconds');
-  return actor.getSnapshot().value;
-});
+## Actor handle
 
-await Effect.runPromise(
-  program.pipe(Effect.scoped, Effect.provide(TestClock.layer()))
-);
-```
+The `EffectActor` handle supports:
 
-Timers are fibers in the actor's scope, so they are interrupted when the actor stops. See [testing and errors](testing-and-errors.md) for a full test.
+- `send`, `getSnapshot`, `subscribe` and `on` from XState's actor reference contract;
+- `inspect`, `getPersistedSnapshot` and `stop`;
+- this package's [actor functions](observing-actors.md) and `useSelector` from `@xstate/react`.
 
 ## Requirements
 
-`RequirementsFrom<TLogic>` is the `R` channel of `createEffectActor`. It collects the requirements of:
+`RequirementsFrom<TLogic>` collects the services needed by:
 
-- actions registered with `setupEffect({ actions })`,
-- actors registered with `setup({ actors })` or `setupEffect({ actors })`,
-- logic used inline as `invoke.src`, at the root or in any state,
-- all of the above inside child machines, whether registered or invoked inline, up to 10 levels of machine nesting.
+- actions registered with `setupEffect({ actions })`;
+- actors registered with `setup({ actors })` or `setupEffect({ actors })`;
+- inline `invoke.src` logic, at the root or in a state;
+- those same sources inside child machines, up to 10 levels of nesting.
 
-Past 10 levels the type stops recursing and contributes `never`. Requirements introduced deeper than that are not part of `R`, so TypeScript accepts a program that does not provide the service and the actor fails at runtime when the service is requested. Flatten the machine tree, or provide those services explicitly, if a machine nests that deeply.
+`createEffectActor` returns `Effect<EffectActor<TLogic>, never, R | Scope>`, where `R` is that service union. TypeScript checks that you provide those services before running the program.
 
-`never` in the `R` channel means that no requirement was collected, not that no failure is possible. `createEffectActor` has no typed failures at all. Starting Effect-backed logic outside `createEffectActor`, spawning undeclared Effect logic, and using a service that was not collected are programming errors: they surface as the actor's `error` status, not as an Effect failure. Input rejected by a runtime `validator` is thrown while the actor is created, so `createEffectActor` dies with that error as a defect.
+Declare spawned Effect logic in `actors` and spawn it by name. See [declared sources](schemas-and-actions.md#declared-sources).
 
-Logic passed inline to `enq.spawn` lives inside a transition function body and is invisible to the type, so spawning inline Effect logic is rejected at runtime. Spawn a declared actor instead. See [declared only](schemas-and-actions.md#declared-only).
+<details>
+<summary>Requirement inference limits and creation errors</summary>
+
+- Requirements deeper than 10 machine levels are not collected. Flatten that tree, or provide the deeper services explicitly.
+- Inline logic passed to `enq.spawn` is invisible to requirement inference and is rejected at runtime.
+- The `never` error channel means actor creation has no typed failures. It does not describe the actor's later result; use `join` to observe that result.
+- Missing services and other programming errors can put the actor in the `error` status. Invalid input rejected by a runtime validator makes creation fail as a defect.
+
+</details>

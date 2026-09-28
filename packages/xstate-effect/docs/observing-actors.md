@@ -1,91 +1,142 @@
 ---
-title: Observing actors
-description: Send events and read snapshots, output and emitted events as Effects.
+title: "XState Effect: Observing actors"
+description: Send events and observe workflow state, results and notifications.
 ---
 
-The actor functions are free functions that take any XState actor reference, including the `EffectActor` handle, children read from `snapshot.children`, and actors created outside this package. A bundler drops the ones a program does not import.
+Use these functions with an `EffectActor`, a child from `snapshot.children` or another XState actor reference.
 
-| Function | Returns |
+| Function | Result |
 | --- | --- |
-| `send(actor, event)` | `Effect<void>` |
-| `snapshots(actor)` | `Stream<Snapshot>`: the current snapshot, then each change |
-| `emitted(actor)` | `Stream<Emitted>`: events emitted with `emit` |
-| `waitFor(actor, predicate)` | `Effect<Snapshot, ActorStoppedError>` |
-| `waitFor(actor, predicate, { timeout })` | `Effect<Snapshot, ActorStoppedError \| Cause.TimeoutError>` |
-| `join(actor)` | `Effect<Output, ErrorFrom<TLogic> \| ActorStoppedError>` |
-| `inspect(actor)` | `Stream<InspectionEvent>` |
-| `deadLetters(actor)` | `Stream<EventRejection>` |
+| `send(actor, event)` | Enqueues an event as `Effect<void>`. |
+| `snapshots(actor)` | Streams the current snapshot, then changes. |
+| `waitFor(actor, predicate)` | Waits for a matching snapshot. |
+| `join(actor)` | Waits for the actor's final output. |
+| `emitted(actor)` | Streams emitted events. |
+| `inspect(actor)` | Streams system inspection events. |
+| `deadLetters(actor)` | Streams events the system could not deliver. |
 
-## Dual usage
+## Send, observe and join
 
-`send` and `waitFor` are dual: each takes the actor as its first argument, or returns a function of the actor so it can be piped.
+This example records a review's state changes and reads its final output:
 
-```ts
-yield* send(actor, { type: 'PAY' });
-yield* pipe(actor, send({ type: 'PAY' }));
-```
-
-## Send
-
-`send` returns `Effect<void>` and never fails. It enqueues the event the way `actor.send(event)` does, and the actor's fiber processes it. The event has not been processed when the Effect completes, so assert on the result with `waitFor`, `join` or `snapshots`.
-
-## Wait for a snapshot
-
-`waitFor` succeeds with the first snapshot that satisfies the predicate, and succeeds immediately when the current snapshot already does. It fails with `ActorStoppedError` when the actor stops or errors first. Interrupting it unsubscribes from the actor.
-
-Pass `{ timeout }` to bound the wait. The failure is Effect's `Cause.TimeoutError`, not the `TimeoutError` that `xstate` exports for its own delayed-transition errors.
+<!-- example from examples/effect-workflows/src/observe.ts -->
 
 ```ts
-const snapshot = yield* waitFor(actor, (s) => s.matches('paid'), {
-  timeout: '5 seconds'
+import { Effect, Stream, pipe } from 'effect';
+import {
+  createEffectActor,
+  join,
+  send,
+  snapshots,
+  waitFor
+} from '@xstate/effect';
+import { createMachine } from 'xstate';
+
+const reviewMachine = createMachine({
+  output: () => ({ approved: true }),
+  initial: 'pending',
+  states: {
+    pending: { on: { APPROVE: { target: 'approved' } } },
+    approved: { type: 'final' }
+  }
 });
-```
 
-When the predicate is a type predicate, `waitFor` narrows its result to the asserted snapshot type:
-
-```ts
-const done = yield* waitFor(
-  actor,
-  (s): s is typeof s & { status: 'done' } => s.status === 'done'
-);
-```
-
-## Join the final result
-
-`join` behaves like `Fiber.join`. It succeeds with the actor's `output` when the actor is done, fails with `snapshot.error` when the actor errors, and fails with `ActorStoppedError` when the actor stops without output. It waits for a still-active actor to settle.
-
-The type of `snapshot.error` is `ErrorFrom<TLogic>`. For `fromEffect` logic that is the Effect's `E`. For a machine it is `unknown`, because an action can throw an arbitrary value or an unhandled child error can fail the machine, so `join(machineActor)` has `unknown` in its error channel. Model domain failures as final states and read them from the machine's output; treat a machine-level error as a defect with `Effect.orDie`, or handle it with `Effect.catch`, to keep the rest of the program typed.
-
-```ts
 const program = Effect.gen(function* () {
-  const actor = yield* createEffectActor(fetchUser, { input: { id: '42' } });
-  const user = yield* join(actor);
-  return user.id;
+  const actor = yield* createEffectActor(reviewMachine);
+  const history = yield* snapshots(actor).pipe(
+    // Send after the subscription sees the initial state.
+    Stream.tap((s) =>
+      s.matches('pending')
+        ? pipe(actor, send({ type: 'APPROVE' }))
+        : Effect.void
+    ),
+    Stream.map((s) => s.value),
+    Stream.runCollect
+  );
+  yield* waitFor(actor, (s) => s.matches('approved'), { timeout: '5 seconds' });
+  return { history: [...history], output: yield* join(actor) };
 });
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result);
+// { history: ['pending', 'approved'], output: { approved: true } }
 ```
 
-## Streams
+- `send` enqueues an event; use `waitFor`, `snapshots` or `join` to observe the outcome.
+- `send` and `waitFor` also support pipeable usage, as shown with `pipe(actor, send(...))`.
+- `snapshots` begins with the current snapshot and ends when the actor completes or stops. An error snapshot is emitted before the stream ends.
+- `waitFor` succeeds immediately if the current snapshot already matches. Its `{ timeout }` option bounds the wait.
+- A type predicate passed to `waitFor` narrows the returned snapshot.
+- `join` succeeds with `output` when the actor reaches `done`.
 
-`snapshots` starts with the current snapshot and then emits each change. It ends when the actor completes or stops, and emits the error snapshot before ending when the actor errors.
+<details>
+<summary>Wait and join failures</summary>
 
-`emitted` streams every event the actor emits, as delivered to `actor.on('*', ...)`. See [emitted events](../emitted-events.md).
+- `waitFor` fails with `ActorStoppedError` if the actor stops or errors before matching. Its timeout fails with Effect's `Cause.TimeoutError`.
+- `join` fails with `snapshot.error` when the actor errors, or `ActorStoppedError` when it stops without output.
+- `join` on `fromEffect` logic preserves the Effect's typed error. A machine's error type is `unknown`: actions can throw arbitrary values and unhandled child errors can fail the machine.
+- Model expected domain outcomes as final states with output. Handle unexpected machine errors with `Effect.catch`, or use `Effect.orDie` to treat them as defects.
 
-`inspect` streams the [inspection events](../inspection.md) of the actor's system: every actor creation and transition of the execution. Both streams run until they are interrupted or their scope closes, and interrupting either removes the listener.
+</details>
+
+## Stream notifications
+
+Use `emitted` for notifications sent with `enq.emit` or `EffectSourceArgs.emit`. This workflow emits a reminder every second while a review is pending:
+
+<!-- example from examples/effect-workflows/src/emitted.ts -->
+
+```ts
+import { Effect, Schema, Stream } from 'effect';
+import { createEffectActor, emitted, setupEffect } from '@xstate/effect';
+
+const reminderMachine = setupEffect({
+  schemas: {
+    emitted: { reminder: Schema.Struct({ message: Schema.String }) }
+  }
+}).createMachine({
+  initial: 'waiting',
+  states: {
+    waiting: { after: { 1000: { target: 'reminding' } } },
+    reminding: {
+      entry: (_, enq) =>
+        enq.emit({ type: 'reminder', message: 'Review pending' }),
+      after: { 0: { target: 'waiting' } }
+    }
+  }
+});
+
+const program = Effect.gen(function* () {
+  const actor = yield* createEffectActor(reminderMachine);
+  return [...(yield* emitted(actor).pipe(Stream.take(1), Stream.runCollect))];
+});
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result); // [{ type: 'reminder', message: 'Review pending' }]
+```
+
+`Stream.take(1)` ends this consumer after one reminder. Use `Stream.runForEach` for a subscriber that handles ongoing notifications. Emitted events are not replayed; start the consumer before the events you need to observe.
+
+`emitted` runs until interrupted or its scope closes. It removes its listener when the consumer ends.
+
+## Inspect execution
+
+`inspect(actor)` streams [inspection events](../inspection.md) for the actor's system. Use `Stream.runForEach(inspect(actor), ...)` to record actor creation and transitions. Start that consumer before the events you want to inspect, and keep it in the same scope as the actor.
 
 ## Dead letters
 
-XState reports an event the system could not deliver as a **dead letter** with a reason: `'stopped'` for a send to a stopped actor, `'invalidEvent'` for a payload the target's schema rejects, and `'internalEvent'` for an internal event type sent from outside its owning actor. A dead letter is not an actor error, and `send` cannot fail, so observe dead letters instead of relying on a failed send.
+Observe `deadLetters` to diagnose delivery failures. For example, run `Stream.runForEach(deadLetters(actor), (rejection) => Effect.logWarning(rejection))` in a scoped fiber while the actor is in use.
 
-```ts
-const program = Effect.gen(function* () {
-  const actor = yield* createEffectActor(machine);
-  yield* Effect.forkScoped(
-    Stream.runForEach(deadLetters(actor), (event) =>
-      Effect.logWarning(`undelivered ${event.event.type}: ${event.reason}`)
-    )
-  );
-  return actor;
-});
-```
+Each rejection includes the event and a reason:
 
-`deadLetters` streams the `EventRejection` objects the system reports through `system.onRejectedEvent`, and unsubscribes when the stream ends. Dead letters are not inspection events, so `inspect` does not include them.
+- `stopped`: the target has stopped;
+- `invalidEvent`: the payload failed the target's runtime schema validation;
+- `internalEvent`: an internal event was sent from outside its owning actor.
+
+A delivered event can still have no transition in the current state. Dead letters describe delivery, not whether the workflow changed state.
+
+<details>
+<summary>Why send does not fail</summary>
+
+`send` has no typed failures. A dead letter is reported through `system.onRejectedEvent`, separately from actor errors and inspection events. `deadLetters` removes that listener when the stream ends.
+
+</details>

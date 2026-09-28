@@ -1054,6 +1054,55 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  examples/effect-workflows:
+    dependencies:
+      '@effect/atom-react':
+        specifier: 4.0.0-rc.115
+        version: 4.0.0-rc.115(effect@4.0.0-rc.115)(react@19.2.8)(scheduler@0.27.0)
+      '@xstate/effect':
+        specifier: workspace:*
+        version: link:../../packages/xstate-effect
+      '@xstate/react':
+        specifier: workspace:*
+        version: link:../../packages/xstate-react
+      effect:
+        specifier: 4.0.0-rc.115
+        version: 4.0.0-rc.115
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.8(react@19.2.8)
+      xstate:
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      '@testing-library/react':
+        specifier: ^16.2.0
+        version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@types/node':
+        specifier: 25.2.1
+        version: 25.2.1
+      '@types/react':
+        specifier: ^19.0.10
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.0.4
+        version: 19.2.4(@types/react@19.2.18)
+      tsx:
+        specifier: ^4.23.12
+        version: 4.23.13
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      use-sync-external-store:
+        specifier: ^1.2.0
+        version: 1.6.0(react@19.2.8)
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@20.14.5)(jiti@2.7.0)(jsdom@26.1.0)(sass@1.97.3)(supports-color@5.5.0)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0)
+
   examples/elevator:
     dependencies:
       '@statelyai/sdk':
@@ -4198,6 +4247,13 @@ packages:
   '@csstools/css-tokenizer@3.0.4':
     resolution: {integrity: sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==, tarball: https://registry.npmjs.org/@csstools/css-tokenizer/-/css-tokenizer-3.0.4.tgz}
     engines: {node: '>=18'}
+
+  '@effect/atom-react@4.0.0-rc.115':
+    resolution: {integrity: sha512-CUPeP6JmiGyFa4t8YSBEydXAL3kCOzs/5st0kanjqj/rqnekydrThx/l2u2HNTkhqSrQi9HLokMd8QTEpWsdDQ==, tarball: https://registry.npmjs.org/@effect/atom-react/-/atom-react-4.0.0-rc.115.tgz}
+    peerDependencies:
+      effect: ^4.0.0-rc.115
+      react: '>=19.0.0 <20.0.0'
+      scheduler: '>=0.25.0 <0.28.0'
 
   '@emnapi/core@1.11.0':
     resolution: {integrity: sha512-l9Oo58x0HOP5znGzVhYW9U3e5wVuA4LAZU2AGezTmkhO1CgQRFDhDg4nneHsu/t3WniXg9QrG2nIXL/ZS8ln8Q==, tarball: https://registry.npmjs.org/@emnapi/core/-/core-1.11.0.tgz}
@@ -12178,6 +12234,12 @@ snapshots:
 
   '@csstools/css-tokenizer@3.0.4': {}
 
+  '@effect/atom-react@4.0.0-rc.115(effect@4.0.0-rc.115)(react@19.2.8)(scheduler@0.27.0)':
+    dependencies:
+      effect: 4.0.0-rc.115
+      react: 19.2.8
+      scheduler: 0.27.0
+
   '@emnapi/core@1.11.0':
     dependencies:
       '@emnapi/wasi-threads': 1.2.2
@@ -14204,6 +14266,16 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.1.8
       '@types/react-dom': 19.1.6(@types/react@19.1.8)
+
+  '@testing-library/react@16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@babel/runtime': 7.29.7
+      '@testing-library/dom': 10.4.0
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+    optionalDependencies:
+      '@types/react': 19.2.18
+      '@types/react-dom': 19.2.4(@types/react@19.2.18)
 
   '@testing-library/svelte@5.2.8(svelte@5.57.0(@typescript-eslint/types@8.66.0))(vite@6.4.3(@types/node@25.2.1)(jiti@2.7.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0))(vitest@3.2.7(@types/debug@4.1.13)(@types/node@25.2.1)(happy-dom@20.14.5)(jiti@2.7.0)(jsdom@26.1.0)(sass@1.97.3)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0))':
     dependencies:

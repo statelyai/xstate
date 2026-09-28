@@ -1,115 +1,211 @@
 ---
-title: Atoms and React
-description: Expose an Effect-backed actor to a reactive UI.
+title: "XState Effect: Atoms and React"
+description: Read workflow state and send events from an Effect-powered UI.
 ---
 
-`@xstate/effect/atom` exposes an actor through `effect/unstable/reactivity`, so a reactive UI reads it the way it reads any other Effect state.
+Use `@xstate/effect/atom` to expose an actor through Effect's reactive atoms. The runtime owns the actor; components read its state and send events.
 
 `effect/unstable/reactivity` is an unstable Effect module. This entry point follows it and may change independently of the rest of the package.
 
-## `createActorAtoms`
+## Create actor atoms
 
-`createActorAtoms(runtime, logic, options?)` takes an `Atom.runtime` whose Layer provides the logic's services, and returns:
+`createActorAtoms(runtime, logic, options?)` takes an `Atom.runtime` whose Layer provides the logic's services.
 
-| Atom | Type |
-| --- | --- |
-| `actor` | `Atom<AsyncResult<EffectActor<TLogic>>>` |
-| `snapshot` | `Atom<AsyncResult<Snapshot>>` |
-| `result` | `Atom<AsyncResult<Snapshot, ErrorFrom<TLogic>>>`, a `Failure` once the actor errors |
-| `send` | `Writable<AsyncResult<void, NotReadyError>, Event>`, set it with an event |
-| `select(f)` | `Atom<AsyncResult<T>>` derived from `snapshot` |
-| `state` | `Atom<AsyncResult<TaggedState>>`, the snapshot as a [tagged union](matching-states.md) |
+This complete example waits for the runtime, sends an approval and reads a selector:
+
+<!-- example from examples/effect-workflows/src/atoms.ts -->
 
 ```ts
 import { Effect, Layer } from 'effect';
-import { Atom, AtomRegistry, AsyncResult } from 'effect/unstable/reactivity';
+import { AsyncResult, Atom, AtomRegistry } from 'effect/unstable/reactivity';
+import { waitFor } from '@xstate/effect';
 import { createActorAtoms } from '@xstate/effect/atom';
+import { createMachine } from 'xstate';
 
-const runtime = Atom.runtime(
-  Layer.succeed(Api, { fetchUser: (id: string) => Effect.succeed({ id }) })
-);
-const user = createActorAtoms(runtime, machine);
-const status = user.select((snapshot) => snapshot.value);
+const reviewMachine = createMachine({
+  initial: 'pending',
+  states: {
+    pending: { on: { APPROVE: { target: 'approved' } } },
+    approved: {}
+  }
+});
 
+const runtime = Atom.runtime(Layer.empty);
+const review = createActorAtoms(runtime, reviewMachine);
+const status = review.select((snapshot) => snapshot.value);
 const registry = AtomRegistry.make();
-registry.subscribe(
-  status,
-  (result) => {
-    if (AsyncResult.isSuccess(result)) {
-      console.log(result.value);
-    }
-  },
-  { immediate: true }
-);
-registry.set(user.send, { type: 'RETRY' });
+const unmount = registry.mount(status);
+
+export let result: string | undefined;
+try {
+  const actor = await Effect.runPromise(
+    AtomRegistry.getResult(registry, review.actor)
+  );
+  // Wait for the runtime before sending.
+  registry.set(review.send, { type: 'APPROVE' });
+  await Effect.runPromise(waitFor(actor, (s) => s.matches('approved')));
+  const current = registry.get(status);
+  if (AsyncResult.isSuccess(current)) {
+    result = current.value;
+    console.log(result); // 'approved'
+  }
+} finally {
+  unmount();
+  registry.dispose();
+}
 ```
 
-The actor starts when one of its atoms is first read and stops when nothing reads or mounts them anymore. Values are `AsyncResult` because the runtime's Layer builds asynchronously.
+- The actor starts when one of its atoms is first read or mounted.
+- It is released when its atoms have no consumers, subject to the registry's idle lifetime.
+- Dispose the registry when its owner shuts down.
+- A runtime missing a required service is a type error.
 
-A runtime that does not provide a service the logic requires is a type error on the `runtime` argument.
+## Atom reference
 
-### `send` and `NotReadyError`
+| Atom | Value |
+| --- | --- |
+| `actor` | `AsyncResult<EffectActor<TLogic>>`. |
+| `snapshot` | `AsyncResult<Snapshot>`, including error snapshots. |
+| `result` | A failure when the actor errors, suitable for error handling. |
+| `send` | Writable atom that accepts an event and reports the last send. |
+| `select(f)` | Derived `AsyncResult<T>` from the snapshot. |
+| `state` | The snapshot as a [tagged union](matching-states.md). |
 
-The `send` atom enqueues the event, like `actor.send`. Its value reports the last send. Setting it before the runtime has finished building records a `NotReadyError` failure instead of sending, and `NotReadyError` is exported from `@xstate/effect/atom`.
+The runtime Layer's error type is included in the atoms' error channels. `result` also includes the actor's `ErrorFrom<TLogic>`.
 
-### `result`
+<details>
+<summary>Sending before the runtime is ready</summary>
 
-`result` is `snapshot` with an errored actor reported as a `Failure` carrying the actor's error, which is what an error boundary needs. `snapshot` keeps reporting the error snapshot as a success.
+The `send` atom enqueues an event once the actor is ready. Sending while the runtime is still building records `NotReadyError` instead. That class is exported from `@xstate/effect/atom`. Wait for the actor, or render controls after `useAtomSuspense` has resolved.
 
-### Keeping the actor alive
-
-Wrap an atom with `Atom.keepAlive` to keep the actor for the registry's lifetime. Build the atoms inside `Atom.family` to get one actor per input.
-
-```ts
-const userAtoms = Atom.family((id: string) =>
-  createActorAtoms(runtime, userMachine, { input: { id } }).snapshot
-);
-```
+</details>
 
 ## React
 
-`useMachine`, `useActor` and `useActorRef` from `@xstate/react` call `createActor` internally, so they cannot start Effect-backed logic. In an Effect application the actor lives in the runtime and React reads it through atoms, with the hooks from `@effect/atom-react`.
+Install the React bindings that match your Effect version:
+
+```bash
+npm install @effect/atom-react@rc react react-dom
+```
+
+The example uses an approval workflow with a demo publishing task. `RegistryProvider` owns the atom registry, and `Suspense` handles startup:
+
+<!-- example from examples/effect-workflows/src/react.tsx -->
 
 ```tsx
 import { Suspense } from 'react';
+import { Effect, Layer } from 'effect';
 import { Atom } from 'effect/unstable/reactivity';
-import { useAtomSet, useAtomSuspense } from '@effect/atom-react';
+import {
+  RegistryProvider,
+  useAtomSet,
+  useAtomSuspense
+} from '@effect/atom-react';
+import { fromEffect, setupEffect } from '@xstate/effect';
 import { createActorAtoms } from '@xstate/effect/atom';
 
-const runtime = Atom.runtime(AppLayer);
-const checkout = createActorAtoms(runtime, checkoutMachine);
-const status = checkout.select((snapshot) => snapshot.value);
+const reviewMachine = setupEffect({
+  actors: { publish: fromEffect(Effect.sleep('10 millis')) }
+}).createMachine({
+  initial: 'pending',
+  states: {
+    pending: { on: { APPROVE: { target: 'publishing' } } },
+    publishing: {
+      invoke: { src: 'publish', onDone: { target: 'published' } }
+    },
+    published: {}
+  }
+});
 
-function Checkout() {
+const runtime = Atom.runtime(Layer.empty);
+const review = createActorAtoms(runtime, reviewMachine);
+const status = review.select((snapshot) => snapshot.value);
+
+function Review() {
   const { value } = useAtomSuspense(status);
-  const send = useAtomSet(checkout.send);
-
-  return <button onClick={() => send({ type: 'PAY' })}>{String(value)}</button>;
+  const send = useAtomSet(review.send);
+  return (
+    <section>
+      <p role="status">{value}</p>
+      <button
+        disabled={value !== 'pending'}
+        onClick={() => send({ type: 'APPROVE' })}
+      >
+        Approve release
+      </button>
+    </section>
+  );
 }
 
 export function App() {
   return (
-    <Suspense fallback={null}>
-      <Checkout />
-    </Suspense>
+    <RegistryProvider>
+      <Suspense fallback={<p>Starting review…</p>}>
+        <Review />
+      </Suspense>
+    </RegistryProvider>
   );
 }
 ```
 
-`useAtomSuspense` suspends until the runtime and the actor are ready. `useAtomValue` returns the `AsyncResult` instead, for components that render their own loading state.
+- `useAtomSuspense` waits for the runtime and actor, then returns a successful result.
+- `useAtomValue` returns the `AsyncResult` directly, for components that render loading and failure states themselves.
+- `useAtomMount(review.actor)` lets an owner component retain the actor while child components read selectors.
+- Use `Atom.keepAlive` to retain an atom for the registry's lifetime, or `Atom.family` for one actor per input.
 
-The actor starts when the first component reads one of its atoms and stops when the last one unmounts. An owner component can hold it with `useAtomMount(checkout.actor)` while children read selectors. Pin it with `Atom.keepAlive` when it must outlive the components.
+<details>
+<summary>Starting actors from React hooks</summary>
 
-### Without atoms
+`useMachine`, `useActor` and `useActorRef` from `@xstate/react` start logic through XState's `createActor`. Start Effect-backed logic in an Effect runtime with `createEffectActor`, then consume it through atoms or `useSelector`.
 
-The `EffectActor` handle is an XState actor reference, so `useSelector` from `@xstate/react` reads it directly. Create the actor through a `ManagedRuntime`, pass the handle down, and call `actor.send` as usual.
+</details>
+
+## Use an actor handle directly
+
+`useSelector` accepts an `EffectActor`. Build the actor in a `ManagedRuntime`, pass it to a component and dispose the runtime when the application shuts down:
+
+<!-- example from examples/effect-workflows/src/selector.tsx -->
 
 ```tsx
+import { Context, Layer, ManagedRuntime } from 'effect';
+import { createEffectActor, type EffectActor } from '@xstate/effect';
 import { useSelector } from '@xstate/react';
+import { createMachine } from 'xstate';
 
-function Total({ actor }: { actor: EffectActor<typeof checkoutMachine> }) {
-  const total = useSelector(actor, (snapshot) => snapshot.context.total);
+const reviewMachine = createMachine({
+  initial: 'pending',
+  states: {
+    pending: { on: { APPROVE: { target: 'approved' } } },
+    approved: {}
+  }
+});
 
-  return <button onClick={() => actor.send({ type: 'PAY' })}>{total}</button>;
+class ReviewActor extends Context.Service<
+  ReviewActor,
+  EffectActor<typeof reviewMachine>
+>()('@app/ReviewActor') {}
+
+export const runtime = ManagedRuntime.make(
+  Layer.effect(ReviewActor, createEffectActor(reviewMachine))
+);
+export const actor = await runtime.runPromise(ReviewActor);
+
+// Render <Review actor={actor} /> in your React application.
+export function Review({
+  actor
+}: {
+  actor: EffectActor<typeof reviewMachine>;
+}) {
+  const status = useSelector(actor, (s) => s.value);
+  return (
+    <button
+      disabled={status !== 'pending'}
+      onClick={() => actor.send({ type: 'APPROVE' })}
+    >
+      {status}
+    </button>
+  );
 }
+
+// Call await runtime.dispose() when the application shuts down.
 ```

@@ -1,98 +1,205 @@
 ---
-title: Testing and errors
-description: Drive actors with TestClock, supervise them, and read their failures.
+title: "XState Effect: Testing and errors"
+description: Test deadlines, recover from failures and supervise workflow actors.
 ---
 
-Machines keep their normal [test surface](../testing.md), and this package adds Effect-native ways to drive and observe them.
+Test the workflow with its real machine and provide local Effect services. Use `waitFor` for state assertions and `join` for final output.
 
 ## TestClock
 
-Delays run on the Effect `Clock`, so `TestClock` advances `after` transitions and delayed sends without real time passing.
+A release approval expires after 30 seconds. `TestClock` drives the same `after` transition without waiting for real time:
+
+<!-- example from examples/effect-workflows/src/clock.ts -->
 
 ```ts
 import { Effect } from 'effect';
 import { TestClock } from 'effect/testing';
 import { createEffectActor, waitFor } from '@xstate/effect';
+import { createMachine } from 'xstate';
 
-const test = Effect.gen(function* () {
-  const actor = yield* createEffectActor(machine);
-  yield* TestClock.adjust('30 seconds');
-  yield* waitFor(actor, (s) => s.matches('timedOut'));
+const reviewMachine = createMachine({
+  initial: 'pending',
+  states: {
+    pending: {
+      after: { 30000: { target: 'expired' } },
+      on: { APPROVE: { target: 'approved' } }
+    },
+    approved: { type: 'final' },
+    expired: { type: 'final' }
+  }
 });
 
-await Effect.runPromise(
+const test = Effect.gen(function* () {
+  const actor = yield* createEffectActor(reviewMachine);
+  yield* TestClock.adjust('30 seconds');
+  const snapshot = yield* waitFor(actor, (s) => s.matches('expired'));
+  return snapshot.value;
+});
+
+export const result = await Effect.runPromise(
   test.pipe(Effect.scoped, Effect.provide(TestClock.layer()))
 );
+console.log(result); // 'expired', with no 30-second wait
 ```
 
-Assert with `waitFor` for a state the actor should reach, and with `join` for the actor's final output. Both fail rather than hang when the actor stops first, and `waitFor`'s `timeout` option bounds a test that would otherwise wait forever.
+- Timers use Effect's `Clock`, including delayed sends.
+- `waitFor` and `join` fail if the actor stops before reaching the expected result.
+- Add `waitFor`'s `{ timeout }` to bound a wait. With `TestClock`, advance the clock to trigger that timeout too.
+- Use `inspect` for execution traces and `deadLetters` for delivery failures.
 
-Observe with `inspect` for every inspection event and `deadLetters` for events the system could not deliver. A test that ends with no dead letters confirms that every event it sent was accepted.
+XState's [path generation](../model-based-testing.md) works on the machine itself. Execute generated paths against an actor from `createEffectActor`, or use `testPaths()` from `@xstate/test`.
 
-Path generation in `xstate/graph` (`getShortestPaths`, `getSimplePaths`) operates on the machine, not on a running actor, so it works on an Effect-backed machine unchanged. Execute the generated paths against an actor from `createEffectActor`, or run them with `testPaths()` from `@xstate/test`.
+## Retry a task
 
-## Retries and supervision
+Use Effect's retry combinators inside `fromEffect` for transient failures within one task. This local publisher succeeds on its third attempt:
 
-Write retries with Effect's own combinators inside the logic. `fromEffect` adds no retry options.
-
-```ts
-const loadUser = fromEffect(({ input }: EffectSourceArgs<{ id: string }>) =>
-  Api.use((api) => api.fetchUser(input.id)).pipe(
-    Effect.retry({ schedule: Schedule.exponential('100 millis'), times: 3 })
-  )
-);
-```
-
-`createEffectActor` is an ordinary scoped Effect, so Effect's retry combinators also supervise a whole actor. Wrap the actor and the work that depends on it in `Effect.scoped`, then retry that unit. Each attempt builds a fresh actor, and the failed attempt's actor is stopped when its scope closes.
+<!-- example from examples/effect-workflows/src/retry.ts -->
 
 ```ts
 import { Effect, Schedule } from 'effect';
-import { createEffectActor, join } from '@xstate/effect';
+import { createEffectActor, fromEffect, join } from '@xstate/effect';
+
+let attempts = 0;
+const publish = fromEffect(
+  Effect.suspend(() => {
+    attempts++;
+    return attempts < 3
+      ? Effect.fail(new Error('Publisher temporarily unavailable'))
+      : Effect.succeed('published');
+  }).pipe(
+    Effect.retry({ schedule: Schedule.exponential('10 millis'), times: 3 })
+  )
+);
 
 const program = Effect.gen(function* () {
-  const actor = yield* createEffectActor(machine);
+  const actor = yield* createEffectActor(publish);
   return yield* join(actor);
 });
 
-const supervised = Effect.retry(Effect.scoped(program), {
-  schedule: Schedule.exponential('100 millis'),
-  times: 3
-});
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result); // 'published', on attempt 3
 ```
 
-`join` fails when the actor errors or stops before producing output, so the schedule sees the actual failure. For a machine that failure is `unknown` (see [observing actors](observing-actors.md)); narrow it before the retry if the schedule should only see some errors. Retrying `program` without `Effect.scoped` would reuse the outer scope and leak the actors from failed attempts until that scope closes.
+Use a machine state when retry requires a person or an event. The [quick start](quick-start.md) accepts `RETRY` only after deployment fails.
 
-## Errors
+## Supervise an actor
 
-| Error | Raised by | Fields |
-| --- | --- | --- |
-| `ActorStoppedError` | `waitFor` when the actor stops or errors; `join` when it stops without output | `actorId: string`, `snapshot: Snapshot<unknown>` |
-| `EffectInterruptedError` | Effect logic interrupted from inside, such as `Effect.interrupt`, reported as `snapshot.error` | `cause: Cause.Cause<never>` |
-| `Cause.TimeoutError` | `waitFor` with `{ timeout }` when no snapshot matches in time | Effect's own error, `_tag: 'TimeoutError'` |
+Retry a scoped unit when a failure should create a fresh actor:
 
-Both package errors are `Data.TaggedError` classes, so `Effect.catchTag('ActorStoppedError', ...)` matches them.
+<!-- example from examples/effect-workflows/src/supervision.ts -->
 
-The actor's own failures are not in this table. A `fromEffect` actor reports the Effect's `E` value as `snapshot.error`, typed through `ErrorFrom`, which this package re-exports from `xstate`.
+```ts
+import { Effect, Schedule } from 'effect';
+import { createEffectActor, fromEffect, join } from '@xstate/effect';
 
-A root actor that errors does not throw globally the way `createActor(...).start()` does. Its error is a value: read it with `join`, `waitFor`, the [`result` atom](atoms-and-react.md#result) or `subscribe`. An errored actor that nobody observes is silent, like a failed forked fiber.
+let attempts = 0;
+const worker = fromEffect(
+  Effect.suspend(() => {
+    attempts++;
+    return attempts < 3
+      ? Effect.fail(new Error('Worker disconnected'))
+      : Effect.succeed('complete');
+  })
+);
+
+const attempt = Effect.gen(function* () {
+  const actor = yield* createEffectActor(worker);
+  return yield* join(actor);
+});
+
+// Each failed attempt closes its scope before a new actor starts.
+const supervised = Effect.scoped(attempt).pipe(
+  Effect.retry({ schedule: Schedule.exponential('10 millis'), times: 3 })
+);
+
+export const result = await Effect.runPromise(supervised);
+console.log(result); // 'complete', from the third actor
+```
+
+Each attempt stops its actor and releases its resources before the next attempt starts.
+
+<details>
+<summary>Choosing failures to retry</summary>
+
+`join` reports the actor's failure, so the retry policy sees that error. A machine's error type is `unknown`; narrow it if only some failures should be retried. Keep `Effect.scoped` inside the retry, so failed actors are released after each attempt.
+
+Retrying can repeat external operations. Use stable operation IDs or idempotent APIs when repetition could create duplicate work.
+
+</details>
+
+## Handle typed failures
+
+A `fromEffect` actor preserves its Effect's error type. Handle a domain failure with `Effect.catchTag`:
+
+<!-- example from examples/effect-workflows/src/errors.ts -->
+
+```ts
+import { Data, Effect } from 'effect';
+import { createEffectActor, fromEffect, join } from '@xstate/effect';
+
+class PublishFailed extends Data.TaggedError('PublishFailed')<{
+  readonly reason: string;
+}> {}
+
+const publish = fromEffect(
+  Effect.fail(new PublishFailed({ reason: 'Release needs approval' }))
+);
+
+const program = Effect.gen(function* () {
+  const actor = yield* createEffectActor(publish);
+  return yield* join(actor).pipe(
+    Effect.catchTag('PublishFailed', (error) => Effect.succeed(error.reason))
+  );
+});
+
+export const result = await Effect.runPromise(Effect.scoped(program));
+console.log(result); // 'Release needs approval'
+```
+
+For machine workflows, expected outcomes such as declined or expired can be final states with output. `join(machineActor)` has an `unknown` error channel for unexpected machine failures.
+
+## Error reference
+
+| Error | Raised by |
+| --- | --- |
+| `ActorStoppedError` | `waitFor` when the actor stops or errors before matching; `join` when it stops without output. |
+| `EffectInterruptedError` | Effect logic that interrupts itself. |
+| `Cause.TimeoutError` | `waitFor` with a timeout, or Effect's timeout combinators. |
+
+- `ActorStoppedError` includes `actorId` and `snapshot`.
+- `EffectInterruptedError` includes its interrupt `cause`.
+- Both package errors are `Data.TaggedError` classes.
+- An actor's own typed failure is available through `snapshot.error` and `join`; `ErrorFrom` names its type.
+
+<details>
+<summary>Observe root actor errors</summary>
+
+A root Effect actor's error is a value. Read it with `join`, `waitFor`, `subscribe` or the `result` atom. An unobserved errored actor is silent, like a failed forked fiber.
+
+</details>
 
 ## Persistence
 
-`actor.getPersistedSnapshot()` returns a serializable snapshot of the actor's state, as described in [persist and restore actors](../persist-and-restore-actors.md). It records state, not the progress of a running Effect.
+`actor.getPersistedSnapshot()` records the actor's state. It does not record progress inside a running Effect.
 
-Restoring a snapshot into a new interpreter is not supported yet. The durable execution loop this package is built on is the intended path for that, and it is the next piece of work.
+<details>
+<summary>Restoration support</summary>
+
+Restoring a persisted snapshot into a new Effect interpreter is not supported yet. Do not use this API as a durable workflow checkpoint.
+
+</details>
 
 ## Tracing
 
-Every Effect the actor hosts runs inside a span.
+Hosted Effects run inside spans:
 
-| Span | Covers |
+| Span | Work |
 | --- | --- |
-| `fromEffect` | a `fromEffect` actor's Effect |
-| `fromEffectStream` | a `fromEffectStream` actor's stream |
-| `fromEffectEventStream` | a `fromEffectEventStream` actor's stream |
-| `action.<name>` | an Effect action registered as `<name>` |
+| `fromEffect` | A task actor's Effect. |
+| `fromEffectStream` | A stream of snapshot values. |
+| `fromEffectEventStream` | A stream of parent events. |
+| `action.<name>` | A declared Effect action. |
 
-Each span carries the attributes `xstate.actor.id` and `xstate.actor.address`. `id` is the actor's own name. `address` is its `/`-joined path of ids from the root actor, which is stable across persistence and restore, so it identifies the same logical actor across runs.
+Spans carry `xstate.actor.id` and `xstate.actor.address`. The address is the actor's `/`-joined path from the root, identifying its place in the actor tree.
 
-Spans are recorded only when a `Tracer` is provided. Without one they cost nothing and export nothing.
+Provide a `Tracer` to record and export spans.
