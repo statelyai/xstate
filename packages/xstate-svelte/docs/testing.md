@@ -7,8 +7,6 @@ Test the machine and the component separately.
 
 Machine behavior (which event leads to which state) is tested without Svelte: start an actor, send events, assert on the snapshot. See [Test XState logic](../testing.md). What is left for a component test is the wiring: whether the click sends the event, and whether the snapshot reaches the DOM.
 
-`@xstate/svelte` is itself tested with [Svelte Testing Library](https://testing-library.com/docs/svelte-testing-library/intro) and Vitest.
-
 ## Rendering a component
 
 ```ts

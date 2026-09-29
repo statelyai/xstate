@@ -67,10 +67,6 @@ Ports of the [Serverless Workflow specification](https://github.com/serverlesswo
 
 The remaining `workflow-*` directories cover the rest of the specification's examples: [workflow-async-subflow](https://github.com/statelyai/xstate/tree/next/examples/workflow-async-subflow), [workflow-car-auction-bids](https://github.com/statelyai/xstate/tree/next/examples/workflow-car-auction-bids), [workflow-event-based-service](https://github.com/statelyai/xstate/tree/next/examples/workflow-event-based-service), [workflow-event-greeting](https://github.com/statelyai/xstate/tree/next/examples/workflow-event-greeting), [workflow-filling-water](https://github.com/statelyai/xstate/tree/next/examples/workflow-filling-water), [workflow-finalize-college-app](https://github.com/statelyai/xstate/tree/next/examples/workflow-finalize-college-app), [workflow-greeting](https://github.com/statelyai/xstate/tree/next/examples/workflow-greeting), [workflow-math-problem](https://github.com/statelyai/xstate/tree/next/examples/workflow-math-problem), [workflow-monitor-job](https://github.com/statelyai/xstate/tree/next/examples/workflow-monitor-job), [workflow-new-patient-onboarding](https://github.com/statelyai/xstate/tree/next/examples/workflow-new-patient-onboarding), [workflow-reusing-functions](https://github.com/statelyai/xstate/tree/next/examples/workflow-reusing-functions) and [workflow-send-cloudevent](https://github.com/statelyai/xstate/tree/next/examples/workflow-send-cloudevent).
 
-## Contributing an example
-
-See the [examples readme](https://github.com/statelyai/xstate/blob/next/examples/readme.md) for how to scaffold a new example and open a pull request.
-
 ## What next?
 
 - [Get running with the quick start](quick-start.md).

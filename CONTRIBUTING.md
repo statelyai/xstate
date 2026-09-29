@@ -50,13 +50,11 @@ We’ll try to respond promptly and address your issue as soon as possible.
 
 ## Contributing to our docs
 
-Our [new docs](https://stately.ai/docs) are now in their own [docs repo](https://github.com/statelyai/docs). [Read the contribution guide for our Stately Studio and XState docs](https://github.com/statelyai/docs/blob/main/CONTRIBUTING.md).
+User documentation lives next to what it describes: XState guides and reference pages in `docs/`, package pages in `packages/*/docs/` and package READMEs. Add every page to the nearest `meta.json`. These pages cover only how to use the libraries; contributor material belongs in this file or `examples/CONTRIBUTING.md`.
 
-### Legacy docs and xstate.js.org
-
-The docs at `/docs` in this repo are legacy XState docs. They are built using [Vuepress](https://vuepress.vuejs.org) and deployed to [xstate.js.org/docs](https://xstate.js.org/docs) using GitHub pages from the `gh-pages` branch using the `pages build and deployment` workflow.
-
-The [xstate.js.org](https://xstate.js.org) landing page is currently stored at `index.html` and deployed from the `gh-pages` branch using the `pages build and deployment` workflow.
+- Start with working code and explain the behavior the reader can observe. Introduce one concept at a time.
+- Use TypeScript unless JavaScript behavior is the subject. Keep examples complete enough to copy and run, and verify them against the current package source and types.
+- Check local links and `meta.json` navigation, format Markdown and JSON, and run focused type checks or tests for changed examples.
 
 ## Setup
 
@@ -68,11 +66,15 @@ One check reads the built output on purpose: `pnpm typecheck:adapter-consumers` 
 
 ### Bundle measurements
 
-See [bundle measurements](docs/bundle-size.md) for source and production profiles, behavior verification, and CI size reports.
+Run `pnpm bench:size` to measure bundle sizes against `scripts/bundle-size.thresholds.json`, and `pnpm bench:size:update` to rewrite the thresholds. `node scripts/bundle-size.mjs --why` attributes bytes per module.
 
 ### Publishing
 
 We are using [changesets](https://github.com/atlassian/changesets) to create "release intents" for our packages. The Publish workflow handles release intents on `main` and `next`; changes for the v6 alpha belong on `next`.
+
+### Persistence conformance
+
+`packages/core/test/persistenceConformance.v6.test.ts` is the shape contract for persisted snapshots. It validates every envelope it produces against `packages/core/src/persistedSnapshot.schema.json`.
 
 ### Examples and development dependencies
 

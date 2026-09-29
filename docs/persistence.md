@@ -54,7 +54,7 @@ An actor's address is the `/`-joined path of actor ids from the root, such as `o
 
 A persisted snapshot is a plain JSON-shaped object. Restoring one is lenient: XState reads the fields it knows and does not check a format marker.
 
-These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers`, `machine` and `version`. `packages/core/src/persistedSnapshot.schema.json` (JSON Schema draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
+These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers`, `machine` and `version`. The [persisted snapshot JSON Schema](https://github.com/statelyai/xstate/blob/next/packages/core/src/persistedSnapshot.schema.json) (draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
 
 Changes to your own machine are handled with `machine.version`: migrate stored snapshots with `migrate` or `machineVersions().migrateSnapshot()`. See [Migrate machine versions](#migrate-machine-versions).
 
@@ -78,8 +78,6 @@ Actor refs in `context` persist as `{ xstate$type: 'actorRef', id }` and are not
 ### In-flight children
 
 A restored child with work in flight restarts: an async logic child runs `run` again, and a callback logic child runs its callback again. Record each external call with [`enq.step()`](actor-logic.md) so a restored actor reuses completed outcomes instead of repeating them.
-
-`packages/core/test/persistenceConformance.v6.test.ts` is the shape contract for this section. It validates every envelope it produces against the schema.
 
 ## Migrate machine versions
 

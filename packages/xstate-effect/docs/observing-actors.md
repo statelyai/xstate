@@ -206,7 +206,7 @@ export const result = await Effect.runPromise(Effect.scoped(program));
 console.log(result); // 'Release published'
 ```
 
-Run it with `INSPECT=1 pnpm --filter @xstate/example-effect-workflows start`. This opens the Stately inspector and sends machine definitions, snapshots and events to its hosted relay. Without the flag, the demo runs locally.
+Set `INSPECT=1` when running the program to open the Stately inspector and send machine definitions, snapshots and events to its hosted relay. Without the flag, the demo runs locally.
 
 ## Dead letters
 
