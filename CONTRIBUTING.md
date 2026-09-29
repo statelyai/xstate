@@ -68,7 +68,22 @@ One check reads the built output on purpose: `pnpm typecheck:adapter-consumers` 
 
 ### Bundle measurements
 
-See [bundle measurements](docs/bundle-size.md) for source and production profiles, behavior verification, and CI size reports.
+CI does not check bundle size. `pnpm bench:size` measures representative
+XState, store, and adapter entry points locally and reports esbuild and Terser
+sizes, minified and gzipped. By default it also fails when a profile exceeds
+`scripts/bundle-size.thresholds.json`; those thresholds are not maintained, so
+use `--report` to print sizes without failing.
+
+```bash
+pnpm bench:size --report --profile=minimal-machine # One profile
+pnpm bench:size --report --why                    # Attribute bytes to modules
+pnpm bench:size --report --baseline=<rev>         # Measure another revision's source
+```
+
+`--baseline` measures only that revision; run it and a plain `--report` to
+compare. `pnpm bench:size:update` rewrites the thresholds; it refuses to raise
+one above its entry in `scripts/bundle-size.targets.json` unless you pass
+`--force`.
 
 ### Publishing
 
@@ -83,6 +98,14 @@ We are using [changesets](https://github.com/atlassian/changesets) to create "re
 `node scripts/typecheck-examples.js` checks every example with a `tsconfig.json`, including referenced projects behind solution configs; pass project names or paths to select examples. Any compiler failure exits nonzero. `examples/readme.md` has no project configuration and is skipped. Every current TypeScript example has a build script and participates in the CI gate.
 
 `pnpm check:templates` installs and builds all four standalone starter templates with their own frozen lockfiles.
+
+`pnpm check:exports` requires every public `xstate` export to carry exactly one
+`@public`, `@experimental`, or `@internal` stability tag. `@deprecated` must be
+paired with `@public` or `@experimental`.
+
+After `pnpm build`, `pnpm check:packed` packs `xstate` and `@xstate/react`, then
+checks their published files, declarations, ESM/CJS entry points, and production
+builds from a standalone consumer.
 
 Workflow regression tests use in-process actors, simulated clocks, and mocked network, database, filesystem, and subprocess boundaries. Passing these checks does not exercise real MongoDB credentials, external services, or media-file moves. Follow each example's README to run its live integration.
 
