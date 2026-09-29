@@ -44,6 +44,7 @@ import {
   beginSpawnAllocation,
   createDeadLetterEffect,
   createSpawnEffect,
+  createStartEffect,
   resolveActionsWithContext,
   mergeActorIdCounters,
   takeSpawnAllocationCounters
@@ -1375,6 +1376,21 @@ export class StateMachine<
       TOutput,
       TMeta,
       TConfig
+    >,
+    actorScope?: ActorScope<
+      MachineSnapshot<
+        TContext,
+        TEvent,
+        TChildren,
+        TStateValue,
+        TTag,
+        TOutput,
+        TMeta,
+        TConfig
+      >,
+      TEvent,
+      AnyActorSystem,
+      TEmitted
     >
   ): void {
     // Start rehydrated children that were active when persisted. Freshly
@@ -1393,7 +1409,11 @@ export class StateMachine<
         (child as any)._rehydrated &&
         (child as any).getSnapshot?.().status === 'active'
       ) {
-        (child as any).start();
+        if (actorScope) {
+          actorScope.actionExecutor(createStartEffect(child));
+        } else {
+          void child.system.startActor(child);
+        }
       }
     }
   }

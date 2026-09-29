@@ -33,6 +33,7 @@ import type {
   EventObject,
   ExecutableActionObject,
   MachineContext,
+  LogicalTimer,
   RaiseExecutableActionObject,
   DeadLetterExecutableActionObject,
   SendToExecutableActionObject,
@@ -900,7 +901,10 @@ function getBuiltInActionFields(
   }
 }
 
-function createStartEffect(actor: AnyActor): StartExecutableActionObject {
+/** @internal Creates an actor-start effect, including for restored children. */
+export function createStartEffect(
+  actor: AnyActor
+): StartExecutableActionObject {
   const args: Parameters<(typeof builtInActions)['@xstate.start']> = [actor];
   return {
     kind: 'builtin',
@@ -911,6 +915,42 @@ function createStartEffect(actor: AnyActor): StartExecutableActionObject {
     args,
     actor,
     id: actor.id
+  };
+}
+
+/** @internal Recreates a pending logical timer without re-entering its state. */
+export function createTimerEffect(
+  actorScope: AnyActorScope,
+  timer: LogicalTimer,
+  delay: number
+): RaiseExecutableActionObject | SendToExecutableActionObject {
+  const source = actorScope.self;
+  const options = { id: timer.id, delay };
+  if (timer.type === '@xstate.raise') {
+    return {
+      kind: 'builtin',
+      type: timer.type,
+      source,
+      event: timer.event,
+      id: timer.id,
+      delay,
+      params: undefined,
+      args: [actorScope, timer.event, options],
+      exec: execRaiseEffect
+    };
+  }
+  const target = timer.target === 'self' ? source : timer.target;
+  return {
+    kind: 'builtin',
+    type: timer.type,
+    source,
+    target,
+    event: timer.event,
+    id: timer.id,
+    delay,
+    params: undefined,
+    args: [actorScope, target, timer.event, options],
+    exec: execSendToEffect
   };
 }
 
