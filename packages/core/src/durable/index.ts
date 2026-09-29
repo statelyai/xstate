@@ -304,6 +304,14 @@ export function createDurable<TLogic extends AnyActorLogic>(
   let restored = false;
   let lastTransitionIndex =
     nextTransitionIndex === 0 ? undefined : nextTransitionIndex - 1;
+  interface TimerDeadline {
+    deadline: number;
+    delay: number;
+  }
+  const restoredTimerDeadlines = new WeakMap<
+    ExecutableActionObject,
+    TimerDeadline
+  >();
 
   if (!Number.isSafeInteger(nextTransitionIndex) || nextTransitionIndex < 0) {
     throw new RangeError('transitionIndex must be a non-negative safe integer');
@@ -440,7 +448,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
     // re-entrant dispatch: that system's installed runtime lacks these
     // operations by construction, so the call falls through to local
     // behavior.
-    fallbackToActorSystem = false
+    fallbackToActorSystem = false,
+    timerDeadline?: TimerDeadline
   ): Partial<ActorSystemRuntime> {
     const wrapped: Partial<ActorSystemRuntime> = {};
     for (const operation of RUNTIME_OPERATIONS) {
@@ -462,7 +471,18 @@ export function createDurable<TLogic extends AnyActorLogic>(
       if (impl) {
         (wrapped as Record<string, unknown>)[operation] = (
           ...args: unknown[]
-        ) => dispatch(() => impl(...args));
+        ) =>
+          dispatch(() => {
+            // Runtime operations can queue behind asynchronous child startup.
+            // Calculate the remaining time only when the adapter accepts it.
+            if (operation === 'scheduleTimer' && timerDeadline) {
+              args[2] = Math.min(
+                timerDeadline.delay,
+                Math.max(0, timerDeadline.deadline - Date.now())
+              );
+            }
+            return impl(...args);
+          });
       }
     }
     // A step is an orchestration frame: it may itself await runtime
@@ -651,16 +671,15 @@ export function createDurable<TLogic extends AnyActorLogic>(
             effects.push(createStartEffect(child));
           }
         }
-        const now = Date.now();
         for (const timer of Object.values(timers ?? {})) {
-          const delay =
-            timer.startedAt === undefined
-              ? timer.delay
-              : Math.min(
-                  timer.delay,
-                  Math.max(0, timer.startedAt + timer.delay - now)
-                );
-          effects.push(createTimerEffect(scope, timer, delay));
+          const effect = createTimerEffect(scope, timer, timer.delay);
+          if (timer.startedAt !== undefined) {
+            restoredTimerDeadlines.set(effect, {
+              deadline: timer.startedAt + timer.delay,
+              delay: timer.delay
+            });
+          }
+          effects.push(effect);
         }
       }
       restored = true;
@@ -723,16 +742,19 @@ export function createDurable<TLogic extends AnyActorLogic>(
             effectIndex: tagged.effectIndex
           };
           const perEffectRuntime = adapter.runtime?.(metadata, effect);
+          const timerDeadline = restoredTimerDeadlines.get(effect);
           // A per-effect runtime overrides the system runtime
           // operation-by-operation; operations it omits keep the system
           // runtime's behavior.
-          const runtime = perEffectRuntime
-            ? wrapRuntime(
-                { ...systemRuntime, ...perEffectRuntime },
-                hasSystemRuntime,
-                true
-              )
-            : fallbackRuntime;
+          const runtime =
+            perEffectRuntime || timerDeadline
+              ? wrapRuntime(
+                  { ...systemRuntime, ...perEffectRuntime },
+                  hasSystemRuntime,
+                  !!perEffectRuntime || hasSystemRuntime,
+                  timerDeadline
+                )
+              : fallbackRuntime;
           if (effect.kind === 'action') {
             // Custom actions have no default-parameter fallback to the actor's
             // system, so hand them the wrapped system runtime directly.

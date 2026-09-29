@@ -281,6 +281,96 @@ describe('durable checkpoint restoration', () => {
     }
   );
 
+  it.each([false, true])(
+    'preserves root timer deadlines through delayed execution, startup and retry (per-effect runtime: %s)',
+    async (perEffectRuntime) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(900);
+      const worker = createMachine({ on: { PING: {} } });
+      const machine = createMachine({
+        actors: { worker },
+        invoke: { id: 'worker', src: 'worker' },
+        entry: ({ children }, enq) => {
+          enq.sendTo(
+            children.worker,
+            { type: 'PING' },
+            { id: 'ping', delay: 2000 }
+          );
+          enq.sendTo(
+            children.worker,
+            { type: 'PING' },
+            { id: 'pure', delay: 3000 }
+          );
+        },
+        initial: 'waiting',
+        states: { waiting: { after: { 1000: { target: 'done' } } }, done: {} }
+      });
+      const fresh = createDurable(machine, adapter());
+      const [initial] = fresh.initialTransition();
+      const persisted = roundTrip(
+        machine.getPersistedSnapshot(initial)
+      ) as Snapshot<unknown> & {
+        timers: Record<string, { startedAt?: number }>;
+      };
+      Object.entries(persisted.timers).forEach(([id, timer]) => {
+        if (id !== 'pure') timer.startedAt = 0;
+      });
+      const scheduleTimer = vi.fn();
+      const startActor = vi.fn(async (actor: AnyActor) => {
+        // Startup initiates another host operation without awaiting it. That
+        // operation sits ahead of the root timer on the runtime's queue.
+        void actor.system.sendEvent(actor, actor, { type: 'PING' });
+        await Promise.resolve();
+        vi.setSystemTime(975);
+      });
+      const runtime = {
+        startActor,
+        scheduleTimer,
+        sendEvent: async () => {
+          await Promise.resolve();
+          vi.setSystemTime(1100);
+        }
+      };
+      const execution = createDurable(
+        machine,
+        adapter({
+          transitionIndex: 12,
+          sendEvent: runtime.sendEvent,
+          ...(perEffectRuntime ? { runtime: () => runtime } : runtime)
+        })
+      );
+      const [snapshot, effects] = execution.restore(persisted);
+      const ids = effects.map(({ id }) => id);
+      const descriptors = effects.map(({ descriptor }) => descriptor);
+      expect(Object.values(snapshot.timers).map(({ delay }) => delay)).toEqual([
+        2000, 3000, 1000
+      ]);
+      vi.setSystemTime(950);
+      await execution.executeEffects(effects);
+      expect(scheduleTimer).toHaveBeenCalledTimes(3);
+      expect(scheduleTimer.mock.calls.map(([, , delay]) => delay)).toEqual([
+        900, 3000, 0
+      ]);
+
+      vi.setSystemTime(1200);
+      await execution.executeEffects(
+        effects.filter(({ effect }) => effect.type !== '@xstate.start')
+      );
+      expect(scheduleTimer.mock.calls.map(([, , delay]) => delay)).toEqual([
+        900, 3000, 0, 800, 3000, 0
+      ]);
+      expect(effects.map(({ id }) => id)).toEqual(ids);
+      expect(effects.map(({ descriptor }) => descriptor)).toEqual(descriptors);
+      expect(execution.nextTransitionIndex).toBe(12);
+      const retry = createDurable(machine, adapter({ transitionIndex: 12 }));
+      expect(
+        retry
+          .restore(persisted)[1]
+          .map(({ id, descriptor }) => ({ id, descriptor }))
+      ).toEqual(effects.map(({ id, descriptor }) => ({ id, descriptor })));
+    }
+  );
+
   it.each(['done', 'error', 'stopped'] as const)(
     'does not restart work in a terminal %s snapshot',
     (status) => {

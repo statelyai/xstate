@@ -153,8 +153,12 @@ Timers from a pure-transition checkpoint retain their declared delay. The host
 must deduplicate scheduling by `(source.address, id)` and preserve any deadline
 it already accepted; accepting a restored timer must not extend that deadline.
 A checkpoint taken from a running wall-clock actor can carry `startedAt`, in
-which case restoration schedules the remaining delay, clamped between zero and
-the declared delay. Host-owned deadlines remain the host's responsibility.
+which case the remaining delay is calculated when the scheduling operation
+reaches the adapter, clamped between zero and the declared delay. Waiting to
+execute effects or starting children does not extend the deadline. The logical
+timer and effect descriptor retain the declared delay, keeping restoration
+effect IDs and descriptors stable across retries. Host-owned deadlines remain
+the host's responsibility.
 
 Persist `durable.machineId` and
 `durable.machineVersion` with the execution and reject a worker whose values
