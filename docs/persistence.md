@@ -48,6 +48,12 @@ Persisted children changed shape in v6: each entry carries an `address` field an
 
 A timer persisted from a running actor carries its wall-clock start (`startedAt`), and restoring the snapshot schedules the remaining time toward the original deadline — a timer past due fires immediately. Snapshots produced by pure transitions carry no timestamp (they stay byte-deterministic across replays), so restoring one restarts each timer with its declared delay; durable hosts own timer scheduling through the [system runtime](durable-execution.md) instead.
 
+For a host-driven durable loop, use `execution.restore(persistedSnapshot)` from
+`xstate/durable`, then `execution.executeEffects(effects)` to resume embedded
+children and pending timers. Persist `execution.nextTransitionIndex` with the
+checkpoint and pass it to the next execution's adapter. See
+[durable checkpoint restoration](durable-execution.md).
+
 An actor's address is the `/`-joined path of actor ids from the root, such as `order/worker:0`. It is stable across persistence and restore, unlike `sessionId`, which identifies one incarnation. Generated child ids are recorded in each snapshot's `_nextActorIds`, so restored actors keep numbering where they left off.
 
 ## Compatibility

@@ -17,6 +17,13 @@ XState is a state management and orchestration solution for JavaScript and TypeS
 
 It uses event-driven programming, state machines, statecharts, and the actor model to handle complex logic in predictable, robust, and visual ways. XState provides a powerful and flexible way to manage application and workflow state by allowing developers to model logic as actors and state machines.
 
+<!-- durable execution and checkpoint restoration from packages/core/src/durable/index.ts -->
+
+For durable hosts, the experimental `xstate/durable` entry point provides
+`createDurable`. Resume a checkpoint with `execution.restore(persistedSnapshot)`
+and execute the returned effects to restart active embedded children and pending
+timers without replaying entry actions. See [durable execution](../../docs/durable-execution.md).
+
 For flat finite state machines, `xstate/fsm` provides a tiny pure transition
 table with context and TypeScript support:
 

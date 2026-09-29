@@ -120,7 +120,47 @@ wait.
 Checkpoint with `getPersistedSnapshot(state)` after `executeEffects`
 resolves, and persist `durable.nextTransitionIndex` alongside; pass it as
 `transitionIndex` when recreating the execution from a checkpoint instead of
-replaying from the beginning. Persist `durable.machineId` and
+replaying from the beginning. Restore the checkpoint before entering the loop:
+
+<!-- checkpoint restoration contract from packages/core/src/durable/index.ts -->
+
+```ts
+const resumed = createDurable(machine, {
+  ...adapter,
+  transitionIndex: checkpoint.nextTransitionIndex
+});
+let [state, effects] = resumed.restore(checkpoint.snapshot);
+await resumed.executeEffects(effects);
+
+while (state.status === 'active') {
+  [state, effects] = resumed.transition(state, await resumed.waitForEvent());
+  await resumed.executeEffects(effects);
+}
+```
+
+`restore()` rehydrates the snapshot and attaches the adapter across the actor
+tree. It returns effects that start active embedded children and re-arm pending
+root timers. Nothing starts until `executeEffects()` runs. Completed children
+and address-only remote children are not restarted; entry actions and machine
+events are not replayed. Restored descendants also start through `startActor`.
+
+Restoration does not advance `nextTransitionIndex`. Its effect IDs use a separate
+`restore:<nextTransitionIndex>:<effectIndex>` namespace, so the next real event
+keeps the checkpoint's transition index. Create a fresh execution for each
+restore; `run()` starts fresh executions only.
+
+Timers from a pure-transition checkpoint retain their declared delay. The host
+must deduplicate scheduling by `(source.address, id)` and preserve any deadline
+it already accepted; accepting a restored timer must not extend that deadline.
+A checkpoint taken from a running wall-clock actor can carry `startedAt`, in
+which case the remaining delay is calculated when the scheduling operation
+reaches the adapter, clamped between zero and the declared delay. Waiting to
+execute effects or starting children does not extend the deadline. The logical
+timer and effect descriptor retain the declared delay, keeping restoration
+effect IDs and descriptors stable across retries. Host-owned deadlines remain
+the host's responsibility.
+
+Persist `durable.machineId` and
 `durable.machineVersion` with the execution and reject a worker whose values
 differ: a changed machine reorders effect ids, and memoized results silently
 misalign.
@@ -191,8 +231,9 @@ scheduleTimer: (source, id, delay) => {
 
 `snapshot.timers` is the public, per-actor set of pending logical timers. Each
 entry contains its deterministic `id`, declared `delay`, delivery type, event
-and logical target. It intentionally has no host deadline or remaining-time
-field: persist that bookkeeping atomically with accepting `scheduleTimer`.
+and logical target. A pure-transition checkpoint has no host deadline or
+remaining-time field: persist that bookkeeping atomically with accepting
+`scheduleTimer`.
 For a child timer, retain `source.address`; after restoring the tree,
 `durable.getActorRef(snapshot, address)` resolves the current timer source.
 

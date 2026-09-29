@@ -3,6 +3,13 @@ import {
   type EffectDescriptor
 } from '../effectDescriptor.ts';
 import { deliverEvent } from '../runtimeHelpers.ts';
+import {
+  attachSnapshotActorRef,
+  createInertActorScope,
+  setInertActorScopeSnapshot
+} from '../inertActorScope.ts';
+import { isRemoteActorRef } from '../remoteActorRef.ts';
+import { createStartEffect, createTimerEffect } from '../transitionActions.ts';
 import { getSnapshotActorRef } from '../snapshotActorRef.ts';
 import {
   encodeAddressSegment,
@@ -21,7 +28,9 @@ import type {
   CustomExecutableActionObject,
   EventFromLogic,
   ExecutableActionObjectFromLogic,
+  ExecutableActionObject,
   InputFrom,
+  LogicalTimer,
   OutputFrom,
   Snapshot,
   SnapshotFrom
@@ -158,7 +167,7 @@ export class DurableExecutionCancelledError extends Error {
 export class DurableExecutionResumeError extends Error {
   constructor() {
     super(
-      'run() can only start a fresh durable execution; resume checkpoints with transition() and the persisted snapshot'
+      'run() can only start a fresh durable execution; resume checkpoints with restore() and the explicit transition loop'
     );
     this.name = 'DurableExecutionResumeError';
   }
@@ -193,6 +202,19 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
   readonly machineVersion: string | undefined;
   /** Index assigned to the next transition. Persist this with checkpoints. */
   readonly nextTransitionIndex: number;
+  /**
+   * Restores a checkpoint on a fresh execution. Returns effects that start
+   * active embedded children and re-arm pending root timers; execute them
+   * with `executeEffects` before waiting or processing the next event.
+   * Does not send a machine event, replay entry actions, or advance the
+   * transition index. Restoration effect IDs use `restore:<index>:<effect>`.
+   */
+  restore(
+    persistedSnapshot: Snapshot<unknown>
+  ): [
+    snapshot: DurableSnapshot<TLogic>,
+    effects: DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
+  ];
   initialTransition(
     ...[input]: undefined extends InputFrom<TLogic>
       ? [input?: InputFrom<TLogic>]
@@ -212,7 +234,7 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * Returns the actor reference behind a snapshot produced by this execution,
    * for addressing and inspection. `undefined` for snapshots this execution
    * has not seen (for example a freshly deserialized checkpoint that has not
-   * been passed through `transition()` yet).
+   * been passed through `restore()` or `transition()` yet).
    *
    * With an `address`, returns the live actor at that logical address in the
    * snapshot's actor tree instead — the root itself, one of its transitive
@@ -279,21 +301,35 @@ export function createDurable<TLogic extends AnyActorLogic>(
 ): DurableExecution<TLogic> {
   let nextTransitionIndex = adapter.transitionIndex ?? 0;
   const startingTransitionIndex = nextTransitionIndex;
+  let restored = false;
   let lastTransitionIndex =
     nextTransitionIndex === 0 ? undefined : nextTransitionIndex - 1;
+  interface TimerDeadline {
+    deadline: number;
+    delay: number;
+  }
+  const restoredTimerDeadlines = new WeakMap<
+    ExecutableActionObject,
+    TimerDeadline
+  >();
 
   if (!Number.isSafeInteger(nextTransitionIndex) || nextTransitionIndex < 0) {
     throw new RangeError('transitionIndex must be a non-negative safe integer');
   }
 
   const tagEffects = (
-    effects: ExecutableActionObjectFromLogic<TLogic>[]
+    effects: ExecutableActionObjectFromLogic<TLogic>[],
+    restoring = false
   ): DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[] => {
-    const transitionIndex = nextTransitionIndex++;
-    lastTransitionIndex = transitionIndex;
+    const transitionIndex = restoring
+      ? nextTransitionIndex
+      : nextTransitionIndex++;
+    lastTransitionIndex = restoring
+      ? (lastTransitionIndex ?? transitionIndex)
+      : transitionIndex;
     return effects.map((effect, effectIndex) => {
       const tagged = {
-        id: `${transitionIndex}:${effectIndex}`,
+        id: `${restoring ? 'restore:' : ''}${transitionIndex}:${effectIndex}`,
         transitionIndex,
         effectIndex,
         effect
@@ -412,7 +448,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
     // re-entrant dispatch: that system's installed runtime lacks these
     // operations by construction, so the call falls through to local
     // behavior.
-    fallbackToActorSystem = false
+    fallbackToActorSystem = false,
+    timerDeadline?: TimerDeadline
   ): Partial<ActorSystemRuntime> {
     const wrapped: Partial<ActorSystemRuntime> = {};
     for (const operation of RUNTIME_OPERATIONS) {
@@ -434,7 +471,18 @@ export function createDurable<TLogic extends AnyActorLogic>(
       if (impl) {
         (wrapped as Record<string, unknown>)[operation] = (
           ...args: unknown[]
-        ) => dispatch(() => impl(...args));
+        ) =>
+          dispatch(() => {
+            // Runtime operations can queue behind asynchronous child startup.
+            // Calculate the remaining time only when the adapter accepts it.
+            if (operation === 'scheduleTimer' && timerDeadline) {
+              args[2] = Math.min(
+                timerDeadline.delay,
+                Math.max(0, timerDeadline.deadline - Date.now())
+              );
+            }
+            return impl(...args);
+          });
       }
     }
     // A step is an orchestration frame: it may itself await runtime
@@ -530,29 +578,46 @@ export function createDurable<TLogic extends AnyActorLogic>(
     }
   }
 
-  function installSystemRuntime<TSnapshot>(snapshot: TSnapshot): TSnapshot {
+  function installSystemRuntime<TSnapshot>(
+    snapshot: TSnapshot,
+    recursive = false
+  ): TSnapshot {
     if (wrappedSystemRuntime || inspect) {
       const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
-      if (ref) {
-        if (wrappedSystemRuntime) {
-          ref.system.runtime = wrappedSystemRuntime;
+      const systems = new Set<AnyActor['system']>();
+      const visit = (actor: AnyActor) => {
+        if (!systems.has(actor.system)) {
+          systems.add(actor.system);
+          if (wrappedSystemRuntime) {
+            actor.system.runtime = wrappedSystemRuntime;
+          }
+          wireInspection(actor.system);
         }
-        wireInspection(ref.system);
-      }
-      // Children restored outside this execution (rehydrated actors and
-      // remote handles) may carry a system created before this install.
-      const children = (
-        snapshot as { children?: Record<string, AnyActor | undefined> }
-      ).children;
-      if (children) {
-        for (const child of Object.values(children)) {
-          // Only restored/rehydrated children can carry a foreign system;
-          // everything else shares the root's.
-          if (child && child.system !== ref?.system) {
-            if (wrappedSystemRuntime) {
-              child.system.runtime = wrappedSystemRuntime;
+        if (recursive) {
+          const children = (
+            actor.getSnapshot() as {
+              children?: Record<string, AnyActor | undefined>;
             }
-            wireInspection(child.system);
+          ).children;
+          for (const child of Object.values(children ?? {})) {
+            if (child) {
+              visit(child);
+            }
+          }
+        }
+      };
+      if (ref) {
+        visit(ref);
+      }
+      if (!recursive || !ref) {
+        const children = (
+          snapshot as {
+            children?: Record<string, AnyActor | undefined>;
+          }
+        ).children;
+        for (const child of Object.values(children ?? {})) {
+          if (child) {
+            visit(child);
           }
         }
       }
@@ -567,7 +632,68 @@ export function createDurable<TLogic extends AnyActorLogic>(
     get nextTransitionIndex() {
       return nextTransitionIndex;
     },
+    restore(persistedSnapshot) {
+      if (
+        restored ||
+        nextTransitionIndex !== startingTransitionIndex ||
+        currentBatch
+      ) {
+        throw new Error('restore() requires a fresh durable execution');
+      }
+      const { snapshot, scope } = withSystemInspector(inspect, () =>
+        withExecutionIdentity(executionIdentity, () => {
+          const scope = createInertActorScope(logic);
+          const snapshot = logic.restoreSnapshot
+            ? logic.restoreSnapshot(persistedSnapshot, scope)
+            : persistedSnapshot;
+          setInertActorScopeSnapshot(scope, snapshot, false);
+          return {
+            snapshot: installSystemRuntime(
+              attachSnapshotActorRef(scope, snapshot),
+              true
+            ) as DurableSnapshot<TLogic>,
+            scope
+          };
+        })
+      );
+      const effects: ExecutableActionObject[] = [];
+      if ((snapshot as Snapshot<unknown>).status === 'active') {
+        const { children, timers } = snapshot as {
+          children?: Record<string, AnyActor | undefined>;
+          timers?: Readonly<Record<string, LogicalTimer>>;
+        };
+        for (const child of Object.values(children ?? {})) {
+          if (
+            child &&
+            !isRemoteActorRef(child) &&
+            child.getSnapshot().status === 'active'
+          ) {
+            effects.push(createStartEffect(child));
+          }
+        }
+        for (const timer of Object.values(timers ?? {})) {
+          const effect = createTimerEffect(scope, timer, timer.delay);
+          if (timer.startedAt !== undefined) {
+            restoredTimerDeadlines.set(effect, {
+              deadline: timer.startedAt + timer.delay,
+              delay: timer.delay
+            });
+          }
+          effects.push(effect);
+        }
+      }
+      restored = true;
+      return [
+        snapshot,
+        tagEffects(effects as ExecutableActionObjectFromLogic<TLogic>[], true)
+      ];
+    },
     initialTransition(...args) {
+      if (restored) {
+        throw new Error(
+          'initialTransition() cannot initialize a restored execution'
+        );
+      }
       const [snapshot, effects] = withSystemInspector(inspect, () =>
         withExecutionIdentity(executionIdentity, () =>
           initialTransition(logic, ...args)
@@ -616,16 +742,19 @@ export function createDurable<TLogic extends AnyActorLogic>(
             effectIndex: tagged.effectIndex
           };
           const perEffectRuntime = adapter.runtime?.(metadata, effect);
+          const timerDeadline = restoredTimerDeadlines.get(effect);
           // A per-effect runtime overrides the system runtime
           // operation-by-operation; operations it omits keep the system
           // runtime's behavior.
-          const runtime = perEffectRuntime
-            ? wrapRuntime(
-                { ...systemRuntime, ...perEffectRuntime },
-                hasSystemRuntime,
-                true
-              )
-            : fallbackRuntime;
+          const runtime =
+            perEffectRuntime || timerDeadline
+              ? wrapRuntime(
+                  { ...systemRuntime, ...perEffectRuntime },
+                  hasSystemRuntime,
+                  !!perEffectRuntime || hasSystemRuntime,
+                  timerDeadline
+                )
+              : fallbackRuntime;
           if (effect.kind === 'action') {
             // Custom actions have no default-parameter fallback to the actor's
             // system, so hand them the wrapped system runtime directly.
@@ -654,7 +783,9 @@ export function createDurable<TLogic extends AnyActorLogic>(
     },
     async waitForEvent() {
       if (lastTransitionIndex === undefined) {
-        throw new Error('Cannot wait for an event before the first transition');
+        throw new Error(
+          'Cannot wait for an event before the first transition or restore'
+        );
       }
       // Root-bound events produced while effects executed are handed out
       // before durably waiting for an external event.
@@ -663,12 +794,16 @@ export function createDurable<TLogic extends AnyActorLogic>(
         return queued.event as EventFromLogic<TLogic>;
       }
       return adapter.waitForEvent({
-        id: `event:${lastTransitionIndex}`,
+        id:
+          restored && nextTransitionIndex === 0
+            ? 'event:restore:0'
+            : `event:${lastTransitionIndex}`,
         transitionIndex: lastTransitionIndex
       }) as Promise<EventFromLogic<TLogic>>;
     },
     async run(...args) {
       if (
+        restored ||
         startingTransitionIndex !== 0 ||
         nextTransitionIndex !== startingTransitionIndex
       ) {
