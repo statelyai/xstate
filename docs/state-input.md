@@ -36,7 +36,9 @@ const uploadMachine = uploadSetup.createMachine({
 });
 ```
 
-State input is available to the target state's `entry`, `exit`, `on`, `after`, `timeout`, `onTimeout` and `output` functions. An invoked actor's `invoke.input` function also receives the state input, so it can adapt the state data to the actor's input contract. It persists across self-transitions and is replaced the next time the state is entered.
+<!-- state input replacement behavior from packages/core/src/stateUtils.ts and packages/core/test/stateInput.test.ts -->
+
+State input is available to the target state's `entry`, `exit`, `on`, `after`, `timeout`, `onTimeout` and `output` functions. An invoked actor's `invoke.input` function also receives the state input, so it can adapt the state data to the actor's input contract. A transition's `input` takes effect only when its target state is entered. A non-reentering transition to an already-active state preserves that state's current input; set `reenter: true` to exit and enter the state again with the new input.
 
 ## Computing input
 
@@ -116,7 +118,13 @@ s.createMachine({
   states: {
     loading: {
       entry: ({ input }) => input.id,
-      on: { retry: { target: 'loading', input: { id: 'a2' } } }
+      on: {
+        retry: {
+          target: 'loading',
+          reenter: true,
+          input: { id: 'a2' }
+        }
+      }
     }
   }
 });
