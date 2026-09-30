@@ -29,6 +29,14 @@
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
+  "peerDependencies": {
+    "xstate": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "xstate": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@statelyai/inspect": "^0.7.2",
     "@testing-library/vue": "^8.1.0",
