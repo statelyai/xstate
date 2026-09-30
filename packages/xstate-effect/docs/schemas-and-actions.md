@@ -164,8 +164,8 @@ Declare Effect actions and spawned Effect actors so their services contribute to
 
 An inline callback such as `enq(() => Effect.log('saved'))` creates an Effect that is discarded. Inline Effect logic passed to `enq.spawn` is rejected at runtime because its service requirements cannot be inferred.
 
-The repository's `xstate-effect/no-inline-effect` oxlint rule checks these two patterns. It recognizes the root identifier `Effect`; Effects returned by helper functions are outside that check.
+The `xstate-effect/no-inline-effect` oxlint rule checks these two patterns. It recognizes the root identifier `Effect`; Effects returned by helper functions are outside that check.
 
-To use the plugin elsewhere, install `@oxlint/plugins`, copy `scripts/oxlint-plugin-xstate-effect.ts` and configure it in `jsPlugins`. Loading the TypeScript source requires Node.js 22.18+ or a newer release with native TypeScript support.
+The rule is not published as a package. To use it, install `@oxlint/plugins`, copy [`oxlint-plugin-xstate-effect.ts`](https://github.com/statelyai/xstate/blob/next/scripts/oxlint-plugin-xstate-effect.ts) from the XState repository and configure it in `jsPlugins`. Loading the TypeScript source requires Node.js 22.18+ or a newer release with native TypeScript support.
 
 </details>

@@ -6,7 +6,7 @@ There are several ways you can contribute to XState:
 
 - 📥 [Submit an issue](#submit-an-issue)
 - ✨ [Solve an issue or make a change](#making-changes)
-- 🖊️ [Write documentation](https://github.com/statelyai/docs)
+- 🖊️ [Write documentation](#contributing-to-our-docs)
 - 💬 [Respond to support questions in the GitHub discussions](https://github.com/statelyai/xstate/discussions)
 - 🛟 [Respond to questions in the Help channel on Discord](https://discord.gg/xstate)
 
@@ -50,13 +50,11 @@ We’ll try to respond promptly and address your issue as soon as possible.
 
 ## Contributing to our docs
 
-Our [new docs](https://stately.ai/docs) are now in their own [docs repo](https://github.com/statelyai/docs). [Read the contribution guide for our Stately Studio and XState docs](https://github.com/statelyai/docs/blob/main/CONTRIBUTING.md).
+XState v6 documentation lives in this repository, next to what it describes: guides and reference pages in `docs/`, package pages in `packages/*/docs/` and package READMEs. The [stately.ai docs site](https://github.com/statelyai/docs) renders these pages from this repository, so edit them here. The docs site repository holds the site itself, the XState v5 documentation and other Stately content; contribute to those there. Add every page to the nearest `meta.json`. These pages cover only how to use the libraries; contributor material belongs in this file or `examples/CONTRIBUTING.md`.
 
-### Legacy docs and xstate.js.org
-
-The docs at `/docs` in this repo are legacy XState docs. They are built using [Vuepress](https://vuepress.vuejs.org) and deployed to [xstate.js.org/docs](https://xstate.js.org/docs) using GitHub pages from the `gh-pages` branch using the `pages build and deployment` workflow.
-
-The [xstate.js.org](https://xstate.js.org) landing page is currently stored at `index.html` and deployed from the `gh-pages` branch using the `pages build and deployment` workflow.
+- Start with working code and explain the behavior the reader can observe. Introduce one concept at a time.
+- Use TypeScript unless JavaScript behavior is the subject. Keep examples complete enough to copy and run, and verify them against the current package source and types.
+- Check local links and `meta.json` navigation, format Markdown and JSON, and run focused type checks or tests for changed examples.
 
 ## Setup
 
@@ -88,6 +86,10 @@ one above its entry in `scripts/bundle-size.targets.json` unless you pass
 ### Publishing
 
 We are using [changesets](https://github.com/atlassian/changesets) to create "release intents" for our packages. The Publish workflow handles release intents on `main` and `next`; changes for the v6 alpha belong on `next`.
+
+### Persistence conformance
+
+`packages/core/test/persistenceConformance.v6.test.ts` is the shape contract for persisted snapshots. It validates every envelope it produces against `packages/core/src/persistedSnapshot.schema.json`.
 
 ### Examples and development dependencies
 
