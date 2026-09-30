@@ -2,7 +2,7 @@
 '@xstate/store-react': minor
 ---
 
-The `useStore` hook now accepts an `inspect` option for wiring up inspectors to component-local stores. The inspector is subscribed while the option is provided and stays stable across re-renders.
+The `useStore` hook now accepts an `inspect` option for wiring up inspectors to component-local stores. The inspector is subscribed while the option is provided and stays stable across re-renders. A render that suspends or is discarded does not change the active inspector.
 
 ```tsx
 import { useStore, useSelector } from '@xstate/store-react';

@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { fireEvent, screen, render, act } from '@testing-library/react';
 import {
   createStore,
@@ -257,6 +258,60 @@ describe('@xstate/store-react', () => {
 
       fireEvent.click(screen.getByRole('button'));
       expect(events).toEqual(['@xstate.init', 'inc']);
+    });
+
+    it('should keep the committed inspector while an update suspends', async () => {
+      const committed: string[] = [];
+      const uncommitted: string[] = [];
+      const never = new Promise<void>(() => {});
+      let send: (event: { type: 'inc' }) => void = () => {};
+
+      const Counter = ({
+        inspect,
+        suspend
+      }: {
+        inspect: (event: StoreInspectionEvent) => void;
+        suspend?: boolean;
+      }) => {
+        const store = useStore(
+          {
+            context: { count: 0 },
+            on: {
+              inc: (ctx: { count: number }) => ({ count: ctx.count + 1 })
+            }
+          },
+          { inspect }
+        );
+        send = store.send;
+        if (suspend) {
+          throw never;
+        }
+        return null;
+      };
+
+      const { rerender } = render(
+        <React.Suspense fallback={null}>
+          <Counter inspect={(event) => committed.push(event.event.type)} />
+        </React.Suspense>
+      );
+
+      await act(async () => {
+        React.startTransition(() => {
+          rerender(
+            <React.Suspense fallback={null}>
+              <Counter
+                inspect={(event) => uncommitted.push(event.event.type)}
+                suspend
+              />
+            </React.Suspense>
+          );
+        });
+      });
+
+      act(() => send({ type: 'inc' }));
+
+      expect(committed).toEqual(['@xstate.init', 'inc']);
+      expect(uncommitted).toEqual([]);
     });
 
     it('should support the inspect option with store logic and input', () => {
