@@ -32,6 +32,7 @@ const App = () => {
 
 ## API
 
+<!-- selector comparison semantics from src/index.ts -->
 ### `useSelector(store, selector?, compare?)`
 
 Subscribes to a store and returns a selected value.
@@ -59,13 +60,15 @@ const App = () => {
 
 - `store` - Store or other readable value created with `createStore()`
 - `selector?` - Function to select a value from snapshot
-- `compare?` - Equality function (default: `===`)
+- `compare?` - Equality function (default: `===`). Also applies to the full snapshot when `selector` is `undefined`.
 
 **Returns:** Selected value (re-renders on change)
 
 ---
 
-### `useStore(definition)`
+<!-- useStore overloads and inspection behavior from packages/xstate-store-react/src/index.ts -->
+
+### `useStore(definition, options?)`
 
 Creates a store instance scoped to a component.
 
@@ -86,9 +89,25 @@ const App = () => {
 };
 ```
 
+To wire up an inspector, pass the `inspect` option. The inspector is subscribed while the option is provided and unsubscribed when it is removed or the component unmounts:
+
+```tsx
+const store = useStore(
+  {
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+    }
+  },
+  { inspect: inspector.inspect }
+);
+```
+
 **Arguments:**
 
-- `definition` - Store configuration object
+- `definition` - Store configuration object, or store logic created with `createStoreLogic()` (followed by its `input`)
+- `options?` - Options object:
+  - `inspect?` - Observer or callback that receives [inspection events](https://stately.ai/docs/inspection) from the store
 
 **Returns:** Store instance (stable across re-renders)
 

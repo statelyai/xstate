@@ -1,7 +1,13 @@
 /* @jsxImportSource solid-js */
 export * from '@xstate/store';
 
-import { createEffect, createSignal, onCleanup, type Accessor } from 'solid-js';
+import {
+  createEffect,
+  createSignal,
+  onCleanup,
+  untrack,
+  type Accessor
+} from 'solid-js';
 import {
   createStore,
   type AnyAtom,
@@ -128,10 +134,12 @@ export function useSelector<TSnapshot, T>(
   );
 
   createEffect(() => {
-    const subscription = store.subscribe(() => {
+    const update = () => {
       const newValue = selectorWithCompare(store.get());
       setSelectedValue(() => newValue);
-    });
+    };
+    const subscription = store.subscribe(update);
+    untrack(update);
 
     onCleanup(() => {
       subscription.unsubscribe();
