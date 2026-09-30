@@ -1,6 +1,6 @@
 {
   "name": "@xstate/scxml",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-beta",
   "description": "Create XState machines from SCXML documents",
   "keywords": [
     "state",
