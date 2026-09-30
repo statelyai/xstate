@@ -4,7 +4,7 @@ XState Store is a library for **simple event-based state management**. If you wa
 
 - **Extremely simple**: transitions update state via events, just like Redux, Zustand, Pinia, etc.
 - **Extremely small**: less than 1kb minified/gzipped
-- **XState compatible**: use it with (or without) XState, or convert to XState machines when you need to handle more complex logic & effects.
+- **XState compatible**: use it with (or without) XState, or convert to XState machines when you need to handle more complex logic & effects. `fromStore()` requires XState v6; with XState v5, use `@xstate/store@4`.
 - **Extra type-safe**: great typing out of the box, with strong inference and no awkwardness.
 
 > [!NOTE]

@@ -16,5 +16,6 @@ Check these areas:
 - Framework selectors use packages such as `@xstate/store-react`.
 - Persistence and undo imports use their extension entry points.
 - Tests send public events instead of changing context directly.
+- `fromStore()` requires XState v6; with XState v5, use `@xstate/store@4`.
 
 Run type checking after each store. Type errors often identify renamed events and incomplete context returns.
