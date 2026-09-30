@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store",
-  "version": "4.3.0-alpha.4",
+  "version": "5.0.0-alpha.5",
   "type": "module",
   "description": "Simple stores",
   "keywords": [
