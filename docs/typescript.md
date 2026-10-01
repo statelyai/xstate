@@ -45,6 +45,8 @@ TypeScript declaration generation enabled, including machines with state-level
 context schemas and function-form transitions. No explicit machine type
 annotation is required.
 
+For an actor used in one state, `invoke: s.createInvoke({ src, input, onDone })` infers input and completion output from `src`. Keep the helper inline in `s.createMachine(...)` to also infer that state's narrowed context, ancestor context, state input and transition target requirements. The helper works alongside named actor sources. See [typed inline invokes](invoke.md#typed-inline-invokes).
+
 Public schema event keys create typed methods on `actor.trigger`; internal
 schema keys do not appear in the public trigger namespace.
 

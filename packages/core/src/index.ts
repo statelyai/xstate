@@ -110,6 +110,8 @@ export type {
 export { hotSwapActorLogic as _hotSwapActorLogic } from './hotSwap.ts';
 export { createSystem, setup } from './setup.ts';
 export type {
+  CreateInvokeConfig,
+  CreatedInvoke,
   ActiveStateContext,
   AnySetupConfig,
   RootContextMarker,

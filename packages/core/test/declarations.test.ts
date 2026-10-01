@@ -4,7 +4,8 @@ import ts from 'typescript';
 const FIXTURES = [
   'narrowed-context',
   'strict-targets',
-  'registered-child-parent'
+  'registered-child-parent',
+  'created-invoke'
 ] as const;
 
 const COMPILER_OPTIONS: ts.CompilerOptions = {
@@ -221,4 +222,12 @@ export const parentMachine = parentSetup.createMachine({
   expect(formatDiagnostics(diagnostics)).toBe('');
   expect(Buffer.byteLength(declaration)).toBeLessThan(100_000);
   expect(declaration.match(/readonly p0: \{/g)).toHaveLength(1);
+}, 30_000);
+
+// This fixture checks callback bodies, rather than exported inferred values.
+// Compile it in its own case so its program is not retained by describe.each
+// during the existing declaration stress tests.
+it('checks concrete created-invoke callback types', () => {
+  const { diagnostics } = emitFixture('created-invoke-inference');
+  expect(formatDiagnostics(diagnostics)).toBe('');
 }, 30_000);

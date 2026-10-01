@@ -3,7 +3,7 @@ title: Setup and provide
 description: Declare typed sources with setup(...) and swap implementations with provide(...).
 ---
 
-`setup(...)` declares the schemas and named sources a machine is built from, and returns a factory for fully typed machines and state configs.
+`setup(...)` declares the schemas and named sources a machine is built from, and returns a factory for fully typed machines, state configs and inline invoke configs.
 
 ```ts
 const orderSetup = setup({
@@ -107,6 +107,8 @@ const uploadSetup = setup({
 These local output schemas currently provide TypeScript contracts. Runtime
 validation still checks the machine's stable terminal output at the existing
 result boundary; it does not validate transient nested completion values.
+
+Use `s.createInvoke(...)` inline in `s.createMachine(...)` to type a single-use actor's input and lifecycle handlers while retaining the enclosing state's context and input. See [typed inline invokes](invoke.md#typed-inline-invokes).
 
 Use `setup(...).extend(...)` to build a more specific setup from a shared one, merging schemas and sources.
 

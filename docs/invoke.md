@@ -51,6 +51,53 @@ invoke: [
 ]
 ```
 
+## Typed inline invokes
+
+Use `s.createInvoke(...)` inside a machine created with `s = setup(...)` when actor logic is used in one state. It infers the actor's input, completion output, error and snapshot types without registering the actor in `setup.actors`.
+
+```ts
+import { createAsyncLogic, setup, types } from 'xstate';
+
+const s = setup({
+  schemas: {
+    context: types<{ userId: string | undefined; name: string }>()
+  },
+  states: {
+    loading: { schemas: { context: types<{ userId: string }>() } },
+    ready: {}
+  }
+});
+
+const machine = s.createMachine({
+  context: { userId: '123', name: '' },
+  initial: 'loading',
+  states: {
+    loading: {
+      invoke: s.createInvoke({
+        src: createAsyncLogic({
+          schemas: { input: types<{ userId: string }>() },
+          run: async ({ input }) => ({ name: input.userId })
+        }),
+        input: ({ context }) => ({ userId: context.userId }),
+        onDone: ({ event }) => ({
+          target: 'ready',
+          context: { name: event.output.name }
+        })
+      })
+    },
+    ready: {}
+  }
+});
+```
+
+Keep the helper call inline: its enclosing state supplies narrowed context, ancestor context, state input and transition targets. In this example, `context.userId` is `string` and `event.output` is `{ name: string }`. Actor schemas belong on the logic itself; they do not need to be repeated on the invoke.
+
+The helper accepts an actor logic value as `src` and supports the usual invoke options, including invoke arrays and setups with other registered actors. It returns the config unchanged; child startup, cancellation, timeouts and persistence follow the normal invoke lifecycle.
+
+Inference follows the declared source types. A source typed as `AnyActorLogic` retains its erased types, and errors without a schema remain `unknown`.
+
+A helper call made outside a machine has only setup-level context. To extract a config while keeping a specific state's scope, put the inline helper inside `s.createStateConfig('loading', { invoke: s.createInvoke(...) })`.
+
 ## Actor lifecycle
 
 Invoked actors belong to the state that starts them:

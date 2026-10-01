@@ -1,3 +1,6 @@
+/** Type-only metadata for validating setup-created invoke transitions. */
+export declare const createdInvokeConfig: unique symbol;
+
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
 import type {
   ActionSchemas,
@@ -450,7 +453,7 @@ type InvokeSrcArgs<
   self: AnyActorRef;
 };
 
-type InvokeInputArgs<
+export type InvokeInputArgs<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
@@ -837,7 +840,7 @@ export type Next_InvokeConfig<
           TInput
         >;
 
-interface Next_InvokeConfigBase<
+export interface Next_InvokeConfigBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
@@ -2264,23 +2267,25 @@ type InvalidInvokeTargets<
   TInvoke
 > = 0 extends 1 & TInvoke
   ? never
-  : TInvoke extends readonly unknown[]
-    ? InvalidInvokeTargets<TRootConfig, TSourcePath, TInvoke[number]>
-    : TInvoke extends Record<string, unknown>
-      ?
-          | (TInvoke extends { onDone: infer TOnDone }
-              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnDone>
-              : never)
-          | (TInvoke extends { onError: infer TOnError }
-              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnError>
-              : never)
-          | (TInvoke extends { onSnapshot: infer TOnSnapshot }
-              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnSnapshot>
-              : never)
-          | (TInvoke extends { onTimeout: infer TOnTimeout }
-              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnTimeout>
-              : never)
-      : never;
+  : TInvoke extends { readonly [createdInvokeConfig]: infer TConfig }
+    ? InvalidInvokeTargets<TRootConfig, TSourcePath, TConfig>
+    : TInvoke extends readonly unknown[]
+      ? InvalidInvokeTargets<TRootConfig, TSourcePath, TInvoke[number]>
+      : TInvoke extends Record<string, unknown>
+        ?
+            | (TInvoke extends { onDone: infer TOnDone }
+                ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnDone>
+                : never)
+            | (TInvoke extends { onError: infer TOnError }
+                ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnError>
+                : never)
+            | (TInvoke extends { onSnapshot: infer TOnSnapshot }
+                ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnSnapshot>
+                : never)
+            | (TInvoke extends { onTimeout: infer TOnTimeout }
+                ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnTimeout>
+                : never)
+        : never;
 
 type InvalidNodeTargets<
   TRootConfig,
