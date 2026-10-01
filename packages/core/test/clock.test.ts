@@ -2,6 +2,34 @@ import { vi } from 'vitest';
 import { createActor, createMachine, SimulatedClock } from '../src';
 
 describe('clock', () => {
+  it('runs callbacks at their deadlines and includes newly scheduled intermediate timers', () => {
+    const clock = new SimulatedClock();
+    const times: number[] = [];
+    clock.setTimeout(() => {
+      times.push(clock.now());
+      clock.setTimeout(() => times.push(clock.now()), 1000);
+    }, 2000);
+    clock.setTimeout(() => times.push(clock.now()), 6000);
+    clock.set(6000);
+    expect(times).toEqual([2000, 3000, 6000]);
+    expect(clock.now()).toBe(6000);
+  });
+
+  it('reconsiders cancellation and equal-deadline ordering after each callback', () => {
+    const clock = new SimulatedClock();
+    const trace: string[] = [];
+    clock.setTimeout(() => {
+      trace.push('first');
+      clock.clearTimeout(late);
+      clock.setTimeout(() => trace.push('new'), 0);
+    }, 2000);
+    clock.setTimeout(() => trace.push('second'), 2000);
+    const late = clock.setTimeout(() => trace.push('canceled'), 6000);
+    clock.increment(6000);
+    expect(trace).toEqual(['first', 'second', 'new']);
+    expect(() => clock.increment(-1)).toThrow('back in time');
+    expect(() => clock.set(NaN)).toThrow('finite');
+  });
   it('uses the injected clock time for scheduled timer metadata', () => {
     const clock = new SimulatedClock();
     clock.set(1_000);

@@ -7,6 +7,9 @@ Every root actor creates an actor system. Every descendant actor, invoked or spa
 
 The system holds a registry: a flat map of keys to actor references. Register an actor with `registryKey`, then look it up with `system.get(...)`.
 
+For immutable simulation and replay of the entire actor world, use the
+experimental [pure system transition APIs](system-transitions.md).
+
 ```ts
 const worker = enq.spawn(workerLogic, {
   registryKey: 'primary-worker'

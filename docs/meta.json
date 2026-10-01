@@ -53,6 +53,7 @@
     "emitted-events",
     "listen-and-subscribe",
     "systems",
+    "system-transitions",
     "lifecycle-and-errors",
     "typescript",
     "persistence",

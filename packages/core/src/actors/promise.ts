@@ -4,6 +4,7 @@ import { XSTATE_INIT } from '../constants.ts';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import { AnyActorSystem } from '../system.ts';
 import type { ActorLogicValidator } from '../validation.types.ts';
+import { systemLogicMetadata } from '../systemLogicMetadata.ts';
 import {
   ActorLogic,
   ActorFromLogic,
@@ -363,7 +364,7 @@ export function createAsyncLogic<
 ): AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string } {
   const config = asyncLogic;
 
-  return createBaseLogic<
+  const logic = createBaseLogic<
     undefined,
     TOutput,
     { type: string; [k: string]: unknown },
@@ -499,4 +500,8 @@ export function createAsyncLogic<
       };
     }
   }) as unknown as AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string };
+  Object.defineProperty(logic, systemLogicMetadata, {
+    value: { kind: 'async', timeout: config.timeout }
+  });
+  return logic;
 }

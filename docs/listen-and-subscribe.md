@@ -9,6 +9,10 @@ description: Turn another actor's events and snapshots into events for this mach
 machine. Both map what the other actor produces into an event this machine
 handles. Use them in transition, `entry` or `exit` functions.
 
+With experimental [pure system transitions](system-transitions.md), register
+the mapper functions in `systemLogic.mappers` so worlds store stable definition
+keys and can replay without live subscriptions.
+
 Use them for actors this machine does not [invoke](invoke.md): [spawned](spawn.md) children, children passed in through input, or long-lived actors from a [system](systems.md). Invoked actors already have `onDone`, `onError` and `onSnapshot`.
 
 ## Listening to emitted events
