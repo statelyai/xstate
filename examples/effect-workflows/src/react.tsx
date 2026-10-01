@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Effect, Layer } from 'effect';
-import { Atom } from 'effect/unstable/reactivity';
+import { Atom } from 'effect/reactivity';
 import {
   RegistryProvider,
   useAtomSet,

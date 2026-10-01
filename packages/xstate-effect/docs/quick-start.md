@@ -12,10 +12,10 @@ XState models how a workflow responds to events. Effect runs the work inside it.
 
 ## Install
 
-This package is experimental. It targets XState v6 alpha and Effect 4 RC.
+This package is experimental. It targets XState v6 alpha and Effect 4.
 
 ```bash
-npm install @xstate/effect@alpha xstate@alpha effect@rc
+npm install @xstate/effect@alpha xstate@alpha effect@^4
 ```
 
 ## Model a release approval

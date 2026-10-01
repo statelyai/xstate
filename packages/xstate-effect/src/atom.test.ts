@@ -1,5 +1,5 @@
 import { Cause, Context, Effect, Layer, Schema } from 'effect';
-import { AsyncResult, Atom, AtomRegistry } from 'effect/unstable/reactivity';
+import { AsyncResult, Atom, AtomRegistry } from 'effect/reactivity';
 import { createMachine, setup } from 'xstate';
 import { createActorAtoms } from './atom.ts';
 import { fromEffect, setupEffect, withActorScope } from './index.ts';

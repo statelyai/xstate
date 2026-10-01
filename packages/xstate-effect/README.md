@@ -7,14 +7,14 @@ Combine XState's event-driven workflows with Effect services, scopes, clocks and
 - Provide services once for the actor and its child logic.
 - Keep actor lifetime inside your Effect application.
 
-This package is experimental. It targets XState v6 alpha and Effect 4 RC.
+This package is experimental. It targets XState v6 alpha and Effect 4.
 
 ## Installation
 
 <!-- package name and peer dependencies from package.json -->
 
 ```bash
-npm install @xstate/effect@alpha xstate@alpha effect@rc
+npm install @xstate/effect@alpha xstate@alpha effect@^4
 ```
 
 ## XState Effect: Quick start

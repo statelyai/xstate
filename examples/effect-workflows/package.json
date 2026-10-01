@@ -10,11 +10,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/atom-react": "4.0.0-rc.115",
+    "@effect/atom-react": "4.0.0",
     "@statelyai/sdk": "^0.20.1",
     "@xstate/effect": "workspace:*",
     "@xstate/react": "workspace:*",
-    "effect": "4.0.0-rc.115",
+    "effect": "4.0.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "xstate": "workspace:*"
