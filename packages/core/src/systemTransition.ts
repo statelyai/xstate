@@ -17,7 +17,7 @@ import type {
   InputFrom
 } from './types.ts';
 
-/** Immutable definitions for a pure actor world. @experimental */
+/** Immutable definitions for a pure actor system. @experimental */
 export interface SystemLogic<TLogic extends AnyActorLogic = AnyActorLogic> {
   readonly root: TLogic;
   /** Additional definitions used by dynamically spawned actors. */
@@ -36,7 +36,7 @@ export interface SystemActorReference {
   readonly incarnation: number;
 }
 
-/** Actor state and topology owned by a world. @experimental */
+/** Actor state and topology in a system snapshot. @experimental */
 export interface SystemActorState {
   readonly id: string;
   readonly address: string;
@@ -57,11 +57,11 @@ export interface SystemMessage {
   readonly target: SystemActorReference;
   readonly event: AnyEventObject;
   readonly sequence: number;
-  /** Set only by the world scheduler, never by an ordinary send. */
+  /** Set only by the system scheduler, never by an ordinary send. */
   readonly timerOccurrence?: number;
 }
 
-/** Absolute deadlines in the world's virtual time domain. @experimental */
+/** Absolute deadlines in the system's virtual time domain. @experimental */
 export interface SystemTimer {
   readonly source: SystemActorReference;
   readonly id: string;
@@ -91,7 +91,7 @@ export interface SystemEffectResult {
   event?: AnyEventObject;
 }
 
-/** Complete immutable actor-world state; no running actors are retained. @experimental */
+/** Complete immutable system state; no running actors are retained. @experimental */
 export interface SystemSnapshot {
   readonly executionId: string;
   readonly root: string;
@@ -109,21 +109,21 @@ export interface SystemSnapshot {
   }>;
 }
 
-/** Options for initializing an immutable world. @experimental */
+/** Options for initializing an immutable system snapshot. @experimental */
 export interface InitialSystemTransitionOptions<
   TLogic extends AnyActorLogic = AnyActorLogic
 > {
   input?: InputFrom<TLogic>;
   id?: string;
   registryKey?: string;
-  /** Namespace external effect IDs when several worlds share one host. */
+  /** Namespace external effect IDs when several executions share one host. */
   executionId?: string;
   time?: number;
   /** Bound immediate message chains. Exhaustion throws; the input is unchanged. */
   maxSteps?: number;
 }
 
-type World = {
+type MutableSystemSnapshot = {
   -readonly [K in keyof SystemSnapshot]: K extends 'actors'
     ? Record<string, SystemActorState>
     : K extends 'registry'
@@ -280,7 +280,7 @@ function definitions(systemLogic: SystemLogic): Map<string, AnyActorLogic> {
   return result;
 }
 
-/** Reduction-local heap. The world's records remain the sole source of truth. */
+/** Reduction-local heap. The snapshot's records remain the sole source of truth. */
 class DeadlineQueue {
   private readonly entries: SystemTimer[] = [];
 
@@ -328,7 +328,7 @@ class DeadlineQueue {
 }
 
 class SystemReduction {
-  readonly world: World;
+  readonly snapshot: MutableSystemSnapshot;
   readonly effects: SystemExternalEffect[] = [];
   private readonly logic: Map<string, AnyActorLogic>;
   private readonly handles = new Map<string, AnyActor>();
@@ -343,7 +343,7 @@ class SystemReduction {
   private readonly mappers: NonNullable<SystemLogic['mappers']>;
   private remaining: number;
 
-  constructor(logic: SystemLogic, world: SystemSnapshot, maxSteps = 10_000) {
+  constructor(logic: SystemLogic, snapshot: SystemSnapshot, maxSteps = 10_000) {
     if (!Number.isSafeInteger(maxSteps) || maxSteps < 1)
       throw new Error('maxSteps must be a positive integer.');
     this.logic = definitions(logic);
@@ -370,23 +370,24 @@ class SystemReduction {
           );
       }
     }
-    this.world = {
-      ...world,
-      actors: Object.assign(Object.create(null), world.actors),
-      registry: Object.assign(Object.create(null), world.registry),
-      messages: [...world.messages],
-      timers: { ...world.timers },
-      externalEffects: { ...world.externalEffects },
-      counters: { ...world.counters }
+    this.snapshot = {
+      ...snapshot,
+      actors: Object.assign(Object.create(null), snapshot.actors),
+      registry: Object.assign(Object.create(null), snapshot.registry),
+      messages: [...snapshot.messages],
+      timers: { ...snapshot.timers },
+      externalEffects: { ...snapshot.externalEffects },
+      counters: { ...snapshot.counters }
     };
     this.remaining = maxSteps;
-    for (const timer of Object.values(world.timers)) this.deadlines.push(timer);
+    for (const timer of Object.values(snapshot.timers))
+      this.deadlines.push(timer);
   }
 
   private step() {
     if (--this.remaining < 0)
       throw new Error(
-        'System transition exceeded maxSteps; the input world is unchanged.'
+        'System transition exceeded maxSteps; the input snapshot is unchanged.'
       );
   }
 
@@ -395,7 +396,7 @@ class SystemReduction {
   }
 
   private current(ref: SystemActorReference): SystemActorState | undefined {
-    const actor = this.world.actors[ref.$actor];
+    const actor = this.snapshot.actors[ref.$actor];
     return actor?.incarnation === ref.incarnation ? actor : undefined;
   }
 
@@ -441,7 +442,7 @@ class SystemReduction {
     source: SystemActorReference,
     emitted?: AnyEventObject
   ) {
-    for (const actor of Object.values(this.world.actors)) {
+    for (const actor of Object.values(this.snapshot.actors)) {
       const kind = this.attachedKind(actor);
       if (
         !actor.started ||
@@ -494,7 +495,7 @@ class SystemReduction {
   }
 
   private stopAttachments(parent: SystemActorReference) {
-    for (const actor of Object.values(this.world.actors)) {
+    for (const actor of Object.values(this.snapshot.actors)) {
       const kind = this.attachedKind(actor);
       if (
         (kind === 'xstate.listener' || kind === 'xstate.subscription') &&
@@ -547,7 +548,7 @@ class SystemReduction {
     const getSnapshot = () => this.hydrate(ref);
     const unsupported = () => {
       throw new Error(
-        'Use enqueue operations and systemTransition; live actor capabilities are unavailable in a pure world.'
+        'Use enqueue operations and systemTransition; live actor capabilities are unavailable in a pure snapshot.'
       );
     };
     const handle = {
@@ -590,19 +591,19 @@ class SystemReduction {
         this.allocate(logic, options),
       _unregister: (actor: AnyActor) => {
         this.stopping.add(JSON.stringify(this.reference(actor)));
-        for (const [key, ref] of Object.entries(this.world.registry)) {
+        for (const [key, ref] of Object.entries(this.snapshot.registry)) {
           if (
             ref.$actor === actor.address &&
             String(ref.incarnation) === actor.sessionId
           )
-            delete this.world.registry[key];
+            delete this.snapshot.registry[key];
         }
       },
       get: (key: string) =>
-        this.world.registry[key] && this.handle(this.world.registry[key]),
+        this.snapshot.registry[key] && this.handle(this.snapshot.registry[key]),
       getAll: () =>
         Object.fromEntries(
-          Object.entries(this.world.registry).map(([key, ref]) => [
+          Object.entries(this.snapshot.registry).map(([key, ref]) => [
             key,
             this.handle(ref)
           ])
@@ -610,7 +611,7 @@ class SystemReduction {
       _hasInspectionObservers: () => false,
       _sendInspectionEvent: () => {},
       _clock: {
-        now: () => this.world.now,
+        now: () => this.snapshot.now,
         setTimeout: () => {
           throw new Error('Timers must be declared as logical effects.');
         },
@@ -656,16 +657,16 @@ class SystemReduction {
     const parent = options.parent && this.reference(options.parent);
     const id =
       options.id ??
-      `${getActorIdPrefix(options.src ?? logic)}:${this.world.counters.actor}`;
+      `${getActorIdPrefix(options.src ?? logic)}:${this.snapshot.counters.actor}`;
     const address = `${parent ? parent.$actor + '/' : ''}${encodeAddressSegment(id)}`;
-    const occupied = this.world.actors[address];
+    const occupied = this.snapshot.actors[address];
     if (occupied?.snapshot.status === 'active') {
       const previous = { $actor: address, incarnation: occupied.incarnation };
       if (!this.stopping.has(JSON.stringify(previous)))
         throw new Error(`Actor address '${address}' is already occupied.`);
       this.stop(previous);
     }
-    const incarnation = this.world.counters.actor++;
+    const incarnation = this.snapshot.counters.actor++;
     const ref = { $actor: address, incarnation };
     const state: SystemActorState = {
       id,
@@ -682,13 +683,13 @@ class SystemReduction {
       input: this.encode(options.input),
       snapshot: { status: 'active', output: undefined, error: undefined }
     };
-    this.world.actors[address] = state;
+    this.snapshot.actors[address] = state;
     if (options.registryKey) {
-      if (this.world.registry[options.registryKey])
+      if (this.snapshot.registry[options.registryKey])
         throw new Error(
           `Registry key '${options.registryKey}' is already occupied.`
         );
-      this.world.registry[options.registryKey] = ref;
+      this.snapshot.registry[options.registryKey] = ref;
     }
     const scope = this.scope(ref);
     const result = logic.initialTransition(this.decode(state.input), scope);
@@ -706,7 +707,7 @@ class SystemReduction {
     const actor = this.current(ref);
     if (!actor) return;
     this.snapshots.set(JSON.stringify(ref), snapshot);
-    this.world.actors[ref.$actor] = {
+    this.snapshot.actors[ref.$actor] = {
       ...actor,
       snapshot: snapshotData(snapshot, this.mapperNames)
     };
@@ -724,7 +725,7 @@ class SystemReduction {
       throw new Error(
         'Register callable external actions in systemLogic.effects or the machine action sources.'
       );
-    const id = `${this.world.executionId}:${this.world.counters.effect++}`;
+    const id = `${this.snapshot.executionId}:${this.snapshot.counters.effect++}`;
     const params =
       typeof value.params?.action === 'function'
         ? Object.fromEntries(
@@ -749,7 +750,7 @@ class SystemReduction {
       ...(value.reason && { reason: value.reason })
     };
     this.effects.push(result);
-    this.world.externalEffects[id] = result;
+    this.snapshot.externalEffects[id] = result;
     if (value.kind === 'emit') this.relayAttachments(ref, value.event);
   }
 
@@ -759,23 +760,23 @@ class SystemReduction {
     event: AnyEventObject,
     timerOccurrence?: number
   ) {
-    this.world.messages.push({
+    this.snapshot.messages.push({
       source,
       target,
       event: this.encode(event),
-      sequence: this.world.counters.sequence++,
+      sequence: this.snapshot.counters.sequence++,
       ...(timerOccurrence !== undefined && { timerOccurrence })
     });
   }
 
   private cancel(ref: SystemActorReference, id?: string) {
-    for (const [key, timer] of Object.entries(this.world.timers)) {
+    for (const [key, timer] of Object.entries(this.snapshot.timers)) {
       if (
         timer.source.$actor === ref.$actor &&
         timer.source.incarnation === ref.incarnation &&
         (id === undefined || timer.id === id)
       )
-        delete this.world.timers[key];
+        delete this.snapshot.timers[key];
     }
   }
 
@@ -791,7 +792,7 @@ class SystemReduction {
       }
       switch (value.type) {
         case '@xstate.spawn':
-          break; // Allocation already updated the world.
+          break; // Allocation already updated the snapshot.
         case '@xstate.start':
           this.start(this.reference(value.actor));
           break;
@@ -830,7 +831,7 @@ class SystemReduction {
     delay: number,
     event?: AnyEventObject
   ) {
-    const dueAt = this.world.now + delay;
+    const dueAt = this.snapshot.now + delay;
     if (!Number.isFinite(delay) || delay < 0 || !Number.isFinite(dueAt))
       throw new Error(
         'System timer deadlines must be finite and delays nonnegative.'
@@ -838,20 +839,20 @@ class SystemReduction {
     const timer: SystemTimer = {
       source: ref,
       id,
-      occurrence: this.world.counters.timer++,
-      scheduledAt: this.world.now,
+      occurrence: this.snapshot.counters.timer++,
+      scheduledAt: this.snapshot.now,
       dueAt,
-      sequence: this.world.counters.sequence++,
+      sequence: this.snapshot.counters.sequence++,
       ...(event && { event: this.encode(event) })
     };
-    this.world.timers[timerKey(ref, id)] = timer;
+    this.snapshot.timers[timerKey(ref, id)] = timer;
     this.deadlines.push(timer);
   }
 
   private start(ref: SystemActorReference) {
     const actor = this.current(ref);
     if (!actor || actor.started || actor.snapshot.status === 'stopped') return;
-    this.world.actors[ref.$actor] = { ...actor, started: true };
+    this.snapshot.actors[ref.$actor] = { ...actor, started: true };
     this.effectsFor(ref, this.initialEffects.get(JSON.stringify(ref)) ?? []);
     this.initialEffects.delete(JSON.stringify(ref));
     if (this.attachedKind(actor) === 'xstate.subscription') {
@@ -904,11 +905,11 @@ class SystemReduction {
       source: ref,
       target: ref,
       event: { type: '@xstate.stop' },
-      sequence: this.world.counters.sequence++
+      sequence: this.snapshot.counters.sequence++
     });
     this.cancel(ref);
     this.handle(ref).system._unregister(this.handle(ref));
-    this.world.messages = this.world.messages.filter(
+    this.snapshot.messages = this.snapshot.messages.filter(
       (message) =>
         message.target.$actor !== ref.$actor ||
         message.target.incarnation !== ref.incarnation
@@ -918,7 +919,7 @@ class SystemReduction {
   }
 
   private cancelExternal(ref: SystemActorReference) {
-    for (const [id, effect] of Object.entries(this.world.externalEffects)) {
+    for (const [id, effect] of Object.entries(this.snapshot.externalEffects)) {
       if (
         effect.kind !== 'action' ||
         effect.type === 'xstate.system.cancelEffect' ||
@@ -927,16 +928,16 @@ class SystemReduction {
         effect.source.incarnation !== ref.incarnation
       )
         continue;
-      delete this.world.externalEffects[id];
+      delete this.snapshot.externalEffects[id];
       const cancellation: SystemExternalEffect = {
-        id: `${this.world.executionId}:${this.world.counters.effect++}`,
+        id: `${this.snapshot.executionId}:${this.snapshot.counters.effect++}`,
         source: ref,
         kind: 'action',
         type: 'xstate.system.cancelEffect',
         params: { effectId: id }
       };
       this.effects.push(cancellation);
-      this.world.externalEffects[cancellation.id] = cancellation;
+      this.snapshot.externalEffects[cancellation.id] = cancellation;
     }
   }
 
@@ -972,7 +973,7 @@ class SystemReduction {
       message.timerOccurrence === undefined
     ) {
       throw new Error(
-        'Only the world scheduler may deliver a timer occurrence.'
+        'Only the system scheduler may deliver a timer occurrence.'
       );
     }
     const logic = this.logic.get(actor.logic);
@@ -1017,21 +1018,21 @@ class SystemReduction {
   }
 
   settle() {
-    while (this.world.messages.length) {
-      const message = this.world.messages.shift()!;
+    while (this.snapshot.messages.length) {
+      const message = this.snapshot.messages.shift()!;
       this.process(message);
     }
   }
 
   advance(time: number) {
-    if (!Number.isFinite(time) || time < this.world.now)
+    if (!Number.isFinite(time) || time < this.snapshot.now)
       throw new Error('System time must be finite and cannot move backwards.');
     this.settle();
     while (true) {
       const timer = this.deadlines.peek();
       if (
         timer &&
-        this.world.timers[timerKey(timer.source, timer.id)] !== timer
+        this.snapshot.timers[timerKey(timer.source, timer.id)] !== timer
       ) {
         this.deadlines.pop();
         continue;
@@ -1039,8 +1040,8 @@ class SystemReduction {
       if (!timer || timer.dueAt > time) break;
       this.step();
       this.deadlines.pop();
-      delete this.world.timers[timerKey(timer.source, timer.id)];
-      this.world.now = Math.max(this.world.now, timer.dueAt);
+      delete this.snapshot.timers[timerKey(timer.source, timer.id)];
+      this.snapshot.now = Math.max(this.snapshot.now, timer.dueAt);
       const actor = this.current(timer.source);
       if (
         !actor ||
@@ -1056,15 +1057,15 @@ class SystemReduction {
       );
       this.settle();
     }
-    this.world.now = time;
+    this.snapshot.now = time;
   }
 
   send(path: string, event: AnyEventObject) {
     if (event.type === 'xstate.timer') {
-      const actor = this.world.actors[path];
+      const actor = this.snapshot.actors[path];
       if (!actor) throw new Error(`Unknown actor address '${path}'.`);
       const timer =
-        this.world.timers[
+        this.snapshot.timers[
           timerKey({ $actor: path, incarnation: actor.incarnation }, event.id)
         ];
       if (!timer || event.occurrence !== timer.occurrence)
@@ -1072,12 +1073,12 @@ class SystemReduction {
       this.advance(timer.dueAt);
       return;
     }
-    this.advance(this.world.now);
-    const actor = this.world.actors[path];
+    this.advance(this.snapshot.now);
+    const actor = this.snapshot.actors[path];
     if (!actor) throw new Error(`Unknown actor address '${path}'.`);
     const ref = { $actor: path, incarnation: actor.incarnation };
     if (event.type === 'xstate.system.effect.result') {
-      const effect = this.world.externalEffects[event.effectId];
+      const effect = this.snapshot.externalEffects[event.effectId];
       if (
         !effect ||
         effect.source.$actor !== path ||
@@ -1090,7 +1091,7 @@ class SystemReduction {
         throw new Error(
           'External effect result does not match its owner or is stale.'
         );
-      delete this.world.externalEffects[event.effectId];
+      delete this.snapshot.externalEffects[event.effectId];
       if (event.event) {
         this.enqueue(ref, ref, event.event);
         this.settle();
@@ -1119,7 +1120,7 @@ class SystemReduction {
       input,
       registryKey
     });
-    this.world.root = root.address;
+    this.snapshot.root = root.address;
     this.start(this.reference(root));
     this.settle();
   }
@@ -1153,28 +1154,32 @@ export function initialSystemTransition<TLogic extends AnyActorLogic>(
     options.id ?? (systemLogic.root as any).id ?? 'root',
     options.registryKey
   );
-  return [reduction.world, reduction.effects];
+  return [reduction.snapshot, reduction.effects];
 }
 
-/** Complete actor macrosteps and immediate communication in an immutable world. @experimental */
+/** Complete actor macrosteps and immediate communication in an immutable snapshot. @experimental */
 export function systemTransition(
   systemLogic: SystemLogic,
-  world: SystemSnapshot,
+  snapshot: SystemSnapshot,
   actorPath: string,
   event: AnyEventObject
 ): [SystemSnapshot, SystemExternalEffect[]] {
-  const reduction = new SystemReduction(systemLogic, world);
+  const reduction = new SystemReduction(systemLogic, snapshot);
   reduction.send(actorPath, event);
-  return [reduction.world, reduction.effects];
+  return [reduction.snapshot, reduction.effects];
 }
 
-/** Process every due timer chronologically across the entire actor world. @experimental */
+/** Process every due timer chronologically across the entire system snapshot. @experimental */
 export function advanceSystemTime(
   systemLogic: SystemLogic,
-  world: SystemSnapshot,
+  snapshot: SystemSnapshot,
   options: { time: number; maxSteps?: number }
 ): [SystemSnapshot, SystemExternalEffect[]] {
-  const reduction = new SystemReduction(systemLogic, world, options.maxSteps);
+  const reduction = new SystemReduction(
+    systemLogic,
+    snapshot,
+    options.maxSteps
+  );
   reduction.advance(options.time);
-  return [reduction.world, reduction.effects];
+  return [reduction.snapshot, reduction.effects];
 }

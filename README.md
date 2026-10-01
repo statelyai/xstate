@@ -53,8 +53,8 @@ They work great together, but you don't need one to use the other.
 <!-- experimental whole-system transitions from packages/core/src/systemTransition.ts -->
 
 For pure actor-system simulation, the experimental `initialSystemTransition`,
-`systemTransition` and `advanceSystemTime` APIs return an immutable world and
-external effects as data. See [pure system transitions](docs/system-transitions.md).
+`systemTransition` and `advanceSystemTime` APIs return an immutable system snapshot
+and external effects as data. See [pure system transitions](docs/system-transitions.md).
 
 ## Sponsors
 

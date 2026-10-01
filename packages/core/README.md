@@ -20,8 +20,8 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 <!-- experimental whole-system transitions from packages/core/src/systemTransition.ts -->
 
 For pure actor-system simulation, `initialSystemTransition`, `systemTransition`
-and `advanceSystemTime` return an immutable world and external effects as data.
-Branch or replay actors, messages and virtual timers without starting live
+and `advanceSystemTime` return an immutable system snapshot and external effects
+as data. Branch or replay actors, messages and virtual timers without starting live
 actors. See [pure system transitions](../../docs/system-transitions.md).
 
 <!-- durable execution and checkpoint restoration from packages/core/src/durable/index.ts -->

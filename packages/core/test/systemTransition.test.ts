@@ -18,7 +18,7 @@ function freeze<T>(value: T): T {
   return value;
 }
 
-it('branches complete actor worlds without retaining live actors', () => {
+it('branches complete system snapshots without retaining live actors', () => {
   const logic = {
     root: createMachine({
       id: 'root',
@@ -55,11 +55,11 @@ it('advances through an earlier transition that cancels the selected timer', () 
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const late = Object.values(world.timers).find(
+  const [snapshot] = initialSystemTransition(logic);
+  const late = Object.values(snapshot.timers).find(
     (timer) => timer.dueAt === 6000
   )!;
-  const [next] = systemTransition(logic, freeze(world), 'root', {
+  const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'xstate.timer',
     id: late.id,
     occurrence: late.occurrence
@@ -95,15 +95,15 @@ it('starts newly created timers at their chronological firing time', () => {
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const [next] = advanceSystemTime(logic, freeze(world), { time: 6000 });
+  const [snapshot] = initialSystemTransition(logic);
+  const [next] = advanceSystemTime(logic, freeze(snapshot), { time: 6000 });
   expect(next.actors.root.snapshot.context.trace).toEqual([
     'early',
     'middle',
     'late'
   ]);
   expect(next.now).toBe(6000);
-  const [atTwo] = advanceSystemTime(logic, world, { time: 2000 });
+  const [atTwo] = advanceSystemTime(logic, snapshot, { time: 2000 });
   expect(
     Object.values(atTwo.timers).find((timer) => timer.id === 'mid')?.dueAt
   ).toBe(3000);
@@ -134,13 +134,13 @@ it('owns child state, immediate communication and completion notifications', () 
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  expect(world.actors['root/child'].started).toBe(true);
-  expect(world.actors.root.snapshot.children.child).toEqual({
+  const [snapshot] = initialSystemTransition(logic);
+  expect(snapshot.actors['root/child'].started).toBe(true);
+  expect(snapshot.actors.root.snapshot.children.child).toEqual({
     $actor: 'root/child',
     incarnation: 1
   });
-  const [next] = systemTransition(logic, freeze(world), 'root', {
+  const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'SEND'
   });
   expect(next.actors.root.snapshot.value).toBe('success');
@@ -174,8 +174,8 @@ it('orders timers across actors and applies a child send before a later parent t
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const [next] = advanceSystemTime(logic, freeze(world), { time: 6000 });
+  const [snapshot] = initialSystemTransition(logic);
+  const [next] = advanceSystemTime(logic, freeze(snapshot), { time: 6000 });
   expect(next.actors.root.snapshot.value).toBe('done');
   expect(next.actors['root/child'].snapshot.status).toBe('stopped');
   expect(next.timers).toEqual({});
@@ -195,9 +195,9 @@ it('preserves unrelated deadlines and rejects stale occurrences after reentry', 
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const original = Object.values(world.timers)[0];
-  const [atTwo] = advanceSystemTime(logic, world, { time: 2000 });
+  const [snapshot] = initialSystemTransition(logic);
+  const original = Object.values(snapshot.timers)[0];
+  const [atTwo] = advanceSystemTime(logic, snapshot, { time: 2000 });
   const [unchanged] = systemTransition(logic, atTwo, 'root', { type: 'NOOP' });
   expect(Object.values(unchanged.timers)[0]).toEqual(original);
   const [reentered] = systemTransition(logic, freeze(unchanged), 'root', {
@@ -233,13 +233,13 @@ it('restarts invoked actors on parent reentry without reusing incarnations', () 
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const [later] = advanceSystemTime(logic, world, { time: 1000 });
+  const [snapshot] = initialSystemTransition(logic);
+  const [later] = advanceSystemTime(logic, snapshot, { time: 1000 });
   const [next] = systemTransition(logic, freeze(later), 'root', {
     type: 'REENTER'
   });
   expect(next.actors['root/child'].incarnation).not.toBe(
-    world.actors['root/child'].incarnation
+    snapshot.actors['root/child'].incarnation
   );
   expect(Object.values(next.timers)).toHaveLength(1);
   expect(Object.values(next.timers)[0].dueAt).toBe(4000);
@@ -259,8 +259,8 @@ it('compares deadlines rather than declared delays', () => {
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const [atFive] = advanceSystemTime(logic, world, { time: 5000 });
+  const [snapshot] = initialSystemTransition(logic);
+  const [atFive] = advanceSystemTime(logic, snapshot, { time: 5000 });
   const [scheduled] = systemTransition(logic, atFive, 'root', {
     type: 'SCHEDULE'
   });
@@ -276,13 +276,13 @@ it('consumes a guarded timer once and rejects raw after injection', () => {
       states: { active: { after: { 1000: () => undefined } }, done: {} }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const [next] = advanceSystemTime(logic, freeze(world), { time: 1000 });
+  const [snapshot] = initialSystemTransition(logic);
+  const [next] = advanceSystemTime(logic, freeze(snapshot), { time: 1000 });
   expect(next.actors.root.snapshot.value).toBe('active');
   expect(next.actors.root.snapshot.timers).toEqual({});
   expect(next.timers).toEqual({});
   expect(() =>
-    systemTransition(logic, world, 'root', {
+    systemTransition(logic, snapshot, 'root', {
       type: 'xstate.after',
       delay: 1000,
       stateId: 'root.active'
@@ -309,9 +309,9 @@ it('orders equal-deadline timers before newly scheduled zero-delay timers', () =
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
+  const [snapshot] = initialSystemTransition(logic);
   expect(
-    advanceSystemTime(logic, freeze(world), { time: 1000 })[0].actors.root
+    advanceSystemTime(logic, freeze(snapshot), { time: 1000 })[0].actors.root
       .snapshot.context.trace
   ).toEqual(['a', 'b', 'c']);
 });
@@ -328,13 +328,13 @@ it('returns external work as data without executing it', () => {
       }
     })
   };
-  const [world, effects] = initialSystemTransition(logic);
+  const [snapshot, effects] = initialSystemTransition(logic);
   expect(action).not.toHaveBeenCalled();
   expect(effects).toHaveLength(2);
   expect(effects[0].type).toBe('audit');
   expect(effects[0].args).toEqual([{ message: 'hello' }]);
   expect(effects[1]).toMatchObject({ kind: 'emit', event: { type: 'READY' } });
-  expect(world.externalEffects[effects[0].id]).toEqual(effects[0]);
+  expect(snapshot.externalEffects[effects[0].id]).toEqual(effects[0]);
   expect(JSON.parse(JSON.stringify(effects))).toEqual(effects);
 });
 
@@ -363,11 +363,11 @@ it('retains a replacement timer beyond a selected occurrence’s original deadli
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const selected = Object.values(world.timers).find(
+  const [snapshot] = initialSystemTransition(logic);
+  const selected = Object.values(snapshot.timers).find(
     (timer) => timer.id === 'late'
   )!;
-  const [next] = systemTransition(logic, freeze(world), 'root', {
+  const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'xstate.timer',
     id: selected.id,
     occurrence: selected.occurrence
@@ -413,9 +413,9 @@ it('replays named pure listeners without live subscriptions and stops them with 
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  expect(world.actors.root.snapshot.context.value).toBe(1);
-  const restored = JSON.parse(JSON.stringify(world));
+  const [snapshot] = initialSystemTransition(logic);
+  expect(snapshot.actors.root.snapshot.context.value).toBe(1);
+  const restored = JSON.parse(JSON.stringify(snapshot));
   const [next] = systemTransition(logic, freeze(restored), 'root', {
     type: 'PING'
   });
@@ -434,7 +434,7 @@ it('maps pure child snapshots and completion through owned subscription actors',
   type Mapped =
     | { type: 'SNAPSHOT'; value: number }
     | { type: 'DONE'; value: unknown };
-  const snapshot = (value: any): Mapped => ({
+  const mapSnapshot = (value: any): Mapped => ({
     type: 'SNAPSHOT' as const,
     value: value.context.count
   });
@@ -453,7 +453,7 @@ it('maps pure child snapshots and completion through owned subscription actors',
     }
   });
   const logic = {
-    mappers: { snapshot, done },
+    mappers: { snapshot: mapSnapshot, done },
     actors: { child },
     root: createMachine({
       id: 'root',
@@ -466,7 +466,7 @@ it('maps pure child snapshots and completion through owned subscription actors',
       context: { count: -1, output: undefined as unknown },
       entry: (_, enq) => {
         const actor = enq.spawn(child, { id: 'child' });
-        enq.subscribeTo(actor, { snapshot, done });
+        enq.subscribeTo(actor, { snapshot: mapSnapshot, done });
       },
       on: {
         SNAPSHOT: ({ context, event }) => ({
@@ -478,11 +478,11 @@ it('maps pure child snapshots and completion through owned subscription actors',
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  expect(world.actors.root.snapshot.context.count).toBe(0);
+  const [snapshot] = initialSystemTransition(logic);
+  expect(snapshot.actors.root.snapshot.context.count).toBe(0);
   const [next] = systemTransition(
     logic,
-    JSON.parse(JSON.stringify(world)),
+    JSON.parse(JSON.stringify(snapshot)),
     'root/child',
     { type: 'INC' }
   );
@@ -495,17 +495,17 @@ it('maps pure child snapshots and completion through owned subscription actors',
 
 it('handles prototype-shaped root IDs and registry keys as ordinary data', () => {
   const logic = { root: createMachine({ on: { PING: {} } }) };
-  const [world] = initialSystemTransition(logic, {
+  const [snapshot] = initialSystemTransition(logic, {
     id: '__proto__',
     registryKey: '__proto__'
   });
-  expect(world.registry.__proto__).toEqual({
+  expect(snapshot.registry.__proto__).toEqual({
     $actor: '__proto__',
     incarnation: 0
   });
   const [next] = systemTransition(
     logic,
-    JSON.parse(JSON.stringify(world)),
+    JSON.parse(JSON.stringify(snapshot)),
     '__proto__',
     { type: 'PING' }
   );
@@ -521,7 +521,7 @@ it('rejects live actors and unserializable context without executing external wo
   ).toThrow('Live actors');
 });
 
-it('prevents an actor send from impersonating the world scheduler', () => {
+it('prevents an actor send from impersonating the system scheduler', () => {
   const logic = {
     root: createMachine({
       id: 'root',
@@ -538,10 +538,10 @@ it('prevents an actor send from impersonating the world scheduler', () => {
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
+  const [snapshot] = initialSystemTransition(logic);
   expect(() =>
-    systemTransition(logic, freeze(world), world.root, { type: 'INJECT' })
-  ).toThrow('Only the world scheduler');
+    systemTransition(logic, freeze(snapshot), snapshot.root, { type: 'INJECT' })
+  ).toThrow('Only the system scheduler');
 });
 
 it('acknowledges retirement commands after replacement without accepting stale results', () => {
@@ -558,10 +558,15 @@ it('acknowledges retirement commands after replacement without accepting stale r
       }
     })
   };
-  const [world, initialEffects] = initialSystemTransition(logic);
-  const [restarted, effects] = systemTransition(logic, freeze(world), 'root', {
-    type: 'RESTART'
-  });
+  const [snapshot, initialEffects] = initialSystemTransition(logic);
+  const [restarted, effects] = systemTransition(
+    logic,
+    freeze(snapshot),
+    'root',
+    {
+      type: 'RESTART'
+    }
+  );
   const cancellation = effects.find(
     (effect) => effect.type === 'xstate.system.cancelEffect'
   )!;
@@ -590,7 +595,7 @@ it('names logger effects without running the logger during reduction', () => {
   expect(effects).toMatchObject([{ type: 'xstate.log', args: ['hello', 42] }]);
 });
 
-it('restores a serialized world with pending timers and child references', () => {
+it('restores a serialized snapshot with pending timers and child references', () => {
   const child = createMachine({
     initial: 'active',
     states: { active: { after: { 2000: { target: 'done' } } }, done: {} }
@@ -598,8 +603,8 @@ it('restores a serialized world with pending timers and child references', () =>
   const logic = {
     root: createMachine({ id: 'root', invoke: { id: 'child', src: child } })
   };
-  const [world] = initialSystemTransition(logic);
-  const [atOne] = advanceSystemTime(logic, world, { time: 1000 });
+  const [snapshot] = initialSystemTransition(logic);
+  const [atOne] = advanceSystemTime(logic, snapshot, { time: 1000 });
   const restored = JSON.parse(JSON.stringify(atOne));
   expect(
     advanceSystemTime(logic, freeze(restored), { time: 2000 })[0].actors[
@@ -617,15 +622,15 @@ it('keeps an ordinary matching event separate from its delayed delivery', () => 
       on: { PING: {} }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const [next] = systemTransition(logic, freeze(world), 'root', {
+  const [snapshot] = initialSystemTransition(logic);
+  const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'PING'
   });
   expect(next.now).toBe(0);
-  expect(next.timers).toEqual(world.timers);
+  expect(next.timers).toEqual(snapshot.timers);
 });
 
-it('bounds zero-delay chains atomically without modifying the input world', () => {
+it('bounds zero-delay chains atomically without modifying the input snapshot', () => {
   const logic = {
     root: createMachine({
       id: 'root',
@@ -633,16 +638,16 @@ it('bounds zero-delay chains atomically without modifying the input world', () =
       states: { active: { after: { 0: { target: 'active', reenter: true } } } }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const before = JSON.stringify(world);
+  const [snapshot] = initialSystemTransition(logic);
+  const before = JSON.stringify(snapshot);
   expect(() =>
-    advanceSystemTime(logic, freeze(world), { time: 6000, maxSteps: 10 })
+    advanceSystemTime(logic, freeze(snapshot), { time: 6000, maxSteps: 10 })
   ).toThrow('maxSteps');
-  expect(JSON.stringify(world)).toBe(before);
-  expect(() => advanceSystemTime(logic, world, { time: -1 })).toThrow(
+  expect(JSON.stringify(snapshot)).toBe(before);
+  expect(() => advanceSystemTime(logic, snapshot, { time: -1 })).toThrow(
     'backwards'
   );
-  expect(() => advanceSystemTime(logic, world, { time: Infinity })).toThrow(
+  expect(() => advanceSystemTime(logic, snapshot, { time: Infinity })).toThrow(
     'finite'
   );
 });
@@ -661,8 +666,8 @@ it('processes pure non-machine actor logic without executing external effects', 
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const [next, effects] = systemTransition(logic, freeze(world), 'root', {
+  const [snapshot] = initialSystemTransition(logic);
+  const [next, effects] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'INC'
   });
   expect(next.actors.root.snapshot.context.count).toBe(1);
@@ -673,10 +678,10 @@ it('processes pure non-machine actor logic without executing external effects', 
 it('acknowledges external work and delivers its result as a correlated input', () => {
   const run = vi.fn(async () => 42);
   const logic = { root: createAsyncLogic({ id: 'root', timeout: '2s', run }) };
-  const [world, effects] = initialSystemTransition(logic);
+  const [snapshot, effects] = initialSystemTransition(logic);
   expect(run).not.toHaveBeenCalled();
-  expect(Object.values(world.timers)[0].dueAt).toBe(2000);
-  const [next] = systemTransition(logic, freeze(world), 'root', {
+  expect(Object.values(snapshot.timers)[0].dueAt).toBe(2000);
+  const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'xstate.system.effect.result',
     effectId: effects[0].id,
     event: { type: 'xstate.async.resolve', data: 42 }
@@ -697,8 +702,8 @@ it('acknowledges external work and delivers its result as a correlated input', (
 it('owns async timeouts and rejects results arriving after cancellation', () => {
   const run = vi.fn(async () => 42);
   const logic = { root: createAsyncLogic({ id: 'root', timeout: 2000, run }) };
-  const [world, effects] = initialSystemTransition(logic);
-  const [next, cancellations] = advanceSystemTime(logic, freeze(world), {
+  const [snapshot, effects] = initialSystemTransition(logic);
+  const [next, cancellations] = advanceSystemTime(logic, freeze(snapshot), {
     time: 6000
   });
   expect(next.actors.root.snapshot.status).toBe('error');
@@ -743,8 +748,8 @@ it('processes state and invoke timeouts in the same deadline order', () => {
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const [next] = advanceSystemTime(logic, freeze(world), { time: 6000 });
+  const [snapshot] = initialSystemTransition(logic);
+  const [next] = advanceSystemTime(logic, freeze(snapshot), { time: 6000 });
   expect(next.actors.root.snapshot.value).toBe('done');
   expect(next.actors['root/child'].snapshot.status).toBe('stopped');
   expect(next.timers).toEqual({});
@@ -778,14 +783,16 @@ it('models delayed sends through the source timer before child completion', () =
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const [scheduled] = systemTransition(logic, world, 'root', { type: 'SEND' });
+  const [snapshot] = initialSystemTransition(logic);
+  const [scheduled] = systemTransition(logic, snapshot, 'root', {
+    type: 'SEND'
+  });
   const [next] = advanceSystemTime(logic, freeze(scheduled), { time: 1000 });
   expect(next.actors.root.snapshot.value).toBe('done');
   expect(next.timers).toEqual({});
 });
 
-it('stops a world subtree and resolves registry lookups from snapshot data', () => {
+it('stops a actor subtree and resolves registry lookups from snapshot data', () => {
   const child = createMachine({
     on: { PING: { context: { received: true } } },
     context: { received: false }
@@ -800,8 +807,8 @@ it('stops a world subtree and resolves registry lookups from snapshot data', () 
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const [next] = systemTransition(logic, freeze(world), 'root', {
+  const [snapshot] = initialSystemTransition(logic);
+  const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'SEND'
   });
   expect(next.actors['root/child'].snapshot.context.received).toBe(true);
@@ -827,11 +834,11 @@ it('preserves generated actor identity counters across independent branches', ()
       }
     })
   };
-  const [world] = initialSystemTransition(logic);
-  const [left] = systemTransition(logic, freeze(world), 'root', {
+  const [snapshot] = initialSystemTransition(logic);
+  const [left] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'SPAWN'
   });
-  const [right] = systemTransition(logic, world, 'root', { type: 'SPAWN' });
+  const [right] = systemTransition(logic, snapshot, 'root', { type: 'SPAWN' });
   expect(left).toEqual(right);
   expect(Object.keys(left.actors)).toEqual([
     'root',
@@ -863,12 +870,12 @@ it('restores history without live state-node references', () => {
       }
     })
   };
-  let [world] = initialSystemTransition(logic);
-  [world] = systemTransition(logic, world, 'root', { type: 'NEXT' });
-  [world] = systemTransition(logic, world, 'root', { type: 'EXIT' });
+  let [snapshot] = initialSystemTransition(logic);
+  [snapshot] = systemTransition(logic, snapshot, 'root', { type: 'NEXT' });
+  [snapshot] = systemTransition(logic, snapshot, 'root', { type: 'EXIT' });
   const [restored] = systemTransition(
     logic,
-    freeze(JSON.parse(JSON.stringify(world))),
+    freeze(JSON.parse(JSON.stringify(snapshot))),
     'root',
     { type: 'BACK' }
   );
@@ -890,9 +897,9 @@ it('does not consult wall time, native timers or live actor instances', () => {
     throw new Error('native timer scheduled');
   });
   try {
-    const [world] = initialSystemTransition(logic);
+    const [snapshot] = initialSystemTransition(logic);
     expect(
-      advanceSystemTime(logic, freeze(world), { time: 1000 })[0].actors.root
+      advanceSystemTime(logic, freeze(snapshot), { time: 1000 })[0].actors.root
         .snapshot.value
     ).toBe('done');
   } finally {

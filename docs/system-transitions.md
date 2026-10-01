@@ -1,15 +1,15 @@
 ---
 title: Pure system transitions
-description: Branch, replay and advance an entire actor world without a running system.
+description: Branch, replay and advance an actor system using immutable snapshots.
 ---
 
-<!-- experimental APIs and world data from packages/core/src/systemTransition.ts -->
+<!-- experimental APIs and snapshot data from packages/core/src/systemTransition.ts -->
 
-The experimental system transition APIs calculate a whole actor world. Each
-returns `[world, externalEffects]`. The world owns actor snapshots, topology,
-the registry, messages, pending external work, timers, virtual time and
-identity/order counters. Calculations never execute external effects or start
-a live actor system.
+The experimental system transition APIs calculate immutable `SystemSnapshot`
+values. Each returns `[snapshot, externalEffects]`. A system snapshot contains
+actor snapshots, topology, the registry, messages, pending external work,
+timers, virtual time and identity/order counters. Calculations never execute
+external effects or start a live actor system.
 
 ```ts
 import {
@@ -35,15 +35,15 @@ const systemLogic = {
   })
 };
 
-const [world] = initialSystemTransition(systemLogic, { time: 0 });
-const [finished] = systemTransition(systemLogic, world, world.root, {
+const [snapshot] = initialSystemTransition(systemLogic, { time: 0 });
+const [finished] = systemTransition(systemLogic, snapshot, snapshot.root, {
   type: 'FINISH'
 });
-const [elapsed] = advanceSystemTime(systemLogic, world, { time: 4000 });
+const [elapsed] = advanceSystemTime(systemLogic, snapshot, { time: 4000 });
 
 finished.actors[finished.root].snapshot.value; // 'done', at time 0
 elapsed.actors[elapsed.root].snapshot.value; // 'done', at time 4000
-world.actors[world.root].snapshot.value; // 'waiting'; input is unchanged
+snapshot.actors[snapshot.root].snapshot.value; // 'waiting'; input is unchanged
 ```
 
 `systemLogic` contains immutable definitions: `root`, optional `actors` for
@@ -53,7 +53,7 @@ sources and inline invocations are discovered automatically. Use the same
 definitions when branching or replaying.
 
 Initialize root input with `{ input }`. `id` overrides its ID; `executionId`
-namespaces effect IDs for hosts managing several worlds (default: `'system'`).
+namespaces effect IDs for hosts managing several executions (default: `'system'`).
 Distinguish replay branches at the host boundary before executing effects.
 `registryKey` registers the root for `system.get` lookups.
 
@@ -61,26 +61,26 @@ Distinguish replay branches at the host boundary before executing effects.
 
 Each call completes actor macrosteps and drains immediate inter-actor messages
 in FIFO order. Raised events and eventless transitions settle within their
-actor's macrostep. Microsteps are atomic; worlds contain no unfinished
+actor's macrostep. Microsteps are atomic; system snapshots contain no unfinished
 microstep or continuation state. A UI presenting individual completed
 microsteps within a macrostep needs a separate tracing interface.
 
 Snapshot actor references are data: `{ $actor, incarnation }`. Use `$actor`
-as `actorPath`, for example `world.actors[world.root].snapshot.children.worker.$actor`.
+as `actorPath`, for example `snapshot.actors[snapshot.root].snapshot.children.worker.$actor`.
 Paths encode IDs; avoid concatenating unescaped IDs. Replacing an actor at the
 same path allocates a fresh incarnation.
 
 Use `enq.sendTo`, `enq.spawn`, `enq.stop`, `enq.raise` and `enq.cancel` inside
-pure transition functions. `system.get` and `system.getAll` resolve world-owned
+pure transition functions. `system.get` and `system.getAll` resolve system-owned
 references; `self.getSnapshot()` reads the current reduction. Live methods
 such as `actor.send`, `actor.start`, `actor.on` and `actor.subscribe` throw.
 For `enq.listen`/`enq.subscribeTo`, register named pure mapper functions in
 `systemLogic.mappers`; mapped communication and attachment lifetimes belong
-to the world too.
+to the snapshot too.
 
 ## Virtual time
 
-`advanceSystemTime(systemLogic, world, { time })` takes an absolute destination
+`advanceSystemTime(systemLogic, snapshot, { time })` takes an absolute destination
 in milliseconds. Time must be finite and cannot move backwards. Timers record
 `scheduledAt`, `dueAt`, a unique `occurrence`, and an ordering `sequence`.
 Actor incarnations prevent old timers reaching replacement actors.
@@ -93,15 +93,15 @@ in that run; equal deadlines use insertion order.
 Select a pending timer in a simulator with its current occurrence:
 
 ```ts
-const selected = Object.values(world.timers).find((timer) => timer.dueAt === 6000)!;
-const [next] = systemTransition(systemLogic, world, selected.source.$actor, {
+const selected = Object.values(snapshot.timers).find((timer) => timer.dueAt === 6000)!;
+const [next] = systemTransition(systemLogic, snapshot, selected.source.$actor, {
   type: 'xstate.timer',
   id: selected.id,
   occurrence: selected.occurrence
 });
 ```
 
-Selection advances the entire world through that deadline. Earlier events
+Selection advances the entire snapshot through that deadline. Earlier events
 can cancel or replace the occurrence; selection never forces it to fire.
 Stale selections and direct external `xstate.after`/`xstate.timeout` injection
 throw. Delayed raises/sends, state/invocation timeouts and async-logic timeouts
@@ -114,7 +114,7 @@ Effects contain data: `id`, `source`, `type`, `kind`, `args`, and optional
 `params`/`event`. They contain no `exec` function. Name callable machine actions
 in `systemLogic.effects` or machine action sources so hosts receive stable
 names. `enq.log` returns `xstate.log`. Emissions return `kind: 'emit'` effects
-and also reach world-owned listeners.
+and also reach system-owned listeners.
 
 The host interprets descriptors. `createLogic`/`createAsyncLogic` produce
 `xstate.logic.effect`, with `params.key` for keyed logic effects. Dispatch
@@ -122,7 +122,7 @@ using the source actor's definition and saved input; the host owns the
 external implementation. Its result reenters as a correlated input:
 
 ```ts
-const [resolved] = systemTransition(systemLogic, pendingWorld, effect.source.$actor, {
+const [resolved] = systemTransition(systemLogic, pendingSnapshot, effect.source.$actor, {
   type: 'xstate.system.effect.result',
   effectId: effect.id,
   event: { type: 'xstate.async.resolve', data: result }
@@ -139,8 +139,8 @@ cancellation commands after their owner has stopped or been replaced.
 
 ## Replay and bounds
 
-Worlds contain plain data. JSON round trips work when user context, input,
-outputs, events and effect arguments are JSON-compatible. Actor references,
+System snapshots contain plain data. JSON round trips work when user context,
+input, outputs, events and effect arguments are JSON-compatible. Actor references,
 state-node references, errors and named mappers use data markers. Errors retain
 name/message. Undefined properties follow ordinary JSON rules. Cycles,
 unregistered functions, live actors, class instances, symbols, bigint and
@@ -154,7 +154,7 @@ Custom logic must implement pure `initialTransition`/`transition` operations;
 runtime `start` hooks are never executed.
 
 Calls bound message/timer chains to 10,000 steps. Initialization and advancement
-accept `maxSteps`. Exhaustion throws without changing the input world; there
+accept `maxSteps`. Exhaustion throws without changing the input snapshot; there
 is no resumable partial result. Machine macrosteps retain their existing
 `options.maxIterations` bound.
 
