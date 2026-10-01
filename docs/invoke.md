@@ -53,10 +53,10 @@ invoke: [
 
 ## Typed inline invokes
 
-Use `s.createInvoke(...)` inside a machine created with `s = setup(...)` when actor logic is used in one state. It infers the actor's input, completion output, error and snapshot types without registering the actor in `setup.actors`.
+Use `s.createInvoke(...)` inside a machine created with `s = setup(...)` when actor logic is used in one state. It infers the actor's input, completion output, error and snapshot types without registering the actor in `setup.actors`. For async work, pass the function directly as `src` and declare its schemas in the same invoke config.
 
 ```ts
-import { createAsyncLogic, setup, types } from 'xstate';
+import { setup, types } from 'xstate';
 
 const s = setup({
   schemas: {
@@ -74,11 +74,12 @@ const machine = s.createMachine({
   states: {
     loading: {
       invoke: s.createInvoke({
-        src: createAsyncLogic({
-          schemas: { input: types<{ userId: string }>() },
-          run: async ({ input }) => ({ name: input.userId })
-        }),
+        schemas: {
+          input: types<{ userId: string }>(),
+          output: types<{ name: string }>()
+        },
         input: ({ context }) => ({ userId: context.userId }),
+        src: async ({ input }) => ({ name: input.userId }),
         onDone: ({ event }) => ({
           target: 'ready',
           context: { name: event.output.name }
@@ -90,17 +91,33 @@ const machine = s.createMachine({
 });
 ```
 
-Keep the helper call inline: its enclosing state supplies narrowed context, ancestor context, state input and transition targets. In this example, `context.userId` is `string` and `event.output` is `{ name: string }`. Actor schemas belong on the logic itself; they do not need to be repeated on the invoke.
+Keep the helper call inline: its enclosing state supplies narrowed context, ancestor context, state input and transition targets. In this example, `context.userId` is `string` and `event.output` is `{ name: string }`.
+
+For an async `src`, `schemas.input` types the actor input, `schemas.output` checks the function's resolved value and types `onDone.event.output`, and `schemas.error` types `onError.event.error`. Omit the output schema to infer output from the async return value. The function receives `{ input, signal, self, system }` and the async enqueue object, including `emit` and `step`, just like `createAsyncLogic`. Its input comes from the invoke's static value or input mapper; parent context stays in the mapper and transition handlers.
+
+You can also pass an existing actor logic value, including machine and callback logic:
+
+```ts
+invoke: s.createInvoke({
+  src: loadUserLogic,
+  input: ({ context }) => ({ userId: context.userId }),
+  onDone: ({ event }) => ({ context: { name: event.output.name } })
+})
+```
+
+For a logic value, its own schemas determine input, output, error and snapshot types. Declare schemas on that logic rather than repeating them on the invoke.
 
 The helper requires `input` when the source's input type excludes `undefined`. Pass a static value or a mapper returning that input type. Logic that accepts `undefined` can omit `input`.
 
 Child contracts from `schemas.children` apply whether declared in `setup(...)` or `s.createMachine(...)`: supply a declared `id` and compatible `src`. This check also applies to hoisted configs when used in the machine.
 
-The helper accepts an actor logic value as `src` and supports the usual invoke options, including invoke arrays and setups with other registered actors. It returns the config unchanged; child startup, cancellation, timeouts and persistence follow the normal invoke lifecycle.
+The helper supports the usual invoke options, including invoke arrays and setups with other registered actors. Async functions are wrapped in async actor logic without starting work; logic-value configs are returned unchanged. Child startup, cancellation, timeouts and persistence follow the normal invoke lifecycle.
 
 Inference follows the declared source types. A source typed as `AnyActorLogic` retains its erased types, and errors without a schema remain `unknown`.
 
 A helper call made outside a machine has only setup-level context. To extract a config while keeping a specific state's scope, put the inline helper inside `s.createStateConfig('loading', { invoke: s.createInvoke(...) })`.
+
+For a hoisted helper, a targetless object-form `onDone.context` mapper currently needs an explicit argument annotation. Prefer function-form `onDone: ({ event }) => ({ context: ... })` to retain completion-output inference without an annotation.
 
 ## Actor lifecycle
 

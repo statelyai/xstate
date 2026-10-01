@@ -110,6 +110,8 @@ result boundary; it does not validate transient nested completion values.
 
 Use `s.createInvoke(...)` inline in `s.createMachine(...)` to type a single-use actor's input and lifecycle handlers while retaining the enclosing state's context and input. See [typed inline invokes](invoke.md#typed-inline-invokes).
 
+For single-use async work, keep everything together with `s.createInvoke({ schemas: { input, output, error }, src: async (...) => ..., input, onDone })`. The output schema is optional; output infers from the async return when omitted.
+
 Use `setup(...).extend(...)` to build a more specific setup from a shared one, merging schemas and sources.
 
 ## Runtime validation

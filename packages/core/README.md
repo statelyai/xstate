@@ -28,6 +28,8 @@ timers without replaying entry actions. See [durable execution](../../docs/durab
 
 Use `s.createInvoke({ src, input, onDone })` inline in `s.createMachine(...)` for an actor used in one state. It infers the actor's input and output and the enclosing state's narrowed context without registering that actor in `setup.actors`. See [typed inline invokes](../../docs/invoke.md#typed-inline-invokes).
 
+Pass an async function directly as `src`, with `schemas.input`, `schemas.output`, and `schemas.error` on the same invoke. Output also infers from the async return when its schema is omitted. Existing logic values use their own schemas.
+
 The helper requires input for actors whose input excludes `undefined`, and checks child IDs and source compatibility against `schemas.children` declared in the setup or machine.
 
 For flat finite state machines, `xstate/fsm` provides a tiny pure transition

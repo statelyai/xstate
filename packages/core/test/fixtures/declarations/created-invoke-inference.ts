@@ -28,6 +28,278 @@ function concrete<T>(_: Concrete<T>) {}
 function isAny<T>(_: IsAny<T>) {}
 function isUnknown<T>(_: IsUnknown<T>) {}
 
+export function checkAsyncShorthand() {
+  const s = setup({
+    schemas: { context: types<{ id: number | undefined; name: string }>() },
+    states: {
+      loading: {
+        schemas: {
+          context: types<{ id: number }>(),
+          input: types<{ label: string }>()
+        }
+      },
+      ready: {}
+    }
+  });
+  s.createMachine({
+    context: { id: 1, name: '' },
+    initial: { target: 'loading', input: { label: 'David' } },
+    states: {
+      loading: {
+        invoke: s.createInvoke({
+          schemas: {
+            input: types<{ id: number; label: string }>(),
+            output: types<{ name: string }>(),
+            error: types<{ code: number }>()
+          },
+          input: ({ context, input }) => {
+            concrete<typeof context.id>(true);
+            concrete<typeof input.label>(true);
+            // @ts-expect-error enclosing context remains narrowed and numeric
+            const _bad: string = context.id;
+            return { id: context.id, label: input.label };
+          },
+          src: async ({ input, signal, self }) => {
+            concrete<typeof input>(true);
+            concrete<typeof input.id>(true);
+            concrete<typeof signal>(true);
+            concrete<typeof self>(true);
+            // @ts-expect-error actor input is numeric
+            const _bad: string = input.id;
+            return { name: input.label };
+          },
+          onDone: ({ context, event, output }) => {
+            concrete<typeof context.id>(true);
+            concrete<typeof event.output>(true);
+            concrete<typeof output>(true);
+            // @ts-expect-error declared output is a user object
+            const _bad: number = event.output;
+            return { target: 'ready', context: { name: event.output.name } };
+          },
+          onError: ({ event }) => {
+            concrete<typeof event.error.code>(true);
+            // @ts-expect-error declared errors remain numeric
+            const _bad: string = event.error.code;
+            return {};
+          },
+          onSnapshot: ({ event }) => {
+            concrete<typeof event.snapshot>(true);
+            concrete<typeof event.snapshot.input>(true);
+            return {};
+          }
+        })
+      },
+      ready: {}
+    }
+  });
+  const inferred = s.createInvoke({
+    schemas: { input: types<{ id: number }>() },
+    input: { id: 1 },
+    src: async ({ input }) => ({ id: input.id, name: 'David' }),
+    onDone: ({ event }) => {
+      concrete<typeof event.output>(true);
+      concrete<typeof event.output.id>(true);
+      // @ts-expect-error return-inferred output has a concrete shape
+      void event.output.missing;
+      return {};
+    }
+  });
+  concrete<OutputFrom<typeof inferred.src>>(true);
+  s.createInvoke({
+    schemas: { input: types<{ id: number }>() },
+    input: { id: 1 },
+    src: async ({ input }, enq) => {
+      concrete<typeof input.id>(true);
+      concrete<typeof enq>(true);
+      return { name: String(input.id) };
+    },
+    onDone: {
+      target: 'ready',
+      context: ({ event, output }) => {
+        concrete<typeof event.output.name>(true);
+        concrete<typeof output.name>(true);
+        // @ts-expect-error inferred output stays string in object-form mappers
+        const _bad: number = event.output.name;
+        return { name: output.name };
+      }
+    },
+    onSnapshot: ({ event }) => {
+      if (event.snapshot.status === 'done') {
+        concrete<typeof event.snapshot.output.name>(true);
+        // @ts-expect-error snapshot output stays string
+        const _bad: number = event.snapshot.output.name;
+      }
+    }
+  });
+  s.createInvoke({
+    schemas: { output: types<{ name: string; nickname?: string }>() },
+    src: async () => ({ name: 'David' }),
+    onDone: ({ event }) => {
+      const _optional: string | undefined = event.output.nickname;
+      // @ts-expect-error output uses declared schema, not the narrower return
+      const _bad: string = event.output.nickname;
+    }
+  });
+  const requiredSchema = { input: types<{ id: number }>() };
+  const requiredSource = async ({ input }: { input: { id: number } }) =>
+    input.id;
+  const wrongStaticInput = {
+    schemas: requiredSchema,
+    input: { id: 'bad' },
+    src: requiredSource
+  };
+  // @ts-expect-error static input must match its schema
+  s.createInvoke(wrongStaticInput);
+  const wrongMappedInput = {
+    schemas: requiredSchema,
+    input: () => ({ id: 'bad' }),
+    src: requiredSource
+  };
+  // @ts-expect-error mapped input must match its schema
+  s.createInvoke(wrongMappedInput);
+  const undefinedInput = {
+    schemas: requiredSchema,
+    input: undefined,
+    src: requiredSource
+  };
+  // @ts-expect-error undefined cannot satisfy required actor input
+  s.createInvoke(undefinedInput);
+  s.createInvoke({
+    schemas: { input: types<{ id: number } | undefined>() },
+    src: async ({ input }) => input?.id
+  });
+  // @ts-expect-error source logic keeps its own schemas
+  s.createInvoke({
+    src: createAsyncLogic({ run: async () => 1 }),
+    schemas: { output: types<number>() }
+  });
+
+  s.createInvoke({
+    src: async () => 42,
+    onDone: ({ event }) => {
+      concrete<typeof event.output>(true);
+      // @ts-expect-error return-inferred output is numeric
+      const _bad: string = event.output;
+      return {};
+    }
+  });
+  // @ts-expect-error async sources must return a promise-like result
+  s.createInvoke({ src: () => 42 });
+  const missingInput = { schemas: requiredSchema, src: requiredSource };
+  // @ts-expect-error input schema requires input
+  s.createInvoke(missingInput);
+  // @ts-expect-error output schema checks the async return value
+  s.createInvoke({
+    schemas: { output: types<{ name: string }>() },
+    src: async () => ({ name: 42 })
+  });
+}
+
+export function checkAsyncContracts() {
+  const child = createAsyncLogic({
+    schemas: {
+      input: types<{ id: number }>(),
+      output: types<number>(),
+      error: types<{ code: number }>()
+    },
+    run: async ({ input }) => input.id
+  });
+  const s = setup({
+    schemas: {
+      context: types<{ id: number }>(),
+      children: { job: types<ActorRefFromLogic<typeof child>>() }
+    },
+    states: {
+      loading: {},
+      ready: { schemas: { input: types<{ label: string }>() } }
+    }
+  });
+  s.createMachine({
+    context: { id: 1 },
+    initial: 'loading',
+    states: {
+      loading: {
+        invoke: s.createInvoke({
+          id: 'job',
+          schemas: {
+            input: types<{ id: number }>(),
+            output: types<number>(),
+            error: types<{ code: number }>()
+          },
+          input: ({ context }) => ({ id: context.id }),
+          src: async ({ input }) => input.id,
+          onDone: ({ event }) => ({
+            target: 'ready',
+            input: { label: String(event.output) }
+          })
+        })
+      },
+      ready: {}
+    }
+  });
+  // @ts-expect-error declared child id must match
+  s.createInvoke({
+    id: 'other',
+    schemas: { output: types<number>() },
+    src: async () => 1
+  });
+  // @ts-expect-error async source must match declared child ref/output
+  s.createInvoke({
+    id: 'job',
+    schemas: { output: types<string>() },
+    src: async () => 'bad'
+  });
+  const plain = setup({
+    schemas: { context: types<{ id: number }>() },
+    states: {
+      loading: {},
+      ready: { schemas: { input: types<{ label: string }>() } }
+    }
+  });
+  const unknownTarget = plain.createInvoke({
+    src: async () => 1,
+    onDone: () => ({ target: 'missing' })
+  });
+  const unknownTargetMachine = {
+    context: { id: 1 },
+    initial: { target: 'ready', input: { label: 'ok' } },
+    invoke: unknownTarget,
+    states: { ready: {} }
+  } as const;
+  // @ts-expect-error enclosing machine rejects unknown callback targets
+  plain.createMachine(unknownTargetMachine);
+  plain.createMachine({
+    context: { id: 1 },
+    initial: 'loading',
+    states: {
+      loading: {
+        // @ts-expect-error inline callback target input must match its schema
+        invoke: plain.createInvoke({
+          src: async () => 1,
+          onDone: () => ({ target: 'ready', input: { label: 1 } })
+        })
+      },
+      ready: {}
+    }
+  });
+  // @ts-expect-error callback context patches stay numeric
+  plain.createInvoke({
+    src: async () => 1,
+    onDone: () => ({ context: { id: 'bad' } })
+  });
+  plain.createInvoke({
+    src: async ({ signal }) => {
+      concrete<typeof signal>(true);
+      return { value: 1 };
+    },
+    onDone: ({ output }) => {
+      concrete<typeof output.value>(true);
+      // @ts-expect-error async args do not widen inferred output
+      const _bad: string = output.value;
+    }
+  });
+}
+
 export function checkRequiredInputAndMachineChildren() {
   const job = createAsyncLogic({
     schemas: { input: types<{ id: number }>() },

@@ -84,3 +84,47 @@ export const inlineMachineWithChildren = childSetup.createMachine({
     onDone: ({ event }) => ({ context: { result: event.output } })
   })
 });
+
+export const asyncInvoke = s.createInvoke({
+  schemas: {
+    input: types<{ userId: string }>(),
+    output: types<{ name: string; nickname?: string }>(),
+    error: types<{ code: number }>()
+  },
+  input: { userId: '123' },
+  src: async ({ input }) => ({ name: input.userId }),
+  onDone: ({ event }) => ({
+    context: { name: event.output.nickname ?? event.output.name }
+  }),
+  onError: ({ event }) => ({ context: { name: String(event.error.code) } })
+});
+
+export const inferredAsyncInvoke = mapperSetup.createInvoke({
+  schemas: { input: types<{ id: number }>() },
+  input: { id: 1 },
+  src: async ({ input }) => ({ name: String(input.id) }),
+  onDone: {
+    target: 'ready',
+    input: ({ event }) => ({ name: event.output.name }),
+    context: ({ output }) => ({ name: output.name })
+  }
+});
+
+export const asyncMachine = s.createMachine({
+  context: { userId: '123', name: '' },
+  initial: 'loading',
+  states: {
+    loading: {
+      invoke: s.createInvoke({
+        schemas: { input: types<{ userId: string }>() },
+        input: ({ context }) => ({ userId: context.userId }),
+        src: async ({ input }) => ({ name: input.userId }),
+        onDone: ({ event }) => ({
+          target: 'ready',
+          context: { name: event.output.name }
+        })
+      })
+    },
+    ready: {}
+  }
+});

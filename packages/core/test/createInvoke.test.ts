@@ -19,6 +19,210 @@ const userLogic = createAsyncLogic({
 const registered = createAsyncLogic({ run: async () => 42 });
 
 describe('setup.createInvoke', () => {
+  it('runs an inline async source with schemas and narrowed state scope', async () => {
+    const s = setup({
+      schemas: { context: types<{ id: number | undefined; name: string }>() },
+      states: {
+        parent: {
+          schemas: { context: types<{ id: number }>() },
+          states: {
+            loading: { schemas: { input: types<{ label: string }>() } },
+            ready: {}
+          }
+        }
+      }
+    });
+    const source = vi.fn();
+    const machine = s.createMachine({
+      context: { id: 7, name: '' },
+      initial: 'parent',
+      states: {
+        parent: {
+          initial: { target: 'loading', input: { label: 'David' } },
+          states: {
+            loading: {
+              invoke: s.createInvoke({
+                schemas: {
+                  input: types<{ id: number; label: string }>(),
+                  output: types<{ name: string }>()
+                },
+                input: ({ context, input }) => {
+                  expectTypeOf(context.id).toEqualTypeOf<number>();
+                  expectTypeOf(input.label).toEqualTypeOf<string>();
+                  return { id: context.id, label: input.label };
+                },
+                src: async ({ input, signal }, enq) => {
+                  expectTypeOf(input.id).toEqualTypeOf<number>();
+                  expectTypeOf(signal).toEqualTypeOf<AbortSignal>();
+                  source(input);
+                  const name = await enq.step('name', () => input.label);
+                  return { name };
+                },
+                onDone: ({ context, event, output }) => {
+                  expectTypeOf(context.id).toEqualTypeOf<number>();
+                  expectTypeOf(event.output).toEqualTypeOf<{ name: string }>();
+                  expectTypeOf(output).toEqualTypeOf<{ name: string }>();
+                  return {
+                    target: 'ready',
+                    context: { name: event.output.name }
+                  };
+                }
+              })
+            },
+            ready: {}
+          }
+        }
+      }
+    });
+    initialTransition(machine);
+    expect(source).not.toHaveBeenCalled();
+    const actor = createActor(machine).start();
+    await waitFor(actor, (snapshot) => snapshot.matches({ parent: 'ready' }));
+    expect(source).toHaveBeenCalledExactlyOnceWith({ id: 7, label: 'David' });
+    expect(actor.getSnapshot().context.name).toBe('David');
+    actor.stop();
+  });
+
+  it('infers async return values independently alongside logic and named sources', async () => {
+    const s = setup({
+      schemas: {
+        context: types<{ name: string; enabled: boolean; total: number }>()
+      },
+      actors: { registered }
+    });
+    const machine = s.createMachine({
+      context: { name: '', enabled: false, total: 0 },
+      invoke: [
+        s.createInvoke({
+          schemas: { input: types<{ name: string }>() },
+          input: { name: 'David' },
+          src: async ({ input }) => ({ name: input.name }),
+          onDone: ({ event }) => {
+            expectTypeOf(event.output).toEqualTypeOf<{ name: string }>();
+            return { context: { name: event.output.name } };
+          }
+        }),
+        s.createInvoke({
+          src: async () => true,
+          onDone: ({ event }) => {
+            expectTypeOf(event.output).toEqualTypeOf<boolean>();
+            return { context: { enabled: event.output } };
+          }
+        }),
+        s.createInvoke({
+          src: createAsyncLogic({ run: async () => 1 }),
+          onDone: ({ event }) => {
+            expectTypeOf(event.output).toEqualTypeOf<1>();
+            return { context: { total: event.output } };
+          }
+        }),
+        {
+          src: 'registered',
+          onDone: ({ event }) => {
+            expectTypeOf(event.output).toEqualTypeOf<42>();
+            return { context: { total: event.output } };
+          }
+        }
+      ]
+    });
+    const actor = createActor(machine).start();
+    await waitFor(
+      actor,
+      (snapshot) =>
+        snapshot.context.name === 'David' &&
+        snapshot.context.enabled &&
+        snapshot.context.total === 42
+    );
+    actor.stop();
+  });
+
+  it('cancels inline async sources on state exit and handles invocation timeouts', async () => {
+    const s = setup({ schemas: { events: { cancel: types<{}>() } } });
+    let signal: AbortSignal | undefined;
+    const source = vi.fn((args: { signal: AbortSignal }) => {
+      signal = args.signal;
+      return new Promise<void>(() => {});
+    });
+    const machine = s.createMachine({
+      initial: 'loading',
+      states: {
+        loading: {
+          invoke: s.createInvoke({ src: source }),
+          on: { cancel: { target: 'done' } }
+        },
+        done: {}
+      }
+    });
+    initialTransition(machine);
+    expect(source).not.toHaveBeenCalled();
+    const actor = createActor(machine).start();
+    expect(source).toHaveBeenCalledTimes(1);
+    actor.send({ type: 'cancel' });
+    expect(signal?.aborted).toBe(true);
+    actor.stop();
+
+    const timeoutMachine = s.createMachine({
+      initial: 'loading',
+      states: {
+        loading: {
+          invoke: s.createInvoke({
+            src: source,
+            timeout: 1,
+            onTimeout: ({ event }) => {
+              expectTypeOf(event.type).toEqualTypeOf<'xstate.timeout.actor'>();
+              return { target: 'done' };
+            }
+          })
+        },
+        done: {}
+      }
+    });
+    const timeoutActor = createActor(timeoutMachine).start();
+    await waitFor(timeoutActor, (snapshot) => snapshot.matches('done'));
+    expect(signal?.aborted).toBe(true);
+    timeoutActor.stop();
+  });
+
+  it('preserves inline async errors and snapshot callbacks', async () => {
+    const s = setup({ schemas: { context: types<{ code: number }>() } });
+    const snapshots = vi.fn();
+    const machine = s.createMachine({
+      context: { code: 0 },
+      initial: 'loading',
+      states: {
+        loading: {
+          invoke: s.createInvoke({
+            schemas: {
+              output: types<number>(),
+              error: types<{ code: number }>()
+            },
+            src: async () => {
+              throw { code: 409 };
+            },
+            onSnapshot: ({ event }) => {
+              if (event.snapshot.status === 'error') {
+                expectTypeOf(event.snapshot.error).toEqualTypeOf<{
+                  code: number;
+                }>();
+              }
+              snapshots(event.snapshot.status);
+            },
+            onError: ({ event }) => {
+              expectTypeOf(event.error).toEqualTypeOf<{ code: number }>();
+              return { target: 'failed', context: { code: event.error.code } };
+            }
+          })
+        },
+        failed: {}
+      }
+    });
+    const actor = createActor(machine).start();
+    await waitFor(actor, (snapshot) => snapshot.matches('failed'));
+    expect(actor.getSnapshot().context.code).toBe(409);
+    expect(snapshots).toHaveBeenCalledWith('active');
+    actor.stop();
+  });
+
   it('infers nested state context, state input and actor output alongside named actors', async () => {
     const s = setup({
       schemas: {
