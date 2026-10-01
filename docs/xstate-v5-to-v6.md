@@ -592,6 +592,8 @@ const provided = machine.provide({
 
 `provide()` is typed to accept `actions`, `guards`, `actors`, and `delays`.
 
+For an actor used in one state, keep its config inline with `s.createInvoke(...)`. Pass an actor logic value as `src`, or use `src: async (...) => ...` with `schemas.input`, `schemas.output` and `schemas.error` on the invoke. Completion output infers from the async return when no output schema is supplied. Inline calls retain the enclosing state's narrowed context and input; see [typed inline invokes](invoke.md#typed-inline-invokes).
+
 ---
 
 ## 5. State input
@@ -1063,6 +1065,7 @@ These exports have been **added**:
 
 - `setup` (reshaped - see §4) and `createSystem` for typed system registries
 - Setup state contract types: `SetupStateSchema`, `SetupStateSchemas`, `SetupStateType`
+- Typed inline invoke types: `CreatedInvoke`, `CreateInvokeConfig`, `CreateAsyncInvokeConfig`
 - `createStateConfig`
 - `checkStateIn`
 - `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
