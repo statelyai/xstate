@@ -1,5 +1,13 @@
 # @xstate/effect
 
+## 0.1.0-alpha.6
+
+### Patch Changes
+
+- e6bb41e: Require stable Effect 4 (`^4.0.0`) instead of the Effect 4 release candidate.
+  
+  Update atom integration to use Effect 4’s `effect/reactivity` module.
+
 ## 0.1.0-alpha.5
 
 ### Patch Changes
