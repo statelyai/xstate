@@ -192,30 +192,101 @@ describe('clearStorage event history', () => {
     expect(createCounter(storage).getSnapshot().context).toEqual({ count: 9 });
   });
 
-  it('invalidates persistence effects computed before clearing the history', () => {
-    const storage = createStorage();
-    const store = createCounter(storage);
-    store.trigger.add({ amount: 2 });
-    const [, effects] = store.transition(store.getSnapshot(), {
-      type: 'add',
-      amount: 10
-    });
+  it.each(['snapshot', 'event'] as const)(
+    'invalidates %s persistence effects computed before clearing',
+    (strategy) => {
+      const storage = createStorage();
+      const store = createStore({
+        context: { count: 0 },
+        on: {
+          add: (context, event: { amount: number }) => ({
+            count: context.count + event.amount
+          })
+        }
+      }).with(persist({ name: 'counter', storage, strategy }));
+      store.trigger.add({ amount: 2 });
+      const [, effects] = store.transition(store.getSnapshot(), {
+        type: 'add',
+        amount: 10
+      });
 
-    clearStorage(store);
-    for (const effect of effects) {
-      if (typeof effect === 'function') {
-        effect();
+      clearStorage(store);
+      for (const effect of effects) {
+        if (typeof effect === 'function') {
+          effect();
+        }
       }
-    }
-    expect(storage.getItem('counter')).toBeNull();
+      expect(storage.getItem('counter')).toBeNull();
 
-    store.trigger.add({ amount: 3 });
-    expect(JSON.parse(storage.getItem('counter') as string)).toEqual({
-      events: [{ type: 'add', amount: 3 }],
-      checkpoint: { count: 2 },
-      version: 0
-    });
-  });
+      store.trigger.add({ amount: 3 });
+      expect(JSON.parse(storage.getItem('counter') as string)).toEqual(
+        strategy === 'event'
+          ? {
+              events: [{ type: 'add', amount: 3 }],
+              checkpoint: { count: 2 },
+              version: 0
+            }
+          : { context: { count: 5 }, version: 0 }
+      );
+    }
+  );
+
+  it.each(['snapshot', 'event'] as const)(
+    'discards a %s read that started before clearing',
+    async (strategy) => {
+      const values = new Map<string, string>();
+      let deferReads = false;
+      let finishRead!: () => void;
+      const storage: StateStorage = {
+        getItem: (name) => {
+          const value = values.get(name) ?? null;
+          if (!deferReads) return value;
+          return new Promise<string | null>((resolve) => {
+            finishRead = () => resolve(value);
+          });
+        },
+        setItem: (name, value) => {
+          values.set(name, value);
+        },
+        removeItem: (name) => {
+          values.delete(name);
+        }
+      };
+      const store = createStore({
+        context: { count: 0 },
+        on: {
+          add: (context, event: { amount: number }) => ({
+            count: context.count + event.amount
+          })
+        }
+      }).with(persist({ name: 'counter', storage, strategy }));
+      store.trigger.add({ amount: 2 });
+
+      // The read captures the pre-clear value, then resolves after clearing.
+      deferReads = true;
+      const hydrating = rehydrateStore(store);
+      clearStorage(store);
+      store.trigger.add({ amount: 5 });
+      deferReads = false;
+      finishRead();
+      await hydrating;
+
+      expect(store.getSnapshot().context).toEqual({ count: 7 });
+      store.trigger.add({ amount: 3 });
+      expect(JSON.parse(storage.getItem('counter') as string)).toEqual(
+        strategy === 'event'
+          ? {
+              events: [
+                { type: 'add', amount: 5 },
+                { type: 'add', amount: 3 }
+              ],
+              checkpoint: { count: 2 },
+              version: 0
+            }
+          : { context: { count: 10 }, version: 0 }
+      );
+    }
+  );
 
   it.each(['snapshot', 'event'] as const)(
     'does not restore a pre-clear %s from its deferred persistence effect',
