@@ -10,4 +10,4 @@
 '@xstate/codemod': patch
 ---
 
-Release candidate API freeze: XState v6 enters beta. APIs tagged `@public` are frozen for 6.x; APIs tagged `@experimental` may still change in a future release.
+XState v6 enters beta. No further breaking changes are planned for APIs tagged `@public`; any that are needed will be called out with a migration path. APIs tagged `@experimental` may still change.
