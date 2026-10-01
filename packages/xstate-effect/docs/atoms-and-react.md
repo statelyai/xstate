@@ -85,7 +85,7 @@ The `send` atom enqueues an event once the actor is ready. Sending while the run
 Install the React bindings that match your Effect version:
 
 ```bash
-npm install @effect/atom-react@rc react react-dom
+npm install @effect/atom-react react react-dom
 ```
 
 The example uses an approval workflow with a demo publishing task. `RegistryProvider` owns the atom registry, and `Suspense` handles startup:
