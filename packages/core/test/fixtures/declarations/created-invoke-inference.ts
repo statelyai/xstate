@@ -6,6 +6,8 @@ import {
   setup,
   types,
   type AnyActorLogic,
+  type ActorRefFromLogic,
+  type SnapshotFrom,
   type OutputFrom
 } from '../../../src/index.ts';
 
@@ -25,6 +27,150 @@ type Concrete<T> =
 function concrete<T>(_: Concrete<T>) {}
 function isAny<T>(_: IsAny<T>) {}
 function isUnknown<T>(_: IsUnknown<T>) {}
+
+export function checkRequiredInputAndMachineChildren() {
+  const job = createAsyncLogic({
+    schemas: { input: types<{ id: number }>() },
+    run: async ({ input }) => input.id
+  });
+  const s = setup({});
+  s.createInvoke({ src: job, input: { id: 1 } });
+  s.createInvoke({ src: job, input: () => ({ id: 1 }) });
+  // @ts-expect-error required actor input cannot be omitted
+  s.createInvoke({ src: job });
+  // @ts-expect-error required actor input cannot be undefined
+  s.createInvoke({ src: job, input: undefined });
+  // @ts-expect-error required actor input mapper cannot return undefined
+  s.createInvoke({ src: job, input: () => undefined });
+  // @ts-expect-error static input must match the actor's schema
+  s.createInvoke({ src: job, input: { id: 'wrong' } });
+  // @ts-expect-error mapped input must match the actor's schema
+  s.createInvoke({ src: job, input: () => ({ id: 'wrong' }) });
+  const optionalJob = createAsyncLogic({
+    schemas: { input: types<{ id: number } | undefined>() },
+    run: async ({ input }) => input?.id ?? 0
+  });
+  s.createInvoke({ src: optionalJob });
+  s.createInvoke({ src: optionalJob, input: undefined });
+  s.createInvoke({ src: optionalJob, input: () => undefined });
+  const machine = s.createMachine({
+    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    invoke: s.createInvoke({
+      id: 'job',
+      src: job,
+      input: { id: 1 },
+      onDone: ({ event }) => {
+        concrete<typeof event.output>(true);
+        // @ts-expect-error child output remains numeric
+        const _bad: string = event.output;
+        return {};
+      }
+    })
+  });
+  concrete<SnapshotFrom<typeof machine>['children']['job']>(true);
+  concrete<
+    NonNullable<SnapshotFrom<typeof machine>['children']['job']>['getSnapshot']
+  >(true);
+  // @ts-expect-error snapshot child keys are not widened
+  type _MissingChild = SnapshotFrom<typeof machine>['children']['missing'];
+  s.createMachine({
+    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    // @ts-expect-error machine-local children require a matching id
+    invoke: s.createInvoke({ src: job, input: { id: 1 } })
+  });
+  s.createMachine({
+    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    // @ts-expect-error machine-local children reject unknown ids
+    invoke: s.createInvoke({ id: 'missing', src: job, input: { id: 1 } })
+  });
+  s.createMachine({
+    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    // @ts-expect-error machine-local children reject incompatible sources
+    invoke: s.createInvoke({
+      id: 'job',
+      src: createAsyncLogic({ run: async () => 'wrong' })
+    })
+  });
+  s.createMachine({
+    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    initial: 'parent',
+    states: {
+      parent: {
+        initial: 'loading',
+        states: {
+          loading: {
+            invoke: [
+              s.createInvoke({
+                id: 'job',
+                src: createAsyncLogic({
+                  schemas: { input: types<{ id: number }>() },
+                  run: async ({ input }) => input.id
+                }),
+                input: { id: 1 },
+                onDone: ({ event }) => {
+                  concrete<typeof event.output>(true);
+                  // @ts-expect-error inline actor output stays numeric
+                  const _bad: string = event.output;
+                  return {};
+                }
+              })
+            ]
+          }
+        }
+      }
+    }
+  });
+  s.createMachine({
+    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    initial: 'loading',
+    states: {
+      loading: {
+        invoke: [
+          s.createInvoke({ id: 'job', src: job, input: { id: 1 } }),
+          // @ts-expect-error nested invoke arrays require declared child ids
+          s.createInvoke({ src: job, input: { id: 1 } })
+        ]
+      }
+    }
+  });
+  const other = createAsyncLogic({ run: async () => 'other' });
+  s.createMachine({
+    schemas: {
+      children: {
+        job: types<ActorRefFromLogic<typeof job>>(),
+        other: types<ActorRefFromLogic<typeof other>>()
+      }
+    },
+    // @ts-expect-error source must match its chosen id, not another declared child
+    invoke: s.createInvoke({ id: 'other', src: job, input: { id: 1 } })
+  });
+  const hoisted = s.createInvoke({ id: 'job', src: job, input: { id: 1 } });
+  s.createMachine({
+    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    invoke: hoisted
+  });
+  const missingId = s.createInvoke({ src: job, input: { id: 1 } });
+  s.createMachine({
+    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    // @ts-expect-error hoisted invokes also require a matching child id
+    invoke: missingId
+  });
+  const wrongId = s.createInvoke({ id: 'missing', src: job, input: { id: 1 } });
+  s.createMachine({
+    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    // @ts-expect-error hoisted invokes cannot use undeclared ids
+    invoke: wrongId
+  });
+  const wrongSource = s.createInvoke({
+    id: 'job',
+    src: createAsyncLogic({ run: async () => 'wrong' })
+  });
+  s.createMachine({
+    schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+    // @ts-expect-error hoisted invokes check id/source compatibility
+    invoke: wrongSource
+  });
+}
 
 // Verify that these guards actually reject every unwanted broad type.
 // oxlint-disable-next-line eslint/no-constant-condition -- Invalid type probes must remain unreachable.

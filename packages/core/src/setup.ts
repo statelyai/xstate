@@ -3575,6 +3575,10 @@ export interface CreatedInvoke<
     contextShape: TContextShape;
     states: TStateSchemas;
     input: TStateInput;
+    child: NoInfer<{
+      id: TConfig extends { id: infer TId } ? TId : undefined;
+      ref: ActorRefFromLogic<TLogic>;
+    }>;
   };
   readonly [createdInvokeConfig]: NoInfer<TConfig>;
 }
@@ -3599,12 +3603,15 @@ type CreatedInvokeTransitionData<TTransition> = TTransition extends (
 type CreatedInvokeValidationConfig<TConfig> = TConfig extends unknown
   ? {
       [K in keyof TConfig as K extends
+        | 'id'
         | 'onDone'
         | 'onError'
         | 'onSnapshot'
         | 'onTimeout'
         ? K
-        : never]: CreatedInvokeTransitionData<TConfig[K]>;
+        : never]: K extends 'id'
+        ? TConfig[K]
+        : CreatedInvokeTransitionData<TConfig[K]>;
     }
   : never;
 
@@ -3624,6 +3631,56 @@ type CreatedInvokeId<
         }[keyof TChildren & string];
       };
 
+// Check the authored id/ref as well as the contextual scope. This also checks
+// hoisted helper results, whose scope cannot inherit machine-local children.
+type CreatedInvokeChildContract<TChildren> = string extends keyof TChildren
+  ? unknown
+  : [keyof TChildren] extends [never]
+    ? unknown
+    : {
+        [K in keyof TChildren & string]: {
+          id: K;
+          ref: NonNullable<TChildren[K]>;
+        };
+      }[keyof TChildren & string];
+
+type ValidateCreatedInvokeChild<TInvoke, TChildren> = TInvoke extends {
+  readonly [createdInvoke]: unknown;
+}
+  ? {
+      readonly [createdInvoke]: {
+        child: CreatedInvokeChildContract<TChildren>;
+      };
+    }
+  : TInvoke extends readonly unknown[]
+    ? {
+        [K in keyof TInvoke]: ValidateCreatedInvokeChild<TInvoke[K], TChildren>;
+      }
+    : unknown;
+
+type ValidateCreatedInvokeChildren<TConfig, TChildren> = (TConfig extends {
+  invoke: infer TInvoke;
+}
+  ? { invoke?: ValidateCreatedInvokeChild<TInvoke, TChildren> }
+  : unknown) &
+  (TConfig extends { states: infer TStates }
+    ? {
+        states?: {
+          [K in keyof TStates]: ValidateCreatedInvokeChildren<
+            TStates[K],
+            TChildren
+          >;
+        };
+      }
+    : unknown);
+
+type CreatedInvokeInput<
+  TLogic extends AnyActorLogic,
+  TArgs,
+  TInput = InputFrom<NoInfer<TLogic>>,
+  TValue = TInput | ((args: TArgs) => TInput)
+> = undefined extends TInput ? { input?: TValue } : { input: TValue };
+
 /** @public An invoke config whose callbacks are checked against its source logic. */
 export type CreateInvokeConfig<
   TLogic extends AnyActorLogic,
@@ -3641,6 +3698,10 @@ export type CreateInvokeConfig<
   TSystemRegistry extends SystemRegistry,
   TStateInput = undefined
 > = CreatedInvokeId<NoInfer<TLogic>, TChildren> &
+  CreatedInvokeInput<
+    TLogic,
+    InvokeInputArgs<TContext, TEvent, TEmitted, TChildren, TStateInput>
+  > &
   Omit<
     Next_InvokeConfigBase<
       TContext,
@@ -3659,17 +3720,6 @@ export type CreateInvokeConfig<
     'id' | 'onDone' | 'onError' | 'onSnapshot' | 'onTimeout'
   > & {
     src: TLogic;
-    input?:
-      | InputFrom<NoInfer<TLogic>>
-      | ((
-          args: InvokeInputArgs<
-            TContext,
-            TEvent,
-            TEmitted,
-            TChildren,
-            TStateInput
-          >
-        ) => InputFrom<NoInfer<TLogic>>);
     onDone?: StateTransitionConfigOrTarget<
       TStateSchemas,
       TContext,
@@ -3762,18 +3812,16 @@ type SetupInvokeConfig<
       TSystemRegistry,
       TStateInput
     > & { readonly [createdInvoke]?: never })
-  | Omit<
-      CreatedInvoke<
-        AnyActorLogic,
-        TContext,
-        TContextShape,
-        TStateSchemas extends UncheckedSetupStateSchemas
+  | {
+      readonly [createdInvoke]: {
+        context: TContext;
+        contextShape: TContextShape;
+        states: TStateSchemas extends UncheckedSetupStateSchemas
           ? Record<string, SetupStateSchema>
-          : TStateSchemas,
-        TStateInput
-      >,
-      'src' | typeof createdInvokeConfig
-    >;
+          : TStateSchemas;
+        input: TStateInput;
+      };
+    };
 
 type InvokeErrorEvent<
   TInvoke,
@@ -4533,6 +4581,12 @@ export interface SetupReturn<
       > &
       ValidateSetupDelayReferences<TConfig, TSetupDelays> &
       ValidateSetupStateContracts<TConfig, TStates> &
+      NoInfer<
+        ValidateCreatedInvokeChildren<
+          TConfig,
+          MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>
+        >
+      > &
       ValidateEventDescriptors<
         TConfig,
         NoInfer<SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>>

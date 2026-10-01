@@ -7,7 +7,8 @@ import {
   type ActorRefFromLogic,
   type SnapshotFrom,
   setup,
-  types
+  types,
+  waitFor
 } from '../src/index.ts';
 
 const userLogic = createAsyncLogic({
@@ -117,6 +118,7 @@ describe('setup.createInvoke', () => {
       });
       s.createInvoke({
         src: userLogic,
+        input: { id: 7, label: 'David' },
         onDone: ({ event }) => {
           expectTypeOf(event.output).toEqualTypeOf<{
             id: number;
@@ -253,6 +255,7 @@ describe('setup.createInvoke', () => {
             // @ts-expect-error target input name must be a string
             invoke: s.createInvoke({
               src: userLogic,
+              input: { id: 7, label: 'David' },
               onDone: ({ event }) => ({
                 target: 'ready',
                 input: { name: event.output.id },
@@ -272,6 +275,7 @@ describe('setup.createInvoke', () => {
             // @ts-expect-error the invoke target is not declared
             invoke: s.createInvoke({
               src: userLogic,
+              input: { id: 7, label: 'David' },
               onDone: () => ({ target: 'missing' })
             })
           },
@@ -286,6 +290,7 @@ describe('setup.createInvoke', () => {
             // @ts-expect-error entering ready requires its narrowed context
             invoke: s.createInvoke({
               src: userLogic,
+              input: { id: 7, label: 'David' },
               onDone: () => ({ target: 'ready', input: { name: 'David' } })
             })
           },
@@ -444,11 +449,12 @@ describe('setup.createInvoke', () => {
     });
     if (false) {
       // @ts-expect-error declared children require an id
-      s.createInvoke({ src: userLogic });
+      s.createInvoke({ src: userLogic, input: { id: 7, label: 'David' } });
       // @ts-expect-error unknown child id
       s.createInvoke({
         id: 'missing',
-        src: userLogic
+        src: userLogic,
+        input: { id: 7, label: 'David' }
       });
       // @ts-expect-error this source does not implement the user child contract
       s.createInvoke({
@@ -456,6 +462,76 @@ describe('setup.createInvoke', () => {
         src: registered
       });
     }
+  });
+
+  it('starts machine-declared children under their ids with static and mapped input', async () => {
+    const s = setup({ schemas: { context: types<{ id: number }>() } });
+    const optionalLogic = createAsyncLogic({
+      schemas: { input: types<{ label: string } | undefined>() },
+      run: async ({ input }) => input?.label ?? 'default'
+    });
+    const machine = s.createMachine({
+      schemas: {
+        children: {
+          staticUser: types<ActorRefFromLogic<typeof userLogic>>(),
+          mappedUser: types<ActorRefFromLogic<typeof userLogic>>(),
+          optional: types<ActorRefFromLogic<typeof optionalLogic>>()
+        }
+      },
+      context: { id: 7 },
+      initial: 'parent',
+      states: {
+        parent: {
+          initial: 'loading',
+          states: {
+            loading: {
+              invoke: [
+                s.createInvoke({
+                  id: 'staticUser',
+                  src: userLogic,
+                  input: { id: 1, label: 'static' }
+                }),
+                s.createInvoke({
+                  id: 'mappedUser',
+                  src: userLogic,
+                  input: ({ context }) => {
+                    expectTypeOf(context.id).toEqualTypeOf<number>();
+                    return { id: context.id, label: 'mapped' };
+                  },
+                  onDone: ({ event }) => {
+                    expectTypeOf(event.output.name).toEqualTypeOf<string>();
+                    return {};
+                  }
+                }),
+                s.createInvoke({ id: 'optional', src: optionalLogic })
+              ]
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    const children = actor.getSnapshot().children;
+    expect(Object.keys(children).sort()).toEqual([
+      'mappedUser',
+      'optional',
+      'staticUser'
+    ]);
+    await Promise.all([
+      waitFor(children.staticUser!, (snapshot) => snapshot.status === 'done'),
+      waitFor(children.mappedUser!, (snapshot) => snapshot.status === 'done'),
+      waitFor(children.optional!, (snapshot) => snapshot.status === 'done')
+    ]);
+    expect(children.staticUser!.getSnapshot().output).toEqual({
+      id: 1,
+      name: 'static'
+    });
+    expect(children.mappedUser!.getSnapshot().output).toEqual({
+      id: 7,
+      name: 'mapped'
+    });
+    expect(children.optional!.getSnapshot().output).toBe('default');
+    actor.stop();
   });
 
   it('falls back to setup context when hoisted and preserves extended sources', () => {

@@ -92,6 +92,10 @@ const machine = s.createMachine({
 
 Keep the helper call inline: its enclosing state supplies narrowed context, ancestor context, state input and transition targets. In this example, `context.userId` is `string` and `event.output` is `{ name: string }`. Actor schemas belong on the logic itself; they do not need to be repeated on the invoke.
 
+The helper requires `input` when the source's input type excludes `undefined`. Pass a static value or a mapper returning that input type. Logic that accepts `undefined` can omit `input`.
+
+Child contracts from `schemas.children` apply whether declared in `setup(...)` or `s.createMachine(...)`: supply a declared `id` and compatible `src`. This check also applies to hoisted configs when used in the machine.
+
 The helper accepts an actor logic value as `src` and supports the usual invoke options, including invoke arrays and setups with other registered actors. It returns the config unchanged; child startup, cancellation, timeouts and persistence follow the normal invoke lifecycle.
 
 Inference follows the declared source types. A source typed as `AnyActorLogic` retains its erased types, and errors without a schema remain `unknown`.

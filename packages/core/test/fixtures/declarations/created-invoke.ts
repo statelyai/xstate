@@ -1,5 +1,10 @@
 /* oxlint-disable typescript/require-await -- Exercise inference from plain async return values. */
-import { createAsyncLogic, setup, types } from '../../../src/index.ts';
+import {
+  createAsyncLogic,
+  setup,
+  types,
+  type ActorRefFromLogic
+} from '../../../src/index.ts';
 
 const s = setup({
   schemas: {
@@ -54,4 +59,28 @@ export const mappedInvoke = mapperSetup.createInvoke({
     input: ({ event }) => ({ name: event.output.name }),
     context: ({ event }) => ({ name: event.output.name })
   }
+});
+
+const job = createAsyncLogic({
+  schemas: { input: types<{ id: number }>() },
+  run: async ({ input }) => input.id
+});
+const childSetup = setup({});
+export const hoistedChild = childSetup.createInvoke({
+  id: 'job',
+  src: job,
+  input: { id: 1 }
+});
+export const machineWithChildren = childSetup.createMachine({
+  schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+  invoke: hoistedChild
+});
+export const inlineMachineWithChildren = childSetup.createMachine({
+  schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+  invoke: childSetup.createInvoke({
+    id: 'job',
+    src: job,
+    input: { id: 1 },
+    onDone: ({ event }) => ({ context: { result: event.output } })
+  })
 });
