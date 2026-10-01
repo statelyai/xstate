@@ -1,5 +1,5 @@
 import { Cause, type Effect } from 'effect';
-import { AsyncResult, Atom } from 'effect/unstable/reactivity';
+import { AsyncResult, Atom } from 'effect/reactivity';
 import type {
   AnyActorLogic,
   ErrorFrom,
@@ -20,7 +20,7 @@ export { NotReadyError } from './errors.ts';
 
 /**
  * Atoms that expose one actor to a reactive UI through
- * `effect/unstable/reactivity`. Read them with the atom bindings for your
+ * `effect/reactivity`. Read them with the atom bindings for your
  * framework, such as `@effect/atom-react`.
  */
 export interface ActorAtoms<TLogic extends AnyActorLogic, ER = never> {

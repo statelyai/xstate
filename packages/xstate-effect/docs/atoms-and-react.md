@@ -5,7 +5,7 @@ description: Read workflow state and send events from an Effect-powered UI.
 
 Use `@xstate/effect/atom` to expose an actor through Effect's reactive atoms. The runtime owns the actor; components read its state and send events.
 
-`effect/unstable/reactivity` is an unstable Effect module. This entry point follows it and may change independently of the rest of the package.
+`effect/reactivity` is an unstable Effect module. This entry point follows it and may change independently of the rest of the package.
 
 ## Create actor atoms
 
@@ -17,7 +17,7 @@ This complete example waits for the runtime, sends an approval and reads a selec
 
 ```ts
 import { Effect, Layer } from 'effect';
-import { AsyncResult, Atom, AtomRegistry } from 'effect/unstable/reactivity';
+import { AsyncResult, Atom, AtomRegistry } from 'effect/reactivity';
 import { waitFor } from '@xstate/effect';
 import { createActorAtoms } from '@xstate/effect/atom';
 import { createMachine } from 'xstate';
@@ -95,7 +95,7 @@ The example uses an approval workflow with a demo publishing task. `RegistryProv
 ```tsx
 import { Suspense } from 'react';
 import { Effect, Layer } from 'effect';
-import { Atom } from 'effect/unstable/reactivity';
+import { Atom } from 'effect/reactivity';
 import {
   RegistryProvider,
   useAtomSet,
@@ -218,7 +218,7 @@ Pass the actor's input when creating its atoms:
 
 ```ts
 import { Effect, Layer, Schema } from 'effect';
-import { Atom, AtomRegistry } from 'effect/unstable/reactivity';
+import { Atom, AtomRegistry } from 'effect/reactivity';
 import { fromEffect, join } from '@xstate/effect';
 import { createActorAtoms } from '@xstate/effect/atom';
 
