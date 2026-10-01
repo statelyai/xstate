@@ -119,6 +119,9 @@ export type PersistOptions<
 // Internal helpers
 const PERSIST_INTERNALS: unique symbol = Symbol.for('xstate-store-persist');
 const PERSIST_REVISION: unique symbol = Symbol('xstate-store-persist-revision');
+const PERSIST_EVENT_EPOCH: unique symbol = Symbol(
+  'xstate-store-persist-event-epoch'
+);
 
 interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   options: PersistOptions<TContext, TEvent>;
@@ -129,8 +132,7 @@ interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   flushTimeoutId: ReturnType<typeof setTimeout> | null;
   pendingWrite: Promise<void> | null;
   lastScheduledRevision: number;
-  /** Set by `clearStorage`; the next event-strategy transition restarts history. */
-  historyCleared: boolean;
+  eventEpoch: number;
   flush: () => void | Promise<void>;
 }
 
@@ -306,7 +308,7 @@ function createInternals<TContext, TEvent extends EventObject>(
     flushTimeoutId: null,
     pendingWrite: null,
     lastScheduledRevision: 0,
-    historyCleared: false,
+    eventEpoch: 0,
     flush: () => {
       if (internals.flushTimeoutId !== null) {
         clearTimeout(internals.flushTimeoutId);
@@ -540,6 +542,7 @@ function persistEventFromLogic<
       if (options.skipHydration) {
         return {
           ...baseSnapshot,
+          [PERSIST_EVENT_EPOCH]: internals.eventEpoch,
           _persistEvents: [],
           _persistCheckpoint: null,
           _persist: { hydrated: false },
@@ -555,6 +558,7 @@ function persistEventFromLogic<
           void storedValue.catch((error) => options.onError?.(error));
           return {
             ...baseSnapshot,
+            [PERSIST_EVENT_EPOCH]: internals.eventEpoch,
             _persistEvents: [],
             _persistCheckpoint: null,
             _persist: { hydrated: false },
@@ -565,6 +569,7 @@ function persistEventFromLogic<
         if (storedValue === null) {
           return {
             ...baseSnapshot,
+            [PERSIST_EVENT_EPOCH]: internals.eventEpoch,
             _persistEvents: [],
             _persistCheckpoint: null,
             _persist: { hydrated: true },
@@ -581,6 +586,7 @@ function persistEventFromLogic<
 
         return {
           ...replayedSnapshot,
+          [PERSIST_EVENT_EPOCH]: internals.eventEpoch,
           _persistEvents: events,
           _persistCheckpoint: parsed.checkpoint ?? null,
           _persist: { hydrated: true },
@@ -590,6 +596,7 @@ function persistEventFromLogic<
         options.onError?.(err);
         return {
           ...baseSnapshot,
+          [PERSIST_EVENT_EPOCH]: internals.eventEpoch,
           _persistEvents: [],
           _persistCheckpoint: null,
           _persist: { hydrated: true },
@@ -599,6 +606,15 @@ function persistEventFromLogic<
     },
 
     transition: (snapshot, event) => {
+      const eventEpoch = internals.eventEpoch;
+      const historyCleared = snapshot[PERSIST_EVENT_EPOCH] !== eventEpoch;
+      const prevEvents: TEvent[] = historyCleared
+        ? []
+        : (snapshot._persistEvents ?? []);
+      const prevCheckpoint: unknown = historyCleared
+        ? snapshot.context
+        : (snapshot._persistCheckpoint ?? null);
+
       // Internal rehydrate event
       if (event.type === PERSIST_REHYDRATE_EVENT_TYPE) {
         const rawState = event.state as string | null | undefined;
@@ -607,8 +623,9 @@ function persistEventFromLogic<
           return [
             {
               ...snapshot,
-              _persistEvents: snapshot._persistEvents ?? [],
-              _persistCheckpoint: snapshot._persistCheckpoint ?? null,
+              [PERSIST_EVENT_EPOCH]: eventEpoch,
+              _persistEvents: prevEvents,
+              _persistCheckpoint: prevCheckpoint,
               _persist: { ...snapshot._persist, hydrated: true }
             },
             []
@@ -628,6 +645,7 @@ function persistEventFromLogic<
             {
               ...replayedSnapshot,
               [PERSIST_REVISION]: snapshot[PERSIST_REVISION],
+              [PERSIST_EVENT_EPOCH]: eventEpoch,
               _persistEvents: events,
               _persistCheckpoint: parsed.checkpoint ?? null,
               _persist: { ...snapshot._persist, hydrated: true },
@@ -640,8 +658,9 @@ function persistEventFromLogic<
           return [
             {
               ...snapshot,
-              _persistEvents: snapshot._persistEvents ?? [],
-              _persistCheckpoint: snapshot._persistCheckpoint ?? null,
+              [PERSIST_EVENT_EPOCH]: eventEpoch,
+              _persistEvents: prevEvents,
+              _persistCheckpoint: prevCheckpoint,
               _persist: { ...snapshot._persist, hydrated: true }
             },
             []
@@ -651,14 +670,6 @@ function persistEventFromLogic<
 
       // Delegate to wrapped logic
       const [nextSnapshot, effects] = logic.transition(snapshot, event);
-      let prevEvents: TEvent[] = snapshot._persistEvents ?? [];
-      let prevCheckpoint: unknown = snapshot._persistCheckpoint ?? null;
-      if (internals.historyCleared) {
-        // Storage was cleared: restart history from the live context.
-        internals.historyCleared = false;
-        prevEvents = [];
-        prevCheckpoint = snapshot.context;
-      }
 
       const revision = (snapshot[PERSIST_REVISION] ?? 0) + 1;
 
@@ -666,6 +677,7 @@ function persistEventFromLogic<
       const snapshotWithMeta = {
         ...nextSnapshot,
         [PERSIST_REVISION]: revision,
+        [PERSIST_EVENT_EPOCH]: eventEpoch,
         _persistEvents: prevEvents,
         _persistCheckpoint: prevCheckpoint,
         _persist: snapshot._persist ?? { hydrated: false },
@@ -700,7 +712,12 @@ function persistEventFromLogic<
       };
 
       const persistEffect = () => {
-        if (revision <= internals.lastScheduledRevision) return;
+        if (
+          eventEpoch !== internals.eventEpoch ||
+          revision <= internals.lastScheduledRevision
+        ) {
+          return;
+        }
         internals.lastScheduledRevision = revision;
         if (throttleMs > 0) {
           internals.pendingEvents = nextEvents;
@@ -879,7 +896,8 @@ export function createJSONStorage(
 
 /**
  * Removes persisted data from storage for a store that uses the `persist`
- * extension.
+ * extension without changing its current context. With event persistence,
+ * subsequent events start a new log with the current context as a checkpoint.
  *
  * @example
  *
@@ -892,7 +910,8 @@ export function createJSONStorage(
 export function clearStorage(store: {
   getSnapshot: () => any;
 }): void | Promise<void> {
-  const internals = store.getSnapshot()?.[PERSIST_INTERNALS] as
+  const snapshot = store.getSnapshot();
+  const internals = snapshot?.[PERSIST_INTERNALS] as
     | PersistInternals<any>
     | undefined;
   if (!internals) {
@@ -905,7 +924,14 @@ export function clearStorage(store: {
   internals.pendingContext = null;
   internals.pendingEvents = null;
   internals.pendingCheckpoint = null;
-  internals.historyCleared = isEventStrategy(internals.options);
+  internals.lastScheduledRevision = Math.max(
+    internals.lastScheduledRevision,
+    snapshot[PERSIST_REVISION] ?? 0
+  );
+  if (isEventStrategy(internals.options)) {
+    // Reset on the next transition, keeping existing snapshots immutable.
+    internals.eventEpoch++;
+  }
   return enqueueWrite(internals, () =>
     internals.storage.removeItem(internals.options.name)
   );
