@@ -105,6 +105,13 @@ export interface DurableExecutionAdapter<
    */
   now?(): number;
   /**
+   * Accepts a timer synchronously, or fulfills its promise when registration
+   * accepts the timer and its delay begins. For a new timer, that acceptance
+   * time is read through now() and persisted. Retried/restored timers retain
+   * their original deadline; hosts must honor it during registration.
+   */
+  scheduleTimer?: ActorSystemRuntime['scheduleTimer'];
+  /**
    * Enqueues an event addressed to this execution's root while the durable
    * loop is parked in `waitForEvent()`. Use this when the host only owns the
    * root mailbox; implementing `sendEvent` instead takes ownership of delivery
@@ -483,7 +490,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
         ) =>
           dispatch(() => {
             // Runtime operations can queue behind asynchronous child startup.
-            // Calculate the remaining time only when the adapter accepts it.
+            // Calculate the remaining time when dispatching to the adapter.
             if (operation === 'scheduleTimer' && timerDeadline) {
               args[2] = Math.min(
                 timerDeadline.delay,
@@ -497,21 +504,19 @@ export function createDurable<TLogic extends AnyActorLogic>(
               ] as LogicalTimer | undefined;
               if (timer) {
                 const previousStart = getTimerStart(timer);
-                const acceptedAt = now();
-                const startedAt = previousStart ?? acceptedAt;
                 if (previousStart !== undefined && !timerDeadline) {
                   args[2] = Math.min(
                     timer.delay,
-                    Math.max(0, previousStart + timer.delay - acceptedAt)
+                    Math.max(0, previousStart + timer.delay - now())
                   );
                 }
                 const result = impl(...args);
                 if (result) {
                   return Promise.resolve(result).then(() => {
-                    recordTimerStart(timer, startedAt);
+                    recordTimerStart(timer, previousStart ?? now());
                   });
                 }
-                recordTimerStart(timer, startedAt);
+                recordTimerStart(timer, previousStart ?? now());
                 return;
               }
             }

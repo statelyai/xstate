@@ -237,6 +237,13 @@ checkpoints carry `startedAt`; `restore()` schedules the remaining time toward
 that deadline. Await effect execution before saving a checkpoint. Timer starts
 are runtime metadata, so the pure snapshot itself remains unchanged.
 
+A synchronous `scheduleTimer` return marks acceptance. An asynchronous adapter
+must fulfill its promise when registration accepts the timer and its delay
+begins, without waiting for the timer to fire. New timer starts are sampled
+through `now()` at that boundary, after successful registration. Retrying or
+restoring keeps the original start; hosts must preserve that deadline even if
+registration itself takes time.
+
 The adapter can supply `now(): number`, an absolute clock in milliseconds;
 the default is `Date.now()`. Checkpoints and resumed executions must share a
 time origin. To restore the checkpoint through ordinary `createActor`, use Unix

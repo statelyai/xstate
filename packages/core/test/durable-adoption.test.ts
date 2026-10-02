@@ -106,6 +106,54 @@ describe('durable scheduling checkpoints', () => {
     }
   );
 
+  it.each([false, true])(
+    'records asynchronous timer acceptance (per-effect runtime: %s)',
+    async (perEffect) => {
+      let time = 1000;
+      const scheduleTimer = vi.fn(async () => {
+        await Promise.resolve();
+        time += 500;
+      });
+      const execution = createDurable(
+        machine,
+        host({
+          now: () => time,
+          ...(perEffect
+            ? { runtime: () => ({ scheduleTimer }) }
+            : { scheduleTimer })
+        })
+      );
+      const [snapshot, effects] = execution.initialTransition();
+      await execution.executeEffects(effects);
+      const saved = persisted(machine, snapshot);
+      expect(Object.values(saved.timers)[0]).toHaveProperty('startedAt', 1500);
+
+      time = 1600;
+      const resumedHost = host({ now: () => time });
+      const resumed = createDurable(machine, resumedHost);
+      const [restored, restoration] = resumed.restore(saved);
+      await resumed.executeEffects(restoration);
+      expect(resumedHost.scheduleTimer).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(String),
+        900
+      );
+      expect(
+        Object.values(persisted(machine, restored).timers)[0]
+      ).toHaveProperty('startedAt', 1500);
+
+      await execution.executeEffects(effects);
+      expect(scheduleTimer).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.any(String),
+        900
+      );
+      expect(
+        Object.values(persisted(machine, snapshot).timers)[0]
+      ).toHaveProperty('startedAt', 1500);
+    }
+  );
+
   it('preserves elapsed wall-clock time without an adapter clock', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1000);
