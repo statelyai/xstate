@@ -17,6 +17,34 @@ Actor logic defines how an actor processes events and produces snapshots.
 | `createSubscriptionLogic(...)` | Snapshots and outcomes of another actor. |
 | `createEmptyActor(...)` | A placeholder actor. |
 
+## Completion capability
+
+<!-- completion metadata from ActorLogic in packages/core/src/types.ts, StateMachine, FSM, and the actor logic creators -->
+
+`logic.completion` describes whether logic can produce a `done` snapshot:
+
+| Value | Meaning |
+| --- | --- |
+| `'never'` | Logic does not complete successfully. It can still stop or error. |
+| `'possible'` | Logic supports completion; a particular run may remain active forever. |
+| `undefined` | Custom logic has not declared a capability. |
+
+Callback, listener, subscription, empty actor and FSM logic report `'never'`. Async and
+observable logic report `'possible'`. Machines report `'possible'` when their
+structure permits root completion: a compound root has a direct final child,
+or every region of a parallel root supports completion. This does not prove a
+final state reachable. A nested final state alone does not complete a compound
+root.
+
+`createLogic({ context, run, completion: 'never' })` lets custom transition logic
+declare that it is a persistent listener. It defaults to `'possible'`; the
+metadata does not change transitions or enforce termination.
+
+Hosts can exclude logic marked `'never'` from pending-work checks. Keep an
+explicit host policy for unknown logic and listeners that *can* complete; an
+observable may be long-lived even though it supports completion. Check descendants
+as well: a machine that never completes can still own unfinished async children.
+
 ```ts
 import { createAsyncLogic } from 'xstate';
 

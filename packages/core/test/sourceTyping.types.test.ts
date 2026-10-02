@@ -9,6 +9,43 @@ import {
 function expectType<T>(_v: T) {}
 
 describe('setup() source typing', () => {
+  it('rejects unknown action and guard names in transition functions', () => {
+    setup({
+      actions: { record: (_id: string) => {} },
+      guards: { enabled: () => true }
+    }).createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            GO: ({ actions, guards }) => {
+              actions.record('id');
+              guards.enabled();
+              // @ts-expect-error unknown action
+              actions.reccord('id');
+              // @ts-expect-error unknown guard
+              guards.enabld();
+            }
+          }
+        }
+      }
+    });
+    createMachine({
+      actions: { record: (_id: string) => {} },
+      guards: { enabled: () => true },
+      on: {
+        GO: ({ actions, guards }) => {
+          actions.record('id');
+          guards.enabled();
+          // @ts-expect-error unknown action
+          actions.reccord('id');
+          // @ts-expect-error unknown guard
+          guards.enabld();
+        }
+      }
+    });
+  });
+
   it('preserves provided action result types and checks their arguments and names', () => {
     const machine = setup({
       actions: { record: (_id: string) => {} }

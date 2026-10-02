@@ -134,7 +134,7 @@
           ]
         },
         "startedAt": {
-          "description": "Wall-clock start (ms). Written only under the wall clock.",
+          "description": "Absolute start (ms), recorded by a wall-clock actor or a successfully scheduled durable timer. Durable adapter clocks must share a time origin across restores.",
           "type": "number"
         }
       },

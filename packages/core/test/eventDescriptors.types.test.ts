@@ -105,6 +105,10 @@ describe('event descriptor keys in `on`', () => {
         '*': {},
         'xstate.done.actor': {},
         'xstate.error.actor': {},
+        'xstate.error.actor.*': ({ event }) => {
+          expectType<`xstate.${string}`>(event.type);
+        },
+        'xstate.custom.*': {},
         'xstate.done.state': {},
         'xstate.after': {}
       }
@@ -118,9 +122,37 @@ describe('event descriptor keys in `on`', () => {
     expect(true).toBe(true);
   });
 
+  it('checks state configs without rejecting reserved descriptors', () => {
+    s.createStateConfig({
+      on: {
+        'xstate.error.actor.*': ({ event }) => {
+          expectType<string>(event.type);
+        }
+      }
+    });
+    if (false) {
+      s.createStateConfig({
+        on: {
+          go: {},
+          // @ts-expect-error undeclared event beside a declared event
+          TYPO: {}
+        }
+      });
+    }
+  });
+
   it('stays permissive without schemas.events', () => {
     setup({}).createMachine({ on: { anything: () => {} } });
-    createMachine({ on: { anything: () => {} } });
+    createMachine({
+      on: {
+        anything: () => {},
+        'xstate.done.actor.child': ({ children, event }, enq) => {
+          expectType<string>(event.type);
+          expectType<unknown>(children);
+          expectType<Function>(enq);
+        }
+      }
+    });
     setup({
       schemas: { internalEvents: { tick: z.object({}) } }
     }).createMachine({ on: { anything: {} } });

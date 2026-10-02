@@ -16,6 +16,7 @@ import {
 } from './createActor.ts';
 import {
   AnyActorRef,
+  AnyStateMachine,
   AnyActorLogic,
   ActorRefFromLogic,
   AnyStateNode,
@@ -3415,7 +3416,28 @@ type StateTransitions<
     TTarget,
     TKnownTarget
   >;
-};
+} & (string extends TEvent['type']
+  ? unknown
+  : {
+      [K in `xstate.${string}`]?: StateTransitionConfigOrTarget<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        { type: K },
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TInput,
+        TTarget,
+        TKnownTarget
+      >;
+    });
 
 type InvokeDoneEvent<TInvoke> = TInvoke extends {
   onDone?: Next_TransitionConfigOrTarget<
@@ -4934,45 +4956,47 @@ export interface SetupReturn<
         TSystemRegistry,
         MergeSourceMaps<TSetupActorMap, TActorMap>
       >
-  ): StateMachine<
-    SetupContext<TSchemas, TContextSchema>,
-    | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
-    | ([RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>] extends [
-        never
-      ]
-        ? never
-        : {
-            type: 'xstate.route';
-            to: RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>;
-          }),
-    Cast<
-      MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
-      Record<string, AnyActorRef | undefined>
-    >,
-    StateValueFromStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
-    TTag & string,
-    SetupInput<TSchemas, TInputSchema>,
-    SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig, TStates>,
-    SetupEmitted<TSchemas, TEmittedSchemaMap>,
-    SetupMeta<TSchemas, TMetaSchema>,
-    PublicStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
-    MergeSourceMaps<
-      SetupActions<TSchemas, TSetupActionMap>,
-      MergeSourceMaps<InferActions<TActionSchemaMap>, TActionMap>
-    >,
-    MergeSourceMaps<TSetupActorMap, TActorMap>,
-    MergeSourceMaps<
-      SetupGuards<TSchemas, TSetupGuardMap>,
-      MergeSourceMaps<InferGuards<TGuardSchemaMap>, TGuardMap>
-    >,
-    DelayMapFromNames<
-      TSetupDelays | TDelays,
-      MergeSourceMaps<TSetupDelayMap, TDelayMap>
-    >,
-    SetupInternalEvents<TSchemas, TInternalEventSchemaMap>,
-    SetupTransitionMeta<TSchemas, TMetaSchema, TTransitionMetaSchema>
-  > &
-    MachineIdentity<TConfig>;
+  ): [TConfig] extends [never]
+    ? AnyStateMachine
+    : StateMachine<
+        SetupContext<TSchemas, TContextSchema>,
+        | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
+        | ([
+            RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>
+          ] extends [never]
+            ? never
+            : {
+                type: 'xstate.route';
+                to: RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>;
+              }),
+        Cast<
+          MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
+          Record<string, AnyActorRef | undefined>
+        >,
+        StateValueFromStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
+        TTag & string,
+        SetupInput<TSchemas, TInputSchema>,
+        SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig, TStates>,
+        SetupEmitted<TSchemas, TEmittedSchemaMap>,
+        SetupMeta<TSchemas, TMetaSchema>,
+        PublicStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
+        MergeSourceMaps<
+          SetupActions<TSchemas, TSetupActionMap>,
+          MergeSourceMaps<InferActions<TActionSchemaMap>, TActionMap>
+        >,
+        MergeSourceMaps<TSetupActorMap, TActorMap>,
+        MergeSourceMaps<
+          SetupGuards<TSchemas, TSetupGuardMap>,
+          MergeSourceMaps<InferGuards<TGuardSchemaMap>, TGuardMap>
+        >,
+        DelayMapFromNames<
+          TSetupDelays | TDelays,
+          MergeSourceMaps<TSetupDelayMap, TDelayMap>
+        >,
+        SetupInternalEvents<TSchemas, TInternalEventSchemaMap>,
+        SetupTransitionMeta<TSchemas, TMetaSchema, TTransitionMetaSchema>
+      > &
+        MachineIdentity<TConfig>;
 
   /**
    * Creates a state node config bound to a specific setup-declared state,
@@ -4999,6 +5023,10 @@ export interface SetupReturn<
   >(
     path: TPath,
     config: TConfig &
+      ValidateEventDescriptors<
+        TConfig,
+        NoInfer<SetupEvents<TSchemas, Record<string, StandardSchemaV1>>>
+      > &
       NoInfer<
         SetupStateNodeTargetArrayInputConstraint<
           TConfig,
@@ -5036,7 +5064,11 @@ export interface SetupReturn<
       TSystemRegistry
     >
   >(
-    config: TConfig
+    config: TConfig &
+      ValidateEventDescriptors<
+        TConfig,
+        NoInfer<SetupEvents<TSchemas, Record<string, StandardSchemaV1>>>
+      >
   ): TConfig;
 
   /** State input schemas from setup config */

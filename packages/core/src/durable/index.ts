@@ -1,3 +1,4 @@
+import { getTimerStart, recordTimerStart } from '../timerClock.ts';
 import {
   getEffectDescriptor,
   type EffectDescriptor
@@ -97,6 +98,12 @@ export interface DurableEffect<TEffect> extends DurableEffectMetadata {
 export interface DurableExecutionAdapter<
   TLogic extends AnyActorLogic
 > extends Partial<ActorSystemRuntime> {
+  /**
+   * Absolute clock in milliseconds, defaulting to Date.now. Checkpoints and
+   * resumed executions must use the same time origin. Replay hosts should
+   * return the recorded scheduling time rather than the replay's wall clock.
+   */
+  now?(): number;
   /**
    * Enqueues an event addressed to this execution's root while the durable
    * loop is parked in `waitForEvent()`. Use this when the host only owns the
@@ -302,6 +309,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
   let nextTransitionIndex = adapter.transitionIndex ?? 0;
   const startingTransitionIndex = nextTransitionIndex;
   let restored = false;
+  const now = () => adapter.now?.() ?? Date.now();
+  const observedRoots = new WeakSet<AnyActor>();
   let lastTransitionIndex =
     nextTransitionIndex === 0 ? undefined : nextTransitionIndex - 1;
   interface TimerDeadline {
@@ -478,8 +487,33 @@ export function createDurable<TLogic extends AnyActorLogic>(
             if (operation === 'scheduleTimer' && timerDeadline) {
               args[2] = Math.min(
                 timerDeadline.delay,
-                Math.max(0, timerDeadline.deadline - Date.now())
+                Math.max(0, timerDeadline.deadline - now())
               );
+            }
+            if (operation === 'scheduleTimer') {
+              const source = args[0] as AnyActor;
+              const timer = source.getSnapshot()?.timers?.[
+                args[1] as string
+              ] as LogicalTimer | undefined;
+              if (timer) {
+                const previousStart = getTimerStart(timer);
+                const acceptedAt = now();
+                const startedAt = previousStart ?? acceptedAt;
+                if (previousStart !== undefined && !timerDeadline) {
+                  args[2] = Math.min(
+                    timer.delay,
+                    Math.max(0, previousStart + timer.delay - acceptedAt)
+                  );
+                }
+                const result = impl(...args);
+                if (result) {
+                  return Promise.resolve(result).then(() => {
+                    recordTimerStart(timer, startedAt);
+                  });
+                }
+                recordTimerStart(timer, startedAt);
+                return;
+              }
             }
             return impl(...args);
           });
@@ -582,6 +616,16 @@ export function createDurable<TLogic extends AnyActorLogic>(
     snapshot: TSnapshot,
     recursive = false
   ): TSnapshot {
+    if ((snapshot as Snapshot<unknown>).status === 'error') {
+      const root = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
+      if (root && !observedRoots.has(root)) {
+        // The host consumes error snapshots (run() rejects with their error).
+        // Observe before termination effects execute, without materializing
+        // otherwise lazy roots during successful pure transitions.
+        root.subscribe({ error() {} });
+        observedRoots.add(root);
+      }
+    }
     if (wrappedSystemRuntime || inspect) {
       const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
       const systems = new Set<AnyActor['system']>();

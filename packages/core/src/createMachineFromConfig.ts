@@ -949,7 +949,7 @@ export function createMachineFromConfig(
 
   function iterInvokeConfigs(invokes: InvokeJSON | InvokeJSON[]): any {
     return (Array.isArray(invokes) ? invokes : [invokes]).map((inv) => ({
-      src: resolvedSources.actors[inv.src] ?? inv.src,
+      src: inv.src,
       id: inv.id,
       registryKey: inv.registryKey,
       input:

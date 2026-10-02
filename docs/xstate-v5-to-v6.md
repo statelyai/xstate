@@ -1273,8 +1273,9 @@ without rebinding stopped actors by ID.
 A timer persisted from a running actor carries its wall-clock start
 (`startedAt`), and rehydrating schedules the remaining time toward the original
 deadline. Pure-transition snapshots carry no timestamp, so rehydrating one
-restarts each timer with its declared delay; durable hosts own timer
-scheduling through the system runtime.
+restarts each timer with its declared delay. Durable executions record accepted
+timer starts when `executeEffects()` succeeds, so checkpoints persisted afterward
+preserve deadlines. Adapter clocks must use the same time origin across restores.
 
 ### Terminal actor effects
 

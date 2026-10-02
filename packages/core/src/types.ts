@@ -1812,9 +1812,9 @@ export interface LogicalTimer {
   /** `self` or the logical actor that will receive `event`. */
   target: 'self' | AnyActor;
   /**
-   * The timer's wall-clock start, stamped at persist time by a running
-   * wall-clock actor and carried through restore so re-persisting keeps the
-   * original deadline.
+   * The timer's absolute start in milliseconds, persisted from a running
+   * wall-clock actor or a successfully scheduled durable timer. Carried
+   * through restore so re-persisting keeps the original deadline.
    */
   startedAt?: number;
 }
@@ -2632,6 +2632,11 @@ export interface ActorLogic<
   TSystem extends AnyActorSystem = AnyActorSystem,
   in out TEmitted extends EventObject = EventObject // it's invariant because it's also aprt of `ActorScope["self"]["on"]`
 > {
+  /**
+   * Whether this logic can produce a done snapshot. `possible` is no guarantee
+   * of termination; omission means unknown. Errors/stops do not count as done.
+   */
+  readonly completion?: 'possible' | 'never';
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
   /** Optional runtime validator for pure calculation boundaries. */
@@ -2722,6 +2727,7 @@ export interface ActorLogic<
 
 /** @public */
 export interface AnyActorLogic {
+  readonly completion?: 'possible' | 'never';
   config?: unknown;
   validator?: import('./validation.types.ts').ActorLogicValidator | undefined;
   transition(
