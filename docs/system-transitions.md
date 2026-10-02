@@ -77,6 +77,8 @@ such as `actor.send`, `actor.start`, `actor.on` and `actor.subscribe` throw.
 For `enq.listen`/`enq.subscribeTo`, register named pure mapper functions in
 `systemLogic.mappers`; mapped communication and attachment lifetimes belong
 to the snapshot too.
+Subscription `done`/`error` mappings enter the owner's message queue before
+the native child completion/error notification, matching live actor ordering.
 
 ## Virtual time
 
@@ -162,3 +164,5 @@ For running-actor tests, `SimulatedClock.set`/`increment` likewise visit each
 deadline before reaching their destination, including new intermediate timers
 and cancellations. A flush allows 10,000 callbacks. Clock advancement inside
 a callback throws.
+Large timer batches preserve deadline and insertion order without repeatedly
+sorting the pending timers; cancelling a timer releases its callback immediately.

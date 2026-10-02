@@ -493,6 +493,100 @@ it('maps pure child snapshots and completion through owned subscription actors',
   expect(completed.actors.root.snapshot.context.output).toBe(42);
 });
 
+it.each(['done', 'error'] as const)(
+  'delivers a child %s mapper before its parent terminal notification',
+  (outcome) => {
+    const mapResult = (value: unknown) => ({ type: 'RESULT' as const, value });
+    const worker = createLogic({
+      context: {},
+      run: ({ event }) =>
+        event.type === 'FINISH'
+          ? outcome === 'done'
+            ? { status: 'done', output: 42 }
+            : { status: 'error', error: 'failure' }
+          : undefined
+    });
+    const logic = {
+      actors: { worker },
+      mappers: { mapResult },
+      root: createMachine({
+        id: 'root',
+        initial: 'active',
+        context: { result: undefined as unknown },
+        schemas: { events: { RESULT: z.object({ value: z.unknown() }) } },
+        states: {
+          active: {
+            entry: (_, enq) => {
+              const child = enq.spawn(worker, { id: 'worker' });
+              enq.subscribeTo(child, { done: mapResult, error: mapResult });
+            },
+            on: {
+              RESULT: ({ event }) => ({
+                target: 'finished',
+                context: { result: event.value }
+              })
+            }
+          },
+          finished: { type: 'final' }
+        }
+      })
+    };
+    const [snapshot] = initialSystemTransition(logic);
+    const [finished] = systemTransition(
+      logic,
+      freeze(snapshot),
+      'root/worker',
+      { type: 'FINISH' }
+    );
+    expect(finished.actors.root.snapshot).toMatchObject({
+      status: 'done',
+      value: 'finished',
+      context: { result: outcome === 'done' ? 42 : 'failure' }
+    });
+    const observer = Object.values(finished.actors).find(
+      (actor) => actor.logic === 'xstate.subscription'
+    )!;
+    expect(observer.parent?.$actor).toBe('root');
+    expect(observer.snapshot.status).toBe('stopped');
+  }
+);
+
+it.each(['done', 'error'] as const)(
+  'publishes an initially %s child exactly once',
+  (outcome) => {
+    const mapResult = (value: unknown) => ({ type: 'RESULT' as const, value });
+    const worker = createLogic({
+      context: {},
+      run: () =>
+        outcome === 'done'
+          ? { status: 'done', output: 42 }
+          : { status: 'error', error: 'failure' }
+    });
+    const logic = {
+      actors: { worker },
+      mappers: { mapResult },
+      root: createMachine({
+        id: 'root',
+        context: { results: [] as unknown[] },
+        schemas: { events: { RESULT: z.object({ value: z.unknown() }) } },
+        entry: (_, enq) => {
+          const child = enq.spawn(worker, { id: 'worker' });
+          enq.subscribeTo(child, { done: mapResult, error: mapResult });
+        },
+        on: {
+          RESULT: ({ context, event }) => ({
+            context: { results: [...context.results, event.value] }
+          })
+        }
+      })
+    };
+    const [snapshot] = initialSystemTransition(logic);
+    expect(snapshot.actors.root.snapshot.context.results).toEqual([
+      outcome === 'done' ? 42 : 'failure'
+    ]);
+  }
+);
+
 it('handles prototype-shaped root IDs and registry keys as ordinary data', () => {
   const logic = { root: createMachine({ on: { PING: {} } }) };
   const [snapshot] = initialSystemTransition(logic, {
@@ -792,7 +886,7 @@ it('models delayed sends through the source timer before child completion', () =
   expect(next.timers).toEqual({});
 });
 
-it('stops a actor subtree and resolves registry lookups from snapshot data', () => {
+it('stops an actor subtree and resolves registry lookups from snapshot data', () => {
   const child = createMachine({
     on: { PING: { context: { received: true } } },
     context: { received: false }

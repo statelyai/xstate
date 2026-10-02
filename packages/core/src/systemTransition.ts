@@ -8,6 +8,7 @@ import { systemLogicMetadata } from './systemLogicMetadata.ts';
 import { listenerLogic } from './actors/listener.ts';
 import { subscriptionLogic } from './actors/subscription.ts';
 import { matchesEventDescriptor } from './utils.ts';
+import { IndexedHeap } from './IndexedHeap.ts';
 import type {
   AnyActor,
   AnyActorLogic,
@@ -280,53 +281,6 @@ function definitions(systemLogic: SystemLogic): Map<string, AnyActorLogic> {
   return result;
 }
 
-/** Reduction-local heap. The snapshot's records remain the sole source of truth. */
-class DeadlineQueue {
-  private readonly entries: SystemTimer[] = [];
-
-  private before(a: SystemTimer, b: SystemTimer) {
-    return (
-      a.dueAt < b.dueAt || (a.dueAt === b.dueAt && a.sequence < b.sequence)
-    );
-  }
-
-  push(timer: SystemTimer) {
-    let index = this.entries.length;
-    this.entries.push(timer);
-    while (index > 0) {
-      const parent = (index - 1) >> 1;
-      if (!this.before(timer, this.entries[parent])) break;
-      this.entries[index] = this.entries[parent];
-      index = parent;
-    }
-    this.entries[index] = timer;
-  }
-
-  peek() {
-    return this.entries[0];
-  }
-
-  pop() {
-    const first = this.entries[0];
-    const last = this.entries.pop();
-    if (!this.entries.length || !last) return first;
-    let index = 0;
-    while (index * 2 + 1 < this.entries.length) {
-      let child = index * 2 + 1;
-      if (
-        child + 1 < this.entries.length &&
-        this.before(this.entries[child + 1], this.entries[child])
-      )
-        child++;
-      if (!this.before(this.entries[child], last)) break;
-      this.entries[index] = this.entries[child];
-      index = child;
-    }
-    this.entries[index] = last;
-    return first;
-  }
-}
-
 class SystemReduction {
   readonly snapshot: MutableSystemSnapshot;
   readonly effects: SystemExternalEffect[] = [];
@@ -335,7 +289,10 @@ class SystemReduction {
   private readonly snapshots = new Map<string, any>();
   private readonly initialEffects = new Map<string, ExecutableActionObject[]>();
   private readonly stopping = new Set<string>();
-  private readonly deadlines = new DeadlineQueue();
+  private readonly deadlines = new IndexedHeap<SystemTimer>(
+    (a, b) =>
+      a.dueAt < b.dueAt || (a.dueAt === b.dueAt && a.sequence < b.sequence)
+  );
   private readonly effectNames = new Map<(...args: any[]) => unknown, string>([
     [systemLogger, 'xstate.log']
   ]);
@@ -858,31 +815,24 @@ class SystemReduction {
     if (this.attachedKind(actor) === 'xstate.subscription') {
       const input = this.decode(actor.input);
       const target = this.reference(input.actor);
-      const snapshot = this.hydrate(target);
-      const mapper =
-        input.mappers[
-          snapshot.status === 'active'
-            ? 'snapshot'
-            : snapshot.status === 'done'
-              ? 'done'
-              : snapshot.status === 'error'
-                ? 'error'
-                : ''
-        ];
-      if (mapper && actor.parent)
+      const observed = this.current(target);
+      // Live subscriptions immediately report already-published errors;
+      // active/done snapshots are observed when their actor publishes them.
+      if (
+        observed?.started &&
+        observed.snapshot.status === 'error' &&
+        input.mappers.error &&
+        actor.parent
+      ) {
         this.enqueue(
           ref,
           actor.parent,
-          mapper(
-            snapshot.status === 'done'
-              ? snapshot.output
-              : snapshot.status === 'error'
-                ? snapshot.error
-                : snapshot
-          )
+          input.mappers.error(this.hydrate(target).error)
         );
+      }
     }
-    this.relayAttachments(ref);
+    if (this.current(ref)?.snapshot.status === 'active')
+      this.relayAttachments(ref);
     const metadata = (this.logic.get(actor.logic) as any)[systemLogicMetadata];
     if (
       metadata?.timeout !== undefined &&
@@ -944,6 +894,8 @@ class SystemReduction {
   private terminate(ref: SystemActorReference) {
     const actor = this.current(ref);
     if (!actor) return;
+    // Publish terminal observations before cleanup and the native parent event.
+    this.relayAttachments(ref);
     this.cancel(ref);
     this.cancelExternal(ref);
     this.stopAttachments(ref);
@@ -1006,7 +958,7 @@ class SystemReduction {
     );
     this.store(message.target, snapshot);
     this.effectsFor(message.target, effects);
-    this.relayAttachments(message.target);
+    if (snapshot.status === 'active') this.relayAttachments(message.target);
     if (actor.syncSnapshot && actor.parent && snapshot.status === 'active') {
       this.enqueue(message.target, actor.parent, {
         type: 'xstate.snapshot.actor',

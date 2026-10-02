@@ -14,3 +14,6 @@ const [laterSnapshot] = advanceSystemTime(systemLogic, nextSnapshot, { time: 400
 
 `SimulatedClock` now runs callbacks at each timer's deadline before reaching the
 requested time, including intermediate timers created during those callbacks.
+Large timer batches advance efficiently while preserving deadline and insertion
+order. Subscription completion/error mappings arrive before native child
+notifications, matching live actors.

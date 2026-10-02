@@ -1,4 +1,5 @@
 import { Clock } from './system.ts';
+import { IndexedHeap } from './IndexedHeap.ts';
 
 /** @public */
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging
@@ -9,12 +10,18 @@ export interface SimulatedClock extends Clock {
 }
 
 interface SimulatedTimeout {
+  id: number;
   start: number;
   timeout: number;
   fn: (...args: any[]) => void;
 }
 export class SimulatedClock implements SimulatedClock {
   private timeouts: Map<number, SimulatedTimeout> = new Map();
+  private readonly deadlines = new IndexedHeap<SimulatedTimeout>((a, b) => {
+    const aTime = a.start + a.timeout;
+    const bTime = b.start + b.timeout;
+    return aTime < bTime || (aTime === bTime && a.id < b.id);
+  });
   private _now: number = 0;
   private _id: number = 0;
   private _flushing = false;
@@ -29,14 +36,19 @@ export class SimulatedClock implements SimulatedClock {
     if (!Number.isFinite(timeout))
       throw new Error('Timer delay must be finite');
     const id = this.getId();
-    this.timeouts.set(id, {
+    const timer = {
+      id,
       start: this.now(),
       timeout: Math.max(0, timeout),
       fn
-    });
+    };
+    this.timeouts.set(id, timer);
+    this.deadlines.push(timer);
     return id;
   }
   public clearTimeout(id: number) {
+    const timer = this.timeouts.get(id);
+    if (timer) this.deadlines.remove(timer);
     this.timeouts.delete(id);
   }
   public set(time: number) {
@@ -55,19 +67,16 @@ export class SimulatedClock implements SimulatedClock {
     try {
       let count = 0;
       while (true) {
-        const next = [...this.timeouts].sort(
-          ([aId, a], [bId, b]) =>
-            a.start + a.timeout - (b.start + b.timeout) || aId - bId
-        )[0];
-        if (!next || next[1].start + next[1].timeout > destination) break;
+        const next = this.deadlines.peek();
+        if (!next || next.start + next.timeout > destination) break;
         if (++count > 10_000)
           throw new Error(
             'Clock exceeded 10,000 timer callbacks; check for a zero-delay loop'
           );
-        const [id, timeout] = next;
-        this._now = Math.max(this._now, timeout.start + timeout.timeout);
-        this.timeouts.delete(id);
-        timeout.fn.call(null);
+        this.deadlines.pop();
+        this._now = Math.max(this._now, next.start + next.timeout);
+        this.timeouts.delete(next.id);
+        next.fn.call(null);
       }
       this._now = destination;
     } finally {
