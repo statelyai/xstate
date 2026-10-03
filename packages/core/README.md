@@ -22,7 +22,9 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 For durable hosts, the experimental `xstate/durable` entry point provides
 `createDurable`. Resume a checkpoint with `execution.restore(persistedSnapshot)`
 and execute the returned effects to restart active embedded children and pending
-timers without replaying entry actions. See [durable execution](../../docs/durable-execution.md).
+timers without replaying entry actions. Await `executeEffects()` before persisting
+to retain accepted timer deadlines. The host handles root error snapshots;
+`run()` rejects with the root error. See [durable execution](../../docs/durable-execution.md).
 
 <!-- typed inline invocation from packages/core/src/setup.ts -->
 

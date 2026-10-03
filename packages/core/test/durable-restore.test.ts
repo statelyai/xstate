@@ -357,7 +357,7 @@ describe('durable checkpoint restoration', () => {
         effects.filter(({ effect }) => effect.type !== '@xstate.start')
       );
       expect(scheduleTimer.mock.calls.map(([, , delay]) => delay)).toEqual([
-        900, 3000, 0, 800, 3000, 0
+        900, 3000, 0, 800, 2900, 0
       ]);
       expect(effects.map(({ id }) => id)).toEqual(ids);
       expect(effects.map(({ descriptor }) => descriptor)).toEqual(descriptors);

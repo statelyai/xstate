@@ -1309,7 +1309,23 @@ export interface Next_RegularStateNodeConfig<
       TInput,
       TChildren
     >;
-  };
+  } & (string extends TEvent['type']
+    ? unknown
+    : {
+        [K in `xstate.${string}`]?: Next_TransitionConfigOrTarget<
+          TContext,
+          { type: K },
+          TEvent,
+          TEmitted,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TTransitionMeta,
+          TInput,
+          TChildren
+        >;
+      });
   /**
    * Enables routing to this state via `{ type: 'xstate.route', to: '#id' }`.
    * Requires this state node to have an explicit `id`.

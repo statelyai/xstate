@@ -1812,9 +1812,9 @@ export interface LogicalTimer {
   /** `self` or the logical actor that will receive `event`. */
   target: 'self' | AnyActor;
   /**
-   * The timer's wall-clock start, stamped at persist time by a running
-   * wall-clock actor and carried through restore so re-persisting keeps the
-   * original deadline.
+   * The timer's absolute start in milliseconds, persisted from a running
+   * wall-clock actor or a successfully scheduled durable timer. Carried
+   * through restore so re-persisting keeps the original deadline.
    */
   startedAt?: number;
 }

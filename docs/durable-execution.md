@@ -152,8 +152,8 @@ restore; `run()` starts fresh executions only.
 Timers from a pure-transition checkpoint retain their declared delay. The host
 must deduplicate scheduling by `(source.address, id)` and preserve any deadline
 it already accepted; accepting a restored timer must not extend that deadline.
-A checkpoint taken from a running wall-clock actor can carry `startedAt`, in
-which case the remaining delay is calculated when the scheduling operation
+A checkpoint persisted after durable scheduling succeeds, or taken from a
+running wall-clock actor, carries `startedAt`. In that case the remaining delay is calculated when the scheduling operation
 reaches the adapter, clamped between zero and the declared delay. Waiting to
 execute effects or starting children does not extend the deadline. The logical
 timer and effect descriptor retain the declared delay, keeping restoration
@@ -231,9 +231,25 @@ scheduleTimer: (source, id, delay) => {
 
 `snapshot.timers` is the public, per-actor set of pending logical timers. Each
 entry contains its deterministic `id`, declared `delay`, delivery type, event
-and logical target. A pure-transition checkpoint has no host deadline or
-remaining-time field: persist that bookkeeping atomically with accepting
-`scheduleTimer`.
+and logical target. Before effects execute, pure snapshots carry no scheduling
+time. After `executeEffects()` successfully schedules a timer, persisted
+checkpoints carry `startedAt`; `restore()` schedules the remaining time toward
+that deadline. Await effect execution before saving a checkpoint. Timer starts
+are runtime metadata, so the pure snapshot itself remains unchanged.
+
+A synchronous `scheduleTimer` return marks acceptance. An asynchronous adapter
+must fulfill its promise when registration accepts the timer and its delay
+begins, without waiting for the timer to fire. New timer starts are sampled
+through `now()` at that boundary, after successful registration. Retrying or
+restoring keeps the original start; hosts must preserve that deadline even if
+registration itself takes time.
+
+The adapter can supply `now(): number`, an absolute clock in milliseconds;
+the default is `Date.now()`. Checkpoints and resumed executions must share a
+time origin. To restore the checkpoint through ordinary `createActor`, use Unix
+epoch milliseconds, matching `Date.now()`. Replay hosts should return the
+original recorded scheduling time. Hosts still own atomic persistence, scheduler deduplication and delivery. An
+older checkpoint without `startedAt` restarts the declared delay.
 For a child timer, retain `source.address`; after restoring the tree,
 `durable.getActorRef(snapshot, address)` resolves the current timer source.
 
@@ -434,6 +450,12 @@ the `onRejectedEvent` hook and a development-mode warning.
 Events the machine raises to itself are not boundary events. A delayed raised
 event that fails its schema throws from `transition()` and errors the
 execution; that is a machine bug.
+
+The durable execution observes its inert root's errors internally. An explicit
+transition loop receives `status: 'error'` and the snapshot's `error`; no extra
+unhandled-error throw is scheduled. The host must handle that outcome. Live
+child errors still propagate normally, and adapter failures still reject
+`executeEffects()`.
 
 `run()` resolves with the machine output when the machine is done, throws the
 machine error when it fails, and throws `DurableExecutionCancelledError` when

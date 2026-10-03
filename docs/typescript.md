@@ -86,6 +86,13 @@ inferred types, including when registered actors are used in inline transitions
 or invokes. Declaration output retains event, state, input and child-actor
 contracts without exposing each inline callback's full contextual type.
 
+Reserved `xstate.*` event keys are accepted in `on`, including partial wildcard
+descriptors such as `xstate.error.actor.*`. Exact declared descriptors preserve
+their event payload types; undeclared reserved descriptors expose only an event
+`type`. Runtime wildcards match event-type prefixes, not `actorId`: use
+`xstate.error.actor` to handle the stable actor-error event, and inspect
+`event.actorId` when filtering by child.
+
 ## Child completion events
 
 Children declared in `schemas.children` add their `xstate.done.actor` and

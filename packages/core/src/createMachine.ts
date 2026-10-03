@@ -4,6 +4,7 @@ import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
 import {
   AnyActorRef,
+  AnyStateMachine,
   EventObject,
   AnyEventObject,
   Cast,
@@ -189,38 +190,40 @@ export function createMachine<
       | InferEvents<TEventSchemaMap>
       | InferInternalEvents<TInternalEventSchemaMap>
     >
-): StateMachine<
-  InferOutput<TContextSchema, MachineContext>,
-  | (
-      | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>
-    )
-  | ([RoutableStateId<TSS>] extends [never]
-      ? never
-      : {
-          type: 'xstate.route';
-          to: RoutableStateId<TSS>;
-        }),
-  Cast<
-    MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
-    Record<string, AnyActorRef | undefined>
-  >,
-  StateValueFromStateSchema<TSS>,
-  TTag & string,
-  InferMachineInput<TInputSchema>,
-  SchemaOrConfigOutput<TOutputSchema, TSS>,
-  WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
-  InferOutput<TMetaSchema, MetaObject>, // TMeta
-  TSS, // TStateSchema
-  TActionMap,
-  TActorMap,
-  TGuardMap,
-  DelayMapFromNames<TDelays, TDelayMap>,
-  InferInternalEvents<TInternalEventSchemaMap>,
-  TransitionMetaFromSchemas<TMetaSchema, TTransitionMetaSchema>
-> & {
-  states: TSS;
-} & MachineIdentity<TSS>;
+): [TSS] extends [never]
+  ? AnyStateMachine
+  : StateMachine<
+      InferOutput<TContextSchema, MachineContext>,
+      | (
+          | InferEvents<TEventSchemaMap>
+          | InferInternalEvents<TInternalEventSchemaMap>
+        )
+      | ([RoutableStateId<TSS>] extends [never]
+          ? never
+          : {
+              type: 'xstate.route';
+              to: RoutableStateId<TSS>;
+            }),
+      Cast<
+        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+        Record<string, AnyActorRef | undefined>
+      >,
+      StateValueFromStateSchema<TSS>,
+      TTag & string,
+      InferMachineInput<TInputSchema>,
+      SchemaOrConfigOutput<TOutputSchema, TSS>,
+      WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
+      InferOutput<TMetaSchema, MetaObject>, // TMeta
+      TSS, // TStateSchema
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      DelayMapFromNames<TDelays, TDelayMap>,
+      InferInternalEvents<TInternalEventSchemaMap>,
+      TransitionMetaFromSchemas<TMetaSchema, TTransitionMetaSchema>
+    > & {
+      states: TSS;
+    } & MachineIdentity<TSS>;
 
 // Overload 2: Without schemas.context — context type inferred from config.context
 export function createMachine<
@@ -316,38 +319,40 @@ export function createMachine<
       | InferEvents<TEventSchemaMap>
       | InferInternalEvents<TInternalEventSchemaMap>
     >
-): StateMachine<
-  WidenLiterals<TContext>,
-  | (
-      | InferEvents<TEventSchemaMap>
-      | InferInternalEvents<TInternalEventSchemaMap>
-    )
-  | ([RoutableStateId<TSS>] extends [never]
-      ? never
-      : {
-          type: 'xstate.route';
-          to: RoutableStateId<TSS>;
-        }),
-  Cast<
-    MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
-    Record<string, AnyActorRef | undefined>
-  >,
-  StateValueFromStateSchema<TSS>,
-  TTag & string,
-  InferMachineInput<TInputSchema>,
-  SchemaOrConfigOutput<TOutputSchema, TSS>,
-  WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
-  InferOutput<TMetaSchema, MetaObject>, // TMeta
-  TSS, // TStateSchema
-  TActionMap,
-  TActorMap,
-  TGuardMap,
-  DelayMapFromNames<TDelays, TDelayMap>,
-  InferInternalEvents<TInternalEventSchemaMap>,
-  TransitionMetaFromSchemas<TMetaSchema, TTransitionMetaSchema>
-> & {
-  states: TSS;
-} & MachineIdentity<TSS>;
+): [TSS] extends [never]
+  ? AnyStateMachine
+  : StateMachine<
+      WidenLiterals<TContext>,
+      | (
+          | InferEvents<TEventSchemaMap>
+          | InferInternalEvents<TInternalEventSchemaMap>
+        )
+      | ([RoutableStateId<TSS>] extends [never]
+          ? never
+          : {
+              type: 'xstate.route';
+              to: RoutableStateId<TSS>;
+            }),
+      Cast<
+        MergeChildren<InferChildren<TChildrenSchemaMap>, TActor>,
+        Record<string, AnyActorRef | undefined>
+      >,
+      StateValueFromStateSchema<TSS>,
+      TTag & string,
+      InferMachineInput<TInputSchema>,
+      SchemaOrConfigOutput<TOutputSchema, TSS>,
+      WithDefault<InferEvents<TEmittedSchemaMap>, AnyEventObject>,
+      InferOutput<TMetaSchema, MetaObject>, // TMeta
+      TSS, // TStateSchema
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      DelayMapFromNames<TDelays, TDelayMap>,
+      InferInternalEvents<TInternalEventSchemaMap>,
+      TransitionMetaFromSchemas<TMetaSchema, TTransitionMetaSchema>
+    > & {
+      states: TSS;
+    } & MachineIdentity<TSS>;
 
 // Implementation
 export function createMachine(config: any): any {

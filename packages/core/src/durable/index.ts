@@ -1,3 +1,4 @@
+import { getTimerStart, recordTimerStart } from '../timerClock.ts';
 import {
   getEffectDescriptor,
   type EffectDescriptor
@@ -97,6 +98,19 @@ export interface DurableEffect<TEffect> extends DurableEffectMetadata {
 export interface DurableExecutionAdapter<
   TLogic extends AnyActorLogic
 > extends Partial<ActorSystemRuntime> {
+  /**
+   * Absolute clock in milliseconds, defaulting to Date.now. Checkpoints and
+   * resumed executions must use the same time origin. Replay hosts should
+   * return the recorded scheduling time rather than the replay's wall clock.
+   */
+  now?(): number;
+  /**
+   * Accepts a timer synchronously, or fulfills its promise when registration
+   * accepts the timer and its delay begins. For a new timer, that acceptance
+   * time is read through now() and persisted. Retried/restored timers retain
+   * their original deadline; hosts must honor it during registration.
+   */
+  scheduleTimer?: ActorSystemRuntime['scheduleTimer'];
   /**
    * Enqueues an event addressed to this execution's root while the durable
    * loop is parked in `waitForEvent()`. Use this when the host only owns the
@@ -302,6 +316,8 @@ export function createDurable<TLogic extends AnyActorLogic>(
   let nextTransitionIndex = adapter.transitionIndex ?? 0;
   const startingTransitionIndex = nextTransitionIndex;
   let restored = false;
+  const now = () => adapter.now?.() ?? Date.now();
+  const observedRoots = new WeakSet<AnyActor>();
   let lastTransitionIndex =
     nextTransitionIndex === 0 ? undefined : nextTransitionIndex - 1;
   interface TimerDeadline {
@@ -474,12 +490,35 @@ export function createDurable<TLogic extends AnyActorLogic>(
         ) =>
           dispatch(() => {
             // Runtime operations can queue behind asynchronous child startup.
-            // Calculate the remaining time only when the adapter accepts it.
+            // Calculate the remaining time when dispatching to the adapter.
             if (operation === 'scheduleTimer' && timerDeadline) {
               args[2] = Math.min(
                 timerDeadline.delay,
-                Math.max(0, timerDeadline.deadline - Date.now())
+                Math.max(0, timerDeadline.deadline - now())
               );
+            }
+            if (operation === 'scheduleTimer') {
+              const source = args[0] as AnyActor;
+              const timer = source.getSnapshot()?.timers?.[
+                args[1] as string
+              ] as LogicalTimer | undefined;
+              if (timer) {
+                const previousStart = getTimerStart(timer);
+                if (previousStart !== undefined && !timerDeadline) {
+                  args[2] = Math.min(
+                    timer.delay,
+                    Math.max(0, previousStart + timer.delay - now())
+                  );
+                }
+                const result = impl(...args);
+                if (result) {
+                  return Promise.resolve(result).then(() => {
+                    recordTimerStart(timer, previousStart ?? now());
+                  });
+                }
+                recordTimerStart(timer, previousStart ?? now());
+                return;
+              }
             }
             return impl(...args);
           });
@@ -582,6 +621,16 @@ export function createDurable<TLogic extends AnyActorLogic>(
     snapshot: TSnapshot,
     recursive = false
   ): TSnapshot {
+    if ((snapshot as Snapshot<unknown>).status === 'error') {
+      const root = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
+      if (root && !observedRoots.has(root)) {
+        // The host consumes error snapshots (run() rejects with their error).
+        // Observe before termination effects execute, without materializing
+        // otherwise lazy roots during successful pure transitions.
+        root.subscribe({ error() {} });
+        observedRoots.add(root);
+      }
+    }
     if (wrappedSystemRuntime || inspect) {
       const ref = getSnapshotActorRef(snapshot as Snapshot<unknown>)?.actor;
       const systems = new Set<AnyActor['system']>();

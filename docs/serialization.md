@@ -79,7 +79,7 @@ const machine = createMachineFromConfig(definition, {
 });
 ```
 
-The second argument supplies the runtime sources the definition refers to: `actions`, `guards`, `actors`, `delays`, and `evaluators` for code expressions. A machine built this way can also be cloned with different sources through [`provide()`](setup-and-provide.md).
+The second argument supplies the runtime sources the definition refers to: `actions`, `guards`, `actors`, `delays`, and `evaluators` for code expressions. Invokes keep their string `src` names, so a machine built this way can be cloned with different actors through [`provide()`](setup-and-provide.md), including when restoring its children. Deserialization still requires an implementation for every referenced actor; provide the initial implementations in the second argument, then override them by name.
 
 Actions in JSON are objects. The built-in vocabulary is `{ type: '@xstate.raise', event, id?, delay? }`, `{ type: '@xstate.emit', event }`, `{ type: '@xstate.assign', context }`, `{ type: '@xstate.cancel', id }` and `{ type: '@xstate.log', args }`. Any other `{ type, params }` object is a custom action resolved against the `actions` sources. Guards are `{ type, params? }` references resolved against `guards`. Because the runtime invokes these references itself, a JSON-referenced guard receives the transition arguments object first and the declared `params` second — unlike code-authored machines, where guards are plain functions called by your own transition code.
 
