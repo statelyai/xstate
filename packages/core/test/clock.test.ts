@@ -2,6 +2,67 @@ import { vi } from 'vitest';
 import { createActor, createMachine, SimulatedClock } from '../src';
 
 describe('clock', () => {
+  it('runs callbacks at their deadlines and includes newly scheduled intermediate timers', () => {
+    const clock = new SimulatedClock();
+    const times: number[] = [];
+    clock.setTimeout(() => {
+      times.push(clock.now());
+      clock.setTimeout(() => times.push(clock.now()), 1000);
+    }, 2000);
+    clock.setTimeout(() => times.push(clock.now()), 6000);
+    clock.set(6000);
+    expect(times).toEqual([2000, 3000, 6000]);
+    expect(clock.now()).toBe(6000);
+  });
+
+  it('reconsiders cancellation and equal-deadline ordering after each callback', () => {
+    const clock = new SimulatedClock();
+    const trace: string[] = [];
+    clock.setTimeout(() => {
+      trace.push('first');
+      clock.clearTimeout(late);
+      clock.setTimeout(() => trace.push('new'), 0);
+    }, 2000);
+    clock.setTimeout(() => trace.push('second'), 2000);
+    const late = clock.setTimeout(() => trace.push('canceled'), 6000);
+    clock.increment(6000);
+    expect(trace).toEqual(['first', 'second', 'new']);
+    expect(() => clock.increment(-1)).toThrow('back in time');
+    expect(() => clock.set(NaN)).toThrow('finite');
+  });
+  it('orders large mixed batches while removing cancelled entries and inserting callback timers', () => {
+    const clock = new SimulatedClock();
+    const trace: { index: number; time: number }[] = [];
+    const ids: number[] = [];
+    const records = Array.from({ length: 1000 }, (_, index) => ({
+      index,
+      time: (index * 7919) % 200
+    }));
+    clock.setTimeout(() => {
+      clock.clearTimeout(ids[555]);
+      clock.clearTimeout(ids[556]);
+      clock.setTimeout(() => trace.push({ index: 1000, time: clock.now() }), 0);
+    }, 0);
+    for (const record of records)
+      ids.push(
+        clock.setTimeout(
+          () => trace.push({ index: record.index, time: clock.now() }),
+          record.time
+        )
+      );
+    for (let index = 0; index < ids.length; index += 7)
+      clock.clearTimeout(ids[index]);
+    clock.set(200);
+    const expected = [
+      ...records.filter(
+        ({ index }) => index % 7 !== 0 && index !== 555 && index !== 556
+      ),
+      { index: 1000, time: 0 }
+    ].sort((a, b) => a.time - b.time || a.index - b.index);
+    expect(trace).toEqual(expected);
+    expect(clock.now()).toBe(200);
+  });
+
   it('uses the injected clock time for scheduled timer metadata', () => {
     const clock = new SimulatedClock();
     clock.set(1_000);

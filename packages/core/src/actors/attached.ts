@@ -1,4 +1,5 @@
 import { XSTATE_STOP } from '../constants.ts';
+import { systemLogicMetadata } from '../systemLogicMetadata.ts';
 import type { AnyActorSystem } from '../system.ts';
 import type {
   AnyActor,
@@ -35,7 +36,7 @@ export function createAttachedLogic(
       []
     ] as const;
 
-  return {
+  const logic = {
     id,
     start: (state: any, { self, system }: any) => {
       // Don't attach if the target doesn't exist or is stopped.
@@ -95,6 +96,8 @@ export function createAttachedLogic(
     getPersistedSnapshot: (snapshot: Snapshot<unknown>) => snapshot,
     restoreSnapshot: (snapshot: Snapshot<unknown>) => snapshot
   };
+  Object.defineProperty(logic, systemLogicMetadata, { value: { kind: id } });
+  return logic;
 }
 
 /**
