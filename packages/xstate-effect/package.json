@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "effect": "4.0.0",
+    "fast-check": "4.10.2",
     "xstate": "workspace:^"
   },
   "preconstruct": {

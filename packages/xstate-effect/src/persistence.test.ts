@@ -1,12 +1,21 @@
-import { Effect, Exit, Scope, Stream } from 'effect';
+import { Clock, Duration, Effect, Exit, Layer, Scope, Stream } from 'effect';
 import { TestClock } from 'effect/testing';
-import { createMachine, setup, types, type Snapshot } from 'xstate';
+import fc from 'fast-check';
+import {
+  createMachine,
+  setup,
+  types,
+  type AnyActorLogic,
+  type Snapshot
+} from 'xstate';
+import { getShortestPaths } from 'xstate/graph';
 import {
   createEffectActor,
   fromEffect,
-  type EffectActor,
   fromEffectStream,
-  waitFor
+  join,
+  waitFor,
+  type EffectActor
 } from './index.ts';
 
 /** Persists like a host would: through JSON, into a different process. */
@@ -17,310 +26,423 @@ const roundTrip = (snapshot: Snapshot<unknown>): Snapshot<unknown> =>
  * Polls until `predicate` holds. Effects run on detached fibers, so tests wait
  * for the condition they assert on instead of for a fixed number of ticks.
  */
-const until = async (predicate: () => boolean, timeoutMs = 1000) => {
-  const deadline = Date.now() + timeoutMs;
-  while (!predicate()) {
-    if (Date.now() > deadline) {
-      throw new Error('Timed out waiting for condition');
+const until = (predicate: () => boolean, timeoutMs = 1000) =>
+  Effect.promise(async () => {
+    const deadline = Date.now() + timeoutMs;
+    while (!predicate()) {
+      if (Date.now() > deadline) {
+        throw new Error('Timed out waiting for condition');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1));
     }
-    await new Promise((resolve) => setTimeout(resolve, 1));
-  }
+  });
+
+/**
+ * A `TestClock` that reports the sleeps it is holding, so a test can advance
+ * time only once an actor's timers and tasks are actually waiting on it.
+ */
+const recordingClock = () => {
+  const state = { pending: 0, requested: [] as number[] };
+  const layer = Layer.effect(
+    Clock.Clock,
+    Effect.map(TestClock.make(), (clock) => ({
+      ...clock,
+      sleep: (duration: Duration.Duration) =>
+        Effect.suspend(() => {
+          state.pending++;
+          state.requested.push(Duration.toMillis(duration));
+          return clock.sleep(duration);
+        }).pipe(Effect.ensuring(Effect.sync(() => state.pending--)))
+    }))
+  );
+  return { state, layer };
 };
 
-/**
- * Lets an actor's loop register its timers before a test advances the
- * `TestClock` or persists the actor.
- */
-const flush = Effect.promise(
-  () => new Promise<void>((resolve) => setTimeout(resolve, 5))
+/** Counts side effects across one run, including across a restore. */
+const tally = { entries: 0, expired: 0, ready: 0, fetches: 0 };
+
+const counter = createMachine({
+  context: { count: 0 },
+  on: {
+    inc: ({ context, parent }, enq) => {
+      const count = context.count + 1;
+      const counted = { type: 'counted', count };
+      enq.sendTo(parent!, counted);
+      return { context: { count } };
+    }
+  }
+});
+
+const fetchReport = fromEffect(
+  Effect.gen(function* () {
+    tally.fetches++;
+    yield* Effect.sleep('1 second');
+    return 'report';
+  })
 );
 
-type Letter = 'X' | 'Y' | 'Z';
+type Command = 'NEXT' | 'BACK' | 'FETCH' | 'PING' | 'TICK';
 
-/**
- * Three states and three non-commuting context updates, so any lost,
- * repeated or reordered event changes the result.
- */
-const step = (target: 'a' | 'b' | 'c', update: (count: number) => number) => ({
+const record = <T extends string>(target: T) => ({
   target,
   context: ({
     context,
     event
   }: {
-    context: { count: number; trail: string };
+    context: Context;
     event: { type: string };
-  }) => ({
-    count: update(context.count),
-    trail: context.trail + event.type
-  })
+  }) => ({ ...context, trail: context.trail + event.type[0] })
 });
 
-let entries = 0;
-const counter = createMachine({
-  id: 'counter',
+type Context = {
+  trail: string;
+  sent: number;
+  counted: number;
+  syncs: number;
+  report: string;
+};
+
+/**
+ * Parallel and nested states, a delayed transition, an invoked machine child
+ * that keeps its own count, and an Effect task that needs the clock.
+ */
+const model = createMachine({
+  id: 'model',
+  actors: { counter, fetchReport },
   schemas: {
-    events: { X: types<{}>(), Y: types<{}>(), Z: types<{}>() }
+    events: {
+      NEXT: types<{}>(),
+      BACK: types<{}>(),
+      FETCH: types<{}>(),
+      PING: types<{}>(),
+      SYNC: types<{}>(),
+      counted: types<{ count: number }>()
+    }
   },
-  context: { count: 1, trail: '' },
+  context: {
+    trail: '',
+    sent: 0,
+    counted: 0,
+    syncs: 0,
+    report: ''
+  } as Context,
   entry: () => {
-    entries++;
+    tally.entries++;
   },
-  initial: 'a',
+  invoke: { src: 'counter', id: 'counter' },
+  on: {
+    PING: ({ context, children }, enq) => {
+      if (context.sent >= 2) {
+        return;
+      }
+      enq.sendTo(children.counter!, { type: 'inc' });
+      return {
+        context: {
+          ...context,
+          trail: context.trail + 'P',
+          sent: context.sent + 1
+        }
+      };
+    },
+    counted: ({ context, event }) => ({
+      context: { ...context, counted: event.count }
+    }),
+    // A mailbox barrier: once it is processed, every earlier event has been.
+    SYNC: ({ context }) => ({
+      context: { ...context, syncs: context.syncs + 1 }
+    })
+  },
+  type: 'parallel',
   states: {
-    a: {
-      on: {
-        X: step('b', (n) => n + 1),
-        Y: step('a', (n) => n * 2),
-        Z: step('c', (n) => n - 1)
+    flow: {
+      initial: 'idle',
+      states: {
+        idle: { on: { NEXT: record('working') } },
+        working: {
+          initial: 'one',
+          on: { BACK: record('idle') },
+          states: { one: { on: { NEXT: record('two') } }, two: {} }
+        }
       }
     },
-    b: {
-      on: {
-        X: step('c', (n) => n * 2),
-        Y: step('a', (n) => n + 3),
-        Z: step('b', (n) => n + 1)
+    report: {
+      initial: 'waiting',
+      states: {
+        waiting: { on: { FETCH: record('fetching') } },
+        fetching: {
+          invoke: {
+            src: 'fetchReport',
+            onDone: {
+              target: 'ready',
+              context: ({ context, event }) => ({
+                ...context,
+                report: event.output
+              })
+            }
+          }
+        },
+        ready: {
+          entry: () => {
+            tally.ready++;
+          }
+        }
       }
     },
-    c: {
-      on: {
-        X: step('a', (n) => n - 2),
-        Y: step('b', (n) => n + 1),
-        Z: step('c', (n) => n * 3)
+    timer: {
+      initial: 'armed',
+      states: {
+        armed: { after: { 2000: { target: 'expired' } } },
+        expired: {
+          entry: () => {
+            tally.expired++;
+          }
+        }
       }
     }
   }
 });
 
-/** Sends `events` and returns the snapshot after the last one is processed. */
-const drive = (actor: EffectActor<typeof counter>, events: readonly Letter[]) =>
-  Effect.gen(function* () {
-    const target = actor.getSnapshot().context.trail.length + events.length;
-    for (const type of events) {
-      actor.send({ type });
-    }
-    return yield* waitFor(
-      actor,
-      (snapshot) => snapshot.context.trail.length === target
+type ModelActor = EffectActor<typeof model>;
+type Recording = ReturnType<typeof recordingClock>['state'];
+
+/**
+ * Waits until the actor is quiet: the barrier has been processed, the child
+ * has answered every ping, and exactly the sleeps its state implies (the
+ * pending timer, the running task) are registered on the clock.
+ */
+const settle = (actor: ModelActor, clock: Recording) =>
+  until(() => {
+    const snapshot = actor.getSnapshot();
+    const sleeping =
+      Number(snapshot.matches({ timer: 'armed' })) +
+      Number(snapshot.matches({ report: 'fetching' }));
+    return (
+      snapshot.context.syncs === syncs &&
+      snapshot.context.counted === snapshot.context.sent &&
+      clock.pending === sleeping
     );
   });
+let syncs = 0;
 
-const observable = (snapshot: {
-  value: unknown;
-  context: unknown;
-  status: string;
-}) => ({
-  value: snapshot.value,
-  context: snapshot.context,
-  status: snapshot.status
-});
-
-/** Runs `events` in one actor. */
-const continuous = (events: readonly Letter[]) =>
-  Effect.scoped(
-    Effect.gen(function* () {
-      const actor = yield* createEffectActor(counter);
-      return observable(yield* drive(actor, events));
-    })
-  );
-
-/** Runs `events` with a persist and restore between index `k - 1` and `k`. */
-const interrupted = (events: readonly Letter[], k: number) =>
+const run = (actor: ModelActor, clock: Recording, command: Command) =>
   Effect.gen(function* () {
+    if (command === 'TICK') {
+      yield* TestClock.adjust('1 second');
+    } else {
+      actor.send({ type: command });
+    }
+    syncs++;
+    actor.send({ type: 'SYNC' });
+    yield* settle(actor, clock);
+  });
+
+const observe = (actor: ModelActor) => {
+  const snapshot = actor.getSnapshot();
+  return {
+    value: snapshot.value,
+    context: snapshot.context,
+    child: snapshot.children.counter?.getSnapshot().context
+  };
+};
+
+/**
+ * Runs `commands`, persisting and restoring before index `k` when `k` is
+ * given. Returns what an observer sees and what ran along the way.
+ */
+const execute = (commands: readonly Command[], k?: number) => {
+  Object.assign(tally, { entries: 0, expired: 0, ready: 0, fetches: 0 });
+  syncs = 0;
+  const clock = recordingClock();
+  let fetchingAtPersist = false;
+  return Effect.gen(function* () {
+    const first = commands.slice(0, k ?? commands.length);
     const persisted = yield* Effect.scoped(
       Effect.gen(function* () {
-        const actor = yield* createEffectActor(counter);
-        yield* drive(actor, events.slice(0, k));
-        return roundTrip(actor.getPersistedSnapshot());
+        const actor = yield* createEffectActor(model);
+        yield* settle(actor, clock.state);
+        for (const command of first) {
+          yield* run(actor, clock.state, command);
+        }
+        fetchingAtPersist = actor.getSnapshot().matches({ report: 'fetching' });
+        return k === undefined
+          ? observe(actor)
+          : roundTrip(actor.getPersistedSnapshot());
       })
     );
-    return yield* Effect.scoped(
+    if (k === undefined) {
+      return { observed: persisted, tally: { ...tally } };
+    }
+    const observed = yield* Effect.scoped(
       Effect.gen(function* () {
-        const actor = yield* createEffectActor(counter, {
-          snapshot: persisted
+        const actor = yield* createEffectActor(model, {
+          snapshot: persisted as Snapshot<unknown>
         });
-        return observable(yield* drive(actor, events.slice(k)));
+        yield* settle(actor, clock.state);
+        for (const command of commands.slice(k)) {
+          yield* run(actor, clock.state, command);
+        }
+        return observe(actor);
       })
     );
-  });
+    return { observed, tally: { ...tally }, fetchingAtPersist };
+  }).pipe(Effect.provide(clock.layer));
+};
 
-/** Every sequence over `X`, `Y` and `Z` with at most `maxLength` events. */
-const sequences = (maxLength: number): Letter[][] => {
-  const result: Letter[][] = [[]];
-  let previous: Letter[][] = [[]];
-  for (let length = 1; length <= maxLength; length++) {
-    previous = previous.flatMap((sequence) =>
-      (['X', 'Y', 'Z'] as const).map((letter) => [...sequence, letter])
-    );
-    result.push(...previous);
-  }
-  return result;
+/** Checks a restored run against the same commands run uninterrupted. */
+const expectSameAsUninterrupted = async (
+  commands: readonly Command[],
+  k: number
+) => {
+  const expected = await Effect.runPromise(execute(commands));
+  const restored = await Effect.runPromise(execute(commands, k));
+  expect(restored.observed).toEqual(expected.observed);
+  // Entry actions never re-run and timers fire once.
+  expect(restored.tally.entries).toBe(1);
+  expect(restored.tally.expired).toBe(expected.tally.expired);
+  expect(restored.tally.ready).toBe(expected.tally.ready);
+  // Only a task that was running when persisted runs again.
+  expect(restored.tally.fetches).toBe(
+    expected.tally.fetches + Number(restored.fetchingAtPersist)
+  );
 };
 
 describe('createEffectActor with a persisted snapshot', () => {
-  it('resumes where the persisted actor left off', async () => {
-    entries = 0;
-    const expected = await Effect.runPromise(continuous(['X', 'Z', 'Y']));
-    entries = 0;
-    const restored = await Effect.runPromise(interrupted(['X', 'Z', 'Y'], 2));
-
-    expect(restored).toEqual(expected);
-    expect(restored).toEqual({
-      value: 'a',
-      context: { count: 6, trail: 'XZY' },
-      status: 'active'
+  it('matches an uninterrupted run when restored at every step of every shortest path', async () => {
+    const paths = getShortestPaths(model, {
+      events: [
+        { type: 'NEXT' },
+        { type: 'BACK' },
+        { type: 'FETCH' },
+        { type: 'PING' }
+      ],
+      serializeState: (snapshot) =>
+        JSON.stringify([snapshot.value, snapshot.context.sent])
     });
-    // Restoring does not re-run entry actions.
-    expect(entries).toBe(1);
-  });
-
-  it('matches one continuous run when restored at any point of any event sequence', async () => {
-    // Exhaustive over every sequence of up to four events (121 sequences),
-    // split at every index (547 restores).
-    for (const events of sequences(4)) {
-      const expected = await Effect.runPromise(continuous(events));
-      for (let k = 0; k <= events.length; k++) {
-        const restored = await Effect.runPromise(interrupted(events, k));
-        expect({ events, k, ...restored }).toEqual({
-          events,
-          k,
-          ...expected
-        });
+    expect(paths.length).toBeGreaterThan(10);
+    for (const path of paths) {
+      // The first step of every path is the actor's own initialization.
+      const commands = path.steps
+        .slice(1)
+        .map((step) => step.event.type as Command);
+      for (let k = 0; k <= commands.length; k++) {
+        await expectSameAsUninterrupted(commands, k);
       }
     }
+  });
+
+  it('matches an uninterrupted run for generated events, clock advances and persist points', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.array(
+          fc.constantFrom<Command>('NEXT', 'BACK', 'FETCH', 'PING', 'TICK'),
+          {
+            maxLength: 8
+          }
+        ),
+        fc.nat(),
+        async (commands, point) => {
+          await expectSameAsUninterrupted(
+            commands,
+            point % (commands.length + 1)
+          );
+        }
+      ),
+      { seed: 5773, numRuns: 40 }
+    );
   });
 
   it('resumes a pending delayed transition with its remaining delay', async () => {
     const machine = createMachine({
       initial: 'green',
-      states: {
-        green: { after: { 1000: { target: 'yellow' } } },
-        yellow: {}
-      }
+      states: { green: { after: { 1000: { target: 'yellow' } } }, yellow: {} }
     });
+    const clock = recordingClock();
 
     await Effect.runPromise(
       Effect.gen(function* () {
         const persisted = yield* Effect.scoped(
           Effect.gen(function* () {
             const actor = yield* createEffectActor(machine);
+            yield* until(() => clock.state.pending === 1);
             yield* TestClock.adjust('600 millis');
             return roundTrip(actor.getPersistedSnapshot());
           })
         );
-
         yield* Effect.scoped(
           Effect.gen(function* () {
             const actor = yield* createEffectActor(machine, {
               snapshot: persisted
             });
-            yield* flush;
-            yield* TestClock.adjust('399 millis');
-            yield* flush;
-            expect(actor.getSnapshot().value).toBe('green');
-
-            yield* TestClock.adjust('1 millis');
-            const snapshot = yield* waitFor(actor, (s) => s.matches('yellow'));
-            expect(snapshot.value).toBe('yellow');
+            yield* until(() => clock.state.pending === 1);
+            expect(clock.state.requested).toEqual([1000, 400]);
+            yield* TestClock.adjust('400 millis');
+            yield* waitFor(actor, (s) => s.matches('yellow'));
           })
         );
-      }).pipe(Effect.provide(TestClock.layer()))
+      }).pipe(Effect.provide(clock.layer))
     );
   });
 
   it('fires a delayed transition whose deadline passed while persisted', async () => {
     const machine = createMachine({
       initial: 'green',
-      states: {
-        green: { after: { 1000: { target: 'yellow' } } },
-        yellow: {}
-      }
+      states: { green: { after: { 1000: { target: 'yellow' } } }, yellow: {} }
     });
+    const clock = recordingClock();
 
     await Effect.runPromise(
       Effect.gen(function* () {
         const persisted = yield* Effect.scoped(
           Effect.gen(function* () {
             const actor = yield* createEffectActor(machine);
-            // Accepting the timer records its start in the snapshot.
-            yield* flush;
+            yield* until(() => clock.state.pending === 1);
             return roundTrip(actor.getPersistedSnapshot());
           })
         );
         // Nothing runs the timer while the snapshot is at rest.
         yield* TestClock.adjust('1 hour');
-
         yield* Effect.scoped(
           Effect.gen(function* () {
             const actor = yield* createEffectActor(machine, {
               snapshot: persisted
             });
-            yield* flush;
-            yield* TestClock.adjust('0 millis');
-            const snapshot = yield* waitFor(actor, (s) => s.matches('yellow'));
-            expect(snapshot.value).toBe('yellow');
+            yield* waitFor(actor, (s) => s.matches('yellow'));
           })
         );
-      }).pipe(Effect.provide(TestClock.layer()))
+      }).pipe(Effect.provide(clock.layer))
     );
   });
 
   it('stops a restored actor, its children and its timers when the scope closes', async () => {
-    let started = 0;
-    let interrupted = 0;
-    let fired = 0;
-    const work = fromEffect(
-      Effect.gen(function* () {
-        started++;
-        return yield* Effect.never;
-      }).pipe(
-        Effect.onInterrupt(() =>
-          Effect.sync(() => {
-            interrupted++;
-          })
-        )
-      )
+    const clock = recordingClock();
+    const persisted = await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const actor = yield* createEffectActor(model);
+          actor.send({ type: 'FETCH' });
+          yield* until(() => clock.state.pending === 2);
+          return roundTrip(actor.getPersistedSnapshot());
+        })
+      ).pipe(Effect.provide(clock.layer))
     );
-    const machine = setup({ actors: { work } }).createMachine({
-      initial: 'working',
-      states: {
-        working: {
-          invoke: { src: 'work' },
-          after: { 1000: { target: 'late' } }
-        },
-        late: {
-          entry: () => {
-            fired++;
-          }
-        }
-      }
-    });
 
     await Effect.runPromise(
       Effect.gen(function* () {
-        const persisted = yield* Effect.scoped(
-          Effect.gen(function* () {
-            const actor = yield* createEffectActor(machine);
-            yield* Effect.promise(() => until(() => started === 1));
-            return roundTrip(actor.getPersistedSnapshot());
-          })
-        );
-        expect(interrupted).toBe(1);
-
+        tally.expired = 0;
         const scope = yield* Scope.make();
         const actor = yield* Scope.provide(
-          createEffectActor(machine, { snapshot: persisted }),
+          createEffectActor(model, { snapshot: persisted }),
           scope
         );
-        yield* Effect.promise(() => until(() => started === 2));
-        expect(actor.getSnapshot().status).toBe('active');
-
+        yield* until(() => clock.state.pending === 2);
         yield* Scope.close(scope, Exit.void);
 
         expect(actor.getSnapshot().status).toBe('stopped');
-        expect(interrupted).toBe(2);
+        // The restarted task and the re-armed timer were interrupted.
+        expect(clock.state.pending).toBe(0);
         yield* TestClock.adjust('1 hour');
-        expect(fired).toBe(0);
-      }).pipe(Effect.provide(TestClock.layer()))
+        expect(tally.expired).toBe(0);
+      }).pipe(Effect.provide(clock.layer))
     );
   });
 
@@ -340,142 +462,114 @@ describe('createEffectActor with a persisted snapshot', () => {
       output: () => 'finished'
     });
 
-    const persisted = await Effect.runPromise(
-      Effect.scoped(
-        Effect.gen(function* () {
-          const actor = yield* createEffectActor(machine);
-          actor.send({ type: 'FINISH' });
-          yield* waitFor(actor, (s) => s.status === 'done').pipe(
-            Effect.catch(() => Effect.void)
-          );
-          return roundTrip(actor.getPersistedSnapshot());
-        })
-      )
+    const output = await Effect.runPromise(
+      Effect.gen(function* () {
+        const persisted = yield* Effect.scoped(
+          Effect.gen(function* () {
+            const actor = yield* createEffectActor(machine);
+            actor.send({ type: 'FINISH' });
+            yield* join(actor);
+            return roundTrip(actor.getPersistedSnapshot());
+          })
+        );
+        return yield* Effect.scoped(
+          Effect.flatMap(
+            createEffectActor(machine, { snapshot: persisted }),
+            join
+          )
+        );
+      })
     );
 
-    const snapshot = await Effect.runPromise(
-      Effect.scoped(
-        Effect.gen(function* () {
-          const actor = yield* createEffectActor(machine, {
-            snapshot: persisted
-          });
-          yield* Effect.promise(() =>
-            until(() => actor.getSnapshot().status === 'done')
-          );
-          return actor.getSnapshot();
-        })
-      )
-    );
-
-    expect(snapshot.status).toBe('done');
-    expect(snapshot.output).toBe('finished');
+    expect(output).toBe('finished');
     expect(entered).toBe(1);
   });
 
-  describe('children that were running when the snapshot was taken', () => {
+  describe('Effect tasks and streams that were running when persisted', () => {
     // A half-finished Effect is not serializable. Like XState's own restore
-    // of an active async or callback actor, the child starts again from the
+    // of an active async or callback actor, it starts again from the
     // beginning: its work runs at least once, possibly more than once.
-    it('restarts a running fromEffect child from the beginning', async () => {
-      let attempts = 0;
-      const lookup = fromEffect(({ input }: { input: { id: string } }) =>
-        Effect.gen(function* () {
-          attempts++;
-          if (attempts === 1) {
-            return yield* Effect.never;
-          }
-          return `user ${input.id}`;
-        })
-      );
-      const machine = setup({ actors: { lookup } }).createMachine({
-        context: { user: '' },
-        initial: 'loading',
-        states: {
-          loading: {
-            invoke: {
-              src: 'lookup',
-              input: () => ({ id: '42' }),
-              onDone: {
-                target: 'ready',
-                context: ({ event }) => ({ user: event.output })
-              }
-            }
-          },
-          ready: {}
-        }
-      });
-
-      const persisted = await Effect.runPromise(
+    const persistWhile = (logic: AnyActorLogic, started: () => boolean) =>
+      Effect.runPromise(
         Effect.scoped(
           Effect.gen(function* () {
-            const actor = yield* createEffectActor(machine);
-            yield* Effect.promise(() => until(() => attempts === 1));
+            const actor = yield* createEffectActor(logic);
+            yield* until(started);
             return roundTrip(actor.getPersistedSnapshot());
           })
         )
       );
 
-      const snapshot = await Effect.runPromise(
+    it('restarts a root fromEffect task', async () => {
+      let attempts = 0;
+      const task = fromEffect(
+        Effect.suspend(() =>
+          ++attempts === 1 ? Effect.never : Effect.succeed('done')
+        )
+      );
+      const snapshot = await persistWhile(task, () => attempts === 1);
+      const output = await Effect.runPromise(
         Effect.scoped(
-          Effect.gen(function* () {
-            const actor = yield* createEffectActor(machine, {
-              snapshot: persisted
-            });
-            return yield* waitFor(actor, (s) => s.matches('ready'));
-          })
+          Effect.flatMap(createEffectActor(task, { snapshot }), join)
         )
       );
 
+      expect(output).toBe('done');
       expect(attempts).toBe(2);
-      expect(snapshot.context.user).toBe('user 42');
     });
 
-    it('restarts a running fromEffectStream child from its first item', async () => {
+    it('restarts root and child streams from their first item', async () => {
       const seen: number[] = [];
       let runs = 0;
       const ticks = fromEffectStream(() => {
-        runs++;
         const items = Stream.fromIterable([1, 2, 3]).pipe(
           Stream.tap((n) => Effect.sync(() => seen.push(n)))
         );
         // The first run stalls after two items, as if the host went away.
-        return runs === 1
+        return ++runs === 1
           ? Stream.concat(Stream.take(items, 2), Stream.never)
           : items;
       });
-      const machine = setup({ actors: { ticks } }).createMachine({
+      const parent = setup({ actors: { ticks } }).createMachine({
         initial: 'listening',
         states: {
-          listening: {
-            invoke: { src: 'ticks', onDone: { target: 'finished' } }
-          },
-          finished: {}
+          listening: { invoke: { src: 'ticks', onDone: { target: 'done' } } },
+          done: { type: 'final' }
         }
       });
 
-      const persisted = await Effect.runPromise(
-        Effect.scoped(
-          Effect.gen(function* () {
-            const actor = yield* createEffectActor(machine);
-            yield* Effect.promise(() => until(() => seen.length === 2));
-            return roundTrip(actor.getPersistedSnapshot());
-          })
-        )
-      );
-
-      await Effect.runPromise(
-        Effect.scoped(
-          Effect.gen(function* () {
-            const actor = yield* createEffectActor(machine, {
-              snapshot: persisted
-            });
-            yield* waitFor(actor, (s) => s.matches('finished'));
-          })
-        )
-      );
-
-      expect(runs).toBe(2);
-      expect(seen).toEqual([1, 2, 1, 2, 3]);
+      for (const logic of [ticks, parent] as const) {
+        seen.length = 0;
+        runs = 0;
+        const snapshot = await persistWhile(logic, () => seen.length === 2);
+        await Effect.runPromise(
+          Effect.scoped(
+            Effect.flatMap(
+              createEffectActor(logic as typeof parent, { snapshot }),
+              join
+            )
+          )
+        );
+        expect(runs).toBe(2);
+        expect(seen).toEqual([1, 2, 1, 2, 3]);
+      }
     });
+  });
+
+  it('restores without input when the logic requires input', () => {
+    const machine = createMachine({
+      schemas: { input: types<{ id: string }>() },
+      context: ({ input }) => ({ id: input.id })
+    });
+    const snapshot = {} as Snapshot<unknown>;
+
+    expectTypeOf(createEffectActor(machine, { snapshot })).not.toBeNever();
+    expectTypeOf(
+      createEffectActor(machine, { input: { id: 'a' } })
+    ).not.toBeNever();
+    // @ts-expect-error -- a fresh actor still needs its input
+    createEffectActor(machine, {});
+    // @ts-expect-error -- and so does one with no options at all
+    createEffectActor(machine);
   });
 });

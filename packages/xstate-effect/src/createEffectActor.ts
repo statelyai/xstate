@@ -10,6 +10,7 @@ import {
 } from 'effect';
 import {
   deliverEvent,
+  isMachineSnapshot,
   stopActor,
   terminateActor,
   type ActorOptions,
@@ -19,6 +20,8 @@ import {
   type EventFromLogic,
   type InspectionEvent,
   type InputFrom,
+  type RequiredActorOptionsFor,
+  type RequiredActorOptionsKeys,
   type Snapshot,
   type SnapshotFrom
 } from 'xstate';
@@ -41,25 +44,25 @@ import type { RequirementsFrom } from './types.ts';
 import { ActorScope } from './actorScope.ts';
 
 const XSTATE_TIMER = 'xstate.timer';
+const XSTATE_INIT = '@xstate.init';
 
 /** Options for {@link createEffectActor}. */
-export type EffectActorOptions<TLogic extends AnyActorLogic> =
-  (undefined extends InputFrom<TLogic>
-    ? { readonly input?: InputFrom<TLogic> }
-    : { readonly input: InputFrom<TLogic> }) & {
-    /**
-     * A snapshot from `actor.getPersistedSnapshot()`. The actor resumes in
-     * that state without re-running entry actions. Active children restart
-     * and pending timers keep their original deadlines, as with XState's
-     * `createActor(logic, { snapshot })`.
-     */
-    readonly snapshot?: ActorOptions<TLogic>['snapshot'];
-  };
+export type EffectActorOptions<TLogic extends AnyActorLogic> = {
+  readonly input?: InputFrom<TLogic>;
+  /**
+   * A snapshot from `actor.getPersistedSnapshot()`. The actor resumes in that
+   * state without re-running entry actions, and pending timers keep their
+   * original deadlines, as with XState's `createActor(logic, { snapshot })`.
+   * A restored actor does not need `input`.
+   */
+  readonly snapshot?: ActorOptions<TLogic>['snapshot'];
+} & RequiredActorOptionsFor<TLogic>;
 
-export type EffectActorOptionsArgs<TLogic extends AnyActorLogic> =
-  undefined extends InputFrom<TLogic>
-    ? [options?: EffectActorOptions<TLogic>]
-    : [options: EffectActorOptions<TLogic>];
+export type EffectActorOptionsArgs<TLogic extends AnyActorLogic> = [
+  RequiredActorOptionsKeys<TLogic>
+] extends [never]
+  ? [options?: EffectActorOptions<TLogic>]
+  : [options: EffectActorOptions<TLogic>];
 
 /**
  * Creates and starts an actor as an Effect interpreter over pure transitions.
@@ -283,6 +286,22 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       let [snapshot, effects] = options?.snapshot
         ? durable.restore(options.snapshot)
         : durable.initialTransition(options?.input as never);
+      if (
+        options?.snapshot &&
+        !isMachineSnapshot(snapshot) &&
+        (snapshot as Snapshot<unknown>).status === 'active'
+      ) {
+        // A restored machine resumes through the effects above. Other logic
+        // (an Effect task or stream at the root) reattaches its active work by
+        // replaying its init event, as its restored `start` does under
+        // `createActor`.
+        const [started, startEffects] = durable.transition(snapshot, {
+          type: XSTATE_INIT,
+          input: (snapshot as { input?: unknown }).input
+        } as EventFromLogic<TLogic>);
+        snapshot = started;
+        effects = [...effects, ...startEffects];
+      }
       const root = durable.getActorRef(snapshot)!;
       // Restored children are created by the snapshot, not spawned through
       // the adapter; they find this host through their parent chain.
