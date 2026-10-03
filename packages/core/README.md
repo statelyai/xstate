@@ -24,6 +24,13 @@ For durable hosts, the experimental `xstate/durable` entry point provides
 and execute the returned effects to restart active embedded children and pending
 timers without replaying entry actions. See [durable execution](../../docs/durable-execution.md).
 
+<!-- completion capability from ActorLogic in packages/core/src/types.ts and the built-in actor logic creators -->
+
+`logic.completion` reports `'never'` for persistent callback/listener/subscription
+and FSM logic, and `'possible'` for logic capable of completing. Unknown custom
+logic may omit it. This describes completion capability, not current activity;
+`'possible'` does not guarantee termination. See [actor logic](../../docs/actor-logic.md).
+
 <!-- typed inline invocation from packages/core/src/setup.ts -->
 
 Use `s.createInvoke({ src, input, onDone })` inline in `s.createMachine(...)` for an actor used in one state. It infers the actor's input and output and the enclosing state's narrowed context without registering that actor in `setup.actors`. See [typed inline invokes](../../docs/invoke.md#typed-inline-invokes).

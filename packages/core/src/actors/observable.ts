@@ -441,6 +441,7 @@ export function createEventObservableLogic<
 
   // TODO: event types
   const logic: ObservableActorLogic<TEvent, TInput, TEmitted> = {
+    completion: 'possible',
     config: lazyObservableOrConfig,
     validator,
     transition: (state, event, actorScope) => {
