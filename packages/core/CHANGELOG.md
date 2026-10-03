@@ -1,5 +1,49 @@
 # xstate
 
+## 6.0.0-alpha.64
+
+### Minor Changes
+
+- 26378e5: Add experimental pure actor-system transitions with immutable system snapshots,
+  external effects as data, and chronological virtual time across actors.
+  
+  ```ts
+  const systemLogic = { root: machine };
+  const [snapshot] = initialSystemTransition(systemLogic, { input });
+  const [nextSnapshot, effects] = systemTransition(systemLogic, snapshot, snapshot.root, event);
+  const [laterSnapshot] = advanceSystemTime(systemLogic, nextSnapshot, { time: 4000 });
+  ```
+  
+  `SimulatedClock` now runs callbacks at each timer's deadline before reaching the
+  requested time, including intermediate timers created during those callbacks.
+  Large timer batches advance efficiently while preserving deadline and insertion
+  order. Subscription completion/error mappings arrive before native child
+  notifications, matching live actors.
+- 295a705: Durable executions preserve timer deadlines in checkpoints persisted after `executeEffects()` succeeds. Adapters can provide an absolute `now()` clock shared across restores and replay. Root error snapshots no longer also trigger an unhandled global throw; explicit hosts handle the snapshot, while `run()` rejects with its error.
+  
+  `createMachineFromConfig()` retains named actor sources so `.provide({ actors })` can replace them, including when restoring children.
+  
+  Reserved `xstate.*` transition descriptors are accepted without losing exact declared event payload types. Machines created from `never` configs no longer trigger excessive type instantiation in generic consumers.
+  
+  ```ts
+  await execution.executeEffects(effects);
+  const checkpoint = machine.getPersistedSnapshot(snapshot);
+  ```
+- 8e509ae: Add `setup(...).createInvoke(...)` for typed inline invocations. The helper infers actor input, completion output, errors and snapshots from its `src` logic. Async functions can be authored directly in `src`, with optional `schemas.input`, `schemas.output` and `schemas.error`. Without an output schema, completion output is inferred from the async return value. Inline calls also infer the enclosing state's narrowed context, state input and transition targets, including alongside registered actor sources.
+  
+  Actors whose input excludes `undefined` require an input value or mapper. Invokes check their child IDs and source compatibility against `schemas.children` declared in either the setup or machine.
+  
+  ```ts
+  invoke: s.createInvoke({
+    schemas: { input: types<{ userId: string }>() },
+    input: ({ context }) => ({ userId: context.userId }),
+    src: async ({ input }) => ({ name: input.userId }),
+    onDone: ({ event }) => ({
+      context: { name: event.output.name }
+    })
+  })
+  ```
+
 ## 6.0.0-alpha.63
 
 ### Minor Changes
