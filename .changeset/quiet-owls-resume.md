@@ -10,4 +10,4 @@ const saved = actor.getPersistedSnapshot();
 const restored = yield* createEffectActor(machine, { snapshot: saved });
 ```
 
-Children that were running when the snapshot was taken start again from the beginning, as they do with XState's `createActor(logic, { snapshot })`.
+State-machine children resume their persisted state, and completed children do not restart. Running Effect tasks and streams, including a root `fromEffect` or `fromEffectStream` actor, restart from the beginning, as running async and callback actors do with XState's `createActor(logic, { snapshot })`. A snapshot-only restore does not need `input`.
