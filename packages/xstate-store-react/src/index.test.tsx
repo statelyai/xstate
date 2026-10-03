@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { fireEvent, screen, render, act } from '@testing-library/react';
 import {
   createStore,
@@ -8,7 +9,8 @@ import {
   useStore,
   useAtom,
   useAtomState,
-  createStoreHook
+  createStoreHook,
+  type StoreInspectionEvent
 } from './index.ts';
 
 describe('@xstate/store-react', () => {
@@ -158,6 +160,190 @@ describe('@xstate/store-react', () => {
       fireEvent.click(countDiv);
       expect(countDiv.textContent).toBe('11');
       expect(storeRefs.every((ref) => ref === storeRefs[0])).toBe(true);
+    });
+
+    it('should subscribe an inspector via the inspect option', () => {
+      const events: string[] = [];
+
+      const Counter = () => {
+        const store = useStore(
+          {
+            context: { count: 0 },
+            on: {
+              inc: (ctx: { count: number }) => ({ count: ctx.count + 1 })
+            }
+          },
+          { inspect: (ev) => events.push(ev.event.type) }
+        );
+        const count = useSelector(store, (s) => s.context.count);
+
+        return (
+          <div data-testid="count" onClick={() => store.send({ type: 'inc' })}>
+            {count}
+          </div>
+        );
+      };
+
+      const { unmount } = render(<Counter />);
+
+      // the inspector immediately receives the current snapshot
+      expect(events).toEqual(['@xstate.init']);
+
+      fireEvent.click(screen.getByTestId('count'));
+      expect(events).toEqual(['@xstate.init', 'inc']);
+
+      const countBeforeUnmount = events.length;
+      unmount();
+      expect(events.length).toBe(countBeforeUnmount);
+    });
+
+    it('should not resubscribe the inspector across re-renders', () => {
+      const snapshotEvents: string[] = [];
+
+      const Counter = () => {
+        const store = useStore(
+          {
+            context: { count: 0 },
+            on: {
+              inc: (ctx: { count: number }) => ({ count: ctx.count + 1 })
+            }
+          },
+          { inspect: (ev) => snapshotEvents.push(ev.event.type) }
+        );
+        const count = useSelector(store, (s) => s.context.count);
+
+        return (
+          <div data-testid="count" onClick={() => store.send({ type: 'inc' })}>
+            {count}
+          </div>
+        );
+      };
+
+      render(<Counter />);
+      const countDiv = screen.getByTestId('count');
+
+      fireEvent.click(countDiv);
+      fireEvent.click(countDiv);
+
+      // 1 init event on subscribe + 1 per transition; no duplicates from
+      // re-render resubscription
+      expect(snapshotEvents).toEqual(['@xstate.init', 'inc', 'inc']);
+    });
+
+    it('should subscribe an inspector enabled after mount', () => {
+      const events: string[] = [];
+
+      const Counter = ({
+        inspect
+      }: {
+        inspect?: (event: StoreInspectionEvent) => void;
+      }) => {
+        const store = useStore(
+          {
+            context: { count: 0 },
+            on: {
+              inc: (ctx: { count: number }) => ({ count: ctx.count + 1 })
+            }
+          },
+          { inspect }
+        );
+
+        return <button onClick={() => store.send({ type: 'inc' })}>inc</button>;
+      };
+
+      const { rerender } = render(<Counter />);
+      rerender(<Counter inspect={(event) => events.push(event.event.type)} />);
+
+      expect(events).toEqual(['@xstate.init']);
+
+      fireEvent.click(screen.getByRole('button'));
+      expect(events).toEqual(['@xstate.init', 'inc']);
+    });
+
+    it('should keep the committed inspector while an update suspends', async () => {
+      const committed: string[] = [];
+      const uncommitted: string[] = [];
+      const never = new Promise<void>(() => {});
+      let send: (event: { type: 'inc' }) => void = () => {};
+
+      const Counter = ({
+        inspect,
+        suspend
+      }: {
+        inspect: (event: StoreInspectionEvent) => void;
+        suspend?: boolean;
+      }) => {
+        const store = useStore(
+          {
+            context: { count: 0 },
+            on: {
+              inc: (ctx: { count: number }) => ({ count: ctx.count + 1 })
+            }
+          },
+          { inspect }
+        );
+        send = store.send;
+        if (suspend) {
+          throw never;
+        }
+        return null;
+      };
+
+      const { rerender } = render(
+        <React.Suspense fallback={null}>
+          <Counter inspect={(event) => committed.push(event.event.type)} />
+        </React.Suspense>
+      );
+
+      await act(async () => {
+        React.startTransition(() => {
+          rerender(
+            <React.Suspense fallback={null}>
+              <Counter
+                inspect={(event) => uncommitted.push(event.event.type)}
+                suspend
+              />
+            </React.Suspense>
+          );
+        });
+      });
+
+      act(() => send({ type: 'inc' }));
+
+      expect(committed).toEqual(['@xstate.init', 'inc']);
+      expect(uncommitted).toEqual([]);
+    });
+
+    it('should support the inspect option with store logic and input', () => {
+      const counterLogic = createStoreLogic({
+        context: (input: { initialCount: number }) => ({
+          count: input.initialCount
+        }),
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      });
+      const events: string[] = [];
+
+      const Counter = () => {
+        const store = useStore(
+          counterLogic,
+          { initialCount: 10 },
+          { inspect: (ev) => events.push(ev.event.type) }
+        );
+        const count = useSelector(store, (s) => s.context.count);
+
+        return (
+          <div data-testid="count" onClick={() => store.trigger.inc()}>
+            {count}
+          </div>
+        );
+      };
+
+      render(<Counter />);
+
+      expect(screen.getByTestId('count').textContent).toBe('10');
+      expect(events).toEqual(['@xstate.init']);
     });
   });
 
@@ -326,4 +512,20 @@ describe('@xstate/store-react', () => {
       expect(atom.get()).toBe(123);
     });
   });
+});
+
+it('honors a comparator when the selector is omitted', () => {
+  const atom = createAtom({ count: 0, ignored: 0 });
+  let renders = 0;
+  function View() {
+    const value = useSelector(atom, undefined, (a, b) => a?.count === b?.count);
+    renders++;
+    return <div>{value.count}</div>;
+  }
+  render(<View />);
+  const initialRenders = renders;
+  act(() => atom.set({ count: 0, ignored: 1 }));
+  expect(renders).toBe(initialRenders);
+  act(() => atom.set({ count: 1, ignored: 1 }));
+  expect(screen.getByText('1')).toBeTruthy();
 });

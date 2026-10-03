@@ -34,7 +34,10 @@ const App = () => {
 
 ## API
 
+<!-- selector subscription semantics from src/index.ts -->
 ### `useSelector(store, selector, compare?)`
+
+The accessor reconciles updates made during component setup before its subscription starts.
 
 Creates a signal that subscribes to a store and returns a selected value.
 
