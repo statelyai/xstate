@@ -164,7 +164,6 @@ export type FSM<
   >,
   TConfig = FSMConfig<TContext, TEvent, TState>
 > = {
-  readonly completion: 'never';
   readonly id: string | undefined;
   readonly config: TConfig;
   readonly initialState: TSnapshot;
@@ -441,7 +440,6 @@ export function createFSM<
   );
 
   return {
-    completion: 'never',
     id: config.id,
     config,
     initialState,

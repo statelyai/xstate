@@ -266,7 +266,6 @@ export function createCallbackLogic<
       : callbackOrConfig.validator;
 
   return createBaseLogic<undefined, undefined, TEvent, TInput, TEmitted>({
-    completion: 'never',
     validator,
     schemas,
     context: undefined,

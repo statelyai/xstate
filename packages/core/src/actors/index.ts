@@ -63,7 +63,6 @@ export {
 } from './subscription.ts';
 
 const emptyLogic = /* #__PURE__ */ createLogic<undefined, undefined>({
-  completion: 'never',
   context: undefined,
   run: () => undefined
 });

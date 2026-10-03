@@ -26,13 +26,6 @@ timers without replaying entry actions. Await `executeEffects()` before persisti
 to retain accepted timer deadlines. The host handles root error snapshots;
 `run()` rejects with the root error. See [durable execution](../../docs/durable-execution.md).
 
-<!-- completion capability from ActorLogic in packages/core/src/types.ts and the built-in actor logic creators -->
-
-`logic.completion` reports `'never'` for persistent callback/listener/subscription
-and FSM logic, and `'possible'` for logic capable of completing. Unknown custom
-logic may omit it. Hosts can use this metadata in their pending-work policy;
-`'possible'` does not guarantee termination. See [actor logic](../../docs/actor-logic.md).
-
 <!-- typed inline invocation from packages/core/src/setup.ts -->
 
 Use `s.createInvoke({ src, input, onDone })` inline in `s.createMachine(...)` for an actor used in one state. It infers the actor's input and output and the enclosing state's narrowed context without registering that actor in `setup.actors`. See [typed inline invokes](../../docs/invoke.md#typed-inline-invokes).

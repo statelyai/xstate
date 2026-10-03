@@ -2632,11 +2632,6 @@ export interface ActorLogic<
   TSystem extends AnyActorSystem = AnyActorSystem,
   in out TEmitted extends EventObject = EventObject // it's invariant because it's also aprt of `ActorScope["self"]["on"]`
 > {
-  /**
-   * Whether this logic can produce a done snapshot. `possible` is no guarantee
-   * of termination; omission means unknown. Errors/stops do not count as done.
-   */
-  readonly completion?: 'possible' | 'never';
   /** The initial setup/configuration used to create the actor logic. */
   config?: unknown;
   /** Optional runtime validator for pure calculation boundaries. */
@@ -2727,7 +2722,6 @@ export interface ActorLogic<
 
 /** @public */
 export interface AnyActorLogic {
-  readonly completion?: 'possible' | 'never';
   config?: unknown;
   validator?: import('./validation.types.ts').ActorLogicValidator | undefined;
   transition(

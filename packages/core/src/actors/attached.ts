@@ -37,7 +37,6 @@ export function createAttachedLogic(
 
   return {
     id,
-    completion: 'never',
     start: (state: any, { self, system }: any) => {
       // Don't attach if the target doesn't exist or is stopped.
       const target = state.input.actor;

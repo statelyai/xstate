@@ -113,7 +113,6 @@ export interface LogicConfig<
 > {
   id?: string;
   validator?: ActorLogicValidator;
-  completion?: 'possible' | 'never';
   schemas?: {
     input?: TInputSchema;
     output?: TOutputSchema;
@@ -540,7 +539,6 @@ export function createLogic<
   const logic: LogicActorLogic<TContext, TOutput, TEvent, TInput, TEmitted> = {
     id: config.id,
     config,
-    completion: config.completion ?? 'possible',
     validator: config.validator,
     transition,
     start: (snapshot, actorScope, options) => {
