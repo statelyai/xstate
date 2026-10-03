@@ -1,8 +1,18 @@
-import { Context, Duration, Effect, Exit, Fiber, Queue, Scope } from 'effect';
+import {
+  Clock,
+  Context,
+  Duration,
+  Effect,
+  Exit,
+  Fiber,
+  Queue,
+  Scope
+} from 'effect';
 import {
   deliverEvent,
   stopActor,
   terminateActor,
+  type ActorOptions,
   type AnyActor,
   type AnyActorLogic,
   type AnyEventObject,
@@ -34,9 +44,17 @@ const XSTATE_TIMER = 'xstate.timer';
 
 /** Options for {@link createEffectActor}. */
 export type EffectActorOptions<TLogic extends AnyActorLogic> =
-  undefined extends InputFrom<TLogic>
+  (undefined extends InputFrom<TLogic>
     ? { readonly input?: InputFrom<TLogic> }
-    : { readonly input: InputFrom<TLogic> };
+    : { readonly input: InputFrom<TLogic> }) & {
+    /**
+     * A snapshot from `actor.getPersistedSnapshot()`. The actor resumes in
+     * that state without re-running entry actions. Active children restart
+     * and pending timers keep their original deadlines, as with XState's
+     * `createActor(logic, { snapshot })`.
+     */
+    readonly snapshot?: ActorOptions<TLogic>['snapshot'];
+  };
 
 export type EffectActorOptionsArgs<TLogic extends AnyActorLogic> =
   undefined extends InputFrom<TLogic>
@@ -98,9 +116,13 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
 
       const inspectors = new Set<(event: InspectionEvent) => void>();
       let rootAnnounced = false;
+      const clock = Context.get(context, Clock.Clock);
       const durable = createDurable(
         logic,
         {
+          // Timer deadlines are measured on the same clock the timers sleep
+          // on, so a restored timer resumes with its remaining delay.
+          now: () => clock.currentTimeMillisUnsafe(),
           executeAction: (action, _metadata, runtime) => {
             // Fire-and-forget: the action starts now and the loop continues.
             // A rejection reaches the machine as an execution error.
@@ -254,12 +276,17 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
         closeEffectHost(host);
       };
 
-      // The first transition runs here so the handle is ready when this
-      // Effect succeeds, and the initial actions start before any send.
-      let [snapshot, effects] = durable.initialTransition(
-        options?.input as never
-      );
+      // The first transition (or the restore) runs here so the handle is
+      // ready when this Effect succeeds, and the initial actions start before
+      // any send. Restoring runs no entry actions; its effects restart the
+      // active children and re-arm pending timers.
+      let [snapshot, effects] = options?.snapshot
+        ? durable.restore(options.snapshot)
+        : durable.initialTransition(options?.input as never);
       const root = durable.getActorRef(snapshot)!;
+      // Restored children are created by the snapshot, not spawned through
+      // the adapter; they find this host through their parent chain.
+      bindEffectHost(root, host);
       // The root exists from here on; later announcements are step
       // re-materializations, not new actors.
       rootAnnounced = true;
