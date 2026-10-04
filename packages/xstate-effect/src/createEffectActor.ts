@@ -290,10 +290,11 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
       let [snapshot, effects] = options?.snapshot
         ? durable.restore(options.snapshot)
         : durable.initialTransition(options?.input as never);
+      const initial: Snapshot<unknown> = snapshot;
       if (
         options?.snapshot &&
-        !isMachineSnapshot(snapshot) &&
-        (snapshot as Snapshot<unknown>).status === 'active'
+        !isMachineSnapshot(initial) &&
+        initial.status === 'active'
       ) {
         // A restored machine resumes through the effects above. Other logic
         // (an Effect task or stream at the root) reattaches its active work by
@@ -301,7 +302,7 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
         // `createActor`.
         const [started, startEffects] = durable.transition(snapshot, {
           type: XSTATE_INIT,
-          input: (snapshot as { input?: unknown }).input
+          input: 'input' in initial ? initial.input : undefined
         } as EventFromLogic<TLogic>);
         snapshot = started;
         effects = [...effects, ...startEffects];
