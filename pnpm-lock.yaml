@@ -3037,6 +3037,9 @@ importers:
       effect:
         specifier: 4.0.0
         version: 4.0.0
+      fast-check:
+        specifier: 4.10.2
+        version: 4.10.2
       xstate:
         specifier: workspace:^
         version: link:../core

@@ -180,14 +180,7 @@ A root Effect actor's error is a value. Read it with `join`, `waitFor`, `subscri
 
 ## Persistence
 
-`actor.getPersistedSnapshot()` records the actor's state. It does not record progress inside a running Effect.
-
-<details>
-<summary>Restoration support</summary>
-
-Restoring a persisted snapshot into a new Effect interpreter is not supported yet. Do not use this API as a durable workflow checkpoint.
-
-</details>
+`actor.getPersistedSnapshot()` records the actor's state. It does not record progress inside a running Effect: an Effect task or stream that was running when the snapshot was taken starts again from the beginning after a restore. See [persisting and restoring](actors.md#persisting-and-restoring).
 
 ## Tracing
 
