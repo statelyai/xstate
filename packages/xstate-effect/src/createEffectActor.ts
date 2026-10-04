@@ -53,7 +53,10 @@ export type EffectActorOptions<TLogic extends AnyActorLogic> = {
    * A snapshot from `actor.getPersistedSnapshot()`. The actor resumes in that
    * state without re-running entry actions, and pending timers keep their
    * original deadlines, as with XState's `createActor(logic, { snapshot })`.
-   * A restored actor does not need `input`.
+   * State-machine children resume their persisted state and completed
+   * children stay done. Effect tasks and streams that were running, at the
+   * root or as children, start again from the beginning. A restored actor
+   * does not need `input`.
    */
   readonly snapshot?: ActorOptions<TLogic>['snapshot'];
 } & RequiredActorOptionsFor<TLogic>;
@@ -281,8 +284,9 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
 
       // The first transition (or the restore) runs here so the handle is
       // ready when this Effect succeeds, and the initial actions start before
-      // any send. Restoring runs no entry actions; its effects restart the
-      // active children and re-arm pending timers.
+      // any send. Restoring runs no entry actions; its effects resume
+      // machine children, restart running Effect children and re-arm pending
+      // timers.
       let [snapshot, effects] = options?.snapshot
         ? durable.restore(options.snapshot)
         : durable.initialTransition(options?.input as never);
