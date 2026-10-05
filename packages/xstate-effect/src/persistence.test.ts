@@ -3,6 +3,7 @@ import { TestClock } from 'effect/testing';
 import fc from 'fast-check';
 import {
   createMachine,
+  createObservableLogic,
   setup,
   types,
   type AnyActorLogic,
@@ -307,6 +308,87 @@ const expectSameAsUninterrupted = async (
 };
 
 describe('createEffectActor with a persisted snapshot', () => {
+  it('resubscribes a restored root observable and receives values and completion', async () => {
+    let subscriptions = 0;
+    const logic = createObservableLogic<number, undefined>(() => ({
+      subscribe(observer) {
+        subscriptions++;
+        if (typeof observer === 'function') {
+          observer(subscriptions);
+        } else {
+          observer.next?.(subscriptions);
+          if (subscriptions === 2) {
+            observer.complete?.();
+          }
+        }
+        return { unsubscribe() {} };
+      }
+    }));
+    const snapshot = await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const actor = yield* createEffectActor(logic);
+          yield* waitFor(actor, (s) => s.context === 1);
+          return roundTrip(actor.getPersistedSnapshot());
+        })
+      )
+    );
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const actor = yield* createEffectActor(logic, { snapshot });
+          yield* join(actor);
+          expect(actor.getSnapshot().context).toBe(2);
+          expect(actor.getSnapshot().status).toBe('done');
+        })
+      )
+    );
+    expect(subscriptions).toBe(2);
+  });
+
+  it('restores a nested machine timer on the Effect clock with its remaining delay', async () => {
+    const child = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: { after: { 1000: { target: 'done' } } },
+        done: { type: 'final' }
+      }
+    });
+    const parent = createMachine({
+      actors: { child },
+      invoke: { src: 'child', id: 'child' }
+    });
+    const clock = recordingClock();
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const snapshot = yield* Effect.scoped(
+          Effect.gen(function* () {
+            const actor = yield* createEffectActor(parent);
+            yield* until(() => clock.state.pending === 1);
+            yield* TestClock.adjust('600 millis');
+            return roundTrip(actor.getPersistedSnapshot());
+          })
+        );
+        yield* Effect.scoped(
+          Effect.gen(function* () {
+            const actor = yield* createEffectActor(parent, { snapshot });
+            yield* until(() => clock.state.pending === 1);
+            expect(clock.state.requested).toEqual([1000, 400]);
+            expect(
+              actor.getSnapshot().children.child?.getSnapshot().status
+            ).toBe('active');
+            yield* TestClock.adjust('400 millis');
+            yield* until(
+              () =>
+                actor.getSnapshot().children.child?.getSnapshot().status ===
+                'done'
+            );
+          })
+        );
+      }).pipe(Effect.provide(clock.layer))
+    );
+  });
+
   it('matches an uninterrupted run when restored at every step of every shortest path', async () => {
     const paths = getShortestPaths(model, {
       events: [
