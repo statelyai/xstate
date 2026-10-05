@@ -256,7 +256,7 @@ See [atoms and React](docs/atoms-and-react.md) for complete examples with import
 - Timed waits fail with Effect's `Cause.TimeoutError`.
 - `join` preserves a task's typed failure. Unexpected machine errors have type `unknown`.
 
-See [testing and errors](docs/testing-and-errors.md) for executable deadline, retry and failure examples. Persisted snapshots record actor state; restoration into a new Effect interpreter is not supported yet.
+See [testing and errors](docs/testing-and-errors.md) for executable deadline, retry and failure examples. Persisted snapshots record actor state; pass one to `createEffectActor(logic, { snapshot })` to resume the actor. See [persisting and restoring](docs/actors.md#persisting-and-restoring).
 
 ## Tracing
 

@@ -57,6 +57,7 @@ describe('runnable examples', () => {
   const cases = [
     ['approval', 'https://example.com/v1.2.0'],
     ['clock', 'expired'],
+    ['persistence', 'done'],
     [
       'observe',
       { history: ['pending', 'approved'], output: { approved: true } }

@@ -6,6 +6,7 @@ description: Create actors whose lifetime and dependencies belong to an Effect a
 `createEffectActor(logic, options?)` starts an actor and returns its handle as a scoped Effect.
 
 - Pass `options.input` when the logic requires input.
+- Pass `options.snapshot` to resume an actor from a persisted snapshot. See [persisting and restoring](#persisting-and-restoring).
 - Provide the services required by its declared actions and child actors.
 - Use `Effect.scoped` for a bounded program, or a Layer for an application service.
 
@@ -146,6 +147,62 @@ If the machine requires services, provide their Layers to the actor Layer with `
 `after` transitions and delayed sends use Effect's `Clock`. In tests, `TestClock` advances those timers without waiting for real time. See the [complete deadline example](testing-and-errors.md#testclock).
 
 Timers are interrupted when the actor stops.
+
+## Persisting and restoring
+
+An actor can outlive its process. Save `actor.getPersistedSnapshot()` after an event, then pass the saved snapshot to `createEffectActor` when the next event arrives, in the same process or another one.
+
+<!-- example from examples/effect-workflows/src/persistence.ts -->
+
+```ts
+import { Effect } from 'effect';
+import { createEffectActor, waitFor } from '@xstate/effect';
+import { createMachine, type Snapshot } from 'xstate';
+
+const review = createMachine({
+  id: 'review',
+  initial: 'draft',
+  states: {
+    draft: { on: { SUBMIT: { target: 'inReview' } } },
+    inReview: { on: { APPROVE: { target: 'approved' } } },
+    approved: { type: 'final' }
+  }
+});
+
+// Handle one event, then return the snapshot to store.
+const handle = (
+  stored: Snapshot<unknown> | undefined,
+  event: { type: 'SUBMIT' } | { type: 'APPROVE' }
+) =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const actor = yield* createEffectActor(review, { snapshot: stored });
+      const before = actor.getSnapshot();
+      actor.send(event);
+      yield* waitFor(actor, (snapshot) => snapshot !== before);
+      return JSON.parse(JSON.stringify(actor.getPersistedSnapshot()));
+    })
+  );
+
+const program = Effect.gen(function* () {
+  const submitted = yield* handle(undefined, { type: 'SUBMIT' });
+  // Store `submitted` in a database row or a Durable Object, possibly for days.
+  const approved = yield* handle(submitted, { type: 'APPROVE' });
+  return approved.status;
+});
+
+export const result = await Effect.runPromise(program);
+console.log(result); // 'done'
+```
+
+Restoring resumes the persisted state and context without running entry actions again.
+
+- A pending `after` transition or delayed send keeps its original deadline, measured on Effect's `Clock`. A deadline that passed while the snapshot was stored fires as soon as the actor starts.
+- State-machine children resume their persisted state and context.
+- Completed children do not restart.
+- Running Effect tasks and streams restart from the beginning: a `fromEffect` task runs its Effect again, and a `fromEffectStream` or `fromEffectEventStream` stream starts again from its first item. A half-finished Effect cannot be persisted, so this matches how XState restarts running async and callback actors. Make that work safe to repeat, for example with an idempotency key.
+- A snapshot-only restore does not need `input`, even when the logic requires it.
+- The restored actor belongs to the enclosing scope like any other: closing the scope stops it, its children and its timers.
 
 ## Actor handle
 
