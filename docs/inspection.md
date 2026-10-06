@@ -65,3 +65,5 @@ event.parentRef, event.id, event.src, event.snapshot; // '@xstate.actor'
 event.event, event.snapshot, event.sourceRef, event.targetRef; // '@xstate.transition'
 event.microsteps, event.actions, event.sent; // '@xstate.transition'
 ```
+
+Microstep transition records contain the targets selected by function transitions. Inspection and `getMicrosteps()` expose resolved copies with a `definition` reference to the shared transition; the machine's shared transition definitions remain reusable.

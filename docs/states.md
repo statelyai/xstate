@@ -81,7 +81,7 @@ snapshot.matches({ player: { playback: 'playing' } }); // true
 snapshot.can({ type: 'submit' });
 ```
 
-Because v6 conditions live inside transition functions, `can(...)` calls those functions to see whether they return a transition. It does not execute their effects: enqueued actions, raised events and sent events are discarded. Keep transition functions free of side effects outside `enq(...)` so that `can(...)` stays safe to call during rendering.
+Because v6 conditions live inside transition functions, `can(...)` calls those functions to see whether they return a transition or call `enq`. It does not execute their effects: enqueued actions, raised events and sent events are discarded. Keep transition functions free of side effects outside `enq(...)` so that `can(...)` stays safe to call during rendering.
 
 A checkout button can be disabled with `can({ type: 'submit' })` instead of duplicating the machine's rules.
 

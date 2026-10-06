@@ -252,6 +252,15 @@ export type AsyncLogicError<TErrorSchema extends StandardSchemaV1, TTimeout> = [
  * @public
  */
 export function createAsyncLogic<
+  TOutput,
+  TInput = NonReducibleUnknown,
+  TEmitted extends EventObject = EventObject
+>(
+  asyncLogic: Omit<LogicConfig<TOutput, TInput, TEmitted>, 'schemas'> & {
+    schemas?: undefined;
+  }
+): AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string };
+export function createAsyncLogic<
   const TInputSchema extends StandardSchemaV1,
   const TOutputSchema extends StandardSchemaV1,
   TEmitted extends EventObject = EventObject,
@@ -351,15 +360,6 @@ export function createAsyncLogic<
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  asyncLogic: Omit<LogicConfig<TOutput, TInput, TEmitted>, 'schemas'> & {
-    schemas?: undefined;
-  }
-): AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string };
-export function createAsyncLogic<
-  TOutput,
-  TInput = NonReducibleUnknown,
-  TEmitted extends EventObject = EventObject
->(
   asyncLogic: LogicConfig<TOutput, TInput, TEmitted>
 ): AsyncActorLogic<TOutput, TInput, TEmitted> & { id?: string } {
   const config = asyncLogic;
@@ -432,30 +432,44 @@ export function createAsyncLogic<
           }
         };
 
-        const runBody = () =>
-          Promise.resolve(
-            config.run(
-              {
-                input,
-                system,
-                self: self as any,
-                signal: controller.signal
-              },
-              {
-                emit: (event) => void runtime.emitEvent!(actorSelf, event),
-                // Steps route through the runtime: a durable host that
-                // implements `runStep` owns the step journal; otherwise the
-                // built-in behavior memoizes into this actor's own snapshot,
-                // self-sending through the same runtime as the other effects.
-                step: (key, exec) =>
-                  runtime.runStep
-                    ? (Promise.resolve(
-                        runtime.runStep(actorSelf, key, exec)
-                      ) as Promise<any>)
-                    : runStep(actorSelf, key, exec, sendSelf)
-              }
-            )
-          );
+        const runBody = () => {
+          // `run` is documented to return a promise, but nothing stops it
+          // from throwing synchronously instead (e.g. a config/validation
+          // check before the first `await`). Without this try/catch, that
+          // throw escapes before `Promise.resolve` can wrap it, which skips
+          // the `.then` rejection handler below — including its
+          // `clearTimeout()` — and leaves the timeout timer (and `return`
+          // cleanup) attached to a closure that never finishes executing.
+          try {
+            return Promise.resolve(
+              config.run(
+                {
+                  input,
+                  system,
+                  self: self as any,
+                  signal: controller.signal
+                },
+                {
+                  emit: (event) => void runtime.emitEvent!(actorSelf, event),
+                  // Steps route through the runtime: a durable host that
+                  // implements `runStep` owns the step journal; otherwise the
+                  // built-in behavior memoizes into this actor's own snapshot,
+                  // self-sending through the same runtime as the other effects.
+                  step: (key, exec) =>
+                    runtime.runStep
+                      ? (Promise.resolve(
+                          runtime.runStep(actorSelf, key, exec)
+                        ) as Promise<any>)
+                      : runStep(actorSelf, key, exec, sendSelf)
+                }
+              )
+            );
+          } catch (err) {
+            // Preserve the thrown value for the actor error event.
+            // oxlint-disable-next-line typescript/prefer-promise-reject-errors
+            return Promise.reject(err);
+          }
+        };
         // The whole body is one durable unit: a host that implements
         // `runLogic` journals it by the actor's address — or re-runs the
         // registered logic from (src, input) on a remote executor, ignoring

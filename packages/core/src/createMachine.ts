@@ -2,6 +2,7 @@ import isDevelopment from '#is-development';
 import { diagnoseAuthorConfig } from './devDiagnostics.ts';
 import { StandardSchemaV1 } from './schema.types.ts';
 import { StateMachine } from './StateMachine.ts';
+import type { ActorLogicValidator } from './validation.types.ts';
 import {
   AnyActorRef,
   AnyStateMachine,
@@ -368,8 +369,11 @@ export function createMachine(config: any): any {
  *
  * @experimental Used by `@xstate/scxml`; not part of the stable API.
  */
-export function createMachineFromCompiledConfig(config: any): any {
-  return new StateMachine(config) as any;
+export function createMachineFromCompiledConfig(
+  config: any,
+  validator?: ActorLogicValidator
+): any {
+  return new StateMachine(config, undefined, validator) as any;
 }
 
 /** @public */

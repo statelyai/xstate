@@ -117,4 +117,37 @@ describe('unhandled events', () => {
     expect(onUnhandledEvent).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
   });
+
+  it('reports xstate.route events that match no routable state', () => {
+    const onUnhandledEvent = vi.fn();
+    const actor = createActor(
+      createMachine({
+        id: 'checkout',
+        initial: 'cart',
+        states: {
+          cart: {},
+          shipping: { id: 'shipping', route: {} },
+          payment: { id: 'payment' }
+        }
+      }),
+      { onUnhandledEvent }
+    ).start();
+    actor.send({ type: 'xstate.route', to: 'shipping' } as any);
+    actor.send({ type: 'xstate.route', to: '#payment' } as any);
+    actor.send({ type: 'xstate.route', to: '#shipping' });
+
+    expect(actor.getSnapshot().value).toBe('shipping');
+    expect(onUnhandledEvent.mock.calls.map(([event]) => event.to)).toEqual([
+      'shipping',
+      '#payment'
+    ]);
+    expect(warn.mock.calls).toEqual([
+      [
+        `Actor ${actor.id} received event "xstate.route" to "shipping" in state "cart" with no matching transition`
+      ],
+      [
+        `Actor ${actor.id} received event "xstate.route" to "#payment" in state "cart" with no matching transition`
+      ]
+    ]);
+  });
 });

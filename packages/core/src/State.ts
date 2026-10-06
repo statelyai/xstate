@@ -109,6 +109,64 @@ type MatchingStateValue<
           : never
       : never;
 
+type StateValuePath<TStateValue extends StateValue> =
+  TStateValue extends StateValueMap
+    ? {
+        [K in keyof TStateValue & string]:
+          | K
+          | (NonNullable<TStateValue[K]> extends infer TChild extends StateValue
+              ? `${K}.${StateValuePath<TChild>}`
+              : never);
+      }[keyof TStateValue & string]
+    : TStateValue;
+
+/**
+ * The values that `snapshot.matches(...)` accepts for a state value: a state
+ * key, a dot-delimited path to a descendant state, or a partial state value.
+ * Non-literal state values accept any value.
+ */
+export type ToTestStateValue<TStateValue extends StateValue> =
+  StateValue extends TStateValue
+    ? StateValue
+    : TStateValue extends string
+      ? TStateValue
+      : TStateValue extends StateValueMap
+        ? string extends keyof TStateValue
+          ? StateValue
+          :
+              | StateValuePath<TStateValue>
+              | {
+                  [K in keyof TStateValue]?: NonNullable<
+                    TStateValue[K]
+                  > extends infer TChild extends StateValue
+                    ? ToTestStateValue<TChild>
+                    : never;
+                }
+        : never;
+
+type IsWideStateValue<TTestStateValue extends StateValue> =
+  string extends TTestStateValue
+    ? true
+    : TTestStateValue extends StateValueMap
+      ? string extends keyof TTestStateValue
+        ? true
+        : false
+      : false;
+
+/**
+ * `unknown` if `matches(...)` accepts `TTestStateValue` for `TStateValue`,
+ * otherwise `never`. Non-literal test values are always accepted.
+ */
+export type TestStateValueCheck<
+  TStateValue extends StateValue,
+  TTestStateValue extends StateValue
+> =
+  IsWideStateValue<TTestStateValue> extends true
+    ? unknown
+    : [TTestStateValue] extends [ToTestStateValue<TStateValue>]
+      ? unknown
+      : never;
+
 interface MachineSnapshotBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -169,7 +227,9 @@ interface MachineSnapshotBase<
    *
    * @param partialStateValue
    */
-  matches<const TTestStateValue extends string>(
+  matches<
+    const TTestStateValue extends Extract<ToTestStateValue<TStateValue>, string>
+  >(
     partialStateValue: TTestStateValue,
     ...args: string extends TTestStateValue ? [never] : []
   ): this is MachineSnapshot<
@@ -182,7 +242,12 @@ interface MachineSnapshotBase<
     TMeta,
     TStateSchema
   >;
-  matches<const TTestStateValue extends StateValueMap>(
+  matches<
+    const TTestStateValue extends Extract<
+      ToTestStateValue<TStateValue>,
+      StateValueMap
+    >
+  >(
     partialStateValue: TTestStateValue,
     ...args: string extends keyof TTestStateValue ? [never] : []
   ): this is MachineSnapshot<
@@ -195,7 +260,15 @@ interface MachineSnapshotBase<
     TMeta,
     TStateSchema
   >;
-  matches(partialStateValue: StateValue): boolean;
+  // Non-literal values, and unions of snapshots (whose overloads above differ)
+  matches<
+    TSnapshot extends { value: StateValue },
+    const TTestStateValue extends StateValue
+  >(
+    this: TSnapshot,
+    partialStateValue: TTestStateValue &
+      NoInfer<TestStateValueCheck<TSnapshot['value'], TTestStateValue>>
+  ): boolean;
 
   /**
    * Whether the current state nodes has a state node with the specified `tag`.

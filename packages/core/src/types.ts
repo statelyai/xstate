@@ -1,4 +1,8 @@
-import type { MachineSnapshot } from './State.ts';
+import type {
+  MachineSnapshot,
+  TestStateValueCheck,
+  ToTestStateValue
+} from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
 import { AsyncActorLogic } from './actors/promise.ts';
@@ -213,7 +217,9 @@ export type InputFrom<T> =
             infer _TActionMap,
             infer _TActorMap,
             infer _TGuardMap,
-            infer _TDelayMap
+            infer _TDelayMap,
+            infer _TInternalEvent,
+            infer _TTransitionMeta
           >
         ? TInput
         : never;
@@ -228,7 +234,12 @@ export type OutputFrom<T> =
     infer _TEmitted
   >
     ? (TSnapshot & { status: 'done' })['output']
-    : T extends ActorRef<infer TSnapshot, infer _TEvent, infer _TEmitted>
+    : T extends ActorRef<
+          infer TSnapshot,
+          infer _TEvent,
+          infer _TEmitted,
+          infer _TSendEvent
+        >
       ? (TSnapshot & { status: 'done' })['output']
       : never;
 
@@ -241,7 +252,12 @@ export type ErrorFrom<T> = T extends {
   transition: (snapshot: infer TSnapshot, ...args: any[]) => any;
 }
   ? ErrorFromSnapshot<TSnapshot>
-  : T extends ActorRef<infer TSnapshot, infer _TEvent, infer _TEmitted>
+  : T extends ActorRef<
+        infer TSnapshot,
+        infer _TEvent,
+        infer _TEmitted,
+        infer _TSendEvent
+      >
     ? ErrorFromSnapshot<TSnapshot>
     : never;
 
@@ -685,10 +701,13 @@ export type TransitionConfigFunction<
 } | void;
 
 // The compact callback projection must retain a machine's public send protocol.
-declare const sendableEvent: unique symbol;
-
+// A string-literal key (not a `unique symbol`) on purpose: an unexported
+// `declare const … : unique symbol` can't be named in an emitted declaration
+// file, which made every exported `createStateConfig()` callback with a
+// parameter fail declaration emit with TS4023 (see the regression test for
+// `createStateConfig`'s declaration emit in test/declarations.test.ts).
 type SendableEventCarrier<TEvent extends EventObject> = {
-  readonly [sendableEvent]?: TEvent;
+  readonly '~sendableEvent'?: TEvent;
 };
 
 /**
@@ -1498,7 +1517,12 @@ type StateSnapshotFromStateValue<
       >,
       'matches'
     > & {
-      matches<const TTestStateValue extends string>(
+      matches<
+        const TTestStateValue extends Extract<
+          ToTestStateValue<TAllStateValue>,
+          string
+        >
+      >(
         partialStateValue: TTestStateValue,
         ...args: string extends TTestStateValue ? [never] : []
       ): this is StateSnapshotFromStateValue<
@@ -1512,7 +1536,12 @@ type StateSnapshotFromStateValue<
         TStateSchema,
         TAllStateValue
       >;
-      matches<const TTestStateValue extends StateValueMap>(
+      matches<
+        const TTestStateValue extends Extract<
+          ToTestStateValue<TAllStateValue>,
+          StateValueMap
+        >
+      >(
         partialStateValue: TTestStateValue,
         ...args: string extends keyof TTestStateValue ? [never] : []
       ): this is StateSnapshotFromStateValue<
@@ -1526,7 +1555,14 @@ type StateSnapshotFromStateValue<
         TStateSchema,
         TAllStateValue
       >;
-      matches(partialStateValue: StateValue): boolean;
+      matches<
+        TSnapshot extends { value: StateValue },
+        const TTestStateValue extends StateValue
+      >(
+        this: TSnapshot,
+        partialStateValue: TTestStateValue &
+          NoInfer<TestStateValueCheck<TSnapshot['value'], TTestStateValue>>
+      ): boolean;
     }
   : never;
 
@@ -1681,6 +1717,8 @@ export interface TransitionDefinition<
   >,
   'target' | 'to'
 > {
+  /** Shared definition underlying an execution-specific resolved transition. */
+  definition?: TransitionDefinition<TContext, TEvent, TMeta>;
   target: ReadonlyArray<AnyStateNode> | undefined;
   source: AnyStateNode;
   reenter: boolean;
@@ -2386,49 +2424,17 @@ export type ActorSelf<
 // TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
 /** @public */
 export type ActorRefFrom<T> =
-  T extends StateMachine<
-    infer TContext,
-    infer TEvent,
-    infer TChildren,
-    infer TStateValue,
-    infer TTag,
-    infer _TInput,
-    infer TOutput,
-    infer TEmitted,
-    infer TMeta,
-    infer _TConfig,
-    infer _TActionMap,
-    infer _TActorMap,
-    infer _TGuardMap,
-    infer _TDelayMap,
-    infer TInternalEvent
-  >
-    ? ActorRef<
-        MachineSnapshot<
-          TContext,
-          TEvent,
-          TChildren,
-          TStateValue,
-          TTag,
-          TOutput,
-          TMeta,
-          any //TStateSchema
-        >,
-        TEvent,
-        TEmitted,
-        SendableEventFromMachine<TEvent, TInternalEvent>
-      >
-    : T extends Promise<infer U>
-      ? ActorRefFrom<AsyncActorLogic<U>>
-      : T extends ActorLogic<
-            infer TSnapshot,
-            infer TEvent,
-            infer _TInput,
-            infer _TSystem,
-            infer TEmitted
-          >
-        ? ActorRef<TSnapshot, TEvent, TEmitted, SendableEventFromLogic<T>>
-        : never;
+  T extends Promise<infer U>
+    ? ActorRefFrom<AsyncActorLogic<U>>
+    : T extends ActorLogic<
+          infer TSnapshot,
+          infer TEvent,
+          infer _TInput,
+          infer _TSystem,
+          infer TEmitted
+        >
+      ? ActorRef<TSnapshot, TEvent, TEmitted, SendableEventFromLogic<T>>
+      : never;
 
 /** @public */
 export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
@@ -2447,7 +2453,8 @@ export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
     infer _TActorMap,
     infer _TGuardMap,
     infer _TDelayMap,
-    infer TInternalEvent
+    infer TInternalEvent,
+    infer _TTransitionMeta
   >
     ? SendableEventFromMachine<TEvent, TInternalEvent>
     : TLogic extends SendableEventCarrier<infer TSendableEvent>
@@ -2546,7 +2553,9 @@ export type MachineSourcesFrom<
     infer TActionMap,
     infer TActorMap,
     infer TGuardMap,
-    infer TDelayMap
+    infer TDelayMap,
+    infer _TInternalEvent,
+    infer _TTransitionMeta
   >
     ? {
         actions: TActionMap;
@@ -2752,7 +2761,7 @@ export type UnknownActorLogic = ActorLogic<
 /** @public */
 export type SnapshotFrom<T> =
   ReturnTypeOrValue<T> extends infer R
-    ? R extends ActorRef<infer TSnapshot, infer _, infer __>
+    ? R extends ActorRef<infer TSnapshot, infer _, infer __, infer ___>
       ? TSnapshot
       : R extends Actor<infer TLogic>
         ? SnapshotFrom<TLogic>
@@ -2802,7 +2811,9 @@ export type EmittedFrom<TLogic extends AnyActorLogic> =
     infer _TActionMap,
     infer _TActorMap,
     infer _TGuardMap,
-    infer _TDelayMap
+    infer _TDelayMap,
+    infer _TInternalEvent,
+    infer _TTransitionMeta
   >
     ? TEmitted
     : [TLogic] extends [AnyStateMachine]
@@ -2832,7 +2843,9 @@ type ResolveEventType<T> = T extends infer R
       infer _TActionMap,
       infer _TActorMap,
       infer _TGuardMap,
-      infer _TDelayMap
+      infer _TDelayMap,
+      infer _TInternalEvent,
+      infer _TTransitionMeta
     >
     ? TEvent
     : R extends MachineSnapshot<
@@ -2846,9 +2859,20 @@ type ResolveEventType<T> = T extends infer R
           infer _TStateSchema
         >
       ? TEvent
-      : R extends ActorRef<infer _TSnapshot, infer TEvent, infer _TEmitted>
+      : // An actor matches structurally, and its events can only be inferred
+        // from `send`, so try the pattern that ties `TSendEvent` to `TEvent`
+        // first. Refs whose sendable events differ, such as `ActorRefFrom` of
+        // a machine with internal events, match the second pattern.
+        R extends ActorRef<infer _TSnapshot, infer TEvent, infer _TEmitted>
         ? TEvent
-        : never
+        : R extends ActorRef<
+              infer _TSnapshot,
+              infer TEvent,
+              infer _TEmitted,
+              infer _TSendEvent
+            >
+          ? TEvent
+          : never
   : never;
 
 /** @public */
@@ -2859,40 +2883,11 @@ export type EventFrom<
 > = IsNever<K> extends true ? TEvent : ExtractEvent<TEvent, K>;
 
 /** @public */
-export type ContextFrom<T> =
-  T extends StateMachine<
-    infer TContext,
-    infer _TEvent,
-    infer _TChildren,
-    infer _TStateValue,
-    infer _TTag,
-    infer _TInput,
-    infer _TOutput,
-    infer _TEmitted,
-    infer _TMeta,
-    infer _TConfig,
-    infer _TActionMap,
-    infer _TActorMap,
-    infer _TGuardMap,
-    infer _TDelayMap
-  >
+export type ContextFrom<T> = T extends { context: infer TContext }
+  ? TContext
+  : SnapshotFrom<T> extends { context: infer TContext }
     ? TContext
-    : T extends MachineSnapshot<
-          infer TContext,
-          infer _TEvent,
-          infer _TChildren,
-          infer _TStateValue,
-          infer _TTag,
-          infer _TOutput,
-          infer _TMeta,
-          infer _TStateSchema
-        >
-      ? TContext
-      : T extends Actor<infer TActorLogic>
-        ? TActorLogic extends AnyStateMachine
-          ? ContextFrom<TActorLogic>
-          : never
-        : never;
+    : never;
 
 /** @public */
 export type InferEvent<E extends EventObject> = {
@@ -3036,7 +3031,9 @@ export type StateSchemaFrom<T extends AnyStateMachine> =
     infer _TActionMap,
     infer _TActorMap,
     infer _TGuardMap,
-    infer _TDelayMap
+    infer _TDelayMap,
+    infer _TInternalEvent,
+    infer _TTransitionMeta
   >
     ? TStateSchema
     : never;
@@ -3400,6 +3397,8 @@ export type ExecutableActionObjectFromLogic<T extends AnyActorLogic> =
     any,
     any,
     infer TActionMap,
+    any,
+    any,
     any,
     any,
     any

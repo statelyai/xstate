@@ -41,6 +41,14 @@ Pass an async function directly as `src`, with `schemas.input`, `schemas.output`
 
 The helper requires input for actors whose input excludes `undefined`, and checks child IDs and source compatibility against `schemas.children` declared in the setup or machine.
 
+<!-- graph traversal events from packages/core/src/graph/index.ts -->
+
+`getAllOwnEvents(snapshot)` from `xstate/graph` includes invoke completions, errors, and delayed events. Compose it with custom traversal payloads: supplied `events` replace the defaults. See [model-based testing](../../docs/model-based-testing.md).
+
+<!-- JSON loading and runtime validation from packages/core/src/createMachineFromConfig.ts -->
+
+Revive JSON definitions with `createMachineFromConfig(json, { schemas, validator, ...sources })` to restore runtime validation. The loader validates structural keys and references and copies its input; serialized definitions are independent copies. See [serialization](../../docs/serialization.md).
+
 For flat finite state machines, `xstate/fsm` provides a tiny pure transition
 table with context and TypeScript support:
 

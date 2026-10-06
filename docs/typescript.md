@@ -174,8 +174,10 @@ stable context, active state schemas, child slots, delayed raised events,
 emitted events and final output before effects run. Invalid values throw an
 `ActorValidationError`.
 
-Validation is synchronous and assertion-only: schema transformations and async
-validation are rejected. Unknown events and emitted events are errors when a
+Validation is synchronous and assertion-only: async validation is rejected.
+Parsed schema results are discarded. Type-changing transformations are rejected
+by the types, but same-type transformations cannot be detected statically;
+normalize values before sending them. Unknown events and emitted events are errors when a
 corresponding schema map exists; use `unknownEvents: 'ignore'` or
 `unknownEmitted: 'ignore'` for open protocols.
 

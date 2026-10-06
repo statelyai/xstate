@@ -614,6 +614,12 @@ export function formatTransition(
   descriptor: string,
   transitionConfig: AnyTransitionConfig
 ): AnyTransitionDefinition {
+  const removedKey = getRemovedTransitionKey(transitionConfig);
+  if (removedKey) {
+    throw new Error(
+      `Transition "${descriptor || 'always'}" in state "${stateNode.id}" uses ${removedKey}, which was removed in v6. Use a transition function.`
+    );
+  }
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
   const target = resolveTarget(stateNode, normalizedTarget);
@@ -633,6 +639,33 @@ export function formatTransition(
   };
 
   return transition;
+}
+
+/**
+ * Returns the v5 key of a transition object that v6 would misread, in every
+ * build: `cond` is never read, so the transition would always be taken,
+ * transition `actions` would not run as written, and only a function `guard`
+ * can be called. Development builds explain each key earlier, in
+ * `diagnoseAuthorConfig`. Compiled configs (JSON, SCXML) never set them.
+ */
+function getRemovedTransitionKey(
+  transitionConfig: AnyTransitionConfig
+): string | undefined {
+  const { cond, actions, guard } = transitionConfig as {
+    cond?: unknown;
+    actions?: unknown;
+    guard?: unknown;
+  };
+  if (cond !== undefined) {
+    return '"cond"';
+  }
+  if (actions !== undefined) {
+    return '"actions"';
+  }
+  if (guard !== undefined && typeof guard !== 'function') {
+    return 'an object-form "guard"';
+  }
+  return undefined;
 }
 
 function isStateNodeDescendantOf(
@@ -1154,7 +1187,10 @@ function removeConflictingTransitions(
 
 type ResolvableTransition = Parameters<typeof getTransitionResult>[0];
 type TransitionResultResolver = (
-  transition: ResolvableTransition
+  transition: ResolvableTransition,
+  // Whether the caller applies the result's `context` and `input`, rather
+  // than only reading its targets
+  applied?: boolean
 ) => ReturnType<typeof getTransitionResult>;
 
 function createTransitionResultResolver(
@@ -1167,14 +1203,18 @@ function createTransitionResultResolver(
   let cache:
     | Map<ResolvableTransition, ReturnType<typeof getTransitionResult>>
     | undefined;
-  return (transition) => {
-    if (!transition.to) {
-      return getTransitionResult(transition, snapshot, event, actorScope, {
-        resolveActions,
-        selectionResult: selectionResults?.get(
-          transition as AnyTransitionDefinition
-        )
-      });
+  return (transition, applied) => {
+    if (!transition.to && !applied) {
+      // An object transition's targets are static, so reading them must not
+      // run its `context` and `input` mappers
+      return {
+        targets: transition.target as AnyStateNode[] | undefined,
+        context: undefined,
+        reenter: transition.reenter,
+        actions: undefined,
+        internalEvents: undefined,
+        input: undefined
+      };
     }
     let result = cache?.get(transition);
     if (!result) {
@@ -1669,11 +1709,12 @@ function microstep(
     const transitionActions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
 
+    const resolvedTransitions: AnyTransitionDefinition[] = [];
     for (const t of filteredTransitions) {
-      if (t.actions) {
-        transitionActions.push(...toArray(t.actions));
-      }
-      const res = getCurrentTransitionResult(t);
+      const res = getCurrentTransitionResult(t, true);
+      resolvedTransitions.push(
+        t.to ? { ...t, target: res.targets, definition: t } : t
+      );
       if (res.context !== undefined) {
         context = mergeContextPatch(context, res.context);
       }
@@ -1905,7 +1946,7 @@ function microstep(
       };
       let stateInputsChanged = false;
       for (const transition of filteredTransitions) {
-        const { targets, input } = getCurrentTransitionResult(transition);
+        const { targets, input } = getCurrentTransitionResult(transition, true);
         if (input && targets) {
           for (const targetNode of targets.filter((targetNode) =>
             enteredTargetsByTransition.get(transition)?.has(targetNode)
@@ -2244,10 +2285,11 @@ function microstep(
           nextState === currentSnapshot
             ? cloneMachineSnapshot(nextState)
             : nextState,
-          executableActions
+          executableActions,
+          resolvedTransitions
         ];
       }
-      return [nextState, executableActions];
+      return [nextState, executableActions, resolvedTransitions];
     }
 
     return [
@@ -2255,7 +2297,8 @@ function microstep(
         _nodes: nextStateNodes,
         historyValue
       }),
-      executableActions
+      executableActions,
+      resolvedTransitions
     ];
   }
 }
@@ -2530,6 +2573,7 @@ export function macrostep(
     step: Microstep,
     transitions: AnyTransitionDefinition[]
   ) {
+    transitions = step[2] ?? transitions;
     // collect microsteps; their transitions are surfaced on the enclosing
     // '@xstate.transition' event via its `microsteps[]` facet (there is no
     // standalone microstep event) and returned by `getMicrosteps()`

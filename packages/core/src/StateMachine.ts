@@ -163,7 +163,7 @@ function getEmptyCanActorScope(): AnyActorScope {
   return emptyCanActorScope;
 }
 
-type CompatibleProvidedActorSource<
+export type CompatibleProvidedActorSource<
   TExpected extends AnyActorLogic,
   TActual extends AnyActorLogic
 > =
@@ -211,7 +211,7 @@ type ProvidedSourceMap<TDeclared, TProvided> = {
 
 // Action implementations may return integration-specific values. Their
 // positional arguments must still match the declared source.
-type ProvidedActionContracts<T> = {
+export type ProvidedActionContracts<T> = {
   [K in keyof T]: T[K] extends (...args: infer TArgs) => any
     ? (...args: TArgs) => void
     : never;
@@ -283,7 +283,11 @@ export class StateMachine<
     ? TVersion
     : undefined;
 
-  public schemas: AnyMachineSchemas | undefined;
+  public schemas:
+    | (TConfig extends { schemas: infer TSchemas extends AnyMachineSchemas }
+        ? TSchemas
+        : AnyMachineSchemas)
+    | undefined;
 
   /** Standard Schema for snapshots persisted by this machine version. */
   public readonly snapshotSchema: StandardSchemaV1<
@@ -366,7 +370,7 @@ export class StateMachine<
       }
     }
     this.version = this.config.version as typeof this.version;
-    this.schemas = this.config.schemas;
+    this.schemas = this.config.schemas as typeof this.schemas;
     this.snapshotSchema = {
       '~standard': {
         version: 1,

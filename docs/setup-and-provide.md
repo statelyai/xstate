@@ -244,3 +244,7 @@ const state = s.createStateConfig({ on: { go: { target: 'loading' } } });
 const machine = s.createMachine({ context: { n: 0 }, initial: 'idle' });
 const provided = machine.provide({ actors: { fetchUser: fakeFetchUser } });
 ```
+
+## Source compatibility
+
+`extend()` replacements must remain compatible with the existing action, guard, and actor signatures. A machine and its `provide()` clones retain the concrete schema types in `machine.schemas`. Schema-free `createAsyncLogic()` outputs use ordinary TypeScript inference, so primitive literals widen to their primitive types. Supply an output schema when a specific output contract is needed.

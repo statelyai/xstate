@@ -1,5 +1,7 @@
 import {
   createMachine,
+  createActor,
+  initialTransition,
   getMicrosteps,
   getInitialMicrosteps
 } from '../src/index.ts';
@@ -377,7 +379,13 @@ describe('getInitialMicrosteps', () => {
     expect(microsteps[1][1]).toHaveLength(2); // always action + entry action for 'b'
     // The first microstep enters the initial states; the second takes `always`
     expect(microsteps[0][2]).toEqual([]);
-    expect(microsteps[1][2]).toEqual([machine.root.states.a.always![0]]);
+    expect(microsteps[1][2]).toEqual([
+      {
+        ...machine.root.states.a.always![0],
+        target: [machine.root.states.b],
+        definition: machine.root.states.a.always![0]
+      }
+    ]);
   });
 
   it('should work with nested initial states', () => {
@@ -418,4 +426,41 @@ describe('getInitialMicrosteps', () => {
 
     expect(microsteps[0][0].context).toEqual({ count: 42 });
   });
+});
+
+it('reports resolved function targets without changing the reusable definition', () => {
+  const target = vi.fn(() => ({ target: 'red.walk' }));
+  const machine = createMachine({
+    id: 'light',
+    initial: 'yellow',
+    states: {
+      yellow: { on: { GO: target } },
+      red: { initial: 'walk', states: { walk: {}, wait: {} } }
+    }
+  });
+  const original = machine.states.yellow.transitions.get('GO')![0];
+  const [snapshot] = initialTransition(machine);
+  const steps = getMicrosteps(machine, snapshot, { type: 'GO' });
+  expect(steps[0][2][0].target?.map((node) => node.id)).toEqual([
+    'light.red.walk'
+  ]);
+  expect(original.target).toBeUndefined();
+  target.mockClear();
+  const targets: string[] = [];
+  const actor = createActor(machine, {
+    inspect: (event) => {
+      if (event.type === '@xstate.transition' && event.eventType === 'GO') {
+        targets.push(
+          ...event.microsteps.flatMap(
+            (t) => t.target?.map((node) => node.id) ?? []
+          )
+        );
+      }
+    }
+  }).start();
+  actor.send({ type: 'GO' });
+  expect(targets).toEqual(['light.red.walk']);
+  expect(target).toHaveBeenCalledTimes(1);
+  expect(steps[0][2][0].definition).toBe(original);
+  actor.stop();
 });
