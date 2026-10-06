@@ -41,8 +41,11 @@ import {
 } from '../src/index';
 import { createInertActorScope } from '../src/inertActorScope';
 import type {
+  ActorLogic,
+  ActorLogicTransitionResult,
   DoneActorEvent,
   EventObject,
+  Snapshot,
   TransitionConfigFunction
 } from '../src/types';
 import type { Next_StateNodeConfig } from '../src/types.v6';
@@ -567,6 +570,61 @@ describe('context', () => {
         count: 0
       })
     });
+  });
+
+  it('should infer context from a context function without schemas.context', () => {
+    const connection = createCallbackLogic(() => () => {});
+
+    const machine = createMachine({
+      actors: { connection },
+      context: ({ spawn, actors }) => ({
+        count: 0,
+        connection: spawn(actors.connection, { id: 'connection' })
+      }),
+      on: {
+        inc: ({ context }) => ({ context: { count: context.count + 1 } })
+      }
+    });
+
+    const context = createActor(machine).getSnapshot().context;
+    context.count satisfies number;
+    context.connection satisfies ActorRefFromLogic<typeof connection>;
+    // @ts-expect-error the spawned ref is typed, not `any`
+    context.connection satisfies number;
+
+    const lazy = createMachine({ context: () => ({ count: 0 }) });
+    createActor(lazy).getSnapshot().context.count satisfies number;
+  });
+
+  it('should infer context from a context function next to an invoked logic object', () => {
+    // Implements `ActorLogic` without its optional members, like a machine in
+    // the published declarations, where `getExecutionErrorEvent` is stripped.
+    class MinimalLogic implements ActorLogic<Snapshot<undefined>, EventObject> {
+      transition(
+        snapshot: Snapshot<undefined>
+      ): ActorLogicTransitionResult<Snapshot<undefined>> {
+        return [snapshot, []];
+      }
+      initialTransition(): ActorLogicTransitionResult<Snapshot<undefined>> {
+        return [this.getInitialSnapshot(), []];
+      }
+      getInitialSnapshot(): Snapshot<undefined> {
+        return { status: 'active', output: undefined, error: undefined };
+      }
+      getPersistedSnapshot(snapshot: Snapshot<undefined>) {
+        return snapshot;
+      }
+    }
+
+    const machine = createMachine({
+      context: ({ input }) => ({ count: 0, input }),
+      initial: 'idle',
+      states: {
+        idle: { invoke: { src: new MinimalLogic() } }
+      }
+    });
+
+    createActor(machine).getSnapshot().context.count satisfies number;
   });
 });
 

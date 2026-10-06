@@ -1044,6 +1044,9 @@ export class StateMachine<
    * @internal
    */
   public _canTransition(snapshot: AnyMachineSnapshot, event: TEvent): boolean {
+    if (snapshot.status !== 'active') {
+      return false;
+    }
     const emptyActorScope = getEmptyCanActorScope();
     const transitionData = this.getTransitionData(
       snapshot as any,

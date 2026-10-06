@@ -1590,13 +1590,25 @@ function microstep(
                     children: args.children,
                     actions: args.actions,
                     actors: args.actors,
+                    guards: currentSnapshot.machine.sources.guards,
+                    delays: currentSnapshot.machine.sources.delays,
                     input,
                     stateNode
                   },
                   actorScope
                 )
-              : { ...args, input, stateNode },
-            enqueue
+              : {
+                  ...args,
+                  guards: currentSnapshot.machine.sources.guards,
+                  delays: currentSnapshot.machine.sources.delays,
+                  input,
+                  stateNode
+                },
+            // This function runs during action resolution, where enqueued
+            // effects are no longer collected.
+            isDevelopment
+              ? createIgnoredEnqueue(transitionFn, kind, stateNode.id)
+              : enqueue
           ),
         '_special' in transitionFn ? { _special: true } : {}
       );
@@ -1656,7 +1668,7 @@ function microstep(
           ? getStateActionsAndContext(
               exitStateNode.exit,
               nextState.context,
-              currentSnapshot.children,
+              nextState.children,
               stateInput,
               'exit',
               exitStateNode
@@ -1958,12 +1970,14 @@ function microstep(
       }
 
       const completedNodes = new Set<AnyStateNode>();
-      const children = { ...nextState.children };
       for (const stateNodeToEnter of [...statesToEnter].sort(
         (a, b) => a.order - b.order
       )) {
         mutStateNodeSet.add(stateNodeToEnter);
         const actions: AnyAction[] = [];
+        // Read the children for each state: the entry actions of the states
+        // entered before this one may have spawned or stopped children.
+        let children = nextState.children;
 
         // Final states are inert, so (as in SCXML) their invocations never
         // start.
@@ -2021,7 +2035,7 @@ function microstep(
           });
 
           if (invokeDef.id) {
-            children[invokeDef.id] = actor;
+            children = { ...children, [invokeDef.id]: actor };
           }
         }
 
@@ -2230,14 +2244,20 @@ function microstep(
       nextStateNodesToExit.forEach((stateNode) => {
         if (stateNode.exit) {
           const stateInput = getStateInput(nextState, stateNode.id);
-          const [exitActions, , nextInternalEvents] = getStateActionsAndContext(
-            stateNode.exit,
-            nextState.context,
-            nextState.children,
-            stateInput,
-            'exit',
-            stateNode
-          );
+          const [exitActions, nextContext, nextInternalEvents] =
+            getStateActionsAndContext(
+              stateNode.exit,
+              nextState.context,
+              nextState.children,
+              stateInput,
+              'exit',
+              stateNode
+            );
+          if (nextContext) {
+            nextState = cloneMachineSnapshot(nextState, {
+              context: nextContext
+            });
+          }
           allExitActions.push(...exitActions);
           if (nextInternalEvents?.length) {
             internalQueue.push(...nextInternalEvents);
@@ -2482,6 +2502,12 @@ export function macrostep(
   snapshot: typeof snapshot;
   microsteps: Microstep[];
 } {
+  // A done, error or stopped snapshot processes no events, as in an actor:
+  // every event is unhandled. The initial macrostep passes `initialMicrosteps`
+  // and may start from a snapshot that is already done.
+  if (snapshot.status !== 'active' && !initialMicrosteps.length) {
+    return { snapshot, microsteps: [[snapshot, [], []]] };
+  }
   let nextSnapshot = snapshot;
   const microsteps: Microstep[] = initialMicrosteps.slice();
   // Whether a transition handled the external event. A handled event always
@@ -2826,6 +2852,58 @@ function assertSyncTransitionResult(
     );
   }
 }
+
+const ignoredEnqueues = new WeakMap<
+  (...args: any[]) => any,
+  ReturnType<typeof createEnqueueObject>
+>();
+
+/**
+ * The enqueue object that an entry or exit function gets in development when it
+ * is not declared with exactly two parameters. Such a function runs during
+ * action resolution, where enqueued effects are no longer collected, so every
+ * call is ignored. This one warns, once per function.
+ */
+function createIgnoredEnqueue(
+  fn: (...args: any[]) => any,
+  kind: 'entry' | 'exit',
+  stateNodeId: string
+): ReturnType<typeof createEnqueueObject> {
+  let enqueue = ignoredEnqueues.get(fn);
+  if (enqueue) {
+    return enqueue;
+  }
+  let warned = false;
+  const ignore =
+    (method: string, result?: () => unknown) =>
+    (..._args: unknown[]): any => {
+      if (!warned) {
+        warned = true;
+        console.warn(
+          `The ${kind} function of state "${stateNodeId}" called ${method}(...), which was ignored. Only ${kind} functions declared with exactly two parameters, (args, enq) => ..., get a working enq. This one has fn.length ${fn.length}; fn.length stops counting at a default or rest parameter.`
+        );
+      }
+      return result?.();
+    };
+  const emptyActor = () => ({});
+  enqueue = createEnqueueObject(
+    {
+      cancel: ignore('enq.cancel'),
+      emit: ignore('enq.emit'),
+      log: ignore('enq.log'),
+      raise: ignore('enq.raise'),
+      sendTo: ignore('enq.sendTo'),
+      stop: ignore('enq.stop'),
+      spawn: ignore('enq.spawn', emptyActor),
+      listen: ignore('enq.listen', emptyActor),
+      subscribeTo: ignore('enq.subscribeTo', emptyActor)
+    },
+    ignore('enq')
+  );
+  ignoredEnqueues.set(fn, enqueue);
+  return enqueue;
+}
+
 let transitionEffectEnqueue: ReturnType<typeof createEnqueueObject> | undefined;
 function getTransitionEffectEnqueue() {
   return (transitionEffectEnqueue ??= createEnqueueObject(

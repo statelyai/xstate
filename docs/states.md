@@ -83,6 +83,8 @@ snapshot.can({ type: 'submit' });
 
 Because v6 conditions live inside transition functions, `can(...)` calls those functions to see whether they return a transition or call `enq`. It does not execute their effects: enqueued actions, raised events and sent events are discarded. Keep transition functions free of side effects outside `enq(...)` so that `can(...)` stays safe to call during rendering.
 
+`can(...)` returns `false` on a `done`, `error`, or `stopped` snapshot without evaluating transitions. On an active snapshot it propagates errors thrown by guards, transition functions, or context mappers. This dry run does not execute state `onError` recovery or change the actor; sending the event runs the normal error-handling path. Handle a thrown error at the call site when using incomplete or fallible guards during rendering.
+
 A checkout button can be disabled with `can({ type: 'submit' })` instead of duplicating the machine's rules.
 
 ## Tags

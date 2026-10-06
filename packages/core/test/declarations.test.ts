@@ -1,5 +1,12 @@
 import path from 'node:path';
+import { setImmediate } from 'node:timers/promises';
 import ts from 'typescript';
+
+// Compiler passes are synchronous. Yield between cases so worker RPC updates
+// flush instead of timing out across this long-running suite on CI.
+afterEach(async () => {
+  await setImmediate();
+});
 
 const FIXTURES = [
   'narrowed-context',

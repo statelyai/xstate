@@ -168,8 +168,7 @@ idle: {
     submit: (args, enq) => {
       const { actions } = args;
       if (!args.guards.isReady(args.context.ready)) return;
-      actions.notify({ msg: 'Charging' });
-      enq(actions.notify, { msg: 'Queued' });
+      enq(actions.notify, { msg: 'Charging' });
       return { target: 'charging' };
     }
   }
@@ -186,6 +185,26 @@ setup({
   }
 });
 ```
+
+`enq(actions.notify, params)` runs a named action as an effect after the transition, and ignores what it returns. A named action can instead compute a context patch, which `provide(...)` can then replace like any other implementation. Only what the transition, entry or exit function returns is applied, so call the action directly and return its result:
+
+```ts
+const formSetup = setup({
+  schemas: { events: { pick: z.object({ country: z.string() }) } },
+  actions: {
+    applyDefaults: (country: string) => ({
+      context: { currency: country === 'FR' ? 'EUR' : 'USD' }
+    })
+  }
+});
+
+// in a state of a formSetup machine
+on: {
+  pick: ({ actions, event }) => actions.applyDefaults(event.country)
+}
+```
+
+A directly called action runs whenever the transition is evaluated, including by `snapshot.can(...)`, so keep it free of side effects and enqueue effects instead.
 
 Named `actors` are referenced by `invoke.src`, and named `delays` by `after` keys and state [`timeout`](timeouts.md).
 
@@ -219,6 +238,8 @@ const testMachine = orderMachine.provide({
 ```
 
 Use `provide(...)` for the same machine under different conditions: real payment actors in production and fakes in tests, or real timers in the app and instant ones in a test suite.
+
+`provide(...)` also supplies actions that are only declared in `schemas.actions`. Until one is provided, it is `undefined` in `actions`: `enq(actions.track, params)` enqueues nothing, and development builds log a warning.
 
 > **Warning:** `provide(...)` replaces implementations only. It cannot add states, transitions or new source names.
 

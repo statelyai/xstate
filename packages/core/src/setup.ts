@@ -27,6 +27,10 @@ import {
   EventObject,
   AnyEventObject,
   EventDescriptor,
+  ReservedEventAliasDescriptor,
+  ReservedMachineEvent,
+  ReservedActorEventAliases,
+  ReservedEventFromDescriptor,
   ExtractEvent,
   MachineContext,
   ProvidedActor,
@@ -1465,13 +1469,21 @@ type SetupInternalEvents<
   ? InferInternalEvents<TInternalEventSchemaMap>
   : InferInternalEvents<SetupSchemaMap<TSchemas, 'internalEvents'>>;
 
+// Without internal events this must be `SetupPublicEvents` itself, not a union
+// with `never`: such a union has the same members but is a different type, so
+// the config types computed from it are not shared with the ones computed from
+// `SetupPublicEvents`. With a validator, `setup().createMachine()` sees both
+// copies of each state's config, and TypeScript multiplies their unions out
+// (invoke sources per registered actor, targets per state contract).
 type SetupEvents<
   TSchemas,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
   TInternalEventSchemaMap extends Record<string, StandardSchemaV1> = {}
-> =
-  | SetupPublicEvents<TSchemas, TEventSchemaMap>
-  | SetupInternalEvents<TSchemas, TInternalEventSchemaMap>;
+> = [SetupInternalEvents<TSchemas, TInternalEventSchemaMap>] extends [never]
+  ? SetupPublicEvents<TSchemas, TEventSchemaMap>
+  :
+      | SetupPublicEvents<TSchemas, TEventSchemaMap>
+      | SetupInternalEvents<TSchemas, TInternalEventSchemaMap>;
 
 type SetupTags<TSchemas, TTagSchema extends StandardSchemaV1> = [
   SetupSchema<TSchemas, 'tags'>
@@ -3487,11 +3499,55 @@ type StateTransitions<
 } & (string extends TEvent['type']
   ? unknown
   : {
-      [K in `xstate.${string}`]?: StateTransitionConfigOrTarget<
+      [K in Exclude<
+        EventDescriptor<ReservedMachineEvent>,
+        EventDescriptor<TEvent>
+      >]?: StateTransitionConfigOrTarget<
         TStateSchemas,
         TContext,
         TContextShape,
-        { type: K },
+        ReservedEventFromDescriptor<K>,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TInput,
+        TTarget,
+        TKnownTarget
+      >;
+    } & {
+      [K in keyof ReservedActorEventAliases<
+        TActorMap,
+        TChildren
+      >]?: StateTransitionConfigOrTarget<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        ReservedActorEventAliases<TActorMap, TChildren>[K] & EventObject,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TInput,
+        TTarget,
+        TKnownTarget
+      >;
+    } & {
+      [K in ReservedEventAliasDescriptor]?: StateTransitionConfigOrTarget<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        ReservedEventFromDescriptor<K>,
         TEvent,
         TEmitted,
         TChildren,

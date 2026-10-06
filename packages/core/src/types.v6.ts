@@ -28,6 +28,11 @@ import {
   ErrorActorEvent,
   EnqueueObject,
   EventDescriptor,
+  ReservedEventDescriptor,
+  ReservedEventAliasDescriptor,
+  ReservedMachineEvent,
+  ReservedActorEventAliases,
+  ReservedEventFromDescriptor,
   ErrorEvent,
   EventObject,
   EventPayloadPattern,
@@ -1312,9 +1317,43 @@ export interface Next_RegularStateNodeConfig<
   } & (string extends TEvent['type']
     ? unknown
     : {
-        [K in `xstate.${string}`]?: Next_TransitionConfigOrTarget<
+        [K in Exclude<
+          EventDescriptor<ReservedMachineEvent>,
+          EventDescriptor<TEvent>
+        >]?: Next_TransitionConfigOrTarget<
           TContext,
-          { type: K },
+          ReservedEventFromDescriptor<K>,
+          TEvent,
+          TEmitted,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TTransitionMeta,
+          TInput,
+          TChildren
+        >;
+      } & {
+        [K in keyof ReservedActorEventAliases<
+          TActorMap,
+          TChildren
+        >]?: Next_TransitionConfigOrTarget<
+          TContext,
+          ReservedActorEventAliases<TActorMap, TChildren>[K] & EventObject,
+          TEvent,
+          TEmitted,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TTransitionMeta,
+          TInput,
+          TChildren
+        >;
+      } & {
+        [K in ReservedEventAliasDescriptor]?: Next_TransitionConfigOrTarget<
+          TContext,
+          ReservedEventFromDescriptor<K>,
           TEvent,
           TEmitted,
           TActionMap,
@@ -1848,7 +1887,7 @@ type UndeclaredEventDescriptorErrors<
 /**
  * @public Rejects `on` keys that match no declared event type. Only applies when the
  * event union is closed (e.g. `schemas.events` is declared); wildcards,
- * partial wildcards and reserved `xstate.*` event types are always allowed.
+ * partial wildcards and known reserved machine descriptors are allowed.
  * The error is reported at the offending key.
  */
 export type ValidateEventDescriptors<
@@ -1859,13 +1898,13 @@ export type ValidateEventDescriptors<
   : [
         UndeclaredEventDescriptors<
           TConfig,
-          EventDescriptor<TEvent> | `xstate.${string}`
+          EventDescriptor<TEvent> | ReservedEventDescriptor
         >
       ] extends [never]
     ? unknown
     : UndeclaredEventDescriptorErrors<
         TConfig,
-        EventDescriptor<TEvent> | `xstate.${string}`
+        EventDescriptor<TEvent> | ReservedEventDescriptor
       >;
 
 type IsHistoryStateConfig<TConfig> = TConfig extends { type: 'history' }

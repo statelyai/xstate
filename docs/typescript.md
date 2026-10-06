@@ -71,8 +71,8 @@ Use `assertEvent(...)` only when shared code must narrow a union to one or more 
 ## Checked event keys
 
 When `schemas.events` is declared, each key in an `on` map must match a
-declared event type. Wildcards (`'*'`, `'user.*'`) and reserved `xstate.*`
-event types are always allowed. Without `schemas.events`, any key is accepted.
+declared event type. Matching wildcards (`'*'`, `'user.*'`) and known reserved
+machine descriptors are allowed; misspelled or invented reserved prefixes are rejected. Without `schemas.events`, any key is accepted.
 
 ```ts
 on: {
@@ -86,12 +86,7 @@ inferred types, including when registered actors are used in inline transitions
 or invokes. Declaration output retains event, state, input and child-actor
 contracts without exposing each inline callback's full contextual type.
 
-Reserved `xstate.*` event keys are accepted in `on`, including partial wildcard
-descriptors such as `xstate.error.actor.*`. Exact declared descriptors preserve
-their event payload types; undeclared reserved descriptors expose only an event
-`type`. Runtime wildcards match event-type prefixes, not `actorId`: use
-`xstate.error.actor` to handle the stable actor-error event, and inspect
-`event.actorId` when filtering by child.
+Known reserved descriptors in `on` carry their actual event payloads: actor completion, error and snapshot events; state completion; delayed events; and state or actor timeouts. Bare `xstate.error.actor` handlers receive `event.error` and `event.actorId`. Known actor-specific completion aliases preserve the actor output type. Legacy suffixed descriptors and their wildcards match runtime actor/state aliases; the event itself retains its stable bare type. Use `xstate.error.actor` and filter `event.actorId` explicitly when handling a particular child.
 
 ## Child completion events
 

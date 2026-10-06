@@ -72,6 +72,21 @@ try {
     const fromKey: EventFrom<typeof internalsMachine, 'start'> = { type: 'start' };
     const fromContext: ContextFrom<typeof internalsMachine> = {};
     void [fromEvent, fromKey, fromContext];
+
+    // Reserved descriptor helpers are referenced by the published config types.
+    // They must survive declaration stripping and retain their event payloads.
+    setup({ schemas: { events: { GO: types<{}>() } } }).createMachine({
+      on: {
+        GO: () => {},
+        'xstate.error.actor': ({ event }) => {
+          const actorId: string = event.actorId;
+          const error: unknown = event.error;
+          void [actorId, error];
+        },
+        // @ts-expect-error reserved descriptor typos are not public events
+        'xstate.eror.actor': () => {}
+      }
+    });
   `
   );
   writeFileSync(

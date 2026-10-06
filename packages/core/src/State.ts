@@ -282,6 +282,9 @@ interface MachineSnapshotBase<
    * transition to be selected, even if the transitions have no actions nor
    * change the state value.
    *
+   * Returns false for terminal snapshots. Throws if transition evaluation
+   * throws; this dry run does not run onError recovery.
+   *
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */

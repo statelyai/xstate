@@ -63,7 +63,44 @@ type EffectRuntime = Partial<ActorSystemRuntime>;
 function execCustomEffect(
   this: CustomExecutableActionObject
 ): void | PromiseLike<void> | undefined {
-  return this.action?.(...this.args);
+  const result = this.action?.(...this.args);
+  if (isDevelopment) {
+    warnOnIgnoredEffectResult(this, result);
+  }
+  return result;
+}
+
+const warnedEffectResults = new WeakSet<object>();
+
+/**
+ * A function passed to `enq(...)` runs as an effect after the transition is
+ * computed, so a `{ context }` or `{ children }` it returns is never applied.
+ * Development builds say so, once per function.
+ */
+function warnOnIgnoredEffectResult(
+  effect: CustomExecutableActionObject,
+  result: unknown
+): void {
+  if (
+    !effect.action ||
+    result === null ||
+    typeof result !== 'object' ||
+    warnedEffectResults.has(effect.action)
+  ) {
+    return;
+  }
+  const prototype = Object.getPrototypeOf(result);
+  if (prototype !== Object.prototype && prototype !== null) {
+    return;
+  }
+  const keys = ['context', 'children'].filter((key) => key in result);
+  if (!keys.length) {
+    return;
+  }
+  warnedEffectResults.add(effect.action);
+  console.warn(
+    `Action "${effect.type || '(anonymous)'}" returned { ${keys.join(', ')} }, which is ignored: functions passed to enq(...) run as effects after the transition. Return the patch from the transition, entry or exit function instead; a named action can be called there directly and its result returned.`
+  );
 }
 
 function execEmitEffect(
@@ -786,6 +823,16 @@ export function createTransitionEnqueue(
   const enqueue = createEnqueueObject(
     props,
     guard((action, ...args) => {
+      // A named action is `undefined` when it has no implementation. Skip it:
+      // an `{ action, args }` record without a function would be emitted as
+      // an event. Speculative passes (`can()`, conflict resolution) run with
+      // `createActors: false`; warn only when the transition really runs.
+      if (typeof action !== 'function') {
+        if (isDevelopment && createActors) {
+          warnNotAFunction(action);
+        }
+        return;
+      }
       pushBuiltInAction(actions, action, ...args);
     })
   );
@@ -812,6 +859,18 @@ export function lateEnqueueCall(): any {
     throw new Error('enq.* called after the transition function returned');
   }
   return undefined;
+}
+
+function warnNotAFunction(value: unknown): void {
+  const received =
+    typeof value === 'string'
+      ? `the string "${value}"`
+      : value !== null && typeof value === 'object'
+        ? 'an object'
+        : String(value);
+  console.warn(
+    `enq(...) received ${received} instead of a function, so nothing was enqueued. A named action is undefined when it has no implementation: implement it in setup({ actions }) or the machine config, or pass it to machine.provide({ actions }).`
+  );
 }
 
 function getBuiltInActionFields(
