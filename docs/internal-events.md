@@ -77,7 +77,7 @@ self-targeted effect such as `enq.raise(...)` or `enq.sendTo(self, ...)` is
 allowed. Anything else is rejected: `actor.send` from application code, a
 parent sending to a child, or a sibling actor.
 
-> **Warning:** a rejection is silent unless you observe it. It does not throw and it does not error the actor. Register `onRejectedEvent` or an inspection observer to detect rejected events. Treat internal events as a private surface, and if application code needs to reach that behavior, expose a public event that raises the internal one.
+> **Warning:** a rejection is silent unless you observe it. It does not throw and it does not error the actor. Register `onRejectedEvent` or `actor.system.onRejectedEvent(...)` to detect rejected events. Dead letters are not inspection events. Treat internal events as a private surface, and if application code needs to reach that behavior, expose a public event that raises the internal one.
 
 Use internal events for:
 

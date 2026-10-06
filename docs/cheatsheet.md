@@ -206,7 +206,7 @@ loading: {
     src: loadUser,
     input: ({ context }) => ({ id: context.userId }),
     registryKey: 'request',
-    timeout: 5_000, // milliseconds only
+    timeout: 5_000, // milliseconds or a duration string
     onTimeout: { target: 'timedOut' },
     onDone: ({ context, event }) => ({
       target: 'ready',

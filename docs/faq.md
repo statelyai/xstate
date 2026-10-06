@@ -33,7 +33,7 @@ No. The internal snapshot shape changed and v5 persisted snapshots are not binar
 
 ## Why is my event ignored?
 
-Either the current state defines no transition for that event type, or the transition function returned `undefined`. Events with no matching transition are ignored, and a transition function that returns `undefined` rejects the event, leaving the state unchanged and running no effects. Check `snapshot.value` and `snapshot.can({ type: 'yourEvent' })`. See [troubleshooting](troubleshooting.md).
+Either the active states define no matching transition for that event, or the transition function returned `undefined` without enqueuing anything. Enqueued effects still run when a function returns `undefined`, so check guard conditions before enqueuing effects. Check `snapshot.value` and `snapshot.can({ type: 'yourEvent' })`. See [troubleshooting](troubleshooting.md).
 
 ## Why didn't my context update?
 

@@ -12,7 +12,7 @@ submit: ({ context }) => {
 }
 ```
 
-When the function returns `undefined`, the transition is not taken, the state does not change, and no effects run.
+When the function returns `undefined` without enqueuing anything, the transition is not taken. Enqueuing an effect handles the event even if the function returns `undefined`, so check guard conditions before calling `enq(...)` or its methods.
 
 ## Choosing between targets
 

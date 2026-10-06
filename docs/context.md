@@ -40,6 +40,13 @@ Input creates context for each actor instance. The same machine can run one uplo
 
 Context is inferred from its initial value. Use a context schema when you need a wider or shared type.
 
+## Typestates
+
+Declare a state-level `schemas.context` to narrow context in that state.
+For example, a `loaded` state can require `user: string` while the root
+context allows `user: string | null`. `snapshot.matches('loaded')` then
+narrows the context type. See [Typestates](typestates.md).
+
 ## Context cheatsheet
 
 ```ts
