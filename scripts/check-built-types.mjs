@@ -78,6 +78,10 @@ try {
     setup({ schemas: { events: { GO: types<{}>() } } }).createMachine({
       on: {
         GO: () => {},
+        'xstate.error.execution': ({ event }) => {
+          const error: unknown = event.error;
+          void error;
+        },
         'xstate.error.actor': ({ event }) => {
           const actorId: string = event.actorId;
           const error: unknown = event.error;

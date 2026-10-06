@@ -1668,6 +1668,7 @@ export interface ActorTimeoutEvent extends EventObject {
 export type ReservedMachineEvent =
   | DoneActorEvent
   | ErrorActorEvent
+  | ErrorPlatformEvent<unknown, 'execution'>
   | SnapshotEvent
   | DoneStateEvent
   | AfterEvent

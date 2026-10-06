@@ -173,6 +173,12 @@ it('narrows bare reserved descriptors and retains registered actor output', () =
     initial: 'working',
     states: { working: { invoke: { id: 'worker', src: 'worker' } } },
     on: {
+      'xstate.error.execution': ({ event }) => {
+        expectType<unknown>(event.error);
+        expectType<'xstate.error.execution'>(event.type);
+        // @ts-expect-error execution errors have no child actor ID
+        event.actorId;
+      },
       'xstate.error.actor': ({ event }) => {
         expectType<unknown>(event.error);
         expectType<'xstate.error.actor'>(event.type);
