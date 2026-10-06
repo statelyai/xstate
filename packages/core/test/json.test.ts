@@ -1017,6 +1017,43 @@ describe('json', () => {
     });
   });
 
+  it('resolves final output expressions with state input', () => {
+    const actor = createActor(
+      createMachineFromConfig(
+        {
+          '@exprLang': 'js',
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                GO: {
+                  target: 'done',
+                  input: { userId: 'u1' }
+                }
+              }
+            },
+            done: {
+              id: 'done',
+              type: 'final',
+              output: {
+                direct: { '@expr': 'input.userId' },
+                nested: { user: { '@expr': 'input.userId' } }
+              }
+            }
+          }
+        },
+        { evaluators: { js: jsEvaluator } }
+      )
+    ).start();
+
+    actor.send({ type: 'GO' });
+
+    expect(actor.getSnapshot().output).toEqual({
+      direct: 'u1',
+      nested: { user: 'u1' }
+    });
+  });
+
   it('revives serializable choice states and expression values', () => {
     const evaluator = ({ source, scope }: any) =>
       Function('scope', `with (scope) { return (${source}); }`)(scope);

@@ -1201,11 +1201,11 @@ export function createMachineFromConfig(
       invoke: node.invoke ? iterInvokeConfigs(node.invoke, path) : undefined,
       meta: node.meta,
       output: containsResolvable(node.output)
-        ? ({ context, event, self }: any) =>
+        ? ({ context, event, self, input }: any) =>
             resolveValue(
               node.output,
               'output',
-              { context, event, self },
+              { context, event, self, input },
               `${path}.output`
             )
         : node.output

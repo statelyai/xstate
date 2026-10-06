@@ -379,12 +379,17 @@ describe('getInitialMicrosteps', () => {
     expect(microsteps[1][1]).toHaveLength(2); // always action + entry action for 'b'
     // The first microstep enters the initial states; the second takes `always`
     expect(microsteps[0][2]).toEqual([]);
-    expect(microsteps[1][2]).toEqual([
-      {
-        ...machine.root.states.a.always![0],
-        target: [machine.root.states.b],
-        definition: machine.root.states.a.always![0]
-      }
+    expect(microsteps[1][2]).toHaveLength(1);
+    expect(microsteps[1][2][0].source).toBe(machine.root.states.a);
+    expect(microsteps[1][2][0].target).toEqual([machine.root.states.b]);
+    expect(microsteps[1][2][0].definition).toBe(
+      machine.root.states.a.always![0]
+    );
+    expect(JSON.parse(JSON.stringify(microsteps[1][2]))).toEqual([
+      expect.objectContaining({
+        source: `#${machine.root.states.a.id}`,
+        target: [`#${machine.root.states.b.id}`]
+      })
     ]);
   });
 

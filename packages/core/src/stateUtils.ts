@@ -631,14 +631,21 @@ export function formatTransition(
     source: stateNode,
     reenter,
     eventType: descriptor,
-    toJSON: () => ({
-      ...transition,
-      source: `#${stateNode.id}`,
-      target: target ? target.map((t) => `#${t.id}`) : undefined
-    })
+    toJSON: () => transitionDefinitionToJSON(transition)
   };
 
   return transition;
+}
+
+function transitionDefinitionToJSON(
+  transition: AnyTransitionDefinition
+): Record<string, unknown> {
+  const { definition: _, ...serializableTransition } = transition;
+  return {
+    ...serializableTransition,
+    source: `#${transition.source.id}`,
+    target: transition.target?.map((target) => `#${target.id}`)
+  };
 }
 
 /**
@@ -1724,9 +1731,20 @@ function microstep(
     const resolvedTransitions: AnyTransitionDefinition[] = [];
     for (const t of filteredTransitions) {
       const res = getCurrentTransitionResult(t, true);
-      resolvedTransitions.push(
-        t.to ? { ...t, target: res.targets, definition: t } : t
-      );
+      if (t.to) {
+        const resolvedTransition = {
+          ...t,
+          target: res.targets,
+          definition: t
+        } as AnyTransitionDefinition & {
+          toJSON: () => Record<string, unknown>;
+        };
+        resolvedTransition.toJSON = () =>
+          transitionDefinitionToJSON(resolvedTransition);
+        resolvedTransitions.push(resolvedTransition);
+      } else {
+        resolvedTransitions.push(t);
+      }
       if (res.context !== undefined) {
         context = mergeContextPatch(context, res.context);
       }
