@@ -580,6 +580,11 @@ function assertMachineJSON(
       const invokes = Array.isArray(node.invoke) ? node.invoke : [node.invoke];
       invokes.forEach((invoke, index) => {
         const invokePath = `${path}.invoke${Array.isArray(node.invoke) ? `[${index}]` : ''}`;
+        if (typeof invoke.src !== 'string') {
+          throw new Error(
+            `Expected a named actor source at ${invokePath}.src; inspection placeholders are not executable.`
+          );
+        }
         if (!resolvedSources.actors[invoke.src]) {
           throw new Error(`Missing actor source "${invoke.src}"`);
         }
@@ -657,6 +662,11 @@ export function createMachineFromConfig(
   json: MachineJSON,
   sources: MachineSources = {}
 ): AnyStateMachine {
+  if ((json as Record<string, unknown>).format === 'xstate-inspection') {
+    throw new Error(
+      'Inspection envelopes are not executable machine definitions.'
+    );
+  }
   const resolvedSources = mergeSources(json, sources);
   const expressionResolver = createExpressionResolver(
     json['@exprLang'],

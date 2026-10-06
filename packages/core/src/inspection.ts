@@ -72,7 +72,11 @@ export interface ActorInspectionEvent extends BaseInspectionEventProperties {
   parentRef: ActorRefLike | undefined;
   /** The `id` of the actor. */
   id: string;
-  /** The source logic (or its referenced string) the actor was created from. */
+  /**
+   * The source logic (or its referenced string) the actor was created from.
+   * Machine logic exposes `serialize()` for its canonical definition and
+   * `serializeForInspection()` for JSON-safe topology with inline invokes.
+   */
   src: string | AnyActorLogic;
   /** The initial snapshot of the actor. */
   snapshot: Snapshot<unknown>;

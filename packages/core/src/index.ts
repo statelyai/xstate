@@ -73,6 +73,8 @@ export type {
 export {
   machineConfigToJSON,
   serializeMachine,
+  serializeMachineForInspection,
+  type MachineInspectionJSON,
   type CodeExpression
 } from './serialize.ts';
 export { mapState } from './mapState.ts';

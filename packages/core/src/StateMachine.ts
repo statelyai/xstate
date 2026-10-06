@@ -1,3 +1,8 @@
+import {
+  serializeMachine,
+  serializeMachineForInspection,
+  type MachineInspectionJSON
+} from './serialize.ts';
 import isDevelopment from '#is-development';
 import { ACTOR_REF_TYPE, createActor } from './createActor.ts';
 import {
@@ -1455,6 +1460,16 @@ export class StateMachine<
     options?: unknown
   ) {
     return getPersistedSnapshot(snapshot, options);
+  }
+
+  /** Returns the canonical JSON definition. See {@link serializeMachine}. */
+  public serialize(): Record<string, unknown> {
+    return serializeMachine(this);
+  }
+
+  /** Returns inspection-only topology, including inline invoke placeholders. */
+  public serializeForInspection(): MachineInspectionJSON {
+    return serializeMachineForInspection(this);
   }
 
   /**

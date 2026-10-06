@@ -5,7 +5,7 @@ description: Treat machine definitions as data.
 
 A machine definition can be represented as data. Serialize it to JSON, store or send it, and build a running machine from it again.
 
-Call `serializeMachine(machine)` to get the JSON-serializable definition.
+Call `serializeMachine(machine)` or `machine.serialize()` to get the canonical JSON-serializable definition. The method lets tools serialize a machine without importing its XState version or reading internal properties.
 
 ```ts
 const json = serializeMachine(machine);
@@ -46,6 +46,29 @@ These values are omitted rather than serialized:
 - class instances, `Date`s, `bigint` and `symbol` values, including inside arrays
 
 > **Warning:** Named source keys are not preserved when their values are functions. The definition records where a source is _used_ (`invoke: { src: 'worker' }`, `guard: { type: 'canFinish' }`), and you supply the implementations when reviving.
+
+## Inspection topology
+
+Use `machine.serializeForInspection()` (or `serializeMachineForInspection(machine)`) when an inspector needs every invoke, including anonymous inline actor logic:
+
+```ts
+const inspection = machine.serializeForInspection();
+// {
+//   format: 'xstate-inspection',
+//   formatVersion: 1,
+//   profile: 'xstate-v6',
+//   definition: { ... }
+// }
+transport.send(JSON.stringify(inspection));
+```
+
+`MachineInspectionJSON` describes this envelope. `profile` identifies the machine syntax; `formatVersion` identifies the inspection format. Neither is the machine's authored `version`.
+
+Anonymous inline invokes retain their `id`, input, timeout, and `onDone`/`onError`/`onSnapshot`/`onTimeout` handlers with `src: { '@actor': 'inline' }`. Named actor sources retain their names. Inline functions become `@code` expressions; actor implementations and runtime source maps remain omitted. Machines revived from JSON retain their original definition in both serialization APIs.
+
+Inspection output is for display and transport. `createMachineFromConfig()` rejects the envelope and inline actor placeholders. Continue using `serializeMachine()` or `machine.serialize()` for executable definitions.
+
+`@code` text does not make closures or imports portable, nor guarantee that a tool can determine a handler's destinations statically. Inspectors should display unresolved destinations as unknown.
 
 ## Reviving a machine
 
@@ -106,6 +129,7 @@ Some v6 features have no JSON representation yet: state `input`, `enq.listen`/`e
 ```ts
 const json = serializeMachine(machine);
 const definitionJSON = machineConfigToJSON(config);
+const inspection = machine.serializeForInspection();
 
 const machine = createMachineFromConfig(JSON.parse(stored), {
   actions: { track },

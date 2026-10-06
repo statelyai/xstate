@@ -1070,7 +1070,7 @@ These exports have been **added**:
 - `checkStateIn`
 - `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
 - `TimeoutError`
-- Serialization surface (see §21): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON` types; machines serialize via `serializeMachine(machine)`
+- Serialization surface (see §21): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON` types; machines serialize via `serializeMachine(machine)` or `machine.serialize()`; `serializeMachineForInspection`, `MachineInspectionJSON`, and `machine.serializeForInspection()` expose inspection-only topology
 - Config types (v6 shapes): `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `Sources`, `InferEvents`, `WidenLiterals`
 - Runtime/effect surface: `executeEffects`, `isBuiltInExecutableAction`, `getEffectDescriptor`, `deliverEvent`, `runStep`, `stopActor`, `terminateActor`, and the related `EffectDescriptor`, `ActorSystemRuntime`, and `ActorTermination` types
 - Persistence/versioning surface: `machineVersions` and its related snapshot
@@ -1298,7 +1298,7 @@ runtime sources:
 ### Machine → JSON
 
 `serializeMachine(machine)` - a dedicated, tree-shakeable function - returns
-the JSON-serializable definition. Inline functions are captured as
+the JSON-serializable definition. `machine.serialize()` delegates to it, so inspectors can call the machine directly without importing its XState version. `machine.serializeForInspection()` returns a versioned inspection envelope retaining inline invoke callbacks and actor placeholders; see [serialization](serialization.md#inspection-topology). Inline functions are captured as
 `{ "@code": string, "@lang": "ts" }` code expressions (the `CodeExpression`
 type). Values that cannot be represented as data - actor logic objects,
 runtime schemas, class instances - are omitted. Root-level `actions`,

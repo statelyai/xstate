@@ -23,6 +23,7 @@ import {
   type AnyStateMachine,
   type EventRejection,
   serializeMachine,
+  serializeMachineForInspection,
   setup,
   types
 } from '../src/index.ts';
@@ -42,6 +43,135 @@ function findCodeExpressions(json: unknown, path = '$'): string[] {
 }
 
 describe('serializability conformance', () => {
+  it('public hooks preserve original JSON, including after provide()', () => {
+    const definition = {
+      initial: 'idle',
+      states: { idle: { on: { GO: { target: 'done' } } }, done: {} }
+    };
+    const machine = createMachineFromConfig(definition);
+    for (const logic of [machine, machine.provide({})]) {
+      expect(logic.serialize()).toBe(definition);
+      expect(logic.serialize()).toBe(serializeMachine(logic));
+      expect(logic.serializeForInspection()).toEqual({
+        format: 'xstate-inspection',
+        formatVersion: 1,
+        profile: 'xstate-v6',
+        definition
+      });
+      expect(logic.serializeForInspection().definition).toBe(definition);
+      expect(createMachineFromConfig(logic.serialize()).serialize()).toEqual(
+        definition
+      );
+    }
+  });
+
+  it('public serialization captures inline handlers without runtime sources', () => {
+    const go = () => ({ target: 'done' as const });
+    const machine = createMachine({
+      actions: { unused: () => {} },
+      initial: 'idle',
+      states: { idle: { on: { GO: go } }, done: {} }
+    });
+    expect(machine.serialize()).toEqual(serializeMachine(machine));
+    const json = JSON.parse(JSON.stringify(machine.serialize()));
+    expect(json.states.idle.on.GO).toEqual({
+      '@code': go.toString(),
+      '@lang': 'ts'
+    });
+    expect(json.actions).toBeUndefined();
+  });
+
+  it('inspection retains inline invoke topology without making actors portable', () => {
+    const worker = createAsyncLogic({ run: async () => undefined });
+    const done = () => ({ target: 'done' as const });
+    const error = () => ({ target: 'failed' as const });
+    const snapshot = () => ({ target: 'observed' as const });
+    const machine = createMachine({
+      actors: { named: worker },
+      initial: 'running',
+      states: {
+        running: {
+          invoke: [
+            {
+              id: 'anonymous-worker',
+              src: worker,
+              onDone: done,
+              onError: error,
+              onSnapshot: snapshot,
+              timeout: 100,
+              onTimeout: error
+            },
+            { src: 'named', onDone: done }
+          ],
+          states: {
+            nested: { invoke: { src: worker, onDone: () => ({}) } }
+          },
+          initial: 'nested'
+        },
+        done: {},
+        failed: {},
+        observed: {}
+      }
+    });
+    const inspection = JSON.parse(
+      JSON.stringify(machine.serializeForInspection())
+    );
+    expect(machine.serializeForInspection()).toEqual(
+      serializeMachineForInspection(machine)
+    );
+    const running = inspection.definition.states.running;
+    expect(running.invoke).toEqual([
+      {
+        id: 'anonymous-worker',
+        src: { '@actor': 'inline' },
+        onDone: { '@code': done.toString(), '@lang': 'ts' },
+        onError: { '@code': error.toString(), '@lang': 'ts' },
+        onSnapshot: { '@code': snapshot.toString(), '@lang': 'ts' },
+        timeout: 100,
+        onTimeout: { '@code': error.toString(), '@lang': 'ts' }
+      },
+      {
+        src: 'named',
+        onDone: { '@code': done.toString(), '@lang': 'ts' }
+      }
+    ]);
+    expect(running.states.nested.invoke.src).toEqual({ '@actor': 'inline' });
+    expect(inspection.definition.actors).toBeUndefined();
+    expect((machine.serialize().states as any).running.invoke).toEqual([
+      { src: 'named', onDone: { '@code': done.toString(), '@lang': 'ts' } }
+    ]);
+    expect(
+      (machine.serialize().states as any).running.states.nested.invoke
+    ).toBeUndefined();
+    expect(() => createMachineFromConfig(inspection)).toThrow(
+      'Inspection envelopes are not executable'
+    );
+    expect(() => createMachineFromConfig(inspection.definition)).toThrow(
+      'inspection placeholders are not executable'
+    );
+  });
+
+  it('named inline machine sources retain executable roundtrip semantics', () => {
+    const child = createMachine({
+      id: 'child',
+      initial: 'idle',
+      states: { idle: {} }
+    });
+    const machine = createMachine({
+      initial: 'idle',
+      states: { idle: { invoke: { id: 'child-ref', src: child } } }
+    });
+    const json = JSON.parse(JSON.stringify(machine.serialize()));
+    expect(json.states.idle.invoke.src).toBe('child');
+    expect(machine.serializeForInspection().definition).toEqual(json);
+    const revived = createMachineFromConfig(json, { actors: { child } });
+    expect(revived.serialize()).toEqual(json);
+    expect(
+      createActor(revived).getSnapshot().children['child-ref'].getSnapshot()
+        .value
+    ).toBe('idle');
+  });
+
   it('a fully-serializable definition round-trips losslessly', () => {
     const definition = {
       initial: 'idle',

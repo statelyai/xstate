@@ -1270,6 +1270,8 @@ export interface AnyStateMachine extends AnyActorLogic {
   schemas?: import('./types.v6.ts').AnyMachineSchemas | undefined;
   snapshotSchema: import('./machineVersion.types.ts').MachineSnapshotSchema;
   eventSchema: import('./machineVersion.types.ts').MachineEventSchema;
+  serialize(): Record<string, unknown>;
+  serializeForInspection(): import('./serialize.ts').MachineInspectionJSON;
   provide(sources: any): AnyStateMachine;
   resolveState(config: any): any;
   /** @internal */

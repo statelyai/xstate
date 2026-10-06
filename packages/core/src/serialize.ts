@@ -40,6 +40,38 @@ export function serializeMachine(
   return (machine as any)._json ?? machineConfigToJSON(machine.config);
 }
 
+/**
+ * Inspection-only machine data. This envelope is not an executable definition.
+ * `profile` identifies the definition syntax; `formatVersion` versions the
+ * inspection envelope independently of the machine's authored `version`.
+ *
+ * @public
+ */
+export interface MachineInspectionJSON {
+  format: 'xstate-inspection';
+  formatVersion: 1;
+  profile: 'xstate-v6';
+  definition: Record<string, unknown>;
+}
+
+/**
+ * Serializes topology for inspectors, retaining anonymous inline invokes as
+ * `{ "@actor": "inline" }` placeholders. Actor implementations are omitted.
+ * This output must not be passed to `createMachineFromConfig`.
+ *
+ * @public
+ */
+export function serializeMachineForInspection(
+  machine: AnyStateMachine
+): MachineInspectionJSON {
+  return {
+    format: 'xstate-inspection',
+    formatVersion: 1,
+    profile: 'xstate-v6',
+    definition: (machine as any)._json ?? configToJSON(machine.config, true)
+  };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 function codeExpression(fn: Function): CodeExpression {
   return {
@@ -97,10 +129,10 @@ function valueToJSON(value: unknown): unknown {
   return result;
 }
 
-function invokeToJSON(invoke: unknown): unknown {
+function invokeToJSON(invoke: unknown, inspection: boolean): unknown {
   if (Array.isArray(invoke)) {
     const values = invoke
-      .map(invokeToJSON)
+      .map((value) => invokeToJSON(value, inspection))
       .filter((value) => value !== undefined);
     return values.length ? values : undefined;
   }
@@ -113,7 +145,8 @@ function invokeToJSON(invoke: unknown): unknown {
     }
     result[key] =
       key === 'src' && typeof value !== 'string'
-        ? (value as { id?: string }).id
+        ? ((value as { id?: string }).id ??
+          (inspection ? { '@actor': 'inline' } : undefined))
         : valueToJSON(value);
     if (result[key] === undefined) {
       delete result[key];
@@ -144,7 +177,8 @@ function sourcesToJSON(
 }
 
 function stateNodeConfigToJSON(
-  config: Record<string, unknown>
+  config: Record<string, unknown>,
+  inspection: boolean
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
@@ -158,7 +192,7 @@ function stateNodeConfigToJSON(
     }
   }
   if (config.invoke !== undefined) {
-    const invoke = invokeToJSON(config.invoke);
+    const invoke = invokeToJSON(config.invoke, inspection);
     if (invoke !== undefined) {
       result.invoke = invoke;
     }
@@ -167,7 +201,8 @@ function stateNodeConfigToJSON(
     const states: Record<string, unknown> = {};
     for (const key of Object.keys(config.states as object)) {
       states[key] = stateNodeConfigToJSON(
-        (config.states as Record<string, Record<string, unknown>>)[key]
+        (config.states as Record<string, Record<string, unknown>>)[key],
+        inspection
       );
     }
     result.states = states;
@@ -185,7 +220,14 @@ function stateNodeConfigToJSON(
 export function machineConfigToJSON(
   config: Record<string, unknown>
 ): Record<string, unknown> {
-  const result = stateNodeConfigToJSON(config);
+  return configToJSON(config, false);
+}
+
+function configToJSON(
+  config: Record<string, unknown>,
+  inspection: boolean
+): Record<string, unknown> {
+  const result = stateNodeConfigToJSON(config, inspection);
 
   const internalEvents = Object.keys(
     ((config.schemas as Record<string, unknown> | undefined)?.internalEvents as
