@@ -208,7 +208,7 @@ See [transitions](transitions.md) for `matches` and the full list of lifecycle e
 
 ## Timing out an invocation
 
-`timeout` bounds how long the invocation may run. When it elapses, `onTimeout` is taken and the child is stopped by exiting the state. When the child finishes first, the timeout is canceled.
+`timeout` bounds how long the invocation may run. When it elapses, `onTimeout` is taken. A handler that exits the owning state stops the child; a targetless handler leaves it running unless it calls `enq.stop(...)`. When the child finishes first, the timeout is canceled.
 
 ```ts
 authorizing: {
@@ -221,7 +221,7 @@ authorizing: {
 }
 ```
 
-Setting `timeout` without `onTimeout` throws when the machine is created. Use `createAsyncLogic({ timeout })` instead when the timeout belongs to the logic rather than to this particular invocation. See [timeouts](timeouts.md).
+Setting `timeout` without `onTimeout` throws when the machine is created in development builds. Use `createAsyncLogic({ timeout })` instead when the timeout belongs to the logic rather than to this particular invocation. See [timeouts](timeouts.md).
 
 ## Referencing the child
 

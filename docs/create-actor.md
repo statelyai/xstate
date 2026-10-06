@@ -117,7 +117,7 @@ actor.subscribe({
 });
 ```
 
-If a root actor errors while no observer provides an `error` handler, the error is rethrown in a separate macrotask so global error handlers and error reporting services see it. Child actors report their errors to their parent instead.
+An unrecovered root error is reported to the host's unhandled error channel if any non-passive subscriber lacks an `error` handler, or if there are no such subscribers. Having another subscriber with an `error` handler does not suppress a report caused by a subscriber without one. The report is deferred by one macrotask; a new subscription with an `error` handler before then suppresses it. Child actors report their errors to their parent instead. See [error precedence](lifecycle-and-errors.md#error-precedence).
 
 ## TypeScript
 

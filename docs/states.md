@@ -128,7 +128,7 @@ State nodes without `meta` are omitted. Metadata must match `schemas.meta`.
 
 ## TypeScript
 
-Literal state keys are inferred from the machine configuration, so `matches(...)` rejects unknown values. Use `SnapshotFrom<typeof machine>` for the snapshot type.
+Literal state keys are inferred from the machine configuration. `matches(...)` narrows known state values and their [typestates](typestates.md), but also accepts general state values through a boolean-returning overload; it does not reject every unknown value at compile time. Use `SnapshotFrom<typeof machine>` for the snapshot type.
 
 ```ts
 import type { SnapshotFrom } from 'xstate';
