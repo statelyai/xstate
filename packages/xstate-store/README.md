@@ -2,8 +2,10 @@
 
 XState Store is a library for **simple event-based state management**. If you want a state management library that allows you to update a store's state via events, `@xstate/store` is a great option. If you need more complex application logic needs, like state machines/statecharts, effects, communicating actors, and more, consider [using XState instead](https://github.com/statelyai/xstate).
 
+<!-- store capabilities from src/index.ts and runtime dependency requirements from package.json -->
+
 - **Extremely simple**: transitions update state via events, just like Redux, Zustand, Pinia, etc.
-- **Extremely small**: less than 1kb minified/gzipped
+- **Small**: no required runtime dependencies
 - **XState compatible**: use it with (or without) XState, or convert to XState machines when you need to handle more complex logic & effects. `fromStore()` requires XState v6; with XState v5, use `@xstate/store@4`.
 - **Extra type-safe**: great typing out of the box, with strong inference and no awkwardness.
 
@@ -144,6 +146,35 @@ reactive dependencies. Use a computed atom getter to track other atoms instead.
 If a synchronous subscriber throws, other queued subscribers still receive their
 notifications before the first error is rethrown to the caller. The atom's value
 has already changed; later updates continue to notify subscribers normally.
+
+## Source atoms
+
+<!-- createSourceAtom snapshot and observed dependency lifecycle from src/atom.ts and src/types.ts -->
+
+Use `createSourceAtom` for a read-only external value. Direct and derived
+subscribers share one listener; cleanup runs synchronously when the last consumer
+leaves. Plain reads do not start listeners. Resubscribing reconnects and refreshes
+the snapshot.
+
+```ts
+import { createAtom, createSourceAtom } from '@xstate/store';
+
+const media = window.matchMedia('(prefers-color-scheme: dark)');
+const isDark = createSourceAtom({
+  getSnapshot: () => media.matches,
+  subscribe: (notify) => {
+    media.addEventListener('change', notify);
+    return () => media.removeEventListener('change', notify);
+  }
+});
+const theme = createAtom(() => (isDark.get() ? 'dark' : 'light'));
+const subscription = theme.subscribe(console.log);
+subscription.unsubscribe(); // Removes the media query listener.
+```
+
+See [source atoms](./docs/source-atoms.md) for snapshot comparison, conditional
+dependencies, and lifecycle timing. Use XState actors for commands, retries, or
+reconnection logic.
 
 ## Async atoms
 

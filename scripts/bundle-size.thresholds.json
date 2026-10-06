@@ -57,18 +57,21 @@
     "maxGzipBytes": 28006
   },
   "store-counter": {
-    "maxGzipBytes": 2975
+    "maxGzipBytes": 3103
   },
   "store-atom": {
-    "maxGzipBytes": 1733
+    "maxGzipBytes": 1862
   },
   "react-machine": {
     "maxGzipBytes": 27999
   },
   "react-store": {
-    "maxGzipBytes": 3316
+    "maxGzipBytes": 3438
   },
   "kitchen-sink": {
     "maxGzipBytes": 35963
+  },
+  "store-source-atom": {
+    "maxGzipBytes": 2396
   }
 }
