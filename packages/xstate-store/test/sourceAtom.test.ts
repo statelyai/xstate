@@ -1,4 +1,9 @@
-import { createAtom, createSourceAtom, createStore } from '../src/index.ts';
+import {
+  createAsyncAtom,
+  createAtom,
+  createSourceAtom,
+  createStore
+} from '../src/index.ts';
 
 function externalSource<T>(initial: T) {
   let value = initial;
@@ -423,3 +428,127 @@ it('runs function cleanup when post-registration snapshot reading fails', () => 
   expect(() => source.subscribe(vi.fn())).toThrow('snapshot failed');
   expect(cleanup).toHaveBeenCalledTimes(1);
 });
+
+it.each(['registration', 'refresh'] as const)(
+  'retries failed %s on a later operation while a derived consumer stays live',
+  (failure) => {
+    const enabled = createAtom(false);
+    const tick = createAtom(0);
+    const error = new Error('activation failed');
+    let fail = true;
+    let registered = false;
+    let value = 1;
+    let notify = () => {};
+    const cleanup = vi.fn(() => {
+      registered = false;
+    });
+    const subscribe = vi.fn((listener: () => void) => {
+      if (failure === 'registration' && fail) {
+        throw error;
+      }
+      registered = true;
+      notify = listener;
+      return cleanup;
+    });
+    const source = createSourceAtom({
+      getSnapshot() {
+        if (failure === 'refresh' && fail && registered) {
+          throw error;
+        }
+        return value;
+      },
+      subscribe
+    });
+    const derived = createAtom(() => {
+      tick.get();
+      return enabled.get() ? source.get() : 0;
+    });
+    const observer = vi.fn();
+    const consumer = derived.subscribe(observer);
+    try {
+      expect(() => enabled.set(true)).toThrow(error);
+      expect(subscribe).toHaveBeenCalledTimes(1);
+      fail = false;
+      tick.set(1);
+      expect(subscribe).toHaveBeenCalledTimes(2);
+      value = 2;
+      notify();
+      expect(observer).toHaveBeenLastCalledWith(2);
+    } finally {
+      fail = false;
+      consumer.unsubscribe();
+    }
+  }
+);
+
+it('reports source activation errors after async fulfillment instead of rejecting the notification promise', async () => {
+  let resolve!: (value: number) => void;
+  const promise = new Promise<number>((done) => {
+    resolve = done;
+  });
+  const rejections: unknown[] = [];
+  // Capture a discarded rejection deterministically without leaking it to the
+  // test runner's process-wide unhandled-rejection handler.
+  vi.spyOn(promise, 'then').mockImplementation((...args) => {
+    const result = Promise.prototype.then.apply(promise, args);
+    let handled = false;
+    const catchError = result.catch.bind(result);
+    void catchError((error) => {
+      if (!handled) {
+        rejections.push(error);
+      }
+    });
+    vi.spyOn(result, 'catch').mockImplementation((handler) => {
+      handled = true;
+      return catchError(handler);
+    });
+    return result;
+  });
+  const asyncAtom = createAsyncAtom(() => promise);
+  const error = new Error('source activation failed');
+  const source = createSourceAtom({
+    getSnapshot: () => 1,
+    subscribe() {
+      throw error;
+    }
+  });
+  const derived = createAtom(() => {
+    const state = asyncAtom.get();
+    return state.status === 'done' ? source.get() : 0;
+  });
+  const consumer = derived.subscribe(vi.fn());
+  try {
+    resolve(42);
+    await new Promise((done) => setTimeout(done, 0));
+    expect(asyncAtom.get()).toEqual({ status: 'error', error });
+    expect(rejections).toEqual([]);
+  } finally {
+    consumer.unsubscribe();
+  }
+});
+
+it.each(['observer', 'comparison'] as const)(
+  'retains async errors when %s also fails during error delivery',
+  async (failure) => {
+    const error = new Error('delivery failed');
+    const atom = createAsyncAtom(() => Promise.resolve(42), {
+      compare: (previous, next) => {
+        if (failure === 'comparison' && next.status !== 'pending') {
+          throw error;
+        }
+        return Object.is(previous, next);
+      }
+    });
+    const consumer = atom.subscribe((state) => {
+      if (failure === 'observer' && state.status !== 'pending') {
+        throw error;
+      }
+    });
+    try {
+      await new Promise((done) => setTimeout(done, 0));
+      expect(atom.get()).toEqual({ status: 'error', error });
+    } finally {
+      consumer.unsubscribe();
+    }
+  }
+);

@@ -91,7 +91,9 @@ const size = createSourceAtom(
 ```
 
 Source atoms expose `.get()` and `.subscribe()`, with no `.set()` or `.send()`.
-They do not provide retries or an error state. Synchronous snapshot, registration,
+They do not provide timed retries or an error state. A failed activation with live
+consumers remains eligible for another attempt on a later atom operation. It is
+never retried within the failing operation. Synchronous snapshot, registration,
 notification, and cleanup errors propagate to the caller. If registration fails
 before returning a subscription, the adapter must release any resources it acquired.
 
