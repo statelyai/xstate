@@ -184,7 +184,9 @@ reconnection logic.
 `error` state. Atoms read synchronously by its getter remain dependencies after
 the request succeeds or fails. When a dependency changes, subscribed async atoms
 reload; otherwise, they reload on the next read. Read dependencies before the
-first `await` to track them.
+first `await` to track them. Errors while delivering a resolved value (including
+source activation) also become the async atom’s `error` state. If notifying that
+error state fails, the state remains available through `.get()`.
 
 ```ts
 import { createAtom, createAsyncAtom } from '@xstate/store';

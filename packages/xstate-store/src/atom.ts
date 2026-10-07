@@ -51,6 +51,7 @@ function settleSources(): void {
   settlingSources = true;
   let didThrow = false;
   let firstError: unknown;
+  const failedSources = new Set<ObservedNode>();
   try {
     while (pendingObservedNodes.size || pendingSources.size) {
       // Reconcile the entire changed graph before starting or stopping resources.
@@ -81,6 +82,9 @@ function settleSources(): void {
       const node = pendingSources.values().next().value;
       if (node) {
         pendingSources.delete(node);
+        if (failedSources.has(node) && node._observers) {
+          continue;
+        }
         try {
           if (node._observers) {
             node._activate!();
@@ -88,6 +92,9 @@ function settleSources(): void {
             node._deactivate!();
           }
         } catch (error) {
+          if (node._observers) {
+            failedSources.add(node);
+          }
           if (!didThrow) {
             didThrow = true;
             firstError = error;
@@ -96,6 +103,12 @@ function settleSources(): void {
       }
     }
   } finally {
+    // Keep live failures eligible for the next operation, never this pass.
+    for (const node of failedSources) {
+      if (node._observers) {
+        pendingSources.add(node);
+      }
+    }
     settlingSources = false;
   }
   if (didThrow) {
@@ -223,8 +236,35 @@ export function createAsyncAtom<T>(
     const runId = ++currentRunId;
     currentController = controller;
 
-    getValue({ signal: controller.signal }).then(
-      (data) => {
+    const reportError = (error: unknown) => {
+      if (runId !== currentRunId || controller.signal.aborted) {
+        return;
+      }
+      const errorState: AsyncAtomState<T> = {
+        status: 'error',
+        error: error as Error
+      };
+      try {
+        updateAtomSnapshot(ref.current!, errorState, options?.compare);
+      } catch {
+        // Error delivery must not create another discarded rejection. If the
+        // comparator failed before publication, publish without it once.
+        if (
+          runId === currentRunId &&
+          !controller.signal.aborted &&
+          ref.current!._snapshot !== errorState
+        ) {
+          try {
+            updateAtomSnapshot(ref.current!, errorState);
+          } catch {
+            // The error snapshot is committed before notifying observers.
+          }
+        }
+      }
+    };
+
+    getValue({ signal: controller.signal })
+      .then((data) => {
         if (runId !== currentRunId || controller.signal.aborted) {
           return;
         }
@@ -233,18 +273,8 @@ export function createAsyncAtom<T>(
           { status: 'done', data },
           options?.compare
         );
-      },
-      (error) => {
-        if (runId !== currentRunId || controller.signal.aborted) {
-          return;
-        }
-        updateAtomSnapshot(
-          ref.current!,
-          { status: 'error', error },
-          options?.compare
-        );
-      }
-    );
+      }, reportError)
+      .catch(reportError);
 
     return { status: 'pending' } satisfies AsyncAtomState<T>;
   }, options);
