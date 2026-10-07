@@ -164,7 +164,7 @@ const isDark = createSourceAtom({
   getSnapshot: () => media.matches,
   subscribe: (notify) => {
     media.addEventListener('change', notify);
-    return { unsubscribe: () => media.removeEventListener('change', notify) };
+    return () => media.removeEventListener('change', notify);
   }
 });
 const theme = createAtom(() => (isDark.get() ? 'dark' : 'light'));

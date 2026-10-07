@@ -384,3 +384,42 @@ it('preserves the subscription receiver when unsubscribing', () => {
   expect(external.closed).toBe(true);
   expect(unsubscribe).toHaveBeenCalledTimes(1);
 });
+
+it('normalizes either adapter result to an object-only public subscription', () => {
+  let mounts = 0;
+  const cleanup = vi.fn();
+  const source = createSourceAtom({
+    getSnapshot: () => 1,
+    subscribe() {
+      return ++mounts === 1 ? cleanup : { unsubscribe: cleanup };
+    }
+  });
+  const derived = createAtom(() => source.get() * 2);
+  for (let i = 0; i < 2; i++) {
+    const consumer = derived.subscribe(vi.fn());
+    expect(typeof consumer).toBe('object');
+    expect(typeof consumer.unsubscribe).toBe('function');
+    consumer.unsubscribe();
+    consumer.unsubscribe();
+    expect(cleanup).toHaveBeenCalledTimes(i + 1);
+  }
+});
+
+it('runs function cleanup when post-registration snapshot reading fails', () => {
+  let registered = false;
+  const cleanup = vi.fn();
+  const source = createSourceAtom({
+    getSnapshot() {
+      if (registered) {
+        throw new Error('snapshot failed');
+      }
+      return 1;
+    },
+    subscribe() {
+      registered = true;
+      return cleanup;
+    }
+  });
+  expect(() => source.subscribe(vi.fn())).toThrow('snapshot failed');
+  expect(cleanup).toHaveBeenCalledTimes(1);
+});

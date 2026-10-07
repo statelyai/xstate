@@ -481,11 +481,13 @@ export function createSourceAtom<T>(
     activeSub = undefined;
     try {
       // Attach before reading, so changes during registration cannot be lost.
-      subscription = source.subscribe(() => {
+      const result = source.subscribe(() => {
         if (currentRun === run && !subscribing) {
           atomOperation(refresh);
         }
       });
+      subscription =
+        typeof result === 'function' ? { unsubscribe: result } : result;
       subscribing = false;
       refresh();
     } catch (error) {

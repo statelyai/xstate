@@ -61,8 +61,8 @@ it('rejects writes, incompatible consumers, and invalid subscriptions', () => {
     source.subscribe((value: string) => {});
     createSourceAtom({
       getSnapshot: () => 1,
-      // @ts-expect-error Registration must return a Subscription object.
-      subscribe: () => () => {}
+      // @ts-expect-error Invalid subscription objects are rejected.
+      subscribe: () => ({ unsubscribe: 42 })
     });
     createSourceAtom({
       getSnapshot: () => 1,
@@ -70,4 +70,19 @@ it('rejects writes, incompatible consumers, and invalid subscriptions', () => {
       subscribe: () => {}
     });
   }
+});
+
+it('accepts a cleanup function while keeping the public subscription object-only', () => {
+  const source = createSourceAtom({
+    getSnapshot: () => 42,
+    subscribe: () => () => {}
+  });
+  expectTypeOf(source.get()).toEqualTypeOf<number>();
+  const subscription = source.subscribe(() => {});
+  expectTypeOf(subscription).toEqualTypeOf<Subscription>();
+  if (false) {
+    // @ts-expect-error Public subscriptions are not callable cleanup functions.
+    subscription();
+  }
+  subscription.unsubscribe();
 });

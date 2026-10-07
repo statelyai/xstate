@@ -6,8 +6,10 @@ description: Share external snapshot subscriptions across atom consumers.
 Use `createSourceAtom` to expose an external value, such as a media query or a
 browser observer, as a read-only atom. Provide `getSnapshot` to read its current
 value and `subscribe` to attach a change listener. The listener calls `notify()`;
-XState Store reads the latest snapshot. Return a subscription object with an `unsubscribe()` method, matching other
-XState Store and XState subscriptions.
+XState Store reads the latest snapshot. Return either a cleanup function or a
+subscription object with an `unsubscribe()` method. XState Store normalizes the
+adapter result internally; the atom's public `.subscribe()` always returns a
+subscription object, so consumers call `subscription.unsubscribe()`.
 
 ```ts
 import { createAtom, createSourceAtom } from '@xstate/store';
@@ -17,7 +19,7 @@ const isDark = createSourceAtom({
   getSnapshot: () => media.matches,
   subscribe: (notify) => {
     media.addEventListener('change', notify);
-    return { unsubscribe: () => media.removeEventListener('change', notify) };
+    return () => media.removeEventListener('change', notify);
   }
 });
 const theme = createAtom(() => (isDark.get() ? 'dark' : 'light'));

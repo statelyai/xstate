@@ -650,8 +650,8 @@ export interface AtomOptions<T> {
 export interface SourceAtomConfig<T> {
   /** Reads the current value without starting an external subscription. */
   getSnapshot: () => T;
-  /** Attaches a change listener and returns its subscription. */
-  subscribe: (notify: () => void) => Subscription;
+  /** Attaches a listener and returns a subscription or cleanup function. */
+  subscribe: (notify: () => void) => Subscription | (() => void);
 }
 
 export interface AtomConfig<TValue, TInput> {
