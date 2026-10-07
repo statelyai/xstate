@@ -29,7 +29,7 @@ const machine = setup({
 });
 ```
 
-A declared input schema makes `input` required: `createActor(machine)` is a type error until you pass `{ input }` (or restore a `snapshot`). Framework hooks such as `useActor`, `useActorRef` and `useMachine` inherit the same requirement. `createActorContext` from `@xstate/react` is the exception: `input` stays optional because its options are merged from the context defaults and the `<Provider options>` prop, so a missing input surfaces at runtime as an initialization error instead.
+A declared input schema whose inferred type does not accept `undefined` makes `input` required: `createActor(machine)` is a type error until you pass `{ input }` (or restore a `snapshot`). Framework hooks such as `useActor`, `useActorRef` and `useMachine` inherit the same requirement. `createActorContext` from `@xstate/react` is the exception: `input` stays optional because its options are merged from the context defaults and the `<Provider options>` prop, so a missing input surfaces at runtime as an initialization error instead.
 
 <!-- state-contract typing and declaration emit from packages/core/src/setup.ts and packages/core/test/declarations.test.ts -->
 
@@ -67,6 +67,14 @@ on: {
 ```
 
 Use `assertEvent(...)` only when shared code must narrow a union to one or more known event types.
+
+## Typestates
+
+State-level `schemas.context` declarations describe the context valid in each
+state. State functions receive the narrowed type, transitions into a state
+must satisfy its context contract, and `snapshot.matches(...)` narrows context
+when reading a snapshot. See [Typestates](typestates.md) for declaration,
+transition and runtime validation examples.
 
 ## Checked event keys
 
@@ -166,14 +174,18 @@ const machine = setup({
 
 The validator checks input and public or internal events before calculation, then checks
 stable context, active state schemas, child slots, delayed raised events,
-emitted events and final output before effects run. Invalid values throw an
-`ActorValidationError`.
+emitted events and final output before effects run. Invalid actor-produced
+values error the actor; pure calculations throw an
+`ActorValidationError`. Invalid incoming events are rejected without changing
+or erroring the actor and reported through `onRejectedEvent`. See
+[validation failures](setup-and-provide.md#validation-failures).
 
 Validation is synchronous and assertion-only: async validation is rejected.
 Parsed schema results are discarded. Type-changing transformations are rejected
 by the types, but same-type transformations cannot be detected statically;
-normalize values before sending them. Unknown events and emitted events are errors when a
-corresponding schema map exists; use `unknownEvents: 'ignore'` or
+normalize values before sending them. Unknown incoming events are rejected, and
+unknown emitted events error the actor, when a corresponding schema map exists; use
+`unknownEvents: 'ignore'` or
 `unknownEmitted: 'ignore'` for open protocols.
 
 Derived setups inherit the validator. Replace it or use `validator: undefined`

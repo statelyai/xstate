@@ -19,7 +19,7 @@ waiting: {
 
 The timer starts when the state is entered and is canceled when the state is exited by any other means. In the example above, an `approve` event before the deadline moves the machine to `approved` and the timeout never fires.
 
-`onTimeout` is required whenever a state declares a `timeout`. A machine with one and not the other throws when it is created.
+`onTimeout` is required whenever a state declares a `timeout`. In development builds, a machine declaring `timeout` without `onTimeout` throws when it is created. An `onTimeout` without a `timeout` does not schedule a timer.
 
 `timeout` and [`after`](delays.md) are independent timers and can be used on the same state. `after` schedules a transition at a point in time; `timeout` expresses a deadline for the work the state represents.
 
@@ -54,7 +54,7 @@ const machine = createMachine({
 
 ## Invocation timeouts
 
-An `invoke` can declare its own `timeout` and `onTimeout`, independent of the state's timeout. When it elapses, the invocation is canceled and the `onTimeout` transition is taken.
+An `invoke` can declare its own `timeout` and `onTimeout`, independent of the state's timeout. When it elapses, the `onTimeout` transition is taken. The child is stopped if that transition exits its owning state. A targetless handler leaves the child running unless it explicitly stops it with `enq.stop(...)`.
 
 ```ts
 uploading: {
@@ -67,7 +67,7 @@ uploading: {
 }
 ```
 
-`onTimeout` is required when an invocation has a `timeout`. The timer is canceled when the invoked actor completes, even if the state stays active. Unlike state timeouts, invocation timeouts are not resolved against named delays.
+`onTimeout` is required when an invocation has a `timeout`; omitting it throws at machine creation in development builds. The timer is canceled when the invoked actor completes, even if the state stays active. Unlike state timeouts, invocation timeouts are not resolved against named delays.
 
 ## Async logic timeouts
 

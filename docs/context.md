@@ -40,6 +40,13 @@ Input creates context for each actor instance. The same machine can run one uplo
 
 Context is inferred from its initial value or the return value of a context initializer. Without `schemas.context`, `createMachine({ context: () => ({ count: 0 }) })` still gives `snapshot.context.count` the type `number`. The initializer’s `spawn` returns a typed actor ref. Use a context schema when you need a wider or shared type.
 
+## Typestates
+
+Declare a state-level `schemas.context` to narrow context in that state.
+For example, a `loaded` state can require `user: string` while the root
+context allows `user: string | null`. `snapshot.matches('loaded')` then
+narrows the context type. See [Typestates](typestates.md).
+
 ## Context cheatsheet
 
 ```ts

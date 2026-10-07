@@ -64,7 +64,7 @@ on: {
 }
 ```
 
-Returning `undefined` prevents the transition. Keep transition functions deterministic.
+Returning `undefined` without enqueuing anything prevents the transition. Keep transition functions deterministic.
 
 ## Real examples
 

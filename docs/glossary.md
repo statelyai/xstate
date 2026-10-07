@@ -63,4 +63,6 @@ description: Terms used throughout the XState documentation.
 
 **Transition**: A response to an event that may change state, context, or run effects.
 
+**Typestate**: A context type refined for a particular state. XState infers [typestates](typestates.md) from state-level `schemas.context` declarations.
+
 **Wildcard**: An event pattern such as `pointer.*` or `*` that matches a family of event types when no exact transition matches.

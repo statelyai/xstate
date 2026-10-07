@@ -126,7 +126,8 @@ The first argument is an object. The keys differ slightly between **transition h
 | `delays`   |         ✓          |         ✓         | Named-delay map                                                      |
 | `value`    |         ✓          |         -         | Current `StateValue`                                                 |
 | `system`   |         ✓          |         ✓         | The actor system                                                     |
-| `params`   |         -          |         ✓         | Parameterized-action params (when invoked as `{ type, params }`)     |
+| `input`    |         ✓          |         ✓         | Input of the state that owns the function                            |
+| `stateNode` |        -          |         ✓         | State node being entered or exited                                  |
 
 ### Transitions
 
@@ -470,7 +471,7 @@ If you omit `schemas.context`, the context type is inferred from the literal `co
 
 ### Per-state context types
 
-v6 has no typestates. To type context per state, declare a `schemas.context` for that state in `setup({ states })`. The state schema refines the root context schema, so it declares only the fields that the state narrows:
+v6 supports typestates through inferred state-level context schemas, rather than v4's manually declared `Typestate` generic. To type context per state, declare a `schemas.context` for that state in `setup({ states })`. The state schema refines the root context schema, so it declares only the fields that the state narrows:
 
 ```ts
 import { assertEvent, createActor, setup } from 'xstate';
@@ -514,11 +515,11 @@ if (snapshot.matches('success')) {
 }
 ```
 
-This is a different model from typestates, not a translation of them:
+These inferred typestates work as follows. See [Typestates](typestates.md) for the full guide:
 
-- Actions and transitions declared on a state see that state's narrowed context. A transition into `success` must return a `context` patch that satisfies the `success` schema.
+- Actions and transitions declared on a state see that state's narrowed context. A transition into `success` from a context that does not already satisfy its schema must supply the required fields in a `context` patch.
 - `snapshot.context` has the root context type. `snapshot.matches(...)` narrows it. For a parallel state, `matches` narrows context for each region named in the matched value.
-- Narrowing applies to context only. `entry`, `exit`, and transition functions still receive the machine's event union, so use `assertEvent` to narrow `event`.
+- State schemas refine context independently of events. `entry` and `exit` can receive the machine's event union; use `assertEvent` when they need a specific event. An `on.LOAD` transition already receives the narrowed `LOAD` event.
 - The schemas are compile-time types. XState validates context against them at runtime only when runtime validation is enabled.
 
 ---
@@ -598,7 +599,7 @@ For an actor used in one state, keep its config inline with `s.createInvoke(...)
 
 ## 5. State input
 
-**New in v6**, with no v5 equivalent. Each state node can declare an input schema in `setup()`. Transitions targeting that state pass `input` alongside `target`; the target state's entry/exit actions read it from args. Unrelated to v5's `params` (which existed only on parameterized **action/guard** objects, not state nodes - that mechanism remains in v6 unchanged for parameterized actions).
+**New in v6**, with no v5 equivalent. Each state node can declare an input schema in `setup()`. Transitions targeting that state pass `input` alongside `target`; the target state's entry/exit actions read it from args. Unrelated to v5's `params` (which existed only on parameterized **action/guard** objects, not state nodes - the object form remains available in serialized JSON configs; TypeScript authoring calls named actions and guards with their params directly).
 
 ```ts
 // v6
@@ -845,7 +846,7 @@ Invoked children always persist and rehydrate: inline `invoke.src` logic receive
 
 `invoke.src` may also be a **function** resolving to logic or to a registered name: `src: ({ actors, context, event, self }) => actors.fetchUser`.
 
-An `invoke` may declare its own `timeout` / `onTimeout` (independent of state-level `timeout`): when the timeout elapses before the invoked actor completes, the `onTimeout` transition is taken and the invocation is cancelled.
+An `invoke` may declare its own `timeout` / `onTimeout` (independent of state-level `timeout`): when the timeout elapses before the invoked actor completes, the `onTimeout` transition is taken. Exiting the owning state stops the child; a targetless handler leaves it running unless it calls `enq.stop(...)`.
 
 ### Sending to the parent
 

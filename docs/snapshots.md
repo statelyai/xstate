@@ -106,6 +106,8 @@ Children appear while the state that owns them is active and disappear when it i
 ## TypeScript
 
 Use `SnapshotFrom` to get the snapshot type for actor logic or an actor reference.
+State-level context schemas provide [typestates](typestates.md):
+`snapshot.matches(...)` narrows context to the matched state contracts.
 
 ```ts
 import type { SnapshotFrom } from 'xstate';
