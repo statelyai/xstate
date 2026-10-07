@@ -1,5 +1,45 @@
 # @xstate/store
 
+## 4.3.0
+
+### Minor Changes
+
+- [#5782](https://github.com/statelyai/xstate/pull/5782) [`6dc2adf`](https://github.com/statelyai/xstate/commit/6dc2adf46b4f6a96f7607dff0cdbdcd5933136f8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `createSourceAtom` for read-only external snapshots. Direct and derived subscribers share one listener, released when the last consumer leaves. Plain reads do not subscribe; reconnecting refreshes the snapshot. The source adapter can return a cleanup function or a `{ unsubscribe() }` subscription. Public atom subscriptions always return `{ unsubscribe() }`, matching existing XState subscriptions.
+  
+  Failed activation remains eligible for a later atom operation. Errors delivering an async atom result are exposed through its `error` state.
+  
+  ```ts
+  const isDark = createSourceAtom({
+    getSnapshot: () => media.matches,
+    subscribe: (notify) => {
+      media.addEventListener('change', notify);
+      return () => media.removeEventListener('change', notify);
+    }
+  });
+  ```
+
+### Patch Changes
+
+- [#5760](https://github.com/statelyai/xstate/pull/5760) [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Preserve cleared event history when checking event capabilities or evaluating transitions without committing them. Clearing storage from a subscriber no longer allows the current update to write the cleared data back.
+  
+  Keep newly hydrated event history after clearing an earlier log.
+  
+  Persistence effects from uncommitted `store.transition(...)` calls no longer write snapshot data after `clearStorage(store)`. A `rehydrateStore(store)` read that started before `clearStorage(store)` no longer restores the cleared data.
+
+- [#5760](https://github.com/statelyai/xstate/pull/5760) [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fix async atoms losing their dependencies after a request succeeds or fails. Changing a dependency now reloads the value after settlement, including when a custom comparator suppresses an equivalent result.
+  
+  Fix writable atom updaters accidentally tracking other atoms, and deliver queued subscriber notifications before rethrowing subscriber errors.
+  
+  Persist only committed updates when throttling writes. Capability checks, pure transitions, and rejected updates no longer change pending persisted data. Async storage writes now complete in event order per store. `flushStorage(store)` also waits for already queued writes, including writes queued by `onDone`; synchronous storage remains synchronous.
+  
+  Preserve the latest persisted state when effects or subscriptions synchronously trigger another event. Snapshot and event persistence now retain commit order with immediate or throttled writes.
+  
+  Preserve live extension state through snapshot undo/redo and custom restore events. Fix throttled persistence applying `pick` twice or losing changes sent from `onDone`. Report initial async storage read failures through `onError`, and make `clearStorage` cancel buffered writes and wait for queued writes before removing data. With `strategy: 'event'`, events sent after `clearStorage` start a new history instead of rewriting the cleared one.
+  
+  Improve large batches of triggered events while preserving their processing and effect order.
+
+- [#5760](https://github.com/statelyai/xstate/pull/5760) [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `xstate` is now declared as an optional peer dependency; it is only needed for `fromStore()`.
+
 ## 4.2.3
 
 ### Patch Changes
