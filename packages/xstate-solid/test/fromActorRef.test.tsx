@@ -1212,7 +1212,7 @@ describe('fromActorRef', () => {
 
       createEffect(() => {
         calls++;
-        snapshot().matches('foo');
+        snapshot().matches('idle');
       });
 
       onMount(() => {

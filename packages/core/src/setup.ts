@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { diagnoseAuthorConfig } from './devDiagnostics.ts';
+import { diagnoseAuthorConfig, diagnoseSetupConfig } from './devDiagnostics.ts';
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
 import type {
   SetupSchemas,
@@ -7,7 +7,11 @@ import type {
   SetupStateType
 } from './base.types.ts';
 import type { ActorLogicValidator } from './validation.types.ts';
-import { StateMachine } from './StateMachine.ts';
+import {
+  StateMachine,
+  type CompatibleProvidedActorSource,
+  type ProvidedActionContracts
+} from './StateMachine.ts';
 import {
   createActor as createActorFromLogic,
   type Actor,
@@ -23,6 +27,10 @@ import {
   EventObject,
   AnyEventObject,
   EventDescriptor,
+  ReservedEventAliasDescriptor,
+  ReservedMachineEvent,
+  ReservedActorEventAliases,
+  ReservedEventFromDescriptor,
   ExtractEvent,
   MachineContext,
   ProvidedActor,
@@ -116,7 +124,21 @@ export type SetupConfig<
   actors?: TActorMap;
   guards?: TGuardMap & SetupGuardSources<NoInfer<TSchemas>>;
   delays?: TDelayMap & SetupDelaySources<NoInfer<TSchemas>>;
+  /**
+   * Declared only so that a misplaced `internalEvents` key is rejected instead
+   * of being accepted and silently ignored: private events are declared under
+   * `schemas.internalEvents`.
+   */
+  internalEvents?: MisplacedInternalEventsKey;
 };
+
+/**
+ * `setup()` has no `internalEvents` option. Typing the key as this message
+ * makes the compiler print the replacement rather than accepting dead
+ * configuration.
+ */
+type MisplacedInternalEventsKey =
+  '`internalEvents` is not a setup() option. Declare private events under `schemas.internalEvents`, e.g. `setup({ schemas: { internalEvents: { tick: types<{}>() } } })`.';
 
 /**
  * Contextual types for guard/delay source maps passed to `setup()`, derived
@@ -226,28 +248,31 @@ type ValidateSetupSchemas<TSchemas> = TSchemas extends SetupSchemas
     }
   : TSchemas;
 
-type ValidateSetupStates<TStates> =
-  TStates extends Record<string, SetupStateSchema>
-    ? {
-        [K in keyof TStates]: TStates[K] extends SetupStateSchema
-          ? Omit<TStates[K], 'schemas' | 'states'> & {
-              schemas?: TStates[K]['schemas'] extends SetupStateSchemas
+// Only constrains `schemas`, recursing into `states`, and never returns the
+// state configs themselves: `createMachine` intersects this type with the
+// config it is inferring, so a copy of the config would duplicate every
+// transition type. Each state is checked on its own, so a state without
+// `schemas` (such as `{ on: ... }`) doesn't affect its siblings.
+type ValidateSetupStates<TStates> = TStates extends object
+  ? {
+      [K in keyof TStates]?: TStates[K] extends object
+        ? {
+            schemas?: TStates[K] extends { schemas?: infer TStateSchemas }
+              ? TStateSchemas extends SetupStateSchemas
                 ? {
-                    [P in keyof TStates[K]['schemas']]: TStates[K]['schemas'][P] extends StandardSchemaV1
-                      ? AssertNonTransformingSchema<TStates[K]['schemas'][P]>
-                      : TStates[K]['schemas'][P];
+                    [P in keyof TStateSchemas]: TStateSchemas[P] extends StandardSchemaV1
+                      ? AssertNonTransformingSchema<TStateSchemas[P]>
+                      : TStateSchemas[P];
                   }
-                : TStates[K]['schemas'];
-              states?: TStates[K]['states'] extends Record<
-                string,
-                SetupStateSchema
-              >
-                ? ValidateSetupStates<TStates[K]['states']>
-                : TStates[K]['states'];
-            }
-          : TStates[K];
-      }
-    : TStates;
+                : TStateSchemas
+              : unknown;
+            states?: TStates[K] extends { states?: infer TChildStates }
+              ? ValidateSetupStates<TChildStates>
+              : unknown;
+          }
+        : unknown;
+    }
+  : unknown;
 
 type RuntimeValidationConstraint<TSchemas, TStates, TValidator> = [
   TValidator
@@ -283,10 +308,49 @@ type ExtendValidatorConfig<TExtension> = [TExtension] extends [
   ? { validator?: never }
   : { validator: TExtension };
 
+// An extension may add sources freely, but a source that reuses a base name
+// replaces it at runtime, so it must satisfy the base contract, the same rule
+// `machine.provide(...)` applies.
+type ExtendOverrideContracts<
+  TBaseActionMap,
+  TBaseActorMap,
+  TBaseGuardMap,
+  TExtendActionMap,
+  TExtendActorMap,
+  TExtendGuardMap
+> = {
+  actions?: {
+    [K in keyof NoInfer<TExtendActionMap> &
+      keyof TBaseActionMap]?: ProvidedActionContracts<TBaseActionMap>[K];
+  };
+  guards?: {
+    [K in keyof NoInfer<TExtendGuardMap> &
+      keyof TBaseGuardMap]?: TBaseGuardMap[K];
+  };
+  // Mapped over the extension's own keys, like `provide()`'s actor check, so
+  // an incompatible actor becomes `never` under its own name and the error is
+  // reported there.
+  actors?: {
+    [K in keyof NoInfer<TExtendActorMap>]: K extends keyof TBaseActorMap
+      ? TBaseActorMap[K] extends AnyActorLogic
+        ? NoInfer<TExtendActorMap>[K] extends AnyActorLogic
+          ? CompatibleProvidedActorSource<
+              TBaseActorMap[K],
+              NoInfer<TExtendActorMap>[K]
+            >
+          : never
+        : never
+      : NoInfer<TExtendActorMap>[K];
+  };
+};
+
 type SetupExtensionConfig<
   TBaseSchemas,
   TBaseStates,
   TBaseValidator,
+  TBaseActionMap,
+  TBaseActorMap,
+  TBaseGuardMap,
   TExtendSchemas extends SetupSchemas,
   TExtendStates extends Record<string, SetupStateSchema>,
   TExtendActionMap extends Sources['actions'],
@@ -314,6 +378,14 @@ type SetupExtensionConfig<
       NoInfer<MergedSetupSchemas<TBaseSchemas, TExtendSchemas>>
     >;
 } & ExtendValidatorConfig<TExtendValidator> &
+  ExtendOverrideContracts<
+    TBaseActionMap,
+    TBaseActorMap,
+    TBaseGuardMap,
+    TExtendActionMap,
+    TExtendActorMap,
+    TExtendGuardMap
+  > &
   RuntimeValidationCompatibility<
     NoInfer<TBaseSchemas>,
     NoInfer<TBaseStates>,
@@ -1397,13 +1469,21 @@ type SetupInternalEvents<
   ? InferInternalEvents<TInternalEventSchemaMap>
   : InferInternalEvents<SetupSchemaMap<TSchemas, 'internalEvents'>>;
 
+// Without internal events this must be `SetupPublicEvents` itself, not a union
+// with `never`: such a union has the same members but is a different type, so
+// the config types computed from it are not shared with the ones computed from
+// `SetupPublicEvents`. With a validator, `setup().createMachine()` sees both
+// copies of each state's config, and TypeScript multiplies their unions out
+// (invoke sources per registered actor, targets per state contract).
 type SetupEvents<
   TSchemas,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
   TInternalEventSchemaMap extends Record<string, StandardSchemaV1> = {}
-> =
-  | SetupPublicEvents<TSchemas, TEventSchemaMap>
-  | SetupInternalEvents<TSchemas, TInternalEventSchemaMap>;
+> = [SetupInternalEvents<TSchemas, TInternalEventSchemaMap>] extends [never]
+  ? SetupPublicEvents<TSchemas, TEventSchemaMap>
+  :
+      | SetupPublicEvents<TSchemas, TEventSchemaMap>
+      | SetupInternalEvents<TSchemas, TInternalEventSchemaMap>;
 
 type SetupTags<TSchemas, TTagSchema extends StandardSchemaV1> = [
   SetupSchema<TSchemas, 'tags'>
@@ -3419,11 +3499,55 @@ type StateTransitions<
 } & (string extends TEvent['type']
   ? unknown
   : {
-      [K in `xstate.${string}`]?: StateTransitionConfigOrTarget<
+      [K in Exclude<
+        EventDescriptor<ReservedMachineEvent>,
+        EventDescriptor<TEvent>
+      >]?: StateTransitionConfigOrTarget<
         TStateSchemas,
         TContext,
         TContextShape,
-        { type: K },
+        ReservedEventFromDescriptor<K>,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TInput,
+        TTarget,
+        TKnownTarget
+      >;
+    } & {
+      [K in keyof ReservedActorEventAliases<
+        TActorMap,
+        TChildren
+      >]?: StateTransitionConfigOrTarget<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        ReservedActorEventAliases<TActorMap, TChildren>[K] & EventObject,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TInput,
+        TTarget,
+        TKnownTarget
+      >;
+    } & {
+      [K in ReservedEventAliasDescriptor]?: StateTransitionConfigOrTarget<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        ReservedEventFromDescriptor<K>,
         TEvent,
         TEmitted,
         TChildren,
@@ -4103,8 +4227,8 @@ type StateTransitionObjectConfig<
       TKnownTarget
     > & {
       description?: string;
-    })
-  | {
+    } & RemovedTransitionKeys)
+  | ({
       target: TTarget[];
       context?: StateTransitionContext<
         TAllowContextMapper,
@@ -4131,7 +4255,18 @@ type StateTransitionObjectConfig<
               event: TExpressionEvent;
             } & OutputArg<TExpressionEvent>
           ) => Record<string, unknown>);
-    };
+    } & RemovedTransitionKeys);
+
+/**
+ * v5 keys that transition objects no longer have. Typing each one as a message
+ * makes the compiler print the replacement instead of accepting config that
+ * the runtime rejects.
+ */
+type RemovedTransitionKeys = {
+  cond?: '`cond` was removed from transition objects in v6. Use a transition function that returns { target } when the condition passes, or undefined to reject the event.';
+  guard?: '`guard` was removed from transition objects in v6. Use a transition function that returns { target } when the condition passes; named guards are available as `guards.name(...)` in its arguments.';
+  actions?: '`actions` was removed from transition objects in v6. Use a transition function `(args, enq) => { ... }` and call named actions with `enq(actions.name, params)`.';
+};
 
 type StateTransitionContextMapper<
   TContext extends MachineContext,
@@ -4504,6 +4639,9 @@ export interface SetupReturn<
       TSchemas,
       TStates,
       TValidator,
+      TSetupActionMap,
+      TSetupActorMap,
+      TSetupGuardMap,
       TExtendSchemas,
       TExtendStates,
       TExtendActionMap,
@@ -4979,7 +5117,9 @@ export interface SetupReturn<
         SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig, TStates>,
         SetupEmitted<TSchemas, TEmittedSchemaMap>,
         SetupMeta<TSchemas, TMetaSchema>,
-        PublicStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
+        PublicStateSchema<SetupMachineStateSchema<TConfig, TStates>> & {
+          schemas: MergedSetupSchemas<SetupConfigSchemas<TConfig>, TSchemas>;
+        },
         MergeSourceMaps<
           SetupActions<TSchemas, TSetupActionMap>,
           MergeSourceMaps<InferActions<TActionSchemaMap>, TActionMap>
@@ -5264,6 +5404,9 @@ export const setup = function setupImplementation<
   SystemRegistry,
   TValidator
 > {
+  if (isDevelopment) {
+    diagnoseSetupConfig(config);
+  }
   const {
     validator,
     states = {} as TStates,
@@ -5291,6 +5434,9 @@ export const setup = function setupImplementation<
         TSchemas,
         TStates,
         TValidator,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
         TExtendSchemas,
         TExtendStates,
         TExtendActionMap,

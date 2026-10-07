@@ -1,11 +1,11 @@
 /**
  * Development-only checks for leftover v5 configuration on hand-written
- * machine configs. Only reachable behind `isDevelopment`, so production builds
- * drop this module.
+ * machine and setup configs. Only reachable behind `isDevelopment`, so
+ * production builds drop this module.
  */
 
 const INLINE_TRANSITION =
-  'Use an inline transition function instead: return { target } when the condition passes, or undefined to reject the event. Named guards are available as `guards.name(...)` in its arguments.';
+  'Use an inline transition function instead: return { target } when the condition passes, or undefined to reject the event (before any enq call, which would select the transition). Named guards are available as `guards.name(...)` in its arguments.';
 
 const INLINE_ACTION =
   'Use a single inline function `(args, enq) => { ... }`; call named actions with `enq(actions.name, params)`.';
@@ -19,6 +19,11 @@ const REMOVED_ROOT_KEYS: Record<string, string> = {
     '"schema" was replaced by "schemas". Declare contracts under `schemas` (or `setup({ schemas })`).',
   internalEvents:
     'The top-level "internalEvents" list was removed. Declare private events under `schemas.internalEvents` instead, e.g. `schemas: { internalEvents: { tick: types<{}>() } }`.'
+};
+
+const UNSUPPORTED_SETUP_KEYS: Record<string, string> = {
+  internalEvents:
+    'setup() has no "internalEvents" option. Declare private events under `schemas.internalEvents` instead, e.g. `setup({ schemas: { internalEvents: { tick: types<{}>() } } })`.'
 };
 
 const IGNORED_ROOT_KEYS: Record<string, string> = {
@@ -159,4 +164,17 @@ export function diagnoseAuthorConfig(config: any): void {
     }
   }
   checkStateNode(config, config.id ?? '(machine)');
+}
+
+/**
+ * Throws when a `setup(...)` config contains a key that belongs elsewhere and
+ * would otherwise be ignored.
+ */
+export function diagnoseSetupConfig(config: any): void {
+  if (!config || typeof config !== 'object') return;
+  for (const key of Object.keys(UNSUPPORTED_SETUP_KEYS)) {
+    if (config[key] !== undefined) {
+      throw new Error(UNSUPPORTED_SETUP_KEYS[key]);
+    }
+  }
 }

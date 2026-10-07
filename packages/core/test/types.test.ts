@@ -20,6 +20,7 @@ import {
   InputFrom,
   OutputFrom,
   type SnapshotFrom,
+  type StateFrom,
   StateMachine,
   type StateValue,
   SpecialExecutableAction,
@@ -40,11 +41,15 @@ import {
 } from '../src/index';
 import { createInertActorScope } from '../src/inertActorScope';
 import type {
+  ActorLogic,
+  ActorLogicTransitionResult,
   DoneActorEvent,
   EventObject,
+  Snapshot,
   TransitionConfigFunction
 } from '../src/types';
 import type { Next_StateNodeConfig } from '../src/types.v6';
+import { standardSchemaValidator } from '../src/validation/index.ts';
 import z from 'zod';
 import * as z4 from 'zod/v4';
 
@@ -565,6 +570,61 @@ describe('context', () => {
         count: 0
       })
     });
+  });
+
+  it('should infer context from a context function without schemas.context', () => {
+    const connection = createCallbackLogic(() => () => {});
+
+    const machine = createMachine({
+      actors: { connection },
+      context: ({ spawn, actors }) => ({
+        count: 0,
+        connection: spawn(actors.connection, { id: 'connection' })
+      }),
+      on: {
+        inc: ({ context }) => ({ context: { count: context.count + 1 } })
+      }
+    });
+
+    const context = createActor(machine).getSnapshot().context;
+    context.count satisfies number;
+    context.connection satisfies ActorRefFromLogic<typeof connection>;
+    // @ts-expect-error the spawned ref is typed, not `any`
+    context.connection satisfies number;
+
+    const lazy = createMachine({ context: () => ({ count: 0 }) });
+    createActor(lazy).getSnapshot().context.count satisfies number;
+  });
+
+  it('should infer context from a context function next to an invoked logic object', () => {
+    // Implements `ActorLogic` without its optional members, like a machine in
+    // the published declarations, where `getExecutionErrorEvent` is stripped.
+    class MinimalLogic implements ActorLogic<Snapshot<undefined>, EventObject> {
+      transition(
+        snapshot: Snapshot<undefined>
+      ): ActorLogicTransitionResult<Snapshot<undefined>> {
+        return [snapshot, []];
+      }
+      initialTransition(): ActorLogicTransitionResult<Snapshot<undefined>> {
+        return [this.getInitialSnapshot(), []];
+      }
+      getInitialSnapshot(): Snapshot<undefined> {
+        return { status: 'active', output: undefined, error: undefined };
+      }
+      getPersistedSnapshot(snapshot: Snapshot<undefined>) {
+        return snapshot;
+      }
+    }
+
+    const machine = createMachine({
+      context: ({ input }) => ({ count: 0, input }),
+      initial: 'idle',
+      states: {
+        idle: { invoke: { src: new MinimalLogic() } }
+      }
+    });
+
+    createActor(machine).getSnapshot().context.count satisfies number;
   });
 });
 
@@ -2692,9 +2752,10 @@ describe('invoke', () => {
     });
 
     createAsyncLogic({
-      // @ts-expect-error
       schemas: {
+        // @ts-expect-error output does not match the declared schema
         input: types<{ userId: string }>(),
+        // @ts-expect-error output does not match the declared schema
         output: types<{ name: string }>()
       },
       run: async () => {
@@ -4823,6 +4884,93 @@ describe('setup.extend', () => {
       }
     });
   });
+
+  it('checks a source that reuses a base name against the base source', () => {
+    type Form = { street: string; zip: string };
+    const base = setup({
+      schemas: { context: types<Form>(), events: { next: types<{}>() } },
+      guards: {
+        isComplete: (form: Form) => form.street !== '' && form.zip !== ''
+      },
+      actions: { track: (_params: { step: string }) => {} },
+      actors: {
+        save: createAsyncLogic({
+          schemas: { input: types<Form>(), output: types<{ id: string }>() },
+          run: async ({ input }) => ({ id: input.zip })
+        })
+      }
+    });
+
+    base.extend({
+      guards: {
+        // @ts-expect-error - the replacement must accept the base arguments
+        isComplete: (zip: string) => /^\d{5}$/.test(zip)
+      }
+    });
+    base.extend({
+      actions: {
+        // @ts-expect-error - the replacement must accept the base params
+        track: (count: number) => {}
+      }
+    });
+    base.extend({
+      actors: {
+        // @ts-expect-error - the replacement must accept the base input and produce the base output
+        save: createAsyncLogic({
+          schemas: {
+            input: types<{ zip: number }>(),
+            output: types<{ ok: boolean }>()
+          },
+          run: async () => ({ ok: true })
+        })
+      }
+    });
+
+    // Compatible replacements, fewer parameters and new names are accepted.
+    const tenant = base.extend({
+      guards: {
+        isComplete: () => true,
+        isCedex: (zip: string) => zip.endsWith('CEDEX')
+      },
+      actions: {
+        track: (_params: { step: string }) => {},
+        extra: (_params: { count: number }) => {}
+      },
+      actors: {
+        save: createAsyncLogic({
+          schemas: { input: types<Form>(), output: types<{ id: string }>() },
+          run: async () => ({ id: 'tenant' })
+        })
+      }
+    });
+
+    const machine = tenant.createMachine({
+      context: { street: '', zip: '75001' },
+      initial: 'editing',
+      states: {
+        editing: {
+          on: {
+            next: ({ context, guards, actions }, enq) => {
+              if (!guards.isComplete(context) || guards.isCedex(context.zip)) {
+                return;
+              }
+              enq(actions.track, { step: 'next' });
+              enq(actions.extra, { count: 1 });
+              return { target: 'done' };
+            }
+          }
+        },
+        done: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'next' });
+
+    // The tenant's `isComplete` replaced the base one, which would reject the
+    // empty street.
+    expect(actor.getSnapshot().value).toBe('done');
+  });
 });
 
 describe('choice state types', () => {
@@ -6442,6 +6590,42 @@ describe('snapshot methods', () => {
     void [parent, children];
   });
 
+  it('should reject unknown state values in matches', () => {
+    const machine = setup({}).createMachine({
+      initial: 'idle',
+      states: {
+        idle: {},
+        checkout: {
+          initial: 'payment',
+          states: { payment: {}, review: {} }
+        }
+      }
+    });
+
+    const snapshot = createActor(machine).getSnapshot();
+
+    snapshot.matches('idle');
+    snapshot.matches('checkout.payment');
+    snapshot.matches({ checkout: 'review' });
+    // @ts-expect-error 'noSuchState' is not a state of this machine
+    snapshot.matches('noSuchState');
+    // @ts-expect-error 'nope' is not a child state of 'checkout'
+    snapshot.matches('checkout.nope');
+    // @ts-expect-error 'nope' is not a child state of 'checkout'
+    snapshot.matches({ checkout: 'nope' });
+    // @ts-expect-error 'nope' is not a state of this machine
+    snapshot.matches({ nope: 'payment' });
+
+    const wide = (value: StateValue) => snapshot.matches(value);
+    const fromState = (state: StateFrom<typeof machine>) => {
+      state.matches('checkout.review');
+      // @ts-expect-error 'noSuchState' is not a state of this machine
+      state.matches('noSuchState');
+    };
+
+    void [wide, fromState];
+  });
+
   it('should type infer actor union snapshot methods', () => {
     const typeOne = createMachine({
       schemas: {
@@ -6490,6 +6674,7 @@ describe('snapshot methods', () => {
 
     snapshot.matches('one');
     snapshot.matches('two');
+    // @ts-expect-error
     snapshot.matches('three');
 
     snapshot.getMeta();
@@ -6775,6 +6960,69 @@ describe('invoke onDone inference with heterogeneous actor maps', () => {
       }
     });
   });
+
+  // TypeScript 5.9 lost these contextual types (TS7031) when the setup also
+  // had a validator and an event with a payload. TypeScript 6 types them
+  // either way, so only a TypeScript 5.9 check fails without the fix.
+  it('should infer per-actor event.output with a validator and event payloads', () => {
+    const events = {
+      'user.pick': z.object({ value: z.string() }),
+      'user.next': z.object({})
+    };
+
+    setup({
+      schemas: { events },
+      validator: standardSchemaValidator(),
+      actors: { numberLogic, stringLogic },
+      states: { a: {}, b: {}, done: {} }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: 'numberLogic',
+            onDone: ({ event }) => {
+              event.output satisfies number;
+              // @ts-expect-error output is a number
+              event.output satisfies string;
+              return { target: 'done' };
+            }
+          }
+        },
+        b: {
+          invoke: {
+            src: stringLogic,
+            onDone: ({ event }) => {
+              event.output satisfies string;
+              return { target: 'done' };
+            }
+          }
+        },
+        done: {}
+      }
+    });
+
+    setup({
+      schemas: { context: z.object({ length: z.number() }), events },
+      validator: standardSchemaValidator(),
+      actors: { numberLogic, stringLogic }
+    }).createMachine({
+      context: { length: 0 },
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: 'stringLogic',
+            onDone: {
+              target: 'done',
+              context: ({ event }) => ({ length: event.output.length })
+            }
+          }
+        },
+        done: {}
+      }
+    });
+  });
 });
 
 it('generic aliases preserve invocation metadata, state input, and transition children', () => {
@@ -6888,4 +7136,20 @@ it('generic state node containers keep arbitrary metadata as any', () => {
       .flat()
       .every(Boolean)
   ).toBe(true);
+});
+
+it('retains concrete event schemas through provide', () => {
+  const field = z4.object({ value: z4.string() }).meta({ label: 'Name' });
+  const machine = setup({
+    schemas: { events: { change: field } }
+  }).createMachine({});
+  machine.schemas?.events.change.meta();
+  machine.provide({}).schemas?.events.change.meta();
+});
+it('widens inferred schema-free async output for compatible replacements', () => {
+  const save = createAsyncLogic({ run: async () => ({ ok: true }) });
+  const machine = setup({ actors: { save } }).createMachine({});
+  machine.provide({
+    actors: { save: createAsyncLogic({ run: async () => ({ ok: false }) }) }
+  });
 });

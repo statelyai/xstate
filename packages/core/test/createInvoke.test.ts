@@ -112,14 +112,14 @@ describe('setup.createInvoke', () => {
         s.createInvoke({
           src: createAsyncLogic({ run: async () => 1 }),
           onDone: ({ event }) => {
-            expectTypeOf(event.output).toEqualTypeOf<1>();
+            expectTypeOf(event.output).toEqualTypeOf<number>();
             return { context: { total: event.output } };
           }
         }),
         {
           src: 'registered',
           onDone: ({ event }) => {
-            expectTypeOf(event.output).toEqualTypeOf<42>();
+            expectTypeOf(event.output).toEqualTypeOf<number>();
             return { context: { total: event.output } };
           }
         }
@@ -286,7 +286,7 @@ describe('setup.createInvoke', () => {
                 {
                   src: 'registered',
                   onDone: ({ event }) => {
-                    expectTypeOf(event.output).toEqualTypeOf<42>();
+                    expectTypeOf(event.output).toEqualTypeOf<number>();
                     return {};
                   }
                 }
@@ -352,10 +352,10 @@ describe('setup.createInvoke', () => {
                   }),
                   onDone: ({ event, output }) => {
                     expectTypeOf(event.output).toEqualTypeOf<{
-                      readonly name: 'David';
+                      name: string;
                     }>();
                     expectTypeOf(output).toEqualTypeOf<{
-                      readonly name: 'David';
+                      name: string;
                     }>();
                     return {};
                   }
@@ -363,14 +363,14 @@ describe('setup.createInvoke', () => {
                 s.createInvoke({
                   src: createAsyncLogic({ run: async () => true }),
                   onDone: ({ event }) => {
-                    expectTypeOf(event.output).toEqualTypeOf<true>();
+                    expectTypeOf(event.output).toEqualTypeOf<boolean>();
                     return {};
                   }
                 }),
                 {
                   src: 'registered',
                   onDone: ({ event }) => {
-                    expectTypeOf(event.output).toEqualTypeOf<42>();
+                    expectTypeOf(event.output).toEqualTypeOf<number>();
                     return {};
                   }
                 }
@@ -608,8 +608,8 @@ describe('setup.createInvoke', () => {
         src: logic,
         onDone: {
           context: ({ event, output, context, actions }) => {
-            expectTypeOf(event.output.name).toEqualTypeOf<'David'>();
-            expectTypeOf(output.name).toEqualTypeOf<'David'>();
+            expectTypeOf(event.output.name).toEqualTypeOf<string>();
+            expectTypeOf(output.name).toEqualTypeOf<string>();
             expectTypeOf(context.name).toEqualTypeOf<string>();
             expectTypeOf(actions.log).toEqualTypeOf<(name: string) => void>();
             return { name: event.output.name };

@@ -68,21 +68,47 @@ describe('serializability conformance', () => {
     };
     const machine = createMachineFromConfig(definition);
     for (const logic of [machine, machine.provide({})]) {
-      expect(logic.serialize()).toBe(definition);
-      expect(logic.serialize()).toBe(serializeMachine(logic));
+      expect(logic.serialize()).toEqual(definition);
+      expect(logic.serialize()).toEqual(serializeMachine(logic));
       expect(logic.serialize({ mode: 'inspection' })).toEqual({
         format: 'xstate-inspection',
         formatVersion: 1,
         profile: 'xstate-v6',
         definition
       });
-      expect(logic.serialize({ mode: 'inspection' }).definition).toBe(
+      expect(logic.serialize({ mode: 'inspection' }).definition).toEqual(
         definition
       );
       expect(createMachineFromConfig(logic.serialize()).serialize()).toEqual(
         definition
       );
     }
+  });
+
+  it('both public serialization modes isolate revived machine definitions', () => {
+    const definition = {
+      initial: 'idle',
+      context: { count: 1 },
+      states: { idle: { tags: ['original'] } }
+    };
+    const machine = createMachineFromConfig(definition);
+    const provided = machine.provide({});
+    definition.context.count = 99;
+    definition.states.idle.tags.push('input mutation');
+    for (const logic of [machine, provided]) {
+      const canonical = logic.serialize() as typeof definition;
+      const inspected = logic.serialize({ mode: 'inspection' })
+        .definition as typeof definition;
+      expect(canonical.context.count).toBe(1);
+      expect(inspected.states.idle.tags).toEqual(['original']);
+      canonical.context.count = 100;
+      inspected.states.idle.tags.push('output mutation');
+      expect(logic.serialize().context).toEqual({ count: 1 });
+      expect(logic.serialize({ mode: 'inspection' }).definition.states).toEqual(
+        { idle: { tags: ['original'] } }
+      );
+    }
+    expect(createActor(machine).getSnapshot().context).toEqual({ count: 1 });
   });
 
   it('public serialization captures inline handlers without runtime sources', () => {
@@ -249,6 +275,45 @@ describe('serializability conformance', () => {
     expect(JSON.stringify(serializeMachine(revived))).toBe(
       JSON.stringify(serializeMachine(machine))
     );
+  });
+
+  it('a machine created from JSON does not share its definition', () => {
+    const definition = {
+      id: 'counter',
+      context: { count: 0 },
+      actions: {
+        bump: { type: '@xstate.assign', context: { count: 1 } }
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          meta: { label: 'Idle' },
+          on: { inc: { actions: [{ type: 'bump' }] } }
+        }
+      }
+    };
+    const original = JSON.parse(JSON.stringify(definition));
+    const machine = createMachineFromConfig(definition as any);
+    const json = serializeMachine(machine) as any;
+
+    expect(json).toEqual(original);
+    expect(json).not.toBe(definition);
+
+    // neither the caller's definition nor the serialized copy reaches the
+    // running machine
+    definition.context.count = 10;
+    json.context.count = 42;
+    json.actions.bump.context.count = 7;
+    json.states.idle.meta.label = 'Edited';
+
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().context).toEqual({ count: 0 });
+    expect(actor.getSnapshot().getMeta()).toEqual({
+      'counter.idle': { label: 'Idle' }
+    });
+    actor.send({ type: 'inc' });
+    expect(actor.getSnapshot().context).toEqual({ count: 1 });
+    expect(serializeMachine(machine)).toEqual(original);
   });
 
   it('JSON.stringify never throws on an inline-authored machine', () => {
@@ -662,4 +727,16 @@ describe('serializability conformance', () => {
     actor.send({ type: 'toggle' });
     expect(actor.getSnapshot().value).toBe('active');
   });
+});
+
+it('preserves constructor and __proto__ JSON keys without sharing context', () => {
+  const definition = JSON.parse(
+    '{"context":{"constructor":"value","__proto__":{"count":1}}}'
+  );
+  const machine = createMachineFromConfig(definition);
+  const serialized = serializeMachine(machine);
+  expect(serialized).toEqual(definition);
+  expect(Object.getPrototypeOf(serialized.context)).toBe(Object.prototype);
+  (serialized.context as any).__proto__.count = 2;
+  expect(serializeMachine(machine)).toEqual(definition);
 });

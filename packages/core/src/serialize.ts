@@ -20,8 +20,8 @@ export interface CodeExpression {
  * Returns the JSON-serializable definition of a machine.
  *
  * Inline functions are represented as `{ "@code": string, "@lang": "ts" }`. A
- * machine created via `createMachineFromConfig` returns its original JSON
- * config (lossless round-trip). Use `{ mode: 'inspection' }` to retain
+ * machine created via `createMachineFromConfig` returns a copy of its original
+ * JSON config (lossless round-trip). Use `{ mode: 'inspection' }` to retain
  * anonymous inline invokes in a non-executable inspection envelope.
  *
  * ```ts
@@ -51,15 +51,16 @@ export function serializeMachine(
   machine: AnyStateMachine,
   options?: MachineSerializationOptions
 ): Record<string, unknown> | MachineInspectionJSON {
+  const json = (machine as any)._json;
   if (options?.mode === 'inspection') {
     return {
       format: 'xstate-inspection',
       formatVersion: 1,
       profile: 'xstate-v6',
-      definition: (machine as any)._json ?? configToJSON(machine.config, true)
+      definition: json ? cloneJSON(json) : configToJSON(machine.config, true)
     };
   }
-  return (machine as any)._json ?? machineConfigToJSON(machine.config);
+  return json ? cloneJSON(json) : machineConfigToJSON(machine.config);
 }
 
 /** @public */
@@ -80,6 +81,27 @@ export interface MachineInspectionJSON {
   formatVersion: 1;
   profile: 'xstate-v6';
   definition: Record<string, unknown>;
+}
+
+/**
+ * Copies the arrays and plain objects of a JSON definition, so that a machine
+ * and its callers never share them.
+ */
+export function cloneJSON<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map(cloneJSON) as T;
+  }
+  if (
+    value === null ||
+    typeof value !== 'object' ||
+    (Object.getPrototypeOf(value) !== Object.prototype &&
+      Object.getPrototypeOf(value) !== null)
+  ) {
+    return value;
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, cloneJSON(entry)])
+  ) as T;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type

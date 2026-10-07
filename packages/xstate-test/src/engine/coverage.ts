@@ -413,7 +413,7 @@ function getPropertyTransitionId(
   transition: AnyTransitionDefinition
 ): string {
   return (
-    coverage.transitionIds.get(transition) ??
+    coverage.transitionIds.get(transition.definition ?? transition) ??
     JSON.stringify([
       'transition',
       transition.source.id,

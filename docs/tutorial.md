@@ -112,7 +112,7 @@ A transition can be a function. It receives `{ context, event }` and returns a p
 
 Run `player.trigger.next()` four times and the index runs off the end of the playlist. A guard prevents that.
 
-In XState v6 a guard is not a separate property. It is a condition inside the transition function: return `undefined` and the event is not handled at all, with no state change, no context change and no effects.
+In XState v6 a guard is not a separate property. It is a condition inside the transition function: return `undefined` before enqueuing anything and the event is not handled, with no state change, context change or effects. Enqueuing effects handles the event even when the function returns `undefined`.
 
 ```ts
 on: {

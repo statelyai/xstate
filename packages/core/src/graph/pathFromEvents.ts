@@ -56,7 +56,7 @@ export function getPathsFromEvents<
           : options.events;
       nextEvent = undefined;
       for (let index = candidates.length - 1; index >= 0; index--) {
-        const candidate = candidates[index];
+        const candidate = candidates[index] as TEvent;
         if (
           (!filterEvents || filterEvents(state, candidate)) &&
           serializeEvent(candidate) === eventSerial

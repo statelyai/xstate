@@ -33,7 +33,7 @@ No. The internal snapshot shape changed and v5 persisted snapshots are not binar
 
 ## Why is my event ignored?
 
-Either the current state defines no transition for that event type, or the transition function returned `undefined`. Events with no matching transition are ignored, and a transition function that returns `undefined` rejects the event, leaving the state unchanged and running no effects. Check `snapshot.value` and `snapshot.can({ type: 'yourEvent' })`. See [troubleshooting](troubleshooting.md).
+Either the current state defines no transition for that event type, or the transition function returned `undefined`. Events with no matching transition are ignored, and a transition function that returns `undefined` rejects the event, leaving the state unchanged and running no effects, as long as it did not call `enq` first. A function that calls `enq` is always taken; see [guards](guards.md). Check `snapshot.value` and `snapshot.can({ type: 'yourEvent' })`. See [troubleshooting](troubleshooting.md).
 
 ## Why didn't my context update?
 

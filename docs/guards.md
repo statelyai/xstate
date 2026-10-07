@@ -12,7 +12,7 @@ submit: ({ context }) => {
 }
 ```
 
-When the function returns `undefined`, the transition is not taken, the state does not change, and no effects run.
+When the function returns `undefined`, the transition is not taken, the state does not change, and no effects run, so the event can still match a wildcard or a parent state's transition. This only holds if the function has not called `enq`: any `enq` call selects the transition, even when the function then returns `undefined`. It runs as a targetless transition with the queued effects, `snapshot.can(...)` returns `true`, and the event is not passed on. Check conditions and return before calling `enq`.
 
 ## Choosing between targets
 

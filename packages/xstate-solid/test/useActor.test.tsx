@@ -1019,7 +1019,7 @@ describe('useActor', () => {
 
       createEffect(() => {
         calls++;
-        state.matches('foo');
+        state.matches('idle');
       });
 
       onMount(() => {
