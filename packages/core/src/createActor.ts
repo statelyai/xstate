@@ -8,6 +8,7 @@ import {
   createInitEvent
 } from './eventUtils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
+import { rejectRuntimeEvent } from './runtimeHelpers.ts';
 import { symbolObservable } from './symbolObservable.ts';
 import {
   encodeAddressSegment,
@@ -34,6 +35,7 @@ let executingCustomAction: boolean = false;
 
 import type {
   ActorTermination,
+  ActorSendOptions,
   ActorScope,
   ActorTrigger,
   AnyActor,
@@ -1257,12 +1259,22 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
    * Sends an event to the running Actor to trigger a transition.
    *
    * @param event The event to send
+   * @param options Options for this delivery; runtime events are allowed by default
    */
-  private _sendPublic(event: SendableEventFromLogic<TLogic>) {
+  private _sendPublic(
+    event: SendableEventFromLogic<TLogic>,
+    options?: ActorSendOptions
+  ) {
     if (isDevelopment && typeof event === 'string') {
       throw new Error(
         `Only event objects may be sent to actors; use .send({ type: "${event}" }) instead`
       );
+    }
+    if (
+      options?.allowRuntimeEvents === false &&
+      rejectRuntimeEvent(this, event)
+    ) {
+      return;
     }
     this.system._relay(undefined, this, event);
   }

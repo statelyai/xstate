@@ -73,7 +73,7 @@ const actor = createActor(machine, {
 | --- | --- |
 | `start()` | Starts the actor and emits the initial snapshot. Calling it on a running actor is a no-op. Actors are single-use: calling it after `stop()` throws; create a new actor with `createActor()` instead. |
 | `stop()` | Stops the actor, its children and its timers, and completes observers. |
-| `send(event)` | Sends an event to the actor. |
+| `send(event, options?)` | Sends an event to the actor. Pass `{ allowRuntimeEvents: false }` to reject runtime control events supplied by this call. |
 | `trigger` | Typed per-event shorthand for `send(...)`, e.g. `actor.trigger.submit()`. See [TypeScript](typescript.md). |
 | `subscribe(observer)` | Observes [snapshots](snapshots.md). |
 | `on(type, handler)` | Listens for [emitted events](emitted-events.md). Use `'*'` for all of them. |
@@ -88,6 +88,22 @@ const actor = createActor(machine, {
 | `ref` | The `ActorRef` view of this actor, safe to pass around. |
 | `options` | The resolved options this actor was created with. |
 | `clock` | The clock in use. |
+
+## Sending application input
+
+<!-- ActorSendOptions and public send behavior from packages/core/src/types.ts, createActor.ts, remoteActorRef.ts, and runtimeHelpers.ts -->
+
+When forwarding application input, use `actor.send(event, { allowRuntimeEvents: false })` to reject runtime control events before delivery, without requiring a validator:
+
+```ts
+actor.send({ type: 'submit', name: 'Ada' }, { allowRuntimeEvents: false });
+```
+
+This rejects actor/state completion, error, snapshot, timer, `after` and timeout notifications, including legacy per-id forms, as well as async, observable and logic-effect control events and runtime lifecycle commands. Rejections go to `onRejectedEvent` with reason `'internalEvent'`. Public `xstate.route` events remain allowed. The option applies to the submitted event only; raised internal events, real timer firings and child notifications generated while processing it continue normally. Local actors and remote actor refs both enforce the option before handing delivery to a host runtime.
+
+`allowRuntimeEvents` defaults to `true`, preserving host delivery and event-journal replay. Neither setting bypasses existing internal-event restrictions: declared `schemas.internalEvents` and the runtime-only `xstate.timer` event remain unavailable to external senders. Synchronous internal events are generated again during processing and should not be replayed separately. Pure `transition()` calls remain unchanged.
+
+This option restricts event types; it does not authenticate callers or validate application payloads. Use event schemas with a runtime validator for payload validation.
 
 ## Subscribing
 

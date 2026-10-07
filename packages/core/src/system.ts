@@ -283,7 +283,8 @@ export function bookSessionId(system: AnyActorSystem): string {
 /**
  * Why an event was not delivered: `'invalidEvent'` (payload failed its
  * declared schema), `'internalEvent'` (an internal event type sent from
- * outside its owning actor), `'stopped'` (the target actor already stopped)
+ * outside its owning actor, or a runtime event rejected by a send with
+ * `allowRuntimeEvents: false`), `'stopped'` (the target actor already stopped)
  * or `'missingTarget'` (`enq.sendTo` received an undefined ref, an unknown
  * child id, or the `parent` of a root actor). Hosts may report additional
  * reasons.

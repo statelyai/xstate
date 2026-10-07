@@ -128,6 +128,27 @@ export function deliverEvent(
   runtimeTarget._send(event);
 }
 
+// Runtime notification families, including legacy per-id forms. Public routes
+// and application-defined events in other namespaces are intentionally absent.
+const runtimeEventPattern =
+  /^(?:xstate\.(?:done\.(?:actor|state)|error|snapshot|after|timeout|timer|async|observable|logic\.effect)(?:\.|$)|@xstate\.(?:init|start|spawn|stop|terminate)$)/;
+
+/** Rejects an opted-out public send before a host can take ownership. @internal */
+export function rejectRuntimeEvent(
+  target: AnyActor,
+  event: AnyEventObject
+): boolean {
+  if (!runtimeEventPattern.test(event.type)) {
+    return false;
+  }
+  void target.system.deadLetter(undefined, target, event, 'internalEvent', {
+    error: new Error(
+      `Runtime event "${event.type}" cannot be sent to actor "${target.id}" with allowRuntimeEvents: false.`
+    )
+  });
+  return true;
+}
+
 /**
  * Returns the boundary error preventing this delivery, if any: an internal
  * event type cannot cross an actor boundary from an external sender.

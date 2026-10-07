@@ -225,6 +225,10 @@ toggleActor.send({ type: 'TOGGLE' });
 // => logs 'inactive', { count: 1 }
 ```
 
+<!-- application input send options from packages/core/src/types.ts and packages/core/src/createActor.ts -->
+
+When forwarding application input, pass `actor.send(event, { allowRuntimeEvents: false })` to reject runtime control events such as forged actor completions and timer notifications. The default preserves host delivery and replay. See [sending application input](../../docs/create-actor.md#sending-application-input).
+
 ## [Stately Studio](https://stately.ai)
 
 - Visually create, edit, and collaborate on state machines
