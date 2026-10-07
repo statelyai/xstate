@@ -48,8 +48,7 @@ try {
     // The machine's internal-event marker must survive \`stripInternal\`, or
     // \`send\`/\`trigger\` silently accept internal events for every consumer of
     // the published declarations. An unused \`@ts-expect-error\` fails here.
-    const internals = createActor(
-      setup({
+    const internalMachine = setup({
         schemas: {
           events: { start: types<{}>() },
           internalEvents: {
@@ -57,12 +56,16 @@ try {
             'progress.*': types<{ bytes: number }>()
           }
         }
-      }).createMachine({ initial: 'idle', states: { idle: {} } })
-    );
+      }).createMachine({ initial: 'idle', states: { idle: {} } });
+    const internals = createActor(internalMachine);
+    const validated = await internalMachine.eventSchema['~standard'].validate({ type: 'start' });
+    if (!validated.issues) {
+      const publicType: 'start' = validated.value.type;
+      void publicType;
+      // @ts-expect-error internal fields are excluded from public schema output
+      validated.value.at;
+    }
     internals.send({ type: 'start' });
-    internals.ref.send({ type: 'start' }, { allowRuntimeEvents: false });
-    // @ts-expect-error send options remain typed in the published declarations
-    internals.send({ type: 'start' }, { allowRuntimeEvents: 'false' });
     // @ts-expect-error an exact internal key is not part of the public protocol
     internals.send({ type: 'tick', at: 1 });
     // @ts-expect-error a wildcard internal key is not either

@@ -138,8 +138,6 @@ Validation can be installed, replaced or disabled by a derived setup. Installing
 
 ### Validation failures
 
-Framework runtime events bypass application-event schema validation. At an application input boundary, use [`actor.send(event, { allowRuntimeEvents: false })`](create-actor.md#sending-application-input) to reject runtime control events independently of the validator. Ordinary `send(event)` remains compatible with host delivery and replay.
-
 Where a validation failure surfaces depends on which side of the delivery boundary produced the invalid value:
 
 - **Events arriving from outside the actor** — from `actor.send` or from another actor — are rejected at the boundary when their payload fails its schema, or when the event type is undeclared and `unknownEvents` is `'error'`. The event is never delivered: the actor does not transition, does not error, and no API throws. The rejection is reported to the `onRejectedEvent` dead-letter hook on `createActor` options and as a development-mode console warning. In pure `transition(...)` calls, the snapshot is returned unchanged together with a `@xstate.deadLetter` effect carrying the rejection.

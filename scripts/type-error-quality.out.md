@@ -21,9 +21,7 @@ scripts/type-error-fixtures/eventNameTypo.ts(17,3): error TS2769: No overload ma
         Type '{ on: { TOGGLE: "active"; }; }' is not assignable to type 'Next_StateNodeConfig<{ count: number; }, InferEvents<{ readonly TOGGLE: ZodObject<{}, "strip", ZodTypeAny, {}, {}>; readonly SET_COUNT: ZodObject<{ count: ZodNumber; }, "strip", ZodTypeAny, { ...; }, { ...; }>; }>, ... 14 more ..., never>'.
           The types of 'on.TOGGLE' are incompatible between these types.
             Type '"active"' is not assignable to type 'Next_TransitionConfigOrTarget<{ count: number; }, Required<{}> & { type: "TOGGLE"; }, InferEvents<{ readonly TOGGLE: ZodObject<{}, "strip", ZodTypeAny, {}, {}>; readonly SET_COUNT: ZodObject<{ count: ZodNumber; }, "strip", ZodTypeAny, { ...; }, { ...; }>; }>, ... 7 more ..., { ...; }>'.
-scripts/type-error-fixtures/eventNameTypo.ts(25,14): error TS2769: No overload matches this call.
-  The last overload gave the following error.
-    Type '"TOGLE"' is not assignable to type '"SET_COUNT" | "TOGGLE"'. Did you mean '"TOGGLE"'?
+scripts/type-error-fixtures/eventNameTypo.ts(25,14): error TS2820: Type '"TOGLE"' is not assignable to type '"SET_COUNT" | "TOGGLE"'. Did you mean '"TOGGLE"'?
 ```
 
 ## guardNameTypo.ts

@@ -1,3 +1,4 @@
+import { historicalEventSchemas } from './historicalEventSchemas.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
 import type {
   MachineEventSchema,
@@ -128,13 +129,12 @@ type PersistedSnapshotFromEntry<TEntry extends VersionEntry> = TEntry extends {
     ? PersistedSnapshotFrom<TEntry>
     : never;
 
-type EventFromEntry<TEntry extends VersionEntry> = TEntry extends {
-  eventSchema: infer TSchema extends MachineEventSchema;
-}
-  ? StandardSchemaV1.InferOutput<TSchema>
-  : TEntry extends VersionedStateMachine
+type EventFromEntry<TEntry extends VersionEntry> =
+  TEntry extends VersionedStateMachine
     ? EventFrom<TEntry>
-    : never;
+    : TEntry extends { eventSchema: infer TSchema extends MachineEventSchema }
+      ? StandardSchemaV1.InferOutput<TSchema>
+      : never;
 
 /** @public */
 export type PersistedSnapshotSource = {
@@ -294,7 +294,8 @@ async function validateEvents<
 ): Promise<EventFromEntry<TSource>[]> {
   return Promise.all(
     events.map(async (event, index) => {
-      const result = await source.eventSchema['~standard'].validate(event);
+      const schema = historicalEventSchemas.get(source) ?? source.eventSchema;
+      const result = await schema['~standard'].validate(event);
       if (result.issues) {
         const message = result.issues[0]?.message;
         if (message?.startsWith('Unknown event ')) {

@@ -1237,9 +1237,12 @@ the corresponding schema. Targets must be backed by actual machines, which also
 remain supported directly as entries. A `'*'` handler may asynchronously handle
 unknown data.
 
-Versioned machines expose the same `snapshotSchema` and `eventSchema` fields as
-historical descriptors. `machineVersions()` therefore consumes one source
-interface; executable-machine detection is only used to constrain `to`.
+Machines expose `eventSchema` for public input validation. It rejects declared
+internal events and reserved runtime events, except explicitly configured public
+routes. This changes the alpha contract: use actual machines with
+`machineVersions().adaptEvents()` for internal/runtime histories, or provide a
+historical descriptor with a complete history schema. `actor.send()` remains
+unchanged for trusted runtime delivery and replay.
 
 To migrate snapshots created before versioning was adopted, describe the old
 snapshot as a version and pass `{ unversioned: '<old-version>' }` to

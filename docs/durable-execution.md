@@ -426,8 +426,6 @@ itself pure physics.
 
 ## Rejected events
 
-`actor.send(event)` continues to accept runtime notifications used by hosts and replay. Use `actor.send(event, { allowRuntimeEvents: false })` only at application input boundaries to reject supplied runtime control events before local or remote delivery; see [sending application input](create-actor.md#sending-application-input). This does not change pure `transition()` replay or events generated within a macrostep.
-
 When the machine declares a runtime validator, an external event whose payload
 fails its schema is rejected at the boundary: `transition()` returns the
 snapshot unchanged together with a `@xstate.deadLetter` effect, and never

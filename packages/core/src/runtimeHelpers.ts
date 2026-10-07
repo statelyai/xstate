@@ -3,7 +3,6 @@ import {
   XSTATE_LOGIC_EFFECT_RESOLVE,
   XSTATE_LOGIC_EFFECT_START
 } from './constants.ts';
-import { reportUnhandledError } from './reportUnhandledError.ts';
 import type {
   ActorTermination,
   AnyActor,
@@ -127,36 +126,6 @@ export function deliverEvent(
 
   runtimeTarget._lastSourceRef = source;
   runtimeTarget._send(event);
-}
-
-// Runtime notification families, including legacy per-id forms. Public routes
-// and application-defined events in other namespaces are intentionally absent.
-const runtimeEventPattern =
-  /^(?:xstate\.(?:done\.(?:actor|state)|error|snapshot|after|timeout|timer|async|observable|logic\.effect)(?:\.|$)|@xstate\.(?:init|start|spawn|stop|terminate)$)/;
-
-/** Rejects an opted-out public send before a host can take ownership. @internal */
-export function rejectRuntimeEvent(
-  target: AnyActor,
-  event: AnyEventObject
-): boolean {
-  if (!runtimeEventPattern.test(event.type)) {
-    return false;
-  }
-  const result = target.system.deadLetter(
-    undefined,
-    target,
-    event,
-    'internalEvent',
-    {
-      error: new Error(
-        `Runtime event "${event.type}" cannot be sent to actor "${target.id}" with allowRuntimeEvents: false.`
-      )
-    }
-  );
-  if (result) {
-    void Promise.resolve(result).catch(reportUnhandledError);
-  }
-  return true;
 }
 
 /**

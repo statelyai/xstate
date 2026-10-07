@@ -95,9 +95,9 @@ same stable `id` and its own `version`.
 
 Every lightweight entry satisfies `MachineVersionDescriptor`: `{ id, version }`
 plus at least one of `snapshotSchema` or `eventSchema`. Versioned machines expose
-both schemas themselves, so `machineVersions()` uses the same schema path for
-machines and historical descriptors. It only checks whether an entry is
-executable when resolving `to`.
+both schemas themselves. For event histories, `machineVersions()` uses actual
+machines' historical validation; their public input schema has a narrower
+contract. Only actual machines may be targets.
 
 ```ts
 const checkoutVersions = machineVersions([
@@ -240,14 +240,20 @@ Every result, including a same-version history, is validated against available
 target event schemas. If no applicable adapter exists, adaptation throws. An
 exact adapter's error propagates instead of falling through to `'*'`.
 
-An `eventSchema` validates each complete historical event object and infers the
-exact adapter's event union. A descriptor may provide `snapshotSchema`,
-`eventSchema` or both. If the relevant schema is absent, that operation may use
-its unknown `'*'` handler instead. Actual machines continue to work directly as
-entries. Their generated `eventSchema` turns the payload-oriented
-`schemas.events` map into a Standard Schema for complete event objects.
-Without that schema or a `'*'` adapter, adaptation reports the missing event
-schema rather than treating the registered version as unknown.
+A historical descriptor's `eventSchema` validates complete historical event
+objects and infers the exact adapter's event union. A descriptor may provide
+`snapshotSchema`, `eventSchema` or both. If the relevant schema is absent, that
+operation may use its unknown `'*'` handler instead.
+
+Actual machines work directly as entries. `adaptEvents()` uses their historical
+validation, including `schemas.internalEvents` and runtime notifications, and
+infers adapter inputs from the full machine event union. This preserves replay
+compatibility. A machine's public `eventSchema` instead validates public input
+(see [internal events](internal-events.md#validating-public-input)). Do not copy
+it into a historical descriptor whose histories include internal/runtime events;
+provide a schema describing that complete history instead.
+Without a historical event schema or a `'*'` adapter, adaptation reports the
+missing event schema rather than treating the registered version as unknown.
 
 Exact event and snapshot targets require actual machines. A schema descriptor
 describes historical data but cannot interpret restored state or receive events.

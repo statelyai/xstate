@@ -1,3 +1,5 @@
+import { historicalEventSchemas } from './historicalEventSchemas.ts';
+import type { PublicEventFromMachine } from './eventTypes.ts';
 import isDevelopment from '#is-development';
 import { ACTOR_REF_TYPE, createActor } from './createActor.ts';
 import {
@@ -291,8 +293,11 @@ export class StateMachine<
     Snapshot<unknown> & PersistedMachineSnapshot & { context: TContext }
   >;
 
-  /** Standard Schema for complete events accepted by this machine version. */
-  public readonly eventSchema: StandardSchemaV1<unknown, TEvent>;
+  /** Standard Schema for complete public input events; excludes internal and runtime events. */
+  public readonly eventSchema: StandardSchemaV1<
+    unknown,
+    PublicEventFromMachine<TEvent, TInternalEvent>
+  >;
 
   public sources: Sources;
 
@@ -448,7 +453,7 @@ export class StateMachine<
         }
       }
     };
-    this.eventSchema = {
+    const historicalEventSchema: StandardSchemaV1<unknown, TEvent> = {
       '~standard': {
         version: 1,
         vendor: 'xstate',
@@ -494,6 +499,64 @@ export class StateMachine<
             return { issues: [{ message: 'Expected an event payload.' }] };
           }
           return { value: { ...result.value, type } as TEvent };
+        }
+      }
+    };
+    historicalEventSchemas.set(this, historicalEventSchema);
+    this.eventSchema = {
+      '~standard': {
+        version: 1,
+        vendor: 'xstate',
+        validate: async (value) => {
+          const event = value as EventObject;
+          if (event && typeof event.type === 'string') {
+            const internal = findEventSchema(
+              this.schemas?.internalEvents,
+              event.type
+            );
+            const framework =
+              event.type.startsWith('xstate.') ||
+              event.type.startsWith('@xstate.');
+            if (internal || framework) {
+              if (!internal && event.type === 'xstate.route') {
+                const result =
+                  await historicalEventSchema['~standard'].validate(value);
+                if (result.issues) {
+                  return result;
+                }
+                const to = (result.value as EventObject & { to?: unknown }).to;
+                const route =
+                  typeof to === 'string' && to.startsWith('#')
+                    ? this.idMap.get(to.slice(1))
+                    : undefined;
+                if (
+                  route &&
+                  route !== this.root &&
+                  route.config.id &&
+                  route.config.route
+                ) {
+                  return {
+                    value: result.value as PublicEventFromMachine<
+                      TEvent,
+                      TInternalEvent
+                    >
+                  };
+                }
+              }
+              return {
+                issues: [
+                  {
+                    message: `Event '${event.type}' is not a public input event.`
+                  }
+                ]
+              };
+            }
+          }
+          return historicalEventSchema['~standard'].validate(value) as Promise<
+            StandardSchemaV1.Result<
+              PublicEventFromMachine<TEvent, TInternalEvent>
+            >
+          >;
         }
       }
     };

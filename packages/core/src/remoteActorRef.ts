@@ -1,9 +1,7 @@
 import { ACTOR_REF_TYPE } from './createActor.ts';
-import { rejectRuntimeEvent } from './runtimeHelpers.ts';
 import type { AnyActorSystem } from './system.ts';
 import type {
   AnyActor,
-  ActorSendOptions,
   AnyEventObject,
   Snapshot,
   Subscription
@@ -81,13 +79,7 @@ export function createRemoteActorRef(
     // so re-persisting is byte-stable); a remote handle cannot act on it
     // locally.
     _syncSnapshot: options.syncSnapshot,
-    send(event: AnyEventObject, sendOptions?: ActorSendOptions) {
-      if (
-        sendOptions?.allowRuntimeEvents === false &&
-        rejectRuntimeEvent(ref, event)
-      ) {
-        return;
-      }
+    send(event: AnyEventObject) {
       void system.sendEvent(undefined, ref, event);
     },
     _send(event: AnyEventObject) {
