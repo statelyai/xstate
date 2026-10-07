@@ -35,7 +35,9 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 Pick based on what you need:
 
-- **[`@xstate/store`](#xstate-store)**: simple event-based state management. <1kb, great TypeScript inference, similar in spirit to Redux/Zustand. Start here if you just need a store.
+<!-- package choices from packages/xstate-store/src/index.ts -->
+
+- **[`@xstate/store`](#xstate-store)**: simple event-based state management and reactive atoms, with great TypeScript inference, similar in spirit to Redux/Zustand. Start here if you just need a store.
 - **[`xstate`](#super-quick-start)**: state machines, statecharts, actors, effects, and orchestration for complex app logic.
 
 They work great together, but you don't need one to use the other.
@@ -243,10 +245,12 @@ Read [📽 the slides](http://slides.com/davidkpiano/finite-state-machines) ([�
 
 ## Packages
 
+<!-- @xstate/store description from packages/xstate-store/src/index.ts and package.json -->
+
 | Package                                                                                     | Description                                                                                                                  |
 | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | 🤖 `xstate`                                                                                 | Core finite state machine and statecharts library + interpreter, including graph traversal and model-based testing utilities |
-| [🏪 `@xstate/store`](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)   | Simple event-based state management (<1kb) — standalone, works with or without `xstate`                                      |
+| [🏪 `@xstate/store`](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)   | Simple event-based state management and reactive atoms — standalone, works with or without `xstate`                                      |
 | [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)   | React hooks and utilities for using XState in React applications                                                             |
 | [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)       | Vue composition functions and utilities for using XState in Vue applications                                                 |
 | [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) | Svelte utilities for using XState in Svelte applications                                                                     |
