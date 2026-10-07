@@ -1,6 +1,6 @@
 {
   "name": "@xstate/test",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "description": "Model-based and property-based testing for XState, built on fast-check",
   "type": "module",
   "sideEffects": false,
