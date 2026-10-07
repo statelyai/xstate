@@ -276,7 +276,7 @@ describe('v5 config diagnostics', () => {
           devTools: true,
           initial: 'a',
           states: {
-            a: { on: { go: { target: 'b', cond: () => false } } },
+            a: { on: { go: { target: 'b' } } },
             b: {}
           }
         } as any)
@@ -287,5 +287,143 @@ describe('v5 config diagnostics', () => {
       vi.unstubAllEnvs();
       vi.resetModules();
     }
+  });
+
+  it('rejects `cond`, `guard` and `actions` on transition objects at creation in production builds', async () => {
+    vi.resetModules();
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.doMock('#is-development', () => ({ default: false }));
+    try {
+      const { createMachine: prodCreateMachine } =
+        await import('../src/createMachine.ts');
+      const { setup: prodSetup } = await import('../src/setup.ts');
+      const cases: Array<[stateA: object, message: string]> = [
+        [
+          { on: { go: { target: 'b', cond: () => false } } },
+          'Transition "go" in state "(machine).a" uses "cond", which was removed in v6. Use a transition function.'
+        ],
+        [
+          { always: { target: 'b', cond: () => false } },
+          'Transition "always" in state "(machine).a" uses "cond"'
+        ],
+        [
+          { after: { 1000: { target: 'b', cond: () => false } } },
+          'uses "cond"'
+        ],
+        [
+          { on: { go: { target: 'b', actions: 'track' } } },
+          'Transition "go" in state "(machine).a" uses "actions"'
+        ],
+        [
+          { on: { go: { target: 'b', actions: { type: 'track' } } } },
+          'uses "actions"'
+        ],
+        [{ on: { go: { target: 'b', actions: () => {} } } }, 'uses "actions"'],
+        [
+          { on: { go: { target: 'b', guard: 'isReady' } } },
+          'Transition "go" in state "(machine).a" uses an object-form "guard"'
+        ],
+        [
+          { on: { go: { target: 'b', guard: { type: 'isReady' } } } },
+          'uses an object-form "guard"'
+        ]
+      ];
+      for (const [a, message] of cases) {
+        const config = {
+          actions: { track: () => {} },
+          guards: { isReady: () => true },
+          initial: 'a',
+          states: { a, b: {} }
+        } as any;
+        expect(() => prodCreateMachine(config)).toThrowError(message);
+        expect(() => prodSetup({}).createMachine(config)).toThrowError(message);
+      }
+    } finally {
+      vi.doUnmock('#is-development');
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
+  });
+
+  it('rejects `cond`, `guard` and `actions` on setup() transition objects at the type level', () => {
+    const s = setup({
+      actions: { track: () => {} },
+      guards: { isReady: () => true }
+    });
+
+    if (false) {
+      s.createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              // @ts-expect-error - transition objects have no `cond` key in v6
+              go: { target: 'b', cond: () => false }
+            }
+          },
+          b: {}
+        }
+      });
+      s.createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            // @ts-expect-error - eventless transitions neither
+            always: { target: 'b', cond: () => false }
+          },
+          b: {}
+        }
+      });
+      s.createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            after: {
+              // @ts-expect-error - delayed transitions neither
+              1000: { target: 'b', cond: () => false }
+            }
+          },
+          b: {}
+        }
+      });
+      s.createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              // @ts-expect-error - transition objects have no `actions` key in v6
+              go: { target: 'b', actions: 'track' }
+            }
+          },
+          b: {}
+        }
+      });
+      s.createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              // @ts-expect-error - transition objects have no `actions` key in v6
+              go: { target: 'b', actions: { type: 'track' } }
+            }
+          },
+          b: {}
+        }
+      });
+      s.createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              // @ts-expect-error - transition objects have no `guard` key in v6
+              go: { target: 'b', guard: 'isReady' }
+            }
+          },
+          b: {}
+        }
+      });
+    }
+
+    expect(true).toBe(true);
   });
 });

@@ -97,6 +97,37 @@ describe('runtime validation types', () => {
           }
         }
       });
+
+      validated.createMachine({
+        initial: 'idle',
+        states: {
+          idle: { on: { go: () => ({ target: 'loading' }) } },
+          loading: {
+            schemas: {
+              // @ts-expect-error - checked even next to a state with only `on`
+              input: transforming
+            }
+          }
+        }
+      });
+
+      validated.createMachine({
+        initial: 'form',
+        states: {
+          form: {
+            initial: 'idle',
+            states: {
+              idle: { on: { go: { target: 'loading' } } },
+              loading: {
+                schemas: {
+                  // @ts-expect-error - nested state schemas are checked too
+                  input: transforming
+                }
+              }
+            }
+          }
+        }
+      });
     }
 
     const unvalidated = validated.extend({

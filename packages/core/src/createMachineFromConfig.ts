@@ -1,13 +1,16 @@
+import { cloneJSON } from './serialize';
 import {
   Action,
   AnyActorLogic,
   AnyEventObject,
   AnyStateMachine,
-  EventObject,
+  AnyStateNode,
   MachineContext,
   MetaObject
 } from './types';
 import { createMachineFromCompiledConfig } from './createMachine';
+import type { AnyMachineSchemas } from './types.v6';
+import type { ActorLogicValidator } from './validation.types';
 import { parseDelayToMilliseconds } from './delay';
 
 function delayToMs(delay: string | number): number {
@@ -18,7 +21,7 @@ function delayToMs(delay: string | number): number {
 
 interface RaiseJSON {
   type: '@xstate.raise';
-  event: EventObject;
+  event: AnyEventObject;
   id?: string;
   delay?: number;
 }
@@ -203,9 +206,18 @@ interface MachineSources {
   actors?: Record<string, AnyActorLogic>;
   delays?: Record<string, number | ((...args: any[]) => number)>;
   evaluators?: Record<string, (args: EvaluatorArgs) => unknown>;
+  /**
+   * Runtime schemas (Standard Schema) for the revived machine. JSON `schemas`
+   * in the definition are descriptive and are not used at runtime.
+   */
+  schemas?: AnyMachineSchemas;
+  /**
+   * Checks events and results against `schemas`, like `setup({ validator })`.
+   */
+  validator?: ActorLogicValidator;
 }
 
-type ProvidedSources = Required<MachineSources>;
+type ProvidedSources = Required<Omit<MachineSources, 'schemas' | 'validator'>>;
 
 function isExpression(value: unknown): value is ExpressionJSON {
   return (
@@ -225,6 +237,15 @@ function isCode(value: unknown): value is CodeJSON {
 
 function isResolvable(value: unknown): value is ResolvableJSON {
   return isExpression(value) || isCode(value);
+}
+
+function containsResolvable(value: unknown): boolean {
+  return (
+    isResolvable(value) ||
+    (!!value &&
+      typeof value === 'object' &&
+      Object.values(value).some(containsResolvable))
+  );
 }
 
 function isBuiltInActionType(type: string): boolean {
@@ -367,6 +388,12 @@ function createExpressionResolver(
       self: x.self,
       children: x.children,
       params: x.params,
+      // Named sources, so revived `@code` can call `guards.name(...)` and
+      // `enq(actions.name)` like the code-authored function it came from.
+      actions: x.actions,
+      actors: x.actors,
+      guards: x.guards,
+      delays: x.delays,
       ...extra
     };
   }
@@ -435,14 +462,81 @@ function validateChoiceConfig(choice: StateNodeJSON['choice'], path: string) {
   });
 }
 
+const transitionJSONKeys = [
+  'target',
+  'matches',
+  'context',
+  'actions',
+  'guard',
+  'description',
+  'reenter',
+  'meta',
+  'input'
+];
+
+const stateNodeJSONKeys = [
+  'id',
+  'key',
+  'type',
+  'initial',
+  'states',
+  'on',
+  'onError',
+  'after',
+  'always',
+  'choice',
+  'route',
+  'invoke',
+  'entry',
+  'exit',
+  'meta',
+  'description',
+  'tags',
+  'input',
+  'timeout',
+  'onTimeout',
+  'history',
+  'target',
+  'output',
+  'context'
+];
+
+const machineJSONOnlyKeys = [
+  '@exprLang',
+  'version',
+  'actions',
+  'guards',
+  'actors',
+  'delays',
+  'schemas',
+  'internalEvents'
+];
+
+function assertKnownKeys(
+  value: object,
+  allowedKeys: readonly string[],
+  path: string
+) {
+  for (const key of Object.keys(value)) {
+    if (!allowedKeys.includes(key)) {
+      throw new Error(`Unknown key "${key}" at ${path}`);
+    }
+  }
+}
+
 function assertMachineJSON(
   json: MachineJSON,
   resolvedSources: ProvidedSources,
   expressionResolver: ExpressionResolver
 ) {
   const { assertResolvable } = expressionResolver;
+  const stateIdRefs: Array<{ stateId: string; path: string }> = [];
 
-  function assertCondition(condition: ConditionJSON | undefined, path: string) {
+  function assertCondition(
+    condition: ConditionJSON | undefined,
+    path: string,
+    stack: string[] = []
+  ) {
     if (!condition) {
       return;
     }
@@ -452,18 +546,45 @@ function assertMachineJSON(
     }
     assertResolvable(condition.params, `${path}.params`);
     if (json.guards?.[condition.type]) {
+      if (stack.includes(condition.type)) {
+        throw new Error(
+          `Circular guard reference: ${stack.concat(condition.type).join(' -> ')}`
+        );
+      }
       assertCondition(
         json.guards[condition.type].when,
-        `$.guards.${condition.type}.when`
+        `$.guards.${condition.type}.when`,
+        stack.concat(condition.type)
       );
       return;
     }
-    if (
-      !resolvedSources.guards[condition.type] &&
-      !['xstate.stateIn', 'xstate.not'].includes(condition.type)
-    ) {
-      throw new Error(`Missing guard source "${condition.type}"`);
+    if (resolvedSources.guards[condition.type]) {
+      return;
     }
+    const params = condition.params as Record<string, unknown> | undefined;
+    if (condition.type === 'xstate.not') {
+      if (!params?.guard) {
+        throw new Error(`Missing guard at ${path}.params.guard`);
+      }
+      assertCondition(
+        params.guard as ConditionJSON,
+        `${path}.params.guard`,
+        stack
+      );
+      return;
+    }
+    if (condition.type === 'xstate.stateIn') {
+      if (typeof params?.stateId === 'string') {
+        stateIdRefs.push({
+          stateId: params.stateId,
+          path: `${path}.params.stateId`
+        });
+      } else if (!isResolvable(params?.stateId)) {
+        throw new Error(`Missing state ID at ${path}.params.stateId`);
+      }
+      return;
+    }
+    throw new Error(`Missing guard source "${condition.type}"`);
   }
 
   function assertAction(
@@ -531,6 +652,14 @@ function assertMachineJSON(
         assertResolvable(t, transitionPath);
         return;
       }
+      if (!t || typeof t !== 'object') {
+        throw new Error(
+          typeof t === 'string'
+            ? `Invalid transition at ${transitionPath}: use { "target": ${JSON.stringify(t)} } instead of a string`
+            : `Invalid transition at ${transitionPath}`
+        );
+      }
+      assertKnownKeys(t, transitionJSONKeys, transitionPath);
       assertCondition(t.guard, `${transitionPath}.guard`);
       assertActions(t.actions, `${transitionPath}.actions`);
       assertResolvable(t.context, `${transitionPath}.context`);
@@ -539,6 +668,13 @@ function assertMachineJSON(
   }
 
   function assertStateNode(node: StateNodeJSON, path: string) {
+    assertKnownKeys(
+      node,
+      path === '$'
+        ? [...stateNodeJSONKeys, ...machineJSONOnlyKeys]
+        : stateNodeJSONKeys,
+      path
+    );
     if (
       (node.type === 'history' || node.history !== undefined) &&
       !(
@@ -635,7 +771,7 @@ function assertMachineJSON(
   }
   if (json.guards) {
     for (const key of Object.keys(json.guards)) {
-      assertCondition(json.guards[key].when, `$.guards.${key}.when`);
+      assertCondition(json.guards[key].when, `$.guards.${key}.when`, [key]);
     }
   }
   if (json.delays) {
@@ -650,6 +786,7 @@ function assertMachineJSON(
     }
   }
   assertStateNode(json, '$');
+  return stateIdRefs;
 }
 
 /** @public */
@@ -657,6 +794,9 @@ export function createMachineFromConfig(
   json: MachineJSON,
   sources: MachineSources = {}
 ): AnyStateMachine {
+  // The machine reads its definition at runtime (context, named actions, meta),
+  // so it keeps a private copy that later edits to `json` cannot reach.
+  json = cloneJSON(json);
   const resolvedSources = mergeSources(json, sources);
   const expressionResolver = createExpressionResolver(
     json['@exprLang'],
@@ -676,6 +816,20 @@ export function createMachineFromConfig(
     if (isResolvable(condition)) {
       return (args: any) =>
         !!evaluateResolvable(condition, slot, makeScope(args), path);
+    }
+    if (
+      condition.type === 'xstate.not' &&
+      !json.guards?.[condition.type] &&
+      !resolvedSources.guards[condition.type]
+    ) {
+      // Resolved here rather than by the `xstate.not` implementation, so the
+      // inner guard can be a named guard from `guards` or an expression.
+      const guard = resolveCondition(
+        (condition.params as { guard?: ConditionJSON } | undefined)?.guard,
+        slot,
+        `${path}.params.guard`
+      );
+      return (args: any) => !guard?.(args);
     }
     return (args: any) => {
       const params = resolveValue(
@@ -772,16 +926,22 @@ export function createMachineFromConfig(
     actions: ActionJSON[],
     x: any,
     enq: any,
+    path: string,
     stack: string[] = []
   ) {
     let context: MachineContext | undefined;
-    for (const action of actions) {
+    // Each action reads the context written by the actions before it.
+    const current = () =>
+      context ? { ...x, context: { ...x.context, ...context } } : x;
+    for (let index = 0; index < actions.length; index++) {
+      const action = actions[index];
+      const actionPath = `${path}[${index}]`;
       if (isResolvable(action)) {
         const result = evaluateResolvable(
           action,
           'action',
-          makeScope(x, { params: x.params, enq }),
-          '$.actions'
+          makeScope(current(), { params: x.params, enq }),
+          actionPath
         );
         if (
           result &&
@@ -801,8 +961,8 @@ export function createMachineFromConfig(
               resolveValue(
                 action.event,
                 'actionParams',
-                makeScope(x, { params: x.params }),
-                '$.actions.event'
+                makeScope(current(), { params: x.params }),
+                `${actionPath}.event`
               ),
               { id: action.id, delay: action.delay }
             );
@@ -818,8 +978,8 @@ export function createMachineFromConfig(
               resolveValue(
                 action.event,
                 'actionParams',
-                makeScope(x, { params: x.params }),
-                '$.actions.event'
+                makeScope(current(), { params: x.params }),
+                `${actionPath}.event`
               )
             );
             break;
@@ -830,8 +990,8 @@ export function createMachineFromConfig(
               resolveValue(
                 action.context,
                 'transitionContext',
-                makeScope(x, { params: x.params }),
-                '$.actions.context'
+                makeScope(current(), { params: x.params }),
+                `${actionPath}.context`
               )
             );
             break;
@@ -841,8 +1001,8 @@ export function createMachineFromConfig(
       const params = resolveValue(
         action.params,
         'actionParams',
-        makeScope(x, { params: x.params }),
-        '$.actions.params'
+        makeScope(current(), { params: x.params }),
+        `${actionPath}.params`
       );
       const definition = json.actions?.[action.type];
       if (!definition) {
@@ -859,6 +1019,7 @@ export function createMachineFromConfig(
         definitions,
         { ...x, context: { ...x.context, ...context }, params },
         enq,
+        `${actionPath}.actions.${action.type}`,
         stack.concat(action.type)
       );
       if (result.context) context = result.context;
@@ -866,10 +1027,10 @@ export function createMachineFromConfig(
     return { context: context ? { ...x.context, ...context } : undefined };
   }
 
-  function iterActions(actions: ActionJSON | ActionJSON[]) {
+  function iterActions(actions: ActionJSON | ActionJSON[], path: string) {
     const actionArray = toActionArray(actions);
     return ((x: any, enq: any) =>
-      executeActions(actionArray, x, enq)) as Action<
+      executeActions(actionArray, x, enq, path)) as Action<
       any,
       any,
       any,
@@ -883,17 +1044,21 @@ export function createMachineFromConfig(
   }
 
   function getTransitionConfig(
-    transition: TransitionConfigJSON | TransitionConfigJSON[]
+    transition: TransitionConfigJSON | TransitionConfigJSON[],
+    path: string
   ): any {
     const transitions = Array.isArray(transition) ? transition : [transition];
     return transitions.map((item, index) => {
+      const transitionPath = Array.isArray(transition)
+        ? `${path}[${index}]`
+        : path;
       if (isResolvable(item)) {
         return (x: any, enq: any) =>
           evaluateResolvable(
             item,
             'transition',
             makeScope(x, { enq }),
-            `$.transition${transitions.length > 1 ? `[${index}]` : ''}`
+            transitionPath
           );
       }
       const context = item.context
@@ -902,7 +1067,7 @@ export function createMachineFromConfig(
               item.context,
               'transitionContext',
               makeScope(x),
-              '$.transition.context'
+              `${transitionPath}.context`
             ) as MachineContext
         : undefined;
       const input =
@@ -912,7 +1077,7 @@ export function createMachineFromConfig(
                 item.input,
                 'input',
                 makeScope(x),
-                '$.transition.input'
+                `${transitionPath}.input`
               )
           : undefined;
       const dynamic = !!context || !!item.actions?.length;
@@ -928,7 +1093,8 @@ export function createMachineFromConfig(
                     resolvedContext
                       ? { ...x, context: { ...x.context, ...resolvedContext } }
                       : x,
-                    enq
+                    enq,
+                    `${transitionPath}.actions`
                   )
                 : undefined;
               return {
@@ -938,7 +1104,7 @@ export function createMachineFromConfig(
               };
             }
           : undefined,
-        guard: resolveCondition(item.guard, 'guard', '$.transition.guard'),
+        guard: resolveCondition(item.guard, 'guard', `${transitionPath}.guard`),
         description: item.description,
         reenter: item.reenter,
         meta: item.meta,
@@ -947,32 +1113,44 @@ export function createMachineFromConfig(
     });
   }
 
-  function iterInvokeConfigs(invokes: InvokeJSON | InvokeJSON[]): any {
-    return (Array.isArray(invokes) ? invokes : [invokes]).map((inv) => ({
-      src: inv.src,
-      id: inv.id,
-      registryKey: inv.registryKey,
-      input:
-        inv.input !== undefined
-          ? (args: any) =>
-              resolveValue(
-                inv.input,
-                'input',
-                makeScope(args),
-                '$.invoke.input'
-              )
+  function iterInvokeConfigs(
+    invokes: InvokeJSON | InvokeJSON[],
+    path: string
+  ): any {
+    return (Array.isArray(invokes) ? invokes : [invokes]).map((inv, index) => {
+      const invokePath = `${path}.invoke${Array.isArray(invokes) ? `[${index}]` : ''}`;
+      return {
+        src: inv.src,
+        id: inv.id,
+        registryKey: inv.registryKey,
+        input:
+          inv.input !== undefined
+            ? (args: any) =>
+                resolveValue(
+                  inv.input,
+                  'input',
+                  makeScope(args),
+                  `${invokePath}.input`
+                )
+            : undefined,
+        onDone: inv.onDone
+          ? getTransitionConfig(inv.onDone, `${invokePath}.onDone`)
           : undefined,
-      onDone: inv.onDone ? getTransitionConfig(inv.onDone) : undefined,
-      onError: inv.onError ? getTransitionConfig(inv.onError) : undefined,
-      onSnapshot: inv.onSnapshot
-        ? getTransitionConfig(inv.onSnapshot)
-        : undefined,
-      timeout: getDurationConfig(inv.timeout, '$.invoke.timeout'),
-      onTimeout: inv.onTimeout ? getTransitionConfig(inv.onTimeout) : undefined
-    }));
+        onError: inv.onError
+          ? getTransitionConfig(inv.onError, `${invokePath}.onError`)
+          : undefined,
+        onSnapshot: inv.onSnapshot
+          ? getTransitionConfig(inv.onSnapshot, `${invokePath}.onSnapshot`)
+          : undefined,
+        timeout: getDurationConfig(inv.timeout, `${invokePath}.timeout`),
+        onTimeout: inv.onTimeout
+          ? getTransitionConfig(inv.onTimeout, `${invokePath}.onTimeout`)
+          : undefined
+      };
+    });
   }
 
-  function iterNode(node: StateNodeJSON, nodeKey?: string): any {
+  function iterNode(node: StateNodeJSON, path: string): any {
     return {
       id: node.id,
       initial: node.initial,
@@ -982,12 +1160,12 @@ export function createMachineFromConfig(
       description: node.description,
       tags: node.tags,
       input: node.input,
-      timeout: getDurationConfig(node.timeout, `$.states.${nodeKey}.timeout`),
+      timeout: getDurationConfig(node.timeout, `${path}.timeout`),
       states: node.states
         ? Object.fromEntries(
             Object.entries(node.states).map(([key, value]) => [
               key,
-              iterNode(value, key)
+              iterNode(value, `${path}.states.${key}`)
             ])
           )
         : undefined,
@@ -995,36 +1173,40 @@ export function createMachineFromConfig(
         ? Object.fromEntries(
             Object.entries(node.on).map(([key, value]) => [
               key,
-              getTransitionConfig(value)
+              getTransitionConfig(value, `${path}.on.${key}`)
             ])
           )
         : undefined,
-      always: node.always ? getTransitionConfig(node.always) : undefined,
-      onError: node.onError ? getTransitionConfig(node.onError) : undefined,
-      choice: makeChoiceConfig(node.choice, `$.states.${nodeKey}.choice`),
-      route: resolveRouteConfig(node.route, `$.states.${nodeKey}.route`),
+      always: node.always
+        ? getTransitionConfig(node.always, `${path}.always`)
+        : undefined,
+      onError: node.onError
+        ? getTransitionConfig(node.onError, `${path}.onError`)
+        : undefined,
+      choice: makeChoiceConfig(node.choice, `${path}.choice`),
+      route: resolveRouteConfig(node.route, `${path}.route`),
       after: node.after
         ? Object.fromEntries(
             Object.entries(node.after).map(([key, value]) => [
               key,
-              getTransitionConfig(value)
+              getTransitionConfig(value, `${path}.after.${key}`)
             ])
           )
         : undefined,
       onTimeout: node.onTimeout
-        ? getTransitionConfig(node.onTimeout)
+        ? getTransitionConfig(node.onTimeout, `${path}.onTimeout`)
         : undefined,
-      entry: node.entry ? iterActions(node.entry) : undefined,
-      exit: node.exit ? iterActions(node.exit) : undefined,
-      invoke: node.invoke ? iterInvokeConfigs(node.invoke) : undefined,
+      entry: node.entry ? iterActions(node.entry, `${path}.entry`) : undefined,
+      exit: node.exit ? iterActions(node.exit, `${path}.exit`) : undefined,
+      invoke: node.invoke ? iterInvokeConfigs(node.invoke, path) : undefined,
       meta: node.meta,
-      output: isResolvable(node.output)
-        ? ({ context, event, self }: any) =>
-            evaluateResolvable(
-              node.output as ResolvableJSON,
+      output: containsResolvable(node.output)
+        ? ({ context, event, self, input }: any) =>
+            resolveValue(
+              node.output,
               'output',
-              { context, event, self },
-              `$.states.${nodeKey}.output`
+              { context, event, self, input },
+              `${path}.output`
             )
         : node.output
     };
@@ -1049,7 +1231,11 @@ export function createMachineFromConfig(
     }
   }
 
-  assertMachineJSON(json, resolvedSources, expressionResolver);
+  const stateIdRefs = assertMachineJSON(
+    json,
+    resolvedSources,
+    expressionResolver
+  );
   const contextConfig = json.context
     ? {
         context: (args: any) =>
@@ -1061,11 +1247,21 @@ export function createMachineFromConfig(
           ) as MachineContext
       }
     : {};
-  const machine = createMachineFromCompiledConfig({
-    ...iterNode(json),
-    ...contextConfig,
-    version: json.version
-  }) as unknown as AnyStateMachine;
+  const machine = createMachineFromCompiledConfig(
+    {
+      ...iterNode(json, '$'),
+      ...contextConfig,
+      version: json.version,
+      ...(sources.schemas && { schemas: sources.schemas })
+    },
+    sources.validator
+  ) as unknown as AnyStateMachine;
+  assertInitialStates(machine.root, '$');
+  for (const { stateId, path } of stateIdRefs) {
+    if (!machine.idMap.has(stateId.replace(/^#/, ''))) {
+      throw new Error(`Unknown state ID "${stateId}" at ${path}`);
+    }
+  }
   if (json.internalEvents?.length) {
     // Restored on the machine, not the config: the top-level author key is
     // gone, so revived names bypass author config entirely.
@@ -1103,6 +1299,23 @@ export function createMachineFromConfig(
   });
   (provided as any)._json = json;
   return provided;
+}
+
+// `initial` is resolved lazily when a state is first entered. Resolve it at
+// load time so a bad reference throws here, with its JSON path.
+function assertInitialStates(stateNode: AnyStateNode, path: string) {
+  if (stateNode.type === 'compound') {
+    try {
+      void stateNode.initial;
+    } catch (err) {
+      throw new Error(
+        `Invalid initial state at ${path}.initial: ${(err as Error).message}`
+      );
+    }
+  }
+  for (const key of Object.keys(stateNode.states)) {
+    assertInitialStates(stateNode.states[key], `${path}.states.${key}`);
+  }
 }
 
 function isBuiltInActionJSON(action: ActionJSON): action is BuiltInActionJSON {

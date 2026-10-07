@@ -58,7 +58,7 @@ Events raised with `enq.raise(...)` are processed before the actor handles the n
 
 ## Which transition runs
 
-When an event arrives, the deepest active state gets the first chance to handle it. If it has no matching transition, the event bubbles up through its ancestors. A child can define an event as `undefined` to block a parent's transition. Wildcards such as `pointer.*` and `*` only match when no exact transition matches at that state.
+When an event arrives, the deepest active state gets the first chance to handle it. If it has no matching transition, or its transition function returns `undefined` without calling `enq`, the event bubbles up through its ancestors. A child can define an event as `undefined` to block a parent's transition. Wildcards such as `pointer.*` and `*` only match when no exact transition matches at that state.
 
 In a [parallel state](parallel-states.md), every active region receives the event, so one event can move several regions at once.
 

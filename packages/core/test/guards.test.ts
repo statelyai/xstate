@@ -955,3 +955,106 @@ describe('guards - plain function sources', () => {
     expect(actor.getSnapshot().value).toBe('b');
   });
 });
+
+describe('guards - enqueue before return', () => {
+  // The same guard written two ways. Returning `undefined` before any `enq`
+  // call rejects the event; any `enq` call selects the transition, which then
+  // runs as a targetless transition with the queued effects.
+  const createSubmit =
+    (enqueueFirst: boolean, ran: string[]) =>
+    (
+      { context }: { context: { valid: boolean } },
+      enq: (effect: () => void) => void
+    ) => {
+      if (enqueueFirst) {
+        enq(() => ran.push('track'));
+      }
+      if (!context.valid) {
+        return;
+      }
+      return { target: 'sent' as const };
+    };
+
+  function createForms(enqueueFirst: boolean) {
+    const ran: string[] = [];
+    const submit = createSubmit(enqueueFirst, ran);
+    const flat = createMachine({
+      context: { valid: false },
+      initial: 'editing',
+      states: {
+        editing: { on: { 'form.submit': submit } },
+        sent: {}
+      }
+    });
+    const withWildcard = createMachine({
+      context: { valid: false },
+      initial: 'editing',
+      states: {
+        editing: {
+          on: {
+            'form.submit': submit,
+            'form.*': (_, enq) => {
+              enq(() => ran.push('wildcard'));
+            }
+          }
+        },
+        sent: {}
+      }
+    });
+    const withParent = createMachine({
+      context: { valid: false },
+      initial: 'form',
+      states: {
+        form: {
+          on: {
+            'form.submit': (_, enq) => {
+              enq(() => ran.push('parent'));
+            }
+          },
+          initial: 'editing',
+          states: {
+            editing: { on: { 'form.submit': submit } },
+            sent: {}
+          }
+        }
+      }
+    });
+    return { ran, flat, withWildcard, withParent };
+  }
+
+  it('leaves the event unhandled when the function returns before calling enq', () => {
+    const { ran, flat, withWildcard, withParent } = createForms(false);
+
+    const onUnhandledEvent = vi.fn();
+    const actor = createActor(flat, { onUnhandledEvent }).start();
+    expect(actor.getSnapshot().can({ type: 'form.submit' })).toBe(false);
+    actor.send({ type: 'form.submit' });
+    expect(onUnhandledEvent).toHaveBeenCalledTimes(1);
+    expect(actor.getSnapshot().value).toBe('editing');
+    expect(ran).toEqual([]);
+
+    createActor(withWildcard).start().send({ type: 'form.submit' });
+    expect(ran).toEqual(['wildcard']);
+
+    createActor(withParent).start().send({ type: 'form.submit' });
+    expect(ran).toEqual(['wildcard', 'parent']);
+  });
+
+  it('selects the transition when the function calls enq, even if it then returns undefined', () => {
+    const { ran, flat, withWildcard, withParent } = createForms(true);
+
+    const onUnhandledEvent = vi.fn();
+    const actor = createActor(flat, { onUnhandledEvent }).start();
+    expect(actor.getSnapshot().can({ type: 'form.submit' })).toBe(true);
+    actor.send({ type: 'form.submit' });
+    expect(onUnhandledEvent).not.toHaveBeenCalled();
+    expect(actor.getSnapshot().value).toBe('editing');
+    expect(ran).toEqual(['track']);
+
+    createActor(withWildcard).start().send({ type: 'form.submit' });
+    expect(ran).toEqual(['track', 'track']);
+
+    createActor(withParent).start().send({ type: 'form.submit' });
+    expect(ran).toEqual(['track', 'track', 'track']);
+  });
+});

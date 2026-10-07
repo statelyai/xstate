@@ -200,6 +200,16 @@ describe('internalEvents', () => {
     ).toThrow('schemas.internalEvents');
   });
 
+  it('throws in development for an internalEvents key passed to setup()', () => {
+    expect(() =>
+      setup({
+        schemas: { events: { start: z.object({}) } },
+        // @ts-expect-error not a setup option; use `schemas.internalEvents`
+        internalEvents: ['tick']
+      })
+    ).toThrow('schemas.internalEvents');
+  });
+
   it('rejects sending wildcard-matched internal events from outside', () => {
     const machine = createMachine({
       schemas: {

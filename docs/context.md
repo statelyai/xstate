@@ -38,7 +38,7 @@ Input creates context for each actor instance. The same machine can run one uplo
 
 ## TypeScript
 
-Context is inferred from its initial value. Use a context schema when you need a wider or shared type.
+Context is inferred from its initial value or the return value of a context initializer. Without `schemas.context`, `createMachine({ context: () => ({ count: 0 }) })` still gives `snapshot.context.count` the type `number`. The initializer’s `spawn` returns a typed actor ref. Use a context schema when you need a wider or shared type.
 
 ## Typestates
 

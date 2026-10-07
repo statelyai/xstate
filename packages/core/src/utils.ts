@@ -356,7 +356,14 @@ export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
   return [...new Set([...snapshot.nodes.flatMap((sn) => sn.ownEvents)])];
 }
 
-/** @internal Events synthesized from active transition descriptors. */
+/**
+ * Returns one event per transition of the active state nodes of `snapshot`,
+ * including the internal events for invoked actors (`xstate.done.actor`,
+ * `xstate.error.actor`) and delayed transitions (`xstate.after`). Graph
+ * traversal sends these when the `events` option is not given.
+ *
+ * @public
+ */
 export function getAllOwnEvents(snapshot: AnyMachineSnapshot) {
   const events = snapshot.nodes.flatMap((stateNode) =>
     [...stateNode.transitions.values()].flatMap((transitions) =>

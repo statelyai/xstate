@@ -79,8 +79,8 @@ transition and runtime validation examples.
 ## Checked event keys
 
 When `schemas.events` is declared, each key in an `on` map must match a
-declared event type. Wildcards (`'*'`, `'user.*'`) and reserved `xstate.*`
-event types are always allowed. Without `schemas.events`, any key is accepted.
+declared event type. Matching wildcards (`'*'`, `'user.*'`) and known reserved
+machine descriptors are allowed; misspelled or invented reserved prefixes are rejected. Without `schemas.events`, any key is accepted.
 
 ```ts
 on: {
@@ -94,12 +94,7 @@ inferred types, including when registered actors are used in inline transitions
 or invokes. Declaration output retains event, state, input and child-actor
 contracts without exposing each inline callback's full contextual type.
 
-Reserved `xstate.*` event keys are accepted in `on`, including partial wildcard
-descriptors such as `xstate.error.actor.*`. Exact declared descriptors preserve
-their event payload types; undeclared reserved descriptors expose only an event
-`type`. Runtime wildcards match event-type prefixes, not `actorId`: use
-`xstate.error.actor` to handle the stable actor-error event, and inspect
-`event.actorId` when filtering by child.
+Known reserved descriptors in `on` carry their actual event payloads: actor completion, error and snapshot events; execution errors; state completion; delayed events; and state or actor timeouts. Bare `xstate.error.actor` handlers receive `event.error` and `event.actorId`. Known actor-specific completion aliases preserve the actor output type. Legacy suffixed descriptors and their wildcards match runtime actor/state aliases; the event itself retains its stable bare type. Use `xstate.error.actor` and filter `event.actorId` explicitly when handling a particular child.
 
 ## Child completion events
 
@@ -185,9 +180,11 @@ values error the actor; pure calculations throw an
 or erroring the actor and reported through `onRejectedEvent`. See
 [validation failures](setup-and-provide.md#validation-failures).
 
-Validation is synchronous and assertion-only: schema transformations and async
-validation are rejected. Unknown incoming events are rejected, and unknown
-emitted events error the actor, when a corresponding schema map exists; use
+Validation is synchronous and assertion-only: async validation is rejected.
+Parsed schema results are discarded. Type-changing transformations are rejected
+by the types, but same-type transformations cannot be detected statically;
+normalize values before sending them. Unknown incoming events are rejected, and
+unknown emitted events error the actor, when a corresponding schema map exists; use
 `unknownEvents: 'ignore'` or
 `unknownEmitted: 'ignore'` for open protocols.
 
