@@ -21,7 +21,8 @@ export interface CodeExpression {
  *
  * Inline functions are represented as `{ "@code": string, "@lang": "ts" }`. A
  * machine created via `createMachineFromConfig` returns its original JSON
- * config (lossless round-trip):
+ * config (lossless round-trip). Use `{ mode: 'inspection' }` to retain
+ * anonymous inline invokes in a non-executable inspection envelope.
  *
  * ```ts
  * import { serializeMachine, createMachineFromConfig } from 'xstate';
@@ -35,9 +36,36 @@ export interface CodeExpression {
  * @public
  */
 export function serializeMachine(
-  machine: AnyStateMachine
-): Record<string, unknown> {
+  machine: AnyStateMachine,
+  options: { mode: 'inspection' }
+): MachineInspectionJSON;
+export function serializeMachine(
+  machine: AnyStateMachine,
+  options?: { mode?: 'definition' }
+): Record<string, unknown>;
+export function serializeMachine(
+  machine: AnyStateMachine,
+  options?: MachineSerializationOptions
+): Record<string, unknown> | MachineInspectionJSON;
+export function serializeMachine(
+  machine: AnyStateMachine,
+  options?: MachineSerializationOptions
+): Record<string, unknown> | MachineInspectionJSON {
+  if (options?.mode === 'inspection') {
+    return {
+      format: 'xstate-inspection',
+      formatVersion: 1,
+      profile: 'xstate-v6',
+      definition: (machine as any)._json ?? configToJSON(machine.config, true)
+    };
+  }
   return (machine as any)._json ?? machineConfigToJSON(machine.config);
+}
+
+/** @public */
+export interface MachineSerializationOptions {
+  /** Defaults to `definition`. Inspection output is not executable. */
+  mode?: 'definition' | 'inspection';
 }
 
 /**
@@ -52,24 +80,6 @@ export interface MachineInspectionJSON {
   formatVersion: 1;
   profile: 'xstate-v6';
   definition: Record<string, unknown>;
-}
-
-/**
- * Serializes topology for inspectors, retaining anonymous inline invokes as
- * `{ "@actor": "inline" }` placeholders. Actor implementations are omitted.
- * This output must not be passed to `createMachineFromConfig`.
- *
- * @public
- */
-export function serializeMachineForInspection(
-  machine: AnyStateMachine
-): MachineInspectionJSON {
-  return {
-    format: 'xstate-inspection',
-    formatVersion: 1,
-    profile: 'xstate-v6',
-    definition: (machine as any)._json ?? configToJSON(machine.config, true)
-  };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type

@@ -1,7 +1,7 @@
 import {
   serializeMachine,
-  serializeMachineForInspection,
-  type MachineInspectionJSON
+  type MachineInspectionJSON,
+  type MachineSerializationOptions
 } from './serialize.ts';
 import isDevelopment from '#is-development';
 import { ACTOR_REF_TYPE, createActor } from './createActor.ts';
@@ -1462,14 +1462,19 @@ export class StateMachine<
     return getPersistedSnapshot(snapshot, options);
   }
 
-  /** Returns the canonical JSON definition. See {@link serializeMachine}. */
-  public serialize(): Record<string, unknown> {
-    return serializeMachine(this);
-  }
-
-  /** Returns inspection-only topology, including inline invoke placeholders. */
-  public serializeForInspection(): MachineInspectionJSON {
-    return serializeMachineForInspection(this);
+  /**
+   * Returns the canonical definition, or inspection topology when requested.
+   * See {@link serializeMachine}.
+   */
+  public serialize(options: { mode: 'inspection' }): MachineInspectionJSON;
+  public serialize(options?: { mode?: 'definition' }): Record<string, unknown>;
+  public serialize(
+    options?: MachineSerializationOptions
+  ): Record<string, unknown> | MachineInspectionJSON;
+  public serialize(
+    options?: MachineSerializationOptions
+  ): Record<string, unknown> | MachineInspectionJSON {
+    return serializeMachine(this, options);
   }
 
   /**

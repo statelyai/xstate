@@ -49,10 +49,10 @@ These values are omitted rather than serialized:
 
 ## Inspection topology
 
-Use `machine.serializeForInspection()` (or `serializeMachineForInspection(machine)`) when an inspector needs every invoke, including anonymous inline actor logic:
+Use `machine.serialize({ mode: 'inspection' })` (or `serializeMachine(machine, { mode: 'inspection' })`) when an inspector needs every invoke, including anonymous inline actor logic:
 
 ```ts
-const inspection = machine.serializeForInspection();
+const inspection = machine.serialize({ mode: 'inspection' });
 // {
 //   format: 'xstate-inspection',
 //   formatVersion: 1,
@@ -129,7 +129,7 @@ Some v6 features have no JSON representation yet: state `input`, `enq.listen`/`e
 ```ts
 const json = serializeMachine(machine);
 const definitionJSON = machineConfigToJSON(config);
-const inspection = machine.serializeForInspection();
+const inspection = machine.serialize({ mode: 'inspection' });
 
 const machine = createMachineFromConfig(JSON.parse(stored), {
   actions: { track },

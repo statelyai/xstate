@@ -75,7 +75,7 @@ export interface ActorInspectionEvent extends BaseInspectionEventProperties {
   /**
    * The source logic (or its referenced string) the actor was created from.
    * Machine logic exposes `serialize()` for its canonical definition and
-   * `serializeForInspection()` for JSON-safe topology with inline invokes.
+   * `serialize({ mode: 'inspection' })` for JSON-safe topology with inline invokes.
    */
   src: string | AnyActorLogic;
   /** The initial snapshot of the actor. */

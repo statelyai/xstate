@@ -73,7 +73,7 @@ export type {
 export {
   machineConfigToJSON,
   serializeMachine,
-  serializeMachineForInspection,
+  type MachineSerializationOptions,
   type MachineInspectionJSON,
   type CodeExpression
 } from './serialize.ts';

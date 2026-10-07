@@ -2,11 +2,11 @@
 "xstate": minor
 ---
 
-Add `machine.serialize()` to return the canonical machine definition without importing a version-specific serializer. Add `machine.serializeForInspection()` and `serializeMachineForInspection(machine)` to transport invoke topology, including inline actor callbacks, in a versioned inspection envelope.
+Add `machine.serialize()` to return the canonical machine definition without importing a version-specific serializer. Add `machine.serialize({ mode: 'inspection' })` and `serializeMachine(machine, { mode: 'inspection' })` to transport invoke topology, including inline actor callbacks, in a versioned inspection envelope.
 
 ```ts
 const definition = machine.serialize();
-const inspection = machine.serializeForInspection();
+const inspection = machine.serialize({ mode: 'inspection' });
 ```
 
 Inspection output uses placeholders for anonymous inline actors and cannot be revived as an executable machine. Executable serialization and original JSON roundtrips are unchanged.

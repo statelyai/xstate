@@ -21,9 +21,10 @@ import {
   createAsyncLogic,
   createMachine,
   type AnyStateMachine,
+  type MachineInspectionJSON,
+  type MachineSerializationOptions,
   type EventRejection,
   serializeMachine,
-  serializeMachineForInspection,
   setup,
   types
 } from '../src/index.ts';
@@ -43,6 +44,23 @@ function findCodeExpressions(json: unknown, path = '$'): string[] {
 }
 
 describe('serializability conformance', () => {
+  it('serialization modes retain precise output types', () => {
+    const machine = createMachine({});
+    expectTypeOf(machine.serialize()).toEqualTypeOf<Record<string, unknown>>();
+    expectTypeOf(
+      machine.serialize({ mode: 'inspection' })
+    ).toEqualTypeOf<MachineInspectionJSON>();
+    expectTypeOf(
+      serializeMachine(machine, { mode: 'inspection' })
+    ).toEqualTypeOf<MachineInspectionJSON>();
+    function serializeWithOptions(options?: MachineSerializationOptions) {
+      return machine.serialize(options);
+    }
+    expectTypeOf(serializeWithOptions()).toEqualTypeOf<
+      Record<string, unknown> | MachineInspectionJSON
+    >();
+  });
+
   it('public hooks preserve original JSON, including after provide()', () => {
     const definition = {
       initial: 'idle',
@@ -52,13 +70,15 @@ describe('serializability conformance', () => {
     for (const logic of [machine, machine.provide({})]) {
       expect(logic.serialize()).toBe(definition);
       expect(logic.serialize()).toBe(serializeMachine(logic));
-      expect(logic.serializeForInspection()).toEqual({
+      expect(logic.serialize({ mode: 'inspection' })).toEqual({
         format: 'xstate-inspection',
         formatVersion: 1,
         profile: 'xstate-v6',
         definition
       });
-      expect(logic.serializeForInspection().definition).toBe(definition);
+      expect(logic.serialize({ mode: 'inspection' }).definition).toBe(
+        definition
+      );
       expect(createMachineFromConfig(logic.serialize()).serialize()).toEqual(
         definition
       );
@@ -73,6 +93,12 @@ describe('serializability conformance', () => {
       states: { idle: { on: { GO: go } }, done: {} }
     });
     expect(machine.serialize()).toEqual(serializeMachine(machine));
+    expect(machine.serialize({ mode: 'definition' })).toEqual(
+      machine.serialize()
+    );
+    expect(serializeMachine(machine, { mode: 'definition' })).toEqual(
+      machine.serialize()
+    );
     const json = JSON.parse(JSON.stringify(machine.serialize()));
     expect(json.states.idle.on.GO).toEqual({
       '@code': go.toString(),
@@ -114,10 +140,10 @@ describe('serializability conformance', () => {
       }
     });
     const inspection = JSON.parse(
-      JSON.stringify(machine.serializeForInspection())
+      JSON.stringify(machine.serialize({ mode: 'inspection' }))
     );
-    expect(machine.serializeForInspection()).toEqual(
-      serializeMachineForInspection(machine)
+    expect(machine.serialize({ mode: 'inspection' })).toEqual(
+      serializeMachine(machine, { mode: 'inspection' })
     );
     const running = inspection.definition.states.running;
     expect(running.invoke).toEqual([
@@ -163,7 +189,7 @@ describe('serializability conformance', () => {
     });
     const json = JSON.parse(JSON.stringify(machine.serialize()));
     expect(json.states.idle.invoke.src).toBe('child');
-    expect(machine.serializeForInspection().definition).toEqual(json);
+    expect(machine.serialize({ mode: 'inspection' }).definition).toEqual(json);
     const revived = createMachineFromConfig(json, { actors: { child } });
     expect(revived.serialize()).toEqual(json);
     expect(
