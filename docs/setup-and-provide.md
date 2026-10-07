@@ -249,6 +249,8 @@ For typed system-wide actor registries, `createSystem(...).setup(...)` returns a
 
 Sources declared on `setup(...)` or on the machine config are inferred into `{ actions, guards, actors, delays }` on function arguments, and `provide(...)` requires the same signatures. The `{ type, params }` object form for named actions belongs to serialized JSON configs read by `createMachineFromConfig(...)`; in TypeScript, call the named source directly.
 
+For actions, replacements must accept the declared parameters and return a compatible result, including context patches returned by transitions. This also applies to action overrides in `extend()`. A declared result that includes `void` allows integration-specific return values, such as Effects. Chained `provide()` calls check against the original declaration, so a compatible replacement does not narrow later replacements to its own result type.
+
 ## Setup cheatsheet
 
 ```ts

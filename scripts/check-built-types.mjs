@@ -73,6 +73,39 @@ try {
     const fromContext: ContextFrom<typeof internalsMachine> = {};
     void [fromEvent, fromKey, fromContext];
 
+    // The original action result contract must survive declaration emit,
+    // including when a provided implementation narrows that result.
+    const patches = setup({
+      actions: {
+        update: (_id: string): { context: { currency: 'EUR' | 'USD' } } => ({
+          context: { currency: 'USD' }
+        }),
+        notify: (_id: string): void => {}
+      }
+    }).createMachine({});
+    const euro = patches.provide({
+      actions: { update: () => ({ context: { currency: 'EUR' } }) }
+    });
+    euro.provide({
+      actions: { update: () => ({ context: { currency: 'USD' } }) }
+    });
+    euro.provide({
+      actions: {
+        // @ts-expect-error a result-producing action must return its result
+        update: () => {}
+      }
+    });
+    patches.provide({
+      actions: {
+        // @ts-expect-error replacement results must match the declared result
+        update: () => ({ context: { currency: 'EURO' } })
+      }
+    });
+    const notified = patches.provide({ actions: { notify: (_id) => 42 } });
+    const notification: number = notified._actionMap.notify('id');
+    notified.provide({ actions: { notify: () => {} } });
+    void notification;
+
     // Reserved descriptor helpers are referenced by the published config types.
     // They must survive declaration stripping and retain their event payloads.
     setup({ schemas: { events: { GO: types<{}>() } } }).createMachine({
