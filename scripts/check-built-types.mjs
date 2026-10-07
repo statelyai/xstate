@@ -58,6 +58,13 @@ try {
       }
     }).createMachine({ initial: 'idle', states: { idle: {} } });
     const internals = createActor(internalsMachine);
+    const validated = await internalsMachine.eventSchema['~standard'].validate({ type: 'start' });
+    if (!validated.issues) {
+      const publicType: 'start' = validated.value.type;
+      void publicType;
+      // @ts-expect-error internal fields are excluded from public schema output
+      validated.value.at;
+    }
     internals.send({ type: 'start' });
     // @ts-expect-error an exact internal key is not part of the public protocol
     internals.send({ type: 'tick', at: 1 });

@@ -106,9 +106,7 @@ describe('internalEvents', () => {
         type: 'change.value',
         value: 'ready'
       })
-    ).toEqual({
-      value: { type: 'change.value', value: 'ready' }
-    });
+    ).toHaveProperty('issues');
     // the boundary check runs before any host runtime takes ownership of
     // delivery: the internal event is dead-lettered, not handed to the host
     actor.system.runtime = { sendEvent: () => {} };

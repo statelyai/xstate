@@ -651,6 +651,12 @@ For these reasons, it is impractical for our team to be bound by decisions taken
 
 Most of the packages in the XState family declare a peer dependency on XState itself. We’ll be cautious about maintaining compatibility with already-released packages when releasing a new version of XState, **but** each release of packages depending on XState will always adjust the declared peer dependency range to include the latest version of XState. For example, you should always be able to update `xstate` without `@xstate/react`. But when you update `@xstate/react`, we highly recommend updating `xstate` too.
 
+<!-- public input validation contract from src/StateMachine.ts -->
+Validate external input with `machine.eventSchema` before `actor.send()`.
+It validates complete public events, excludes internal/runtime events, and allows
+explicitly configured routes. Payload checks require runtime schemas;
+`types<T>()` supplies types only. See [public input validation](../../docs/internal-events.md#validating-public-input).
+
 <!-- entry effects and terminal transition behavior from packages/core/src/stateUtils.ts and transitionActions.ts -->
 
 Functions passed to `enq(...)` run as effects; their returned context or child patches are ignored, with a development warning. Return a computed patch from the transition, entry, or exit function instead. Entry/exit functions using enqueue must declare exactly `(args, enq)`; default/rest parameter wrappers receive a development diagnostic. See [actions](../../docs/actions.md).
