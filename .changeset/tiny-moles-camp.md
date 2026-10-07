@@ -9,3 +9,5 @@ actor.send({ type: 'submit', name: 'Ada' }, { allowRuntimeEvents: false });
 ```
 
 The option defaults to `true`, preserving existing host delivery and replay. Runtime-generated notifications and internally raised events continue normally, and declared internal events remain unavailable to external senders under either setting.
+
+Asynchronous host rejection failures follow XState's unhandled-error reporting policy.

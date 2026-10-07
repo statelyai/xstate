@@ -3,6 +3,7 @@ import {
   XSTATE_LOGIC_EFFECT_RESOLVE,
   XSTATE_LOGIC_EFFECT_START
 } from './constants.ts';
+import { reportUnhandledError } from './reportUnhandledError.ts';
 import type {
   ActorTermination,
   AnyActor,
@@ -141,11 +142,20 @@ export function rejectRuntimeEvent(
   if (!runtimeEventPattern.test(event.type)) {
     return false;
   }
-  void target.system.deadLetter(undefined, target, event, 'internalEvent', {
-    error: new Error(
-      `Runtime event "${event.type}" cannot be sent to actor "${target.id}" with allowRuntimeEvents: false.`
-    )
-  });
+  const result = target.system.deadLetter(
+    undefined,
+    target,
+    event,
+    'internalEvent',
+    {
+      error: new Error(
+        `Runtime event "${event.type}" cannot be sent to actor "${target.id}" with allowRuntimeEvents: false.`
+      )
+    }
+  );
+  if (result) {
+    void Promise.resolve(result).catch(reportUnhandledError);
+  }
   return true;
 }
 

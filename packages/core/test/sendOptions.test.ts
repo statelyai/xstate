@@ -14,6 +14,11 @@ import {
 } from '../src';
 import { createRemoteActorRef } from '../src/remoteActorRef.ts';
 import { standardSchemaValidator } from '../src/validation/index.ts';
+import { reportUnhandledError } from '../src/reportUnhandledError.ts';
+
+vi.mock('../src/reportUnhandledError.ts', () => ({
+  reportUnhandledError: vi.fn()
+}));
 
 const charge = createAsyncLogic({ run: () => new Promise<string>(() => {}) });
 
@@ -268,6 +273,53 @@ describe('send options', () => {
     expect(sendEvent).toHaveBeenCalledTimes(2);
     actor.stop();
   });
+
+  it.each([false, true])(
+    'reports asynchronous dead-letter failures with remote=%s',
+    async (remote) => {
+      vi.mocked(reportUnhandledError).mockClear();
+      const rejected = vi.fn();
+      const actor = createActor(checkout(), {
+        onRejectedEvent: rejected
+      }).start();
+      const ref = remote
+        ? createRemoteActorRef(actor.system, {
+            id: 'remote',
+            address: 'remote',
+            src: 'charge',
+            parent: actor
+          })
+        : actor;
+      const snapshot = ref.getSnapshot();
+      const failure = new Error('journal unavailable');
+      actor.system.runtime = {
+        deadLetter: async () => {
+          throw failure;
+        }
+      };
+      try {
+        expect(
+          ref.send({ type: 'xstate.timer', id: 't' } as never, {
+            allowRuntimeEvents: false
+          })
+        ).toBeUndefined();
+        // Listeners still run synchronously; the failed host hook neither
+        // delivers the rejected event nor errors its target actor.
+        expect(rejected).toHaveBeenCalledTimes(1);
+        expect(rejected).toHaveBeenCalledWith(
+          expect.objectContaining({ reason: 'internalEvent' })
+        );
+        expect(ref.getSnapshot()).toBe(snapshot);
+        await vi.waitFor(() => {
+          expect(reportUnhandledError).toHaveBeenCalledTimes(1);
+          expect(reportUnhandledError).toHaveBeenCalledWith(failure);
+        });
+        expect(ref.getSnapshot()).toBe(snapshot);
+      } finally {
+        actor.stop();
+      }
+    }
+  );
 
   it.each([
     'xstate.async.resolve',

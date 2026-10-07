@@ -105,6 +105,8 @@ This rejects actor/state completion, error, snapshot, timer, `after` and timeout
 
 This option restricts event types; it does not authenticate callers or validate application payloads. Use event schemas with a runtime validator for payload validation.
 
+If a host's asynchronous `deadLetter` operation fails, its error follows XState's global unhandled-error reporting policy. The rejected event remains undelivered and the target actor's snapshot is unchanged by the rejection.
+
 ## Subscribing
 
 `subscribe(...)` accepts a function or an observer object, and returns a subscription with `unsubscribe()`. All observers are unsubscribed when the actor stops.
