@@ -7,7 +7,11 @@ it('shares a source listener across React consumers and releases it on unmount',
   const listeners = new Set<() => void>();
   const subscribe = vi.fn((notify: () => void) => {
     listeners.add(notify);
-    return () => listeners.delete(notify);
+    return {
+      unsubscribe() {
+        listeners.delete(notify);
+      }
+    };
   });
   const source = createSourceAtom({ getSnapshot: () => value, subscribe });
   const derived = createAtom(() => source.get() * 2);

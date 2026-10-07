@@ -6,9 +6,11 @@ function externalSource<T>(initial: T) {
   const cleanup = vi.fn();
   const subscribe = vi.fn((notify: () => void) => {
     listeners.add(notify);
-    return () => {
-      listeners.delete(notify);
-      cleanup();
+    return {
+      unsubscribe() {
+        listeners.delete(notify);
+        cleanup();
+      }
     };
   });
   const getSnapshot = vi.fn(() => value);
@@ -29,7 +31,7 @@ function externalSource<T>(initial: T) {
 
 it('samples lazily without subscribing and exposes a readonly atom', () => {
   const getSnapshot = vi.fn(() => 42);
-  const subscribe = vi.fn(() => vi.fn());
+  const subscribe = vi.fn(() => ({ unsubscribe: vi.fn() }));
   const atom = createSourceAtom({ getSnapshot, subscribe });
   expect(getSnapshot).not.toHaveBeenCalled();
   expect(atom.get()).toBe(42);
@@ -138,7 +140,7 @@ it('reads after registration, including synchronous notifications', () => {
       notify();
       value = 2;
       notify();
-      return cleanup;
+      return { unsubscribe: cleanup };
     }
   });
   const derived = createAtom(() => atom.get() * 2);
@@ -158,7 +160,7 @@ it('uses comparison to suppress unchanged snapshots', () => {
       getSnapshot: () => value,
       subscribe(listener) {
         notify = listener;
-        return () => {};
+        return { unsubscribe() {} };
       }
     },
     { compare: (previous, next) => previous.count === next.count }
@@ -191,7 +193,7 @@ it('does not track reads inside external snapshot or registration callbacks', ()
   const unrelated = createAtom(1);
   const subscribe = vi.fn(() => {
     unrelated.get();
-    return () => {};
+    return { unsubscribe() {} };
   });
   const getSnapshot = vi.fn(() => unrelated.get());
   const atom = createSourceAtom({ getSnapshot, subscribe });
@@ -211,7 +213,7 @@ it('rolls back failed activation and can retry', () => {
     if (fail) {
       throw error;
     }
-    return cleanup;
+    return { unsubscribe: cleanup };
   });
   const atom = createSourceAtom({ getSnapshot: () => 1, subscribe });
   expect(() => atom.subscribe(vi.fn())).toThrow(error);
@@ -235,7 +237,7 @@ it('cleans up if the post-registration snapshot throws', () => {
     },
     subscribe() {
       registered = true;
-      return cleanup;
+      return { unsubscribe: cleanup };
     }
   });
   expect(() => atom.subscribe(vi.fn())).toThrow(error);
@@ -259,9 +261,11 @@ it('settles other resource cleanups even when one throws', () => {
   const error = new Error('cleanup failed');
   const first = createSourceAtom({
     getSnapshot: () => 1,
-    subscribe: () => () => {
-      throw error;
-    }
+    subscribe: () => ({
+      unsubscribe() {
+        throw error;
+      }
+    })
   });
   const source = externalSource(2);
   const combined = createAtom(() => first.get() + source.atom.get());
@@ -280,9 +284,11 @@ it('invalidates late callbacks before cleanup runs, including undefined values',
     getSnapshot,
     subscribe(listener) {
       notify = listener;
-      return () => {
-        value = 3;
-        listener();
+      return {
+        unsubscribe() {
+          value = 3;
+          listener();
+        }
       };
     }
   });
@@ -319,7 +325,7 @@ it('reconciles dependencies changed by the post-registration snapshot', () => {
     getSnapshot: () => value,
     subscribe() {
       value = true;
-      return () => {};
+      return { unsubscribe() {} };
     }
   });
   const source = externalSource(1);
@@ -354,11 +360,27 @@ it('activates a source introduced into an existing subscription', async () => {
   const observer = vi.fn();
   const subscription = derived.subscribe(observer);
   const cleanup = vi.fn();
-  const subscribe = vi.fn(() => cleanup);
+  const subscribe = vi.fn(() => ({ unsubscribe: cleanup }));
   source = createSourceAtom({ getSnapshot: () => 42, subscribe });
   selected.set(true);
   expect(observer.mock.calls).toEqual([[42]]);
   expect(subscribe).toHaveBeenCalledTimes(1);
   subscription.unsubscribe();
   expect(cleanup).toHaveBeenCalledTimes(1);
+});
+
+it('preserves the subscription receiver when unsubscribing', () => {
+  const unsubscribe = vi.fn(function (this: { closed: boolean }) {
+    this.closed = true;
+  });
+  const external = { closed: false, unsubscribe };
+  const source = createSourceAtom({
+    getSnapshot: () => 1,
+    subscribe: () => external
+  });
+  const consumer = source.subscribe(vi.fn());
+  consumer.unsubscribe();
+  consumer.unsubscribe();
+  expect(external.closed).toBe(true);
+  expect(unsubscribe).toHaveBeenCalledTimes(1);
 });

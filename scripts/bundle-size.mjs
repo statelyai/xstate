@@ -471,7 +471,7 @@ const PROFILES = {
         getSnapshot: () => value,
         subscribe: (listener) => {
           notify = listener;
-          return () => { notify = undefined; };
+          return { unsubscribe() { notify = undefined; } };
         }
       });
       const derived = createAtom(() => source.get() * 2);

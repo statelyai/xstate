@@ -442,7 +442,7 @@ export function createSourceAtom<T>(
   const get = atom.get;
   let initialized = false;
   let currentRun: object | undefined;
-  let cleanup: (() => void) | undefined;
+  let subscription: Subscription | undefined;
 
   const readSnapshot = (): T => {
     const previous = activeSub;
@@ -481,7 +481,7 @@ export function createSourceAtom<T>(
     activeSub = undefined;
     try {
       // Attach before reading, so changes during registration cannot be lost.
-      cleanup = source.subscribe(() => {
+      subscription = source.subscribe(() => {
         if (currentRun === run && !subscribing) {
           atomOperation(refresh);
         }
@@ -490,9 +490,9 @@ export function createSourceAtom<T>(
       refresh();
     } catch (error) {
       currentRun = undefined;
-      const release = cleanup;
-      cleanup = undefined;
-      release?.();
+      const release = subscription;
+      subscription = undefined;
+      release?.unsubscribe();
       throw error;
     } finally {
       activeSub = previous;
@@ -500,9 +500,9 @@ export function createSourceAtom<T>(
   };
   atom._deactivate = () => {
     currentRun = undefined;
-    const release = cleanup;
-    cleanup = undefined;
-    release?.();
+    const release = subscription;
+    subscription = undefined;
+    release?.unsubscribe();
   };
 
   return {

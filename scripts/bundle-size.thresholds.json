@@ -72,6 +72,6 @@
     "maxGzipBytes": 35963
   },
   "store-source-atom": {
-    "maxGzipBytes": 2396
+    "maxGzipBytes": 2400
   }
 }

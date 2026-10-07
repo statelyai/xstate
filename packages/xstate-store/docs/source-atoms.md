@@ -6,8 +6,8 @@ description: Share external snapshot subscriptions across atom consumers.
 Use `createSourceAtom` to expose an external value, such as a media query or a
 browser observer, as a read-only atom. Provide `getSnapshot` to read its current
 value and `subscribe` to attach a change listener. The listener calls `notify()`;
-XState Store reads the latest snapshot. Return a cleanup function from
-`subscribe`.
+XState Store reads the latest snapshot. Return a subscription object with an `unsubscribe()` method, matching other
+XState Store and XState subscriptions.
 
 ```ts
 import { createAtom, createSourceAtom } from '@xstate/store';
@@ -17,7 +17,7 @@ const isDark = createSourceAtom({
   getSnapshot: () => media.matches,
   subscribe: (notify) => {
     media.addEventListener('change', notify);
-    return () => media.removeEventListener('change', notify);
+    return { unsubscribe: () => media.removeEventListener('change', notify) };
   }
 });
 const theme = createAtom(() => (isDark.get() ? 'dark' : 'light'));
@@ -78,7 +78,7 @@ const size = createSourceAtom(
     getSnapshot: () => ({ width: window.innerWidth, height: window.innerHeight }),
     subscribe: (notify) => {
       window.addEventListener('resize', notify);
-      return () => window.removeEventListener('resize', notify);
+      return { unsubscribe: () => window.removeEventListener('resize', notify) };
     }
   },
   {
@@ -91,10 +91,9 @@ const size = createSourceAtom(
 Source atoms expose `.get()` and `.subscribe()`, with no `.set()` or `.send()`.
 They do not provide retries or an error state. Synchronous snapshot, registration,
 notification, and cleanup errors propagate to the caller. If registration fails
-before returning cleanup, the adapter must release any resources it acquired.
+before returning a subscription, the adapter must release any resources it acquired.
 
 Use XState actors when a resource needs commands, retries, reconnection backoff,
 or a richer lifecycle. Adapt an actor snapshot with `getSnapshot: () =>
-actor.getSnapshot()` and `subscribe: (notify) => { const subscription =
-actor.subscribe(notify); return () => subscription.unsubscribe(); }`; the actor's
-owner remains responsible for starting and stopping it.
+actor.getSnapshot()` and `subscribe: (notify) => actor.subscribe(notify)`; the
+actor's owner remains responsible for starting and stopping it.
