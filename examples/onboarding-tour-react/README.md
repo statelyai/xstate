@@ -13,7 +13,7 @@ manually, or skipped.
 - Eventless `always` transitions for the persistence check and step advance
 - Nested states (`running.playing` / `running.paused`)
 - Delayed transitions (`after`) for auto-advance
-- Actions for the `localStorage` side effect
+- Enqueued entry effects in `done` and `skipped` for the `localStorage` side effect
 
 ## Run it
 

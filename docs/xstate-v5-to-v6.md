@@ -231,7 +231,7 @@ An **entry / exit action** may return:
 | `context`  | shallow context patch       |
 | `children` | replacement children record |
 
-Returning nothing (`undefined`) means "no changes". For transition handlers specifically, returning nothing also means **the event is treated as unhandled at this state** - useful for inline guarding:
+Returning nothing (`undefined`) means "no changes". For transition handlers specifically, returning nothing without calling `enq` also means **the event is treated as unhandled at this state** - useful for inline guarding. A handler that calls `enq` is taken even when it returns nothing, so check the condition first:
 
 ```ts
 // v6 - guard inline by returning undefined
@@ -587,7 +587,7 @@ Or attached after the fact via `machine.provide({ actions, guards, actors })`:
 
 ```ts
 const provided = machine.provide({
-  actions: { log: (_, p) => myLogger(p) }
+  actions: { log: (params) => myLogger(params.msg) }
 });
 ```
 
@@ -1044,7 +1044,6 @@ These exports have been **removed** from `xstate`:
 - Guard combinators and helpers: `and`, `or`, `not`, `stateIn`
 - Guard types: `GuardPredicate`, `GuardArgs`
 - Service helpers: `interpret`, `Interpreter`, and the `InterpreterFrom` type
-- `SetupReturn` (no longer re-exported)
 - Promise actor logic surface: `fromPromise`, `PromiseActorLogic`, `PromiseActorRef`, `PromiseSnapshot`
 - Transition actor logic surface: `fromTransition`, `TransitionActorLogic`, `TransitionActorRef`, `TransitionSnapshot`
 - Inspection-event subtypes: `InspectedActionEvent`, `InspectedActorEvent`, `InspectedEventEvent`, `InspectedMicrostepEvent`, `InspectedSnapshotEvent` are gone. The remaining `InspectionEvent` type was reshaped: its `type` is now only `'@xstate.actor' | '@xstate.transition'` (a discriminated union of `ActorInspectionEvent` and `TransitionInspectionEvent`, both also exported).
@@ -1061,6 +1060,8 @@ These exports have been **removed** from `xstate`:
 - The `xstate/scxml` entry point. `createMachineFromSCXML` moved to the separate `@xstate/scxml` package (`npm i @xstate/scxml`).
 
 `SpecialTargets` (the `Parent`/`Internal` enum) is still exported from `'xstate'` via `types.ts` and continues to work.
+
+`SetupReturn`, the type returned by `setup(...)`, is still exported, but its type parameters changed, so a v5 `SetupReturn<TContext, TEvent, ...>` annotation no longer type-checks. Use `typeof yourSetup` to name the type of a specific setup. Declaration files emitted for an exported setup reference `import("xstate").SetupReturn<...>`.
 
 These exports have been **added**:
 
@@ -1564,7 +1565,7 @@ Migrate one file at a time: run the codemod on it, finish the manual changes, th
 
 ## 28. Leftover v5 keys
 
-In development builds, `createMachine(...)` and `setup(...).createMachine(...)` check hand-written configs for v5 keys that v6 would otherwise ignore or misread. Machines built with `createMachineFromConfig(...)` or `createMachineFromSCXML(...)` are not checked. Production builds skip the check.
+In development builds, `createMachine(...)` and `setup(...).createMachine(...)` check hand-written configs for v5 keys that v6 would otherwise ignore or misread. Machines built with `createMachineFromConfig(...)` or `createMachineFromSCXML(...)` are not checked. Production builds skip the check, except for `cond`, `actions` and a `guard` that is not a function on a transition object. Without the check, a production build would misread those (a transition with `cond` would always be taken), so they throw in every build, with a shorter message.
 
 These keys throw an error:
 
@@ -1603,10 +1604,10 @@ These keys log a warning:
 - [ ] Replace `fromPromise(...)` with `createAsyncLogic({ run: ... })`
 - [ ] Replace `types: {} as { ... }` with `schemas: { ... }` (Zod / Standard Schema)
 - [ ] If you used `events` as a **union**, restructure to a **map keyed by type**
-- [ ] Move `actions`/`guards`/`actors`/`delays` off of `setup({ ... })` and onto `createMachine({ ... })` (or `machine.provide({ ... })`)
+- [ ] Move implementations passed as the second argument of `createMachine(config, implementations)` (deprecated in v5) into `setup({ ... })`, the `createMachine({ ... })` config, or `machine.provide({ ... })` (§4). v6's `createMachine` takes one argument and ignores a second one at runtime
 - [ ] Audit `invoke.src` references - `src` may be a logic object, a registered name, or a resolver function
 - [ ] Drop dependencies on `@xstate/immer` and `@xstate/inspect`; update inspection to `actor.subscribe`, the `inspect` option, or `@statelyai/inspect`
-- [ ] Remove imports of `SetupReturn`, `GuardArgs`, `GuardPredicate`, `Inspected*Event`, `PromiseActorLogic`, and `fromPromise` (use `createAsyncLogic`)
+- [ ] Remove imports of `GuardArgs`, `GuardPredicate`, `Inspected*Event`, `PromiseActorLogic`, and `fromPromise` (use `createAsyncLogic`), and update the type arguments of any `SetupReturn<...>` annotation (§16)
 - [ ] Drain/migrate any v5 persisted snapshots - the v6 snapshot shape is not binary-compatible
 - [ ] Check that persisted `context` holds only JSON values; development builds warn on functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`
 - [ ] Remove `tsTypes` and generated `*.typegen.ts` files

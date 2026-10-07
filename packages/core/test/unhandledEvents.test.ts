@@ -1,6 +1,7 @@
 import {
   createActor,
   createMachine,
+  getMicrosteps,
   initialTransition,
   isUnhandled,
   transition,
@@ -38,6 +39,51 @@ describe('unhandled events', () => {
     expect(result[1]).toEqual([]);
     expect(isUnhandled(snapshot, result)).toBe(true);
   });
+
+  it.each(['done', 'error', 'stopped'] as const)(
+    'transition() treats every event as unhandled when the status is %s, like the actor',
+    (status) => {
+      const order = createMachine({
+        initial: 'pending',
+        on: {
+          reopen: { target: '.pending' },
+          fail: () => {
+            throw new Error('payment provider down');
+          }
+        },
+        states: {
+          pending: {
+            entry: (_, enq) => enq(() => {}),
+            on: { pay: { target: 'paid' } }
+          },
+          paid: { type: 'final' }
+        }
+      });
+      const actor = createActor(order);
+      actor.subscribe({ error: () => {} });
+      actor.start();
+      if (status === 'done') actor.send({ type: 'pay' });
+      if (status === 'error') actor.send({ type: 'fail' });
+      if (status === 'stopped') actor.stop();
+      const snapshot = actor.getSnapshot();
+      expect(snapshot.status).toBe(status);
+
+      for (const type of ['pay', 'reopen', '@xstate.stop'] as const) {
+        const event = { type } as any;
+        const result = transition(order, snapshot, event);
+        expect(isUnhandled(snapshot, result)).toBe(true);
+
+        const microsteps = getMicrosteps(order, snapshot, event);
+        expect(microsteps).toHaveLength(1);
+        expect(microsteps[0][0]).toBe(snapshot);
+        expect(microsteps[0][1]).toEqual([]);
+        expect(microsteps[0][2]).toEqual([]);
+      }
+
+      actor.send({ type: 'reopen' });
+      expect(actor.getSnapshot()).toBe(snapshot);
+    }
+  );
 
   it('transition() returns a new snapshot object for a handled event that changes nothing', () => {
     const [snapshot] = initialTransition(machine);
@@ -116,5 +162,38 @@ describe('unhandled events', () => {
 
     expect(onUnhandledEvent).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('reports xstate.route events that match no routable state', () => {
+    const onUnhandledEvent = vi.fn();
+    const actor = createActor(
+      createMachine({
+        id: 'checkout',
+        initial: 'cart',
+        states: {
+          cart: {},
+          shipping: { id: 'shipping', route: {} },
+          payment: { id: 'payment' }
+        }
+      }),
+      { onUnhandledEvent }
+    ).start();
+    actor.send({ type: 'xstate.route', to: 'shipping' } as any);
+    actor.send({ type: 'xstate.route', to: '#payment' } as any);
+    actor.send({ type: 'xstate.route', to: '#shipping' });
+
+    expect(actor.getSnapshot().value).toBe('shipping');
+    expect(onUnhandledEvent.mock.calls.map(([event]) => event.to)).toEqual([
+      'shipping',
+      '#payment'
+    ]);
+    expect(warn.mock.calls).toEqual([
+      [
+        `Actor ${actor.id} received event "xstate.route" to "shipping" in state "cart" with no matching transition`
+      ],
+      [
+        `Actor ${actor.id} received event "xstate.route" to "#payment" in state "cart" with no matching transition`
+      ]
+    ]);
   });
 });

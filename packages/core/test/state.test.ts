@@ -549,3 +549,43 @@ it.each(['__proto__', 'constructor', 'toString'])(
     expect(error).not.toHaveBeenCalled();
   }
 );
+
+it.each(['done', 'error', 'stopped'] as const)(
+  'can() rejects events on %s snapshots without evaluating transitions',
+  (status) => {
+    const evaluate = vi.fn(() => {
+      throw new Error('must not run');
+    });
+    const machine = createMachine({ on: { GO: evaluate } });
+    const snapshot = createActor(machine).getSnapshot();
+    const terminal = { ...snapshot, status };
+    expect(terminal.can({ type: 'GO' })).toBe(false);
+    expect(evaluate).not.toHaveBeenCalled();
+  }
+);
+
+it('can() propagates evaluation errors without invoking state error recovery', () => {
+  const error = new Error('guard failed');
+  const recover = vi.fn(() => ({ target: 'recovered' }));
+  const machine = createMachine({
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          GO: () => {
+            throw error;
+          }
+        },
+        onError: recover
+      },
+      recovered: {}
+    }
+  });
+  const actor = createActor(machine).start();
+  expect(() => actor.getSnapshot().can({ type: 'GO' })).toThrow(error);
+  expect(actor.getSnapshot().value).toBe('idle');
+  expect(recover).not.toHaveBeenCalled();
+  actor.send({ type: 'GO' });
+  expect(actor.getSnapshot().value).toBe('recovered');
+  actor.stop();
+});

@@ -34,7 +34,7 @@ schemas: {
 }
 ```
 
-There is no `guard` property. Conditions live inside the transition function, which returns `undefined` to reject the event. See [guards](guards.md).
+There is no `guard` property. Conditions live inside the transition function, which returns `undefined` to reject the event. Check the condition before calling `enq`: a function that calls `enq` is taken even if it returns `undefined`. See [guards](guards.md).
 
 A targetless transition can update context and run effects without leaving the current state. Set `reenter: true` when a self-transition should run exit and entry behavior again.
 
@@ -60,7 +60,7 @@ submit: ({ context, event }, enq) => {
 }
 ```
 
-Returning `undefined` without enqueuing anything prevents the transition. Enqueuing effects handles the event even when the function returns `undefined`.
+Returning `undefined` prevents the transition, unless the function already called `enq`: any `enq` call selects the transition, which then runs as a targetless transition with the queued effects. That is why the example returns before enqueuing.
 
 Transition functions must be synchronous. A transition function that returns a promise throws an execution error, which a state `onError` can recover. Move async work into an invoked or spawned actor, or into an effect enqueued with `enq(...)`. The `enq` handle is only valid while the function runs: calling `enq.*` after the function returned throws in development and does nothing in production.
 

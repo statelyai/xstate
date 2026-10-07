@@ -48,6 +48,14 @@ Pass an async function directly as `src`, with `schemas.input`, `schemas.output`
 
 The helper requires input for actors whose input excludes `undefined`, and checks child IDs and source compatibility against `schemas.children` declared in the setup or machine.
 
+<!-- graph traversal events from packages/core/src/graph/index.ts -->
+
+`getAllOwnEvents(snapshot)` from `xstate/graph` includes invoke completions, errors, and delayed events. Compose it with custom traversal payloads: supplied `events` replace the defaults. See [model-based testing](../../docs/model-based-testing.md).
+
+<!-- JSON loading and runtime validation from packages/core/src/createMachineFromConfig.ts -->
+
+Revive JSON definitions with `createMachineFromConfig(json, { schemas, validator, ...sources })` to restore runtime validation. The loader validates structural keys and references and copies its input; serialized definitions are independent copies. See [serialization](../../docs/serialization.md).
+
 For flat finite state machines, `xstate/fsm` provides a tiny pure transition
 table with context and TypeScript support:
 
@@ -642,3 +650,9 @@ For these reasons, it is impractical for our team to be bound by decisions taken
 ### Packages
 
 Most of the packages in the XState family declare a peer dependency on XState itself. We’ll be cautious about maintaining compatibility with already-released packages when releasing a new version of XState, **but** each release of packages depending on XState will always adjust the declared peer dependency range to include the latest version of XState. For example, you should always be able to update `xstate` without `@xstate/react`. But when you update `@xstate/react`, we highly recommend updating `xstate` too.
+
+<!-- entry effects and terminal transition behavior from packages/core/src/stateUtils.ts and transitionActions.ts -->
+
+Functions passed to `enq(...)` run as effects; their returned context or child patches are ignored, with a development warning. Return a computed patch from the transition, entry, or exit function instead. Entry/exit functions using enqueue must declare exactly `(args, enq)`; default/rest parameter wrappers receive a development diagnostic. See [actions](../../docs/actions.md).
+
+Pure transitions preserve terminal snapshots and return no effects. `snapshot.can(...)` returns `false` for terminal snapshots; active dry runs propagate evaluation errors. See [snapshots](../../docs/snapshots.md) and [states](../../docs/states.md).

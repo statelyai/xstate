@@ -190,6 +190,21 @@ await testPaths(cartMachine, { paths, sut: cartSut });
 
 `ADD` can be sent any number of times, so `stopWhen` bounds the traversal the same way it does for `testPaths()`.
 
+The `events` option replaces the machine's default events. To customize payloads while retaining invoke completions, errors, and delayed events, compose with `getAllOwnEvents(snapshot)`:
+
+```ts
+import { getAllOwnEvents, getShortestPaths } from 'xstate/graph';
+
+const paths = getShortestPaths(cartMachine, {
+  events: (snapshot) => getAllOwnEvents(snapshot).map((event) =>
+    event.type === 'ADD' ? { ...event, sku: 'apple' } : event
+  ),
+  stopWhen: (snapshot) => Object.values(snapshot.context.items).some((quantity) => quantity >= 2)
+});
+```
+
+Static directed graphs omit function transitions whose targets require execution. Microstep inspection records their resolved targets instead.
+
 `xstate/graph` in v5 also exported `createTestModel` and `TestModel`. v6 removes them; `testPaths()` replaces `path.test()`.
 
 ## Read a failure

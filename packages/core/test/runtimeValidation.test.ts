@@ -303,6 +303,36 @@ describe('runtime schema validation', () => {
     expect(getRejection(openResult)).toBeUndefined();
   });
 
+  it('validates event and emitted schemas that declare `type` against the complete event', () => {
+    const machine = setup({
+      validator: standardSchemaValidator(),
+      schemas: {
+        events: {
+          GO: z.object({ type: z.literal('GO'), count: z.number() }),
+          PING: z.object({})
+        },
+        emitted: { notice: z.object({ type: z.literal('notice') }) }
+      }
+    }).createMachine({
+      initial: 'idle',
+      on: { PING: (_, enq) => enq.emit({ type: 'notice' }) },
+      states: { idle: { on: { GO: { target: 'done' } } }, done: {} }
+    });
+    const [snapshot] = initialTransition(machine);
+
+    const accepted = transition(machine, snapshot, { type: 'GO', count: 1 });
+    expect(getRejection(accepted)).toBeUndefined();
+    expect(accepted[0].value).toBe('done');
+    expect(() => transition(machine, snapshot, { type: 'PING' })).not.toThrow();
+
+    const rejection = getRejection(
+      transition(machine, snapshot, { type: 'GO', count: 'x' } as any)
+    );
+    expect(rejection!.detail!.issues!.map((issue) => issue.path)).toEqual([
+      ['count']
+    ]);
+  });
+
   it('validates stable root context after the macrostep', () => {
     const machine = setup({
       validator: standardSchemaValidator(),

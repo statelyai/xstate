@@ -125,6 +125,31 @@ describe('createMachineFromConfig ', () => {
     expect(nextState.value).toEqual('b');
   });
 
+  it('should handle raise actions with a payload', () => {
+    const machine = createMachineFromConfig(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: {
+                actions: [
+                  { type: '@xstate.raise', event: { type: 'TO_B', step: 2 } }
+                ]
+              },
+              TO_B: { target: 'b', guard: { type: 'isStepTwo' } }
+            }
+          },
+          b: {}
+        }
+      },
+      { guards: { isStepTwo: ({ event }) => event.step === 2 } }
+    );
+    const [initialState] = initialTransition(machine);
+    const [nextState] = transition(machine, initialState, { type: 'NEXT' });
+    expect(nextState.value).toEqual('b');
+  });
+
   it('should handle emit actions', async () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     const machine = createMachineFromConfig({

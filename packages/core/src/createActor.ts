@@ -1017,7 +1017,9 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         !effects.length &&
         // State machine snapshots only; other logic may ignore events freely.
         'machine' in (previousSnapshot as object) &&
-        !event.type.startsWith('xstate.')
+        // `xstate.route` is sent by users, so a route that matches nothing is
+        // reported like any other unhandled event.
+        (!event.type.startsWith('xstate.') || event.type === 'xstate.route')
       ) {
         this._reportUnhandledEvent(event);
       }
@@ -1043,11 +1045,15 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   private _reportUnhandledEvent(event: EventFromLogic<TLogic>): void {
     safeCall(() => this.options.onUnhandledEvent?.(event, this._snapshot));
     if (isDevelopment) {
+      const to =
+        event.type === 'xstate.route'
+          ? ` to ${JSON.stringify((event as { to?: unknown }).to)}`
+          : '';
       const warned = (this._warnedUnhandledTypes ??= new Set());
-      if (!warned.has(event.type)) {
-        warned.add(event.type);
+      if (!warned.has(event.type + to)) {
+        warned.add(event.type + to);
         console.warn(
-          `Actor ${this.id} received event "${event.type}" in state ${JSON.stringify(
+          `Actor ${this.id} received event "${event.type}"${to} in state ${JSON.stringify(
             (this._snapshot as { value?: unknown }).value
           )} with no matching transition`
         );

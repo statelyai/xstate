@@ -29,7 +29,7 @@ Every snapshot has a `status`.
 | `error` | The actor failed. `error` is set. | An uncaught error in a transition function, action or invoked actor. |
 | `stopped` | The actor was stopped before completing. | `actor.stop()`, or its parent stopping it when a state is exited. |
 
-`done`, `error` and `stopped` are terminal: the actor no longer processes events, its children and timers are disposed, and its observers are completed or errored.
+`done`, `error` and `stopped` are terminal: the actor no longer processes events, its children and timers are disposed, and its observers are completed or errored. The pure [`transition(...)`](utilities.md) function treats every event on a terminal snapshot as unhandled: it returns the same snapshot and no effects.
 
 ```ts
 const snapshot = actor.getSnapshot();

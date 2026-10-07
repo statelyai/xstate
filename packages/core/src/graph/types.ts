@@ -3,7 +3,11 @@ import {
   StateNode,
   TransitionDefinition,
   Snapshot,
-  ActorLogic
+  ActorLogic,
+  AnyMachineSnapshot,
+  DoneActorEvent,
+  ErrorActorEvent,
+  AfterEvent
 } from '..';
 
 /** @public */
@@ -142,19 +146,49 @@ export type TraversalOptions<
   TInput
 > = {
   input?: TInput;
+  events?:
+    | readonly TraversalEvent<TSnapshot, TEvent>[]
+    | ((state: TSnapshot) => readonly TraversalEvent<TSnapshot, TEvent>[]);
 } & SerializationOptions<TSnapshot, TEvent> &
   Partial<
     Pick<
       TraversalConfig<TSnapshot, TEvent>,
-      'events' | 'filterEvents' | 'limit' | 'fromState' | 'stopWhen' | 'toState'
+      'filterEvents' | 'limit' | 'fromState' | 'stopWhen' | 'toState'
     >
   >;
+
+type TraversalEvent<TSnapshot, TEvent> =
+  | TEvent
+  | (TSnapshot extends AnyMachineSnapshot
+      ?
+          | (Omit<DoneActorEvent, 'output' | 'sessionId'> &
+              Partial<Pick<DoneActorEvent, 'output' | 'sessionId'>>)
+          | (Omit<ErrorActorEvent, 'error' | 'sessionId'> &
+              Partial<Pick<ErrorActorEvent, 'error' | 'sessionId'>>)
+          | AfterEvent
+      : never);
 
 /** @public */
 export interface TraversalConfig<
   TSnapshot extends Snapshot<unknown>,
   TEvent extends EventObject
 > extends SerializationConfig<TSnapshot, TEvent> {
+  /**
+   * The events to send from each state, as a list or as a function of the
+   * state. Defaults to the machine's own events for that state (see
+   * `getAllOwnEvents`). A given value replaces the default, so invoke results
+   * (`xstate.done.actor`, `xstate.error.actor`) and delays (`xstate.after`)
+   * are traversed only if it includes them:
+   *
+   * ```ts
+   * getShortestPaths(machine, {
+   *   events: (snapshot) =>
+   *     getAllOwnEvents(snapshot).map((event) =>
+   *       event.type === 'SUBMIT' ? { type: 'SUBMIT', value: 'hello' } : event
+   *     )
+   * });
+   * ```
+   */
   events: readonly TEvent[] | ((state: TSnapshot) => readonly TEvent[]);
   filterEvents: ((snapshot: TSnapshot, event: TEvent) => boolean) | undefined;
   /**
