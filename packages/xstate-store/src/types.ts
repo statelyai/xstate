@@ -646,6 +646,14 @@ export interface AtomOptions<T> {
   compare?: (prev: T, next: T) => boolean;
 }
 
+/** An external value exposed through a read-only source atom. */
+export interface SourceAtomConfig<T> {
+  /** Reads the current value without starting an external subscription. */
+  getSnapshot: () => T;
+  /** Attaches a listener and returns a subscription or cleanup function. */
+  subscribe: (notify: () => void) => Subscription | (() => void);
+}
+
 export interface AtomConfig<TValue, TInput> {
   createAtom: undefined extends TInput
     ? (input?: TInput) => Atom<TValue>

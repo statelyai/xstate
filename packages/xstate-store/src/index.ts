@@ -5,6 +5,7 @@ export {
   createAtom,
   createAtomConfig,
   createAsyncAtom,
+  createSourceAtom,
   createReducerAtom
 } from './atom.ts';
 export type { AsyncAtomOptions, AsyncAtomState } from './atom.ts';
@@ -60,6 +61,7 @@ export type {
   InputFromAtomConfig,
   ReducerAtom,
   AtomOptions,
+  SourceAtomConfig,
   AnyAtom,
   ReadonlyAtom,
   AnyStoreConfig,
