@@ -1,6 +1,116 @@
-import { createActor, waitFor, createMachine } from '../src/index.ts';
+import {
+  createActor,
+  waitFor,
+  createMachine,
+  fromTransition
+} from '../src/index.ts';
 
 describe('waitFor', () => {
+  describe('cleanup', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    });
+
+    it('should unsubscribe and remove the abort listener after timing out', async () => {
+      const actor = createActor(createMachine({})).start();
+      const controller = new AbortController();
+      const removeListener = vi.spyOn(controller.signal, 'removeEventListener');
+      const predicate = vi.fn(() => false);
+      const promise = waitFor(actor, predicate, {
+        timeout: 10,
+        signal: controller.signal
+      });
+      const rejection = expect(promise).rejects.toThrow(
+        'Timeout of 10 ms exceeded'
+      );
+
+      vi.advanceTimersByTime(10);
+      await rejection;
+
+      expect(removeListener).toHaveBeenCalledWith(
+        'abort',
+        expect.any(Function)
+      );
+      expect(vi.getTimerCount()).toBe(0);
+      predicate.mockClear();
+      actor.send({ type: 'NEXT' });
+      expect(predicate).not.toHaveBeenCalled();
+      actor.stop();
+    });
+
+    it('should unsubscribe and clear the timeout after aborting', async () => {
+      const actor = createActor(createMachine({})).start();
+      const controller = new AbortController();
+      const predicate = vi.fn(() => false);
+      const reason = new Error('Canceled');
+      const promise = waitFor(actor, predicate, {
+        timeout: 100,
+        signal: controller.signal
+      });
+      const rejection = expect(promise).rejects.toBe(reason);
+
+      controller.abort(reason);
+      await rejection;
+
+      expect(vi.getTimerCount()).toBe(0);
+      predicate.mockClear();
+      actor.send({ type: 'NEXT' });
+      expect(predicate).not.toHaveBeenCalled();
+      actor.stop();
+    });
+
+    it('should clear the timeout and remove the abort listener after an actor error', async () => {
+      const error = new Error('Actor failed');
+      const actor = createActor(
+        fromTransition(() => {
+          throw error;
+        }, 0)
+      ).start();
+      const controller = new AbortController();
+      const removeListener = vi.spyOn(controller.signal, 'removeEventListener');
+      const promise = waitFor(actor, () => false, {
+        timeout: 100,
+        signal: controller.signal
+      });
+      const rejection = expect(promise).rejects.toBe(error);
+
+      actor.send({ type: 'FAIL' });
+      await rejection;
+
+      expect(vi.getTimerCount()).toBe(0);
+      expect(removeListener).toHaveBeenCalledWith(
+        'abort',
+        expect.any(Function)
+      );
+    });
+
+    it('should clear the timeout when a later snapshot matches', async () => {
+      const actor = createActor(
+        createMachine({
+          initial: 'waiting',
+          states: {
+            waiting: { on: { NEXT: 'ready' } },
+            ready: {}
+          }
+        })
+      ).start();
+      const promise = waitFor(actor, (snapshot) => snapshot.matches('ready'), {
+        timeout: 100
+      });
+
+      actor.send({ type: 'NEXT' });
+      await expect(promise).resolves.toBe(actor.getSnapshot());
+
+      expect(vi.getTimerCount()).toBe(0);
+      actor.stop();
+    });
+  });
+
   it('should wait for a condition to be true and return the emitted value', async () => {
     const machine = createMachine({
       initial: 'a',
