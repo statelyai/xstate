@@ -1,5 +1,39 @@
 # @xstate/store-react
 
+## 2.1.0
+
+### Minor Changes
+
+- [#5760](https://github.com/statelyai/xstate/pull/5760) [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useStore` hook now accepts an `inspect` option for wiring up inspectors to component-local stores. The inspector is subscribed while the option is provided and stays stable across re-renders. A render that suspends or is discarded does not change the active inspector.
+  
+  ```tsx
+  import { useStore, useSelector } from '@xstate/store-react';
+  import { createBrowserInspector } from '@statelyai/inspect';
+  
+  const inspector = createBrowserInspector();
+  
+  function Counter() {
+    const store = useStore(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (context) => ({ count: context.count + 1 })
+        }
+      },
+      { inspect: inspector.inspect }
+    );
+    const count = useSelector(store, (s) => s.context.count);
+  
+    return <button onClick={() => store.send({ type: 'inc' })}>{count}</button>;
+  }
+  ```
+
+### Patch Changes
+
+- [#5760](https://github.com/statelyai/xstate/pull/5760) [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701) Thanks [@davidkpiano](https://github.com/davidkpiano)! - `useSelector` now honors a custom `compare` function when the selector argument is omitted.
+- Updated dependencies [[`6dc2adf`](https://github.com/statelyai/xstate/commit/6dc2adf46b4f6a96f7607dff0cdbdcd5933136f8), [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701), [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701), [`38dcaff`](https://github.com/statelyai/xstate/commit/38dcaffb20ec7f3cbb10e6161d8f0ebacca33701)]:
+  - @xstate/store@4.3.0
+
 ## 2.0.0
 
 ### Major Changes
