@@ -1,5 +1,110 @@
 # xstate
 
+## 6.0.0-alpha.65
+
+### Minor Changes
+
+- 7bb5f0c: Change `machine.eventSchema` to validate complete public input events. It now rejects declared internal events and reserved runtime events, while allowing explicitly configured `xstate.route` destinations.
+  
+  ```ts
+  const result = await machine.eventSchema['~standard'].validate(input);
+  if (!result.issues) {
+    actor.send(result.value);
+  }
+  ```
+  
+  This changes the previous alpha schema contract. Use actual machines with `machineVersions().adaptEvents()` to keep validating complete internal/runtime histories. Historical descriptors should provide their own complete history schema. `actor.send()` remains unchanged for trusted runtime delivery and replay. Payload validation requires runtime schemas; `types<T>()` supplies types only.
+
+### Patch Changes
+
+- dd5eb47: `createMachine()` without `schemas.context` now infers the context type from the return value of a `context` function, as it already did from a context object:
+  
+  - With TypeScript 5.9 and 6.0, the context type was the function itself, so reading `snapshot.context.count` was a type error.
+  - Actor refs created with the function's `spawn` were typed `any`. They now have the type of the spawned logic.
+  - Next to an `invoke` whose `src` is an unregistered machine, the call failed with TS2769 ("… is not assignable to type 'never'") against the published declarations.
+  
+  ```ts
+  const machine = createMachine({
+    actors: { connection },
+    context: ({ spawn, actors }) => ({
+      count: 0,
+      connection: spawn(actors.connection, { id: 'connection' })
+    })
+  });
+  
+  const { context } = createActor(machine).getSnapshot();
+  context.count; // number
+  context.connection; // ActorRefFromLogic<typeof connection>, was `any`
+  ```
+- dd5eb47: Development builds now warn when a function passed to `enq(...)` returns `{ context }` or `{ children }`. Enqueued functions run as effects after the transition, so that value has always been ignored, and nothing said so. To update context from a named action, call it directly in the transition, entry or exit function and return its result:
+  
+  ```ts
+  const formSetup = setup({
+    schemas: { events: { pick: z.object({ country: z.string() }) } },
+    actions: {
+      applyDefaults: (country: string) => ({
+        context: { currency: country === 'FR' ? 'EUR' : 'USD' }
+      })
+    }
+  });
+  
+  // Applied: the transition function returns the patch
+  pick: ({ actions, event }) => actions.applyDefaults(event.country);
+  
+  // Ignored, and now reported in development
+  pick: ({ actions, event }, enq) => {
+    enq(actions.applyDefaults, event.country);
+  };
+  ```
+- dd5eb47: Enqueueing a value that is not a function, such as a named action that has no implementation, now enqueues nothing, and development builds log a warning. Before, it showed up as an event without a `type`: `actor.on('*')` listeners received it, inspection listed it as an action, and pure `transition()` returned it as an `emit` effect. A validated machine that declares `schemas.emitted` errored with "Unknown emitted event".
+  
+  ```ts
+  const machine = setup({
+    schemas: { actions: { track: { params: z.object({ key: z.string() }) } } }
+  }).createMachine({
+    on: {
+      // `actions.track` is undefined until an implementation is provided
+      submit: ({ actions }, enq) => {
+        enq(actions.track, { key: 'submit' });
+      }
+    }
+  });
+  ```
+- dd5eb47: Entry and exit functions now behave the same in more cases, whatever the number of parameters they declare:
+  
+  - An entry or exit function declared with one parameter receives `guards` and `delays`, as one declared with `(args, enq)` already did. Calling a named guard from it no longer throws.
+  - When the machine reaches its top-level final state, the exit functions of the states still active run. The `context` returned by one declared with `(args, enq)` is now applied, as it already was for other exit functions.
+  - An exit function declared with `(args, enq)` receives the current `children`, without the invoked children of the states exited before it.
+  - Only entry and exit functions declared with exactly two parameters get a working `enq`. Development builds now warn when any other entry or exit function calls `enq`, because the call is ignored. This catches wrappers that forward `(...args)` and an `enq` parameter with a default value.
+- dd5eb47: Children spawned or stopped by an entry function are no longer undone when a later state with an `invoke` is entered in the same microstep, such as the entered state's initial child. Before, a child spawned with `enq.spawn(...)` was dropped from `snapshot.children`, so `enq.sendTo(...)` dead-lettered events to it and stopping the parent left it running, and a child stopped with `enq.stop(...)` came back. The entry functions of states entered later in the microstep also receive the current `children`.
+- dd5eb47: `machine.provide({ actions })` now checks a replacement action's result, not only its parameters. When the declared action returns a result, such as a context patch that a transition returns, the replacement must return a compatible one. Before, a replacement that returned a mistyped patch, another value or nothing at all compiled, and the transition applied whatever it returned. An action declared to return nothing can still be replaced by one that returns any value, such as an Effect. A replacement is checked against the declared action, not against an earlier replacement.
+  
+  ```ts
+  const machine = setup({
+    schemas: { events: { pick: z.object({ country: z.string() }) } },
+    actions: {
+      applyDefaults: (country: string) => ({
+        context: { currency: country === 'FR' ? 'EUR' : 'USD' }
+      })
+    }
+  }).createMachine({
+    context: { currency: 'USD' },
+    on: { pick: ({ actions, event }) => actions.applyDefaults(event.country) }
+  });
+  
+  machine.provide({
+    // now a type error: `applyDefaults` returns a context patch
+    actions: { applyDefaults: () => {} }
+  });
+  ```
+- dd5eb47: `transition(machine, snapshot, event)` and `getMicrosteps(...)` no longer process events on a `done`, `error` or `stopped` snapshot. Every event is unhandled there, as it is for an actor with that status: the same snapshot comes back with no effects. Before, the machine's transitions still ran, so a done snapshot could leave its final state while keeping `status: 'done'`, an error snapshot could become `done`, and a stopped snapshot could emit `@xstate.terminate`.
+- dd5eb47: Reduce unnecessary typechecking work for validated setups with many invoke sites and registered actors when internal events are absent.
+- dd5eb47: Return false from `snapshot.can()` on terminal snapshots without evaluating transitions. Active snapshot dry runs still propagate evaluation errors; document that they do not execute state error recovery. Narrow known reserved machine-event handlers to their actual payloads and reject misspelled or unknown reserved prefixes when event schemas close the union.
+- dd5eb47: Export `getAllOwnEvents()` from `xstate/graph` so custom traversal events can retain invoke and delay events. Accept synthesized internal events in traversal options. Omit unknown function targets from static directed graphs and expose resolved targets in microstep inspection. Validate event schemas that explicitly declare their `type` discriminator.
+- dd5eb47: Make JSON machine loading reject unknown structural keys, string transitions, invalid initial states, unresolved nested guards, and cyclic guard definitions. Apply action lists sequentially, evaluate nested output expressions, and report precise evaluator paths. Restore runtime sources and support runtime schemas plus a validator when reviving machines. Copy loaded and serialized definitions so callers cannot mutate the machine. Accept payloads on raised JSON events.
+- dd5eb47: Evaluate applied transition context and input mappers once. Clean up async actor timeouts when `run()` throws synchronously. Report unsuccessful route events as unhandled. Reject obsolete v5 transition keys in production and development, and diagnose misplaced setup internal-event declarations and enqueue-before-rejection mistakes.
+- dd5eb47: Preserve context, internal-event, transition metadata, emitted-event, and concrete schema types in public helpers and provided machines. Fix declaration emit for state configurations with parameterized callbacks and registered actors. Reject incompatible `extend()` source replacements and nonexistent literal `matches()` states. Widen schema-free async outputs using ordinary TypeScript inference. Reduce validator state-constraint cost and check transforming schemas independently in every state.
+
 ## 6.0.0-alpha.64
 
 ### Minor Changes
