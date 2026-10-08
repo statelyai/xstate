@@ -41,6 +41,9 @@ normalizedQuery.get(); // 'state machines'
 
 Use a reducer atom when updates are best expressed as events. Use a store when several values change together in named transitions.
 
+Use a [source atom](./source-atoms.md) for an external snapshot value whose
+listener should be shared across direct and derived subscribers.
+
 ## TypeScript
 
 Use `SnapshotFromStore<typeof store>` when a standalone selector needs an explicit snapshot type.
