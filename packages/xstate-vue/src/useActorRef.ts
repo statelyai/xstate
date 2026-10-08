@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted } from 'vue';
+import { onBeforeUnmount } from 'vue';
 import {
   Actor,
   ActorOptions,
@@ -35,12 +35,14 @@ export function useActorRef<TLogic extends AnyActorLogic>(
   const actorRef = createActor(actorLogic, options);
 
   let sub: Subscription;
-  onMounted(() => {
-    if (observerOrListener) {
-      sub = actorRef.subscribe(toObserver(observerOrListener));
-    }
+
+  if (observerOrListener) {
+    sub = actorRef.subscribe(toObserver(observerOrListener));
+  }
+
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     actorRef.start();
-  });
+  }
 
   onBeforeUnmount(() => {
     actorRef.stop();
