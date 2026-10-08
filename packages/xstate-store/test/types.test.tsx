@@ -294,6 +294,51 @@ describe('can', () => {
   });
 });
 
+describe('context updates', () => {
+  it('allows partial context updates for object context', () => {
+    createStore({
+      context: { count: 0, greeting: 'hello' },
+      on: {
+        inc: (ctx) => ({
+          count: ctx.count + 1
+        })
+      }
+    });
+  });
+
+  it('requires discriminated union updates to satisfy the context type', () => {
+    type User = { id: string };
+    type Context =
+      | { status: 'loading'; user: null; count: number }
+      | { status: 'loaded'; user: User; count: number };
+
+    createStore<Context, { load: {}; increment: {} }>({
+      context: { status: 'loading', user: null, count: 0 },
+      on: {
+        load: () =>
+          // @ts-expect-error missing user for the loaded context
+          ({
+            status: 'loaded'
+          }),
+        // OK
+        increment: (ctx) => ({
+          count: ctx.count + 1
+        })
+      }
+    });
+
+    createStore<Context, { load: {} }>({
+      context: { status: 'loading', user: null, count: 0 },
+      on: {
+        load: () => ({
+          status: 'loaded',
+          user: { id: '1' }
+        })
+      }
+    });
+  });
+});
+
 describe('logic selectors', () => {
   it('infers selected values from a store', () => {
     const store = createStore({

@@ -14,6 +14,7 @@ import {
   InferSchemaPayloadMap,
   ResolveStoreContext,
   ResolveStoreEmittedPayloadMap,
+  StoreContextUpdate,
   StoreSchemas,
   StandardSchemaMap
 } from './types.ts';
@@ -49,7 +50,7 @@ type InferredFromStoreTransitions<
       FromStoreEmittedEvents<TEmittedPayloadMap, TEmittedSchemaMap>,
       InferredEventPayloadMap<TTransitions>
     >
-  ) => ResolveStoreContext<TContext, TContextSchema> | void
+  ) => StoreContextUpdate<ResolveStoreContext<TContext, TContextSchema>> | void
 >;
 
 type InferredEventPayloadMap<

@@ -16,6 +16,7 @@ import {
   StoreConfig,
   StoreEffect,
   StoreEffectEnqueue,
+  StoreContextUpdate,
   StoreInspectionEvent,
   StoreProducerAssigner,
   StoreSnapshot,
@@ -799,7 +800,7 @@ export function createStoreTransition<
       const currentContext = currentSnapshot.context;
       const assigner = transitions?.[currentEvent.type as StoreEvent['type']];
       let producerAssignerResult: unknown;
-      let assignerResult: TContext | void = undefined;
+      let assignerResult: StoreContextUpdate<TContext> | void = undefined;
       const effectsLength = effects.length;
 
       if (!assigner) {
@@ -833,13 +834,15 @@ export function createStoreTransition<
               enqueue
             )) === undefined
           ? currentContext
-          : assignerResult;
+          : assignerResult === currentContext
+            ? currentContext
+            : { ...currentContext, ...assignerResult };
 
-      if (isPromiseLike(producer ? producerAssignerResult : nextContext)) {
+      if (isPromiseLike(producer ? producerAssignerResult : assignerResult)) {
         ignorePromiseRejection(
           (producer
             ? producerAssignerResult
-            : nextContext) as PromiseLike<unknown>
+            : assignerResult) as PromiseLike<unknown>
         );
         throw new Error(UNSUPPORTED_ASYNC_TRANSITION_ERROR);
       }
