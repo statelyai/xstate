@@ -315,6 +315,17 @@ export class StateMachine<
   readonly _actorMap!: TActorMap;
   readonly _stateSchema!: TConfig;
 
+  /** Structural completion capability; this does not prove final states reachable. */
+  public get completion(): 'possible' | 'never' {
+    const canComplete = (node: AnyStateNode): boolean =>
+      node.type === 'final' ||
+      (node.type === 'parallel'
+        ? Object.values(node.states).every(canComplete)
+        : node.type === 'compound' &&
+          Object.values(node.states).some((child) => child.type === 'final'));
+    return canComplete(this.root) ? 'possible' : 'never';
+  }
+
   /** The machine's own version. */
   public version: TConfig extends { version: infer TVersion extends string }
     ? TVersion
