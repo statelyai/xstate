@@ -30,11 +30,12 @@
   },
   "scripts": {},
   "peerDependencies": {
-    "effect": "^4.0.0-rc.115",
+    "effect": "^4.0.0",
     "xstate": "workspace:^"
   },
   "devDependencies": {
-    "effect": "4.0.0-rc.115",
+    "effect": "4.0.0",
+    "fast-check": "4.10.2",
     "xstate": "workspace:^"
   },
   "preconstruct": {
