@@ -3035,8 +3035,11 @@ importers:
   packages/xstate-effect:
     devDependencies:
       effect:
-        specifier: 4.0.0-rc.115
-        version: 4.0.0-rc.115
+        specifier: 4.0.0
+        version: 4.0.0
+      fast-check:
+        specifier: 4.10.2
+        version: 4.10.2
       xstate:
         specifier: workspace:^
         version: link:../core
@@ -8152,9 +8155,6 @@ packages:
 
   effect@4.0.0-beta.106:
     resolution: {integrity: sha512-Sb1eNPYP8UdkE6xDOEEnrrOh/Vu2ocdRTPSeZTjZXukUrEYT2NtuQpbS90sEWaa7b6qLt8dfEYPpa6IVe5giHw==, tarball: https://registry.npmjs.org/effect/-/effect-4.0.0-beta.106.tgz}
-
-  effect@4.0.0-rc.115:
-    resolution: {integrity: sha512-ogYulZ5ffeOzrJqQrG0XOkDO5lKn2s9KNHhoxJy/6wKUkF0i12dlVXWA9TgsgQ+zV/JzizyG0+XMPepZEQX6vw==, tarball: https://registry.npmjs.org/effect/-/effect-4.0.0-rc.115.tgz}
 
   electron-to-chromium@1.5.427:
     resolution: {integrity: sha512-n14zb3FdsChZ2BNobqNHAJMcP3ifFv4paox2LvCrfVAQcqGiSURgbJl+PfMpHVCNFkStnNc+RRVtPBTVW5PDgw==, tarball: https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.427.tgz}
@@ -14265,7 +14265,7 @@ snapshots:
 
   '@testing-library/react@16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
-      '@babel/runtime': 7.29.7
+      '@babel/runtime': 7.27.6
       '@testing-library/dom': 10.4.0
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
@@ -15527,8 +15527,6 @@ snapshots:
       kubernetes-types: 1.30.0
       msgpackr: 2.1.0
       uuid: 14.0.2
-
-  effect@4.0.0-rc.115: {}
 
   electron-to-chromium@1.5.427: {}
 
