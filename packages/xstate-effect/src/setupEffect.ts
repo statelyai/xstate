@@ -311,7 +311,8 @@ function wrapActions(
   for (const key of Object.keys(actions)) {
     const action = actions[key];
     wrapped[key] = (args) => {
-      const result = action(args);
+      // machine.provide can replace Effect actions with plain actions.
+      const result: unknown = action(args);
       return Effect.isEffect(result)
         ? runHostedEffect(
             args.self,

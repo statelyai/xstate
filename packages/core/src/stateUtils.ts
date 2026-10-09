@@ -614,6 +614,12 @@ export function formatTransition(
   descriptor: string,
   transitionConfig: AnyTransitionConfig
 ): AnyTransitionDefinition {
+  const removedKey = getRemovedTransitionKey(transitionConfig);
+  if (removedKey) {
+    throw new Error(
+      `Transition "${descriptor || 'always'}" in state "${stateNode.id}" uses ${removedKey}, which was removed in v6. Use a transition function.`
+    );
+  }
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const reenter = transitionConfig.reenter ?? false;
   const target = resolveTarget(stateNode, normalizedTarget);
@@ -625,14 +631,48 @@ export function formatTransition(
     source: stateNode,
     reenter,
     eventType: descriptor,
-    toJSON: () => ({
-      ...transition,
-      source: `#${stateNode.id}`,
-      target: target ? target.map((t) => `#${t.id}`) : undefined
-    })
+    toJSON: () => transitionDefinitionToJSON(transition)
   };
 
   return transition;
+}
+
+function transitionDefinitionToJSON(
+  transition: AnyTransitionDefinition
+): Record<string, unknown> {
+  const { definition: _, ...serializableTransition } = transition;
+  return {
+    ...serializableTransition,
+    source: `#${transition.source.id}`,
+    target: transition.target?.map((target) => `#${target.id}`)
+  };
+}
+
+/**
+ * Returns the v5 key of a transition object that v6 would misread, in every
+ * build: `cond` is never read, so the transition would always be taken,
+ * transition `actions` would not run as written, and only a function `guard`
+ * can be called. Development builds explain each key earlier, in
+ * `diagnoseAuthorConfig`. Compiled configs (JSON, SCXML) never set them.
+ */
+function getRemovedTransitionKey(
+  transitionConfig: AnyTransitionConfig
+): string | undefined {
+  const { cond, actions, guard } = transitionConfig as {
+    cond?: unknown;
+    actions?: unknown;
+    guard?: unknown;
+  };
+  if (cond !== undefined) {
+    return '"cond"';
+  }
+  if (actions !== undefined) {
+    return '"actions"';
+  }
+  if (guard !== undefined && typeof guard !== 'function') {
+    return 'an object-form "guard"';
+  }
+  return undefined;
 }
 
 function isStateNodeDescendantOf(
@@ -1154,7 +1194,10 @@ function removeConflictingTransitions(
 
 type ResolvableTransition = Parameters<typeof getTransitionResult>[0];
 type TransitionResultResolver = (
-  transition: ResolvableTransition
+  transition: ResolvableTransition,
+  // Whether the caller applies the result's `context` and `input`, rather
+  // than only reading its targets
+  applied?: boolean
 ) => ReturnType<typeof getTransitionResult>;
 
 function createTransitionResultResolver(
@@ -1167,14 +1210,18 @@ function createTransitionResultResolver(
   let cache:
     | Map<ResolvableTransition, ReturnType<typeof getTransitionResult>>
     | undefined;
-  return (transition) => {
-    if (!transition.to) {
-      return getTransitionResult(transition, snapshot, event, actorScope, {
-        resolveActions,
-        selectionResult: selectionResults?.get(
-          transition as AnyTransitionDefinition
-        )
-      });
+  return (transition, applied) => {
+    if (!transition.to && !applied) {
+      // An object transition's targets are static, so reading them must not
+      // run its `context` and `input` mappers
+      return {
+        targets: transition.target as AnyStateNode[] | undefined,
+        context: undefined,
+        reenter: transition.reenter,
+        actions: undefined,
+        internalEvents: undefined,
+        input: undefined
+      };
     }
     let result = cache?.get(transition);
     if (!result) {
@@ -1550,13 +1597,25 @@ function microstep(
                     children: args.children,
                     actions: args.actions,
                     actors: args.actors,
+                    guards: currentSnapshot.machine.sources.guards,
+                    delays: currentSnapshot.machine.sources.delays,
                     input,
                     stateNode
                   },
                   actorScope
                 )
-              : { ...args, input, stateNode },
-            enqueue
+              : {
+                  ...args,
+                  guards: currentSnapshot.machine.sources.guards,
+                  delays: currentSnapshot.machine.sources.delays,
+                  input,
+                  stateNode
+                },
+            // This function runs during action resolution, where enqueued
+            // effects are no longer collected.
+            isDevelopment
+              ? createIgnoredEnqueue(transitionFn, kind, stateNode.id)
+              : enqueue
           ),
         '_special' in transitionFn ? { _special: true } : {}
       );
@@ -1616,7 +1675,7 @@ function microstep(
           ? getStateActionsAndContext(
               exitStateNode.exit,
               nextState.context,
-              currentSnapshot.children,
+              nextState.children,
               stateInput,
               'exit',
               exitStateNode
@@ -1669,11 +1728,23 @@ function microstep(
     const transitionActions: AnyAction[] = [];
     const internalEvents: EventObject[] = [];
 
+    const resolvedTransitions: AnyTransitionDefinition[] = [];
     for (const t of filteredTransitions) {
-      if (t.actions) {
-        transitionActions.push(...toArray(t.actions));
+      const res = getCurrentTransitionResult(t, true);
+      if (t.to) {
+        const resolvedTransition = {
+          ...t,
+          target: res.targets,
+          definition: t
+        } as AnyTransitionDefinition & {
+          toJSON: () => Record<string, unknown>;
+        };
+        resolvedTransition.toJSON = () =>
+          transitionDefinitionToJSON(resolvedTransition);
+        resolvedTransitions.push(resolvedTransition);
+      } else {
+        resolvedTransitions.push(t);
       }
-      const res = getCurrentTransitionResult(t);
       if (res.context !== undefined) {
         context = mergeContextPatch(context, res.context);
       }
@@ -1905,7 +1976,7 @@ function microstep(
       };
       let stateInputsChanged = false;
       for (const transition of filteredTransitions) {
-        const { targets, input } = getCurrentTransitionResult(transition);
+        const { targets, input } = getCurrentTransitionResult(transition, true);
         if (input && targets) {
           for (const targetNode of targets.filter((targetNode) =>
             enteredTargetsByTransition.get(transition)?.has(targetNode)
@@ -1917,12 +1988,14 @@ function microstep(
       }
 
       const completedNodes = new Set<AnyStateNode>();
-      const children = { ...nextState.children };
       for (const stateNodeToEnter of [...statesToEnter].sort(
         (a, b) => a.order - b.order
       )) {
         mutStateNodeSet.add(stateNodeToEnter);
         const actions: AnyAction[] = [];
+        // Read the children for each state: the entry actions of the states
+        // entered before this one may have spawned or stopped children.
+        let children = nextState.children;
 
         // Final states are inert, so (as in SCXML) their invocations never
         // start.
@@ -1980,7 +2053,7 @@ function microstep(
           });
 
           if (invokeDef.id) {
-            children[invokeDef.id] = actor;
+            children = { ...children, [invokeDef.id]: actor };
           }
         }
 
@@ -2189,14 +2262,20 @@ function microstep(
       nextStateNodesToExit.forEach((stateNode) => {
         if (stateNode.exit) {
           const stateInput = getStateInput(nextState, stateNode.id);
-          const [exitActions, , nextInternalEvents] = getStateActionsAndContext(
-            stateNode.exit,
-            nextState.context,
-            nextState.children,
-            stateInput,
-            'exit',
-            stateNode
-          );
+          const [exitActions, nextContext, nextInternalEvents] =
+            getStateActionsAndContext(
+              stateNode.exit,
+              nextState.context,
+              nextState.children,
+              stateInput,
+              'exit',
+              stateNode
+            );
+          if (nextContext) {
+            nextState = cloneMachineSnapshot(nextState, {
+              context: nextContext
+            });
+          }
           allExitActions.push(...exitActions);
           if (nextInternalEvents?.length) {
             internalQueue.push(...nextInternalEvents);
@@ -2244,10 +2323,11 @@ function microstep(
           nextState === currentSnapshot
             ? cloneMachineSnapshot(nextState)
             : nextState,
-          executableActions
+          executableActions,
+          resolvedTransitions
         ];
       }
-      return [nextState, executableActions];
+      return [nextState, executableActions, resolvedTransitions];
     }
 
     return [
@@ -2255,7 +2335,8 @@ function microstep(
         _nodes: nextStateNodes,
         historyValue
       }),
-      executableActions
+      executableActions,
+      resolvedTransitions
     ];
   }
 }
@@ -2439,6 +2520,12 @@ export function macrostep(
   snapshot: typeof snapshot;
   microsteps: Microstep[];
 } {
+  // A done, error or stopped snapshot processes no events, as in an actor:
+  // every event is unhandled. The initial macrostep passes `initialMicrosteps`
+  // and may start from a snapshot that is already done.
+  if (snapshot.status !== 'active' && !initialMicrosteps.length) {
+    return { snapshot, microsteps: [[snapshot, [], []]] };
+  }
   let nextSnapshot = snapshot;
   const microsteps: Microstep[] = initialMicrosteps.slice();
   // Whether a transition handled the external event. A handled event always
@@ -2530,6 +2617,7 @@ export function macrostep(
     step: Microstep,
     transitions: AnyTransitionDefinition[]
   ) {
+    transitions = step[2] ?? transitions;
     // collect microsteps; their transitions are surfaced on the enclosing
     // '@xstate.transition' event via its `microsteps[]` facet (there is no
     // standalone microstep event) and returned by `getMicrosteps()`
@@ -2782,6 +2870,58 @@ function assertSyncTransitionResult(
     );
   }
 }
+
+const ignoredEnqueues = new WeakMap<
+  (...args: any[]) => any,
+  ReturnType<typeof createEnqueueObject>
+>();
+
+/**
+ * The enqueue object that an entry or exit function gets in development when it
+ * is not declared with exactly two parameters. Such a function runs during
+ * action resolution, where enqueued effects are no longer collected, so every
+ * call is ignored. This one warns, once per function.
+ */
+function createIgnoredEnqueue(
+  fn: (...args: any[]) => any,
+  kind: 'entry' | 'exit',
+  stateNodeId: string
+): ReturnType<typeof createEnqueueObject> {
+  let enqueue = ignoredEnqueues.get(fn);
+  if (enqueue) {
+    return enqueue;
+  }
+  let warned = false;
+  const ignore =
+    (method: string, result?: () => unknown) =>
+    (..._args: unknown[]): any => {
+      if (!warned) {
+        warned = true;
+        console.warn(
+          `The ${kind} function of state "${stateNodeId}" called ${method}(...), which was ignored. Only ${kind} functions declared with exactly two parameters, (args, enq) => ..., get a working enq. This one has fn.length ${fn.length}; fn.length stops counting at a default or rest parameter.`
+        );
+      }
+      return result?.();
+    };
+  const emptyActor = () => ({});
+  enqueue = createEnqueueObject(
+    {
+      cancel: ignore('enq.cancel'),
+      emit: ignore('enq.emit'),
+      log: ignore('enq.log'),
+      raise: ignore('enq.raise'),
+      sendTo: ignore('enq.sendTo'),
+      stop: ignore('enq.stop'),
+      spawn: ignore('enq.spawn', emptyActor),
+      listen: ignore('enq.listen', emptyActor),
+      subscribeTo: ignore('enq.subscribeTo', emptyActor)
+    },
+    ignore('enq')
+  );
+  ignoredEnqueues.set(fn, enqueue);
+  return enqueue;
+}
+
 let transitionEffectEnqueue: ReturnType<typeof createEnqueueObject> | undefined;
 function getTransitionEffectEnqueue() {
   return (transitionEffectEnqueue ??= createEnqueueObject(

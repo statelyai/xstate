@@ -66,7 +66,7 @@ export const tourMachine = setup({
     running: {
       initial: 'playing',
       on: {
-        skip: { target: 'skipped', actions: markCompleted },
+        skip: { target: 'skipped' },
         prev: ({ context }) =>
           context.step > 0
             ? { context: { step: context.step - 1 } }
@@ -74,7 +74,7 @@ export const tourMachine = setup({
         next: ({ context }) =>
           context.step < LAST_STEP
             ? { context: { step: context.step + 1 } }
-            : { target: 'done', actions: markCompleted }
+            : { target: 'done' }
       },
       states: {
         playing: {
@@ -87,15 +87,15 @@ export const tourMachine = setup({
           always: ({ context }) =>
             context.step < LAST_STEP
               ? { target: 'playing', context: { step: context.step + 1 } }
-              : { target: '#tour.done', actions: markCompleted }
+              : { target: '#tour.done' }
         },
         paused: {
           on: { resume: { target: 'playing' } }
         }
       }
     },
-    done: {},
-    skipped: {},
+    done: { entry: (_, enq) => enq(markCompleted) },
+    skipped: { entry: (_, enq) => enq(markCompleted) },
     // The tour already ran in an earlier session.
     idle: {}
   }

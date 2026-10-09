@@ -1,5 +1,12 @@
 # @xstate/store-vue
 
+## 2.0.1-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [c27b509]
+  - @xstate/store@5.0.0-alpha.5
+
 ## 2.0.1-alpha.0
 
 ### Patch Changes

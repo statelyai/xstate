@@ -9,6 +9,9 @@ description: Work with actors, snapshots and state values.
 | `toPromise(actor)` | Resolve with an actor's output. |
 | `initialTransition(logic, input?)` | Get `[snapshot, actions]` for the initial transition without starting an actor. |
 | `transition(logic, snapshot, event)` | Calculate `[nextSnapshot, actions]` for an event. |
+| `initialSystemTransition(systemLogic, options?)` | Initialize a pure system snapshot; experimental. |
+| `systemTransition(systemLogic, snapshot, actorPath, event)` | Settle macrosteps and messages in a system snapshot; experimental. |
+| `advanceSystemTime(systemLogic, snapshot, { time })` | Process system timers through an absolute deadline; experimental. |
 | `mapState(...)` | Map one state value to another value. |
 | `SimulatedClock` | Control time in tests. |
 
@@ -19,6 +22,10 @@ const finalSnapshot = await waitFor(actor, (snapshot) =>
 ```
 
 Use `initialTransition(...)` and `transition(...)` for pure calculations. They do not start actors or run effects; the returned actions describe the effects that an actor would execute. Use `SimulatedClock` to test delays without waiting for real time.
+
+For pure calculations across children, messages and timers, use the experimental
+[system transition APIs](system-transitions.md). Each returns `[snapshot, externalEffects]`
+and completes macrosteps without running external effects.
 
 For example, a route loader can calculate an initial view without starting a long-lived actor. A timeout test can advance a simulated clock to the retry state.
 

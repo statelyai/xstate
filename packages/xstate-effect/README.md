@@ -7,14 +7,14 @@ Combine XState's event-driven workflows with Effect services, scopes, clocks and
 - Provide services once for the actor and its child logic.
 - Keep actor lifetime inside your Effect application.
 
-This package is experimental. It targets XState v6 alpha and Effect 4 RC.
+This package is experimental. It targets XState v6 alpha and Effect 4.
 
 ## Installation
 
 <!-- package name and peer dependencies from package.json -->
 
 ```bash
-npm install @xstate/effect@alpha xstate@alpha effect@rc
+npm install @xstate/effect@alpha xstate@alpha effect@^4
 ```
 
 ## XState Effect: Quick start
@@ -256,7 +256,7 @@ See [atoms and React](docs/atoms-and-react.md) for complete examples with import
 - Timed waits fail with Effect's `Cause.TimeoutError`.
 - `join` preserves a task's typed failure. Unexpected machine errors have type `unknown`.
 
-See [testing and errors](docs/testing-and-errors.md) for executable deadline, retry and failure examples. Persisted snapshots record actor state; restoration into a new Effect interpreter is not supported yet.
+See [testing and errors](docs/testing-and-errors.md) for executable deadline, retry and failure examples. Persisted snapshots record actor state; pass one to `createEffectActor(logic, { snapshot })` to resume the actor. See [persisting and restoring](docs/actors.md#persisting-and-restoring).
 
 ## Tracing
 

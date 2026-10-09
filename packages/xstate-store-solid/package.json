@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store-solid",
-  "version": "2.0.1-alpha.1",
+  "version": "2.0.1-alpha.2",
   "type": "module",
   "description": "XState Store for Solid.js",
   "keywords": [

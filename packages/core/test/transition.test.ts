@@ -236,6 +236,88 @@ describe('transition function', () => {
     expect(actor.getSnapshot().context).toEqual({ count: 1 });
   });
 
+  it('does not repeatedly resolve object transition mappers during a microstep', () => {
+    const contextMapper = vi.fn(
+      ({ context }: { context: { count: number } }) => ({
+        count: context.count + 1
+      })
+    );
+    const inputMapper = vi.fn(() => ({ value: 'a' }));
+    const machine = createMachine({
+      context: { count: 0 },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            UPDATE: { context: contextMapper },
+            GO: { target: 'active', context: contextMapper, input: inputMapper }
+          }
+        },
+        active: {}
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'UPDATE' });
+    expect(contextMapper).toHaveBeenCalledTimes(1);
+
+    actor.send({ type: 'GO' });
+    expect(contextMapper).toHaveBeenCalledTimes(2);
+    expect(inputMapper).toHaveBeenCalledTimes(1);
+    expect(actor.getSnapshot().context).toEqual({ count: 2 });
+  });
+
+  it('does not resolve object transition mappers while removing conflicting transitions', () => {
+    const contextA = vi.fn(() => ({ a: 1 }));
+    const contextB = vi.fn(() => ({ b: 1 }));
+    const machine = createMachine({
+      type: 'parallel',
+      context: { a: 0, b: 0 },
+      states: {
+        a: {
+          initial: 'idle',
+          states: {
+            idle: { on: { GO: { target: 'done', context: contextA } } },
+            done: {}
+          }
+        },
+        b: {
+          initial: 'idle',
+          states: {
+            idle: { on: { GO: { target: 'done', context: contextB } } },
+            done: {}
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'GO' });
+
+    expect(contextA).toHaveBeenCalledTimes(1);
+    expect(contextB).toHaveBeenCalledTimes(1);
+    expect(actor.getSnapshot().context).toEqual({ a: 1, b: 1 });
+  });
+
+  it('does not repeatedly resolve an initial transition input mapper', () => {
+    const inputMapper = vi.fn(() => ({ value: 'a' }));
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: { on: { GO: { target: 'active' } } },
+        active: {
+          initial: { target: 'child', input: inputMapper },
+          states: { child: {} }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'GO' });
+
+    expect(inputMapper).toHaveBeenCalledTimes(1);
+  });
+
   it('resolves a selected transition with the real parent', () => {
     const childMachine = createMachine({
       context: { parent: undefined as unknown },

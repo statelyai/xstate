@@ -10,7 +10,8 @@ import {
   EventObject,
   EventRejection,
   createActor,
-  createMachine
+  createMachine,
+  setup
 } from '../src/index.ts';
 import { z } from 'zod';
 const originalConsoleLog = console.log;
@@ -1302,6 +1303,139 @@ describe('entry/exit actions', () => {
         'exit m.a.a1',
         'exit m.a a'
       ]);
+    });
+
+    describe('with one or two parameters', () => {
+      it('passes guards and delays to entry and exit functions with one parameter', () => {
+        const seen: unknown[] = [];
+        const machine = setup({
+          guards: { isAdult: (age: number) => age >= 18 },
+          delays: { short: 10 }
+        }).createMachine({
+          context: { age: 20, adult: false },
+          initial: 'start',
+          states: {
+            start: {
+              exit: ({ delays }) => {
+                seen.push(delays.short);
+              },
+              on: { next: { target: 'checked' } }
+            },
+            checked: {
+              entry: ({ context, guards }) => ({
+                context: { adult: guards.isAdult(context.age) }
+              })
+            }
+          }
+        });
+        const actor = createActor(machine).start();
+        actor.send({ type: 'next' });
+
+        expect(actor.getSnapshot().status).toBe('active');
+        expect(actor.getSnapshot().context.adult).toBe(true);
+        expect(seen).toEqual([10]);
+      });
+
+      it.each([
+        ['(args)', (_: unknown) => ({ context: { closed: true } })],
+        [
+          '(args, enq)',
+          (_: unknown, _enq: unknown) => ({ context: { closed: true } })
+        ]
+      ] as const)(
+        'applies the context returned by a root exit function %s when the machine completes',
+        (_label, exit) => {
+          const machine = createMachine({
+            context: { closed: false },
+            exit,
+            initial: 'open',
+            states: {
+              open: { on: { close: { target: 'closed' } } },
+              closed: { type: 'final' }
+            }
+          });
+          const actor = createActor(machine).start();
+          actor.send({ type: 'close' });
+
+          expect(actor.getSnapshot().status).toBe('done');
+          expect(actor.getSnapshot().context).toEqual({ closed: true });
+        }
+      );
+
+      it.each(['(args)', '(args, enq)'] as const)(
+        'passes the current children to an exit function %s',
+        (label) => {
+          const seen: string[][] = [];
+          const record = ({ children }: { children: object }) => {
+            seen.push(Object.keys(children));
+          };
+          const machine = createMachine({
+            initial: 'parent',
+            states: {
+              parent: {
+                exit:
+                  label === '(args)'
+                    ? (args) => record(args)
+                    : (args, _enq) => record(args),
+                initial: 'child',
+                states: {
+                  child: { invoke: { id: 'worker', src: createMachine({}) } }
+                },
+                on: { leave: { target: 'elsewhere' } }
+              },
+              elsewhere: {}
+            }
+          });
+          createActor(machine).start().send({ type: 'leave' });
+
+          // the child state's invoke has already been stopped
+          expect(seen).toEqual([[]]);
+        }
+      );
+
+      it('warns in development when an entry function without two parameters calls enq', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        // forwards its arguments, so it has no declared parameters
+        const traced = <F extends (...args: any[]) => any>(fn: F): F =>
+          ((...args: Parameters<F>) => fn(...args)) as F;
+        const loader = (wrap: boolean) =>
+          createMachine({
+            initial: 'idle',
+            states: {
+              idle: { on: { load: { target: 'loading' } } },
+              loading: {
+                entry: wrap
+                  ? traced((_, enq) => {
+                      enq.raise({ type: 'loaded' });
+                    })
+                  : (_, enq) => {
+                      enq.raise({ type: 'loaded' });
+                    },
+                on: { loaded: { target: 'ready' }, retry: { target: 'idle' } }
+              },
+              ready: {}
+            }
+          });
+
+        const direct = createActor(loader(false)).start();
+        direct.send({ type: 'load' });
+        expect(direct.getSnapshot().value).toBe('ready');
+        expect(warn).not.toHaveBeenCalled();
+
+        const wrapped = createActor(loader(true)).start();
+        wrapped.send({ type: 'load' });
+        wrapped.send({ type: 'retry' });
+        wrapped.send({ type: 'load' });
+
+        // still ignored, but reported once
+        expect(wrapped.getSnapshot().value).toBe('loading');
+        expect(warn.mock.calls).toEqual([
+          [
+            'The entry function of state "(machine).loading" called enq.raise(...), which was ignored. Only entry functions declared with exactly two parameters, (args, enq) => ..., get a working enq. This one has fn.length 0; fn.length stops counting at a default or rest parameter.'
+          ]
+        ]);
+        warn.mockRestore();
+      });
     });
   });
   describe('parallel states', () => {
@@ -4210,5 +4344,79 @@ describe('actions', () => {
     actorRef.send({ type: 'NEXT' });
     actorRef.send({ type: 'EVENT' });
     expect(spy).toHaveBeenCalledWith({ counter: 1 });
+  });
+});
+
+describe('enqueued action results', () => {
+  it('ignores a context patch returned by an enqueued action, with a development warning', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const machine = createMachine({
+      schemas: { context: z.object({ currency: z.string() }) },
+      context: { currency: '' },
+      actions: {
+        applyDefaults: (country: string) => ({
+          context: { currency: country === 'FR' ? 'EUR' : 'USD' }
+        })
+      },
+      on: {
+        pick: ({ actions }, enq) => {
+          enq(actions.applyDefaults, 'FR');
+        }
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'pick' });
+    actorRef.send({ type: 'pick' });
+    expect(actorRef.getSnapshot().context).toEqual({ currency: '' });
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Action "applyDefaults" returned { context }, which is ignored: functions passed to enq(...) run as effects after the transition. Return the patch from the transition, entry or exit function instead; a named action can be called there directly and its result returned.'
+    );
+    warnSpy.mockRestore();
+  });
+  it('applies a context patch from a named action that the transition function returns', () => {
+    const machine = createMachine({
+      schemas: { context: z.object({ currency: z.string() }) },
+      context: { currency: '' },
+      actions: {
+        applyDefaults: (country: string) => ({
+          context: { currency: country === 'FR' ? 'EUR' : 'USD' }
+        })
+      },
+      on: {
+        pick: ({ actions }) => actions.applyDefaults('FR')
+      }
+    });
+    const actorRef = createActor(machine).start();
+    actorRef.send({ type: 'pick' });
+    expect(actorRef.getSnapshot().context).toEqual({ currency: 'EUR' });
+    const provided = createActor(
+      machine.provide({
+        actions: { applyDefaults: () => ({ context: { currency: 'CHF' } }) }
+      })
+    ).start();
+    provided.send({ type: 'pick' });
+    expect(provided.getSnapshot().context).toEqual({ currency: 'CHF' });
+  });
+  it('does not warn when an enqueued function returns another value', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const list: number[] = [];
+    const actorRef = createActor(
+      createMachine({
+        on: {
+          go: (_, enq) => {
+            enq(() => list.push(1));
+            enq(() => undefined);
+            enq(() => Promise.resolve({ context: {} }));
+            enq(() => new Map([['context', 1]]));
+          }
+        }
+      })
+    ).start();
+    actorRef.send({ type: 'go' });
+    await Promise.resolve();
+    expect(list).toEqual([1]);
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 });

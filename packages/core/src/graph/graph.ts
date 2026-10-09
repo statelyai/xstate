@@ -126,7 +126,9 @@ export function toDirectedGraph(
   const edges: DirectedGraphEdge[] = [...stateNode.transitions.values()]
     .flat()
     .flatMap((t, transitionIndex) => {
-      const targets = t.target ? t.target : [stateNode];
+      // A transition function computes its target when it runs, so there is
+      // no static edge to draw; a targetless transition stays in its state.
+      const targets = t.target ?? (t.to ? [] : [stateNode]);
 
       return targets.map((target, targetIndex) => {
         const edge: DirectedGraphEdge = {
@@ -218,7 +220,6 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
   > = {
     serializeState,
     serializeEvent,
-    events: [],
     filterEvents: undefined,
     limit: Infinity,
     toState: undefined,
@@ -227,6 +228,13 @@ export function resolveTraversalOptions<TLogic extends AnyActorLogic>(
     stopWhen: traversalOptions?.toState,
     ...resolvedDefaultOptions,
     ...traversalOptions,
+    // Synthetic completion/delay events are supported by the machine runtime.
+    events: (traversalOptions?.events ??
+      resolvedDefaultOptions?.events ??
+      []) as TraversalConfig<
+      SnapshotFrom<TLogic>,
+      EventFromLogic<TLogic>
+    >['events'],
     fromState: traversalOptions?.fromState ?? resolvedDefaultOptions?.fromState
   };
 

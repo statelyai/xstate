@@ -45,7 +45,10 @@ test('rejects an email without an @', () => {
 });
 ```
 
-Start an actor when the test covers effects, invoked children, delays or subscriptions.
+Use experimental [pure system transitions](system-transitions.md) to test
+invoked/spawned actors, communication and virtual timers in a system snapshot without
+executing external work. Start an actor when tests need running effects or
+live subscriptions.
 
 ## Replace boundaries with fakes
 

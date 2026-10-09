@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  createActor,
   createMachine,
   setup,
   type ActorRefFrom,
@@ -9,6 +10,43 @@ import {
 function expectType<T>(_v: T) {}
 
 describe('setup() source typing', () => {
+  it('rejects unknown action and guard names in transition functions', () => {
+    setup({
+      actions: { record: (_id: string) => {} },
+      guards: { enabled: () => true }
+    }).createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            GO: ({ actions, guards }) => {
+              actions.record('id');
+              guards.enabled();
+              // @ts-expect-error unknown action
+              actions.reccord('id');
+              // @ts-expect-error unknown guard
+              guards.enabld();
+            }
+          }
+        }
+      }
+    });
+    createMachine({
+      actions: { record: (_id: string) => {} },
+      guards: { enabled: () => true },
+      on: {
+        GO: ({ actions, guards }) => {
+          actions.record('id');
+          guards.enabled();
+          // @ts-expect-error unknown action
+          actions.reccord('id');
+          // @ts-expect-error unknown guard
+          guards.enabld();
+        }
+      }
+    });
+  });
+
   it('preserves provided action result types and checks their arguments and names', () => {
     const machine = setup({
       actions: { record: (_id: string) => {} }
@@ -29,6 +67,135 @@ describe('setup() source typing', () => {
         actions: {
           // @ts-expect-error -- only declared source names can be provided
           unknown: () => {}
+        }
+      });
+    }
+  });
+
+  it('checks the result of a provided action against the declared result', () => {
+    type Currency = 'EUR' | 'USD';
+    const form = setup({
+      schemas: {
+        context: z.object({ currency: z.enum(['EUR', 'USD']) }),
+        events: { pick: z.object({ country: z.string() }) }
+      },
+      actions: {
+        applyDefaults: (country: string) => ({
+          context: { currency: (country === 'FR' ? 'EUR' : 'USD') as Currency }
+        })
+      }
+    });
+    const machine = form.createMachine({
+      context: { currency: 'USD' },
+      on: { pick: ({ actions, event }) => actions.applyDefaults(event.country) }
+    });
+
+    const euro = machine.provide({
+      actions: { applyDefaults: () => ({ context: { currency: 'EUR' } }) }
+    });
+    const actor = createActor(euro).start();
+    actor.send({ type: 'pick', country: 'US' });
+    expect(actor.getSnapshot().context).toEqual({ currency: 'EUR' });
+
+    if (false) {
+      machine.provide({
+        actions: {
+          // @ts-expect-error -- the declared result is a context patch
+          applyDefaults: () => ({ context: { currency: 'EURO' } })
+        }
+      });
+      machine.provide({
+        actions: {
+          // @ts-expect-error -- the declared patch requires the currency key
+          applyDefaults: () => ({ context: { curency: 'EUR' } })
+        }
+      });
+      machine.provide({
+        actions: {
+          // @ts-expect-error -- the declared result is a context patch
+          applyDefaults: () => 42
+        }
+      });
+      machine.provide({
+        actions: {
+          // @ts-expect-error -- the declared result is a context patch
+          applyDefaults: () => {}
+        }
+      });
+      // A replacement is checked against the declared action, not against the
+      // previous replacement.
+      euro.provide({
+        actions: { applyDefaults: () => ({ context: { currency: 'USD' } }) }
+      });
+      const optional: {
+        applyDefaults?: () => { context: { currency: 'EUR' } };
+      } = {};
+      const maybeEuro = machine.provide({ actions: optional });
+      expectType<Currency>(
+        maybeEuro._actionMap.applyDefaults('US').context.currency
+      );
+      maybeEuro.provide({
+        actions: { applyDefaults: () => ({ context: { currency: 'USD' } }) }
+      });
+      maybeEuro.provide({
+        actions: {
+          // @ts-expect-error -- optional overrides retain the declared result
+          applyDefaults: () => {}
+        }
+      });
+      euro.provide({
+        actions: {
+          // @ts-expect-error -- the declared result is a context patch
+          applyDefaults: () => {}
+        }
+      });
+      // `extend()` checks an action that reuses a base name the same way.
+      form.extend({
+        actions: {
+          // @ts-expect-error -- the declared result is a context patch
+          applyDefaults: () => {}
+        }
+      });
+      // An action only declared in `schemas.actions` is an effect, so its
+      // implementation may return any value.
+      setup({
+        schemas: {
+          actions: { track: { params: z.object({ key: z.string() }) } }
+        }
+      })
+        .createMachine({})
+        .provide({ actions: { track: async () => {} } });
+    }
+  });
+
+  it('preserves explicit undefined and never action result contracts', () => {
+    const machine = setup({
+      actions: {
+        empty: (): undefined => undefined,
+        fail: (): never => {
+          throw new Error('failed');
+        }
+      }
+    }).createMachine({});
+    if (false) {
+      machine.provide({
+        actions: {
+          empty: () => undefined,
+          fail: () => {
+            throw new Error('replacement failed');
+          }
+        }
+      });
+      machine.provide({
+        actions: {
+          // @ts-expect-error -- undefined is an explicit result contract
+          empty: () => 42
+        }
+      });
+      machine.provide({
+        actions: {
+          // @ts-expect-error -- a never action cannot return normally
+          fail: () => {}
         }
       });
     }

@@ -93,6 +93,7 @@ describe('waitFor', () => {
     }, 10);
 
     await expect(
+      // @ts-expect-error 'never' is not a state of this machine
       waitFor(service, (state) => state.matches('never'))
     ).rejects.toMatchInlineSnapshot(
       `[Error: Actor terminated without satisfying predicate]`
@@ -395,6 +396,7 @@ describe('waitFor', () => {
     signal.removeEventListener = spy;
 
     try {
+      // @ts-expect-error 'never' is not a state of this machine
       await waitFor(service, (state) => state.matches('never'), { signal });
       throw new Error('Should not be reached');
     } catch {

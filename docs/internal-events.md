@@ -77,7 +77,7 @@ self-targeted effect such as `enq.raise(...)` or `enq.sendTo(self, ...)` is
 allowed. Anything else is rejected: `actor.send` from application code, a
 parent sending to a child, or a sibling actor.
 
-> **Warning:** a rejection is silent unless you observe it. It does not throw and it does not error the actor. Register `onRejectedEvent` or an inspection observer to detect rejected events. Treat internal events as a private surface, and if application code needs to reach that behavior, expose a public event that raises the internal one.
+> **Warning:** a rejection is silent unless you observe it. It does not throw and it does not error the actor. Register `onRejectedEvent` or `actor.system.onRejectedEvent(...)` to detect rejected events. Dead letters are not inspection events. Treat internal events as a private surface, and if application code needs to reach that behavior, expose a public event that raises the internal one.
 
 Use internal events for:
 
@@ -125,3 +125,32 @@ createMachine({
   }
 });
 ```
+
+## Validating public input
+
+`machine.eventSchema` is a Standard Schema for complete public input event
+objects. Validate untrusted input (including agent tool arguments) before sending:
+
+```ts
+const result = await machine.eventSchema['~standard'].validate(input);
+if (result.issues) {
+  throw new Error(result.issues[0]?.message);
+}
+actor.send(result.value);
+```
+
+The schema validates payloads using `schemas.events`, rejects declared internal
+events (including wildcard descriptors), and rejects `xstate.*` / `@xstate.*`
+runtime events. `xstate.route` is accepted only with a `to` destination identifying
+an explicitly configured route. Route guards and current-state eligibility are
+evaluated during delivery, not schema validation.
+
+Without event schemas, application event names remain open. `types<T>()` provides
+type inference only; use a runtime schema such as Zod to validate payloads.
+Validation is not authorization: a well-formed public event may still require
+application permission checks.
+
+`actor.send(event)` keeps supporting trusted runtime delivery and replay. It does
+not automatically run `machine.eventSchema`. For event histories,
+`machineVersions().adaptEvents()` retains historical internal/runtime validation
+when given actual machines.

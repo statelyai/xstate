@@ -3,12 +3,14 @@ import {
   EventObject,
   Snapshot,
   StateNode,
+  createAsyncLogic,
   createLogic,
   createMachine,
   isMachineSnapshot
 } from '../../index.ts';
 import { createMockActorScope } from '../actorScope.ts';
 import {
+  type DirectedGraphNode,
   StatePath,
   getPathsFromEvents,
   getShortestPaths,
@@ -653,6 +655,60 @@ describe('@xstate/graph', () => {
       expect(toDirectedGraph(machineFromAnotherPackageInstance).id).toBe(
         'light'
       );
+    });
+
+    const edgesOf = (node: DirectedGraphNode): string[] => [
+      ...node.edges.map(
+        (edge) => `${edge.source.key} -${edge.label.text}-> ${edge.target.key}`
+      ),
+      ...node.children.flatMap(edgesOf)
+    ];
+
+    it('does not draw a transition function as a self-loop', () => {
+      const machine = createMachine({
+        id: 'light',
+        context: { queue: 2 },
+        initial: 'green',
+        states: {
+          green: { on: { TIMER: { target: 'yellow' }, NOOP: {} } },
+          yellow: {
+            on: {
+              TIMER: ({ context }) =>
+                context.queue > 0 ? { target: 'red' } : { target: 'green' }
+            }
+          },
+          red: {}
+        }
+      });
+
+      expect(edgesOf(toDirectedGraph(machine))).toEqual([
+        'green -TIMER-> yellow',
+        'green -NOOP-> green'
+      ]);
+    });
+
+    it('does not draw the transitions of an invoke with a timeout as self-loops', () => {
+      const machine = createMachine({
+        id: 'upload',
+        initial: 'saving',
+        states: {
+          saving: {
+            invoke: {
+              src: createAsyncLogic({ run: async () => 'ok' }),
+              timeout: 5000,
+              onDone: { target: 'done' },
+              onError: { target: 'failed' },
+              onTimeout: { target: 'failed' }
+            }
+          },
+          done: { type: 'final' },
+          failed: { type: 'final' }
+        }
+      });
+
+      expect(edgesOf(toDirectedGraph(machine))).toEqual([
+        'saving -xstate.timeout.actor-> failed'
+      ]);
     });
   });
 });

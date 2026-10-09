@@ -1,5 +1,38 @@
 # @xstate/store
 
+## 5.0.0-alpha.6
+
+### Minor Changes
+
+- 73cff29: Add `createSourceAtom` for read-only external snapshots. Direct and derived subscribers share one listener, released when the last consumer leaves. Plain reads do not subscribe; reconnecting refreshes the snapshot. The source adapter can return a cleanup function or a `{ unsubscribe() }` subscription. Public atom subscriptions always return `{ unsubscribe() }`, matching existing XState subscriptions.
+  
+  Failed activation remains eligible for a later atom operation. Errors delivering an async atom result are exposed through its `error` state.
+  
+  ```ts
+  const isDark = createSourceAtom({
+    getSnapshot: () => media.matches,
+    subscribe: (notify) => {
+      media.addEventListener('change', notify);
+      return () => media.removeEventListener('change', notify);
+    }
+  });
+  ```
+
+## 5.0.0-alpha.5
+
+### Major Changes
+
+- c27b509: `fromStore()` now returns XState v6 actor logic and requires `xstate@6`. `xstate` is declared as an optional peer dependency; it is only needed if you use `fromStore()`. Use `@xstate/store@4` with XState v5.
+  
+  ```ts
+  import { createActor } from 'xstate';
+  import { fromStore } from '@xstate/store';
+  
+  const logic = fromStore({ context: { count: 0 }, on: { inc: (ctx) => ({ count: ctx.count + 1 }) } });
+  const actor = createActor(logic).start();
+  actor.send({ type: 'inc' });
+  ```
+
 ## 4.3.0-alpha.4
 
 ### Patch Changes

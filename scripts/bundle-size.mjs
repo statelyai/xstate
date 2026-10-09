@@ -461,6 +461,27 @@ const PROFILES = {
       console.log(atom.get());
     `
   },
+  'store-source-atom': {
+    capabilities: ['store', 'atom', 'external-source'],
+    source: `
+      import { createAtom, createSourceAtom } from '@xstate/store';
+      let value = 0;
+      let notify;
+      const source = createSourceAtom({
+        getSnapshot: () => value,
+        subscribe: (listener) => {
+          notify = listener;
+          return { unsubscribe() { notify = undefined; } };
+        }
+      });
+      const derived = createAtom(() => source.get() * 2);
+      const subscription = derived.subscribe(() => {});
+      value = 1;
+      notify();
+      console.log(derived.get());
+      subscription.unsubscribe();
+    `
+  },
   'react-machine': {
     capabilities: ['react', 'actor', 'ssr'],
     external: ['react', 'react-dom/server'],
@@ -528,6 +549,7 @@ const EXPECTED_LOGS = {
   'validated-machine': [[0]],
   'store-counter': [[1]],
   'store-atom': [[1]],
+  'store-source-atom': [[2]],
   'react-machine': [['<span>inactive</span>']],
   'react-store': [['<span>1</span>']],
   'kitchen-sink': []

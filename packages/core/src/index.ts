@@ -110,6 +110,9 @@ export type {
 export { hotSwapActorLogic as _hotSwapActorLogic } from './hotSwap.ts';
 export { createSystem, setup } from './setup.ts';
 export type {
+  CreateAsyncInvokeConfig,
+  CreateInvokeConfig,
+  CreatedInvoke,
   ActiveStateContext,
   AnySetupConfig,
   RootContextMarker,
@@ -141,6 +144,20 @@ export type {
   SentRecord
 } from './inspection.ts';
 export { SimulatedClock } from './SimulatedClock.ts';
+export {
+  initialSystemTransition,
+  systemTransition,
+  advanceSystemTime,
+  type SystemLogic,
+  type SystemSnapshot,
+  type SystemActorState,
+  type SystemActorReference,
+  type SystemMessage,
+  type SystemTimer,
+  type SystemExternalEffect,
+  type SystemEffectResult,
+  type InitialSystemTransitionOptions
+} from './systemTransition.ts';
 /** @experimental Used by `@xstate/scxml`; not part of the stable API. */
 export { parseDelayToMilliseconds as _parseDelayToMilliseconds } from './delay.ts';
 /** @experimental Used by `@xstate/scxml`; not part of the stable API. */

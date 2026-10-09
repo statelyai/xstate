@@ -1,5 +1,12 @@
 # @xstate/store-react
 
+## 2.1.0-alpha.3
+
+### Patch Changes
+
+- Updated dependencies [c27b509]
+  - @xstate/store@5.0.0-alpha.5
+
 ## 2.1.0-alpha.2
 
 ### Patch Changes

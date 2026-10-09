@@ -1,14 +1,27 @@
-import { Context, Duration, Effect, Exit, Fiber, Queue, Scope } from 'effect';
+import {
+  Clock,
+  Context,
+  Duration,
+  Effect,
+  Exit,
+  Fiber,
+  Queue,
+  Scope
+} from 'effect';
 import {
   deliverEvent,
+  isMachineSnapshot,
   stopActor,
   terminateActor,
+  type ActorOptions,
   type AnyActor,
   type AnyActorLogic,
   type AnyEventObject,
   type EventFromLogic,
   type InspectionEvent,
   type InputFrom,
+  type RequiredActorOptionsFor,
+  type RequiredActorOptionsKeys,
   type Snapshot,
   type SnapshotFrom
 } from 'xstate';
@@ -31,17 +44,28 @@ import type { RequirementsFrom } from './types.ts';
 import { ActorScope } from './actorScope.ts';
 
 const XSTATE_TIMER = 'xstate.timer';
+const XSTATE_INIT = '@xstate.init';
 
 /** Options for {@link createEffectActor}. */
-export type EffectActorOptions<TLogic extends AnyActorLogic> =
-  undefined extends InputFrom<TLogic>
-    ? { readonly input?: InputFrom<TLogic> }
-    : { readonly input: InputFrom<TLogic> };
+export type EffectActorOptions<TLogic extends AnyActorLogic> = {
+  readonly input?: InputFrom<TLogic>;
+  /**
+   * A snapshot from `actor.getPersistedSnapshot()`. The actor resumes in that
+   * state without re-running entry actions, and pending timers keep their
+   * original deadlines, as with XState's `createActor(logic, { snapshot })`.
+   * State-machine children resume their persisted state and completed
+   * children stay done. Effect tasks and streams that were running, at the
+   * root or as children, start again from the beginning. A restored actor
+   * does not need `input`.
+   */
+  readonly snapshot?: ActorOptions<TLogic>['snapshot'];
+} & RequiredActorOptionsFor<TLogic>;
 
-export type EffectActorOptionsArgs<TLogic extends AnyActorLogic> =
-  undefined extends InputFrom<TLogic>
-    ? [options?: EffectActorOptions<TLogic>]
-    : [options: EffectActorOptions<TLogic>];
+export type EffectActorOptionsArgs<TLogic extends AnyActorLogic> = [
+  RequiredActorOptionsKeys<TLogic>
+] extends [never]
+  ? [options?: EffectActorOptions<TLogic>]
+  : [options: EffectActorOptions<TLogic>];
 
 /**
  * Creates and starts an actor as an Effect interpreter over pure transitions.
@@ -98,9 +122,13 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
 
       const inspectors = new Set<(event: InspectionEvent) => void>();
       let rootAnnounced = false;
+      const clock = Context.get(context, Clock.Clock);
       const durable = createDurable(
         logic,
         {
+          // Timer deadlines are measured on the same clock the timers sleep
+          // on, so a restored timer resumes with its remaining delay.
+          now: () => clock.currentTimeMillisUnsafe(),
           executeAction: (action, _metadata, runtime) => {
             // Fire-and-forget: the action starts now and the loop continues.
             // A rejection reaches the machine as an execution error.
@@ -254,12 +282,35 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
         closeEffectHost(host);
       };
 
-      // The first transition runs here so the handle is ready when this
-      // Effect succeeds, and the initial actions start before any send.
-      let [snapshot, effects] = durable.initialTransition(
-        options?.input as never
-      );
+      // The first transition (or the restore) runs here so the handle is
+      // ready when this Effect succeeds, and the initial actions start before
+      // any send. Restoring runs no entry actions; its effects resume
+      // machine children, restart running Effect children and re-arm pending
+      // timers.
+      let [snapshot, effects] = options?.snapshot
+        ? durable.restore(options.snapshot)
+        : durable.initialTransition(options?.input as never);
+      const initial: Snapshot<unknown> = snapshot;
+      if (
+        options?.snapshot &&
+        !isMachineSnapshot(initial) &&
+        initial.status === 'active'
+      ) {
+        // A restored machine resumes through the effects above. Other logic
+        // (an Effect task or stream at the root) reattaches its active work by
+        // replaying its init event, as its restored `start` does under
+        // `createActor`.
+        const [started, startEffects] = durable.transition(snapshot, {
+          type: XSTATE_INIT,
+          input: 'input' in initial ? initial.input : undefined
+        } as EventFromLogic<TLogic>);
+        snapshot = started;
+        effects = [...effects, ...startEffects];
+      }
       const root = durable.getActorRef(snapshot)!;
+      // Restored children are created by the snapshot, not spawned through
+      // the adapter; they find this host through their parent chain.
+      bindEffectHost(root, host);
       // The root exists from here on; later announcements are step
       // re-materializations, not new actors.
       rootAnnounced = true;

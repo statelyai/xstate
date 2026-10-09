@@ -30,7 +30,7 @@ const loadUser = createAsyncLogic({
 
 Async logic receives an `AbortSignal`. XState aborts the operation when its actor stops.
 
-Async logic also accepts an `id` and a `timeout`. The `id` identifies the logic, not an actor instance. The `timeout` accepts milliseconds or an ISO 8601 duration; when it elapses, XState aborts the signal and the actor errors with the exported `TimeoutError`.
+Async logic also accepts an `id` and a `timeout`. The `id` identifies the logic, not an actor instance. The `timeout` accepts milliseconds or a [duration string](timeouts.md#duration-formats); when it elapses, XState aborts the signal and the actor errors with the exported `TimeoutError`.
 
 ```ts
 import { createAsyncLogic } from 'xstate';

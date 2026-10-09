@@ -1,5 +1,11 @@
 # @xstate/test
 
+## 2.0.0-alpha.2
+
+### Patch Changes
+
+- dd5eb47: Preserve transition coverage identity when microsteps contain resolved function-target records.
+
 ## 2.0.0-alpha.1
 
 ### Major Changes

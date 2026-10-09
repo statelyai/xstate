@@ -42,7 +42,8 @@ minimumReleaseAgeExclude:
   - '@changesets/types@7.0.0'
   - '@changesets/write@1.0.0'
   - svelte-check@4.7.6
-  - effect@4.0.0-beta.106
+  - effect@4.0.0-beta.106 || 4.0.0
+  - '@effect/atom-react@4.0.0'
 
 overrides:
   # Supported by svelte-preprocess 6; replace its retained legacy optional peer.

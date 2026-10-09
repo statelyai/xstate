@@ -1,5 +1,5 @@
 import { Effect, Layer, Schema } from 'effect';
-import { Atom, AtomRegistry } from 'effect/unstable/reactivity';
+import { Atom, AtomRegistry } from 'effect/reactivity';
 import { fromEffect, join } from '@xstate/effect';
 import { createActorAtoms } from '@xstate/effect/atom';
 

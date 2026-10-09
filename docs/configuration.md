@@ -28,8 +28,8 @@ The root of a machine is a state node. It accepts everything a [state node](#sta
 | `initial` | `string` or `{ target, input }` | Initial child state. The object form passes [state input](state-input.md). |
 | `states` | `Record<string, StateNodeConfig>` | Child [state nodes](states.md). |
 | `on` | `Record<EventType, TransitionConfigOrTarget>` | [Transitions](transitions.md) available in every child state. |
-| `entry` | transition function or named action | Runs when the machine starts. |
-| `exit` | transition function or named action | Runs when the machine stops. |
+| `entry` | single function | Runs when the machine starts. |
+| `exit` | single function | Runs when the machine completes or the root is re-entered. `actor.stop()` does not run exit functions. |
 | `invoke` | `InvokeConfig` or `InvokeConfig[]` | [Actor logic](invoke.md) invoked for the machine's lifetime. |
 | `always` | transition | Eventless [transition](transitions.md) checked after every microstep. |
 | `after` | `Record<delay, transition>` | [Delayed transitions](delays.md). |
@@ -38,7 +38,7 @@ The root of a machine is a state node. It accepts everything a [state node](#sta
 | `onDone` | transition | Taken when a final child state is reached. See [final states](final-states.md). |
 | `onError` | transition | Taken on `xstate.error.*` raised below this node. See [errors](lifecycle-and-errors.md). |
 | `output` | value or `({ context, event }) => value` | [Output](input-output.md) produced on completion. |
-| `schemas` | `{ context, events, internalEvents, emitted, input, output, meta, tags, children, actions, guards }` | Standard Schema definitions. See [TypeScript](typescript.md). |
+| `schemas` | `{ context, events, internalEvents, emitted, input, output, meta, transitionMeta, tags, children, actions, guards }` | Standard Schema definitions. See [TypeScript](typescript.md). |
 | `actions` | `Record<string, (...params) => void>` | Named action sources. See [setup and provide](setup-and-provide.md). |
 | `guards` | `Record<string, (...params) => boolean>` | Named guard sources. See [guards](guards.md). |
 | `actors` | `Record<string, ActorLogic>` | Named actor logic sources. See [invoke](invoke.md). |
@@ -83,8 +83,8 @@ Every non-root state node accepts the following. All are optional.
 | `history` | `'shallow' \| 'deep' \| boolean` | History kind for a history state node. |
 | `target` | `string \| string[]` | Default target of a history state node. |
 | `on` | `Record<EventType, TransitionConfigOrTarget>` | Event [transitions](transitions.md). |
-| `entry` | transition function or named action | Runs on entering this state. |
-| `exit` | transition function or named action | Runs on exiting this state. |
+| `entry` | single function | Runs on entering this state. |
+| `exit` | single function | Runs on exiting this state. |
 | `invoke` | `InvokeConfig` or `InvokeConfig[]` | [Actors](invoke.md) started on entry and stopped on exit. |
 | `after` | `Record<delay, transition>` | [Delayed transitions](delays.md) scheduled on entry. |
 | `timeout` / `onTimeout` | see above | State deadline and its transition. See [timeouts](timeouts.md). |

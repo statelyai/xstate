@@ -1,3 +1,4 @@
+import { getTimerStart } from './timerClock.ts';
 import isDevelopment from '#is-development';
 import { ACTOR_REF_TYPE } from './createActor.ts';
 import { getStateValue } from './stateUtils.ts';
@@ -108,6 +109,64 @@ type MatchingStateValue<
           : never
       : never;
 
+type StateValuePath<TStateValue extends StateValue> =
+  TStateValue extends StateValueMap
+    ? {
+        [K in keyof TStateValue & string]:
+          | K
+          | (NonNullable<TStateValue[K]> extends infer TChild extends StateValue
+              ? `${K}.${StateValuePath<TChild>}`
+              : never);
+      }[keyof TStateValue & string]
+    : TStateValue;
+
+/**
+ * The values that `snapshot.matches(...)` accepts for a state value: a state
+ * key, a dot-delimited path to a descendant state, or a partial state value.
+ * Non-literal state values accept any value.
+ */
+export type ToTestStateValue<TStateValue extends StateValue> =
+  StateValue extends TStateValue
+    ? StateValue
+    : TStateValue extends string
+      ? TStateValue
+      : TStateValue extends StateValueMap
+        ? string extends keyof TStateValue
+          ? StateValue
+          :
+              | StateValuePath<TStateValue>
+              | {
+                  [K in keyof TStateValue]?: NonNullable<
+                    TStateValue[K]
+                  > extends infer TChild extends StateValue
+                    ? ToTestStateValue<TChild>
+                    : never;
+                }
+        : never;
+
+type IsWideStateValue<TTestStateValue extends StateValue> =
+  string extends TTestStateValue
+    ? true
+    : TTestStateValue extends StateValueMap
+      ? string extends keyof TTestStateValue
+        ? true
+        : false
+      : false;
+
+/**
+ * `unknown` if `matches(...)` accepts `TTestStateValue` for `TStateValue`,
+ * otherwise `never`. Non-literal test values are always accepted.
+ */
+export type TestStateValueCheck<
+  TStateValue extends StateValue,
+  TTestStateValue extends StateValue
+> =
+  IsWideStateValue<TTestStateValue> extends true
+    ? unknown
+    : [TTestStateValue] extends [ToTestStateValue<TStateValue>]
+      ? unknown
+      : never;
+
 interface MachineSnapshotBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -168,7 +227,9 @@ interface MachineSnapshotBase<
    *
    * @param partialStateValue
    */
-  matches<const TTestStateValue extends string>(
+  matches<
+    const TTestStateValue extends Extract<ToTestStateValue<TStateValue>, string>
+  >(
     partialStateValue: TTestStateValue,
     ...args: string extends TTestStateValue ? [never] : []
   ): this is MachineSnapshot<
@@ -181,7 +242,12 @@ interface MachineSnapshotBase<
     TMeta,
     TStateSchema
   >;
-  matches<const TTestStateValue extends StateValueMap>(
+  matches<
+    const TTestStateValue extends Extract<
+      ToTestStateValue<TStateValue>,
+      StateValueMap
+    >
+  >(
     partialStateValue: TTestStateValue,
     ...args: string extends keyof TTestStateValue ? [never] : []
   ): this is MachineSnapshot<
@@ -194,7 +260,15 @@ interface MachineSnapshotBase<
     TMeta,
     TStateSchema
   >;
-  matches(partialStateValue: StateValue): boolean;
+  // Non-literal values, and unions of snapshots (whose overloads above differ)
+  matches<
+    TSnapshot extends { value: StateValue },
+    const TTestStateValue extends StateValue
+  >(
+    this: TSnapshot,
+    partialStateValue: TTestStateValue &
+      NoInfer<TestStateValueCheck<TSnapshot['value'], TTestStateValue>>
+  ): boolean;
 
   /**
    * Whether the current state nodes has a state node with the specified `tag`.
@@ -207,6 +281,9 @@ interface MachineSnapshotBase<
    * Determines whether sending the `event` will cause a non-forbidden
    * transition to be selected, even if the transitions have no actions nor
    * change the state value.
+   *
+   * Returns false for terminal snapshots. Throws if transition evaluation
+   * throws; this dry run does not run onError recovery.
    *
    * @param event The event to test
    * @returns Whether the event will cause a transition
@@ -666,7 +743,7 @@ export function getPersistedSnapshot<
   // readings (a simulated clock, a monotonic counter) are meaningless in any
   // other process, and restoring them under the wall clock would fire every
   // pending delay instantly. Pure-transition snapshots have no local
-  // schedule and persist no timestamp.
+  // schedule; durable executions record an accepted start separately.
   const scheduledTimers = snapshotActor?.system?._clock?.now
     ? undefined
     : snapshotActor?.system?._snapshot?._scheduledTimers;
@@ -701,12 +778,12 @@ export function getPersistedSnapshot<
     // deadline. Derived from dueAt, not the scheduling moment, so repeated
     // persist/restore cycles keep the same deadline. Without a live schedule
     // (a restored-but-never-started actor, a pure-transition snapshot) the
-    // timer's carried-in start — which only a wall-clock actor ever stamped —
-    // passes through, so re-persisting cannot push the deadline back.
+    // timer's accepted durable start or carried-in start passes through,
+    // so re-persisting cannot push the deadline back.
     const scheduled = scheduledTimers?.[`${snapshotActor!.sessionId}.${id}`];
     const startedAt = scheduled
       ? scheduled.dueAt - timer.delay
-      : timer.startedAt;
+      : getTimerStart(timer);
     timersJson[id] = {
       id: timer.id,
       delay: timer.delay,

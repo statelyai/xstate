@@ -1,3 +1,6 @@
+/** Type-only metadata for validating setup-created invoke transitions. */
+export declare const createdInvokeConfig: unique symbol;
+
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
 import type {
   ActionSchemas,
@@ -25,6 +28,11 @@ import {
   ErrorActorEvent,
   EnqueueObject,
   EventDescriptor,
+  ReservedEventDescriptor,
+  ReservedEventAliasDescriptor,
+  ReservedMachineEvent,
+  ReservedActorEventAliases,
+  ReservedEventFromDescriptor,
   ErrorEvent,
   EventObject,
   EventPayloadPattern,
@@ -450,7 +458,7 @@ type InvokeSrcArgs<
   self: AnyActorRef;
 };
 
-type InvokeInputArgs<
+export type InvokeInputArgs<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
@@ -837,7 +845,7 @@ export type Next_InvokeConfig<
           TInput
         >;
 
-interface Next_InvokeConfigBase<
+export interface Next_InvokeConfigBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TEmitted extends EventObject,
@@ -1306,7 +1314,57 @@ export interface Next_RegularStateNodeConfig<
       TInput,
       TChildren
     >;
-  };
+  } & (string extends TEvent['type']
+    ? unknown
+    : {
+        [K in Exclude<
+          EventDescriptor<ReservedMachineEvent>,
+          EventDescriptor<TEvent>
+        >]?: Next_TransitionConfigOrTarget<
+          TContext,
+          ReservedEventFromDescriptor<K>,
+          TEvent,
+          TEmitted,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TTransitionMeta,
+          TInput,
+          TChildren
+        >;
+      } & {
+        [K in keyof ReservedActorEventAliases<
+          TActorMap,
+          TChildren
+        >]?: Next_TransitionConfigOrTarget<
+          TContext,
+          ReservedActorEventAliases<TActorMap, TChildren>[K] & EventObject,
+          TEvent,
+          TEmitted,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TTransitionMeta,
+          TInput,
+          TChildren
+        >;
+      } & {
+        [K in ReservedEventAliasDescriptor]?: Next_TransitionConfigOrTarget<
+          TContext,
+          ReservedEventFromDescriptor<K>,
+          TEvent,
+          TEmitted,
+          TActionMap,
+          TActorMap,
+          TGuardMap,
+          TDelayMap,
+          TTransitionMeta,
+          TInput,
+          TChildren
+        >;
+      });
   /**
    * Enables routing to this state via `{ type: 'xstate.route', to: '#id' }`.
    * Requires this state node to have an explicit `id`.
@@ -1829,7 +1887,7 @@ type UndeclaredEventDescriptorErrors<
 /**
  * @public Rejects `on` keys that match no declared event type. Only applies when the
  * event union is closed (e.g. `schemas.events` is declared); wildcards,
- * partial wildcards and reserved `xstate.*` event types are always allowed.
+ * partial wildcards and known reserved machine descriptors are allowed.
  * The error is reported at the offending key.
  */
 export type ValidateEventDescriptors<
@@ -1840,13 +1898,13 @@ export type ValidateEventDescriptors<
   : [
         UndeclaredEventDescriptors<
           TConfig,
-          EventDescriptor<TEvent> | `xstate.${string}`
+          EventDescriptor<TEvent> | ReservedEventDescriptor
         >
       ] extends [never]
     ? unknown
     : UndeclaredEventDescriptorErrors<
         TConfig,
-        EventDescriptor<TEvent> | `xstate.${string}`
+        EventDescriptor<TEvent> | ReservedEventDescriptor
       >;
 
 type IsHistoryStateConfig<TConfig> = TConfig extends { type: 'history' }
@@ -2264,23 +2322,25 @@ type InvalidInvokeTargets<
   TInvoke
 > = 0 extends 1 & TInvoke
   ? never
-  : TInvoke extends readonly unknown[]
-    ? InvalidInvokeTargets<TRootConfig, TSourcePath, TInvoke[number]>
-    : TInvoke extends Record<string, unknown>
-      ?
-          | (TInvoke extends { onDone: infer TOnDone }
-              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnDone>
-              : never)
-          | (TInvoke extends { onError: infer TOnError }
-              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnError>
-              : never)
-          | (TInvoke extends { onSnapshot: infer TOnSnapshot }
-              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnSnapshot>
-              : never)
-          | (TInvoke extends { onTimeout: infer TOnTimeout }
-              ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnTimeout>
-              : never)
-      : never;
+  : TInvoke extends { readonly [createdInvokeConfig]: infer TConfig }
+    ? InvalidInvokeTargets<TRootConfig, TSourcePath, TConfig>
+    : TInvoke extends readonly unknown[]
+      ? InvalidInvokeTargets<TRootConfig, TSourcePath, TInvoke[number]>
+      : TInvoke extends Record<string, unknown>
+        ?
+            | (TInvoke extends { onDone: infer TOnDone }
+                ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnDone>
+                : never)
+            | (TInvoke extends { onError: infer TOnError }
+                ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnError>
+                : never)
+            | (TInvoke extends { onSnapshot: infer TOnSnapshot }
+                ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnSnapshot>
+                : never)
+            | (TInvoke extends { onTimeout: infer TOnTimeout }
+                ? InvalidTransitionTarget<TRootConfig, TSourcePath, TOnTimeout>
+                : never)
+        : never;
 
 type InvalidNodeTargets<
   TRootConfig,

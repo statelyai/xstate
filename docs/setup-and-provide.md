@@ -3,7 +3,7 @@ title: Setup and provide
 description: Declare typed sources with setup(...) and swap implementations with provide(...).
 ---
 
-`setup(...)` declares the schemas and named sources a machine is built from, and returns a factory for fully typed machines and state configs.
+`setup(...)` declares the schemas and named sources a machine is built from, and returns a factory for fully typed machines, state configs and inline invoke configs.
 
 ```ts
 const orderSetup = setup({
@@ -108,6 +108,10 @@ These local output schemas currently provide TypeScript contracts. Runtime
 validation still checks the machine's stable terminal output at the existing
 result boundary; it does not validate transient nested completion values.
 
+Use `s.createInvoke(...)` inline in `s.createMachine(...)` to type a single-use actor's input and lifecycle handlers while retaining the enclosing state's context and input. See [typed inline invokes](invoke.md#typed-inline-invokes).
+
+For single-use async work, keep everything together with `s.createInvoke({ schemas: { input, output, error }, src: async (...) => ..., input, onDone })`. The output schema is optional; output infers from the async return when omitted.
+
 Use `setup(...).extend(...)` to build a more specific setup from a shared one, merging schemas and sources.
 
 ## Runtime validation
@@ -164,8 +168,7 @@ idle: {
     submit: (args, enq) => {
       const { actions } = args;
       if (!args.guards.isReady(args.context.ready)) return;
-      actions.notify({ msg: 'Charging' });
-      enq(actions.notify, { msg: 'Queued' });
+      enq(actions.notify, { msg: 'Charging' });
       return { target: 'charging' };
     }
   }
@@ -182,6 +185,26 @@ setup({
   }
 });
 ```
+
+`enq(actions.notify, params)` runs a named action as an effect after the transition, and ignores what it returns. A named action can instead compute a context patch, which `provide(...)` can then replace like any other implementation. Only what the transition, entry or exit function returns is applied, so call the action directly and return its result:
+
+```ts
+const formSetup = setup({
+  schemas: { events: { pick: z.object({ country: z.string() }) } },
+  actions: {
+    applyDefaults: (country: string) => ({
+      context: { currency: country === 'FR' ? 'EUR' : 'USD' }
+    })
+  }
+});
+
+// in a state of a formSetup machine
+on: {
+  pick: ({ actions, event }) => actions.applyDefaults(event.country)
+}
+```
+
+A directly called action runs whenever the transition is evaluated, including by `snapshot.can(...)`, so keep it free of side effects and enqueue effects instead.
 
 Named `actors` are referenced by `invoke.src`, and named `delays` by `after` keys and state [`timeout`](timeouts.md).
 
@@ -216,6 +239,8 @@ const testMachine = orderMachine.provide({
 
 Use `provide(...)` for the same machine under different conditions: real payment actors in production and fakes in tests, or real timers in the app and instant ones in a test suite.
 
+`provide(...)` also supplies actions that are only declared in `schemas.actions`. Until one is provided, it is `undefined` in `actions`: `enq(actions.track, params)` enqueues nothing, and development builds log a warning.
+
 > **Warning:** `provide(...)` replaces implementations only. It cannot add states, transitions or new source names.
 
 For typed system-wide actor registries, `createSystem(...).setup(...)` returns a setup whose machines share the registry types. See [actor systems](systems.md).
@@ -223,6 +248,8 @@ For typed system-wide actor registries, `createSystem(...).setup(...)` returns a
 ## TypeScript
 
 Sources declared on `setup(...)` or on the machine config are inferred into `{ actions, guards, actors, delays }` on function arguments, and `provide(...)` requires the same signatures. The `{ type, params }` object form for named actions belongs to serialized JSON configs read by `createMachineFromConfig(...)`; in TypeScript, call the named source directly.
+
+For actions, replacements must accept the declared parameters and return a compatible result, including context patches returned by transitions. This also applies to action overrides in `extend()`. A declared result that includes `void` allows integration-specific return values, such as Effects. Chained `provide()` calls check against the original declaration, so a compatible replacement does not narrow later replacements to its own result type.
 
 ## Setup cheatsheet
 
@@ -240,3 +267,7 @@ const state = s.createStateConfig({ on: { go: { target: 'loading' } } });
 const machine = s.createMachine({ context: { n: 0 }, initial: 'idle' });
 const provided = machine.provide({ actors: { fetchUser: fakeFetchUser } });
 ```
+
+## Source compatibility
+
+`extend()` replacements must remain compatible with the existing action, guard, and actor signatures. A machine and its `provide()` clones retain the concrete schema types in `machine.schemas`. Schema-free `createAsyncLogic()` outputs use ordinary TypeScript inference, so primitive literals widen to their primitive types. Supply an output schema when a specific output contract is needed.

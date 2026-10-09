@@ -11,7 +11,8 @@ import {
   Observer,
   ReducerAtom,
   ReadonlyAtom,
-  Subscription
+  Subscription,
+  SourceAtomConfig
 } from './types.ts';
 
 /** Returns `true` if `value` is an atom (has `get` and `subscribe` methods). */
@@ -24,11 +25,117 @@ export function isAtom(value: unknown): value is AnyAtom {
   );
 }
 
-interface InternalAtom<T> extends ReactiveNode {
+interface ObservedNode extends ReactiveNode {
+  _observers?: number;
+  _observedDeps?: Set<ObservedNode>;
+  _activate?: () => void;
+  _deactivate?: () => void;
+}
+
+interface InternalAtom<T> extends ObservedNode {
   _snapshot: T;
   _update(getValue?: T | ((snapshot: T) => T)): boolean;
   get(): T;
   subscribe(observerOrFn: Observer<T> | ((value: T) => void)): Subscription;
+}
+
+// Observation follows live subscriptions, independently of cached dependency links.
+const pendingObservedNodes = new Set<ObservedNode>();
+const pendingSources = new Set<ObservedNode>();
+let operationDepth = 0;
+let settlingSources = false;
+// Source-only hooks let applications using ordinary atoms tree-shake lifecycle
+// reconciliation. Existing subscription effects activate on their next run.
+let observeNode: typeof observe | undefined;
+let scheduleObservedNode: ((node: ObservedNode) => void) | undefined;
+let settleObservedGraph: (() => void) | undefined;
+
+function observe(node: ObservedNode, change: number): void {
+  node._observers = (node._observers ?? 0) + change;
+  pendingObservedNodes.add(node);
+}
+
+function settleSources(): void {
+  if (operationDepth || settlingSources) {
+    return;
+  }
+  settlingSources = true;
+  let didThrow = false;
+  let firstError: unknown;
+  const failedSources = new Set<ObservedNode>();
+  try {
+    while (pendingObservedNodes.size || pendingSources.size) {
+      // Reconcile the entire changed graph before starting or stopping resources.
+      for (const node of pendingObservedNodes) {
+        pendingObservedNodes.delete(node);
+        const previous = node._observedDeps;
+        const next = new Set<ObservedNode>();
+        if (node._observers) {
+          for (let link = node.deps; link; link = link.nextDep) {
+            next.add(link.dep as ObservedNode);
+          }
+        }
+        node._observedDeps = next.size ? next : undefined;
+        for (const dep of previous ?? []) {
+          if (!next.has(dep)) {
+            observe(dep, -1);
+          }
+        }
+        for (const dep of next) {
+          if (!previous?.has(dep)) {
+            observe(dep, 1);
+          }
+        }
+        if (node._activate) {
+          pendingSources.add(node);
+        }
+      }
+      const node = pendingSources.values().next().value;
+      if (node) {
+        pendingSources.delete(node);
+        if (failedSources.has(node) && node._observers) {
+          continue;
+        }
+        try {
+          if (node._observers) {
+            node._activate!();
+          } else {
+            node._deactivate!();
+          }
+        } catch (error) {
+          if (node._observers) {
+            failedSources.add(node);
+          }
+          if (!didThrow) {
+            didThrow = true;
+            firstError = error;
+          }
+        }
+      }
+    }
+  } finally {
+    // Keep live failures eligible for the next operation, never this pass.
+    for (const node of failedSources) {
+      if (node._observers) {
+        pendingSources.add(node);
+      }
+    }
+    settlingSources = false;
+  }
+  if (didThrow) {
+    throw firstError;
+  }
+}
+
+function atomOperation<T>(fn: () => T): T {
+  ++operationDepth;
+  try {
+    return fn();
+  } finally {
+    if (!--operationDepth) {
+      settleObservedGraph?.();
+    }
+  }
 }
 
 const queuedEffects: (Effect | undefined)[] = [];
@@ -61,6 +168,7 @@ function purgeDeps(sub: ReactiveNode) {
   while (dep !== undefined) {
     dep = unlink(dep, sub);
   }
+  scheduleObservedNode?.(sub as ObservedNode);
 }
 
 function flush(): void {
@@ -101,13 +209,10 @@ export interface AsyncAtomOptions {
   signal: AbortSignal;
 }
 
-function updateAsyncAtom<T>(
-  atom: InternalAtom<AsyncAtomState<T>>,
-  nextValue: AsyncAtomState<T>,
-  compare: (
-    previous: AsyncAtomState<T>,
-    next: AsyncAtomState<T>
-  ) => boolean = Object.is
+function updateAtomSnapshot<T>(
+  atom: InternalAtom<T>,
+  nextValue: T,
+  compare: (previous: T, next: T) => boolean = Object.is
 ): void {
   // Settling changes the value without recollecting the getter's dependencies.
   if (!compare(atom._snapshot, nextValue)) {
@@ -116,7 +221,7 @@ function updateAsyncAtom<T>(
     if (subs !== undefined) {
       propagate(subs);
       shallowPropagate(subs);
-      flush();
+      atomOperation(flush);
     }
   }
 }
@@ -142,28 +247,45 @@ export function createAsyncAtom<T>(
     const runId = ++currentRunId;
     currentController = controller;
 
-    getValue({ signal: controller.signal }).then(
-      (data) => {
+    const reportError = (error: unknown) => {
+      if (runId !== currentRunId || controller.signal.aborted) {
+        return;
+      }
+      const errorState: AsyncAtomState<T> = {
+        status: 'error',
+        error: error as Error
+      };
+      try {
+        updateAtomSnapshot(ref.current!, errorState, options?.compare);
+      } catch {
+        // Error delivery must not create another discarded rejection. If the
+        // comparator failed before publication, publish without it once.
+        if (
+          runId === currentRunId &&
+          !controller.signal.aborted &&
+          ref.current!._snapshot !== errorState
+        ) {
+          try {
+            updateAtomSnapshot(ref.current!, errorState);
+          } catch {
+            // The error snapshot is committed before notifying observers.
+          }
+        }
+      }
+    };
+
+    getValue({ signal: controller.signal })
+      .then((data) => {
         if (runId !== currentRunId || controller.signal.aborted) {
           return;
         }
-        updateAsyncAtom(
+        updateAtomSnapshot(
           ref.current!,
           { status: 'done', data },
           options?.compare
         );
-      },
-      (error) => {
-        if (runId !== currentRunId || controller.signal.aborted) {
-          return;
-        }
-        updateAsyncAtom(
-          ref.current!,
-          { status: 'error', error },
-          options?.compare
-        );
-      }
-    );
+      }, reportError)
+      .catch(reportError);
 
     return { status: 'pending' } satisfies AsyncAtomState<T>;
   }, options);
@@ -215,30 +337,38 @@ export function createAtom<T>(
           ? { next: observerOrFn }
           : observerOrFn;
       const observed = { current: false };
-      const e = effect(() => {
-        atom.get();
-        if (!observed.current) {
-          observed.current = true;
-        } else {
-          const prevSub = activeSub;
-          activeSub = undefined;
-          try {
-            observer.next?.(atom._snapshot);
-          } finally {
-            activeSub = prevSub;
-          }
+      let e: Effect | undefined;
+      try {
+        atomOperation(() => {
+          e = effect(() => {
+            atom.get();
+            if (!observed.current) {
+              observed.current = true;
+            } else {
+              const prevSub = activeSub;
+              activeSub = undefined;
+              try {
+                observer.next?.(atom._snapshot);
+              } finally {
+                activeSub = prevSub;
+              }
 
-          // If the observer synchronously updates any of our deps we'll be
-          // marked as dirty preventing this effect from re-running. Request
-          // the value again to reconcile any dirty deps.
-          atom.get();
+              // If the observer synchronously updates any of our deps we'll be
+              // marked as dirty preventing this effect from re-running. Request
+              // the value again to reconcile any dirty deps.
+              atom.get();
+            }
+          });
+        });
+      } catch (error) {
+        if (e) {
+          atomOperation(() => e!.stop());
         }
-      });
+        throw error;
+      }
 
       return {
-        unsubscribe: () => {
-          e.stop();
-        }
+        unsubscribe: () => atomOperation(() => e!.stop())
       };
     },
     _update(getValue?: T | ((snapshot: T) => T)): boolean {
@@ -276,41 +406,141 @@ export function createAtom<T>(
   if (isComputed) {
     atom.flags = ReactiveFlags.Mutable | ReactiveFlags.Dirty;
     atom.get = function (): T {
-      const flags = atom.flags;
-      if (
-        flags & ReactiveFlags.Dirty ||
-        (flags & ReactiveFlags.Pending && checkDirty(atom.deps!, atom))
-      ) {
-        if (atom._update()) {
-          const subs = atom.subs;
-          if (subs !== undefined) {
-            shallowPropagate(subs);
+      return atomOperation(() => {
+        const flags = atom.flags;
+        if (
+          flags & ReactiveFlags.Dirty ||
+          (flags & ReactiveFlags.Pending && checkDirty(atom.deps!, atom))
+        ) {
+          if (atom._update()) {
+            const subs = atom.subs;
+            if (subs !== undefined) {
+              shallowPropagate(subs);
+            }
           }
+        } else if (flags & ReactiveFlags.Pending) {
+          atom.flags = flags & ~ReactiveFlags.Pending;
         }
-      } else if (flags & ReactiveFlags.Pending) {
-        atom.flags = flags & ~ReactiveFlags.Pending;
-      }
-      if (activeSub !== undefined) {
-        link(atom, activeSub, cycle);
-      }
-      return atom._snapshot;
+        if (activeSub !== undefined) {
+          link(atom, activeSub, cycle);
+        }
+        return atom._snapshot;
+      });
     };
   } else {
     (atom as unknown as Atom<T>).set = function (
       valueOrFn: T | ((prev: T) => T)
     ): void {
-      if (atom._update(valueOrFn)) {
-        const subs = atom.subs;
-        if (subs !== undefined) {
-          propagate(subs);
-          shallowPropagate(subs);
-          flush();
+      atomOperation(() => {
+        if (atom._update(valueOrFn)) {
+          const subs = atom.subs;
+          if (subs !== undefined) {
+            propagate(subs);
+            shallowPropagate(subs);
+            flush();
+          }
         }
-      }
+      });
     };
   }
 
   return atom as unknown as Atom<T> | ReadonlyAtom<T>;
+}
+
+/**
+ * Creates a read-only atom backed by an external snapshot source.
+ *
+ * The listener is shared by direct and derived subscriptions. Plain reads do
+ * not subscribe; the last consumer leaving synchronously releases the listener.
+ */
+export function createSourceAtom<T>(
+  source: SourceAtomConfig<T>,
+  options?: AtomOptions<T>
+): ReadonlyAtom<T> {
+  observeNode = observe;
+  scheduleObservedNode = (node) => {
+    if (node._observers || node._observedDeps) {
+      pendingObservedNodes.add(node);
+    }
+  };
+  settleObservedGraph = settleSources;
+
+  const atom = createAtom<T>(
+    undefined as T,
+    options
+  ) as unknown as InternalAtom<T>;
+  const get = atom.get;
+  let initialized = false;
+  let currentRun: object | undefined;
+  let subscription: Subscription | undefined;
+
+  const readSnapshot = (): T => {
+    const previous = activeSub;
+    activeSub = undefined;
+    try {
+      return source.getSnapshot();
+    } finally {
+      activeSub = previous;
+    }
+  };
+  const refresh = (): void => {
+    const value = readSnapshot();
+    if (!initialized) {
+      initialized = true;
+      atom._snapshot = value;
+    } else {
+      updateAtomSnapshot(atom, value, options?.compare);
+    }
+  };
+
+  atom.get = () =>
+    atomOperation(() => {
+      if (!currentRun) {
+        refresh();
+      }
+      return get.call(atom);
+    });
+  atom._activate = () => {
+    if (currentRun) {
+      return;
+    }
+    const run = {};
+    currentRun = run;
+    let subscribing = true;
+    const previous = activeSub;
+    activeSub = undefined;
+    try {
+      // Attach before reading, so changes during registration cannot be lost.
+      const result = source.subscribe(() => {
+        if (currentRun === run && !subscribing) {
+          atomOperation(refresh);
+        }
+      });
+      subscription =
+        typeof result === 'function' ? { unsubscribe: result } : result;
+      subscribing = false;
+      refresh();
+    } catch (error) {
+      currentRun = undefined;
+      const release = subscription;
+      subscription = undefined;
+      release?.unsubscribe();
+      throw error;
+    } finally {
+      activeSub = previous;
+    }
+  };
+  atom._deactivate = () => {
+    currentRun = undefined;
+    const release = subscription;
+    subscription = undefined;
+    release?.unsubscribe();
+  };
+
+  return {
+    get: atom.get.bind(atom),
+    subscribe: atom.subscribe.bind(atom)
+  };
 }
 
 /**
@@ -368,12 +598,13 @@ export function createReducerAtom<TState, TEvent>(
   };
 }
 
-interface Effect extends ReactiveNode {
+interface Effect extends ObservedNode {
   notify(): void;
   stop(): void;
 }
 
 function effect<T>(fn: () => T): Effect {
+  let stopped = false;
   const run = (): T => {
     const prevSub = activeSub;
     activeSub = effectObj;
@@ -384,7 +615,15 @@ function effect<T>(fn: () => T): Effect {
       return fn();
     } finally {
       activeSub = prevSub;
-      effectObj.flags &= ~ReactiveFlags.RecursedCheck;
+      if (stopped) {
+        effectObj.flags = ReactiveFlags.None;
+        effectObj.depsTail = undefined;
+      } else {
+        effectObj.flags &= ~ReactiveFlags.RecursedCheck;
+      }
+      if (!stopped && effectObj._observers === undefined) {
+        observeNode?.(effectObj, 1);
+      }
       purgeDeps(effectObj);
     }
   };
@@ -396,6 +635,9 @@ function effect<T>(fn: () => T): Effect {
     flags: ReactiveFlags.Watching | ReactiveFlags.RecursedCheck,
 
     notify(): void {
+      if (stopped) {
+        return;
+      }
       const flags = this.flags;
       if (
         flags & ReactiveFlags.Dirty ||
@@ -408,13 +650,25 @@ function effect<T>(fn: () => T): Effect {
     },
 
     stop(): void {
+      if (stopped) {
+        return;
+      }
+      stopped = true;
+      if (this._observers) {
+        observeNode?.(this, -1);
+      }
       this.flags = ReactiveFlags.None;
       this.depsTail = undefined;
       purgeDeps(this);
     }
   };
 
-  run();
+  try {
+    run();
+  } catch (error) {
+    effectObj.stop();
+    throw error;
+  }
 
   return effectObj;
 }

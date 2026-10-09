@@ -29,7 +29,7 @@ const machine = setup({
 });
 ```
 
-A declared input schema makes `input` required: `createActor(machine)` is a type error until you pass `{ input }` (or restore a `snapshot`). Framework hooks such as `useActor`, `useActorRef` and `useMachine` inherit the same requirement. `createActorContext` from `@xstate/react` is the exception: `input` stays optional because its options are merged from the context defaults and the `<Provider options>` prop, so a missing input surfaces at runtime as an initialization error instead.
+A declared input schema whose inferred type does not accept `undefined` makes `input` required: `createActor(machine)` is a type error until you pass `{ input }` (or restore a `snapshot`). Framework hooks such as `useActor`, `useActorRef` and `useMachine` inherit the same requirement. `createActorContext` from `@xstate/react` is the exception: `input` stays optional because its options are merged from the context defaults and the `<Provider options>` prop, so a missing input surfaces at runtime as an initialization error instead.
 
 <!-- state-contract typing and declaration emit from packages/core/src/setup.ts and packages/core/test/declarations.test.ts -->
 
@@ -44,6 +44,10 @@ Machines created with `setup(...).createMachine(...)` can be exported with
 TypeScript declaration generation enabled, including machines with state-level
 context schemas and function-form transitions. No explicit machine type
 annotation is required.
+
+For an actor used in one state, `invoke: s.createInvoke({ src, input, onDone })` infers input and completion output from `src`. Keep the helper inline in `s.createMachine(...)` to also infer that state's narrowed context, ancestor context, state input and transition target requirements. The helper works alongside named actor sources. See [typed inline invokes](invoke.md#typed-inline-invokes).
+
+An async function can be used directly as `src`. Declare `schemas.input`, `schemas.output`, and `schemas.error` on the invoke to type the function and its lifecycle handlers together. Without `schemas.output`, `onDone.event.output` infers from the async return value.
 
 Public schema event keys create typed methods on `actor.trigger`; internal
 schema keys do not appear in the public trigger namespace.
@@ -64,11 +68,19 @@ on: {
 
 Use `assertEvent(...)` only when shared code must narrow a union to one or more known event types.
 
+## Typestates
+
+State-level `schemas.context` declarations describe the context valid in each
+state. State functions receive the narrowed type, transitions into a state
+must satisfy its context contract, and `snapshot.matches(...)` narrows context
+when reading a snapshot. See [Typestates](typestates.md) for declaration,
+transition and runtime validation examples.
+
 ## Checked event keys
 
 When `schemas.events` is declared, each key in an `on` map must match a
-declared event type. Wildcards (`'*'`, `'user.*'`) and reserved `xstate.*`
-event types are always allowed. Without `schemas.events`, any key is accepted.
+declared event type. Matching wildcards (`'*'`, `'user.*'`) and known reserved
+machine descriptors are allowed; misspelled or invented reserved prefixes are rejected. Without `schemas.events`, any key is accepted.
 
 ```ts
 on: {
@@ -81,6 +93,8 @@ Machines returned by `setup(...).createMachine(...)` can be exported with their
 inferred types, including when registered actors are used in inline transitions
 or invokes. Declaration output retains event, state, input and child-actor
 contracts without exposing each inline callback's full contextual type.
+
+Known reserved descriptors in `on` carry their actual event payloads: actor completion, error and snapshot events; execution errors; state completion; delayed events; and state or actor timeouts. Bare `xstate.error.actor` handlers receive `event.error` and `event.actorId`. Known actor-specific completion aliases preserve the actor output type. Legacy suffixed descriptors and their wildcards match runtime actor/state aliases; the event itself retains its stable bare type. Use `xstate.error.actor` and filter `event.actorId` explicitly when handling a particular child.
 
 ## Child completion events
 
@@ -160,12 +174,18 @@ const machine = setup({
 
 The validator checks input and public or internal events before calculation, then checks
 stable context, active state schemas, child slots, delayed raised events,
-emitted events and final output before effects run. Invalid values throw an
-`ActorValidationError`.
+emitted events and final output before effects run. Invalid actor-produced
+values error the actor; pure calculations throw an
+`ActorValidationError`. Invalid incoming events are rejected without changing
+or erroring the actor and reported through `onRejectedEvent`. See
+[validation failures](setup-and-provide.md#validation-failures).
 
-Validation is synchronous and assertion-only: schema transformations and async
-validation are rejected. Unknown events and emitted events are errors when a
-corresponding schema map exists; use `unknownEvents: 'ignore'` or
+Validation is synchronous and assertion-only: async validation is rejected.
+Parsed schema results are discarded. Type-changing transformations are rejected
+by the types, but same-type transformations cannot be detected statically;
+normalize values before sending them. Unknown incoming events are rejected, and
+unknown emitted events error the actor, when a corresponding schema map exists; use
+`unknownEvents: 'ignore'` or
 `unknownEmitted: 'ignore'` for open protocols.
 
 Derived setups inherit the validator. Replace it or use `validator: undefined`

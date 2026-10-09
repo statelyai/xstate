@@ -1,7 +1,15 @@
 import { createActor, createMachine, setup, types } from '../src/index.ts';
-import type { OutputFrom } from '../src/index.ts';
+import type { OutputFrom, AnyStateMachine } from '../src/index.ts';
 
 describe('machine output type inference', () => {
+  it('accepts machines created from never configs in generic consumers', () => {
+    const take = <T extends AnyStateMachine>(machine: T): T => machine;
+    if (false) {
+      take(createMachine({} as never));
+      take(setup({}).createMachine({} as never));
+    }
+  });
+
   it('infers the output type from the config output mapper', () => {
     const machine = setup({
       schemas: {

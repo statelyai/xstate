@@ -1,6 +1,6 @@
 {
   "name": "@xstate/store",
-  "version": "4.3.0-alpha.4",
+  "version": "5.0.0-alpha.6",
   "type": "module",
   "description": "Simple stores",
   "keywords": [
@@ -28,6 +28,14 @@
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
+  },
+  "peerDependencies": {
+    "xstate": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "xstate": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@statelyai/inspect": "^0.7.2",

@@ -46,7 +46,7 @@ The option applies to the whole tree, not to a single placement boundary. Persis
 
 Persisted children changed shape in v6: each entry carries an `address` field and either an embedded `snapshot` or a `remote: true` marker. A remote entry may also carry an opaque `incarnation` token, round-tripped verbatim: XState never stamps one, but a host that does gets stale-completion protection on the referencing side and the token on journaled `sendTo` descriptors. Snapshots persisted by earlier versions restore unchanged; migrate them with [`machineVersions`](#migrate-machine-versions) if you validate their shape.
 
-A timer persisted from a running actor carries its wall-clock start (`startedAt`), and restoring the snapshot schedules the remaining time toward the original deadline — a timer past due fires immediately. Snapshots produced by pure transitions carry no timestamp (they stay byte-deterministic across replays), so restoring one restarts each timer with its declared delay; durable hosts own timer scheduling through the [system runtime](durable-execution.md) instead.
+A timer persisted from a running actor carries its wall-clock start (`startedAt`), and restoring the snapshot schedules the remaining time toward the original deadline — a timer past due fires immediately. Snapshots produced only by pure transitions carry no timestamp, so restoring one restarts each timer with its declared delay. A [durable execution](durable-execution.md) records timer starts when scheduling effects succeed; await `executeEffects()` before persisting its checkpoint to preserve deadlines. A custom adapter clock must use the same time origin when restoring.
 
 For a host-driven durable loop, use `execution.restore(persistedSnapshot)` from
 `xstate/durable`, then `execution.executeEffects(effects)` to resume embedded
@@ -95,9 +95,9 @@ same stable `id` and its own `version`.
 
 Every lightweight entry satisfies `MachineVersionDescriptor`: `{ id, version }`
 plus at least one of `snapshotSchema` or `eventSchema`. Versioned machines expose
-both schemas themselves, so `machineVersions()` uses the same schema path for
-machines and historical descriptors. It only checks whether an entry is
-executable when resolving `to`.
+both schemas themselves. For event histories, `machineVersions()` uses actual
+machines' historical validation; their public input schema has a narrower
+contract. Only actual machines may be targets.
 
 ```ts
 const checkoutVersions = machineVersions([
@@ -240,14 +240,20 @@ Every result, including a same-version history, is validated against available
 target event schemas. If no applicable adapter exists, adaptation throws. An
 exact adapter's error propagates instead of falling through to `'*'`.
 
-An `eventSchema` validates each complete historical event object and infers the
-exact adapter's event union. A descriptor may provide `snapshotSchema`,
-`eventSchema` or both. If the relevant schema is absent, that operation may use
-its unknown `'*'` handler instead. Actual machines continue to work directly as
-entries. Their generated `eventSchema` turns the payload-oriented
-`schemas.events` map into a Standard Schema for complete event objects.
-Without that schema or a `'*'` adapter, adaptation reports the missing event
-schema rather than treating the registered version as unknown.
+A historical descriptor's `eventSchema` validates complete historical event
+objects and infers the exact adapter's event union. A descriptor may provide
+`snapshotSchema`, `eventSchema` or both. If the relevant schema is absent, that
+operation may use its unknown `'*'` handler instead.
+
+Actual machines work directly as entries. `adaptEvents()` uses their historical
+validation, including `schemas.internalEvents` and runtime notifications, and
+infers adapter inputs from the full machine event union. This preserves replay
+compatibility. A machine's public `eventSchema` instead validates public input
+(see [internal events](internal-events.md#validating-public-input)). Do not copy
+it into a historical descriptor whose histories include internal/runtime events;
+provide a schema describing that complete history instead.
+Without a historical event schema or a `'*'` adapter, adaptation reports the
+missing event schema rather than treating the registered version as unknown.
 
 Exact event and snapshot targets require actual machines. A schema descriptor
 describes historical data but cannot interpret restored state or receive events.

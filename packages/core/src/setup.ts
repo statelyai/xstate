@@ -1,5 +1,5 @@
 import isDevelopment from '#is-development';
-import { diagnoseAuthorConfig } from './devDiagnostics.ts';
+import { diagnoseAuthorConfig, diagnoseSetupConfig } from './devDiagnostics.ts';
 import { SetupStateSchemas, StandardSchemaV1 } from './schema.types.ts';
 import type {
   SetupSchemas,
@@ -7,7 +7,11 @@ import type {
   SetupStateType
 } from './base.types.ts';
 import type { ActorLogicValidator } from './validation.types.ts';
-import { StateMachine } from './StateMachine.ts';
+import {
+  StateMachine,
+  type CompatibleProvidedActorSource,
+  type ProvidedActionContracts
+} from './StateMachine.ts';
 import {
   createActor as createActorFromLogic,
   type Actor,
@@ -16,12 +20,17 @@ import {
 } from './createActor.ts';
 import {
   AnyActorRef,
+  AnyStateMachine,
   AnyActorLogic,
   ActorRefFromLogic,
   AnyStateNode,
   EventObject,
   AnyEventObject,
   EventDescriptor,
+  ReservedEventAliasDescriptor,
+  ReservedMachineEvent,
+  ReservedActorEventAliases,
+  ReservedEventFromDescriptor,
   ExtractEvent,
   MachineContext,
   ProvidedActor,
@@ -49,10 +58,21 @@ import {
   AfterEvent,
   TimeoutEvent,
   ErrorEvent,
-  CallbackActors
+  CallbackActors,
+  InputFrom,
+  OutputFrom,
+  SnapshotFrom,
+  ActorTimeoutEvent,
+  NonReducibleUnknown
 } from './types.ts';
 import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
+import {
+  createAsyncLogic,
+  type AsyncActorLogic,
+  type AsyncSnapshot,
+  type LogicFunction
+} from './actors/promise.ts';
 import {
   ActionSchemas,
   DelayMapFromNames,
@@ -69,8 +89,11 @@ import {
   InferInternalEvents,
   Next_MachineConfig,
   Next_InvokeConfig,
+  Next_InvokeConfigBase,
+  InvokeInputArgs,
   Next_StateNodeConfig,
   Next_TransitionConfigOrTarget,
+  type createdInvokeConfig,
   FinalStateConfigOutput,
   OutputFromConfig,
   ChildCompletionEvents,
@@ -101,7 +124,21 @@ export type SetupConfig<
   actors?: TActorMap;
   guards?: TGuardMap & SetupGuardSources<NoInfer<TSchemas>>;
   delays?: TDelayMap & SetupDelaySources<NoInfer<TSchemas>>;
+  /**
+   * Declared only so that a misplaced `internalEvents` key is rejected instead
+   * of being accepted and silently ignored: private events are declared under
+   * `schemas.internalEvents`.
+   */
+  internalEvents?: MisplacedInternalEventsKey;
 };
+
+/**
+ * `setup()` has no `internalEvents` option. Typing the key as this message
+ * makes the compiler print the replacement rather than accepting dead
+ * configuration.
+ */
+type MisplacedInternalEventsKey =
+  '`internalEvents` is not a setup() option. Declare private events under `schemas.internalEvents`, e.g. `setup({ schemas: { internalEvents: { tick: types<{}>() } } })`.';
 
 /**
  * Contextual types for guard/delay source maps passed to `setup()`, derived
@@ -211,28 +248,31 @@ type ValidateSetupSchemas<TSchemas> = TSchemas extends SetupSchemas
     }
   : TSchemas;
 
-type ValidateSetupStates<TStates> =
-  TStates extends Record<string, SetupStateSchema>
-    ? {
-        [K in keyof TStates]: TStates[K] extends SetupStateSchema
-          ? Omit<TStates[K], 'schemas' | 'states'> & {
-              schemas?: TStates[K]['schemas'] extends SetupStateSchemas
+// Only constrains `schemas`, recursing into `states`, and never returns the
+// state configs themselves: `createMachine` intersects this type with the
+// config it is inferring, so a copy of the config would duplicate every
+// transition type. Each state is checked on its own, so a state without
+// `schemas` (such as `{ on: ... }`) doesn't affect its siblings.
+type ValidateSetupStates<TStates> = TStates extends object
+  ? {
+      [K in keyof TStates]?: TStates[K] extends object
+        ? {
+            schemas?: TStates[K] extends { schemas?: infer TStateSchemas }
+              ? TStateSchemas extends SetupStateSchemas
                 ? {
-                    [P in keyof TStates[K]['schemas']]: TStates[K]['schemas'][P] extends StandardSchemaV1
-                      ? AssertNonTransformingSchema<TStates[K]['schemas'][P]>
-                      : TStates[K]['schemas'][P];
+                    [P in keyof TStateSchemas]: TStateSchemas[P] extends StandardSchemaV1
+                      ? AssertNonTransformingSchema<TStateSchemas[P]>
+                      : TStateSchemas[P];
                   }
-                : TStates[K]['schemas'];
-              states?: TStates[K]['states'] extends Record<
-                string,
-                SetupStateSchema
-              >
-                ? ValidateSetupStates<TStates[K]['states']>
-                : TStates[K]['states'];
-            }
-          : TStates[K];
-      }
-    : TStates;
+                : TStateSchemas
+              : unknown;
+            states?: TStates[K] extends { states?: infer TChildStates }
+              ? ValidateSetupStates<TChildStates>
+              : unknown;
+          }
+        : unknown;
+    }
+  : unknown;
 
 type RuntimeValidationConstraint<TSchemas, TStates, TValidator> = [
   TValidator
@@ -268,10 +308,49 @@ type ExtendValidatorConfig<TExtension> = [TExtension] extends [
   ? { validator?: never }
   : { validator: TExtension };
 
+// An extension may add sources freely, but a source that reuses a base name
+// replaces it at runtime, so it must satisfy the base contract, the same rule
+// `machine.provide(...)` applies.
+type ExtendOverrideContracts<
+  TBaseActionMap,
+  TBaseActorMap,
+  TBaseGuardMap,
+  TExtendActionMap,
+  TExtendActorMap,
+  TExtendGuardMap
+> = {
+  actions?: {
+    [K in keyof NoInfer<TExtendActionMap> &
+      keyof TBaseActionMap]?: ProvidedActionContracts<TBaseActionMap>[K];
+  };
+  guards?: {
+    [K in keyof NoInfer<TExtendGuardMap> &
+      keyof TBaseGuardMap]?: TBaseGuardMap[K];
+  };
+  // Mapped over the extension's own keys, like `provide()`'s actor check, so
+  // an incompatible actor becomes `never` under its own name and the error is
+  // reported there.
+  actors?: {
+    [K in keyof NoInfer<TExtendActorMap>]: K extends keyof TBaseActorMap
+      ? TBaseActorMap[K] extends AnyActorLogic
+        ? NoInfer<TExtendActorMap>[K] extends AnyActorLogic
+          ? CompatibleProvidedActorSource<
+              TBaseActorMap[K],
+              NoInfer<TExtendActorMap>[K]
+            >
+          : never
+        : never
+      : NoInfer<TExtendActorMap>[K];
+  };
+};
+
 type SetupExtensionConfig<
   TBaseSchemas,
   TBaseStates,
   TBaseValidator,
+  TBaseActionMap,
+  TBaseActorMap,
+  TBaseGuardMap,
   TExtendSchemas extends SetupSchemas,
   TExtendStates extends Record<string, SetupStateSchema>,
   TExtendActionMap extends Sources['actions'],
@@ -299,6 +378,14 @@ type SetupExtensionConfig<
       NoInfer<MergedSetupSchemas<TBaseSchemas, TExtendSchemas>>
     >;
 } & ExtendValidatorConfig<TExtendValidator> &
+  ExtendOverrideContracts<
+    TBaseActionMap,
+    TBaseActorMap,
+    TBaseGuardMap,
+    TExtendActionMap,
+    TExtendActorMap,
+    TExtendGuardMap
+  > &
   RuntimeValidationCompatibility<
     NoInfer<TBaseSchemas>,
     NoInfer<TBaseStates>,
@@ -1192,53 +1279,60 @@ type SetupInvokeTargetSetLegality<
   TInvoke,
   TRootStateSchemas extends Record<string, SetupStateSchema>,
   TSourcePath extends string
-> = TInvoke extends readonly unknown[]
+> = TInvoke extends {
+  readonly [createdInvokeConfig]: infer TConfig;
+}
   ? {
-      [K in keyof TInvoke]: TInvoke[K] &
-        SetupInvokeTargetSetLegality<
-          TInvoke[K],
-          TRootStateSchemas,
-          TSourcePath
-        >;
+      readonly [createdInvokeConfig]: TConfig &
+        SetupInvokeTargetSetLegality<TConfig, TRootStateSchemas, TSourcePath>;
     }
-  : TInvoke extends Record<string, unknown>
-    ? (TInvoke extends { onDone: infer TOnDone }
-        ? {
-            onDone?: TInvoke['onDone'] &
-              SetupTargetSetLegality<TOnDone, TRootStateSchemas, TSourcePath>;
-          }
-        : unknown) &
-        (TInvoke extends { onError: infer TOnError }
+  : TInvoke extends readonly unknown[]
+    ? {
+        [K in keyof TInvoke]: TInvoke[K] &
+          SetupInvokeTargetSetLegality<
+            TInvoke[K],
+            TRootStateSchemas,
+            TSourcePath
+          >;
+      }
+    : TInvoke extends Record<string, unknown>
+      ? (TInvoke extends { onDone: infer TOnDone }
           ? {
-              onError?: TInvoke['onError'] &
-                SetupTargetSetLegality<
-                  TOnError,
-                  TRootStateSchemas,
-                  TSourcePath
-                >;
+              onDone?: TInvoke['onDone'] &
+                SetupTargetSetLegality<TOnDone, TRootStateSchemas, TSourcePath>;
             }
           : unknown) &
-        (TInvoke extends { onSnapshot: infer TOnSnapshot }
-          ? {
-              onSnapshot?: TInvoke['onSnapshot'] &
-                SetupTargetSetLegality<
-                  TOnSnapshot,
-                  TRootStateSchemas,
-                  TSourcePath
-                >;
-            }
-          : unknown) &
-        (TInvoke extends { onTimeout: infer TOnTimeout }
-          ? {
-              onTimeout?: TInvoke['onTimeout'] &
-                SetupTargetSetLegality<
-                  TOnTimeout,
-                  TRootStateSchemas,
-                  TSourcePath
-                >;
-            }
-          : unknown)
-    : unknown;
+          (TInvoke extends { onError: infer TOnError }
+            ? {
+                onError?: TInvoke['onError'] &
+                  SetupTargetSetLegality<
+                    TOnError,
+                    TRootStateSchemas,
+                    TSourcePath
+                  >;
+              }
+            : unknown) &
+          (TInvoke extends { onSnapshot: infer TOnSnapshot }
+            ? {
+                onSnapshot?: TInvoke['onSnapshot'] &
+                  SetupTargetSetLegality<
+                    TOnSnapshot,
+                    TRootStateSchemas,
+                    TSourcePath
+                  >;
+              }
+            : unknown) &
+          (TInvoke extends { onTimeout: infer TOnTimeout }
+            ? {
+                onTimeout?: TInvoke['onTimeout'] &
+                  SetupTargetSetLegality<
+                    TOnTimeout,
+                    TRootStateSchemas,
+                    TSourcePath
+                  >;
+              }
+            : unknown)
+      : unknown;
 
 type SetupStateTargetSetLegality<
   TConfig,
@@ -1375,13 +1469,21 @@ type SetupInternalEvents<
   ? InferInternalEvents<TInternalEventSchemaMap>
   : InferInternalEvents<SetupSchemaMap<TSchemas, 'internalEvents'>>;
 
+// Without internal events this must be `SetupPublicEvents` itself, not a union
+// with `never`: such a union has the same members but is a different type, so
+// the config types computed from it are not shared with the ones computed from
+// `SetupPublicEvents`. With a validator, `setup().createMachine()` sees both
+// copies of each state's config, and TypeScript multiplies their unions out
+// (invoke sources per registered actor, targets per state contract).
 type SetupEvents<
   TSchemas,
   TEventSchemaMap extends Record<string, StandardSchemaV1>,
   TInternalEventSchemaMap extends Record<string, StandardSchemaV1> = {}
-> =
-  | SetupPublicEvents<TSchemas, TEventSchemaMap>
-  | SetupInternalEvents<TSchemas, TInternalEventSchemaMap>;
+> = [SetupInternalEvents<TSchemas, TInternalEventSchemaMap>] extends [never]
+  ? SetupPublicEvents<TSchemas, TEventSchemaMap>
+  :
+      | SetupPublicEvents<TSchemas, TEventSchemaMap>
+      | SetupInternalEvents<TSchemas, TInternalEventSchemaMap>;
 
 type SetupTags<TSchemas, TTagSchema extends StandardSchemaV1> = [
   SetupSchema<TSchemas, 'tags'>
@@ -1937,33 +2039,40 @@ type SetupTransitionPropertyTargetArrayInputConstraint<
 type SetupInvokeTargetArrayInputConstraint<
   TInvoke,
   TStateSchemas extends Record<string, SetupStateSchema>
-> = [TInvoke] extends [readonly unknown[]]
+> = TInvoke extends {
+  readonly [createdInvokeConfig]: infer TConfig;
+}
   ? {
-      [K in keyof TInvoke]: TInvoke[K] &
-        SetupInvokeTargetArrayInputConstraint<TInvoke[K], TStateSchemas>;
+      readonly [createdInvokeConfig]: TConfig &
+        SetupInvokeTargetArrayInputConstraint<TConfig, TStateSchemas>;
     }
-  : [TInvoke] extends [Record<string, unknown>]
-    ? SetupTransitionPropertyTargetArrayInputConstraint<
-        TInvoke,
-        'onDone',
-        TStateSchemas
-      > &
-        SetupTransitionPropertyTargetArrayInputConstraint<
+  : [TInvoke] extends [readonly unknown[]]
+    ? {
+        [K in keyof TInvoke]: TInvoke[K] &
+          SetupInvokeTargetArrayInputConstraint<TInvoke[K], TStateSchemas>;
+      }
+    : [TInvoke] extends [Record<string, unknown>]
+      ? SetupTransitionPropertyTargetArrayInputConstraint<
           TInvoke,
-          'onError',
+          'onDone',
           TStateSchemas
         > &
-        SetupTransitionPropertyTargetArrayInputConstraint<
-          TInvoke,
-          'onSnapshot',
-          TStateSchemas
-        > &
-        SetupTransitionPropertyTargetArrayInputConstraint<
-          TInvoke,
-          'onTimeout',
-          TStateSchemas
-        >
-    : unknown;
+          SetupTransitionPropertyTargetArrayInputConstraint<
+            TInvoke,
+            'onError',
+            TStateSchemas
+          > &
+          SetupTransitionPropertyTargetArrayInputConstraint<
+            TInvoke,
+            'onSnapshot',
+            TStateSchemas
+          > &
+          SetupTransitionPropertyTargetArrayInputConstraint<
+            TInvoke,
+            'onTimeout',
+            TStateSchemas
+          >
+      : unknown;
 
 type SetupStateNodeTargetArrayInputConstraint<
   TConfig,
@@ -3286,24 +3395,24 @@ type StateNodeConfigWithNestedInputBase<
         TSystemRegistry
       >
     : {
-        [K in string]?: Next_StateNodeConfig<
-          ActiveStateContext<TStateSchema, TContext, TContextShape>,
+        [K in string]?: StateNodeConfigWithNestedInput<
+          UncheckedSetupStateSchemas,
+          SetupStateSchema,
+          TContext,
+          ActiveStateContextShape<TStateSchema, TContextShape>,
           TEvent,
+          TChildren,
           TDelays,
           TTag,
           TOutput,
           TEmitted,
           TStateMeta,
-          TChildren,
+          TTransitionMeta,
           TActionMap,
           TActorMap,
           TGuardMap,
           TDelayMap,
-          undefined,
-          Record<string, unknown>,
-          TSystemRegistry,
-          unknown,
-          TTransitionMeta
+          TSystemRegistry
         >;
       }
 >;
@@ -3387,7 +3496,72 @@ type StateTransitions<
     TTarget,
     TKnownTarget
   >;
-};
+} & (string extends TEvent['type']
+  ? unknown
+  : {
+      [K in Exclude<
+        EventDescriptor<ReservedMachineEvent>,
+        EventDescriptor<TEvent>
+      >]?: StateTransitionConfigOrTarget<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        ReservedEventFromDescriptor<K>,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TInput,
+        TTarget,
+        TKnownTarget
+      >;
+    } & {
+      [K in keyof ReservedActorEventAliases<
+        TActorMap,
+        TChildren
+      >]?: StateTransitionConfigOrTarget<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        ReservedActorEventAliases<TActorMap, TChildren>[K] & EventObject,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TInput,
+        TTarget,
+        TKnownTarget
+      >;
+    } & {
+      [K in ReservedEventAliasDescriptor]?: StateTransitionConfigOrTarget<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        ReservedEventFromDescriptor<K>,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry,
+        TInput,
+        TTarget,
+        TKnownTarget
+      >;
+    });
 
 type InvokeDoneEvent<TInvoke> = TInvoke extends {
   onDone?: Next_TransitionConfigOrTarget<
@@ -3405,7 +3579,7 @@ type InvokeDoneEvent<TInvoke> = TInvoke extends {
   ? Cast<TDoneEvent, EventObject>
   : DoneActorEvent;
 
-type SetupInvokeConfig<
+type PlainSetupInvokeConfig<
   TStateSchemas extends Record<string, SetupStateSchema>,
   TContext extends MachineContext,
   TContextShape,
@@ -3533,6 +3707,426 @@ type SetupInvokeConfig<
       : never
     : never;
 
+// Lifecycle handlers are checked by createInvoke, then hidden from the outer
+// invoke union so they do not add competing contextual call signatures for raw
+// registered sources. The phantom scope lets an inline call infer its state's
+// context, input and target schemas from its expected result type.
+declare const createdInvoke: unique symbol;
+
+/** @public Type-only scope carried by setup-created invoke configs. */
+export interface CreatedInvoke<
+  TLogic extends AnyActorLogic,
+  TContext extends MachineContext,
+  TContextShape,
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TStateInput,
+  TConfig = unknown
+> {
+  src: NoInfer<TLogic>;
+  readonly [createdInvoke]: {
+    context: TContext;
+    contextShape: TContextShape;
+    states: TStateSchemas;
+    input: TStateInput;
+    child: NoInfer<{
+      id: TConfig extends { id: infer TId } ? TId : undefined;
+      ref: ActorRefFromLogic<TLogic>;
+    }>;
+  };
+  readonly [createdInvokeConfig]: NoInfer<TConfig>;
+}
+
+// Outer validators only need authored targets and resolved target input.
+// Retaining callback arguments here can expose private actor-ref markers in
+// consumer declarations, so keep their result data only.
+type CreatedInvokeTransitionData<TTransition> = TTransition extends (
+  ...args: any[]
+) => infer TResult
+  ? CreatedInvokeTransitionData<TResult>
+  : TTransition extends { target: infer TTarget }
+    ? { target: TTarget } & (TTransition extends { input: infer TInput }
+        ? {
+            input: TInput extends (...args: any[]) => infer TResult
+              ? TResult
+              : TInput;
+          }
+        : unknown)
+    : {};
+
+type CreatedInvokeValidationConfig<TConfig> = TConfig extends unknown
+  ? {
+      [K in keyof TConfig as K extends
+        | 'id'
+        | 'onDone'
+        | 'onError'
+        | 'onSnapshot'
+        | 'onTimeout'
+        ? K
+        : never]: K extends 'id'
+        ? TConfig[K]
+        : CreatedInvokeTransitionData<TConfig[K]>;
+    }
+  : never;
+
+type CreatedInvokeId<
+  TLogic extends AnyActorLogic,
+  TChildren
+> = string extends keyof TChildren
+  ? { id?: string }
+  : [keyof TChildren] extends [never]
+    ? { id?: string }
+    : {
+        id: {
+          [K in keyof TChildren &
+            string]: ActorRefFromLogic<TLogic> extends NonNullable<TChildren[K]>
+            ? K
+            : never;
+        }[keyof TChildren & string];
+      };
+
+// Check the authored id/ref as well as the contextual scope. This also checks
+// hoisted helper results, whose scope cannot inherit machine-local children.
+type CreatedInvokeChildContract<TChildren> = string extends keyof TChildren
+  ? unknown
+  : [keyof TChildren] extends [never]
+    ? unknown
+    : {
+        [K in keyof TChildren & string]: {
+          id: K;
+          ref: NonNullable<TChildren[K]>;
+        };
+      }[keyof TChildren & string];
+
+type ValidateCreatedInvokeChild<TInvoke, TChildren> = TInvoke extends {
+  readonly [createdInvoke]: unknown;
+}
+  ? {
+      readonly [createdInvoke]: {
+        child: CreatedInvokeChildContract<TChildren>;
+      };
+    }
+  : TInvoke extends readonly unknown[]
+    ? {
+        [K in keyof TInvoke]: ValidateCreatedInvokeChild<TInvoke[K], TChildren>;
+      }
+    : unknown;
+
+type ValidateCreatedInvokeChildren<TConfig, TChildren> = (TConfig extends {
+  invoke: infer TInvoke;
+}
+  ? { invoke?: ValidateCreatedInvokeChild<TInvoke, TChildren> }
+  : unknown) &
+  (TConfig extends { states: infer TStates }
+    ? {
+        states?: {
+          [K in keyof TStates]: ValidateCreatedInvokeChildren<
+            TStates[K],
+            TChildren
+          >;
+        };
+      }
+    : unknown);
+
+type CreatedInvokeInput<
+  TLogic extends AnyActorLogic,
+  TArgs,
+  TInput = InputFrom<NoInfer<TLogic>>,
+  TValue = TInput | ((args: TArgs) => TInput)
+> = undefined extends TInput ? { input?: TValue } : { input: TValue };
+
+/** @public An invoke config whose callbacks are checked against its source logic. */
+export type CreateInvokeConfig<
+  TLogic extends AnyActorLogic,
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext,
+  TContextShape,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TMeta extends MetaObject,
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays'],
+  TSystemRegistry extends SystemRegistry,
+  TStateInput = undefined
+> = CreatedInvokeId<NoInfer<TLogic>, TChildren> &
+  CreatedInvokeInput<
+    TLogic,
+    InvokeInputArgs<TContext, TEvent, TEmitted, TChildren, TStateInput>
+  > &
+  Omit<
+    Next_InvokeConfigBase<
+      TContext,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TMeta,
+      TSystemRegistry,
+      DoneActorEvent<OutputFrom<NoInfer<TLogic>>>,
+      ErrorActorEvent<ErrorFrom<NoInfer<TLogic>>>
+    >,
+    'id' | 'onDone' | 'onError' | 'onSnapshot' | 'onTimeout'
+  > & {
+    src: TLogic;
+    schemas?: never;
+    onDone?: StateTransitionConfigOrTarget<
+      TStateSchemas,
+      TContext,
+      TContextShape,
+      DoneActorEvent<OutputFrom<NoInfer<TLogic>>>,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry
+    >;
+    onError?: StateTransitionConfigOrTarget<
+      TStateSchemas,
+      TContext,
+      TContextShape,
+      ErrorActorEvent<ErrorFrom<NoInfer<TLogic>>>,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry
+    >;
+    onSnapshot?: StateTransitionConfigOrTarget<
+      TStateSchemas,
+      TContext,
+      TContextShape,
+      SnapshotEvent<SnapshotFrom<NoInfer<TLogic>>>,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry
+    >;
+    onTimeout?: StateTransitionConfigOrTarget<
+      TStateSchemas,
+      TContext,
+      TContextShape,
+      ActorTimeoutEvent,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry
+    >;
+  };
+
+type AsyncInvokeSchemaOutput<
+  TSchema extends StandardSchemaV1,
+  TFallback
+> = StandardSchemaV1 extends TSchema
+  ? TFallback
+  : StandardSchemaV1.InferOutput<TSchema>;
+
+/** @public An inline async invoke whose schemas and function determine its actor types. */
+export type CreateAsyncInvokeConfig<
+  TOutput,
+  TInputSchema extends StandardSchemaV1,
+  TOutputSchema extends StandardSchemaV1,
+  TErrorSchema extends StandardSchemaV1,
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext,
+  TContextShape,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TMeta extends MetaObject,
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays'],
+  TSystemRegistry extends SystemRegistry,
+  TStateInput = undefined
+> = CreatedInvokeId<
+  AsyncActorLogic<
+    NoInfer<TOutput>,
+    AsyncInvokeSchemaOutput<NoInfer<TInputSchema>, NonReducibleUnknown>,
+    EventObject,
+    AsyncInvokeSchemaOutput<NoInfer<TErrorSchema>, unknown>
+  >,
+  TChildren
+> &
+  CreatedInvokeInput<
+    AsyncActorLogic<
+      unknown,
+      AsyncInvokeSchemaOutput<NoInfer<TInputSchema>, NonReducibleUnknown>
+    >,
+    InvokeInputArgs<TContext, TEvent, TEmitted, TChildren, TStateInput>
+  > &
+  Omit<
+    Next_InvokeConfigBase<
+      TContext,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TMeta,
+      TSystemRegistry
+    >,
+    'id' | 'onDone' | 'onError' | 'onSnapshot' | 'onTimeout'
+  > & {
+    schemas?: {
+      input?: TInputSchema;
+      output?: StandardSchemaV1 extends TOutputSchema ? never : TOutputSchema;
+      error?: TErrorSchema;
+    };
+    src: (
+      ...args: Parameters<
+        LogicFunction<
+          AsyncInvokeSchemaOutput<NoInfer<TOutputSchema>, unknown>,
+          AsyncInvokeSchemaOutput<NoInfer<TInputSchema>, NonReducibleUnknown>
+        >
+      >
+    ) => PromiseLike<TOutput>;
+    // Resolving OutputArg's conditional here would lock input-dependent async
+    // output to unknown before src's return value has been inferred.
+    onDone?: StateTransitionConfigOrTarget<
+      TStateSchemas,
+      TContext,
+      TContextShape,
+      DoneActorEvent<NoInfer<TOutput>>,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry,
+      undefined,
+      SetupStateTarget<TStateSchemas>,
+      KnownSetupStateTarget<TStateSchemas>,
+      NoInfer<TOutput>
+    >;
+    onError?: NoInfer<
+      StateTransitionConfigOrTarget<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        ErrorActorEvent<
+          NoInfer<AsyncInvokeSchemaOutput<TErrorSchema, unknown>>
+        >,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry
+      >
+    >;
+    onSnapshot?: NoInfer<
+      StateTransitionConfigOrTarget<
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        SnapshotEvent<
+          AsyncSnapshot<
+            TOutput,
+            NoInfer<AsyncInvokeSchemaOutput<TInputSchema, NonReducibleUnknown>>,
+            NoInfer<AsyncInvokeSchemaOutput<TErrorSchema, unknown>>
+          >
+        >,
+        TEvent,
+        TEmitted,
+        TChildren,
+        TMeta,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
+        TDelayMap,
+        TSystemRegistry
+      >
+    >;
+    onTimeout?: StateTransitionConfigOrTarget<
+      TStateSchemas,
+      TContext,
+      TContextShape,
+      ActorTimeoutEvent,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry
+    >;
+  };
+
+type SetupInvokeConfig<
+  TStateSchemas extends Record<string, SetupStateSchema>,
+  TContext extends MachineContext,
+  TContextShape,
+  TEvent extends EventObject,
+  TEmitted extends EventObject,
+  TChildren extends Record<string, AnyActorRef | undefined>,
+  TMeta extends MetaObject,
+  TActionMap extends Sources['actions'],
+  TActorMap extends Sources['actors'],
+  TGuardMap extends Sources['guards'],
+  TDelayMap extends Sources['delays'],
+  TSystemRegistry extends SystemRegistry,
+  TStateInput = undefined
+> =
+  | (PlainSetupInvokeConfig<
+      TStateSchemas,
+      TContext,
+      TContextShape,
+      TEvent,
+      TEmitted,
+      TChildren,
+      TMeta,
+      TActionMap,
+      TActorMap,
+      TGuardMap,
+      TDelayMap,
+      TSystemRegistry,
+      TStateInput
+    > & { readonly [createdInvoke]?: never })
+  | {
+      readonly [createdInvoke]: {
+        context: TContext;
+        contextShape: TContextShape;
+        states: TStateSchemas extends UncheckedSetupStateSchemas
+          ? Record<string, SetupStateSchema>
+          : TStateSchemas;
+        input: TStateInput;
+      };
+    };
+
 type InvokeErrorEvent<
   TInvoke,
   TActorMap extends Sources['actors']
@@ -3560,7 +4154,8 @@ type StateTransitionConfigOrTarget<
   TSystemRegistry extends SystemRegistry,
   TInput = undefined,
   TTarget extends string = SetupStateTarget<TStateSchemas>,
-  TKnownTarget extends string = KnownSetupStateTarget<TStateSchemas>
+  TKnownTarget extends string = KnownSetupStateTarget<TStateSchemas>,
+  TOutput = OutputArg<TExpressionEvent>['output']
 > =
   | undefined
   | StateTransitionObjectConfig<
@@ -3595,7 +4190,8 @@ type StateTransitionConfigOrTarget<
       TSystemRegistry,
       TInput,
       TTarget,
-      TKnownTarget
+      TKnownTarget,
+      TOutput
     >;
 
 type StateTransitionObjectConfig<
@@ -3631,8 +4227,8 @@ type StateTransitionObjectConfig<
       TKnownTarget
     > & {
       description?: string;
-    })
-  | {
+    } & RemovedTransitionKeys)
+  | ({
       target: TTarget[];
       context?: StateTransitionContext<
         TAllowContextMapper,
@@ -3659,7 +4255,18 @@ type StateTransitionObjectConfig<
               event: TExpressionEvent;
             } & OutputArg<TExpressionEvent>
           ) => Record<string, unknown>);
-    };
+    } & RemovedTransitionKeys);
+
+/**
+ * v5 keys that transition objects no longer have. Typing each one as a message
+ * makes the compiler print the replacement instead of accepting config that
+ * the runtime rejects.
+ */
+type RemovedTransitionKeys = {
+  cond?: '`cond` was removed from transition objects in v6. Use a transition function that returns { target } when the condition passes, or undefined to reject the event.';
+  guard?: '`guard` was removed from transition objects in v6. Use a transition function that returns { target } when the condition passes; named guards are available as `guards.name(...)` in its arguments.';
+  actions?: '`actions` was removed from transition objects in v6. Use a transition function `(args, enq) => { ... }` and call named actions with `enq(actions.name, params)`.';
+};
 
 type StateTransitionContextMapper<
   TContext extends MachineContext,
@@ -3762,11 +4369,13 @@ type StateTransitionFunction<
   TSystemRegistry extends SystemRegistry,
   TInput = undefined,
   TTarget extends string = SetupStateTarget<TStateSchemas>,
-  TKnownTarget extends string = KnownSetupStateTarget<TStateSchemas>
+  TKnownTarget extends string = KnownSetupStateTarget<TStateSchemas>,
+  TOutput = OutputArg<TExpressionEvent>['output']
 > = (
   args: {
     context: TContext;
     event: TExpressionEvent;
+    output: TOutput;
     self: AnyActorRef;
     parent: AnyActorRef | undefined;
     value: StateValue;
@@ -3777,7 +4386,7 @@ type StateTransitionFunction<
     guards: TGuardMap;
     delays: TDelayMap;
     input: TInput;
-  } & OutputArg<TExpressionEvent>,
+  },
   enq: EnqueueObject<
     TEvent,
     TEmitted,
@@ -4030,6 +4639,9 @@ export interface SetupReturn<
       TSchemas,
       TStates,
       TValidator,
+      TSetupActionMap,
+      TSetupActorMap,
+      TSetupGuardMap,
       TExtendSchemas,
       TExtendStates,
       TExtendActionMap,
@@ -4048,6 +4660,246 @@ export interface SetupReturn<
     TSetupDelays | Extract<keyof TExtendDelayMap, string>,
     TSystemRegistry,
     ResolveExtendedValidator<TValidator, TExtendValidator>
+  >;
+
+  /** Infers async output from src when no output schema is declared. */
+  createInvoke<
+    TOutput,
+    TContext extends SetupContext<TSchemas, StandardSchemaV1>,
+    const TInputSchema extends StandardSchemaV1 = StandardSchemaV1,
+    const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1,
+    TContextShape = SetupContextShape<TSchemas, StandardSchemaV1, TContext>,
+    TStateSchemas extends Record<string, SetupStateSchema> = TStates,
+    TStateInput = undefined,
+    const TConfig = unknown
+  >(
+    config: TConfig &
+      CreateAsyncInvokeConfig<
+        TOutput,
+        TInputSchema,
+        StandardSchemaV1,
+        TErrorSchema,
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+        SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+        SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+        SetupTransitionMeta<TSchemas, StandardSchemaV1, StandardSchemaV1>,
+        SetupActions<TSchemas, TSetupActionMap>,
+        TSetupActorMap,
+        SetupGuards<TSchemas, TSetupGuardMap>,
+        TSetupDelayMap,
+        TSystemRegistry,
+        TStateInput
+      >,
+    ...check: unknown extends TConfig
+      ? []
+      : [TConfig] extends [
+            NoInfer<
+              CreateAsyncInvokeConfig<
+                TOutput,
+                TInputSchema,
+                StandardSchemaV1,
+                TErrorSchema,
+                TStateSchemas,
+                TContext,
+                TContextShape,
+                SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+                SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+                SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+                SetupTransitionMeta<
+                  TSchemas,
+                  StandardSchemaV1,
+                  StandardSchemaV1
+                >,
+                SetupActions<TSchemas, TSetupActionMap>,
+                TSetupActorMap,
+                SetupGuards<TSchemas, TSetupGuardMap>,
+                TSetupDelayMap,
+                TSystemRegistry,
+                TStateInput
+              >
+            > &
+              ValidateSystemInvoke<
+                Omit<TConfig, 'src'> & {
+                  src: AsyncActorLogic<
+                    AsyncInvokeSchemaOutput<StandardSchemaV1, TOutput>,
+                    AsyncInvokeSchemaOutput<TInputSchema, NonReducibleUnknown>,
+                    EventObject,
+                    AsyncInvokeSchemaOutput<TErrorSchema, unknown>
+                  >;
+                },
+                TSystemRegistry,
+                TSetupActorMap
+              >
+          ]
+        ? []
+        : [invalidConfig: never]
+  ): CreatedInvoke<
+    AsyncActorLogic<
+      AsyncInvokeSchemaOutput<StandardSchemaV1, TOutput>,
+      AsyncInvokeSchemaOutput<TInputSchema, NonReducibleUnknown>,
+      EventObject,
+      AsyncInvokeSchemaOutput<TErrorSchema, unknown>
+    >,
+    TContext,
+    TContextShape,
+    TStateSchemas,
+    TStateInput,
+    CreatedInvokeValidationConfig<TConfig>
+  >;
+
+  /** Creates a typed inline invoke. Keep the call inline to infer its state scope. */
+  createInvoke<
+    TContext extends SetupContext<TSchemas, StandardSchemaV1>,
+    const TInputSchema extends StandardSchemaV1 = StandardSchemaV1,
+    const TOutputSchema extends StandardSchemaV1 = StandardSchemaV1,
+    const TErrorSchema extends StandardSchemaV1 = StandardSchemaV1,
+    TContextShape = SetupContextShape<TSchemas, StandardSchemaV1, TContext>,
+    TStateSchemas extends Record<string, SetupStateSchema> = TStates,
+    TStateInput = undefined,
+    const TConfig = unknown
+  >(
+    config: TConfig &
+      CreateAsyncInvokeConfig<
+        StandardSchemaV1.InferOutput<TOutputSchema>,
+        TInputSchema,
+        TOutputSchema,
+        TErrorSchema,
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+        SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+        SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+        SetupTransitionMeta<TSchemas, StandardSchemaV1, StandardSchemaV1>,
+        SetupActions<TSchemas, TSetupActionMap>,
+        TSetupActorMap,
+        SetupGuards<TSchemas, TSetupGuardMap>,
+        TSetupDelayMap,
+        TSystemRegistry,
+        TStateInput
+      > & { schemas: { output: TOutputSchema } },
+    ...check: unknown extends TConfig
+      ? []
+      : [TConfig] extends [
+            NoInfer<
+              CreateAsyncInvokeConfig<
+                StandardSchemaV1.InferOutput<TOutputSchema>,
+                TInputSchema,
+                TOutputSchema,
+                TErrorSchema,
+                TStateSchemas,
+                TContext,
+                TContextShape,
+                SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+                SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+                SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+                SetupTransitionMeta<
+                  TSchemas,
+                  StandardSchemaV1,
+                  StandardSchemaV1
+                >,
+                SetupActions<TSchemas, TSetupActionMap>,
+                TSetupActorMap,
+                SetupGuards<TSchemas, TSetupGuardMap>,
+                TSetupDelayMap,
+                TSystemRegistry,
+                TStateInput
+              >
+            > &
+              ValidateSystemInvoke<
+                Omit<TConfig, 'src'> & {
+                  src: AsyncActorLogic<
+                    StandardSchemaV1.InferOutput<TOutputSchema>,
+                    AsyncInvokeSchemaOutput<TInputSchema, NonReducibleUnknown>,
+                    EventObject,
+                    AsyncInvokeSchemaOutput<TErrorSchema, unknown>
+                  >;
+                },
+                TSystemRegistry,
+                TSetupActorMap
+              >
+          ]
+        ? []
+        : [invalidConfig: never]
+  ): CreatedInvoke<
+    AsyncActorLogic<
+      StandardSchemaV1.InferOutput<TOutputSchema>,
+      AsyncInvokeSchemaOutput<TInputSchema, NonReducibleUnknown>,
+      EventObject,
+      AsyncInvokeSchemaOutput<TErrorSchema, unknown>
+    >,
+    TContext,
+    TContextShape,
+    TStateSchemas,
+    TStateInput,
+    CreatedInvokeValidationConfig<TConfig>
+  >;
+
+  /** Creates an invoke from actor logic with its existing source types. */
+  createInvoke<
+    TLogic extends AnyActorLogic,
+    TContext extends SetupContext<TSchemas, StandardSchemaV1>,
+    TContextShape = SetupContextShape<TSchemas, StandardSchemaV1, TContext>,
+    TStateSchemas extends Record<string, SetupStateSchema> = TStates,
+    TStateInput = undefined,
+    const TConfig = unknown
+  >(
+    config: TConfig &
+      CreateInvokeConfig<
+        TLogic,
+        TStateSchemas,
+        TContext,
+        TContextShape,
+        SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+        SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+        SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+        SetupTransitionMeta<TSchemas, StandardSchemaV1, StandardSchemaV1>,
+        SetupActions<TSchemas, TSetupActionMap>,
+        TSetupActorMap,
+        SetupGuards<TSchemas, TSetupGuardMap>,
+        TSetupDelayMap,
+        TSystemRegistry,
+        TStateInput
+      >,
+    ...check: unknown extends TConfig
+      ? []
+      : [TConfig] extends [
+            NoInfer<
+              CreateInvokeConfig<
+                TLogic,
+                TStateSchemas,
+                TContext,
+                TContextShape,
+                SetupEvents<TSchemas, Record<string, StandardSchemaV1>>,
+                SetupEmitted<TSchemas, Record<string, StandardSchemaV1>>,
+                SetupChildren<TSchemas, Record<string, StandardSchemaV1>>,
+                SetupTransitionMeta<
+                  TSchemas,
+                  StandardSchemaV1,
+                  StandardSchemaV1
+                >,
+                SetupActions<TSchemas, TSetupActionMap>,
+                TSetupActorMap,
+                SetupGuards<TSchemas, TSetupGuardMap>,
+                TSetupDelayMap,
+                TSystemRegistry,
+                TStateInput
+              >
+            > &
+              ValidateSystemInvoke<TConfig, TSystemRegistry, TSetupActorMap>
+          ]
+        ? []
+        : [invalidConfig: never]
+  ): CreatedInvoke<
+    TLogic,
+    TContext,
+    TContextShape,
+    TStateSchemas,
+    TStateInput,
+    CreatedInvokeValidationConfig<TConfig>
   >;
 
   /** Creates a state machine with the setup configuration */
@@ -4227,6 +5079,12 @@ export interface SetupReturn<
       > &
       ValidateSetupDelayReferences<TConfig, TSetupDelays> &
       ValidateSetupStateContracts<TConfig, TStates> &
+      NoInfer<
+        ValidateCreatedInvokeChildren<
+          TConfig,
+          MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>
+        >
+      > &
       ValidateEventDescriptors<
         TConfig,
         NoInfer<SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>>
@@ -4236,45 +5094,49 @@ export interface SetupReturn<
         TSystemRegistry,
         MergeSourceMaps<TSetupActorMap, TActorMap>
       >
-  ): StateMachine<
-    SetupContext<TSchemas, TContextSchema>,
-    | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
-    | ([RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>] extends [
-        never
-      ]
-        ? never
-        : {
-            type: 'xstate.route';
-            to: RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>;
-          }),
-    Cast<
-      MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
-      Record<string, AnyActorRef | undefined>
-    >,
-    StateValueFromStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
-    TTag & string,
-    SetupInput<TSchemas, TInputSchema>,
-    SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig, TStates>,
-    SetupEmitted<TSchemas, TEmittedSchemaMap>,
-    SetupMeta<TSchemas, TMetaSchema>,
-    PublicStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
-    MergeSourceMaps<
-      SetupActions<TSchemas, TSetupActionMap>,
-      MergeSourceMaps<InferActions<TActionSchemaMap>, TActionMap>
-    >,
-    MergeSourceMaps<TSetupActorMap, TActorMap>,
-    MergeSourceMaps<
-      SetupGuards<TSchemas, TSetupGuardMap>,
-      MergeSourceMaps<InferGuards<TGuardSchemaMap>, TGuardMap>
-    >,
-    DelayMapFromNames<
-      TSetupDelays | TDelays,
-      MergeSourceMaps<TSetupDelayMap, TDelayMap>
-    >,
-    SetupInternalEvents<TSchemas, TInternalEventSchemaMap>,
-    SetupTransitionMeta<TSchemas, TMetaSchema, TTransitionMetaSchema>
-  > &
-    MachineIdentity<TConfig>;
+  ): [TConfig] extends [never]
+    ? AnyStateMachine
+    : StateMachine<
+        SetupContext<TSchemas, TContextSchema>,
+        | SetupEvents<TSchemas, TEventSchemaMap, TInternalEventSchemaMap>
+        | ([
+            RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>
+          ] extends [never]
+            ? never
+            : {
+                type: 'xstate.route';
+                to: RoutableStateId<SetupMachineStateSchema<TConfig, TStates>>;
+              }),
+        Cast<
+          MergeChildren<SetupChildren<TSchemas, TChildrenSchemaMap>, TActor>,
+          Record<string, AnyActorRef | undefined>
+        >,
+        StateValueFromStateSchema<SetupMachineStateSchema<TConfig, TStates>>,
+        TTag & string,
+        SetupInput<TSchemas, TInputSchema>,
+        SetupOrConfigOutput<TSchemas, TOutputSchema, TConfig, TStates>,
+        SetupEmitted<TSchemas, TEmittedSchemaMap>,
+        SetupMeta<TSchemas, TMetaSchema>,
+        PublicStateSchema<SetupMachineStateSchema<TConfig, TStates>> & {
+          schemas: MergedSetupSchemas<SetupConfigSchemas<TConfig>, TSchemas>;
+        },
+        MergeSourceMaps<
+          SetupActions<TSchemas, TSetupActionMap>,
+          MergeSourceMaps<InferActions<TActionSchemaMap>, TActionMap>
+        >,
+        MergeSourceMaps<TSetupActorMap, TActorMap>,
+        MergeSourceMaps<
+          SetupGuards<TSchemas, TSetupGuardMap>,
+          MergeSourceMaps<InferGuards<TGuardSchemaMap>, TGuardMap>
+        >,
+        DelayMapFromNames<
+          TSetupDelays | TDelays,
+          MergeSourceMaps<TSetupDelayMap, TDelayMap>
+        >,
+        SetupInternalEvents<TSchemas, TInternalEventSchemaMap>,
+        SetupTransitionMeta<TSchemas, TMetaSchema, TTransitionMetaSchema>
+      > &
+        MachineIdentity<TConfig>;
 
   /**
    * Creates a state node config bound to a specific setup-declared state,
@@ -4301,6 +5163,10 @@ export interface SetupReturn<
   >(
     path: TPath,
     config: TConfig &
+      ValidateEventDescriptors<
+        TConfig,
+        NoInfer<SetupEvents<TSchemas, Record<string, StandardSchemaV1>>>
+      > &
       NoInfer<
         SetupStateNodeTargetArrayInputConstraint<
           TConfig,
@@ -4338,7 +5204,11 @@ export interface SetupReturn<
       TSystemRegistry
     >
   >(
-    config: TConfig
+    config: TConfig &
+      ValidateEventDescriptors<
+        TConfig,
+        NoInfer<SetupEvents<TSchemas, Record<string, StandardSchemaV1>>>
+      >
   ): TConfig;
 
   /** State input schemas from setup config */
@@ -4534,6 +5404,9 @@ export const setup = function setupImplementation<
   SystemRegistry,
   TValidator
 > {
+  if (isDevelopment) {
+    diagnoseSetupConfig(config);
+  }
   const {
     validator,
     states = {} as TStates,
@@ -4561,6 +5434,9 @@ export const setup = function setupImplementation<
         TSchemas,
         TStates,
         TValidator,
+        TActionMap,
+        TActorMap,
+        TGuardMap,
         TExtendSchemas,
         TExtendStates,
         TExtendActionMap,
@@ -4607,6 +5483,29 @@ export const setup = function setupImplementation<
         diagnoseAuthorConfig(config);
       }
       return new StateMachine(config, undefined, validator) as any;
+    },
+    createInvoke(
+      invokeConfig: {
+        src: AnyActorLogic | LogicFunction<unknown, any>;
+        schemas?: {
+          input?: StandardSchemaV1;
+          output?: StandardSchemaV1;
+          error?: StandardSchemaV1;
+        };
+      },
+      ..._check: unknown[]
+    ) {
+      return (
+        typeof invokeConfig.src === 'function'
+          ? {
+              ...invokeConfig,
+              src: createAsyncLogic({
+                schemas: invokeConfig.schemas as any,
+                run: invokeConfig.src
+              })
+            }
+          : invokeConfig
+      ) as any;
     },
     createStateConfig(...args: unknown[]) {
       return args.length > 1 ? args[1] : args[0];

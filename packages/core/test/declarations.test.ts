@@ -1,10 +1,19 @@
 import path from 'node:path';
+import { setImmediate } from 'node:timers/promises';
 import ts from 'typescript';
+
+// Compiler passes are synchronous. Yield between cases so worker RPC updates
+// flush instead of timing out across this long-running suite on CI.
+afterEach(async () => {
+  await setImmediate();
+});
 
 const FIXTURES = [
   'narrowed-context',
   'strict-targets',
-  'registered-child-parent'
+  'registered-child-parent',
+  'created-invoke',
+  'state-config-actors'
 ] as const;
 
 const COMPILER_OPTIONS: ts.CompilerOptions = {
@@ -26,7 +35,10 @@ const indexPath = path.resolve(__dirname, '../src/index.ts');
 
 function emitFixture(name: string) {
   const file = fixturePath(name);
-  const program = ts.createProgram([file, indexPath], COMPILER_OPTIONS);
+  const program = ts.createProgram([file, indexPath], {
+    ...COMPILER_OPTIONS,
+    ...(name === 'exact-context' ? { exactOptionalPropertyTypes: true } : {})
+  });
   const emitted = new Map<string, string>();
   const result = program.emit(undefined, (fileName, contents) =>
     emitted.set(fileName, contents)
@@ -73,10 +85,22 @@ function referencedTypes(declaration: string) {
 describe.each(FIXTURES)(
   'declaration emit (%s)',
   (name) => {
-    const { program, file, emitted, diagnostics } = emitFixture(name);
-    const declaration = [...emitted].find(([fileName]) =>
-      fileName.endsWith(`${name}.d.ts`)
-    )?.[1];
+    let program: ts.Program;
+    let file: string;
+    let emitted: Map<string, string>;
+    let diagnostics: readonly ts.Diagnostic[];
+    let declaration: string | undefined;
+    beforeAll(() => {
+      ({ program, file, emitted, diagnostics } = emitFixture(name));
+      declaration = [...emitted].find(([fileName]) =>
+        fileName.endsWith(`${name}.d.ts`)
+      )?.[1];
+    }, 30_000);
+    afterAll(() => {
+      program = undefined!;
+      emitted.clear();
+      diagnostics = [];
+    });
 
     it('emits without diagnostics', () => {
       expect(formatDiagnostics(diagnostics)).toBe('');
@@ -221,4 +245,17 @@ export const parentMachine = parentSetup.createMachine({
   expect(formatDiagnostics(diagnostics)).toBe('');
   expect(Buffer.byteLength(declaration)).toBeLessThan(100_000);
   expect(declaration.match(/readonly p0: \{/g)).toHaveLength(1);
+}, 30_000);
+
+// This fixture checks callback bodies, rather than exported inferred values.
+// Compile it in its own case so its program is not retained by describe.each
+// during the existing declaration stress tests.
+it('checks concrete created-invoke callback types', () => {
+  const { diagnostics } = emitFixture('created-invoke-inference');
+  expect(formatDiagnostics(diagnostics)).toBe('');
+}, 30_000);
+
+it('retains exact optional context through actor refs', () => {
+  const { diagnostics } = emitFixture('exact-context');
+  expect(formatDiagnostics(diagnostics)).toBe('');
 }, 30_000);

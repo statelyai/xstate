@@ -1,3 +1,5 @@
+import { historicalEventSchemas } from './historicalEventSchemas.ts';
+import type { PublicEventFromMachine } from './eventTypes.ts';
 import isDevelopment from '#is-development';
 import { ACTOR_REF_TYPE, createActor } from './createActor.ts';
 import {
@@ -163,7 +165,7 @@ function getEmptyCanActorScope(): AnyActorScope {
   return emptyCanActorScope;
 }
 
-type CompatibleProvidedActorSource<
+export type CompatibleProvidedActorSource<
   TExpected extends AnyActorLogic,
   TActual extends AnyActorLogic
 > =
@@ -209,13 +211,48 @@ type ProvidedSourceMap<TDeclared, TProvided> = {
     : TDeclared[K];
 };
 
-// Action implementations may return integration-specific values. Their
-// positional arguments must still match the declared source.
-type ProvidedActionContracts<T> = {
-  [K in keyof T]: T[K] extends (...args: infer TArgs) => any
-    ? (...args: TArgs) => void
+declare const declaredAction: unique symbol;
+
+// The action as the machine declared it. A provided action keeps its own type,
+// so integrations can infer from what it returns, and records the declared one,
+// so that the next `provide(...)` is checked against the same contract.
+type DeclaredAction<T> = T extends {
+  readonly [declaredAction]?: infer TDeclared;
+}
+  ? unknown extends TDeclared
+    ? T
+    : Exclude<TDeclared, undefined>
+  : T;
+
+type ProvidedActionSourceMap<TDeclared, TProvided> = {
+  [K in keyof TDeclared]: K extends keyof TProvided
+    ? ({} extends Pick<TProvided, K>
+        ? TDeclared[K] | Exclude<TProvided[K], undefined>
+        : Exclude<TProvided[K], undefined>) & {
+        readonly [declaredAction]?: DeclaredAction<TDeclared[K]>;
+      }
+    : TDeclared[K];
+};
+
+// Positional arguments must match the declared action. An action declared to
+// return nothing (or a result that admits `void`, as an action only declared
+// in `schemas.actions` does) is an effect: the implementation may return
+// integration-specific values, such as an Effect. Any other declared result,
+// such as a context patch, can be returned from a transition, which applies
+// it, so the implementation must return a compatible one.
+export type ProvidedActionContracts<T> = {
+  [K in keyof T]: DeclaredAction<T[K]> extends (
+    ...args: infer TArgs
+  ) => infer TResult
+    ? (...args: TArgs) => ProvidedActionResult<TResult>
     : never;
 };
+
+// `Extract` keeps the result within `Sources['actions']`, which declared
+// actions already satisfy.
+type ProvidedActionResult<TResult> = void extends TResult
+  ? void
+  : Extract<TResult, ReturnType<Sources['actions'][string]>>;
 
 /** @public */
 export class StateMachine<
@@ -283,7 +320,11 @@ export class StateMachine<
     ? TVersion
     : undefined;
 
-  public schemas: AnyMachineSchemas | undefined;
+  public schemas:
+    | (TConfig extends { schemas: infer TSchemas extends AnyMachineSchemas }
+        ? TSchemas
+        : AnyMachineSchemas)
+    | undefined;
 
   /** Standard Schema for snapshots persisted by this machine version. */
   public readonly snapshotSchema: StandardSchemaV1<
@@ -291,8 +332,11 @@ export class StateMachine<
     Snapshot<unknown> & PersistedMachineSnapshot & { context: TContext }
   >;
 
-  /** Standard Schema for complete events accepted by this machine version. */
-  public readonly eventSchema: StandardSchemaV1<unknown, TEvent>;
+  /** Standard Schema for complete public input events; excludes internal and runtime events. */
+  public readonly eventSchema: StandardSchemaV1<
+    unknown,
+    PublicEventFromMachine<TEvent, TInternalEvent>
+  >;
 
   public sources: Sources;
 
@@ -366,7 +410,7 @@ export class StateMachine<
       }
     }
     this.version = this.config.version as typeof this.version;
-    this.schemas = this.config.schemas;
+    this.schemas = this.config.schemas as typeof this.schemas;
     this.snapshotSchema = {
       '~standard': {
         version: 1,
@@ -448,7 +492,7 @@ export class StateMachine<
         }
       }
     };
-    this.eventSchema = {
+    const historicalEventSchema: StandardSchemaV1<unknown, TEvent> = {
       '~standard': {
         version: 1,
         vendor: 'xstate',
@@ -494,6 +538,64 @@ export class StateMachine<
             return { issues: [{ message: 'Expected an event payload.' }] };
           }
           return { value: { ...result.value, type } as TEvent };
+        }
+      }
+    };
+    historicalEventSchemas.set(this, historicalEventSchema);
+    this.eventSchema = {
+      '~standard': {
+        version: 1,
+        vendor: 'xstate',
+        validate: async (value) => {
+          const event = value as EventObject;
+          if (event && typeof event.type === 'string') {
+            const internal = findEventSchema(
+              this.schemas?.internalEvents,
+              event.type
+            );
+            const framework =
+              event.type.startsWith('xstate.') ||
+              event.type.startsWith('@xstate.');
+            if (internal || framework) {
+              if (!internal && event.type === 'xstate.route') {
+                const result =
+                  await historicalEventSchema['~standard'].validate(value);
+                if (result.issues) {
+                  return result;
+                }
+                const to = (result.value as EventObject & { to?: unknown }).to;
+                const route =
+                  typeof to === 'string' && to.startsWith('#')
+                    ? this.idMap.get(to.slice(1))
+                    : undefined;
+                if (
+                  route &&
+                  route !== this.root &&
+                  route.config.id &&
+                  route.config.route
+                ) {
+                  return {
+                    value: result.value as PublicEventFromMachine<
+                      TEvent,
+                      TInternalEvent
+                    >
+                  };
+                }
+              }
+              return {
+                issues: [
+                  {
+                    message: `Event '${event.type}' is not a public input event.`
+                  }
+                ]
+              };
+            }
+          }
+          return historicalEventSchema['~standard'].validate(value) as Promise<
+            StandardSchemaV1.Result<
+              PublicEventFromMachine<TEvent, TInternalEvent>
+            >
+          >;
         }
       }
     };
@@ -568,7 +670,7 @@ export class StateMachine<
     TEmitted,
     TMeta,
     TConfig,
-    ProvidedSourceMap<TActionMap, TProvidedActionMap>,
+    ProvidedActionSourceMap<TActionMap, TProvidedActionMap>,
     ProvidedSourceMap<TActorMap, TProvidedActorMap>,
     TGuardMap,
     TDelayMap,
@@ -609,7 +711,7 @@ export class StateMachine<
       TEmitted,
       TMeta,
       TConfig,
-      ProvidedSourceMap<TActionMap, TProvidedActionMap>,
+      ProvidedActionSourceMap<TActionMap, TProvidedActionMap>,
       ProvidedSourceMap<TActorMap, TProvidedActorMap>,
       TGuardMap,
       TDelayMap,
@@ -1040,6 +1142,9 @@ export class StateMachine<
    * @internal
    */
   public _canTransition(snapshot: AnyMachineSnapshot, event: TEvent): boolean {
+    if (snapshot.status !== 'active') {
+      return false;
+    }
     const emptyActorScope = getEmptyCanActorScope();
     const transitionData = this.getTransitionData(
       snapshot as any,

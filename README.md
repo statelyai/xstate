@@ -25,7 +25,7 @@ It uses event-driven programming, state machines, statecharts, and the actor mod
 
 <!-- documentation sections from docs/meta.json -->
 
-[Start](docs/quick-start.md) · [Learn](docs/why-state-machines.md) · [Build](docs/async-requests.md) · [Reference](docs/configuration.md) · [Migrate](docs/xstate-v5-to-v6.md)
+[Start](docs/quick-start.md) · [Learn](docs/why-state-machines.md) · [Build](docs/async-requests.md) · [Reference](docs/configuration.md) · [Typestates](docs/typestates.md) · [Migrate](docs/xstate-v5-to-v6.md)
 
 ➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
 
@@ -43,12 +43,18 @@ Pick based on what you need:
 
 <!-- package choices from packages/core/src/index.ts, packages/core/src/fsm/index.ts, packages/xstate-store/src/index.ts, and packages/xstate-effect/src/index.ts -->
 
-- **[`@xstate/store`](#xstate-store)**: simple event-based state management. <1kb, great TypeScript inference, similar in spirit to Redux/Zustand. Start here if you just need a store.
+- **[`@xstate/store`](#xstate-store)**: simple event-based state management and reactive atoms, with great TypeScript inference, similar in spirit to Redux/Zustand. Start here if you just need a store.
 - **[`@xstate/effect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-effect)**: Effect 4 integration for XState v6 actors, schemas, typed requirements/errors, streams, and Effect actions.
 - **[`xstate/fsm`](docs/fsm.md)**: tiny pure flat finite state machines with context and TypeScript support.
 - **[`xstate`](#super-quick-start)**: state machines, statecharts, actors, effects, and orchestration for complex app logic.
 
 They work great together, but you don't need one to use the other.
+
+<!-- experimental whole-system transitions from packages/core/src/systemTransition.ts -->
+
+For pure actor-system simulation, the experimental `initialSystemTransition`,
+`systemTransition` and `advanceSystemTime` APIs return an immutable system snapshot
+and external effects as data. See [pure system transitions](docs/system-transitions.md).
 
 ## Sponsors
 
@@ -252,10 +258,12 @@ Read [📽 the slides](http://slides.com/davidkpiano/finite-state-machines) ([�
 
 ## Packages
 
+<!-- @xstate/store description from packages/xstate-store/src/index.ts and package.json -->
+
 | Package                                                                                     | Description                                                                                                                  |
 | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | 🤖 `xstate`                                                                                 | Core finite state machine and statecharts library + interpreter, including graph traversal and model-based testing utilities |
-| [🏪 `@xstate/store`](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)   | Simple event-based state management (<1kb) — standalone, works with or without `xstate`                                      |
+| [🏪 `@xstate/store`](https://github.com/statelyai/xstate/tree/main/packages/xstate-store)   | Simple event-based state management and reactive atoms — standalone, works with or without `xstate`                                      |
 | [✨ `@xstate/effect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-effect)  | Effect 4 integration for XState v6 actors, schemas, typed requirements/errors, streams, and Effect actions                   |
 | [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react)   | React hooks and utilities for using XState in React applications                                                             |
 | [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue)       | Vue composition functions and utilities for using XState in Vue applications                                                 |

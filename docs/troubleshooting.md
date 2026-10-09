@@ -29,7 +29,7 @@ Define event schemas and send event objects. The `actor.trigger` helpers are gen
 
 ## Error: Transition "…" in state "…" uses "cond", which was removed
 
-The config uses a v5 guard. Replace the transition object with an inline transition function that returns `{ target }` when the condition passes and `undefined` otherwise. The same fix applies to `uses an object-form "guard", which was removed`. Named guards are available as `guards.name(...)` in the function's arguments. See [Guards](guards.md).
+The config uses a v5 guard. Replace the transition object with an inline transition function that returns `{ target }` when the condition passes and `undefined` otherwise. Check the condition before any `enq` call: a function that calls `enq` is taken even if it returns `undefined`. The same fix applies to `uses an object-form "guard", which was removed`. Named guards are available as `guards.name(...)` in the function's arguments. See [Guards](guards.md).
 
 ## Error: Transition "…" in state "…" uses "actions", which was removed
 
