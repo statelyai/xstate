@@ -1,6 +1,6 @@
 {
   "name": "@xstate/codemod",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-beta",
   "description": "Codemods for migrating XState source between versions (v5 → v6)",
   "keywords": [
     "xstate",

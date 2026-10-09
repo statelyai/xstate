@@ -6,7 +6,13 @@
   "linked": [],
   "access": "public",
   "baseBranch": "main",
-  "ignore": ["@xstate/example-*", "store-*", "local-store-*"],
+  "ignore": [
+    "@xstate/example-*",
+    "store-*",
+    "local-store-*",
+    "@xstate/store",
+    "@xstate/store-*"
+  ],
   "snapshot": {
     "useCalculatedVersion": true
   },
