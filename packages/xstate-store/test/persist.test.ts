@@ -72,6 +72,56 @@ describe('persistence lifecycle regressions', () => {
     expect(operations).toEqual(['write 1', 'clear', 'write 2']);
   });
 
+  it('waits for writes queued by onDone callbacks', async () => {
+    const written: number[] = [];
+    let store: any;
+    store = createStore({
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(
+      persist({
+        name: 'counter',
+        storage: {
+          getItem: () => null,
+          setItem: async (_key, value) => {
+            await Promise.resolve();
+            written.push(JSON.parse(value).context.count);
+          },
+          removeItem: () => {}
+        },
+        onDone: (context) => {
+          if (context.count === 1) store.trigger.inc();
+        }
+      })
+    );
+
+    store.trigger.inc();
+    await flushStorage(store);
+    expect(written).toEqual([1, 2]);
+  });
+
+  it('restarts event history after clearStorage', () => {
+    const storage = createMockStorage();
+    const store = createStore({
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(persist({ name: 'counter', storage, strategy: 'event' }));
+
+    store.trigger.inc();
+    clearStorage(store);
+    store.trigger.inc();
+
+    const stored = JSON.parse(storage.getItem('counter') as string);
+    expect(stored.events).toHaveLength(1);
+    expect(stored.checkpoint).toEqual({ count: 1 });
+
+    const restored = createStore({
+      context: { count: 0 },
+      on: { inc: (context) => ({ count: context.count + 1 }) }
+    }).with(persist({ name: 'counter', storage, strategy: 'event' }));
+    expect(restored.getSnapshot().context.count).toBe(2);
+  });
+
   it.each(['snapshot', 'event'] as const)(
     'reports a rejected initial async read (%s)',
     async (strategy) => {

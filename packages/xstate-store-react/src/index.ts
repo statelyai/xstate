@@ -1,6 +1,12 @@
 export * from '@xstate/store';
 
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore
+} from 'react';
 import {
   type AnyStoreConfig,
   type AnyStoreLogicCreator,
@@ -21,6 +27,9 @@ import {
   createStore,
   isAtom
 } from '@xstate/store';
+
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 function defaultCompare<T>(a: T, b: T) {
   return a === b;
@@ -223,7 +232,10 @@ export function useStore<TDefinition extends StoreDefinition>(
   }
 
   const inspectRef = useRef(options?.inspect);
-  inspectRef.current = options?.inspect;
+  // Only committed renders may change the active inspector.
+  useIsomorphicLayoutEffect(() => {
+    inspectRef.current = options?.inspect;
+  });
   const shouldInspect = options?.inspect !== undefined;
 
   useEffect(() => {

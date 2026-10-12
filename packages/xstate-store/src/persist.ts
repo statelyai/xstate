@@ -129,6 +129,8 @@ interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   flushTimeoutId: ReturnType<typeof setTimeout> | null;
   pendingWrite: Promise<void> | null;
   lastScheduledRevision: number;
+  /** Set by `clearStorage`; the next event-strategy transition restarts history. */
+  historyCleared: boolean;
   flush: () => void | Promise<void>;
 }
 
@@ -304,6 +306,7 @@ function createInternals<TContext, TEvent extends EventObject>(
     flushTimeoutId: null,
     pendingWrite: null,
     lastScheduledRevision: 0,
+    historyCleared: false,
     flush: () => {
       if (internals.flushTimeoutId !== null) {
         clearTimeout(internals.flushTimeoutId);
@@ -648,8 +651,14 @@ function persistEventFromLogic<
 
       // Delegate to wrapped logic
       const [nextSnapshot, effects] = logic.transition(snapshot, event);
-      const prevEvents: TEvent[] = snapshot._persistEvents ?? [];
-      const prevCheckpoint: unknown = snapshot._persistCheckpoint ?? null;
+      let prevEvents: TEvent[] = snapshot._persistEvents ?? [];
+      let prevCheckpoint: unknown = snapshot._persistCheckpoint ?? null;
+      if (internals.historyCleared) {
+        // Storage was cleared: restart history from the live context.
+        internals.historyCleared = false;
+        prevEvents = [];
+        prevCheckpoint = snapshot.context;
+      }
 
       const revision = (snapshot[PERSIST_REVISION] ?? 0) + 1;
 
@@ -896,6 +905,7 @@ export function clearStorage(store: {
   internals.pendingContext = null;
   internals.pendingEvents = null;
   internals.pendingCheckpoint = null;
+  internals.historyCleared = isEventStrategy(internals.options);
   return enqueueWrite(internals, () =>
     internals.storage.removeItem(internals.options.name)
   );
@@ -925,7 +935,16 @@ export function flushStorage(store: {
   if (!internals) {
     throw new Error('flushStorage: store does not have a persist extension');
   }
-  return internals.flush();
+  return drain(internals);
+}
+
+// Callbacks such as `onDone` may send events that queue more writes; wait
+// until the queue stays empty.
+function drain(internals: PersistInternals<any>): void | Promise<void> {
+  const result = internals.flush();
+  if (result instanceof Promise) {
+    return result.then(() => drain(internals));
+  }
 }
 
 /**
