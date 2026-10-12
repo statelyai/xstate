@@ -40,10 +40,11 @@ Existing setups that declare only schemas keep their permissive machine-config
 typing. A state-level `schemas.context` is intersected with the root context
 schema, so it can declare only the fields that state narrows.
 
-Machines created with `setup(...).createMachine(...)` can be exported with
-TypeScript declaration generation enabled, including machines with state-level
-context schemas and function-form transitions. No explicit machine type
-annotation is required.
+Machines created with `setup(...).createMachine(...)`, variants returned by
+`machine.provide({ actions })`, and `setup(...).createStateConfig(...)` fragments
+can be exported with TypeScript declaration generation enabled. This includes
+state-level context schemas, function-form transitions and invoke input mappers.
+No explicit machine or fragment type annotation is required.
 
 For an actor used in one state, `invoke: s.createInvoke({ src, input, onDone })` infers input and completion output from `src`. Keep the helper inline in `s.createMachine(...)` to also infer that state's narrowed context, ancestor context, state input and transition target requirements. The helper works alongside named actor sources. See [typed inline invokes](invoke.md#typed-inline-invokes).
 

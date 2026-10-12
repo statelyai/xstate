@@ -1008,8 +1008,8 @@ describe('transition function', () => {
       ]);
     });
 
-    it('preserves one-argument exit actions before an invoke stop', () => {
-      function exitAction(_: unknown) {}
+    it('does not add a placeholder effect for a one-argument exit function', () => {
+      const exitAction = vi.fn((_: unknown) => {});
       const machine = createMachine({
         initial: 'active',
         states: {
@@ -1025,9 +1025,9 @@ describe('transition function', () => {
       const [active] = initialTransition(machine);
       const [, effects] = transition(machine, active, { type: 'EXIT' });
 
-      expect(effects).toHaveLength(2);
-      expect(effects[0].type).not.toBe(XSTATE_STOP);
-      expect(effects[1]).toMatchObject({ type: XSTATE_STOP, id: 'child' });
+      expect(exitAction).toHaveBeenCalledTimes(1);
+      expect(effects).toHaveLength(1);
+      expect(effects[0]).toMatchObject({ type: XSTATE_STOP, id: 'child' });
     });
 
     it('orders after cancellation before the invoke stop', () => {

@@ -11,7 +11,9 @@ entry: ({ context }, enq) => {
 }
 ```
 
-Declare `enq` as the second parameter of an entry or exit function. XState passes a working `enq` only to entry and exit functions declared with exactly two parameters (`fn.length === 2`). Any other entry or exit function gets an `enq` that ignores every call. That includes a second parameter with a default value, a rest parameter, or a wrapper that forwards `(...args)`. Development builds warn when that happens. Transition functions always get a working `enq`.
+<!-- entry/exit enqueue evaluation from packages/core/src/stateUtils.ts -->
+
+Every transition, entry and exit function receives a working `enq`, including functions with default or rest parameters and wrappers that forward `(...args)`. These functions run synchronously while computing the next snapshot. Effects passed to `enq(...)` run after that computation; entry and exit functions that enqueue no effects add nothing to the effects list.
 
 Entry and exit functions also receive `stateNode`, the state node being entered or exited, and `input`, the state's input. Transition functions do not receive `stateNode`.
 

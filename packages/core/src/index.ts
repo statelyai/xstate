@@ -184,6 +184,7 @@ export type {
   Next_ChoiceStateNodeConfig as ChoiceStateNodeConfig,
   Next_RegularStateNodeConfig as RegularStateNodeConfig,
   Next_InvokeConfig as InvokeConfig,
+  InvokeInputArgs,
   Next_TransitionConfigOrTarget as TransitionConfigOrTarget,
   Sources,
   InferEvents,

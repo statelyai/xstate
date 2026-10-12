@@ -1524,102 +1524,64 @@ function microstep(
     ): [
       actions: any[],
       context: MachineContext | undefined,
-      internalEvents: EventObject[] | undefined
+      internalEvents: EventObject[] | undefined,
+      children: AnyMachineSnapshot['children'] | undefined
     ] => {
-      if (transitionFn.length === 2) {
-        // enqueue action; retrieve
-        const actions: any[] = [];
-        const internalEvents: EventObject[] = [];
-        let updatedContext: MachineContext | undefined;
+      const actions: any[] = [];
+      const internalEvents: EventObject[] = [];
+      let updatedContext: MachineContext | undefined;
 
-        const enqueue = createTransitionEnqueue(
-          actorScope,
-          actions,
-          internalEvents,
-          true
-        );
+      const enqueue = createTransitionEnqueue(
+        actorScope,
+        actions,
+        internalEvents,
+        true
+      );
 
-        const args = isLazyActorScope(actorScope)
-          ? withActorScope(
-              {
-                context,
-                event,
-                children,
-                actions: currentSnapshot.machine.sources.actions,
-                actors: currentSnapshot.machine.sources.actors,
-                guards: currentSnapshot.machine.sources.guards,
-                delays: currentSnapshot.machine.sources.delays,
-                input,
-                stateNode
-              },
-              actorScope
-            )
-          : {
+      const args = isLazyActorScope(actorScope)
+        ? withActorScope(
+            {
               context,
               event,
-              parent: actorScope.self._parent,
-              self: actorScope.self,
+              output: getEventOutput(event),
               children,
-              system: actorScope.system,
               actions: currentSnapshot.machine.sources.actions,
               actors: currentSnapshot.machine.sources.actors,
               guards: currentSnapshot.machine.sources.guards,
               delays: currentSnapshot.machine.sources.delays,
               input,
               stateNode
-            };
-        let res;
-        try {
-          res = transitionFn(args, enqueue);
-        } finally {
-          closeTransitionEnqueue(enqueue);
-        }
-        assertSyncTransitionResult(res, event, stateNode.id, kind);
+            },
+            actorScope
+          )
+        : {
+            context,
+            event,
+            output: getEventOutput(event),
+            parent: actorScope.self._parent,
+            self: actorScope.self,
+            children,
+            system: actorScope.system,
+            actions: currentSnapshot.machine.sources.actions,
+            actors: currentSnapshot.machine.sources.actors,
+            guards: currentSnapshot.machine.sources.guards,
+            delays: currentSnapshot.machine.sources.delays,
+            input,
+            stateNode
+          };
+      let res;
+      try {
+        res = transitionFn(args, enqueue);
+      } finally {
+        closeTransitionEnqueue(enqueue);
+      }
+      assertSyncTransitionResult(res, event, stateNode.id, kind);
 
-        if (res?.context !== undefined) {
-          updatedContext = mergeContextPatch(context, res.context);
-        }
-
-        return [actions, updatedContext, internalEvents];
+      if (res?.context !== undefined) {
+        updatedContext = mergeContextPatch(context, res.context);
       }
 
-      // For 1-argument actions, wrap them to include input
-      // Preserve _special flag if present (for entry/exit actions)
-      const wrappedAction = Object.assign(
-        (args: any, enqueue: any) =>
-          transitionFn(
-            isLazyActorScope(actorScope)
-              ? withActorScope(
-                  {
-                    context: args.context,
-                    event: args.event,
-                    output: args.output,
-                    children: args.children,
-                    actions: args.actions,
-                    actors: args.actors,
-                    guards: currentSnapshot.machine.sources.guards,
-                    delays: currentSnapshot.machine.sources.delays,
-                    input,
-                    stateNode
-                  },
-                  actorScope
-                )
-              : {
-                  ...args,
-                  guards: currentSnapshot.machine.sources.guards,
-                  delays: currentSnapshot.machine.sources.delays,
-                  input,
-                  stateNode
-                },
-            // This function runs during action resolution, where enqueued
-            // effects are no longer collected.
-            isDevelopment
-              ? createIgnoredEnqueue(transitionFn, kind, stateNode.id)
-              : enqueue
-          ),
-        '_special' in transitionFn ? { _special: true } : {}
-      );
-      return [[wrappedAction], undefined, undefined];
+      return [actions, updatedContext, internalEvents, res?.children];
     };
 
     let nextState = currentSnapshot;
@@ -1671,22 +1633,24 @@ function microstep(
       for (const exitStateNode of statesToExit) {
         const stateInput = getStateInput(currentSnapshot, exitStateNode.id);
 
-        const [exitActions, nextContext, internalEvents] = exitStateNode.exit
-          ? getStateActionsAndContext(
-              exitStateNode.exit,
-              nextState.context,
-              nextState.children,
-              stateInput,
-              'exit',
-              exitStateNode
-            )
-          : [[], undefined, undefined];
+        const [exitActions, nextContext, internalEvents, nextChildren] =
+          exitStateNode.exit
+            ? getStateActionsAndContext(
+                exitStateNode.exit,
+                nextState.context,
+                nextState.children,
+                stateInput,
+                'exit',
+                exitStateNode
+              )
+            : [[], undefined, undefined, undefined];
         if (internalEvents?.length) {
           internalQueue.push(...internalEvents);
         }
-        if (nextContext) {
+        if (nextContext || nextChildren) {
           nextState = cloneMachineSnapshot(nextState, {
-            context: nextContext
+            ...(nextContext ? { context: nextContext } : {}),
+            ...(nextChildren ? { children: nextChildren } : {})
           });
         }
         const [resolvedState, resolvedActions] = resolveActionsWithContext(
@@ -2066,7 +2030,7 @@ function microstep(
         const stateInput = stateInputMap[stateNodeToEnter.id];
 
         if (stateNodeToEnter.entry) {
-          const [resultActions, nextContext, nextInternalEvents] =
+          const [resultActions, nextContext, nextInternalEvents, nextChildren] =
             getStateActionsAndContext(
               stateNodeToEnter.entry,
               context,
@@ -2082,6 +2046,11 @@ function microstep(
           if (nextContext) {
             context = nextContext;
             contextChangedByEntry = true;
+          }
+          if (nextChildren) {
+            nextState = cloneMachineSnapshot(nextState, {
+              children: nextChildren
+            });
           }
         }
 
@@ -2262,7 +2231,7 @@ function microstep(
       nextStateNodesToExit.forEach((stateNode) => {
         if (stateNode.exit) {
           const stateInput = getStateInput(nextState, stateNode.id);
-          const [exitActions, nextContext, nextInternalEvents] =
+          const [exitActions, nextContext, nextInternalEvents, nextChildren] =
             getStateActionsAndContext(
               stateNode.exit,
               nextState.context,
@@ -2271,9 +2240,10 @@ function microstep(
               'exit',
               stateNode
             );
-          if (nextContext) {
+          if (nextContext || nextChildren) {
             nextState = cloneMachineSnapshot(nextState, {
-              context: nextContext
+              ...(nextContext ? { context: nextContext } : {}),
+              ...(nextChildren ? { children: nextChildren } : {})
             });
           }
           allExitActions.push(...exitActions);
@@ -2869,57 +2839,6 @@ function assertSyncTransitionResult(
         : `Transition functions must be synchronous. Transition for event "${event.type}" in state "${sourceId}" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.`
     );
   }
-}
-
-const ignoredEnqueues = new WeakMap<
-  (...args: any[]) => any,
-  ReturnType<typeof createEnqueueObject>
->();
-
-/**
- * The enqueue object that an entry or exit function gets in development when it
- * is not declared with exactly two parameters. Such a function runs during
- * action resolution, where enqueued effects are no longer collected, so every
- * call is ignored. This one warns, once per function.
- */
-function createIgnoredEnqueue(
-  fn: (...args: any[]) => any,
-  kind: 'entry' | 'exit',
-  stateNodeId: string
-): ReturnType<typeof createEnqueueObject> {
-  let enqueue = ignoredEnqueues.get(fn);
-  if (enqueue) {
-    return enqueue;
-  }
-  let warned = false;
-  const ignore =
-    (method: string, result?: () => unknown) =>
-    (..._args: unknown[]): any => {
-      if (!warned) {
-        warned = true;
-        console.warn(
-          `The ${kind} function of state "${stateNodeId}" called ${method}(...), which was ignored. Only ${kind} functions declared with exactly two parameters, (args, enq) => ..., get a working enq. This one has fn.length ${fn.length}; fn.length stops counting at a default or rest parameter.`
-        );
-      }
-      return result?.();
-    };
-  const emptyActor = () => ({});
-  enqueue = createEnqueueObject(
-    {
-      cancel: ignore('enq.cancel'),
-      emit: ignore('enq.emit'),
-      log: ignore('enq.log'),
-      raise: ignore('enq.raise'),
-      sendTo: ignore('enq.sendTo'),
-      stop: ignore('enq.stop'),
-      spawn: ignore('enq.spawn', emptyActor),
-      listen: ignore('enq.listen', emptyActor),
-      subscribeTo: ignore('enq.subscribeTo', emptyActor)
-    },
-    ignore('enq')
-  );
-  ignoredEnqueues.set(fn, enqueue);
-  return enqueue;
 }
 
 let transitionEffectEnqueue: ReturnType<typeof createEnqueueObject> | undefined;
