@@ -230,16 +230,6 @@ export class StateNode<
     this.entry = this.config.entry as AnyAction | undefined;
     this.exit = this.config.exit as AnyAction | undefined;
 
-    if (this.entry) {
-      // @ts-expect-error _special is an internal marker not on the Action type
-      this.entry._special = true;
-    }
-
-    if (this.exit) {
-      // @ts-expect-error _special is an internal marker not on the Action type
-      this.exit._special = true;
-    }
-
     this.meta = this.config.meta;
     this.output =
       this.type === 'final' || !this.parent ? this.config.output : undefined;

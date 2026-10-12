@@ -659,6 +659,6 @@ explicitly configured routes. Payload checks require runtime schemas;
 
 <!-- entry effects and terminal transition behavior from packages/core/src/stateUtils.ts and transitionActions.ts -->
 
-Functions passed to `enq(...)` run as effects; their returned context or child patches are ignored, with a development warning. Return a computed patch from the transition, entry, or exit function instead. Entry/exit functions using enqueue must declare exactly `(args, enq)`; default/rest parameter wrappers receive a development diagnostic. See [actions](../../docs/actions.md).
+Functions passed to `enq(...)` run as effects; their returned context or child patches are ignored, with a development warning. Return a computed patch from the transition, entry, or exit function instead. Every entry/exit function receives a working enqueue argument, including default/rest parameters and forwarding wrappers. Only enqueued effects appear in the effects list. See [actions](../../docs/actions.md).
 
 Pure transitions preserve terminal snapshots and return no effects. `snapshot.can(...)` returns `false` for terminal snapshots; active dry runs propagate evaluation errors. See [snapshots](../../docs/snapshots.md) and [states](../../docs/states.md).

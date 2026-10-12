@@ -211,13 +211,11 @@ type ProvidedSourceMap<TDeclared, TProvided> = {
     : TDeclared[K];
 };
 
-declare const declaredAction: unique symbol;
-
 // The action as the machine declared it. A provided action keeps its own type,
 // so integrations can infer from what it returns, and records the declared one,
 // so that the next `provide(...)` is checked against the same contract.
 type DeclaredAction<T> = T extends {
-  readonly [declaredAction]?: infer TDeclared;
+  readonly '~declaredAction'?: infer TDeclared;
 }
   ? unknown extends TDeclared
     ? T
@@ -229,7 +227,7 @@ type ProvidedActionSourceMap<TDeclared, TProvided> = {
     ? ({} extends Pick<TProvided, K>
         ? TDeclared[K] | Exclude<TProvided[K], undefined>
         : Exclude<TProvided[K], undefined>) & {
-        readonly [declaredAction]?: DeclaredAction<TDeclared[K]>;
+        readonly '~declaredAction'?: DeclaredAction<TDeclared[K]>;
       }
     : TDeclared[K];
 };

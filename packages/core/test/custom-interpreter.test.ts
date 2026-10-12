@@ -361,7 +361,10 @@ describe('custom interpreter runtime', () => {
     const child = createMachine({
       initial: 'waiting',
       states: {
-        waiting: { exit, on: { FINISH: { target: 'done' } } },
+        waiting: {
+          exit: (_, enq) => enq(exit),
+          on: { FINISH: { target: 'done' } }
+        },
         done: { type: 'final' }
       }
     });
@@ -376,6 +379,7 @@ describe('custom interpreter runtime', () => {
     });
 
     expect(done.status).toBe('done');
+    expect(exit).not.toHaveBeenCalled();
     expect(effects.at(-2)).toMatchObject({ kind: 'action' });
     expect(effects.at(-1)).toMatchObject({
       type: '@xstate.terminate',
@@ -395,6 +399,8 @@ describe('custom interpreter runtime', () => {
     expect(
       repeatedEffects.some((effect) => effect.type === '@xstate.terminate')
     ).toBe(false);
+    await executeEffects(effects);
+    expect(exit).toHaveBeenCalledTimes(1);
   });
 
   it('exposes child completion in the final microstep', () => {

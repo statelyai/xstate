@@ -458,6 +458,7 @@ type InvokeSrcArgs<
   self: AnyActorRef;
 };
 
+/** @public Arguments passed to an invoked actor input mapper. */
 export type InvokeInputArgs<
   TContext extends MachineContext,
   TEvent extends EventObject,

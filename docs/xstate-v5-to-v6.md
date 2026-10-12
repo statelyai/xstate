@@ -1067,7 +1067,7 @@ These exports have been **added**:
 
 - `setup` (reshaped - see §4) and `createSystem` for typed system registries
 - Setup state contract types: `SetupStateSchema`, `SetupStateSchemas`, `SetupStateType`
-- Typed inline invoke types: `CreatedInvoke`, `CreateInvokeConfig`, `CreateAsyncInvokeConfig`
+- Typed inline invoke types: `CreatedInvoke`, `CreateInvokeConfig`, `CreateAsyncInvokeConfig`, `InvokeInputArgs`
 - `createStateConfig`
 - `checkStateIn`
 - `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`

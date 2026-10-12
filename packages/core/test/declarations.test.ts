@@ -13,7 +13,9 @@ const FIXTURES = [
   'strict-targets',
   'registered-child-parent',
   'created-invoke',
-  'state-config-actors'
+  'state-config-actors',
+  'provided-actions',
+  'state-config-invoke-input'
 ] as const;
 
 const COMPILER_OPTIONS: ts.CompilerOptions = {

@@ -1305,7 +1305,7 @@ describe('entry/exit actions', () => {
       ]);
     });
 
-    describe('with one or two parameters', () => {
+    describe('with any number of parameters', () => {
       it('passes guards and delays to entry and exit functions with one parameter', () => {
         const seen: unknown[] = [];
         const machine = setup({
@@ -1393,7 +1393,7 @@ describe('entry/exit actions', () => {
         }
       );
 
-      it('warns in development when an entry function without two parameters calls enq', () => {
+      it('collects enqueued events from forwarding wrappers without warnings', () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         // forwards its arguments, so it has no declared parameters
         const traced = <F extends (...args: any[]) => any>(fn: F): F =>
@@ -1413,7 +1413,7 @@ describe('entry/exit actions', () => {
                     },
                 on: { loaded: { target: 'ready' }, retry: { target: 'idle' } }
               },
-              ready: {}
+              ready: { on: { retry: { target: 'idle' } } }
             }
           });
 
@@ -1427,13 +1427,8 @@ describe('entry/exit actions', () => {
         wrapped.send({ type: 'retry' });
         wrapped.send({ type: 'load' });
 
-        // still ignored, but reported once
-        expect(wrapped.getSnapshot().value).toBe('loading');
-        expect(warn.mock.calls).toEqual([
-          [
-            'The entry function of state "(machine).loading" called enq.raise(...), which was ignored. Only entry functions declared with exactly two parameters, (args, enq) => ..., get a working enq. This one has fn.length 0; fn.length stops counting at a default or rest parameter.'
-          ]
-        ]);
+        expect(wrapped.getSnapshot().value).toBe('ready');
+        expect(warn).not.toHaveBeenCalled();
         warn.mockRestore();
       });
     });

@@ -15,10 +15,7 @@ import {
   type DeadLetterDetail,
   type EventRejectionReason
 } from './system.ts';
-import { isLazyActorScope, withActorScope } from './actorScope.ts';
-import { getEventOutput } from './utils.ts';
 import type {
-  Action,
   ActorTermination,
   AnyAction,
   AnyActor,
@@ -1171,7 +1168,7 @@ export async function executeEffects(
 
 export function resolveActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
-  event: AnyEventObject,
+  _event: AnyEventObject,
   actorScope: AnyActorScope,
   actions: AnyAction[]
 ): [AnyMachineSnapshot, ExecutableActionObject[]] {
@@ -1179,30 +1176,6 @@ export function resolveActionsWithContext(
   const executableActions: ExecutableActionObject[] = [];
 
   for (const action of actions) {
-    const actionArgs = isLazyActorScope(actorScope)
-      ? withActorScope(
-          {
-            context: intermediateSnapshot.context,
-            event,
-            output: getEventOutput(event),
-            children: intermediateSnapshot.children,
-            actions: currentSnapshot.machine.sources.actions,
-            actors: currentSnapshot.machine.sources.actors
-          },
-          actorScope
-        )
-      : {
-          context: intermediateSnapshot.context,
-          event,
-          output: getEventOutput(event),
-          self: actorScope.self,
-          system: actorScope.system,
-          parent: actorScope.self._parent,
-          children: intermediateSnapshot.children,
-          actions: currentSnapshot.machine.sources.actions,
-          actors: currentSnapshot.machine.sources.actors
-        };
-
     const isInline = typeof action === 'function';
     const actionRecord = getTransitionActionRecord(action);
     let resolvedActionArgs = actionRecord?.args;
@@ -1256,53 +1229,6 @@ export function resolveActionsWithContext(
         actionRecord.childUpdate,
         actorScope
       );
-    }
-
-    if (resolvedAction && '_special' in resolvedAction) {
-      executableActions.push({
-        kind: 'action',
-        exec: execCustomEffect,
-        type:
-          typeof action === 'object'
-            ? 'action' in action && typeof action.action === 'function'
-              ? (action.action.name ?? '(anonymous)')
-              : ((action as any).type ?? '(anonymous)')
-            : action.name || '(anonymous)',
-        params: actionParams,
-        args: [],
-        action: undefined
-      });
-
-      const specialAction = resolvedAction as unknown as Action<
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any
-      >;
-
-      const res = specialAction(actionArgs as any, emptyEnqueueObject);
-
-      if (res && ('context' in res || 'children' in res)) {
-        // Special-action patches never change `nodes`, so a shallow clone is
-        // equivalent to `cloneMachineSnapshot` — and keeps this module (and
-        // non-machine logic like `createFSM`) independent of State.ts.
-        intermediateSnapshot = {
-          ...intermediateSnapshot,
-          ...(res.context !== undefined
-            ? {
-                context: mergeContextPatch(
-                  intermediateSnapshot.context,
-                  res.context
-                )
-              }
-            : {}),
-          ...('children' in res ? { children: res.children } : {})
-        };
-      }
-      continue;
     }
 
     if (!resolvedAction || !('resolve' in resolvedAction)) {
@@ -1392,5 +1318,3 @@ export function createEnqueueObject(
 
 const noop = () => {};
 const emptyActor = () => ({}) as any;
-
-const emptyEnqueueObject = createEnqueueObject({}, noop);

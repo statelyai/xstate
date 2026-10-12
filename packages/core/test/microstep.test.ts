@@ -199,7 +199,7 @@ describe('getMicrosteps', () => {
           }
         },
         b: {
-          entry: () => {},
+          entry: (_: any, enq: any) => enq(() => {}),
           always: (_: any, enq: any) => {
             enq(() => {});
             return { target: 'c' };
@@ -341,7 +341,7 @@ describe('getInitialMicrosteps', () => {
       initial: 'a',
       states: {
         a: {
-          entry: () => {}
+          entry: (_, enq) => enq(() => {})
         }
       }
     });
@@ -358,14 +358,14 @@ describe('getInitialMicrosteps', () => {
       initial: 'a',
       states: {
         a: {
-          entry: () => {},
+          entry: (_: any, enq: any) => enq(() => {}),
           always: (_: any, enq: any) => {
             enq(() => {});
             return { target: 'b' };
           }
         },
         b: {
-          entry: () => {}
+          entry: (_: any, enq: any) => enq(() => {})
         }
       } as any
     });
@@ -398,11 +398,11 @@ describe('getInitialMicrosteps', () => {
       initial: 'parent',
       states: {
         parent: {
-          entry: () => {},
+          entry: (_, enq) => enq(() => {}),
           initial: 'child',
           states: {
             child: {
-              entry: () => {}
+              entry: (_, enq) => enq(() => {})
             }
           }
         }
