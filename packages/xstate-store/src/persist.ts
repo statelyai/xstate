@@ -119,6 +119,9 @@ export type PersistOptions<
 // Internal helpers
 const PERSIST_INTERNALS: unique symbol = Symbol.for('xstate-store-persist');
 const PERSIST_REVISION: unique symbol = Symbol('xstate-store-persist-revision');
+const PERSIST_HISTORY_VERSION: unique symbol = Symbol(
+  'xstate-store-persist-history-version'
+);
 
 interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   options: PersistOptions<TContext, TEvent>;
@@ -129,8 +132,8 @@ interface PersistInternals<TContext, TEvent extends EventObject = EventObject> {
   flushTimeoutId: ReturnType<typeof setTimeout> | null;
   pendingWrite: Promise<void> | null;
   lastScheduledRevision: number;
-  /** Set by `clearStorage`; the next event-strategy transition restarts history. */
-  historyCleared: boolean;
+  /** Incremented by `clearStorage`; committed snapshots track their history. */
+  historyVersion: number;
   flush: () => void | Promise<void>;
 }
 
@@ -306,7 +309,7 @@ function createInternals<TContext, TEvent extends EventObject>(
     flushTimeoutId: null,
     pendingWrite: null,
     lastScheduledRevision: 0,
-    historyCleared: false,
+    historyVersion: 0,
     flush: () => {
       if (internals.flushTimeoutId !== null) {
         clearTimeout(internals.flushTimeoutId);
@@ -628,6 +631,7 @@ function persistEventFromLogic<
             {
               ...replayedSnapshot,
               [PERSIST_REVISION]: snapshot[PERSIST_REVISION],
+              [PERSIST_HISTORY_VERSION]: snapshot[PERSIST_HISTORY_VERSION],
               _persistEvents: events,
               _persistCheckpoint: parsed.checkpoint ?? null,
               _persist: { ...snapshot._persist, hydrated: true },
@@ -653,9 +657,13 @@ function persistEventFromLogic<
       const [nextSnapshot, effects] = logic.transition(snapshot, event);
       let prevEvents: TEvent[] = snapshot._persistEvents ?? [];
       let prevCheckpoint: unknown = snapshot._persistCheckpoint ?? null;
-      if (internals.historyCleared) {
-        // Storage was cleared: restart history from the live context.
-        internals.historyCleared = false;
+      const historyVersion = internals.historyVersion;
+      const snapshotHistoryVersion = snapshot[PERSIST_HISTORY_VERSION] ?? 0;
+      const hydrated = snapshot._persist?.hydrated;
+      if (hydrated && historyVersion !== snapshotHistoryVersion) {
+        // Only a committed, hydrated snapshot adopts the new history. Pure
+        // evaluations leave the live snapshot unchanged; pre-hydration events
+        // become part of the checkpoint when hydration finishes.
         prevEvents = [];
         prevCheckpoint = snapshot.context;
       }
@@ -666,6 +674,9 @@ function persistEventFromLogic<
       const snapshotWithMeta = {
         ...nextSnapshot,
         [PERSIST_REVISION]: revision,
+        [PERSIST_HISTORY_VERSION]: hydrated
+          ? historyVersion
+          : snapshotHistoryVersion,
         _persistEvents: prevEvents,
         _persistCheckpoint: prevCheckpoint,
         _persist: snapshot._persist ?? { hydrated: false },
@@ -700,7 +711,11 @@ function persistEventFromLogic<
       };
 
       const persistEffect = () => {
-        if (revision <= internals.lastScheduledRevision) return;
+        if (
+          revision <= internals.lastScheduledRevision ||
+          historyVersion !== internals.historyVersion
+        )
+          return;
         internals.lastScheduledRevision = revision;
         if (throttleMs > 0) {
           internals.pendingEvents = nextEvents;
@@ -879,7 +894,8 @@ export function createJSONStorage(
 
 /**
  * Removes persisted data from storage for a store that uses the `persist`
- * extension.
+ * extension, without resetting its live context. With the event strategy,
+ * the next hydrated event starts a new history from the current context.
  *
  * @example
  *
@@ -905,7 +921,9 @@ export function clearStorage(store: {
   internals.pendingContext = null;
   internals.pendingEvents = null;
   internals.pendingCheckpoint = null;
-  internals.historyCleared = isEventStrategy(internals.options);
+  if (isEventStrategy(internals.options)) {
+    internals.historyVersion++;
+  }
   return enqueueWrite(internals, () =>
     internals.storage.removeItem(internals.options.name)
   );
@@ -913,6 +931,7 @@ export function clearStorage(store: {
 
 /**
  * Flushes pending throttled updates and waits for already queued async writes.
+ * Also waits for writes queued by events sent from `onDone` callbacks.
  * Synchronous storage writes complete before this function returns.
  *
  * @example
