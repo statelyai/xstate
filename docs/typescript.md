@@ -40,10 +40,9 @@ Existing setups that declare only schemas keep their permissive machine-config
 typing. A state-level `schemas.context` is intersected with the root context
 schema, so it can declare only the fields that state narrows.
 
-Nested and parallel states declared in `setup({ states })` retain their
-`snapshot.value` and `snapshot.matches(...)` types with
-`exactOptionalPropertyTypes: true`. Both object patterns such as `{ b: 'x' }`
-and dot paths such as `'b.x'` are accepted for a nested state.
+XState infers `snapshot.value` and valid `snapshot.matches(...)` patterns
+from nested and parallel states. Match a nested state with an object such as
+`{ b: 'x' }` or a dot path such as `'b.x'`.
 
 Machines created with `setup(...).createMachine(...)`, variants returned by
 `machine.provide({ actions })`, and `setup(...).createStateConfig(...)` fragments
