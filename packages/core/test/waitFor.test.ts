@@ -64,7 +64,7 @@ describe('waitFor', () => {
       actor.stop();
     });
 
-    it('should clear the timeout and remove the abort listener after an actor error', async () => {
+    it('should unsubscribe, clear the timeout and remove the abort listener after an actor error', async () => {
       const error = new Error('Actor failed');
       const actor = createActor(
         fromTransition(() => {
@@ -73,15 +73,21 @@ describe('waitFor', () => {
       ).start();
       const controller = new AbortController();
       const removeListener = vi.spyOn(controller.signal, 'removeEventListener');
+      const subscribe = vi.spyOn(actor, 'subscribe');
       const promise = waitFor(actor, () => false, {
         timeout: 100,
         signal: controller.signal
       });
+      const unsubscribe = vi.spyOn(
+        subscribe.mock.results[0].value,
+        'unsubscribe'
+      );
       const rejection = expect(promise).rejects.toBe(error);
 
       actor.send({ type: 'FAIL' });
       await rejection;
 
+      expect(unsubscribe).toHaveBeenCalledOnce();
       expect(vi.getTimerCount()).toBe(0);
       expect(removeListener).toHaveBeenCalledWith(
         'abort',
@@ -89,7 +95,7 @@ describe('waitFor', () => {
       );
     });
 
-    it('should clear the timeout when a later snapshot matches', async () => {
+    it('should unsubscribe and clear the timeout when a later snapshot matches', async () => {
       const actor = createActor(
         createMachine({
           initial: 'waiting',
@@ -99,7 +105,11 @@ describe('waitFor', () => {
           }
         })
       ).start();
-      const promise = waitFor(actor, (snapshot) => snapshot.matches('ready'), {
+      const predicate = vi.fn(
+        (snapshot: ReturnType<typeof actor.getSnapshot>) =>
+          snapshot.matches('ready')
+      );
+      const promise = waitFor(actor, predicate, {
         timeout: 100
       });
 
@@ -107,6 +117,9 @@ describe('waitFor', () => {
       await expect(promise).resolves.toBe(actor.getSnapshot());
 
       expect(vi.getTimerCount()).toBe(0);
+      predicate.mockClear();
+      actor.send({ type: 'NEXT' });
+      expect(predicate).not.toHaveBeenCalled();
       actor.stop();
     });
   });
