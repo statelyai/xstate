@@ -18,3 +18,5 @@ const server = createMachine({
   }
 });
 ```
+
+Actor refs stored in context now persist with their address, so a ref to an actor that isn't a child (such as a stored `replyTo`) still routes after restore.

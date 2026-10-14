@@ -1834,4 +1834,43 @@ describe('serialized actor refs as send targets', () => {
 
     expect(requester.getSnapshot().context.got).toBe('held');
   });
+
+  it('keeps a live non-child ref held in context across persistence', () => {
+    const holder = setup({
+      actors: { server },
+      schemas: {
+        events: {
+          HOLD: types<{ replyTo: AnyActorRef }>(),
+          ASK: types<{}>()
+        }
+      }
+    }).createMachine({
+      id: 'holder',
+      context: { replyTo: null as ReplyTo | null },
+      invoke: { id: 'server', src: 'server' },
+      on: {
+        HOLD: ({ event }) => ({ context: { replyTo: event.replyTo } }),
+        ASK: ({ context, children }, enq) => {
+          enq.sendTo(children.server, {
+            type: 'PING',
+            replyTo: context.replyTo!,
+            requestId: 'live'
+          });
+        }
+      }
+    });
+    const system = createSystem();
+    const requester = system.createActor(client).start();
+    const actor = system.createActor(holder).start();
+    actor.send({ type: 'HOLD', replyTo: requester });
+    const persisted = JSON.parse(JSON.stringify(actor.getPersistedSnapshot()));
+    actor.stop();
+
+    const restored = system
+      .createActor(holder, { snapshot: persisted })
+      .start();
+    restored.send({ type: 'ASK' });
+
+    expect(requester.getSnapshot().context.got).toBe('live');
+  });
 });

@@ -901,9 +901,12 @@ function persistContext(
         copy ??= Array.isArray(contextPart)
           ? (contextPart.slice() as typeof contextPart)
           : { ...contextPart };
+        const address = (value as any as AnyActor).address;
         copy[key] = {
           xstate$type: ACTOR_REF_TYPE,
-          id: (value as any as AnyActor).id
+          id: (value as any as AnyActor).id,
+          // The address lets refs to non-children still route after restore.
+          ...(typeof address === 'string' ? { address } : {})
         };
       } else {
         const valuePath = Array.isArray(contextPart)
