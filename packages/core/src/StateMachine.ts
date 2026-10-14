@@ -1044,9 +1044,16 @@ export class StateMachine<
       (actorScope.self as any)._collectedMicrosteps = collectedMicrosteps;
     }
 
+    const rootInput = snapshot._stateInputs[this.root.id];
     return cloneMachineSnapshot(snapshot, {
       ...(context !== snapshot.context ? { context } : {}),
-      ...(stateChanged ? { _nodes: [this.root, targetNode] } : {})
+      ...(stateChanged
+        ? {
+            _nodes: [this.root, targetNode],
+            // The source state exited, so only the root input remains.
+            _stateInputs: rootInput ? { [this.root.id]: rootInput } : {}
+          }
+        : {})
     });
   }
 
@@ -1959,7 +1966,12 @@ export class StateMachine<
         _nodes: nodes,
         value: snapshotData.value,
         historyValue: revivedHistoryValue,
-        _stateInputs: snapshotData.stateInputs ?? {}
+        // Inputs only belong to active states; drop any others.
+        _stateInputs: Object.fromEntries(
+          Object.entries(snapshotData.stateInputs ?? {}).filter(([id]) =>
+            nodes.some((node) => node.id === id)
+          )
+        )
       },
       this,
       resolvedActorScope.self

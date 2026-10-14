@@ -66,6 +66,36 @@ describe('persisting state input', () => {
   });
 
   describe('round-trip (persist -> restore)', () => {
+    it('drops restored inputs of states that are not active', () => {
+      const machine = setup({
+        states: {
+          a: {},
+          b: {
+            schemas: {
+              input: z.object({ n: z.number() })
+            }
+          }
+        }
+      }).createMachine({
+        initial: 'a',
+        states: {
+          a: { on: { GO: { target: 'b', input: { n: 1 } } } },
+          b: {}
+        }
+      });
+
+      const persisted = {
+        ...(createActor(machine).getPersistedSnapshot() as any),
+        stateInputs: { '(machine).b': { n: 1 } }
+      };
+      const restored = createActor(machine, { snapshot: persisted }).start();
+
+      expect(restored.getSnapshot().getInputs()).toEqual({});
+      expect(
+        (restored.getPersistedSnapshot() as any).stateInputs
+      ).toBeUndefined();
+    });
+
     it('state input survives persist -> JSON round-trip -> restore', () => {
       // parent input is set by an event, child input by a nested initial
       // transition — both active nodes' inputs must survive the round-trip.

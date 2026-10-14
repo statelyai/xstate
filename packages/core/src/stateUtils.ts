@@ -1939,10 +1939,20 @@ function microstep(
         }
       }
 
-      const stateInputMap: Record<string, Record<string, unknown>> = {
-        ...currentSnapshot._stateInputs
-      };
+      // Keep only the inputs of states still active after exiting, so exited
+      // (and re-entered) states never see a stale input.
+      const stateInputMap: Record<string, Record<string, unknown>> = {};
       let stateInputsChanged = false;
+      const activeIds = new Set([...mutStateNodeSet].map((sn) => sn.id));
+      for (const [id, input] of Object.entries(
+        currentSnapshot._stateInputs ?? {}
+      )) {
+        if (activeIds.has(id)) {
+          stateInputMap[id] = input;
+        } else {
+          stateInputsChanged = true;
+        }
+      }
       for (const transition of filteredTransitions) {
         const { targets, input } = getCurrentTransitionResult(transition, true);
         if (input && targets) {
