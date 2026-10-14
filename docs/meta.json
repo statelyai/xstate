@@ -31,6 +31,7 @@
     "setup-and-provide",
     "states",
     "transitions",
+    "transition-functions",
     "context",
     "input-output",
     "state-input",

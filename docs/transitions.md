@@ -48,6 +48,8 @@ on: {
 
 ## Transition functions
 
+See [transition functions and graph analysis](transition-functions.md) for why functions preserve type narrowing, how to keep destinations visible and the limits of static extraction.
+
 ```ts
 submit: ({ context, event }, enq) => {
   if (!context.valid) return;
