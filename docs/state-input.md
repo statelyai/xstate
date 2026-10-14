@@ -85,6 +85,35 @@ Each target's descendants still receive their own input from their normal
 `initial` transitions. Widened target arrays remain compatible with existing
 configurations.
 
+## Input lifetime
+
+State input lasts as long as its state is active. When the state exits, its input is removed, along with the inputs of its child states. Entering the state again without `input` gives it no input; the previous value does not come back.
+
+```ts
+const machine = createMachine({
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        UPLOAD: { target: 'uploading', input: { fileName: 'report.pdf' } }
+      }
+    },
+    uploading: {
+      on: { CANCEL: { target: 'idle' } }
+    }
+  }
+});
+
+const actor = createActor(machine).start();
+actor.send({ type: 'UPLOAD' });
+actor.getSnapshot().getInputs(); // { '(machine).uploading': { fileName: 'report.pdf' } }
+
+actor.send({ type: 'CANCEL' });
+actor.getSnapshot().getInputs(); // {}
+```
+
+Persisted snapshots only include inputs for active states.
+
 ## Reading input from a snapshot
 
 `snapshot.getInputs()` returns the current inputs keyed by state node ID.
