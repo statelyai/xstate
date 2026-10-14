@@ -239,6 +239,65 @@ describe('error handling', () => {
     return promise;
   });
 
+  it('should stop other invoked actors when an invoked actor errors without a handler', async () => {
+    const cleanup = vi.fn();
+    const errorSpy = vi.fn();
+
+    const machine = createMachine({
+      invoke: [
+        {
+          src: fromCallback(() => cleanup)
+        },
+        {
+          src: fromPromise(() => Promise.reject(new Error('oops')))
+        }
+      ]
+    });
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({ error: errorSpy });
+    actorRef.start();
+
+    await sleep(10);
+
+    expect(actorRef.getSnapshot().status).toBe('error');
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(Object.keys(actorRef.getSnapshot().children)).toHaveLength(0);
+  });
+
+  it('should stop invoked actors of a state when an invoked actor errors without a handler', async () => {
+    const cleanup = vi.fn();
+    const errorSpy = vi.fn();
+
+    const machine = createMachine({
+      initial: 'working',
+      states: {
+        working: {
+          invoke: [
+            {
+              src: fromCallback(() => cleanup)
+            },
+            {
+              src: fromPromise(() => Promise.reject(new Error('oops')))
+            }
+          ]
+        }
+      }
+    });
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({ error: errorSpy });
+    actorRef.start();
+
+    await sleep(10);
+
+    expect(actorRef.getSnapshot().status).toBe('error');
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(Object.keys(actorRef.getSnapshot().children)).toHaveLength(0);
+  });
+
   it('unhandled rejection of a promise actor should be reported to the existing error listener of its parent', async () => {
     const errorSpy = vi.fn();
 
