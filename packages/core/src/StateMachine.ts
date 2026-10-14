@@ -22,6 +22,7 @@ import { withActorSelf } from './actorScope.ts';
 import {
   createMachineSnapshot,
   cloneMachineSnapshot,
+  freezeContext,
   getPersistedSnapshot,
   MachineSnapshot
 } from './State.ts';
@@ -1266,6 +1267,9 @@ export class StateMachine<
       ) as any;
       if (resolvedContext) {
         nextState.context = resolvedContext;
+        if (isDevelopment) {
+          freezeContext(resolvedContext);
+        }
       }
       if (Object.keys(children).length > 0) {
         nextState.children = {
@@ -1905,9 +1909,43 @@ export class StateMachine<
         };
       }
     }
+    // Revive actor-ref references into a copy: the persisted snapshot is
+    // caller-owned and is never mutated or frozen. Only plain objects and
+    // arrays are copied; other values are kept as is.
+    const revived = new Map<object, unknown>();
+
+    function reviveContext(value: any): any {
+      if (!value || typeof value !== 'object') {
+        return value;
+      }
+      if (value.xstate$type === ACTOR_REF_TYPE) {
+        return children[value.id];
+      }
+      const proto = Object.getPrototypeOf(value);
+      if (
+        !Array.isArray(value) &&
+        proto !== Object.prototype &&
+        proto !== null
+      ) {
+        return value;
+      }
+      let copy: any = revived.get(value);
+      if (!copy) {
+        revived.set(
+          value,
+          (copy = Array.isArray(value) ? [] : Object.create(proto))
+        );
+        for (const key of Object.keys(value)) {
+          copy[key] = reviveContext(value[key]);
+        }
+      }
+      return copy;
+    }
+
     const restoredSnapshot = createMachineSnapshot(
       {
         ...persistedRest,
+        context: reviveContext(persistedRest.context),
         children,
         timers,
         _nextActorIds: restoredCounters,
@@ -1928,28 +1966,6 @@ export class StateMachine<
       TMeta,
       TConfig
     >;
-
-    const seen = new WeakSet<Record<string, unknown>>();
-
-    function reviveContext(contextPart: Record<string, unknown>) {
-      if (seen.has(contextPart)) {
-        return;
-      }
-      seen.add(contextPart);
-      for (const key of Object.keys(contextPart)) {
-        const value: unknown = contextPart[key];
-
-        if (value && typeof value === 'object') {
-          if ('xstate$type' in value && value.xstate$type === ACTOR_REF_TYPE) {
-            contextPart[key] = children[(value as any).id];
-            continue;
-          }
-          reviveContext(value as typeof contextPart);
-        }
-      }
-    }
-
-    reviveContext(restoredSnapshot.context);
 
     if (usesInertScope) {
       setInertActorScopeSnapshot(resolvedActorScope, restoredSnapshot, false);

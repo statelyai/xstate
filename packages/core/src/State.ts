@@ -35,6 +35,39 @@ import { findNonJsonPath } from './persistedSnapshotFormat.ts';
 
 const emptySnapshotRecord = Object.freeze({});
 
+/**
+ * Deep-freezes the plain objects and arrays in machine context so accidental
+ * in-place mutation throws instead of silently corrupting state. Actor refs,
+ * class instances, Map/Set, Date, etc. are left untouched. Callers guard with
+ * `isDevelopment` so production builds pay nothing.
+ *
+ * @internal
+ */
+export function freezeContext(value: any): void {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
+    return;
+  }
+  if (!Array.isArray(value)) {
+    const proto = Object.getPrototypeOf(value);
+    if (
+      (proto !== Object.prototype && proto !== null) ||
+      isActorRefLike(value)
+    ) {
+      return;
+    }
+  }
+  try {
+    // Freezing before descending also guards against cycles.
+    Object.freeze(value);
+  } catch {
+    // Some proxies (e.g. framework reactive state) refuse to be frozen.
+    return;
+  }
+  for (const key of Object.keys(value)) {
+    freezeContext(value[key]);
+  }
+}
+
 function compactSnapshotRecord<T extends object>(value: T | undefined): T {
   if (value === emptySnapshotRecord) {
     return value;
@@ -573,6 +606,9 @@ export function createMachineSnapshot<
     getInputs: machineSnapshotGetInputs,
     toJSON: machineSnapshotToJSON
   };
+  if (isDevelopment) {
+    freezeContext(snapshot.context);
+  }
   if (actorRef) {
     setSnapshotActorRef(snapshot, actorRef);
   }
@@ -611,6 +647,9 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       getInputs: machineSnapshotGetInputs,
       toJSON: machineSnapshotToJSON
     } as unknown as TState;
+    if (isDevelopment) {
+      freezeContext(clonedSnapshot.context);
+    }
     copySnapshotActorRef(snapshot, clonedSnapshot);
     return clonedSnapshot;
   }
