@@ -5,7 +5,7 @@ import {
   createMachine,
   getMicrosteps,
   initialTransition,
-  isBuiltInExecutableAction,
+  isBuiltInExecutableEffect,
   transition,
   SimulatedClock,
   type ActorSystemRuntime
@@ -24,7 +24,7 @@ describe('logical snapshot timers', () => {
     const [snapshot, effects] = initialTransition(machine);
     const schedule = effects.find(
       (effect) =>
-        isBuiltInExecutableAction(effect) && effect.type === '@xstate.raise'
+        isBuiltInExecutableEffect(effect) && effect.type === '@xstate.raise'
     )!;
     const timer = snapshot.timers[schedule.id!];
 

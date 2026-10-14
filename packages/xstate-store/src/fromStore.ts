@@ -1,8 +1,4 @@
-import type {
-  ActorLogic,
-  ActorSystemRuntime,
-  ExecutableActionObject
-} from 'xstate';
+import type { ActorLogic, ActorSystemRuntime, ExecutableEffect } from 'xstate';
 import {
   createStoreTransition,
   TransitionsFromEventPayloadMap
@@ -287,7 +283,7 @@ export function fromStore(config: {
 
       return [
         nextSnapshot,
-        effects.map<ExecutableActionObject>((effect) => {
+        effects.map<ExecutableEffect>((effect) => {
           if (typeof effect === 'function') {
             const action = (
               system: Partial<ActorSystemRuntime> = actorScope.self.system

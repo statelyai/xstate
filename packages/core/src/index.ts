@@ -207,7 +207,7 @@ export {
 } from './transition.ts';
 export {
   executeEffects,
-  isBuiltInExecutableAction
+  isBuiltInExecutableEffect
 } from './transitionActions.ts';
 export {
   getEffectDescriptor,

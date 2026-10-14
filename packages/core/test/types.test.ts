@@ -14,16 +14,16 @@ import {
   AnyActorRef,
   AnyMachineSnapshot,
   AnyStateMachine,
-  BuiltInExecutableActionObject,
-  CustomExecutableActionObject,
-  ExecutableActionObject,
+  BuiltInExecutableEffect,
+  CustomExecutableEffect,
+  ExecutableEffect,
   InputFrom,
   OutputFrom,
   type SnapshotFrom,
   type StateFrom,
   StateMachine,
   type StateValue,
-  SpecialExecutableAction,
+  SpecialExecutableEffect,
   type AnySetupConfig,
   type SetupReturnFromConfig,
   type StandardSchemaV1,
@@ -34,7 +34,7 @@ import {
   createSystem,
   type EventRejection,
   initialTransition,
-  isBuiltInExecutableAction,
+  isBuiltInExecutableEffect,
   setup,
   types,
   toPromise
@@ -72,9 +72,9 @@ type AnyNextStateNodeConfig = Next_StateNodeConfig<
   any
 >;
 
-describe('SpecialExecutableAction', () => {
-  it('narrows built-in executable action fields by type', () => {
-    const consume = (action: SpecialExecutableAction) => {
+describe('SpecialExecutableEffect', () => {
+  it('narrows built-in executable effect fields by type', () => {
+    const consume = (action: SpecialExecutableEffect) => {
       switch (action.type) {
         case '@xstate.spawn':
           noop(action.actor);
@@ -126,10 +126,10 @@ describe('SpecialExecutableAction', () => {
 
     noop(consume);
 
-    const action = {} as ExecutableActionObject;
+    const action = {} as ExecutableEffect;
 
-    if (isBuiltInExecutableAction(action)) {
-      const builtInAction: BuiltInExecutableActionObject = action;
+    if (isBuiltInExecutableEffect(action)) {
+      const builtInAction: BuiltInExecutableEffect = action;
       consume(builtInAction);
     }
   });
@@ -146,7 +146,7 @@ describe('SpecialExecutableAction', () => {
     const [, actions] = initialTransition(machine);
     const action = actions[0];
 
-    if (isBuiltInExecutableAction(action) && action.type === '@xstate.spawn') {
+    if (isBuiltInExecutableEffect(action) && action.type === '@xstate.spawn') {
       noop(action.actor);
       noop(action.id);
       noop(action.logic);
@@ -156,7 +156,7 @@ describe('SpecialExecutableAction', () => {
       noop(action.event);
     }
 
-    if (isBuiltInExecutableAction(action) && action.type === '@xstate.start') {
+    if (isBuiltInExecutableEffect(action) && action.type === '@xstate.start') {
       noop(action.actor);
       noop(action.id);
       // @ts-expect-error start actions no longer expose logic
@@ -169,7 +169,7 @@ describe('SpecialExecutableAction', () => {
       noop(action.event);
     }
 
-    if (isBuiltInExecutableAction(action) && action.type === '@xstate.raise') {
+    if (isBuiltInExecutableEffect(action) && action.type === '@xstate.raise') {
       noop(action.event);
       noop(action.id);
       noop(action.delay);
@@ -178,7 +178,7 @@ describe('SpecialExecutableAction', () => {
     }
   });
 
-  it('preserves custom executable actions in transition results', () => {
+  it('preserves custom executable effects in transition results', () => {
     const machine = createMachine({
       entry: (_, enq) => enq(function customEffect() {})
     });
@@ -187,7 +187,7 @@ describe('SpecialExecutableAction', () => {
     const action = actions[0];
 
     if (action.kind === 'action') {
-      const customAction: CustomExecutableActionObject = action;
+      const customAction: CustomExecutableEffect = action;
       noop(customAction.type);
       noop(customAction.args);
       noop(customAction.action);

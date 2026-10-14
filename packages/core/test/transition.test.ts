@@ -11,14 +11,14 @@ import {
   getInitialMicrosteps,
   getMicrosteps,
   getNextTransitions,
-  isBuiltInExecutableAction
+  isBuiltInExecutableEffect
 } from '../src';
 import { createMachineFromCompiledConfig } from '../src/createMachine.ts';
 import type {
   AnyActor,
   AnyEventObject,
-  ExecutableActionObject,
-  SpecialExecutableAction
+  ExecutableEffect,
+  SpecialExecutableEffect
 } from '../src/types';
 import { createDoneActorEvent } from '../src/eventUtils';
 import { initialTransition } from '../src/transition';
@@ -30,20 +30,18 @@ import { setInertActorMaterializationObserver } from '../src/inertActorScope';
 import { z } from 'zod';
 
 const isEffect =
-  <T extends SpecialExecutableAction['type']>(type: T) =>
-  (
-    e: ExecutableActionObject
-  ): e is Extract<SpecialExecutableAction, { type: T }> =>
-    isBuiltInExecutableAction(e) && e.type === type;
+  <T extends SpecialExecutableEffect['type']>(type: T) =>
+  (e: ExecutableEffect): e is Extract<SpecialExecutableEffect, { type: T }> =>
+    isBuiltInExecutableEffect(e) && e.type === type;
 
-function describeEffects(effects: ExecutableActionObject[]): string[] {
+function describeEffects(effects: ExecutableEffect[]): string[] {
   // Classify each spawned actor exactly once, from its authored-position
   // `@xstate.spawn` effect (which carries `logic`/`input`; listener and
   // subscription actors carry their target actor ref in `input.actor`). Slim
   // `@xstate.start` effects then reuse the label via their `actor` ref.
   const labelByActor = new Map<any, string>();
   for (const e of effects) {
-    if (!isBuiltInExecutableAction(e) || e.type !== XSTATE_SPAWN) {
+    if (!isBuiltInExecutableEffect(e) || e.type !== XSTATE_SPAWN) {
       continue;
     }
     const input = e.input as { actor: { id: string } };
@@ -56,7 +54,7 @@ function describeEffects(effects: ExecutableActionObject[]): string[] {
     labelByActor.set(e.actor, label);
   }
 
-  return effects.filter(isBuiltInExecutableAction).flatMap((e) => {
+  return effects.filter(isBuiltInExecutableEffect).flatMap((e) => {
     switch (e.type) {
       case XSTATE_STOP:
         return `stop(${e.actor.id})`;
@@ -1406,7 +1404,7 @@ describe('transition function', () => {
       initialEffects.forEach((effect) => void effect.exec());
 
       const [, effects] = transition(machine, active, { type: 'SEND' });
-      effects.forEach((effect: ExecutableActionObject) => void effect.exec());
+      effects.forEach((effect: ExecutableEffect) => void effect.exec());
 
       expect(received).toHaveBeenCalledWith({ type: 'PING' });
     });
@@ -1431,7 +1429,7 @@ describe('transition function', () => {
       ).toHaveLength(1);
 
       const [, effects] = machine.transition(waiting, { type: 'CANCEL' });
-      effects.forEach((effect: ExecutableActionObject) => void effect.exec());
+      effects.forEach((effect: ExecutableEffect) => void effect.exec());
 
       expect(
         Object.keys(source.system.getSnapshot()._scheduledTimers)
@@ -1474,7 +1472,7 @@ describe('transition function', () => {
 
       const [a] = machine.initialTransition(undefined);
       const [, effects] = machine.transition(a, { type: 'NEXT' });
-      effects.forEach((effect: ExecutableActionObject) => void effect.exec());
+      effects.forEach((effect: ExecutableEffect) => void effect.exec());
 
       expect(effectSnapshot).toBe('b');
     });
@@ -1503,9 +1501,7 @@ describe('transition function', () => {
       const [a] = machine.initialTransition(undefined);
       const [, leftEffects] = machine.transition(a, { type: 'LEFT' });
       machine.transition(a, { type: 'RIGHT' });
-      leftEffects.forEach(
-        (effect: ExecutableActionObject) => void effect.exec()
-      );
+      leftEffects.forEach((effect: ExecutableEffect) => void effect.exec());
 
       expect(effectSnapshot).toBe('left');
     });
@@ -2451,7 +2447,7 @@ describe('transition function', () => {
 
   it('does not classify inherited object keys as built-in actions', () => {
     expect(
-      isBuiltInExecutableAction({
+      isBuiltInExecutableEffect({
         kind: 'action',
         type: 'toString',
         params: undefined,
@@ -2474,7 +2470,7 @@ describe('transition function', () => {
       (effect) => effect.type === XSTATE_SPAWN
     )!;
 
-    expect(isBuiltInExecutableAction(emittedEffect)).toBe(false);
+    expect(isBuiltInExecutableEffect(emittedEffect)).toBe(false);
     expect(effects.filter(isEffect(XSTATE_START))).toHaveLength(0);
   });
 
@@ -2482,7 +2478,7 @@ describe('transition function', () => {
     const actor = createActor(createMachine({}));
 
     expect(
-      isBuiltInExecutableAction({
+      isBuiltInExecutableEffect({
         kind: 'action',
         type: XSTATE_SPAWN,
         params: undefined,
@@ -2687,9 +2683,9 @@ describe('transition function', () => {
       }
     });
 
-    async function execute(action: ExecutableActionObject) {
+    async function execute(action: ExecutableEffect) {
       if (
-        isBuiltInExecutableAction(action) &&
+        isBuiltInExecutableEffect(action) &&
         action.type === '@xstate.raise' &&
         action.delay
       ) {
@@ -2774,8 +2770,8 @@ describe('transition function', () => {
 
     const calls: string[] = [];
 
-    async function execute(action: ExecutableActionObject) {
-      if (!isBuiltInExecutableAction(action)) {
+    async function execute(action: ExecutableEffect) {
+      if (!isBuiltInExecutableEffect(action)) {
         return;
       }
       switch (action.type) {

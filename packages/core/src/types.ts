@@ -2668,7 +2668,7 @@ export type Snapshot<TOutput, TError = unknown> =
 /** @public */
 export type ActorLogicTransitionResult<
   TSnapshot extends Snapshot<unknown>,
-  TEffect = ExecutableActionObject
+  TEffect = ExecutableEffect
 > = [nextSnapshot: TSnapshot, effects: TEffect[]];
 
 /**
@@ -3266,7 +3266,7 @@ export type ToStateValue<T extends StateSchema> = T extends {
   : {};
 
 /** @public */
-export interface BaseExecutableActionObject {
+export interface BaseExecutableEffect {
   params: NonReducibleUnknown;
   args: unknown[];
   exec(
@@ -3284,18 +3284,18 @@ export type ActorTermination =
   | { status: 'error'; output: undefined; error: unknown };
 
 /** @public */
-export interface CustomExecutableActionObject<
+export interface CustomExecutableEffect<
   TType extends string = string & {}
-> extends BaseExecutableActionObject {
+> extends BaseExecutableEffect {
   kind: 'action';
   type: TType;
   action: ((...args: any[]) => void | PromiseLike<void>) | undefined;
 }
 
 /** @public */
-export interface EmitExecutableActionObject<
+export interface EmitExecutableEffect<
   TType extends string = string & {}
-> extends BaseExecutableActionObject {
+> extends BaseExecutableEffect {
   kind: 'emit';
   type: TType;
   source: AnyActor;
@@ -3303,7 +3303,7 @@ export interface EmitExecutableActionObject<
 }
 
 /** @public */
-export interface SpawnExecutableActionObject extends BaseExecutableActionObject {
+export interface SpawnExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.spawn';
   source: AnyActor | undefined;
@@ -3316,7 +3316,7 @@ export interface SpawnExecutableActionObject extends BaseExecutableActionObject 
 }
 
 /** @public */
-export interface StartExecutableActionObject extends BaseExecutableActionObject {
+export interface StartExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.start';
   source: AnyActor | undefined;
@@ -3326,7 +3326,7 @@ export interface StartExecutableActionObject extends BaseExecutableActionObject 
 }
 
 /** @public */
-export interface RaiseExecutableActionObject extends BaseExecutableActionObject {
+export interface RaiseExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.raise';
   source: AnyActor;
@@ -3337,7 +3337,7 @@ export interface RaiseExecutableActionObject extends BaseExecutableActionObject 
 }
 
 /** @public */
-export interface SendToExecutableActionObject extends BaseExecutableActionObject {
+export interface SendToExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.sendTo';
   source: AnyActor;
@@ -3349,7 +3349,7 @@ export interface SendToExecutableActionObject extends BaseExecutableActionObject
 }
 
 /** @public */
-export interface CancelExecutableActionObject extends BaseExecutableActionObject {
+export interface CancelExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.cancel';
   source: AnyActor;
@@ -3358,7 +3358,7 @@ export interface CancelExecutableActionObject extends BaseExecutableActionObject
 }
 
 /** @public */
-export interface StopExecutableActionObject extends BaseExecutableActionObject {
+export interface StopExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.stop';
   source: AnyActor;
@@ -3372,7 +3372,7 @@ export interface StopExecutableActionObject extends BaseExecutableActionObject {
  *
  * @public
  */
-export type TerminateExecutableActionObject = BaseExecutableActionObject & {
+export type TerminateExecutableEffect = BaseExecutableEffect & {
   kind: 'builtin';
   type: '@xstate.terminate';
   source: AnyActor;
@@ -3387,7 +3387,7 @@ export type TerminateExecutableActionObject = BaseExecutableActionObject & {
  *
  * @public
  */
-export interface DeadLetterExecutableActionObject extends BaseExecutableActionObject {
+export interface DeadLetterExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.deadLetter';
   /** The actor that sent the event, or `undefined` for an external send. */
@@ -3406,31 +3406,31 @@ export interface DeadLetterExecutableActionObject extends BaseExecutableActionOb
 }
 
 /** @public */
-export type BuiltInExecutableActionObject = Values<{
-  '@xstate.spawn': SpawnExecutableActionObject;
-  '@xstate.start': StartExecutableActionObject;
-  '@xstate.raise': RaiseExecutableActionObject;
-  '@xstate.sendTo': SendToExecutableActionObject;
-  '@xstate.cancel': CancelExecutableActionObject;
-  '@xstate.stop': StopExecutableActionObject;
-  '@xstate.terminate': TerminateExecutableActionObject;
-  '@xstate.deadLetter': DeadLetterExecutableActionObject;
+export type BuiltInExecutableEffect = Values<{
+  '@xstate.spawn': SpawnExecutableEffect;
+  '@xstate.start': StartExecutableEffect;
+  '@xstate.raise': RaiseExecutableEffect;
+  '@xstate.sendTo': SendToExecutableEffect;
+  '@xstate.cancel': CancelExecutableEffect;
+  '@xstate.stop': StopExecutableEffect;
+  '@xstate.terminate': TerminateExecutableEffect;
+  '@xstate.deadLetter': DeadLetterExecutableEffect;
 }>;
 
 /** @public */
-export type SpecialExecutableAction = BuiltInExecutableActionObject;
+export type SpecialExecutableEffect = BuiltInExecutableEffect;
 
-type TransitionExecutableActionObject<TType extends string = never> =
-  | BuiltInExecutableActionObject
-  | EmitExecutableActionObject
-  | CustomExecutableActionObject<TType | (string & {})>;
+type TransitionExecutableEffect<TType extends string = never> =
+  | BuiltInExecutableEffect
+  | EmitExecutableEffect
+  | CustomExecutableEffect<TType | (string & {})>;
 
 type KnownSourceKeys<TSourceMap> = string extends keyof TSourceMap
   ? never
   : Extract<keyof TSourceMap, string>;
 
 /** @public */
-export type ExecutableActionObjectFromLogic<T extends AnyActorLogic> =
+export type ExecutableEffectFrom<T extends AnyActorLogic> =
   T extends StateMachine<
     any,
     any,
@@ -3449,26 +3449,26 @@ export type ExecutableActionObjectFromLogic<T extends AnyActorLogic> =
     any,
     any
   >
-    ? TransitionExecutableActionObject<KnownSourceKeys<TActionMap>>
-    : ExecutableActionObject;
+    ? TransitionExecutableEffect<KnownSourceKeys<TActionMap>>
+    : ExecutableEffect;
 
 /** @public */
-export type ExecutableActionObject<TType extends string = string & {}> =
-  | BuiltInExecutableActionObject
-  | EmitExecutableActionObject
-  | CustomExecutableActionObject<TType>;
+export type ExecutableEffect<TType extends string = string & {}> =
+  | BuiltInExecutableEffect
+  | EmitExecutableEffect
+  | CustomExecutableEffect<TType>;
 
 /** @public */
-export interface ToExecutableAction<
+export interface ToExecutableEffect<
   T extends ParameterizedObject
-> extends CustomExecutableActionObject<T['type']> {
+> extends CustomExecutableEffect<T['type']> {
   type: T['type'];
   params: T['params'];
   action: undefined;
 }
 
 /** @public */
-export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;
+export type ActionExecutor = (actionToExecute: ExecutableEffect) => void;
 
 /**
  * Mappers for subscribeTo - maps lifecycle events to machine events

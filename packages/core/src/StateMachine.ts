@@ -69,8 +69,8 @@ import type {
   EmittedFrom,
   EventObject,
   EventFromLogic,
-  ExecutableActionObject,
-  ExecutableActionObjectFromLogic,
+  ExecutableEffect,
+  ExecutableEffectFrom,
   HistoryValue,
   InputFrom,
   IsAny,
@@ -809,7 +809,7 @@ export class StateMachine<
       TMeta,
       TConfig
     >,
-    ExecutableActionObjectFromLogic<this>
+    ExecutableEffectFrom<this>
   > {
     const usesInertScope = !actorScope;
     const resolvedActorScope = (actorScope ??
@@ -847,7 +847,7 @@ export class StateMachine<
                   .issues,
                 error
               }
-            ) as ExecutableActionObjectFromLogic<this>
+            ) as ExecutableEffectFrom<this>
           ]
         ];
       }
@@ -918,12 +918,12 @@ export class StateMachine<
 
   private _collectEffects(
     microsteps: ReadonlyArray<
-      readonly [unknown, ReadonlyArray<ExecutableActionObject>, ...unknown[]]
+      readonly [unknown, ReadonlyArray<ExecutableEffect>, ...unknown[]]
     >
-  ): ExecutableActionObjectFromLogic<this>[] {
+  ): ExecutableEffectFrom<this>[] {
     return microsteps.flatMap(
       ([, actions]) => actions
-    ) as ExecutableActionObjectFromLogic<this>[];
+    ) as ExecutableEffectFrom<this>[];
   }
 
   private _attachPureActorRef<TSnapshot extends AnyMachineSnapshot>(
@@ -1352,7 +1352,7 @@ export class StateMachine<
       TMeta,
       TConfig
     >,
-    ExecutableActionObjectFromLogic<this>
+    ExecutableEffectFrom<this>
   > {
     if (this.validator) {
       assertValid(this.validator, {
@@ -1370,11 +1370,11 @@ export class StateMachine<
     const finalizeInitialResult = (
       macroState: AnyMachineSnapshot,
       microsteps: ReadonlyArray<
-        readonly [unknown, ReadonlyArray<ExecutableActionObject>, ...unknown[]]
+        readonly [unknown, ReadonlyArray<ExecutableEffect>, ...unknown[]]
       >
     ): ActorLogicTransitionResult<
       SnapshotFrom<this>,
-      ExecutableActionObjectFromLogic<this>
+      ExecutableEffectFrom<this>
     > => {
       if (usesInertScope) {
         setInertActorScopeSnapshot(resolvedActorScope, macroState, false);
@@ -1440,7 +1440,7 @@ export class StateMachine<
         [
           [nextState, [...contextSpawnEffects, ...initialActions]] as [
             AnyMachineSnapshot,
-            ExecutableActionObject[]
+            ExecutableEffect[]
           ]
         ]
       );
@@ -1458,7 +1458,7 @@ export class StateMachine<
         [
           [preInitialState, contextSpawnEffects] as [
             AnyMachineSnapshot,
-            ExecutableActionObject[]
+            ExecutableEffect[]
           ]
         ]
       );

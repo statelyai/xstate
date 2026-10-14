@@ -31,7 +31,7 @@ import {
   AnyTransitionDefinition,
   DelayedTransitionDefinition,
   EventObject,
-  ExecutableActionObject,
+  ExecutableEffect,
   HistoryValue,
   MachineContext,
   StateValue,
@@ -1409,7 +1409,7 @@ function computeExitSet(
 
 type Microstep = readonly [
   AnyMachineSnapshot,
-  ExecutableActionObject[],
+  ExecutableEffect[],
   // The transitions taken in this microstep, when recorded by `macrostep()`
   transitions?: AnyTransitionDefinition[]
 ];
@@ -1471,7 +1471,7 @@ function microstep(
   internalQueue: Array<AnyEventObject>,
   selectionResults?: TransitionSelectionResults
 ): Microstep {
-  const executableActions: ExecutableActionObject[] = [];
+  const executableActions: ExecutableEffect[] = [];
   const internalEvents = currentSnapshot.machine._microstepHooks?.drain(
     actorScope.self
   );
@@ -2202,7 +2202,7 @@ function microstep(
     };
 
     // Execute transition content
-    const [resolvedTransitionState, transitionExecutableActions] =
+    const [resolvedTransitionState, transitionExecutableEffects] =
       resolveActionsWithContext(
         nextState,
         event,
@@ -2210,7 +2210,7 @@ function microstep(
         transitionActions
       );
     nextState = resolvedTransitionState;
-    executableActions.push(...transitionExecutableActions);
+    executableActions.push(...transitionExecutableEffects);
     if (context && context !== currentSnapshot.context) {
       nextState = cloneMachineSnapshot(nextState, { context });
     }
@@ -2914,7 +2914,7 @@ function stopChildren(
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope
-): [AnyMachineSnapshot, ExecutableActionObject[]] {
+): [AnyMachineSnapshot, ExecutableEffect[]] {
   let children: AnyActor[];
   if (
     !snapshot.children ||
@@ -2935,7 +2935,7 @@ function cancelTimers(
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope
-): [AnyMachineSnapshot, ExecutableActionObject[]] {
+): [AnyMachineSnapshot, ExecutableEffect[]] {
   const timerIds = Object.keys(snapshot.timers);
   if (!timerIds.length) {
     return [snapshot, []];

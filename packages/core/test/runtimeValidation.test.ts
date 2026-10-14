@@ -10,7 +10,7 @@ import {
   createMachine,
   createSystem,
   createObservableLogic,
-  type DeadLetterExecutableActionObject,
+  type DeadLetterExecutableEffect,
   type EventRejection,
   initialTransition,
   setup,
@@ -33,11 +33,11 @@ function getThrown(fn: () => void): unknown {
 
 function getRejection(
   result: [unknown, ReadonlyArray<{ kind?: string; type?: string }>]
-): DeadLetterExecutableActionObject | undefined {
+): DeadLetterExecutableEffect | undefined {
   return result[1].find(
     (effect) =>
       effect.kind === 'builtin' && effect.type === '@xstate.deadLetter'
-  ) as DeadLetterExecutableActionObject | undefined;
+  ) as DeadLetterExecutableEffect | undefined;
 }
 
 function expectValidationError(

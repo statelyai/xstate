@@ -1,6 +1,6 @@
 import { isRemoteActorRef } from './remoteActorRef.ts';
 import { getActorIdPrefix } from './system.ts';
-import type { ExecutableActionObject } from './types.ts';
+import type { ExecutableEffect } from './types.ts';
 
 /**
  * A serializable view of an executable effect. Actor references are replaced
@@ -102,7 +102,7 @@ export type EffectDescriptor =
  * @experimental
  */
 export function getEffectDescriptor(
-  effect: ExecutableActionObject
+  effect: ExecutableEffect
 ): EffectDescriptor {
   if (effect.kind === 'action') {
     return {

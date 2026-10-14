@@ -7,7 +7,12 @@ const RENAMES: Record<string, string> = {
   Interpreter: 'Actor',
   fromCallback: 'createCallbackLogic',
   fromObservable: 'createObservableLogic',
-  fromEventObservable: 'createEventObservableLogic'
+  fromEventObservable: 'createEventObservableLogic',
+  ExecutableActionObject: 'ExecutableEffect',
+  ExecutableActionsFrom: 'ExecutableEffectFrom',
+  ExecutableSpawnAction: 'SpawnExecutableEffect',
+  SpecialExecutableAction: 'SpecialExecutableEffect',
+  ToExecutableAction: 'ToExecutableEffect'
 };
 
 /**
@@ -18,7 +23,7 @@ const RENAMES: Record<string, string> = {
 export const renameImports: Transform = {
   name: 'rename-imports',
   description:
-    "Rename renamed 'xstate' imports (interpret→createActor, Interpreter→Actor, fromCallback/fromObservable/fromEventObservable→create*Logic) and their usages.",
+    "Rename renamed 'xstate' imports (interpret→createActor, Interpreter→Actor, fromCallback/fromObservable/fromEventObservable→create*Logic, executable action types→executable effect types) and their usages.",
   apply(sourceFile: SourceFile): TransformResult {
     const notes: string[] = [];
     let changed = false;
