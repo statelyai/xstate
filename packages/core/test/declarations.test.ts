@@ -35,11 +35,12 @@ const fixturePath = (name: string) =>
 
 const indexPath = path.resolve(__dirname, '../src/index.ts');
 
-function emitFixture(name: string) {
+function emitFixture(name: string, compilerOptions: ts.CompilerOptions = {}) {
   const file = fixturePath(name);
   const program = ts.createProgram([file, indexPath], {
     ...COMPILER_OPTIONS,
-    ...(name === 'exact-context' ? { exactOptionalPropertyTypes: true } : {})
+    ...(name === 'exact-context' ? { exactOptionalPropertyTypes: true } : {}),
+    ...compilerOptions
   });
   const emitted = new Map<string, string>();
   const result = program.emit(undefined, (fileName, contents) =>
@@ -261,3 +262,14 @@ it('retains exact optional context through actor refs', () => {
   const { diagnostics } = emitFixture('exact-context');
   expect(formatDiagnostics(diagnostics)).toBe('');
 }, 30_000);
+
+it.each([false, true])(
+  '#5789 retains setup state values with exactOptionalPropertyTypes=%s',
+  (exactOptionalPropertyTypes) => {
+    const { diagnostics } = emitFixture('setup-state-values', {
+      exactOptionalPropertyTypes
+    });
+    expect(formatDiagnostics(diagnostics)).toBe('');
+  },
+  30_000
+);

@@ -111,13 +111,13 @@ The helper requires `input` when the source's input type excludes `undefined`. P
 
 Child contracts from `schemas.children` apply whether declared in `setup(...)` or `s.createMachine(...)`: supply a declared `id` and compatible `src`. This check also applies to hoisted configs when used in the machine.
 
-The helper supports the usual invoke options, including invoke arrays and setups with other registered actors. Async functions are wrapped in async actor logic without starting work; logic-value configs are returned unchanged. Child startup, cancellation, timeouts and persistence follow the normal invoke lifecycle.
+The helper supports the usual invoke options, including invoke arrays and setups with other registered actors. Child startup, cancellation, timeouts and persistence follow the normal invoke lifecycle.
 
-Inference follows the declared source types. A source typed as `AnyActorLogic` retains its erased types, and errors without a schema remain `unknown`.
+Keep the source's specific actor logic type to infer its input and output; an `AnyActorLogic` annotation loses that information. Declare an error schema to type errors; otherwise they are `unknown`.
 
 A helper call made outside a machine has only setup-level context. To extract a config while keeping a specific state's scope, put the inline helper inside `s.createStateConfig('loading', { invoke: s.createInvoke(...) })`.
 
-For a hoisted helper, a targetless object-form `onDone.context` mapper currently needs an explicit argument annotation. Prefer function-form `onDone: ({ event }) => ({ context: ... })` to retain completion-output inference without an annotation.
+For a helper extracted outside the machine, use function-form `onDone: ({ event }) => ({ context: ... })` to infer completion output. A targetless object-form `onDone.context` mapper needs an explicit argument annotation.
 
 ## Actor lifecycle
 

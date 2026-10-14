@@ -430,8 +430,7 @@ s.createMachine({
 });
 ```
 
-State contracts without structural metadata remain permissive, so existing
-`setup(...)` machines do not need to add `type` or `initial` declarations.
+State contracts can declare schemas without `type` or `initial` metadata.
 
 See [final](final-states.md), [history](history-states.md), [parallel](parallel-states.md), [choice](choice-states.md), [route](route-states.md) and [state input](state-input.md).
 

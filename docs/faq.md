@@ -17,7 +17,7 @@ Guards are plain JavaScript in v6, so the combinators are gone. Write conditions
 
 ## Does typegen exist in v6?
 
-No. There is no `@xstate/cli`, no `tsTypes`, and no generated type files anywhere in v6. Types come from `schemas` instead: declare `context`, `events`, `input`, `output`, `emitted`, `meta` and `tags` with Zod or any [Standard Schema](https://standardschema.dev) library, or with `types<T>()` when you only want TypeScript inference and no runtime validation. See [TypeScript](typescript.md).
+No typegen step is needed. Types come from `schemas`: declare `context`, `events`, `input`, `output`, `emitted`, `meta` and `tags` with Zod or any [Standard Schema](https://standardschema.dev) library, or with `types<T>()` when you only want TypeScript inference and no runtime validation. See [TypeScript](typescript.md).
 
 ## What happened to `@xstate/immer` and `@xstate/inspect`?
 
@@ -53,4 +53,4 @@ Yes. A backend workflow restores a persisted snapshot, sends the incoming event,
 
 ## Does Stately Studio or the VS Code extension support v6?
 
-Visual tooling support for v6 is still in progress, and this documentation makes no claim about which v6 features Stately Studio or the VS Code extension currently handle. Check [stately.ai](https://stately.ai) for the current status. In the meantime, v6 machines can be treated as data with the built-in `serializeMachine(...)`, `machineConfigToJSON(...)` and `createMachineFromConfig(...)` APIs. See [serialization](serialization.md).
+Check [stately.ai](https://stately.ai) for current v6 support in Stately Studio and the VS Code extension. To save and load machine definitions as data, use `serializeMachine(...)`, `machineConfigToJSON(...)` and `createMachineFromConfig(...)`. See [serialization](serialization.md).

@@ -13,7 +13,7 @@ entry: ({ context }, enq) => {
 
 <!-- entry/exit enqueue evaluation from packages/core/src/stateUtils.ts -->
 
-Every transition, entry and exit function receives a working `enq`, including functions with default or rest parameters and wrappers that forward `(...args)`. These functions run synchronously while computing the next snapshot. Effects passed to `enq(...)` run after that computation; entry and exit functions that enqueue no effects add nothing to the effects list.
+Transition, entry and exit functions run synchronously while computing the next snapshot. Use their `enq` argument to queue effects, which run after that computation.
 
 Entry and exit functions also receive `stateNode`, the state node being entered or exited, and `input`, the state's input. Transition functions do not receive `stateNode`.
 

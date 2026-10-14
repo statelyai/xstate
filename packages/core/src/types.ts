@@ -3030,11 +3030,11 @@ export type ToChildren<TActor extends ProvidedActor> =
 
 /** @public */
 export type StateSchema = {
-  id?: string;
+  id?: string | undefined;
   route?: unknown;
-  states?: Record<string, StateSchema>;
-  contextSchema?: StandardSchemaV1;
-  outputSchema?: StandardSchemaV1;
+  states?: Record<string, StateSchema> | undefined;
+  contextSchema?: StandardSchemaV1 | undefined;
+  outputSchema?: StandardSchemaV1 | undefined;
   input?: unknown;
   initial?: unknown;
 

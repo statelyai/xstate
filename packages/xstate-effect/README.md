@@ -134,7 +134,7 @@ Start Effect-backed logic with `createEffectActor` inside an Effect scope.
 | [Atoms and React](docs/atoms-and-react.md) | Registry ownership, approval controls and useSelector. |
 | [Testing and errors](docs/testing-and-errors.md) | TestClock, task retries, supervision and typed failures. |
 
-Runnable copies live in [examples/effect-workflows](../../examples/effect-workflows). Their tests verify the docs use the same code.
+Try the runnable examples in [examples/effect-workflows](../../examples/effect-workflows).
 
 ## Actors
 

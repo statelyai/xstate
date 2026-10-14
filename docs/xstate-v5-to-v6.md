@@ -1061,7 +1061,7 @@ These exports have been **removed** from `xstate`:
 
 `SpecialTargets` (the `Parent`/`Internal` enum) is still exported from `'xstate'` via `types.ts` and continues to work.
 
-`SetupReturn`, the type returned by `setup(...)`, is still exported, but its type parameters changed, so a v5 `SetupReturn<TContext, TEvent, ...>` annotation no longer type-checks. Use `typeof yourSetup` to name the type of a specific setup. Declaration files emitted for an exported setup reference `import("xstate").SetupReturn<...>`.
+`SetupReturn`, the type returned by `setup(...)`, is still exported, but its type parameters changed, so a v5 `SetupReturn<TContext, TEvent, ...>` annotation no longer type-checks. Use `typeof yourSetup` to name the type of a specific setup.
 
 These exports have been **added**:
 
@@ -1156,7 +1156,7 @@ The granular v5 inspection-event subtypes (`@xstate.event`, `@xstate.snapshot`, 
 
 ### React (`@xstate/react`)
 
-`useActor` no longer rehydrates from a stopped root via the removed `stopRootWithRehydration` helper - it now creates a fresh actor when the previous one has stopped:
+In v6, `useActor` creates a fresh actor when the previous one has stopped:
 
 ```ts
 // API surface unchanged
@@ -1357,8 +1357,7 @@ import { createMachineFromSCXML } from '@xstate/scxml';
 const machine = createMachineFromSCXML(scxml);
 ```
 
-SCXML uses a private compiler representation rather than `MachineJSON`. See
-[SCXML](scxml.md) for resource resolution and usage.
+See [SCXML](scxml.md) for resource resolution and usage.
 
 ---
 
