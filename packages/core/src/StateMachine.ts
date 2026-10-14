@@ -1914,11 +1914,12 @@ export class StateMachine<
     // arrays are copied; other values are kept as is.
     const revived = new Map<object, unknown>();
 
-    function reviveContext(value: any): any {
+    function reviveContext(value: any, isRoot = false): any {
       if (!value || typeof value !== 'object') {
         return value;
       }
-      if (value.xstate$type === ACTOR_REF_TYPE) {
+      // The context object itself is data, never a serialized actor ref.
+      if (!isRoot && value.xstate$type === ACTOR_REF_TYPE) {
         return children[value.id];
       }
       const proto = Object.getPrototypeOf(value);
@@ -1936,7 +1937,13 @@ export class StateMachine<
           (copy = Array.isArray(value) ? [] : Object.create(proto))
         );
         for (const key of Object.keys(value)) {
-          copy[key] = reviveContext(value[key]);
+          // defineProperty keeps keys like `__proto__` as own data properties.
+          Object.defineProperty(copy, key, {
+            value: reviveContext(value[key]),
+            writable: true,
+            enumerable: true,
+            configurable: true
+          });
         }
       }
       return copy;
@@ -1945,7 +1952,7 @@ export class StateMachine<
     const restoredSnapshot = createMachineSnapshot(
       {
         ...persistedRest,
-        context: reviveContext(persistedRest.context),
+        context: reviveContext(persistedRest.context, true),
         children,
         timers,
         _nextActorIds: restoredCounters,

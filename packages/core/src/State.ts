@@ -43,8 +43,15 @@ const emptySnapshotRecord = Object.freeze({});
  *
  * @internal
  */
-export function freezeContext(value: any): void {
-  if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
+const deepFrozenContext = new WeakSet<object>();
+
+export function freezeContext(value: any, visiting = new Set<object>()): void {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    deepFrozenContext.has(value) ||
+    visiting.has(value)
+  ) {
     return;
   }
   if (!Array.isArray(value)) {
@@ -56,16 +63,19 @@ export function freezeContext(value: any): void {
       return;
     }
   }
+  visiting.add(value);
   try {
-    // Freezing before descending also guards against cycles.
     Object.freeze(value);
   } catch {
     // Some proxies (e.g. framework reactive state) refuse to be frozen.
     return;
   }
+  // Descend even if the object was already frozen elsewhere: its children
+  // may still be mutable.
   for (const key of Object.keys(value)) {
-    freezeContext(value[key]);
+    freezeContext(value[key], visiting);
   }
+  deepFrozenContext.add(value);
 }
 
 function compactSnapshotRecord<T extends object>(value: T | undefined): T {

@@ -186,3 +186,45 @@ describe('frozen context (development)', () => {
     }
   });
 });
+
+describe('development context freeze edge cases', () => {
+  it('freezes mutable children of an already-frozen context object', () => {
+    const inner = { count: 0 };
+    const machine = createMachine({
+      context: Object.freeze({ inner })
+    });
+    const actor = createActor(machine).start();
+    expect(Object.isFrozen(actor.getSnapshot().context.inner)).toBe(true);
+  });
+
+  it('restores a context object that looks like a serialized actor ref', () => {
+    const machine = createMachine({ context: { note: '' } });
+    const persisted = JSON.parse(
+      JSON.stringify({
+        ...createActor(machine).getPersistedSnapshot(),
+        context: { xstate$type: 'actorRef', id: 'missing', note: 'data' }
+      })
+    );
+    const actor = createActor(machine, { snapshot: persisted });
+    expect(actor.getSnapshot().context).toEqual({
+      xstate$type: 'actorRef',
+      id: 'missing',
+      note: 'data'
+    });
+  });
+
+  it('keeps a persisted `__proto__` key as data, not a prototype', () => {
+    const machine = createMachine({ context: { value: 1 } });
+    const persisted = JSON.parse(
+      JSON.stringify(createActor(machine).getPersistedSnapshot()).replace(
+        '"context":{"value":1}',
+        '"context":{"value":1,"__proto__":{"injected":true}}'
+      )
+    );
+    const context: any = createActor(machine, {
+      snapshot: persisted
+    }).getSnapshot().context;
+    expect(Object.getPrototypeOf(context)).toBe(Object.prototype);
+    expect(context.injected).toBeUndefined();
+  });
+});
