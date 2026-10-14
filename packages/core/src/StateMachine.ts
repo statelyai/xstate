@@ -1927,7 +1927,14 @@ export class StateMachine<
       }
       // The context object itself is data, never a serialized actor ref.
       if (!isRoot && value.xstate$type === ACTOR_REF_TYPE) {
-        return children[value.id];
+        // A ref persisted from a live child carries only its id. One that
+        // was already serialized data (e.g. a `replyTo` from an event) keeps
+        // its address unless it names this child, so it still routes.
+        const child = children[value.id];
+        return typeof value.address === 'string' &&
+          child?.address !== value.address
+          ? value
+          : child;
       }
       const proto = Object.getPrototypeOf(value);
       if (

@@ -2336,6 +2336,22 @@ export interface ActorLike<
 }
 
 /**
+ * An actor reference after it went through JSON — the value `actor.toJSON()`
+ * returns, e.g. a `replyTo` ref in an event payload after persistence or a
+ * remote hop. It can be used as an `enq.sendTo(...)` target: the event is
+ * delivered to the live actor at `address`, or reported as a dead letter
+ * when no live actor has that address.
+ *
+ * @public
+ */
+export interface SerializedActorRef {
+  xstate$type: 'actorRef';
+  id: string;
+  address: string;
+  src?: string;
+}
+
+/**
  * A consumer-facing actor handle.
  *
  * `ActorRef` describes the contract a consumer needs: which events can be sent
@@ -2569,7 +2585,9 @@ type SendableEventFromActorRef<
         : TEvent extends EventObject
           ? TEvent
           : TFallback
-      : never
+      : TNonNullableActorRef extends SerializedActorRef
+        ? TFallback
+        : never
     : never;
 
 /** @public */
@@ -3544,6 +3562,7 @@ export type EnqueueObject<
   sendTo: <
     TTarget extends
       | { send: (...args: any[]) => void }
+      | SerializedActorRef
       | undefined
       | (keyof TChildren & string)
   >(

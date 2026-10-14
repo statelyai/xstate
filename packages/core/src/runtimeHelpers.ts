@@ -3,6 +3,10 @@ import {
   XSTATE_LOGIC_EFFECT_RESOLVE,
   XSTATE_LOGIC_EFFECT_START
 } from './constants.ts';
+import {
+  createMissingAddressError,
+  isSerializedActorRef
+} from './remoteActorRef.ts';
 import type {
   ActorTermination,
   AnyActor,
@@ -116,6 +120,23 @@ export function deliverEvent(
   target: AnyActor,
   event: AnyEventObject
 ): void {
+  if (isSerializedActorRef(target)) {
+    const serialized = target;
+    const system = source?.system;
+    const live = system?._getByAddress?.(serialized.address);
+    if (!live) {
+      const error = createMissingAddressError(serialized);
+      if (!system) {
+        throw error;
+      }
+      void system.deadLetter(source, undefined, event, 'missingTarget', {
+        targetId: serialized.id,
+        error
+      });
+      return;
+    }
+    target = live;
+  }
   if (rejectUndeliverableEvent(source, target, event)) {
     return;
   }
