@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://stately.ai/schemas/xstate/persisted-snapshot/v1.json",
   "title": "XState persisted machine snapshot",
-  "description": "The JSON envelope returned by getPersistedSnapshot() for machine logic, after JSON.stringify/JSON.parse. Nested machine children carry their own envelope in children[id].snapshot; other actor logic (async, callback, transition, observable) persists its own snapshot shape there. Fields prefixed with '_' are private runtime bookkeeping: they round-trip verbatim, but their shape is not part of the contract.",
+  "description": "The JSON envelope returned by getPersistedSnapshot() for machine logic, after JSON.stringify/JSON.parse. Nested machine children carry their own envelope in children[id].snapshot; other actor logic (async, callback, transition, observable) persists its own snapshot shape there. Fields prefixed with '_' are private runtime bookkeeping: they round-trip verbatim, but their shape is not part of the contract. The envelope, child entries and timer entries are open: new optional fields may be added in minor releases, and readers must ignore fields they do not recognize.",
   "type": "object",
   "required": [
     "status",
@@ -66,7 +66,6 @@
       "description": "Private runtime bookkeeping (e.g. _nextTimerId, _nextActorIds)."
     }
   },
-  "additionalProperties": false,
   "$defs": {
     "stateValue": {
       "anyOf": [
@@ -106,8 +105,7 @@
       "dependentSchemas": {
         "remote": { "not": { "required": ["snapshot"] } }
       },
-      "dependentRequired": { "incarnation": ["remote"] },
-      "additionalProperties": false
+      "dependentRequired": { "incarnation": ["remote"] }
     },
     "timer": {
       "type": "object",
@@ -137,8 +135,7 @@
           "description": "Absolute start (ms), recorded by a wall-clock actor or a successfully scheduled durable timer. Durable adapter clocks must share a time origin across restores.",
           "type": "number"
         }
-      },
-      "additionalProperties": false
+      }
     }
   }
 }
