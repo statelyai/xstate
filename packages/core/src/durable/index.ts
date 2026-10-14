@@ -26,10 +26,10 @@ import type {
   AnyActor,
   AnyActorLogic,
   AnyEventObject,
-  CustomExecutableActionObject,
+  CustomExecutableEffect,
   EventFromLogic,
-  ExecutableActionObjectFromLogic,
-  ExecutableActionObject,
+  ExecutableEffectFrom,
+  ExecutableEffect,
   InputFrom,
   LogicalTimer,
   OutputFrom,
@@ -127,7 +127,7 @@ export interface DurableExecutionAdapter<
    * `metadata.id`.
    */
   executeAction(
-    action: CustomExecutableActionObject,
+    action: CustomExecutableEffect,
     metadata: DurableEffectMetadata,
     runtime: Partial<ActorSystemRuntime>
   ): void | PromiseLike<void>;
@@ -140,7 +140,7 @@ export interface DurableExecutionAdapter<
    */
   runtime?(
     metadata: DurableEffectMetadata,
-    effect: ExecutableActionObjectFromLogic<TLogic>
+    effect: ExecutableEffectFrom<TLogic>
   ): Partial<ActorSystemRuntime>;
   /**
    * Waits durably for the next event addressed to this execution. Typed to
@@ -227,7 +227,7 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
     persistedSnapshot: Snapshot<unknown>
   ): [
     snapshot: DurableSnapshot<TLogic>,
-    effects: DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
+    effects: DurableEffect<ExecutableEffectFrom<TLogic>>[]
   ];
   initialTransition(
     ...[input]: undefined extends InputFrom<TLogic>
@@ -235,14 +235,14 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
       : [input: InputFrom<TLogic>]
   ): [
     snapshot: DurableSnapshot<TLogic>,
-    effects: DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
+    effects: DurableEffect<ExecutableEffectFrom<TLogic>>[]
   ];
   transition(
     snapshot: SnapshotFrom<TLogic>,
     event: EventFromLogic<TLogic>
   ): [
     snapshot: DurableSnapshot<TLogic>,
-    effects: DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
+    effects: DurableEffect<ExecutableEffectFrom<TLogic>>[]
   ];
   /**
    * Returns the actor reference behind a snapshot produced by this execution,
@@ -272,7 +272,7 @@ export interface DurableExecution<TLogic extends AnyActorLogic> {
    * `transition(snapshot, await waitForEvent())` + `executeEffects`.
    */
   executeEffects(
-    effects: readonly DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[]
+    effects: readonly DurableEffect<ExecutableEffectFrom<TLogic>>[]
   ): Promise<void>;
   /**
    * Resolves with the next event addressed to this execution's root actor:
@@ -324,19 +324,16 @@ export function createDurable<TLogic extends AnyActorLogic>(
     deadline: number;
     delay: number;
   }
-  const restoredTimerDeadlines = new WeakMap<
-    ExecutableActionObject,
-    TimerDeadline
-  >();
+  const restoredTimerDeadlines = new WeakMap<ExecutableEffect, TimerDeadline>();
 
   if (!Number.isSafeInteger(nextTransitionIndex) || nextTransitionIndex < 0) {
     throw new RangeError('transitionIndex must be a non-negative safe integer');
   }
 
   const tagEffects = (
-    effects: ExecutableActionObjectFromLogic<TLogic>[],
+    effects: ExecutableEffectFrom<TLogic>[],
     restoring = false
-  ): DurableEffect<ExecutableActionObjectFromLogic<TLogic>>[] => {
+  ): DurableEffect<ExecutableEffectFrom<TLogic>>[] => {
     const transitionIndex = restoring
       ? nextTransitionIndex
       : nextTransitionIndex++;
@@ -705,7 +702,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
           };
         })
       );
-      const effects: ExecutableActionObject[] = [];
+      const effects: ExecutableEffect[] = [];
       if ((snapshot as Snapshot<unknown>).status === 'active') {
         const { children, timers } = snapshot as {
           children?: Record<string, AnyActor | undefined>;
@@ -734,7 +731,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
       restored = true;
       return [
         snapshot,
-        tagEffects(effects as ExecutableActionObjectFromLogic<TLogic>[], true)
+        tagEffects(effects as ExecutableEffectFrom<TLogic>[], true)
       ];
     },
     initialTransition(...args) {

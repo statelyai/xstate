@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type AnyActor,
   type AnyMachineSnapshot,
-  type ExecutableActionObject,
+  type ExecutableEffect,
   type Snapshot,
   createMachine
 } from '../src/index.ts';
@@ -40,7 +40,7 @@ type DurableRecord = {
 function commitTransition(
   machine: ReturnType<typeof createMachine>,
   snapshot: AnyMachineSnapshot,
-  effects: ExecutableActionObject[],
+  effects: ExecutableEffect[],
   transitionId: string,
   now: number,
   bindings: Record<string, string> = {}

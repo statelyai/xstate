@@ -1050,8 +1050,8 @@ These exports have been **removed** from `xstate`:
 - The `state` actor option. Use `snapshot`: `createActor(machine, { snapshot: persisted })`. In development builds, passing `state` throws an error naming `snapshot`.
 - The top-level `internalEvents` machine config key. Use `schemas.internalEvents`; see [Internal events](#12-internal-events).
 - The `devTools` actor option and the `xstate/dev`, `xstate/actions`, and `xstate/guards` subpath exports
-- v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, `ExecutableActionsFrom`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** - same names, different structure.
-- `transition()` / `initialTransition()` now return `ExecutableActionObject[]` for effects; hand-written actor logic `transition` and `initialTransition` return `[snapshot, effects]` tuples whose effects each provide `exec(runtime?)`.
+- v5 definition/config types: `AnyState`, `StateMachineDefinition`, `StateNodeDefinition`, `StatesConfig`, `MachineOptions`, and related internals. The config types `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, and `TransitionConfigOrTarget` are re-exported with their **v6 shapes** - same names, different structure.
+- `transition()` / `initialTransition()` now return `ExecutableEffect[]` for effects; hand-written actor logic `transition` and `initialTransition` return `[snapshot, effects]` tuples whose effects each provide `exec(runtime?)`.
 - `ActorLogic.executeEffects` has been removed. Actor logic returns executable effects directly.
 - Deprecated snapshot helpers: `getInitialSnapshot(logic, input?)` and `getNextSnapshot(logic, snapshot, event)`. Use `initialTransition(logic, input?)` and `transition(logic, snapshot, event)`; the snapshot is the first element of the returned tuple.
 - Deprecated type aliases: `NoInfer` (use the built-in `NoInfer`), `AnyInterpreter` (use `AnyActor`), and `ResolvedStateMachineTypes`
@@ -1074,10 +1074,10 @@ These exports have been **added**:
 - `TimeoutError`
 - Serialization surface (see §21): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON` types; machines serialize via `serializeMachine(machine)`
 - Config types (v6 shapes): `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `Sources`, `InferEvents`, `WidenLiterals`
-- Runtime/effect surface: `executeEffects`, `isBuiltInExecutableAction`, `getEffectDescriptor`, `deliverEvent`, `runStep`, `stopActor`, `terminateActor`, and the related `EffectDescriptor`, `ActorSystemRuntime`, and `ActorTermination` types
+- Runtime/effect surface: `executeEffects`, `isBuiltInExecutableEffect`, `getEffectDescriptor`, `deliverEvent`, `runStep`, `stopActor`, `terminateActor`, and the related `EffectDescriptor`, `ActorSystemRuntime`, and `ActorTermination` types
 - Persistence/versioning surface: `machineVersions` and its related snapshot
   migration and event adaptation types
-- Executable effect types: `BaseExecutableActionObject`, `CustomExecutableActionObject`, `ExecutableActionObject`, `ExecutableActionObjectFromLogic`, `BuiltInExecutableActionObject`, `SpecialExecutableAction`, `StartExecutableActionObject`, `RaiseExecutableActionObject`, `SendToExecutableActionObject`, `CancelExecutableActionObject`, `StopExecutableActionObject`, `TerminateExecutableActionObject`
+- Executable effect types: `BaseExecutableEffect`, `CustomExecutableEffect`, `ExecutableEffect`, `ExecutableEffectFrom`, `BuiltInExecutableEffect`, `SpecialExecutableEffect`, `StartExecutableEffect`, `RaiseExecutableEffect`, `SendToExecutableEffect`, `CancelExecutableEffect`, `StopExecutableEffect`, `TerminateExecutableEffect`
 - `ActorLogic.start(snapshot, scope, options?)` receives `options.restored` so logic can distinguish restoration from a fresh start.
 - `actor.select(selector)` - derived, subscribable views
 
@@ -1090,6 +1090,7 @@ See [compact finite state machines](fsm.md) for its exact supported surface.
 ### Renamed members and identifiers
 
 - `machine.implementations` is now `machine.sources`, and the `MachineImplementationsFrom` type is now `MachineSourcesFrom`.
+- The executable action types are now executable effect types: `ExecutableActionObject` is `ExecutableEffect`, `ExecutableActionsFrom` is `ExecutableEffectFrom`, `SpecialExecutableAction` is `SpecialExecutableEffect`, `ExecutableSpawnAction` is `SpawnExecutableEffect`, and `ToExecutableAction` is `ToExecutableEffect`. The new v6 types and helpers use the same naming, for example `BuiltInExecutableEffect` and `isBuiltInExecutableEffect`.
 - `snapshot._nodes` is now `snapshot.nodes`. It lists the active state nodes.
 - The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). `systemId` is not accepted as an option.
 - The `spawn` function passed to a `context` factory accepts actor logic only. Replace `spawn('worker')` with `spawn(actors.worker)`, using the `actors` argument of the same factory.
@@ -1537,7 +1538,7 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 
 | Transform             | Effect                                                                                                                                                                                                                                                                      |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rename-imports`      | Renames `interpret` to `createActor`, `Interpreter` to `Actor`, and `fromCallback`, `fromObservable`, and `fromEventObservable` to their `create*Logic` names, including usages. Import aliases are kept.                                                                  |
+| `rename-imports`      | Renames `interpret` to `createActor`, `Interpreter` to `Actor`, and `fromCallback`, `fromObservable`, and `fromEventObservable` to their `create*Logic` names, and the executable action types to their executable effect names, including usages. Import aliases are kept.                                                                  |
 | `string-targets`      | Wraps bare string transition values under `on`, `after`, `onDone`, `onError`, and `always` in `{ target: '...' }` inside `createMachine` and `createStateConfig` configs.                                                                                                   |
 | `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal.                                                                                                                         |
 | `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, and `fromTransition`, with a suggested replacement. |

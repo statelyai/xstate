@@ -23,23 +23,23 @@ import type {
   AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
-  CancelExecutableActionObject,
-  CustomExecutableActionObject,
-  EmitExecutableActionObject,
+  CancelExecutableEffect,
+  CustomExecutableEffect,
+  EmitExecutableEffect,
   EnqueueObject,
   EventObject,
-  ExecutableActionObject,
+  ExecutableEffect,
   MachineContext,
   LogicalTimer,
-  RaiseExecutableActionObject,
-  DeadLetterExecutableActionObject,
-  SendToExecutableActionObject,
+  RaiseExecutableEffect,
+  DeadLetterExecutableEffect,
+  SendToExecutableEffect,
   Snapshot,
-  SpecialExecutableAction,
-  SpawnExecutableActionObject,
-  StartExecutableActionObject,
-  StopExecutableActionObject,
-  TerminateExecutableActionObject
+  SpecialExecutableEffect,
+  SpawnExecutableEffect,
+  StartExecutableEffect,
+  StopExecutableEffect,
+  TerminateExecutableEffect
 } from './types.ts';
 
 type TransitionActionRecord = {
@@ -58,7 +58,7 @@ type TransitionActionRecord = {
 type EffectRuntime = Partial<ActorSystemRuntime>;
 
 function execCustomEffect(
-  this: CustomExecutableActionObject
+  this: CustomExecutableEffect
 ): void | PromiseLike<void> | undefined {
   const result = this.action?.(...this.args);
   if (isDevelopment) {
@@ -75,7 +75,7 @@ const warnedEffectResults = new WeakSet<object>();
  * Development builds say so, once per function.
  */
 function warnOnIgnoredEffectResult(
-  effect: CustomExecutableActionObject,
+  effect: CustomExecutableEffect,
   result: unknown
 ): void {
   if (
@@ -101,7 +101,7 @@ function warnOnIgnoredEffectResult(
 }
 
 function execEmitEffect(
-  this: EmitExecutableActionObject,
+  this: EmitExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
   return runtime.emitEvent!(this.source, this.event);
@@ -111,7 +111,7 @@ function execEmitEffect(
 export function createEmitEffect(
   actorScope: AnyActorScope,
   event: EventObject
-): EmitExecutableActionObject {
+): EmitExecutableEffect {
   return {
     kind: 'emit',
     exec: execEmitEffect,
@@ -124,7 +124,7 @@ export function createEmitEffect(
 }
 
 function execDeadLetterEffect(
-  this: DeadLetterExecutableActionObject,
+  this: DeadLetterExecutableEffect,
   runtime: EffectRuntime = (this.target ?? this.source)!.system
 ): void | PromiseLike<void> {
   return runtime.deadLetter!(
@@ -143,7 +143,7 @@ export function createDeadLetterEffect(
   event: AnyEventObject,
   reason: EventRejectionReason,
   detail?: DeadLetterDetail
-): DeadLetterExecutableActionObject {
+): DeadLetterExecutableEffect {
   return {
     kind: 'builtin',
     type: '@xstate.deadLetter',
@@ -166,7 +166,7 @@ function createMissingTargetEffect(
   actorScope: AnyActorScope,
   event: AnyEventObject,
   targetId: string | undefined
-): DeadLetterExecutableActionObject {
+): DeadLetterExecutableEffect {
   return {
     kind: 'builtin',
     type: '@xstate.deadLetter',
@@ -193,7 +193,7 @@ export function createCustomEffect(
   type: string,
   action: (runtime?: EffectRuntime) => void | PromiseLike<void> | undefined,
   params?: unknown
-): CustomExecutableActionObject {
+): CustomExecutableEffect {
   return {
     kind: 'action',
     exec: action,
@@ -205,14 +205,14 @@ export function createCustomEffect(
 }
 
 function execSpawnEffect(
-  this: SpawnExecutableActionObject,
+  this: SpawnExecutableEffect,
   runtime: EffectRuntime = this.actor.system
 ): void | PromiseLike<void> {
   return runtime.spawnActor!(this.source, this.actor);
 }
 
 function execStartEffect(
-  this: StartExecutableActionObject,
+  this: StartExecutableEffect,
   runtime: EffectRuntime = this.actor.system
 ): void | PromiseLike<void> {
   // A child stopped before its deferred start (spawned and stopped in the
@@ -227,14 +227,14 @@ function execStartEffect(
 }
 
 function execStopEffect(
-  this: StopExecutableActionObject,
+  this: StopExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
   return runtime.stopActor!(this.actor);
 }
 
 function execTerminateEffect(
-  this: TerminateExecutableActionObject,
+  this: TerminateExecutableEffect,
   runtime: EffectRuntime = this.actor.system
 ): void | PromiseLike<void> {
   const termination: ActorTermination =
@@ -245,14 +245,14 @@ function execTerminateEffect(
 }
 
 function execRaiseEffect(
-  this: RaiseExecutableActionObject,
+  this: RaiseExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
   return runtime.scheduleTimer!(this.source, this.id!, this.delay ?? 0);
 }
 
 function execSendToEffect(
-  this: SendToExecutableActionObject,
+  this: SendToExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
   assertSendToEvent(this.event);
@@ -263,7 +263,7 @@ function execSendToEffect(
 }
 
 function execCancelEffect(
-  this: CancelExecutableActionObject,
+  this: CancelExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
   return runtime.cancelTimer!(this.source, this.id);
@@ -271,10 +271,10 @@ function execCancelEffect(
 
 function updateLogicalTimers(
   snapshot: AnyMachineSnapshot,
-  effect: ExecutableActionObject,
+  effect: ExecutableEffect,
   actorScope: AnyActorScope
 ): AnyMachineSnapshot {
-  if (!isBuiltInExecutableAction(effect)) {
+  if (!isBuiltInExecutableEffect(effect)) {
     return snapshot;
   }
 
@@ -873,7 +873,7 @@ function warnNotAFunction(value: unknown): void {
 function getBuiltInActionFields(
   action: (...args: any[]) => void,
   args: unknown[]
-): Partial<SpecialExecutableAction> | undefined {
+): Partial<SpecialExecutableEffect> | undefined {
   switch (action) {
     case builtInActions['@xstate.spawn']: {
       const [actor] = args as Parameters<
@@ -958,9 +958,7 @@ function getBuiltInActionFields(
 }
 
 /** @internal Creates an actor-start effect, including for restored children. */
-export function createStartEffect(
-  actor: AnyActor
-): StartExecutableActionObject {
+export function createStartEffect(actor: AnyActor): StartExecutableEffect {
   const args: Parameters<(typeof builtInActions)['@xstate.start']> = [actor];
   return {
     kind: 'builtin',
@@ -979,7 +977,7 @@ export function createTimerEffect(
   actorScope: AnyActorScope,
   timer: LogicalTimer,
   delay: number
-): RaiseExecutableActionObject | SendToExecutableActionObject {
+): RaiseExecutableEffect | SendToExecutableEffect {
   const source = actorScope.self;
   const options = { id: timer.id, delay };
   if (timer.type === '@xstate.raise') {
@@ -1010,9 +1008,7 @@ export function createTimerEffect(
   };
 }
 
-export function createSpawnEffect(
-  actor: AnyActor
-): SpawnExecutableActionObject {
+export function createSpawnEffect(actor: AnyActor): SpawnExecutableEffect {
   const args: Parameters<(typeof builtInActions)['@xstate.spawn']> = [actor];
   return {
     kind: 'builtin',
@@ -1034,7 +1030,7 @@ export function createSendToEffect(
   actorScope: AnyActorScope,
   target: AnyActor,
   event: EventObject
-): SendToExecutableActionObject {
+): SendToExecutableEffect {
   const args: Parameters<(typeof builtInActions)['@xstate.sendTo']> = [
     actorScope,
     target,
@@ -1059,7 +1055,7 @@ export function createSendToEffect(
 export function createTerminationEffect(
   actorScope: AnyActorScope,
   snapshot: Snapshot<unknown>
-): TerminateExecutableActionObject {
+): TerminateExecutableEffect {
   if (snapshot.status !== 'done' && snapshot.status !== 'error') {
     throw new Error('Cannot terminate an active or stopped actor');
   }
@@ -1097,7 +1093,7 @@ export function finalizeTransitionResult<
   actorScope: AnyActorScope,
   previousSnapshot: TSnapshot | undefined,
   [nextSnapshot, effects]: [TSnapshot, TEffect[]]
-): [TSnapshot, Array<TEffect | TerminateExecutableActionObject>] {
+): [TSnapshot, Array<TEffect | TerminateExecutableEffect>] {
   const becameTerminal =
     nextSnapshot.status === 'done' || nextSnapshot.status === 'error';
   const wasTerminal =
@@ -1124,13 +1120,13 @@ export function finalizeTransitionResult<
  * target actor starts.
  */
 export function deriveDeferredStarts(
-  effects: ReadonlyArray<ExecutableActionObject>
-): StartExecutableActionObject[] {
-  const attachedStarts: StartExecutableActionObject[] = [];
-  const childStarts: StartExecutableActionObject[] = [];
+  effects: ReadonlyArray<ExecutableEffect>
+): StartExecutableEffect[] {
+  const attachedStarts: StartExecutableEffect[] = [];
+  const childStarts: StartExecutableEffect[] = [];
 
   for (const effect of effects) {
-    if (!isBuiltInExecutableAction(effect) || effect.type !== XSTATE_SPAWN) {
+    if (!isBuiltInExecutableEffect(effect) || effect.type !== XSTATE_SPAWN) {
       continue;
     }
     const { actor, logic } = effect;
@@ -1146,9 +1142,9 @@ export function deriveDeferredStarts(
 }
 
 /** @public */
-export function isBuiltInExecutableAction(
-  action: ExecutableActionObject
-): action is SpecialExecutableAction {
+export function isBuiltInExecutableEffect(
+  action: ExecutableEffect
+): action is SpecialExecutableEffect {
   return action.kind === 'builtin';
 }
 
@@ -1158,7 +1154,7 @@ export function isBuiltInExecutableAction(
  * @public
  */
 export async function executeEffects(
-  effects: readonly ExecutableActionObject[],
+  effects: readonly ExecutableEffect[],
   runtime?: Partial<ActorSystemRuntime>
 ): Promise<void> {
   for (const effect of effects) {
@@ -1171,9 +1167,9 @@ export function resolveActionsWithContext(
   _event: AnyEventObject,
   actorScope: AnyActorScope,
   actions: AnyAction[]
-): [AnyMachineSnapshot, ExecutableActionObject[]] {
+): [AnyMachineSnapshot, ExecutableEffect[]] {
   let intermediateSnapshot = currentSnapshot;
-  const executableActions: ExecutableActionObject[] = [];
+  const executableActions: ExecutableEffect[] = [];
 
   for (const action of actions) {
     const isInline = typeof action === 'function';
@@ -1272,13 +1268,13 @@ export function resolveActionsWithContext(
         ...builtInFields
       };
 
-      const typedExecutableAction = executableAction as ExecutableActionObject;
+      const typedExecutableEffect = executableAction as ExecutableEffect;
       intermediateSnapshot = updateLogicalTimers(
         intermediateSnapshot,
-        typedExecutableAction,
+        typedExecutableEffect,
         actorScope
       );
-      executableActions.push(typedExecutableAction);
+      executableActions.push(typedExecutableEffect);
       continue;
     }
   }

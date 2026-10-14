@@ -18,12 +18,12 @@ import {
   EventFromLogic,
   InputFrom,
   SnapshotFrom,
-  ExecutableActionObjectFromLogic,
+  ExecutableEffectFrom,
   AnyTransitionDefinition,
   AnyMachineSnapshot,
   AnyActor,
   AnyActorScope,
-  ExecutableActionObject
+  ExecutableEffect
 } from './types';
 import {
   beginSpawnAllocation,
@@ -35,7 +35,7 @@ import type { EventObject } from './types';
 
 type MachineMicrostep = [
   AnyMachineSnapshot,
-  ExecutableActionObject[],
+  ExecutableEffect[],
   AnyTransitionDefinition[]
 ];
 
@@ -43,7 +43,7 @@ function attachMicrostepActorRefs(
   microsteps: ReadonlyArray<
     readonly [
       AnyMachineSnapshot,
-      ExecutableActionObject[],
+      ExecutableEffect[],
       AnyTransitionDefinition[]?
     ]
   >,
@@ -91,10 +91,7 @@ export function transition<T extends AnyActorLogic>(
   logic: T,
   snapshot: SnapshotFrom<T>,
   event: EventFromLogic<T>
-): [
-  nextSnapshot: SnapshotFrom<T>,
-  actions: ExecutableActionObjectFromLogic<T>[]
-] {
+): [nextSnapshot: SnapshotFrom<T>, actions: ExecutableEffectFrom<T>[]] {
   const actorScope = createInertActorScope(logic, snapshot);
   setInertActorScopeSnapshot(actorScope, snapshot, false);
   const [nextSnapshot, effects] = finalizeTransitionResult(
@@ -109,7 +106,7 @@ export function transition<T extends AnyActorLogic>(
       ? nextSnapshot
       : attachSnapshotActorRef(actorScope, nextSnapshot);
   inspectPureTransition(actorScope, returnedSnapshot, event);
-  return [returnedSnapshot, effects as ExecutableActionObjectFromLogic<T>[]];
+  return [returnedSnapshot, effects as ExecutableEffectFrom<T>[]];
 }
 
 /**
@@ -150,7 +147,7 @@ export function initialTransition<T extends AnyActorLogic>(
   ...[input]: undefined extends InputFrom<T>
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
-): [SnapshotFrom<T>, ExecutableActionObjectFromLogic<T>[]] {
+): [SnapshotFrom<T>, ExecutableEffectFrom<T>[]] {
   const actorScope = createInertActorScope(logic);
 
   const [nextSnapshot, executableActions] = finalizeTransitionResult(
@@ -162,10 +159,7 @@ export function initialTransition<T extends AnyActorLogic>(
   setInertActorScopeSnapshot(actorScope, nextSnapshot, false);
   const returnedSnapshot = attachSnapshotActorRef(actorScope, nextSnapshot);
   inspectPureTransition(actorScope, returnedSnapshot, createInitEvent(input));
-  return [
-    returnedSnapshot,
-    executableActions as ExecutableActionObjectFromLogic<T>[]
-  ];
+  return [returnedSnapshot, executableActions as ExecutableEffectFrom<T>[]];
 }
 
 /**
@@ -205,11 +199,7 @@ export function getMicrosteps<T extends AnyStateMachine>(
   snapshot: SnapshotFrom<T>,
   event: EventFromLogic<T>
 ): Array<
-  [
-    SnapshotFrom<T>,
-    ExecutableActionObjectFromLogic<T>[],
-    AnyTransitionDefinition[]
-  ]
+  [SnapshotFrom<T>, ExecutableEffectFrom<T>[], AnyTransitionDefinition[]]
 > {
   const actorScope = createInertActorScope(machine, snapshot);
   beginSpawnAllocation(actorScope);
@@ -221,11 +211,7 @@ export function getMicrosteps<T extends AnyStateMachine>(
     actorScope,
     snapshot as AnyMachineSnapshot
   ) as Array<
-    [
-      SnapshotFrom<T>,
-      ExecutableActionObjectFromLogic<T>[],
-      AnyTransitionDefinition[]
-    ]
+    [SnapshotFrom<T>, ExecutableEffectFrom<T>[], AnyTransitionDefinition[]]
   >;
 }
 
@@ -246,11 +232,7 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
     ? [input?: InputFrom<T>]
     : [input: InputFrom<T>]
 ): Array<
-  [
-    SnapshotFrom<T>,
-    ExecutableActionObjectFromLogic<T>[],
-    AnyTransitionDefinition[]
-  ]
+  [SnapshotFrom<T>, ExecutableEffectFrom<T>[], AnyTransitionDefinition[]]
 > {
   const actorScope = createInertActorScope(machine);
   beginSpawnAllocation(actorScope);
@@ -279,11 +261,7 @@ export function getInitialMicrosteps<T extends AnyStateMachine>(
   );
 
   return attachMicrostepActorRefs(microsteps, actorScope) as Array<
-    [
-      SnapshotFrom<T>,
-      ExecutableActionObjectFromLogic<T>[],
-      AnyTransitionDefinition[]
-    ]
+    [SnapshotFrom<T>, ExecutableEffectFrom<T>[], AnyTransitionDefinition[]]
   >;
 }
 

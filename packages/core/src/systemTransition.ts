@@ -14,7 +14,7 @@ import type {
   AnyActorLogic,
   AnyActorScope,
   AnyEventObject,
-  ExecutableActionObject,
+  ExecutableEffect,
   InputFrom
 } from './types.ts';
 
@@ -287,7 +287,7 @@ class SystemReduction {
   private readonly logic: Map<string, AnyActorLogic>;
   private readonly handles = new Map<string, AnyActor>();
   private readonly snapshots = new Map<string, any>();
-  private readonly initialEffects = new Map<string, ExecutableActionObject[]>();
+  private readonly initialEffects = new Map<string, ExecutableEffect[]>();
   private readonly stopping = new Set<string>();
   private readonly deadlines = new IndexedHeap<SystemTimer>(
     (a, b) =>
@@ -670,7 +670,7 @@ class SystemReduction {
     };
   }
 
-  private external(ref: SystemActorReference, effect: ExecutableActionObject) {
+  private external(ref: SystemActorReference, effect: ExecutableEffect) {
     const value = effect as any;
     // Enqueue callback markers have already run as part of pure calculation.
     if (value.kind === 'action' && value.action === undefined) return;
@@ -737,10 +737,7 @@ class SystemReduction {
     }
   }
 
-  private effectsFor(
-    ref: SystemActorReference,
-    effects: ExecutableActionObject[]
-  ) {
+  private effectsFor(ref: SystemActorReference, effects: ExecutableEffect[]) {
     for (const effect of effects) {
       const value = effect as any;
       if (value.kind !== 'builtin') {

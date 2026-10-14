@@ -4,7 +4,7 @@ import {
   type AnyActor,
   type AnyActorLogic,
   type EventFromLogic,
-  type ExecutableActionObject,
+  type ExecutableEffect,
   createActor,
   createMachine,
   executeEffects,
@@ -102,7 +102,7 @@ describe('custom interpreter runtime', () => {
     let [state, effects] = machine.initialTransition(undefined);
     expect(
       effects.every(
-        (effect: ExecutableActionObject) => typeof effect.exec === 'function'
+        (effect: ExecutableEffect) => typeof effect.exec === 'function'
       )
     ).toBe(true);
     await interpreter.executeEffects(effects);

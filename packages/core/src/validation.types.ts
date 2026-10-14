@@ -1,7 +1,7 @@
 import type {
   AnyActorLogic,
   AnyEventObject,
-  ExecutableActionObject,
+  ExecutableEffect,
   Snapshot
 } from './types.ts';
 
@@ -36,7 +36,7 @@ export type ActorValidationRequest =
       kind: 'result';
       logic: AnyActorLogic;
       snapshot: Snapshot<unknown>;
-      effects: readonly ExecutableActionObject[];
+      effects: readonly ExecutableEffect[];
     };
 
 /**

@@ -46,7 +46,7 @@ import type {
   Snapshot,
   SnapshotFrom,
   AnyTransitionDefinition,
-  ExecutableActionObject,
+  ExecutableEffect,
   Readable,
   ActorLogicTransitionResult
 } from './types.ts';
@@ -102,7 +102,7 @@ function safeCall<T>(fn: ((arg: T) => void) | undefined, arg?: T) {
 }
 
 function executeExecutableEffects(
-  effects: readonly ExecutableActionObject[] | undefined,
+  effects: readonly ExecutableEffect[] | undefined,
   actorScope: ActorScope<any, any, any, any>
 ): void {
   if (!effects?.length) {
@@ -194,7 +194,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   public _collectedActions: ActionRecord[] | undefined;
   /** @internal Events relayed to other actors during the in-flight transition. */
   public _collectedSent: SentRecord[] | undefined;
-  private _initialEffects: ExecutableActionObject[] | undefined;
+  private _initialEffects: ExecutableEffect[] | undefined;
   public registryKey: string | undefined;
 
   /** The globally unique process ID for this invocation. */
@@ -435,8 +435,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     return emit;
   }
 
-  private get actionExecutor(): (action: ExecutableActionObject) => void {
-    const actionExecutor = (action: ExecutableActionObject) =>
+  private get actionExecutor(): (action: ExecutableEffect) => void {
+    const actionExecutor = (action: ExecutableEffect) =>
       this._executeAction(action);
     Object.defineProperty(this, 'actionExecutor', { value: actionExecutor });
     return actionExecutor;
@@ -465,7 +465,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   /** @internal */
-  public _executeAction(action: ExecutableActionObject): void {
+  public _executeAction(action: ExecutableEffect): void {
     const exec = () => {
       // Record every executed action for the '@xstate.transition' inspection
       // event's `actions[]` facet (replaces the v5 '@xstate.action' event).

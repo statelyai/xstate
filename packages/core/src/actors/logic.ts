@@ -27,7 +27,7 @@ import {
   ActorScope,
   AnyActorRef,
   EventObject,
-  ExecutableActionObject,
+  ExecutableEffect,
   NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
@@ -58,7 +58,7 @@ export interface LogicArgs<TContext, TEvent extends EventObject, TInput> {
 export type LogicEffect<
   _TEvent extends EventObject,
   _TEmitted extends EventObject
-> = ExecutableActionObject;
+> = ExecutableEffect;
 
 /** @public */
 export interface LogicEnqueue<
