@@ -1,5 +1,9 @@
 import isDevelopment from '#is-development';
-import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
+import {
+  MachineSnapshot,
+  cloneMachineSnapshot,
+  freezeContext
+} from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import {
   createAfterEvent,
@@ -2056,6 +2060,9 @@ function microstep(
 
         if (contextChangedByEntry) {
           nextState.context = context;
+          if (isDevelopment) {
+            freezeContext(context);
+          }
         }
 
         if (statesForDefaultEntry.has(stateNodeToEnter)) {
@@ -2086,6 +2093,9 @@ function microstep(
                 nextState.context,
                 initialContext
               );
+              if (isDevelopment) {
+                freezeContext(nextState.context);
+              }
             }
             if (initialInput && defaultTransition.target) {
               for (const targetNode of defaultTransition.target) {
