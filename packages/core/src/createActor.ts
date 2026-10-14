@@ -25,6 +25,10 @@ import type { createMachine } from './createMachine.ts';
 
 export let executingCustomAction: boolean = false;
 
+export const setExecutingCustomAction = (value: boolean) => {
+  executingCustomAction = value;
+};
+
 import type {
   ActorScope,
   AnyActorLogic,
