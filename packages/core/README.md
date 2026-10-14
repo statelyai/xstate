@@ -54,7 +54,7 @@ The helper requires input for actors whose input excludes `undefined`, and check
 
 <!-- JSON loading and runtime validation from packages/core/src/createMachineFromConfig.ts -->
 
-Revive JSON definitions with `createMachineFromConfig(json, { schemas, validator, ...sources })` to restore runtime validation. The loader validates structural keys and references and copies its input; serialized definitions are independent copies. See [serialization](../../docs/serialization.md).
+Revive JSON definitions with `createMachineFromConfig(json, { schemas, validator, ...sources })` to restore runtime validation. The loader validates config keys and references. See [serialization](../../docs/serialization.md).
 
 For flat finite state machines, `xstate/fsm` provides a tiny pure transition
 table with context and TypeScript support:
@@ -659,6 +659,6 @@ explicitly configured routes. Payload checks require runtime schemas;
 
 <!-- entry effects and terminal transition behavior from packages/core/src/stateUtils.ts and transitionActions.ts -->
 
-Functions passed to `enq(...)` run as effects; their returned context or child patches are ignored, with a development warning. Return a computed patch from the transition, entry, or exit function instead. Every entry/exit function receives a working enqueue argument, including default/rest parameters and forwarding wrappers. Only enqueued effects appear in the effects list. See [actions](../../docs/actions.md).
+Use the `enq` argument in transition, entry and exit functions to queue effects. Return context or child patches from those functions; the return value of an enqueued effect is ignored, with a development warning. See [actions](../../docs/actions.md).
 
-Pure transitions preserve terminal snapshots and return no effects. `snapshot.can(...)` returns `false` for terminal snapshots; active dry runs propagate evaluation errors. See [snapshots](../../docs/snapshots.md) and [states](../../docs/states.md).
+For actors that are done, stopped or failed, pure transitions return the same snapshot and no effects, and `snapshot.can(...)` returns `false`. See [snapshots](../../docs/snapshots.md) and [states](../../docs/states.md).

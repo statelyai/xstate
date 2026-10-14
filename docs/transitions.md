@@ -24,8 +24,7 @@ idle: { on: { start: { target: 'active' } } }
 | `description` | Human-readable description. |
 
 Use `schemas.transitionMeta` to type transition metadata separately from state
-metadata. If omitted, transition metadata uses `schemas.meta` for backwards
-compatibility.
+metadata. If omitted, transition metadata uses `schemas.meta`.
 
 ```ts
 schemas: {

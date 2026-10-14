@@ -25,15 +25,13 @@ return <output>{total()}</output>;
 | --- | --- |
 | `actorRef` | An actor reference, an `Accessor<ActorRef>`, or `undefined`. |
 
-The returned accessor's value is a Solid store built by diffing each new snapshot into the previous one. Only the paths that changed notify their readers, so `snapshot().context.progress` re-runs on progress updates and `snapshot().value` does not.
+The returned accessor's value is deeply reactive. Only the paths that changed notify their readers, so `snapshot().context.progress` re-runs on progress updates and `snapshot().value` does not.
 
-The diff clones plain objects and arrays. Functions, class instances and other non-plain values are carried over by reference, which is what keeps snapshot methods such as `matches(...)`, `hasTag(...)` and `can(...)` working on the store.
+Read plain objects and arrays through the accessor to track changes. Class instances and other non-plain values are not deeply reactive. You can call snapshot methods such as `matches(...)`, `hasTag(...)` and `can(...)` as usual.
 
-`useActor(...)` uses this internally: its first tuple member is `fromActorRef(actorRef)()`.
+`useActor(...)` returns a reactive snapshot as its first tuple member.
 
 <!-- observation semantics from ../src/fromActorRef.ts and ../src/createImmutable.ts -->
-The subscription reconciles changes made during component setup. Array/object replacements preserve the new container shape and do not mutate the actor's context. Circular and shared references remain intact.
-
 When an actor fails, the accessor updates to its error snapshot. Read `snapshot().status` and `snapshot().error` to render the failure; the adapter does not throw it into an error boundary.
 
 ## Change detection
