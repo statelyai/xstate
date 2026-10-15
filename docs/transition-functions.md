@@ -67,6 +67,8 @@ Three checks answer different questions:
 
 In the example, source analysis can identify `editing → charging` and `editing → paid` without proving which event values will occur. A conservative graph may include edges that are never taken; it must not silently omit possible edges if it claims complete coverage.
 
+The runtime `toDirectedGraph(...)` API does not currently inspect transition function bodies, so it omits their edges. Literal targets inside a function are available only to source-analysis tooling that explicitly supports that syntax. Treat runtime graph output as incomplete when a machine uses transition functions.
+
 ## Proposed strict graph extraction
 
 **This is a proposed tooling contract, not a shipped XState option or lint command.** TypeScript's `strict` setting does not enable strict graph extraction. Visual tooling support for v6 is still in progress; see the [FAQ](faq.md#does-stately-studio-or-the-vs-code-extension-support-v6).
