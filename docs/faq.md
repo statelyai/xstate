@@ -11,6 +11,10 @@ Not yet. v6 is in alpha and is published under the `alpha` dist-tag, so `npm ins
 
 They are no longer exported. In v6 every `entry`, `exit` and transition handler is a single function that receives `(args, enq)`. Return a `{ context }` patch instead of `assign(...)`, and use `enq.raise(...)`, `enq.sendTo(...)`, `enq.emit(...)`, `enq.log(...)`, `enq.cancel(...)`, `enq.spawn(...)` and `enq.stop(...)` instead of the action creators. `enqueueActions` has no replacement because every function is already an enqueuing function. See [actions](actions.md) and the [migration guide](xstate-v5-to-v6.md).
 
+## Why use transition functions instead of separate guards and actions?
+
+Ordinary JavaScript conditions narrow context and event data for the updates and effects in the same branch. Functions also let you share calculations and effects across branches. Static transition objects remain supported. Graph extraction is a separate concern: valid target types do not prove every possible edge was extracted. See [transition functions and graph analysis](transition-functions.md), including the proposed strict extraction contract and its current status.
+
 ## Where are `and`, `or`, `not` and `stateIn`?
 
 Guards are plain JavaScript in v6, so the combinators are gone. Write conditions with `&&`, `||` and `!` inside the transition function, and return `undefined` to reject the event. `stateIn(...)` is replaced by `checkStateIn(self.getSnapshot(), 'some.state')`, which is exported from `xstate`. See [guards](guards.md).

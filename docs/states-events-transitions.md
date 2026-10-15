@@ -66,6 +66,8 @@ on: {
 
 Returning `undefined` without enqueuing anything prevents the transition. Keep transition functions deterministic.
 
+Functions keep conditions, typed updates and effects together. See [transition functions and graph analysis](transition-functions.md) for the benefits and the distinction between valid targets, graph coverage and reachability.
+
 ## Real examples
 
 In a checkout, `submit` can move `reviewing` to `paying`. The same event is ignored while payment is already in progress. `paymentSucceeded` and `paymentFailed` only matter in `paying`.
