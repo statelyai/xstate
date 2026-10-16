@@ -817,3 +817,42 @@ describe('#4774 initialTransition single init', () => {
     expect(initCount).toBe(1);
   });
 });
+
+describe('forward-compatible envelope', () => {
+  const machine = createMachine({
+    initial: 'a',
+    states: { a: { on: { NEXT: { target: 'b' } } }, b: {} }
+  });
+
+  it('the schema accepts unknown fields on the envelope, children and timers', () => {
+    const persisted = roundTrip(createActor(machine).getPersistedSnapshot());
+    expect(validateEnvelope({ ...persisted, pending: [] })).toBe(true);
+    expect(
+      validateEnvelope({
+        ...persisted,
+        children: { c: { src: 'child', futureField: 1 } },
+        timers: {
+          t: {
+            id: 't',
+            delay: 10,
+            type: '@xstate.raise',
+            event: { type: 'TICK' },
+            target: 'self',
+            futureField: 1
+          }
+        }
+      })
+    ).toBe(true);
+  });
+
+  it('restore ignores unknown top-level fields', () => {
+    const persisted = roundTrip(createActor(machine).getPersistedSnapshot());
+    const actor = createActor(machine, {
+      snapshot: { ...persisted, pending: [{ type: 'NEXT' }] }
+    }).start();
+    expect(actor.getSnapshot().value).toBe('a');
+    actor.send({ type: 'NEXT' });
+    expect(actor.getSnapshot().value).toBe('b');
+    expect(actor.getPersistedSnapshot()).not.toHaveProperty('pending');
+  });
+});

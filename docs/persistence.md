@@ -62,6 +62,8 @@ A persisted snapshot is a plain JSON-shaped object. Restoring one is lenient: XS
 
 These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers`, `machine` and `version`. The [persisted snapshot JSON Schema](https://github.com/statelyai/xstate/blob/next/packages/core/src/persistedSnapshot.schema.json) (draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
 
+Later 6.x releases may add new optional fields to the envelope, to `children` entries and to `timers` entries. Code that reads or validates persisted snapshots must ignore fields it does not recognize. The JSON Schema allows unknown fields on these objects.
+
 Changes to your own machine are handled with `machine.version`: migrate stored snapshots with `migrate` or `machineVersions().migrateSnapshot()`. See [Migrate machine versions](#migrate-machine-versions).
 
 ### Payload values
