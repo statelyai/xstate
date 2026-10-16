@@ -95,7 +95,7 @@ export function createSubscriptionLogic<
         // Actor completed without output (stopped); no action needed
       }
     });
-  }, 'xstate.subscription');
+  }, '@xstate.subscription');
 }
 
 // Singleton logic instance

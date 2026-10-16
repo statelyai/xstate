@@ -543,7 +543,7 @@ describe('@xstate/graph', () => {
         .toMatchInlineSnapshot(`
         [
           [
-            "@xstate.init",
+            "xstate.init",
             "NEXT",
             "ALLOW",
             "PROCEED",
@@ -913,7 +913,7 @@ describe('joinPaths()', () => {
     expect(pathToBAndC.steps.map((step) => step.event.type))
       .toMatchInlineSnapshot(`
         [
-          "@xstate.init",
+          "xstate.init",
           "NEXT",
           "TO_C",
         ]

@@ -492,15 +492,18 @@ function resolveTransitionSpawnSource(
 
 /**
  * Internal helper actors (listeners, subscriptions) number their ids from
- * system-level counters under `xstate.`-prefixed names; snapshot-owned
+ * system-level counters under `@xstate.`-prefixed names; snapshot-owned
  * children number from per-snapshot counters. The two spaces only stay
  * collision-free because their prefixes are disjoint, so user sources must
- * not enter the reserved namespace.
+ * not enter the reserved `xstate.` / `@xstate.` namespaces.
  */
 function assertUnreservedPrefix(prefix: string): void {
-  if (isDevelopment && prefix.startsWith('xstate.')) {
+  if (
+    isDevelopment &&
+    (prefix.startsWith('xstate.') || prefix.startsWith('@xstate.'))
+  ) {
     throw new Error(
-      `Child actor ids with the "xstate." prefix are reserved for internal actors; rename the "${prefix}" source or logic id.`
+      `Child actor ids with the "xstate." or "@xstate." prefix are reserved for internal actors; rename the "${prefix}" source or logic id.`
     );
   }
 }

@@ -30,7 +30,6 @@ import {
 import {
   AnyEventObject,
   AnyMachineSnapshot,
-  AnyStateMachine,
   AnyStateNode,
   AnyTransitionDefinition,
   DelayedTransitionDefinition,
@@ -280,36 +279,6 @@ export function isInFinalState(
 
 export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
-function getLegacyEventType(event: EventObject): string | undefined {
-  switch (event.type) {
-    case 'xstate.done.actor':
-    case 'xstate.error.actor':
-      return `${event.type}.${(event as any).actorId}`;
-    case 'xstate.snapshot.actor':
-      return `xstate.snapshot.${(event as any).actorId}`;
-    case 'xstate.done.state':
-      return `xstate.done.state.${(event as any).stateId}`;
-    case 'xstate.after':
-      return `xstate.after.${(event as any).delay}.${(event as any).stateId}`;
-    case 'xstate.timeout':
-      return `xstate.timeout.${(event as any).stateId}`;
-    case 'xstate.timeout.actor':
-      return `xstate.timeout.actor.${(event as any).actorId}`;
-    default:
-      return undefined;
-  }
-}
-
-function getEventTypeAliases(event: EventObject): string[] {
-  const legacyType = getLegacyEventType(event);
-  return legacyType ? [event.type, legacyType] : [event.type];
-}
-
-export function getEventDescriptorKey(event: EventObject): string {
-  const legacyType = getLegacyEventType(event);
-  return legacyType ? `${event.type}|${legacyType}` : event.type;
-}
-
 export function matchesActorSession(
   event: EventObject,
   snapshot: AnyMachineSnapshot,
@@ -328,86 +297,16 @@ export function matchesActorSession(
   );
 }
 
-function normalizeLegacyInternalEvent(
-  event: EventObject,
-  machine: AnyStateMachine
-): EventObject {
-  if (
-    event.type === 'xstate.done.actor' ||
-    event.type === 'xstate.error.actor' ||
-    event.type === 'xstate.snapshot.actor' ||
-    event.type === 'xstate.done.state' ||
-    event.type === 'xstate.after' ||
-    event.type === 'xstate.timeout' ||
-    event.type === 'xstate.timeout.actor'
-  ) {
-    return event;
-  }
-
-  const normalizeWithId = (
-    prefix: string,
-    type: string,
-    idKey: 'actorId' | 'stateId'
-  ) =>
-    event.type.startsWith(prefix)
-      ? {
-          ...event,
-          type,
-          [idKey]: (event as any)[idKey] ?? event.type.slice(prefix.length)
-        }
-      : undefined;
-
-  const normalized =
-    normalizeWithId('xstate.done.actor.', 'xstate.done.actor', 'actorId') ??
-    normalizeWithId('xstate.error.actor.', 'xstate.error.actor', 'actorId') ??
-    normalizeWithId('xstate.snapshot.', 'xstate.snapshot.actor', 'actorId') ??
-    normalizeWithId('xstate.done.state.', 'xstate.done.state', 'stateId') ??
-    normalizeWithId(
-      'xstate.timeout.actor.',
-      'xstate.timeout.actor',
-      'actorId'
-    ) ??
-    normalizeWithId('xstate.timeout.', 'xstate.timeout', 'stateId');
-
-  if (normalized) {
-    return normalized;
-  }
-
-  const afterPrefix = 'xstate.after.';
-  if (!event.type.startsWith(afterPrefix)) {
-    return event;
-  }
-
-  const stateId = [...machine.idMap.keys()]
-    .sort((a, b) => b.length - a.length)
-    .find((id) => event.type.endsWith(`.${id}`));
-  if (!stateId) {
-    return event;
-  }
-  const delayText = event.type.slice(afterPrefix.length, -stateId.length - 1);
-  return {
-    ...event,
-    type: 'xstate.after',
-    delay: Number.isNaN(+delayText) ? delayText : +delayText,
-    stateId
-  } as AnyEventObject;
-}
-
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
   event: TEvent
 ): Array<TransitionDefinition<any, TEvent>> {
-  const eventTypes = getEventTypeAliases(event);
-  const exactMatches = eventTypes.flatMap(
-    (eventType) => stateNode.transitions.get(eventType) ?? []
-  );
+  const exactMatches = stateNode.transitions.get(event.type) ?? [];
   const wildcardCandidates = [...stateNode.transitions.keys()]
     .filter(
       (eventDescriptor) =>
-        !eventTypes.includes(eventDescriptor) &&
-        eventTypes.some((eventType) =>
-          matchesEventDescriptor(eventType, eventDescriptor)
-        )
+        eventDescriptor !== event.type &&
+        matchesEventDescriptor(event.type, eventDescriptor)
     )
     .sort((a, b) => b.length - a.length)
     .flatMap((key) => stateNode.transitions.get(key)!);
@@ -492,7 +391,7 @@ export function getDelayedTransitions(
   // differ only in the event raised, the transition(s) caught, and whether the
   // delay resolves against the machine's `delays` map (invoke timeouts do not).
   //
-  // `xstate.timeout` is a dedicated event category so a state-level `timeout`
+  // `xstate.timeout.state` is a dedicated event category so a state-level `timeout`
   // cannot collide with an explicit `after` entry on the same state. Invoke
   // timeouts are scheduled on the enclosing state; completion transitions
   // cancel the timer separately, so it clears even when the parent stays active.
@@ -2643,7 +2542,7 @@ export function macrostep(
     return completeMacrostep();
   }
 
-  let nextEvent = normalizeLegacyInternalEvent(event, snapshot.machine);
+  let nextEvent = event;
 
   if (event.type === XSTATE_TIMER) {
     const timer = nextSnapshot.timers[(event as any).id];
@@ -2693,7 +2592,6 @@ export function macrostep(
       }
       // TODO: we should likely only allow transitions selected by very explicit descriptors
       // `*` shouldn't be matched, likely `xstate.error.*` shouldn't be either
-      // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
       nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
         status: 'error',
         error: currentEvent.error

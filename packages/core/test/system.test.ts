@@ -511,7 +511,7 @@ describe('system', () => {
           src: createLogic({
             context: 0,
             run: ({ event, system }) => {
-              if (event.type === '@xstate.init') {
+              if (event.type === 'xstate.init') {
                 return;
               }
               expect(system.get('test7')).toBeDefined();

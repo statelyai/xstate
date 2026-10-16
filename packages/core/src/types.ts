@@ -1612,7 +1612,7 @@ export interface AfterEvent extends EventObject {
 
 /** @public */
 export interface TimeoutEvent extends EventObject {
-  type: 'xstate.timeout';
+  type: 'xstate.timeout.state';
   stateId: string;
 }
 
@@ -1634,81 +1634,12 @@ export type ReservedMachineEvent =
   | TimeoutEvent
   | ActorTimeoutEvent;
 
-/** @public Runtime descriptors, including legacy per-actor/state aliases. */
-export type ReservedEventDescriptor =
-  | EventDescriptor<ReservedMachineEvent>
-  | ReservedEventAliasDescriptor;
-
-/** @public Legacy per-actor/state event descriptor aliases. */
-export type ReservedEventAliasDescriptor =
-  | `xstate.done.actor.${string}`
-  | `xstate.error.actor.${string}`
-  | `xstate.snapshot.${string}`
-  | `xstate.done.state.${string}`
-  | `xstate.after.${string}`
-  | `xstate.timeout.${string}`;
+/** @public Descriptors for reserved machine events. */
+export type ReservedEventDescriptor = EventDescriptor<ReservedMachineEvent>;
 
 /** @public Event payload for a reserved descriptor. */
 export type ReservedEventFromDescriptor<K extends ReservedEventDescriptor> =
-  K extends 'xstate.done.actor' | `xstate.done.actor.${string}`
-    ? DoneActorEvent
-    : K extends 'xstate.error.actor' | `xstate.error.actor.${string}`
-      ? ErrorActorEvent
-      : K extends 'xstate.snapshot.actor' | `xstate.snapshot.${string}`
-        ? SnapshotEvent
-        : K extends 'xstate.done.state' | `xstate.done.state.${string}`
-          ? DoneStateEvent
-          : K extends 'xstate.after' | `xstate.after.${string}`
-            ? AfterEvent
-            : K extends
-                  | 'xstate.timeout.actor'
-                  | `xstate.timeout.actor.${string}`
-              ? ActorTimeoutEvent
-              : K extends 'xstate.timeout' | `xstate.timeout.${string}`
-                ? TimeoutEvent
-                : K extends EventDescriptor<ReservedMachineEvent>
-                  ? ExtractEvent<ReservedMachineEvent, K>
-                  : never;
-
-type ReservedActorIds<TActors, TChildren> =
-  | (keyof TActors & string)
-  | (string extends keyof TChildren ? never : keyof TChildren & string);
-
-type ReservedActorLogic<TActors, TChildren, K> = K extends keyof TActors
-  ? TActors[K]
-  : K extends keyof TChildren
-    ? NonNullable<TChildren[K]>
-    : never;
-
-/** @public Known registered actor aliases retain their output/error types. */
-export type ReservedActorEventAliases<TActors, TChildren> = {
-  [K in ReservedActorIds<
-    TActors,
-    TChildren
-  > as `xstate.done.actor.${K}`]: DoneActorEvent<
-    OutputFrom<ReservedActorLogic<TActors, TChildren, K>>,
-    K
-  >;
-} & {
-  [K in ReservedActorIds<
-    TActors,
-    TChildren
-  > as `xstate.error.actor.${K}`]: ErrorActorEvent<
-    ErrorFrom<ReservedActorLogic<TActors, TChildren, K>>,
-    K
-  >;
-} & {
-  [K in ReservedActorIds<
-    TActors,
-    TChildren
-  > as `xstate.snapshot.${K}`]: SnapshotEvent<
-    SnapshotFrom<
-      ReservedActorLogic<TActors, TChildren, K>
-    > extends infer TSnapshot extends Snapshot<unknown>
-      ? TSnapshot
-      : Snapshot<unknown>
-  >;
-};
+  ExtractEvent<ReservedMachineEvent, K>;
 
 /** @public */
 export enum SpecialTargets {

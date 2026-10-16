@@ -150,7 +150,7 @@ describe('testPaths() follows the planned path', () => {
             steps: [
               {
                 state: lightMachine.resolveState({ value: 'green' }) as never,
-                event: { type: '@xstate.init' } as never
+                event: { type: 'xstate.init' } as never
               },
               {
                 state: lightMachine.resolveState({ value: 'yellow' }) as never,

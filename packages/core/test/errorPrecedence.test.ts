@@ -279,9 +279,12 @@ describe('error precedence', () => {
           })
         },
         on: {
-          'xstate.error.actor.fetcher': ({ event }) => {
-            received(event);
-            return {};
+          'xstate.error.actor': {
+            matches: { actorId: 'fetcher' },
+            to: ({ event }) => {
+              received(event);
+              return {};
+            }
           }
         }
       })

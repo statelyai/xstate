@@ -121,7 +121,7 @@ describe('custom interpreter runtime', () => {
     const logic = createLogic({
       context: undefined,
       run: ({ event }, enq) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           enq.effect(() => {
             operations.push('start');
           });
@@ -475,7 +475,7 @@ describe('custom interpreter runtime', () => {
     const [active] = initialTransition(machine);
 
     const [failed, effects] = transition(machine, active, {
-      type: 'xstate.error.actor.child',
+      type: 'xstate.error.actor',
       error,
       actorId: 'child'
     } as any);
@@ -549,8 +549,11 @@ describe('custom interpreter runtime', () => {
         },
         success: {
           on: {
-            'xstate.done.actor.child': (_, enq) => {
-              enq(duplicate);
+            'xstate.done.actor': {
+              matches: { actorId: 'child' },
+              to: (_, enq) => {
+                enq(duplicate);
+              }
             }
           }
         }

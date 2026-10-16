@@ -105,7 +105,7 @@ describe('event descriptor keys in `on`', () => {
         '*': {},
         'xstate.done.actor': {},
         'xstate.error.actor': {},
-        'xstate.error.actor.*': ({ event }) => {
+        'xstate.error.*': ({ event }) => {
           expectType<`xstate.${string}`>(event.type);
         },
         // @ts-expect-error unknown reserved prefixes are rejected
@@ -126,7 +126,7 @@ describe('event descriptor keys in `on`', () => {
   it('checks state configs without rejecting reserved descriptors', () => {
     s.createStateConfig({
       on: {
-        'xstate.error.actor.*': ({ event }) => {
+        'xstate.error.*': ({ event }) => {
           expectType<string>(event.type);
         }
       }
@@ -147,7 +147,7 @@ describe('event descriptor keys in `on`', () => {
     createMachine({
       on: {
         anything: () => {},
-        'xstate.done.actor.child': ({ children, event }, enq) => {
+        'xstate.done.actor': ({ children, event }, enq) => {
           expectType<string>(event.type);
           expectType<unknown>(children);
           expectType<Function>(enq);
@@ -162,7 +162,7 @@ describe('event descriptor keys in `on`', () => {
   });
 });
 
-it('narrows bare reserved descriptors and retains registered actor output', () => {
+it('narrows bare reserved descriptors and rejects suffixed descriptors', () => {
   const s = setup({
     schemas: { events: { GO: z.object({}) } },
     actors: {
@@ -196,18 +196,16 @@ it('narrows bare reserved descriptors and retains registered actor output', () =
       'xstate.after': ({ event }) => {
         expectType<string | number>(event.delay);
       },
-      'xstate.timeout': ({ event }) => {
+      'xstate.timeout.state': ({ event }) => {
         expectType<string>(event.stateId);
       },
       'xstate.timeout.actor': ({ event }) => {
         expectType<string>(event.actorId);
       },
-      'xstate.done.actor.worker': ({ event }) => {
-        expectType<boolean>(event.output.ok);
-      },
-      'xstate.snapshot.child': ({ event }) => {
-        expectType<string>(event.snapshot.status);
-      }
+      // @ts-expect-error suffixed lifecycle descriptors are not supported
+      'xstate.done.actor.worker': () => {},
+      // @ts-expect-error suffixed lifecycle descriptors are not supported
+      'xstate.snapshot.child': () => {}
     }
   });
   if (false) {

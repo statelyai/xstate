@@ -9,6 +9,7 @@ import { listenerLogic } from './actors/listener.ts';
 import { subscriptionLogic } from './actors/subscription.ts';
 import { matchesEventDescriptor } from './utils.ts';
 import { IndexedHeap } from './IndexedHeap.ts';
+import { XSTATE_STOP, XSTATE_STOP_EFFECT } from './constants.ts';
 import { isSerializedActorRef } from './remoteActorRef.ts';
 import type {
   AnyActor,
@@ -277,8 +278,8 @@ function definitions(systemLogic: SystemLogic): Map<string, AnyActorLogic> {
   add('root', systemLogic.root);
   for (const [key, logic] of Object.entries(systemLogic.actors ?? {}))
     add(`actors/${encodeAddressSegment(key)}`, logic);
-  add('xstate.listener', listenerLogic);
-  add('xstate.subscription', subscriptionLogic);
+  add('@xstate.listener', listenerLogic);
+  add('@xstate.subscription', subscriptionLogic);
   return result;
 }
 
@@ -295,7 +296,7 @@ class SystemReduction {
       a.dueAt < b.dueAt || (a.dueAt === b.dueAt && a.sequence < b.sequence)
   );
   private readonly effectNames = new Map<(...args: any[]) => unknown, string>([
-    [systemLogger, 'xstate.log']
+    [systemLogger, '@xstate.log']
   ]);
   private readonly mapperNames: Map<(...args: any[]) => unknown, string>;
   private readonly mappers: NonNullable<SystemLogic['mappers']>;
@@ -405,7 +406,7 @@ class SystemReduction {
       if (
         !actor.started ||
         actor.snapshot.status !== 'active' ||
-        (kind !== 'xstate.listener' && kind !== 'xstate.subscription')
+        (kind !== '@xstate.listener' && kind !== '@xstate.subscription')
       )
         continue;
       const target = (actor.input as any).actor as SystemActorReference;
@@ -419,7 +420,7 @@ class SystemReduction {
         continue;
       const input = this.decode(actor.input);
       let event: AnyEventObject | undefined;
-      if (kind === 'xstate.listener') {
+      if (kind === '@xstate.listener') {
         if (emitted && matchesEventDescriptor(emitted.type, input.eventType))
           event = input.mapper(this.decode(this.encode(emitted)));
       } else if (!emitted) {
@@ -456,7 +457,7 @@ class SystemReduction {
     for (const actor of Object.values(this.snapshot.actors)) {
       const kind = this.attachedKind(actor);
       if (
-        (kind === 'xstate.listener' || kind === 'xstate.subscription') &&
+        (kind === '@xstate.listener' || kind === '@xstate.subscription') &&
         actor.parent?.$actor === parent.$actor &&
         actor.parent.incarnation === parent.incarnation
       )
@@ -682,7 +683,9 @@ class SystemReduction {
     // Enqueue callback markers have already run as part of pure calculation.
     if (value.kind === 'action' && value.action === undefined) return;
     const type =
-      value.kind === 'action' && !value.type.startsWith('xstate.logic.')
+      value.kind === 'action' &&
+      value.type !== '@xstate.effect' &&
+      value.type !== '@xstate.cleanup'
         ? this.effectNames.get(value.action)
         : value.type;
     if (type === undefined)
@@ -757,7 +760,7 @@ class SystemReduction {
         case '@xstate.start':
           this.start(this.reference(value.actor));
           break;
-        case '@xstate.stop':
+        case XSTATE_STOP_EFFECT:
           this.stop(this.reference(value.actor));
           break;
         case '@xstate.cancel':
@@ -834,7 +837,7 @@ class SystemReduction {
     this.snapshot.actors[ref.$actor] = { ...actor, started: true };
     this.effectsFor(ref, this.initialEffects.get(JSON.stringify(ref)) ?? []);
     this.initialEffects.delete(JSON.stringify(ref));
-    if (this.attachedKind(actor) === 'xstate.subscription') {
+    if (this.attachedKind(actor) === '@xstate.subscription') {
       const input = this.decode(actor.input);
       const target = this.reference(input.actor);
       const observed = this.current(target);
@@ -876,7 +879,7 @@ class SystemReduction {
     this.process({
       source: ref,
       target: ref,
-      event: { type: '@xstate.stop' },
+      event: { type: XSTATE_STOP },
       sequence: this.snapshot.counters.sequence++
     });
     this.cancel(ref);
@@ -894,8 +897,8 @@ class SystemReduction {
     for (const [id, effect] of Object.entries(this.snapshot.externalEffects)) {
       if (
         effect.kind !== 'action' ||
-        effect.type === 'xstate.system.cancelEffect' ||
-        effect.type === 'xstate.logic.cleanup' ||
+        effect.type === '@xstate.cancelEffect' ||
+        effect.type === '@xstate.cleanup' ||
         effect.source.$actor !== ref.$actor ||
         effect.source.incarnation !== ref.incarnation
       )
@@ -905,7 +908,7 @@ class SystemReduction {
         id: `${this.snapshot.executionId}:${this.snapshot.counters.effect++}`,
         source: ref,
         kind: 'action',
-        type: 'xstate.system.cancelEffect',
+        type: '@xstate.cancelEffect',
         params: { effectId: id }
       };
       this.effects.push(cancellation);
@@ -1059,8 +1062,8 @@ class SystemReduction {
         (event.event &&
           (effect.source.incarnation !== actor.incarnation ||
             actor.snapshot.status !== 'active' ||
-            effect.type === 'xstate.system.cancelEffect' ||
-            effect.type === 'xstate.logic.cleanup'))
+            effect.type === '@xstate.cancelEffect' ||
+            effect.type === '@xstate.cleanup'))
       )
         throw new Error(
           'External effect result does not match its owner or is stale.'
@@ -1072,7 +1075,7 @@ class SystemReduction {
       }
       return;
     }
-    if (event.type === '@xstate.stop') {
+    if (event.type === XSTATE_STOP) {
       this.stop(ref);
       this.settle();
       return;

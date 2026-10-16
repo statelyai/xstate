@@ -618,7 +618,7 @@ describe('machineVersions', () => {
     const versions = machineVersions([checkout]);
     const events = [
       { type: 'xstate.done.actor', actorId: 'child' },
-      { type: '@xstate.init' }
+      { type: 'xstate.init' }
     ];
 
     await expect(

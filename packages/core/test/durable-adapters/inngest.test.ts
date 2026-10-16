@@ -134,7 +134,7 @@ describe('Inngest durable execution PoC', () => {
     const logic = createLogic({
       context: undefined,
       run: ({ event }, enq) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           enq.effect((effectRuntime) => {
             providedRuntime = effectRuntime;
           });

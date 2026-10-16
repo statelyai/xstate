@@ -105,7 +105,7 @@ const [next] = systemTransition(systemLogic, snapshot, selected.source.$actor, {
 
 Selection advances the entire snapshot through that deadline. Earlier events
 can cancel or replace the occurrence; selection never forces it to fire.
-Stale selections and direct external `xstate.after`/`xstate.timeout` injection
+Stale selections and direct external `xstate.after`/`xstate.timeout.state` injection
 throw. Delayed raises/sends, state/invocation timeouts and async-logic timeouts
 share the scheduler. Ordinary events leave matching pending timers intact;
 ordinary sends first drain timers due at the current time.
@@ -115,11 +115,11 @@ ordinary sends first drain timers due at the current time.
 Effects contain data: `id`, `source`, `type`, `kind`, `args`, and optional
 `params`/`event`. They contain no `exec` function. Name callable machine actions
 in `systemLogic.effects` or machine action sources so hosts receive stable
-names. `enq.log` returns `xstate.log`. Emissions return `kind: 'emit'` effects
+names. `enq.log` returns `@xstate.log`. Emissions return `kind: 'emit'` effects
 and also reach system-owned listeners.
 
 The host interprets descriptors. `createLogic`/`createAsyncLogic` produce
-`xstate.logic.effect`, with `params.key` for keyed logic effects. Dispatch
+`@xstate.effect`, with `params.key` for keyed logic effects. Dispatch
 using the source actor's definition and saved input; the host owns the
 external implementation. Its result reenters as a correlated input:
 
@@ -134,8 +134,8 @@ const [resolved] = systemTransition(systemLogic, pendingSnapshot, effect.source.
 Use `xstate.async.reject` with `data: error` for async failure. Omit `event`
 to acknowledge without delivery. Results must match a pending effect's owner
 and incarnation; duplicate, cancelled and stale results throw. Stopping or
-completing actors returns `xstate.system.cancelEffect` commands carrying
-`params.effectId`. Hosts cancel that work. Cleanup uses `xstate.logic.cleanup`.
+completing actors returns `@xstate.cancelEffect` commands carrying
+`params.effectId`. Hosts cancel that work. Cleanup uses `@xstate.cleanup`.
 Acknowledgements without events can retire pending notifications, cleanup and
 cancellation commands after their owner has stopped or been replaced.
 

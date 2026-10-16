@@ -1619,7 +1619,7 @@ export class PropertyScenarioRunner<
     let initialEffects = effects;
     if (this.executionConfig?.mode === 'executed') {
       // The pure initial transition above is only used to attribute initial
-      // transition coverage: the `@xstate.init` inspection event
+      // transition coverage: the `xstate.init` inspection event
       // carries no microsteps. The snapshot the run proceeds from is the real
       // actor's.
       this.executionConfig.registry.reset();

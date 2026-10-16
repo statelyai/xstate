@@ -409,7 +409,7 @@ describe('#5077 re-persistability of children', () => {
     expect(restoredChild.sessionId).not.toBe(sessionId);
 
     restored.send({
-      type: 'xstate.done.actor.myChild',
+      type: 'xstate.done.actor',
       actorId: 'myChild',
       sessionId,
       output: undefined
@@ -443,7 +443,7 @@ describe('#5077 re-persistability of children', () => {
     expect(replacement.sessionId).not.toBe(removedSessionId);
 
     restored.send({
-      type: 'xstate.done.actor.myChild',
+      type: 'xstate.done.actor',
       actorId: 'myChild',
       sessionId: removedSessionId,
       output: undefined

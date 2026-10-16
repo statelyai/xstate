@@ -377,7 +377,7 @@ describe('enq.subscribeTo()', () => {
         count: 0
       },
       run: ({ context, event }) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           return;
         }
         return {
@@ -463,7 +463,7 @@ describe('enq.subscribeTo()', () => {
     const childLogic = createLogic({
       context: { count: 0 },
       run: ({ context, event }) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           return;
         }
         return {

@@ -942,7 +942,7 @@ with (context) {
   const SCXML_ORIGIN = `#_scxml_${sessionId}`;
   const SCXML_ORIGIN_TYPE = 'http://www.w3.org/TR/scxml/#SCXMLEventProcessor';
   const isExternal = event && (event as any)._scxmlExternal;
-  const isInitEvent = event && event.type === '@xstate.init';
+  const isInitEvent = event && event.type === 'xstate.init';
   // Per SCXML spec, _event has these fields. Fields that don't apply to a
   // particular event are present with value `undefined` (so `'name' in _event`
   // is true but `typeof _event.name === 'undefined'` for unset fields).

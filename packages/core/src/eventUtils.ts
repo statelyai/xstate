@@ -34,11 +34,11 @@ export function createAfterEventId(delayRef: number | string, id: string) {
  * @param id The state node ID where this timeout is configured
  */
 export function createTimeoutEvent(id: string): TimeoutEvent {
-  return { type: 'xstate.timeout', stateId: id };
+  return { type: 'xstate.timeout.state', stateId: id };
 }
 
 export function createTimeoutEventId(id: string) {
-  return `xstate.timeout.${id}`;
+  return `xstate.timeout.state.${id}`;
 }
 
 /**

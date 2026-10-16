@@ -343,7 +343,7 @@ export function createLogic<
           input: undefined
         },
         [
-          createCustomEffect('xstate.logic.cleanup', () =>
+          createCustomEffect('@xstate.cleanup', () =>
             cleanupLogicEffects(actorScope.self)
           )
         ]
@@ -417,7 +417,7 @@ export function createLogic<
       }
       effects.push(
         createCustomEffect(
-          'xstate.logic.effect',
+          '@xstate.effect',
           (runtime = actorScope.self.system) =>
             executeLogicEffect(actorScope.self, key, () => exec(runtime)),
           { key }
@@ -450,7 +450,7 @@ export function createLogic<
         ) => void | (() => void);
         effects.push(
           createCustomEffect(
-            'xstate.logic.effect',
+            '@xstate.effect',
             (runtime = actorScope.self.system) =>
               executeLogicEffect(actorScope.self, undefined, () =>
                 exec(runtime)

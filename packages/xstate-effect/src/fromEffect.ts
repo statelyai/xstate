@@ -21,7 +21,7 @@ import {
   toStandardSchema
 } from './schema.ts';
 
-const EFFECT_INIT = '@xstate.init';
+const EFFECT_INIT = 'xstate.init';
 const EFFECT_RESOLVE = 'xstate.effect.resolve';
 const EFFECT_REJECT = 'xstate.effect.reject';
 const EFFECT_NEXT = 'xstate.effect.next';

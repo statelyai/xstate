@@ -43,7 +43,7 @@ function inspect(inspectionEvent: InspectionEvent) {
 }
 ```
 
-The root actor's first transition is `@xstate.init`, so the log starts with the initial state. Only machine snapshots have a `value`; a child running async logic reports its `status` instead. A `sessionId` is assigned once an actor starts, which is why the map allows `undefined` keys.
+The root actor's first transition is `xstate.init`, so the log starts with the initial state. Only machine snapshots have a `value`; a child running async logic reports its `status` instead. A `sessionId` is assigned once an actor starts, which is why the map allows `undefined` keys.
 
 Filter further when a system is noisy. An early `if (!eventType.startsWith('payment.')) return;` keeps payment activity and drops everything else.
 

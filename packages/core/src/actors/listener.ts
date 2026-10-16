@@ -74,7 +74,7 @@ export function createListenerLogic<
         );
       });
     },
-    'xstate.listener'
+    '@xstate.listener'
   );
 }
 

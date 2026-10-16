@@ -104,7 +104,7 @@ describe('getShortestPaths', () => {
     expect(paths).toHaveLength(1);
     expect(paths[0].steps.map((s) => s.event.type)).toMatchInlineSnapshot(`
       [
-        "@xstate.init",
+        "xstate.init",
         "TO_B",
         "NEXT_B_TO_X",
         "NEXT_X_TO_Y",
@@ -175,8 +175,8 @@ describe('getShortestPaths', () => {
     const shortestPaths = getShortestPaths(machine);
 
     expect(shortestPaths.map((p) => p.steps.map((s) => s.event.type))).toEqual([
-      ['@xstate.init'],
-      ['@xstate.init', 'xstate.after']
+      ['xstate.init'],
+      ['xstate.init', 'xstate.after']
     ]);
   });
 
@@ -212,10 +212,10 @@ describe('getShortestPaths', () => {
     });
 
     expect(paths.map((path) => path.steps.map((step) => step.event))).toEqual([
-      [{ type: '@xstate.init' }],
-      [{ type: '@xstate.init' }, { type: 'SUBMIT', value: 'hello' }],
+      [{ type: 'xstate.init' }],
+      [{ type: 'xstate.init' }, { type: 'SUBMIT', value: 'hello' }],
       [
-        { type: '@xstate.init' },
+        { type: 'xstate.init' },
         { type: 'SUBMIT', value: 'hello' },
         expect.objectContaining({
           type: 'xstate.done.actor',
@@ -223,7 +223,7 @@ describe('getShortestPaths', () => {
         })
       ],
       [
-        { type: '@xstate.init' },
+        { type: 'xstate.init' },
         { type: 'SUBMIT', value: 'hello' },
         expect.objectContaining({
           type: 'xstate.done.actor',

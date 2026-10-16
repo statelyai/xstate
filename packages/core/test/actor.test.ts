@@ -296,15 +296,14 @@ describe('spawning promises', () => {
             }
           }),
           on: {
-            'xstate.done.actor.my-promise': ({
-              event
-            }: {
-              event: DoneActorEvent<string>;
-            }) => {
-              if (event.output === 'response') {
-                return {
-                  target: 'success'
-                };
+            'xstate.done.actor': {
+              matches: { actorId: 'my-promise' },
+              to: ({ event }: { event: DoneActorEvent<string> }) => {
+                if (event.output === 'response') {
+                  return {
+                    target: 'success'
+                  };
+                }
               }
             }
           }
@@ -351,15 +350,14 @@ describe('spawning promises', () => {
             }
           }),
           on: {
-            'xstate.done.actor.my-promise': ({
-              event
-            }: {
-              event: DoneActorEvent<string>;
-            }) => {
-              if (event.output === 'response') {
-                return {
-                  target: 'success'
-                };
+            'xstate.done.actor': {
+              matches: { actorId: 'my-promise' },
+              to: ({ event }: { event: DoneActorEvent<string> }) => {
+                if (event.output === 'response') {
+                  return {
+                    target: 'success'
+                  };
+                }
               }
             }
           }
@@ -513,19 +511,22 @@ describe('spawning observables', () => {
             }
           }),
           on: {
-            'xstate.snapshot.int': ({
-              event
-            }: {
-              event: SnapshotEvent<
-                Snapshot<unknown> & {
-                  context: number;
+            'xstate.snapshot.actor': {
+              matches: { actorId: 'int' },
+              to: ({
+                event
+              }: {
+                event: SnapshotEvent<
+                  Snapshot<unknown> & {
+                    context: number;
+                  }
+                >;
+              }) => {
+                if (event.snapshot.context === 5) {
+                  return {
+                    target: 'success'
+                  };
                 }
-              >;
-            }) => {
-              if (event.snapshot.context === 5) {
-                return {
-                  target: 'success'
-                };
               }
             }
           }
@@ -571,19 +572,22 @@ describe('spawning observables', () => {
             }
           }),
           on: {
-            'xstate.snapshot.int': ({
-              event
-            }: {
-              event: SnapshotEvent<
-                Snapshot<unknown> & {
-                  context: number;
+            'xstate.snapshot.actor': {
+              matches: { actorId: 'int' },
+              to: ({
+                event
+              }: {
+                event: SnapshotEvent<
+                  Snapshot<unknown> & {
+                    context: number;
+                  }
+                >;
+              }) => {
+                if (event.snapshot.context === 5) {
+                  return {
+                    target: 'success'
+                  };
                 }
-              >;
-            }) => {
-              if (event.snapshot.context === 5) {
-                return {
-                  target: 'success'
-                };
               }
             }
           }
@@ -630,19 +634,22 @@ describe('spawning observables', () => {
             }
           }),
           on: {
-            'xstate.snapshot.int': ({
-              event
-            }: {
-              event: SnapshotEvent<
-                Snapshot<unknown> & {
-                  context: number;
+            'xstate.snapshot.actor': {
+              matches: { actorId: 'int' },
+              to: ({
+                event
+              }: {
+                event: SnapshotEvent<
+                  Snapshot<unknown> & {
+                    context: number;
+                  }
+                >;
+              }) => {
+                if (event.snapshot.context === 1) {
+                  return {
+                    target: 'success'
+                  };
                 }
-              >;
-            }) => {
-              if (event.snapshot.context === 1) {
-                return {
-                  target: 'success'
-                };
               }
             }
           }
@@ -1295,19 +1302,14 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              // 'xstate.done.actor.test': {
-              //   target: 'success',
-              //   guard: ({ event }) => event.output === 42
-              // }
-              'xstate.done.actor.test': ({
-                event
-              }: {
-                event: DoneActorEvent<number>;
-              }) => {
-                if (event.output === 42) {
-                  return {
-                    target: 'success'
-                  };
+              'xstate.done.actor': {
+                matches: { actorId: 'test' },
+                to: ({ event }: { event: DoneActorEvent<number> }) => {
+                  if (event.output === 42) {
+                    return {
+                      target: 'success'
+                    };
+                  }
                 }
               }
             }
@@ -1353,21 +1355,14 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              // 'xstate.error.actor.test': {
-              //   target: 'success',
-              //   guard: ({ event }) => {
-              //     return event.error === errorMessage;
-              //   }
-              // }
-              'xstate.error.actor.test': ({
-                event
-              }: {
-                event: ErrorActorEvent;
-              }) => {
-                if (event.error === errorMessage) {
-                  return {
-                    target: 'success'
-                  };
+              'xstate.error.actor': {
+                matches: { actorId: 'test' },
+                to: ({ event }: { event: ErrorActorEvent }) => {
+                  if (event.error === errorMessage) {
+                    return {
+                      target: 'success'
+                    };
+                  }
                 }
               }
             }
@@ -1662,7 +1657,10 @@ describe('actors', () => {
       states: {
         init: {
           on: {
-            'xstate.done.actor.myactor': { target: 'done' }
+            'xstate.done.actor': {
+              matches: { actorId: 'myactor' },
+              target: 'done'
+            }
           }
         },
         done: {}

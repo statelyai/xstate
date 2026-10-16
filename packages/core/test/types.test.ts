@@ -5787,7 +5787,7 @@ describe('delays', () => {
       },
       timeout: 200,
       onTimeout: ({ event }) => {
-        event.type satisfies 'xstate.timeout';
+        event.type satisfies 'xstate.timeout.state';
         event.stateId satisfies string;
         return {};
       },

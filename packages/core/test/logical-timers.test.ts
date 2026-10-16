@@ -283,7 +283,7 @@ describe('logical snapshot timers', () => {
     const [scheduled] = transition(machine, active, { type: 'SCHEDULE' });
 
     const [stopped, effects] = transition(machine, scheduled, {
-      type: '@xstate.stop'
+      type: 'xstate.stop'
     } as any);
 
     expect(stopped.status).toBe('stopped');

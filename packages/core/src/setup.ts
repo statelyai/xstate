@@ -27,9 +27,7 @@ import {
   EventObject,
   AnyEventObject,
   EventDescriptor,
-  ReservedEventAliasDescriptor,
   ReservedMachineEvent,
-  ReservedActorEventAliases,
   ReservedEventFromDescriptor,
   ExtractEvent,
   MachineContext,
@@ -3503,47 +3501,6 @@ type StateTransitions<
         EventDescriptor<ReservedMachineEvent>,
         EventDescriptor<TEvent>
       >]?: StateTransitionConfigOrTarget<
-        TStateSchemas,
-        TContext,
-        TContextShape,
-        ReservedEventFromDescriptor<K>,
-        TEvent,
-        TEmitted,
-        TChildren,
-        TMeta,
-        TActionMap,
-        TActorMap,
-        TGuardMap,
-        TDelayMap,
-        TSystemRegistry,
-        TInput,
-        TTarget,
-        TKnownTarget
-      >;
-    } & {
-      [K in keyof ReservedActorEventAliases<
-        TActorMap,
-        TChildren
-      >]?: StateTransitionConfigOrTarget<
-        TStateSchemas,
-        TContext,
-        TContextShape,
-        ReservedActorEventAliases<TActorMap, TChildren>[K] & EventObject,
-        TEvent,
-        TEmitted,
-        TChildren,
-        TMeta,
-        TActionMap,
-        TActorMap,
-        TGuardMap,
-        TDelayMap,
-        TSystemRegistry,
-        TInput,
-        TTarget,
-        TKnownTarget
-      >;
-    } & {
-      [K in ReservedEventAliasDescriptor]?: StateTransitionConfigOrTarget<
         TStateSchemas,
         TContext,
         TContextShape,

@@ -421,7 +421,7 @@ it('replays named pure listeners without live subscriptions and stops them with 
   });
   expect(next.actors.root.snapshot.context.value).toBe(2);
   const [stopped] = systemTransition(logic, next, 'root', {
-    type: '@xstate.stop'
+    type: 'xstate.stop'
   });
   expect(
     Object.values(stopped.actors).every(
@@ -544,7 +544,7 @@ it.each(['done', 'error'] as const)(
       context: { result: outcome === 'done' ? 42 : 'failure' }
     });
     const observer = Object.values(finished.actors).find(
-      (actor) => actor.logic === 'xstate.subscription'
+      (actor) => actor.logic === '@xstate.subscription'
     )!;
     expect(observer.parent?.$actor).toBe('root');
     expect(observer.snapshot.status).toBe('stopped');
@@ -662,7 +662,7 @@ it('acknowledges retirement commands after replacement without accepting stale r
     }
   );
   const cancellation = effects.find(
-    (effect) => effect.type === 'xstate.system.cancelEffect'
+    (effect) => effect.type === '@xstate.cancelEffect'
   )!;
   for (const effectId of [initialEffects[0].id, cancellation.id]) {
     expect(() =>
@@ -686,7 +686,7 @@ it('names logger effects without running the logger during reduction', () => {
     root: createMachine({ entry: (_, enq) => enq.log('hello', 42) })
   };
   const [, effects] = initialSystemTransition(logic);
-  expect(effects).toMatchObject([{ type: 'xstate.log', args: ['hello', 42] }]);
+  expect(effects).toMatchObject([{ type: '@xstate.log', args: ['hello', 42] }]);
 });
 
 it('restores a serialized snapshot with pending timers and child references', () => {
@@ -806,7 +806,7 @@ it('owns async timeouts and rejects results arriving after cancellation', () => 
   });
   expect(cancellations).toContainEqual(
     expect.objectContaining({
-      type: 'xstate.system.cancelEffect',
+      type: '@xstate.cancelEffect',
       params: { effectId: effects[0].id }
     })
   );
@@ -907,7 +907,7 @@ it('stops an actor subtree and resolves registry lookups from snapshot data', ()
   });
   expect(next.actors['root/child'].snapshot.context.received).toBe(true);
   const [stopped] = systemTransition(logic, freeze(next), 'root', {
-    type: '@xstate.stop'
+    type: 'xstate.stop'
   });
   expect(stopped.actors.root.snapshot.status).toBe('stopped');
   expect(stopped.actors['root/child'].snapshot.status).toBe('stopped');

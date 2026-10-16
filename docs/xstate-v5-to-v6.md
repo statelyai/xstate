@@ -162,14 +162,19 @@ on: {
 Generated actor, state-completion, delayed, and timeout events now use stable
 category types. Identity moved from the event type into payload fields:
 
-| Event type             | Identity fields                 |
-| ---------------------- | ------------------------------- |
-| `xstate.done.actor`    | `actorId`, `sessionId`          |
-| `xstate.error.actor`   | `actorId`, `sessionId`          |
-| `xstate.done.state`    | `stateId`                       |
-| `xstate.after`         | `stateId`, `delay`              |
-| `xstate.timeout`       | `stateId`                       |
-| `xstate.timeout.actor` | `actorId`, optional `sessionId` |
+| v5 event type                  | v6 event type           | Identity fields                 |
+| ------------------------------ | ----------------------- | ------------------------------- |
+| `xstate.done.actor.<id>`       | `xstate.done.actor`     | `actorId`, `sessionId`          |
+| `xstate.error.actor.<id>`      | `xstate.error.actor`    | `actorId`, `sessionId`          |
+| `xstate.snapshot.<id>`         | `xstate.snapshot.actor` | `actorId`, `sessionId`          |
+| `xstate.done.state.<id>`       | `xstate.done.state`     | `stateId`                       |
+| `xstate.after.<delay>.<id>`    | `xstate.after`          | `stateId`, `delay`              |
+| (new)                          | `xstate.timeout.state`  | `stateId`                       |
+| (new)                          | `xstate.timeout.actor`  | `actorId`, optional `sessionId` |
+
+Suffixed event types are not matched. Transitions keyed by
+`xstate.done.actor.<id>` and similar descriptors never fire; key them by the
+category type and select the payload with `matches`.
 
 Use `matches` to select a specific payload without encoding identity in the
 event key:

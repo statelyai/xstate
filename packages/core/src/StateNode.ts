@@ -7,7 +7,6 @@ import {
   evaluateCandidate,
   formatTransition,
   getCandidates,
-  getEventDescriptorKey,
   getDelayedTransitions,
   matchesActorSession,
   type TransitionSelectionResults
@@ -317,11 +316,10 @@ export class StateNode<
     if (this.type === 'final') {
       return undefined;
     }
-    const descriptorKey = getEventDescriptorKey(event);
-    let candidates = this._candidateCache?.get(descriptorKey);
+    let candidates = this._candidateCache?.get(event.type);
     if (!candidates) {
       candidates = getCandidates(this, event);
-      (this._candidateCache ??= new Map()).set(descriptorKey, candidates);
+      (this._candidateCache ??= new Map()).set(event.type, candidates);
     }
 
     for (const candidate of candidates) {

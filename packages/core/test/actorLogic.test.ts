@@ -97,7 +97,7 @@ describe('logic (createLogic)', () => {
     const logic = createLogic({
       context: undefined,
       run: ({ event }) =>
-        event.type === '@xstate.init'
+        event.type === 'xstate.init'
           ? { status: 'done' as const, output: 42 }
           : undefined
     });
@@ -892,7 +892,7 @@ describe('logic as reducer', () => {
     const transitionLogic = createLogic({
       context: 0,
       run: ({ event, system }) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           return;
         }
         expect(system).toBeDefined();
@@ -908,7 +908,7 @@ describe('logic as reducer', () => {
     const transitionLogic = createLogic({
       context: 0,
       run: ({ event, self }) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           return;
         }
         expect(self.send).toBeDefined();

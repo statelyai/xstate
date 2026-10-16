@@ -248,7 +248,7 @@ describe('durable execution', () => {
     const logic = createLogic({
       context: undefined,
       run: ({ event }, enq) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           enq.effect((effectRuntime) => {
             providedRuntime = effectRuntime;
           });
@@ -280,7 +280,7 @@ describe('durable execution', () => {
     const logic = createLogic({
       context: undefined,
       run: ({ event }, enq) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           enq.effect((effectRuntime) => {
             providedRuntime = effectRuntime;
           });

@@ -445,7 +445,7 @@ describe('advanced property testing', () => {
     }).filter(
       (path) =>
         path.steps.filter(
-          (step) => (step.event.type as string) !== '@xstate.init'
+          (step) => (step.event.type as string) !== 'xstate.init'
         ).length === 1 &&
         path.steps.some((step) => step.event.type === 'ACTIVATE')
     );

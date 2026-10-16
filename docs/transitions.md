@@ -89,7 +89,7 @@ Internal lifecycle events use stable category types and carry the identity of wh
 | `xstate.timeout.actor` | `actorId`, `sessionId` |
 | `xstate.done.state` | `stateId` |
 | `xstate.after` | `stateId`, `delay` |
-| `xstate.timeout` | `stateId` |
+| `xstate.timeout.state` | `stateId` |
 
 Use `matches` to select one payload of an event type:
 

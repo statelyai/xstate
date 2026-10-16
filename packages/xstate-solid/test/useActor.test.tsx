@@ -220,7 +220,10 @@ describe('useActor', () => {
             );
           },
           on: {
-            'xstate.done.actor.my-promise': { target: 'success' }
+            'xstate.done.actor': {
+              matches: { actorId: 'my-promise' },
+              target: 'success'
+            }
           }
         },
         success: {

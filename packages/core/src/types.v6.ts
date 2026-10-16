@@ -29,9 +29,7 @@ import {
   EnqueueObject,
   EventDescriptor,
   ReservedEventDescriptor,
-  ReservedEventAliasDescriptor,
   ReservedMachineEvent,
-  ReservedActorEventAliases,
   ReservedEventFromDescriptor,
   ErrorEvent,
   EventObject,
@@ -1322,37 +1320,6 @@ export interface Next_RegularStateNodeConfig<
           EventDescriptor<ReservedMachineEvent>,
           EventDescriptor<TEvent>
         >]?: Next_TransitionConfigOrTarget<
-          TContext,
-          ReservedEventFromDescriptor<K>,
-          TEvent,
-          TEmitted,
-          TActionMap,
-          TActorMap,
-          TGuardMap,
-          TDelayMap,
-          TTransitionMeta,
-          TInput,
-          TChildren
-        >;
-      } & {
-        [K in keyof ReservedActorEventAliases<
-          TActorMap,
-          TChildren
-        >]?: Next_TransitionConfigOrTarget<
-          TContext,
-          ReservedActorEventAliases<TActorMap, TChildren>[K] & EventObject,
-          TEvent,
-          TEmitted,
-          TActionMap,
-          TActorMap,
-          TGuardMap,
-          TDelayMap,
-          TTransitionMeta,
-          TInput,
-          TChildren
-        >;
-      } & {
-        [K in ReservedEventAliasDescriptor]?: Next_TransitionConfigOrTarget<
           TContext,
           ReservedEventFromDescriptor<K>,
           TEvent,

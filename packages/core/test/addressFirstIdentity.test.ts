@@ -825,7 +825,7 @@ describe('review findings: seventh round', () => {
       (child) => (child as AnyActor).address
     );
     expect(childAddresses).not.toContain(listener!.address);
-    expect(listener!.address).toBe('order/xstate.listener:0');
+    expect(listener!.address).toBe('order/@xstate.listener:0');
   });
 });
 
@@ -896,39 +896,42 @@ describe('review findings: eighth round', () => {
 });
 
 describe('reserved id namespace', () => {
-  it('rejects user sources that would number in the internal helper namespace', () => {
-    // Internal helpers (enq.listen/enq.subscribeTo) number from system-level
-    // counters; snapshot-owned children from per-snapshot counters. The
-    // spaces stay collision-free only because their prefixes are disjoint.
-    const impostor = createMachine({
-      id: 'xstate.listener',
-      initial: 'a',
-      states: { a: {} }
-    });
-    const machine = createMachine({
-      id: 'order',
-      initial: 'a',
-      entry: (_: any, enq: any) => {
-        enq.spawn(impostor);
-      },
-      states: { a: {} }
-    });
+  it.each(['@xstate.listener', 'xstate.listener'])(
+    'rejects user sources that would number in the internal helper namespace (%s)',
+    (impostorId) => {
+      // Internal helpers (enq.listen/enq.subscribeTo) number from system-level
+      // counters; snapshot-owned children from per-snapshot counters. The
+      // spaces stay collision-free only because their prefixes are disjoint.
+      const impostor = createMachine({
+        id: impostorId,
+        initial: 'a',
+        states: { a: {} }
+      });
+      const machine = createMachine({
+        id: 'order',
+        initial: 'a',
+        entry: (_: any, enq: any) => {
+          enq.spawn(impostor);
+        },
+        states: { a: {} }
+      });
 
-    const actor = createActor(machine);
-    actor.subscribe({ error: () => {} });
-    actor.start();
-    expect(actor.getSnapshot().status).toBe('error');
-    expect(actor.getSnapshot().error).toMatchObject({
-      message: expect.stringMatching(/reserved for internal actors/)
-    });
-  });
+      const actor = createActor(machine);
+      actor.subscribe({ error: () => {} });
+      actor.start();
+      expect(actor.getSnapshot().status).toBe('error');
+      expect(actor.getSnapshot().error).toMatchObject({
+        message: expect.stringMatching(/reserved for internal actors/)
+      });
+    }
+  );
 
   it('rejects explicit generated-shaped ids in the reserved namespace', () => {
     const machine = createMachine({
       id: 'order',
       initial: 'a',
       entry: (_: any, enq: any) => {
-        enq.spawn(workerMachine, { id: 'xstate.listener:0' });
+        enq.spawn(workerMachine, { id: '@xstate.listener:0' });
       },
       states: { a: {} }
     });

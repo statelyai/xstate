@@ -44,7 +44,7 @@ import type { RequirementsFrom } from './types.ts';
 import { ActorScope } from './actorScope.ts';
 
 const XSTATE_TIMER = 'xstate.timer';
-const XSTATE_INIT = '@xstate.init';
+const XSTATE_INIT = 'xstate.init';
 
 /** Options for {@link createEffectActor}. */
 export type EffectActorOptions<TLogic extends AnyActorLogic> = {

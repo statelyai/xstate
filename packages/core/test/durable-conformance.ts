@@ -318,7 +318,7 @@ export function durableExecutionConformance({
         const execution = await createHarness().start(machine, undefined);
 
         await execution.send({
-          type: 'xstate.error.actor.worker',
+          type: 'xstate.error.actor',
           actorId: 'worker',
           error
         });
