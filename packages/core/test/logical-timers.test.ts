@@ -35,7 +35,7 @@ describe('logical snapshot timers', () => {
       event: schedule.event,
       target: 'self'
     });
-    expect(timer).not.toHaveProperty('startedAt');
+    expect(timer).not.toHaveProperty('scheduledAt');
     expect(timer).not.toHaveProperty('dueAt');
     expect(timer).not.toHaveProperty('elapsed');
 

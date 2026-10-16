@@ -1,7 +1,7 @@
 import { historicalEventSchemas } from './historicalEventSchemas.ts';
 import type { PublicEventFromMachine } from './eventTypes.ts';
 import isDevelopment from '#is-development';
-import { ACTOR_REF_TYPE, createActor } from './createActor.ts';
+import { createActor } from './createActor.ts';
 import {
   createErrorPlatformEvent,
   createInitEvent,
@@ -9,7 +9,11 @@ import {
 } from './eventUtils.ts';
 import { XSTATE_TIMER } from './constants.ts';
 import { parseGeneratedActorId } from './system.ts';
-import { createRemoteActorRef } from './remoteActorRef.ts';
+import {
+  createRemoteActorRef,
+  fromLegacySerializedActorRef,
+  isSerializedActorRef
+} from './remoteActorRef.ts';
 
 import { createSpawner } from './spawn.ts';
 import {
@@ -1778,9 +1782,17 @@ export class StateMachine<
         type: '@xstate.raise' | '@xstate.sendTo';
         event: EventObject;
         target: string | { type: 'parent' };
+        scheduledAt?: number;
+        /** Pre-beta name of `scheduledAt`. */
+        startedAt?: number;
       }
     > = snapshotData.timers ?? {};
-    for (const [id, timer] of Object.entries(persistedTimers)) {
+    for (const [id, { startedAt, ...timer }] of Object.entries(
+      persistedTimers
+    )) {
+      if (timer.scheduledAt === undefined && startedAt !== undefined) {
+        timer.scheduledAt = startedAt;
+      }
       let event = timer.event;
       if (event.type === 'xstate.timeout.actor') {
         const actorId = (event as AnyEventObject).actorId as string;
@@ -1926,14 +1938,24 @@ export class StateMachine<
         return value;
       }
       // The context object itself is data, never a serialized actor ref.
-      if (!isRoot && value.xstate$type === ACTOR_REF_TYPE) {
-        // A ref persisted from a live child carries only its id. One that
-        // was already serialized data (e.g. a `replyTo` from an event) keeps
-        // its address unless it names this child, so it still routes.
-        const child = children[value.id];
-        return typeof value.address === 'string' &&
-          child?.address !== value.address
-          ? value
+      if (!isRoot && isSerializedActorRef(value)) {
+        // A ref that names one of this snapshot's children revives to that
+        // child. Any other ref (e.g. a `replyTo` from an event) stays data
+        // and routes by address.
+        return (
+          Object.values(children).find(
+            (child) => child.address === value.$actor
+          ) ?? value
+        );
+      }
+      const legacyRef = isRoot
+        ? undefined
+        : fromLegacySerializedActorRef(value);
+      if (legacyRef) {
+        // Pre-beta `{ xstate$type: 'actorRef', id, address? }` refs.
+        const child = children[legacyRef.id];
+        return legacyRef.ref && child?.address !== legacyRef.ref.$actor
+          ? legacyRef.ref
           : child;
       }
       const proto = Object.getPrototypeOf(value);

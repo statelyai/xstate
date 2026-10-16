@@ -48,7 +48,8 @@ import type {
   AnyTransitionDefinition,
   ExecutableEffect,
   Readable,
-  ActorLogicTransitionResult
+  ActorLogicTransitionResult,
+  SerializedActorRef
 } from './types.ts';
 import {
   ActorOptions,
@@ -65,12 +66,6 @@ import {
   refreshSnapshotActorRefRoot,
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
-
-/**
- * Marks a serialized object as an actor reference (`xstate$type` in JSON
- * output and persisted context).
- */
-export const ACTOR_REF_TYPE = 'actorRef';
 
 const emptyInspectionRecords = Object.freeze([]) as unknown as never[];
 
@@ -944,14 +939,14 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     if (this._restored) {
-      type RestoredTimer = { id: string; delay: number; startedAt?: number };
+      type RestoredTimer = { id: string; delay: number; scheduledAt?: number };
       const timers =
         (
           this._snapshot as unknown as {
             timers?: Record<string, RestoredTimer>;
           }
         ).timers ?? {};
-      // startedAt is only persisted from — and only meaningful under — the
+      // scheduledAt is only persisted from — and only meaningful under — the
       // wall clock; a custom clock (a simulated clock, a monotonic counter)
       // restores every timer with its declared delay. The clamp bounds
       // remaining time by the declared delay in case the wall clock moved
@@ -964,10 +959,10 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
         // Without a start (a pure-transition snapshot, or an older snapshot)
         // the declared delay is all there is.
         const delay =
-          wallClock && timer.startedAt !== undefined
+          wallClock && timer.scheduledAt !== undefined
             ? Math.min(
                 timer.delay,
-                Math.max(0, timer.startedAt + timer.delay - now)
+                Math.max(0, timer.scheduledAt + timer.delay - now)
               )
             : timer.delay;
         this.system.scheduleTimer(this, timer.id, delay);
@@ -1274,16 +1269,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   /**
-   * Returns the actor's serializable logical identity: its `id`, `address`,
-   * and registered source key (when the actor was created from one).
+   * Returns the actor's serializable logical identity: `{ $actor: address }`.
+   * The result can be used as an `enq.sendTo(...)` target.
    */
-  public toJSON() {
-    return {
-      xstate$type: ACTOR_REF_TYPE,
-      id: this.id,
-      address: this.address,
-      src: typeof this.src === 'string' ? this.src : undefined
-    };
+  public toJSON(): SerializedActorRef {
+    return { $actor: this.address };
   }
 
   /**

@@ -122,7 +122,7 @@ describe('durable checkpoint restoration', () => {
     expect(effects.map(({ id }) => id)).toEqual(['restore:0:0']);
     expect(effects[0].descriptor).toMatchObject({
       type: '@xstate.start',
-      actor: 'request/worker'
+      actor: { $actor: 'request/worker' }
     });
     await execution.executeEffects(effects);
     expect(run).toHaveBeenCalledOnce();
@@ -220,7 +220,7 @@ describe('durable checkpoint restoration', () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: '@xstate.sendTo',
-          target: 'timers/worker',
+          target: { $actor: 'timers/worker' },
           id: 'ping',
           delay: 200
         }),
@@ -254,7 +254,7 @@ describe('durable checkpoint restoration', () => {
     [2000, 500]
   ])(
     'honors a persisted wall-clock start %s (remaining %s)',
-    async (startedAt, remaining) => {
+    async (scheduledAt, remaining) => {
       vi.useFakeTimers();
       vi.setSystemTime(1000);
       const machine = createMachine({
@@ -266,9 +266,9 @@ describe('durable checkpoint restoration', () => {
       const persisted = roundTrip(
         machine.getPersistedSnapshot(initial)
       ) as Snapshot<unknown> & {
-        timers: Record<string, { startedAt?: number }>;
+        timers: Record<string, { scheduledAt?: number }>;
       };
-      Object.values(persisted.timers)[0].startedAt = startedAt;
+      Object.values(persisted.timers)[0].scheduledAt = scheduledAt;
       const scheduleTimer = vi.fn();
       const execution = createDurable(machine, adapter({ scheduleTimer }));
       const [, effects] = execution.restore(persisted);
@@ -310,10 +310,10 @@ describe('durable checkpoint restoration', () => {
       const persisted = roundTrip(
         machine.getPersistedSnapshot(initial)
       ) as Snapshot<unknown> & {
-        timers: Record<string, { startedAt?: number }>;
+        timers: Record<string, { scheduledAt?: number }>;
       };
       Object.entries(persisted.timers).forEach(([id, timer]) => {
-        if (id !== 'pure') timer.startedAt = 0;
+        if (id !== 'pure') timer.scheduledAt = 0;
       });
       const scheduleTimer = vi.fn();
       const startActor = vi.fn(async (actor: AnyActor) => {

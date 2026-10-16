@@ -202,15 +202,11 @@ describe('development context freeze edge cases', () => {
     const persisted = JSON.parse(
       JSON.stringify({
         ...createActor(machine).getPersistedSnapshot(),
-        context: { xstate$type: 'actorRef', id: 'missing', note: 'data' }
+        context: { $actor: 'missing' }
       })
     );
     const actor = createActor(machine, { snapshot: persisted });
-    expect(actor.getSnapshot().context).toEqual({
-      xstate$type: 'actorRef',
-      id: 'missing',
-      note: 'data'
-    });
+    expect(actor.getSnapshot().context).toEqual({ $actor: 'missing' });
   });
 
   it('keeps a persisted `__proto__` key as data, not a prototype', () => {

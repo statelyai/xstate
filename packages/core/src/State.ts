@@ -1,6 +1,5 @@
 import { getTimerStart } from './timerClock.ts';
 import isDevelopment from '#is-development';
-import { ACTOR_REF_TYPE } from './createActor.ts';
 import { getStateValue } from './stateUtils.ts';
 import type {
   AnyMachineSnapshot,
@@ -830,7 +829,7 @@ export function getPersistedSnapshot<
     // timer's accepted durable start or carried-in start passes through,
     // so re-persisting cannot push the deadline back.
     const scheduled = scheduledTimers?.[`${snapshotActor!.sessionId}.${id}`];
-    const startedAt = scheduled
+    const scheduledAt = scheduled
       ? scheduled.dueAt - timer.delay
       : getTimerStart(timer);
     timersJson[id] = {
@@ -839,7 +838,7 @@ export function getPersistedSnapshot<
       type: timer.type,
       event,
       target,
-      ...(startedAt !== undefined && { startedAt })
+      ...(scheduledAt !== undefined && { scheduledAt })
     };
   }
 
@@ -863,7 +862,6 @@ export function getPersistedSnapshot<
       id: machine.id,
       version: machine.version
     };
-    persisted.version = machine.version;
   }
 
   return persisted as Snapshot<unknown>;
@@ -901,13 +899,8 @@ function persistContext(
         copy ??= Array.isArray(contextPart)
           ? (contextPart.slice() as typeof contextPart)
           : { ...contextPart };
-        const address = (value as any as AnyActor).address;
-        copy[key] = {
-          xstate$type: ACTOR_REF_TYPE,
-          id: (value as any as AnyActor).id,
-          // The address lets refs to non-children still route after restore.
-          ...(typeof address === 'string' ? { address } : {})
-        };
+        // The address lets refs to non-children still route after restore.
+        copy[key] = { $actor: (value as any as AnyActor).address };
       } else {
         const valuePath = Array.isArray(contextPart)
           ? `${path}[${key}]`

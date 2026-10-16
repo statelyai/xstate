@@ -926,6 +926,7 @@ describe('machineVersions', () => {
 
     const parsed = await versions.parseSnapshot({
       ...legacyPersisted,
+      version: '1',
       context: { count: 2 }
     });
 
@@ -1072,6 +1073,7 @@ describe('machineVersions', () => {
     });
     const persisted = {
       ...createActor(checkout).getPersistedSnapshot(),
+      version: '1',
       machine: { id: 'checkout', version: '2' }
     };
 

@@ -1831,7 +1831,7 @@ export interface LogicalTimer {
    * wall-clock actor or a successfully scheduled durable timer. Carried
    * through restore so re-persisting keeps the original deadline.
    */
-  startedAt?: number;
+  scheduledAt?: number;
 }
 
 /**
@@ -2276,10 +2276,10 @@ export interface ActorLike<
  * @public
  */
 export interface SerializedActorRef {
-  xstate$type: 'actorRef';
-  id: string;
-  address: string;
-  src?: string;
+  /** The actor's logical address. */
+  $actor: string;
+  /** The incarnation token, when the serializer knows it. */
+  incarnation?: string;
 }
 
 /**

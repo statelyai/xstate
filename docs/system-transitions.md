@@ -65,7 +65,7 @@ actor's macrostep. Microsteps are atomic; system snapshots contain no unfinished
 microstep or continuation state. A UI presenting individual completed
 microsteps within a macrostep needs a separate tracing interface.
 
-Snapshot actor references are data: `{ $actor, incarnation }`. Use `$actor`
+Snapshot actor references are data: `{ $actor, incarnation }`, the same shape as `SerializedActorRef`, with a string `incarnation`. Use `$actor`
 as `actorPath`, for example `snapshot.actors[snapshot.root].snapshot.children.worker.$actor`.
 Paths encode IDs; avoid concatenating unescaped IDs. Replacing an actor at the
 same path allocates a fresh incarnation.

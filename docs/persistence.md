@@ -46,7 +46,7 @@ The option applies to the whole tree, not to a single placement boundary. Persis
 
 Persisted children changed shape in v6: each entry carries an `address` field and either an embedded `snapshot` or a `remote: true` marker. A remote entry may also carry an opaque `incarnation` token, round-tripped verbatim: XState never stamps one, but a host that does gets stale-completion protection on the referencing side and the token on journaled `sendTo` descriptors. Snapshots persisted by earlier versions restore unchanged; migrate them with [`machineVersions`](#migrate-machine-versions) if you validate their shape.
 
-A timer persisted from a running actor carries its wall-clock start (`startedAt`), and restoring the snapshot schedules the remaining time toward the original deadline — a timer past due fires immediately. Snapshots produced only by pure transitions carry no timestamp, so restoring one restarts each timer with its declared delay. A [durable execution](durable-execution.md) records timer starts when scheduling effects succeed; await `executeEffects()` before persisting its checkpoint to preserve deadlines. A custom adapter clock must use the same time origin when restoring.
+A timer persisted from a running actor carries its wall-clock start (`scheduledAt`), and restoring the snapshot schedules the remaining time toward the original deadline — a timer past due fires immediately. Snapshots produced only by pure transitions carry no timestamp, so restoring one restarts each timer with its declared delay. A [durable execution](durable-execution.md) records timer starts when scheduling effects succeed; await `executeEffects()` before persisting its checkpoint to preserve deadlines. A custom adapter clock must use the same time origin when restoring.
 
 For a host-driven durable loop, use `execution.restore(persistedSnapshot)` from
 `xstate/durable`, then `execution.executeEffects(effects)` to resume embedded
@@ -79,13 +79,13 @@ In development builds, `getPersistedSnapshot()` warns once per call with the pat
 
 `Date` values are not reported. `JSON.stringify` writes them as ISO strings, and `JSON.parse` does not turn them back into `Date` objects. Convert them on restore if your context needs `Date` instances.
 
-Actor refs in `context` persist as `{ xstate$type: 'actorRef', id }` and are not reported.
+Actor refs in `context` persist as `{ $actor: address }` and are not reported. A ref that names one of the snapshot's children restores to that child.
 
 ### Serialized actor refs
 
-An actor ref serializes with `JSON.stringify` as `{ xstate$type: 'actorRef', id, address, src }` (the `SerializedActorRef` type). This shape appears when a ref travels in an event payload, such as a `replyTo` field, and the event is persisted or crosses a process boundary. A serialized ref in `context` keeps its address across persistence and restore.
+An actor ref serializes with `JSON.stringify` as `{ $actor: address }` (the `SerializedActorRef` type, which also allows an optional string `incarnation`). This shape appears when a ref travels in an event payload, such as a `replyTo` field, and the event is persisted or crosses a process boundary. A serialized ref in `context` keeps its address across persistence and restore.
 
-A serialized ref is a valid `enq.sendTo(...)` target. The event is delivered to the live actor at the ref's `address`, including an actor restored after the ref was serialized. If no live actor has that address, the event becomes a dead letter with reason `'missingTarget'`.
+A serialized ref is a valid `enq.sendTo(...)` target. The event is delivered to the live actor at the ref's `$actor` address, including an actor restored after the ref was serialized. If no live actor has that address, the event becomes a dead letter with reason `'missingTarget'`.
 
 ```ts
 const server = createMachine({

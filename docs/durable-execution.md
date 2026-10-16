@@ -153,7 +153,7 @@ Timers from a pure-transition checkpoint retain their declared delay. The host
 must deduplicate scheduling by `(source.address, id)` and preserve any deadline
 it already accepted; accepting a restored timer must not extend that deadline.
 A checkpoint persisted after durable scheduling succeeds, or taken from a
-running wall-clock actor, carries `startedAt`. In that case the remaining delay is calculated when the scheduling operation
+running wall-clock actor, carries `scheduledAt`. In that case the remaining delay is calculated when the scheduling operation
 reaches the adapter, clamped between zero and the declared delay. Waiting to
 execute effects or starting children does not extend the deadline. The logical
 timer and effect descriptor retain the declared delay, keeping restoration
@@ -233,7 +233,7 @@ scheduleTimer: (source, id, delay) => {
 entry contains its deterministic `id`, declared `delay`, delivery type, event
 and logical target. Before effects execute, pure snapshots carry no scheduling
 time. After `executeEffects()` successfully schedules a timer, persisted
-checkpoints carry `startedAt`; `restore()` schedules the remaining time toward
+checkpoints carry `scheduledAt`; `restore()` schedules the remaining time toward
 that deadline. Await effect execution before saving a checkpoint. Timer starts
 are runtime metadata, so the pure snapshot itself remains unchanged.
 
@@ -249,7 +249,7 @@ the default is `Date.now()`. Checkpoints and resumed executions must share a
 time origin. To restore the checkpoint through ordinary `createActor`, use Unix
 epoch milliseconds, matching `Date.now()`. Replay hosts should return the
 original recorded scheduling time. Hosts still own atomic persistence, scheduler deduplication and delivery. An
-older checkpoint without `startedAt` restarts the declared delay.
+older checkpoint without `scheduledAt` restarts the declared delay.
 For a child timer, retain `source.address`; after restoring the tree,
 `durable.getActorRef(snapshot, address)` resolves the current timer source.
 
@@ -269,7 +269,7 @@ replaying the same events from the beginning reconstructs the same snapshots,
 effects, waits and IDs — not just the same resulting snapshot, but the same
 effects in the same order, which is what hosts that match journal entries
 positionally (Temporal, Restate) depend on. Each `DurableEffect` also carries a serializable
-`descriptor` — actor references replaced by addresses and actor sources by
+`descriptor` — actor references replaced by `{ $actor: address, incarnation? }` and actor sources by
 source keys — for journaling; payload fields such as `event` and `input` pass
 through by reference and are only as serializable as their values.
 

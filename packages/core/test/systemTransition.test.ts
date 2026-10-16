@@ -138,7 +138,7 @@ it('owns child state, immediate communication and completion notifications', () 
   expect(snapshot.actors['root/child'].started).toBe(true);
   expect(snapshot.actors.root.snapshot.children.child).toEqual({
     $actor: 'root/child',
-    incarnation: 1
+    incarnation: '1'
   });
   const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'SEND'
@@ -544,7 +544,7 @@ it.each(['done', 'error'] as const)(
       context: { result: outcome === 'done' ? 42 : 'failure' }
     });
     const observer = Object.values(finished.actors).find(
-      (actor) => actor.logic === '@xstate.subscription'
+      (actor) => actor.src === '@xstate.subscription'
     )!;
     expect(observer.parent?.$actor).toBe('root');
     expect(observer.snapshot.status).toBe('stopped');
@@ -595,7 +595,7 @@ it('handles prototype-shaped root IDs and registry keys as ordinary data', () =>
   });
   expect(snapshot.registry.__proto__).toEqual({
     $actor: '__proto__',
-    incarnation: 0
+    incarnation: '0'
   });
   const [next] = systemTransition(
     logic,

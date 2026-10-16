@@ -1100,7 +1100,7 @@ See [compact finite state machines](fsm.md) for its exact supported surface.
 - The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). `systemId` is not accepted as an option.
 - The `spawn` function passed to a `context` factory accepts actor logic only. Replace `spawn('worker')` with `spawn(actors.worker)`, using the `actors` argument of the same factory.
 - The `createMachine` types do not accept transition arrays in `on` or `always`. Select among targets in one transition function (see §15). JSON configs passed to `createMachineFromConfig(...)` still accept transition arrays.
-- Actor `sessionId`s are unique across actor systems and have the form `<systemId>:<n>`, where `systemId` is random. v5 used `x:<n>`. Code that parsed or compared `sessionId`s across systems must not rely on the format.
+- Actor `sessionId`s are unique across actor systems and have the form `<executionId>:<n>`, where `executionId` is random. v5 used `x:<n>`. Code that parsed or compared `sessionId`s across systems must not rely on the format.
 
 ---
 
@@ -1282,7 +1282,7 @@ Persisted delayed sends preserve `self`, parent, and active-child relationships
 without rebinding stopped actors by ID.
 
 A timer persisted from a running actor carries its wall-clock start
-(`startedAt`), and rehydrating schedules the remaining time toward the original
+(`scheduledAt`), and rehydrating schedules the remaining time toward the original
 deadline. Pure-transition snapshots carry no timestamp, so rehydrating one
 restarts each timer with its declared delay. Durable executions record accepted
 timer starts when `executeEffects()` succeeds, so checkpoints persisted afterward

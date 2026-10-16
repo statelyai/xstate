@@ -367,7 +367,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
   // across this execution's transitions, and a replay (a fresh createDurable
   // with the same executionId) re-numbers identically.
   const executionIdentity = adapter.executionId
-    ? { systemId: adapter.executionId, nextSessionId: 0 }
+    ? { executionId: adapter.executionId, nextSessionId: 0 }
     : undefined;
 
   // The adapter's runtime operations, picked off the flat adapter shape.
@@ -719,9 +719,9 @@ export function createDurable<TLogic extends AnyActorLogic>(
         }
         for (const timer of Object.values(timers ?? {})) {
           const effect = createTimerEffect(scope, timer, timer.delay);
-          if (timer.startedAt !== undefined) {
+          if (timer.scheduledAt !== undefined) {
             restoredTimerDeadlines.set(effect, {
-              deadline: timer.startedAt + timer.delay,
+              deadline: timer.scheduledAt + timer.delay,
               delay: timer.delay
             });
           }

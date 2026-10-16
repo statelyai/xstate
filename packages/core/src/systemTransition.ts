@@ -36,15 +36,15 @@ export interface SystemLogic<TLogic extends AnyActorLogic = AnyActorLogic> {
 /** An actor identity, without a live actor or runtime. @experimental */
 export interface SystemActorReference {
   readonly $actor: string;
-  readonly incarnation: number;
+  readonly incarnation: string;
 }
 
 /** Actor state and topology in a system snapshot. @experimental */
 export interface SystemActorState {
   readonly id: string;
   readonly address: string;
-  readonly incarnation: number;
-  readonly logic: string;
+  readonly incarnation: string;
+  readonly src: string;
   readonly logicVersion?: string;
   readonly parent?: SystemActorReference;
   readonly registryKey?: string;
@@ -80,7 +80,7 @@ export interface SystemExternalEffect {
   readonly id: string;
   readonly source: SystemActorReference;
   readonly type: string;
-  readonly kind: 'action' | 'emit' | 'deadLetter';
+  readonly kind: 'builtin' | 'emit' | 'action';
   readonly params?: unknown;
   readonly args?: readonly unknown[];
   readonly event?: AnyEventObject;
@@ -150,7 +150,7 @@ function isReference(value: any): value is SystemActorReference {
   return (
     !!value &&
     typeof value.$actor === 'string' &&
-    Number.isSafeInteger(value.incarnation)
+    typeof value.incarnation === 'string'
   );
 }
 
@@ -178,7 +178,7 @@ function encode(
       throw new Error(
         'Live actors cannot be stored in a pure system snapshot.'
       );
-    return { $actor: value.address, incarnation: Number(value.sessionId) };
+    return { $actor: value.address, incarnation: value.sessionId };
   }
   if (!value || typeof value !== 'object') {
     if (
@@ -351,7 +351,7 @@ class SystemReduction {
   }
 
   private reference(actor: AnyActor): SystemActorReference {
-    return { $actor: actor.address, incarnation: Number(actor.sessionId) };
+    return { $actor: actor.address, incarnation: actor.sessionId as string };
   }
 
   private current(ref: SystemActorReference): SystemActorState | undefined {
@@ -394,7 +394,7 @@ class SystemReduction {
   }
 
   private attachedKind(actor: SystemActorState) {
-    return (this.logic.get(actor.logic) as any)?.[systemLogicMetadata]?.kind;
+    return (this.logic.get(actor.src) as any)?.[systemLogicMetadata]?.kind;
   }
 
   private relayAttachments(
@@ -471,7 +471,7 @@ class SystemReduction {
     const actor = this.current(ref);
     if (!actor)
       return { status: 'stopped', output: undefined, error: undefined };
-    const logic = this.logic.get(actor.logic)! as any;
+    const logic = this.logic.get(actor.src)! as any;
     if (!logic || logic.version !== actor.logicVersion)
       throw new Error(
         `Actor definition/version mismatch for '${actor.address}'.`
@@ -499,7 +499,7 @@ class SystemReduction {
     if (existing) return existing;
     const actor = this.current(ref);
     const getState = () => this.current(ref) ?? actor;
-    const getLogic = () => this.logic.get(getState()?.logic ?? '')!;
+    const getLogic = () => this.logic.get(getState()?.src ?? '')!;
     const getParent = () => {
       const parent = getState()?.parent;
       return parent && this.handle(parent);
@@ -514,13 +514,13 @@ class SystemReduction {
       [systemActorHandle]: true,
       id: actor?.id ?? ref.$actor.split('/').at(-1),
       address: ref.$actor,
-      sessionId: String(ref.incarnation),
+      sessionId: ref.incarnation,
       options: { _inert: true, input: actor?.input },
       get logic() {
         return getLogic();
       },
       get src() {
-        return getState()?.logic;
+        return getState()?.src;
       },
       get registryKey() {
         return getState()?.registryKey;
@@ -553,7 +553,7 @@ class SystemReduction {
         for (const [key, ref] of Object.entries(this.snapshot.registry)) {
           if (
             ref.$actor === actor.address &&
-            String(ref.incarnation) === actor.sessionId
+            ref.incarnation === actor.sessionId
           )
             delete this.snapshot.registry[key];
         }
@@ -631,13 +631,13 @@ class SystemReduction {
         throw new Error(`Actor address '${address}' is already occupied.`);
       this.stop(previous);
     }
-    const incarnation = this.snapshot.counters.actor++;
+    const incarnation = String(this.snapshot.counters.actor++);
     const ref = { $actor: address, incarnation };
     const state: SystemActorState = {
       id,
       address,
       incarnation,
-      logic: definition[0],
+      src: definition[0],
       ...((logic as any).version !== undefined && {
         logicVersion: (logic as any).version
       }),
@@ -709,7 +709,7 @@ class SystemReduction {
         value.kind === 'emit'
           ? 'emit'
           : value.type === '@xstate.deadLetter'
-            ? 'deadLetter'
+            ? 'builtin'
             : 'action',
       ...(params !== undefined && { params: this.encode(params) }),
       args: this.encode(value.args ?? []),
@@ -779,7 +779,7 @@ class SystemReduction {
           } else if (isSerializedActorRef(value.target)) {
             // A ref that went through JSON targets the current incarnation
             // at its address; without one the event is a dead letter.
-            const target = this.snapshot.actors[value.target.address];
+            const target = this.snapshot.actors[value.target.$actor];
             if (target?.snapshot.status === 'active')
               this.enqueue(
                 ref,
@@ -858,7 +858,7 @@ class SystemReduction {
     }
     if (this.current(ref)?.snapshot.status === 'active')
       this.relayAttachments(ref);
-    const metadata = (this.logic.get(actor.logic) as any)[systemLogicMetadata];
+    const metadata = (this.logic.get(actor.src) as any)[systemLogicMetadata];
     if (
       metadata?.timeout !== undefined &&
       this.current(ref)?.snapshot.status === 'active'
@@ -930,12 +930,12 @@ class SystemReduction {
           ? createDoneActorEvent(
               actor.id,
               this.decode(actor.snapshot.output),
-              String(actor.incarnation)
+              actor.incarnation
             )
           : createErrorActorEvent(
               actor.id,
               this.decode(actor.snapshot.error),
-              String(actor.incarnation)
+              actor.incarnation
             );
       this.enqueue(ref, actor.parent, event);
     }
@@ -953,8 +953,8 @@ class SystemReduction {
         'Only the system scheduler may deliver a timer occurrence.'
       );
     }
-    const logic = this.logic.get(actor.logic);
-    if (!logic) throw new Error(`Missing actor definition '${actor.logic}'.`);
+    const logic = this.logic.get(actor.src);
+    if (!logic) throw new Error(`Missing actor definition '${actor.src}'.`);
     if (
       (logic as any).isInternalEventType?.(message.event.type) &&
       (!message.source ||
@@ -988,7 +988,7 @@ class SystemReduction {
       this.enqueue(message.target, actor.parent, {
         type: 'xstate.snapshot.actor',
         actorId: actor.id,
-        sessionId: String(actor.incarnation),
+        sessionId: actor.incarnation,
         snapshot: snapshotData(snapshot, this.mapperNames)
       });
     }

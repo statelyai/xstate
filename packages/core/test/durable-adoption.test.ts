@@ -60,14 +60,16 @@ describe('durable scheduling checkpoints', () => {
       const [snapshot, effects] = execution.initialTransition();
       expect(
         Object.values(persisted(machine, snapshot).timers)[0]
-      ).not.toHaveProperty('startedAt');
+      ).not.toHaveProperty('scheduledAt');
       await execution.executeEffects(effects);
       const saved = persisted(machine, snapshot);
       expect(Object.values(saved.timers)[0]).toHaveProperty(
-        'startedAt',
+        'scheduledAt',
         10_000
       );
-      expect(Object.values(snapshot.timers)[0]).not.toHaveProperty('startedAt');
+      expect(Object.values(snapshot.timers)[0]).not.toHaveProperty(
+        'scheduledAt'
+      );
 
       time += 300;
       const resumedHost = host({ now: () => time });
@@ -82,7 +84,7 @@ describe('durable scheduling checkpoints', () => {
       const [unchanged] = resumed.transition(restored, { type: 'CONTINUE' });
       expect(
         Object.values(persisted(machine, unchanged).timers)[0]
-      ).toHaveProperty('startedAt', 10_000);
+      ).toHaveProperty('scheduledAt', 10_000);
 
       time += 300;
       const againHost = host({ now: () => time });
@@ -117,7 +119,10 @@ describe('durable scheduling checkpoints', () => {
       const [snapshot, effects] = execution.initialTransition();
       await execution.executeEffects(effects);
       const saved = persisted(machine, snapshot);
-      expect(Object.values(saved.timers)[0]).toHaveProperty('startedAt', 1500);
+      expect(Object.values(saved.timers)[0]).toHaveProperty(
+        'scheduledAt',
+        1500
+      );
 
       time = 1600;
       const resumedHost = host({ now: () => time });
@@ -131,7 +136,7 @@ describe('durable scheduling checkpoints', () => {
       );
       expect(
         Object.values(persisted(machine, restored).timers)[0]
-      ).toHaveProperty('startedAt', 1500);
+      ).toHaveProperty('scheduledAt', 1500);
 
       await execution.executeEffects(effects);
       expect(scheduleTimer).toHaveBeenLastCalledWith(
@@ -141,7 +146,7 @@ describe('durable scheduling checkpoints', () => {
       );
       expect(
         Object.values(persisted(machine, snapshot).timers)[0]
-      ).toHaveProperty('startedAt', 1500);
+      ).toHaveProperty('scheduledAt', 1500);
     }
   );
 
@@ -182,7 +187,7 @@ describe('durable scheduling checkpoints', () => {
     );
     expect(
       Object.values(persisted(machine, snapshot).timers)[0]
-    ).toHaveProperty('startedAt', 1000);
+    ).toHaveProperty('scheduledAt', 1000);
   });
 
   it('starts a new deadline when a state reenters', async () => {
@@ -200,10 +205,10 @@ describe('durable scheduling checkpoints', () => {
     await execution.executeEffects(nextEffects);
     expect(
       Object.values(persisted(machine, reentered).timers)[0]
-    ).toHaveProperty('startedAt', 1300);
+    ).toHaveProperty('scheduledAt', 1300);
     expect(
       Object.values(persisted(machine, snapshot).timers)[0]
-    ).toHaveProperty('startedAt', 1000);
+    ).toHaveProperty('scheduledAt', 1000);
   });
 
   it('records a start only after scheduling succeeds', async () => {
@@ -216,7 +221,7 @@ describe('durable scheduling checkpoints', () => {
     await expect(execution.executeEffects(effects)).rejects.toBe(failure);
     expect(
       Object.values(persisted(machine, snapshot).timers)[0]
-    ).not.toHaveProperty('startedAt');
+    ).not.toHaveProperty('scheduledAt');
   });
 
   it('does not read the host clock during pure transitions', () => {
@@ -253,7 +258,7 @@ describe('durable scheduling checkpoints', () => {
     const saved = persisted(parent, snapshot);
     expect(
       Object.values(saved.children.worker.snapshot.timers)[0]
-    ).toHaveProperty('startedAt', 5000);
+    ).toHaveProperty('scheduledAt', 5000);
     execution.getActorRef(snapshot)?.system.stopActor(snapshot.children.worker);
   });
 });

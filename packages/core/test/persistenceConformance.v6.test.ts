@@ -15,7 +15,8 @@ import {
   createMachine,
   initialTransition,
   setup,
-  SimulatedClock
+  SimulatedClock,
+  type AnyActorRef
 } from '../src/index.ts';
 import { StateMachine } from '../src/StateMachine.ts';
 import Ajv2020 from 'ajv/dist/2020';
@@ -481,6 +482,45 @@ describe('missing persisted child sources', () => {
   });
 });
 
+describe('serialized actor refs in context', () => {
+  const child = createMachine({});
+  const parent = createMachine({
+    id: 'parent',
+    actors: { child },
+    context: ({ spawn, actors }) => ({
+      ref: spawn(actors.child, { id: 'kid' }) as AnyActorRef,
+      other: null as unknown
+    })
+  });
+
+  it('persists actor refs as { $actor: address }', () => {
+    const actor = createActor(parent).start();
+    const persisted = roundTrip(actor.getPersistedSnapshot()) as any;
+    actor.stop();
+
+    expect(persisted.context.ref).toEqual({ $actor: 'parent/kid' });
+  });
+
+  it('restores the pre-beta { xstate$type, id, address } shape', () => {
+    const actor = createActor(parent).start();
+    const persisted = roundTrip(actor.getPersistedSnapshot()) as any;
+    actor.stop();
+    persisted.context.ref = { xstate$type: 'actorRef', id: 'kid' };
+    persisted.context.other = {
+      xstate$type: 'actorRef',
+      id: 'elsewhere',
+      address: 'other/elsewhere',
+      src: 'worker'
+    };
+
+    const restored = createActor(parent, { snapshot: persisted });
+    const { context } = restored.getSnapshot();
+
+    expect(context.ref).toBe(restored.getSnapshot().children.kid);
+    expect(context.other).toEqual({ $actor: 'other/elsewhere' });
+  });
+});
+
 describe('#4873 system.get after restore', () => {
   it('a child spawned with a registryKey is retrievable via restored.system.get and transitions on send', () => {
     const child = createMachine({
@@ -580,9 +620,9 @@ describe('#5331 logical timers restored', () => {
       target: 'self',
       event: { type: expect.stringMatching(/^xstate\.after/) }
     });
-    // Only the wall clock stamps `startedAt`; this actor runs under a
+    // Only the wall clock stamps `scheduledAt`; this actor runs under a
     // simulated clock, whose readings are meaningless in another process.
-    expect(timer).not.toHaveProperty('startedAt');
+    expect(timer).not.toHaveProperty('scheduledAt');
     expect(timer).not.toHaveProperty('elapsed');
 
     const clock2 = new SimulatedClock();

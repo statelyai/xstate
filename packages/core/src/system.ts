@@ -20,7 +20,8 @@ import { getAmbientInspector } from './inspectionAmbient.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
   createMissingAddressError,
-  isSerializedActorRef
+  isSerializedActorRef,
+  getAddressId
 } from './remoteActorRef.ts';
 import {
   rejectUndeliverableEvent,
@@ -51,15 +52,15 @@ interface Scheduler {
   cancelAll(actor: AnyActor): void;
 }
 
-let systemIdPrefix: string | undefined;
-let nextSystemId = 0;
+let executionIdPrefix: string | undefined;
+let nextExecutionId = 0;
 
 /** @internal */
 export const transitionEffectSignal = new Error('Transition effect');
 /** @internal */
 export const transitionEffectTargets: AnyActor[] = [];
 
-function createSystemIdPrefix(): string {
+function createExecutionIdPrefix(): string {
   let crypto: Crypto | undefined;
   try {
     crypto = globalThis.crypto;
@@ -92,9 +93,9 @@ function createSystemIdPrefix(): string {
     .slice(2)}`;
 }
 
-function createSystemId(): string {
-  systemIdPrefix ??= createSystemIdPrefix();
-  return `${systemIdPrefix}:${(nextSystemId++).toString(36)}`;
+function createExecutionId(): string {
+  executionIdPrefix ??= createExecutionIdPrefix();
+  return `${executionIdPrefix}:${(nextExecutionId++).toString(36)}`;
 }
 
 /**
@@ -107,7 +108,7 @@ function createSystemId(): string {
  * re-creates.
  */
 export interface ExecutionIdentity {
-  systemId: string;
+  executionId: string;
   nextSessionId: number;
 }
 
@@ -273,7 +274,7 @@ export function resolveActorId(
 
 /** @internal */
 export function bookSessionId(system: AnyActorSystem): string {
-  return `${system._identity.systemId}:${system._identity.nextSessionId++}`;
+  return `${system._identity.executionId}:${system._identity.nextSessionId++}`;
 }
 
 /**
@@ -522,7 +523,7 @@ export interface ActorSystem<
    * @internal
    */
   _identity: {
-    systemId: string;
+    executionId: string;
     nextSessionId: number;
   };
   /** @internal */
@@ -572,7 +573,7 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   public _identity = ambientExecutionIdentity ?? {
-    systemId: createSystemId(),
+    executionId: createExecutionId(),
     nextSessionId: 0
   };
   public _snapshot: ActorSystem<T>['_snapshot'];
@@ -934,12 +935,12 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       // A ref that went through JSON resolves by address to the live actor.
       // A host runtime may own actors this system cannot see, so an
       // unresolved address is its to route; locally it is a dead letter.
-      const live = this._getByAddress(target.address);
+      const live = this._getByAddress(target.$actor);
       if (live) {
         target = live;
       } else if (!this.runtime?.sendEvent) {
         return this.deadLetter(source, undefined, event, 'missingTarget', {
-          targetId: target.id,
+          targetId: getAddressId(target.$actor),
           error: createMissingAddressError(target)
         });
       }

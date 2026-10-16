@@ -1212,7 +1212,7 @@ export function resolveActionsWithContext(
       // An unresolved address stays address-backed: delivery resolves it
       // again, routes it through a host runtime, or reports a dead letter.
       const live = actorScope.system._getByAddress?.(
-        actionRecord.args[1].address
+        actionRecord.args[1].$actor
       );
       if (live) {
         resolvedActionArgs = [

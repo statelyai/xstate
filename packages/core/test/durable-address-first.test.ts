@@ -112,7 +112,7 @@ describe('durable effect descriptors', () => {
       ({ descriptor }) => descriptor.type === '@xstate.spawn'
     )!.descriptor;
     expect(spawn).toMatchObject({
-      actor: 'order/worker:0',
+      actor: { $actor: 'order/worker:0' },
       src: 'worker'
     });
   });
@@ -138,7 +138,7 @@ describe('durable effect descriptors', () => {
     expect(
       effects.find(({ descriptor }) => descriptor.type === '@xstate.spawn')
         ?.descriptor
-    ).toMatchObject({ actor: 'aliases/worker', src: 'second' });
+    ).toMatchObject({ actor: { $actor: 'aliases/worker' }, src: 'second' });
   });
 });
 
