@@ -6617,6 +6617,12 @@ describe('snapshot methods', () => {
     snapshot.matches({ nope: 'payment' });
 
     const wide = (value: StateValue) => snapshot.matches(value);
+    const leaf: string = 'review';
+    snapshot.matches({ checkout: leaf });
+    const inferred = { checkout: 'review' };
+    snapshot.matches(inferred);
+    const either: { checkout: string } | { idle: string } = inferred;
+    snapshot.matches(either);
     const fromState = (state: StateFrom<typeof machine>) => {
       state.matches('checkout.review');
       // @ts-expect-error 'noSuchState' is not a state of this machine

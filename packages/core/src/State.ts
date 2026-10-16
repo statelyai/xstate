@@ -187,13 +187,26 @@ export type ToTestStateValue<TStateValue extends StateValue> =
                 }
         : never;
 
+/**
+ * `true` if `TTestStateValue` is not a literal state value: `string`, a map
+ * with `string` keys, or a map with a non-literal value at any depth (such as
+ * `{ checkout: string }`, which a `const` object without `as const` infers).
+ */
 type IsWideStateValue<TTestStateValue extends StateValue> =
   string extends TTestStateValue
     ? true
     : TTestStateValue extends StateValueMap
       ? string extends keyof TTestStateValue
         ? true
-        : false
+        : true extends {
+              [K in keyof TTestStateValue]-?: NonNullable<
+                TTestStateValue[K]
+              > extends infer TChild extends StateValue
+                ? IsWideStateValue<TChild>
+                : false;
+            }[keyof TTestStateValue]
+          ? true
+          : false
       : false;
 
 /**
