@@ -28,7 +28,7 @@ import {
   SnapshotEvent,
   Subscribable,
   createActor,
-  createLogic,
+  createStepLogic,
   waitFor,
   createMachine
 } from '../src/index.ts';
@@ -1203,7 +1203,7 @@ describe('actors', () => {
   describe('with actor logic', () => {
     it('should work with custom logic', () => {
       const { resolve, promise } = Promise.withResolvers<void>();
-      const countLogic = createLogic({
+      const countLogic = createStepLogic({
         context: 0,
         run: ({ context, event }) => {
           if (event.type === 'INC') {

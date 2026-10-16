@@ -6,7 +6,7 @@ import {
   ActorRef,
   Snapshot,
   createActor,
-  createLogic,
+  createStepLogic,
   createMachine,
   createSystem,
   createEventObservableLogic,
@@ -508,7 +508,7 @@ describe('system', () => {
         },
 
         {
-          src: createLogic({
+          src: createStepLogic({
             context: 0,
             run: ({ event, system }) => {
               if (event.type === 'xstate.init') {

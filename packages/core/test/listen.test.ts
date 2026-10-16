@@ -1,6 +1,6 @@
 import {
   createActor,
-  createLogic,
+  createStepLogic,
   createMachine,
   createCallbackLogic,
   createAsyncLogic,
@@ -11,7 +11,7 @@ import type { AnyActor } from '../src';
 describe('enq.listen()', () => {
   it('listens to emitted events from a spawned actor', async () => {
     // Use custom logic that emits when it receives an event
-    const childLogic = createLogic<
+    const childLogic = createStepLogic<
       { triggered: boolean },
       undefined,
       { type: 'TRIGGER' },
@@ -372,7 +372,7 @@ describe('enq.subscribeTo()', () => {
   });
 
   it('subscribes to snapshot changes using shorthand', async () => {
-    const childLogic = createLogic({
+    const childLogic = createStepLogic({
       context: {
         count: 0
       },
@@ -420,7 +420,7 @@ describe('enq.subscribeTo()', () => {
   });
 
   it('subscribes to done events from a spawned actor during startup', () => {
-    const childLogic = createLogic({
+    const childLogic = createStepLogic({
       context: undefined,
       run: () => {
         return {
@@ -460,7 +460,7 @@ describe('enq.subscribeTo()', () => {
   });
 
   it('subscribes to the initial active snapshot from a spawned actor during startup', () => {
-    const childLogic = createLogic({
+    const childLogic = createStepLogic({
       context: { count: 0 },
       run: ({ context, event }) => {
         if (event.type === 'xstate.init') {
@@ -504,7 +504,7 @@ describe('enq.subscribeTo()', () => {
   });
 
   it('does not subscribe to a spawned actor stopped before subscribing', () => {
-    const childLogic = createLogic({
+    const childLogic = createStepLogic({
       context: undefined,
       run: () => {}
     });

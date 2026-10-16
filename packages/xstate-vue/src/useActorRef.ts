@@ -7,7 +7,7 @@ import {
   SnapshotFrom,
   Subscription,
   createActor,
-  toObserver,
+  _toObserver as toObserver,
   type IsNotNever,
   type RequiredActorOptionsKeys,
   type RequiredActorOptionsFor

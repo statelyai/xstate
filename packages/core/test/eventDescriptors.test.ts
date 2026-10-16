@@ -1,10 +1,10 @@
 import z from 'zod';
 import { createMachine, createActor, assertEvent } from '../src/index';
-import { createMachineFromConfig } from '../src/createMachineFromConfig';
+import { machineFromJSON } from '../src/machineFromJSON';
 
 describe('event descriptors', () => {
   it('selects serialized transition arrays by shallow event payload matches', () => {
-    const machine = createMachineFromConfig({
+    const machine = machineFromJSON({
       initial: 'pending',
       states: {
         pending: {

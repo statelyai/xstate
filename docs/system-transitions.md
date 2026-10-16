@@ -118,7 +118,7 @@ in `systemLogic.effects` or machine action sources so hosts receive stable
 names. `enq.log` returns `@xstate.log`. Emissions return `kind: 'emit'` effects
 and also reach system-owned listeners.
 
-The host interprets descriptors. `createLogic`/`createAsyncLogic` produce
+The host interprets descriptors. `createStepLogic`/`createAsyncLogic` produce
 `@xstate.effect`, with `params.key` for keyed logic effects. Dispatch
 using the source actor's definition and saved input; the host owns the
 external implementation. Its result reenters as a correlated input:

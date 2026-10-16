@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  createLogic,
+  createStepLogic,
   createMachine,
   setup,
   type ActorRefFromLogic,
@@ -9,7 +9,7 @@ import {
 
 describe('spawn inside machine', () => {
   it('input is required when defined in actor', () => {
-    const childMachine = createLogic<
+    const childMachine = createStepLogic<
       { value: number },
       string,
       { type: 'PING'; value: string },
@@ -141,7 +141,7 @@ describe('spawn inside machine', () => {
         }
       }
     });
-    const optionalPayloadLogic = createLogic<
+    const optionalPayloadLogic = createStepLogic<
       {},
       unknown,
       { type: 'SEARCH'; query?: string } | { type: 'SAVE'; value: string }

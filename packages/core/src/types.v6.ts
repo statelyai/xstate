@@ -350,6 +350,8 @@ export type Next_MachineConfig<
    * being accepted and silently ignored: nothing reads it in v6.
    */
   types?: RemovedTypesKey;
+  /** Declared only so that the removed top-level key is rejected. */
+  internalEvents?: '`internalEvents` moved to `schemas.internalEvents` in v6.';
   schemas?: MachineSchemas<
     TContextSchema,
     TEventSchemaMap,
@@ -1028,7 +1030,7 @@ type Next_ChoiceArgs<
  * updating `context` and providing `input`/`reenter`/`meta`).
  *
  * Guard objects/strings on routes are only produced by the JSON layer
- * (`createMachineFromConfig`) — authoring uses the function form.
+ * (`machineFromJSON`) — authoring uses the function form.
  */
 type Next_RouteConfig<
   TContext extends MachineContext,
@@ -1155,7 +1157,6 @@ export interface Next_ChoiceStateNodeConfig<
   TGuardMap extends Sources['guards'],
   TDelayMap extends Sources['delays']
 > {
-  contextSchema?: StandardSchemaV1;
   schemas?: SetupStateSchemas;
   type: 'choice';
   /** Function that resolves this choice state to a target. */
@@ -1222,7 +1223,6 @@ export interface Next_RegularStateNodeConfig<
   TSystemRegistry extends SystemRegistry = SystemRegistry,
   TChildOutput = unknown
 > {
-  contextSchema?: StandardSchemaV1;
   schemas?: SetupStateSchemas;
   /** The initial state transition. */
   initial?:

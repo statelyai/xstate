@@ -2610,7 +2610,7 @@ export function createMachineFromSCXMLConfig(
     }
   };
 
-  // Keep the original JSON so `serializeMachine(machine)`
+  // Keep the original JSON so `machineToJSON(machine)`
   // round-trip losslessly.
   (provided as any)._json = json;
   return provided;

@@ -25,7 +25,7 @@ import type {
   createEventObservableLogic
 } from './actors/observable.ts';
 import type { createCallbackLogic } from './actors/callback.ts';
-import type { createLogic } from './actors/logic.ts';
+import type { createStepLogic } from './actors/logic.ts';
 import type { createAsyncLogic } from './actors/promise.ts';
 import type { createMachine } from './createMachine.ts';
 // oxlint-enable no-unused-vars
@@ -1405,7 +1405,7 @@ type CreateActorOptionsArgs<TLogic extends AnyActorLogic> = [
  * @param logic - The actor logic to create an actor from. For a state machine
  *   actor logic creator, see {@link createMachine}. Other actor logic creators
  *   include {@link createCallbackLogic}, {@link createEventObservableLogic},
- *   {@link createObservableLogic}, {@link createLogic}, and
+ *   {@link createObservableLogic}, {@link createStepLogic}, and
  *   {@link createAsyncLogic}.
  * @param options - Actor options
  * @public

@@ -1138,7 +1138,7 @@ describe('@xstate/effect runtime', () => {
         Effect.succeed({ greeting: `Hello ${input.id}` })
     });
 
-    // `EffectActorLogic` does not surface the `id` that `createLogic` sets.
+    // `EffectActorLogic` does not surface the `id` that `createStepLogic` sets.
     expect(logic.id).toBe('loadUser');
 
     const actor = await runScoped(

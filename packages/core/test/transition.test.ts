@@ -3,7 +3,7 @@ import {
   createMachine,
   EventFrom,
   createAsyncLogic,
-  createLogic,
+  createStepLogic,
   createCallbackLogic,
   toPromise,
   transition,
@@ -1906,7 +1906,7 @@ describe('transition function', () => {
   });
 
   describe('terminal child cleanup', () => {
-    const child = createLogic({
+    const child = createStepLogic({
       context: undefined,
       run: () => undefined
     });
@@ -2108,7 +2108,7 @@ describe('transition function', () => {
     });
 
     it('removes a completed dynamically spawned child on the live path', () => {
-      const completingChild = createLogic({
+      const completingChild = createStepLogic({
         context: undefined,
         run: () => ({ status: 'done', output: 42 })
       });
@@ -2167,7 +2167,7 @@ describe('transition function', () => {
     emit({ type: 'someEvent' });
   });
 
-  const completingLogic = createLogic({
+  const completingLogic = createStepLogic({
     context: undefined,
     run: () => ({
       status: 'done',
@@ -2584,7 +2584,7 @@ describe('transition function', () => {
   });
 
   it('should calculate the next snapshot for custom logic', () => {
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: { count: 0 },
       run: ({ context, event }) => {
         if (event.type === 'next') {

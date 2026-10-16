@@ -5,14 +5,14 @@ description: Treat machine definitions as data.
 
 A machine definition can be represented as data. Serialize it to JSON, store or send it, and build a running machine from it again.
 
-Call `serializeMachine(machine)` to get the JSON-serializable definition.
+Call `machineToJSON(machine)` to get the JSON-serializable definition.
 
 ```ts
-const json = serializeMachine(machine);
+const json = machineToJSON(machine);
 localStorage.setItem('checkout-definition', JSON.stringify(json));
 ```
 
-`serializeMachine()` never throws. Values that cannot be represented as data are handled explicitly: inline functions become code expressions, and runtime-only values are omitted.
+`machineToJSON()` never throws. Values that cannot be represented as data are handled explicitly: inline functions become code expressions, and runtime-only values are omitted.
 
 Serialize a config that was never passed to `createMachine()` with `machineConfigToJSON(config)`.
 
@@ -49,10 +49,10 @@ These values are omitted rather than serialized:
 
 ## Reviving a machine
 
-`createMachineFromConfig(json, sources?)` builds a machine from a plain JSON definition.
+`machineFromJSON(json, sources?)` builds a machine from a plain JSON definition.
 
 ```ts
-import { createMachineFromConfig, type MachineJSON } from 'xstate';
+import { machineFromJSON, type MachineJSON } from 'xstate';
 
 const definition: MachineJSON = {
   initial: 'idle',
@@ -73,7 +73,7 @@ const definition: MachineJSON = {
   }
 };
 
-const machine = createMachineFromConfig(definition, {
+const machine = machineFromJSON(definition, {
   actors: { worker: workerLogic },
   guards: { canFinish: ({ context }, params) => context.retries < params.limit }
 });
@@ -86,12 +86,12 @@ Actions in JSON are objects. The built-in vocabulary is `{ type: '@xstate.raise'
 Machines built from JSON round-trip losslessly. The loader copies the definition, and each serialization returns a fresh copy. Mutating either copy does not change the machine.
 
 ```ts
-const revived = createMachineFromConfig(
-  JSON.parse(JSON.stringify(serializeMachine(machine)))
+const revived = machineFromJSON(
+  JSON.parse(JSON.stringify(machineToJSON(machine)))
 );
 ```
 
-`createMachineFromConfig()` validates the definition as it builds. Illegal definitions (a history state without a target, a transition whose target set is not a legal configuration) throw with the JSON path of the offending node.
+`machineFromJSON()` validates the definition as it builds. Illegal definitions (a history state without a target, a transition whose target set is not a legal configuration) throw with the JSON path of the offending node.
 
 Some v6 features have no JSON representation yet: state `input`, `enq.listen`/`enq.subscribeTo`, and `choice` functions. Definitions that rely on them are not fully portable.
 
@@ -99,15 +99,15 @@ Some v6 features have no JSON representation yet: state `input`, `enq.listen`/`e
 
 `MachineJSON` types a machine definition; `StateNodeJSON`, `TransitionJSON`, `ActionJSON`, `GuardJSON` and `InvokeJSON` type its parts. `CodeExpression` types a `@code` object.
 
-`createMachineFromConfig()` returns `AnyStateMachine`. A definition loaded at runtime has no static context or event types, so validate persisted data and narrow events with schemas where it matters.
+`machineFromJSON()` returns `AnyStateMachine`. A definition loaded at runtime has no static context or event types, so validate persisted data and narrow events with schemas where it matters.
 
 ## Serialization cheatsheet
 
 ```ts
-const json = serializeMachine(machine);
+const json = machineToJSON(machine);
 const definitionJSON = machineConfigToJSON(config);
 
-const machine = createMachineFromConfig(JSON.parse(stored), {
+const machine = machineFromJSON(JSON.parse(stored), {
   actions: { track },
   guards: { canFinish },
   actors: { worker: workerLogic }

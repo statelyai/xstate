@@ -98,6 +98,5 @@ export function createSubscriptionLogic<
   }, '@xstate.subscription');
 }
 
-// Singleton logic instance
-/** @public */
+/** @internal The logic of helper actors created by `enq.subscribeTo()`. */
 export const subscriptionLogic = /* #__PURE__ */ createSubscriptionLogic();

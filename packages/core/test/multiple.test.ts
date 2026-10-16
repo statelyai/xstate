@@ -1,7 +1,7 @@
-import { createMachineFromConfig, createActor } from '../src/index';
+import { machineFromJSON, createActor } from '../src/index';
 
 describe('multiple', () => {
-  const machine = createMachineFromConfig({
+  const machine = machineFromJSON({
     initial: 'simple',
     states: {
       simple: {

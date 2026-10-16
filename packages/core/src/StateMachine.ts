@@ -134,7 +134,7 @@ let emptyCanActorScope: AnyActorScope | undefined;
 function getEmptyCanActor(): AnyActor {
   // A minimal inert actor used purely as the `self`/`parent` argument when
   // dry-running transitions for `snapshot.can(...)`. Intentionally not built
-  // on `createLogic` so `can()` does not pull that machinery into bundles.
+  // on `createStepLogic` so `can()` does not pull that machinery into bundles.
   return (emptyCanActor ??= createActor({
     transition: (snapshot: any) => [snapshot, []],
     initialTransition: () => [
@@ -1577,7 +1577,7 @@ export class StateMachine<
 
   /**
    * The original JSON definition this machine was created from (set by
-   * `createMachineFromConfig`), if any. Used by `serializeMachine` for lossless
+   * `machineFromJSON`), if any. Used by `machineToJSON` for lossless
    * round-trips.
    *
    * @internal

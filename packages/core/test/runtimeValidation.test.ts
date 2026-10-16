@@ -6,7 +6,7 @@ import {
   createAsyncLogic,
   createCallbackLogic,
   createEventObservableLogic,
-  createLogic,
+  createStepLogic,
   createMachine,
   createSystem,
   createObservableLogic,
@@ -72,7 +72,7 @@ describe('runtime schema validation', () => {
       subscribe: () => ({ unsubscribe: () => {} })
     };
     const logics = [
-      createLogic({
+      createStepLogic({
         validator,
         schemas: { input },
         context: undefined,
@@ -112,7 +112,7 @@ describe('runtime schema validation', () => {
 
   it('validates generic actor output before returning it', () => {
     const effect = vi.fn();
-    const logic = createLogic({
+    const logic = createStepLogic({
       validator: standardSchemaValidator(),
       schemas: { output: z.number() },
       context: undefined,

@@ -1,6 +1,6 @@
 import { act, render } from '@testing-library/react';
 import * as React from 'react';
-import { createLogic, createMachine, setup } from 'xstate';
+import { createStepLogic, createMachine, setup } from 'xstate';
 import { standardSchemaValidator } from 'xstate/validation';
 import { z } from 'zod';
 import { useActorRef } from '../src/index.ts';
@@ -125,7 +125,7 @@ describe('Fast Refresh', () => {
   });
 
   it('keeps children whose logic is unchanged and restarts the others', () => {
-    const stable = createLogic({ context: 0, run: () => undefined });
+    const stable = createStepLogic({ context: 0, run: () => undefined });
     const createParent = (other: any) =>
       createMachine({
         id: 'parent',
@@ -137,12 +137,12 @@ describe('Fast Refresh', () => {
       });
 
     const app = mount(
-      createParent(createLogic({ context: 0, run: () => undefined }))
+      createParent(createStepLogic({ context: 0, run: () => undefined }))
     );
     const before = app.actorRef.getSnapshot().children;
 
     app.refreshTo(
-      createParent(createLogic({ context: 0, run: () => undefined }))
+      createParent(createStepLogic({ context: 0, run: () => undefined }))
     );
 
     const after = app.actorRef.getSnapshot().children;
@@ -164,7 +164,7 @@ describe('Fast Refresh', () => {
       } as any);
 
     const app = mount(
-      createParent(createLogic({ context: 0, run: () => undefined }))
+      createParent(createStepLogic({ context: 0, run: () => undefined }))
     );
     const original = app.actorRef;
     expect(original.getSnapshot().context.ref).toBe(
@@ -172,7 +172,7 @@ describe('Fast Refresh', () => {
     );
 
     app.refreshTo(
-      createParent(createLogic({ context: 1, run: () => undefined }))
+      createParent(createStepLogic({ context: 1, run: () => undefined }))
     );
 
     expect(app.actorRef).not.toBe(original);
@@ -197,13 +197,13 @@ describe('Fast Refresh', () => {
       } as any);
 
     const app = mount(
-      createParent(createLogic({ context: 'v1', run: () => undefined }))
+      createParent(createStepLogic({ context: 'v1', run: () => undefined }))
     );
     const original = app.actorRef;
     seen.length = 0;
 
     app.refreshTo(
-      createParent(createLogic({ context: 'v2', run: () => undefined }))
+      createParent(createStepLogic({ context: 'v2', run: () => undefined }))
     );
 
     expect(app.actorRef).toBe(original);

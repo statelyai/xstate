@@ -1,7 +1,7 @@
 import { getTimerStart, recordTimerStart } from '../timerClock.ts';
 import {
-  getEffectDescriptor,
-  type EffectDescriptor
+  describeExecutableEffect,
+  type ExecutableEffectDescriptor
 } from '../effectDescriptor.ts';
 import { deliverEvent } from '../runtimeHelpers.ts';
 import {
@@ -72,7 +72,7 @@ export interface DurableEffect<TEffect> extends DurableEffectMetadata {
    * addresses and actor sources by source keys, for journaling and
    * deduplication. Payload fields are only as serializable as their values.
    */
-  descriptor: EffectDescriptor;
+  descriptor: ExecutableEffectDescriptor;
 }
 
 /**
@@ -349,10 +349,10 @@ export function createDurable<TLogic extends AnyActorLogic>(
       } as DurableEffect<(typeof effects)[number]>;
       // Journaling hosts read the descriptor; executing hosts never do, so
       // compute it (and its address walks) lazily, once.
-      let descriptor: EffectDescriptor | undefined;
+      let descriptor: ExecutableEffectDescriptor | undefined;
       Object.defineProperty(tagged, 'descriptor', {
         enumerable: true,
-        get: () => (descriptor ??= getEffectDescriptor(effect))
+        get: () => (descriptor ??= describeExecutableEffect(effect))
       });
       return tagged;
     });

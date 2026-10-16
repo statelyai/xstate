@@ -6,7 +6,7 @@ import {
 import {
   createMachine,
   createActor,
-  createLogic,
+  createStepLogic,
   type DoneActorEvent
 } from '../src/index.ts';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -86,9 +86,9 @@ describe('createActor()', () => {
       expect(actor.getSnapshot().status).toBe('active');
     });
   });
-  describe('createLogic', () => {
+  describe('createStepLogic', () => {
     it('should create an unstarted actor from custom logic', () => {
-      const logic = createLogic({
+      const logic = createStepLogic({
         context: { count: 0 },
         run: () => undefined
       });
@@ -98,7 +98,7 @@ describe('createActor()', () => {
       expect(actor.getSnapshot().context.count).toBe(0);
     });
     it('should accept input when creating actor', () => {
-      const logic = createLogic<
+      const logic = createStepLogic<
         { count: number },
         undefined,
         any,

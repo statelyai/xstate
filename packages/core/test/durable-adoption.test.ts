@@ -5,12 +5,12 @@ import {
   createMachine,
   createActor,
   setup,
-  serializeMachine,
+  machineToJSON,
   type AnyActorLogic,
   type AnyStateMachine,
   type Snapshot
 } from '../src/index.ts';
-import { createMachineFromConfig } from '../src/createMachineFromConfig.ts';
+import { machineFromJSON } from '../src/machineFromJSON.ts';
 import {
   createDurable,
   type DurableExecutionAdapter
@@ -325,7 +325,7 @@ describe('deserialized actor source rebinding', () => {
       initial: 'w',
       states: { w: { invoke: { src: 'worker', id: 'job' } } }
     };
-    const machine = createMachineFromConfig(json, {
+    const machine = machineFromJSON(json, {
       actors: { worker: createCallbackLogic(original) }
     });
     const provided = machine.provide({
@@ -339,13 +339,13 @@ describe('deserialized actor source rebinding', () => {
     actor.stop();
     const restored = createActor(provided, { snapshot: saved }).start();
     expect(replacement).toHaveBeenCalledTimes(2);
-    expect(serializeMachine(provided)).toEqual(json);
+    expect(machineToJSON(provided)).toEqual(json);
     restored.stop();
   });
 
   it('still rejects a missing actor implementation', () => {
-    expect(() =>
-      createMachineFromConfig({ invoke: { src: 'missing' } })
-    ).toThrow('Missing actor source "missing"');
+    expect(() => machineFromJSON({ invoke: { src: 'missing' } })).toThrow(
+      'Missing actor source "missing"'
+    );
   });
 });

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import {
   advanceSystemTime,
   createMachine,
-  createLogic,
+  createStepLogic,
   createAsyncLogic,
   createCallbackLogic,
   initialSystemTransition,
@@ -497,7 +497,7 @@ it.each(['done', 'error'] as const)(
   'delivers a child %s mapper before its parent terminal notification',
   (outcome) => {
     const mapResult = (value: unknown) => ({ type: 'RESULT' as const, value });
-    const worker = createLogic({
+    const worker = createStepLogic({
       context: {},
       run: ({ event }) =>
         event.type === 'FINISH'
@@ -555,7 +555,7 @@ it.each(['done', 'error'] as const)(
   'publishes an initially %s child exactly once',
   (outcome) => {
     const mapResult = (value: unknown) => ({ type: 'RESULT' as const, value });
-    const worker = createLogic({
+    const worker = createStepLogic({
       context: {},
       run: () =>
         outcome === 'done'
@@ -749,7 +749,7 @@ it('bounds zero-delay chains atomically without modifying the input snapshot', (
 it('processes pure non-machine actor logic without executing external effects', () => {
   const external = vi.fn();
   const logic = {
-    root: createLogic({
+    root: createStepLogic({
       id: 'root',
       context: { count: 0 },
       run: ({ context, event }, enq) => {

@@ -1,7 +1,7 @@
 import {
   createActor,
   createCallbackLogic,
-  createLogic,
+  createStepLogic,
   createAsyncLogic,
   waitFor
 } from '../src/index.ts';
@@ -29,7 +29,7 @@ it('reattaches a JSON-restored callback and cleans up each incarnation', () => {
 it('reattaches active keyed effects without replaying completed effects', () => {
   const active = vi.fn();
   const completed = vi.fn();
-  const logic = createLogic({
+  const logic = createStepLogic({
     context: undefined,
     run: (_, enq) => {
       enq.effect('active', active);
@@ -72,7 +72,7 @@ it.each(['constructor', 'toString', '__proto__'])(
   'journals and restores an effect keyed %s',
   (key) => {
     const run = vi.fn();
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: undefined,
       run: (_, enq) => enq.effect(key, run)
     });
@@ -116,7 +116,7 @@ it.each(['constructor', 'toString'])(
   (key) => {
     const run = vi.fn();
     const actor = createActor(
-      createLogic({
+      createStepLogic({
         context: undefined,
         run: ({ event }, enq) => {
           if (event.type === 'RUN') enq.effect(key, run);
@@ -138,7 +138,7 @@ it('drains all attachment cleanups once when the first throws', () => {
   const later = vi.fn();
   const observed = vi.fn();
   const actor = createActor(
-    createLogic({
+    createStepLogic({
       context: undefined,
       run: (_, enq) => {
         enq.effect('first', () => failed);

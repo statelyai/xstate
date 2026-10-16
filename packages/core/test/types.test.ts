@@ -29,7 +29,7 @@ import {
   type StandardSchemaV1,
   UnknownActorRef,
   createActor,
-  createLogic,
+  createStepLogic,
   createMachine,
   createSystem,
   type EventRejection,
@@ -3256,7 +3256,7 @@ describe('invoke', () => {
   });
 
   it('should infer custom logic input and output from source schemas', () => {
-    const logic = createLogic({
+    const logic = createStepLogic({
       schemas: {
         input: types<{ step: number }>(),
         output: types<{ total: number }>()

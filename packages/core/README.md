@@ -52,9 +52,9 @@ The helper requires input for actors whose input excludes `undefined`, and check
 
 `getAllOwnEvents(snapshot)` from `xstate/graph` includes invoke completions, errors, and delayed events. Compose it with custom traversal payloads: supplied `events` replace the defaults. See [model-based testing](../../docs/model-based-testing.md).
 
-<!-- JSON loading and runtime validation from packages/core/src/createMachineFromConfig.ts -->
+<!-- JSON loading and runtime validation from packages/core/src/machineFromJSON.ts -->
 
-Revive JSON definitions with `createMachineFromConfig(json, { schemas, validator, ...sources })` to restore runtime validation. The loader validates config keys and references. See [serialization](../../docs/serialization.md).
+Revive JSON definitions with `machineFromJSON(json, { schemas, validator, ...sources })` to restore runtime validation. The loader validates config keys and references. See [serialization](../../docs/serialization.md).
 
 For flat finite state machines, `xstate/fsm` provides a tiny pure transition
 table with context and TypeScript support:

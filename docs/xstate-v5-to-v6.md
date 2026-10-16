@@ -24,13 +24,13 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 | `stopChild(idOrRef)`                                    | `enq.stop(ref)`                                                                                                                     |
 | `enqueueActions(({ enqueue }) => {...})`                | regular inline `(args, enq) => { ... }` function                                                                                    |
 | `and([...])`, `or([...])`, `not(...)`                   | plain JS `&&`, `\|\|`, `!` inside the guard/inline fn                                                                               |
-| `stateIn('foo')`                                        | `checkStateIn(self.getSnapshot(), 'foo')`                                                                                           |
+| `stateIn('foo')`                                        | `self.getSnapshot().matches('foo')`                                                                                                 |
 | `interpret(machine)`, `Interpreter`                     | `createActor(machine)` (already in v5; legacy alias gone)                                                                           |
 | `fromPromise(async ({ input }) => ...)`                 | `createAsyncLogic({ run: async ({ input }, enq) => ... })`                                                                          |
 | `fromCallback(cb)`                                      | `createCallbackLogic(cb)` (same signature, renamed)                                                                                 |
 | `fromObservable(fn)`                                    | `createObservableLogic(fn)` (same signature, renamed)                                                                               |
 | `fromEventObservable(fn)`                               | `createEventObservableLogic(fn)` (same signature, renamed)                                                                          |
-| `fromTransition(reducer, initial)`                      | `createLogic({ context: initial, run: ({ context, event }) => ({ context: reducer(context, event) }) })`                            |
+| `fromTransition(reducer, initial)`                      | `createStepLogic({ context: initial, run: ({ context, event }) => ({ context: reducer(context, event) }) })`                            |
 | `types: {} as { context: ..., events: ...}`             | `schemas: { context, events, ... }` (Zod / Standard Schema, or `types<T>()` for type-only)                                          |
 | `actor.send({ type: 'INC' })`                           | `actor.send(...)` keeps working; new typed `actor.trigger.INC()`                                                                    |
 | `@xstate/immer`                                         | removed - return updated `context` patches directly                                                                                 |
@@ -56,7 +56,7 @@ Beyond simplifying the action/guard surface, v6 introduces a number of features 
 | [State input](#5-state-input)                                                     | State nodes may declare a typed `input` payload that callers must provide on transition.                                                                                                          |
 | [`actor.trigger.X()`](#6-typed-actortrigger)                                      | Type-safe event dispatcher generated from `schemas.events` - no event-object boilerplate.                                                                                                         |
 | [`createAsyncLogic`](#7-async-actors-frompromise--createasynclogic)               | `fromPromise` rebuilt with `id`, `timeout`, `AbortSignal`, durable `enq.step()`, and event emission.                                                                                              |
-| [`createLogic`](#8-createlogic-stateful-actor-logic)                              | New stateful actor logic creator - like a small state machine defined as a single transition function with `enq`.                                                                                 |
+| [`createStepLogic`](#8-createsteplogic-stateful-actor-logic)                              | New stateful actor logic creator - like a small state machine defined as a single transition function with `enq`.                                                                                 |
 | [`enq.listen` / `enq.subscribeTo`](#9-enqlisten-and-enqsubscribeto)               | Declaratively wire child-actor emitted events or snapshot streams back to the parent.                                                                                                             |
 | [Internal events](#12-internal-events)                                            | `schemas.internalEvents: { tick, 'change.*' }` - events that can be raised inside the machine but rejected by the public actor protocol.                                                          |
 | [Choice states](#13-choice-states)                                                | First-class `type: 'choice'` for declarative branch routing (replaces transient `always` chains).                                                                                                 |
@@ -66,8 +66,8 @@ Beyond simplifying the action/guard surface, v6 introduces a number of features 
 | [Route states](#23-route-states)                                                  | A state with `route` can be navigated to directly via `actor.send({ type: 'xstate.route', to: '#id' })`, gated by an inline route guard/resolver.                                                 |
 | [Actor registry](#24-actor-registry)                                              | `actor.system.get(registryKey)` / `system.get(registryKey)` look up actors by `registryKey` without passing refs. The root actor can be named via `system.createActor(machine, { registryKey })`. |
 | [Snapshot versioning](#20-persistence--rehydration)                               | `version` on the machine is stamped onto persisted snapshots; `machineVersions()` migrates older snapshots. Snapshots restore leniently, with no format version field.                            |
-| [Serialization](#21-machine-as-data-serialization-json-configs-scxml)             | `serializeMachine` / `machineConfigToJSON` / `createMachineFromConfig` are now public - round-trip a machine to/from a plain JSON config.                                                         |
-| [`createMachineFromConfig`](#21-machine-as-data-serialization-json-configs-scxml) | Build a machine from a plain JSON config with serialized actions - useful for SCXML round-trip, persistence, or storing machines as data.                                                         |
+| [Serialization](#21-machine-as-data-serialization-json-configs-scxml)             | `machineToJSON` / `machineConfigToJSON` / `machineFromJSON` are now public - round-trip a machine to/from a plain JSON config.                                                         |
+| [`machineFromJSON`](#21-machine-as-data-serialization-json-configs-scxml) | Build a machine from a plain JSON config with serialized actions - useful for SCXML round-trip, persistence, or storing machines as data.                                                         |
 | [`initial: { target, input }`](#5-state-input)                                    | Object form for `initial` lets you provide state input on initialization.                                                                                                                         |
 
 ---
@@ -296,17 +296,16 @@ on: {
 
 ```ts
 // v6
-import { checkStateIn } from 'xstate';
 on: {
   EV: ({ context, self }) => {
-    if (context.isAdmin && !checkStateIn(self.getSnapshot(), 'blocked')) {
+    if (context.isAdmin && !self.getSnapshot().matches('blocked')) {
       return { target: 'next' };
     }
   };
 }
 ```
 
-`checkStateIn(snapshot, stateValue)` accepts an `AnyMachineSnapshot` plus either a state-id string (e.g. `'#blocked'`), a state-path string (e.g. `'parent.child'`), or a nested state-value object.
+`matches(stateValue)` accepts a state-path string (e.g. `'parent.child'`) or a nested state-value object. State-id strings (`'#blocked'`) are not supported.
 
 Named `guards` on `setup` or `createMachine` are available as typed functions
 in transition (and `choice`) function args:
@@ -712,7 +711,7 @@ import { TimeoutError } from 'xstate';
 
 ```ts
 import {
-  createLogic, // stateful, transition-style logic with enq (see §8)
+  createStepLogic, // stateful, transition-style logic with enq (see §8)
   createAsyncLogic, // promise / async with timeout + signal + step
   createCallbackLogic, // typed callback factory
   createObservableLogic,
@@ -724,14 +723,14 @@ import {
 
 ---
 
-## 8. `createLogic`: stateful actor logic
+## 8. `createStepLogic`: stateful actor logic
 
 **New in v6.** A lightweight alternative to a full state machine when you want an actor with custom context, events, and effects but no hierarchical states or transitions. The `run` function is invoked for every received event and returns either nothing or a partial snapshot update. Its initial and subsequent transitions return the same executable-effect objects as machines.
 
 ```ts
-import { createLogic, createActor } from 'xstate';
+import { createStepLogic, createActor } from 'xstate';
 
-const counterLogic = createLogic({
+const counterLogic = createStepLogic({
   id: 'counter',
   context: { count: 0 },
   run: ({ context, event }, enq) => {
@@ -748,9 +747,9 @@ actor.getSnapshot().context.count; // 1
 ```
 
 `context` may be a value or a factory `({ input }) => TContext`.
-`createLogic` accepts type-only `schemas.input` and `schemas.output` to type `input`, returned `output`, `InputFrom`, and `OutputFrom`.
+`createStepLogic` accepts type-only `schemas.input` and `schemas.output` to type `input`, returned `output`, `InputFrom`, and `OutputFrom`.
 
-`enq` for `createLogic` (different from `createAsyncLogic`'s) exposes:
+`enq` for `createStepLogic` (different from `createAsyncLogic`'s) exposes:
 
 | Method                  | Purpose                                                                                                                                                   |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -765,13 +764,13 @@ Keyed effects are how durable subscriptions are wired up - `createListenerLogic`
 The return value (if provided) is a partial update to the snapshot:
 
 ```ts
-type LogicPatch<TContext, TOutput, TInput> = Partial<{
+type StepPatch<TContext, TOutput, TInput> = Partial<{
   context: TContext;
   input: TInput | undefined;
   status: 'active' | 'done' | 'error' | 'stopped';
   output: TOutput;
   error: unknown;
-  effects: Record<string, LogicEffectState>;
+  effects: Record<string, StepEffectState>;
 }>;
 ```
 
@@ -1035,7 +1034,7 @@ always: ({ context }) => {
 
 Transition arrays are not accepted by the authoring APIs. Use a single
 transition function to select among targets. Serialized transition arrays are
-still accepted by `createMachineFromConfig(...)`.
+still accepted by `machineFromJSON(...)`.
 
 ---
 
@@ -1060,11 +1059,10 @@ These exports have been **removed** from `xstate`:
 - `ActorLogic.executeEffects` has been removed. Actor logic returns executable effects directly.
 - Deprecated snapshot helpers: `getInitialSnapshot(logic, input?)` and `getNextSnapshot(logic, snapshot, event)`. Use `initialTransition(logic, input?)` and `transition(logic, snapshot, event)`; the snapshot is the first element of the returned tuple.
 - Deprecated type aliases: `NoInfer` (use the built-in `NoInfer`), `AnyInterpreter` (use `AnyActor`), and `ResolvedStateMachineTypes`
+- Internal helpers: `toObserver`, `pathToStateValue`, and the `SpecialTargets` enum
 - `xstate/graph`: `getStateNodes(stateNode)` (all descendant state nodes) is renamed to `getDescendantStateNodes(stateNode)`. The root `getStateNodes(stateNode, stateValue)` export from `xstate` is unchanged.
 - `xstate/graph`: `createTestModel`, `TestModel`, and the types used only by them (`TestModelOptions`, `TestParam`, `TestPath`, `TestPathResult`, `TestStepResult`, `TestMeta`, `EventExecutor`), plus `createShortestPathsGen` and `createSimplePathsGen`. `xstate/graph` now only generates paths. Use `testPaths()` from `@xstate/test` to run them; see [Model-based testing](model-based-testing.md).
 - The `xstate/scxml` entry point. `createMachineFromSCXML` moved to the separate `@xstate/scxml` package (`npm i @xstate/scxml`).
-
-`SpecialTargets` (the `Parent`/`Internal` enum) is still exported from `'xstate'` via `types.ts` and continues to work.
 
 `SetupReturn`, the type returned by `setup(...)`, is still exported, but its type parameters changed, so a v5 `SetupReturn<TContext, TEvent, ...>` annotation no longer type-checks. Use `typeof yourSetup` to name the type of a specific setup.
 
@@ -1074,12 +1072,11 @@ These exports have been **added**:
 - Setup state contract types: `SetupStateSchema`, `SetupStateSchemas`, `SetupStateType`
 - Typed inline invoke types: `CreatedInvoke`, `CreateInvokeConfig`, `CreateAsyncInvokeConfig`, `InvokeInputArgs`
 - `createStateConfig`
-- `checkStateIn`
-- `createEmptyActor`, `createLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
+- `createEmptyActor`, `createStepLogic`, `createAsyncLogic`, `createCallbackLogic`, `createObservableLogic`, `createEventObservableLogic`, `createListenerLogic`, `createSubscriptionLogic`
 - `TimeoutError`
-- Serialization surface (see §21): `createMachineFromConfig`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON` types; machines serialize via `serializeMachine(machine)`
+- Serialization surface (see §21): `machineFromJSON`, `machineConfigToJSON`, and the `MachineJSON`/`StateNodeJSON`/`TransitionJSON`/`ActionJSON`/`GuardJSON`/`InvokeJSON` types; machines serialize via `machineToJSON(machine)`
 - Config types (v6 shapes): `MachineConfig`, `StateNodeConfig`, `InvokeConfig`, `TransitionConfigOrTarget`, `Sources`, `InferEvents`, `WidenLiterals`
-- Runtime/effect surface: `executeEffects`, `isBuiltInExecutableEffect`, `getEffectDescriptor`, `deliverEvent`, `runStep`, `stopActor`, `terminateActor`, and the related `EffectDescriptor`, `ActorSystemRuntime`, and `ActorTermination` types
+- Runtime/effect surface: `executeEffects`, `isBuiltInExecutableEffect`, `describeExecutableEffect`, `deliverEvent`, `runStep`, `stopActor`, `terminateActor`, and the related `ExecutableEffectDescriptor`, `ActorSystemRuntime`, and `ActorTermination` types
 - Persistence/versioning surface: `machineVersions` and its related snapshot
   migration and event adaptation types
 - Executable effect types: `BaseExecutableEffect`, `CustomExecutableEffect`, `ExecutableEffect`, `ExecutableEffectFrom`, `BuiltInExecutableEffect`, `SpecialExecutableEffect`, `StartExecutableEffect`, `RaiseExecutableEffect`, `SendToExecutableEffect`, `CancelExecutableEffect`, `StopExecutableEffect`, `TerminateExecutableEffect`
@@ -1099,7 +1096,7 @@ See [compact finite state machines](fsm.md) for its exact supported surface.
 - `snapshot._nodes` is now `snapshot.nodes`. It lists the active state nodes.
 - The `systemId` option is now `registryKey`, in `createActor(logic, { registryKey })`, `invoke: { registryKey }`, and `enq.spawn(logic, { registryKey })`. `actorRef.systemId` is now `actorRef.registryKey`. `system.get(registryKey)` looks the actor up (see §24). `systemId` is not accepted as an option.
 - The `spawn` function passed to a `context` factory accepts actor logic only. Replace `spawn('worker')` with `spawn(actors.worker)`, using the `actors` argument of the same factory.
-- The `createMachine` types do not accept transition arrays in `on` or `always`. Select among targets in one transition function (see §15). JSON configs passed to `createMachineFromConfig(...)` still accept transition arrays.
+- The `createMachine` types do not accept transition arrays in `on` or `always`. Select among targets in one transition function (see §15). JSON configs passed to `machineFromJSON(...)` still accept transition arrays.
 - Actor `sessionId`s are unique across actor systems and have the form `<executionId>:<n>`, where `executionId` is random. v5 used `x:<n>`. Code that parsed or compared `sessionId`s across systems must not rely on the format.
 
 ---
@@ -1308,7 +1305,7 @@ runtime sources:
 
 ### Machine → JSON
 
-`serializeMachine(machine)` - a dedicated, tree-shakeable function - returns
+`machineToJSON(machine)` - a dedicated, tree-shakeable function - returns
 the JSON-serializable definition. Inline functions are captured as
 `{ "@code": string, "@lang": "ts" }` code expressions (the `CodeExpression`
 type). Values that cannot be represented as data - actor logic objects,
@@ -1319,23 +1316,23 @@ functions; usage sites (such as `invoke.src: 'worker'` or
 fulfill.
 
 ```ts
-const json = JSON.stringify(serializeMachine(machine)); // never throws
+const json = JSON.stringify(machineToJSON(machine)); // never throws
 ```
 
 ### JSON → machine
 
-`createMachineFromConfig(config)` - **exported from `'xstate'`** - builds a
+`machineFromJSON(config)` - **exported from `'xstate'`** - builds a
 machine from a plain JSON config using serialized action objects
 (`{ type: '@xstate.raise', event: ... }`, `{ type: '@xstate.assign', ... }`,
 `{ type: '@xstate.emit', ... }`, custom `{ type, params }` actions) and
 `{ type, params }` guard references. Runtime sources are supplied via the
-second argument: `createMachineFromConfig(json, { actions, guards, actors, delays, evaluators })`,
+second argument: `machineFromJSON(json, { actions, guards, actors, delays, evaluators })`,
 where `evaluators` (keyed by language, e.g. `{ ts: ... }`) revives `@code`
 expressions. Data-only machines built this way round-trip losslessly:
-`createMachineFromConfig(JSON.parse(JSON.stringify(serializeMachine(machine))))`.
+`machineFromJSON(JSON.parse(JSON.stringify(machineToJSON(machine))))`.
 
 ```ts
-import { createMachineFromConfig, type MachineJSON } from 'xstate';
+import { machineFromJSON, type MachineJSON } from 'xstate';
 
 const def: MachineJSON = {
   initial: 'idle',
@@ -1344,7 +1341,7 @@ const def: MachineJSON = {
     running: { entry: [{ type: '@xstate.raise', event: { type: 'go' } }] }
   }
 };
-const machine = createMachineFromConfig(def);
+const machine = machineFromJSON(def);
 ```
 
 Note: serialized-action vocabulary does not yet cover every v6 feature -
@@ -1546,7 +1543,7 @@ It runs these transforms in order. `--transform name,name` selects a subset.
 | `rename-imports`      | Renames `interpret` to `createActor`, `Interpreter` to `Actor`, and `fromCallback`, `fromObservable`, and `fromEventObservable` to their `create*Logic` names, and the executable action types to their executable effect names, including usages. Import aliases are kept.                                                                  |
 | `string-targets`      | Wraps bare string transition values under `on`, `after`, `onDone`, `onError`, and `always` in `{ target: '...' }` inside `createMachine` and `createStateConfig` configs.                                                                                                   |
 | `types-to-schemas`    | Converts `types: {} as { ... }` to `schemas` with `types<T>()` entries. Events become a map only when they are written as an inline union literal.                                                                                                                         |
-| `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, and `fromTransition`, with a suggested replacement. |
+| `report-removed-apis` | Reports, without rewriting, uses of `assign`, `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stop`, `stopChild`, `enqueueActions`, `and`, `or`, `not`, `stateIn`, `fromPromise`, `fromTransition`, `toObserver`, `pathToStateValue`, and `SpecialTargets`, with a suggested replacement. |
 
 `string-targets` wraps string elements inside transition arrays but keeps the arrays. The v6 `createMachine` types reject transition arrays in `on` and `always` (for example, `on: { X: [ … ] }`), and no transform reports them. Find them by hand and replace each with one transition function (§15, §16).
 
@@ -1573,7 +1570,7 @@ Migrate one file at a time: run the codemod on it, finish the manual changes, th
 
 ## 28. Leftover v5 keys
 
-In development builds, `createMachine(...)` and `setup(...).createMachine(...)` check hand-written configs for v5 keys that v6 would otherwise ignore or misread. Machines built with `createMachineFromConfig(...)` or `createMachineFromSCXML(...)` are not checked. Production builds skip the check, except for `cond`, `actions` and a `guard` that is not a function on a transition object. Without the check, a production build would misread those (a transition with `cond` would always be taken), so they throw in every build, with a shorter message.
+In development builds, `createMachine(...)` and `setup(...).createMachine(...)` check hand-written configs for v5 keys that v6 would otherwise ignore or misread. Machines built with `machineFromJSON(...)` or `createMachineFromSCXML(...)` are not checked. Production builds skip the check, except for `cond`, `actions` and a `guard` that is not a function on a transition object. Without the check, a production build would misread those (a transition with `cond` would always be taken), so they throw in every build, with a shorter message.
 
 These keys throw an error:
 
@@ -1607,7 +1604,7 @@ These keys log a warning:
 - [ ] Replace every `raise`, `sendTo`, `sendParent`, `forwardTo`, `emit`, `log`, `cancel`, `spawnChild`, `stopChild` with the corresponding `enq.*` call
 - [ ] Replace `enqueueActions(...)` with a regular inline `(args, enq) => { ... }` function
 - [ ] Replace `and`/`or`/`not` guard combinators with plain JS inside the guard or inline transition function
-- [ ] Replace `stateIn(...)` with `checkStateIn(self.getSnapshot(), ...)`
+- [ ] Replace `stateIn(...)` with `self.getSnapshot().matches(...)`
 - [ ] Replace `interpret(machine)` with `createActor(machine)`; remove `Interpreter` type imports
 - [ ] Replace `fromPromise(...)` with `createAsyncLogic({ run: ... })`
 - [ ] Replace `types: {} as { ... }` with `schemas: { ... }` (Zod / Standard Schema)

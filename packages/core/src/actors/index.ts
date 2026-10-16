@@ -1,6 +1,6 @@
 import { createActor } from '../createActor.ts';
 import type { ActorFromLogic } from '../types.ts';
-import { createLogic } from './logic.ts';
+import { createStepLogic } from './logic.ts';
 export {
   createCallbackLogic,
   type CallbackActorLogic,
@@ -21,32 +21,30 @@ export {
   type ObservableSnapshot
 } from './observable.ts';
 export {
-  createLogic,
-  type LogicActorLogic,
-  type LogicActorRef,
-  type LogicArgs,
-  type LogicConfig,
-  type LogicEffect,
-  type LogicEffectState,
-  type LogicEnqueue,
-  type LogicFunction,
-  type LogicPatch,
-  type LogicSnapshot
+  createStepLogic,
+  type StepActorLogic,
+  type StepActorRef,
+  type StepLogicArgs,
+  type StepLogicConfig,
+  type StepEffectState,
+  type StepLogicEnqueue,
+  type StepLogicFunction,
+  type StepPatch,
+  type StepSnapshot
 } from './logic.ts';
 export {
   createAsyncLogic,
   type AsyncActorLogic,
   type AsyncActorRef,
   type AsyncSnapshot,
-  type LogicArgs as AsyncLogicArgs,
-  type LogicConfig as AsyncLogicConfig,
-  type LogicEnqueue as AsyncLogicEnqueue,
-  type LogicFunction as AsyncLogicFunction,
+  type AsyncLogicArgs,
+  type AsyncLogicConfig,
+  type AsyncLogicEnqueue,
+  type AsyncLogicFunction,
   TimeoutError
 } from './promise.ts';
 export {
   createListenerLogic,
-  listenerLogic,
   type ListenerActorLogic,
   type ListenerActorRef,
   type ListenerSnapshot,
@@ -54,7 +52,6 @@ export {
 } from './listener.ts';
 export {
   createSubscriptionLogic,
-  subscriptionLogic,
   type SubscriptionActorLogic,
   type SubscriptionActorRef,
   type SubscriptionSnapshot,
@@ -62,7 +59,7 @@ export {
   type SubscriptionMappers
 } from './subscription.ts';
 
-const emptyLogic = /* #__PURE__ */ createLogic<undefined, undefined>({
+const emptyLogic = /* #__PURE__ */ createStepLogic<undefined, undefined>({
   context: undefined,
   run: () => undefined
 });

@@ -2,9 +2,9 @@ import {
   createMachine,
   createActor,
   matchesState,
-  StateValue,
-  checkStateIn
+  StateValue
 } from '../src/index.ts';
+import { checkStateIn } from '../src/utils.ts';
 
 describe('transition "in" check', () => {
   it('should transition if string state path matches current state value', () => {

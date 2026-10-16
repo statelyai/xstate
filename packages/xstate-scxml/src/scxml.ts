@@ -25,9 +25,11 @@ import {
 } from './runtime.ts';
 import {
   _parseDelayToMilliseconds as parseDelayToMilliseconds,
-  SpecialTargets,
   type AnyStateMachine
 } from 'xstate';
+
+/** The SCXML `#_internal` send target. */
+const SCXML_INTERNAL_TARGET = '#_internal';
 
 interface XMLElement {
   type?: 'element' | 'text' | 'cdata' | 'comment';
@@ -294,7 +296,7 @@ function mapAction(
         }
       }
 
-      const isInternal = target === String(SpecialTargets.Internal);
+      const isInternal = target === SCXML_INTERNAL_TARGET;
       const resolvedDelay = delay ? delayToMs(delay) : undefined;
 
       // Any send with a special target (except internal), params, or expressions

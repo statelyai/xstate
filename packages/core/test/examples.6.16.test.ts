@@ -1,4 +1,5 @@
-import { checkStateIn, createMachine, StateValue } from '../src/index';
+import { createMachine, StateValue } from '../src/index';
+import { checkStateIn } from '../src/utils';
 import { testAll } from './utils';
 
 describe('Example 6.16', () => {

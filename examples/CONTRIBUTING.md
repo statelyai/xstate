@@ -141,7 +141,7 @@ delays: {
 - `createObservableLogic` and `createEventObservableLogic` — observable actors
 - `createListenerLogic` — event listener actors
 - `createSubscriptionLogic` — subscription-based actors
-- `createLogic`, `createDefaultLogic`, `createAttachedLogic` — lower-level building blocks
+- `createStepLogic`, `createDefaultLogic`, `createAttachedLogic` — lower-level building blocks
 
 **Write code a human would write.** Mechanically converted v4/v5 code is rejected. In particular:
 

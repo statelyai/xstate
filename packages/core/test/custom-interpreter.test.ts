@@ -16,7 +16,7 @@ import {
 import {
   createAsyncLogic,
   createCallbackLogic,
-  createLogic
+  createStepLogic
 } from '../src/actors/index.ts';
 
 class CustomInterpreter<TLogic extends AnyActorLogic> {
@@ -116,9 +116,9 @@ describe('custom interpreter runtime', () => {
     expect(state.matches('done')).toBe(true);
   });
 
-  it('executes createLogic startup and termination with the same loop', async () => {
+  it('executes createStepLogic startup and termination with the same loop', async () => {
     const operations: string[] = [];
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: undefined,
       run: ({ event }, enq) => {
         if (event.type === 'xstate.init') {
@@ -161,7 +161,7 @@ describe('custom interpreter runtime', () => {
   it('uses self.system as the default effect runtime', async () => {
     let self: AnyActor | undefined;
     let runtime: Partial<ActorSystemRuntime> | undefined;
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: undefined,
       run: (args, enq) => {
         self = args.self as AnyActor;
@@ -177,8 +177,8 @@ describe('custom interpreter runtime', () => {
     expect(runtime).toBe(self!.system);
   });
 
-  it('preserves an invoked createLogic child reference across pure transitions', async () => {
-    const child = createLogic({
+  it('preserves an invoked createStepLogic child reference across pure transitions', async () => {
+    const child = createStepLogic({
       context: undefined,
       run: ({ event }, enq) => {
         if (event.type === 'ping') {
@@ -213,8 +213,8 @@ describe('custom interpreter runtime', () => {
     ]);
   });
 
-  it('terminates an invoked createLogic child under its logical id', async () => {
-    const child = createLogic({
+  it('terminates an invoked createStepLogic child under its logical id', async () => {
+    const child = createStepLogic({
       context: undefined,
       run: ({ event }) =>
         event.type === 'finish'

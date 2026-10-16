@@ -106,7 +106,7 @@ on: {
 
 ## One transition per event
 
-Transition arrays are not accepted by the authoring APIs. An event maps to a single transition. Return a target from a transition function to choose among several, and use `matches` to select a payload. Serialized transition arrays are still accepted by `createMachineFromConfig(...)`.
+Transition arrays are not accepted by the authoring APIs. An event maps to a single transition. Return a target from a transition function to choose among several, and use `matches` to select a payload. Serialized transition arrays are still accepted by `machineFromJSON(...)`.
 
 ```ts
 on: {

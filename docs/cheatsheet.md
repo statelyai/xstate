@@ -125,10 +125,8 @@ const machine = createMachine({
 
 ```ts
 // check another state (replaces stateIn)
-import { checkStateIn } from 'xstate';
-
 play: ({ self }) => {
-  if (checkStateIn(self.getSnapshot(), 'volume.muted')) return;
+  if (self.getSnapshot().matches('volume.muted')) return;
   return { target: 'playing' };
 };
 ```
@@ -259,7 +257,7 @@ import {
   createCallbackLogic,
   createObservableLogic,
   createEventObservableLogic,
-  createLogic,
+  createStepLogic,
   createEmptyActor,
   TimeoutError
 } from 'xstate';
@@ -292,7 +290,7 @@ const socketLogic = createCallbackLogic<{ type: 'send'; message: string }>(
 const ticks = createObservableLogic(() => interval(1000));
 
 // stateful custom logic
-const counterLogic = createLogic({
+const counterLogic = createStepLogic({
   id: 'counter',
   context: { count: 0 },
   run: ({ context, event }, enq) => {

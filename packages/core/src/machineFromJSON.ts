@@ -790,7 +790,7 @@ function assertMachineJSON(
 }
 
 /** @public */
-export function createMachineFromConfig(
+export function machineFromJSON(
   json: MachineJSON,
   sources: MachineSources = {}
 ): AnyStateMachine {

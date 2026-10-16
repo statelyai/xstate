@@ -16,7 +16,7 @@ import type {
  *
  * @experimental
  */
-export type EffectDescriptor =
+export type ExecutableEffectDescriptor =
   | {
       kind: 'builtin';
       type: '@xstate.spawn';
@@ -120,9 +120,9 @@ function toRef(actor: AnyActor | SerializedActorRef): SerializedActorRef {
  *
  * @experimental
  */
-export function getEffectDescriptor(
+export function describeExecutableEffect(
   effect: ExecutableEffect
-): EffectDescriptor {
+): ExecutableEffectDescriptor {
   if (effect.kind === 'action') {
     return {
       kind: 'action',

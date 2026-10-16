@@ -33,35 +33,29 @@ import {
 } from '../types.ts';
 
 /** @public */
-export type LogicSnapshot<TContext, TOutput, TInput> = Snapshot<TOutput> & {
+export type StepSnapshot<TContext, TOutput, TInput> = Snapshot<TOutput> & {
   context: TContext;
   input: TInput | undefined;
-  effects?: Record<string, LogicEffectState>;
+  effects?: Record<string, StepEffectState>;
 };
 
 /** @public */
-export type LogicEffectState =
+export type StepEffectState =
   | { status: 'active' }
   | { status: 'done'; output?: unknown }
   | { status: 'error'; error: unknown };
 
 /** @public */
-export interface LogicArgs<TContext, TEvent extends EventObject, TInput> {
+export interface StepLogicArgs<TContext, TEvent extends EventObject, TInput> {
   context: TContext;
   event: TEvent;
   input: TInput;
   system: AnyActorSystem;
-  self: LogicActorRef<TContext, unknown, TEvent, TInput>;
+  self: StepActorRef<TContext, unknown, TEvent, TInput>;
 }
 
 /** @public */
-export type LogicEffect<
-  _TEvent extends EventObject,
-  _TEmitted extends EventObject
-> = ExecutableEffect;
-
-/** @public */
-export interface LogicEnqueue<
+export interface StepLogicEnqueue<
   TEvent extends EventObject,
   TEmitted extends EventObject
 > {
@@ -80,29 +74,29 @@ export interface LogicEnqueue<
 }
 
 /** @public */
-export type LogicPatch<TContext, TOutput, TInput> = Partial<{
+export type StepPatch<TContext, TOutput, TInput> = Partial<{
   context: TContext;
   input: TInput | undefined;
-  status: LogicSnapshot<TContext, TOutput, TInput>['status'];
+  status: StepSnapshot<TContext, TOutput, TInput>['status'];
   output: TOutput;
   error: unknown;
-  effects: Record<string, LogicEffectState>;
+  effects: Record<string, StepEffectState>;
 }>;
 
 /** @public */
-export type LogicFunction<
+export type StepLogicFunction<
   TContext,
   TOutput,
   TEvent extends EventObject,
   TInput,
   TEmitted extends EventObject
 > = (
-  args: LogicArgs<TContext, TEvent, TInput>,
-  enq: LogicEnqueue<TEvent, TEmitted>
-) => void | LogicPatch<TContext, TOutput, TInput>;
+  args: StepLogicArgs<TContext, TEvent, TInput>,
+  enq: StepLogicEnqueue<TEvent, TEmitted>
+) => void | StepPatch<TContext, TOutput, TInput>;
 
 /** @public */
-export interface LogicConfig<
+export interface StepLogicConfig<
   TContext,
   TOutput,
   TEvent extends EventObject,
@@ -118,10 +112,10 @@ export interface LogicConfig<
     output?: TOutputSchema;
   };
   context: TContext | ((args: { input: TInput }) => TContext);
-  run: LogicFunction<TContext, TOutput, TEvent, TInput, TEmitted>;
+  run: StepLogicFunction<TContext, TOutput, TEvent, TInput, TEmitted>;
 }
 
-interface LogicTransition<
+interface StepTransition<
   TContext,
   TOutput,
   TEvent extends EventObject,
@@ -129,32 +123,29 @@ interface LogicTransition<
   TEmitted extends EventObject
 > {
   (
-    snapshot: LogicSnapshot<TContext, TOutput, TInput>,
+    snapshot: StepSnapshot<TContext, TOutput, TInput>,
     event: TEvent,
     actorScope: ActorScope<
-      LogicSnapshot<TContext, TOutput, TInput>,
+      StepSnapshot<TContext, TOutput, TInput>,
       TEvent,
       AnyActorSystem,
       TEmitted
     >
-  ): [
-    LogicSnapshot<TContext, TOutput, TInput>,
-    LogicEffect<TEvent, TEmitted>[]
-  ];
+  ): [StepSnapshot<TContext, TOutput, TInput>, ExecutableEffect[]];
   (
-    snapshot: LogicSnapshot<TContext, TOutput, TInput>,
+    snapshot: StepSnapshot<TContext, TOutput, TInput>,
     event: TEvent,
     actorScope: ActorScope<
-      LogicSnapshot<TContext, TOutput, TInput>,
+      StepSnapshot<TContext, TOutput, TInput>,
       TEvent,
       AnyActorSystem,
       TEmitted
     >
-  ): LogicSnapshot<TContext, TOutput, TInput>;
+  ): StepSnapshot<TContext, TOutput, TInput>;
 }
 
 /** @public */
-export type LogicActorLogic<
+export type StepActorLogic<
   TContext,
   TOutput,
   TEvent extends EventObject = EventObject,
@@ -162,7 +153,7 @@ export type LogicActorLogic<
   TEmitted extends EventObject = EventObject
 > = Omit<
   ActorLogic<
-    LogicSnapshot<TContext, TOutput, TInput>,
+    StepSnapshot<TContext, TOutput, TInput>,
     TEvent,
     TInput,
     AnyActorSystem,
@@ -171,16 +162,16 @@ export type LogicActorLogic<
   'transition'
 > & {
   id?: string;
-  transition: LogicTransition<TContext, TOutput, TEvent, TInput, TEmitted>;
+  transition: StepTransition<TContext, TOutput, TEvent, TInput, TEmitted>;
 };
 
 /** @public */
-export type LogicActorRef<
+export type StepActorRef<
   TContext,
   TOutput,
   TEvent extends EventObject,
   TInput
-> = ActorRefFromLogic<LogicActorLogic<TContext, TOutput, TEvent, TInput>>;
+> = ActorRefFromLogic<StepActorLogic<TContext, TOutput, TEvent, TInput>>;
 
 const effectStates = new WeakMap<
   AnyActorRef,
@@ -238,14 +229,14 @@ function resolveContext<TContext, TInput>(
 }
 
 /** @public */
-export function createLogic<
+export function createStepLogic<
   TContext,
   const TInputSchema extends StandardSchemaV1,
   const TOutputSchema extends StandardSchemaV1,
   TEvent extends EventObject = EventObject,
   TEmitted extends EventObject = EventObject
 >(
-  config: LogicConfig<
+  config: StepLogicConfig<
     TContext,
     StandardSchemaV1.InferOutput<TOutputSchema>,
     TEvent,
@@ -256,21 +247,21 @@ export function createLogic<
   > & {
     schemas: { input: TInputSchema; output: TOutputSchema };
   }
-): LogicActorLogic<
+): StepActorLogic<
   TContext,
   StandardSchemaV1.InferOutput<TOutputSchema>,
   TEvent,
   StandardSchemaV1.InferOutput<TInputSchema>,
   TEmitted
 >;
-export function createLogic<
+export function createStepLogic<
   TContext,
   TOutput,
   const TInputSchema extends StandardSchemaV1,
   TEvent extends EventObject = EventObject,
   TEmitted extends EventObject = EventObject
 >(
-  config: LogicConfig<
+  config: StepLogicConfig<
     TContext,
     TOutput,
     TEvent,
@@ -280,21 +271,21 @@ export function createLogic<
   > & {
     schemas: { input: TInputSchema; output?: undefined };
   }
-): LogicActorLogic<
+): StepActorLogic<
   TContext,
   TOutput,
   TEvent,
   StandardSchemaV1.InferOutput<TInputSchema>,
   TEmitted
 >;
-export function createLogic<
+export function createStepLogic<
   TContext,
   const TOutputSchema extends StandardSchemaV1,
   TEvent extends EventObject = EventObject,
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  config: LogicConfig<
+  config: StepLogicConfig<
     TContext,
     StandardSchemaV1.InferOutput<TOutputSchema>,
     TEvent,
@@ -305,31 +296,31 @@ export function createLogic<
   > & {
     schemas: { input?: undefined; output: TOutputSchema };
   }
-): LogicActorLogic<
+): StepActorLogic<
   TContext,
   StandardSchemaV1.InferOutput<TOutputSchema>,
   TEvent,
   TInput,
   TEmitted
 >;
-export function createLogic<
+export function createStepLogic<
   TContext,
   TOutput = unknown,
   TEvent extends EventObject = EventObject,
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  config: LogicConfig<TContext, TOutput, TEvent, TInput, TEmitted>
-): LogicActorLogic<TContext, TOutput, TEvent, TInput, TEmitted>;
-export function createLogic<
+  config: StepLogicConfig<TContext, TOutput, TEvent, TInput, TEmitted>
+): StepActorLogic<TContext, TOutput, TEvent, TInput, TEmitted>;
+export function createStepLogic<
   TContext,
   TOutput = unknown,
   TEvent extends EventObject = EventObject,
   TInput = NonReducibleUnknown,
   TEmitted extends EventObject = EventObject
 >(
-  config: LogicConfig<TContext, TOutput, TEvent, TInput, TEmitted>
-): LogicActorLogic<TContext, TOutput, TEvent, TInput, TEmitted> {
+  config: StepLogicConfig<TContext, TOutput, TEvent, TInput, TEmitted>
+): StepActorLogic<TContext, TOutput, TEvent, TInput, TEmitted> {
   const calculateTransition = ((snapshot, event, actorScope) => {
     if (snapshot.status !== 'active') {
       return [snapshot, []];
@@ -395,9 +386,8 @@ export function createLogic<
       ];
     }
 
-    const effects: LogicEffect<TEvent, TEmitted>[] = [];
-    const trackedEffects: Record<string, LogicEffectState> =
-      Object.create(null);
+    const effects: ExecutableEffect[] = [];
+    const trackedEffects: Record<string, StepEffectState> = Object.create(null);
     const enqueueEffect = (
       key: string,
       exec: (runtime?: Partial<ActorSystemRuntime>) => void | (() => void)
@@ -425,7 +415,7 @@ export function createLogic<
       );
       trackedEffects[key] = { status: 'active' };
     };
-    const enq: LogicEnqueue<TEvent, TEmitted> = {
+    const enq: StepLogicEnqueue<TEvent, TEmitted> = {
       emit: (emitted) => {
         effects.push(createEmitEffect(actorScope, emitted));
       },
@@ -457,7 +447,7 @@ export function createLogic<
               )
           )
         );
-      }) as LogicEnqueue<TEvent, TEmitted>['effect']
+      }) as StepLogicEnqueue<TEvent, TEmitted>['effect']
     };
 
     const patch = config.run(
@@ -468,14 +458,14 @@ export function createLogic<
         system: actorScope.system,
         self: actorScope.self as any,
         emit: actorScope.emit
-      } as LogicArgs<TContext, TEvent, TInput>,
+      } as StepLogicArgs<TContext, TEvent, TInput>,
       enq
     );
 
     const nextSnapshot = {
       ...snapshot,
       ...(patch || {})
-    } as LogicSnapshot<TContext, TOutput, TInput>;
+    } as StepSnapshot<TContext, TOutput, TInput>;
 
     if ('context' in snapshot || patch?.context !== undefined) {
       (nextSnapshot as any).context = patch?.context ?? snapshot.context;
@@ -492,7 +482,7 @@ export function createLogic<
       nextSnapshot,
       effects
     ]);
-  }) as LogicTransition<TContext, TOutput, TEvent, TInput, TEmitted>;
+  }) as StepTransition<TContext, TOutput, TEvent, TInput, TEmitted>;
 
   const transition = ((snapshot, event, actorScope) => {
     if (config.validator) {
@@ -534,9 +524,9 @@ export function createLogic<
       });
     }
     return result;
-  }) as LogicTransition<TContext, TOutput, TEvent, TInput, TEmitted>;
+  }) as StepTransition<TContext, TOutput, TEvent, TInput, TEmitted>;
 
-  const logic: LogicActorLogic<TContext, TOutput, TEvent, TInput, TEmitted> = {
+  const logic: StepActorLogic<TContext, TOutput, TEvent, TInput, TEmitted> = {
     id: config.id,
     config,
     validator: config.validator,
@@ -576,7 +566,7 @@ export function createLogic<
       }
 
       return transition(
-        { ...snapshot } as LogicSnapshot<TContext, TOutput, TInput>,
+        { ...snapshot } as StepSnapshot<TContext, TOutput, TInput>,
         createInitEvent(input) as unknown as TEvent,
         actorScope
       );

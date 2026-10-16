@@ -67,19 +67,17 @@ Named guards keep a rule's name visible in the machine and let [`machine.provide
 
 ## Checking other states
 
-Use `checkStateIn(...)` to test whether the machine is currently in another state, such as a sibling region of a parallel state.
+Use `self.getSnapshot().matches(...)` to test whether the machine is currently in another state, such as a sibling region of a parallel state.
 
 ```ts
-import { checkStateIn } from 'xstate';
-
 approve: ({ context, self }) => {
-  if (context.isAdmin && !checkStateIn(self.getSnapshot(), 'locked')) {
+  if (context.isAdmin && !self.getSnapshot().matches('locked')) {
     return { target: 'approved' };
   }
 }
 ```
 
-`checkStateIn(snapshot, value)` accepts a state id (`'#locked'`), a path (`'security.locked'`), or a state-value object.
+`matches(value)` accepts a path (`'security.locked'`) or a state-value object.
 
 ## TypeScript
 

@@ -78,6 +78,5 @@ export function createListenerLogic<
   );
 }
 
-// Singleton logic instance
-/** @public */
+/** @internal The logic of helper actors created by `enq.listen()`. */
 export const listenerLogic = /* #__PURE__ */ createListenerLogic();

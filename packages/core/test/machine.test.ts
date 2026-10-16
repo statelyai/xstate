@@ -5,9 +5,11 @@ const pedestrianStates = {
   initial: 'walk',
   states: {
     walk: {
-      contextSchema: z.object({
-        color: z.literal('walk')
-      }),
+      schemas: {
+        context: z.object({
+          color: z.literal('walk')
+        })
+      },
       on: {
         PED_COUNTDOWN: { target: 'wait' }
       }
@@ -25,9 +27,11 @@ const lightMachine = createMachine({
   initial: 'green',
   states: {
     green: {
-      contextSchema: z.object({
-        color: z.literal('green')
-      }),
+      schemas: {
+        context: z.object({
+          color: z.literal('green')
+        })
+      },
       on: {
         TIMER: { target: 'yellow' },
         POWER_OUTAGE: { target: 'red' },
@@ -377,9 +381,11 @@ describe('typestates', () => {
       initial: 'active',
       states: {
         active: {
-          contextSchema: z.object({
-            user: z.string()
-          }),
+          schemas: {
+            context: z.object({
+              user: z.string()
+            })
+          },
           on: {
             ACTIVATE: (x) => ({
               target: 'inactive',
@@ -391,13 +397,34 @@ describe('typestates', () => {
           }
         },
         inactive: {
-          contextSchema: z.object({
-            user: z.null()
-          })
+          schemas: {
+            context: z.object({
+              user: z.null()
+            })
+          }
         }
       }
     });
 
     machine.states;
+  });
+});
+
+describe('state context schemas', () => {
+  it('narrows context with a state-level schemas.context', () => {
+    const machine = createMachine({
+      schemas: { context: z.object({ user: z.string().nullable() }) },
+      context: { user: null },
+      initial: 'active',
+      states: {
+        active: { schemas: { context: z.object({ user: z.string() }) } },
+        inactive: {}
+      }
+    });
+    const snapshot = createActor(machine).getSnapshot();
+    if (snapshot.matches('active')) {
+      expectTypeOf(snapshot.context.user).toEqualTypeOf<string>();
+    }
+    expectTypeOf(snapshot.context.user).toEqualTypeOf<string | null>();
   });
 });

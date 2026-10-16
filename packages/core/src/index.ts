@@ -8,11 +8,9 @@ export {
   createEmptyActor,
   createEventObservableLogic,
   createListenerLogic,
-  createLogic,
+  createStepLogic,
   createObservableLogic,
   createSubscriptionLogic,
-  listenerLogic,
-  subscriptionLogic,
   TimeoutError,
   type AsyncActorLogic,
   type AsyncActorRef,
@@ -32,16 +30,15 @@ export {
   type ListenerActorRef,
   type ListenerInput,
   type ListenerSnapshot,
-  type LogicActorLogic,
-  type LogicActorRef,
-  type LogicArgs,
-  type LogicConfig,
-  type LogicEffect,
-  type LogicEffectState,
-  type LogicEnqueue,
-  type LogicFunction,
-  type LogicPatch,
-  type LogicSnapshot,
+  type StepActorLogic,
+  type StepActorRef,
+  type StepLogicArgs,
+  type StepLogicConfig,
+  type StepEffectState,
+  type StepLogicEnqueue,
+  type StepLogicFunction,
+  type StepPatch,
+  type StepSnapshot,
   type ObservableActorLogic,
   type ObservableActorRef,
   type ObservableLogicConfig,
@@ -61,7 +58,7 @@ export {
   type RequiredActorOptionsFor
 } from './createActor.ts';
 export { createMachine, createStateConfig } from './createMachine.ts';
-export { createMachineFromConfig } from './createMachineFromConfig.ts';
+export { machineFromJSON } from './machineFromJSON.ts';
 export type {
   ActionJSON,
   GuardJSON,
@@ -69,10 +66,10 @@ export type {
   MachineJSON,
   StateNodeJSON,
   TransitionJSON
-} from './createMachineFromConfig.ts';
+} from './machineFromJSON.ts';
 export {
   machineConfigToJSON,
-  serializeMachine,
+  machineToJSON,
   type CodeExpression
 } from './serialize.ts';
 export { mapState } from './mapState.ts';
@@ -117,8 +114,8 @@ export type {
   AnySetupConfig,
   RootContextMarker,
   StrictSetupStateSchemas,
-  StrictSetupStateTargetsFlag,
   StrictSetupStateTargetsMarker,
+  StrictSetupStateMarkers,
   RelativeSetupStateSchemasMarker,
   CurrentSetupStateSchemaMarker,
   SetupStateParentTypeMarker,
@@ -177,7 +174,6 @@ export type {
 } from './system.ts';
 export { toPromise } from './toPromise.ts';
 export type * from './types.ts';
-export { SpecialTargets } from './types.ts';
 export type {
   Next_MachineConfig as MachineConfig,
   Next_StateNodeConfig as StateNodeConfig,
@@ -190,13 +186,9 @@ export type {
   InferEvents,
   WidenLiterals
 } from './types.v6.ts';
-export {
-  getAllOwnEventDescriptors as __unsafe_getAllOwnEventDescriptors,
-  matchesState,
-  checkStateIn,
-  pathToStateValue,
-  toObserver
-} from './utils.ts';
+export { matchesState } from './utils.ts';
+/** @experimental Used by framework integrations; not part of the stable API. */
+export { toObserver as _toObserver } from './utils.ts';
 export {
   transition,
   isUnhandled,
@@ -210,8 +202,8 @@ export {
   isBuiltInExecutableEffect
 } from './transitionActions.ts';
 export {
-  getEffectDescriptor,
-  type EffectDescriptor
+  describeExecutableEffect,
+  type ExecutableEffectDescriptor
 } from './effectDescriptor.ts';
 export {
   deliverEvent,

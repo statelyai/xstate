@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Stream } from 'effect';
 import {
-  createLogic,
+  createStepLogic,
   type ActorLogicValidator,
   type ActorLogic,
   type AnyActorLogic,
@@ -336,7 +336,7 @@ export function fromEffect<
           : {})
       }
     : undefined;
-  const logic = createLogic<
+  const logic = createStepLogic<
     undefined,
     TOutput,
     EventObject,
@@ -518,7 +518,7 @@ export function fromEffectStream<
 ): EffectStreamActorLogic<TItem, TError, TInput, TRequirements> {
   const config = resolveStreamConfig(sourceOrConfig);
   const stream = config.stream;
-  const logic = createLogic<
+  const logic = createStepLogic<
     TItem | undefined,
     undefined,
     EventObject,
@@ -647,7 +647,7 @@ export function fromEffectEventStream<
 ): EffectActorLogic<undefined, TError, TInput, TRequirements> {
   const config = resolveStreamConfig(sourceOrConfig);
   const stream = config.stream;
-  const logic = createLogic<
+  const logic = createStepLogic<
     undefined,
     undefined,
     EventObject,

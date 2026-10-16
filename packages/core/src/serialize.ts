@@ -2,12 +2,13 @@
  * Machine-definition serialization.
  *
  * `machineConfigToJSON` converts a machine config into a JSON-safe structure
- * (the `MachineJSON` shape accepted by `createMachineFromConfig`). The boundary
+ * (the `MachineJSON` shape accepted by `machineFromJSON`). The boundary
  * between serializable structure and runtime sources is explicit: functions are
  * represented as `@code` source objects, while actor logic, runtime schemas,
  * and other non-data runtime values are omitted.
  */
 
+import type { MachineJSON } from './machineFromJSON.ts';
 import type { AnyStateMachine } from './types.ts';
 
 /** @public */
@@ -20,23 +21,21 @@ export interface CodeExpression {
  * Returns the JSON-serializable definition of a machine.
  *
  * Inline functions are represented as `{ "@code": string, "@lang": "ts" }`. A
- * machine created via `createMachineFromConfig` returns a copy of its original
+ * machine created via `machineFromJSON` returns a copy of its original
  * JSON config (lossless round-trip):
  *
  * ```ts
- * import { serializeMachine, createMachineFromConfig } from 'xstate';
+ * import { machineToJSON, machineFromJSON } from 'xstate';
  *
- * const json = serializeMachine(machine);
- * const revived = createMachineFromConfig(
+ * const json = machineToJSON(machine);
+ * const revived = machineFromJSON(
  *   JSON.parse(JSON.stringify(json))
  * );
  * ```
  *
  * @public
  */
-export function serializeMachine(
-  machine: AnyStateMachine
-): Record<string, unknown> {
+export function machineToJSON(machine: AnyStateMachine): MachineJSON {
   const json = (machine as any)._json;
   return json ? cloneJSON(json) : machineConfigToJSON(machine.config);
 }
@@ -214,7 +213,7 @@ function stateNodeConfigToJSON(
  */
 export function machineConfigToJSON(
   config: Record<string, unknown>
-): Record<string, unknown> {
+): MachineJSON {
   const result = stateNodeConfigToJSON(config);
 
   const internalEvents = Object.keys(
@@ -255,5 +254,5 @@ export function machineConfigToJSON(
     }
   }
 
-  return result;
+  return result as unknown as MachineJSON;
 }

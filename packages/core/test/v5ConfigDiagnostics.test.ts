@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createActor,
   createMachine,
-  createMachineFromConfig,
+  machineFromJSON,
   setup
 } from '../src/index.ts';
 
@@ -216,7 +216,7 @@ describe('v5 config diagnostics', () => {
 
   it('does not diagnose compiled JSON configs', () => {
     const warn = warnSpy();
-    const machine = createMachineFromConfig(
+    const machine = machineFromJSON(
       {
         id: 'compiled',
         initial: 'a',

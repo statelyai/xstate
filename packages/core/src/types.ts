@@ -1642,11 +1642,6 @@ export type ReservedEventFromDescriptor<K extends ReservedEventDescriptor> =
   ExtractEvent<ReservedMachineEvent, K>;
 
 /** @public */
-export enum SpecialTargets {
-  Internal = '#_internal'
-}
-
-/** @public */
 export type Mapper<
   TContext extends MachineContext,
   TExpressionEvent extends EventObject,
@@ -1999,8 +1994,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   _inert?: boolean;
   /** The custom `id` for referencing this service. */
   id?: string;
-  /** @deprecated Use `inspect` instead. */
-  devTools?: never;
 
   /** The registry key to register this actor under. */
   registryKey?: string;
@@ -2991,6 +2984,7 @@ export type StateSchema = {
   // Needed because TS treats objects with all optional properties as a "weak" object
   // https://github.com/statelyai/xstate/issues/5031
   type?: unknown;
+  schemas?: unknown;
   history?: unknown;
   target?: unknown;
   invoke?: unknown;
@@ -3104,7 +3098,13 @@ type ContextFromStateSchema<
   ? StandardSchemaV1.InferOutput<TSchema['contextSchema']> &
       TFallbackContext &
       MachineContext
-  : TFallbackContext;
+  : TSchema extends {
+        schemas: { context: infer TContextSchema extends StandardSchemaV1 };
+      }
+    ? StandardSchemaV1.InferOutput<TContextSchema> &
+        TFallbackContext &
+        MachineContext
+    : TFallbackContext;
 
 type ContextFromChildStateValue<
   TChildSchema extends StateSchema,

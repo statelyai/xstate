@@ -3,7 +3,7 @@ import {
   createCallbackLogic,
   createMachine,
   deliverEvent,
-  getEffectDescriptor,
+  describeExecutableEffect,
   initialTransition,
   setup,
   transition,
@@ -220,7 +220,7 @@ describe('effect descriptors', () => {
 
     const [snapshot, initialEffects] = initialTransition(machine);
     const spawnDescriptor = initialEffects
-      .map(getEffectDescriptor)
+      .map(describeExecutableEffect)
       .find((d) => d.type === '@xstate.spawn');
     expect(spawnDescriptor).toEqual({
       kind: 'builtin',
@@ -234,7 +234,7 @@ describe('effect descriptors', () => {
 
     const [, effects] = transition(machine, snapshot, { type: 'KICK' });
     const sendDescriptor = effects
-      .map(getEffectDescriptor)
+      .map(describeExecutableEffect)
       .find((d) => d.type === '@xstate.sendTo');
     expect(sendDescriptor).toEqual({
       kind: 'builtin',
@@ -248,7 +248,7 @@ describe('effect descriptors', () => {
 
     // Descriptors are JSON-safe: no live refs, no functions.
     for (const effect of [...initialEffects, ...effects]) {
-      const descriptor = getEffectDescriptor(effect);
+      const descriptor = describeExecutableEffect(effect);
       expect(JSON.parse(JSON.stringify(descriptor))).toEqual(descriptor);
     }
   });
@@ -1171,7 +1171,7 @@ describe('incarnation tokens on remote handles', () => {
     const [, effects] = transition(machine, restored as never, {
       type: 'KICK'
     });
-    const descriptor = getEffectDescriptor(effects[0]!) as any;
+    const descriptor = describeExecutableEffect(effects[0]!) as any;
     expect(descriptor.type).toBe('@xstate.sendTo');
     expect(descriptor.target).toEqual({
       $actor: 'order/w',
@@ -1784,7 +1784,9 @@ describe('serialized actor refs as send targets', () => {
       requestId: 'd1'
     });
     expect(
-      effects.map(getEffectDescriptor).find((d) => d.type === '@xstate.sendTo')
+      effects
+        .map(describeExecutableEffect)
+        .find((d) => d.type === '@xstate.sendTo')
     ).toMatchObject({ target: { $actor: 'other/elsewhere' } });
   });
 

@@ -52,7 +52,7 @@ If an SCXML document references an external resource and no resolver is provided
 
 ## Machine JSON
 
-`MachineJSON` cannot represent all SCXML executable content and transition rules. Use `createMachineFromConfig(...)` for serialized XState definitions and `createMachineFromSCXML(...)` for SCXML documents.
+`MachineJSON` cannot represent all SCXML executable content and transition rules. Use `machineFromJSON(...)` for serialized XState definitions and `createMachineFromSCXML(...)` for SCXML documents.
 
 ## Actor isolation and condition errors
 
