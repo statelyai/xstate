@@ -41,28 +41,6 @@ export function isSerializedActorRef(
   return incarnation === undefined || typeof incarnation === 'string';
 }
 
-/**
- * @internal Converts the pre-beta serialized actor reference shape
- * (`{ xstate$type: 'actorRef', id, address? }`) to `{ $actor }`. Returns
- * `undefined` for any other value.
- */
-export function fromLegacySerializedActorRef(
-  value: unknown
-): { id: string; ref: SerializedActorRef | undefined } | undefined {
-  if (
-    typeof value !== 'object' ||
-    value === null ||
-    (value as { xstate$type?: unknown }).xstate$type !== 'actorRef'
-  ) {
-    return undefined;
-  }
-  const { id, address } = value as { id: string; address?: unknown };
-  return {
-    id,
-    ref: typeof address === 'string' ? { $actor: address } : undefined
-  };
-}
-
 /** @internal The actor id that the last segment of an address encodes. */
 export function getAddressId(address: string): string {
   const segment = address.slice(address.lastIndexOf('/') + 1);

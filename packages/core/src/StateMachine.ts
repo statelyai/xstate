@@ -11,7 +11,6 @@ import { XSTATE_TIMER } from './constants.ts';
 import { parseGeneratedActorId } from './system.ts';
 import {
   createRemoteActorRef,
-  fromLegacySerializedActorRef,
   isSerializedActorRef
 } from './remoteActorRef.ts';
 
@@ -1783,16 +1782,9 @@ export class StateMachine<
         event: EventObject;
         target: string | { type: 'parent' };
         scheduledAt?: number;
-        /** Pre-beta name of `scheduledAt`. */
-        startedAt?: number;
       }
     > = snapshotData.timers ?? {};
-    for (const [id, { startedAt, ...timer }] of Object.entries(
-      persistedTimers
-    )) {
-      if (timer.scheduledAt === undefined && startedAt !== undefined) {
-        timer.scheduledAt = startedAt;
-      }
+    for (const [id, timer] of Object.entries(persistedTimers)) {
       let event = timer.event;
       if (event.type === 'xstate.timeout.actor') {
         const actorId = (event as AnyEventObject).actorId as string;
@@ -1947,16 +1939,6 @@ export class StateMachine<
             (child) => child.address === value.$actor
           ) ?? value
         );
-      }
-      const legacyRef = isRoot
-        ? undefined
-        : fromLegacySerializedActorRef(value);
-      if (legacyRef) {
-        // Pre-beta `{ xstate$type: 'actorRef', id, address? }` refs.
-        const child = children[legacyRef.id];
-        return legacyRef.ref && child?.address !== legacyRef.ref.$actor
-          ? legacyRef.ref
-          : child;
       }
       const proto = Object.getPrototypeOf(value);
       if (

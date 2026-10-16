@@ -1256,33 +1256,6 @@ describe('timer restore honors wall-clock deadlines', () => {
     }
   });
 
-  it('restores the pre-beta startedAt timer field', () => {
-    vi.useFakeTimers();
-    try {
-      const actor = createActor(timerMachine).start();
-      vi.advanceTimersByTime(600);
-      const persisted = actor.getPersistedSnapshot() as any;
-      actor.stop();
-      const [timer] = Object.values(persisted.timers) as any[];
-      timer.startedAt = timer.scheduledAt;
-      delete timer.scheduledAt;
-
-      const restored = createActor(timerMachine, {
-        snapshot: persisted
-      }).start();
-      const [restoredTimer] = Object.values(
-        restored.getPersistedSnapshot().timers as any
-      ) as any[];
-      expect(restoredTimer).not.toHaveProperty('startedAt');
-      expect(restoredTimer.scheduledAt).toBe(Date.now() - 600);
-      vi.advanceTimersByTime(400);
-      expect(restored.getSnapshot().value).toBe('fired');
-      restored.stop();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
   it('keeps the same deadline across repeated persist/restore cycles', () => {
     vi.useFakeTimers();
     try {

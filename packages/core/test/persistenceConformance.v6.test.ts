@@ -500,25 +500,6 @@ describe('serialized actor refs in context', () => {
 
     expect(persisted.context.ref).toEqual({ $actor: 'parent/kid' });
   });
-
-  it('restores the pre-beta { xstate$type, id, address } shape', () => {
-    const actor = createActor(parent).start();
-    const persisted = roundTrip(actor.getPersistedSnapshot()) as any;
-    actor.stop();
-    persisted.context.ref = { xstate$type: 'actorRef', id: 'kid' };
-    persisted.context.other = {
-      xstate$type: 'actorRef',
-      id: 'elsewhere',
-      address: 'other/elsewhere',
-      src: 'worker'
-    };
-
-    const restored = createActor(parent, { snapshot: persisted });
-    const { context } = restored.getSnapshot();
-
-    expect(context.ref).toBe(restored.getSnapshot().children.kid);
-    expect(context.other).toEqual({ $actor: 'other/elsewhere' });
-  });
 });
 
 describe('#4873 system.get after restore', () => {

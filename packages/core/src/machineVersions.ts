@@ -273,14 +273,10 @@ async function finalizeSnapshot<TTarget extends VersionedStateMachine>(
   snapshot: PersistedSnapshotDataFrom<TTarget>,
   target: TTarget
 ): Promise<PersistedSnapshotFrom<TTarget>> {
-  // Drops the pre-beta top-level `version` mirror of `machine.version`.
-  const { version: _legacyVersion, ...rest } = snapshot as typeof snapshot & {
-    version?: unknown;
-  };
   return (await validate(
     target.snapshotSchema,
     {
-      ...rest,
+      ...snapshot,
       machine: { id: target.id, version: target.version }
     },
     `snapshot for machine '${target.id}' version '${target.version}'`

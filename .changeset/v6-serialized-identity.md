@@ -15,4 +15,4 @@ Serialized actor identity uses one shape everywhere: `{ $actor: address }`, with
 | Persisted timer start                          | `startedAt`                                     | `scheduledAt`                          |
 | Persisted snapshot top-level `version`         | mirror of `machine.version`                     | removed; use `machine.version`         |
 
-Snapshots persisted with the old `xstate$type` actor refs, `startedAt` timers, or a top-level `version` still restore.
+The old shapes are not read on restore. Convert or discard snapshots persisted with `xstate$type` actor refs or `startedAt` timers before restoring them.

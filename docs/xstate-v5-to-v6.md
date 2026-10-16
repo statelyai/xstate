@@ -1621,7 +1621,7 @@ Code written against a v6 alpha uses names that changed before the beta. The old
 | `@xstate/test` `createFailureDatabase`, `FailureDatabaseOptions` | `createTestFailureStore`, `TestFailureStoreOptions`  |
 | `@xstate/test` `serializeTestSuite`, `ModelTestFailure`      | `testSuiteToJSON`, `ModelTestFailureError`               |
 
-Snapshots persisted by an alpha with `xstate$type` actor refs, `startedAt` timers, or a top-level `version` still restore.
+The old persisted shapes are not read on restore. Convert or discard alpha snapshots that contain `xstate$type` actor refs or `startedAt` timers before restoring them.
 
 ---
 
