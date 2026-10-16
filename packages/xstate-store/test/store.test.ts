@@ -242,7 +242,7 @@ it('can be inspected', () => {
   expect(evs).toEqual([
     expect.objectContaining({
       type: '@xstate.transition',
-      event: { type: '@xstate.init' },
+      event: { type: 'xstate.init' },
       snapshot: expect.objectContaining({ context: { count: 0 } })
     }),
     expect.objectContaining({
