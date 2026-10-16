@@ -1,5 +1,4 @@
 import { createMachine, StateValue } from '../src/index';
-import { checkStateIn } from '../src/utils';
 import { testAll } from './utils';
 
 describe('Example 6.16', () => {
@@ -16,7 +15,7 @@ describe('Example 6.16', () => {
               //   guard: stateIn('#E')
               // }
               2: ({ self }) => {
-                if (checkStateIn(self.getSnapshot(), '#E')) {
+                if (self.getSnapshot().matches('#E')) {
                   return { target: 'D' };
                 }
               }

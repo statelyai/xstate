@@ -3033,24 +3033,27 @@ export type StateId<
   TKey extends string = '(machine)',
   TParentKey extends string | null = null
 > =
-  | (TSchema extends { id: string }
-      ? TSchema['id']
-      : TParentKey extends null
-        ? TKey
-        : `${TParentKey}.${TKey}`)
-  | (TSchema['states'] extends Record<string, any>
-      ? Values<{
-          [K in keyof TSchema['states'] & string]: StateId<
-            TSchema['states'][K],
-            K,
-            TParentKey extends string
-              ? `${TParentKey}.${TKey}`
-              : TSchema['id'] extends string
-                ? TSchema['id']
-                : TKey
-          >;
-        }>
-      : never);
+  IsAny<TSchema> extends true
+    ? string
+    :
+        | (TSchema extends { id: string }
+            ? TSchema['id']
+            : TParentKey extends null
+              ? TKey
+              : `${TParentKey}.${TKey}`)
+        | (TSchema['states'] extends Record<string, any>
+            ? Values<{
+                [K in keyof TSchema['states'] & string]: StateId<
+                  TSchema['states'][K],
+                  K,
+                  TParentKey extends string
+                    ? `${TParentKey}.${TKey}`
+                    : TSchema['id'] extends string
+                      ? TSchema['id']
+                      : TKey
+                >;
+              }>
+            : never);
 
 /**
  * Maps state IDs to their input types based on the StateSchema.
@@ -3140,6 +3143,17 @@ export type StateContextFromStateValue<
       : TFallbackContext
   : TFallbackContext) &
   MachineContext;
+
+/**
+ * The `#id` references that `snapshot.matches(...)` accepts: one per state
+ * ID when the IDs are statically known, otherwise any `#`-prefixed string.
+ *
+ * @public
+ */
+export type StateIdReference<TSchema extends StateSchema> =
+  string extends StateId<TSchema>
+    ? `#${string}`
+    : `#${StateId<TSchema> & string}`;
 
 /** @public */
 export type RoutableStateId<TSchema extends StateSchema> =

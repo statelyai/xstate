@@ -24,7 +24,7 @@ This guide is organized by area. Skim the **Quick reference** below, then jump t
 | `stopChild(idOrRef)`                                    | `enq.stop(ref)`                                                                                                                     |
 | `enqueueActions(({ enqueue }) => {...})`                | regular inline `(args, enq) => { ... }` function                                                                                    |
 | `and([...])`, `or([...])`, `not(...)`                   | plain JS `&&`, `\|\|`, `!` inside the guard/inline fn                                                                               |
-| `stateIn('foo')`                                        | `self.getSnapshot().matches('foo')`                                                                                                 |
+| `stateIn('foo')`, `stateIn('#id')`                      | `self.getSnapshot().matches('foo')`, `self.getSnapshot().matches('#id')`                                                            |
 | `interpret(machine)`, `Interpreter`                     | `createActor(machine)` (already in v5; legacy alias gone)                                                                           |
 | `fromPromise(async ({ input }) => ...)`                 | `createAsyncLogic({ run: async ({ input }, enq) => ... })`                                                                          |
 | `fromCallback(cb)`                                      | `createCallbackLogic(cb)` (same signature, renamed)                                                                                 |
@@ -305,7 +305,7 @@ on: {
 }
 ```
 
-`matches(stateValue)` accepts a state-path string (e.g. `'parent.child'`) or a nested state-value object. State-id strings (`'#blocked'`) are not supported.
+`matches(...)` accepts a state-path string (e.g. `'parent.child'`), a nested state-value object, or a state id prefixed with `#` (e.g. `'#blocked'`), which is true while the state node with that id is active.
 
 Named `guards` on `setup` or `createMachine` are available as typed functions
 in transition (and `choice`) function args:
@@ -1614,7 +1614,7 @@ Code written against a v6 alpha uses names that changed before the beta. The old
 | `serializeMachine`, `createMachineFromConfig`                | `machineToJSON`, `machineFromJSON`                       |
 | `createLogic`, `Logic*` types                                | `createStepLogic`, `Step*` types                         |
 | `EffectDescriptor`, `getEffectDescriptor`                    | `ExecutableEffectDescriptor`, `describeExecutableEffect` |
-| `checkStateIn(snapshot, value)`                              | `snapshot.matches(value)`                                |
+| `checkStateIn(snapshot, '#id')`                              | `snapshot.matches('#id')`                                |
 | state node `contextSchema`                                   | state node `schemas: { context }`                        |
 | `listenerLogic`, `subscriptionLogic`                         | `createListenerLogic()`, `createSubscriptionLogic()`     |
 | `@xstate/effect` `fromEffect`, `fromEffectStream`, `fromEffectEventStream` | `createEffectLogic`, `createEffectStreamLogic`, `createEffectEventStreamLogic` |

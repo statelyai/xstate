@@ -1124,11 +1124,10 @@ export function createMachineFromSCXMLConfig(
           `${path}.params`
         ) as { stateId?: unknown } | undefined;
         const stateId = params?.stateId;
+        // Same check as `snapshot.matches('#id')`.
         return (
           typeof stateId === 'string' &&
-          !!args._snapshot?.nodes?.some(
-            (node: any) => node.id === stateId.replace(/^#/, '')
-          )
+          !!args._snapshot?.matches(`#${stateId.replace(/^#/, '')}`)
         );
       };
     }

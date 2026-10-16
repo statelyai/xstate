@@ -127,6 +127,7 @@ const machine = createMachine({
 // check another state (replaces stateIn)
 play: ({ self }) => {
   if (self.getSnapshot().matches('volume.muted')) return;
+  // or by state id: self.getSnapshot().matches('#muted')
   return { target: 'playing' };
 };
 ```

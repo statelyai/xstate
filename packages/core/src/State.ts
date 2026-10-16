@@ -1,6 +1,6 @@
 import { getTimerStart } from './timerClock.ts';
 import isDevelopment from '#is-development';
-import { getStateValue } from './stateUtils.ts';
+import { getStateValue, isStateId } from './stateUtils.ts';
 import type {
   AnyMachineSnapshot,
   AnyStateMachine,
@@ -18,6 +18,7 @@ import type {
   StateId,
   StateIdInputs,
   StateContextFromStateValue,
+  StateIdReference,
   SnapshotStatus,
   PersistedHistoryValue,
   AnyStateNode,
@@ -209,6 +210,18 @@ export type TestStateValueCheck<
       ? unknown
       : never;
 
+/**
+ * The `#id` references a snapshot (or union of snapshots) accepts, read from
+ * its `getMeta()` keys so the overload does not depend on the state schema.
+ */
+type SnapshotStateIdReference<TSnapshot> = TSnapshot extends {
+  getMeta: () => Record<infer TStateId, any>;
+}
+  ? string extends TStateId
+    ? `#${string}`
+    : `#${TStateId & string}`
+  : `#${string}`;
+
 interface MachineSnapshotBase<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -265,10 +278,14 @@ interface MachineSnapshotBase<
   _nextActorIds?: Record<string, number>;
   /**
    * Whether the current state value is a subset of the given partial state
-   * value.
+   * value, or, for a `'#id'` reference, whether the state node with that `id`
+   * is active.
    *
    * @param partialStateValue
    */
+  matches<const TTestStateId extends StateIdReference<TStateSchema>>(
+    stateId: TTestStateId
+  ): boolean;
   matches<
     const TTestStateValue extends Extract<ToTestStateValue<TStateValue>, string>
   >(
@@ -308,8 +325,10 @@ interface MachineSnapshotBase<
     const TTestStateValue extends StateValue
   >(
     this: TSnapshot,
-    partialStateValue: TTestStateValue &
-      NoInfer<TestStateValueCheck<TSnapshot['value'], TTestStateValue>>
+    partialStateValue: TTestStateValue extends `#${string}`
+      ? NoInfer<SnapshotStateIdReference<TSnapshot>>
+      : TTestStateValue &
+          NoInfer<TestStateValueCheck<TSnapshot['value'], TTestStateValue>>
   ): boolean;
 
   /**
@@ -498,6 +517,10 @@ const machineSnapshotMatches = function matches(
   this: AnyMachineSnapshot,
   testValue: StateValue
 ) {
+  if (typeof testValue === 'string' && isStateId(testValue)) {
+    const stateNode = this.machine.getStateNodeById(testValue);
+    return this.nodes.includes(stateNode);
+  }
   return matchesState(testValue, this.value);
 };
 

@@ -77,7 +77,32 @@ approve: ({ context, self }) => {
 }
 ```
 
-`matches(value)` accepts a path (`'security.locked'`) or a state-value object.
+`matches(value)` accepts a path (`'security.locked'`), a state-value object, or a state `id` prefixed with `#`. An `#id` check is true while the state node with that `id` is active, wherever it is nested:
+
+```ts
+const machine = createMachine({
+  type: 'parallel',
+  states: {
+    security: {
+      initial: 'unlocked',
+      states: { unlocked: {}, locked: { id: 'locked' } }
+    },
+    review: {
+      on: {
+        approve: ({ self }) => {
+          if (!self.getSnapshot().matches('#locked')) {
+            return { target: '.approved' };
+          }
+        }
+      },
+      initial: 'pending',
+      states: { pending: {}, approved: {} }
+    }
+  }
+});
+```
+
+When the machine's state ids are known to TypeScript, an unknown `#id` is a type error. Unlike state-value checks, an `#id` check does not narrow `context` (see [typestates](typestates.md)).
 
 ## TypeScript
 

@@ -2,7 +2,6 @@ import isDevelopment from '#is-development';
 import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY, WILDCARD } from './constants.ts';
-import { isStateId } from './stateUtils.ts';
 import type {
   AnyActor,
   AnyEventObject,
@@ -65,19 +64,6 @@ export function assertUnreservedSourceName(kind: string, name: string): void {
       `Invalid ${kind} name '${name}': the 'xstate.' and '@xstate.' prefixes are reserved for built-in names.`
     );
   }
-}
-
-/** @internal */
-export function checkStateIn(
-  snapshot: AnyMachineSnapshot,
-  stateValue: StateValue
-) {
-  if (typeof stateValue === 'string' && isStateId(stateValue)) {
-    const target = snapshot.machine.getStateNodeById(stateValue);
-    return snapshot.nodes.some((sn) => sn === target);
-  }
-
-  return snapshot.matches(stateValue);
 }
 
 export function toStatePath(stateId: string | string[]): string[] {

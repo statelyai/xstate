@@ -4,7 +4,6 @@ import {
   matchesState,
   StateValue
 } from '../src/index.ts';
-import { checkStateIn } from '../src/utils.ts';
 
 describe('transition "in" check', () => {
   it('should transition if string state path matches current state value', () => {
@@ -93,7 +92,7 @@ describe('transition "in" check', () => {
                 //   guard: stateIn('#b_b2')
                 // }
                 EVENT3: ({ self }) => {
-                  if (checkStateIn(self.getSnapshot(), '#b_b2')) {
+                  if (self.getSnapshot().matches('#b_b2')) {
                     return { target: 'a2' };
                   }
                   // if (matchesState('#b_b2', value)) {
@@ -168,7 +167,7 @@ describe('transition "in" check', () => {
                   if (matchesState('b.b2', value)) {
                     return { target: 'a2' };
                   }
-                  // if (checkStateIn(self.getSnapshot(), 'b.b2')) {
+                  // if (self.getSnapshot().matches('b.b2')) {
                   //   return { target: 'a2' };
                   // }
                 }
@@ -314,7 +313,7 @@ describe('transition "in" check', () => {
                     foo1: {
                       on: {
                         EVENT_DEEP: ({ self }) => {
-                          if (checkStateIn(self.getSnapshot(), '#bar1')) {
+                          if (self.getSnapshot().matches('#bar1')) {
                             return { target: 'foo2' };
                           }
                         }
@@ -379,7 +378,7 @@ describe('transition "in" check', () => {
                     foo1: {
                       on: {
                         EVENT_DEEP: ({ self }) => {
-                          if (checkStateIn(self.getSnapshot(), '#bar1')) {
+                          if (self.getSnapshot().matches('#bar1')) {
                             return { target: 'foo2' };
                           }
                         }
