@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "6.0.0-alpha.66",
+  "version": "6.0.0-alpha.67",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "bin": {

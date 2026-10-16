@@ -1,5 +1,52 @@
 # xstate
 
+## 6.0.0-alpha.67
+
+### Major Changes
+
+- 1a5349a: The executable action object types are renamed to executable effect types, matching the `[snapshot, effects]` tuple that transitions return:
+  
+  | Before                                     | After                                       |
+  | ------------------------------------------ | ------------------------------------------- |
+  | `ExecutableActionObject`                   | `ExecutableEffect`                          |
+  | `ExecutableActionObjectFromLogic`          | `ExecutableEffectFrom`                      |
+  | `BaseExecutableActionObject`               | `BaseExecutableEffect`                      |
+  | `CustomExecutableActionObject`             | `CustomExecutableEffect`                    |
+  | `BuiltInExecutableActionObject`            | `BuiltInExecutableEffect`                   |
+  | `<Kind>ExecutableActionObject`             | `<Kind>ExecutableEffect`                    |
+  | `SpecialExecutableAction`                  | `SpecialExecutableEffect`                   |
+  | `ToExecutableAction`                       | `ToExecutableEffect`                        |
+  | `isBuiltInExecutableAction`                | `isBuiltInExecutableEffect`                 |
+  
+  `<Kind>` is `Start`, `Spawn`, `Raise`, `SendTo`, `Emit`, `Cancel`, `Stop`, `Terminate`, or `DeadLetter`. The old names are not kept as aliases.
+  
+  The `rename-imports` codemod renames the v5 `ExecutableActionObject`, `ExecutableActionsFrom`, `ExecutableSpawnAction`, `SpecialExecutableAction`, and `ToExecutableAction` imports to their new names. The other names, including `isBuiltInExecutableAction`, only existed in v6 alphas; rename them by hand.
+  
+  ```diff
+  - import { isBuiltInExecutableAction, type ExecutableActionObject } from 'xstate';
+  + import { isBuiltInExecutableEffect, type ExecutableEffect } from 'xstate';
+  ```
+
+### Minor Changes
+
+- 77de73c: In development builds, machine snapshot context is now deep-frozen, so accidental in-place mutation throws a `TypeError` instead of silently corrupting state. Production builds do not freeze context.
+  
+  ```ts
+  const actor = createActor(
+    createMachine({ context: { count: 0, items: [] as string[] } })
+  ).start();
+  
+  actor.getSnapshot().context.count = 1; // TypeError (development only)
+  actor.getSnapshot().context.items.push('a'); // TypeError (development only)
+  ```
+  
+  Only plain objects and arrays are frozen, including objects you put into context. Actor refs, class instances, `Map`, `Set` and `Date` are left as is. Update context by returning a new `context` from a transition instead of mutating it.
+
+### Patch Changes
+
+- 441f235: Document transition functions, their type-narrowing benefits, and the current limits of graph analysis.
+- 57610d5: State inputs are removed when their state exits. `snapshot.getInputs()` and persisted snapshots only include inputs for active states.
+
 ## 6.0.0-alpha.66
 
 ### Patch Changes
