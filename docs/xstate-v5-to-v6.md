@@ -1595,6 +1595,34 @@ These keys log a warning:
 | `strict` | removed |
 | `devTools` | the `inspect` option on `createActor(...)` |
 
+## 29. Names changed during the v6 prereleases
+
+Code written against a v6 alpha uses names that changed before the beta. The old names are not kept as aliases.
+
+| v6 alpha                                                     | v6 beta                                                  |
+| ------------------------------------------------------------ | -------------------------------------------------------- |
+| `@xstate.init` event                                         | `xstate.init`                                            |
+| `@xstate.stop` event                                         | `xstate.stop` (the stop-child effect stays `@xstate.stop`) |
+| `xstate.timeout` event                                       | `xstate.timeout.state`                                   |
+| `xstate.system.cancelEffect`, `xstate.logic.cleanup` effects | `@xstate.cancelEffect`, `@xstate.cleanup`                |
+| `xstate.logic.effect`, `xstate.log` system effects           | `@xstate.effect`, `@xstate.log`                          |
+| suffixed `xstate.done.actor.<id>` etc. descriptors           | category types with `matches` (see [Internal lifecycle events](#internal-lifecycle-events)) |
+| `{ xstate$type: 'actorRef', id, address, src }`              | `{ $actor: address }` (`SerializedActorRef`)             |
+| persisted timer `startedAt`                                  | `scheduledAt`                                            |
+| persisted top-level `version`                                | `machine.version`                                        |
+| system snapshot numeric `incarnation`, `SystemActorState.logic` | string `incarnation`, `src`                           |
+| `serializeMachine`, `createMachineFromConfig`                | `machineToJSON`, `machineFromJSON`                       |
+| `createLogic`, `Logic*` types                                | `createStepLogic`, `Step*` types                         |
+| `EffectDescriptor`, `getEffectDescriptor`                    | `ExecutableEffectDescriptor`, `describeExecutableEffect` |
+| `checkStateIn(snapshot, value)`                              | `snapshot.matches(value)`                                |
+| state node `contextSchema`                                   | state node `schemas: { context }`                        |
+| `listenerLogic`, `subscriptionLogic`                         | `createListenerLogic()`, `createSubscriptionLogic()`     |
+| `@xstate/effect` `fromEffect`, `fromEffectStream`, `fromEffectEventStream` | `createEffectLogic`, `createEffectStreamLogic`, `createEffectEventStreamLogic` |
+| `@xstate/test` `createFailureDatabase`, `FailureDatabaseOptions` | `createTestFailureStore`, `TestFailureStoreOptions`  |
+| `@xstate/test` `serializeTestSuite`, `ModelTestFailure`      | `testSuiteToJSON`, `ModelTestFailureError`               |
+
+Snapshots persisted by an alpha with `xstate$type` actor refs, `startedAt` timers, or a top-level `version` still restore.
+
 ---
 
 ## Migration checklist

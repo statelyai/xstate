@@ -1,13 +1,13 @@
 import { Effect, Stream } from 'effect';
 import {
   createEffectActor,
-  fromEffectEventStream,
+  createEffectEventStreamLogic,
   join,
   setupEffect
 } from '@xstate/effect';
 
 // A deployment feed drives the workflow, rather than just displaying data.
-const deploymentEvents = fromEffectEventStream(
+const deploymentEvents = createEffectEventStreamLogic(
   Stream.make({ type: 'HEALTHY' }, { type: 'UNHEALTHY' })
 );
 

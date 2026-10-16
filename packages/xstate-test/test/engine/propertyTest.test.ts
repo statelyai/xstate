@@ -1,6 +1,6 @@
 import { createAsyncLogic, createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   formatTestTrace,
   propertyTest,
   serializeTestTrace,
@@ -39,11 +39,11 @@ const noop = () => {};
 
 async function captureFailure(
   run: () => Promise<unknown>
-): Promise<ModelTestFailure> {
+): Promise<ModelTestFailureError> {
   try {
     await run();
   } catch (error) {
-    return error as ModelTestFailure;
+    return error as ModelTestFailureError;
   }
   throw new Error('Expected the property test to fail');
 }
@@ -71,7 +71,7 @@ describe('propertyTest with the in-repo random adapter', () => {
     expect(coverage.exploration.maximumSequenceLength).toBe(3);
   });
 
-  it('reports a ModelTestFailure with trace, fixture, coverage and replay', async () => {
+  it('reports a ModelTestFailureError with trace, fixture, coverage and replay', async () => {
     const failure = await captureFailure(() =>
       propertyTest(counterMachine, {
         adapter: randomAdapter({ seed: 1, numRuns: 10, maxCommands: 5 }),
@@ -82,7 +82,7 @@ describe('propertyTest with the in-repo random adapter', () => {
       })
     );
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.trace.steps.length).toBeGreaterThan(0);
     expect(failure.trace.events).toEqual([{ type: 'INC', value: 5 }]);
     expect(failure.fixture).toMatchObject({
@@ -121,7 +121,7 @@ describe('propertyTest with the in-repo random adapter', () => {
       ].join('\n')
     );
     expect(
-      failure.stack?.startsWith(`ModelTestFailure: ${failure.message}`)
+      failure.stack?.startsWith(`ModelTestFailureError: ${failure.message}`)
     ).toBe(true);
   });
 

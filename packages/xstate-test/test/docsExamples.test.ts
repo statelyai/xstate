@@ -25,7 +25,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { it as vitestIt } from 'vitest';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   ReplayNotReproducedError,
   TestCampaignError,
   assertTestCoverage,
@@ -41,7 +41,7 @@ import {
   propertyTest,
   replayTest,
   runParallelPropertyCommands,
-  serializeTestSuite,
+  testSuiteToJSON,
   testCoverageToJSON,
   testPaths,
   withScheduledSut,
@@ -672,7 +672,7 @@ describe('README: How-to guides', () => {
   });
 
   it('Replay a failure', async () => {
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(cartMachine, {
         seed: 1,
@@ -680,9 +680,9 @@ describe('README: How-to guides', () => {
         sut: createCartSut({ buggy: true })
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     // The failure the docs page pastes: `REMOVE pear` leaves `pear` at zero.
     expect(failure.summary).toBe('Property observation diverged');
     expect(failure.message).toContain(
@@ -701,7 +701,7 @@ describe('README: How-to guides', () => {
 
     await expect(
       replayTest(cartMachine, fixture, { sut: createCartSut({ buggy: true }) })
-    ).rejects.toBeInstanceOf(ModelTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailureError);
 
     // With the bug fixed, the recorded failure no longer reproduces.
     await expect(
@@ -717,7 +717,7 @@ describe('README: How-to guides', () => {
         path: failure.replay!.path,
         replayPath: failure.replay!.replayPath
       })
-    ).rejects.toBeInstanceOf(ModelTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailureError);
   });
 
   it('Record an offline regression suite', async () => {
@@ -727,7 +727,7 @@ describe('README: How-to guides', () => {
       events,
       sut: cartSut
     });
-    const json = serializeTestSuite(suite);
+    const json = testSuiteToJSON(suite);
     const parsed = parseTestSuiteFromGraph(json);
 
     const registered: string[] = [];
@@ -774,7 +774,7 @@ describe('README: How-to guides', () => {
           projectModel: (snapshot) => snapshot.context.count
         })
       })
-    ).rejects.toBeInstanceOf(ModelTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailureError);
 
     const result = checkLinearizable(
       [
@@ -1148,7 +1148,7 @@ describe('README: How-to guides (oracles, failures, and Vitest)', () => {
           step: (name, body) => test.step(name, body)
         })
       })
-    ).rejects.toBeInstanceOf(ModelTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailureError);
     expect(steps).toContain('INC');
     expect(testInfo.attachments.map(({ name }) => name)).toEqual([
       'fixture.json',
@@ -1305,14 +1305,14 @@ describe('README: How-to guides (oracles, failures, and Vitest)', () => {
       events,
       failures: { dir, key: 'cart-store' }
     };
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(cartMachine, {
         ...options,
         sut: createCartSut({ buggy: true })
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
     expect(failure.message).toMatch(
       new RegExp(`\nSaved: ${dir}/cart-store/[0-9a-f]{12}\\.json\n`)

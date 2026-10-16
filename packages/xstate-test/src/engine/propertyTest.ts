@@ -403,7 +403,7 @@ export interface TestSut<
  */
 export interface TestSutCompleteContext {
   readonly passed: boolean;
-  /** The error the campaign throws. Usually a {@link ModelTestFailure}. */
+  /** The error the campaign throws. Usually a {@link ModelTestFailureError}. */
   readonly failure?: unknown;
 }
 
@@ -416,7 +416,7 @@ export interface TestSutDisposeContext {
   /** `false` when the run ended in a failure. */
   readonly passed: boolean;
   /** The failure the run ended in, when an oracle failed. */
-  readonly failure?: ModelTestFailure<any, any>;
+  readonly failure?: ModelTestFailureError<any, any>;
 }
 
 /**
@@ -830,7 +830,7 @@ export interface TestTrace<
 }
 
 /**
- * Options that shape how a {@link ModelTestFailure} message is rendered.
+ * Options that shape how a {@link ModelTestFailureError} message is rendered.
  *
  * @experimental
  */
@@ -907,7 +907,7 @@ function getPropertyFailureMessage<
 }
 
 /**
- * Lines added to a {@link ModelTestFailure} message after it was built.
+ * Lines added to a {@link ModelTestFailureError} message after it was built.
  *
  * @experimental
  */
@@ -924,7 +924,7 @@ export interface TestFailureExtras {
  * accumulated up to the failure.
  * @experimental
  */
-export class ModelTestFailure<
+export class ModelTestFailureError<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
   TEvent extends EventObject = EventObject
 > extends Error {
@@ -934,7 +934,7 @@ export class ModelTestFailure<
    */
   public static override [Symbol.hasInstance](
     value: unknown
-  ): value is ModelTestFailure {
+  ): value is ModelTestFailureError {
     return Function.prototype[Symbol.hasInstance].call(this, value);
   }
 
@@ -965,7 +965,7 @@ export class ModelTestFailure<
       ),
       { cause }
     );
-    this.name = 'ModelTestFailure';
+    this.name = 'ModelTestFailureError';
     this.summary = summary;
   }
 }
@@ -1032,7 +1032,7 @@ export interface TestFailureStore {
   readonly onFailure: (
     fixture: TestFixture,
     key: string,
-    failure: ModelTestFailure<any, any>
+    failure: ModelTestFailureError<any, any>
   ) => string | void | Promise<string | void>;
   /** Removes a stored fixture that no longer reproduces. */
   readonly remove?: (
@@ -1489,7 +1489,7 @@ export class PropertyScenarioRunner<
   /** Set for runs the adapter starts while shrinking a counterexample. */
   private shrinkRun = false;
   /** The failure this run ended in, if an oracle failed. */
-  private failure: ModelTestFailure<TSnapshot, TEvent> | undefined;
+  private failure: ModelTestFailureError<TSnapshot, TEvent> | undefined;
 
   /** Records a label for this run. */
   public readonly label = (
@@ -2641,7 +2641,7 @@ export class PropertyScenarioRunner<
       // Never mask the underlying failure with a fixture-construction error.
       fixture = undefined;
     }
-    this.failure = new ModelTestFailure(
+    this.failure = new ModelTestFailureError(
       message,
       this.getTrace(),
       cause,
@@ -3408,7 +3408,7 @@ function getDefaultFailureKey(
  * Runs generated event and command sequences against the model, and the
  * system under test when one is given, checking every oracle on every stable
  * step. Resolves with the campaign's coverage and throws a
- * {@link ModelTestFailure} on the first failure. Requires an `adapter`;
+ * {@link ModelTestFailureError} on the first failure. Requires an `adapter`;
  * `@xstate/test` exports a version with fast-check built in.
  * @experimental
  */
@@ -3626,8 +3626,8 @@ export async function propertyTest<
   };
   /** Saves the failure's fixture and adds `Saved: <location>` to its message. */
   const saveFailure = async (
-    failure: ModelTestFailure<any, any>
-  ): Promise<ModelTestFailure<any, any>> => {
+    failure: ModelTestFailureError<any, any>
+  ): Promise<ModelTestFailureError<any, any>> => {
     if (
       !failureStore ||
       !failure.fixture ||
@@ -3652,7 +3652,7 @@ export async function propertyTest<
       // A store that cannot write must not hide the counterexample.
       note = `Not saved: ${error instanceof Error ? error.message : String(error)}`;
     }
-    return new ModelTestFailure(
+    return new ModelTestFailureError(
       failure.summary,
       failure.trace,
       failure.cause,
@@ -3875,9 +3875,9 @@ export async function propertyTest<
 
     if (result.error !== undefined) {
       exploration.stoppedBecause = 'failure';
-      if (result.error instanceof ModelTestFailure) {
+      if (result.error instanceof ModelTestFailureError) {
         const failure = await saveFailure(
-          new ModelTestFailure(
+          new ModelTestFailureError(
             result.error.summary,
             result.error.trace,
             result.error.cause,
@@ -3926,8 +3926,8 @@ export async function propertyTest<
           await failureStore.remove?.(stored, failureKey!);
           continue;
         }
-        if (error instanceof ModelTestFailure) {
-          const failure = new ModelTestFailure(
+        if (error instanceof ModelTestFailureError) {
+          const failure = new ModelTestFailureError(
             `${error.summary} (replayed from ${stored.location ?? 'the failure store'})`,
             error.trace,
             error.cause,

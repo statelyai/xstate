@@ -1,9 +1,9 @@
 import { Effect, Layer, Schema } from 'effect';
 import { Atom, AtomRegistry } from 'effect/reactivity';
-import { fromEffect, join } from '@xstate/effect';
+import { createEffectLogic, join } from '@xstate/effect';
 import { createActorAtoms } from '@xstate/effect/atom';
 
-const prepare = fromEffect({
+const prepare = createEffectLogic({
   schemas: { input: Schema.Struct({ release: Schema.String }) },
   effect: ({ input }) => Effect.succeed(`Prepared ${input.release}`)
 });

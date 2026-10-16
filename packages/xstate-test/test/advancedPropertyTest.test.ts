@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import { createMachine, SimulatedClock, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   fastCheckAdapter,
   propertyTest,
   replayTest
@@ -296,7 +296,7 @@ describe('advanced property testing', () => {
         })
       }
     });
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
 
     try {
       await propertyTest(machine, {
@@ -324,10 +324,10 @@ describe('advanced property testing', () => {
         }
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.trace.events).toEqual([
       { type: 'CREATE', id: 'created' },
       { type: 'USE', id: 'created' }
@@ -345,7 +345,7 @@ describe('advanced property testing', () => {
           }
         }
       })
-    ).rejects.toBeInstanceOf(ModelTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailureError);
   });
 
   it('covers dynamic transition definitions', async () => {
@@ -393,7 +393,7 @@ describe('advanced property testing', () => {
         c: {}
       }
     });
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(machine, {
         seed: 1,
@@ -407,7 +407,7 @@ describe('advanced property testing', () => {
         }
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
     expect(failure.trace.steps).toHaveLength(1);
@@ -465,7 +465,7 @@ describe('advanced property testing', () => {
     expect(successful.coverage.prefixSteps).toBe(3);
     expect(successful.coverage.frontiers.covered).toHaveLength(1);
 
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(model, {
         seed: 9,
@@ -478,7 +478,7 @@ describe('advanced property testing', () => {
         }
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
     expect(failure.trace.prefixEvents).toEqual([{ type: 'ACTIVATE' }]);
     expect(failure.trace.events).toHaveLength(1);
@@ -516,7 +516,7 @@ describe('advanced property testing', () => {
         })
       }
     });
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(machine, {
         seed: 11,
@@ -550,10 +550,10 @@ describe('advanced property testing', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.trace.events).toHaveLength(1);
     const cause = failure.cause as {
       model: number;
@@ -643,7 +643,7 @@ describe('advanced property testing', () => {
       }
     } as TestAdapter;
     let disposed = 0;
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(machine, {
         adapter,
@@ -692,7 +692,7 @@ describe('advanced property testing', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
     expect(failure.fixture?.temporalFailure).toMatchObject({
@@ -714,7 +714,7 @@ describe('advanced property testing', () => {
     ]);
     expect(disposed).toBe(1);
 
-    let replayFailure!: ModelTestFailure;
+    let replayFailure!: ModelTestFailureError;
     try {
       await replayTest(machine, failure.fixture!, {
         invariant: () => {},
@@ -729,9 +729,9 @@ describe('advanced property testing', () => {
         ]
       });
     } catch (error) {
-      replayFailure = error as ModelTestFailure;
+      replayFailure = error as ModelTestFailureError;
     }
-    expect(replayFailure).toBeInstanceOf(ModelTestFailure);
+    expect(replayFailure).toBeInstanceOf(ModelTestFailureError);
     expect(replayFailure.fixture?.temporalFailure?.id).toBe('stay-active');
 
     const incompatible = createMachine({ id: 'timeline', version: '2' });
@@ -795,7 +795,7 @@ describe('advanced property testing', () => {
 
   it('shrinks generated checkpoint and stop commands', async () => {
     const machine = createMachine({});
-    let checkpointFailure!: ModelTestFailure;
+    let checkpointFailure!: ModelTestFailureError;
     let active = 0;
     let created = 0;
     try {
@@ -828,7 +828,7 @@ describe('advanced property testing', () => {
         invariant: () => {}
       });
     } catch (error) {
-      checkpointFailure = error as ModelTestFailure;
+      checkpointFailure = error as ModelTestFailureError;
     }
     expect(checkpointFailure.trace.commands).toHaveLength(1);
     expect(checkpointFailure.trace.commands[0]).toMatchObject({
@@ -837,7 +837,7 @@ describe('advanced property testing', () => {
     expect(created).toBeGreaterThan(1);
     expect(active).toBe(0);
 
-    let stopFailure!: ModelTestFailure;
+    let stopFailure!: ModelTestFailureError;
     try {
       await propertyTest(machine, {
         seed: 32,
@@ -850,7 +850,7 @@ describe('advanced property testing', () => {
         }
       });
     } catch (error) {
-      stopFailure = error as ModelTestFailure;
+      stopFailure = error as ModelTestFailureError;
     }
     expect(stopFailure.trace.commands).toEqual([{ type: 'stop' }]);
   });

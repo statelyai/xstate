@@ -170,7 +170,7 @@ describe('withModelTests', () => {
     );
   });
 
-  it('keys the failure database by file, suites, and test name', async () => {
+  it('keys the failure store by file, suites, and test name', async () => {
     const { base, registered } = fakeIt();
     withModelTests(base).model.fails('keyed', counterMachine, {
       seed: 1,

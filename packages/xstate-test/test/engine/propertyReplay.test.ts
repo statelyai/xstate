@@ -1,6 +1,6 @@
 import { createMachine, initialTransition, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   propertyTest,
   replayTest,
   type TestFixture
@@ -40,7 +40,7 @@ const legacyFixture = {
 
 describe('replayTest', () => {
   it('replays a v2 fixture produced by a failing property test', async () => {
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(counterMachine, {
         adapter: randomAdapter({ seed: 1, numRuns: 5, maxCommands: 2 }),
@@ -48,24 +48,24 @@ describe('replayTest', () => {
         invariant: failingInvariant
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
     expect(failure.fixture).toMatchObject({ formatVersion: 2 });
 
     const replayed = (await replayTest(counterMachine, failure.fixture!, {
       invariant: failingInvariant
-    }).catch((error) => error)) as ModelTestFailure;
+    }).catch((error) => error)) as ModelTestFailureError;
 
-    expect(replayed).toBeInstanceOf(ModelTestFailure);
+    expect(replayed).toBeInstanceOf(ModelTestFailureError);
     expect(replayed.trace.steps).toHaveLength(failure.trace.steps.length);
   });
 
   it('migrates a formatVersion 1 fixture', async () => {
     const replayed = (await replayTest(counterMachine, legacyFixture, {
       invariant: failingInvariant
-    }).catch((error) => error)) as ModelTestFailure;
+    }).catch((error) => error)) as ModelTestFailureError;
 
-    expect(replayed).toBeInstanceOf(ModelTestFailure);
+    expect(replayed).toBeInstanceOf(ModelTestFailureError);
     expect(replayed.trace.steps).toHaveLength(1);
     expect(replayed.trace.steps[0].phase).toBe('generated');
     expect(replayed.trace.steps[0].event).toEqual({ type: 'INC', value: 5 });
@@ -81,9 +81,9 @@ describe('replayTest', () => {
         failedAt: 2
       },
       { invariant: failingInvariant }
-    ).catch((error) => error)) as ModelTestFailure;
+    ).catch((error) => error)) as ModelTestFailureError;
 
-    expect(replayed).toBeInstanceOf(ModelTestFailure);
+    expect(replayed).toBeInstanceOf(ModelTestFailureError);
     expect(replayed.trace.prefixEvents).toEqual([{ type: 'INC', value: 3 }]);
     expect(replayed.trace.events).toEqual([{ type: 'INC', value: 3 }]);
   });

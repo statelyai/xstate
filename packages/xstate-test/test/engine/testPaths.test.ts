@@ -2,7 +2,7 @@ import { createAsyncLogic, createMachine, types } from 'xstate';
 import * as graph from '../../src/engine/index.ts';
 import {
   formatTestCoverage,
-  ModelTestFailure,
+  ModelTestFailureError,
   propertyTest,
   replayTest,
   testPaths,
@@ -31,12 +31,12 @@ async function captureFailure(run: () => Promise<unknown>) {
   try {
     await run();
   } catch (error) {
-    if (error instanceof ModelTestFailure) {
+    if (error instanceof ModelTestFailureError) {
       return error;
     }
     throw error;
   }
-  throw new Error('expected a ModelTestFailure');
+  throw new Error('expected a ModelTestFailureError');
 }
 
 describe('`states` keys with a plain machine', () => {
@@ -272,7 +272,7 @@ describe('testPaths() with invoke sources', () => {
     const fixture = JSON.parse(JSON.stringify(failure.fixture)) as TestFixture;
     await expect(
       replayTest(machine, fixture, { sut: createSut() })
-    ).rejects.toBeInstanceOf(ModelTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailureError);
   });
 
   it('records synthesized errors as portable data', async () => {

@@ -1,8 +1,8 @@
 import { Effect, Schedule } from 'effect';
-import { createEffectActor, fromEffect, join } from '@xstate/effect';
+import { createEffectActor, createEffectLogic, join } from '@xstate/effect';
 
 let attempts = 0;
-const worker = fromEffect(
+const worker = createEffectLogic(
   Effect.suspend(() => {
     attempts++;
     return attempts < 3

@@ -1,6 +1,6 @@
 // Positive fixture: every `enq`/`enqueue` call below must be reported.
 import { Effect } from 'effect';
-import { fromEffect, fromEffectStream } from '../../src/index.ts';
+import { createEffectLogic, createEffectStreamLogic } from '../../src/index.ts';
 
 declare const enq: any;
 declare const enqueue: any;
@@ -20,9 +20,9 @@ export function inlineActionPromiseWrapped() {
 }
 
 export function inlineSpawnEnq() {
-  enq.spawn(fromEffect(Effect.succeed('inline')));
+  enq.spawn(createEffectLogic(Effect.succeed('inline')));
 }
 
 export function inlineSpawnEnqueue() {
-  enqueue.spawn(fromEffectStream(Effect.succeed('inline') as any));
+  enqueue.spawn(createEffectStreamLogic(Effect.succeed('inline') as any));
 }

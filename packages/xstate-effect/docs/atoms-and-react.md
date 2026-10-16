@@ -101,11 +101,11 @@ import {
   useAtomSet,
   useAtomSuspense
 } from '@effect/atom-react';
-import { fromEffect, setupEffect } from '@xstate/effect';
+import { createEffectLogic, setupEffect } from '@xstate/effect';
 import { createActorAtoms } from '@xstate/effect/atom';
 
 const reviewMachine = setupEffect({
-  actors: { publish: fromEffect(Effect.sleep('10 millis')) }
+  actors: { publish: createEffectLogic(Effect.sleep('10 millis')) }
 }).createMachine({
   initial: 'pending',
   states: {
@@ -219,10 +219,10 @@ Pass the actor's input when creating its atoms:
 ```ts
 import { Effect, Layer, Schema } from 'effect';
 import { Atom, AtomRegistry } from 'effect/reactivity';
-import { fromEffect, join } from '@xstate/effect';
+import { createEffectLogic, join } from '@xstate/effect';
 import { createActorAtoms } from '@xstate/effect/atom';
 
-const prepare = fromEffect({
+const prepare = createEffectLogic({
   schemas: { input: Schema.Struct({ release: Schema.String }) },
   effect: ({ input }) => Effect.succeed(`Prepared ${input.release}`)
 });

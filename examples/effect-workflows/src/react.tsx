@@ -6,11 +6,11 @@ import {
   useAtomSet,
   useAtomSuspense
 } from '@effect/atom-react';
-import { fromEffect, setupEffect } from '@xstate/effect';
+import { createEffectLogic, setupEffect } from '@xstate/effect';
 import { createActorAtoms } from '@xstate/effect/atom';
 
 const reviewMachine = setupEffect({
-  actors: { publish: fromEffect(Effect.sleep('10 millis')) }
+  actors: { publish: createEffectLogic(Effect.sleep('10 millis')) }
 }).createMachine({
   initial: 'pending',
   states: {

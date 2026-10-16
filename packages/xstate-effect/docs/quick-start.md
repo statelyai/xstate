@@ -30,7 +30,7 @@ A release waits for approval for up to 30 seconds. Approval starts deployment; c
 import { Context, Effect, Schema } from 'effect';
 import {
   createEffectActor,
-  fromEffect,
+  createEffectLogic,
   send,
   setupEffect,
   waitFor
@@ -41,7 +41,7 @@ export class Deployments extends Context.Service<
   { readonly deploy: (release: string) => Effect.Effect<string, Error> }
 >()('@app/Deployments') {}
 
-const deploy = fromEffect({
+const deploy = createEffectLogic({
   schemas: { input: Schema.Struct({ release: Schema.String }) },
   effect: ({ input }) => Deployments.use((api) => api.deploy(input.release))
 });

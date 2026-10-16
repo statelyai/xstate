@@ -4,7 +4,7 @@ import {
   generateTestSuite,
   parseTestSuite,
   replayTestSuite,
-  serializeTestSuite
+  testSuiteToJSON
 } from '../../src/engine/index.ts';
 import { constant, randomAdapter } from './propertyTestAdapter.ts';
 
@@ -70,8 +70,8 @@ describe('generateTestSuite', () => {
   });
 
   it('is deterministic', async () => {
-    expect(serializeTestSuite(await generate())).toBe(
-      serializeTestSuite(await generate())
+    expect(testSuiteToJSON(await generate())).toBe(
+      testSuiteToJSON(await generate())
     );
   });
 
@@ -136,10 +136,10 @@ describe('replayTestSuite', () => {
   });
 });
 
-describe('serializeTestSuite', () => {
+describe('testSuiteToJSON', () => {
   it('round-trips through JSON', async () => {
     const suite = await generate();
-    const parsed = parseTestSuite(serializeTestSuite(suite));
+    const parsed = parseTestSuite(testSuiteToJSON(suite));
 
     expect(parsed.fixtures).toEqual(suite.fixtures);
     expect(parsed.machineId).toBe('traffic');

@@ -1,14 +1,14 @@
 import { Effect } from 'effect';
 import {
   createEffectActor,
-  fromEffect,
+  createEffectLogic,
   waitFor,
   withActorScope
 } from '@xstate/effect';
 import { setup } from 'xstate';
 
 const events: string[] = [];
-const prepareRelease = fromEffect(
+const prepareRelease = createEffectLogic(
   Effect.gen(function* () {
     // Keep the shared cache open for the rest of the release workflow.
     yield* Effect.acquireRelease(

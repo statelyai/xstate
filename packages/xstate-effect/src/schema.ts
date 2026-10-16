@@ -7,8 +7,8 @@ import type {
 } from 'xstate';
 
 /**
- * An Effect `Schema` accepted by this package. `setupEffect`, `fromEffect`,
- * `fromEffectStream` and `fromEffectEventStream` convert it to a Standard
+ * An Effect `Schema` accepted by this package. `setupEffect`, `createEffectLogic`,
+ * `createEffectStreamLogic` and `createEffectEventStreamLogic` convert it to a Standard
  * Schema, so XState infers the decoded `Schema.Type` without an explicit call
  * to `Schema.toStandardSchemaV1`.
  */

@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   extractReplayPath,
   fastCheckAdapter,
   propertyTest,
@@ -94,7 +94,7 @@ describe('temporal operators (STA-6400)', () => {
   });
 
   it('still fails an unbounded `eventually` that the run never satisfied', async () => {
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(counterMachine, {
         adapter: scriptedAdapter(async (runner, caseId) => {
@@ -112,10 +112,10 @@ describe('temporal operators (STA-6400)', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.fixture?.temporalFailure).toMatchObject({
       type: 'eventually',
       id: 'reach-ten-unbounded'
@@ -125,7 +125,7 @@ describe('temporal operators (STA-6400)', () => {
   });
 
   it('fails `always` on the first stable step where the predicate does not hold', async () => {
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(counterMachine, {
         adapter: scriptedAdapter(async (runner, caseId) => {
@@ -145,10 +145,10 @@ describe('temporal operators (STA-6400)', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.fixture?.temporalFailure).toMatchObject({
       type: 'always',
       id: 'below-two'
@@ -177,7 +177,7 @@ describe('temporal operators (STA-6400)', () => {
   });
 
   it('fails `never` on the first stable step where the predicate holds', async () => {
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(counterMachine, {
         adapter: scriptedAdapter(async (runner, caseId) => {
@@ -195,10 +195,10 @@ describe('temporal operators (STA-6400)', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.fixture?.temporalFailure).toMatchObject({
       type: 'never',
       id: 'never-one'
@@ -364,7 +364,7 @@ describe('exploration metrics (STA-6403)', () => {
 
 describe('replay (STA-6407)', () => {
   it('never masks the underlying failure with a fixture-construction error', async () => {
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(counterMachine, {
         adapter: scriptedAdapter(async (runner, caseId) => {
@@ -385,10 +385,10 @@ describe('replay (STA-6407)', () => {
         }
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     // the real cause survives; only the fixture is dropped
     expect((failure.cause as Error).message).toBe('count must stay at zero');
     expect(failure.fixture).toBeUndefined();
@@ -436,7 +436,7 @@ describe('replay (STA-6407)', () => {
       projectModel: (snapshot: any) => snapshot.context.count
     };
 
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(machine, {
         seed: 9,
@@ -447,9 +447,9 @@ describe('replay (STA-6407)', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.fixture).toBeDefined();
 
     // without the reference, the run is clean and replay reports non-reproduction
@@ -462,7 +462,7 @@ describe('replay (STA-6407)', () => {
       invariant: () => {},
       reference
     }).catch((error) => error);
-    expect(replayFailure).toBeInstanceOf(ModelTestFailure);
+    expect(replayFailure).toBeInstanceOf(ModelTestFailureError);
     expect(replayFailure.cause).toMatchObject({ referenceMatches: false });
   });
 
@@ -494,7 +494,7 @@ describe('replay (STA-6407)', () => {
       projectModel: (snapshot: any) => snapshot.context.count
     };
 
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(machine, {
         seed: 10,
@@ -505,15 +505,15 @@ describe('replay (STA-6407)', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
 
     const replayFailure = await replayTest(machine, failure.fixture!, {
       invariant: () => {},
       sut
     }).catch((error) => error);
-    expect(replayFailure).toBeInstanceOf(ModelTestFailure);
+    expect(replayFailure).toBeInstanceOf(ModelTestFailureError);
     expect(replayFailure.cause).toMatchObject({ sutMatches: false });
   });
 });

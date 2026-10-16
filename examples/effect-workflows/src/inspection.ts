@@ -3,14 +3,14 @@ import { Effect } from 'effect';
 import type { Snapshot } from 'xstate';
 import {
   createEffectActor,
-  fromEffect,
+  createEffectLogic,
   join,
   send,
   setupEffect
 } from '@xstate/effect';
 
 const reviewMachine = setupEffect({
-  actors: { publish: fromEffect(Effect.succeed('Release published')) }
+  actors: { publish: createEffectLogic(Effect.succeed('Release published')) }
 }).createMachine({
   id: 'releaseReview',
   output: () => 'Release published',

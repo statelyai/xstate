@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   formatTestStatistics,
   propertyTest,
   testPaths
@@ -38,7 +38,7 @@ async function catchFailure(run: () => Promise<unknown>) {
   try {
     await run();
   } catch (error) {
-    return error as ModelTestFailure;
+    return error as ModelTestFailureError;
   }
   throw new Error('Expected the campaign to fail');
 }
