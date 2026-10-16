@@ -138,6 +138,13 @@ import type { SnapshotFrom } from 'xstate';
 type UploadSnapshot = SnapshotFrom<typeof machine>;
 ```
 
+A child state name known only at runtime, typed `string`, is accepted at its own position. The keys around it are still checked:
+
+```ts
+const step: string = readStepFromUrl();
+snapshot.matches({ checkout: step }); // `checkout` must still be a state
+```
+
 ## States cheatsheet
 
 ```ts

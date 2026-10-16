@@ -188,40 +188,62 @@ export type ToTestStateValue<TStateValue extends StateValue> =
         : never;
 
 /**
- * `true` if `TTestStateValue` is not a literal state value: `string`, a map
- * with `string` keys, or a map with a non-literal value at any depth (such as
- * `{ checkout: string }`, which a `const` object without `as const` infers).
+ * `true` if `TTestStateValue` can match `TStateValue`, checked per position:
+ * each literal key names a state at its level and each literal child matches
+ * that state. A non-literal value (`string`, or a map with `string` keys)
+ * passes at its own position only, so `{ checkout: string }` is accepted and
+ * `{ nope: 'payment', checkout: string }` is not.
  */
-type IsWideStateValue<TTestStateValue extends StateValue> =
-  string extends TTestStateValue
+type IsTestStateValueValid<
+  TStateValue extends StateValue,
+  TTestStateValue
+> = StateValue extends TStateValue
+  ? true
+  : string extends TTestStateValue
     ? true
-    : TTestStateValue extends StateValueMap
-      ? string extends keyof TTestStateValue
+    : TTestStateValue extends string
+      ? [TTestStateValue] extends [StateValuePath<TStateValue>]
         ? true
-        : true extends {
-              [K in keyof TTestStateValue]-?: NonNullable<
-                TTestStateValue[K]
-              > extends infer TChild extends StateValue
-                ? IsWideStateValue<TChild>
-                : false;
-            }[keyof TTestStateValue]
+        : false
+      : TTestStateValue extends StateValueMap
+        ? string extends keyof TTestStateValue
           ? true
-          : false
-      : false;
+          : true extends (
+                TStateValue extends StateValueMap
+                  ? IsTestStateValueMapValid<TStateValue, TTestStateValue>
+                  : never
+              )
+            ? true
+            : false
+        : false;
+
+type IsTestStateValueMapValid<
+  TStateValueMap extends StateValueMap,
+  TTestStateValue extends StateValueMap
+> = [Exclude<keyof TTestStateValue, keyof TStateValueMap>] extends [never]
+  ? false extends {
+      [K in keyof TTestStateValue]-?: IsTestStateValueValid<
+        NonNullable<TStateValueMap[K & keyof TStateValueMap]>,
+        NonNullable<TTestStateValue[K]>
+      >;
+    }[keyof TTestStateValue]
+    ? false
+    : true
+  : false;
 
 /**
  * `unknown` if `matches(...)` accepts `TTestStateValue` for `TStateValue`,
- * otherwise `never`. Non-literal test values are always accepted.
+ * otherwise `never`. Literal values must name states; a non-literal value
+ * (such as a `string` leaf) is accepted at its own position.
  */
 export type TestStateValueCheck<
   TStateValue extends StateValue,
   TTestStateValue extends StateValue
-> =
-  IsWideStateValue<TTestStateValue> extends true
-    ? unknown
-    : [TTestStateValue] extends [ToTestStateValue<TStateValue>]
-      ? unknown
-      : never;
+> = [TTestStateValue] extends [ToTestStateValue<TStateValue>]
+  ? unknown
+  : false extends IsTestStateValueValid<TStateValue, TTestStateValue>
+    ? never
+    : unknown;
 
 interface MachineSnapshotBase<
   TContext extends MachineContext,

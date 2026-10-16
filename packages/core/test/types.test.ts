@@ -6621,8 +6621,37 @@ describe('snapshot methods', () => {
     snapshot.matches({ checkout: leaf });
     const inferred = { checkout: 'review' };
     snapshot.matches(inferred);
-    const either: { checkout: string } | { idle: string } = inferred;
+    const either: 'idle' | { checkout: string } = inferred;
     snapshot.matches(either);
+    // @ts-expect-error 'nope' is not a state of this machine
+    snapshot.matches({ nope: 'payment', checkout: leaf });
+    // @ts-expect-error 'idle' has no child states
+    snapshot.matches({ idle: leaf });
+
+    const formMachine = setup({}).createMachine({
+      initial: 'form',
+      states: {
+        form: {
+          type: 'parallel',
+          states: {
+            shipping: {
+              initial: 'address',
+              states: { address: {}, done: {} }
+            },
+            billing: {
+              initial: 'card',
+              states: { card: {}, done: {} }
+            }
+          }
+        }
+      }
+    });
+    const formSnapshot = createActor(formMachine).getSnapshot();
+    formSnapshot.matches({ form: { shipping: leaf, billing: 'card' } });
+    // @ts-expect-error 'nope' is not a child state of 'billing'
+    formSnapshot.matches({ form: { shipping: leaf, billing: 'nope' } });
+    // @ts-expect-error 'nope' is not a region of 'form'
+    formSnapshot.matches({ form: { shipping: leaf, nope: 'card' } });
     const fromState = (state: StateFrom<typeof machine>) => {
       state.matches('checkout.review');
       // @ts-expect-error 'noSuchState' is not a state of this machine
