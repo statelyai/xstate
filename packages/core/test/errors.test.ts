@@ -241,7 +241,9 @@ describe('error handling', () => {
 
   it('should stop other invoked actors when an invoked actor errors without a handler', async () => {
     const cleanup = vi.fn();
-    const errorSpy = vi.fn();
+    const error = new Error('oops');
+    const { resolve, promise } = Promise.withResolvers<unknown>();
+    const errorSpy = vi.fn(resolve);
 
     const machine = createMachine({
       invoke: [
@@ -249,7 +251,7 @@ describe('error handling', () => {
           src: fromCallback(() => cleanup)
         },
         {
-          src: fromPromise(() => Promise.reject(new Error('oops')))
+          src: fromPromise(() => Promise.reject(error))
         }
       ]
     });
@@ -258,17 +260,21 @@ describe('error handling', () => {
     actorRef.subscribe({ error: errorSpy });
     actorRef.start();
 
-    await sleep(10);
+    expect(await promise).toBe(error);
 
     expect(actorRef.getSnapshot().status).toBe('error');
+    expect(actorRef.getSnapshot().error).toBe(error);
     expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(error);
     expect(cleanup).toHaveBeenCalledTimes(1);
     expect(Object.keys(actorRef.getSnapshot().children)).toHaveLength(0);
   });
 
   it('should stop invoked actors of a state when an invoked actor errors without a handler', async () => {
     const cleanup = vi.fn();
-    const errorSpy = vi.fn();
+    const error = new Error('oops');
+    const { resolve, promise } = Promise.withResolvers<unknown>();
+    const errorSpy = vi.fn(resolve);
 
     const machine = createMachine({
       initial: 'working',
@@ -279,7 +285,7 @@ describe('error handling', () => {
               src: fromCallback(() => cleanup)
             },
             {
-              src: fromPromise(() => Promise.reject(new Error('oops')))
+              src: fromPromise(() => Promise.reject(error))
             }
           ]
         }
@@ -290,11 +296,48 @@ describe('error handling', () => {
     actorRef.subscribe({ error: errorSpy });
     actorRef.start();
 
-    await sleep(10);
+    expect(await promise).toBe(error);
 
     expect(actorRef.getSnapshot().status).toBe('error');
+    expect(actorRef.getSnapshot().error).toBe(error);
     expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(error);
     expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(Object.keys(actorRef.getSnapshot().children)).toHaveLength(0);
+  });
+
+  it('should stop spawned actors when an invoked actor errors without a handler', async () => {
+    const cleanup = vi.fn();
+    const error = new Error('oops');
+    const { resolve, promise } = Promise.withResolvers<unknown>();
+    const errorSpy = vi.fn(resolve);
+
+    const machine = createMachine({
+      context: ({ spawn }) => ({
+        child: spawn(
+          fromCallback(() => cleanup),
+          { id: 'spawned' }
+        )
+      }),
+      invoke: {
+        src: fromPromise(() => Promise.reject(error))
+      }
+    });
+
+    const actorRef = createActor(machine);
+    actorRef.subscribe({ error: errorSpy });
+    actorRef.start();
+    const child = actorRef.getSnapshot().context.child;
+    expect(child.getSnapshot().status).toBe('active');
+
+    expect(await promise).toBe(error);
+
+    expect(actorRef.getSnapshot().status).toBe('error');
+    expect(actorRef.getSnapshot().error).toBe(error);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(error);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(child.getSnapshot().status).toBe('stopped');
     expect(Object.keys(actorRef.getSnapshot().children)).toHaveLength(0);
   });
 
