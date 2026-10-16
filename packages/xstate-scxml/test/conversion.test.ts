@@ -392,7 +392,7 @@ describe('SCXML to XState conversion', () => {
             "params": {
               "stateId": "#b",
             },
-            "type": "xstate.stateIn",
+            "type": "@xstate.stateIn",
           },
           "reenter": true,
           "target": [

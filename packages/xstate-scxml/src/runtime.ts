@@ -645,7 +645,7 @@ function assertMachineJSON(
     }
     if (
       !resolvedSources.guards[condition.type] &&
-      !['scxml.cond', 'xstate.stateIn', 'xstate.not'].includes(condition.type)
+      !['scxml.cond', '@xstate.stateIn', '@xstate.not'].includes(condition.type)
     ) {
       throw new Error(`Missing guard source "${condition.type}"`);
     }
@@ -1106,6 +1106,31 @@ export function createMachineFromSCXMLConfig(
     if (isResolvable(condition)) {
       return (args: any) =>
         !!evaluateResolvable(condition, slot, makeScope(args), path);
+    }
+    if (condition.type === '@xstate.not') {
+      const guard = resolveCondition(
+        (condition.params as { guard?: ConditionJSON } | undefined)?.guard,
+        slot,
+        `${path}.params.guard`
+      );
+      return (args: any) => !guard?.(args);
+    }
+    if (condition.type === '@xstate.stateIn') {
+      return (args: any) => {
+        const params = resolveValue(
+          condition.params,
+          slot,
+          makeScope(args),
+          `${path}.params`
+        ) as { stateId?: unknown } | undefined;
+        const stateId = params?.stateId;
+        return (
+          typeof stateId === 'string' &&
+          !!args._snapshot?.nodes?.some(
+            (node: any) => node.id === stateId.replace(/^#/, '')
+          )
+        );
+      };
     }
     return (args: any) => {
       const params = resolveValue(
@@ -2551,26 +2576,6 @@ export function createMachineFromSCXMLConfig(
         });
         return false;
       }
-    },
-    'xstate.stateIn': (args: any, params: any) => {
-      const stateId = params?.stateId as string;
-      if (!stateId) return false;
-      const normalizedId = stateId.replace(/^#/, '');
-      const snapshot = args._snapshot;
-      if (snapshot?.nodes) {
-        return snapshot.nodes.some((node: any) => node.id === normalizedId);
-      }
-      return false;
-    },
-    'xstate.not': (args: any, params: any) => {
-      const inner = params?.guard;
-      const innerImpl = inner && args.guards?.[inner.type];
-      if (!innerImpl) {
-        throw new Error(
-          `Guard '${inner?.type}' referenced by 'xstate.not' is not implemented.`
-        );
-      }
-      return !innerImpl(args, inner.params);
     }
   };
   const provided = machine.provide({

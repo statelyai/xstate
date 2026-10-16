@@ -1288,14 +1288,14 @@ describe('json', () => {
       machineFromJSON({
         guards: {
           a: {
-            when: { type: 'xstate.not', params: { guard: { type: 'a' } } }
+            when: { type: '@xstate.not', params: { guard: { type: 'a' } } }
           }
         }
       })
     ).toThrow('Circular guard reference: a -> a');
   });
 
-  it('rejects missing guard sources inside xstate.not', () => {
+  it('rejects missing guard sources inside @xstate.not', () => {
     const createWithGuard = (guard: any) =>
       machineFromJSON(
         {
@@ -1310,18 +1310,18 @@ describe('json', () => {
 
     expect(() =>
       createWithGuard({
-        type: 'xstate.not',
+        type: '@xstate.not',
         params: {
-          guard: { type: 'xstate.not', params: { guard: { type: 'raedy' } } }
+          guard: { type: '@xstate.not', params: { guard: { type: 'raedy' } } }
         }
       })
     ).toThrow('Missing guard source "raedy"');
-    expect(() => createWithGuard({ type: 'xstate.not' })).toThrow(
+    expect(() => createWithGuard({ type: '@xstate.not' })).toThrow(
       'Missing guard at $.states.idle.on.GO.guard.params.guard'
     );
   });
 
-  it('negates declarative named guards and expressions with xstate.not', () => {
+  it('negates declarative named guards and expressions with @xstate.not', () => {
     const createWithGuard = (guard: any) =>
       machineFromJSON(
         {
@@ -1341,14 +1341,14 @@ describe('json', () => {
 
     for (const inner of [{ type: 'isReady' }, { '@expr': 'context.ready' }]) {
       const actor = createActor(
-        createWithGuard({ type: 'xstate.not', params: { guard: inner } })
+        createWithGuard({ type: '@xstate.not', params: { guard: inner } })
       ).start();
       actor.send({ type: 'GO' });
       expect(actor.getSnapshot().value).toBe('done');
     }
   });
 
-  it('rejects xstate.stateIn references to unknown state IDs', () => {
+  it('rejects @xstate.stateIn references to unknown state IDs', () => {
     const createWithStateId = (stateId?: string) =>
       machineFromJSON({
         id: 'm',
@@ -1357,7 +1357,7 @@ describe('json', () => {
           idle: {
             on: {
               GO: {
-                guard: { type: 'xstate.stateIn', params: { stateId } },
+                guard: { type: '@xstate.stateIn', params: { stateId } },
                 target: 'done'
               }
             }
@@ -1652,16 +1652,34 @@ describe('json', () => {
 });
 
 describe('reserved source names', () => {
-  it("rejects source names using the reserved '@xstate.' prefix", () => {
+  it.each(['@xstate.raise', 'xstate.raise'])(
+    "rejects provided source name '%s'",
+    (name) => {
+      expect(() =>
+        machineFromJSON({
+          initial: 'a',
+          states: { a: {} }
+        } as any).provide({
+          actions: { [name]: () => {} } as any
+        })
+      ).toThrow(
+        `Invalid actions name '${name}': the 'xstate.' and '@xstate.' prefixes are reserved`
+      );
+    }
+  );
+
+  it.each([
+    ['actions', { 'xstate.track': { type: '@xstate.log' } }],
+    ['guards', { '@xstate.not': { when: { type: 'ok' } } }],
+    ['delays', { 'xstate.slow': 1000 }]
+  ] as const)('rejects reserved %s names in the JSON', (kind, definitions) => {
     expect(() =>
-      machineFromJSON({
-        initial: 'a',
-        states: { a: {} }
-      } as any).provide({
-        actions: { '@xstate.raise': () => {} } as any
-      })
+      machineFromJSON(
+        { initial: 'a', states: { a: {} }, [kind]: definitions } as any,
+        { guards: { ok: () => true } }
+      )
     ).toThrow(
-      "Invalid actions name '@xstate.raise': the '@xstate.' prefix is reserved"
+      `Invalid ${kind} name '${Object.keys(definitions)[0]}': the 'xstate.' and '@xstate.' prefixes are reserved`
     );
   });
 });

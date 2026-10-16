@@ -1058,3 +1058,18 @@ describe('guards - enqueue before return', () => {
     expect(ran).toEqual(['track', 'track', 'track']);
   });
 });
+
+describe('reserved source names', () => {
+  it.each(['xstate.ready', '@xstate.ready'])(
+    "rejects source name '%s' for every source kind",
+    (name) => {
+      for (const kind of ['actions', 'guards', 'actors', 'delays'] as const) {
+        expect(() =>
+          createMachine({ [kind]: { [name]: () => true } } as any)
+        ).toThrow(
+          `Invalid ${kind} name '${name}': the 'xstate.' and '@xstate.' prefixes are reserved`
+        );
+      }
+    }
+  );
+});

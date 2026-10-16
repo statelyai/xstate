@@ -14,6 +14,15 @@ Built-in event and effect type strings follow one rule: events delivered to logi
 | `xstate.logic.effect`                | `@xstate.effect`         | effect |
 | `xstate.log` (system effect)         | `@xstate.log`            | effect |
 
+Built-in guard types in `MachineJSON` are source keys, not events, so they use the `@xstate.` prefix:
+
+| Before           | After             |
+| ---------------- | ----------------- |
+| `xstate.not`     | `@xstate.not`     |
+| `xstate.stateIn` | `@xstate.stateIn` |
+
+In development, action, guard, actor and delay source names that start with `xstate.` or `@xstate.` throw. `machineFromJSON` also rejects JSON-defined `actions`, `guards` and `delays` with those names.
+
 The stop-child effect stays `@xstate.stop`. Helper actors created by `enq.listen()` and `enq.subscribeTo()` use the `@xstate.listener` and `@xstate.subscription` source keys, so their ids look like `@xstate.listener:0`. In development, spawned sources whose id starts with `xstate.` or `@xstate.` throw.
 
 Suffixed lifecycle event types are no longer matched. Key transitions by the category type and select the payload with `matches`:

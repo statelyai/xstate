@@ -430,7 +430,7 @@ function createGuard(cond: string): GuardJSON {
     const inMatch = cond.trim().match(/^In\('(.*)'\)/);
     if (inMatch) {
       return {
-        type: 'xstate.stateIn',
+        type: '@xstate.stateIn',
         params: { stateId: `#${sanitizeStateId(inMatch[1])}` }
       };
     }
@@ -441,10 +441,10 @@ function createGuard(cond: string): GuardJSON {
     const notInMatch = cond.trim().match(/^!In\('(.*)'\)/);
     if (notInMatch) {
       return {
-        type: 'xstate.not',
+        type: '@xstate.not',
         params: {
           guard: {
-            type: 'xstate.stateIn',
+            type: '@xstate.stateIn',
             params: { stateId: `#${sanitizeStateId(notInMatch[1])}` }
           }
         }

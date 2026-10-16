@@ -98,6 +98,7 @@ import {
   MachineOptions
 } from './types.v6.ts';
 import {
+  assertUnreservedSourceName,
   matchesEventDescriptor,
   resolveReferencedActor,
   toStatePath
@@ -399,15 +400,9 @@ export class StateMachine<
       ...sources
     };
     if (isDevelopment) {
-      // The `@xstate.` prefix is reserved for built-in serialized action and
-      // guard descriptors — user source names must not collide.
       for (const kind of ['actions', 'guards', 'actors', 'delays'] as const) {
         for (const key of Object.keys(this.sources[kind])) {
-          if (key.startsWith('@xstate.')) {
-            throw new Error(
-              `Invalid ${kind} name '${key}': the '@xstate.' prefix is reserved for built-in descriptors.`
-            );
-          }
+          assertUnreservedSourceName(kind, key);
         }
       }
     }

@@ -54,6 +54,19 @@ export function matchesState(
   });
 }
 
+/**
+ * @internal Throws when a user source name (action, guard, actor or delay)
+ * enters the `xstate.` / `@xstate.` namespaces, which are reserved for
+ * built-in events, effects and source keys.
+ */
+export function assertUnreservedSourceName(kind: string, name: string): void {
+  if (name.startsWith('xstate.') || name.startsWith('@xstate.')) {
+    throw new Error(
+      `Invalid ${kind} name '${name}': the 'xstate.' and '@xstate.' prefixes are reserved for built-in names.`
+    );
+  }
+}
+
 /** @internal */
 export function checkStateIn(
   snapshot: AnyMachineSnapshot,

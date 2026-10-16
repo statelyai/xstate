@@ -233,14 +233,14 @@ describe('v5 config diagnostics', () => {
                 {
                   target: 'c',
                   guard: {
-                    type: 'xstate.not',
+                    type: '@xstate.not',
                     params: { guard: { type: 'isReady' } }
                   }
                 }
               ],
               check: {
                 target: 'b',
-                guard: { type: 'xstate.stateIn', params: { stateId: '#b' } }
+                guard: { type: '@xstate.stateIn', params: { stateId: '#b' } }
               }
             }
           },
