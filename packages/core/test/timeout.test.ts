@@ -90,7 +90,7 @@ describe('state-level timeout', () => {
     expect(actor.getSnapshot().value).toBe('escalated');
     expect(timeoutSpy).toHaveBeenCalledWith({
       type: 'xstate.timeout.state',
-      stateId: '(machine).waiting'
+      stateId: 'waiting'
     });
   });
 

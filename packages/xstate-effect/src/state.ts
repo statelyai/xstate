@@ -20,17 +20,16 @@ type Join<TPrefix extends string, TKey extends string> = TPrefix extends ''
   ? TKey
   : `${TPrefix}.${TKey}`;
 
-/** The tag of the machine itself, used when the root state is parallel. */
-const MACHINE_TAG = '(machine)';
-
 /**
  * The dotted path of a state value: `'idle'`, `'form.editing'`. A parallel
- * state has no single path, so its tag stops at the parallel state, or is
- * `'(machine)'` when the machine itself is parallel.
+ * state has no single path, so its tag stops at the parallel state. When the
+ * machine itself is parallel, the tag is `TRootTag`: the machine id, or `''`
+ * for a machine without one.
  */
 export type StateTag<
   TValue,
-  TPrefix extends string = ''
+  TPrefix extends string = '',
+  TRootTag extends string = ''
 > = string extends TValue
   ? string
   : TValue extends string
@@ -40,12 +39,13 @@ export type StateTag<
         ? string
         : IsUnion<keyof TValue & string> extends true
           ? TPrefix extends ''
-            ? typeof MACHINE_TAG
+            ? TRootTag
             : TPrefix
           : {
               [K in keyof TValue & string]: StateTag<
                 TValue[K],
-                Join<TPrefix, K>
+                Join<TPrefix, K>,
+                TRootTag
               >;
             }[keyof TValue & string]
       : never;
@@ -57,7 +57,11 @@ type TaggedStateOf<
   TSchema extends StateSchema
 > = TValue extends unknown
   ? {
-      readonly _tag: StateTag<TValue>;
+      readonly _tag: StateTag<
+        TValue,
+        '',
+        TSchema extends { id: infer TId extends string } ? TId : ''
+      >;
       readonly value: TValue;
       readonly context: StateContextFromStateValue<TSchema, TContext, TValue>;
       readonly snapshot: TSnapshot;
@@ -94,16 +98,16 @@ export type TaggedState<TMachine extends AnyStateMachine> = TaggedStateFrom<
 >;
 
 /** Computes the dotted path tag of a state value. */
-function stateTag(value: StateValue, prefix = ''): string {
+function stateTag(value: StateValue, rootTag: string, prefix = ''): string {
   if (typeof value === 'string') {
     return prefix ? `${prefix}.${value}` : value;
   }
   const keys = Object.keys(value);
   if (keys.length !== 1) {
-    return prefix || MACHINE_TAG;
+    return prefix || rootTag;
   }
   const key = keys[0]!;
-  return stateTag(value[key]!, prefix ? `${prefix}.${key}` : key);
+  return stateTag(value[key]!, rootTag, prefix ? `${prefix}.${key}` : key);
 }
 
 /**
@@ -125,7 +129,7 @@ export function taggedState<TSnapshot extends AnyMachineSnapshot>(
   snapshot: TSnapshot
 ): TaggedStateFrom<TSnapshot> {
   return {
-    _tag: stateTag(snapshot.value),
+    _tag: stateTag(snapshot.value, snapshot.machine.id),
     value: snapshot.value,
     context: snapshot.context,
     snapshot

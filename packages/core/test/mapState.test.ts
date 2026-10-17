@@ -60,7 +60,7 @@ describe('mapState', () => {
 
     const mapped = results.map((r) => r.result);
     expect(mapped).toContain('root:test');
-    expect(results.find((r) => r.stateNode.key === '(machine)')?.result).toBe(
+    expect(results.find((r) => r.stateNode.key === '')?.result).toBe(
       'root:test'
     );
     expect(results.find((r) => r.stateNode.key === 'a')?.result).toBe('a:test');

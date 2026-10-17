@@ -109,10 +109,7 @@ describe('State', () => {
   it('should expose active state nodes as nodes', () => {
     const snapshot = createActor(exampleMachine).getSnapshot();
 
-    expect(snapshot.nodes.map((node) => node.id)).toEqual([
-      '(machine)',
-      '(machine).one'
-    ]);
+    expect(snapshot.nodes.map((node) => node.id)).toEqual(['', 'one']);
     expect('_nodes' in snapshot).toBe(false);
   });
 
@@ -535,7 +532,10 @@ it.each(['__proto__', 'constructor', 'toString'])(
       JSON.parse(
         JSON.stringify({
           initial: key,
-          states: { [key]: { on: { GO: 'done' } }, done: { type: 'final' } }
+          states: {
+            [key]: { on: { GO: { target: 'done' } } },
+            done: { type: 'final' }
+          }
         })
       )
     );

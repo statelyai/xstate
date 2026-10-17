@@ -894,9 +894,7 @@ function evaluateExpr(
 ): unknown {
   const normalizedExpr = expr.replace(/;+\s*$/, '');
   const sessionId = (self as any)?.sessionId ?? 'session_scxml';
-  const machineName = self
-    ? (scxmlMachineNames.get(self) ?? '(machine)')
-    : '(machine)';
+  const machineName = self ? (scxmlMachineNames.get(self) ?? '') : '';
   const dataContext = Object.fromEntries(
     Object.entries(context).filter(([key]) => !SCXML_SYSTEM_VARIABLES.has(key))
   );
@@ -1049,7 +1047,7 @@ ${captureVariables}
 return updates;
   `;
   const sessionId = (self as any).sessionId;
-  const machineName = scxmlMachineNames.get(self) ?? '(machine)';
+  const machineName = scxmlMachineNames.get(self) ?? '';
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
   const fn = new Function(
     'context',
@@ -1257,7 +1255,7 @@ export function createMachineFromSCXMLConfig(
   }
 
   function getMissingGuardMessage(type: string, guards: Record<string, any>) {
-    return `Guard '${type}' is not implemented in machine '${json.id ?? '(machine)'}'. Available guards: ${
+    return `Guard '${type}' is not implemented in ${json.id ? `machine '${json.id}'` : 'the machine'}. Available guards: ${
       Object.keys(guards)
         .map((key) => `'${key}'`)
         .join(', ') || '(none)'
@@ -1302,7 +1300,7 @@ export function createMachineFromSCXMLConfig(
       enq
     ) => {
       const scratch = getScratch(x.self);
-      scxmlMachineNames.set(x.self, json.id ?? '(machine)');
+      scxmlMachineNames.set(x.self, json.id ?? '');
       if (stateId) {
         scxmlEnteringStates.set(x.self, [...ancestorIds, stateId]);
       }

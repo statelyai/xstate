@@ -161,7 +161,7 @@ export { parseDelayToMilliseconds as _parseDelayToMilliseconds } from './delay.t
 export { createMachineFromCompiledConfig as _createMachineFromCompiledConfig } from './createMachine.ts';
 export { type Spawner } from './spawn.ts';
 export { isMachineSnapshot, type MachineSnapshot } from './State.ts';
-export { StateMachine } from './StateMachine.ts';
+export { InvalidSnapshotError, StateMachine } from './StateMachine.ts';
 export { StateNode } from './StateNode.ts';
 export { getStateNodes, InfiniteTransitionError } from './stateUtils.ts';
 export type {

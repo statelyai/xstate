@@ -613,7 +613,7 @@ describe('transition function', () => {
         type: '@xstate.raise',
         args: [
           expect.anything(),
-          { type: 'xstate.after', delay: 10, stateId: '(machine).a' },
+          { type: 'xstate.after', delay: 10, stateId: 'a' },
           { delay: 10 }
         ]
       })
@@ -1059,7 +1059,7 @@ describe('transition function', () => {
           type: '@xstate.cancel',
           event: {
             type: 'xstate.after',
-            stateId: '(machine).active',
+            stateId: 'active',
             delay: 1000
           }
         }),
@@ -2141,7 +2141,7 @@ describe('transition function', () => {
       const [active] = initialTransition(machine);
 
       const [next] = transition(machine, active, {
-        type: 'xstate.done.state.(machine).parent',
+        type: 'xstate.done.state.parent',
         output: undefined
       } as any);
 
@@ -2159,7 +2159,7 @@ describe('transition function', () => {
       const [waiting] = initialTransition(machine);
 
       const [next] = transition(machine, waiting, {
-        type: 'xstate.after.10.(machine).waiting'
+        type: 'xstate.after.waiting:10'
       } as any);
 
       expect(next.value).toBe('waiting');
@@ -2930,11 +2930,13 @@ describe('transition function', () => {
 describe('getNextTransitions', () => {
   it('should return no transitions for an error snapshot', () => {
     const machineV1 = createMachine({
+      id: 'machine',
       version: '1',
       initial: 'a',
       states: { a: {} }
     });
     const machineV2 = createMachine({
+      id: 'machine',
       version: '2',
       initial: 'a',
       states: { a: {} }
@@ -3098,7 +3100,7 @@ describe('getNextTransitions', () => {
     ]);
     expect(transitions[1].matches).toEqual({
       delay: 1000,
-      stateId: '(machine).a'
+      stateId: 'a'
     });
     expect(transitions.map((t) => t.target?.[0]?.key)).toEqual(['c', 'b']);
   });

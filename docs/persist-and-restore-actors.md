@@ -71,7 +71,7 @@ function loadSnapshot() {
 }
 ```
 
-> **Warning:** Validate before restoring. `createActor(...)` does not reject a malformed snapshot with a catchable error; it starts an actor in an unusable state.
+> **Note:** A snapshot that cannot represent a state of the machine (not an object, no valid `value`, or a `value` naming states the machine does not have) restores to an actor whose snapshot has `status: 'error'` and an `InvalidSnapshotError` as `error`; `createActor(...)` does not throw. Unknown fields are ignored. Validating first lets you fall back to the initial state instead.
 
 ## 3. Restore on startup
 

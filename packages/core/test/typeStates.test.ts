@@ -1,5 +1,5 @@
 import z from 'zod';
-import { Compute } from '../src';
+import type { Compute } from '../src/typeUtils.ts';
 import {
   TargetAndContextFromTypeStates,
   TypeStateFromSchema,

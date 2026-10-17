@@ -51,10 +51,10 @@ describe('restoring into eventless transitions', () => {
 
     expect(calls).toEqual([
       [
-        'Restored snapshot is in state "(machine).waiting" which has eventless transitions; they are not re-evaluated until the next event'
+        'Restored snapshot is in state "waiting" which has eventless transitions; they are not re-evaluated until the next event'
       ],
       [
-        'Restored snapshot is in state "(machine).waiting" which has eventless transitions; they are not re-evaluated until the next event'
+        'Restored snapshot is in state "waiting" which has eventless transitions; they are not re-evaluated until the next event'
       ]
     ]);
     // Detection is structural: no guard or transition function runs.
