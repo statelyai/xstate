@@ -1,5 +1,11 @@
 # xstate
 
+## 5.33.3
+
+### Patch Changes
+
+- [#5792](https://github.com/statelyai/xstate/pull/5792) [`78431d6`](https://github.com/statelyai/xstate/commit/78431d69939969cf9355ec55439b53413bd404a1) Thanks [@saadkhantareen](https://github.com/saadkhantareen)! - Fixed child actors not being stopped when a machine errors because of an unhandled error from an invoked actor. The remaining invoked and spawned actors are now stopped (and their cleanup functions are called) before the machine settles in the error state, instead of being left running as orphans.
+
 ## 5.33.2
 
 ### Patch Changes
