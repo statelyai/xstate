@@ -1110,6 +1110,99 @@ describeTestSuite(suite, cartMachine, { invariant: () => {}, sut: cartSut });
 `replayTestSuite()` replays every fixture and resolves with
 `{ passed, failed }` instead. Every fixture is expected to pass.
 
+### Test concurrency
+
+A sequential run sends one event at a time, so it never observes a race. Three
+tools look for concurrency bugs.
+
+`scheduler: true` gives every run an `fc.scheduler()`. Wrap the SUT with
+`withScheduledSut()` and its `send`, `read`, `settle`, and `advance` calls
+resolve in an order fast-check chooses. Schedule the SUT's own background work
+on `getCurrentScheduler()`. This SUT commits each increment asynchronously, so
+some orderings let `read()` return a stale count, and the campaign fails:
+
+```ts
+import { getCurrentScheduler, withScheduledSut } from '@xstate/test';
+
+await propertyTest(counterMachine, {
+  scheduler: true,
+  deriveEvents: false,
+  events: { INC: fc.record({ by: fc.constant(1) }) },
+  sut: withScheduledSut({
+    create: () => {
+      const scheduler = getCurrentScheduler()!;
+      let count = 0;
+      return {
+        send: () => {
+          void scheduler.schedule(Promise.resolve(), 'commit').then(() => {
+            count++;
+          });
+        },
+        read: () => count
+      };
+    },
+    projectModel: (snapshot) => snapshot.context.count
+  })
+});
+```
+
+The ordering of a failing run is recorded as `failure.replay.data.scheduler`.
+Rebuild it with `fc.schedulerFor(ordering)`. Only work that goes through the
+scheduler is reordered.
+
+`checkLinearizable(history, model)` decides whether a history of overlapping
+operations could have come from some sequential order:
+
+```ts
+import { checkLinearizable } from '@xstate/test';
+
+const result = checkLinearizable(
+  [
+    { id: 'a', invocation: { type: 'write', value: 1 }, response: undefined, start: 0, end: 4 },
+    { id: 'b', invocation: { type: 'read' }, response: 1, start: 1, end: 5 }
+  ],
+  {
+    initial: 0,
+    apply: (state: number, event: { type: string; value?: number }) =>
+      event.type === 'write'
+        ? { state: event.value!, response: undefined }
+        : { state, response: state }
+  }
+);
+
+result.linearizable; // true
+result.witness; // the sequential order that explains the history
+```
+
+`truncated: true` means the search stopped at `maxExplored` (default `100000`)
+before deciding. It is not proof of a bug.
+
+`runParallelPropertyCommands(machine, options)` runs a sequential `prefix`,
+then runs `branches` concurrently against the SUT, and checks the recorded
+history against the machine's own `transition()`:
+
+```ts
+import { runParallelPropertyCommands } from '@xstate/test';
+
+const result = await runParallelPropertyCommands(counterMachine, {
+  prefix: [{ type: 'INC', by: 1 }],
+  branches: [[{ type: 'INC', by: 1 }], [{ type: 'INC', by: 2 }]],
+  sut: {
+    create: () => {
+      let count = 0;
+      return {
+        send: async (event) => (count += event.type === 'INC' ? event.by : 0)
+      };
+    },
+    projectModel: (snapshot) => snapshot.context.count
+  }
+});
+
+result.linearizable; // true
+```
+
+When `send` resolves to `undefined`, the response is read with `read()`.
+
 ### Steer exploration
 
 These `propertyTest()` options change which sequences a campaign generates.
@@ -1225,25 +1318,31 @@ The fast-check-backed entry points and helpers:
 | `pick(select, toPayload?)` | An event case that picks its payload from the current snapshot, with a fast-check index. |
 | `createTestFailureStore(options?)` | The file-system store behind the `failures` option. |
 | `fastCheckAdapter(options?)` | The fast-check `TestAdapter`. |
+| `extractReplayPath(counterexample)` | Reads `replayPath` from a raw `fc.commands()` counterexample. |
 | `eventsFromSchemas(machine, options?)` | Derives the `events` map from `schemas.events`. |
 | `arbitraryFromSchema(schema, options?)` | Converts one Zod schema to an arbitrary. |
 | `mergeEventGenerators(derived, explicit)` | Merges two `events` maps; explicit entries win. |
+| `withScheduledSut(sut)`, `withScheduledReference(reference)` | Route async boundaries through the run's scheduler. |
+| `getCurrentScheduler()` | The running `fc.Scheduler`, or `undefined`. |
 
 `propertyTest()`, `testPaths()`, and `generateTestSuite()` take fast-check
 options at the top level, derive events from schemas, and accept
 `failures: true`, `{ dir, replay, key }`, or a `TestFailureStore`.
 
-Replay, reporting, and suites:
+Replay, reporting, suites, and linearizability:
 
 | Export | Description |
 | --- | --- |
 | `replayTest(source, fixture, options)` | Replays a `TestFixture`. |
 | `ModelTestFailureError`, `ReplayNotReproducedError` | Error classes. |
+| `serializeTestTrace(trace)` | Renders a trace as JSON-safe data. |
 | `formatTestCoverage`, `formatTestCoverageJUnit`, `formatTestCoverageHTML`, `testCoverageToJSON` | Coverage reports. |
 | `formatTestStatistics(coverage)` | The event-case and label distribution `statistics: true` prints. |
 | `TestCampaignError` | Thrown when a `sometimes` property or a `reachable` target is never satisfied. |
 | `assertTestCoverage(coverage, thresholds)` | Throws when coverage is below thresholds. |
 | `replayTestSuite`, `replayTestSuiteFixture`, `describeTestSuite`, `testSuiteToJSON`, `parseTestSuite` | Offline suites. |
+| `checkLinearizable(history, model, options?)` | Linearizability check. |
+| `runParallelPropertyCommands(machine, options)` | Concurrent branches checked for linearizability. |
 
 Subpath entrypoints:
 
@@ -1355,6 +1454,7 @@ options to fast-check:
 | `seed`, `path`, `replayPath` | Reproduce a run. `replayPath` is the `fc.commands()` replay path. |
 | `numRuns` | Runs per adapter call. fast-check defaults to `100`. |
 | `maxCommands` | Maximum generated commands per run. |
+| `scheduler` | `true` or `{ act }`. See [Test concurrency](#test-concurrency). |
 | `endOnFailure`, `interruptAfterTimeLimit`, `markInterruptAsFailure`, `skipAllAfterTimeLimit`, `timeout`, `maxSkipsPerRun` | Run limits. |
 | `reporter`, `asyncReporter` | Called with fast-check's run details after every adapter run: once per campaign, or once per batch with `until` or `frontiers`. |
 | `verbose`, `includeErrorInReport` | With `verbose` set to `1` (or `true`) or above, the failure message ends with fast-check's report, `fc.defaultReportMessage()`. |

@@ -1,5 +1,5 @@
 import type * as fc from 'fast-check';
-import type { TestSut, TestSutSession } from './engine/index.ts';
+import type { TestReference, TestSut, TestSutSession } from './engine/index.ts';
 import type { EventObject, Snapshot } from 'xstate';
 
 let currentScheduler: fc.Scheduler | undefined;
@@ -82,6 +82,40 @@ export function withScheduledSut<
         ...(advance
           ? { advance: (milliseconds: number) => advance(milliseconds) }
           : {})
+      };
+    }
+  };
+}
+
+/**
+ * Wraps a reference oracle the way {@link withScheduledSut} wraps a system
+ * under test: its `transition` and `read` calls resolve under the run's
+ * scheduler.
+ *
+ * @experimental
+ */
+export function withScheduledReference<
+  TSnapshot extends Snapshot<unknown>,
+  TEvent extends EventObject
+>(
+  reference: TestReference<TSnapshot, TEvent>
+): TestReference<TSnapshot, TEvent> {
+  return {
+    ...reference,
+    create: async (context) => {
+      const scheduler = getCurrentScheduler();
+      const session = await reference.create(context);
+      if (!scheduler) {
+        return session;
+      }
+      const step = scheduler.scheduleFunction(
+        async (event: TEvent) => await session.transition(event)
+      );
+      const read = scheduler.scheduleFunction(async () => await session.read());
+      return {
+        ...session,
+        transition: (event) => step(event),
+        read: () => read()
       };
     }
   };

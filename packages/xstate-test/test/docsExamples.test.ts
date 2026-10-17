@@ -29,18 +29,22 @@ import {
   ReplayNotReproducedError,
   TestCampaignError,
   assertTestCoverage,
+  checkLinearizable,
   eventsFromSchemas,
   formatTestCoverage,
   formatTestCoverageHTML,
   formatTestCoverageJUnit,
   generateTestSuite,
+  getCurrentScheduler,
   mergeEventGenerators,
   pick,
   propertyTest,
   replayTest,
+  runParallelPropertyCommands,
   testSuiteToJSON,
   testCoverageToJSON,
   testPaths,
+  withScheduledSut,
   type TestFixture,
   type TestSut
 } from '../src/index.ts';
@@ -741,6 +745,80 @@ describe('README: How-to guides', () => {
     for (const body of bodies) {
       await body();
     }
+  });
+
+  it('Test concurrency', async () => {
+    // A counter whose writes land out of order under the scheduler.
+    await expect(
+      propertyTest(counterMachine, {
+        seed: 1,
+        numRuns: 50,
+        scheduler: true,
+        deriveEvents: false,
+        events: { INC: fc.record({ by: fc.constant(1) }) },
+        sut: withScheduledSut({
+          create: () => {
+            const scheduler = getCurrentScheduler()!;
+            let count = 0;
+            return {
+              send: () => {
+                void scheduler
+                  .schedule(Promise.resolve(), 'commit')
+                  .then(() => {
+                    count++;
+                  });
+              },
+              read: () => count
+            };
+          },
+          projectModel: (snapshot) => snapshot.context.count
+        })
+      })
+    ).rejects.toBeInstanceOf(ModelTestFailureError);
+
+    const result = checkLinearizable(
+      [
+        {
+          id: 'a',
+          invocation: { type: 'write', value: 1 },
+          response: undefined,
+          start: 0,
+          end: 4
+        },
+        {
+          id: 'b',
+          invocation: { type: 'read' },
+          response: 1,
+          start: 1,
+          end: 5
+        }
+      ],
+      {
+        initial: 0,
+        apply: (state: number, event: { type: string; value?: number }) =>
+          event.type === 'write'
+            ? { state: event.value!, response: undefined }
+            : { state, response: state }
+      }
+    );
+    expect(result.linearizable).toBe(true);
+    expect(result.witness?.map((entry) => entry.id)).toEqual(['a', 'b']);
+
+    const parallel = await runParallelPropertyCommands(counterMachine, {
+      prefix: [{ type: 'INC', by: 1 }],
+      branches: [[{ type: 'INC', by: 1 }], [{ type: 'INC', by: 2 }]],
+      sut: {
+        create: () => {
+          let count = 0;
+          return {
+            send: async (event) =>
+              (count += event.type === 'INC' ? event.by : 0)
+          };
+        },
+        projectModel: (snapshot) => snapshot.context.count
+      }
+    });
+    expect(parallel.linearizable).toBe(true);
   });
 
   it('Steer exploration', async () => {

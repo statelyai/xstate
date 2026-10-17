@@ -2,12 +2,12 @@ import * as fc from 'fast-check';
 import { createMachine, types } from 'xstate';
 import {
   ModelTestFailureError,
+  extractReplayPath,
   fastCheckAdapter,
   propertyTest,
   replayTest
 } from '../src/index.ts';
 import type { TestAdapter } from '../src/index.ts';
-import { extractReplayPath } from '../src/adapter.ts';
 import { defaultEquivalent } from '../src/engine/propertyTest.ts';
 
 const counterMachine = createMachine({

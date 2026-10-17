@@ -3,9 +3,10 @@ import { createMachine, types } from 'xstate';
 import {
   ModelTestFailureError,
   fastCheckAdapter,
-  propertyTest
+  getCurrentScheduler,
+  propertyTest,
+  withScheduledSut
 } from '../src/index.ts';
-import { getCurrentScheduler, withScheduledSut } from '../src/scheduler.ts';
 import type { FastCheckSchedulerReport, TestSut } from '../src/index.ts';
 
 const counterMachine = createMachine({

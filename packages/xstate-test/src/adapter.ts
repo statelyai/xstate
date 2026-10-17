@@ -48,7 +48,9 @@ export interface FastCheckAdapterOptions extends Omit<
   readonly maxCommands?: number;
   readonly replayPath?: string;
   /**
-   * Explores promise resolution orders with `fc.scheduler()`.
+   * Explores promise resolution orders with `fc.scheduler()`. Wrap the system
+   * under test with `withScheduledSut` (and a reference oracle with
+   * `withScheduledReference`) so its async boundaries are scheduled too.
    */
   readonly scheduler?: boolean | FastCheckSchedulerOptions;
 }
