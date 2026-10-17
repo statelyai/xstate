@@ -1,8 +1,7 @@
 ---
 title: SCXML
+description: Create XState machines from SCXML documents.
 ---
-
-# SCXML
 
 > **Experimental:** `createMachineFromSCXML(...)` and `SCXMLConversionOptions` may change in a minor release.
 

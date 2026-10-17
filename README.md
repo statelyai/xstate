@@ -84,7 +84,7 @@ Get started by forking one of these templates on CodeSandbox:
 </td>
 <td>
 
-- XState v6 alpha
+- XState v6 beta
 - TypeScript
 - _No framework_
 
@@ -102,7 +102,7 @@ Get started by forking one of these templates on CodeSandbox:
 <td>
 
 - [React](https://react.dev/)
-- XState v6 alpha
+- XState v6 beta
 - TypeScript
 
 </td>
@@ -119,7 +119,7 @@ Get started by forking one of these templates on CodeSandbox:
 <td>
 
 - [Vue](https://vuejs.org/)
-- XState v6 alpha
+- XState v6 beta
 - TypeScript
 
 </td>
@@ -136,7 +136,7 @@ Get started by forking one of these templates on CodeSandbox:
 <td>
 
 - [Svelte 5](https://svelte.dev/)
-- XState v6 alpha
+- XState v6 beta
 - TypeScript
 
 </td>
