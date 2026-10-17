@@ -1,5 +1,19 @@
 # @xstate/effect
 
+## 1.0.0-alpha.8
+
+### Major Changes
+
+- d2c518b: Effect logic creators follow the core `create*Logic` naming:
+  
+  | Before                  | After                          |
+  | ----------------------- | ------------------------------ |
+  | `fromEffect`            | `createEffectLogic`            |
+  | `fromEffectStream`      | `createEffectStreamLogic`      |
+  | `fromEffectEventStream` | `createEffectEventStreamLogic` |
+  
+  `EffectActor#toJSON()` returns `{ $actor: address }`, like core actors.
+
 ## 0.1.0-alpha.7
 
 ### Patch Changes

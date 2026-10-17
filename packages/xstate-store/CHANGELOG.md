@@ -1,5 +1,20 @@
 # @xstate/store
 
+## 5.0.0-alpha.8
+
+### Major Changes
+
+- d2c518b: The event in the initial `@xstate.transition` inspection record is `{ type: 'xstate.init' }` (previously `{ type: '@xstate.init' }`). Events use the `xstate.` prefix; `@xstate.` is reserved for inspection record and effect types.
+  
+  ```diff
+    store.inspect((inspectionEvent) => {
+  -   if (inspectionEvent.event.type === '@xstate.init') {
+  +   if (inspectionEvent.event.type === 'xstate.init') {
+        // initial snapshot
+      }
+    });
+  ```
+
 ## 5.0.0-alpha.7
 
 ### Patch Changes
