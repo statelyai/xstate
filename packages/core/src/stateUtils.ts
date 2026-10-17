@@ -54,7 +54,6 @@ import {
   normalizeTarget,
   toArray,
   toStatePath,
-  resolveReferencedActor,
   toTransitionConfigArray
 } from './utils.ts';
 import { builtInActions } from './actions.ts';
@@ -1889,7 +1888,7 @@ function microstep(
 
           const logic =
             typeof src === 'string'
-              ? resolveReferencedActor(currentSnapshot.machine, src)
+              ? currentSnapshot.machine.sources.actors[src]
               : src;
 
           if (!logic) {
@@ -1914,6 +1913,8 @@ function microstep(
           assertChildIdFree(actorScope, invokeDef.id);
           const actor = actorScope.system.createActorRef(logic, {
             ...invokeDef,
+            // A `src` function may return a registered key, which persists.
+            src: typeof src === 'string' ? src : undefined,
             input,
             parent: actorScope.self,
             syncSnapshot: !!invokeDef.onSnapshot

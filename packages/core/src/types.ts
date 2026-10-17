@@ -423,8 +423,11 @@ export interface InvokeDefinition<
         event: TEvent;
         self: AnyActorRef;
       }) => string | AnyActorLogic);
-  /** The source of the actor logic to be invoked */
-  src: AnyActorLogic | string;
+  /**
+   * The registered source key of the invoked logic, or `undefined` for inline
+   * logic.
+   */
+  src: string | undefined;
 
   input?:
     | Mapper<TContext, TEvent, NonReducibleUnknown, TEvent>

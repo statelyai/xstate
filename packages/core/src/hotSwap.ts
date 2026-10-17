@@ -10,7 +10,7 @@ import type {
   AnyStateNode,
   HistoryValue
 } from './types.ts';
-import { isActorRefLike, resolveReferencedActor } from './utils.ts';
+import { isActorRefLike, resolveInvokedActorLogic } from './utils.ts';
 
 /**
  * Switches a running machine actor to another version of its machine, for
@@ -72,14 +72,22 @@ export function hotSwapActorLogic(
     if (!child) {
       continue;
     }
-    if (typeof child.src !== 'string') {
+    const invoked =
+      typeof child.src !== 'string' &&
+      snapshot.nodes.some((node) =>
+        node.invoke.some((definition) => definition.id === childId)
+      );
+    if (typeof child.src !== 'string' && !invoked) {
       // Inline spawned logic and remote handles: nothing to resolve against.
       children[childId] = child;
       continue;
     }
     let logic: unknown;
     try {
-      logic = resolveReferencedActor(machine, child.src);
+      logic =
+        typeof child.src === 'string'
+          ? machine.sources.actors[child.src]
+          : resolveInvokedActorLogic(machine, nodes, childId);
     } catch {
       // The invoking state or its invoke entry no longer exists.
     }
@@ -140,7 +148,7 @@ export function hotSwapActorLogic(
       id: childId,
       parent: actor,
       syncSnapshot: (child as { _syncSnapshot?: boolean })._syncSnapshot,
-      src: child.src,
+      src: typeof child.src === 'string' ? child.src : undefined,
       registryKey: child.registryKey,
       input: (child as { options?: { input?: unknown } }).options?.input
     });

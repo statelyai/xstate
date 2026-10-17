@@ -4,7 +4,9 @@ import {
   createActor,
   createAsyncLogic,
   createObservableLogic,
+  createStepLogic,
   InvalidSnapshotError,
+  type AnyActor,
   type AnyStateMachine,
   type RestorablePersistedSnapshotFor,
   type Snapshot
@@ -814,6 +816,159 @@ describe('rehydration', () => {
         review: 'reviewing',
         payment: 'pending'
       });
+    });
+  });
+});
+
+describe('inline invoke persistence', () => {
+  const counter = createStepLogic({
+    context: { count: 0 },
+    run: ({ context, event }) => ({
+      context: event.type === 'INC' ? { count: context.count + 1 } : context
+    })
+  });
+
+  function persistAfterIncrement(
+    machine: AnyStateMachine,
+    childId: string,
+    input?: unknown
+  ) {
+    const actor = createActor(machine, { input } as never).start();
+    actor.getSnapshot().children[childId]!.send({ type: 'INC' });
+    const persisted = actor.getPersistedSnapshot() as any;
+    actor.stop();
+    return persisted;
+  }
+
+  it('persists an inline invoke without `src` and restores it', () => {
+    const machine = createMachine({
+      id: 'parent',
+      initial: 'active',
+      states: {
+        active: {
+          initial: 'running',
+          states: { running: { invoke: { id: 'counter', src: counter } } }
+        }
+      }
+    });
+
+    const persisted = persistAfterIncrement(machine, 'counter');
+
+    expect(persisted.children.counter).not.toHaveProperty('src');
+
+    const restored = createActor(machine, {
+      snapshot: JSON.parse(JSON.stringify(persisted))
+    }).start();
+    const child = restored.getSnapshot().children.counter as AnyActor;
+    expect(restored.getSnapshot().status).toBe('active');
+    expect(child.getSnapshot().context).toEqual({ count: 1 });
+    child.send({ type: 'INC' });
+    expect(child.getSnapshot().context).toEqual({ count: 2 });
+  });
+
+  it('restores inline invokes in parallel regions', () => {
+    const other = createStepLogic({
+      context: { name: 'other' },
+      run: ({ context }) => ({ context })
+    });
+    const machine = createMachine({
+      id: 'parent',
+      type: 'parallel',
+      states: {
+        a: { invoke: { id: 'counter', src: counter } },
+        b: { invoke: { id: 'other', src: other } }
+      }
+    });
+
+    const persisted = persistAfterIncrement(machine, 'counter');
+    expect(persisted.children.counter).not.toHaveProperty('src');
+    expect(persisted.children.other).not.toHaveProperty('src');
+
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    const { children } = restored.getSnapshot();
+    expect((children.counter as AnyActor).getSnapshot().context).toEqual({
+      count: 1
+    });
+    expect((children.other as AnyActor).getSnapshot().context).toEqual({
+      name: 'other'
+    });
+  });
+
+  it('resolves a reused invoke id against the active state only', () => {
+    const other = createStepLogic({
+      context: { count: 100 },
+      run: ({ context, event }) => ({
+        context: event.type === 'INC' ? { count: context.count + 100 } : context
+      })
+    });
+    const machine = createMachine({
+      id: 'parent',
+      initial: 'first',
+      states: {
+        first: {
+          invoke: { id: 'worker', src: other },
+          on: { NEXT: { target: 'second' } }
+        },
+        second: { invoke: { id: 'worker', src: counter } }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+    actor.getSnapshot().children.worker!.send({ type: 'INC' });
+    const persisted = actor.getPersistedSnapshot();
+    actor.stop();
+
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    const child = restored.getSnapshot().children.worker as AnyActor;
+    expect(child.getSnapshot().context).toEqual({ count: 1 });
+    child.send({ type: 'INC' });
+    expect(child.getSnapshot().context).toEqual({ count: 2 });
+  });
+
+  it('keeps the source key of a registered invoke', () => {
+    const machine = createMachine({
+      id: 'parent',
+      actors: { counter },
+      invoke: { id: 'counter', src: 'counter' }
+    });
+
+    const persisted = persistAfterIncrement(machine, 'counter');
+    expect(persisted.children.counter.src).toBe('counter');
+
+    const restored = createActor(machine, { snapshot: persisted }).start();
+    expect(
+      (restored.getSnapshot().children.counter as AnyActor).getSnapshot()
+        .context
+    ).toEqual({ count: 1 });
+  });
+
+  it('errors when no active state invokes a source-less child', () => {
+    const machine = createMachine({
+      id: 'parent',
+      initial: 'idle',
+      states: {
+        idle: { on: { GO: { target: 'running' } } },
+        running: { invoke: { id: 'counter', src: counter } }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+    const persisted = actor.getPersistedSnapshot() as any;
+    actor.stop();
+
+    const restored = createActor(machine, {
+      snapshot: { ...persisted, value: 'idle' }
+    });
+    restored.subscribe({ error: () => {} });
+    restored.start();
+
+    expect(restored.getSnapshot()).toMatchObject({
+      status: 'error',
+      error: expect.objectContaining({
+        message:
+          "Unable to restore child actor 'counter': it has no source key, and no active state of machine 'parent' invokes it."
+      })
     });
   });
 });

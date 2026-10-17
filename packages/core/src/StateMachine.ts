@@ -100,7 +100,7 @@ import {
 import {
   assertUnreservedSourceName,
   matchesEventDescriptor,
-  resolveReferencedActor,
+  resolveInvokedActorLogic,
   toStatePath
 } from './utils.ts';
 import { assertValid } from './validation.ts';
@@ -1778,11 +1778,15 @@ export class StateMachine<
       );
     }
     this._validatePersistedStateValue(snapshotData.value, this.root, []);
+
+    const nodes = Array.from(
+      getAllStateNodes(getStateNodes(this.root, snapshotData.value))
+    );
     const children: Record<string, AnyActor> = {};
     const snapshotChildren: Record<
       string,
       {
-        src: string | AnyActorLogic;
+        src?: string | AnyActorLogic;
         snapshot?: Snapshot<unknown>;
         address?: string;
         remote?: boolean;
@@ -1826,13 +1830,18 @@ export class StateMachine<
       const childState = actorData.snapshot;
       const src = actorData.src;
 
+      // A child without a source key is an inline invoke: resolve it through
+      // the invoke definitions of the restored active states.
       const logic =
-        typeof src === 'string' ? resolveReferencedActor(this, src) : src;
+        src === undefined
+          ? resolveInvokedActorLogic(this, nodes, actorId)
+          : typeof src === 'string'
+            ? this.sources.actors[src]
+            : src;
 
       if (!logic) {
-        const sourceId = typeof src === 'string' ? src : '<unknown>';
         throw new Error(
-          `Unable to restore child actor '${actorId}': child source '${sourceId}' is not provided in machine '${this.id}'.`
+          `Unable to restore child actor '${actorId}': child source '${typeof src === 'string' ? src : '<inline>'}' is not provided in machine '${this.id}'.`
         );
       }
 
@@ -1930,10 +1939,6 @@ export class StateMachine<
     };
 
     const revivedHistoryValue = reviveHistoryValue(snapshotData.historyValue);
-
-    const nodes = Array.from(
-      getAllStateNodes(getStateNodes(this.root, snapshotData.value))
-    );
 
     if (isDevelopment && snapshotData.status === 'active') {
       // Restored snapshots are opaque: eventless transitions are not

@@ -4,14 +4,16 @@ import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY, WILDCARD } from './constants.ts';
 import type {
   AnyActor,
+  AnyActorLogic,
   AnyEventObject,
+  AnyInvokeDefinition,
   AnyMachineSnapshot,
   AnyStateMachine,
+  AnyStateNode,
   AnyTransitionConfig,
   AnyTransitionConfigFunction,
   ErrorEvent,
   EventObject,
-  InvokeConfig,
   MachineContext,
   Mapper,
   Observer,
@@ -321,32 +323,45 @@ export function isActorRefLike(value: object): boolean {
   return 'sessionId' in value && 'send' in value && 'ref' in value;
 }
 
-export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
-  const match = src.match(/^xstate\.invoke\.(\d+)\.(.*)/)!;
-  if (!match) {
-    return machine.sources.actors[src];
+/**
+ * Resolves the logic of a persisted child that has no source key: an inline
+ * invoke, identified by its id among the invoke definitions of the active
+ * state nodes.
+ */
+export function resolveInvokedActorLogic(
+  machine: AnyStateMachine,
+  nodes: Iterable<AnyStateNode>,
+  childId: string
+): AnyActorLogic {
+  const definitions: AnyInvokeDefinition[] = [];
+  for (const node of nodes) {
+    for (const definition of node.invoke) {
+      if (definition.id === childId) {
+        definitions.push(definition);
+      }
+    }
   }
-  const [, indexStr, nodeId] = match;
-  const node = machine.getStateNodeById(nodeId);
-  const invokeConfig = node.config.invoke!;
-  const configSrc = (
-    Array.isArray(invokeConfig)
-      ? invokeConfig[indexStr as any]
-      : (invokeConfig as InvokeConfig<
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any, // TEmitted
-          any // TMeta
-        >)
-  ).src;
-  // A referenced actor may itself be registered by name.
-  return typeof configSrc === 'string'
-    ? machine.sources.actors[configSrc]
-    : configSrc;
+  if (definitions.length !== 1) {
+    throw new Error(
+      `Unable to restore child actor '${childId}': it has no source key, and ${definitions.length ? 'several active states' : 'no active state'} of machine '${machine.id}' ${definitions.length ? 'invoke' : 'invokes'} it.`
+    );
+  }
+  const logic = definitions[0].logic;
+  if (typeof logic === 'string') {
+    const registered = machine.sources.actors[logic];
+    if (!registered) {
+      throw new Error(
+        `Unable to restore child actor '${childId}': child source '${logic}' is not provided in machine '${machine.id}'.`
+      );
+    }
+    return registered;
+  }
+  if (typeof logic === 'function') {
+    throw new Error(
+      `Unable to restore child actor '${childId}': its invoke resolves \`src\` with a function that returned inline logic. Register the logic in \`actors\` and return its key so the child persists by source key.`
+    );
+  }
+  return logic;
 }
 
 /**

@@ -237,15 +237,12 @@ export class StateNode<
       const { src, registryKey } = invokeConfig;
       const invokeId = createInvokeId(this.id, i);
       const resolvedId = invokeConfig.id ?? invokeId;
-      // Referenced (string) actors keep their logical name so persisted
-      // snapshots reference `src: 'fetchUser'` rather than a positional id;
-      // only inline logic gets the synthetic source name.
-      const sourceName =
-        typeof src === 'string' ? src : `xstate.invoke.${invokeId}`;
 
       return {
         ...invokeConfig,
-        src: sourceName,
+        // Registered (string) sources persist by key; inline logic has no
+        // source key and restores through this invoke definition's id.
+        src: typeof src === 'string' ? src : undefined,
         logic: src,
         id: resolvedId,
         registryKey
