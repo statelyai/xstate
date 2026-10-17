@@ -34,8 +34,10 @@ import type {
   LogicalTimer,
   OutputFrom,
   Snapshot,
-  SnapshotFrom
+  SnapshotFrom,
+  TimerKey
 } from '../types.ts';
+import { matchesTimerKey } from '../timerKey.ts';
 
 /** @experimental */
 export interface DurableEffectMetadata {
@@ -496,9 +498,12 @@ export function createDurable<TLogic extends AnyActorLogic>(
             }
             if (operation === 'scheduleTimer') {
               const source = args[0] as AnyActor;
-              const timer = source.getSnapshot()?.timers?.[
-                args[1] as string
-              ] as LogicalTimer | undefined;
+              const key = args[1] as TimerKey;
+              const timer = (
+                source.getSnapshot()?.timers as
+                  | readonly LogicalTimer[]
+                  | undefined
+              )?.find((pending) => matchesTimerKey(pending, key));
               if (timer) {
                 const previousStart = getTimerStart(timer);
                 if (previousStart !== undefined && !timerDeadline) {
@@ -706,7 +711,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
       if ((snapshot as Snapshot<unknown>).status === 'active') {
         const { children, timers } = snapshot as {
           children?: Record<string, AnyActor | undefined>;
-          timers?: Readonly<Record<string, LogicalTimer>>;
+          timers?: readonly LogicalTimer[];
         };
         for (const child of Object.values(children ?? {})) {
           if (
@@ -717,7 +722,7 @@ export function createDurable<TLogic extends AnyActorLogic>(
             effects.push(createStartEffect(child));
           }
         }
-        for (const timer of Object.values(timers ?? {})) {
+        for (const timer of timers ?? []) {
           const effect = createTimerEffect(scope, timer, timer.delay);
           if (timer.scheduledAt !== undefined) {
             restoredTimerDeadlines.set(effect, {

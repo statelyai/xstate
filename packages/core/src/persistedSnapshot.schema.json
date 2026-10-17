@@ -43,8 +43,9 @@
       "additionalProperties": { "$ref": "#/$defs/child" }
     },
     "timers": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/timer" }
+      "description": "Pending timers in scheduling order.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/timer" }
     },
     "machine": {
       "description": "Machine identity. Present only when the machine declares a version.",
@@ -104,10 +105,12 @@
       "dependentRequired": { "incarnation": ["remote"] }
     },
     "timer": {
+      "description": "A pending timer. A delayed raise or send carries its `id`, or its `seq` when scheduled without one. A built-in timer (after, state or invoke timeout) has neither; its event identifies it.",
       "type": "object",
-      "required": ["id", "delay", "type", "event", "target"],
+      "required": ["delay", "type", "event", "target"],
       "properties": {
         "id": { "type": "string" },
+        "seq": { "type": "integer", "minimum": 0 },
         "delay": { "type": "number" },
         "type": { "enum": ["@xstate.raise", "@xstate.sendTo"] },
         "event": {

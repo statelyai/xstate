@@ -22,10 +22,10 @@ import { createDurable } from 'xstate/durable';
 
 const durable = createDurable(machine, {
   enqueueRootEvent: (_source, event) => host.enqueue(event),
-  scheduleTimer: (source, id, delay) =>
-    host.schedule({ address: source.address, timerId: id, delay }),
-  cancelTimer: (source, id) =>
-    host.cancelTimer({ address: source.address, timerId: id }),
+  scheduleTimer: (source, timer, delay) =>
+    host.schedule({ address: source.address, timer, delay }),
+  cancelTimer: (source, timer) =>
+    host.cancelTimer({ address: source.address, timer }),
   executeAction: (action, { id }, runtime) =>
     // Safe only when the action body performs plain external side effects.
     // See "Journaling rules" before journaling `exec` on engines whose
@@ -206,32 +206,40 @@ the wire address with a host key outside the logical address.
 
 <!-- logical timer snapshot and durable adapter timer operations from packages/core/src/types.ts, packages/core/src/system.ts, and packages/core/src/durable/index.ts -->
 
-`scheduleTimer(source, id, delay)` is the complete host-neutral scheduling
-contract. `source.address` and `id` identify the logical timer; both are stable
-when the same event journal is replayed. Persist an absolute deadline derived
-from `delay` when accepting the operation, then let the host's scheduler wake a
-new process. The serializable firing input is `{ type: 'xstate.timer', id }`.
-Journal that input before applying it. For a root timer, pass it to
+`scheduleTimer(source, timer, delay)` is the complete host-neutral scheduling
+contract. `source.address` and the `timer` key identify the logical timer; both
+are stable when the same event journal is replayed. The key (`TimerKey`) is one
+of:
+
+- `{ id }` for a delayed `enq.raise(...)` or `enq.sendTo(...)` with an `id`
+- `{ seq }` for a delayed raise or send without an `id`: the actor's sequence
+  number for it
+- `{ event }` for a built-in timer (`after`, state `timeout`, invoke
+  `timeout`): its event identity, `{ type, stateId, delay }` for
+  `xstate.after`, `{ type, stateId }` for `xstate.timeout.state` and
+  `{ type, actorId }` for `xstate.timeout.actor`
+
+Built-in timers have no id. Key host records by `source.address` plus
+`JSON.stringify(timer)`. Persist an absolute deadline derived from `delay` when
+accepting the operation, then let the host's scheduler wake a new process. The
+serializable firing input is `{ type: 'xstate.timer', ...timer }`. Journal that
+input before applying it. For a root timer, pass it to
 `durable.transition(snapshot, event)` after recreating the execution and
 replaying earlier journal entries.
 
 ```ts
-scheduleTimer: (source, id, delay) => {
-  const event = { type: 'xstate.timer', id };
-  if (!journal.hasTimerFiring(source.address, id)) {
-    host.schedule({
-      address: source.address,
-      id,
-      dueAt: host.now() + delay,
-      event
-    });
+scheduleTimer: (source, timer, delay) => {
+  const key = `${source.address}:${JSON.stringify(timer)}`;
+  const event = { type: 'xstate.timer', ...timer };
+  if (!journal.hasTimerFiring(key)) {
+    host.schedule({ key, dueAt: host.now() + delay, event });
   }
 }
 ```
 
-`snapshot.timers` is the public, per-actor set of pending logical timers. Each
-entry contains its deterministic `id`, declared `delay`, delivery type, event
-and logical target. Before effects execute, pure snapshots carry no scheduling
+`snapshot.timers` is the public, per-actor list of pending logical timers, in
+scheduling order. Each entry contains its `id` or `seq` (built-in timers have
+neither), declared `delay`, delivery type, event and logical target. Before effects execute, pure snapshots carry no scheduling
 time. After `executeEffects()` successfully schedules a timer, persisted
 checkpoints carry `scheduledAt`; `restore()` schedules the remaining time toward
 that deadline. Await effect execution before saving a checkpoint. Timer starts
@@ -254,10 +262,10 @@ For a child timer, retain `source.address`; after restoring the tree,
 `durable.getActorRef(snapshot, address)` resolves the current timer source.
 
 When a state exits before its timer fires, the transition removes the entry
-from `snapshot.timers` and emits `cancelTimer(source, id)`. Stopping an actor
+from `snapshot.timers` and emits `cancelTimer(source, timer)`. Stopping an actor
 routes `cancelAllTimers(source)` through the same adapter. These operations are
 installed across the live actor tree, including restored children, so host-side
-alarms can use `(source.address, id)` consistently. A stale firing input whose
+alarms can use `(source.address, timer)` consistently. A stale firing input whose
 timer is no longer pending is ignored.
 
 ## The effect contract
@@ -287,7 +295,7 @@ Effects execute at least once. A rejected batch may be retried, and a retried
 or replayed batch re-runs every operation in it, including local delivery to
 co-located children. Every runtime operation must therefore be idempotent,
 keyed by the effect ID (`<transitionIndex>:<effectIndex>`). Timers are keyed
-by `(source.address, id)`.
+by `(source.address, timer)`; see [Durable timers](#durable-timers).
 
 Event delivery between actors is at-most-once per accepted operation, with
 pairwise sender-to-receiver ordering: for a given pair of actors, events sent

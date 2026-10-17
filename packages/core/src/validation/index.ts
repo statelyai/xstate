@@ -280,7 +280,7 @@ export function standardSchemaValidator(
       }
     }
 
-    for (const timer of Object.values(snapshot.timers)) {
+    for (const timer of snapshot.timers) {
       if (timer.type === '@xstate.raise') {
         error = checkEvent(machine, timer.event, 'raised');
         if (error) {

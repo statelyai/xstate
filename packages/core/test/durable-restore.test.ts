@@ -175,7 +175,7 @@ describe('durable checkpoint restoration', () => {
     const leafRef = execution.getActorRef(snapshot, 'tree/child/leaf')!;
     expect(scheduleTimer).toHaveBeenCalledWith(
       leafRef,
-      expect.any(String),
+      expect.any(Object),
       100
     );
     await execution
@@ -230,12 +230,12 @@ describe('durable checkpoint restoration', () => {
     await execution.executeEffects(effects);
     expect(scheduleTimer).toHaveBeenCalledWith(
       execution.getActorRef(snapshot),
-      'ping',
+      { id: 'ping' },
       200
     );
     expect(scheduleTimer).toHaveBeenCalledWith(
       execution.getActorRef(snapshot),
-      expect.any(String),
+      expect.any(Object),
       100
     );
     const retry = createDurable(machine, adapter({ transitionIndex: 12 }));
@@ -275,7 +275,7 @@ describe('durable checkpoint restoration', () => {
       await execution.executeEffects(effects);
       expect(scheduleTimer).toHaveBeenCalledWith(
         expect.anything(),
-        expect.any(String),
+        expect.any(Object),
         remaining
       );
     }
@@ -310,10 +310,10 @@ describe('durable checkpoint restoration', () => {
       const persisted = roundTrip(
         machine.getPersistedSnapshot(initial)
       ) as Snapshot<unknown> & {
-        timers: Record<string, { scheduledAt?: number }>;
+        timers: Array<{ id?: string; scheduledAt?: number }>;
       };
-      Object.entries(persisted.timers).forEach(([id, timer]) => {
-        if (id !== 'pure') timer.scheduledAt = 0;
+      persisted.timers.forEach((timer) => {
+        if (timer.id !== 'pure') timer.scheduledAt = 0;
       });
       const scheduleTimer = vi.fn();
       const startActor = vi.fn(async (actor: AnyActor) => {
@@ -342,7 +342,7 @@ describe('durable checkpoint restoration', () => {
       const [snapshot, effects] = execution.restore(persisted);
       const ids = effects.map(({ id }) => id);
       const descriptors = effects.map(({ descriptor }) => descriptor);
-      expect(Object.values(snapshot.timers).map(({ delay }) => delay)).toEqual([
+      expect(snapshot.timers.map(({ delay }) => delay)).toEqual([
         2000, 3000, 1000
       ]);
       vi.setSystemTime(950);
@@ -486,14 +486,14 @@ describe('durable checkpoint restoration', () => {
       roundTrip(machine.getPersistedSnapshot(initial))
     );
     await execution.executeEffects(effects);
-    const id = Object.keys(snapshot.timers)[0];
+    const [{ event }] = snapshot.timers;
     const [cancelled, cancelEffects] = execution.transition(snapshot, {
       type: 'CANCEL'
     });
     await execution.executeEffects(cancelEffects);
-    expect(cancelTimer.mock.calls[0][1]).toBe(id);
-    expect(cancelled.timers).toEqual({});
-    const staleFiring = { type: 'xstate.timer', id };
+    expect(cancelTimer.mock.calls[0][1]).toEqual({ event });
+    expect(cancelled.timers).toEqual([]);
+    const staleFiring = { type: 'xstate.timer', event };
     expect(execution.transition(cancelled, staleFiring)[0].value).toBe(
       'cancelled'
     );
@@ -504,8 +504,8 @@ describe('durable checkpoint restoration', () => {
     vi.setSystemTime(0);
     const deadlines = new Map<string, number>();
     const host = adapter({
-      scheduleTimer: (source, id, delay) => {
-        const key = `${source.address}:${id}`;
+      scheduleTimer: (source, timer, delay) => {
+        const key = `${source.address}:${JSON.stringify(timer)}`;
         if (!deadlines.has(key)) deadlines.set(key, Date.now() + delay);
       }
     });

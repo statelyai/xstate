@@ -1776,7 +1776,7 @@ export interface StateConfig<
   /** @internal */
   value?: StateValue;
   children: Record<string, AnyActorRef | undefined>;
-  timers?: Record<string, LogicalTimer>;
+  timers?: readonly LogicalTimer[];
   status: SnapshotStatus;
   output?: any;
   error?: unknown;
@@ -1810,12 +1810,37 @@ export interface StateConfig<
 }
 
 /**
+ * Identifies one pending logical timer of an actor:
+ *
+ * - `{ id }` for a delayed raise or send scheduled with an `id`
+ * - `{ seq }` for a delayed raise or send scheduled without one
+ * - `{ event }` for a built-in timer: the identity fields of its event
+ *   (`type` and `stateId`, plus `delay` for `xstate.after`; `type` and
+ *   `actorId` for `xstate.timeout.actor`), matched like `matches: { ... }`
+ *
+ * The timer firing input is `{ type: 'xstate.timer', ...key }`.
+ *
+ * @public
+ */
+export type TimerKey =
+  | { id: string }
+  | { seq: number }
+  | { event: EventObject };
+
+/**
  * A deterministic delayed-delivery declaration owned by a logic snapshot.
  *
  * @public
  */
 export interface LogicalTimer {
-  id: string;
+  /** The `id` passed to `enq.raise(...)` or `enq.sendTo(...)`, if any. */
+  id?: string;
+  /**
+   * The actor's sequence number for a delayed raise or send scheduled without
+   * an `id`. Built-in timers (`after`, `timeout`) have neither `id` nor `seq`;
+   * their event identifies them.
+   */
+  seq?: number;
   delay: number;
   type: '@xstate.raise' | '@xstate.sendTo';
   event: EventObject;
@@ -3295,6 +3320,8 @@ export interface RaiseExecutableEffect extends BaseExecutableEffect {
   source: AnyActor;
   event: EventObject;
   id: string | undefined;
+  /** Set for a delayed raise scheduled without an `id`. */
+  seq?: number;
   delay: number | undefined;
   args: Parameters<(typeof builtInActions)['@xstate.raise']>;
 }
@@ -3307,6 +3334,8 @@ export interface SendToExecutableEffect extends BaseExecutableEffect {
   target: AnyActor;
   event: EventObject;
   id: string | undefined;
+  /** Set for a delayed send scheduled without an `id`. */
+  seq?: number;
   delay: number | undefined;
   args: Parameters<(typeof builtInActions)['@xstate.sendTo']>;
 }
@@ -3316,7 +3345,10 @@ export interface CancelExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.cancel';
   source: AnyActor;
-  id: string;
+  /** The cancelled timer's {@link TimerKey} fields. */
+  id?: string;
+  seq?: number;
+  event?: EventObject;
   args: Parameters<(typeof builtInActions)['@xstate.cancel']>;
 }
 
@@ -3492,7 +3524,11 @@ export type EnqueueObject<
   TActorMap extends Sources['actors'] = Sources['actors'],
   TChildren extends Record<string, AnyActorRef | undefined> = {}
 > = {
-  cancel: (id: string) => void;
+  /**
+   * Cancels a pending timer: a delayed raise or send by its `id`, or any
+   * timer by its {@link TimerKey} (e.g. an `after` timer by its event).
+   */
+  cancel: (timer: string | TimerKey) => void;
   raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
   /**
    * Spawns a child actor from a registered source key or logic. Without an

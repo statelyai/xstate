@@ -1,7 +1,9 @@
 import { isRemoteActorRef, isSerializedActorRef } from './remoteActorRef.ts';
 import { getActorIdPrefix } from './system.ts';
+import { readTimerKey } from './timerKey.ts';
 import type {
   AnyActor,
+  EventObject,
   ExecutableEffect,
   SerializedActorRef
 } from './types.ts';
@@ -39,6 +41,8 @@ export type ExecutableEffectDescriptor =
       source: SerializedActorRef;
       event: unknown;
       id: string | undefined;
+      /** Set for a delayed raise scheduled without an `id`. */
+      seq?: number;
       delay: number | undefined;
     }
   | {
@@ -48,13 +52,18 @@ export type ExecutableEffectDescriptor =
       target: SerializedActorRef | undefined;
       event: unknown;
       id: string | undefined;
+      /** Set for a delayed send scheduled without an `id`. */
+      seq?: number;
       delay: number | undefined;
     }
   | {
       kind: 'builtin';
       type: '@xstate.cancel';
       source: SerializedActorRef;
-      id: string;
+      /** The cancelled timer's `TimerKey` fields. */
+      id?: string;
+      seq?: number;
+      event?: EventObject;
     }
   | {
       kind: 'builtin';
@@ -169,6 +178,7 @@ export function describeExecutableEffect(
         source: toRef(effect.source),
         event: effect.event,
         id: effect.id,
+        ...(effect.seq !== undefined && { seq: effect.seq }),
         delay: effect.delay
       };
     case '@xstate.sendTo':
@@ -179,6 +189,7 @@ export function describeExecutableEffect(
         target: effect.target && toRef(effect.target),
         event: effect.event,
         id: effect.id,
+        ...(effect.seq !== undefined && { seq: effect.seq }),
         delay: effect.delay
       };
     case '@xstate.cancel':
@@ -186,7 +197,7 @@ export function describeExecutableEffect(
         kind: 'builtin',
         type: '@xstate.cancel',
         source: toRef(effect.source),
-        id: effect.id
+        ...readTimerKey(effect)
       };
     case '@xstate.stop':
       return {

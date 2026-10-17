@@ -4,7 +4,8 @@ import {
   terminateActor,
   type AnyActor,
   type AnyActorLogic,
-  type Snapshot
+  type Snapshot,
+  type TimerKey
 } from '../src/index.ts';
 import {
   DurableExecutionCancelledError,
@@ -19,7 +20,7 @@ import {
 
 interface PendingTimer {
   source: AnyActor;
-  id: string;
+  timer: TimerKey;
   dueAt: number;
 }
 
@@ -51,8 +52,8 @@ class InMemoryDurableHost implements DurableConformanceHarness {
         inbox.push(event);
       }
     };
-    const timerKey = (source: AnyActor, id: string) =>
-      `${source.sessionId}:${id}`;
+    const timerKey = (source: AnyActor, timer: TimerKey) =>
+      `${source.sessionId}:${JSON.stringify(timer)}`;
     let rootAddress: string | undefined;
     const actorRuntime = {
       spawnActor: (_source: AnyActor | undefined, actor: AnyActor) => {
@@ -93,26 +94,26 @@ class InMemoryDurableHost implements DurableConformanceHarness {
         deliverEvent(source, target, event);
       },
       emitEvent: () => {},
-      scheduleTimer: (source: AnyActor, id: string, delay: number) => {
+      scheduleTimer: (source: AnyActor, timer: TimerKey, delay: number) => {
         operations.push({
           type: 'timer.schedule' as const,
           actorId: source.id,
-          id,
+          timer,
           delay
         });
-        timers.set(timerKey(source, id), {
+        timers.set(timerKey(source, timer), {
           source,
-          id,
+          timer,
           dueAt: now + delay
         });
       },
-      cancelTimer: (source: AnyActor, id: string) => {
+      cancelTimer: (source: AnyActor, timer: TimerKey) => {
         operations.push({
           type: 'timer.cancel' as const,
           actorId: source.id,
-          id
+          timer
         });
-        timers.delete(timerKey(source, id));
+        timers.delete(timerKey(source, timer));
       },
       cancelAllTimers: (source: AnyActor) => {
         for (const [key, timer] of timers) {
@@ -191,7 +192,7 @@ class InMemoryDurableHost implements DurableConformanceHarness {
           }
           const [key, timer] = due;
           timers.delete(key);
-          const timerEvent = { type: 'xstate.timer', id: timer.id };
+          const timerEvent = { type: 'xstate.timer', ...timer.timer };
           if (timer.source.address === rootAddress) {
             // Fired root timers are external mailbox events.
             enqueue(timerEvent);

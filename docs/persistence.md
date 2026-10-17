@@ -62,6 +62,15 @@ A persisted snapshot is a plain JSON-shaped object. Restoring one is lenient: XS
 
 These envelope fields are stable across 6.x releases: `status`, `value`, `context`, `output`, `error`, `historyValue`, `stateInputs`, `children`, `timers` and `machine`. The [persisted snapshot JSON Schema](https://github.com/statelyai/xstate/blob/next/packages/core/src/persistedSnapshot.schema.json) (draft 2020-12) describes them. Nested machine children carry their own envelope in `children[id].snapshot`. Fields prefixed with `_`, such as `_nextActorIds`, are private. They round-trip verbatim; do not read or write them.
 
+`timers` is a list of pending timers in scheduling order. A delayed `enq.raise(...)` or `enq.sendTo(...)` entry carries its `id`, or a `seq` number when scheduled without one. Built-in `after` and `timeout` timers have neither; their `event` (`xstate.after`, `xstate.timeout.state` or `xstate.timeout.actor`) identifies them.
+
+```json
+"timers": [
+  { "id": "retry", "delay": 500, "type": "@xstate.raise", "event": { "type": "RETRY" }, "target": "self", "scheduledAt": 1760000000000 },
+  { "delay": 1000, "type": "@xstate.raise", "event": { "type": "xstate.after", "stateId": "checkout.waiting", "delay": 1000 }, "target": "self" }
+]
+```
+
 Later 6.x releases may add new optional fields to the envelope, to `children` entries and to `timers` entries. Code that reads or validates persisted snapshots must ignore fields it does not recognize. The JSON Schema allows unknown fields on these objects.
 
 Changes to your own machine are handled with `machine.version`: migrate stored snapshots with `migrate` or `machineVersions().migrateSnapshot()`. See [Migrate machine versions](#migrate-machine-versions).
@@ -136,7 +145,7 @@ const checkoutVersions = machineVersions([
       context: z.object({ count: z.number() }),
       children: z.object({}),
       historyValue: z.object({}),
-      timers: z.object({}),
+      timers: z.tuple([]),
       _nextActorIds: z.record(z.string(), z.number()).optional(),
       _nextTimerId: z.number(),
       stateInputs: z.undefined().optional(),
@@ -178,8 +187,9 @@ status/output/error, state value, context, children, history, timers, state
 inputs, counters and version metadata as applicable. Active state nodes are
 reconstructed from the state value, so `nodes` itself is not persisted. A
 versioned machine's generated `snapshotSchema` validates this durable shape,
-its state value and its configured context schema. It normalizes omitted
-`historyValue` and `timers` to empty records, matching restoration behavior.
+its state value and its configured context schema. It normalizes an omitted
+`historyValue` to an empty record and omitted `timers` to an empty list,
+matching restoration behavior.
 
 Use `'*'` to handle any snapshot that cannot use an exact retained version. The
 snapshot is `unknown`, so the migration can inspect its shape or load an old

@@ -1327,20 +1327,20 @@ class PropertyExecutionEngine<
     const timers =
       (
         this.actor.getSnapshot() as {
-          timers?: Record<string, { readonly event?: EventObject }>;
+          timers?: ReadonlyArray<{ readonly event?: EventObject }>;
         }
-      ).timers ?? {};
-    const timerId = Object.keys(timers).find((id) => {
-      const timerEvent = timers[id]?.event as
+      ).timers ?? [];
+    const timer = timers.find(({ event: timerEvent }) => {
+      const afterEvent = timerEvent as
         | { type?: string; delay?: unknown; stateId?: unknown }
         | undefined;
       return (
-        timerEvent?.type === 'xstate.after' &&
-        timerEvent.delay === event.delay &&
-        timerEvent.stateId === event.stateId
+        afterEvent?.type === 'xstate.after' &&
+        afterEvent.delay === event.delay &&
+        afterEvent.stateId === event.stateId
       );
     });
-    if (timerId === undefined) {
+    if (timer === undefined) {
       return undefined;
     }
     const system = (
@@ -1349,7 +1349,13 @@ class PropertyExecutionEngine<
           getSnapshot?: () => {
             _scheduledTimers?: Record<
               string,
-              { source: unknown; id: string; dueAt: number }
+              {
+                source: unknown;
+                key: {
+                  event?: { type?: string; delay?: unknown; stateId?: unknown };
+                };
+                dueAt: number;
+              }
             >;
           };
         };
@@ -1357,7 +1363,13 @@ class PropertyExecutionEngine<
     ).system;
     const scheduled = Object.values(
       system?.getSnapshot?.()._scheduledTimers ?? {}
-    ).find((timer) => timer.source === this.rootRef && timer.id === timerId);
+    ).find(
+      (scheduledTimer) =>
+        scheduledTimer.source === this.rootRef &&
+        scheduledTimer.key.event?.type === 'xstate.after' &&
+        scheduledTimer.key.event.delay === event.delay &&
+        scheduledTimer.key.event.stateId === event.stateId
+    );
     if (!scheduled) {
       return undefined;
     }
@@ -4531,9 +4543,16 @@ function formatEventForTrace(event: EventObject): string {
     sessionId: _sessionId,
     ...payload
   } = event as EventObject & Record<string, unknown>;
-  if (type === 'xstate.timer' && typeof payload.id === 'string') {
-    // The scheduler's delivery event; its id names the delayed event.
-    return payload.id;
+  if (type === 'xstate.timer') {
+    // The scheduler's delivery event names the timer by its id, sequence
+    // number or (for a built-in timer) its event.
+    const timer = payload as { id?: string; seq?: number; event?: EventObject };
+    if (typeof timer.id === 'string') {
+      return timer.id;
+    }
+    if (timer.event) {
+      return formatEventForTrace(timer.event);
+    }
   }
   return Object.keys(payload).length
     ? `${type} ${stringifyForTrace(payload)}`
@@ -4544,11 +4563,7 @@ function getEventOrigin(
   event: EventObject,
   fallback: string
 ): 'timer' | 'outcome' | string {
-  if (
-    event.type === 'xstate.after' ||
-    event.type === 'xstate.timer' ||
-    event.type.startsWith('xstate.after.')
-  ) {
+  if (event.type === 'xstate.after' || event.type === 'xstate.timer') {
     return 'timer';
   }
   if (

@@ -99,9 +99,7 @@ export function hotSwapActorLogic(
   const restarting = new Set<unknown>(restarts.map(([, child]) => child));
   if (
     restarting.size &&
-    (Object.values(snapshot.timers ?? {}).some((timer) =>
-      restarting.has(timer.target)
-    ) ||
+    ((snapshot.timers ?? []).some((timer) => restarting.has(timer.target)) ||
       holdsActorRef(snapshot.context, restarting))
   ) {
     return false;

@@ -476,7 +476,7 @@ describe('failure messages', () => {
       2. outcome charge {"ok":true,"output":"ch_1"} -> "paid"
          ↳ outcome xstate.done.actor {"output":"ch_1","actorId":"0.order.paying"} -> "paid"
       3. timer advance 1000ms -> "archived"
-         ↳ timer xstate.after.1000.order.paid -> "archived""
+         ↳ timer xstate.after {"stateId":"order.paid","delay":1000} -> "archived""
     `);
   });
 });

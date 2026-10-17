@@ -1266,11 +1266,13 @@ validates complete event objects rather than machine `schemas.events` payloads.
 
 <!-- logical timer snapshot and ActorSystemRuntime timer API from packages/core/src/types.ts and packages/core/src/system.ts -->
 
-Pending delayed deliveries are explicit in `snapshot.timers`. Each declaration
-contains its stable ID, delay, delivery type, event, and logical target; it contains no
+Pending delayed deliveries are explicit in the `snapshot.timers` list. Each declaration
+contains its `id` (or `seq` for a delayed send without one; built-in `after` and
+`timeout` timers have neither), delay, delivery type, event, and logical target; it contains no
 wall-clock timestamps or native timeout handles. Timer runtimes implement
-`scheduleTimer(source, id, delay)` / `cancelTimer(source, id)` and deliver
-`{ type: 'xstate.timer', id }` to the source when due. Consuming that input
+`scheduleTimer(source, timer, delay)` / `cancelTimer(source, timer)` with a
+`TimerKey` (`{ id }`, `{ seq }` or a built-in timer's `{ event }`) and deliver
+`{ type: 'xstate.timer', ...timer }` to the source when due. Consuming that input
 removes the declaration and emits the real delivery effect.
 
 Final and explicitly stopped snapshots contain no pending timers; their
@@ -1609,6 +1611,9 @@ Code written against a v6 alpha uses names that changed before the beta. The old
 | suffixed `xstate.done.actor.<id>` etc. descriptors           | category types with `matches` (see [Internal lifecycle events](#internal-lifecycle-events)) |
 | `{ xstate$type: 'actorRef', id, address, src }`              | `{ $actor: address }` (`SerializedActorRef`)             |
 | persisted timer `startedAt`                                  | `scheduledAt`                                            |
+| `snapshot.timers` record keyed by generated ids (`xstate.after.<delay>.<stateId>`, `xstate.timeout.state.<stateId>`, `xstate.timer.auto.<n>`) | list; built-in timers have no `id`, delayed sends without an `id` carry `seq` |
+| `scheduleTimer(source, id, delay)`, `cancelTimer(source, id)`, `{ type: 'xstate.timer', id }` | `scheduleTimer(source, timer, delay)`, `cancelTimer(source, timer)`, `{ type: 'xstate.timer', ...timer }` (`TimerKey`) |
+| system snapshot `timers` record, `SystemTimer.id` | list; `SystemTimer.event` is the firing input |
 | persisted top-level `version`                                | `machine.version`                                        |
 | system snapshot numeric `incarnation`, `SystemActorState.logic` | string `incarnation`, `src`                           |
 | `serializeMachine`, `createMachineFromConfig`                | `machineToJSON`, `machineFromJSON`                       |

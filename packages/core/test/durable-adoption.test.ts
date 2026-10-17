@@ -78,7 +78,7 @@ describe('durable scheduling checkpoints', () => {
       await resumed.executeEffects(restoration);
       expect(resumedHost.scheduleTimer).toHaveBeenCalledWith(
         expect.anything(),
-        expect.any(String),
+        expect.any(Object),
         700
       );
       const [unchanged] = resumed.transition(restored, { type: 'CONTINUE' });
@@ -93,7 +93,7 @@ describe('durable scheduling checkpoints', () => {
       await again.executeEffects(againEffects);
       expect(againHost.scheduleTimer).toHaveBeenCalledWith(
         expect.anything(),
-        expect.any(String),
+        expect.any(Object),
         400
       );
     }
@@ -131,7 +131,7 @@ describe('durable scheduling checkpoints', () => {
       await resumed.executeEffects(restoration);
       expect(resumedHost.scheduleTimer).toHaveBeenCalledWith(
         expect.anything(),
-        expect.any(String),
+        expect.any(Object),
         900
       );
       expect(
@@ -141,7 +141,7 @@ describe('durable scheduling checkpoints', () => {
       await execution.executeEffects(effects);
       expect(scheduleTimer).toHaveBeenLastCalledWith(
         expect.anything(),
-        expect.any(String),
+        expect.any(Object),
         900
       );
       expect(
@@ -164,7 +164,7 @@ describe('durable scheduling checkpoints', () => {
     await resumed.executeEffects(restoration);
     expect(resumedHost.scheduleTimer).toHaveBeenCalledWith(
       expect.anything(),
-      expect.any(String),
+      expect.any(Object),
       700
     );
   });
@@ -182,7 +182,7 @@ describe('durable scheduling checkpoints', () => {
     await execution.executeEffects(effects);
     expect(scheduleTimer).toHaveBeenLastCalledWith(
       expect.anything(),
-      expect.any(String),
+      expect.any(Object),
       700
     );
     expect(

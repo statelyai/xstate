@@ -418,7 +418,7 @@ export class StateMachine<
           }
           const snapshot: Record<string, unknown> = {
             historyValue: {},
-            timers: {},
+            timers: [],
             ...(value as Record<string, unknown>)
           };
           const contextSchema = this.schemas?.context;
@@ -452,7 +452,7 @@ export class StateMachine<
               issues: [{ message: 'Persisted snapshot has invalid status.' }]
             };
           }
-          for (const key of ['children', 'historyValue', 'timers'] as const) {
+          for (const key of ['children', 'historyValue'] as const) {
             if (
               snapshot[key] === null ||
               typeof snapshot[key] !== 'object' ||
@@ -464,6 +464,11 @@ export class StateMachine<
                 ]
               };
             }
+          }
+          if (!Array.isArray(snapshot.timers)) {
+            return {
+              issues: [{ message: "Persisted snapshot has invalid 'timers'." }]
+            };
           }
           try {
             this.resolveState({
@@ -1767,19 +1772,17 @@ export class StateMachine<
       children[actorId] = actor;
     }
 
-    const timers: Record<string, LogicalTimer> = {};
-    const persistedTimers: Record<
-      string,
-      {
-        id: string;
-        delay: number;
-        type: '@xstate.raise' | '@xstate.sendTo';
-        event: EventObject;
-        target: string | { type: 'parent' };
-        scheduledAt?: number;
-      }
-    > = snapshotData.timers ?? {};
-    for (const [id, timer] of Object.entries(persistedTimers)) {
+    const timers: LogicalTimer[] = [];
+    const persistedTimers: Array<{
+      id?: string;
+      seq?: number;
+      delay: number;
+      type: '@xstate.raise' | '@xstate.sendTo';
+      event: EventObject;
+      target: string | { type: 'parent' };
+      scheduledAt?: number;
+    }> = snapshotData.timers ?? [];
+    for (const timer of persistedTimers) {
       let event = timer.event;
       if (event.type === 'xstate.timeout.actor') {
         const actorId = (event as AnyEventObject).actorId as string;
@@ -1798,10 +1801,10 @@ export class StateMachine<
         const targetDescription =
           typeof timer.target === 'string' ? timer.target : timer.target.type;
         throw new Error(
-          `Unable to restore timer '${id}': target actor '${targetDescription}' is unavailable.`
+          `Unable to restore timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${targetDescription}' is unavailable.`
         );
       }
-      timers[id] = { ...timer, event, target };
+      timers.push({ ...timer, event, target });
     }
 
     const reviveHistoryValue = (

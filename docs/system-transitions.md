@@ -84,7 +84,10 @@ the native child completion/error notification, matching live actor ordering.
 
 `advanceSystemTime(systemLogic, snapshot, { time })` takes an absolute destination
 in milliseconds. Time must be finite and cannot move backwards. Timers record
-`scheduledAt`, `dueAt`, a unique `occurrence`, and an ordering `sequence`.
+`scheduledAt`, `dueAt`, a unique `occurrence`, an ordering `sequence`, and the
+`event` delivered when they fire (`{ type: 'xstate.timer', ...timer }` for a
+logical timer; see [durable timers](durable-execution.md#durable-timers)).
+`snapshot.timers` lists them in scheduling order.
 Actor incarnations prevent old timers reaching replacement actors.
 
 Advancing the example to 4000 fires the first timer at 2000, cancels the 6000
@@ -95,10 +98,9 @@ in that run; equal deadlines use insertion order.
 Select a pending timer in a simulator with its current occurrence:
 
 ```ts
-const selected = Object.values(snapshot.timers).find((timer) => timer.dueAt === 6000)!;
+const selected = snapshot.timers.find((timer) => timer.dueAt === 6000)!;
 const [next] = systemTransition(systemLogic, snapshot, selected.source.$actor, {
   type: 'xstate.timer',
-  id: selected.id,
   occurrence: selected.occurrence
 });
 ```

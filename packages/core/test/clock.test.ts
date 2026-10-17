@@ -91,7 +91,7 @@ describe('clock', () => {
     actor.system._snapshot._scheduledTimers = {
       restored: {
         source: actor,
-        id: 'restored',
+        key: { id: 'restored' },
         delay: 100,
         scheduledAt: 950,
         dueAt: 1_050

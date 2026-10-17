@@ -1,4 +1,5 @@
 import { getTimerStart } from './timerClock.ts';
+import { getScheduledTimerKey, getTimerKey } from './timerKey.ts';
 import isDevelopment from '#is-development';
 import { getStateValue, isStateId } from './stateUtils.ts';
 import type {
@@ -34,6 +35,13 @@ import { isRemoteActorRef } from './remoteActorRef.ts';
 import { findNonJsonPath } from './persistedSnapshotFormat.ts';
 
 const emptySnapshotRecord = Object.freeze({});
+const emptyTimers: readonly LogicalTimer[] = Object.freeze([]);
+
+function compactTimers(
+  timers: readonly LogicalTimer[] | undefined
+): readonly LogicalTimer[] {
+  return timers?.length ? timers : emptyTimers;
+}
 
 /**
  * Deep-freezes the plain objects and arrays in machine context so accidental
@@ -269,7 +277,7 @@ interface MachineSnapshotBase<
   /** An object mapping actor names to spawned/invoked actors. */
   children: TChildren;
   /** Pending logical timers owned by this machine snapshot. */
-  timers: Readonly<Record<string, LogicalTimer>>;
+  timers: readonly LogicalTimer[];
   /** @internal */
   _stateInputs: Record<string, Record<string, unknown>>;
   /** @internal */
@@ -626,7 +634,7 @@ export function createMachineSnapshot<
       getStateValue(machine.root, config._nodes)) as never,
     tags: collectTags(config._nodes),
     children: compactSnapshotRecord(config.children) as TChildren,
-    timers: compactSnapshotRecord(config.timers),
+    timers: compactTimers(config.timers),
     historyValue: compactSnapshotRecord(config.historyValue),
     _stateInputs: compactSnapshotRecord(config._stateInputs),
     _nextTimerId: config._nextTimerId ?? 0,
@@ -667,7 +675,7 @@ export function cloneMachineSnapshot<TState extends AnyMachineSnapshot>(
       value: snapshot.value,
       tags: snapshot.tags,
       children: compactSnapshotRecord(configWithSnapshot.children),
-      timers: compactSnapshotRecord(configWithSnapshot.timers),
+      timers: compactTimers(configWithSnapshot.timers),
       historyValue: compactSnapshotRecord(configWithSnapshot.historyValue),
       _stateInputs: compactSnapshotRecord(configWithSnapshot._stateInputs),
       _nextTimerId: configWithSnapshot._nextTimerId ?? 0,
@@ -764,7 +772,7 @@ export function getPersistedSnapshot<
   }
 
   const childrenJson: Record<string, unknown> = {};
-  const timersJson: Record<string, unknown> = {};
+  const timersJson: unknown[] = [];
 
   const embedChildren =
     (options as { embedChildren?: boolean } | undefined)?.embedChildren !==
@@ -818,8 +826,7 @@ export function getPersistedSnapshot<
   const scheduledTimers = snapshotActor?.system?._clock?.now
     ? undefined
     : snapshotActor?.system?._snapshot?._scheduledTimers;
-  for (const id in timers) {
-    const timer = timers[id];
+  for (const timer of timers) {
     let event = timer.event;
     if (event.type === 'xstate.timeout.actor') {
       event = { ...event };
@@ -840,7 +847,7 @@ export function getPersistedSnapshot<
         target = { type: 'parent' };
       } else {
         throw new Error(
-          `Unable to persist timer '${id}': target actor '${timer.target.id}' is no longer addressable from this snapshot.`
+          `Unable to persist timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${timer.target.id}' is no longer addressable from this snapshot.`
         );
       }
     }
@@ -851,18 +858,22 @@ export function getPersistedSnapshot<
     // (a restored-but-never-started actor, a pure-transition snapshot) the
     // timer's accepted durable start or carried-in start passes through,
     // so re-persisting cannot push the deadline back.
-    const scheduled = scheduledTimers?.[`${snapshotActor!.sessionId}.${id}`];
+    const scheduled =
+      scheduledTimers?.[
+        getScheduledTimerKey(snapshotActor!, getTimerKey(timer))
+      ];
     const scheduledAt = scheduled
       ? scheduled.dueAt - timer.delay
       : getTimerStart(timer);
-    timersJson[id] = {
-      id: timer.id,
+    timersJson.push({
+      ...(timer.id !== undefined && { id: timer.id }),
+      ...(timer.seq !== undefined && { seq: timer.seq }),
       delay: timer.delay,
       type: timer.type,
       event,
       target,
       ...(scheduledAt !== undefined && { scheduledAt })
-    };
+    });
   }
 
   const persisted: Record<string, unknown> = {

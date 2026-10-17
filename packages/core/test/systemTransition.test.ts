@@ -61,12 +61,11 @@ it('advances through an earlier transition that cancels the selected timer', () 
   )!;
   const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'xstate.timer',
-    id: late.id,
     occurrence: late.occurrence
   });
   expect(next.now).toBe(6000);
   expect(next.actors.root.snapshot.value).toBe('done');
-  expect(next.timers).toEqual({});
+  expect(next.timers).toEqual([]);
 });
 
 it('starts newly created timers at their chronological firing time', () => {
@@ -105,7 +104,7 @@ it('starts newly created timers at their chronological firing time', () => {
   expect(next.now).toBe(6000);
   const [atTwo] = advanceSystemTime(logic, snapshot, { time: 2000 });
   expect(
-    Object.values(atTwo.timers).find((timer) => timer.id === 'mid')?.dueAt
+    Object.values(atTwo.timers).find((timer) => timer.event.id === 'mid')?.dueAt
   ).toBe(3000);
   expect(advanceSystemTime(logic, atTwo, { time: 6000 })[0]).toEqual(next);
 });
@@ -178,7 +177,7 @@ it('orders timers across actors and applies a child send before a later parent t
   const [next] = advanceSystemTime(logic, freeze(snapshot), { time: 6000 });
   expect(next.actors.root.snapshot.value).toBe('done');
   expect(next.actors['root/child'].snapshot.status).toBe('stopped');
-  expect(next.timers).toEqual({});
+  expect(next.timers).toEqual([]);
 });
 
 it('preserves unrelated deadlines and rejects stale occurrences after reentry', () => {
@@ -204,13 +203,12 @@ it('preserves unrelated deadlines and rejects stale occurrences after reentry', 
     type: 'REENTER'
   });
   const replacement = Object.values(reentered.timers)[0];
-  expect(replacement.id).toBe(original.id);
+  expect(replacement.event).toEqual(original.event);
   expect(replacement.occurrence).not.toBe(original.occurrence);
   expect(replacement.dueAt).toBe(8000);
   expect(() =>
     systemTransition(logic, reentered, 'root', {
       type: 'xstate.timer',
-      id: original.id,
       occurrence: original.occurrence
     })
   ).toThrow('current timer occurrence');
@@ -279,8 +277,8 @@ it('consumes a guarded timer once and rejects raw after injection', () => {
   const [snapshot] = initialSystemTransition(logic);
   const [next] = advanceSystemTime(logic, freeze(snapshot), { time: 1000 });
   expect(next.actors.root.snapshot.value).toBe('active');
-  expect(next.actors.root.snapshot.timers).toEqual({});
-  expect(next.timers).toEqual({});
+  expect(next.actors.root.snapshot.timers).toEqual([]);
+  expect(next.timers).toEqual([]);
   expect(() =>
     systemTransition(logic, snapshot, 'root', {
       type: 'xstate.after',
@@ -365,17 +363,16 @@ it('retains a replacement timer beyond a selected occurrence’s original deadli
   };
   const [snapshot] = initialSystemTransition(logic);
   const selected = Object.values(snapshot.timers).find(
-    (timer) => timer.id === 'late'
+    (timer) => timer.event.id === 'late'
   )!;
   const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'xstate.timer',
-    id: selected.id,
     occurrence: selected.occurrence
   });
   expect(next.now).toBe(6000);
   expect(next.actors.root.snapshot.context.count).toBe(0);
-  expect(Object.values(next.timers)).toMatchObject([
-    { id: 'late', dueAt: 10000 }
+  expect(next.timers).toMatchObject([
+    { event: { type: 'xstate.timer', id: 'late' }, dueAt: 10000 }
   ]);
   expect(
     advanceSystemTime(logic, next, { time: 10000 })[0].actors.root.snapshot
@@ -782,7 +779,7 @@ it('acknowledges external work and delivers its result as a correlated input', (
   });
   expect(next.actors.root.snapshot.status).toBe('done');
   expect(next.actors.root.snapshot.output).toBe(42);
-  expect(next.timers).toEqual({});
+  expect(next.timers).toEqual([]);
   expect(next.externalEffects).toEqual({});
   expect(run).not.toHaveBeenCalled();
   expect(() =>
@@ -846,7 +843,7 @@ it('processes state and invoke timeouts in the same deadline order', () => {
   const [next] = advanceSystemTime(logic, freeze(snapshot), { time: 6000 });
   expect(next.actors.root.snapshot.value).toBe('done');
   expect(next.actors['root/child'].snapshot.status).toBe('stopped');
-  expect(next.timers).toEqual({});
+  expect(next.timers).toEqual([]);
 });
 
 it('models delayed sends through the source timer before child completion', () => {
@@ -883,7 +880,7 @@ it('models delayed sends through the source timer before child completion', () =
   });
   const [next] = advanceSystemTime(logic, freeze(scheduled), { time: 1000 });
   expect(next.actors.root.snapshot.value).toBe('done');
-  expect(next.timers).toEqual({});
+  expect(next.timers).toEqual([]);
 });
 
 it('stops an actor subtree and resolves registry lookups from snapshot data', () => {

@@ -138,7 +138,7 @@ describe('durable execution', () => {
 
     expect(scheduleTimer).toHaveBeenCalledOnce();
     expect(scheduleTimer.mock.calls[0]?.slice(1)).toEqual([
-      expect.any(String),
+      expect.any(Object),
       100
     ]);
     expect(seenEffects).toEqual([

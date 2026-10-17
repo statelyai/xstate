@@ -49,8 +49,10 @@ import type {
   ExecutableEffect,
   Readable,
   ActorLogicTransitionResult,
+  LogicalTimer,
   SerializedActorRef
 } from './types.ts';
+import { getTimerKey } from './timerKey.ts';
 import {
   ActorOptions,
   ActorInstance,
@@ -939,13 +941,12 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     if (this._restored) {
-      type RestoredTimer = { id: string; delay: number; scheduledAt?: number };
       const timers =
         (
           this._snapshot as unknown as {
-            timers?: Record<string, RestoredTimer>;
+            timers?: readonly LogicalTimer[];
           }
-        ).timers ?? {};
+        ).timers ?? [];
       // scheduledAt is only persisted from — and only meaningful under — the
       // wall clock; a custom clock (a simulated clock, a monotonic counter)
       // restores every timer with its declared delay. The clamp bounds
@@ -953,7 +954,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
       // backwards between persist and restore.
       const wallClock = !this.system._clock.now;
       const now = Date.now();
-      for (const timer of Object.values(timers)) {
+      for (const timer of timers) {
         // A timer persisted from a live runtime carries its wall-clock start;
         // honor the absolute deadline instead of restarting the full delay.
         // Without a start (a pure-transition snapshot, or an older snapshot)
@@ -965,7 +966,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
                 Math.max(0, timer.scheduledAt + timer.delay - now)
               )
             : timer.delay;
-        this.system.scheduleTimer(this, timer.id, delay);
+        this.system.scheduleTimer(this, getTimerKey(timer), delay);
       }
       this._restored = false;
     }

@@ -104,16 +104,16 @@ describe('delayed transitions', () => {
 
     expect(order).toEqual(['entry', 'first', 'second']);
     expect(effect).toHaveBeenCalledOnce();
-    expect(
-      Object.values(actor.getSnapshot().timers).map((timer) => timer.delay)
-    ).toEqual([320, 620]);
+    expect(actor.getSnapshot().timers.map((timer) => timer.delay)).toEqual([
+      320, 620
+    ]);
 
     vi.advanceTimersByTime(319);
     expect(actor.getSnapshot().value).toBe('waiting');
 
     vi.advanceTimersByTime(1);
     expect(actor.getSnapshot().value).toBe('done');
-    expect(actor.getSnapshot().timers).toEqual({});
+    expect(actor.getSnapshot().timers).toEqual([]);
     actor.stop();
   });
 
@@ -121,18 +121,25 @@ describe('delayed transitions', () => {
     'schedules after entry cancellation and honors later cancellation (cancel after entry: %s)',
     (cancelAfterEntry) => {
       vi.useFakeTimers();
-      const timerId = 'xstate.after.100.(machine).waiting';
+      // Built-in timers have no id; cancel one by its event.
+      const timerKey = {
+        event: {
+          type: 'xstate.after',
+          stateId: '(machine).waiting',
+          delay: 100
+        }
+      };
       const machine = createMachine({
         initial: 'waiting',
         states: {
           waiting: {
             entry: (_, enq) => {
-              enq.cancel(timerId);
+              enq.cancel(timerKey);
             },
             after: { 100: { target: 'done' } },
             on: {
               cancel: (_, enq) => {
-                enq.cancel(timerId);
+                enq.cancel(timerKey);
               }
             }
           },
@@ -141,13 +148,16 @@ describe('delayed transitions', () => {
       });
       const actor = createActor(machine).start();
 
-      expect(actor.getSnapshot().timers[timerId]).toMatchObject({ delay: 100 });
+      expect(actor.getSnapshot().timers).toMatchObject([
+        { event: timerKey.event, delay: 100 }
+      ]);
+      expect(actor.getSnapshot().timers[0]).not.toHaveProperty('id');
       vi.advanceTimersByTime(50);
       expect(actor.getSnapshot().value).toBe('waiting');
 
       if (cancelAfterEntry) {
         actor.send({ type: 'cancel' });
-        expect(actor.getSnapshot().timers).toEqual({});
+        expect(actor.getSnapshot().timers).toEqual([]);
       }
 
       vi.advanceTimersByTime(100);

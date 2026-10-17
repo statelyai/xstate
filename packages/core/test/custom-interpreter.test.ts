@@ -5,6 +5,7 @@ import {
   type AnyActorLogic,
   type EventFromLogic,
   type ExecutableEffect,
+  type TimerKey,
   createActor,
   createMachine,
   executeEffects,
@@ -33,17 +34,22 @@ class CustomInterpreter<TLogic extends AnyActorLogic> {
         }
         target._send(event);
       },
-      scheduleTimer: (source, id, delay) => {
+      scheduleTimer: (source, timer, delay) => {
         const timeout = setTimeout(() => {
           void this.runtime.sendEvent?.(source, source, {
             type: 'xstate.timer',
-            id
+            ...timer
           });
         }, delay);
-        this.timers.set(`${source.sessionId}.${id}`, timeout);
+        this.timers.set(
+          `${source.sessionId}|${JSON.stringify(timer)}`,
+          timeout
+        );
       },
-      cancelTimer: (source, id) => {
-        clearTimeout(this.timers.get(`${source.sessionId}.${id}`));
+      cancelTimer: (source, timer) => {
+        clearTimeout(
+          this.timers.get(`${source.sessionId}|${JSON.stringify(timer)}`)
+        );
       },
       // When this example delegates child execution back to `createActor`, the
       // child's system must use the same runtime operations as this mailbox.
@@ -658,7 +664,7 @@ describe('custom interpreter runtime', () => {
   });
 
   it('delegates timer scheduling and cancellation to the runtime', async () => {
-    const operations: Array<{ type: string; id: string | undefined }> = [];
+    const operations: Array<{ type: string; timer: TimerKey }> = [];
     const machine = createMachine({
       initial: 'waiting',
       states: {
@@ -671,11 +677,11 @@ describe('custom interpreter runtime', () => {
       }
     });
     const interpreter = new CustomInterpreter<typeof machine>({
-      scheduleTimer: (_source, id) => {
-        operations.push({ type: 'schedule', id });
+      scheduleTimer: (_source, timer) => {
+        operations.push({ type: 'schedule', timer });
       },
-      cancelTimer: (_source, id) => {
-        operations.push({ type: 'cancel', id });
+      cancelTimer: (_source, timer) => {
+        operations.push({ type: 'cancel', timer });
       }
     });
     let [state, effects] = machine.initialTransition(undefined);
@@ -687,7 +693,11 @@ describe('custom interpreter runtime', () => {
     }
 
     expect(operations.map(({ type }) => type)).toEqual(['schedule', 'cancel']);
-    expect(operations[1].id).toBe(operations[0].id);
+    // A built-in timer has no id; its event identifies it.
+    expect(operations[0].timer).toEqual({
+      event: { type: 'xstate.after', stateId: '(machine).waiting', delay: 1000 }
+    });
+    expect(operations[1].timer).toEqual(operations[0].timer);
   });
 
   it('routes attached listener events through the custom mailbox', async () => {

@@ -11,13 +11,20 @@ import { matchesEventDescriptor } from './utils.ts';
 import { IndexedHeap } from './IndexedHeap.ts';
 import { XSTATE_STOP, XSTATE_STOP_EFFECT } from './constants.ts';
 import { isSerializedActorRef } from './remoteActorRef.ts';
+import {
+  getTimerKey,
+  matchesTimerKey,
+  readTimerKey,
+  serializeTimerKey
+} from './timerKey.ts';
 import type {
   AnyActor,
   AnyActorLogic,
   AnyActorScope,
   AnyEventObject,
   ExecutableEffect,
-  InputFrom
+  InputFrom,
+  TimerKey
 } from './types.ts';
 
 /** Immutable definitions for a pure actor system. @experimental */
@@ -67,12 +74,16 @@ export interface SystemMessage {
 /** Absolute deadlines in the system's virtual time domain. @experimental */
 export interface SystemTimer {
   readonly source: SystemActorReference;
-  readonly id: string;
   readonly occurrence: number;
   readonly scheduledAt: number;
   readonly dueAt: number;
   readonly sequence: number;
-  readonly event?: AnyEventObject;
+  /**
+   * Delivered to `source` when the timer fires. For a logical timer of the
+   * source's snapshot this is the firing input `{ type: 'xstate.timer',
+   * ...key }` (see `TimerKey`).
+   */
+  readonly event: AnyEventObject;
 }
 
 /** External work as data. Interpret it outside the pure reducer. @experimental */
@@ -102,7 +113,8 @@ export interface SystemSnapshot {
   readonly actors: Readonly<Record<string, SystemActorState>>;
   readonly registry: Readonly<Record<string, SystemActorReference>>;
   readonly messages: readonly SystemMessage[];
-  readonly timers: Readonly<Record<string, SystemTimer>>;
+  /** Pending timers in scheduling order. */
+  readonly timers: readonly SystemTimer[];
   readonly externalEffects: Readonly<Record<string, SystemExternalEffect>>;
   readonly counters: Readonly<{
     actor: number;
@@ -142,8 +154,27 @@ type MutableSystemSnapshot = {
               : SystemSnapshot[K];
 };
 
-function timerKey(source: SystemActorReference, id: string): string {
-  return JSON.stringify([source.$actor, source.incarnation, id]);
+// Private identity of a pending system timer: its source incarnation and its
+// logical timer key (or, for a directly delivered event, the event type).
+function systemTimerKey(
+  source: SystemActorReference,
+  event: AnyEventObject
+): string {
+  const key = event.type === 'xstate.timer' ? readTimerKey(event) : undefined;
+  return JSON.stringify([
+    source.$actor,
+    source.incarnation,
+    key ? serializeTimerKey(key) : event.type
+  ]);
+}
+
+function isLogicalTimerPending(
+  snapshot: Readonly<Record<string, any>>,
+  key: TimerKey
+): boolean {
+  return (
+    (snapshot.timers ?? []) as Parameters<typeof matchesTimerKey>[0][]
+  ).some((timer) => matchesTimerKey(timer, key));
 }
 
 function isReference(value: any): value is SystemActorReference {
@@ -334,13 +365,17 @@ class SystemReduction {
       actors: Object.assign(Object.create(null), snapshot.actors),
       registry: Object.assign(Object.create(null), snapshot.registry),
       messages: [...snapshot.messages],
-      timers: { ...snapshot.timers },
+      timers: Object.fromEntries(
+        snapshot.timers.map((timer) => [
+          systemTimerKey(timer.source, timer.event),
+          timer
+        ])
+      ),
       externalEffects: { ...snapshot.externalEffects },
       counters: { ...snapshot.counters }
     };
     this.remaining = maxSteps;
-    for (const timer of Object.values(snapshot.timers))
-      this.deadlines.push(timer);
+    for (const timer of snapshot.timers) this.deadlines.push(timer);
   }
 
   private step() {
@@ -736,14 +771,16 @@ class SystemReduction {
     });
   }
 
-  private cancel(ref: SystemActorReference, id?: string) {
-    for (const [key, timer] of Object.entries(this.snapshot.timers)) {
+  private cancel(ref: SystemActorReference, key?: TimerKey) {
+    const cancelled =
+      key && systemTimerKey(ref, { type: 'xstate.timer', ...key });
+    for (const [timerKey, timer] of Object.entries(this.snapshot.timers)) {
       if (
         timer.source.$actor === ref.$actor &&
         timer.source.incarnation === ref.incarnation &&
-        (id === undefined || timer.id === id)
+        (cancelled === undefined || timerKey === cancelled)
       )
-        delete this.snapshot.timers[key];
+        delete this.snapshot.timers[timerKey];
     }
   }
 
@@ -764,7 +801,7 @@ class SystemReduction {
           this.stop(this.reference(value.actor));
           break;
         case '@xstate.cancel':
-          this.cancel(ref, value.id);
+          this.cancel(ref, readTimerKey(value)!);
           break;
         case '@xstate.raise':
         case '@xstate.sendTo': {
@@ -773,9 +810,10 @@ class SystemReduction {
               throw new Error(
                 'System timer delays must be finite and nonnegative.'
               );
-            const timer = this.current(ref)?.snapshot.timers?.[value.id];
-            if (!timer) break;
-            this.schedule(ref, value.id, value.delay);
+            const key = getTimerKey(value);
+            const actor = this.current(ref);
+            if (!actor || !isLogicalTimerPending(actor.snapshot, key)) break;
+            this.schedule(ref, value.delay, { type: 'xstate.timer', ...key });
           } else if (isSerializedActorRef(value.target)) {
             // A ref that went through JSON targets the current incarnation
             // at its address; without one the event is a dead letter.
@@ -809,9 +847,8 @@ class SystemReduction {
 
   private schedule(
     ref: SystemActorReference,
-    id: string,
     delay: number,
-    event?: AnyEventObject
+    event: AnyEventObject
   ) {
     const dueAt = this.snapshot.now + delay;
     if (!Number.isFinite(delay) || delay < 0 || !Number.isFinite(dueAt))
@@ -820,14 +857,16 @@ class SystemReduction {
       );
     const timer: SystemTimer = {
       source: ref,
-      id,
       occurrence: this.snapshot.counters.timer++,
       scheduledAt: this.snapshot.now,
       dueAt,
       sequence: this.snapshot.counters.sequence++,
-      ...(event && { event: this.encode(event) })
+      event: this.encode(event)
     };
-    this.snapshot.timers[timerKey(ref, id)] = timer;
+    // Rescheduling a pending timer replaces it.
+    const key = systemTimerKey(ref, event);
+    delete this.snapshot.timers[key];
+    this.snapshot.timers[key] = timer;
     this.deadlines.push(timer);
   }
 
@@ -866,7 +905,7 @@ class SystemReduction {
       const delay = parseDelayToMilliseconds(metadata.timeout);
       if (delay === undefined)
         throw new Error('Unable to resolve async actor timeout.');
-      this.schedule(ref, 'xstate.async.timeout', delay, {
+      this.schedule(ref, delay, {
         type: 'xstate.async.reject',
         data: new TimeoutError(metadata.timeout)
       });
@@ -994,6 +1033,13 @@ class SystemReduction {
     }
   }
 
+  result(): SystemSnapshot {
+    return {
+      ...this.snapshot,
+      timers: Object.values(this.snapshot.timers)
+    };
+  }
+
   settle() {
     while (this.snapshot.messages.length) {
       const message = this.snapshot.messages.shift()!;
@@ -1009,7 +1055,8 @@ class SystemReduction {
       const timer = this.deadlines.peek();
       if (
         timer &&
-        this.snapshot.timers[timerKey(timer.source, timer.id)] !== timer
+        this.snapshot.timers[systemTimerKey(timer.source, timer.event)] !==
+          timer
       ) {
         this.deadlines.pop();
         continue;
@@ -1017,21 +1064,20 @@ class SystemReduction {
       if (!timer || timer.dueAt > time) break;
       this.step();
       this.deadlines.pop();
-      delete this.snapshot.timers[timerKey(timer.source, timer.id)];
+      delete this.snapshot.timers[systemTimerKey(timer.source, timer.event)];
       this.snapshot.now = Math.max(this.snapshot.now, timer.dueAt);
       const actor = this.current(timer.source);
+      const key =
+        timer.event.type === 'xstate.timer'
+          ? readTimerKey(timer.event)
+          : undefined;
       if (
         !actor ||
         actor.snapshot.status !== 'active' ||
-        (!timer.event && !actor.snapshot.timers?.[timer.id])
+        (key && !isLogicalTimerPending(actor.snapshot, key))
       )
         continue;
-      this.enqueue(
-        timer.source,
-        timer.source,
-        timer.event ?? { type: 'xstate.timer', id: timer.id },
-        timer.occurrence
-      );
+      this.enqueue(timer.source, timer.source, timer.event, timer.occurrence);
       this.settle();
     }
     this.snapshot.now = time;
@@ -1041,12 +1087,13 @@ class SystemReduction {
     if (event.type === 'xstate.timer') {
       const actor = this.snapshot.actors[path];
       if (!actor) throw new Error(`Unknown actor address '${path}'.`);
-      const timer =
-        this.snapshot.timers[
-          timerKey({ $actor: path, incarnation: actor.incarnation }, event.id)
-        ];
-      if (!timer || event.occurrence !== timer.occurrence)
-        throw new Error('Select a current timer occurrence.');
+      const timer = Object.values(this.snapshot.timers).find(
+        (pending) =>
+          pending.source.$actor === path &&
+          pending.source.incarnation === actor.incarnation &&
+          pending.occurrence === event.occurrence
+      );
+      if (!timer) throw new Error('Select a current timer occurrence.');
       this.advance(timer.dueAt);
       return;
     }
@@ -1120,7 +1167,7 @@ export function initialSystemTransition<TLogic extends AnyActorLogic>(
       actors: {},
       registry: {},
       messages: [],
-      timers: {},
+      timers: [],
       externalEffects: {},
       counters: { actor: 0, timer: 0, sequence: 0, effect: 0 }
     },
@@ -1131,7 +1178,7 @@ export function initialSystemTransition<TLogic extends AnyActorLogic>(
     options.id ?? (systemLogic.root as any).id ?? 'root',
     options.registryKey
   );
-  return [reduction.snapshot, reduction.effects];
+  return [reduction.result(), reduction.effects];
 }
 
 /** Complete actor macrosteps and immediate communication in an immutable snapshot. @experimental */
@@ -1143,7 +1190,7 @@ export function systemTransition(
 ): [SystemSnapshot, SystemExternalEffect[]] {
   const reduction = new SystemReduction(systemLogic, snapshot);
   reduction.send(actorPath, event);
-  return [reduction.snapshot, reduction.effects];
+  return [reduction.result(), reduction.effects];
 }
 
 /** Process every due timer chronologically across the entire system snapshot. @experimental */
@@ -1158,5 +1205,5 @@ export function advanceSystemTime(
     options.maxSteps
   );
   reduction.advance(options.time);
-  return [reduction.snapshot, reduction.effects];
+  return [reduction.result(), reduction.effects];
 }

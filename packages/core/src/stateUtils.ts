@@ -7,13 +7,16 @@ import {
 import type { StateNode } from './StateNode.ts';
 import {
   createAfterEvent,
-  createAfterEventId,
   createDoneStateEvent,
   createInvokeTimeoutEvent,
-  createInvokeTimeoutEventId,
-  createTimeoutEvent,
-  createTimeoutEventId
+  createTimeoutEvent
 } from './eventUtils.ts';
+import {
+  getBuiltInTimerIdentity,
+  getTimerKey,
+  matchesTimerKey,
+  readTimerKey
+} from './timerKey.ts';
 import {
   XSTATE_INIT,
   STATE_DELIMITER,
@@ -39,6 +42,7 @@ import {
   MachineContext,
   StateValue,
   TransitionDefinition,
+  TimerKey,
   AnyAction,
   AnyTransitionConfig,
   AnyActor,
@@ -318,7 +322,7 @@ export function getCandidates<TEvent extends EventObject>(
 
 function scheduleDelayedEvent(
   stateNode: AnyStateNode,
-  timerId: string,
+  timerEvent: AnyEventObject,
   resolveEvent: (args: any) => AnyEventObject,
   resolveScheduledDelay: (x: {
     context: MachineContext;
@@ -336,8 +340,8 @@ function scheduleDelayedEvent(
       result?.context !== undefined
         ? mergeContextPatch(x.context, result.context)
         : x.context;
+    // Built-in timers have no id: the event identifies them.
     enq.raise(resolveEvent(x) as any, {
-      id: timerId,
       delay: resolveScheduledDelay({
         context,
         event: x.event,
@@ -349,7 +353,7 @@ function scheduleDelayedEvent(
   };
   const oldExit = stateNode.exit;
   stateNode.exit = (_: any, enq: any) => {
-    enq.cancel(timerId);
+    enq.cancel({ event: getBuiltInTimerIdentity(timerEvent)! });
     return typeof oldExit === 'function' ? oldExit(_, enq) : undefined;
   };
 }
@@ -397,7 +401,6 @@ export function getDelayedTransitions(
   // cancel the timer separately, so it clears even when the parent stays active.
   const sources: Array<{
     event: AnyEventObject;
-    timerId: string;
     resolveEvent?: (args: any) => AnyEventObject;
     eventMatcher?: (
       event: EventObject,
@@ -413,7 +416,6 @@ export function getDelayedTransitions(
       const delay = Number.isNaN(+key) ? key : +key;
       sources.push({
         event: createAfterEvent(delay, stateNode.id),
-        timerId: createAfterEventId(delay, stateNode.id),
         delay,
         transitions: afterConfig[key],
         fromDelaysMap: true
@@ -424,7 +426,6 @@ export function getDelayedTransitions(
   if (timeoutConfig !== undefined && onTimeoutConfig) {
     sources.push({
       event: createTimeoutEvent(stateNode.id),
-      timerId: createTimeoutEventId(stateNode.id),
       delay: timeoutConfig,
       transitions: onTimeoutConfig,
       fromDelaysMap: true
@@ -434,7 +435,6 @@ export function getDelayedTransitions(
   for (const invokeDef of invokeDefs) {
     sources.push({
       event: createInvokeTimeoutEvent(invokeDef.id),
-      timerId: createInvokeTimeoutEventId(invokeDef.id),
       resolveEvent: ({ children }: any) =>
         createInvokeTimeoutEvent(
           invokeDef.id,
@@ -464,24 +464,19 @@ export function getDelayedTransitions(
 
   for (const {
     event,
-    timerId,
     resolveEvent,
     eventMatcher,
     delay,
     transitions,
     fromDelaysMap
   } of sources) {
-    scheduleDelayedEvent(
-      stateNode,
-      timerId,
-      resolveEvent ?? (() => event),
-      (x) =>
-        resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
-          context: x.context,
-          event: x.event,
-          stateNode,
-          input: x.input
-        })
+    scheduleDelayedEvent(stateNode, event, resolveEvent ?? (() => event), (x) =>
+      resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
+        context: x.context,
+        event: x.event,
+        stateNode,
+        input: x.input
+      })
     );
     const { type: eventType, ...eventPattern } = event;
     for (const transition of toTransitionConfigArray(transitions as any)) {
@@ -2545,13 +2540,16 @@ export function macrostep(
   let nextEvent = event;
 
   if (event.type === XSTATE_TIMER) {
-    const timer = nextSnapshot.timers[(event as any).id];
-    if (!timer) {
+    const key = readTimerKey(event);
+    const index = key
+      ? nextSnapshot.timers.findIndex((timer) => matchesTimerKey(timer, key))
+      : -1;
+    if (index === -1) {
       return completeMacrostep();
     }
 
-    const timers = { ...nextSnapshot.timers };
-    delete timers[timer.id];
+    const timer = nextSnapshot.timers[index];
+    const timers = nextSnapshot.timers.filter((_, i) => i !== index);
     nextSnapshot = cloneMachineSnapshot(nextSnapshot, { timers });
     if (timer.type === '@xstate.raise') {
       internalQueue.push(timer.event);
@@ -2854,14 +2852,13 @@ function cancelTimers(
   event: AnyEventObject,
   actorScope: AnyActorScope
 ): [AnyMachineSnapshot, ExecutableEffect[]] {
-  const timerIds = Object.keys(snapshot.timers);
-  if (!timerIds.length) {
+  if (!snapshot.timers.length) {
     return [snapshot, []];
   }
   const actions: AnyAction[] = [];
   const enqueue = createTransitionEnqueue(actorScope, actions, []);
-  for (const id of timerIds) {
-    enqueue.cancel(id);
+  for (const timer of snapshot.timers) {
+    (enqueue.cancel as unknown as (key: TimerKey) => void)(getTimerKey(timer));
   }
   return resolveActionsWithContext(snapshot, event, actorScope, actions);
 }

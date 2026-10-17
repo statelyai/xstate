@@ -14,7 +14,7 @@ export type PersistedMachineSnapshot = {
   context: unknown;
   children: Record<string, unknown>;
   historyValue: Record<string, unknown>;
-  timers: Record<string, unknown>;
+  timers: readonly unknown[];
   _nextActorId?: number;
   _nextActorIds?: Record<string, number>;
   _nextTimerId?: number;

@@ -1,20 +1,27 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createMachine, setup, type AnyActor } from '../src/index.ts';
+import {
+  createMachine,
+  setup,
+  type AnyActor,
+  type TimerKey
+} from '../src/index.ts';
 import { createDurable } from '../src/durable/index.ts';
 
 interface JournalEntry {
   address: string;
-  event: { type: string; id?: string };
+  event: { type: string };
 }
 
 interface PendingTimer {
   address: string;
-  id: string;
+  key: string;
   delay: number;
-  event: { type: 'xstate.timer'; id: string };
+  event: { type: 'xstate.timer' } & TimerKey;
 }
 
-const timerKey = (address: string, id: string) => `${address}:${id}`;
+// A timer is identified by its source address and its timer key.
+const timerKey = (address: string, timer: TimerKey) =>
+  `${address}:${JSON.stringify(timer)}`;
 
 function createEventJournalHost(
   machine: ReturnType<typeof createMachine>,
@@ -22,10 +29,10 @@ function createEventJournalHost(
 ) {
   const pending = new Map<string, PendingTimer>();
   const armTimer = vi.fn<(timer: PendingTimer) => void>((timer) => {
-    pending.set(timerKey(timer.address, timer.id), timer);
+    pending.set(timer.key, timer);
   });
-  const cancelTimer = vi.fn<(source: AnyActor, id: string) => void>(
-    (source, id) => pending.delete(timerKey(source.address, id))
+  const cancelTimer = vi.fn<(source: AnyActor, timer: TimerKey) => void>(
+    (source, timer) => pending.delete(timerKey(source.address, timer))
   );
   const cancelAllTimers = vi.fn<(source: AnyActor) => void>((source) => {
     for (const [key, timer] of pending) {
@@ -38,16 +45,18 @@ function createEventJournalHost(
   const durable = createDurable(machine, {
     executionId: 'event-journal-test',
     executeAction: () => {},
-    scheduleTimer: (source, id, delay) => {
-      const event = { type: 'xstate.timer' as const, id };
-      const alreadyFired = journal.some(
-        (entry) =>
-          entry.address === source.address &&
-          entry.event.type === event.type &&
-          entry.event.id === id
-      );
+    scheduleTimer: (source, timer, delay) => {
+      const event = { type: 'xstate.timer' as const, ...timer };
+      const key = timerKey(source.address, timer);
+      const alreadyFired = journal.some(({ address, event: journaled }) => {
+        const { type, ...journaledTimer } = journaled;
+        return (
+          type === event.type &&
+          timerKey(address, journaledTimer as TimerKey) === key
+        );
+      });
       if (!alreadyFired) {
-        armTimer({ address: source.address, id, delay, event });
+        armTimer({ address: source.address, key, delay, event });
       }
     },
     cancelTimer,
@@ -99,13 +108,20 @@ describe('durable event-journal timers', () => {
     const [pendingTimer] = firstProcess.pending.values();
 
     expect(waiting.value).toBe('waiting');
+    // A built-in timer has no id; its event identifies it.
     expect(pendingTimer).toEqual({
       address: 'reminder',
-      id: expect.any(String),
+      key: expect.any(String),
       delay: 5000,
-      event: { type: 'xstate.timer', id: expect.any(String) }
+      event: {
+        type: 'xstate.timer',
+        event: {
+          type: 'xstate.after',
+          stateId: 'reminder.waiting',
+          delay: 5000
+        }
+      }
     });
-    expect(pendingTimer.event.id).toBe(pendingTimer.id);
 
     // The scheduler wakes a new process. Journal-first means recording the
     // firing before replaying it through a freshly-created execution.
@@ -146,7 +162,7 @@ describe('durable event-journal timers', () => {
     expect(cancelled.value).toBe('cancelled');
     expect(process.cancelTimer).toHaveBeenCalledWith(
       expect.objectContaining({ address: 'reminder' }),
-      expect.any(String)
+      expect.any(Object)
     );
     expect(process.pending.size).toBe(0);
   });

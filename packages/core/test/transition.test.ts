@@ -614,13 +614,11 @@ describe('transition function', () => {
         args: [
           expect.anything(),
           { type: 'xstate.after', delay: 10, stateId: '(machine).a' },
-          expect.objectContaining({
-            delay: 10,
-            id: 'xstate.after.10.(machine).a'
-          })
+          { delay: 10 }
         ]
       })
     );
+    expect(actions[0]).toHaveProperty('id', undefined);
   });
 
   it('cancel action should be returned', async () => {
@@ -654,7 +652,8 @@ describe('transition function', () => {
         // params: expect.objectContaining({
         //   sendId: 'myRaise'
         // })
-        args: [expect.anything(), 'myRaise']
+        id: 'myRaise',
+        args: [expect.anything(), { id: 'myRaise' }]
       })
     );
   });
@@ -1058,7 +1057,11 @@ describe('transition function', () => {
       expect(lifecycleEffects).toEqual([
         expect.objectContaining({
           type: '@xstate.cancel',
-          id: 'xstate.after.1000.(machine).active'
+          event: {
+            type: 'xstate.after',
+            stateId: '(machine).active',
+            delay: 1000
+          }
         }),
         expect.objectContaining({ type: XSTATE_STOP_EFFECT, id: 'child' })
       ]);

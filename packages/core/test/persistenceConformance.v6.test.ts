@@ -812,8 +812,8 @@ describe('forward-compatible envelope', () => {
       validateEnvelope({
         ...persisted,
         children: { c: { src: 'child', futureField: 1 } },
-        timers: {
-          t: {
+        timers: [
+          {
             id: 't',
             delay: 10,
             type: '@xstate.raise',
@@ -821,7 +821,7 @@ describe('forward-compatible envelope', () => {
             target: 'self',
             futureField: 1
           }
-        }
+        ]
       })
     ).toBe(true);
   });
