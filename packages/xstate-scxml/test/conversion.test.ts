@@ -1120,6 +1120,24 @@ describe('SCXML done event descriptors', () => {
     ]);
   });
 
+  it('matches done.state.<id> for dotted state ids', () => {
+    const machine = createMachineFromSCXML(`
+      <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="p.q">
+        <state id="p.q" initial="p1">
+          <state id="p1">
+            <transition event="go" target="p2"/>
+          </state>
+          <final id="p2"/>
+          <transition event="done.state.p.q" target="right"/>
+        </state>
+        <final id="right"/>
+      </scxml>
+    `);
+    const [initial] = initialTransition(machine);
+    const [next] = transition(machine, initial, { type: 'go' });
+    expect(next.value).toBe('right');
+  });
+
   it('matches done.state.<id> by stateId', () => {
     const machine = createMachineFromSCXML(`
       <scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="p">

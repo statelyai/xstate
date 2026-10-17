@@ -712,7 +712,10 @@ function toStateNodeJSON(
           }
           return {
             type,
-            matches: kind === 'invoke' ? { actorId: id } : { stateId: id }
+            matches:
+              kind === 'invoke'
+                ? { actorId: id }
+                : { stateId: sanitizeStateId(id) }
           };
         }
         if (/^error(\.|$)/.test(eventType)) {
