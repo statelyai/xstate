@@ -96,3 +96,44 @@ describe('spawn during speculative evaluation', () => {
     expect(Object.keys(actor.getSnapshot().children)).toEqual(['worker:0']);
   });
 });
+
+describe('speculative spawn ids', () => {
+  it('skip ids held by live children, like committed spawns', () => {
+    const worker = createMachine({});
+    const refs: AnyActor[] = [];
+    const machine = createMachine({
+      actors: { worker },
+      type: 'parallel',
+      states: {
+        worker: { invoke: { src: worker } },
+        a: {
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                SPAWN: (_, enq) => {
+                  refs.push(enq.spawn('worker'));
+                  return { target: 'done' };
+                }
+              }
+            },
+            done: {}
+          }
+        },
+        b: {
+          initial: 'idle',
+          states: { idle: { on: { SPAWN: { target: 'done' } } }, done: {} }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    expect(Object.keys(actor.getSnapshot().children)).toEqual(['worker:0']);
+
+    actor.send({ type: 'SPAWN' });
+
+    const [inert, real] = refs;
+    expect(real!.id).toBe('worker:1');
+    expect(inert!.id).toBe(real!.id);
+    expect(inert!.address).toBe(real!.address);
+  });
+});

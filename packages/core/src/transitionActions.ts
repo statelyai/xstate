@@ -554,6 +554,27 @@ function nextChildIndex(
 }
 
 /**
+ * The next generated index for a prefix that is not claimed in this
+ * transition or held by a live child, such as an implicit invoke id
+ * (`worker:0` for an invoke in state `worker`). Does not allocate.
+ */
+function nextFreeChildIndex(
+  actorScope: AnyActorScope,
+  allocation: SpawnAllocation,
+  prefix: string
+): number {
+  let next = nextChildIndex(actorScope, allocation, prefix);
+  const children = getWorkingSnapshotOf(actorScope)?.children;
+  while (
+    allocation.explicitIds.has(`${prefix}:${next}`) ||
+    children?.[`${prefix}:${next}`]
+  ) {
+    next++;
+  }
+  return next;
+}
+
+/**
  * Allocates the next generated child id for the transition's allocation
  * transaction, seeded from the parent snapshot's own persisted counters. This
  * is the single allocator for snapshot-owned children (`enq.spawn` and
@@ -577,16 +598,7 @@ export function allocateChildId(
     createSpawnAllocation();
   const prefix = getActorIdPrefix(src);
   assertUnreservedPrefix(prefix);
-  let next = nextChildIndex(actorScope, allocation, prefix);
-  // Skip ids already claimed in this transition or held by a live child, such
-  // as an implicit invoke id (`worker:0` for an invoke in state `worker`).
-  const children = getWorkingSnapshotOf(actorScope)?.children;
-  while (
-    allocation.explicitIds.has(`${prefix}:${next}`) ||
-    children?.[`${prefix}:${next}`]
-  ) {
-    next++;
-  }
+  const next = nextFreeChildIndex(actorScope, allocation, prefix);
   allocation.counters.set(prefix, next + 1);
   return { id: `${prefix}:${next}`, counters: { [prefix]: next + 1 } };
 }
@@ -751,13 +763,10 @@ export function createTransitionEnqueue(
       if (!createActors) {
         // Speculative evaluation creates no actor and allocates no id: return
         // an inert ref with the id this spawn would get.
+        const prefix = getActorIdPrefix(src ?? logic);
         const id =
           options?.id ??
-          `${getActorIdPrefix(src ?? logic)}:${nextChildIndex(
-            actorScope,
-            localAllocation,
-            getActorIdPrefix(src ?? logic)
-          )}`;
+          `${prefix}:${nextFreeChildIndex(actorScope, spawnAllocations.get(actorScope) ?? localAllocation, prefix)}`;
         return createInertActorRef({
           id,
           address: detachedScopes.has(actorScope)
