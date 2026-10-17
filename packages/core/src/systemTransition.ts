@@ -818,7 +818,11 @@ class SystemReduction {
             // A ref that went through JSON targets the current incarnation
             // at its address; without one the event is a dead letter.
             const target = this.snapshot.actors[value.target.$actor];
-            if (target?.snapshot.status === 'active')
+            if (
+              target?.snapshot.status === 'active' &&
+              (value.target.incarnation === undefined ||
+                value.target.incarnation === target.incarnation)
+            )
               this.enqueue(
                 ref,
                 { $actor: target.address, incarnation: target.incarnation },

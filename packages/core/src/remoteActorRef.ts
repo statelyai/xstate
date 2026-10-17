@@ -52,8 +52,26 @@ export function getAddressId(address: string): string {
 /** @internal The error reported when no live actor has a serialized address. */
 export function createMissingAddressError(target: SerializedActorRef): Error {
   return new Error(
-    `Unable to send event to actor '${target.$actor}': no live actor has that address`
+    target.incarnation === undefined
+      ? `Unable to send event to actor '${target.$actor}': no live actor has that address`
+      : `Unable to send event to actor '${target.$actor}' (incarnation '${target.incarnation}'): no live actor has that address and incarnation`
   );
+}
+
+/**
+ * @internal The live actor a serialized ref names: the actor at its address,
+ * and, when the ref carries an `incarnation`, only that incarnation. A ref
+ * without one follows whichever actor is live at the address.
+ */
+export function resolveSerializedActorRef(
+  system: { _getByAddress?: (address: string) => AnyActor | undefined },
+  target: SerializedActorRef
+): AnyActor | undefined {
+  const live = system._getByAddress?.(target.$actor);
+  return live &&
+    (target.incarnation === undefined || live.sessionId === target.incarnation)
+    ? live
+    : undefined;
 }
 
 /**

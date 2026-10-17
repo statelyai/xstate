@@ -1922,6 +1922,59 @@ describe('delayed sends to serialized actor refs', () => {
     }
   });
 
+  it('delivers a ref with a matching incarnation', () => {
+    vi.useFakeTimers();
+    try {
+      const system = createSystem();
+      const requester = system.createActor(requesterMachine).start();
+      const server = system.createActor(delayedServer).start();
+      server.send({
+        type: 'PING',
+        replyTo: {
+          $actor: requester.address,
+          incarnation: requester.sessionId
+        },
+        requestId: 'r1'
+      });
+
+      vi.advanceTimersByTime(100);
+      expect(requester.getSnapshot().context.got).toBe('r1');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('dead-letters a ref whose incarnation is no longer live at the address', () => {
+    vi.useFakeTimers();
+    try {
+      const rejections: EventRejection[] = [];
+      const system = createSystem();
+      system.onRejectedEvent((rejection) => rejections.push(rejection));
+      const original = system.createActor(requesterMachine).start();
+      const replyTo: SerializedActorRef = {
+        $actor: original.address,
+        incarnation: original.sessionId
+      };
+      const server = system.createActor(delayedServer).start();
+      server.send({ type: 'PING', replyTo, requestId: 'r1' });
+
+      original.stop();
+      const replacement = system
+        .createActor(requesterMachine, { id: original.id })
+        .start();
+
+      vi.advanceTimersByTime(100);
+      expect(replacement.getSnapshot().context.got).toBe(null);
+      expect(rejections).toHaveLength(1);
+      expect(rejections[0]).toMatchObject({
+        reason: 'missingTarget',
+        event: { type: 'PONG', requestId: 'r1' }
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('delivers to the actor live at the address when the send fires', () => {
     vi.useFakeTimers();
     try {

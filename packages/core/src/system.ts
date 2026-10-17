@@ -24,6 +24,7 @@ import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
 import {
   createMissingAddressError,
   isSerializedActorRef,
+  resolveSerializedActorRef,
   getAddressId
 } from './remoteActorRef.ts';
 import {
@@ -952,10 +953,15 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       // A ref that went through JSON resolves by address to the live actor.
       // A host runtime may own actors this system cannot see, so an
       // unresolved address is its to route; locally it is a dead letter.
-      const live = this._getByAddress(target.$actor);
+      const live = resolveSerializedActorRef(this, target);
       if (live) {
         target = live;
-      } else if (!this.runtime?.sendEvent) {
+      } else if (
+        // A live actor of another incarnation is stale locally; an
+        // address this system cannot see may belong to a host runtime.
+        this._getByAddress(target.$actor) ||
+        !this.runtime?.sendEvent
+      ) {
         return this.deadLetter(source, undefined, event, 'missingTarget', {
           targetId: getAddressId(target.$actor),
           error: createMissingAddressError(target)

@@ -22,3 +22,5 @@ const server = createMachine({
 Actor refs stored in context now persist with their address, so a ref to an actor that isn't a child (such as a stored `replyTo`) still routes after restore.
 
 A pending delayed send to a serialized ref persists with that ref as its timer target and resolves it by address after restore.
+
+A serialized ref that carries an `incarnation` reaches only that incarnation: if a different actor is live at the address when the send executes, the event is reported as a `'missingTarget'` dead letter.

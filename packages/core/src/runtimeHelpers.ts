@@ -6,7 +6,8 @@ import {
 import {
   createMissingAddressError,
   getAddressId,
-  isSerializedActorRef
+  isSerializedActorRef,
+  resolveSerializedActorRef
 } from './remoteActorRef.ts';
 import type {
   ActorTermination,
@@ -124,7 +125,7 @@ export function deliverEvent(
   if (isSerializedActorRef(target)) {
     const serialized = target;
     const system = source?.system;
-    const live = system?._getByAddress?.(serialized.$actor);
+    const live = system && resolveSerializedActorRef(system, serialized);
     if (!live) {
       const error = createMissingAddressError(serialized);
       if (!system) {
