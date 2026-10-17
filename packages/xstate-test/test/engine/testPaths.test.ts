@@ -292,8 +292,7 @@ describe('testPaths() with invoke sources', () => {
     )!.command as unknown as { event: { error: unknown } };
 
     expect(errorEvent.event.error).toEqual({
-      xstate$$error: true,
-      name: 'Error',
+      $error: 'Error',
       message: 'generated failure'
     });
     const fixture = JSON.parse(JSON.stringify(failure.fixture)) as TestFixture;

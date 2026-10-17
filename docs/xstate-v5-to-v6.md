@@ -1212,6 +1212,8 @@ Child actors, async logic with effects, and listener-resume semantics are all pa
 
 The host serializes the payload. Development builds warn when `context`, `output`, `error`, or state input holds a value that does not survive a JSON round-trip: functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`. Persisting a snapshot whose `context` contains a circular reference throws an error that names the actor and the context path. See [Persistence](persistence.md) for the format rules.
 
+Actor refs in persisted `context` are stored as `{ "$actor": "<address>" }`. v5 stored them as `{ "xstate$$type": 1, "id": "<id>" }`; v6 does not read that shape, so convert those entries with [`machineVersions`](persistence.md#migrate-machine-versions) before restoring v5 snapshots.
+
 ### Snapshot versioning
 
 A machine may declare an `id` and `version`. When set, they are stamped onto every

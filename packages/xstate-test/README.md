@@ -1588,7 +1588,7 @@ interface TestFixture {
 ```
 
 Errors in commands and outcomes are recorded as
-`{ xstate$$error: true, name, message }`, since `JSON.stringify()` turns an
+`{ $error: name, message }`, since `JSON.stringify()` turns an
 `Error` into `{}`. `replayTest()` turns them back into `Error` objects.
 
 A `TestCommand` is `{ type: 'event', event, phase, origin, caseId? }`,
