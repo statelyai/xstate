@@ -67,7 +67,7 @@ Named guards keep a rule's name visible in the machine and let [`machine.provide
 
 ## Checking other states
 
-Use `self.getSnapshot().matches(...)` to test whether the machine is currently in another state, such as a sibling region of a parallel state.
+Use `self.getSnapshot().matches(...)` to test whether the machine is currently in another state, such as a sibling region of a parallel state. `self.getSnapshot()` returns the snapshot committed before the current event was processed, so it does not reflect earlier microsteps of the same macrostep (eventless transitions or raised events).
 
 ```ts
 approve: ({ context, self }) => {
