@@ -61,6 +61,7 @@ const machine = setupEffect({
 });
 
 const parallelMachine = createMachine({
+  id: 'release',
   type: 'parallel',
   states: {
     a: { initial: 'a1', states: { a1: {}, a2: {} } },
@@ -97,8 +98,18 @@ describe('taggedState', () => {
   it('stops at a parallel state', () => {
     const actor = createActor(parallelMachine).start();
     const tagged = taggedState(actor.getSnapshot());
-    expect(tagged._tag).toBe('(machine)');
+    expect(tagged._tag).toBe('release');
     expect(tagged.value).toEqual({ a: 'a1', b: 'b1' });
+  });
+
+  it('tags a root parallel state of a machine without an id as empty', () => {
+    const anonymous = createMachine({
+      type: 'parallel',
+      states: { a: {}, b: {} }
+    });
+    const tagged = taggedState(createActor(anonymous).getSnapshot());
+    expect(tagged._tag).toBe('');
+    '' satisfies typeof tagged._tag;
   });
 
   it('matches exhaustively over snapshots of an Effect actor', async () => {
@@ -149,6 +160,8 @@ describe('taggedState', () => {
     type Parallel = TaggedStateFrom<
       ReturnType<typeof parallelMachine.getInitialSnapshot>
     >;
+    'release' satisfies Parallel['_tag'];
+    // @ts-expect-error - the root parallel state is tagged with the machine id
     '(machine)' satisfies Parallel['_tag'];
   });
 });
