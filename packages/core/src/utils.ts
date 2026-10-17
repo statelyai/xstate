@@ -113,7 +113,7 @@ function toStateValue(stateValue: StateLike<any> | StateValue): StateValue {
 }
 
 /** @internal */
-export function pathToStateValue(statePath: string[]): StateValue {
+function pathToStateValue(statePath: string[]): StateValue {
   if (statePath.length === 1) {
     return statePath[0];
   }
