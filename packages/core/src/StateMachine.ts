@@ -2088,7 +2088,10 @@ export class StateMachine<
         timers,
         _nextActorIds: restoredCounters,
         _nodes: nodes,
-        value: snapshotData.value,
+        // Derived from the resolved configuration, so a partial value such as
+        // `{ active: {} }` is completed with initial states and agrees with
+        // `nodes`.
+        value: undefined,
         historyValue: revivedHistoryValue,
         // Inputs only belong to active states; drop any others.
         _stateInputs: Object.fromEntries(

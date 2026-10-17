@@ -785,6 +785,21 @@ describe('rehydration', () => {
         });
       });
 
+      it('should complete a partial state value with initial states', () => {
+        const restored = restoreMalformed(
+          parallelMachine,
+          persisted({ value: { active: {} } })
+        );
+        const snapshot = restored.getSnapshot();
+
+        expect(snapshot.status).toBe('active');
+        expect(snapshot.value).toEqual({ active: 'reviewing' });
+        expect(snapshot.matches('active.reviewing' as never)).toBe(true);
+        expect(restored.getPersistedSnapshot()).toMatchObject({
+          value: { active: 'reviewing' }
+        });
+      });
+
       it('should still ignore unknown fields', () => {
         const restored = restoreMalformed(
           machine,
