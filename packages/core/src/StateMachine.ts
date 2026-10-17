@@ -257,6 +257,21 @@ type ProvidedActionResult<TResult> = void extends TResult
   ? void
   : Extract<TResult, ReturnType<Sources['actions'][string]>>;
 
+/**
+ * The error a machine reports when a persisted snapshot cannot represent one
+ * of its states: the snapshot is not an object, has no valid state value, or
+ * its state value does not resolve on the machine. `createActor(machine, {
+ * snapshot })` reports it as an `'error'` snapshot instead of starting.
+ *
+ * @public
+ */
+export class InvalidSnapshotError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidSnapshotError';
+  }
+}
+
 /** @public */
 export class StateMachine<
   TContext extends MachineContext,
@@ -1619,6 +1634,51 @@ export class StateMachine<
     ) as any;
   }
 
+  private _validatePersistedStateValue(
+    stateValue: unknown,
+    node: AnyStateNode,
+    path: string[]
+  ): void {
+    if (typeof stateValue === 'string') {
+      if (!node.states[stateValue]) {
+        throw new InvalidSnapshotError(
+          `Persisted snapshot references state '${path.concat(stateValue).join('.')}' which does not exist on machine '${this.id}'.`
+        );
+      }
+      return;
+    }
+    const invalidValue = (reason: string) =>
+      new InvalidSnapshotError(
+        `Persisted snapshot for machine '${this.id}' has an invalid state value${path.length ? ` at '${path.join('.')}'` : ''}: ${reason}.`
+      );
+    if (
+      !stateValue ||
+      typeof stateValue !== 'object' ||
+      Array.isArray(stateValue)
+    ) {
+      throw invalidValue('expected a state name or an object of state values');
+    }
+    const keys = Object.keys(stateValue);
+    if (keys.length > 1 && node.type !== 'parallel') {
+      throw invalidValue(
+        `state '${path.length ? path.join('.') : node.key}' is not parallel, so only one child state can be active`
+      );
+    }
+    for (const key of keys) {
+      const childNode = node.states[key];
+      if (!childNode) {
+        throw new InvalidSnapshotError(
+          `Persisted snapshot references state '${path.concat(key).join('.')}' which does not exist on machine '${this.id}'.`
+        );
+      }
+      this._validatePersistedStateValue(
+        (stateValue as Record<string, unknown>)[key],
+        childNode,
+        path.concat(key)
+      );
+    }
+  }
+
   public restoreSnapshot(
     snapshot: Snapshot<unknown>,
     actorScope?: ActorScope<
@@ -1649,6 +1709,11 @@ export class StateMachine<
     const usesInertScope = !actorScope;
     const resolvedActorScope = (actorScope ??
       createInertActorScope(this)) as NonNullable<typeof actorScope>;
+    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+      throw new InvalidSnapshotError(
+        `Persisted snapshot for machine '${this.id}' must be an object.`
+      );
+    }
     const snapshotMachine = (snapshot as any).machine;
     // A live machine snapshot carries its producing machine so helpers such as
     // `matches()` can resolve state nodes. That runtime association is not the
@@ -1699,6 +1764,19 @@ export class StateMachine<
     }
 
     const snapshotData = snapshot as any;
+    // Validate the state value before restoring children: a snapshot that
+    // cannot represent a state must not construct (and later start) them.
+    if (!snapshotData || typeof snapshotData !== 'object') {
+      throw new InvalidSnapshotError(
+        `Persisted snapshot for machine '${this.id}' must be an object.`
+      );
+    }
+    if (snapshotData.value === undefined) {
+      throw new InvalidSnapshotError(
+        `Persisted snapshot for machine '${this.id}' has no state value.`
+      );
+    }
+    this._validatePersistedStateValue(snapshotData.value, this.root, []);
     const children: Record<string, AnyActor> = {};
     const snapshotChildren: Record<
       string,
@@ -1851,34 +1929,6 @@ export class StateMachine<
     };
 
     const revivedHistoryValue = reviveHistoryValue(snapshotData.historyValue);
-
-    const validateStateValue = (
-      stateValue: StateValue,
-      node: AnyStateNode,
-      path: string[]
-    ): void => {
-      const missingStateError = (statePath: string[]) =>
-        new Error(
-          `Persisted snapshot references state '${statePath.join('.')}' which does not exist on machine '${this.id}'.`
-        );
-      if (typeof stateValue === 'string') {
-        if (!node.states[stateValue]) {
-          throw missingStateError(path.concat(stateValue));
-        }
-        return;
-      }
-      if (!stateValue || typeof stateValue !== 'object') {
-        return;
-      }
-      for (const key of Object.keys(stateValue)) {
-        const childNode = node.states[key];
-        if (!childNode) {
-          throw missingStateError(path.concat(key));
-        }
-        validateStateValue(stateValue[key]!, childNode, path.concat(key));
-      }
-    };
-    validateStateValue(snapshotData.value, this.root, []);
 
     const nodes = Array.from(
       getAllStateNodes(getStateNodes(this.root, snapshotData.value))

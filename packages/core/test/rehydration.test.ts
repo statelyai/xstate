@@ -4,6 +4,7 @@ import {
   createActor,
   createAsyncLogic,
   createObservableLogic,
+  InvalidSnapshotError,
   type AnyStateMachine,
   type RestorablePersistedSnapshotFor,
   type Snapshot
@@ -635,6 +636,161 @@ describe('rehydration', () => {
           message:
             "Persisted snapshot references state 'review.reviewing' which does not exist on machine 'order-approval'."
         })
+      });
+    });
+
+    describe('malformed snapshots', () => {
+      const machine = createMachine({
+        id: 'order-approval',
+        initial: 'reviewing',
+        states: {
+          reviewing: { on: { APPROVE: { target: 'approved' } } },
+          approved: {}
+        }
+      });
+      const parallelMachine = createMachine({
+        id: 'order-approval',
+        initial: 'active',
+        states: {
+          active: {
+            initial: 'reviewing',
+            states: { reviewing: {}, approved: {} }
+          }
+        }
+      });
+
+      function restoreMalformed(logic: AnyStateMachine, snapshot: unknown) {
+        const restored = createActor(logic, {
+          snapshot: snapshot as any,
+          input: undefined
+        });
+        restored.subscribe({ error: () => {} });
+        restored.start();
+        return restored;
+      }
+
+      function persisted(overrides: Record<string, unknown>) {
+        const actorRef = createActor(machine).start();
+        const snapshot = actorRef.getPersistedSnapshot();
+        actorRef.stop();
+        return { ...(snapshot as object), ...overrides };
+      }
+
+      it.each([
+        ['a string', 'reviewing'],
+        ['a number', 42],
+        ['an array', [] as unknown[]]
+      ])(
+        'should error with InvalidSnapshotError when the snapshot is %s',
+        (_, snapshot) => {
+          const restored = restoreMalformed(machine, snapshot);
+          const restoredSnapshot = restored.getSnapshot();
+
+          expect(restoredSnapshot.status).toBe('error');
+          expect(restoredSnapshot.error).toBeInstanceOf(InvalidSnapshotError);
+          expect(restoredSnapshot.error).toMatchObject({
+            name: 'InvalidSnapshotError',
+            message:
+              "Persisted snapshot for machine 'order-approval' must be an object."
+          });
+          // Machine-shaped error snapshot, like a missing-state restore.
+          expect(restoredSnapshot.can({ type: 'APPROVE' })).toBe(false);
+        }
+      );
+
+      it('should error with InvalidSnapshotError when the state value is missing', () => {
+        const { value: _value, ...snapshot } = persisted({});
+
+        expect(restoreMalformed(machine, snapshot).getSnapshot()).toMatchObject(
+          {
+            status: 'error',
+            error: expect.objectContaining({
+              name: 'InvalidSnapshotError',
+              message:
+                "Persisted snapshot for machine 'order-approval' has no state value."
+            })
+          }
+        );
+      });
+
+      it.each([
+        ['a number', 42],
+        ['null', null],
+        ['an array', ['reviewing']],
+        ['a boolean', true]
+      ])(
+        'should error with InvalidSnapshotError when the state value is %s',
+        (_, value) => {
+          expect(
+            restoreMalformed(machine, persisted({ value })).getSnapshot()
+          ).toMatchObject({
+            status: 'error',
+            error: expect.objectContaining({
+              name: 'InvalidSnapshotError',
+              message:
+                "Persisted snapshot for machine 'order-approval' has an invalid state value: expected a state name or an object of state values."
+            })
+          });
+        }
+      );
+
+      it('should error with InvalidSnapshotError when a nested state value is invalid', () => {
+        expect(
+          restoreMalformed(
+            parallelMachine,
+            persisted({ value: { active: 42 } })
+          ).getSnapshot()
+        ).toMatchObject({
+          status: 'error',
+          error: expect.objectContaining({
+            name: 'InvalidSnapshotError',
+            message:
+              "Persisted snapshot for machine 'order-approval' has an invalid state value at 'active': expected a state name or an object of state values."
+          })
+        });
+      });
+
+      it('should error with InvalidSnapshotError when a non-parallel state has several active children', () => {
+        expect(
+          restoreMalformed(
+            parallelMachine,
+            persisted({ value: { active: { reviewing: {}, approved: {} } } })
+          ).getSnapshot()
+        ).toMatchObject({
+          status: 'error',
+          error: expect.objectContaining({
+            name: 'InvalidSnapshotError',
+            message:
+              "Persisted snapshot for machine 'order-approval' has an invalid state value at 'active': state 'active' is not parallel, so only one child state can be active."
+          })
+        });
+      });
+
+      it('should report missing states as InvalidSnapshotError', () => {
+        expect(
+          restoreMalformed(
+            machine,
+            persisted({ value: 'archived' })
+          ).getSnapshot()
+        ).toMatchObject({
+          status: 'error',
+          error: expect.objectContaining({
+            name: 'InvalidSnapshotError',
+            message:
+              "Persisted snapshot references state 'archived' which does not exist on machine 'order-approval'."
+          })
+        });
+      });
+
+      it('should still ignore unknown fields', () => {
+        const restored = restoreMalformed(
+          machine,
+          persisted({ somethingElse: true })
+        );
+
+        expect(restored.getSnapshot().status).toBe('active');
+        restored.send({ type: 'APPROVE' });
+        expect(restored.getSnapshot().value).toBe('approved');
       });
     });
 
