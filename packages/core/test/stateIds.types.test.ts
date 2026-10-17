@@ -42,4 +42,69 @@ describe('StateId', () => {
     const machine = createMachine({});
     machine.id satisfies '';
   });
+
+  it('accepts implicit `#` targets', () => {
+    createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            NESTED: { target: '#checkout.payment' },
+            PARENT: { target: '#checkout' },
+            REGION: { target: '#p.left.x' }
+          }
+        },
+        checkout: { initial: 'cart', states: { cart: {}, payment: {} } },
+        p: {
+          type: 'parallel',
+          states: {
+            left: { initial: 'x', states: { x: {} } },
+            right: { initial: 'x', states: { x: {} } }
+          }
+        }
+      }
+    });
+
+    createMachine({
+      id: 'shop',
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            ROOT: { target: '#shop', reenter: true },
+            NESTED: { target: '#shop.checkout.payment' }
+          }
+        },
+        checkout: { initial: 'cart', states: { cart: {}, payment: {} } }
+      }
+    });
+  });
+
+  it('rejects unknown implicit `#` targets', () => {
+    // Type-only: creating these machines throws.
+    void (() => {
+      // @ts-expect-error unknown implicit id
+      createMachine({
+        initial: 'idle',
+        states: {
+          idle: { on: { GO: { target: '#checkout.nope' } } },
+          checkout: { initial: 'cart', states: { cart: {} } }
+        }
+      });
+      // @ts-expect-error ids start with the machine id
+      createMachine({
+        id: 'shop',
+        initial: 'idle',
+        states: {
+          idle: { on: { GO: { target: '#checkout.cart' } } },
+          checkout: { initial: 'cart', states: { cart: {} } }
+        }
+      });
+      // @ts-expect-error the root of a machine without an id has no `#id`
+      createMachine({
+        initial: 'idle',
+        states: { idle: { on: { GO: { target: '#' } } } }
+      });
+    });
+  });
 });

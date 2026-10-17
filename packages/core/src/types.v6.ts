@@ -2122,52 +2122,77 @@ type StateTargetStringsFromStates<TStates, TPrefix extends string = ''> =
       }[keyof TStates & string]
     : never;
 
-type IdTargetsForNode<TNode> = TNode extends { id: infer TId extends string }
+// The id a `#` target names a state node by: its explicit `id` (dots
+// escaped), or its implicit id, the path from the root (keys keep their
+// escaped dots) prefixed by the machine id when it has one. The root of a
+// machine without an id has the empty implicit id, which `#` cannot name.
+type ReferenceIdForNode<TNode, TImplicitId extends string> = TNode extends {
+  id: infer TId extends string;
+}
   ? string extends TId
     ? never
-    : TNode extends { states: infer TStates }
-      ?
-          | `#${EscapeStatePathDots<TId>}`
-          | `#${EscapeStatePathDots<TId>}.${StateTargetStringsFromStates<TStates>}`
-      : `#${EscapeStatePathDots<TId>}`
-  : never;
+    : EscapeStatePathDots<TId>
+  : TImplicitId extends ''
+    ? never
+    : TImplicitId;
 
-type IdTargetsFromStates<TStates> =
+type IdTargetsForNode<TNode, TImplicitId extends string> =
+  ReferenceIdForNode<TNode, TImplicitId> extends infer TRef extends string
+    ? [TRef] extends [never]
+      ? never
+      : TNode extends { states: infer TStates }
+        ? `#${TRef}` | `#${TRef}.${StateTargetStringsFromStates<TStates>}`
+        : `#${TRef}`
+    : never;
+
+type IdTargetsFromStates<TStates, TPrefix extends string> =
   TStates extends Record<string, unknown>
     ? {
         [K in keyof TStates & string]:
-          | IdTargetsForNode<TStates[K]>
+          | IdTargetsForNode<TStates[K], JoinStateTargetString<TPrefix, K>>
           | (0 extends 1 & TStates[K]
               ? never
               : TStates[K] extends { states: infer TChildren }
-                ? IdTargetsFromStates<TChildren>
+                ? IdTargetsFromStates<
+                    TChildren,
+                    JoinStateTargetString<TPrefix, K>
+                  >
                 : never);
       }[keyof TStates & string]
     : never;
 
+type MachineIdPrefix<TConfig> = TConfig extends { id: infer TId extends string }
+  ? string extends TId
+    ? never
+    : TId
+  : '';
+
 type AuthoredIdTargets<TConfig> =
-  | IdTargetsForNode<TConfig>
+  | IdTargetsForNode<TConfig, MachineIdPrefix<TConfig>>
   | (TConfig extends { states: infer TStates }
-      ? IdTargetsFromStates<TStates>
+      ? IdTargetsFromStates<TStates, MachineIdPrefix<TConfig>>
       : never);
 
 type ResolveIdTargetAtNode<
   TNode,
   TNodePath extends StatePath,
-  TTarget extends string
-> = TNode extends { id: infer TId extends string }
-  ? string extends TId
-    ? never
-    : TTarget extends `#${EscapeStatePathDots<TId>}`
-      ? TNodePath
-      : TTarget extends `#${EscapeStatePathDots<TId>}.${infer TDescendant}`
-        ? [...TNodePath, ...SplitStatePath<TDescendant>]
-        : never
-  : never;
+  TTarget extends string,
+  TImplicitId extends string
+> =
+  ReferenceIdForNode<TNode, TImplicitId> extends infer TRef extends string
+    ? [TRef] extends [never]
+      ? never
+      : TTarget extends `#${TRef}`
+        ? TNodePath
+        : TTarget extends `#${TRef}.${infer TDescendant}`
+          ? [...TNodePath, ...SplitStatePath<TDescendant>]
+          : never
+    : never;
 
 type ResolveIdTargetInStates<
   TStates,
   TTarget extends string,
+  TImplicitPrefix extends string,
   TPrefix extends StatePath = []
 > =
   TStates extends Record<string, unknown>
@@ -2176,7 +2201,8 @@ type ResolveIdTargetInStates<
           | ResolveIdTargetAtNode<
               TStates[K],
               AppendStatePath<TPrefix, K>,
-              TTarget
+              TTarget,
+              JoinStateTargetString<TImplicitPrefix, K>
             >
           | (0 extends 1 & TStates[K]
               ? never
@@ -2184,6 +2210,7 @@ type ResolveIdTargetInStates<
                 ? ResolveIdTargetInStates<
                     TChildren,
                     TTarget,
+                    JoinStateTargetString<TImplicitPrefix, K>,
                     AppendStatePath<TPrefix, K>
                   >
                 : never);
@@ -2191,9 +2218,9 @@ type ResolveIdTargetInStates<
     : never;
 
 type ResolveIdTargetPath<TConfig, TTarget extends string> =
-  | ResolveIdTargetAtNode<TConfig, [], TTarget>
+  | ResolveIdTargetAtNode<TConfig, [], TTarget, MachineIdPrefix<TConfig>>
   | (TConfig extends { states: infer TStates }
-      ? ResolveIdTargetInStates<TStates, TTarget>
+      ? ResolveIdTargetInStates<TStates, TTarget, MachineIdPrefix<TConfig>>
       : never);
 
 type ResolveAuthoredTarget<

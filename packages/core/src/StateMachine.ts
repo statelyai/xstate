@@ -1581,6 +1581,32 @@ export class StateMachine<
     const stateNode =
       this.idMap.get(resolvedStateId) ??
       this.idMap.get(resolvedStateId.replaceAll('\\.', '.'));
+    if (stateNode) {
+      try {
+        return getStateNodeByPath(stateNode, relativePath) as StateNode<
+          TContext,
+          TEvent,
+          TMeta,
+          TTransitionMeta
+        >;
+      } catch (err) {
+        if (!relativePath.length) throw err;
+      }
+    }
+    // A whole implicit id, such as `a.b` when `a` has an explicit id and so
+    // cannot be referenced as `#a`.
+    const implicitId = isStateId(stateId)
+      ? stateId.slice(STATE_IDENTIFIER.length)
+      : stateId;
+    const implicitNode = this.idMap.get(implicitId);
+    if (implicitNode && !implicitNode.config.id) {
+      return implicitNode as StateNode<
+        TContext,
+        TEvent,
+        TMeta,
+        TTransitionMeta
+      >;
+    }
     if (!stateNode) {
       throw new Error(
         `Child state node '#${resolvedStateId}' does not exist on ${describeMachine(this.id)}`

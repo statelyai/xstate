@@ -87,11 +87,10 @@ describe('implicit state ids', () => {
   });
 
   it('are matched and targeted by `#id`', () => {
-    // Authored `#` targets are only type-checked against explicit ids.
     const machine = createMachine({
       initial: 'idle',
       states: {
-        idle: { on: { GO: { target: '#checkout.payment' as never } } },
+        idle: { on: { GO: { target: '#checkout.payment' } } },
         checkout: { initial: 'cart', states: { cart: {}, payment: {} } }
       }
     });
@@ -102,6 +101,26 @@ describe('implicit state ids', () => {
     expect(actor.getSnapshot().value).toEqual({ checkout: 'payment' });
     expect(actor.getSnapshot().matches('#checkout.payment')).toBe(true);
     expect(actor.getSnapshot().matches('#checkout')).toBe(true);
+  });
+
+  it('target a full implicit id below a state with an explicit id', () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: { on: { GO: { target: '#wizard.step' } } },
+        wizard: {
+          id: 'flow',
+          initial: 'intro',
+          states: { intro: {}, step: {} }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+
+    actor.send({ type: 'GO' });
+
+    expect(actor.getSnapshot().value).toEqual({ wizard: 'step' });
+    expect(actor.getSnapshot().matches('#wizard.step')).toBe(true);
   });
 
   it('target the root of a machine with an id by `#id`', () => {
