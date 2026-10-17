@@ -875,7 +875,7 @@ export function machineFromJSON(
   }
 
   function getMissingGuardMessage(type: string, guards: Record<string, any>) {
-    return `Guard '${type}' is not implemented in machine '${json.id ?? '(machine)'}'. Available guards: ${
+    return `Guard '${type}' is not implemented in ${json.id ? `machine '${json.id}'` : 'the machine'}. Available guards: ${
       Object.keys(guards)
         .map((key) => `'${key}'`)
         .join(', ') || '(none)'

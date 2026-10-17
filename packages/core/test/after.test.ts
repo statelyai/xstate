@@ -125,7 +125,7 @@ describe('delayed transitions', () => {
       const timerKey = {
         event: {
           type: 'xstate.after',
-          stateId: '(machine).waiting',
+          stateId: 'waiting',
           delay: 100
         }
       };

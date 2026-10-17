@@ -45,7 +45,7 @@ describe('persistence', () => {
     const restored = createActor(machine, { snapshot: persisted }).start();
 
     expect(restored.getSnapshot().getMeta()).toEqual({
-      '(machine).b': { title: 'B' }
+      b: { title: 'B' }
     });
   });
 

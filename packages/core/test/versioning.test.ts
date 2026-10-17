@@ -12,7 +12,7 @@ describe('persisted snapshot versioning', () => {
     const persisted = actor.getPersistedSnapshot();
 
     expect((persisted as any).machine).toEqual({
-      id: '(machine)',
+      id: '',
       version: '1'
     });
     expect(persisted).not.toHaveProperty('version');

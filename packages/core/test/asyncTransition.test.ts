@@ -21,7 +21,7 @@ describe('async transition functions', () => {
     const [snapshot] = initialTransition(machine);
 
     expect(() => transition(machine, snapshot, { type: 'LOAD' })).toThrow(
-      'Transition functions must be synchronous. Transition for event "LOAD" in state "(machine).idle" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.'
+      'Transition functions must be synchronous. Transition for event "LOAD" in state "idle" returned a promise. Move async work into an invoked or spawned actor, or enq.effect.'
     );
 
     const error = vi.fn();
@@ -150,7 +150,7 @@ describe('async transition functions', () => {
     expect(() =>
       transition(entryMachine, entrySnapshot, { type: 'GO' })
     ).toThrow(
-      'Entry functions must be synchronous. The entry function of state "(machine).loading" returned a promise (event "GO").'
+      'Entry functions must be synchronous. The entry function of state "loading" returned a promise (event "GO").'
     );
 
     const exitMachine = createMachine({
@@ -165,7 +165,7 @@ describe('async transition functions', () => {
     });
     const [exitSnapshot] = initialTransition(exitMachine);
     expect(() => transition(exitMachine, exitSnapshot, { type: 'GO' })).toThrow(
-      'Exit functions must be synchronous. The exit function of state "(machine).idle" returned a promise (event "GO").'
+      'Exit functions must be synchronous. The exit function of state "idle" returned a promise (event "GO").'
     );
   });
 

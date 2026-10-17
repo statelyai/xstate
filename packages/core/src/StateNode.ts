@@ -171,8 +171,13 @@ export class StateNode<
     const firstStateKey = this.config.states
       ? Object.keys(this.config.states)[0]
       : undefined;
+    // The implicit id is the path from the root, prefixed by the machine id
+    // when it has one: `shop.checkout`, or `checkout` without a machine id.
     this.id =
-      this.config.id || [this.machine.id, ...this.path].join(STATE_DELIMITER);
+      this.config.id ||
+      (this.machine.id ? [this.machine.id, ...this.path] : this.path).join(
+        STATE_DELIMITER
+      );
     this.type =
       this.config.type ||
       (firstStateKey !== undefined
@@ -188,6 +193,14 @@ export class StateNode<
       warnOnFinalStateBehavior(this);
     }
 
+    const existing = this.machine.idMap.get(this.id);
+    // Two implicit ids only coincide through keys containing `.`; an explicit
+    // id that equals any other id would make `#id` ambiguous.
+    if (existing && (existing.config.id || this.config.id)) {
+      throw new Error(
+        `Duplicate state id '${this.id}': the states at '${existing.path.join(STATE_DELIMITER)}' and '${this.path.join(STATE_DELIMITER)}' both have it. State ids must be unique; rename the explicit \`id\`.`
+      );
+    }
     this.order = this.machine.idMap.size;
     this.machine.idMap.set(this.id, this);
 

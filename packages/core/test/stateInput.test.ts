@@ -1451,7 +1451,7 @@ describe('setup', () => {
     const inputs = snapshot.getInputs();
 
     // Inputs are keyed by state node ID
-    expect(inputs['(machine).loading']).toEqual({ userId: 'snapshot-user' });
+    expect(inputs['loading']).toEqual({ userId: 'snapshot-user' });
   });
 
   it('nested state input should be accessible in snapshot', () => {
@@ -1494,8 +1494,8 @@ describe('setup', () => {
     const snapshot = actor.getSnapshot();
     const inputs = snapshot.getInputs();
 
-    expect(inputs['(machine).parent']).toEqual({ parentId: 'p1' });
-    expect(inputs['(machine).parent.child']).toEqual({ childId: 42 });
+    expect(inputs['parent']).toEqual({ parentId: 'p1' });
+    expect(inputs['parent.child']).toEqual({ childId: 42 });
   });
 
   it('getInputs() should be strongly typed', () => {
@@ -1540,15 +1540,15 @@ describe('setup', () => {
     const inputs = actor.getSnapshot().getInputs();
 
     // Type tests for getInputs() return type
-    inputs['(machine).idle'] satisfies undefined;
-    inputs['(machine).loading'] satisfies { userId: string } | undefined;
-    inputs['(machine).active'] satisfies { sessionId: number } | undefined;
-    inputs['(machine).active.running'] satisfies { taskId: string } | undefined;
+    inputs['idle'] satisfies undefined;
+    inputs['loading'] satisfies { userId: string } | undefined;
+    inputs['active'] satisfies { sessionId: number } | undefined;
+    inputs['active.running'] satisfies { taskId: string } | undefined;
 
     // @ts-expect-error - loading input should have userId string, not number
-    inputs['(machine).loading'] satisfies { userId: number };
+    inputs['loading'] satisfies { userId: number };
     // @ts-expect-error - active input should have sessionId number, not string
-    inputs['(machine).active'] satisfies { sessionId: string };
+    inputs['active'] satisfies { sessionId: string };
 
     expect(true).toBe(true);
   });
@@ -1582,7 +1582,7 @@ describe('setup', () => {
     const actor = createActor(machine).start();
 
     // Input should be set initially
-    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+    expect(actor.getSnapshot().getInputs()['active']).toEqual({
       count: 1
     });
 
@@ -1590,7 +1590,7 @@ describe('setup', () => {
     actor.send({ type: 'PING' });
 
     // Input should still be there
-    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+    expect(actor.getSnapshot().getInputs()['active']).toEqual({
       count: 1
     });
   });
@@ -1649,7 +1649,7 @@ describe('setup', () => {
 
     actor.send({ type: 'SET_MULTIPLIER_NO_REENTER' });
     expect(entryInputs).toEqual([{ multiplier: 3 }]);
-    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+    expect(actor.getSnapshot().getInputs()['active']).toEqual({
       multiplier: 3
     });
     actor.send({ type: 'MULTIPLY' });
@@ -1657,7 +1657,7 @@ describe('setup', () => {
 
     actor.send({ type: 'SET_MULTIPLIER_REENTER' });
     expect(entryInputs).toEqual([{ multiplier: 3 }, { multiplier: 10 }]);
-    expect(actor.getSnapshot().getInputs()['(machine).active']).toEqual({
+    expect(actor.getSnapshot().getInputs()['active']).toEqual({
       multiplier: 10
     });
     actor.send({ type: 'MULTIPLY' });
@@ -1797,14 +1797,14 @@ describe('setup', () => {
 
     actor.send({ type: 'PING' });
     expect(parentInputs).toEqual([{ value: 1 }]);
-    expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
+    expect(actor.getSnapshot().getInputs()['parent']).toEqual({
       value: 1
     });
     expect(childEntries).toEqual(['child', 'child']);
 
     actor.send({ type: 'PING_REENTER' });
     expect(parentInputs).toEqual([{ value: 1 }, { value: 3 }]);
-    expect(actor.getSnapshot().getInputs()['(machine).parent']).toEqual({
+    expect(actor.getSnapshot().getInputs()['parent']).toEqual({
       value: 3
     });
     expect(childEntries).toEqual(['child', 'child', 'child']);
@@ -2556,7 +2556,7 @@ describe('state input lifetime', () => {
     const actor = createActor(machine).start();
     actor.send({ type: 'GO' });
     expect(actor.getSnapshot().getInputs()).toEqual({
-      '(machine).b': { n: 1 }
+      b: { n: 1 }
     });
 
     actor.send({ type: 'BACK' });
@@ -2669,13 +2669,13 @@ describe('state input lifetime', () => {
 
     const actor = createActor(machine).start();
     expect(actor.getSnapshot().getInputs()).toEqual({
-      '(machine).p.left.one': { left: 1 },
-      '(machine).p.right.only': { right: 2 }
+      'p.left.one': { left: 1 },
+      'p.right.only': { right: 2 }
     });
 
     actor.send({ type: 'NEXT' });
     expect(actor.getSnapshot().getInputs()).toEqual({
-      '(machine).p.right.only': { right: 2 }
+      'p.right.only': { right: 2 }
     });
 
     actor.send({ type: 'LEAVE' });
@@ -2714,13 +2714,13 @@ describe('state input lifetime', () => {
     const actor = createActor(machine).start();
     actor.send({ type: 'NEXT' });
     expect(actor.getSnapshot().getInputs()).toEqual({
-      '(machine).parent': { v: 1 },
-      '(machine).parent.second': { w: 1 }
+      parent: { v: 1 },
+      'parent.second': { w: 1 }
     });
 
     actor.send({ type: 'RESET' });
     expect(actor.getSnapshot().getInputs()).toEqual({
-      '(machine).parent': { v: 2 }
+      parent: { v: 2 }
     });
   });
 });

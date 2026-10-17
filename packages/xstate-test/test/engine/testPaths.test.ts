@@ -473,7 +473,7 @@ describe('failure messages', () => {
       start "idle"
       1. generator PAY -> "paying"
       2. outcome charge {"ok":true,"output":"ch_1"} -> "paid"
-         ↳ outcome xstate.done.actor {"output":"ch_1","actorId":"0.order.paying"} -> "paid"
+         ↳ outcome xstate.done.actor {"output":"ch_1","actorId":"order.paying:0"} -> "paid"
       3. timer advance 1000ms -> "archived"
          ↳ timer xstate.after {"delay":1000,"stateId":"order.paid"} -> "archived""
     `);

@@ -149,6 +149,9 @@ describe('State node IDs', () => {
 
   it('should work with IDs that have escaped periods', () => {
     const machine = createMachine({
+      // Without a machine id, the implicit id of `foo.bar` would collide with
+      // the explicit `foo.bar` id.
+      id: 'machine',
       initial: 'start',
       states: {
         start: {

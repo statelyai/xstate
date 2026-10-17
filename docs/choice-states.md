@@ -42,7 +42,7 @@ choice: ({ context, event }) => ({
 })
 ```
 
-The function must resolve to a target. Returning `undefined`, or an object without `target`, throws `Choice state "(machine).routing" must resolve to a target.` at the moment the state is entered, not at machine creation. Always end the function with a fallback branch.
+The function must resolve to a target. Returning `undefined`, or an object without `target`, throws `Choice state "routing" must resolve to a target.` at the moment the state is entered, not at machine creation. Always end the function with a fallback branch.
 
 A choice cannot enqueue effects or update context: `actions` and `to` on the returned object are rejected. Do the context update on the transition that leads into the choice state.
 
@@ -76,9 +76,9 @@ const machine = createMachine({
 
 ## Constraints
 
-A choice state is only a branch point, so it cannot declare anything that would need it to stay resident: `invoke`, `after`, `on`, `entry`, `exit`, `always`, `states`, `initial`, `onDone`, `timeout`, `onTimeout`, `history`, `target` or `output`. Any of these throws <code>Choice state "(machine).routing" cannot declare `invoke`.</code> when the machine is created.
+A choice state is only a branch point, so it cannot declare anything that would need it to stay resident: `invoke`, `after`, `on`, `entry`, `exit`, `always`, `states`, `initial`, `onDone`, `timeout`, `onTimeout`, `history`, `target` or `output`. Any of these throws <code>Choice state "routing" cannot declare `invoke`.</code> when the machine is created.
 
-> **Warning:** `choice` only works with `type: 'choice'`. Putting `choice` on an ordinary state throws <code>State "(machine).a" has `choice`, but `choice` can only be used with `type: 'choice'`.</code>, and a state with `type: 'choice'` and no function throws <code>Choice state "(machine).routing" must declare a `choice` function.</code>
+> **Warning:** `choice` only works with `type: 'choice'`. Putting `choice` on an ordinary state throws <code>State "a" has `choice`, but `choice` can only be used with `type: 'choice'`.</code>, and a state with `type: 'choice'` and no function throws <code>Choice state "routing" must declare a `choice` function.</code>
 
 Use choice states for:
 

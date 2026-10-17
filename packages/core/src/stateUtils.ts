@@ -25,6 +25,7 @@ import {
   XSTATE_TIMER
 } from './constants.ts';
 import {
+  describeMachine,
   getEventOutput,
   isErrorEvent,
   matchesEvent,
@@ -1894,7 +1895,7 @@ function microstep(
           if (!logic) {
             throw new Error(
               isDevelopment
-                ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in machine '${currentSnapshot.machine.id}'`
+                ? `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented in ${describeMachine(currentSnapshot.machine.id)}`
                 : `Actor logic '${typeof src === 'string' ? src : 'inline'}' not implemented`
             );
           }

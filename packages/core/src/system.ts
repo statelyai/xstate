@@ -155,13 +155,9 @@ export function getActorIdPrefix(
     return src;
   }
   const logicId = (src as { id?: unknown } | undefined)?.id;
-  // Anonymous machines get the placeholder id '(machine)'; only named logic
-  // earns a named id prefix.
-  return typeof logicId === 'string' &&
-    logicId.length &&
-    logicId !== '(machine)'
-    ? logicId
-    : 'x';
+  // Only named logic earns a named id prefix; machines without an id have
+  // the empty id.
+  return typeof logicId === 'string' && logicId.length ? logicId : 'x';
 }
 
 /**

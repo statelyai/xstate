@@ -98,6 +98,7 @@ import {
   MachineOptions
 } from './types.v6.ts';
 import {
+  describeMachine,
   assertUnreservedSourceName,
   matchesEventDescriptor,
   resolveInvokedActorLogic,
@@ -367,9 +368,11 @@ export class StateMachine<
 
   public root: StateNode<TContext, TEvent, TMeta, TTransitionMeta>;
 
-  public id: TConfig extends { id: infer TId extends string }
-    ? TId
-    : '(machine)';
+  /**
+   * The machine's `id`, or the empty string when the config declares none.
+   * The root state node has this id; a machine without one has no `#id` root.
+   */
+  public id: TConfig extends { id: infer TId extends string } ? TId : '';
 
   public states: StateNode<TContext, TEvent, TMeta, TTransitionMeta>['states'];
   public events: Array<EventDescriptor<TEvent>>;
@@ -407,7 +410,7 @@ export class StateMachine<
     sources?: Sources,
     public validator?: ActorLogicValidator
   ) {
-    this.id = (config.id || '(machine)') as typeof this.id;
+    this.id = (config.id ?? '') as typeof this.id;
     this.sources = {
       actors: config.actors ?? {},
       actions: config.actions ?? {},
@@ -1560,10 +1563,17 @@ export class StateMachine<
       ? fullPath[0].slice(STATE_IDENTIFIER.length)
       : fullPath[0];
 
+    if (resolvedStateId === '' && isStateId(fullPath[0])) {
+      throw new Error(
+        this.id
+          ? `State id '#' is empty. Target the root of ${describeMachine(this.id)} with '#${this.id}'.`
+          : "State id '#' is empty: the root of a machine without an `id` cannot be referenced by id. Give the machine an `id` to reference its root as '#<id>'."
+      );
+    }
     const stateNode = this.idMap.get(resolvedStateId);
     if (!stateNode) {
       throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
+        `Child state node '#${resolvedStateId}' does not exist on ${describeMachine(this.id)}`
       );
     }
     return getStateNodeByPath(stateNode, relativePath) as StateNode<
@@ -1643,14 +1653,14 @@ export class StateMachine<
     if (typeof stateValue === 'string') {
       if (!node.states[stateValue]) {
         throw new InvalidSnapshotError(
-          `Persisted snapshot references state '${path.concat(stateValue).join('.')}' which does not exist on machine '${this.id}'.`
+          `Persisted snapshot references state '${path.concat(stateValue).join('.')}' which does not exist on ${describeMachine(this.id)}.`
         );
       }
       return;
     }
     const invalidValue = (reason: string) =>
       new InvalidSnapshotError(
-        `Persisted snapshot for machine '${this.id}' has an invalid state value${path.length ? ` at '${path.join('.')}'` : ''}: ${reason}.`
+        `Persisted snapshot for ${describeMachine(this.id)} has an invalid state value${path.length ? ` at '${path.join('.')}'` : ''}: ${reason}.`
       );
     if (
       !stateValue ||
@@ -1669,7 +1679,7 @@ export class StateMachine<
       const childNode = node.states[key];
       if (!childNode) {
         throw new InvalidSnapshotError(
-          `Persisted snapshot references state '${path.concat(key).join('.')}' which does not exist on machine '${this.id}'.`
+          `Persisted snapshot references state '${path.concat(key).join('.')}' which does not exist on ${describeMachine(this.id)}.`
         );
       }
       this._validatePersistedStateValue(
@@ -1712,7 +1722,7 @@ export class StateMachine<
       createInertActorScope(this)) as NonNullable<typeof actorScope>;
     if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
       throw new InvalidSnapshotError(
-        `Persisted snapshot for machine '${this.id}' must be an object.`
+        `Persisted snapshot for ${describeMachine(this.id)} must be an object.`
       );
     }
     const snapshotMachine = (snapshot as any).machine;
@@ -1769,12 +1779,12 @@ export class StateMachine<
     // cannot represent a state must not construct (and later start) them.
     if (!snapshotData || typeof snapshotData !== 'object') {
       throw new InvalidSnapshotError(
-        `Persisted snapshot for machine '${this.id}' must be an object.`
+        `Persisted snapshot for ${describeMachine(this.id)} must be an object.`
       );
     }
     if (snapshotData.value === undefined) {
       throw new InvalidSnapshotError(
-        `Persisted snapshot for machine '${this.id}' has no state value.`
+        `Persisted snapshot for ${describeMachine(this.id)} has no state value.`
       );
     }
     this._validatePersistedStateValue(snapshotData.value, this.root, []);
@@ -1841,7 +1851,7 @@ export class StateMachine<
 
       if (!logic) {
         throw new Error(
-          `Unable to restore child actor '${actorId}': child source '${typeof src === 'string' ? src : '<inline>'}' is not provided in machine '${this.id}'.`
+          `Unable to restore child actor '${actorId}': child source '${typeof src === 'string' ? src : '<inline>'}' is not provided in ${describeMachine(this.id)}.`
         );
       }
 

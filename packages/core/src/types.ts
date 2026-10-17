@@ -2997,31 +2997,48 @@ export type StateSchemaFrom<T extends AnyStateMachine> =
     ? TStateSchema
     : never;
 
-/** @public */
+// The id prefix a state node gives its children: the path from the root,
+// starting with the machine id when it has one. `TPath` is `null` for the
+// root, whose own id is the machine id.
+type ChildStateIdPath<
+  TSchema extends StateSchema,
+  TPath extends string | null,
+  TKey extends string
+> = TPath extends string
+  ? `${TPath}.${TKey}`
+  : TSchema['id'] extends string
+    ? `${TSchema['id']}.${TKey}`
+    : TKey;
+
+/**
+ * The ids of the state nodes of a state schema: an explicit `id`, otherwise
+ * the path from the root joined by `.`, prefixed by the machine id when the
+ * machine has one. The root of a machine without an id has the empty id,
+ * which `#` references cannot name.
+ *
+ * @public
+ */
 export type StateId<
   TSchema extends StateSchema,
-  TKey extends string = '(machine)',
-  TParentKey extends string | null = null
+  TPath extends string | null = null
 > =
   IsAny<TSchema> extends true
     ? string
     :
         | (TSchema extends { id: string }
             ? TSchema['id']
-            : TParentKey extends null
-              ? TKey
-              : `${TParentKey}.${TKey}`)
+            : TPath extends string
+              ? TPath
+              : '')
         | (TSchema['states'] extends Record<string, any>
             ? Values<{
-                [K in keyof TSchema['states'] & string]: StateId<
-                  TSchema['states'][K],
-                  K,
-                  TParentKey extends string
-                    ? `${TParentKey}.${TKey}`
-                    : TSchema['id'] extends string
-                      ? TSchema['id']
-                      : TKey
-                >;
+                // Unknown state keys: stop before building unbounded paths.
+                [K in keyof TSchema['states'] & string]: string extends K
+                  ? string
+                  : StateId<
+                      TSchema['states'][K],
+                      ChildStateIdPath<TSchema, TPath, K>
+                    >;
               }>
             : never);
 
@@ -3032,28 +3049,22 @@ export type StateId<
  */
 export type StateIdInputs<
   TSchema extends StateSchema,
-  TKey extends string = '(machine)',
-  TParentKey extends string | null = null
+  TPath extends string | null = null
 > = {
   [K in TSchema extends { id: string }
     ? TSchema['id']
-    : TParentKey extends null
-      ? TKey
-      : `${TParentKey}.${TKey}`]: TSchema['input'] extends undefined
-    ? undefined
-    : TSchema['input'];
+    : TPath extends string
+      ? TPath
+      : '']: TSchema['input'] extends undefined ? undefined : TSchema['input'];
 } & (TSchema['states'] extends Record<string, StateSchema>
   ? UnionToIntersection<
       Values<{
-        [K in keyof TSchema['states'] & string]: StateIdInputs<
-          TSchema['states'][K],
-          K,
-          TParentKey extends string
-            ? `${TParentKey}.${TKey}`
-            : TSchema['id'] extends string
-              ? TSchema['id']
-              : TKey
-        >;
+        [K in keyof TSchema['states'] & string]: string extends K
+          ? Record<string, unknown>
+          : StateIdInputs<
+              TSchema['states'][K],
+              ChildStateIdPath<TSchema, TPath, K>
+            >;
       }>
     >
   : {});
@@ -3123,7 +3134,7 @@ export type StateContextFromStateValue<
 export type StateIdReference<TSchema extends StateSchema> =
   string extends StateId<TSchema>
     ? `#${string}`
-    : `#${StateId<TSchema> & string}`;
+    : `#${Exclude<StateId<TSchema>, ''> & string}`;
 
 /** @public */
 export type RoutableStateId<TSchema extends StateSchema> =

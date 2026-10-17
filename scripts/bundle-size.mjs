@@ -528,7 +528,7 @@ const EXPECTED_LOGS = {
   'minimal-fsm': [['active']],
   'fsm-setup': [['active']],
   'custom-logic-actor': [[1]],
-  'machine-construction': [['(machine)']],
+  'machine-construction': [['']],
   'pure-machine': [['active']],
   compound: [[{ parent: 'active' }]],
   parallel: [[{ left: 'active', right: 'inactive' }]],

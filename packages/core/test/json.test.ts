@@ -366,14 +366,14 @@ describe('json', () => {
       transitions.some(
         (t) =>
           t.eventType === 'xstate.done.actor' &&
-          t.matches?.actorId === '0.active'
+          t.matches?.actorId === 'active:0'
       )
     ).toBe(true);
     expect(
       transitions.some(
         (t) =>
           t.eventType === 'xstate.error.actor' &&
-          t.matches?.actorId === '0.active'
+          t.matches?.actorId === 'active:0'
       )
     ).toBe(true);
   });

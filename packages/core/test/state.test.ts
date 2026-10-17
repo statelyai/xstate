@@ -109,10 +109,7 @@ describe('State', () => {
   it('should expose active state nodes as nodes', () => {
     const snapshot = createActor(exampleMachine).getSnapshot();
 
-    expect(snapshot.nodes.map((node) => node.id)).toEqual([
-      '(machine)',
-      '(machine).one'
-    ]);
+    expect(snapshot.nodes.map((node) => node.id)).toEqual(['', 'one']);
     expect('_nodes' in snapshot).toBe(false);
   });
 

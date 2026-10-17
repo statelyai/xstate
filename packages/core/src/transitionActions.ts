@@ -577,7 +577,16 @@ export function allocateChildId(
     createSpawnAllocation();
   const prefix = getActorIdPrefix(src);
   assertUnreservedPrefix(prefix);
-  const next = nextChildIndex(actorScope, allocation, prefix);
+  let next = nextChildIndex(actorScope, allocation, prefix);
+  // Skip ids already claimed in this transition or held by a live child, such
+  // as an implicit invoke id (`worker:0` for an invoke in state `worker`).
+  const children = getWorkingSnapshotOf(actorScope)?.children;
+  while (
+    allocation.explicitIds.has(`${prefix}:${next}`) ||
+    children?.[`${prefix}:${next}`]
+  ) {
+    next++;
+  }
   allocation.counters.set(prefix, next + 1);
   return { id: `${prefix}:${next}`, counters: { [prefix]: next + 1 } };
 }

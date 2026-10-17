@@ -30,7 +30,7 @@ describe('final states', () => {
         [
           {
             "output": undefined,
-            "stateId": "(machine)",
+            "stateId": "",
             "type": "xstate.done.state",
           },
         ],
@@ -834,7 +834,7 @@ describe('final states', () => {
             "output": {
               "a": undefined,
             },
-            "stateId": "(machine)",
+            "stateId": "",
             "type": "xstate.done.state",
           },
         ],
@@ -870,7 +870,7 @@ describe('final states', () => {
             "output": {
               "a": undefined,
             },
-            "stateId": "(machine)",
+            "stateId": "",
             "type": "xstate.done.state",
           },
         ],
@@ -913,7 +913,7 @@ describe('final states', () => {
                 "b": undefined,
               },
             },
-            "stateId": "(machine)",
+            "stateId": "",
             "type": "xstate.done.state",
           },
         ],
@@ -958,7 +958,7 @@ describe('final states', () => {
                 "c": undefined,
               },
             },
-            "stateId": "(machine).a",
+            "stateId": "a",
             "type": "xstate.done.state",
           },
         ],

@@ -449,9 +449,7 @@ export type SystemActorMap<TSystemRegistry extends SystemRegistry> = {
 };
 
 type MachineIdentity<TConfig> = {
-  readonly id: TConfig extends { id: infer TId extends string }
-    ? TId
-    : '(machine)';
+  readonly id: TConfig extends { id: infer TId extends string } ? TId : '';
   readonly version: TConfig extends { version: infer TVersion extends string }
     ? TVersion
     : undefined;

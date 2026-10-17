@@ -314,8 +314,17 @@ export function toObserver<T>(
   };
 }
 
+/**
+ * Names a machine in messages: `machine 'shop'`, or `the machine` when it
+ * has no id.
+ */
+export function describeMachine(id: string): string {
+  return id ? `machine '${id}'` : 'the machine';
+}
+
+/** The implicit id of an invoke: `<stateId>:<index>`, e.g. `loading:0`. */
 export function createInvokeId(stateNodeId: string, index: number): string {
-  return `${index}.${stateNodeId}`;
+  return `${stateNodeId}:${index}`;
 }
 
 /** Whether `value` looks like an actor ref (as persisted context detects them). */
@@ -343,7 +352,7 @@ export function resolveInvokedActorLogic(
   }
   if (definitions.length !== 1) {
     throw new Error(
-      `Unable to restore child actor '${childId}': it has no source key, and ${definitions.length ? 'several active states' : 'no active state'} of machine '${machine.id}' ${definitions.length ? 'invoke' : 'invokes'} it.`
+      `Unable to restore child actor '${childId}': it has no source key, and ${definitions.length ? 'several active states' : 'no active state'} of ${describeMachine(machine.id)} ${definitions.length ? 'invoke' : 'invokes'} it.`
     );
   }
   const logic = definitions[0].logic;
@@ -351,7 +360,7 @@ export function resolveInvokedActorLogic(
     const registered = machine.sources.actors[logic];
     if (!registered) {
       throw new Error(
-        `Unable to restore child actor '${childId}': child source '${logic}' is not provided in machine '${machine.id}'.`
+        `Unable to restore child actor '${childId}': child source '${logic}' is not provided in ${describeMachine(machine.id)}.`
       );
     }
     return registered;

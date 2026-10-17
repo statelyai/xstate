@@ -26,7 +26,7 @@ import type {
   LogicalTimer,
   SerializedActorRef
 } from './types.ts';
-import { isActorRefLike, matchesState } from './utils.ts';
+import { describeMachine, isActorRefLike, matchesState } from './utils.ts';
 import {
   copySnapshotActorRef,
   getSnapshotActorRef,
@@ -263,7 +263,7 @@ type SnapshotStateIdReference<TSnapshot> = TSnapshot extends {
 }
   ? string extends TStateId
     ? `#${string}`
-    : `#${TStateId & string}`
+    : `#${Exclude<TStateId, ''> & string}`
   : `#${string}`;
 
 interface MachineSnapshotBase<
@@ -958,7 +958,7 @@ function warnOnNonJsonPayload(
     const found = findNonJsonPath(persisted[key], key);
     if (found) {
       console.warn(
-        `Persisted snapshot of machine '${machineId}' contains a non-JSON value (${found.kind}) at '${found.path}'. Persisted snapshots must be JSON-serializable; this value will be lost or throw in JSON.stringify.`
+        `Persisted snapshot of ${describeMachine(machineId)} contains a non-JSON value (${found.kind}) at '${found.path}'. Persisted snapshots must be JSON-serializable; this value will be lost or throw in JSON.stringify.`
       );
       return;
     }

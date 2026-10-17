@@ -33,7 +33,7 @@ Use an actor instead of an action when work is async, can be canceled, sends sna
 | Property | Description |
 | --- | --- |
 | `src` | Required. The [actor logic](actor-logic.md) to run: a logic value, the name of logic registered in `actors`, or a function that returns either. |
-| `id` | Identifier for the child. Defaults to a generated id based on the state node. |
+| `id` | Identifier for the child. Defaults to `<stateId>:<index>`, such as `loading:0` for the first invoke of state `loading`. |
 | `input` | [Input](input-output.md) for the child: a value, or a function of `{ context, event, self }`. Required when the logic's input type excludes `undefined`, for example when it declares `schemas.input`. |
 | `registryKey` | Registers the child in the [actor registry](systems.md) under that key. |
 | `timeout` | Milliseconds, or a function of `{ context, event }` returning milliseconds. |
