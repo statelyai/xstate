@@ -94,7 +94,7 @@ object is still allowed, and transitions that enqueue effects are allowed.
 
 ## Persistence
 
-<!-- persist and flushStorage behavior from src/persist.ts -->
+<!-- persist, flushStorage, and clearStorage behavior from src/persist.ts -->
 
 Use the `persist` extension to save state after events are committed. Calling
 `store.can` or the pure `store.transition` method does not schedule writes.
@@ -103,12 +103,16 @@ or subscriptions. A newer eligible event can supersede an older pending write;
 `onDone` runs for writes actually performed. Asynchronous writes execute in event
 order for each store. Call
 `await flushStorage(store)` to write buffered changes and wait for queued writes
-to finish. Synchronous storage adapters continue to write synchronously.
+to finish, including writes queued by events sent from `onDone` callbacks.
+Synchronous storage adapters continue to write synchronously.
 
 With throttling, `pick` runs once per write on the latest buffered context.
 `clearStorage(store)` cancels buffered writes and removes saved data after any
 already queued writes finish; await its result when using asynchronous storage.
-New events sent after clearing can persist new state. For asynchronous storage,
+New events sent after clearing can persist new state. With `strategy: 'event'`,
+the next hydrated event starts a new history from the live context; pure
+evaluations leave that reset pending. Changes made before hydration become part
+of the new checkpoint when rehydrating from empty storage. For asynchronous storage,
 call `await rehydrateStore(store)` to load saved state; initial read failures are
 reported through `onError`.
 

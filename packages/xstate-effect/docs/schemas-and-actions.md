@@ -73,7 +73,7 @@ The latch lets this demo wait for the audit before closing its scope. In an appl
 - Types come from the decoded `Schema.Type`; no manual conversion is needed.
 - Per-state schemas narrow context with [`taggedState`](matching-states.md).
 - Standard Schemas can be mixed with Effect schemas. `EffectSchemaLike` represents either kind.
-- `fromEffect` also accepts Effect input and output schemas.
+- `createEffectLogic` also accepts Effect input and output schemas.
 
 ### Runtime validation
 
@@ -89,7 +89,7 @@ XState checks values but does not replace them with decoded values. With runtime
 ## Choose an action or an actor
 
 - Use an **Effect action** for background work: audit entries, logging, telemetry or notifications. The transition commits without waiting for it.
-- Use an **invoked Effect actor** when success or failure decides the next state. `fromEffect` gives `onDone` and `onError` typed results and interrupts the task when its invoking state exits.
+- Use an **invoked Effect actor** when success or failure decides the next state. `createEffectLogic` gives `onDone` and `onError` typed results and interrupts the task when its invoking state exits.
 
 An Effect action runs in the actor's Effect context. Its failures and defects route to the current state's `onError`; stopping the actor interrupts it without reporting an error.
 

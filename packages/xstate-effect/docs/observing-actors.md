@@ -74,7 +74,7 @@ console.log(result);
 
 - `waitFor` fails with `ActorStoppedError` if the actor stops or errors before matching. Its timeout fails with Effect's `Cause.TimeoutError`.
 - `join` fails with `snapshot.error` when the actor errors, or `ActorStoppedError` when it stops without output.
-- `join` on `fromEffect` logic preserves the Effect's typed error. A machine's error type is `unknown`: actions can throw arbitrary values and unhandled child errors can fail the machine.
+- `join` on `createEffectLogic` logic preserves the Effect's typed error. A machine's error type is `unknown`: actions can throw arbitrary values and unhandled child errors can fail the machine.
 - Model expected domain outcomes as final states with output. Handle unexpected machine errors with `Effect.catch`, or use `Effect.orDie` to treat them as defects.
 
 </details>
@@ -132,14 +132,14 @@ import { Effect } from 'effect';
 import type { Snapshot } from 'xstate';
 import {
   createEffectActor,
-  fromEffect,
+  createEffectLogic,
   join,
   send,
   setupEffect
 } from '@xstate/effect';
 
 const reviewMachine = setupEffect({
-  actors: { publish: fromEffect(Effect.succeed('Release published')) }
+  actors: { publish: createEffectLogic(Effect.succeed('Release published')) }
 }).createMachine({
   id: 'releaseReview',
   output: () => 'Release published',

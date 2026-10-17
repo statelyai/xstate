@@ -1,11 +1,11 @@
-import { createLogic, createMachine } from '../../index.ts';
+import { createStepLogic, createMachine } from '../../index.ts';
 import { z } from 'zod';
 import { getAdjacencyMap } from '../adjacency.ts';
 import { getPathsFromEvents } from '../pathFromEvents.ts';
 import { getShortestPaths } from '../shortestPaths.ts';
 import { getSimplePaths } from '../simplePaths.ts';
 
-const counter = createLogic({
+const counter = createStepLogic({
   context: ({ input }: { input: number }) => input,
   run: ({ context, event }) =>
     event.type === 'INC' ? { context: context + 1 } : undefined
@@ -97,7 +97,7 @@ it('honors replay filters, stopping and target predicates', () => {
 });
 
 it('replays the last permitted override candidate matching a serialized event', () => {
-  const logic = createLogic({
+  const logic = createStepLogic({
     context: 0,
     run: ({
       context,

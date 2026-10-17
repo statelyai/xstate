@@ -2531,3 +2531,196 @@ describe('setup', () => {
     expect(true).toBe(true);
   });
 });
+
+describe('state input lifetime', () => {
+  const s = setup({
+    states: {
+      a: {},
+      b: {
+        schemas: {
+          input: z.object({ n: z.number() })
+        }
+      }
+    }
+  });
+
+  it('removes a state input when the state exits', () => {
+    const machine = s.createMachine({
+      initial: 'a',
+      states: {
+        a: { on: { GO: { target: 'b', input: { n: 1 } } } },
+        b: { on: { BACK: { target: 'a' } } }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+    expect(actor.getSnapshot().getInputs()).toEqual({
+      '(machine).b': { n: 1 }
+    });
+
+    actor.send({ type: 'BACK' });
+    expect(actor.getSnapshot().getInputs()).toEqual({});
+  });
+
+  it('omits inputs of exited states from persisted snapshots', () => {
+    const machine = s.createMachine({
+      initial: 'a',
+      states: {
+        a: { on: { GO: { target: 'b', input: { n: 1 } } } },
+        b: { on: { BACK: { target: 'a' } } }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+    actor.send({ type: 'BACK' });
+
+    expect((actor.getPersistedSnapshot() as any).stateInputs).toBeUndefined();
+  });
+
+  it('does not restore an old input when a state is re-entered without input', () => {
+    const entryInputs: unknown[] = [];
+    const machine = setup({
+      states: {
+        a: {},
+        b: {
+          schemas: {
+            input: z.object({ n: z.number() }).optional()
+          }
+        }
+      }
+    }).createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            GO: { target: 'b', input: { n: 1 } },
+            GO_PLAIN: { target: 'b' }
+          }
+        },
+        b: {
+          entry: ({ input }) => {
+            entryInputs.push(input);
+          },
+          on: { BACK: { target: 'a' } }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+    actor.send({ type: 'BACK' });
+    actor.send({ type: 'GO_PLAIN' });
+
+    expect(entryInputs).toEqual([{ n: 1 }, undefined]);
+    expect(actor.getSnapshot().getInputs()).toEqual({});
+  });
+
+  it('removes inputs of exited states inside parallel regions', () => {
+    const machine = setup({
+      states: {
+        p: {
+          states: {
+            left: {
+              states: {
+                one: {
+                  schemas: { input: z.object({ left: z.number() }) }
+                },
+                two: {}
+              }
+            },
+            right: {
+              states: {
+                only: {
+                  schemas: { input: z.object({ right: z.number() }) }
+                }
+              }
+            }
+          }
+        },
+        done: {}
+      }
+    }).createMachine({
+      initial: 'p',
+      states: {
+        p: {
+          type: 'parallel',
+          on: { LEAVE: { target: 'done' } },
+          states: {
+            left: {
+              initial: { target: 'one', input: { left: 1 } },
+              states: {
+                one: { on: { NEXT: { target: 'two' } } },
+                two: {}
+              }
+            },
+            right: {
+              initial: { target: 'only', input: { right: 2 } },
+              states: {
+                only: {}
+              }
+            }
+          }
+        },
+        done: {}
+      }
+    });
+
+    const actor = createActor(machine).start();
+    expect(actor.getSnapshot().getInputs()).toEqual({
+      '(machine).p.left.one': { left: 1 },
+      '(machine).p.right.only': { right: 2 }
+    });
+
+    actor.send({ type: 'NEXT' });
+    expect(actor.getSnapshot().getInputs()).toEqual({
+      '(machine).p.right.only': { right: 2 }
+    });
+
+    actor.send({ type: 'LEAVE' });
+    expect(actor.getSnapshot().getInputs()).toEqual({});
+  });
+
+  it('replaces the input and drops descendant inputs on a reentering self-transition', () => {
+    const machine = setup({
+      states: {
+        parent: {
+          schemas: { input: z.object({ v: z.number() }) },
+          states: {
+            first: {},
+            second: {
+              schemas: { input: z.object({ w: z.number() }) }
+            }
+          }
+        }
+      }
+    }).createMachine({
+      initial: { target: 'parent', input: { v: 1 } },
+      states: {
+        parent: {
+          initial: 'first',
+          on: {
+            RESET: { target: 'parent', reenter: true, input: { v: 2 } }
+          },
+          states: {
+            first: { on: { NEXT: { target: 'second', input: { w: 1 } } } },
+            second: {}
+          }
+        }
+      }
+    });
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'NEXT' });
+    expect(actor.getSnapshot().getInputs()).toEqual({
+      '(machine).parent': { v: 1 },
+      '(machine).parent.second': { w: 1 }
+    });
+
+    actor.send({ type: 'RESET' });
+    expect(actor.getSnapshot().getInputs()).toEqual({
+      '(machine).parent': { v: 2 }
+    });
+  });
+});

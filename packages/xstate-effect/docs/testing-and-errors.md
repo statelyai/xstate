@@ -51,16 +51,16 @@ XState's [path generation](../../../docs/model-based-testing.md) works on the ma
 
 ## Retry a task
 
-Use Effect's retry combinators inside `fromEffect` for transient failures within one task. This local publisher succeeds on its third attempt:
+Use Effect's retry combinators inside `createEffectLogic` for transient failures within one task. This local publisher succeeds on its third attempt:
 
 <!-- example from examples/effect-workflows/src/retry.ts -->
 
 ```ts
 import { Effect, Schedule } from 'effect';
-import { createEffectActor, fromEffect, join } from '@xstate/effect';
+import { createEffectActor, createEffectLogic, join } from '@xstate/effect';
 
 let attempts = 0;
-const publish = fromEffect(
+const publish = createEffectLogic(
   Effect.suspend(() => {
     attempts++;
     return attempts < 3
@@ -90,10 +90,10 @@ Retry a scoped unit when a failure should create a fresh actor:
 
 ```ts
 import { Effect, Schedule } from 'effect';
-import { createEffectActor, fromEffect, join } from '@xstate/effect';
+import { createEffectActor, createEffectLogic, join } from '@xstate/effect';
 
 let attempts = 0;
-const worker = fromEffect(
+const worker = createEffectLogic(
   Effect.suspend(() => {
     attempts++;
     return attempts < 3
@@ -129,19 +129,19 @@ Retrying can repeat external operations. Use stable operation IDs or idempotent 
 
 ## Handle typed failures
 
-A `fromEffect` actor preserves its Effect's error type. Handle a domain failure with `Effect.catchTag`:
+A `createEffectLogic` actor preserves its Effect's error type. Handle a domain failure with `Effect.catchTag`:
 
 <!-- example from examples/effect-workflows/src/errors.ts -->
 
 ```ts
 import { Data, Effect } from 'effect';
-import { createEffectActor, fromEffect, join } from '@xstate/effect';
+import { createEffectActor, createEffectLogic, join } from '@xstate/effect';
 
 class PublishFailed extends Data.TaggedError('PublishFailed')<{
   readonly reason: string;
 }> {}
 
-const publish = fromEffect(
+const publish = createEffectLogic(
   Effect.fail(new PublishFailed({ reason: 'Release needs approval' }))
 );
 
@@ -188,9 +188,9 @@ Hosted Effects run inside spans:
 
 | Span | Work |
 | --- | --- |
-| `fromEffect` | A task actor's Effect. |
-| `fromEffectStream` | A stream of snapshot values. |
-| `fromEffectEventStream` | A stream of parent events. |
+| `createEffectLogic` | A task actor's Effect. |
+| `createEffectStreamLogic` | A stream of snapshot values. |
+| `createEffectEventStreamLogic` | A stream of parent events. |
 | `action.<name>` | A declared Effect action. |
 
 Spans carry `xstate.actor.id` and `xstate.actor.address`. The address is the actor's `/`-joined path from the root, identifying its place in the actor tree.

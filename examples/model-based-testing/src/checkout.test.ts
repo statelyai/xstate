@@ -181,7 +181,7 @@ describe('graph traversal', () => {
     });
 
     expect(shortest.steps.map((step) => step.event.type)).toEqual([
-      '@xstate.init',
+      'xstate.init',
       'startCheckout',
       'submitAddress',
       'pay'

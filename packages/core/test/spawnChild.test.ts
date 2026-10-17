@@ -75,15 +75,14 @@ describe('spawnChild action', () => {
             });
           },
           on: {
-            'xstate.snapshot.int': ({
-              event
-            }: {
-              event: { snapshot: { context: number } };
-            }) => {
-              if (event.snapshot.context === 5) {
-                return {
-                  target: 'success'
-                };
+            'xstate.snapshot.actor': {
+              matches: { actorId: 'int' },
+              to: ({ event }: { event: { snapshot: { context: number } } }) => {
+                if (event.snapshot.context === 5) {
+                  return {
+                    target: 'success'
+                  };
+                }
               }
             }
           }

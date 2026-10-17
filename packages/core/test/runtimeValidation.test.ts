@@ -6,11 +6,11 @@ import {
   createAsyncLogic,
   createCallbackLogic,
   createEventObservableLogic,
-  createLogic,
+  createStepLogic,
   createMachine,
   createSystem,
   createObservableLogic,
-  type DeadLetterExecutableActionObject,
+  type DeadLetterExecutableEffect,
   type EventRejection,
   initialTransition,
   setup,
@@ -33,11 +33,11 @@ function getThrown(fn: () => void): unknown {
 
 function getRejection(
   result: [unknown, ReadonlyArray<{ kind?: string; type?: string }>]
-): DeadLetterExecutableActionObject | undefined {
+): DeadLetterExecutableEffect | undefined {
   return result[1].find(
     (effect) =>
       effect.kind === 'builtin' && effect.type === '@xstate.deadLetter'
-  ) as DeadLetterExecutableActionObject | undefined;
+  ) as DeadLetterExecutableEffect | undefined;
 }
 
 function expectValidationError(
@@ -72,7 +72,7 @@ describe('runtime schema validation', () => {
       subscribe: () => ({ unsubscribe: () => {} })
     };
     const logics = [
-      createLogic({
+      createStepLogic({
         validator,
         schemas: { input },
         context: undefined,
@@ -112,7 +112,7 @@ describe('runtime schema validation', () => {
 
   it('validates generic actor output before returning it', () => {
     const effect = vi.fn();
-    const logic = createLogic({
+    const logic = createStepLogic({
       validator: standardSchemaValidator(),
       schemas: { output: z.number() },
       context: undefined,

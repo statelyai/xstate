@@ -219,7 +219,7 @@ remove: (sku: string) => {
 },
 ```
 
-`propertyTest()` now throws a `ModelTestFailure`. fast-check shrinks the failing sequence to the shortest one it finds, and the message shows each step:
+`propertyTest()` now throws a `ModelTestFailureError`. fast-check shrinks the failing sequence to the shortest one it finds, and the message shows each step:
 
 ```
 Property observation diverged

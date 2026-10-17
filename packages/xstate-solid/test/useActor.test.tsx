@@ -18,7 +18,7 @@ import {
   createMachine,
   createCallbackLogic,
   createAsyncLogic,
-  createLogic
+  createStepLogic
 } from 'xstate';
 import { useActor } from '../src/index.ts';
 
@@ -220,7 +220,10 @@ describe('useActor', () => {
             );
           },
           on: {
-            'xstate.done.actor.my-promise': { target: 'success' }
+            'xstate.done.actor': {
+              matches: { actorId: 'my-promise' },
+              target: 'success'
+            }
           }
         },
         success: {
@@ -1832,7 +1835,7 @@ describe('useActor', () => {
 
     const Test = () => {
       const [count, send] = useActor(
-        createLogic({
+        createStepLogic({
           context: 0,
           run: ({ context, event }) => ({
             context: reducer(context, event as { type: 'INC' })

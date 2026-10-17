@@ -7,10 +7,10 @@
  *
  * Contract:
  *
- * 1. `serializeMachine(machine)` never throws and is JSON-safe.
+ * 1. `machineToJSON(machine)` never throws and is JSON-safe.
  * 2. Serializable structure (states, transitions, targets, serialized actions,
  *    guard refs, string actor srcs, delays, meta, context values) survives a
- *    JSON round-trip through `createMachineFromConfig`.
+ *    JSON round-trip through `machineFromJSON`.
  * 3. Inline runtime functions appear as code expressions. Root source maps, actor
  *    logic, and runtime schemas are omitted.
  * 4. A machine created from JSON round-trips losslessly (byte-stable).
@@ -22,11 +22,11 @@ import {
   createMachine,
   type AnyStateMachine,
   type EventRejection,
-  serializeMachine,
+  machineToJSON,
   setup,
   types
 } from '../src/index.ts';
-import { createMachineFromConfig } from '../src/createMachineFromConfig';
+import { machineFromJSON } from '../src/machineFromJSON';
 import { z } from 'zod';
 
 function findCodeExpressions(json: unknown, path = '$'): string[] {
@@ -82,16 +82,16 @@ describe('serializability conformance', () => {
         canFinish: () => true
       }
     };
-    const machine = createMachineFromConfig(definition as any, sources);
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const machine = machineFromJSON(definition as any, sources);
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
 
     expect(json).toEqual(definition);
     expect(findCodeExpressions(json)).toEqual([]);
 
     // Revive and serialize again: byte-stable.
-    const revived = createMachineFromConfig(json, sources);
-    expect(JSON.stringify(serializeMachine(revived))).toBe(
-      JSON.stringify(serializeMachine(machine))
+    const revived = machineFromJSON(json, sources);
+    expect(JSON.stringify(machineToJSON(revived))).toBe(
+      JSON.stringify(machineToJSON(machine))
     );
   });
 
@@ -111,8 +111,8 @@ describe('serializability conformance', () => {
       }
     };
     const original = JSON.parse(JSON.stringify(definition));
-    const machine = createMachineFromConfig(definition as any);
-    const json = serializeMachine(machine) as any;
+    const machine = machineFromJSON(definition as any);
+    const json = machineToJSON(machine) as any;
 
     expect(json).toEqual(original);
     expect(json).not.toBe(definition);
@@ -131,7 +131,7 @@ describe('serializability conformance', () => {
     });
     actor.send({ type: 'inc' });
     expect(actor.getSnapshot().context).toEqual({ count: 1 });
-    expect(serializeMachine(machine)).toEqual(original);
+    expect(machineToJSON(machine)).toEqual(original);
   });
 
   it('JSON.stringify never throws on an inline-authored machine', () => {
@@ -157,7 +157,7 @@ describe('serializability conformance', () => {
       }
     });
 
-    expect(() => JSON.stringify(serializeMachine(machine))).not.toThrow();
+    expect(() => JSON.stringify(machineToJSON(machine))).not.toThrow();
   });
 
   it('setup/createMachine root sources are omitted', () => {
@@ -202,7 +202,7 @@ describe('serializability conformance', () => {
       }
     });
 
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
 
     expect(json.actions).toBeUndefined();
     expect(json.guards).toBeUndefined();
@@ -253,7 +253,7 @@ describe('serializability conformance', () => {
       }
     });
 
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
 
     expect(json.states.a).toMatchInlineSnapshot(`
       {
@@ -305,7 +305,7 @@ describe('serializability conformance', () => {
       }
     });
 
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
 
     expect(findCodeExpressions(json)).toEqual([]);
     expect(json.actors).toBeUndefined();
@@ -349,7 +349,7 @@ describe('serializability conformance', () => {
       }
     } as any);
 
-    const directJSON = serializeMachine(machine);
+    const directJSON = machineToJSON(machine);
     const json = JSON.parse(JSON.stringify(directJSON));
 
     expect((directJSON as any).context.dropped).toBeUndefined();
@@ -384,7 +384,7 @@ describe('serializability conformance', () => {
       }
     });
 
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
 
     expect(json).toMatchInlineSnapshot(`
       {
@@ -433,16 +433,16 @@ describe('serializability conformance', () => {
       }
     });
 
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
     expect(json.internalEvents).toEqual(['tick']);
 
-    const revived = createMachineFromConfig(json, {
+    const revived = machineFromJSON(json, {
       evaluators: {
         ts: ({ source, scope }: any) =>
           Function(`return (${source});`)()(scope, scope.enq)
       }
     });
-    expect(serializeMachine(revived)).toEqual(json);
+    expect(machineToJSON(revived)).toEqual(json);
 
     // a stray top-level `internalEvents` config key (removed author API) is
     // not serialized
@@ -452,9 +452,9 @@ describe('serializability conformance', () => {
       initial: 'idle',
       states: { idle: {} }
     });
-    expect(serializeMachine(stray).internalEvents).toEqual(['tick']);
+    expect(machineToJSON(stray).internalEvents).toEqual(['tick']);
     expect(
-      serializeMachine(
+      machineToJSON(
         _createMachineFromCompiledConfig({
           internalEvents: ['stray'],
           initial: 'idle',
@@ -500,7 +500,7 @@ describe('serializability conformance', () => {
       }
     } as any);
 
-    const json = JSON.parse(JSON.stringify(serializeMachine(machine)));
+    const json = JSON.parse(JSON.stringify(machineToJSON(machine)));
 
     expect(json).toMatchInlineSnapshot(`
       {
@@ -528,8 +528,8 @@ describe('serializability conformance', () => {
   it('revived machines run: structure + provided sources', () => {
     const definition = JSON.parse(
       JSON.stringify(
-        serializeMachine(
-          createMachineFromConfig({
+        machineToJSON(
+          machineFromJSON({
             initial: 'inactive',
             states: {
               inactive: { on: { toggle: { target: 'active' } } },
@@ -540,7 +540,7 @@ describe('serializability conformance', () => {
       )
     );
 
-    const machine = createMachineFromConfig(definition);
+    const machine = machineFromJSON(definition);
     const actor = createActor(machine).start();
     actor.send({ type: 'toggle' });
     expect(actor.getSnapshot().value).toBe('active');
@@ -551,10 +551,10 @@ it('preserves constructor and __proto__ JSON keys without sharing context', () =
   const definition = JSON.parse(
     '{"context":{"constructor":"value","__proto__":{"count":1}}}'
   );
-  const machine = createMachineFromConfig(definition);
-  const serialized = serializeMachine(machine);
+  const machine = machineFromJSON(definition);
+  const serialized = machineToJSON(machine);
   expect(serialized).toEqual(definition);
   expect(Object.getPrototypeOf(serialized.context)).toBe(Object.prototype);
   (serialized.context as any).__proto__.count = 2;
-  expect(serializeMachine(machine)).toEqual(definition);
+  expect(machineToJSON(machine)).toEqual(definition);
 });

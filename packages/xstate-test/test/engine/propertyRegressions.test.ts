@@ -1,6 +1,6 @@
 import { createMachine, SimulatedClock, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   propertyTest,
   replayTest,
   type TestFixture,
@@ -93,7 +93,7 @@ describe('executed replay seeding', () => {
           throw new Error('reached success');
         }
       }
-    }).catch((cause) => cause)) as ModelTestFailure;
+    }).catch((cause) => cause)) as ModelTestFailureError;
 
     const fixture = failure.fixture as TestFixture;
     await expect(
@@ -167,7 +167,7 @@ describe('end-of-run temporal failures', () => {
       }
     }).catch((cause) => cause);
 
-    expect(error).toBeInstanceOf(ModelTestFailure);
+    expect(error).toBeInstanceOf(ModelTestFailureError);
     expect(collected).toEqual([false]);
   });
 
@@ -181,7 +181,7 @@ describe('end-of-run temporal failures', () => {
           { type: 'eventually', id: 'never-holds', predicate: () => false }
         ]
       })
-    ).rejects.toBeInstanceOf(ModelTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailureError);
   });
 });
 
@@ -319,7 +319,7 @@ describe('replay disposal', () => {
           throw new Error('reached on');
         }
       }
-    }).catch((cause) => cause)) as ModelTestFailure;
+    }).catch((cause) => cause)) as ModelTestFailureError;
     const fixture = failure.fixture as TestFixture;
 
     let referenceDisposed = 0;
@@ -402,9 +402,9 @@ describe('clock-delivered events in fixtures', () => {
           throw new Error('too many ticks');
         }
       }
-    }).catch((cause) => cause)) as ModelTestFailure;
+    }).catch((cause) => cause)) as ModelTestFailureError;
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     const fixture = failure.fixture as TestFixture;
     const advanceEntry = fixture.timeline.find(
       (entry) => entry.command.type === 'advance'
@@ -431,9 +431,9 @@ describe('clock-delivered events in fixtures', () => {
           throw new Error('too many ticks');
         }
       }
-    }).catch((cause) => cause)) as ModelTestFailure;
+    }).catch((cause) => cause)) as ModelTestFailureError;
 
-    expect(replayed).toBeInstanceOf(ModelTestFailure);
+    expect(replayed).toBeInstanceOf(ModelTestFailureError);
     expect(replayed.trace.timeline.map((entry: any) => entry.command)).toEqual(
       fixture.timeline
         .slice(0, replayed.trace.timeline.length)

@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { createActor, createLogic, createMachine, setup } from '../src';
+import { createActor, createStepLogic, createMachine, setup } from '../src';
 import { standardSchemaValidator } from '../src/validation/index.ts';
 import {
   createCallbackLogic,
@@ -283,7 +283,7 @@ describe('input', () => {
   });
 
   it('should create a transition function actor with input', () => {
-    const transitionLogic = createLogic({
+    const transitionLogic = createStepLogic({
       context: ({ input }: { input: { count: number } }) => input,
       run: () => undefined
     });

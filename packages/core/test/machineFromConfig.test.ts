@@ -1,10 +1,10 @@
 import { createActor, initialTransition, transition } from '../src';
-import { createMachineFromConfig } from '../src/createMachineFromConfig';
+import { machineFromJSON } from '../src/machineFromJSON';
 
-describe('createMachineFromConfig ', () => {
+describe('machineFromJSON ', () => {
   it('rejects history states without a non-empty default target', () => {
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         initial: 'on',
         states: {
           on: {
@@ -21,7 +21,7 @@ describe('createMachineFromConfig ', () => {
     );
 
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         initial: 'on',
         states: {
           on: {
@@ -44,7 +44,7 @@ describe('createMachineFromConfig ', () => {
 
   it('rejects SCXML-illegal multi-target transitions at construction', () => {
     expect(() =>
-      createMachineFromConfig({
+      machineFromJSON({
         initial: 'idle',
         states: {
           idle: {
@@ -67,7 +67,7 @@ describe('createMachineFromConfig ', () => {
   });
 
   it('should create a machine from a config', () => {
-    const machine = createMachineFromConfig({
+    const machine = machineFromJSON({
       initial: 'a',
       states: {
         a: {
@@ -92,7 +92,7 @@ describe('createMachineFromConfig ', () => {
   });
 
   it('does not merge actor input into native JSON machine context', () => {
-    const machine = createMachineFromConfig({
+    const machine = machineFromJSON({
       context: { count: 0 },
       initial: 'idle',
       states: { idle: {} }
@@ -105,7 +105,7 @@ describe('createMachineFromConfig ', () => {
   });
 
   it('should handle raise actions', () => {
-    const machine = createMachineFromConfig({
+    const machine = machineFromJSON({
       initial: 'a',
       states: {
         a: {
@@ -126,7 +126,7 @@ describe('createMachineFromConfig ', () => {
   });
 
   it('should handle raise actions with a payload', () => {
-    const machine = createMachineFromConfig(
+    const machine = machineFromJSON(
       {
         initial: 'a',
         states: {
@@ -152,7 +152,7 @@ describe('createMachineFromConfig ', () => {
 
   it('should handle emit actions', async () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    const machine = createMachineFromConfig({
+    const machine = machineFromJSON({
       initial: 'a',
       states: {
         a: {

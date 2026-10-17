@@ -9,16 +9,19 @@ import {
 } from './actors/subscription.ts';
 import { XSTATE_SPAWN, XSTATE_START, XSTATE_TERMINATE } from './constants.ts';
 import {
+  getBuiltInTimerIdentity,
+  getTimerKey,
+  matchesTimerKey,
+  readTimerKey
+} from './timerKey.ts';
+import {
   getActorIdPrefix,
   parseGeneratedActorId,
   type ActorSystemRuntime,
   type DeadLetterDetail,
   type EventRejectionReason
 } from './system.ts';
-import { isLazyActorScope, withActorScope } from './actorScope.ts';
-import { getEventOutput } from './utils.ts';
 import type {
-  Action,
   ActorTermination,
   AnyAction,
   AnyActor,
@@ -26,23 +29,24 @@ import type {
   AnyActorScope,
   AnyEventObject,
   AnyMachineSnapshot,
-  CancelExecutableActionObject,
-  CustomExecutableActionObject,
-  EmitExecutableActionObject,
+  CancelExecutableEffect,
+  CustomExecutableEffect,
+  EmitExecutableEffect,
   EnqueueObject,
   EventObject,
-  ExecutableActionObject,
+  ExecutableEffect,
   MachineContext,
   LogicalTimer,
-  RaiseExecutableActionObject,
-  DeadLetterExecutableActionObject,
-  SendToExecutableActionObject,
+  RaiseExecutableEffect,
+  DeadLetterExecutableEffect,
+  SendToExecutableEffect,
   Snapshot,
-  SpecialExecutableAction,
-  SpawnExecutableActionObject,
-  StartExecutableActionObject,
-  StopExecutableActionObject,
-  TerminateExecutableActionObject
+  SpecialExecutableEffect,
+  SpawnExecutableEffect,
+  StartExecutableEffect,
+  StopExecutableEffect,
+  TerminateExecutableEffect,
+  TimerKey
 } from './types.ts';
 
 type TransitionActionRecord = {
@@ -61,7 +65,7 @@ type TransitionActionRecord = {
 type EffectRuntime = Partial<ActorSystemRuntime>;
 
 function execCustomEffect(
-  this: CustomExecutableActionObject
+  this: CustomExecutableEffect
 ): void | PromiseLike<void> | undefined {
   const result = this.action?.(...this.args);
   if (isDevelopment) {
@@ -78,7 +82,7 @@ const warnedEffectResults = new WeakSet<object>();
  * Development builds say so, once per function.
  */
 function warnOnIgnoredEffectResult(
-  effect: CustomExecutableActionObject,
+  effect: CustomExecutableEffect,
   result: unknown
 ): void {
   if (
@@ -104,7 +108,7 @@ function warnOnIgnoredEffectResult(
 }
 
 function execEmitEffect(
-  this: EmitExecutableActionObject,
+  this: EmitExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
   return runtime.emitEvent!(this.source, this.event);
@@ -114,7 +118,7 @@ function execEmitEffect(
 export function createEmitEffect(
   actorScope: AnyActorScope,
   event: EventObject
-): EmitExecutableActionObject {
+): EmitExecutableEffect {
   return {
     kind: 'emit',
     exec: execEmitEffect,
@@ -127,7 +131,7 @@ export function createEmitEffect(
 }
 
 function execDeadLetterEffect(
-  this: DeadLetterExecutableActionObject,
+  this: DeadLetterExecutableEffect,
   runtime: EffectRuntime = (this.target ?? this.source)!.system
 ): void | PromiseLike<void> {
   return runtime.deadLetter!(
@@ -146,7 +150,7 @@ export function createDeadLetterEffect(
   event: AnyEventObject,
   reason: EventRejectionReason,
   detail?: DeadLetterDetail
-): DeadLetterExecutableActionObject {
+): DeadLetterExecutableEffect {
   return {
     kind: 'builtin',
     type: '@xstate.deadLetter',
@@ -169,7 +173,7 @@ function createMissingTargetEffect(
   actorScope: AnyActorScope,
   event: AnyEventObject,
   targetId: string | undefined
-): DeadLetterExecutableActionObject {
+): DeadLetterExecutableEffect {
   return {
     kind: 'builtin',
     type: '@xstate.deadLetter',
@@ -196,7 +200,7 @@ export function createCustomEffect(
   type: string,
   action: (runtime?: EffectRuntime) => void | PromiseLike<void> | undefined,
   params?: unknown
-): CustomExecutableActionObject {
+): CustomExecutableEffect {
   return {
     kind: 'action',
     exec: action,
@@ -208,14 +212,14 @@ export function createCustomEffect(
 }
 
 function execSpawnEffect(
-  this: SpawnExecutableActionObject,
+  this: SpawnExecutableEffect,
   runtime: EffectRuntime = this.actor.system
 ): void | PromiseLike<void> {
   return runtime.spawnActor!(this.source, this.actor);
 }
 
 function execStartEffect(
-  this: StartExecutableActionObject,
+  this: StartExecutableEffect,
   runtime: EffectRuntime = this.actor.system
 ): void | PromiseLike<void> {
   // A child stopped before its deferred start (spawned and stopped in the
@@ -230,14 +234,14 @@ function execStartEffect(
 }
 
 function execStopEffect(
-  this: StopExecutableActionObject,
+  this: StopExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
   return runtime.stopActor!(this.actor);
 }
 
 function execTerminateEffect(
-  this: TerminateExecutableActionObject,
+  this: TerminateExecutableEffect,
   runtime: EffectRuntime = this.actor.system
 ): void | PromiseLike<void> {
   const termination: ActorTermination =
@@ -248,46 +252,52 @@ function execTerminateEffect(
 }
 
 function execRaiseEffect(
-  this: RaiseExecutableActionObject,
+  this: RaiseExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
-  return runtime.scheduleTimer!(this.source, this.id!, this.delay ?? 0);
+  return runtime.scheduleTimer!(
+    this.source,
+    getTimerKey(this),
+    this.delay ?? 0
+  );
 }
 
 function execSendToEffect(
-  this: SendToExecutableActionObject,
+  this: SendToExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
   assertSendToEvent(this.event);
   if (this.delay !== undefined) {
-    return runtime.scheduleTimer!(this.source, this.id!, this.delay);
+    return runtime.scheduleTimer!(this.source, getTimerKey(this), this.delay);
   }
   return runtime.sendEvent!(this.source, this.target, this.event);
 }
 
 function execCancelEffect(
-  this: CancelExecutableActionObject,
+  this: CancelExecutableEffect,
   runtime: EffectRuntime = this.source.system
 ): void | PromiseLike<void> {
-  return runtime.cancelTimer!(this.source, this.id);
+  return runtime.cancelTimer!(this.source, readTimerKey(this)!);
 }
 
 function updateLogicalTimers(
   snapshot: AnyMachineSnapshot,
-  effect: ExecutableActionObject,
+  effect: ExecutableEffect,
   actorScope: AnyActorScope
 ): AnyMachineSnapshot {
-  if (!isBuiltInExecutableAction(effect)) {
+  if (!isBuiltInExecutableEffect(effect)) {
     return snapshot;
   }
 
   if (effect.type === '@xstate.cancel') {
-    if (!snapshot.timers?.[effect.id]) {
+    const key = readTimerKey(effect)!;
+    if (!snapshot.timers?.some((timer) => matchesTimerKey(timer, key))) {
       return snapshot;
     }
-    const timers = { ...snapshot.timers };
-    delete timers[effect.id];
-    return { ...snapshot, timers };
+    return {
+      ...snapshot,
+      timers: snapshot.timers.filter((timer) => !matchesTimerKey(timer, key))
+    };
   }
 
   if (
@@ -297,26 +307,41 @@ function updateLogicalTimers(
     return snapshot;
   }
 
+  // A delayed raise or send without an `id` is numbered by the actor's
+  // timer sequence. Built-in timers (`after`, `timeout`) have neither; their
+  // event identifies them.
   let nextTimerId = snapshot._nextTimerId ?? 0;
-  const id = effect.id ?? `xstate.timer.auto.${nextTimerId++}`;
-  effect.id = id;
+  if (effect.id === undefined && !getBuiltInTimerIdentity(effect.event)) {
+    effect.seq = nextTimerId++;
+    const args = effect.args as unknown[];
+    args[args.length - 1] = {
+      ...(args[args.length - 1] as object),
+      seq: effect.seq
+    };
+  }
   const target =
     effect.type === '@xstate.raise' || effect.target === actorScope.self
       ? 'self'
       : effect.target;
+  const timer: LogicalTimer = {
+    ...(effect.id !== undefined && { id: effect.id }),
+    ...(effect.seq !== undefined && { seq: effect.seq }),
+    delay: effect.delay,
+    type: effect.type,
+    event: effect.event,
+    target
+  };
+  // Scheduling a timer that is already pending replaces it in place.
+  const key = getTimerKey(timer);
+  const timers = snapshot.timers ?? [];
+  const index = timers.findIndex((pending) => matchesTimerKey(pending, key));
 
   return {
     ...snapshot,
-    timers: {
-      ...snapshot.timers,
-      [id]: {
-        id,
-        delay: effect.delay,
-        type: effect.type,
-        event: effect.event,
-        target
-      }
-    },
+    timers:
+      index === -1
+        ? [...timers, timer]
+        : timers.map((pending, i) => (i === index ? timer : pending)),
     _nextTimerId: nextTimerId
   };
 }
@@ -494,15 +519,18 @@ function resolveTransitionSpawnSource(
 
 /**
  * Internal helper actors (listeners, subscriptions) number their ids from
- * system-level counters under `xstate.`-prefixed names; snapshot-owned
+ * system-level counters under `@xstate.`-prefixed names; snapshot-owned
  * children number from per-snapshot counters. The two spaces only stay
  * collision-free because their prefixes are disjoint, so user sources must
- * not enter the reserved namespace.
+ * not enter the reserved `xstate.` / `@xstate.` namespaces.
  */
 function assertUnreservedPrefix(prefix: string): void {
-  if (isDevelopment && prefix.startsWith('xstate.')) {
+  if (
+    isDevelopment &&
+    (prefix.startsWith('xstate.') || prefix.startsWith('@xstate.'))
+  ) {
     throw new Error(
-      `Child actor ids with the "xstate." prefix are reserved for internal actors; rename the "${prefix}" source or logic id.`
+      `Child actor ids with the "xstate." or "@xstate." prefix are reserved for internal actors; rename the "${prefix}" source or logic id.`
     );
   }
 }
@@ -665,12 +693,12 @@ export function createTransitionEnqueue(
   const localAllocation =
     spawnAllocations.get(actorScope) ?? createSpawnAllocation();
   const props: Partial<EnqueueObject<any, any>> = {
-    cancel: (id: string) => {
+    cancel: (id: string | TimerKey) => {
       pushBuiltInAction(
         actions,
         builtInActions['@xstate.cancel'],
         actorScope,
-        id
+        typeof id === 'string' ? { id } : id
       );
     },
     emit: (emittedEvent) => {
@@ -876,7 +904,7 @@ function warnNotAFunction(value: unknown): void {
 function getBuiltInActionFields(
   action: (...args: any[]) => void,
   args: unknown[]
-): Partial<SpecialExecutableAction> | undefined {
+): Partial<SpecialExecutableEffect> | undefined {
   switch (action) {
     case builtInActions['@xstate.spawn']: {
       const [actor] = args as Parameters<
@@ -928,7 +956,7 @@ function getBuiltInActionFields(
       };
     }
     case builtInActions['@xstate.cancel']: {
-      const [, id] = args as Parameters<
+      const [, key] = args as Parameters<
         (typeof builtInActions)['@xstate.cancel']
       >;
       return {
@@ -938,7 +966,7 @@ function getBuiltInActionFields(
         source: (
           args as Parameters<(typeof builtInActions)['@xstate.cancel']>
         )[0].self,
-        id
+        ...key
       };
     }
     case builtInActions['@xstate.stop']: {
@@ -961,9 +989,7 @@ function getBuiltInActionFields(
 }
 
 /** @internal Creates an actor-start effect, including for restored children. */
-export function createStartEffect(
-  actor: AnyActor
-): StartExecutableActionObject {
+export function createStartEffect(actor: AnyActor): StartExecutableEffect {
   const args: Parameters<(typeof builtInActions)['@xstate.start']> = [actor];
   return {
     kind: 'builtin',
@@ -982,9 +1008,9 @@ export function createTimerEffect(
   actorScope: AnyActorScope,
   timer: LogicalTimer,
   delay: number
-): RaiseExecutableActionObject | SendToExecutableActionObject {
+): RaiseExecutableEffect | SendToExecutableEffect {
   const source = actorScope.self;
-  const options = { id: timer.id, delay };
+  const options = { id: timer.id, seq: timer.seq, delay };
   if (timer.type === '@xstate.raise') {
     return {
       kind: 'builtin',
@@ -992,6 +1018,7 @@ export function createTimerEffect(
       source,
       event: timer.event,
       id: timer.id,
+      ...(timer.seq !== undefined && { seq: timer.seq }),
       delay,
       params: undefined,
       args: [actorScope, timer.event, options],
@@ -1006,6 +1033,7 @@ export function createTimerEffect(
     target,
     event: timer.event,
     id: timer.id,
+    ...(timer.seq !== undefined && { seq: timer.seq }),
     delay,
     params: undefined,
     args: [actorScope, target, timer.event, options],
@@ -1013,9 +1041,7 @@ export function createTimerEffect(
   };
 }
 
-export function createSpawnEffect(
-  actor: AnyActor
-): SpawnExecutableActionObject {
+export function createSpawnEffect(actor: AnyActor): SpawnExecutableEffect {
   const args: Parameters<(typeof builtInActions)['@xstate.spawn']> = [actor];
   return {
     kind: 'builtin',
@@ -1037,7 +1063,7 @@ export function createSendToEffect(
   actorScope: AnyActorScope,
   target: AnyActor,
   event: EventObject
-): SendToExecutableActionObject {
+): SendToExecutableEffect {
   const args: Parameters<(typeof builtInActions)['@xstate.sendTo']> = [
     actorScope,
     target,
@@ -1062,7 +1088,7 @@ export function createSendToEffect(
 export function createTerminationEffect(
   actorScope: AnyActorScope,
   snapshot: Snapshot<unknown>
-): TerminateExecutableActionObject {
+): TerminateExecutableEffect {
   if (snapshot.status !== 'done' && snapshot.status !== 'error') {
     throw new Error('Cannot terminate an active or stopped actor');
   }
@@ -1100,7 +1126,7 @@ export function finalizeTransitionResult<
   actorScope: AnyActorScope,
   previousSnapshot: TSnapshot | undefined,
   [nextSnapshot, effects]: [TSnapshot, TEffect[]]
-): [TSnapshot, Array<TEffect | TerminateExecutableActionObject>] {
+): [TSnapshot, Array<TEffect | TerminateExecutableEffect>] {
   const becameTerminal =
     nextSnapshot.status === 'done' || nextSnapshot.status === 'error';
   const wasTerminal =
@@ -1127,13 +1153,13 @@ export function finalizeTransitionResult<
  * target actor starts.
  */
 export function deriveDeferredStarts(
-  effects: ReadonlyArray<ExecutableActionObject>
-): StartExecutableActionObject[] {
-  const attachedStarts: StartExecutableActionObject[] = [];
-  const childStarts: StartExecutableActionObject[] = [];
+  effects: ReadonlyArray<ExecutableEffect>
+): StartExecutableEffect[] {
+  const attachedStarts: StartExecutableEffect[] = [];
+  const childStarts: StartExecutableEffect[] = [];
 
   for (const effect of effects) {
-    if (!isBuiltInExecutableAction(effect) || effect.type !== XSTATE_SPAWN) {
+    if (!isBuiltInExecutableEffect(effect) || effect.type !== XSTATE_SPAWN) {
       continue;
     }
     const { actor, logic } = effect;
@@ -1149,9 +1175,9 @@ export function deriveDeferredStarts(
 }
 
 /** @public */
-export function isBuiltInExecutableAction(
-  action: ExecutableActionObject
-): action is SpecialExecutableAction {
+export function isBuiltInExecutableEffect(
+  action: ExecutableEffect
+): action is SpecialExecutableEffect {
   return action.kind === 'builtin';
 }
 
@@ -1161,7 +1187,7 @@ export function isBuiltInExecutableAction(
  * @public
  */
 export async function executeEffects(
-  effects: readonly ExecutableActionObject[],
+  effects: readonly ExecutableEffect[],
   runtime?: Partial<ActorSystemRuntime>
 ): Promise<void> {
   for (const effect of effects) {
@@ -1171,38 +1197,14 @@ export async function executeEffects(
 
 export function resolveActionsWithContext(
   currentSnapshot: AnyMachineSnapshot,
-  event: AnyEventObject,
+  _event: AnyEventObject,
   actorScope: AnyActorScope,
   actions: AnyAction[]
-): [AnyMachineSnapshot, ExecutableActionObject[]] {
+): [AnyMachineSnapshot, ExecutableEffect[]] {
   let intermediateSnapshot = currentSnapshot;
-  const executableActions: ExecutableActionObject[] = [];
+  const executableActions: ExecutableEffect[] = [];
 
   for (const action of actions) {
-    const actionArgs = isLazyActorScope(actorScope)
-      ? withActorScope(
-          {
-            context: intermediateSnapshot.context,
-            event,
-            output: getEventOutput(event),
-            children: intermediateSnapshot.children,
-            actions: currentSnapshot.machine.sources.actions,
-            actors: currentSnapshot.machine.sources.actors
-          },
-          actorScope
-        )
-      : {
-          context: intermediateSnapshot.context,
-          event,
-          output: getEventOutput(event),
-          self: actorScope.self,
-          system: actorScope.system,
-          parent: actorScope.self._parent,
-          children: intermediateSnapshot.children,
-          actions: currentSnapshot.machine.sources.actions,
-          actors: currentSnapshot.machine.sources.actors
-        };
-
     const isInline = typeof action === 'function';
     const actionRecord = getTransitionActionRecord(action);
     let resolvedActionArgs = actionRecord?.args;
@@ -1232,6 +1234,9 @@ export function resolveActionsWithContext(
         ...actionRecord.args.slice(2)
       ];
     }
+    // A ref that went through JSON stays address-backed through effects and
+    // timers: delivery resolves it to whichever actor is live at the address
+    // then, routes it through a host runtime, or reports a dead letter.
 
     const resolvedAction = isInline
       ? action
@@ -1256,53 +1261,6 @@ export function resolveActionsWithContext(
         actionRecord.childUpdate,
         actorScope
       );
-    }
-
-    if (resolvedAction && '_special' in resolvedAction) {
-      executableActions.push({
-        kind: 'action',
-        exec: execCustomEffect,
-        type:
-          typeof action === 'object'
-            ? 'action' in action && typeof action.action === 'function'
-              ? (action.action.name ?? '(anonymous)')
-              : ((action as any).type ?? '(anonymous)')
-            : action.name || '(anonymous)',
-        params: actionParams,
-        args: [],
-        action: undefined
-      });
-
-      const specialAction = resolvedAction as unknown as Action<
-        any,
-        any,
-        any,
-        any,
-        any,
-        any,
-        any
-      >;
-
-      const res = specialAction(actionArgs as any, emptyEnqueueObject);
-
-      if (res && ('context' in res || 'children' in res)) {
-        // Special-action patches never change `nodes`, so a shallow clone is
-        // equivalent to `cloneMachineSnapshot` — and keeps this module (and
-        // non-machine logic like `createFSM`) independent of State.ts.
-        intermediateSnapshot = {
-          ...intermediateSnapshot,
-          ...(res.context !== undefined
-            ? {
-                context: mergeContextPatch(
-                  intermediateSnapshot.context,
-                  res.context
-                )
-              }
-            : {}),
-          ...('children' in res ? { children: res.children } : {})
-        };
-      }
-      continue;
     }
 
     if (!resolvedAction || !('resolve' in resolvedAction)) {
@@ -1346,13 +1304,13 @@ export function resolveActionsWithContext(
         ...builtInFields
       };
 
-      const typedExecutableAction = executableAction as ExecutableActionObject;
+      const typedExecutableEffect = executableAction as ExecutableEffect;
       intermediateSnapshot = updateLogicalTimers(
         intermediateSnapshot,
-        typedExecutableAction,
+        typedExecutableEffect,
         actorScope
       );
-      executableActions.push(typedExecutableAction);
+      executableActions.push(typedExecutableEffect);
       continue;
     }
   }
@@ -1392,5 +1350,3 @@ export function createEnqueueObject(
 
 const noop = () => {};
 const emptyActor = () => ({}) as any;
-
-const emptyEnqueueObject = createEnqueueObject({}, noop);

@@ -11,8 +11,11 @@ describe('persisted snapshot versioning', () => {
     const actor = createActor(machine).start();
     const persisted = actor.getPersistedSnapshot();
 
-    expect((persisted as any).version).toBe('1');
-    expect(JSON.parse(JSON.stringify(persisted)).version).toBe('1');
+    expect((persisted as any).machine).toEqual({
+      id: '(machine)',
+      version: '1'
+    });
+    expect(persisted).not.toHaveProperty('version');
   });
 
   it('does not stamp a version when the machine has none', () => {

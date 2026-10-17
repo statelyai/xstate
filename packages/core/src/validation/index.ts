@@ -8,7 +8,7 @@ import type {
   AnyActorLogic,
   AnyMachineSnapshot,
   AnyStateMachine,
-  ExecutableActionObject
+  ExecutableEffect
 } from '../types.ts';
 import { matchesEventDescriptor } from '../utils.ts';
 
@@ -194,7 +194,7 @@ export function standardSchemaValidator(
 
   const checkEmitted = (
     logic: AnyActorLogic,
-    effects: readonly ExecutableActionObject[]
+    effects: readonly ExecutableEffect[]
   ) => {
     const schemas = getSchemas(logic);
     if (!schemas?.emitted) {
@@ -280,7 +280,7 @@ export function standardSchemaValidator(
       }
     }
 
-    for (const timer of Object.values(snapshot.timers)) {
+    for (const timer of snapshot.timers) {
       if (timer.type === '@xstate.raise') {
         error = checkEvent(machine, timer.event, 'raised');
         if (error) {

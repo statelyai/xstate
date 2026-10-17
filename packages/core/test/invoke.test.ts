@@ -11,7 +11,7 @@ import {
   ActorScope,
   EventObject,
   StateValue,
-  createLogic,
+  createStepLogic,
   createMachine,
   createActor,
   Snapshot,
@@ -2700,7 +2700,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: createLogic({
+          src: createStepLogic({
             context: 0,
             run: ({ context, event }) => ({
               context: countReducer(context, event as any)
@@ -2750,7 +2750,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: createLogic<number, undefined, CountEvents>({
+          src: createStepLogic<number, undefined, CountEvents>({
             context: 0,
             run: ({ context, event, self }) => ({
               context: countReducer(context, event, { self } as any)
@@ -2778,7 +2778,7 @@ describe('invoke', () => {
 
     it('should emit onSnapshot', async () => {
       const { promise, resolve } = Promise.withResolvers<void>();
-      const doublerLogic = createLogic({
+      const doublerLogic = createStepLogic({
         context: 0,
         run: ({ event }: { event: { type: 'update'; value: number } }) => ({
           context: event.value * 2

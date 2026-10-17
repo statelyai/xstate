@@ -2,7 +2,7 @@ import { Context, Effect, Scope } from 'effect';
 import { createMachine, setup, type AnyActorLogic } from 'xstate';
 import {
   createEffectActor,
-  fromEffect,
+  createEffectLogic,
   setupEffect,
   withActorScope,
   type RequirementsFrom
@@ -45,16 +45,16 @@ type RequirementsOfEffect<T> =
 type AlphaRequirement = RequirementsOfEffect<typeof alphaEffect>;
 type BetaRequirement = RequirementsOfEffect<typeof betaEffect>;
 
-const alphaLogic = fromEffect(alphaEffect);
-const betaLogic = fromEffect(betaEffect);
-const plainLogic = fromEffect(Effect.succeed(1));
+const alphaLogic = createEffectLogic(alphaEffect);
+const betaLogic = createEffectLogic(betaEffect);
+const plainLogic = createEffectLogic(Effect.succeed(1));
 
 describe('RequirementsFrom', () => {
   it('supplies invocation and owning actor scopes without an application Layer', () => {
-    const task = fromEffect(
+    const task = createEffectLogic(
       Effect.acquireRelease(alphaEffect, () => Effect.void)
     );
-    const shared = fromEffect(
+    const shared = createEffectLogic(
       Effect.acquireRelease(betaEffect, () => Effect.void).pipe(withActorScope)
     );
     true satisfies Equals<RequirementsFrom<typeof task>, AlphaRequirement>;
@@ -67,7 +67,7 @@ describe('RequirementsFrom', () => {
       invoke: { src: 'work' }
     });
     const provided = machine.provide({
-      actors: { work: fromEffect(Effect.as(betaEffect, 0)) }
+      actors: { work: createEffectLogic(Effect.as(betaEffect, 0)) }
     });
     true satisfies Equals<RequirementsFrom<typeof provided>, BetaRequirement>;
   });

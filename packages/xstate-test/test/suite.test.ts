@@ -6,7 +6,7 @@ import {
   generateTestSuite,
   parseTestSuite,
   replayTestSuite,
-  serializeTestSuite
+  testSuiteToJSON
 } from '../src/index.ts';
 
 const trafficMachine = createMachine({
@@ -46,7 +46,7 @@ describe('property suites with FastCheck', () => {
     expect(suite.coverage.dimensions.transitions.uncovered).toEqual([]);
     expect(suite.fixtures.length).toBeGreaterThan(0);
 
-    const replayed = parseTestSuite(serializeTestSuite(suite));
+    const replayed = parseTestSuite(testSuiteToJSON(suite));
     const result = await replayTestSuite(trafficMachine, replayed, {
       invariant
     });

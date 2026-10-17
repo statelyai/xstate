@@ -11,7 +11,7 @@ loading: { after: { 5_000: { target: 'timedOut' } } }
 
 The timer is scheduled after the state's `entry` function and its queued actions, and is canceled when the state is exited.
 
-Cancellation affects timers already scheduled when it runs. An `enq.cancel(...)` in `entry` runs before that state's `after` timer is scheduled. To cancel an active state timer, enqueue cancellation from a later event handler or exit the state.
+Cancellation affects timers already scheduled when it runs. An `enq.cancel(...)` in `entry` runs before that state's `after` timer is scheduled. To cancel an active state timer, exit the state, or enqueue cancellation from a later event handler with the timer's event: `enq.cancel({ event: { type: 'xstate.after', stateId: 'machine.waiting', delay: 1000 } })`. `after` and `timeout` timers have no `id`.
 
 ## Named delays
 

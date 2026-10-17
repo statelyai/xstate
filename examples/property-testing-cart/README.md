@@ -146,7 +146,7 @@ modelIt.model.fails(
 ```
 
 The test passes only when the campaign fails with a matching message.
-`propertyTest()` throws a `ModelTestFailure`, and fast-check shrinks the
+`propertyTest()` throws a `ModelTestFailureError`, and fast-check shrinks the
 sequence to the two events that expose the bug. The next section shows the
 failure.
 
@@ -233,18 +233,18 @@ it as a bare `{ type: 'CHECKOUT' }`. The test asserts that
 
 `testPaths()` against the buggy store, with `fromEvents` instead of a
 generator: the single path `ADD apple`, then `REMOVE apple`. It throws the
-same `ModelTestFailure`, with a trace, a fixture, and coverage. Only
+same `ModelTestFailureError`, with a trace, a fixture, and coverage. Only
 `failure.coverage.exploration.strategy` differs: `'paths'`.
 
 ### 6. `replays a recorded counterexample`
 
 The test produces the failure from test 3, takes `failure.fixture`, and
 replays it with `replayTest()`. The replay stops at the recorded failing step
-and throws the same `ModelTestFailure`. No generator runs.
+and throws the same `ModelTestFailureError`. No generator runs.
 
 ## What a failure looks like
 
-With `CART_BUG=1`, test 3 fails with this `ModelTestFailure` message:
+With `CART_BUG=1`, test 3 fails with this `ModelTestFailureError` message:
 
 ```
 Property observation diverged
@@ -325,7 +325,7 @@ await replayTest(cartMachine, fixture as TestFixture, {
 });
 ```
 
-With the bug present, `replayTest()` throws the same `ModelTestFailure`. With
+With the bug present, `replayTest()` throws the same `ModelTestFailureError`. With
 the bug fixed, it throws `ReplayNotReproducedError`:
 `Property replay did not reproduce the recorded failure at step 3`. Pass
 `expect: 'pass'` to keep the fixture as a regression test that must pass.

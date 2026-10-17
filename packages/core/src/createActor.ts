@@ -25,7 +25,7 @@ import type {
   createEventObservableLogic
 } from './actors/observable.ts';
 import type { createCallbackLogic } from './actors/callback.ts';
-import type { createLogic } from './actors/logic.ts';
+import type { createStepLogic } from './actors/logic.ts';
 import type { createAsyncLogic } from './actors/promise.ts';
 import type { createMachine } from './createMachine.ts';
 // oxlint-enable no-unused-vars
@@ -46,10 +46,13 @@ import type {
   Snapshot,
   SnapshotFrom,
   AnyTransitionDefinition,
-  ExecutableActionObject,
+  ExecutableEffect,
   Readable,
-  ActorLogicTransitionResult
+  ActorLogicTransitionResult,
+  LogicalTimer,
+  SerializedActorRef
 } from './types.ts';
+import { getTimerKey } from './timerKey.ts';
 import {
   ActorOptions,
   ActorInstance,
@@ -65,12 +68,6 @@ import {
   refreshSnapshotActorRefRoot,
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
-
-/**
- * Marks a serialized object as an actor reference (`xstate$type` in JSON
- * output and persisted context).
- */
-export const ACTOR_REF_TYPE = 'actorRef';
 
 const emptyInspectionRecords = Object.freeze([]) as unknown as never[];
 
@@ -102,7 +99,7 @@ function safeCall<T>(fn: ((arg: T) => void) | undefined, arg?: T) {
 }
 
 function executeExecutableEffects(
-  effects: readonly ExecutableActionObject[] | undefined,
+  effects: readonly ExecutableEffect[] | undefined,
   actorScope: ActorScope<any, any, any, any>
 ): void {
   if (!effects?.length) {
@@ -194,7 +191,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   public _collectedActions: ActionRecord[] | undefined;
   /** @internal Events relayed to other actors during the in-flight transition. */
   public _collectedSent: SentRecord[] | undefined;
-  private _initialEffects: ExecutableActionObject[] | undefined;
+  private _initialEffects: ExecutableEffect[] | undefined;
   public registryKey: string | undefined;
 
   /** The globally unique process ID for this invocation. */
@@ -435,8 +432,8 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     return emit;
   }
 
-  private get actionExecutor(): (action: ExecutableActionObject) => void {
-    const actionExecutor = (action: ExecutableActionObject) =>
+  private get actionExecutor(): (action: ExecutableEffect) => void {
+    const actionExecutor = (action: ExecutableEffect) =>
       this._executeAction(action);
     Object.defineProperty(this, 'actionExecutor', { value: actionExecutor });
     return actionExecutor;
@@ -465,7 +462,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   /** @internal */
-  public _executeAction(action: ExecutableActionObject): void {
+  public _executeAction(action: ExecutableEffect): void {
     const exec = () => {
       // Record every executed action for the '@xstate.transition' inspection
       // event's `actions[]` facet (replaces the v5 '@xstate.action' event).
@@ -944,33 +941,32 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
 
     if (this._restored) {
-      type RestoredTimer = { id: string; delay: number; startedAt?: number };
       const timers =
         (
           this._snapshot as unknown as {
-            timers?: Record<string, RestoredTimer>;
+            timers?: readonly LogicalTimer[];
           }
-        ).timers ?? {};
-      // startedAt is only persisted from — and only meaningful under — the
+        ).timers ?? [];
+      // scheduledAt is only persisted from — and only meaningful under — the
       // wall clock; a custom clock (a simulated clock, a monotonic counter)
       // restores every timer with its declared delay. The clamp bounds
       // remaining time by the declared delay in case the wall clock moved
       // backwards between persist and restore.
       const wallClock = !this.system._clock.now;
       const now = Date.now();
-      for (const timer of Object.values(timers)) {
+      for (const timer of timers) {
         // A timer persisted from a live runtime carries its wall-clock start;
         // honor the absolute deadline instead of restarting the full delay.
         // Without a start (a pure-transition snapshot, or an older snapshot)
         // the declared delay is all there is.
         const delay =
-          wallClock && timer.startedAt !== undefined
+          wallClock && timer.scheduledAt !== undefined
             ? Math.min(
                 timer.delay,
-                Math.max(0, timer.startedAt + timer.delay - now)
+                Math.max(0, timer.scheduledAt + timer.delay - now)
               )
             : timer.delay;
-        this.system.scheduleTimer(this, timer.id, delay);
+        this.system.scheduleTimer(this, getTimerKey(timer), delay);
       }
       this._restored = false;
     }
@@ -1274,16 +1270,11 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
   }
 
   /**
-   * Returns the actor's serializable logical identity: its `id`, `address`,
-   * and registered source key (when the actor was created from one).
+   * Returns the actor's serializable logical identity: `{ $actor: address }`.
+   * The result can be used as an `enq.sendTo(...)` target.
    */
-  public toJSON() {
-    return {
-      xstate$type: ACTOR_REF_TYPE,
-      id: this.id,
-      address: this.address,
-      src: typeof this.src === 'string' ? this.src : undefined
-    };
+  public toJSON(): SerializedActorRef {
+    return { $actor: this.address };
   }
 
   /**
@@ -1415,7 +1406,7 @@ type CreateActorOptionsArgs<TLogic extends AnyActorLogic> = [
  * @param logic - The actor logic to create an actor from. For a state machine
  *   actor logic creator, see {@link createMachine}. Other actor logic creators
  *   include {@link createCallbackLogic}, {@link createEventObservableLogic},
- *   {@link createObservableLogic}, {@link createLogic}, and
+ *   {@link createObservableLogic}, {@link createStepLogic}, and
  *   {@link createAsyncLogic}.
  * @param options - Actor options
  * @public

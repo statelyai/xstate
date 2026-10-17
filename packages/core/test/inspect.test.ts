@@ -172,7 +172,7 @@ describe('inspect', () => {
       (ev) => ev.type === '@xstate.transition'
     ) as any[];
     expect(simplified.map((e) => e.event.type)).toEqual([
-      '@xstate.init',
+      'xstate.init',
       'NEXT',
       'NEXT'
     ]);

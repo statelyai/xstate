@@ -4,11 +4,11 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { createActor, createLogic } from 'xstate';
+import { createActor, createStepLogic } from 'xstate';
 import { useSelector } from '../src/index.ts';
 
 const simpleActor = createActor(
-  createLogic({
+  createStepLogic({
     context: 42,
     run: ({ context }) => ({ context })
   })

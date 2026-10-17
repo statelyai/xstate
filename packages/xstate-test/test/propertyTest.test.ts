@@ -6,7 +6,7 @@ import {
   types
 } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   fastCheckAdapter,
   propertyTest,
   replayTest
@@ -131,7 +131,7 @@ describe('propertyTest with FastCheck', () => {
       invariant: () => {}
     }).catch((error) => error);
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.trace.events).toEqual([{ type: 'INC', value: 1 }]);
     expect(created).toBeGreaterThan(1);
     expect(disposed).toBe(created);
@@ -152,7 +152,7 @@ describe('propertyTest with FastCheck', () => {
       });
 
     const error = await run().catch((value) => value);
-    expect(error).toBeInstanceOf(ModelTestFailure);
+    expect(error).toBeInstanceOf(ModelTestFailureError);
     expect(error.trace.steps.length).toBeGreaterThan(0);
     expect(error.replay).toMatchObject({
       engine: 'fast-check',
@@ -181,7 +181,7 @@ describe('propertyTest with FastCheck', () => {
   });
 
   it('creates portable fixtures that replay without FastCheck', async () => {
-    let error!: ModelTestFailure;
+    let error!: ModelTestFailureError;
     try {
       await propertyTest(counterMachine, {
         seed: 123,
@@ -195,11 +195,11 @@ describe('propertyTest with FastCheck', () => {
         }
       });
     } catch (value) {
-      error = value as ModelTestFailure;
+      error = value as ModelTestFailureError;
     }
 
     expect(error.fixture).toMatchObject({ formatVersion: 2, failedAt: 1 });
-    let replayed!: ModelTestFailure;
+    let replayed!: ModelTestFailureError;
     try {
       await replayTest(counterMachine, error.fixture!, {
         invariant: ({ snapshot }) => {
@@ -207,9 +207,9 @@ describe('propertyTest with FastCheck', () => {
         }
       });
     } catch (value) {
-      replayed = value as ModelTestFailure;
+      replayed = value as ModelTestFailureError;
     }
-    expect(replayed).toBeInstanceOf(ModelTestFailure);
+    expect(replayed).toBeInstanceOf(ModelTestFailureError);
     expect(replayed.trace.steps).toHaveLength(error.trace.steps.length);
   });
 
@@ -259,7 +259,7 @@ describe('propertyTest with FastCheck', () => {
     const model = machine;
     const frontier = getPathsFromEvents(machine, [{ type: 'GO' }])[0];
     expect(frontier).toBeDefined();
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
 
     try {
       await propertyTest(model, {
@@ -275,7 +275,7 @@ describe('propertyTest with FastCheck', () => {
         }
       });
     } catch (value) {
-      failure = value as ModelTestFailure;
+      failure = value as ModelTestFailureError;
     }
 
     expect(
@@ -297,7 +297,7 @@ describe('propertyTest with FastCheck', () => {
 
   it('shrinks SUT divergence and disposes every run', async () => {
     let active = 0;
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(counterMachine, {
         seed: 8,
@@ -326,10 +326,10 @@ describe('propertyTest with FastCheck', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.message).toContain('observation diverged');
     expect(failure.trace.events).toEqual([{ type: 'INC', value: 1 }]);
     expect(active).toBe(0);

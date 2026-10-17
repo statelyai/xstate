@@ -15,7 +15,7 @@ import {
   Subscribable,
   Subscription
 } from '../types';
-import { createLogic as createBaseLogic } from './logic.ts';
+import { createStepLogic as createBaseLogic } from './logic.ts';
 import { finalizeTransitionResult } from '../transitionActions.ts';
 
 const XSTATE_OBSERVABLE_NEXT = 'xstate.observable.next';

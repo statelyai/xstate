@@ -1058,3 +1058,49 @@ describe('guards - enqueue before return', () => {
     expect(ran).toEqual(['track', 'track', 'track']);
   });
 });
+
+describe('reserved source names', () => {
+  it.each(['xstate.ready', '@xstate.ready'])(
+    "rejects source name '%s' for every source kind",
+    (name) => {
+      for (const kind of ['actions', 'guards', 'actors', 'delays'] as const) {
+        expect(() =>
+          createMachine({ [kind]: { [name]: () => true } } as any)
+        ).toThrow(
+          `Invalid ${kind} name '${name}': the 'xstate.' and '@xstate.' prefixes are reserved`
+        );
+      }
+    }
+  );
+});
+
+describe('self.getSnapshot() inside a transition', () => {
+  it('returns the snapshot committed before the macrostep', () => {
+    const seen: Record<string, unknown> = {};
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: { on: { GO: { target: 'mid' } } },
+        mid: {
+          always: ({ self }) => {
+            seen.always = self.getSnapshot().value;
+            return { target: 'b' };
+          }
+        },
+        b: {
+          entry: (_, enq) => enq.raise({ type: 'CHECK' }),
+          on: {
+            CHECK: ({ self }) => {
+              seen.raised = self.getSnapshot().value;
+            }
+          }
+        }
+      }
+    });
+    const actor = createActor(machine).start();
+    actor.send({ type: 'GO' });
+
+    expect(seen).toEqual({ always: 'a', raised: 'a' });
+    expect(actor.getSnapshot().value).toBe('b');
+  });
+});

@@ -1,7 +1,7 @@
 import { historicalEventSchemas } from './historicalEventSchemas.ts';
 import type { PublicEventFromMachine } from './eventTypes.ts';
 import isDevelopment from '#is-development';
-import { ACTOR_REF_TYPE, createActor } from './createActor.ts';
+import { createActor } from './createActor.ts';
 import {
   createErrorPlatformEvent,
   createInitEvent,
@@ -9,7 +9,10 @@ import {
 } from './eventUtils.ts';
 import { XSTATE_TIMER } from './constants.ts';
 import { parseGeneratedActorId } from './system.ts';
-import { createRemoteActorRef } from './remoteActorRef.ts';
+import {
+  createRemoteActorRef,
+  isSerializedActorRef
+} from './remoteActorRef.ts';
 
 import { createSpawner } from './spawn.ts';
 import {
@@ -22,6 +25,7 @@ import { withActorSelf } from './actorScope.ts';
 import {
   createMachineSnapshot,
   cloneMachineSnapshot,
+  freezeContext,
   getPersistedSnapshot,
   MachineSnapshot
 } from './State.ts';
@@ -69,8 +73,8 @@ import type {
   EmittedFrom,
   EventObject,
   EventFromLogic,
-  ExecutableActionObject,
-  ExecutableActionObjectFromLogic,
+  ExecutableEffect,
+  ExecutableEffectFrom,
   HistoryValue,
   InputFrom,
   IsAny,
@@ -94,6 +98,7 @@ import {
   MachineOptions
 } from './types.v6.ts';
 import {
+  assertUnreservedSourceName,
   matchesEventDescriptor,
   resolveReferencedActor,
   toStatePath
@@ -129,7 +134,7 @@ let emptyCanActorScope: AnyActorScope | undefined;
 function getEmptyCanActor(): AnyActor {
   // A minimal inert actor used purely as the `self`/`parent` argument when
   // dry-running transitions for `snapshot.can(...)`. Intentionally not built
-  // on `createLogic` so `can()` does not pull that machinery into bundles.
+  // on `createStepLogic` so `can()` does not pull that machinery into bundles.
   return (emptyCanActor ??= createActor({
     transition: (snapshot: any) => [snapshot, []],
     initialTransition: () => [
@@ -211,13 +216,11 @@ type ProvidedSourceMap<TDeclared, TProvided> = {
     : TDeclared[K];
 };
 
-declare const declaredAction: unique symbol;
-
 // The action as the machine declared it. A provided action keeps its own type,
 // so integrations can infer from what it returns, and records the declared one,
 // so that the next `provide(...)` is checked against the same contract.
 type DeclaredAction<T> = T extends {
-  readonly [declaredAction]?: infer TDeclared;
+  readonly '~declaredAction'?: infer TDeclared;
 }
   ? unknown extends TDeclared
     ? T
@@ -229,7 +232,7 @@ type ProvidedActionSourceMap<TDeclared, TProvided> = {
     ? ({} extends Pick<TProvided, K>
         ? TDeclared[K] | Exclude<TProvided[K], undefined>
         : Exclude<TProvided[K], undefined>) & {
-        readonly [declaredAction]?: DeclaredAction<TDeclared[K]>;
+        readonly '~declaredAction'?: DeclaredAction<TDeclared[K]>;
       }
     : TDeclared[K];
 };
@@ -397,15 +400,9 @@ export class StateMachine<
       ...sources
     };
     if (isDevelopment) {
-      // The `@xstate.` prefix is reserved for built-in serialized action and
-      // guard descriptors — user source names must not collide.
       for (const kind of ['actions', 'guards', 'actors', 'delays'] as const) {
         for (const key of Object.keys(this.sources[kind])) {
-          if (key.startsWith('@xstate.')) {
-            throw new Error(
-              `Invalid ${kind} name '${key}': the '@xstate.' prefix is reserved for built-in descriptors.`
-            );
-          }
+          assertUnreservedSourceName(kind, key);
         }
       }
     }
@@ -421,7 +418,7 @@ export class StateMachine<
           }
           const snapshot: Record<string, unknown> = {
             historyValue: {},
-            timers: {},
+            timers: [],
             ...(value as Record<string, unknown>)
           };
           const contextSchema = this.schemas?.context;
@@ -455,7 +452,7 @@ export class StateMachine<
               issues: [{ message: 'Persisted snapshot has invalid status.' }]
             };
           }
-          for (const key of ['children', 'historyValue', 'timers'] as const) {
+          for (const key of ['children', 'historyValue'] as const) {
             if (
               snapshot[key] === null ||
               typeof snapshot[key] !== 'object' ||
@@ -467,6 +464,11 @@ export class StateMachine<
                 ]
               };
             }
+          }
+          if (!Array.isArray(snapshot.timers)) {
+            return {
+              issues: [{ message: "Persisted snapshot has invalid 'timers'." }]
+            };
           }
           try {
             this.resolveState({
@@ -811,7 +813,7 @@ export class StateMachine<
       TMeta,
       TConfig
     >,
-    ExecutableActionObjectFromLogic<this>
+    ExecutableEffectFrom<this>
   > {
     const usesInertScope = !actorScope;
     const resolvedActorScope = (actorScope ??
@@ -849,7 +851,7 @@ export class StateMachine<
                   .issues,
                 error
               }
-            ) as ExecutableActionObjectFromLogic<this>
+            ) as ExecutableEffectFrom<this>
           ]
         ];
       }
@@ -920,12 +922,12 @@ export class StateMachine<
 
   private _collectEffects(
     microsteps: ReadonlyArray<
-      readonly [unknown, ReadonlyArray<ExecutableActionObject>, ...unknown[]]
+      readonly [unknown, ReadonlyArray<ExecutableEffect>, ...unknown[]]
     >
-  ): ExecutableActionObjectFromLogic<this>[] {
+  ): ExecutableEffectFrom<this>[] {
     return microsteps.flatMap(
       ([, actions]) => actions
-    ) as ExecutableActionObjectFromLogic<this>[];
+    ) as ExecutableEffectFrom<this>[];
   }
 
   private _attachPureActorRef<TSnapshot extends AnyMachineSnapshot>(
@@ -1045,9 +1047,16 @@ export class StateMachine<
       (actorScope.self as any)._collectedMicrosteps = collectedMicrosteps;
     }
 
+    const rootInput = snapshot._stateInputs[this.root.id];
     return cloneMachineSnapshot(snapshot, {
       ...(context !== snapshot.context ? { context } : {}),
-      ...(stateChanged ? { _nodes: [this.root, targetNode] } : {})
+      ...(stateChanged
+        ? {
+            _nodes: [this.root, targetNode],
+            // The source state exited, so only the root input remains.
+            _stateInputs: rootInput ? { [this.root.id]: rootInput } : {}
+          }
+        : {})
     });
   }
 
@@ -1268,6 +1277,9 @@ export class StateMachine<
       ) as any;
       if (resolvedContext) {
         nextState.context = resolvedContext;
+        if (isDevelopment) {
+          freezeContext(resolvedContext);
+        }
       }
       if (Object.keys(children).length > 0) {
         nextState.children = {
@@ -1354,7 +1366,7 @@ export class StateMachine<
       TMeta,
       TConfig
     >,
-    ExecutableActionObjectFromLogic<this>
+    ExecutableEffectFrom<this>
   > {
     if (this.validator) {
       assertValid(this.validator, {
@@ -1372,11 +1384,11 @@ export class StateMachine<
     const finalizeInitialResult = (
       macroState: AnyMachineSnapshot,
       microsteps: ReadonlyArray<
-        readonly [unknown, ReadonlyArray<ExecutableActionObject>, ...unknown[]]
+        readonly [unknown, ReadonlyArray<ExecutableEffect>, ...unknown[]]
       >
     ): ActorLogicTransitionResult<
       SnapshotFrom<this>,
-      ExecutableActionObjectFromLogic<this>
+      ExecutableEffectFrom<this>
     > => {
       if (usesInertScope) {
         setInertActorScopeSnapshot(resolvedActorScope, macroState, false);
@@ -1442,7 +1454,7 @@ export class StateMachine<
         [
           [nextState, [...contextSpawnEffects, ...initialActions]] as [
             AnyMachineSnapshot,
-            ExecutableActionObject[]
+            ExecutableEffect[]
           ]
         ]
       );
@@ -1460,7 +1472,7 @@ export class StateMachine<
         [
           [preInitialState, contextSpawnEffects] as [
             AnyMachineSnapshot,
-            ExecutableActionObject[]
+            ExecutableEffect[]
           ]
         ]
       );
@@ -1564,7 +1576,7 @@ export class StateMachine<
 
   /**
    * The original JSON definition this machine was created from (set by
-   * `createMachineFromConfig`), if any. Used by `serializeMachine` for lossless
+   * `machineFromJSON`), if any. Used by `machineToJSON` for lossless
    * round-trips.
    *
    * @internal
@@ -1760,18 +1772,17 @@ export class StateMachine<
       children[actorId] = actor;
     }
 
-    const timers: Record<string, LogicalTimer> = {};
-    const persistedTimers: Record<
-      string,
-      {
-        id: string;
-        delay: number;
-        type: '@xstate.raise' | '@xstate.sendTo';
-        event: EventObject;
-        target: string | { type: 'parent' };
-      }
-    > = snapshotData.timers ?? {};
-    for (const [id, timer] of Object.entries(persistedTimers)) {
+    const timers: LogicalTimer[] = [];
+    const persistedTimers: Array<{
+      id?: string;
+      seq?: number;
+      delay: number;
+      type: '@xstate.raise' | '@xstate.sendTo';
+      event: EventObject;
+      target: string | { type: 'parent' };
+      scheduledAt?: number;
+    }> = snapshotData.timers ?? [];
+    for (const timer of persistedTimers) {
       let event = timer.event;
       if (event.type === 'xstate.timeout.actor') {
         const actorId = (event as AnyEventObject).actorId as string;
@@ -1785,15 +1796,19 @@ export class StateMachine<
           ? timer.target === 'self'
             ? 'self'
             : children[timer.target]
-          : resolvedActorScope.self._parent;
+          : isSerializedActorRef(timer.target)
+            ? (timer.target as unknown as AnyActor)
+            : resolvedActorScope.self._parent;
       if (!target) {
         const targetDescription =
-          typeof timer.target === 'string' ? timer.target : timer.target.type;
+          typeof timer.target === 'string'
+            ? timer.target
+            : (timer.target as { type: string }).type;
         throw new Error(
-          `Unable to restore timer '${id}': target actor '${targetDescription}' is unavailable.`
+          `Unable to restore timer ${timer.id !== undefined ? `'${timer.id}'` : `for event '${timer.event.type}'`}: target actor '${targetDescription}' is unavailable.`
         );
       }
-      timers[id] = { ...timer, event, target };
+      timers.push({ ...timer, event, target });
     }
 
     const reviveHistoryValue = (
@@ -1907,16 +1922,75 @@ export class StateMachine<
         };
       }
     }
+    // Revive actor-ref references into a copy: the persisted snapshot is
+    // caller-owned and is never mutated or frozen. Only plain objects and
+    // arrays are copied; other values are kept as is.
+    const revived = new Map<object, unknown>();
+
+    function reviveContext(value: any, isRoot = false): any {
+      if (!value || typeof value !== 'object') {
+        return value;
+      }
+      // The context object itself is data, never a serialized actor ref.
+      // Only an object whose keys are exactly `$actor` (+ `incarnation`)
+      // is a serialized ref; any other object is data.
+      if (!isRoot && isSerializedActorRef(value)) {
+        // A ref that names one of this snapshot's children revives to that
+        // child; restored children are new incarnations, so a ref pinned to
+        // an incarnation stays data. Any other ref (e.g. a `replyTo` from an
+        // event) stays data and routes by address.
+        if (value.incarnation !== undefined) {
+          return value;
+        }
+        return (
+          Object.values(children).find(
+            (child) => child.address === value.$actor
+          ) ?? value
+        );
+      }
+      const proto = Object.getPrototypeOf(value);
+      if (
+        !Array.isArray(value) &&
+        proto !== Object.prototype &&
+        proto !== null
+      ) {
+        return value;
+      }
+      let copy: any = revived.get(value);
+      if (!copy) {
+        revived.set(
+          value,
+          (copy = Array.isArray(value) ? [] : Object.create(proto))
+        );
+        for (const key of Object.keys(value)) {
+          // defineProperty keeps keys like `__proto__` as own data properties.
+          Object.defineProperty(copy, key, {
+            value: reviveContext(value[key]),
+            writable: true,
+            enumerable: true,
+            configurable: true
+          });
+        }
+      }
+      return copy;
+    }
+
     const restoredSnapshot = createMachineSnapshot(
       {
         ...persistedRest,
+        context: reviveContext(persistedRest.context, true),
         children,
         timers,
         _nextActorIds: restoredCounters,
         _nodes: nodes,
         value: snapshotData.value,
         historyValue: revivedHistoryValue,
-        _stateInputs: snapshotData.stateInputs ?? {}
+        // Inputs only belong to active states; drop any others.
+        _stateInputs: Object.fromEntries(
+          Object.entries(snapshotData.stateInputs ?? {}).filter(([id]) =>
+            nodes.some((node) => node.id === id)
+          )
+        )
       },
       this,
       resolvedActorScope.self
@@ -1930,28 +2004,6 @@ export class StateMachine<
       TMeta,
       TConfig
     >;
-
-    const seen = new WeakSet<Record<string, unknown>>();
-
-    function reviveContext(contextPart: Record<string, unknown>) {
-      if (seen.has(contextPart)) {
-        return;
-      }
-      seen.add(contextPart);
-      for (const key of Object.keys(contextPart)) {
-        const value: unknown = contextPart[key];
-
-        if (value && typeof value === 'object') {
-          if ('xstate$type' in value && value.xstate$type === ACTOR_REF_TYPE) {
-            contextPart[key] = children[(value as any).id];
-            continue;
-          }
-          reviveContext(value as typeof contextPart);
-        }
-      }
-    }
-
-    reviveContext(restoredSnapshot.context);
 
     if (usesInertScope) {
       setInertActorScopeSnapshot(resolvedActorScope, restoredSnapshot, false);

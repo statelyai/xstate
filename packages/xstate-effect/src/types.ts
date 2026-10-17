@@ -1,5 +1,5 @@
 import type { Effect, Scope } from 'effect';
-import type { EffectLogicBrand } from './fromEffect.ts';
+import type { EffectLogicBrand } from './effectLogic.ts';
 import { effectActionBrand } from './brands.ts';
 import type { ActorScope } from './actorScope.ts';
 

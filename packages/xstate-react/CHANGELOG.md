@@ -1,5 +1,11 @@
 # Changelog
 
+## 7.0.0-alpha.5
+
+### Major Changes
+
+- d2c518b: The `Provider` returned by `createActorContext` no longer declares the deprecated `machine` prop. Pass `logic` instead.
+
 ## 7.0.0-alpha.4
 
 ### Minor Changes

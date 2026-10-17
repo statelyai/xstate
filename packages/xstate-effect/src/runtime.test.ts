@@ -13,9 +13,9 @@ import {
   createEffectActor,
   deadLetters,
   emitted,
-  fromEffect,
-  fromEffectEventStream,
-  fromEffectStream,
+  createEffectLogic,
+  createEffectEventStreamLogic,
+  createEffectStreamLogic,
   setupEffect,
   withActorScope
 } from './index.ts';
@@ -61,7 +61,7 @@ describe('@xstate/effect runtime', () => {
       Effect.scoped(
         Effect.gen(function* () {
           yield* createEffectActor(
-            fromEffect(
+            createEffectLogic(
               Effect.gen(function* () {
                 // Acquire after yielding, once the hosted fiber has been registered.
                 yield* Effect.sleep(1);
@@ -109,8 +109,8 @@ describe('@xstate/effect runtime', () => {
       );
       const work =
         kind === 'snapshot'
-          ? fromEffectStream(stream)
-          : fromEffectEventStream(stream);
+          ? createEffectStreamLogic(stream)
+          : createEffectEventStreamLogic(stream);
       const machine = setup({ actors: { work } }).createMachine({
         initial: 'working',
         states: {
@@ -136,7 +136,7 @@ describe('@xstate/effect runtime', () => {
       let started = false;
       let interrupted = false;
       let released = 0;
-      const work = fromEffect(
+      const work = createEffectLogic(
         Effect.gen(function* () {
           yield* Effect.acquireRelease(Effect.void, () =>
             Effect.sleep(5).pipe(
@@ -222,7 +222,7 @@ describe('@xstate/effect runtime', () => {
     async (outcome) => {
       let started = false;
       let released = 0;
-      const work = fromEffect(
+      const work = createEffectLogic(
         Effect.gen(function* () {
           yield* Effect.acquireRelease(Effect.void, () =>
             Effect.sync(() => {
@@ -276,7 +276,7 @@ describe('@xstate/effect runtime', () => {
       Effect.scoped(
         Effect.gen(function* () {
           yield* createEffectActor(
-            fromEffect(
+            createEffectLogic(
               Effect.gen(function* () {
                 yield* Effect.addFinalizer(() =>
                   Effect.sleep(10).pipe(
@@ -302,7 +302,7 @@ describe('@xstate/effect runtime', () => {
   it('stops the actor and interrupts its Effect when the enclosing scope closes', async () => {
     let started = false;
     let interrupted = false;
-    const logic = fromEffect(
+    const logic = createEffectLogic(
       Effect.ensuring(
         Effect.sync(() => {
           started = true;
@@ -333,7 +333,7 @@ describe('@xstate/effect runtime', () => {
   it('releases actor-scoped finalizers when the actor is stopped', async () => {
     let started = false;
     let released = 0;
-    const logic = fromEffect(
+    const logic = createEffectLogic(
       Effect.gen(function* () {
         yield* Effect.addFinalizer(() =>
           Effect.sync(() => {
@@ -363,7 +363,7 @@ describe('@xstate/effect runtime', () => {
       Effect.scoped(
         Effect.gen(function* () {
           yield* createEffectActor(
-            fromEffect(
+            createEffectLogic(
               Effect.gen(function* () {
                 yield* Effect.addFinalizer(() =>
                   Effect.sync(() => {
@@ -427,7 +427,7 @@ describe('@xstate/effect runtime', () => {
       Effect.scoped(
         Effect.gen(function* () {
           yield* createEffectActor(
-            fromEffect(
+            createEffectLogic(
               Effect.gen(function* () {
                 yield* Effect.addFinalizer(() =>
                   Effect.sync(() => {
@@ -450,7 +450,7 @@ describe('@xstate/effect runtime', () => {
 
   it('runs a hosted finalizer when the actor errors', async () => {
     let released = 0;
-    const logic = fromEffect(
+    const logic = createEffectLogic(
       Effect.gen(function* () {
         yield* Effect.addFinalizer(() =>
           Effect.sync(() => {
@@ -479,7 +479,7 @@ describe('@xstate/effect runtime', () => {
         Effect.scoped(
           Effect.gen(function* () {
             const actor = yield* createEffectActor(
-              fromEffect(
+              createEffectLogic(
                 Effect.gen(function* () {
                   yield* Effect.addFinalizer(() =>
                     Effect.sync(() => {
@@ -566,7 +566,7 @@ describe('@xstate/effect runtime', () => {
 
   it('reports self-interruption as an EffectInterruptedError', async () => {
     const actor = await runScoped(
-      createEffectActor(fromEffect(Effect.interrupt))
+      createEffectActor(createEffectLogic(Effect.interrupt))
     );
     await until(() => actor.getSnapshot().status === 'error');
 
@@ -579,7 +579,9 @@ describe('@xstate/effect runtime', () => {
   });
 
   it('reports an Effect.timeout as a TimeoutError failure', async () => {
-    const logic = fromEffect(Effect.timeout(Effect.never, Duration.millis(1)));
+    const logic = createEffectLogic(
+      Effect.timeout(Effect.never, Duration.millis(1))
+    );
     const actor = await runScoped(createEffectActor(logic));
     actor.subscribe({ error: () => {} });
     await until(() => actor.getSnapshot().status === 'error');
@@ -592,7 +594,7 @@ describe('@xstate/effect runtime', () => {
   it('reports a defect from Effect.die as the actor error', async () => {
     const defect = new Error('defect');
     const actor = await runScoped(
-      createEffectActor(fromEffect(Effect.die(defect)))
+      createEffectActor(createEffectLogic(Effect.die(defect)))
     );
     await until(() => actor.getSnapshot().status === 'error');
 
@@ -602,7 +604,7 @@ describe('@xstate/effect runtime', () => {
 
   it('routes an interrupted invoked Effect to onError', async () => {
     let received: unknown;
-    const worker = fromEffect(Effect.interrupt);
+    const worker = createEffectLogic(Effect.interrupt);
     const machine = setup({ actors: { worker } }).createMachine({
       initial: 'pending',
       states: {
@@ -627,7 +629,7 @@ describe('@xstate/effect runtime', () => {
 
   it('does not report interruption when the invoking state exits', async () => {
     let interrupted = false;
-    const worker = fromEffect(
+    const worker = createEffectLogic(
       Effect.ensuring(
         Effect.never,
         Effect.sync(() => {
@@ -780,12 +782,12 @@ describe('@xstate/effect runtime', () => {
     expect(recorded).toEqual(['provided']);
   });
 
-  it('observes events emitted from the fromEffect source args', async () => {
+  it('observes events emitted from the createEffectLogic source args', async () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
-    const logic = fromEffect(({ emit }) =>
+    const logic = createEffectLogic(({ emit }) =>
       Effect.gen(function* () {
         yield* Effect.promise(() => gate);
         emit({ type: 'progress', value: 1 });
@@ -828,7 +830,7 @@ describe('@xstate/effect runtime', () => {
   it('reports a failing Effect stream as an actor error', async () => {
     const failure = { code: 'STREAM_FAILED' as const };
     const actor = await runScoped(
-      createEffectActor(fromEffectStream(Stream.fail(failure)))
+      createEffectActor(createEffectStreamLogic(Stream.fail(failure)))
     );
     await until(() => actor.getSnapshot().status === 'error');
 
@@ -837,7 +839,7 @@ describe('@xstate/effect runtime', () => {
 
   it('interrupts an Effect stream when the invoking state exits', async () => {
     let interrupted = false;
-    const worker = fromEffectStream(
+    const worker = createEffectStreamLogic(
       Stream.fromEffect(
         Effect.ensuring(
           Effect.never,
@@ -867,7 +869,7 @@ describe('@xstate/effect runtime', () => {
 
   it('does not report interruption of an Effect that loses an internal race', async () => {
     let loserReleased = false;
-    const logic = fromEffect(
+    const logic = createEffectLogic(
       Effect.race(
         Effect.as(Effect.sleep('5 millis'), 'winner'),
         Effect.ensuring(
@@ -889,7 +891,7 @@ describe('@xstate/effect runtime', () => {
 
   it('resolves the Effect host through the parent chain', async () => {
     const Greeting = Context.Service<{ value: string }>('Greeting');
-    const leaf = fromEffect(
+    const leaf = createEffectLogic(
       Greeting.use((greeting) => Effect.succeed(greeting.value))
     );
     const child = setup({ actors: { leaf } }).createMachine({
@@ -930,7 +932,7 @@ describe('@xstate/effect runtime', () => {
 
   it('runs spawned Effect logic in the host Effect context', async () => {
     const Greeting = Context.Service<{ value: string }>('Greeting');
-    const leaf = fromEffect(
+    const leaf = createEffectLogic(
       Greeting.use((greeting) => Effect.succeed(greeting.value))
     );
     const machine = setup({ actors: { leaf } }).createMachine({
@@ -955,7 +957,7 @@ describe('@xstate/effect runtime', () => {
     const machine = setup({}).createMachine({
       context: { ref: undefined as AnyActorRef | undefined },
       entry: (_args, enq) => ({
-        context: { ref: enq.spawn(fromEffect(Effect.succeed('inline'))) }
+        context: { ref: enq.spawn(createEffectLogic(Effect.succeed('inline'))) }
       })
     });
 
@@ -969,7 +971,7 @@ describe('@xstate/effect runtime', () => {
   });
 
   it('rejects inline spawned logic even when another invoke has a dynamic src', async () => {
-    const leaf = fromEffect(Effect.succeed('leaf'));
+    const leaf = createEffectLogic(Effect.succeed('leaf'));
     const machine = setup({ actors: { leaf } }).createMachine({
       context: {
         declared: undefined as AnyActorRef | undefined,
@@ -986,7 +988,7 @@ describe('@xstate/effect runtime', () => {
           entry: ({ actors }, enq) => ({
             context: {
               declared: enq.spawn(actors.leaf),
-              inline: enq.spawn(fromEffect(Effect.succeed('inline')))
+              inline: enq.spawn(createEffectLogic(Effect.succeed('inline')))
             }
           })
         },
@@ -1039,7 +1041,7 @@ describe('@xstate/effect runtime', () => {
   });
 
   it('reports a send to a stopped actor as a dead letter', async () => {
-    const worker = fromEffect(Effect.never);
+    const worker = createEffectLogic(Effect.never);
     const machine = setup({ actors: { worker } }).createMachine({
       initial: 'working',
       states: {
@@ -1131,14 +1133,14 @@ describe('@xstate/effect runtime', () => {
     expect(active).toBe(0);
   });
 
-  it('accepts a fromEffect config without schemas', async () => {
-    const logic = fromEffect({
+  it('accepts a createEffectLogic config without schemas', async () => {
+    const logic = createEffectLogic({
       id: 'loadUser',
       effect: ({ input }: { input: { id: string } }) =>
         Effect.succeed({ greeting: `Hello ${input.id}` })
     });
 
-    // `EffectActorLogic` does not surface the `id` that `createLogic` sets.
+    // `EffectActorLogic` does not surface the `id` that `createStepLogic` sets.
     expect(logic.id).toBe('loadUser');
 
     const actor = await runScoped(
@@ -1160,7 +1162,7 @@ describe('@xstate/effect runtime', () => {
         attributes: Object.fromEntries(span.attributes)
       });
     });
-    const worker = fromEffect(Effect.as(record, 'ok'));
+    const worker = createEffectLogic(Effect.as(record, 'ok'));
     const machine = setupEffect({
       actors: { worker },
       actions: { audit: (_args) => record }
@@ -1181,7 +1183,7 @@ describe('@xstate/effect runtime', () => {
     await until(() => spans.length === 2);
 
     expect(spans[0]).toEqual({
-      name: 'fromEffect',
+      name: 'createEffectLogic',
       attributes: {
         'xstate.actor.id': 'worker',
         'xstate.actor.address': `${actor.address}/worker`

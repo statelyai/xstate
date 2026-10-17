@@ -109,7 +109,7 @@ Common uses:
 
 ## TypeScript
 
-`timeout` accepts `number`, an accepted duration string, a named delay key, or a function returning a number. `onTimeout` receives the internal timeout event: `{ type: 'xstate.timeout', stateId }` for a state timeout, and `{ type: 'xstate.timeout.actor', actorId, sessionId }` for an invocation timeout.
+`timeout` accepts `number`, an accepted duration string, a named delay key, or a function returning a number. `onTimeout` receives the internal timeout event: `{ type: 'xstate.timeout.state', stateId }` for a state timeout, and `{ type: 'xstate.timeout.actor', actorId, sessionId }` for an invocation timeout.
 
 ## Timeouts cheatsheet
 

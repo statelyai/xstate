@@ -1,5 +1,20 @@
 # @xstate/test
 
+## 2.0.0-alpha.3
+
+### Major Changes
+
+- d2c518b: Names are consistent:
+  
+  | Before                   | After                     |
+  | ------------------------ | ------------------------- |
+  | `createFailureDatabase`  | `createTestFailureStore`  |
+  | `FailureDatabaseOptions` | `TestFailureStoreOptions` |
+  | `serializeTestSuite`     | `testSuiteToJSON`         |
+  | `ModelTestFailure`       | `ModelTestFailureError`   |
+  
+  `testSuiteToJSON` still returns the JSON string that `parseTestSuite` reads. The error's `name` is now `'ModelTestFailureError'`.
+
 ## 2.0.0-alpha.2
 
 ### Patch Changes

@@ -1,16 +1,16 @@
 import type {
-  ModelTestFailure,
+  ModelTestFailureError,
   TestFailureStore,
   TestFixture,
   TestStoredFailure
 } from './engine/index.ts';
 
 /**
- * Options for the file-system failure database. See `failures`.
+ * Options for the file-system failure store. See `failures`.
  *
  * @experimental
  */
-export interface FailureDatabaseOptions {
+export interface TestFailureStoreOptions {
   /** The directory failures are saved in. Defaults to `'.xstate-test'`. */
   readonly dir?: string;
   /**
@@ -35,7 +35,7 @@ export interface FailureDatabaseOptions {
  */
 export type FailuresOption =
   | boolean
-  | FailureDatabaseOptions
+  | TestFailureStoreOptions
   | TestFailureStore;
 
 /** What a saved failure file contains. */
@@ -63,8 +63,8 @@ function sanitizeKey(key: string): string {
  *
  * @experimental
  */
-export function createFailureDatabase(
-  options: FailureDatabaseOptions = {}
+export function createTestFailureStore(
+  options: TestFailureStoreOptions = {}
 ): TestFailureStore {
   const dir = options.dir ?? DEFAULT_DIR;
   const folderOf = async (key: string) => {
@@ -104,7 +104,11 @@ export function createFailureDatabase(
       }
       return stored;
     },
-    onFailure: async (fixture, key, failure: ModelTestFailure<any, any>) => {
+    onFailure: async (
+      fixture,
+      key,
+      failure: ModelTestFailureError<any, any>
+    ) => {
       const [fs, path, crypto] = await Promise.all([
         import('node:fs/promises'),
         import('node:path'),
@@ -147,10 +151,10 @@ export function resolveFailuresOption(
     return undefined;
   }
   if (failures === true) {
-    return createFailureDatabase();
+    return createTestFailureStore();
   }
   if (typeof (failures as TestFailureStore).load === 'function') {
     return failures as TestFailureStore;
   }
-  return createFailureDatabase(failures as FailureDatabaseOptions);
+  return createTestFailureStore(failures as TestFailureStoreOptions);
 }

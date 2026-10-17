@@ -35,6 +35,21 @@ Use `throttle` for frequent edits such as a draft document. Use `filter` to skip
 
 Persistence can restore a cart after a refresh or resume an offline draft. Version persisted data before its context shape changes.
 
+## Flushing and clearing storage
+
+`await flushStorage(store)` writes buffered changes and waits for queued asynchronous writes, including writes queued by events sent from `onDone` callbacks. Synchronous storage writes finish before the call returns.
+
+`await clearStorage(store)` cancels buffered writes and removes saved data after already queued writes finish. It keeps the store's live context. With `strategy: 'event'`, the next hydrated event starts a new history with the current context as its checkpoint; events from before the clear are not saved again. Calling `store.can` or `store.transition` does not consume the reset or write to storage.
+
+When using asynchronous storage or `skipHydration: true`, call `await rehydrateStore(store)` before expecting writes. If storage is empty after a clear, changes made before hydration remain in the live context and become part of the checkpoint on the next event.
+
+```ts
+import { clearStorage, flushStorage } from '@xstate/store/persist';
+
+await flushStorage(persistedStore);
+await clearStorage(persistedStore);
+```
+
 ## TypeScript
 
 `pick`, `merge` and `migrate` use the store's context type. Keep migration return values compatible with the current context.

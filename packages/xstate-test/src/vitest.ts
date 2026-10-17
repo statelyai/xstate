@@ -110,7 +110,7 @@ function getTestKey(context: ModelTestContext): string {
 }
 
 /**
- * Keys the failure database by the test, unless `failures` is `false`, a
+ * Keys the failure store by the test, unless `failures` is `false`, a
  * custom store, or sets its own `key`.
  */
 function withTestFailures<T extends { readonly failures?: FailuresOption }>(

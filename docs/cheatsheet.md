@@ -125,10 +125,9 @@ const machine = createMachine({
 
 ```ts
 // check another state (replaces stateIn)
-import { checkStateIn } from 'xstate';
-
 play: ({ self }) => {
-  if (checkStateIn(self.getSnapshot(), 'volume.muted')) return;
+  if (self.getSnapshot().matches('volume.muted')) return;
+  // or by state id: self.getSnapshot().matches('#muted')
   return { target: 'playing' };
 };
 ```
@@ -259,7 +258,7 @@ import {
   createCallbackLogic,
   createObservableLogic,
   createEventObservableLogic,
-  createLogic,
+  createStepLogic,
   createEmptyActor,
   TimeoutError
 } from 'xstate';
@@ -292,7 +291,7 @@ const socketLogic = createCallbackLogic<{ type: 'send'; message: string }>(
 const ticks = createObservableLogic(() => interval(1000));
 
 // stateful custom logic
-const counterLogic = createLogic({
+const counterLogic = createStepLogic({
   id: 'counter',
   context: { count: 0 },
   run: ({ context, event }, enq) => {
@@ -430,8 +429,7 @@ s.createMachine({
 });
 ```
 
-State contracts without structural metadata remain permissive, so existing
-`setup(...)` machines do not need to add `type` or `initial` declarations.
+State contracts can declare schemas without `type` or `initial` metadata.
 
 See [final](final-states.md), [history](history-states.md), [parallel](parallel-states.md), [choice](choice-states.md), [route](route-states.md) and [state input](state-input.md).
 

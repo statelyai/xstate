@@ -10,7 +10,7 @@ import {
   SnapshotFrom,
   _hotSwapActorLogic as hotSwapActorLogic,
   createActor,
-  toObserver,
+  _toObserver as toObserver,
   type ConditionalRequired,
   type IsNotNever,
   type RequiredActorOptionsKeys,

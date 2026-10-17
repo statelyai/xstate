@@ -3,7 +3,7 @@ import { z } from 'zod';
 import {
   advanceSystemTime,
   createMachine,
-  createLogic,
+  createStepLogic,
   createAsyncLogic,
   createCallbackLogic,
   initialSystemTransition,
@@ -61,12 +61,11 @@ it('advances through an earlier transition that cancels the selected timer', () 
   )!;
   const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'xstate.timer',
-    id: late.id,
     occurrence: late.occurrence
   });
   expect(next.now).toBe(6000);
   expect(next.actors.root.snapshot.value).toBe('done');
-  expect(next.timers).toEqual({});
+  expect(next.timers).toEqual([]);
 });
 
 it('starts newly created timers at their chronological firing time', () => {
@@ -105,7 +104,7 @@ it('starts newly created timers at their chronological firing time', () => {
   expect(next.now).toBe(6000);
   const [atTwo] = advanceSystemTime(logic, snapshot, { time: 2000 });
   expect(
-    Object.values(atTwo.timers).find((timer) => timer.id === 'mid')?.dueAt
+    Object.values(atTwo.timers).find((timer) => timer.event.id === 'mid')?.dueAt
   ).toBe(3000);
   expect(advanceSystemTime(logic, atTwo, { time: 6000 })[0]).toEqual(next);
 });
@@ -138,7 +137,7 @@ it('owns child state, immediate communication and completion notifications', () 
   expect(snapshot.actors['root/child'].started).toBe(true);
   expect(snapshot.actors.root.snapshot.children.child).toEqual({
     $actor: 'root/child',
-    incarnation: 1
+    incarnation: '1'
   });
   const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'SEND'
@@ -178,7 +177,7 @@ it('orders timers across actors and applies a child send before a later parent t
   const [next] = advanceSystemTime(logic, freeze(snapshot), { time: 6000 });
   expect(next.actors.root.snapshot.value).toBe('done');
   expect(next.actors['root/child'].snapshot.status).toBe('stopped');
-  expect(next.timers).toEqual({});
+  expect(next.timers).toEqual([]);
 });
 
 it('preserves unrelated deadlines and rejects stale occurrences after reentry', () => {
@@ -204,13 +203,12 @@ it('preserves unrelated deadlines and rejects stale occurrences after reentry', 
     type: 'REENTER'
   });
   const replacement = Object.values(reentered.timers)[0];
-  expect(replacement.id).toBe(original.id);
+  expect(replacement.event).toEqual(original.event);
   expect(replacement.occurrence).not.toBe(original.occurrence);
   expect(replacement.dueAt).toBe(8000);
   expect(() =>
     systemTransition(logic, reentered, 'root', {
       type: 'xstate.timer',
-      id: original.id,
       occurrence: original.occurrence
     })
   ).toThrow('current timer occurrence');
@@ -279,8 +277,8 @@ it('consumes a guarded timer once and rejects raw after injection', () => {
   const [snapshot] = initialSystemTransition(logic);
   const [next] = advanceSystemTime(logic, freeze(snapshot), { time: 1000 });
   expect(next.actors.root.snapshot.value).toBe('active');
-  expect(next.actors.root.snapshot.timers).toEqual({});
-  expect(next.timers).toEqual({});
+  expect(next.actors.root.snapshot.timers).toEqual([]);
+  expect(next.timers).toEqual([]);
   expect(() =>
     systemTransition(logic, snapshot, 'root', {
       type: 'xstate.after',
@@ -365,17 +363,16 @@ it('retains a replacement timer beyond a selected occurrence’s original deadli
   };
   const [snapshot] = initialSystemTransition(logic);
   const selected = Object.values(snapshot.timers).find(
-    (timer) => timer.id === 'late'
+    (timer) => timer.event.id === 'late'
   )!;
   const [next] = systemTransition(logic, freeze(snapshot), 'root', {
     type: 'xstate.timer',
-    id: selected.id,
     occurrence: selected.occurrence
   });
   expect(next.now).toBe(6000);
   expect(next.actors.root.snapshot.context.count).toBe(0);
-  expect(Object.values(next.timers)).toMatchObject([
-    { id: 'late', dueAt: 10000 }
+  expect(next.timers).toMatchObject([
+    { event: { type: 'xstate.timer', id: 'late' }, dueAt: 10000 }
   ]);
   expect(
     advanceSystemTime(logic, next, { time: 10000 })[0].actors.root.snapshot
@@ -421,7 +418,7 @@ it('replays named pure listeners without live subscriptions and stops them with 
   });
   expect(next.actors.root.snapshot.context.value).toBe(2);
   const [stopped] = systemTransition(logic, next, 'root', {
-    type: '@xstate.stop'
+    type: 'xstate.stop'
   });
   expect(
     Object.values(stopped.actors).every(
@@ -497,7 +494,7 @@ it.each(['done', 'error'] as const)(
   'delivers a child %s mapper before its parent terminal notification',
   (outcome) => {
     const mapResult = (value: unknown) => ({ type: 'RESULT' as const, value });
-    const worker = createLogic({
+    const worker = createStepLogic({
       context: {},
       run: ({ event }) =>
         event.type === 'FINISH'
@@ -544,7 +541,7 @@ it.each(['done', 'error'] as const)(
       context: { result: outcome === 'done' ? 42 : 'failure' }
     });
     const observer = Object.values(finished.actors).find(
-      (actor) => actor.logic === 'xstate.subscription'
+      (actor) => actor.src === '@xstate.subscription'
     )!;
     expect(observer.parent?.$actor).toBe('root');
     expect(observer.snapshot.status).toBe('stopped');
@@ -555,7 +552,7 @@ it.each(['done', 'error'] as const)(
   'publishes an initially %s child exactly once',
   (outcome) => {
     const mapResult = (value: unknown) => ({ type: 'RESULT' as const, value });
-    const worker = createLogic({
+    const worker = createStepLogic({
       context: {},
       run: () =>
         outcome === 'done'
@@ -595,7 +592,7 @@ it('handles prototype-shaped root IDs and registry keys as ordinary data', () =>
   });
   expect(snapshot.registry.__proto__).toEqual({
     $actor: '__proto__',
-    incarnation: 0
+    incarnation: '0'
   });
   const [next] = systemTransition(
     logic,
@@ -662,7 +659,7 @@ it('acknowledges retirement commands after replacement without accepting stale r
     }
   );
   const cancellation = effects.find(
-    (effect) => effect.type === 'xstate.system.cancelEffect'
+    (effect) => effect.type === '@xstate.cancelEffect'
   )!;
   for (const effectId of [initialEffects[0].id, cancellation.id]) {
     expect(() =>
@@ -686,7 +683,7 @@ it('names logger effects without running the logger during reduction', () => {
     root: createMachine({ entry: (_, enq) => enq.log('hello', 42) })
   };
   const [, effects] = initialSystemTransition(logic);
-  expect(effects).toMatchObject([{ type: 'xstate.log', args: ['hello', 42] }]);
+  expect(effects).toMatchObject([{ type: '@xstate.log', args: ['hello', 42] }]);
 });
 
 it('restores a serialized snapshot with pending timers and child references', () => {
@@ -749,7 +746,7 @@ it('bounds zero-delay chains atomically without modifying the input snapshot', (
 it('processes pure non-machine actor logic without executing external effects', () => {
   const external = vi.fn();
   const logic = {
-    root: createLogic({
+    root: createStepLogic({
       id: 'root',
       context: { count: 0 },
       run: ({ context, event }, enq) => {
@@ -782,7 +779,7 @@ it('acknowledges external work and delivers its result as a correlated input', (
   });
   expect(next.actors.root.snapshot.status).toBe('done');
   expect(next.actors.root.snapshot.output).toBe(42);
-  expect(next.timers).toEqual({});
+  expect(next.timers).toEqual([]);
   expect(next.externalEffects).toEqual({});
   expect(run).not.toHaveBeenCalled();
   expect(() =>
@@ -806,7 +803,7 @@ it('owns async timeouts and rejects results arriving after cancellation', () => 
   });
   expect(cancellations).toContainEqual(
     expect.objectContaining({
-      type: 'xstate.system.cancelEffect',
+      type: '@xstate.cancelEffect',
       params: { effectId: effects[0].id }
     })
   );
@@ -846,7 +843,7 @@ it('processes state and invoke timeouts in the same deadline order', () => {
   const [next] = advanceSystemTime(logic, freeze(snapshot), { time: 6000 });
   expect(next.actors.root.snapshot.value).toBe('done');
   expect(next.actors['root/child'].snapshot.status).toBe('stopped');
-  expect(next.timers).toEqual({});
+  expect(next.timers).toEqual([]);
 });
 
 it('models delayed sends through the source timer before child completion', () => {
@@ -883,7 +880,7 @@ it('models delayed sends through the source timer before child completion', () =
   });
   const [next] = advanceSystemTime(logic, freeze(scheduled), { time: 1000 });
   expect(next.actors.root.snapshot.value).toBe('done');
-  expect(next.timers).toEqual({});
+  expect(next.timers).toEqual([]);
 });
 
 it('stops an actor subtree and resolves registry lookups from snapshot data', () => {
@@ -907,7 +904,7 @@ it('stops an actor subtree and resolves registry lookups from snapshot data', ()
   });
   expect(next.actors['root/child'].snapshot.context.received).toBe(true);
   const [stopped] = systemTransition(logic, freeze(next), 'root', {
-    type: '@xstate.stop'
+    type: 'xstate.stop'
   });
   expect(stopped.actors.root.snapshot.status).toBe('stopped');
   expect(stopped.actors['root/child'].snapshot.status).toBe('stopped');

@@ -2,7 +2,6 @@ import isDevelopment from '#is-development';
 import { isMachineSnapshot } from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import { TARGETLESS_KEY, WILDCARD } from './constants.ts';
-import { isStateId } from './stateUtils.ts';
 import type {
   AnyActor,
   AnyEventObject,
@@ -54,17 +53,17 @@ export function matchesState(
   });
 }
 
-/** @public */
-export function checkStateIn(
-  snapshot: AnyMachineSnapshot,
-  stateValue: StateValue
-) {
-  if (typeof stateValue === 'string' && isStateId(stateValue)) {
-    const target = snapshot.machine.getStateNodeById(stateValue);
-    return snapshot.nodes.some((sn) => sn === target);
+/**
+ * @internal Throws when a user source name (action, guard, actor or delay)
+ * enters the `xstate.` / `@xstate.` namespaces, which are reserved for
+ * built-in events, effects and source keys.
+ */
+export function assertUnreservedSourceName(kind: string, name: string): void {
+  if (name.startsWith('xstate.') || name.startsWith('@xstate.')) {
+    throw new Error(
+      `Invalid ${kind} name '${name}': the 'xstate.' and '@xstate.' prefixes are reserved for built-in names.`
+    );
   }
-
-  return snapshot.matches(stateValue);
 }
 
 export function toStatePath(stateId: string | string[]): string[] {
@@ -113,8 +112,8 @@ function toStateValue(stateValue: StateLike<any> | StateValue): StateValue {
   return pathToStateValue(statePath);
 }
 
-/** @public */
-export function pathToStateValue(statePath: string[]): StateValue {
+/** @internal */
+function pathToStateValue(statePath: string[]): StateValue {
   if (statePath.length === 1) {
     return statePath[0];
   }
@@ -295,7 +294,7 @@ export function normalizeTarget<
   return toArray(target);
 }
 
-/** @public */
+/** @experimental Used by framework integrations; not part of the stable API. */
 export function toObserver<T>(
   nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,
@@ -349,11 +348,6 @@ export function resolveReferencedActor(machine: AnyStateMachine, src: string) {
   return typeof configSrc === 'string'
     ? machine.sources.actors[configSrc]
     : configSrc;
-}
-
-/** @experimental */
-export function getAllOwnEventDescriptors(snapshot: AnyMachineSnapshot) {
-  return [...new Set([...snapshot.nodes.flatMap((sn) => sn.ownEvents)])];
 }
 
 /**

@@ -6,10 +6,13 @@ const starts = new WeakMap<LogicalTimer, number>();
 
 /** @internal */
 export function getTimerStart(timer: LogicalTimer): number | undefined {
-  return starts.get(timer) ?? timer.startedAt;
+  return starts.get(timer) ?? timer.scheduledAt;
 }
 
 /** @internal */
-export function recordTimerStart(timer: LogicalTimer, startedAt: number): void {
-  starts.set(timer, startedAt);
+export function recordTimerStart(
+  timer: LogicalTimer,
+  scheduledAt: number
+): void {
+  starts.set(timer, scheduledAt);
 }

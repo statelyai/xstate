@@ -3,7 +3,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
   createActor,
-  createLogic,
+  createStepLogic,
   createMachine,
   createCallbackLogic,
   createAsyncLogic,
@@ -15,7 +15,7 @@ import {
   stopActor,
   setup
 } from '../src';
-import { createMachineFromConfig } from '../src/createMachineFromConfig';
+import { machineFromJSON } from '../src/machineFromJSON';
 import z from 'zod';
 
 // mocked reportUnhandledError due to unknown issue with vitest and global error
@@ -107,7 +107,7 @@ describe('error handling', () => {
   it('stops custom-logic children absent from its snapshot after an error', () => {
     const cleanup = vi.fn();
     const actor = createActor(
-      createLogic({
+      createStepLogic({
         context: undefined,
         run: ({ event, self }, enq) => {
           if (event.type === 'FAIL') {
@@ -1105,7 +1105,7 @@ describe('error handling', () => {
   });
 
   it('should error the parent on errored initial state of a child', async () => {
-    const immediateFailure = createLogic({
+    const immediateFailure = createStepLogic({
       context: undefined,
       run: () => undefined
     });

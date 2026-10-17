@@ -7,7 +7,7 @@ import {
   pick,
   propertyTest,
   testPaths,
-  ModelTestFailure,
+  ModelTestFailureError,
   replayTest,
   type TestFixture
 } from '@xstate/test';
@@ -223,7 +223,7 @@ describe('cart', () => {
 
     it('reports the same failure class when the store is buggy', async () => {
       process.env.CART_BUG = '1';
-      let failure!: ModelTestFailure;
+      let failure!: ModelTestFailureError;
       try {
         // `REMOVE` returns the cart to its starting state, so no shortest
         // path covers it. A literal sequence does.
@@ -236,12 +236,12 @@ describe('cart', () => {
           ]
         });
       } catch (error) {
-        failure = error as ModelTestFailure;
+        failure = error as ModelTestFailureError;
       } finally {
         delete process.env.CART_BUG;
       }
 
-      expect(failure).toBeInstanceOf(ModelTestFailure);
+      expect(failure).toBeInstanceOf(ModelTestFailureError);
       expect(failure.fixture).toBeDefined();
       expect(failure.coverage?.exploration.strategy).toBe('paths');
     });
@@ -277,7 +277,7 @@ describe('cart', () => {
           invariant: () => {}
         });
       } catch (error) {
-        fixture = (error as ModelTestFailure).fixture;
+        fixture = (error as ModelTestFailureError).fixture;
       }
 
       expect(fixture).toBeDefined();
@@ -299,7 +299,7 @@ describe('cart', () => {
         },
         invariant: () => {}
       });
-      await expect(reproduced).rejects.toBeInstanceOf(ModelTestFailure);
+      await expect(reproduced).rejects.toBeInstanceOf(ModelTestFailureError);
     } finally {
       delete process.env.CART_BUG;
     }

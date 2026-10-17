@@ -1,15 +1,22 @@
 import isDevelopment from '#is-development';
-import { MachineSnapshot, cloneMachineSnapshot } from './State.ts';
+import {
+  MachineSnapshot,
+  cloneMachineSnapshot,
+  freezeContext
+} from './State.ts';
 import type { StateNode } from './StateNode.ts';
 import {
   createAfterEvent,
-  createAfterEventId,
   createDoneStateEvent,
   createInvokeTimeoutEvent,
-  createInvokeTimeoutEventId,
-  createTimeoutEvent,
-  createTimeoutEventId
+  createTimeoutEvent
 } from './eventUtils.ts';
+import {
+  getBuiltInTimerIdentity,
+  getTimerKey,
+  matchesTimerKey,
+  readTimerKey
+} from './timerKey.ts';
 import {
   XSTATE_INIT,
   STATE_DELIMITER,
@@ -26,16 +33,16 @@ import {
 import {
   AnyEventObject,
   AnyMachineSnapshot,
-  AnyStateMachine,
   AnyStateNode,
   AnyTransitionDefinition,
   DelayedTransitionDefinition,
   EventObject,
-  ExecutableActionObject,
+  ExecutableEffect,
   HistoryValue,
   MachineContext,
   StateValue,
   TransitionDefinition,
+  TimerKey,
   AnyAction,
   AnyTransitionConfig,
   AnyActor,
@@ -276,36 +283,6 @@ export function isInFinalState(
 
 export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
-function getLegacyEventType(event: EventObject): string | undefined {
-  switch (event.type) {
-    case 'xstate.done.actor':
-    case 'xstate.error.actor':
-      return `${event.type}.${(event as any).actorId}`;
-    case 'xstate.snapshot.actor':
-      return `xstate.snapshot.${(event as any).actorId}`;
-    case 'xstate.done.state':
-      return `xstate.done.state.${(event as any).stateId}`;
-    case 'xstate.after':
-      return `xstate.after.${(event as any).delay}.${(event as any).stateId}`;
-    case 'xstate.timeout':
-      return `xstate.timeout.${(event as any).stateId}`;
-    case 'xstate.timeout.actor':
-      return `xstate.timeout.actor.${(event as any).actorId}`;
-    default:
-      return undefined;
-  }
-}
-
-function getEventTypeAliases(event: EventObject): string[] {
-  const legacyType = getLegacyEventType(event);
-  return legacyType ? [event.type, legacyType] : [event.type];
-}
-
-export function getEventDescriptorKey(event: EventObject): string {
-  const legacyType = getLegacyEventType(event);
-  return legacyType ? `${event.type}|${legacyType}` : event.type;
-}
-
 export function matchesActorSession(
   event: EventObject,
   snapshot: AnyMachineSnapshot,
@@ -324,86 +301,16 @@ export function matchesActorSession(
   );
 }
 
-function normalizeLegacyInternalEvent(
-  event: EventObject,
-  machine: AnyStateMachine
-): EventObject {
-  if (
-    event.type === 'xstate.done.actor' ||
-    event.type === 'xstate.error.actor' ||
-    event.type === 'xstate.snapshot.actor' ||
-    event.type === 'xstate.done.state' ||
-    event.type === 'xstate.after' ||
-    event.type === 'xstate.timeout' ||
-    event.type === 'xstate.timeout.actor'
-  ) {
-    return event;
-  }
-
-  const normalizeWithId = (
-    prefix: string,
-    type: string,
-    idKey: 'actorId' | 'stateId'
-  ) =>
-    event.type.startsWith(prefix)
-      ? {
-          ...event,
-          type,
-          [idKey]: (event as any)[idKey] ?? event.type.slice(prefix.length)
-        }
-      : undefined;
-
-  const normalized =
-    normalizeWithId('xstate.done.actor.', 'xstate.done.actor', 'actorId') ??
-    normalizeWithId('xstate.error.actor.', 'xstate.error.actor', 'actorId') ??
-    normalizeWithId('xstate.snapshot.', 'xstate.snapshot.actor', 'actorId') ??
-    normalizeWithId('xstate.done.state.', 'xstate.done.state', 'stateId') ??
-    normalizeWithId(
-      'xstate.timeout.actor.',
-      'xstate.timeout.actor',
-      'actorId'
-    ) ??
-    normalizeWithId('xstate.timeout.', 'xstate.timeout', 'stateId');
-
-  if (normalized) {
-    return normalized;
-  }
-
-  const afterPrefix = 'xstate.after.';
-  if (!event.type.startsWith(afterPrefix)) {
-    return event;
-  }
-
-  const stateId = [...machine.idMap.keys()]
-    .sort((a, b) => b.length - a.length)
-    .find((id) => event.type.endsWith(`.${id}`));
-  if (!stateId) {
-    return event;
-  }
-  const delayText = event.type.slice(afterPrefix.length, -stateId.length - 1);
-  return {
-    ...event,
-    type: 'xstate.after',
-    delay: Number.isNaN(+delayText) ? delayText : +delayText,
-    stateId
-  } as AnyEventObject;
-}
-
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
   event: TEvent
 ): Array<TransitionDefinition<any, TEvent>> {
-  const eventTypes = getEventTypeAliases(event);
-  const exactMatches = eventTypes.flatMap(
-    (eventType) => stateNode.transitions.get(eventType) ?? []
-  );
+  const exactMatches = stateNode.transitions.get(event.type) ?? [];
   const wildcardCandidates = [...stateNode.transitions.keys()]
     .filter(
       (eventDescriptor) =>
-        !eventTypes.includes(eventDescriptor) &&
-        eventTypes.some((eventType) =>
-          matchesEventDescriptor(eventType, eventDescriptor)
-        )
+        eventDescriptor !== event.type &&
+        matchesEventDescriptor(event.type, eventDescriptor)
     )
     .sort((a, b) => b.length - a.length)
     .flatMap((key) => stateNode.transitions.get(key)!);
@@ -415,7 +322,7 @@ export function getCandidates<TEvent extends EventObject>(
 
 function scheduleDelayedEvent(
   stateNode: AnyStateNode,
-  timerId: string,
+  timerEvent: AnyEventObject,
   resolveEvent: (args: any) => AnyEventObject,
   resolveScheduledDelay: (x: {
     context: MachineContext;
@@ -433,8 +340,8 @@ function scheduleDelayedEvent(
       result?.context !== undefined
         ? mergeContextPatch(x.context, result.context)
         : x.context;
+    // Built-in timers have no id: the event identifies them.
     enq.raise(resolveEvent(x) as any, {
-      id: timerId,
       delay: resolveScheduledDelay({
         context,
         event: x.event,
@@ -446,7 +353,7 @@ function scheduleDelayedEvent(
   };
   const oldExit = stateNode.exit;
   stateNode.exit = (_: any, enq: any) => {
-    enq.cancel(timerId);
+    enq.cancel({ event: getBuiltInTimerIdentity(timerEvent)! });
     return typeof oldExit === 'function' ? oldExit(_, enq) : undefined;
   };
 }
@@ -488,13 +395,12 @@ export function getDelayedTransitions(
   // differ only in the event raised, the transition(s) caught, and whether the
   // delay resolves against the machine's `delays` map (invoke timeouts do not).
   //
-  // `xstate.timeout` is a dedicated event category so a state-level `timeout`
+  // `xstate.timeout.state` is a dedicated event category so a state-level `timeout`
   // cannot collide with an explicit `after` entry on the same state. Invoke
   // timeouts are scheduled on the enclosing state; completion transitions
   // cancel the timer separately, so it clears even when the parent stays active.
   const sources: Array<{
     event: AnyEventObject;
-    timerId: string;
     resolveEvent?: (args: any) => AnyEventObject;
     eventMatcher?: (
       event: EventObject,
@@ -510,7 +416,6 @@ export function getDelayedTransitions(
       const delay = Number.isNaN(+key) ? key : +key;
       sources.push({
         event: createAfterEvent(delay, stateNode.id),
-        timerId: createAfterEventId(delay, stateNode.id),
         delay,
         transitions: afterConfig[key],
         fromDelaysMap: true
@@ -521,7 +426,6 @@ export function getDelayedTransitions(
   if (timeoutConfig !== undefined && onTimeoutConfig) {
     sources.push({
       event: createTimeoutEvent(stateNode.id),
-      timerId: createTimeoutEventId(stateNode.id),
       delay: timeoutConfig,
       transitions: onTimeoutConfig,
       fromDelaysMap: true
@@ -531,7 +435,6 @@ export function getDelayedTransitions(
   for (const invokeDef of invokeDefs) {
     sources.push({
       event: createInvokeTimeoutEvent(invokeDef.id),
-      timerId: createInvokeTimeoutEventId(invokeDef.id),
       resolveEvent: ({ children }: any) =>
         createInvokeTimeoutEvent(
           invokeDef.id,
@@ -561,24 +464,19 @@ export function getDelayedTransitions(
 
   for (const {
     event,
-    timerId,
     resolveEvent,
     eventMatcher,
     delay,
     transitions,
     fromDelaysMap
   } of sources) {
-    scheduleDelayedEvent(
-      stateNode,
-      timerId,
-      resolveEvent ?? (() => event),
-      (x) =>
-        resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
-          context: x.context,
-          event: x.event,
-          stateNode,
-          input: x.input
-        })
+    scheduleDelayedEvent(stateNode, event, resolveEvent ?? (() => event), (x) =>
+      resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
+        context: x.context,
+        event: x.event,
+        stateNode,
+        input: x.input
+      })
     );
     const { type: eventType, ...eventPattern } = event;
     for (const transition of toTransitionConfigArray(transitions as any)) {
@@ -1409,7 +1307,7 @@ function computeExitSet(
 
 type Microstep = readonly [
   AnyMachineSnapshot,
-  ExecutableActionObject[],
+  ExecutableEffect[],
   // The transitions taken in this microstep, when recorded by `macrostep()`
   transitions?: AnyTransitionDefinition[]
 ];
@@ -1471,7 +1369,7 @@ function microstep(
   internalQueue: Array<AnyEventObject>,
   selectionResults?: TransitionSelectionResults
 ): Microstep {
-  const executableActions: ExecutableActionObject[] = [];
+  const executableActions: ExecutableEffect[] = [];
   const internalEvents = currentSnapshot.machine._microstepHooks?.drain(
     actorScope.self
   );
@@ -1524,102 +1422,64 @@ function microstep(
     ): [
       actions: any[],
       context: MachineContext | undefined,
-      internalEvents: EventObject[] | undefined
+      internalEvents: EventObject[] | undefined,
+      children: AnyMachineSnapshot['children'] | undefined
     ] => {
-      if (transitionFn.length === 2) {
-        // enqueue action; retrieve
-        const actions: any[] = [];
-        const internalEvents: EventObject[] = [];
-        let updatedContext: MachineContext | undefined;
+      const actions: any[] = [];
+      const internalEvents: EventObject[] = [];
+      let updatedContext: MachineContext | undefined;
 
-        const enqueue = createTransitionEnqueue(
-          actorScope,
-          actions,
-          internalEvents,
-          true
-        );
+      const enqueue = createTransitionEnqueue(
+        actorScope,
+        actions,
+        internalEvents,
+        true
+      );
 
-        const args = isLazyActorScope(actorScope)
-          ? withActorScope(
-              {
-                context,
-                event,
-                children,
-                actions: currentSnapshot.machine.sources.actions,
-                actors: currentSnapshot.machine.sources.actors,
-                guards: currentSnapshot.machine.sources.guards,
-                delays: currentSnapshot.machine.sources.delays,
-                input,
-                stateNode
-              },
-              actorScope
-            )
-          : {
+      const args = isLazyActorScope(actorScope)
+        ? withActorScope(
+            {
               context,
               event,
-              parent: actorScope.self._parent,
-              self: actorScope.self,
+              output: getEventOutput(event),
               children,
-              system: actorScope.system,
               actions: currentSnapshot.machine.sources.actions,
               actors: currentSnapshot.machine.sources.actors,
               guards: currentSnapshot.machine.sources.guards,
               delays: currentSnapshot.machine.sources.delays,
               input,
               stateNode
-            };
-        let res;
-        try {
-          res = transitionFn(args, enqueue);
-        } finally {
-          closeTransitionEnqueue(enqueue);
-        }
-        assertSyncTransitionResult(res, event, stateNode.id, kind);
+            },
+            actorScope
+          )
+        : {
+            context,
+            event,
+            output: getEventOutput(event),
+            parent: actorScope.self._parent,
+            self: actorScope.self,
+            children,
+            system: actorScope.system,
+            actions: currentSnapshot.machine.sources.actions,
+            actors: currentSnapshot.machine.sources.actors,
+            guards: currentSnapshot.machine.sources.guards,
+            delays: currentSnapshot.machine.sources.delays,
+            input,
+            stateNode
+          };
+      let res;
+      try {
+        res = transitionFn(args, enqueue);
+      } finally {
+        closeTransitionEnqueue(enqueue);
+      }
+      assertSyncTransitionResult(res, event, stateNode.id, kind);
 
-        if (res?.context !== undefined) {
-          updatedContext = mergeContextPatch(context, res.context);
-        }
-
-        return [actions, updatedContext, internalEvents];
+      if (res?.context !== undefined) {
+        updatedContext = mergeContextPatch(context, res.context);
       }
 
-      // For 1-argument actions, wrap them to include input
-      // Preserve _special flag if present (for entry/exit actions)
-      const wrappedAction = Object.assign(
-        (args: any, enqueue: any) =>
-          transitionFn(
-            isLazyActorScope(actorScope)
-              ? withActorScope(
-                  {
-                    context: args.context,
-                    event: args.event,
-                    output: args.output,
-                    children: args.children,
-                    actions: args.actions,
-                    actors: args.actors,
-                    guards: currentSnapshot.machine.sources.guards,
-                    delays: currentSnapshot.machine.sources.delays,
-                    input,
-                    stateNode
-                  },
-                  actorScope
-                )
-              : {
-                  ...args,
-                  guards: currentSnapshot.machine.sources.guards,
-                  delays: currentSnapshot.machine.sources.delays,
-                  input,
-                  stateNode
-                },
-            // This function runs during action resolution, where enqueued
-            // effects are no longer collected.
-            isDevelopment
-              ? createIgnoredEnqueue(transitionFn, kind, stateNode.id)
-              : enqueue
-          ),
-        '_special' in transitionFn ? { _special: true } : {}
-      );
-      return [[wrappedAction], undefined, undefined];
+      return [actions, updatedContext, internalEvents, res?.children];
     };
 
     let nextState = currentSnapshot;
@@ -1671,22 +1531,24 @@ function microstep(
       for (const exitStateNode of statesToExit) {
         const stateInput = getStateInput(currentSnapshot, exitStateNode.id);
 
-        const [exitActions, nextContext, internalEvents] = exitStateNode.exit
-          ? getStateActionsAndContext(
-              exitStateNode.exit,
-              nextState.context,
-              nextState.children,
-              stateInput,
-              'exit',
-              exitStateNode
-            )
-          : [[], undefined, undefined];
+        const [exitActions, nextContext, internalEvents, nextChildren] =
+          exitStateNode.exit
+            ? getStateActionsAndContext(
+                exitStateNode.exit,
+                nextState.context,
+                nextState.children,
+                stateInput,
+                'exit',
+                exitStateNode
+              )
+            : [[], undefined, undefined, undefined];
         if (internalEvents?.length) {
           internalQueue.push(...internalEvents);
         }
-        if (nextContext) {
+        if (nextContext || nextChildren) {
           nextState = cloneMachineSnapshot(nextState, {
-            context: nextContext
+            ...(nextContext ? { context: nextContext } : {}),
+            ...(nextChildren ? { children: nextChildren } : {})
           });
         }
         const [resolvedState, resolvedActions] = resolveActionsWithContext(
@@ -1971,10 +1833,20 @@ function microstep(
         }
       }
 
-      const stateInputMap: Record<string, Record<string, unknown>> = {
-        ...currentSnapshot._stateInputs
-      };
+      // Keep only the inputs of states still active after exiting, so exited
+      // (and re-entered) states never see a stale input.
+      const stateInputMap: Record<string, Record<string, unknown>> = {};
       let stateInputsChanged = false;
+      const activeIds = new Set([...mutStateNodeSet].map((sn) => sn.id));
+      for (const [id, input] of Object.entries(
+        currentSnapshot._stateInputs ?? {}
+      )) {
+        if (activeIds.has(id)) {
+          stateInputMap[id] = input;
+        } else {
+          stateInputsChanged = true;
+        }
+      }
       for (const transition of filteredTransitions) {
         const { targets, input } = getCurrentTransitionResult(transition, true);
         if (input && targets) {
@@ -2066,7 +1938,7 @@ function microstep(
         const stateInput = stateInputMap[stateNodeToEnter.id];
 
         if (stateNodeToEnter.entry) {
-          const [resultActions, nextContext, nextInternalEvents] =
+          const [resultActions, nextContext, nextInternalEvents, nextChildren] =
             getStateActionsAndContext(
               stateNodeToEnter.entry,
               context,
@@ -2083,10 +1955,18 @@ function microstep(
             context = nextContext;
             contextChangedByEntry = true;
           }
+          if (nextChildren) {
+            nextState = cloneMachineSnapshot(nextState, {
+              children: nextChildren
+            });
+          }
         }
 
         if (contextChangedByEntry) {
           nextState.context = context;
+          if (isDevelopment) {
+            freezeContext(context);
+          }
         }
 
         if (statesForDefaultEntry.has(stateNodeToEnter)) {
@@ -2117,6 +1997,9 @@ function microstep(
                 nextState.context,
                 initialContext
               );
+              if (isDevelopment) {
+                freezeContext(nextState.context);
+              }
             }
             if (initialInput && defaultTransition.target) {
               for (const targetNode of defaultTransition.target) {
@@ -2233,7 +2116,7 @@ function microstep(
     };
 
     // Execute transition content
-    const [resolvedTransitionState, transitionExecutableActions] =
+    const [resolvedTransitionState, transitionExecutableEffects] =
       resolveActionsWithContext(
         nextState,
         event,
@@ -2241,7 +2124,7 @@ function microstep(
         transitionActions
       );
     nextState = resolvedTransitionState;
-    executableActions.push(...transitionExecutableActions);
+    executableActions.push(...transitionExecutableEffects);
     if (context && context !== currentSnapshot.context) {
       nextState = cloneMachineSnapshot(nextState, { context });
     }
@@ -2262,7 +2145,7 @@ function microstep(
       nextStateNodesToExit.forEach((stateNode) => {
         if (stateNode.exit) {
           const stateInput = getStateInput(nextState, stateNode.id);
-          const [exitActions, nextContext, nextInternalEvents] =
+          const [exitActions, nextContext, nextInternalEvents, nextChildren] =
             getStateActionsAndContext(
               stateNode.exit,
               nextState.context,
@@ -2271,9 +2154,10 @@ function microstep(
               'exit',
               stateNode
             );
-          if (nextContext) {
+          if (nextContext || nextChildren) {
             nextState = cloneMachineSnapshot(nextState, {
-              context: nextContext
+              ...(nextContext ? { context: nextContext } : {}),
+              ...(nextChildren ? { children: nextChildren } : {})
             });
           }
           allExitActions.push(...exitActions);
@@ -2653,16 +2537,19 @@ export function macrostep(
     return completeMacrostep();
   }
 
-  let nextEvent = normalizeLegacyInternalEvent(event, snapshot.machine);
+  let nextEvent = event;
 
   if (event.type === XSTATE_TIMER) {
-    const timer = nextSnapshot.timers[(event as any).id];
-    if (!timer) {
+    const key = readTimerKey(event);
+    const index = key
+      ? nextSnapshot.timers.findIndex((timer) => matchesTimerKey(timer, key))
+      : -1;
+    if (index === -1) {
       return completeMacrostep();
     }
 
-    const timers = { ...nextSnapshot.timers };
-    delete timers[timer.id];
+    const timer = nextSnapshot.timers[index];
+    const timers = nextSnapshot.timers.filter((_, i) => i !== index);
     nextSnapshot = cloneMachineSnapshot(nextSnapshot, { timers });
     if (timer.type === '@xstate.raise') {
       internalQueue.push(timer.event);
@@ -2703,7 +2590,6 @@ export function macrostep(
       }
       // TODO: we should likely only allow transitions selected by very explicit descriptors
       // `*` shouldn't be matched, likely `xstate.error.*` shouldn't be either
-      // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
       nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
         status: 'error',
         error: currentEvent.error
@@ -2871,57 +2757,6 @@ function assertSyncTransitionResult(
   }
 }
 
-const ignoredEnqueues = new WeakMap<
-  (...args: any[]) => any,
-  ReturnType<typeof createEnqueueObject>
->();
-
-/**
- * The enqueue object that an entry or exit function gets in development when it
- * is not declared with exactly two parameters. Such a function runs during
- * action resolution, where enqueued effects are no longer collected, so every
- * call is ignored. This one warns, once per function.
- */
-function createIgnoredEnqueue(
-  fn: (...args: any[]) => any,
-  kind: 'entry' | 'exit',
-  stateNodeId: string
-): ReturnType<typeof createEnqueueObject> {
-  let enqueue = ignoredEnqueues.get(fn);
-  if (enqueue) {
-    return enqueue;
-  }
-  let warned = false;
-  const ignore =
-    (method: string, result?: () => unknown) =>
-    (..._args: unknown[]): any => {
-      if (!warned) {
-        warned = true;
-        console.warn(
-          `The ${kind} function of state "${stateNodeId}" called ${method}(...), which was ignored. Only ${kind} functions declared with exactly two parameters, (args, enq) => ..., get a working enq. This one has fn.length ${fn.length}; fn.length stops counting at a default or rest parameter.`
-        );
-      }
-      return result?.();
-    };
-  const emptyActor = () => ({});
-  enqueue = createEnqueueObject(
-    {
-      cancel: ignore('enq.cancel'),
-      emit: ignore('enq.emit'),
-      log: ignore('enq.log'),
-      raise: ignore('enq.raise'),
-      sendTo: ignore('enq.sendTo'),
-      stop: ignore('enq.stop'),
-      spawn: ignore('enq.spawn', emptyActor),
-      listen: ignore('enq.listen', emptyActor),
-      subscribeTo: ignore('enq.subscribeTo', emptyActor)
-    },
-    ignore('enq')
-  );
-  ignoredEnqueues.set(fn, enqueue);
-  return enqueue;
-}
-
 let transitionEffectEnqueue: ReturnType<typeof createEnqueueObject> | undefined;
 function getTransitionEffectEnqueue() {
   return (transitionEffectEnqueue ??= createEnqueueObject(
@@ -2995,7 +2830,7 @@ function stopChildren(
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope
-): [AnyMachineSnapshot, ExecutableActionObject[]] {
+): [AnyMachineSnapshot, ExecutableEffect[]] {
   let children: AnyActor[];
   if (
     !snapshot.children ||
@@ -3016,15 +2851,14 @@ function cancelTimers(
   snapshot: AnyMachineSnapshot,
   event: AnyEventObject,
   actorScope: AnyActorScope
-): [AnyMachineSnapshot, ExecutableActionObject[]] {
-  const timerIds = Object.keys(snapshot.timers);
-  if (!timerIds.length) {
+): [AnyMachineSnapshot, ExecutableEffect[]] {
+  if (!snapshot.timers.length) {
     return [snapshot, []];
   }
   const actions: AnyAction[] = [];
   const enqueue = createTransitionEnqueue(actorScope, actions, []);
-  for (const id of timerIds) {
-    enqueue.cancel(id);
+  for (const timer of snapshot.timers) {
+    (enqueue.cancel as unknown as (key: TimerKey) => void)(getTimerKey(timer));
   }
   return resolveActionsWithContext(snapshot, event, actorScope, actions);
 }

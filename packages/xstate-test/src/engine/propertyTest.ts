@@ -403,7 +403,7 @@ export interface TestSut<
  */
 export interface TestSutCompleteContext {
   readonly passed: boolean;
-  /** The error the campaign throws. Usually a {@link ModelTestFailure}. */
+  /** The error the campaign throws. Usually a {@link ModelTestFailureError}. */
   readonly failure?: unknown;
 }
 
@@ -416,7 +416,7 @@ export interface TestSutDisposeContext {
   /** `false` when the run ended in a failure. */
   readonly passed: boolean;
   /** The failure the run ended in, when an oracle failed. */
-  readonly failure?: ModelTestFailure<any, any>;
+  readonly failure?: ModelTestFailureError<any, any>;
 }
 
 /**
@@ -830,7 +830,7 @@ export interface TestTrace<
 }
 
 /**
- * Options that shape how a {@link ModelTestFailure} message is rendered.
+ * Options that shape how a {@link ModelTestFailureError} message is rendered.
  *
  * @experimental
  */
@@ -907,7 +907,7 @@ function getPropertyFailureMessage<
 }
 
 /**
- * Lines added to a {@link ModelTestFailure} message after it was built.
+ * Lines added to a {@link ModelTestFailureError} message after it was built.
  *
  * @experimental
  */
@@ -924,7 +924,7 @@ export interface TestFailureExtras {
  * accumulated up to the failure.
  * @experimental
  */
-export class ModelTestFailure<
+export class ModelTestFailureError<
   TSnapshot extends Snapshot<unknown> = Snapshot<unknown>,
   TEvent extends EventObject = EventObject
 > extends Error {
@@ -934,7 +934,7 @@ export class ModelTestFailure<
    */
   public static override [Symbol.hasInstance](
     value: unknown
-  ): value is ModelTestFailure {
+  ): value is ModelTestFailureError {
     return Function.prototype[Symbol.hasInstance].call(this, value);
   }
 
@@ -965,7 +965,7 @@ export class ModelTestFailure<
       ),
       { cause }
     );
-    this.name = 'ModelTestFailure';
+    this.name = 'ModelTestFailureError';
     this.summary = summary;
   }
 }
@@ -1032,7 +1032,7 @@ export interface TestFailureStore {
   readonly onFailure: (
     fixture: TestFixture,
     key: string,
-    failure: ModelTestFailure<any, any>
+    failure: ModelTestFailureError<any, any>
   ) => string | void | Promise<string | void>;
   /** Removes a stored fixture that no longer reproduces. */
   readonly remove?: (
@@ -1327,20 +1327,20 @@ class PropertyExecutionEngine<
     const timers =
       (
         this.actor.getSnapshot() as {
-          timers?: Record<string, { readonly event?: EventObject }>;
+          timers?: ReadonlyArray<{ readonly event?: EventObject }>;
         }
-      ).timers ?? {};
-    const timerId = Object.keys(timers).find((id) => {
-      const timerEvent = timers[id]?.event as
+      ).timers ?? [];
+    const timer = timers.find(({ event: timerEvent }) => {
+      const afterEvent = timerEvent as
         | { type?: string; delay?: unknown; stateId?: unknown }
         | undefined;
       return (
-        timerEvent?.type === 'xstate.after' &&
-        timerEvent.delay === event.delay &&
-        timerEvent.stateId === event.stateId
+        afterEvent?.type === 'xstate.after' &&
+        afterEvent.delay === event.delay &&
+        afterEvent.stateId === event.stateId
       );
     });
-    if (timerId === undefined) {
+    if (timer === undefined) {
       return undefined;
     }
     const system = (
@@ -1349,7 +1349,13 @@ class PropertyExecutionEngine<
           getSnapshot?: () => {
             _scheduledTimers?: Record<
               string,
-              { source: unknown; id: string; dueAt: number }
+              {
+                source: unknown;
+                key: {
+                  event?: { type?: string; delay?: unknown; stateId?: unknown };
+                };
+                dueAt: number;
+              }
             >;
           };
         };
@@ -1357,7 +1363,13 @@ class PropertyExecutionEngine<
     ).system;
     const scheduled = Object.values(
       system?.getSnapshot?.()._scheduledTimers ?? {}
-    ).find((timer) => timer.source === this.rootRef && timer.id === timerId);
+    ).find(
+      (scheduledTimer) =>
+        scheduledTimer.source === this.rootRef &&
+        scheduledTimer.key.event?.type === 'xstate.after' &&
+        scheduledTimer.key.event.delay === event.delay &&
+        scheduledTimer.key.event.stateId === event.stateId
+    );
     if (!scheduled) {
       return undefined;
     }
@@ -1489,7 +1501,7 @@ export class PropertyScenarioRunner<
   /** Set for runs the adapter starts while shrinking a counterexample. */
   private shrinkRun = false;
   /** The failure this run ended in, if an oracle failed. */
-  private failure: ModelTestFailure<TSnapshot, TEvent> | undefined;
+  private failure: ModelTestFailureError<TSnapshot, TEvent> | undefined;
 
   /** Records a label for this run. */
   public readonly label = (
@@ -1619,7 +1631,7 @@ export class PropertyScenarioRunner<
     let initialEffects = effects;
     if (this.executionConfig?.mode === 'executed') {
       // The pure initial transition above is only used to attribute initial
-      // transition coverage: the `@xstate.init` inspection event
+      // transition coverage: the `xstate.init` inspection event
       // carries no microsteps. The snapshot the run proceeds from is the real
       // actor's.
       this.executionConfig.registry.reset();
@@ -2641,7 +2653,7 @@ export class PropertyScenarioRunner<
       // Never mask the underlying failure with a fixture-construction error.
       fixture = undefined;
     }
-    this.failure = new ModelTestFailure(
+    this.failure = new ModelTestFailureError(
       message,
       this.getTrace(),
       cause,
@@ -2707,14 +2719,13 @@ export class PropertyScenarioRunner<
 }
 
 /**
- * Replaces every `Error` in `value` with `{ xstate$$error: true, name,
- * message }`, which JSON can carry: `JSON.stringify(new Error('x'))` is `{}`.
+ * Replaces every `Error` in `value` with `{ $error: name, message }`, which JSON can carry: `JSON.stringify(new Error('x'))` is `{}`.
  * Fixtures are portable data, so this runs on everything they record;
  * `replayTest()` turns the marked objects back into errors.
  */
 function toPortableValue(value: unknown, seen = new Map<object, unknown>()) {
   if (value instanceof Error) {
-    return { xstate$$error: true, name: value.name, message: value.message };
+    return { $error: value.name, message: value.message };
   }
   if (!value || typeof value !== 'object') {
     return value;
@@ -2756,11 +2767,9 @@ function fromPortableValue(value: unknown): unknown {
     return value;
   }
   const record = value as Record<string, unknown>;
-  if (record.xstate$$error === true && typeof record.message === 'string') {
+  if (typeof record.$error === 'string' && typeof record.message === 'string') {
     const error = new Error(record.message);
-    if (typeof record.name === 'string') {
-      error.name = record.name;
-    }
+    error.name = record.$error;
     return error;
   }
   return Object.fromEntries(
@@ -3408,7 +3417,7 @@ function getDefaultFailureKey(
  * Runs generated event and command sequences against the model, and the
  * system under test when one is given, checking every oracle on every stable
  * step. Resolves with the campaign's coverage and throws a
- * {@link ModelTestFailure} on the first failure. Requires an `adapter`;
+ * {@link ModelTestFailureError} on the first failure. Requires an `adapter`;
  * `@xstate/test` exports a version with fast-check built in.
  * @experimental
  */
@@ -3626,8 +3635,8 @@ export async function propertyTest<
   };
   /** Saves the failure's fixture and adds `Saved: <location>` to its message. */
   const saveFailure = async (
-    failure: ModelTestFailure<any, any>
-  ): Promise<ModelTestFailure<any, any>> => {
+    failure: ModelTestFailureError<any, any>
+  ): Promise<ModelTestFailureError<any, any>> => {
     if (
       !failureStore ||
       !failure.fixture ||
@@ -3652,7 +3661,7 @@ export async function propertyTest<
       // A store that cannot write must not hide the counterexample.
       note = `Not saved: ${error instanceof Error ? error.message : String(error)}`;
     }
-    return new ModelTestFailure(
+    return new ModelTestFailureError(
       failure.summary,
       failure.trace,
       failure.cause,
@@ -3875,9 +3884,9 @@ export async function propertyTest<
 
     if (result.error !== undefined) {
       exploration.stoppedBecause = 'failure';
-      if (result.error instanceof ModelTestFailure) {
+      if (result.error instanceof ModelTestFailureError) {
         const failure = await saveFailure(
-          new ModelTestFailure(
+          new ModelTestFailureError(
             result.error.summary,
             result.error.trace,
             result.error.cause,
@@ -3926,8 +3935,8 @@ export async function propertyTest<
           await failureStore.remove?.(stored, failureKey!);
           continue;
         }
-        if (error instanceof ModelTestFailure) {
-          const failure = new ModelTestFailure(
+        if (error instanceof ModelTestFailureError) {
+          const failure = new ModelTestFailureError(
             `${error.summary} (replayed from ${stored.location ?? 'the failure store'})`,
             error.trace,
             error.cause,
@@ -4531,9 +4540,16 @@ function formatEventForTrace(event: EventObject): string {
     sessionId: _sessionId,
     ...payload
   } = event as EventObject & Record<string, unknown>;
-  if (type === 'xstate.timer' && typeof payload.id === 'string') {
-    // The scheduler's delivery event; its id names the delayed event.
-    return payload.id;
+  if (type === 'xstate.timer') {
+    // The scheduler's delivery event names the timer by its id, sequence
+    // number or (for a built-in timer) its event.
+    const timer = payload as { id?: string; seq?: number; event?: EventObject };
+    if (typeof timer.id === 'string') {
+      return timer.id;
+    }
+    if (timer.event) {
+      return formatEventForTrace(timer.event);
+    }
   }
   return Object.keys(payload).length
     ? `${type} ${stringifyForTrace(payload)}`
@@ -4544,11 +4560,7 @@ function getEventOrigin(
   event: EventObject,
   fallback: string
 ): 'timer' | 'outcome' | string {
-  if (
-    event.type === 'xstate.after' ||
-    event.type === 'xstate.timer' ||
-    event.type.startsWith('xstate.after.')
-  ) {
+  if (event.type === 'xstate.after' || event.type === 'xstate.timer') {
     return 'timer';
   }
   if (

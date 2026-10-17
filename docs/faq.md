@@ -11,13 +11,17 @@ Not yet. v6 is in alpha and is published under the `alpha` dist-tag, so `npm ins
 
 They are no longer exported. In v6 every `entry`, `exit` and transition handler is a single function that receives `(args, enq)`. Return a `{ context }` patch instead of `assign(...)`, and use `enq.raise(...)`, `enq.sendTo(...)`, `enq.emit(...)`, `enq.log(...)`, `enq.cancel(...)`, `enq.spawn(...)` and `enq.stop(...)` instead of the action creators. `enqueueActions` has no replacement because every function is already an enqueuing function. See [actions](actions.md) and the [migration guide](xstate-v5-to-v6.md).
 
+## Why use transition functions instead of separate guards and actions?
+
+Ordinary JavaScript conditions narrow context and event data for the updates and effects in the same branch. Functions also let you share calculations and effects across branches. Static transition objects remain supported. Graph extraction is a separate concern: valid target types do not prove every possible edge was extracted. See [transition functions and graph analysis](transition-functions.md), including the proposed strict extraction contract and its current status.
+
 ## Where are `and`, `or`, `not` and `stateIn`?
 
-Guards are plain JavaScript in v6, so the combinators are gone. Write conditions with `&&`, `||` and `!` inside the transition function, and return `undefined` to reject the event. `stateIn(...)` is replaced by `checkStateIn(self.getSnapshot(), 'some.state')`, which is exported from `xstate`. See [guards](guards.md).
+Guards are plain JavaScript in v6, so the combinators are gone. Write conditions with `&&`, `||` and `!` inside the transition function, and return `undefined` to reject the event. `stateIn(...)` is replaced by `self.getSnapshot().matches('some.state')` or, for a state id, `self.getSnapshot().matches('#someId')`. See [guards](guards.md).
 
 ## Does typegen exist in v6?
 
-No. There is no `@xstate/cli`, no `tsTypes`, and no generated type files anywhere in v6. Types come from `schemas` instead: declare `context`, `events`, `input`, `output`, `emitted`, `meta` and `tags` with Zod or any [Standard Schema](https://standardschema.dev) library, or with `types<T>()` when you only want TypeScript inference and no runtime validation. See [TypeScript](typescript.md).
+No typegen step is needed. Types come from `schemas`: declare `context`, `events`, `input`, `output`, `emitted`, `meta` and `tags` with Zod or any [Standard Schema](https://standardschema.dev) library, or with `types<T>()` when you only want TypeScript inference and no runtime validation. See [TypeScript](typescript.md).
 
 ## What happened to `@xstate/immer` and `@xstate/inspect`?
 
@@ -53,4 +57,4 @@ Yes. A backend workflow restores a persisted snapshot, sends the incoming event,
 
 ## Does Stately Studio or the VS Code extension support v6?
 
-Visual tooling support for v6 is still in progress, and this documentation makes no claim about which v6 features Stately Studio or the VS Code extension currently handle. Check [stately.ai](https://stately.ai) for the current status. In the meantime, v6 machines can be treated as data with the built-in `serializeMachine(...)`, `machineConfigToJSON(...)` and `createMachineFromConfig(...)` APIs. See [serialization](serialization.md).
+Check [stately.ai](https://stately.ai) for current v6 support in Stately Studio and the VS Code extension. To save and load machine definitions as data, use `machineToJSON(...)`, `machineConfigToJSON(...)` and `machineFromJSON(...)`. See [serialization](serialization.md).

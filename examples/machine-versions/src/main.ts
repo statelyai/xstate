@@ -22,7 +22,7 @@ const checkoutV1 = {
       context: z.object({ items: z.number(), dollars: z.number() }),
       children: z.record(z.string(), z.unknown()),
       historyValue: z.record(z.string(), z.unknown()),
-      timers: z.record(z.string(), z.unknown()),
+      timers: z.array(z.unknown()),
       machine: z.object({
         id: z.literal('checkout'),
         version: z.literal('1')
@@ -76,7 +76,7 @@ const storedSnapshot = {
   context: { items: 2, dollars: 34 },
   children: {},
   historyValue: {},
-  timers: {},
+  timers: [],
   _nextActorIds: {},
   _nextTimerId: 0,
   machine: { id: 'checkout', version: '1' },

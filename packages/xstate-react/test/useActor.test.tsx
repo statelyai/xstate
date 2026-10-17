@@ -251,7 +251,10 @@ describeEachReactMode('useActor (%s)', ({ suiteKey, render }) => {
             }
           }),
           on: {
-            'xstate.done.actor.my-promise': { target: 'success' }
+            'xstate.done.actor': {
+              matches: { actorId: 'my-promise' },
+              target: 'success'
+            }
           }
         },
         success: {

@@ -67,19 +67,42 @@ Named guards keep a rule's name visible in the machine and let [`machine.provide
 
 ## Checking other states
 
-Use `checkStateIn(...)` to test whether the machine is currently in another state, such as a sibling region of a parallel state.
+Use `self.getSnapshot().matches(...)` to test whether the machine is currently in another state, such as a sibling region of a parallel state. `self.getSnapshot()` returns the snapshot committed before the current event was processed, so it does not reflect earlier microsteps of the same macrostep (eventless transitions or raised events).
 
 ```ts
-import { checkStateIn } from 'xstate';
-
 approve: ({ context, self }) => {
-  if (context.isAdmin && !checkStateIn(self.getSnapshot(), 'locked')) {
+  if (context.isAdmin && !self.getSnapshot().matches('locked')) {
     return { target: 'approved' };
   }
 }
 ```
 
-`checkStateIn(snapshot, value)` accepts a state id (`'#locked'`), a path (`'security.locked'`), or a state-value object.
+`matches(value)` accepts a path (`'security.locked'`), a state-value object, or a state `id` prefixed with `#`. An `#id` check is true while the state node with that `id` is active, wherever it is nested:
+
+```ts
+const machine = createMachine({
+  type: 'parallel',
+  states: {
+    security: {
+      initial: 'unlocked',
+      states: { unlocked: {}, locked: { id: 'locked' } }
+    },
+    review: {
+      on: {
+        approve: ({ self }) => {
+          if (!self.getSnapshot().matches('#locked')) {
+            return { target: '.approved' };
+          }
+        }
+      },
+      initial: 'pending',
+      states: { pending: {}, approved: {} }
+    }
+  }
+});
+```
+
+When the machine's state ids are known to TypeScript, an unknown `#id` is a type error. Unlike state-value checks, an `#id` check does not narrow `context` (see [typestates](typestates.md)).
 
 ## TypeScript
 

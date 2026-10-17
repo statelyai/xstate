@@ -95,9 +95,8 @@ export function createSubscriptionLogic<
         // Actor completed without output (stopped); no action needed
       }
     });
-  }, 'xstate.subscription');
+  }, '@xstate.subscription');
 }
 
-// Singleton logic instance
-/** @public */
+/** @internal The logic of helper actors created by `enq.subscribeTo()`. */
 export const subscriptionLogic = /* #__PURE__ */ createSubscriptionLogic();

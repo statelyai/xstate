@@ -4,7 +4,7 @@ import {
   Snapshot,
   StateNode,
   createAsyncLogic,
-  createLogic,
+  createStepLogic,
   createMachine,
   isMachineSnapshot
 } from '../../index.ts';
@@ -543,7 +543,7 @@ describe('@xstate/graph', () => {
         .toMatchInlineSnapshot(`
         [
           [
-            "@xstate.init",
+            "xstate.init",
             "NEXT",
             "ALLOW",
             "PROCEED",
@@ -591,7 +591,7 @@ describe('@xstate/graph', () => {
 
     it('does not treat custom logic with a getStateNodeById property as a machine', () => {
       const logic = Object.assign(
-        createLogic({
+        createStepLogic({
           context: 0,
           run: ({ context, event }) => {
             if (event.type === 'INC') {
@@ -714,7 +714,7 @@ describe('@xstate/graph', () => {
 });
 
 it('simple paths for transition functions', () => {
-  const transition = createLogic({
+  const transition = createStepLogic({
     context: 0,
     run: ({ context, event }) => {
       if (event.type === 'a') {
@@ -738,7 +738,7 @@ it('simple paths for transition functions', () => {
 });
 
 it('shortest paths for transition functions', () => {
-  const transition = createLogic({
+  const transition = createStepLogic({
     context: 0,
     run: ({ context, event }) => {
       if (event.type === 'a') {
@@ -913,7 +913,7 @@ describe('joinPaths()', () => {
     expect(pathToBAndC.steps.map((step) => step.event.type))
       .toMatchInlineSnapshot(`
         [
-          "@xstate.init",
+          "xstate.init",
           "NEXT",
           "TO_C",
         ]

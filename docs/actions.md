@@ -11,7 +11,9 @@ entry: ({ context }, enq) => {
 }
 ```
 
-Declare `enq` as the second parameter of an entry or exit function. XState passes a working `enq` only to entry and exit functions declared with exactly two parameters (`fn.length === 2`). Any other entry or exit function gets an `enq` that ignores every call. That includes a second parameter with a default value, a rest parameter, or a wrapper that forwards `(...args)`. Development builds warn when that happens. Transition functions always get a working `enq`.
+<!-- entry/exit enqueue evaluation from packages/core/src/stateUtils.ts -->
+
+Transition, entry and exit functions run synchronously while computing the next snapshot. Use their `enq` argument to queue effects, which run after that computation.
 
 Entry and exit functions also receive `stateNode`, the state node being entered or exited, and `input`, the state's input. Transition functions do not receive `stateNode`.
 
@@ -42,7 +44,7 @@ Provide reusable named action sources through `setup(...)`.
 
 A named action that has no implementation is `undefined` in `actions`, for example when it is only declared in `schemas.actions`. `enq(actions.track)` then enqueues nothing: the transition still runs, and development builds log a warning.
 
-`enq.sendTo(...)` to a missing target (an `undefined` ref, a child id with no running child, or `parent` in a root actor) does not error the sender. The event becomes a dead letter with reason `'missingTarget'`: the root actor's `onRejectedEvent` option receives it (with `reason`, `targetId` and `sourceRef`) and development builds log a warning that names the sender and the target.
+`enq.sendTo(...)` to a missing target (an `undefined` ref, a child id with no running child, or `parent` in a root actor) does not error the sender. The event becomes a dead letter with reason `'missingTarget'`: the root actor's `onRejectedEvent` option receives it (with `reason`, `targetId` and `sourceRef`) and development builds log a warning that names the sender and the target. A [serialized actor ref](persistence.md#serialized-actor-refs) as the target is delivered to the live actor at its address, or becomes a `'missingTarget'` dead letter when no live actor has that address.
 
 Actions are fire-and-forget. XState does not wait for a promise returned by an action. Use invoked async logic when the result changes what happens next.
 

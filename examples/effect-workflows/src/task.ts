@@ -1,7 +1,7 @@
 import { Effect, Schema } from 'effect';
-import { createEffectActor, fromEffect, join } from '@xstate/effect';
+import { createEffectActor, createEffectLogic, join } from '@xstate/effect';
 
-const buildReport = fromEffect({
+const buildReport = createEffectLogic({
   schemas: { input: Schema.Struct({ orderIds: Schema.Array(Schema.String) }) },
   effect: ({ input, emit }) =>
     Effect.sync(() => {

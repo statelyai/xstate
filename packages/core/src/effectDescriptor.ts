@@ -1,23 +1,29 @@
-import { isRemoteActorRef } from './remoteActorRef.ts';
+import { isRemoteActorRef, isSerializedActorRef } from './remoteActorRef.ts';
 import { getActorIdPrefix } from './system.ts';
-import type { ExecutableActionObject } from './types.ts';
+import { readTimerKey } from './timerKey.ts';
+import type {
+  AnyActor,
+  EventObject,
+  ExecutableEffect,
+  SerializedActorRef
+} from './types.ts';
 
 /**
  * A serializable view of an executable effect. Actor references are replaced
- * by their logical addresses and actor sources by their registered source
- * keys, so a durable host can journal, deduplicate, and route effects without
+ * by `{ $actor: address, incarnation? }` and actor sources by their registered
+ * source keys, so a durable host can journal, deduplicate, and route effects without
  * holding live actor references. Payload fields (`event`, `input`, `params`,
  * `output`, `error`) pass through by reference and are only as serializable
  * as their values.
  *
  * @experimental
  */
-export type EffectDescriptor =
+export type ExecutableEffectDescriptor =
   | {
       kind: 'builtin';
       type: '@xstate.spawn';
-      source: string | undefined;
-      actor: string;
+      source: SerializedActorRef | undefined;
+      actor: SerializedActorRef;
       id: string;
       src: string;
       input: unknown;
@@ -25,47 +31,52 @@ export type EffectDescriptor =
   | {
       kind: 'builtin';
       type: '@xstate.start';
-      source: string | undefined;
-      actor: string;
+      source: SerializedActorRef | undefined;
+      actor: SerializedActorRef;
       id: string;
     }
   | {
       kind: 'builtin';
       type: '@xstate.raise';
-      source: string;
+      source: SerializedActorRef;
       event: unknown;
       id: string | undefined;
+      /** Set for a delayed raise scheduled without an `id`. */
+      seq?: number;
       delay: number | undefined;
     }
   | {
       kind: 'builtin';
       type: '@xstate.sendTo';
-      source: string;
-      target: string;
-      /** The target's incarnation token, when the target is a remote handle that carries one. */
-      incarnation: string | undefined;
+      source: SerializedActorRef;
+      target: SerializedActorRef | undefined;
       event: unknown;
       id: string | undefined;
+      /** Set for a delayed send scheduled without an `id`. */
+      seq?: number;
       delay: number | undefined;
     }
   | {
       kind: 'builtin';
       type: '@xstate.cancel';
-      source: string;
-      id: string;
+      source: SerializedActorRef;
+      /** The cancelled timer's `TimerKey` fields. */
+      id?: string;
+      seq?: number;
+      event?: EventObject;
     }
   | {
       kind: 'builtin';
       type: '@xstate.stop';
-      source: string;
-      actor: string;
+      source: SerializedActorRef;
+      actor: SerializedActorRef;
       id: string;
     }
   | {
       kind: 'builtin';
       type: '@xstate.terminate';
-      source: string;
-      actor: string;
+      source: SerializedActorRef;
+      actor: SerializedActorRef;
       id: string;
       status: 'done' | 'error';
       output: unknown;
@@ -74,8 +85,8 @@ export type EffectDescriptor =
   | {
       kind: 'builtin';
       type: '@xstate.deadLetter';
-      source: string | undefined;
-      target: string | undefined;
+      source: SerializedActorRef | undefined;
+      target: SerializedActorRef | undefined;
       event: unknown;
       reason: string;
       issues: unknown;
@@ -84,7 +95,7 @@ export type EffectDescriptor =
   | {
       kind: 'emit';
       type: string;
-      source: string;
+      source: SerializedActorRef;
       event: unknown;
     }
   | {
@@ -94,16 +105,33 @@ export type EffectDescriptor =
     };
 
 /**
+ * A remote handle carries the host-supplied incarnation token; a local
+ * actor's sessionId identifies one process-local incarnation and is omitted
+ * so descriptors stay deterministic across replays.
+ */
+function toRef(actor: AnyActor | SerializedActorRef): SerializedActorRef {
+  if (isSerializedActorRef(actor)) {
+    return { ...actor };
+  }
+  const incarnation = isRemoteActorRef(actor as any)
+    ? actor.sessionId
+    : undefined;
+  return incarnation === undefined
+    ? { $actor: (actor as any).address }
+    : { $actor: (actor as any).address, incarnation };
+}
+
+/**
  * Returns the serializable descriptor for an executable effect: the same
- * discriminants (`kind`, `type`) with actor references replaced by logical
- * addresses and actor sources by source keys. Payload fields pass through by
+ * discriminants (`kind`, `type`) with actor references replaced by
+ * `{ $actor: address, incarnation? }` and actor sources by source keys. Payload fields pass through by
  * reference.
  *
  * @experimental
  */
-export function getEffectDescriptor(
-  effect: ExecutableActionObject
-): EffectDescriptor {
+export function describeExecutableEffect(
+  effect: ExecutableEffect
+): ExecutableEffectDescriptor {
   if (effect.kind === 'action') {
     return {
       kind: 'action',
@@ -116,7 +144,7 @@ export function getEffectDescriptor(
     return {
       kind: 'emit',
       type: effect.type,
-      source: effect.source.address,
+      source: toRef(effect.source),
       event: effect.event
     };
   }
@@ -126,8 +154,8 @@ export function getEffectDescriptor(
       return {
         kind: 'builtin',
         type: '@xstate.spawn',
-        source: effect.source?.address,
-        actor: effect.actor.address,
+        source: effect.source && toRef(effect.source),
+        actor: toRef(effect.actor),
         id: effect.id,
         // `src` is only a unique key for registered sources; anonymous inline
         // logic collapses to its logic id or 'x'. The `actor` address is the
@@ -139,53 +167,52 @@ export function getEffectDescriptor(
       return {
         kind: 'builtin',
         type: '@xstate.start',
-        source: effect.source?.address,
-        actor: effect.actor.address,
+        source: effect.source && toRef(effect.source),
+        actor: toRef(effect.actor),
         id: effect.id
       };
     case '@xstate.raise':
       return {
         kind: 'builtin',
         type: '@xstate.raise',
-        source: effect.source.address,
+        source: toRef(effect.source),
         event: effect.event,
         id: effect.id,
+        ...(effect.seq !== undefined && { seq: effect.seq }),
         delay: effect.delay
       };
     case '@xstate.sendTo':
       return {
         kind: 'builtin',
         type: '@xstate.sendTo',
-        source: effect.source.address,
-        target: effect.target?.address,
-        incarnation: isRemoteActorRef(effect.target)
-          ? effect.target.sessionId
-          : undefined,
+        source: toRef(effect.source),
+        target: effect.target && toRef(effect.target),
         event: effect.event,
         id: effect.id,
+        ...(effect.seq !== undefined && { seq: effect.seq }),
         delay: effect.delay
       };
     case '@xstate.cancel':
       return {
         kind: 'builtin',
         type: '@xstate.cancel',
-        source: effect.source.address,
-        id: effect.id
+        source: toRef(effect.source),
+        ...readTimerKey(effect)
       };
     case '@xstate.stop':
       return {
         kind: 'builtin',
         type: '@xstate.stop',
-        source: effect.source.address,
-        actor: effect.actor.address,
+        source: toRef(effect.source),
+        actor: toRef(effect.actor),
         id: effect.id
       };
     case '@xstate.terminate':
       return {
         kind: 'builtin',
         type: '@xstate.terminate',
-        source: effect.source.address,
-        actor: effect.actor.address,
+        source: toRef(effect.source),
+        actor: toRef(effect.actor),
         id: effect.id,
         status: effect.status,
         output: effect.output,
@@ -195,8 +222,8 @@ export function getEffectDescriptor(
       return {
         kind: 'builtin',
         type: '@xstate.deadLetter',
-        source: effect.source?.address,
-        target: effect.target?.address,
+        source: effect.source && toRef(effect.source),
+        target: effect.target && toRef(effect.target),
         event: effect.event,
         reason: effect.reason,
         issues: effect.detail?.issues,

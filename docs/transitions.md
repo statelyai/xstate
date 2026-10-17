@@ -24,8 +24,7 @@ idle: { on: { start: { target: 'active' } } }
 | `description` | Human-readable description. |
 
 Use `schemas.transitionMeta` to type transition metadata separately from state
-metadata. If omitted, transition metadata uses `schemas.meta` for backwards
-compatibility.
+metadata. If omitted, transition metadata uses `schemas.meta`.
 
 ```ts
 schemas: {
@@ -48,6 +47,8 @@ on: {
 ```
 
 ## Transition functions
+
+See [transition functions and graph analysis](transition-functions.md) for why functions preserve type narrowing, how to keep destinations visible and the limits of static extraction.
 
 ```ts
 submit: ({ context, event }, enq) => {
@@ -88,7 +89,7 @@ Internal lifecycle events use stable category types and carry the identity of wh
 | `xstate.timeout.actor` | `actorId`, `sessionId` |
 | `xstate.done.state` | `stateId` |
 | `xstate.after` | `stateId`, `delay` |
-| `xstate.timeout` | `stateId` |
+| `xstate.timeout.state` | `stateId` |
 
 Use `matches` to select one payload of an event type:
 
@@ -105,7 +106,7 @@ on: {
 
 ## One transition per event
 
-Transition arrays are not accepted by the authoring APIs. An event maps to a single transition. Return a target from a transition function to choose among several, and use `matches` to select a payload. Serialized transition arrays are still accepted by `createMachineFromConfig(...)`.
+Transition arrays are not accepted by the authoring APIs. An event maps to a single transition. Return a target from a transition function to choose among several, and use `matches` to select a payload. Serialized transition arrays are still accepted by `machineFromJSON(...)`.
 
 ```ts
 on: {

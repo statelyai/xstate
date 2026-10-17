@@ -1,6 +1,6 @@
 import { createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   propertyTest,
   replayTest,
   testPaths,
@@ -156,15 +156,15 @@ describe('path and property symmetry', () => {
       events,
       samples: 1,
       sut: createSut(recorder, 1)
-    }).catch((error) => error)) as ModelTestFailure;
+    }).catch((error) => error)) as ModelTestFailureError;
     const propertyFailure = (await propertyTest(counterMachine, {
       adapter: randomAdapter({ seed: 11, numRuns: 50, maxCommands: 6 }),
       events,
       sut: createSut(recorder, 1)
-    }).catch((error) => error)) as ModelTestFailure;
+    }).catch((error) => error)) as ModelTestFailureError;
 
     for (const failure of [pathFailure, propertyFailure]) {
-      expect(failure).toBeInstanceOf(ModelTestFailure);
+      expect(failure).toBeInstanceOf(ModelTestFailureError);
       expect(failure.trace).toBeDefined();
       expect(failure.fixture).toBeDefined();
       expect(failure.coverage).toBeDefined();
@@ -177,7 +177,7 @@ describe('path and property symmetry', () => {
         replayTest(counterMachine, failure.fixture!, {
           sut: createSut({ stateCalls: [], metaCalls: [] }, 1)
         })
-      ).rejects.toBeInstanceOf(ModelTestFailure);
+      ).rejects.toBeInstanceOf(ModelTestFailureError);
     }
   });
 });

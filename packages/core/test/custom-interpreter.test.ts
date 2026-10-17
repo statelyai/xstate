@@ -4,7 +4,8 @@ import {
   type AnyActor,
   type AnyActorLogic,
   type EventFromLogic,
-  type ExecutableActionObject,
+  type ExecutableEffect,
+  type TimerKey,
   createActor,
   createMachine,
   executeEffects,
@@ -16,7 +17,7 @@ import {
 import {
   createAsyncLogic,
   createCallbackLogic,
-  createLogic
+  createStepLogic
 } from '../src/actors/index.ts';
 
 class CustomInterpreter<TLogic extends AnyActorLogic> {
@@ -33,17 +34,22 @@ class CustomInterpreter<TLogic extends AnyActorLogic> {
         }
         target._send(event);
       },
-      scheduleTimer: (source, id, delay) => {
+      scheduleTimer: (source, timer, delay) => {
         const timeout = setTimeout(() => {
           void this.runtime.sendEvent?.(source, source, {
             type: 'xstate.timer',
-            id
+            ...timer
           });
         }, delay);
-        this.timers.set(`${source.sessionId}.${id}`, timeout);
+        this.timers.set(
+          `${source.sessionId}|${JSON.stringify(timer)}`,
+          timeout
+        );
       },
-      cancelTimer: (source, id) => {
-        clearTimeout(this.timers.get(`${source.sessionId}.${id}`));
+      cancelTimer: (source, timer) => {
+        clearTimeout(
+          this.timers.get(`${source.sessionId}|${JSON.stringify(timer)}`)
+        );
       },
       // When this example delegates child execution back to `createActor`, the
       // child's system must use the same runtime operations as this mailbox.
@@ -102,7 +108,7 @@ describe('custom interpreter runtime', () => {
     let [state, effects] = machine.initialTransition(undefined);
     expect(
       effects.every(
-        (effect: ExecutableActionObject) => typeof effect.exec === 'function'
+        (effect: ExecutableEffect) => typeof effect.exec === 'function'
       )
     ).toBe(true);
     await interpreter.executeEffects(effects);
@@ -116,12 +122,12 @@ describe('custom interpreter runtime', () => {
     expect(state.matches('done')).toBe(true);
   });
 
-  it('executes createLogic startup and termination with the same loop', async () => {
+  it('executes createStepLogic startup and termination with the same loop', async () => {
     const operations: string[] = [];
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: undefined,
       run: ({ event }, enq) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           enq.effect(() => {
             operations.push('start');
           });
@@ -161,7 +167,7 @@ describe('custom interpreter runtime', () => {
   it('uses self.system as the default effect runtime', async () => {
     let self: AnyActor | undefined;
     let runtime: Partial<ActorSystemRuntime> | undefined;
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: undefined,
       run: (args, enq) => {
         self = args.self as AnyActor;
@@ -177,8 +183,8 @@ describe('custom interpreter runtime', () => {
     expect(runtime).toBe(self!.system);
   });
 
-  it('preserves an invoked createLogic child reference across pure transitions', async () => {
-    const child = createLogic({
+  it('preserves an invoked createStepLogic child reference across pure transitions', async () => {
+    const child = createStepLogic({
       context: undefined,
       run: ({ event }, enq) => {
         if (event.type === 'ping') {
@@ -213,8 +219,8 @@ describe('custom interpreter runtime', () => {
     ]);
   });
 
-  it('terminates an invoked createLogic child under its logical id', async () => {
-    const child = createLogic({
+  it('terminates an invoked createStepLogic child under its logical id', async () => {
+    const child = createStepLogic({
       context: undefined,
       run: ({ event }) =>
         event.type === 'finish'
@@ -361,7 +367,10 @@ describe('custom interpreter runtime', () => {
     const child = createMachine({
       initial: 'waiting',
       states: {
-        waiting: { exit, on: { FINISH: { target: 'done' } } },
+        waiting: {
+          exit: (_, enq) => enq(exit),
+          on: { FINISH: { target: 'done' } }
+        },
         done: { type: 'final' }
       }
     });
@@ -376,6 +385,7 @@ describe('custom interpreter runtime', () => {
     });
 
     expect(done.status).toBe('done');
+    expect(exit).not.toHaveBeenCalled();
     expect(effects.at(-2)).toMatchObject({ kind: 'action' });
     expect(effects.at(-1)).toMatchObject({
       type: '@xstate.terminate',
@@ -395,6 +405,8 @@ describe('custom interpreter runtime', () => {
     expect(
       repeatedEffects.some((effect) => effect.type === '@xstate.terminate')
     ).toBe(false);
+    await executeEffects(effects);
+    expect(exit).toHaveBeenCalledTimes(1);
   });
 
   it('exposes child completion in the final microstep', () => {
@@ -469,7 +481,7 @@ describe('custom interpreter runtime', () => {
     const [active] = initialTransition(machine);
 
     const [failed, effects] = transition(machine, active, {
-      type: 'xstate.error.actor.child',
+      type: 'xstate.error.actor',
       error,
       actorId: 'child'
     } as any);
@@ -543,8 +555,11 @@ describe('custom interpreter runtime', () => {
         },
         success: {
           on: {
-            'xstate.done.actor.child': (_, enq) => {
-              enq(duplicate);
+            'xstate.done.actor': {
+              matches: { actorId: 'child' },
+              to: (_, enq) => {
+                enq(duplicate);
+              }
             }
           }
         }
@@ -649,7 +664,7 @@ describe('custom interpreter runtime', () => {
   });
 
   it('delegates timer scheduling and cancellation to the runtime', async () => {
-    const operations: Array<{ type: string; id: string | undefined }> = [];
+    const operations: Array<{ type: string; timer: TimerKey }> = [];
     const machine = createMachine({
       initial: 'waiting',
       states: {
@@ -662,11 +677,11 @@ describe('custom interpreter runtime', () => {
       }
     });
     const interpreter = new CustomInterpreter<typeof machine>({
-      scheduleTimer: (_source, id) => {
-        operations.push({ type: 'schedule', id });
+      scheduleTimer: (_source, timer) => {
+        operations.push({ type: 'schedule', timer });
       },
-      cancelTimer: (_source, id) => {
-        operations.push({ type: 'cancel', id });
+      cancelTimer: (_source, timer) => {
+        operations.push({ type: 'cancel', timer });
       }
     });
     let [state, effects] = machine.initialTransition(undefined);
@@ -678,7 +693,11 @@ describe('custom interpreter runtime', () => {
     }
 
     expect(operations.map(({ type }) => type)).toEqual(['schedule', 'cancel']);
-    expect(operations[1].id).toBe(operations[0].id);
+    // A built-in timer has no id; its event identifies it.
+    expect(operations[0].timer).toEqual({
+      event: { type: 'xstate.after', stateId: '(machine).waiting', delay: 1000 }
+    });
+    expect(operations[1].timer).toEqual(operations[0].timer);
   });
 
   it('routes attached listener events through the custom mailbox', async () => {

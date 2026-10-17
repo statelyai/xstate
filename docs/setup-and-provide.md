@@ -57,12 +57,11 @@ states.
 
 State contracts can also declare structural metadata: `type`, `initial`,
 `history`, `target`, and `id` (plus `route: true` for a routable state).
-`createMachine(...)` may omit those defaults, and the resulting state value and
-state-node metadata retain their types. Declaring a state `type` also checks
+`createMachine(...)` may omit those defaults. Declaring a state `type` also checks
 its compatible machine shape: compound states need an `initial`, parallel
 states do not accept one, history states need a non-empty `target`, and final
 or choice states cannot define child-state behavior. Setups that only declare
-`schemas` remain permissive for compatibility with existing machine configs.
+`schemas` do not impose these structural checks.
 When a structural contract declares child states, `createMachine(...)` still
 provides those child configs; setup supplies their contracts and defaults, not
 their runtime behavior.
@@ -104,9 +103,8 @@ const uploadSetup = setup({
 });
 ```
 
-These local output schemas currently provide TypeScript contracts. Runtime
-validation still checks the machine's stable terminal output at the existing
-result boundary; it does not validate transient nested completion values.
+State-level output schemas type completion values. Runtime validation checks
+the machine's terminal output; it does not check nested state completion values.
 
 Use `s.createInvoke(...)` inline in `s.createMachine(...)` to type a single-use actor's input and lifecycle handlers while retaining the enclosing state's context and input. See [typed inline invokes](invoke.md#typed-inline-invokes).
 
@@ -228,7 +226,7 @@ This is useful when a large machine is split across files, or when a checkout fl
 
 ## Providing implementations
 
-`machine.provide(...)` returns a new machine with different `actions`, `guards`, `actors` or `delays`. The machine's structure, event protocol and state types stay the same. The returned machine preserves the types of the provided action and actor implementations, so integrations can infer their dependencies.
+`machine.provide(...)` returns a new machine with different `actions`, `guards`, `actors` or `delays`. The machine's structure, event protocol and state types stay the same.
 
 ```ts
 const testMachine = orderMachine.provide({
@@ -247,7 +245,7 @@ For typed system-wide actor registries, `createSystem(...).setup(...)` returns a
 
 ## TypeScript
 
-Sources declared on `setup(...)` or on the machine config are inferred into `{ actions, guards, actors, delays }` on function arguments, and `provide(...)` requires the same signatures. The `{ type, params }` object form for named actions belongs to serialized JSON configs read by `createMachineFromConfig(...)`; in TypeScript, call the named source directly.
+Sources declared on `setup(...)` or on the machine config are inferred into `{ actions, guards, actors, delays }` on function arguments, and `provide(...)` requires the same signatures. The `{ type, params }` object form for named actions belongs to serialized JSON configs read by `machineFromJSON(...)`; in TypeScript, call the named source directly.
 
 For actions, replacements must accept the declared parameters and return a compatible result, including context patches returned by transitions. This also applies to action overrides in `extend()`. A declared result that includes `void` allows integration-specific return values, such as Effects. Chained `provide()` calls check against the original declaration, so a compatible replacement does not narrow later replacements to its own result type.
 
@@ -270,4 +268,4 @@ const provided = machine.provide({ actors: { fetchUser: fakeFetchUser } });
 
 ## Source compatibility
 
-`extend()` replacements must remain compatible with the existing action, guard, and actor signatures. A machine and its `provide()` clones retain the concrete schema types in `machine.schemas`. Schema-free `createAsyncLogic()` outputs use ordinary TypeScript inference, so primitive literals widen to their primitive types. Supply an output schema when a specific output contract is needed.
+`extend()` replacements must remain compatible with the existing action, guard, and actor signatures. Declare `schemas.output` on `createAsyncLogic(...)` when the actor needs a specific output contract.

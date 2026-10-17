@@ -23,7 +23,8 @@ import {
   type RequiredActorOptionsFor,
   type RequiredActorOptionsKeys,
   type Snapshot,
-  type SnapshotFrom
+  type SnapshotFrom,
+  type TimerKey
 } from 'xstate';
 import { createDurable, type DurableEffect } from 'xstate/durable';
 import {
@@ -44,7 +45,7 @@ import type { RequirementsFrom } from './types.ts';
 import { ActorScope } from './actorScope.ts';
 
 const XSTATE_TIMER = 'xstate.timer';
-const XSTATE_INIT = '@xstate.init';
+const XSTATE_INIT = 'xstate.init';
 
 /** Options for {@link createEffectActor}. */
 export type EffectActorOptions<TLogic extends AnyActorLogic> = {
@@ -117,8 +118,8 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
           Queue.offerUnsafe(mailbox, item);
         }
       };
-      const timerKey = (source: AnyActor, id: string) =>
-        `${source.sessionId}:${id}`;
+      const timerKey = (source: AnyActor, timer: TimerKey) =>
+        `${source.sessionId}:${JSON.stringify(timer)}`;
 
       const inspectors = new Set<(event: InspectionEvent) => void>();
       let rootAnnounced = false;
@@ -177,8 +178,8 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             }
             (source as AnyActor & { _emit(value: unknown): void })._emit(event);
           },
-          scheduleTimer: (source, id, delay) => {
-            const key = timerKey(source, id);
+          scheduleTimer: (source, timer, delay) => {
+            const key = timerKey(source, timer);
             timers.get(key)?.interruptUnsafe();
             const fiber = Fiber.runIn(
               runFork(
@@ -188,7 +189,7 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
                     timers.delete(key);
                     const timerEvent: AnyEventObject = {
                       type: XSTATE_TIMER,
-                      id
+                      ...timer
                     };
                     if (isRoot(source)) {
                       offer(timerEvent as EventFromLogic<TLogic>);
@@ -202,8 +203,8 @@ export function createEffectActor<TLogic extends AnyActorLogic>(
             );
             timers.set(key, fiber);
           },
-          cancelTimer: (source, id) => {
-            const key = timerKey(source, id);
+          cancelTimer: (source, timer) => {
+            const key = timerKey(source, timer);
             timers.get(key)?.interruptUnsafe();
             timers.delete(key);
           },

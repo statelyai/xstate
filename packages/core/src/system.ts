@@ -11,13 +11,22 @@ import {
   EventObject,
   Subscription,
   AnyActorLogic,
-  ActorOptions
+  ActorOptions,
+  LogicalTimer,
+  TimerKey
 } from './types.ts';
 import { XSTATE_TIMER } from './constants.ts';
+import { getScheduledTimerKey, matchesTimerKey } from './timerKey.ts';
 import { toObserver } from './utils.ts';
 import { reportUnhandledError } from './reportUnhandledError.ts';
 import { getAmbientInspector } from './inspectionAmbient.ts';
 import { markSystemSnapshotDirty } from './snapshotActorRef.ts';
+import {
+  createMissingAddressError,
+  isSerializedActorRef,
+  resolveSerializedActorRef,
+  getAddressId
+} from './remoteActorRef.ts';
 import {
   rejectUndeliverableEvent,
   deliverEvent,
@@ -27,7 +36,7 @@ import {
 } from './runtimeHelpers.ts';
 
 interface ScheduledTimer {
-  id: string;
+  key: TimerKey;
   scheduledAt: number;
   dueAt: number;
   delay: number;
@@ -42,20 +51,20 @@ export interface Clock {
 }
 
 interface Scheduler {
-  schedule(source: AnyActor, id: string, delay: number): void;
-  cancel(source: AnyActor, id: string): void;
+  schedule(source: AnyActor, key: TimerKey, delay: number): void;
+  cancel(source: AnyActor, key: TimerKey): void;
   cancelAll(actor: AnyActor): void;
 }
 
-let systemIdPrefix: string | undefined;
-let nextSystemId = 0;
+let executionIdPrefix: string | undefined;
+let nextExecutionId = 0;
 
 /** @internal */
 export const transitionEffectSignal = new Error('Transition effect');
 /** @internal */
 export const transitionEffectTargets: AnyActor[] = [];
 
-function createSystemIdPrefix(): string {
+function createExecutionIdPrefix(): string {
   let crypto: Crypto | undefined;
   try {
     crypto = globalThis.crypto;
@@ -88,9 +97,9 @@ function createSystemIdPrefix(): string {
     .slice(2)}`;
 }
 
-function createSystemId(): string {
-  systemIdPrefix ??= createSystemIdPrefix();
-  return `${systemIdPrefix}:${(nextSystemId++).toString(36)}`;
+function createExecutionId(): string {
+  executionIdPrefix ??= createExecutionIdPrefix();
+  return `${executionIdPrefix}:${(nextExecutionId++).toString(36)}`;
 }
 
 /**
@@ -103,7 +112,7 @@ function createSystemId(): string {
  * re-creates.
  */
 export interface ExecutionIdentity {
-  systemId: string;
+  executionId: string;
   nextSessionId: number;
 }
 
@@ -269,7 +278,7 @@ export function resolveActorId(
 
 /** @internal */
 export function bookSessionId(system: AnyActorSystem): string {
-  return `${system._identity.systemId}:${system._identity.nextSessionId++}`;
+  return `${system._identity.executionId}:${system._identity.nextSessionId++}`;
 }
 
 /**
@@ -358,14 +367,17 @@ export interface ActorSystemRuntime {
   ): void | PromiseLike<void>;
   /** Publishes an emitted event. */
   emitEvent(source: AnyActor, event: EventObject): void | PromiseLike<void>;
-  /** Schedules a logical timer. */
+  /**
+   * Schedules a logical timer. `source.address` and `timer` identify it; when
+   * it fires, deliver `{ type: 'xstate.timer', ...timer }` to `source`.
+   */
   scheduleTimer(
     source: AnyActor,
-    id: string,
+    timer: TimerKey,
     delay: number
   ): void | PromiseLike<void>;
   /** Cancels one logical timer. */
-  cancelTimer(source: AnyActor, id: string): void | PromiseLike<void>;
+  cancelTimer(source: AnyActor, timer: TimerKey): void | PromiseLike<void>;
   /**
    * Runs an async actor's entire body as one durable unit. The actor is the
    * natural journal entry: its identity — `address`, string `src` key and
@@ -437,8 +449,20 @@ const emptyScheduledTimers = Object.freeze(
   {}
 ) as ActorSystem<any>['_snapshot']['_scheduledTimers'];
 
-function createScheduledTimerId(actor: AnyActor, id: string): ScheduledTimerId {
-  return `${actor.sessionId}.${id}` as ScheduledTimerId;
+function createScheduledTimerId(
+  actor: AnyActor,
+  key: TimerKey
+): ScheduledTimerId {
+  return getScheduledTimerKey(actor, key) as ScheduledTimerId;
+}
+
+function findLogicalTimer(
+  source: AnyActor,
+  key: TimerKey
+): LogicalTimer | undefined {
+  return (
+    source.getSnapshot()?.timers as readonly LogicalTimer[] | undefined
+  )?.find((timer) => matchesTimerKey(timer, key));
 }
 
 /** @public */
@@ -464,6 +488,11 @@ export interface ActorSystem<
   _peekKeyedActors?: () =>
     | Map<keyof T['actors'], AnyActor | undefined>
     | undefined;
+  /**
+   * @internal Returns the live actor at a logical address, if any. Resolves
+   * serialized actor refs used as send targets.
+   */
+  _getByAddress?: (address: string) => AnyActor | undefined;
   /** @internal */
   _register: (sessionId: string, actor: AnyActor) => string;
   /** @internal */
@@ -513,7 +542,7 @@ export interface ActorSystem<
    * @internal
    */
   _identity: {
-    systemId: string;
+    executionId: string;
     nextSessionId: number;
   };
   /** @internal */
@@ -563,7 +592,7 @@ interface RuntimeSystem<T extends ActorSystemInfo> {
 
 class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
   public _identity = ambientExecutionIdentity ?? {
-    systemId: createSystemId(),
+    executionId: createExecutionId(),
     nextSessionId: 0
   };
   public _snapshot: ActorSystem<T>['_snapshot'];
@@ -673,27 +702,26 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     });
   }
 
-  public schedule(source: AnyActor, id: string, delay: number): void {
-    const existingId = createScheduledTimerId(source, id);
-    if (this._timerMap?.[existingId] !== undefined) {
-      this.cancel(source, id);
+  public schedule(source: AnyActor, key: TimerKey, delay: number): void {
+    const scheduledTimerId = createScheduledTimerId(source, key);
+    if (this._timerMap?.[scheduledTimerId] !== undefined) {
+      this.cancel(source, key);
     }
 
-    const timer = source.getSnapshot()?.timers?.[id];
+    const timer = findLogicalTimer(source, key);
     if (timer) {
       const target = timer.target === 'self' ? source : timer.target;
-      this._recordSent(source, target, timer.event, delay, id);
+      this._recordSent(source, target, timer.event, delay, timer.id);
     }
 
     const scheduledAt = this._clock.now?.() ?? Date.now();
     const scheduledTimer: ScheduledTimer = {
       source,
       delay,
-      id,
+      key,
       scheduledAt,
       dueAt: scheduledAt + delay
     };
-    const scheduledTimerId = createScheduledTimerId(source, id);
     if (this._snapshot._scheduledTimers === emptyScheduledTimers) {
       this._snapshot._scheduledTimers = {};
     }
@@ -707,14 +735,14 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       delete this._snapshot._scheduledTimers[scheduledTimerId];
       markSystemSnapshotDirty(this);
 
-      this._deliver(source, source, { type: XSTATE_TIMER, id });
+      this._deliver(source, source, { type: XSTATE_TIMER, ...key });
     }, delay);
 
     (this._timerMap ??= {})[scheduledTimerId] = timeout;
   }
 
-  public cancel(source: AnyActor, id: string): void {
-    const scheduledTimerId = createScheduledTimerId(source, id);
+  public cancel(source: AnyActor, key: TimerKey): void {
+    const scheduledTimerId = createScheduledTimerId(source, key);
     const timeout = this._timerMap?.[scheduledTimerId];
 
     if (this._timerMap) {
@@ -735,7 +763,7 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
       const scheduledTimer =
         this._snapshot._scheduledTimers[scheduledTimerId as ScheduledTimerId];
       if (scheduledTimer.source === actor) {
-        this.cancel(actor, scheduledTimer.id);
+        this.cancel(actor, scheduledTimer.key);
       }
     }
   }
@@ -758,6 +786,19 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     }
     markSystemSnapshotDirty(this);
     return sessionId;
+  }
+
+  public _getByAddress(address: string): AnyActor | undefined {
+    const root = this._getRootActor();
+    if (root?.address === address) {
+      return root;
+    }
+    for (const actor of this._children?.values() ?? []) {
+      if (actor.address === address && actor._isRunning()) {
+        return actor;
+      }
+    }
+    return undefined;
   }
 
   public _unregister(actor: AnyActor): void {
@@ -908,6 +949,25 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
     target: AnyActor,
     event: AnyEventObject
   ): void | PromiseLike<void> {
+    if (isSerializedActorRef(target)) {
+      // A ref that went through JSON resolves by address to the live actor.
+      // A host runtime may own actors this system cannot see, so an
+      // unresolved address is its to route; locally it is a dead letter.
+      const live = resolveSerializedActorRef(this, target);
+      if (live) {
+        target = live;
+      } else if (
+        // A live actor of another incarnation is stale locally; an
+        // address this system cannot see may belong to a host runtime.
+        this._getByAddress(target.$actor) ||
+        !this.runtime?.sendEvent
+      ) {
+        return this.deadLetter(source, undefined, event, 'missingTarget', {
+          targetId: getAddressId(target.$actor),
+          error: createMissingAddressError(target)
+        });
+      }
+    }
     if (rejectUndeliverableEvent(source, target, event)) {
       return;
     }
@@ -1003,29 +1063,32 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
 
   public scheduleTimer(
     source: AnyActor,
-    id: string,
+    key: TimerKey,
     delay: number
   ): void | PromiseLike<void> {
     const override = this.runtime?.scheduleTimer;
     if (override) {
       // The local scheduler records delayed sends for inspection inside
       // `schedule`; keep that parity for host runtimes.
-      const timer = source.getSnapshot()?.timers?.[id];
+      const timer = findLogicalTimer(source, key);
       if (timer) {
         const target = timer.target === 'self' ? source : timer.target;
-        this._recordSent(source, target, timer.event, delay, id);
+        this._recordSent(source, target, timer.event, delay, timer.id);
       }
-      return override(source, id, delay);
+      return override(source, key, delay);
     }
-    this.schedule(source, id, delay);
+    this.schedule(source, key, delay);
   }
 
-  public cancelTimer(source: AnyActor, id: string): void | PromiseLike<void> {
+  public cancelTimer(
+    source: AnyActor,
+    key: TimerKey
+  ): void | PromiseLike<void> {
     const override = this.runtime?.cancelTimer;
     if (override) {
-      return override(source, id);
+      return override(source, key);
     }
-    this.cancel(source, id);
+    this.cancel(source, key);
   }
 
   public cancelAllTimers(source: AnyActor): void | PromiseLike<void> {
@@ -1068,11 +1131,11 @@ class RuntimeSystem<T extends ActorSystemInfo> implements ActorSystem<T> {
         this._snapshot._scheduledTimers = {};
         resetScheduledTimers = false;
       }
-      const { source, dueAt, id } =
+      const { source, dueAt, key } =
         scheduledTimers[scheduledId as ScheduledTimerId];
       this.scheduleTimer(
         source,
-        id,
+        key,
         Math.max(0, dueAt - (this._clock.now?.() ?? Date.now()))
       );
     }

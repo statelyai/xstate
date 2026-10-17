@@ -7,7 +7,7 @@ import * as React from 'react';
 import {
   ActorRefFrom,
   createAsyncLogic,
-  createLogic,
+  createStepLogic,
   createMachine
 } from 'xstate';
 import { useActorRef, useMachine, useSelector } from '../src/index.ts';
@@ -371,7 +371,7 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
   });
 
   it('should work with custom logic', () => {
-    const someLogic = createLogic({
+    const someLogic = createStepLogic({
       context: 0,
       run: ({ context, event }) => {
         if (event.type === 'inc') {

@@ -1612,7 +1612,7 @@ export interface AfterEvent extends EventObject {
 
 /** @public */
 export interface TimeoutEvent extends EventObject {
-  type: 'xstate.timeout';
+  type: 'xstate.timeout.state';
   stateId: string;
 }
 
@@ -1634,86 +1634,12 @@ export type ReservedMachineEvent =
   | TimeoutEvent
   | ActorTimeoutEvent;
 
-/** @public Runtime descriptors, including legacy per-actor/state aliases. */
-export type ReservedEventDescriptor =
-  | EventDescriptor<ReservedMachineEvent>
-  | ReservedEventAliasDescriptor;
-
-/** @public Legacy per-actor/state event descriptor aliases. */
-export type ReservedEventAliasDescriptor =
-  | `xstate.done.actor.${string}`
-  | `xstate.error.actor.${string}`
-  | `xstate.snapshot.${string}`
-  | `xstate.done.state.${string}`
-  | `xstate.after.${string}`
-  | `xstate.timeout.${string}`;
+/** @public Descriptors for reserved machine events. */
+export type ReservedEventDescriptor = EventDescriptor<ReservedMachineEvent>;
 
 /** @public Event payload for a reserved descriptor. */
 export type ReservedEventFromDescriptor<K extends ReservedEventDescriptor> =
-  K extends 'xstate.done.actor' | `xstate.done.actor.${string}`
-    ? DoneActorEvent
-    : K extends 'xstate.error.actor' | `xstate.error.actor.${string}`
-      ? ErrorActorEvent
-      : K extends 'xstate.snapshot.actor' | `xstate.snapshot.${string}`
-        ? SnapshotEvent
-        : K extends 'xstate.done.state' | `xstate.done.state.${string}`
-          ? DoneStateEvent
-          : K extends 'xstate.after' | `xstate.after.${string}`
-            ? AfterEvent
-            : K extends
-                  | 'xstate.timeout.actor'
-                  | `xstate.timeout.actor.${string}`
-              ? ActorTimeoutEvent
-              : K extends 'xstate.timeout' | `xstate.timeout.${string}`
-                ? TimeoutEvent
-                : K extends EventDescriptor<ReservedMachineEvent>
-                  ? ExtractEvent<ReservedMachineEvent, K>
-                  : never;
-
-type ReservedActorIds<TActors, TChildren> =
-  | (keyof TActors & string)
-  | (string extends keyof TChildren ? never : keyof TChildren & string);
-
-type ReservedActorLogic<TActors, TChildren, K> = K extends keyof TActors
-  ? TActors[K]
-  : K extends keyof TChildren
-    ? NonNullable<TChildren[K]>
-    : never;
-
-/** @public Known registered actor aliases retain their output/error types. */
-export type ReservedActorEventAliases<TActors, TChildren> = {
-  [K in ReservedActorIds<
-    TActors,
-    TChildren
-  > as `xstate.done.actor.${K}`]: DoneActorEvent<
-    OutputFrom<ReservedActorLogic<TActors, TChildren, K>>,
-    K
-  >;
-} & {
-  [K in ReservedActorIds<
-    TActors,
-    TChildren
-  > as `xstate.error.actor.${K}`]: ErrorActorEvent<
-    ErrorFrom<ReservedActorLogic<TActors, TChildren, K>>,
-    K
-  >;
-} & {
-  [K in ReservedActorIds<
-    TActors,
-    TChildren
-  > as `xstate.snapshot.${K}`]: SnapshotEvent<
-    SnapshotFrom<
-      ReservedActorLogic<TActors, TChildren, K>
-    > extends infer TSnapshot extends Snapshot<unknown>
-      ? TSnapshot
-      : Snapshot<unknown>
-  >;
-};
-
-/** @public */
-export enum SpecialTargets {
-  Internal = '#_internal'
-}
+  ExtractEvent<ReservedMachineEvent, K>;
 
 /** @public */
 export type Mapper<
@@ -1850,7 +1776,7 @@ export interface StateConfig<
   /** @internal */
   value?: StateValue;
   children: Record<string, AnyActorRef | undefined>;
-  timers?: Record<string, LogicalTimer>;
+  timers?: readonly LogicalTimer[];
   status: SnapshotStatus;
   output?: any;
   error?: unknown;
@@ -1884,12 +1810,37 @@ export interface StateConfig<
 }
 
 /**
+ * Identifies one pending logical timer of an actor:
+ *
+ * - `{ id }` for a delayed raise or send scheduled with an `id`
+ * - `{ seq }` for a delayed raise or send scheduled without one
+ * - `{ event }` for a built-in timer: the identity fields of its event
+ *   (`type` and `stateId`, plus `delay` for `xstate.after`; `type` and
+ *   `actorId` for `xstate.timeout.actor`), matched like `matches: { ... }`
+ *
+ * The timer firing input is `{ type: 'xstate.timer', ...key }`.
+ *
+ * @public
+ */
+export type TimerKey =
+  | { id: string }
+  | { seq: number }
+  | { event: EventObject };
+
+/**
  * A deterministic delayed-delivery declaration owned by a logic snapshot.
  *
  * @public
  */
 export interface LogicalTimer {
-  id: string;
+  /** The `id` passed to `enq.raise(...)` or `enq.sendTo(...)`, if any. */
+  id?: string;
+  /**
+   * The actor's sequence number for a delayed raise or send scheduled without
+   * an `id`. Built-in timers (`after`, `timeout`) have neither `id` nor `seq`;
+   * their event identifies them.
+   */
+  seq?: number;
   delay: number;
   type: '@xstate.raise' | '@xstate.sendTo';
   event: EventObject;
@@ -1900,7 +1851,7 @@ export interface LogicalTimer {
    * wall-clock actor or a successfully scheduled durable timer. Carried
    * through restore so re-persisting keeps the original deadline.
    */
-  startedAt?: number;
+  scheduledAt?: number;
 }
 
 /**
@@ -2068,8 +2019,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
   _inert?: boolean;
   /** The custom `id` for referencing this service. */
   id?: string;
-  /** @deprecated Use `inspect` instead. */
-  devTools?: never;
 
   /** The registry key to register this actor under. */
   registryKey?: string;
@@ -2336,6 +2285,22 @@ export interface ActorLike<
 }
 
 /**
+ * An actor reference after it went through JSON — the value `actor.toJSON()`
+ * returns, e.g. a `replyTo` ref in an event payload after persistence or a
+ * remote hop. It can be used as an `enq.sendTo(...)` target: the event is
+ * delivered to the live actor at `address`, or reported as a dead letter
+ * when no live actor has that address.
+ *
+ * @public
+ */
+export interface SerializedActorRef {
+  /** The actor's logical address. */
+  $actor: string;
+  /** The incarnation token, when the serializer knows it. */
+  incarnation?: string;
+}
+
+/**
  * A consumer-facing actor handle.
  *
  * `ActorRef` describes the contract a consumer needs: which events can be sent
@@ -2569,7 +2534,9 @@ type SendableEventFromActorRef<
         : TEvent extends EventObject
           ? TEvent
           : TFallback
-      : never
+      : TNonNullableActorRef extends SerializedActorRef
+        ? TFallback
+        : never
     : never;
 
 /** @public */
@@ -2668,7 +2635,7 @@ export type Snapshot<TOutput, TError = unknown> =
 /** @public */
 export type ActorLogicTransitionResult<
   TSnapshot extends Snapshot<unknown>,
-  TEffect = ExecutableActionObject
+  TEffect = ExecutableEffect
 > = [nextSnapshot: TSnapshot, effects: TEffect[]];
 
 /**
@@ -3030,11 +2997,11 @@ export type ToChildren<TActor extends ProvidedActor> =
 
 /** @public */
 export type StateSchema = {
-  id?: string;
+  id?: string | undefined;
   route?: unknown;
-  states?: Record<string, StateSchema>;
-  contextSchema?: StandardSchemaV1;
-  outputSchema?: StandardSchemaV1;
+  states?: Record<string, StateSchema> | undefined;
+  contextSchema?: StandardSchemaV1 | undefined;
+  outputSchema?: StandardSchemaV1 | undefined;
   input?: unknown;
   initial?: unknown;
 
@@ -3042,6 +3009,7 @@ export type StateSchema = {
   // Needed because TS treats objects with all optional properties as a "weak" object
   // https://github.com/statelyai/xstate/issues/5031
   type?: unknown;
+  schemas?: unknown;
   history?: unknown;
   target?: unknown;
   invoke?: unknown;
@@ -3090,24 +3058,27 @@ export type StateId<
   TKey extends string = '(machine)',
   TParentKey extends string | null = null
 > =
-  | (TSchema extends { id: string }
-      ? TSchema['id']
-      : TParentKey extends null
-        ? TKey
-        : `${TParentKey}.${TKey}`)
-  | (TSchema['states'] extends Record<string, any>
-      ? Values<{
-          [K in keyof TSchema['states'] & string]: StateId<
-            TSchema['states'][K],
-            K,
-            TParentKey extends string
-              ? `${TParentKey}.${TKey}`
-              : TSchema['id'] extends string
-                ? TSchema['id']
-                : TKey
-          >;
-        }>
-      : never);
+  IsAny<TSchema> extends true
+    ? string
+    :
+        | (TSchema extends { id: string }
+            ? TSchema['id']
+            : TParentKey extends null
+              ? TKey
+              : `${TParentKey}.${TKey}`)
+        | (TSchema['states'] extends Record<string, any>
+            ? Values<{
+                [K in keyof TSchema['states'] & string]: StateId<
+                  TSchema['states'][K],
+                  K,
+                  TParentKey extends string
+                    ? `${TParentKey}.${TKey}`
+                    : TSchema['id'] extends string
+                      ? TSchema['id']
+                      : TKey
+                >;
+              }>
+            : never);
 
 /**
  * Maps state IDs to their input types based on the StateSchema.
@@ -3155,7 +3126,13 @@ type ContextFromStateSchema<
   ? StandardSchemaV1.InferOutput<TSchema['contextSchema']> &
       TFallbackContext &
       MachineContext
-  : TFallbackContext;
+  : TSchema extends {
+        schemas: { context: infer TContextSchema extends StandardSchemaV1 };
+      }
+    ? StandardSchemaV1.InferOutput<TContextSchema> &
+        TFallbackContext &
+        MachineContext
+    : TFallbackContext;
 
 type ContextFromChildStateValue<
   TChildSchema extends StateSchema,
@@ -3191,6 +3168,17 @@ export type StateContextFromStateValue<
       : TFallbackContext
   : TFallbackContext) &
   MachineContext;
+
+/**
+ * The `#id` references that `snapshot.matches(...)` accepts: one per state
+ * ID when the IDs are statically known, otherwise any `#`-prefixed string.
+ *
+ * @public
+ */
+export type StateIdReference<TSchema extends StateSchema> =
+  string extends StateId<TSchema>
+    ? `#${string}`
+    : `#${StateId<TSchema> & string}`;
 
 /** @public */
 export type RoutableStateId<TSchema extends StateSchema> =
@@ -3266,7 +3254,7 @@ export type ToStateValue<T extends StateSchema> = T extends {
   : {};
 
 /** @public */
-export interface BaseExecutableActionObject {
+export interface BaseExecutableEffect {
   params: NonReducibleUnknown;
   args: unknown[];
   exec(
@@ -3284,18 +3272,18 @@ export type ActorTermination =
   | { status: 'error'; output: undefined; error: unknown };
 
 /** @public */
-export interface CustomExecutableActionObject<
+export interface CustomExecutableEffect<
   TType extends string = string & {}
-> extends BaseExecutableActionObject {
+> extends BaseExecutableEffect {
   kind: 'action';
   type: TType;
   action: ((...args: any[]) => void | PromiseLike<void>) | undefined;
 }
 
 /** @public */
-export interface EmitExecutableActionObject<
+export interface EmitExecutableEffect<
   TType extends string = string & {}
-> extends BaseExecutableActionObject {
+> extends BaseExecutableEffect {
   kind: 'emit';
   type: TType;
   source: AnyActor;
@@ -3303,7 +3291,7 @@ export interface EmitExecutableActionObject<
 }
 
 /** @public */
-export interface SpawnExecutableActionObject extends BaseExecutableActionObject {
+export interface SpawnExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.spawn';
   source: AnyActor | undefined;
@@ -3316,7 +3304,7 @@ export interface SpawnExecutableActionObject extends BaseExecutableActionObject 
 }
 
 /** @public */
-export interface StartExecutableActionObject extends BaseExecutableActionObject {
+export interface StartExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.start';
   source: AnyActor | undefined;
@@ -3326,39 +3314,46 @@ export interface StartExecutableActionObject extends BaseExecutableActionObject 
 }
 
 /** @public */
-export interface RaiseExecutableActionObject extends BaseExecutableActionObject {
+export interface RaiseExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.raise';
   source: AnyActor;
   event: EventObject;
   id: string | undefined;
+  /** Set for a delayed raise scheduled without an `id`. */
+  seq?: number;
   delay: number | undefined;
   args: Parameters<(typeof builtInActions)['@xstate.raise']>;
 }
 
 /** @public */
-export interface SendToExecutableActionObject extends BaseExecutableActionObject {
+export interface SendToExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.sendTo';
   source: AnyActor;
   target: AnyActor;
   event: EventObject;
   id: string | undefined;
+  /** Set for a delayed send scheduled without an `id`. */
+  seq?: number;
   delay: number | undefined;
   args: Parameters<(typeof builtInActions)['@xstate.sendTo']>;
 }
 
 /** @public */
-export interface CancelExecutableActionObject extends BaseExecutableActionObject {
+export interface CancelExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.cancel';
   source: AnyActor;
-  id: string;
+  /** The cancelled timer's {@link TimerKey} fields. */
+  id?: string;
+  seq?: number;
+  event?: EventObject;
   args: Parameters<(typeof builtInActions)['@xstate.cancel']>;
 }
 
 /** @public */
-export interface StopExecutableActionObject extends BaseExecutableActionObject {
+export interface StopExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.stop';
   source: AnyActor;
@@ -3372,7 +3367,7 @@ export interface StopExecutableActionObject extends BaseExecutableActionObject {
  *
  * @public
  */
-export type TerminateExecutableActionObject = BaseExecutableActionObject & {
+export type TerminateExecutableEffect = BaseExecutableEffect & {
   kind: 'builtin';
   type: '@xstate.terminate';
   source: AnyActor;
@@ -3387,7 +3382,7 @@ export type TerminateExecutableActionObject = BaseExecutableActionObject & {
  *
  * @public
  */
-export interface DeadLetterExecutableActionObject extends BaseExecutableActionObject {
+export interface DeadLetterExecutableEffect extends BaseExecutableEffect {
   kind: 'builtin';
   type: '@xstate.deadLetter';
   /** The actor that sent the event, or `undefined` for an external send. */
@@ -3406,31 +3401,31 @@ export interface DeadLetterExecutableActionObject extends BaseExecutableActionOb
 }
 
 /** @public */
-export type BuiltInExecutableActionObject = Values<{
-  '@xstate.spawn': SpawnExecutableActionObject;
-  '@xstate.start': StartExecutableActionObject;
-  '@xstate.raise': RaiseExecutableActionObject;
-  '@xstate.sendTo': SendToExecutableActionObject;
-  '@xstate.cancel': CancelExecutableActionObject;
-  '@xstate.stop': StopExecutableActionObject;
-  '@xstate.terminate': TerminateExecutableActionObject;
-  '@xstate.deadLetter': DeadLetterExecutableActionObject;
+export type BuiltInExecutableEffect = Values<{
+  '@xstate.spawn': SpawnExecutableEffect;
+  '@xstate.start': StartExecutableEffect;
+  '@xstate.raise': RaiseExecutableEffect;
+  '@xstate.sendTo': SendToExecutableEffect;
+  '@xstate.cancel': CancelExecutableEffect;
+  '@xstate.stop': StopExecutableEffect;
+  '@xstate.terminate': TerminateExecutableEffect;
+  '@xstate.deadLetter': DeadLetterExecutableEffect;
 }>;
 
 /** @public */
-export type SpecialExecutableAction = BuiltInExecutableActionObject;
+export type SpecialExecutableEffect = BuiltInExecutableEffect;
 
-type TransitionExecutableActionObject<TType extends string = never> =
-  | BuiltInExecutableActionObject
-  | EmitExecutableActionObject
-  | CustomExecutableActionObject<TType | (string & {})>;
+type TransitionExecutableEffect<TType extends string = never> =
+  | BuiltInExecutableEffect
+  | EmitExecutableEffect
+  | CustomExecutableEffect<TType | (string & {})>;
 
 type KnownSourceKeys<TSourceMap> = string extends keyof TSourceMap
   ? never
   : Extract<keyof TSourceMap, string>;
 
 /** @public */
-export type ExecutableActionObjectFromLogic<T extends AnyActorLogic> =
+export type ExecutableEffectFrom<T extends AnyActorLogic> =
   T extends StateMachine<
     any,
     any,
@@ -3449,26 +3444,26 @@ export type ExecutableActionObjectFromLogic<T extends AnyActorLogic> =
     any,
     any
   >
-    ? TransitionExecutableActionObject<KnownSourceKeys<TActionMap>>
-    : ExecutableActionObject;
+    ? TransitionExecutableEffect<KnownSourceKeys<TActionMap>>
+    : ExecutableEffect;
 
 /** @public */
-export type ExecutableActionObject<TType extends string = string & {}> =
-  | BuiltInExecutableActionObject
-  | EmitExecutableActionObject
-  | CustomExecutableActionObject<TType>;
+export type ExecutableEffect<TType extends string = string & {}> =
+  | BuiltInExecutableEffect
+  | EmitExecutableEffect
+  | CustomExecutableEffect<TType>;
 
 /** @public */
-export interface ToExecutableAction<
+export interface ToExecutableEffect<
   T extends ParameterizedObject
-> extends CustomExecutableActionObject<T['type']> {
+> extends CustomExecutableEffect<T['type']> {
   type: T['type'];
   params: T['params'];
   action: undefined;
 }
 
 /** @public */
-export type ActionExecutor = (actionToExecute: ExecutableActionObject) => void;
+export type ActionExecutor = (actionToExecute: ExecutableEffect) => void;
 
 /**
  * Mappers for subscribeTo - maps lifecycle events to machine events
@@ -3529,7 +3524,11 @@ export type EnqueueObject<
   TActorMap extends Sources['actors'] = Sources['actors'],
   TChildren extends Record<string, AnyActorRef | undefined> = {}
 > = {
-  cancel: (id: string) => void;
+  /**
+   * Cancels a pending timer: a delayed raise or send by its `id`, or any
+   * timer by its {@link TimerKey} (e.g. an `after` timer by its event).
+   */
+  cancel: (timer: string | TimerKey) => void;
   raise: (ev: TEvent, options?: { id?: string; delay?: number }) => void;
   /**
    * Spawns a child actor from a registered source key or logic. Without an
@@ -3544,6 +3543,7 @@ export type EnqueueObject<
   sendTo: <
     TTarget extends
       | { send: (...args: any[]) => void }
+      | SerializedActorRef
       | undefined
       | (keyof TChildren & string)
   >(

@@ -36,14 +36,16 @@ A declared input schema whose inferred type does not accept `undefined` makes `i
 Structural state contracts are checked only when declared. For example,
 `type: 'parallel'` forbids `initial`, while `type: 'compound'` requires one.
 `setup(...)` can supply those defaults, so the machine config may omit them.
-Existing setups that declare only schemas keep their permissive machine-config
-typing. A state-level `schemas.context` is intersected with the root context
+Setups that declare only schemas do not impose these structural checks.
+A state-level `schemas.context` is intersected with the root context
 schema, so it can declare only the fields that state narrows.
 
-Machines created with `setup(...).createMachine(...)` can be exported with
-TypeScript declaration generation enabled, including machines with state-level
-context schemas and function-form transitions. No explicit machine type
-annotation is required.
+XState infers `snapshot.value` and valid `snapshot.matches(...)` patterns
+from nested and parallel states. Match a nested state with an object such as
+`{ b: 'x' }` or a dot path such as `'b.x'`.
+
+You can export machines and state configs with their inferred types, without
+adding explicit type annotations.
 
 For an actor used in one state, `invoke: s.createInvoke({ src, input, onDone })` infers input and completion output from `src`. Keep the helper inline in `s.createMachine(...)` to also infer that state's narrowed context, ancestor context, state input and transition target requirements. The helper works alongside named actor sources. See [typed inline invokes](invoke.md#typed-inline-invokes).
 
@@ -88,11 +90,6 @@ on: {
   // Type error: Event type 'toggel' is not declared in schemas.events.
 }
 ```
-
-Machines returned by `setup(...).createMachine(...)` can be exported with their
-inferred types, including when registered actors are used in inline transitions
-or invokes. Declaration output retains event, state, input and child-actor
-contracts without exposing each inline callback's full contextual type.
 
 Known reserved descriptors in `on` carry their actual event payloads: actor completion, error and snapshot events; execution errors; state completion; delayed events; and state or actor timeouts. Bare `xstate.error.actor` handlers receive `event.error` and `event.actorId`. Known actor-specific completion aliases preserve the actor output type. Legacy suffixed descriptors and their wildcards match runtime actor/state aliases; the event itself retains its stable bare type. Use `xstate.error.actor` and filter `event.actorId` explicitly when handling a particular child.
 

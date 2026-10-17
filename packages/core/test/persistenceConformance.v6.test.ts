@@ -15,7 +15,8 @@ import {
   createMachine,
   initialTransition,
   setup,
-  SimulatedClock
+  SimulatedClock,
+  type AnyActorRef
 } from '../src/index.ts';
 import { StateMachine } from '../src/StateMachine.ts';
 import Ajv2020 from 'ajv/dist/2020';
@@ -409,7 +410,7 @@ describe('#5077 re-persistability of children', () => {
     expect(restoredChild.sessionId).not.toBe(sessionId);
 
     restored.send({
-      type: 'xstate.done.actor.myChild',
+      type: 'xstate.done.actor',
       actorId: 'myChild',
       sessionId,
       output: undefined
@@ -443,7 +444,7 @@ describe('#5077 re-persistability of children', () => {
     expect(replacement.sessionId).not.toBe(removedSessionId);
 
     restored.send({
-      type: 'xstate.done.actor.myChild',
+      type: 'xstate.done.actor',
       actorId: 'myChild',
       sessionId: removedSessionId,
       output: undefined
@@ -477,6 +478,45 @@ describe('missing persisted child sources', () => {
       error: expect.objectContaining({
         message: expect.stringContaining("child source 'child'")
       })
+    });
+  });
+});
+
+describe('serialized actor refs in context', () => {
+  const child = createMachine({});
+  const parent = createMachine({
+    id: 'parent',
+    actors: { child },
+    context: ({ spawn, actors }) => ({
+      ref: spawn(actors.child, { id: 'kid' }) as AnyActorRef,
+      other: null as unknown
+    })
+  });
+
+  it('persists actor refs as { $actor: address }', () => {
+    const actor = createActor(parent).start();
+    const persisted = roundTrip(actor.getPersistedSnapshot()) as any;
+    actor.stop();
+
+    expect(persisted.context.ref).toEqual({ $actor: 'parent/kid' });
+  });
+
+  it('revives only objects whose keys are exactly $actor (+ incarnation)', () => {
+    const actor = createActor(parent).start();
+    const persisted = roundTrip(actor.getPersistedSnapshot()) as any;
+    actor.stop();
+    persisted.context.other = {
+      tagged: { $actor: 'parent/kid', note: 'data' },
+      pinned: { $actor: 'parent/kid', incarnation: 'x:9' }
+    };
+
+    const restored = createActor(parent, { snapshot: persisted });
+    const { context, children } = restored.getSnapshot();
+
+    expect(context.ref).toBe(children.kid);
+    expect(context.other).toEqual({
+      tagged: { $actor: 'parent/kid', note: 'data' },
+      pinned: { $actor: 'parent/kid', incarnation: 'x:9' }
     });
   });
 });
@@ -580,9 +620,9 @@ describe('#5331 logical timers restored', () => {
       target: 'self',
       event: { type: expect.stringMatching(/^xstate\.after/) }
     });
-    // Only the wall clock stamps `startedAt`; this actor runs under a
+    // Only the wall clock stamps `scheduledAt`; this actor runs under a
     // simulated clock, whose readings are meaningless in another process.
-    expect(timer).not.toHaveProperty('startedAt');
+    expect(timer).not.toHaveProperty('scheduledAt');
     expect(timer).not.toHaveProperty('elapsed');
 
     const clock2 = new SimulatedClock();
@@ -775,5 +815,44 @@ describe('#4774 initialTransition single init', () => {
     initialTransition(machine);
 
     expect(initCount).toBe(1);
+  });
+});
+
+describe('forward-compatible envelope', () => {
+  const machine = createMachine({
+    initial: 'a',
+    states: { a: { on: { NEXT: { target: 'b' } } }, b: {} }
+  });
+
+  it('the schema accepts unknown fields on the envelope, children and timers', () => {
+    const persisted = roundTrip(createActor(machine).getPersistedSnapshot());
+    expect(validateEnvelope({ ...persisted, pending: [] })).toBe(true);
+    expect(
+      validateEnvelope({
+        ...persisted,
+        children: { c: { src: 'child', futureField: 1 } },
+        timers: [
+          {
+            id: 't',
+            delay: 10,
+            type: '@xstate.raise',
+            event: { type: 'TICK' },
+            target: 'self',
+            futureField: 1
+          }
+        ]
+      })
+    ).toBe(true);
+  });
+
+  it('restore ignores unknown top-level fields', () => {
+    const persisted = roundTrip(createActor(machine).getPersistedSnapshot());
+    const actor = createActor(machine, {
+      snapshot: { ...persisted, pending: [{ type: 'NEXT' }] }
+    }).start();
+    expect(actor.getSnapshot().value).toBe('a');
+    actor.send({ type: 'NEXT' });
+    expect(actor.getSnapshot().value).toBe('b');
+    expect(actor.getPersistedSnapshot()).not.toHaveProperty('pending');
   });
 });

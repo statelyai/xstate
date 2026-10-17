@@ -10,7 +10,7 @@ import {
 } from '../types';
 import { StandardSchemaV1 } from '../schema.types.ts';
 import type { ActorLogicValidator } from '../validation.types.ts';
-import { createLogic as createBaseLogic } from './logic.ts';
+import { createStepLogic as createBaseLogic } from './logic.ts';
 
 interface CallbackInstanceState<TEvent extends EventObject> {
   receivers: Set<(e: TEvent) => void> | undefined;

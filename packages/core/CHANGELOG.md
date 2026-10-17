@@ -1,5 +1,232 @@
 # xstate
 
+## 6.0.0-alpha.68
+
+### Major Changes
+
+- d2c518b: Public names are consistent before the beta. The old names are not kept as aliases.
+  
+  | Before                                                       | After                                                    |
+  | ------------------------------------------------------------ | -------------------------------------------------------- |
+  | `serializeMachine(machine)`                                  | `machineToJSON(machine)` (returns `MachineJSON`)         |
+  | `createMachineFromConfig(json, sources)`                     | `machineFromJSON(json, sources)`                         |
+  | `createLogic`                                                | `createStepLogic`                                        |
+  | `LogicActorLogic`, `LogicActorRef`, `LogicSnapshot`          | `StepActorLogic`, `StepActorRef`, `StepSnapshot`         |
+  | `LogicConfig`, `LogicArgs`, `LogicEnqueue`, `LogicFunction`  | `StepLogicConfig`, `StepLogicArgs`, `StepLogicEnqueue`, `StepLogicFunction` |
+  | `LogicPatch`, `LogicEffectState`                             | `StepPatch`, `StepEffectState`                           |
+  | `LogicEffect`                                                | `ExecutableEffect`                                       |
+  | `EffectDescriptor`, `getEffectDescriptor`                    | `ExecutableEffectDescriptor`, `describeExecutableEffect` |
+  | `checkStateIn(snapshot, value)`                              | `snapshot.matches(value)`                                |
+  | state node `contextSchema`                                   | state node `schemas: { context }`                        |
+  | `StrictSetupStateTargetsFlag`, `StrictSetupStateTargetsMarker` | `StrictSetupStateTargetsMarker`, `StrictSetupStateMarkers` |
+  
+  `machineConfigToJSON(config)` is unchanged and now returns `MachineJSON`.
+  
+  Removed exports: `listenerLogic`, `subscriptionLogic` (use `createListenerLogic()`/`createSubscriptionLogic()`), `__unsafe_getAllOwnEventDescriptors` (use `getAllOwnEvents` from `xstate/graph`), `toObserver`, `pathToStateValue`, `SpecialTargets`, and the `devTools` actor option type.
+  
+  The `report-removed-apis` codemod reports `toObserver`, `pathToStateValue` and `SpecialTargets`, and its `stateIn` hint suggests `snapshot.matches(...)`.
+  
+  ```diff
+  - import { createLogic, serializeMachine } from 'xstate';
+  + import { createStepLogic, machineToJSON } from 'xstate';
+  ```
+- d2c518b: Built-in event and effect type strings follow one rule: events delivered to logic use the `xstate.` prefix, and effect types use the `@xstate.` prefix. Inspection records (`@xstate.actor`, `@xstate.transition`) are unchanged.
+  
+  | Before                               | After                    | Kind   |
+  | ------------------------------------ | ------------------------ | ------ |
+  | `@xstate.init`                       | `xstate.init`            | event  |
+  | `@xstate.stop` (sent to a stopping actor) | `xstate.stop`       | event  |
+  | `xstate.timeout`                     | `xstate.timeout.state`   | event  |
+  | `xstate.system.cancelEffect`         | `@xstate.cancelEffect`   | effect |
+  | `xstate.logic.cleanup`               | `@xstate.cleanup`        | effect |
+  | `xstate.logic.effect`                | `@xstate.effect`         | effect |
+  | `xstate.log` (system effect)         | `@xstate.log`            | effect |
+  
+  Built-in guard types in `MachineJSON` are source keys, not events, so they use the `@xstate.` prefix:
+  
+  | Before           | After             |
+  | ---------------- | ----------------- |
+  | `xstate.not`     | `@xstate.not`     |
+  | `xstate.stateIn` | `@xstate.stateIn` |
+  
+  In development, action, guard, actor and delay source names that start with `xstate.` or `@xstate.` throw. `machineFromJSON` also rejects JSON-defined `actions`, `guards` and `delays` with those names.
+  
+  The stop-child effect stays `@xstate.stop`. Helper actors created by `enq.listen()` and `enq.subscribeTo()` use the `@xstate.listener` and `@xstate.subscription` source keys, so their ids look like `@xstate.listener:0`. In development, spawned sources whose id starts with `xstate.` or `@xstate.` throw.
+  
+  Suffixed lifecycle event types are no longer matched. Key transitions by the category type and select the payload with `matches`:
+  
+  ```diff
+    on: {
+  -   'xstate.done.actor.job': { target: 'complete' }
+  +   'xstate.done.actor': { matches: { actorId: 'job' }, target: 'complete' }
+    }
+  ```
+  
+  This applies to `xstate.done.actor.<id>`, `xstate.error.actor.<id>`, `xstate.snapshot.<id>` (now `xstate.snapshot.actor`), `xstate.done.state.<id>`, `xstate.after.<delay>.<id>`, `xstate.timeout.<id>` and `xstate.timeout.actor.<id>`, both as transition keys and as sent event types.
+- d2c518b: Serialized actor identity uses one shape everywhere: `{ $actor: address }`, with an optional string `incarnation`.
+  
+  | Where                                          | Before                                          | After                                  |
+  | ---------------------------------------------- | ----------------------------------------------- | -------------------------------------- |
+  | `actor.toJSON()`, `SerializedActorRef`         | `{ xstate$type: 'actorRef', id, address, src }` | `{ $actor: address }`                  |
+  | Actor refs in persisted `context`              | `{ xstate$type: 'actorRef', id, address? }`     | `{ $actor: address }`                  |
+  | Effect descriptor `source`/`actor`/`target`    | address string (+ `incarnation` on `sendTo`)    | `{ $actor: address, incarnation? }`    |
+  | System snapshot `incarnation`                  | `number`                                        | `string`                               |
+  | `SystemActorState.logic`                       | `logic`                                         | `src`                                  |
+  | System dead-letter effect `kind`               | `'deadLetter'`                                  | `'builtin'` (type `@xstate.deadLetter`) |
+  | Persisted timer start                          | `startedAt`                                     | `scheduledAt`                          |
+  | Persisted snapshot top-level `version`         | mirror of `machine.version`                     | removed; use `machine.version`         |
+  
+  The old shapes are not read on restore. Convert or discard snapshots persisted with `xstate$type` actor refs or `startedAt` timers before restoring them.
+- d2c518b: Pending timers are a list, and no generated timer ids exist.
+  
+  | Where | Before | After |
+  | --- | --- | --- |
+  | `snapshot.timers` (in memory and persisted) | record keyed by id | list in scheduling order |
+  | `after`, state `timeout`, invoke `timeout` timers | generated `id` (`xstate.after.<delay>.<stateId>`, `xstate.timeout.state.<stateId>`, …) | no `id`; identified by their event |
+  | delayed raise/send without an `id` | generated `xstate.timer.auto.<n>` | `seq` (the actor's sequence number) |
+  | `ActorSystemRuntime.scheduleTimer` / `cancelTimer` | `(source, id, delay)` / `(source, id)` | `(source, timer, delay)` / `(source, timer)` with a `TimerKey` |
+  | timer firing input | `{ type: 'xstate.timer', id }` | `{ type: 'xstate.timer', ...timer }` |
+  | `@xstate.cancel` effect and descriptor | `id` | the cancelled `TimerKey` fields (`id`, `seq` or `event`) |
+  | system snapshot `timers` | record; `SystemTimer.id` | list; `SystemTimer.event` is the firing input; select by `occurrence` |
+  
+  A `TimerKey` is `{ id }`, `{ seq }` or, for a built-in timer, `{ event }` with the event identity (`{ type, stateId, delay }` for `xstate.after`, `{ type, stateId }` for `xstate.timeout.state`, `{ type, actorId }` for `xstate.timeout.actor`). Durable hosts key timers by `source.address` plus the key.
+  
+  `enq.cancel(...)` also accepts a `TimerKey`, which cancels a built-in timer:
+  
+  ```ts
+  enq.cancel({
+    event: { type: 'xstate.after', stateId: 'machine.waiting', delay: 1000 }
+  });
+  ```
+  
+  Snapshots persisted with the old `timers` record are not read on restore.
+
+### Minor Changes
+
+- d2c518b: `snapshot.matches('#id')` is true while the state node with that `id` is active. This replaces the removed `checkStateIn(snapshot, '#id')`.
+  
+  ```ts
+  const machine = createMachine({
+    initial: 'editing',
+    states: {
+      editing: {
+        initial: 'draft',
+        states: { draft: { id: 'draft' }, review: {} }
+      },
+      done: {}
+    }
+  });
+  
+  const snapshot = createActor(machine).start().getSnapshot();
+  snapshot.matches('#draft'); // true
+  snapshot.matches('#nope'); // type error: not a state id of this machine
+  ```
+  
+  When the machine's state ids are statically known, only those ids are accepted. Unlike state-value checks, an `#id` check does not narrow `context`. The `@xstate.stateIn` JSON guard uses the same check.
+
+### Patch Changes
+
+- 37b3c73: The persisted snapshot JSON schema now accepts unknown fields on the envelope, on `children` entries and on `timers` entries. Readers should ignore fields they don't recognize; future 6.x releases may add optional fields.
+- b8edbab: `enq.sendTo(...)` accepts a serialized actor ref — the `{ $actor: address }` value an actor ref becomes after `JSON.stringify`, e.g. a `replyTo` in an event payload after persistence or a remote hop. The event is delivered to whichever actor is live at that address when the send executes (for a delayed send, when its timer fires), or reported as a `'missingTarget'` dead letter (via `onRejectedEvent`) when no live actor has it. Previously this threw a `TypeError` and the event was lost. Serialized refs held in `context` also keep their address across persistence and restore. Use the new `SerializedActorRef` type to type such fields.
+  
+  ```ts
+  const server = createMachine({
+    schemas: {
+      events: {
+        ping: types<{ replyTo: SerializedActorRef; requestId: string }>()
+      }
+    },
+    on: {
+      ping: ({ event }, enq) => {
+        enq.sendTo(event.replyTo, { type: 'pong', requestId: event.requestId });
+      }
+    }
+  });
+  ```
+  
+  Actor refs stored in context now persist with their address, so a ref to an actor that isn't a child (such as a stored `replyTo`) still routes after restore.
+  
+  A pending delayed send to a serialized ref persists with that ref as its timer target and resolves it by address after restore.
+  
+  A serialized ref that carries an `incarnation` reaches only that incarnation: if a different actor is live at the address when the send executes, the event is reported as a `'missingTarget'` dead letter.
+- 5d7dfb3: `snapshot.matches(...)` accepts a state value whose leaves are not literals, such as `{ checkout: string }`, as it accepts `string` and `StateValue`. Values are checked per position: a non-literal leaf is accepted at its own position, and every literal key and child beside it must still name a state, so `{ nope: 'payment', checkout: step }` is rejected.
+
+## 6.0.0-alpha.67
+
+### Major Changes
+
+- 1a5349a: The executable action object types are renamed to executable effect types, matching the `[snapshot, effects]` tuple that transitions return:
+  
+  | Before                                     | After                                       |
+  | ------------------------------------------ | ------------------------------------------- |
+  | `ExecutableActionObject`                   | `ExecutableEffect`                          |
+  | `ExecutableActionObjectFromLogic`          | `ExecutableEffectFrom`                      |
+  | `BaseExecutableActionObject`               | `BaseExecutableEffect`                      |
+  | `CustomExecutableActionObject`             | `CustomExecutableEffect`                    |
+  | `BuiltInExecutableActionObject`            | `BuiltInExecutableEffect`                   |
+  | `<Kind>ExecutableActionObject`             | `<Kind>ExecutableEffect`                    |
+  | `SpecialExecutableAction`                  | `SpecialExecutableEffect`                   |
+  | `ToExecutableAction`                       | `ToExecutableEffect`                        |
+  | `isBuiltInExecutableAction`                | `isBuiltInExecutableEffect`                 |
+  
+  `<Kind>` is `Start`, `Spawn`, `Raise`, `SendTo`, `Emit`, `Cancel`, `Stop`, `Terminate`, or `DeadLetter`. The old names are not kept as aliases.
+  
+  The `rename-imports` codemod renames the v5 `ExecutableActionObject`, `ExecutableActionsFrom`, `ExecutableSpawnAction`, `SpecialExecutableAction`, and `ToExecutableAction` imports to their new names. The other names, including `isBuiltInExecutableAction`, only existed in v6 alphas; rename them by hand.
+  
+  ```diff
+  - import { isBuiltInExecutableAction, type ExecutableActionObject } from 'xstate';
+  + import { isBuiltInExecutableEffect, type ExecutableEffect } from 'xstate';
+  ```
+
+### Minor Changes
+
+- 77de73c: In development builds, machine snapshot context is now deep-frozen, so accidental in-place mutation throws a `TypeError` instead of silently corrupting state. Production builds do not freeze context.
+  
+  ```ts
+  const actor = createActor(
+    createMachine({ context: { count: 0, items: [] as string[] } })
+  ).start();
+  
+  actor.getSnapshot().context.count = 1; // TypeError (development only)
+  actor.getSnapshot().context.items.push('a'); // TypeError (development only)
+  ```
+  
+  Only plain objects and arrays are frozen, including objects you put into context. Actor refs, class instances, `Map`, `Set` and `Date` are left as is. Update context by returning a new `context` from a transition instead of mutating it.
+
+### Patch Changes
+
+- 441f235: Document transition functions, their type-narrowing benefits, and the current limits of graph analysis.
+- 57610d5: State inputs are removed when their state exits. `snapshot.getInputs()` and persisted snapshots only include inputs for active states.
+
+## 6.0.0-alpha.66
+
+### Patch Changes
+
+- d175de9: Fix declaration generation for exported `machine.provide({ actions })` variants and `createStateConfig()` fragments with invoke input mappers.
+  
+  Entry and exit functions now receive a working `enq` regardless of their parameter count, including default/rest parameters and forwarding wrappers. Returned context and child patches are applied consistently. Functions that enqueue no effects no longer add placeholder effects to pure transition results.
+  
+  ```ts
+  import { createMachine } from 'xstate';
+  
+  const machine = createMachine({
+    initial: 'loading',
+    states: {
+      loading: {
+        entry: (...[, enq]) => enq.raise({ type: 'ready' }),
+        on: { ready: { target: 'ready' } }
+      },
+      ready: {}
+    }
+  });
+  ```
+- 32487c8: Fix nested and parallel state value inference for machines declaring `setup({ states })` when `exactOptionalPropertyTypes` is enabled. Both forms of `snapshot.matches(...)` now accept valid nested states:
+  
+  ```ts
+  snapshot.matches({ b: 'x' });
+  snapshot.matches('b.x');
+  ```
+
 ## 6.0.0-alpha.65
 
 ### Minor Changes

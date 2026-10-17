@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createMachineFromConfig } from '../src/createMachineFromConfig';
+import { machineFromJSON } from '../src/machineFromJSON';
 import { initialTransition, transition } from '../src/transition';
 import { createMachine } from '../src';
 
@@ -7,9 +7,9 @@ function toPortableJSON<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
-describe('createMachineFromConfig', () => {
+describe('machineFromJSON', () => {
   it('should create a machine from a JSON config', () => {
-    const machine = createMachineFromConfig(
+    const machine = machineFromJSON(
       {
         context: { count: 42 },
         initial: 'a',

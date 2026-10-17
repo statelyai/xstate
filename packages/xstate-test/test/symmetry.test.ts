@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import { createAsyncLogic, createMachine, types } from 'xstate';
 import {
-  ModelTestFailure,
+  ModelTestFailureError,
   propertyTest,
   replayTest,
   testPaths,
@@ -145,17 +145,17 @@ describe('testPaths / propertyTest symmetry', () => {
       events,
       samples: 1,
       sut: createSut(recorder, 1)
-    }).catch((error) => error)) as ModelTestFailure;
+    }).catch((error) => error)) as ModelTestFailureError;
     const propertyFailure = (await propertyTest(counterMachine, {
       seed: 9,
       numRuns: 50,
       maxCommands: 6,
       events,
       sut: createSut(recorder, 1)
-    }).catch((error) => error)) as ModelTestFailure;
+    }).catch((error) => error)) as ModelTestFailureError;
 
     for (const failure of [pathFailure, propertyFailure]) {
-      expect(failure).toBeInstanceOf(ModelTestFailure);
+      expect(failure).toBeInstanceOf(ModelTestFailureError);
       expect(failure.trace).toBeDefined();
       expect(failure.fixture).toBeDefined();
       expect(failure.coverage).toBeDefined();
@@ -163,7 +163,7 @@ describe('testPaths / propertyTest symmetry', () => {
         replayTest(counterMachine, failure.fixture!, {
           sut: createSut({ stateCalls: [], metaCalls: [] }, 1)
         })
-      ).rejects.toBeInstanceOf(ModelTestFailure);
+      ).rejects.toBeInstanceOf(ModelTestFailureError);
     }
   });
 });

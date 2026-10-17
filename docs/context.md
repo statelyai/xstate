@@ -32,6 +32,8 @@ The merge is shallow. A nested object in the returned patch replaces the current
 
 Do not mutate the current context. Keep resources that cannot be serialized outside context.
 
+In development builds, XState deep-freezes the plain objects and arrays in each snapshot's context, so a mutation such as `snapshot.context.count = 1` throws a `TypeError` in strict mode. Freezing also applies to objects you place into context, including restored snapshot context. Actor refs, class instances, `Map`, `Set`, `Date` and other non-plain objects are not frozen. Production builds do not freeze context.
+
 Use context for supporting data, not hidden state. An order can store its items and total in context while its current status stays in states such as `editing`, `paying` and `complete`.
 
 Input creates context for each actor instance. The same machine can run one upload for `report.pdf` and another for `photo.jpg` without closing over either file.

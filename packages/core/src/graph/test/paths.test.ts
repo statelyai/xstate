@@ -72,7 +72,7 @@ describe('getSimplePaths', () => {
     });
 
     expect(paths.map(eventTypes)).toEqual([
-      '@xstate.init → NEXT → ALLOW → PROCEED'
+      'xstate.init → NEXT → ALLOW → PROCEED'
     ]);
   });
 });
@@ -89,7 +89,7 @@ describe('transition coverage', () => {
       'e'
     ]);
     expect(paths.map(eventTypes)).toContain(
-      '@xstate.init → EVENT → EVENT → EVENT_2'
+      'xstate.init → EVENT → EVENT → EVENT_2'
     );
   });
 
@@ -119,10 +119,7 @@ describe('transition coverage', () => {
     const paths = getSimplePaths(machine);
 
     expect(paths.map(eventTypes)).toEqual(
-      expect.arrayContaining([
-        '@xstate.init → GO_TO_B',
-        '@xstate.init → GO_TO_C'
-      ])
+      expect.arrayContaining(['xstate.init → GO_TO_B', 'xstate.init → GO_TO_C'])
     );
   });
 });

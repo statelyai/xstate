@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   type AnyActor,
   type AnyMachineSnapshot,
-  type ExecutableActionObject,
+  type ExecutableEffect,
   type Snapshot,
+  type TimerKey,
   createMachine
 } from '../src/index.ts';
+import { getTimerKey, readTimerKey } from '../src/timerKey.ts';
 
 type DurableCommand = {
   effectId: string;
@@ -22,7 +24,7 @@ type DurableCommand = {
   actorKey?: string;
   targetKey?: string;
   event?: { type: string };
-  timerId?: string;
+  timer?: TimerKey;
   dueAt?: number;
   src?: string;
   input?: unknown;
@@ -40,7 +42,7 @@ type DurableRecord = {
 function commitTransition(
   machine: ReturnType<typeof createMachine>,
   snapshot: AnyMachineSnapshot,
-  effects: ExecutableActionObject[],
+  effects: ExecutableEffect[],
   transitionId: string,
   now: number,
   bindings: Record<string, string> = {}
@@ -154,7 +156,7 @@ function commitTransition(
           effectId,
           type: 'schedule',
           sourceKey: getActorKey(effect.source),
-          timerId: effect.id!,
+          timer: getTimerKey(effect),
           dueAt: now + (effect.delay ?? 0)
         });
         break;
@@ -163,7 +165,7 @@ function commitTransition(
           effectId,
           type: effect.delay === undefined ? 'send' : 'schedule',
           sourceKey: getActorKey(effect.source),
-          timerId: effect.id,
+          ...(effect.delay !== undefined && { timer: getTimerKey(effect) }),
           ...(effect.delay === undefined
             ? {
                 targetKey: getActorKey(effect.target),
@@ -177,7 +179,7 @@ function commitTransition(
           effectId,
           type: 'cancel',
           sourceKey: getActorKey(effect.source),
-          timerId: effect.id
+          timer: readTimerKey(effect)
         });
         break;
     }
@@ -289,14 +291,17 @@ describe('durable interpreter adapter', () => {
     expect(timer.dueAt).toBe(startedAt + fiveMinutes);
     expect(timer).not.toHaveProperty('event');
     expect(timer).not.toHaveProperty('targetKey');
-    expect(
-      (initialRecord.snapshot as any).timers[timer.timerId!]
-    ).toMatchObject({
-      delay: fiveMinutes,
-      type: '@xstate.raise',
-      target: 'self',
-      event: { type: expect.stringMatching(/^xstate\.after/) }
+    expect(timer.timer).toEqual({
+      event: expect.objectContaining({ type: 'xstate.after' })
     });
+    expect((initialRecord.snapshot as any).timers).toMatchObject([
+      {
+        delay: fiveMinutes,
+        type: '@xstate.raise',
+        target: 'self',
+        event: (timer.timer as { event: unknown }).event
+      }
+    ]);
     expect(() => JSON.stringify(initialRecord)).not.toThrow();
 
     // Crash after the external runtime applied two effects but before the
@@ -324,7 +329,7 @@ describe('durable interpreter adapter', () => {
       restoredSnapshot,
       {
         type: 'xstate.timer',
-        id: timer.timerId!
+        ...timer.timer!
       } as any
     );
     const timerRecord = commitTransition(
@@ -337,7 +342,7 @@ describe('durable interpreter adapter', () => {
     );
 
     expect(timedOutSnapshot.value).toBe('timedOut');
-    expect(timedOutSnapshot.timers).toEqual({});
+    expect(timedOutSnapshot.timers).toEqual([]);
     expect(timerRecord.outbox.map(({ type }) => type)).toEqual([
       'cancel',
       'stop'

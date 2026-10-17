@@ -1,6 +1,6 @@
 import type { SnapshotFrom } from 'xstate';
 import { createMachine, types } from 'xstate';
-import { ModelTestFailure, propertyTest } from '../src/engine/index.ts';
+import { ModelTestFailureError, propertyTest } from '../src/engine/index.ts';
 import { createPlaywrightSut } from '../src/playwright.ts';
 import { FakePage } from './fakePage.ts';
 import { constant, integer, randomAdapter, record } from './randomAdapter.ts';
@@ -65,7 +65,7 @@ describe('createPlaywrightSut', () => {
 
   it('reports a divergence naming the step for a broken page', async () => {
     const page = new FakePage({ broken: true });
-    let failure!: ModelTestFailure;
+    let failure!: ModelTestFailureError;
     try {
       await propertyTest(counterMachine, {
         adapter,
@@ -74,10 +74,10 @@ describe('createPlaywrightSut', () => {
         invariant: () => {}
       });
     } catch (error) {
-      failure = error as ModelTestFailure;
+      failure = error as ModelTestFailureError;
     }
 
-    expect(failure).toBeInstanceOf(ModelTestFailure);
+    expect(failure).toBeInstanceOf(ModelTestFailureError);
     expect(failure.message).toMatch(/diverged/);
     const lastStep = failure.trace.steps.at(-1)!;
     expect(lastStep.event.type).toBe('INC');
@@ -241,7 +241,7 @@ describe('createPlaywrightSut state assertions', () => {
         ),
         invariant: () => {}
       })
-    ).rejects.toBeInstanceOf(ModelTestFailure);
+    ).rejects.toBeInstanceOf(ModelTestFailureError);
   });
 });
 

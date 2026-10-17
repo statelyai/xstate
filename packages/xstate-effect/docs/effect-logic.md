@@ -7,15 +7,15 @@ Turn an Effect or Stream into [actor logic](../../../docs/actor-logic.md) with o
 
 | Function | Use it for |
 | --- | --- |
-| `fromEffect` | A task whose result decides the next state. |
-| `fromEffectStream` | A changing value, such as upload progress. |
-| `fromEffectEventStream` | Events that drive a workflow, such as health checks. |
+| `createEffectLogic` | A task whose result decides the next state. |
+| `createEffectStreamLogic` | A changing value, such as upload progress. |
+| `createEffectEventStreamLogic` | Events that drive a workflow, such as health checks. |
 
 Each accepts a value, a function of actor arguments that returns the value, or a configuration object with `id`, `schemas`, `validator` and `effect` or `stream`.
 
-## `fromEffect`
+## `createEffectLogic`
 
-Use `fromEffect` for work the machine waits for: publishing a release, reserving inventory or building a report. The [quick start](quick-start.md) invokes a deployment task and handles success, failure and cancellation.
+Use `createEffectLogic` for work the machine waits for: publishing a release, reserving inventory or building a report. The [quick start](quick-start.md) invokes a deployment task and handles success, failure and cancellation.
 
 Here is a complete task with typed input and output:
 
@@ -23,9 +23,9 @@ Here is a complete task with typed input and output:
 
 ```ts
 import { Effect, Schema } from 'effect';
-import { createEffectActor, fromEffect, join } from '@xstate/effect';
+import { createEffectActor, createEffectLogic, join } from '@xstate/effect';
 
-const buildReport = fromEffect({
+const buildReport = createEffectLogic({
   schemas: { input: Schema.Struct({ orderIds: Schema.Array(Schema.String) }) },
   effect: ({ input, emit }) =>
     Effect.sync(() => {
@@ -88,18 +88,22 @@ Use Effect's retry and timeout combinators inside the task.
 
 </details>
 
-## `fromEffectStream`
+## `createEffectStreamLogic`
 
-Use `fromEffectStream` when consumers need the latest value. For example, upload progress becomes the actor's snapshot context:
+Use `createEffectStreamLogic` when consumers need the latest value. For example, upload progress becomes the actor's snapshot context:
 
 <!-- example from examples/effect-workflows/src/latest-stream.ts -->
 
 ```ts
 import { Effect, Option, Stream } from 'effect';
-import { createEffectActor, fromEffectStream, snapshots } from '@xstate/effect';
+import {
+  createEffectActor,
+  createEffectStreamLogic,
+  snapshots
+} from '@xstate/effect';
 
 // Demo upload progress. Replace with your upload SDK's progress stream.
-const uploadProgress = fromEffectStream(Stream.make(0, 25, 60, 100));
+const uploadProgress = createEffectStreamLogic(Stream.make(0, 25, 60, 100));
 
 const program = Effect.gen(function* () {
   const actor = yield* createEffectActor(uploadProgress);
@@ -122,9 +126,9 @@ The demo stream is finite. Replace it with your upload SDK's progress stream; th
 - Stream failure puts the actor in `error`.
 - Read changing values with `snapshots`, `waitFor` or a UI selector.
 
-## `fromEffectEventStream`
+## `createEffectEventStreamLogic`
 
-Use `fromEffectEventStream` when stream items should trigger transitions. This deployment feed first reports a healthy rollout, then a health failure that requests rollback:
+Use `createEffectEventStreamLogic` when stream items should trigger transitions. This deployment feed first reports a healthy rollout, then a health failure that requests rollback:
 
 <!-- example from examples/effect-workflows/src/event-stream.ts -->
 
@@ -132,13 +136,13 @@ Use `fromEffectEventStream` when stream items should trigger transitions. This d
 import { Effect, Stream } from 'effect';
 import {
   createEffectActor,
-  fromEffectEventStream,
+  createEffectEventStreamLogic,
   join,
   setupEffect
 } from '@xstate/effect';
 
 // A deployment feed drives the workflow, rather than just displaying data.
-const deploymentEvents = fromEffectEventStream(
+const deploymentEvents = createEffectEventStreamLogic(
   Stream.make({ type: 'HEALTHY' }, { type: 'UNHEALTHY' })
 );
 
@@ -180,4 +184,4 @@ Use this pattern for WebSocket messages, job updates or subscription feeds that 
 
 ## Tracing
 
-The three functions run inside spans named `fromEffect`, `fromEffectStream` and `fromEffectEventStream`. See [tracing](testing-and-errors.md#tracing).
+The three functions run inside spans named `createEffectLogic`, `createEffectStreamLogic` and `createEffectEventStreamLogic`. See [tracing](testing-and-errors.md#tracing).

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  createLogic,
+  createStepLogic,
   createMachine,
   type ActorLogic,
   type Snapshot
@@ -138,7 +138,7 @@ describe('durable execution', () => {
 
     expect(scheduleTimer).toHaveBeenCalledOnce();
     expect(scheduleTimer.mock.calls[0]?.slice(1)).toEqual([
-      expect.any(String),
+      expect.any(Object),
       100
     ]);
     expect(seenEffects).toEqual([
@@ -241,14 +241,14 @@ describe('durable execution', () => {
     );
   });
 
-  it('forwards the host runtime to createLogic effects', async () => {
+  it('forwards the host runtime to createStepLogic effects', async () => {
     const sendEvent = vi.fn();
     const runtime = { sendEvent };
     let providedRuntime: unknown;
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: undefined,
       run: ({ event }, enq) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           enq.effect((effectRuntime) => {
             providedRuntime = effectRuntime;
           });
@@ -277,10 +277,10 @@ describe('durable execution', () => {
   it('routes parked root events through the dedicated mailbox hook', async () => {
     const enqueueRootEvent = vi.fn();
     let providedRuntime: unknown;
-    const logic = createLogic({
+    const logic = createStepLogic({
       context: undefined,
       run: ({ event }, enq) => {
-        if (event.type === '@xstate.init') {
+        if (event.type === 'xstate.init') {
           enq.effect((effectRuntime) => {
             providedRuntime = effectRuntime;
           });
