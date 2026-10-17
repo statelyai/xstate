@@ -14,14 +14,13 @@ import type {
   InvokeConfig,
   MachineContext,
   Mapper,
-  NonReducibleUnknown,
   Observer,
   OutputArg,
-  SingleOrArray,
   StateLike,
   StateValue,
   TransitionConfigTarget
 } from './types.ts';
+import type { NonReducibleUnknown, SingleOrArray } from './typeUtils.ts';
 
 /** @public */
 export function matchesState(

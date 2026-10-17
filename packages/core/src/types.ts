@@ -17,6 +17,27 @@ import type {
   EventRejection,
   EventRejectionReason
 } from './system.ts';
+import type {
+  NonReducibleUnknown,
+  AnyFunction,
+  IsNever,
+  IsNotNever,
+  Compute,
+  Prop,
+  IsAny,
+  DoNotInfer,
+  ConditionalRequired,
+  SingleOrArray,
+  HomomorphicOmit,
+  TODO
+} from './typeUtils.ts';
+// Referenced by framework adapter declarations and by emitted declarations of
+// inferred logic types, so the entry point keeps them.
+export type {
+  ConditionalRequired,
+  IsNotNever,
+  NonReducibleUnknown
+} from './typeUtils.ts';
 
 // this is needed to make JSDoc `@link` work properly
 // oxlint-disable-next-line no-unused-vars
@@ -35,10 +56,6 @@ export type Identity<T> = { [K in keyof T]: T[K] };
 export type HomomorphicPick<T, K extends keyof any> = {
   [P in keyof T as P & K]: T[P];
 };
-/** @public */
-export type HomomorphicOmit<T, K extends keyof any> = {
-  [P in keyof T as Exclude<P, K>]: T[P];
-};
 
 /** @internal */
 export type Invert<T extends Record<PropertyKey, PropertyKey>> = {
@@ -49,39 +66,10 @@ export type Invert<T extends Record<PropertyKey, PropertyKey>> = {
 export type GetParameterizedParams<T extends ParameterizedObject | undefined> =
   T extends any ? ('params' extends keyof T ? T['params'] : undefined) : never;
 
-/**
- * @remarks
- * `T | unknown` reduces to `unknown` and that can be problematic when it comes
- * to contextual typing. It especially is a problem when the union has a
- * function member, like here:
- *
- * ```ts
- * declare function test(
- *   cbOrVal: ((arg: number) => unknown) | unknown
- * ): void;
- * test((arg) => {}); // oops, implicit any
- * ```
- *
- * This type can be used to avoid this problem. This union represents the same
- * value space as `unknown`.
- * @public
- */
-export type NonReducibleUnknown = {} | null | undefined;
-/** @public */
-export type AnyFunction = (...args: any[]) => any;
-
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
-/** @public */
-export type IsNever<T> = [T] extends [never] ? true : false;
-/** @public */
-export type IsNotNever<T> = [T] extends [never] ? false : true;
 
-/** @public */
-export type Compute<A> = { [K in keyof A]: A[K] } & unknown;
-/** @public */
-export type Prop<T, K> = K extends keyof T ? T[K] : never;
 /** @internal */
 export type Elements<T> = T[keyof T & `${number}`];
 /** @internal */
@@ -98,32 +86,10 @@ export type IndexByType<T extends { type: string }> = IndexByProp<T, 'type'>;
 export type IsEmptyObject<T> = keyof T extends never ? true : false;
 
 /** @public */
-export type Equals<A1, A2> =
-  (<A>() => A extends A2 ? true : false) extends <A>() => A extends A1
-    ? true
-    : false
-    ? true
-    : false;
-/** @public */
-export type IsAny<T> = Equals<T, any>;
-/** @public */
-export type Cast<A, B> = A extends B ? A : B;
-// @TODO: we can't use native `NoInfer` as we need those:
-// https://github.com/microsoft/TypeScript/pull/61092
-// https://github.com/microsoft/TypeScript/pull/61077
-// but even with those fixes native NoInfer still doesn't work - further issues have to be reproduced and fixed
-/** @public */
-export type DoNotInfer<T> = [T][T extends any ? 0 : any];
-/** @public */
-export type LowInfer<T> = T & NonNullable<unknown>;
-
-/** @public */
 export type MetaObject = Record<string, any>;
 
 /** @public */
 export type Lazy<T> = () => T;
-/** @public */
-export type MaybeLazy<T> = T | Lazy<T>;
 
 /** @public */
 export type EventPayloadPattern<TEvent extends EventObject> = TEvent extends any
@@ -267,12 +233,6 @@ export type NoRequiredParams<T extends ParameterizedObject> = T extends any
     ? T['type']
     : never
   : never;
-
-/** @public */
-export type ConditionalRequired<
-  T,
-  Condition extends boolean
-> = Condition extends true ? Required<T> : T;
 
 /** @internal */
 export type WithDynamicParams<
@@ -608,9 +568,6 @@ export type StateTypes =
   | 'choice'
   | 'history'
   | ({} & string);
-
-/** @public */
-export type SingleOrArray<T> = readonly T[] | T;
 
 /** @public */
 export type StateNodesConfig<
@@ -2004,7 +1961,6 @@ export interface ActorOptions<TLogic extends AnyActorLogic> {
    * native `console.log(...)` method.
    */
   logger?: (...args: any[]) => void;
-  parent?: AnyActor;
   /** @internal */
   syncSnapshot?: boolean;
   /** @internal */
@@ -2897,9 +2853,6 @@ export type ContextFrom<T> = T extends { context: infer TContext }
 export type InferEvent<E extends EventObject> = {
   [T in E['type']]: { type: T } & Extract<E, { type: T }>;
 }[E['type']];
-
-/** @public */
-export type TODO = any;
 
 /** @public */
 export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<

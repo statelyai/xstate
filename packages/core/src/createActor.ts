@@ -111,9 +111,19 @@ function executeExecutableEffects(
   }
 }
 
+/**
+ * Options core passes when it creates actors: the public {@link ActorOptions}
+ * plus the parent of a child actor. Not exported from the package entry.
+ */
+export interface InternalActorOptions<
+  TLogic extends AnyActorLogic
+> extends ActorOptions<TLogic> {
+  parent?: AnyActor;
+}
+
 function createActorRef(
   logic: AnyActorLogic,
-  options: ActorOptions<AnyActorLogic>
+  options: InternalActorOptions<AnyActorLogic>
 ): AnyActor {
   return new Actor(logic, options);
 }
@@ -269,7 +279,7 @@ export class Actor<TLogic extends AnyActorLogic> implements ActorInstance<
     }
     const resolvedOptions = (
       options ? { ...defaultOptions, ...options } : defaultOptions
-    ) as ActorOptions<TLogic> & typeof defaultOptions;
+    ) as InternalActorOptions<TLogic> & typeof defaultOptions;
 
     const { clock, logger, parent, syncSnapshot, id, registryKey, inspect } =
       resolvedOptions;

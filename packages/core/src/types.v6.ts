@@ -21,9 +21,7 @@ import {
   ActorSelf,
   AnyActorLogic,
   AnyActorRef,
-  Compute,
   DoneActorEvent,
-  DoNotInfer,
   ErrorFrom,
   ErrorActorEvent,
   EnqueueObject,
@@ -37,14 +35,10 @@ import {
   ExtractEvent,
   InitialContext,
   InputFrom,
-  IsNever,
   MetaObject,
-  NonReducibleUnknown,
   OutputFrom,
-  SingleOrArray,
   SnapshotEvent,
   StateValue,
-  TODO,
   TransitionContextMapper,
   TransitionContextPatch,
   TransitionConfigFunction,
@@ -54,8 +48,16 @@ import {
   TimeoutEvent,
   RequiredLogicInput
 } from './types';
+import type {
+  Compute,
+  DoNotInfer,
+  IsNever,
+  NonReducibleUnknown,
+  SingleOrArray,
+  TODO
+} from './typeUtils.ts';
 import { MachineContext, Mapper } from './types';
-import { LowInfer } from './types';
+import type { LowInfer } from './typeUtils.ts';
 import { DoneStateEvent } from './types';
 
 export type InferOutput<T extends StandardSchemaV1, U> = Compute<

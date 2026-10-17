@@ -28,9 +28,9 @@ import {
   AnyActorRef,
   EventObject,
   ExecutableEffect,
-  NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
+import type { NonReducibleUnknown } from '../typeUtils.ts';
 
 /** @public */
 export type StepSnapshot<TContext, TOutput, TInput> = Snapshot<TOutput> & {

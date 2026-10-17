@@ -38,8 +38,6 @@ import {
   StateValueFromStateSchema,
   ToChildren,
   MetaObject,
-  Cast,
-  Compute,
   EnqueueObject,
   DoneActorEvent,
   DoneStateEvent,
@@ -52,7 +50,6 @@ import {
   Subscription,
   OutputArg,
   SnapshotEvent,
-  SingleOrArray,
   AfterEvent,
   TimeoutEvent,
   ErrorEvent,
@@ -60,9 +57,14 @@ import {
   InputFrom,
   OutputFrom,
   SnapshotFrom,
-  ActorTimeoutEvent,
-  NonReducibleUnknown
+  ActorTimeoutEvent
 } from './types.ts';
+import type {
+  Cast,
+  Compute,
+  SingleOrArray,
+  NonReducibleUnknown
+} from './typeUtils.ts';
 import { AnyActorSystem } from './system.ts';
 import { InspectionEvent } from './inspection.ts';
 import {

@@ -601,7 +601,9 @@ describe('inspect', () => {
 
   it('clears a pre-start event source before inspecting initialization', () => {
     const actor = createActor(createMachine({}));
-    const sender = createActor(createMachine({}), { parent: actor });
+    const sender = createActor(createMachine({}), {
+      parent: actor
+    } as {});
     const events: InspectionEvent[] = [];
 
     actor.system._relay(sender, actor, { type: 'QUEUED' });

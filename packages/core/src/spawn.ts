@@ -9,13 +9,12 @@ import {
   AnyActorLogic,
   AnyActorRef,
   AnyActorScope,
-  ConditionalRequired,
   InputFrom,
-  IsNotNever,
   RegistryKeyForLogic,
   SystemRegistry,
   type RequiredLogicInput
 } from './types.ts';
+import type { ConditionalRequired, IsNotNever } from './typeUtils.ts';
 
 /** @public */
 export type Spawner<TSystemRegistry extends SystemRegistry = SystemRegistry> = <

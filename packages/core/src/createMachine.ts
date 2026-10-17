@@ -9,17 +9,15 @@ import {
   AnyStateMachine,
   EventObject,
   AnyEventObject,
-  Cast,
   MachineContext,
   ProvidedActor,
   StateValueFromStateSchema,
   ToChildren,
   MetaObject,
   StateSchema,
-  DoNotInfer,
-  RoutableStateId,
-  Compute
+  RoutableStateId
 } from './types.ts';
+import type { Cast, DoNotInfer, Compute } from './typeUtils.ts';
 import {
   ChildCompletionEvents,
   Sources,

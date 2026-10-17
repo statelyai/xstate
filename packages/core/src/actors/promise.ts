@@ -12,9 +12,9 @@ import {
   AnyActor,
   AnyEventObject,
   EventObject,
-  NonReducibleUnknown,
   Snapshot
 } from '../types.ts';
+import type { NonReducibleUnknown } from '../typeUtils.ts';
 import { createStepLogic as createBaseLogic } from './logic.ts';
 
 /** @public */

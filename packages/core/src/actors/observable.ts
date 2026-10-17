@@ -10,11 +10,11 @@ import {
   AnyActor,
   AnyEventObject,
   EventObject,
-  NonReducibleUnknown,
   Snapshot,
   Subscribable,
   Subscription
 } from '../types';
+import type { NonReducibleUnknown } from '../typeUtils.ts';
 import { createStepLogic as createBaseLogic } from './logic.ts';
 import { finalizeTransitionResult } from '../transitionActions.ts';
 

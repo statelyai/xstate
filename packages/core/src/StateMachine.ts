@@ -69,7 +69,6 @@ import type {
   AnyStateMachine,
   AnyMachineSnapshot,
   AnyTransitionDefinition,
-  Equals,
   EventDescriptor,
   EmittedFrom,
   EventObject,
@@ -78,7 +77,6 @@ import type {
   ExecutableEffectFrom,
   HistoryValue,
   InputFrom,
-  IsAny,
   LogicalTimer,
   MachineContext,
   MetaObject,
@@ -90,6 +88,7 @@ import type {
   SnapshotStatus,
   AnyStateNode
 } from './types.ts';
+import type { Equals, IsAny } from './typeUtils.ts';
 import {
   AnyMachineSchemas,
   DelaySourceMap,

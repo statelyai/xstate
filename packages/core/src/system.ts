@@ -1,20 +1,20 @@
 import isDevelopment from '#is-development';
 import type { InspectionEvent, SentRecord } from './inspection.ts';
 import type { StandardSchemaV1 } from './schema.types.ts';
+import type { InternalActorOptions } from './createActor.ts';
 import {
   AnyEventObject,
   ActorTermination,
   ActorSystemInfo,
   AnyActor,
   Observer,
-  HomomorphicOmit,
   EventObject,
   Subscription,
   AnyActorLogic,
-  ActorOptions,
   LogicalTimer,
   TimerKey
 } from './types.ts';
+import type { HomomorphicOmit } from './typeUtils.ts';
 import { XSTATE_TIMER } from './constants.ts';
 import { getScheduledTimerKey, matchesTimerKey } from './timerKey.ts';
 import { toObserver } from './utils.ts';
@@ -472,7 +472,7 @@ export interface ActorSystem<
   /** @internal Allocates an actor reference during snapshot calculation. */
   createActorRef(
     logic: AnyActorLogic,
-    options: ActorOptions<AnyActorLogic>
+    options: InternalActorOptions<AnyActorLogic>
   ): AnyActor;
   /** @internal */
   children: Map<string, AnyActor>;

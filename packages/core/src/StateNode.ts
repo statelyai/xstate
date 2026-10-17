@@ -21,7 +21,6 @@ import type {
   TransitionDefinitionMap,
   AnyStateMachine,
   AnyStateNodeConfig,
-  NonReducibleUnknown,
   EventDescriptor,
   AnyActorScope,
   AnyStateNode,
@@ -34,6 +33,7 @@ import type {
   InvokeDefinition,
   MetaObject
 } from './types.ts';
+import type { NonReducibleUnknown } from './typeUtils.ts';
 import {
   createInvokeId,
   mapValues,

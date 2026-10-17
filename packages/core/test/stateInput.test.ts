@@ -1,7 +1,7 @@
 import z from 'zod';
 import { createActor, createAsyncLogic, setup, types } from '../src/index.ts';
+import type { IsAny } from '../src/typeUtils.ts';
 import type {
-  IsAny,
   StateFrom,
   StateContextFromStateValue,
   StateSchemaFrom

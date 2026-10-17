@@ -1062,6 +1062,8 @@ These exports have been **removed** from `xstate`:
 - Deprecated snapshot helpers: `getInitialSnapshot(logic, input?)` and `getNextSnapshot(logic, snapshot, event)`. Use `initialTransition(logic, input?)` and `transition(logic, snapshot, event)`; the snapshot is the first element of the returned tuple.
 - Deprecated type aliases: `NoInfer` (use the built-in `NoInfer`), `AnyInterpreter` (use `AnyActor`), and `ResolvedStateMachineTypes`
 - Internal helpers: `toObserver`, `pathToStateValue`, and the `SpecialTargets` enum
+- Type-level helpers: `TODO`, `IsAny`, `IsNever`, `Equals`, `Cast`, `Compute`, `Prop`, `HomomorphicOmit`, `LowInfer`, `DoNotInfer`, `SingleOrArray`, `MaybeLazy` and `AnyFunction`. Define equivalents in your own code if you used them. `ConditionalRequired`, `IsNotNever` and `NonReducibleUnknown` stay exported for emitted declarations and are marked experimental.
+- The undocumented `parent` actor option. Child actors are created through `invoke`, `spawn` and `enq.spawn`.
 - `xstate/graph`: `getStateNodes(stateNode)` (all descendant state nodes) is renamed to `getDescendantStateNodes(stateNode)`. The root `getStateNodes(stateNode, stateValue)` export from `xstate` is unchanged.
 - `xstate/graph`: `createTestModel`, `TestModel`, and the types used only by them (`TestModelOptions`, `TestParam`, `TestPath`, `TestPathResult`, `TestStepResult`, `TestMeta`, `EventExecutor`), plus `createShortestPathsGen` and `createSimplePathsGen`. `xstate/graph` now only generates paths. Use `testPaths()` from `@xstate/test` to run them; see [Model-based testing](model-based-testing.md).
 - The `xstate/scxml` entry point. `createMachineFromSCXML` moved to the separate `@xstate/scxml` package (`npm i @xstate/scxml`).
