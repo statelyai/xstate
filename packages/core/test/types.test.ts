@@ -2753,11 +2753,10 @@ describe('invoke', () => {
 
     createAsyncLogic({
       schemas: {
-        // @ts-expect-error output does not match the declared schema
         input: types<{ userId: string }>(),
-        // @ts-expect-error output does not match the declared schema
         output: types<{ name: string }>()
       },
+      // @ts-expect-error output does not match the declared schema
       run: async () => {
         return { age: 42 };
       }

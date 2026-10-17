@@ -608,8 +608,8 @@ describe('setup.createInvoke', () => {
         src: logic,
         onDone: {
           context: ({ event, output, context, actions }) => {
-            expectTypeOf(event.output.name).toEqualTypeOf<string>();
-            expectTypeOf(output.name).toEqualTypeOf<string>();
+            expectTypeOf(event.output.name).toEqualTypeOf<'David'>();
+            expectTypeOf(output.name).toEqualTypeOf<'David'>();
             expectTypeOf(context.name).toEqualTypeOf<string>();
             expectTypeOf(actions.log).toEqualTypeOf<(name: string) => void>();
             return { name: event.output.name };
