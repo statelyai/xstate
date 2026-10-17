@@ -3452,7 +3452,7 @@ type EnqueueSpawnArgs<
 > = ConditionalRequired<
   [
     options?: EnqueueSpawnOptions<TLogic, TSystemRegistry> & {
-      [K in RequiredLogicInput<TLogic>]: unknown;
+      [K in RequiredLogicInput<TLogic>]: InputFrom<TLogic>;
     }
   ],
   IsNotNever<RequiredLogicInput<TLogic>>

@@ -1935,7 +1935,15 @@ type InvokeMissesRequiredInput<TInvoke, TActorMap> = [0] extends [1 & TInvoke]
   ? false
   : TInvoke extends { src: infer TSrc }
     ? 'input' extends keyof TInvoke
-      ? false
+      ? // An `input` that may be `undefined` (or a mapper that may return
+        // it) does not provide required input either.
+        [Extract<keyof TInvoke, symbol>] extends [never]
+        ? [0] extends [1 & InvokeInputValue<TInvoke>]
+          ? false
+          : undefined extends InvokeInputValue<TInvoke>
+            ? RequiresInput<InvokeSrcLogic<TSrc, TActorMap>>
+            : false
+        : false
       : [Extract<keyof TInvoke, symbol>] extends [never]
         ? [InvokeSrcLogic<TSrc, TActorMap>] extends [never]
           ? false
@@ -1946,6 +1954,18 @@ type InvokeMissesRequiredInput<TInvoke, TActorMap> = [0] extends [1 & TInvoke]
             : true
         : false
     : false;
+
+type InvokeInputValue<TInvoke> = TInvoke extends { input: infer TInput }
+  ? TInput extends (...args: any[]) => infer TResult
+    ? TResult
+    : TInput
+  : undefined;
+
+type RequiresInput<TLogic> = [TLogic] extends [never]
+  ? false
+  : [RequiredLogicInput<TLogic & AnyActorLogic>] extends [never]
+    ? false
+    : true;
 
 type InvokeInputErrors<TInvoke, TActorMap> = TInvoke extends readonly unknown[]
   ? { [K in keyof TInvoke]: InvokeInputErrors<TInvoke[K], TActorMap> }

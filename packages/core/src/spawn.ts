@@ -28,7 +28,7 @@ export type Spawner<TSystemRegistry extends SystemRegistry = SystemRegistry> = <
         registryKey?: RegistryKeyForLogic<TLogic, TSystemRegistry>;
         input?: InputFrom<TLogic>;
         syncSnapshot?: boolean;
-      } & { [K in RequiredLogicInput<TLogic>]: unknown }
+      } & { [K in RequiredLogicInput<TLogic>]: InputFrom<TLogic> }
     ],
     IsNotNever<RequiredLogicInput<TLogic>>
   >

@@ -134,3 +134,29 @@ describe('required spawn input', () => {
     });
   });
 });
+
+describe('undefined input', () => {
+  it('does not provide required input', () => {
+    createMachine({
+      // @ts-expect-error input is required by the invoked logic
+      invoke: { src: child, input: undefined }
+    });
+    createMachine({
+      // @ts-expect-error the mapper returns no input
+      invoke: { src: child, input: () => undefined }
+    });
+    createMachine({ invoke: { src: optionalInputChild, input: undefined } });
+    createMachine({
+      context: ({ spawn }) => ({
+        // @ts-expect-error input is required by the spawned logic
+        ref: spawn(child, { input: undefined })
+      })
+    });
+    createMachine({
+      entry: (_, enq) => {
+        // @ts-expect-error input is required by the spawned logic
+        enq.spawn(child, { input: undefined });
+      }
+    });
+  });
+});
