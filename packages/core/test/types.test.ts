@@ -4180,6 +4180,39 @@ describe('ActorRefFrom', () => {
     }) satisfies unknown;
   });
 
+  it('types machine snapshots fully', () => {
+    const child = createMachine({
+      id: 'child',
+      schemas: { context: z.object({ count: z.number() }) },
+      context: { count: 0 },
+      initial: 'idle',
+      states: { idle: { id: 'known' }, busy: {} }
+    });
+    const parent = createMachine({
+      schemas: {
+        context: z.object({ ref: z.custom<ActorRefFrom<typeof child>>() })
+      },
+      context: ({ spawn }) => ({ ref: spawn(child) })
+    });
+
+    ((ref: ActorRefFrom<typeof child>) => {
+      const snapshot = ref.getSnapshot();
+      snapshot.context.count satisfies number;
+      // @ts-expect-error context is typed
+      snapshot.context.count satisfies string;
+      snapshot.matches('#known');
+      snapshot.matches('#child.busy');
+      // @ts-expect-error unknown state id
+      snapshot.matches('#nope');
+      snapshot.matches('busy');
+    }) satisfies unknown;
+    ((snapshot: SnapshotFrom<typeof parent>) => {
+      snapshot.context.ref.getSnapshot().matches('#known');
+      // @ts-expect-error unknown state id
+      snapshot.context.ref.getSnapshot().matches('#nope');
+    }) satisfies unknown;
+  });
+
   it('rejects types that are not actor logic', () => {
     const machine = createMachine({});
 

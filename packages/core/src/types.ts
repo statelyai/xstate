@@ -2447,7 +2447,7 @@ type OpaqueMachineSnapshot<TSnapshot extends Snapshot<unknown>> =
  * @public
  */
 export type ActorRefFrom<T extends AnyActorLogic> = ActorRef<
-  OpaqueMachineSnapshot<SnapshotFrom<T>>,
+  SnapshotFrom<T>,
   EventFromLogic<T>,
   EmittedFrom<T>,
   SendableEventFromLogic<T>

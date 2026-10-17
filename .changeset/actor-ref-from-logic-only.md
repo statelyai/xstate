@@ -14,4 +14,4 @@ type Ref = ActorRefFrom<typeof machine>;
 type AsyncRef = ActorRefFrom<typeof loadUser>;
 ```
 
-Machine snapshots read from an `ActorRefFrom` ref check state values but accept any `#id` reference in `matches(...)`. Use `SnapshotFrom<typeof machine>` for the fully typed snapshot.
+`ActorRefFrom<typeof machine>` refs return the fully typed machine snapshot from `getSnapshot()`, including `context`, `value` and `matches('#id')`.
