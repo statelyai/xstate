@@ -4565,9 +4565,7 @@ function getEventOrigin(
   }
   if (
     event.type === 'xstate.done.actor' ||
-    event.type === 'xstate.error.actor' ||
-    event.type.startsWith('xstate.done.actor.') ||
-    event.type.startsWith('xstate.error.actor.')
+    event.type === 'xstate.error.actor'
   ) {
     return 'outcome';
   }
