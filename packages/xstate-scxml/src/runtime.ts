@@ -28,26 +28,32 @@ function toScxmlEventName(eventType: string): string {
     : eventType;
 }
 
+/**
+ * An SCXML event descriptor. `done.invoke.<id>` and `done.state.<id>` compile
+ * to the category event type and the payload fields that identify the source.
+ *
+ * @internal
+ */
+export type ScxmlEventDescriptor =
+  | string
+  | { type: string; matches: Record<string, string> };
+
 function matchesScxmlEventDescriptor(
-  descriptor: string,
+  descriptor: ScxmlEventDescriptor,
   event: EventObject
 ): boolean {
+  if (typeof descriptor !== 'string') {
+    return (
+      event.type === descriptor.type &&
+      Object.entries(descriptor.matches).every(
+        ([key, value]) => (event as any)[key] === value
+      )
+    );
+  }
   if (descriptor === '*') return true;
   if (descriptor.endsWith('.*')) {
     const prefix = descriptor.slice(0, -2);
     return event.type === prefix || event.type.startsWith(`${prefix}.`);
-  }
-  if (descriptor.startsWith('xstate.done.actor.')) {
-    return (
-      event.type === 'xstate.done.actor' &&
-      (event as any).actorId === descriptor.slice('xstate.done.actor.'.length)
-    );
-  }
-  if (descriptor.startsWith('xstate.done.state.')) {
-    return (
-      event.type === 'xstate.done.state' &&
-      (event as any).stateId === descriptor.slice('xstate.done.state.'.length)
-    );
   }
   return event.type === descriptor || event.type.startsWith(`${descriptor}.`);
 }
@@ -287,7 +293,7 @@ export interface TransitionJSON {
   /** @internal Strict semantics for transitions produced by the SCXML converter. */
   _scxml?: {
     type?: 'internal' | 'external';
-    eventDescriptors?: string[];
+    eventDescriptors?: ScxmlEventDescriptor[];
     finalize?: Array<{ invokeId: string; actions: ActionJSON[] }>;
   };
 }

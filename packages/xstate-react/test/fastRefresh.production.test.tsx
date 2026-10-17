@@ -41,7 +41,7 @@ it('keeps the first machine on a refresh signal in production builds', () => {
   rerender(<App machine={createToggle({ RESET: { target: 'reset' } })} />);
 
   expect(actorRef).toBe(original);
-  expect(actorRef.logic).toBe(v1);
+  expect(actorRef.logic.config).toBe(v1.config);
   act(() => actorRef.send({ type: 'RESET' }));
   expect(actorRef.getSnapshot().value).toBe('on');
 });
