@@ -155,13 +155,23 @@ export async function runOnHost<TLogic extends AnyActorLogic>(options: {
     rootAddress = durable.getActorRef(snapshot)?.address;
     // Timers belong to the host, so it re-arms the ones the checkpoint
     // recorded as pending; XState does not reschedule them on a durable host.
-    for (const timer of Object.values(
-      (resume.snapshot.timers ?? {}) as Record<string, { id: string }>
-    )) {
-      log(`  host: re-arming checkpointed timer ${timer.id}`);
-      timers.set(`${rootAddress}#${timer.id}`, {
+    // A persisted built-in timer's event is its identity.
+    for (const persisted of (resume.snapshot.timers ?? []) as Array<{
+      id?: string;
+      seq?: number;
+      event: { type: string };
+    }>) {
+      const timer: TimerKey =
+        persisted.id !== undefined
+          ? { id: persisted.id }
+          : persisted.seq !== undefined
+            ? { seq: persisted.seq }
+            : { event: persisted.event };
+      const key = JSON.stringify(timer);
+      log(`  host: re-arming checkpointed timer ${key}`);
+      timers.set(`${rootAddress}#${key}`, {
         source: durable.getActorRef(snapshot)!,
-        id: timer.id
+        timer
       });
     }
   } else {

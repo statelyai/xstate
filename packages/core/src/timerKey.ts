@@ -16,7 +16,8 @@ export function getBuiltInTimerIdentity(
   };
   switch (event.type) {
     case 'xstate.after':
-      return { type: event.type, stateId, delay } as EventObject;
+      // Same field order as the event, so persisted events serialize alike.
+      return { type: event.type, delay, stateId } as EventObject;
     case 'xstate.timeout.state':
       return { type: event.type, stateId } as EventObject;
     case 'xstate.timeout.actor':
