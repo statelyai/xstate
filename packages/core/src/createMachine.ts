@@ -35,6 +35,7 @@ import {
   ValidateDelayReferences,
   ValidateEventDescriptors,
   ValidateHistoryDefaults,
+  ValidateInvokeInputs,
   ValidateStateTargets,
   ValidateTopLevelFinalOutputs,
   WidenLiterals,
@@ -146,6 +147,7 @@ export function createMachine<
   config: TSS &
     ValidateDelayReferences<TSS> &
     ValidateHistoryDefaults<TSS> &
+    ValidateInvokeInputs<TSS> &
     ValidateStateTargets<TSS> &
     ValidateEventDescriptors<
       TSS,
@@ -263,6 +265,7 @@ export function createMachine<
   config: TSS &
     ValidateDelayReferences<TSS> &
     ValidateHistoryDefaults<TSS> &
+    ValidateInvokeInputs<TSS> &
     ValidateStateTargets<TSS> &
     ValidateEventDescriptors<
       TSS,

@@ -868,9 +868,6 @@ type DistributeActors<
              */
             id?: TSpecificActor['id'];
 
-            // TODO: currently we do not enforce required inputs here
-            // in a sense, we shouldn't - they could be provided within the `sources` object
-            // how do we verify if the required input has been provided?
             input?:
               | Mapper<
                   TContext,
@@ -3497,16 +3494,24 @@ type EnqueueSpawnArgs<
 type EnqueueSpawner<
   TActorMap extends Sources['actors'],
   TSystemRegistry extends SystemRegistry
-> = {
-  <TSource extends keyof TActorMap & string>(
+> =
+  // One signature (not a key overload plus a logic overload) so a missing
+  // required `input` reports "Expected 2 arguments" instead of a `src` mismatch
+  // against the key overload.
+  <TSource extends (keyof TActorMap & string) | AnyActorLogic>(
     src: TSource,
-    ...[options]: EnqueueSpawnArgs<TActorMap[TSource], TSystemRegistry>
-  ): ActorFromLogic<TActorMap[TSource]>;
-  <TLogic extends AnyActorLogic>(
-    logic: TLogic,
-    ...[options]: EnqueueSpawnArgs<TLogic, TSystemRegistry>
-  ): ActorFromLogic<TLogic>;
-};
+    ...[options]: EnqueueSpawnArgs<
+      EnqueueSpawnLogic<TActorMap, TSource>,
+      TSystemRegistry
+    >
+  ) => ActorFromLogic<EnqueueSpawnLogic<TActorMap, TSource>>;
+
+type EnqueueSpawnLogic<
+  TActorMap extends Sources['actors'],
+  TSource
+> = TSource extends AnyActorLogic
+  ? TSource
+  : TActorMap[TSource & keyof TActorMap];
 
 /** @public */
 export type EnqueueObject<

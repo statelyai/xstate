@@ -850,6 +850,8 @@ Invoked children always persist and rehydrate: inline `invoke.src` logic receive
 
 `invoke.src` may also be a **function** resolving to logic or to a registered name: `src: ({ actors, context, event, self }) => actors.fetchUser`.
 
+`invoke` requires `input` when the invoked logic requires input (its input type excludes `undefined`, for example when it declares `schemas.input`), whether `src` is a logic value, a registered name, or a function. This matches `createActor(logic, { input })`, `spawn(logic, { input })` and `enq.spawn(logic, { input })`. v5 required it only for string sources registered through `setup({ actors })`.
+
 An `invoke` may declare its own `timeout` / `onTimeout` (independent of state-level `timeout`): when the timeout elapses before the invoked actor completes, the `onTimeout` transition is taken. Exiting the owning state stops the child; a targetless handler leaves it running unless it calls `enq.stop(...)`.
 
 ### Sending to the parent

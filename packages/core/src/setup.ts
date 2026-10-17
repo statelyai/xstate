@@ -99,6 +99,7 @@ import {
   ValidateDelayNames,
   ValidateEventDescriptors,
   ValidateHistoryDefaults,
+  ValidateInvokeInputs,
   ValidateStateTargets,
   WithDefault
 } from './types.v6.ts';
@@ -5050,7 +5051,8 @@ export interface SetupReturn<
         TConfig,
         TSystemRegistry,
         MergeSourceMaps<TSetupActorMap, TActorMap>
-      >
+      > &
+      ValidateInvokeInputs<TConfig, MergeSourceMaps<TSetupActorMap, TActorMap>>
   ): [TConfig] extends [never]
     ? AnyStateMachine
     : StateMachine<
@@ -5145,7 +5147,8 @@ export interface SetupReturn<
           ResolveStateSiblingsForPath<TStates, TPath>,
           TStates
         >
-      >
+      > &
+      ValidateInvokeInputs<TConfig, TSetupActorMap>
   ): TConfig;
 
   /** Creates a state node config with the setup configuration */
@@ -5165,7 +5168,8 @@ export interface SetupReturn<
       ValidateEventDescriptors<
         TConfig,
         NoInfer<SetupEvents<TSchemas, Record<string, StandardSchemaV1>>>
-      >
+      > &
+      ValidateInvokeInputs<TConfig, TSetupActorMap>
   ): TConfig;
 
   /** State input schemas from setup config */

@@ -51,7 +51,8 @@ import {
   Values,
   AnyStateNode,
   SystemRegistry,
-  TimeoutEvent
+  TimeoutEvent,
+  RequiredLogicInput
 } from './types';
 import { MachineContext, Mapper } from './types';
 import { LowInfer } from './types';
@@ -1905,6 +1906,101 @@ type MissingHistoryDefault<TConfig> = 0 extends 1 & TConfig
  */
 export type ValidateHistoryDefaults<TConfig> =
   MissingHistoryDefault<TConfig> extends never ? unknown : never;
+
+/** @public Error shown on an invoke that omits `input` its actor logic requires. */
+export type MissingInvokeInputError =
+  'This actor logic requires input. Add an `input` to this invoke.';
+
+// Tuple-wrapped `any` checks: a bare `0 extends 1 & T` resolves to `any` when
+// `T` comes from an erroneous expression (e.g. `src: () => actors.missing`).
+type InvokeSrcLogic<TSrc, TActorMap> = [0] extends [1 & TSrc]
+  ? never
+  : TSrc extends AnyActorLogic
+    ? TSrc
+    : TSrc extends string
+      ? TSrc extends keyof TActorMap
+        ? TActorMap[TSrc] extends AnyActorLogic
+          ? TActorMap[TSrc]
+          : never
+        : never
+      : TSrc extends (...args: any[]) => infer TResult
+        ? InvokeSrcLogic<TResult, TActorMap>
+        : never;
+
+// Helper-created invokes (`setup().createInvoke(...)`) carry symbol-keyed
+// phantom data and validate their own input, so they are skipped here.
+type InvokeMissesRequiredInput<TInvoke, TActorMap> = [0] extends [1 & TInvoke]
+  ? false
+  : TInvoke extends { src: infer TSrc }
+    ? 'input' extends keyof TInvoke
+      ? false
+      : [Extract<keyof TInvoke, symbol>] extends [never]
+        ? [InvokeSrcLogic<TSrc, TActorMap>] extends [never]
+          ? false
+          : [RequiredLogicInput<InvokeSrcLogic<TSrc, TActorMap>>] extends [
+                never
+              ]
+            ? false
+            : true
+        : false
+    : false;
+
+type InvokeInputErrors<TInvoke, TActorMap> = TInvoke extends readonly unknown[]
+  ? { [K in keyof TInvoke]: InvokeInputErrors<TInvoke[K], TActorMap> }
+  : InvokeMissesRequiredInput<TInvoke, TActorMap> extends true
+    ? { input: MissingInvokeInputError }
+    : unknown;
+
+type HasMissingInvokeInput<TConfig, TActorMap> = [0] extends [1 & TConfig]
+  ? false
+  :
+      | (TConfig extends { invoke: infer TInvoke }
+          ? TInvoke extends readonly unknown[]
+            ? InvokeMissesRequiredInput<TInvoke[number], TActorMap>
+            : InvokeMissesRequiredInput<TInvoke, TActorMap>
+          : false)
+      | (TConfig extends { states: infer TStates }
+          ? TStates extends Record<string, unknown>
+            ? {
+                [K in keyof TStates]: HasMissingInvokeInput<
+                  TStates[K],
+                  TActorMap
+                >;
+              }[keyof TStates]
+            : false
+          : false);
+
+type MissingInvokeInputErrors<TConfig, TActorMap> = (TConfig extends {
+  invoke: infer TInvoke;
+}
+  ? { invoke: InvokeInputErrors<TInvoke, TActorMap> }
+  : unknown) &
+  (TConfig extends { states: infer TStates }
+    ? TStates extends Record<string, unknown>
+      ? {
+          states: {
+            [K in keyof TStates]: MissingInvokeInputErrors<
+              TStates[K],
+              TActorMap
+            >;
+          };
+        }
+      : unknown
+    : unknown);
+
+/**
+ * @public Requires `input` on invokes whose actor logic requires input (its
+ * input type does not accept `undefined`), like `createActor(logic, { input })`.
+ * `src` may be actor logic, a key of `TActorMap`, or a function returning
+ * either. The error is reported at the invoke that omits `input`.
+ */
+export type ValidateInvokeInputs<
+  TConfig,
+  TActorMap = TConfig extends { actors: infer TActors } ? TActors : {}
+> =
+  true extends HasMissingInvokeInput<TConfig, TActorMap>
+    ? MissingInvokeInputErrors<TConfig, TActorMap>
+    : unknown;
 
 type StatePath = readonly string[];
 

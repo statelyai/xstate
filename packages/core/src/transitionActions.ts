@@ -727,7 +727,7 @@ export function createTransitionEnqueue(
         internalEvents.push(raisedEvent);
       }
     },
-    spawn: (source: string | AnyActorLogic, options: any) => {
+    spawn: (source: string | AnyActorLogic, options?: any) => {
       const { logic, src } = resolveTransitionSpawnSource(actorScope, source);
       if (!createActors) {
         // TODO: replace this speculative placeholder with a typed inert actor ref.

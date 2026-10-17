@@ -3641,6 +3641,7 @@ describe('invoke', () => {
       //   };
       // },
       actors: { child },
+      // @ts-expect-error input is required by the resolved logic
       invoke: {
         src: ({ actors }) => actors.child
       }

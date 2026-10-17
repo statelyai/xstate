@@ -313,6 +313,7 @@ describe('invoke', () => {
         waiting: {
           invoke: {
             src: childMachine,
+            input: { userId: 'user-1' },
             onDone: { target: 'received' }
           }
         },
