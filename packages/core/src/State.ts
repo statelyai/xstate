@@ -23,7 +23,8 @@ import type {
   SnapshotStatus,
   PersistedHistoryValue,
   AnyStateNode,
-  LogicalTimer
+  LogicalTimer,
+  SerializedActorRef
 } from './types.ts';
 import { isActorRefLike, matchesState } from './utils.ts';
 import {
@@ -31,7 +32,7 @@ import {
   getSnapshotActorRef,
   setSnapshotActorRef
 } from './snapshotActorRef.ts';
-import { isRemoteActorRef } from './remoteActorRef.ts';
+import { isRemoteActorRef, isSerializedActorRef } from './remoteActorRef.ts';
 import { findNonJsonPath } from './persistedSnapshotFormat.ts';
 
 const emptySnapshotRecord = Object.freeze({});
@@ -832,9 +833,12 @@ export function getPersistedSnapshot<
       event = { ...event };
       delete (event as EventObject & { sessionId?: string }).sessionId;
     }
-    let target: string | { type: 'parent' };
+    let target: string | { type: 'parent' } | SerializedActorRef;
     if (timer.target === 'self') {
       target = 'self';
+    } else if (isSerializedActorRef(timer.target)) {
+      // An address-backed target resolves when the timer fires.
+      target = { ...timer.target };
     } else {
       const childId = Object.entries(children).find(
         ([, child]) => child === timer.target

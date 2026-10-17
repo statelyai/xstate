@@ -1,5 +1,4 @@
 import isDevelopment from '#is-development';
-import { isSerializedActorRef } from './remoteActorRef.ts';
 import { assertSendToEvent, builtInActions } from './actions.ts';
 import { resolveRegisteredActorSource } from './actorSource.ts';
 import { listenerLogic, type ListenerInput } from './actors/listener.ts';
@@ -1234,24 +1233,10 @@ export function resolveActionsWithContext(
         target,
         ...actionRecord.args.slice(2)
       ];
-    } else if (
-      actionRecord?.action === builtInActions['@xstate.sendTo'] &&
-      isSerializedActorRef(actionRecord.args[1])
-    ) {
-      // A ref that went through JSON resolves by address to the live actor.
-      // An unresolved address stays address-backed: delivery resolves it
-      // again, routes it through a host runtime, or reports a dead letter.
-      const live = actorScope.system._getByAddress?.(
-        actionRecord.args[1].$actor
-      );
-      if (live) {
-        resolvedActionArgs = [
-          actionRecord.args[0],
-          live,
-          ...actionRecord.args.slice(2)
-        ];
-      }
     }
+    // A ref that went through JSON stays address-backed through effects and
+    // timers: delivery resolves it to whichever actor is live at the address
+    // then, routes it through a host runtime, or reports a dead letter.
 
     const resolvedAction = isInline
       ? action
