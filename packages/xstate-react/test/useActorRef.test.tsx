@@ -6,6 +6,7 @@ import {
 import * as React from 'react';
 import {
   ActorRefFrom,
+  createActor,
   createAsyncLogic,
   createStepLogic,
   createMachine
@@ -587,6 +588,56 @@ describeEachReactMode('useActorRef (%s)', ({ suiteKey, render }) => {
 
     expect(button.textContent).toBe('3');
     expect(renders).toBeLessThan(20);
+  });
+
+  it('does not leak sources provided on rerender into a shared module-level machine', () => {
+    const original = vi.fn();
+    const leaked = vi.fn();
+    const machine = createMachine({
+      actions: {
+        stuff: original
+      },
+      on: {
+        DO: ({ actions }, enq) => enq(actions.stuff)
+      }
+    });
+
+    let providingActor!: ActorRefFrom<typeof machine>;
+    let otherActor!: ActorRefFrom<typeof machine>;
+
+    const Providing = ({ provide }: { provide: boolean }) => {
+      providingActor = useActorRef(
+        provide ? machine.provide({ actions: { stuff: leaked } }) : machine
+      );
+      return null;
+    };
+    const Other = () => {
+      otherActor = useActorRef(machine);
+      return null;
+    };
+    const App = ({ provide }: { provide: boolean }) => (
+      <>
+        <Providing provide={provide} />
+        <Other />
+      </>
+    );
+
+    const { rerender } = render(<App provide={false} />);
+    rerender(<App provide={true} />);
+
+    expect(machine.sources.actions.stuff).toBe(original);
+
+    otherActor.send({ type: 'DO' });
+    expect(original).toHaveBeenCalledTimes(1);
+    expect(leaked).not.toHaveBeenCalled();
+
+    providingActor.send({ type: 'DO' });
+    expect(leaked).toHaveBeenCalledTimes(1);
+
+    const fresh = createActor(machine).start();
+    fresh.send({ type: 'DO' });
+    expect(original).toHaveBeenCalledTimes(2);
+    expect(leaked).toHaveBeenCalledTimes(1);
   });
 
   it("should execute action bound to a specific machine's instance when the action is provided in render", () => {
