@@ -6,7 +6,7 @@ import {
 } from '../src/actors/callback.ts';
 import {
   ActorFromLogic,
-  ActorRefFromLogic,
+  ActorRefFrom,
   EventObject,
   EventRejection,
   createActor,
@@ -1827,12 +1827,12 @@ describe('entry/exit actions', () => {
       const parent = createMachine({
         // types: {} as {
         //   context: {
-        //     child: ActorRefFromLogic<typeof child>;
+        //     child: ActorRefFrom<typeof child>;
         //   };
         // },
         schemas: {
           context: z.object({
-            child: z.custom<ActorRefFromLogic<typeof child>>()
+            child: z.custom<ActorRefFrom<typeof child>>()
           })
         },
         id: 'parent',
@@ -2944,7 +2944,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       schemas: {
         children: {
-          worker: z.custom<ActorRefFromLogic<typeof childMachine>>()
+          worker: z.custom<ActorRefFrom<typeof childMachine>>()
         }
       },
       invoke: {
@@ -2981,7 +2981,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       schemas: {
         children: {
-          worker: z.custom<ActorRefFromLogic<typeof childMachine>>()
+          worker: z.custom<ActorRefFrom<typeof childMachine>>()
         }
       },
       on: {
@@ -3016,7 +3016,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       schemas: {
         children: {
-          '': z.custom<ActorRefFromLogic<typeof childMachine>>()
+          '': z.custom<ActorRefFrom<typeof childMachine>>()
         }
       },
       on: {
@@ -3053,7 +3053,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       schemas: {
         children: {
-          worker: z.custom<ActorRefFromLogic<typeof childMachine>>()
+          worker: z.custom<ActorRefFrom<typeof childMachine>>()
         }
       },
       initial: 'active',
@@ -3099,7 +3099,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       schemas: {
         children: {
-          toString: z.custom<ActorRefFromLogic<typeof childMachine>>()
+          toString: z.custom<ActorRefFrom<typeof childMachine>>()
         }
       },
       initial: 'active',
@@ -3154,7 +3154,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       schemas: {
         context: z.object({
-          child: z.custom<ActorRefFromLogic<typeof childMachine>>()
+          child: z.custom<ActorRefFrom<typeof childMachine>>()
         })
       },
       context: ({ spawn }) => ({
@@ -3191,7 +3191,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       schemas: {
         context: z.object({
-          child: z.custom<ActorRefFromLogic<typeof childMachine>>(),
+          child: z.custom<ActorRefFrom<typeof childMachine>>(),
           count: z.number()
         })
       },
@@ -3234,12 +3234,12 @@ describe('sendTo', () => {
     createMachine({
       // types: {} as {
       //   context: {
-      //     child: ActorRefFromLogic<typeof childMachine>;
+      //     child: ActorRefFrom<typeof childMachine>;
       //   };
       // },
       schemas: {
         context: z.object({
-          child: z.custom<ActorRefFromLogic<typeof childMachine>>()
+          child: z.custom<ActorRefFrom<typeof childMachine>>()
         })
       },
       context: ({ spawn }) => ({
@@ -3282,11 +3282,11 @@ describe('sendTo', () => {
     });
     const parentMachine = createMachine({
       // types: {} as {
-      //   context: { child: ActorRefFromLogic<typeof childMachine> };
+      //   context: { child: ActorRefFrom<typeof childMachine> };
       // },
       schemas: {
         context: z.object({
-          child: z.custom<ActorRefFromLogic<typeof childMachine>>()
+          child: z.custom<ActorRefFrom<typeof childMachine>>()
         })
       },
       context: ({ spawn }) => ({
@@ -3326,11 +3326,11 @@ describe('sendTo', () => {
     });
     const parentMachine = createMachine({
       // types: {} as {
-      //   context: { child: ActorRefFromLogic<typeof childMachine> };
+      //   context: { child: ActorRefFrom<typeof childMachine> };
       // },
       schemas: {
         context: z.object({
-          child: z.custom<ActorRefFromLogic<typeof childMachine>>()
+          child: z.custom<ActorRefFrom<typeof childMachine>>()
         })
       },
       context: ({ spawn }) => ({
@@ -3353,7 +3353,7 @@ describe('sendTo', () => {
       // },
       schemas: {
         context: z.record(
-          z.custom<ActorRefFromLogic<CallbackActorLogic<any, any, any>>>()
+          z.custom<ActorRefFrom<CallbackActorLogic<any, any, any>>>()
         ),
         events: {
           EVENT: z.object({ value: z.string() })

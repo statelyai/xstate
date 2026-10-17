@@ -293,7 +293,7 @@ Declare child ids with `schemas.children` to type `children` and to check that e
 setup({}).createMachine({
   schemas: {
     children: {
-      payment: z.custom<ActorRefFromLogic<typeof paymentMachine>>()
+      payment: z.custom<ActorRefFrom<typeof paymentMachine>>()
     }
   },
   invoke: { id: 'payment', src: paymentMachine }
@@ -320,7 +320,7 @@ setup({
   schemas: {
     events: { retry: z.object({}) },
     children: {
-      fetch: z.custom<ActorRefFromLogic<typeof fetchUser>>()
+      fetch: z.custom<ActorRefFrom<typeof fetchUser>>()
     }
   }
 }).createMachine({

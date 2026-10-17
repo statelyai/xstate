@@ -4,7 +4,7 @@ import {
   createCallbackLogic,
   createSystem,
   initialTransition,
-  type ActorRefFromLogic,
+  type ActorRefFrom,
   type SnapshotFrom,
   setup,
   types,
@@ -641,7 +641,7 @@ describe('setup.createInvoke', () => {
   it('preserves explicit child ids and logic compatibility', () => {
     const s = setup({
       schemas: {
-        children: { user: types<ActorRefFromLogic<typeof userLogic>>() }
+        children: { user: types<ActorRefFrom<typeof userLogic>>() }
       }
     });
     s.createMachine({
@@ -677,9 +677,9 @@ describe('setup.createInvoke', () => {
     const machine = s.createMachine({
       schemas: {
         children: {
-          staticUser: types<ActorRefFromLogic<typeof userLogic>>(),
-          mappedUser: types<ActorRefFromLogic<typeof userLogic>>(),
-          optional: types<ActorRefFromLogic<typeof optionalLogic>>()
+          staticUser: types<ActorRefFrom<typeof userLogic>>(),
+          mappedUser: types<ActorRefFrom<typeof userLogic>>(),
+          optional: types<ActorRefFrom<typeof optionalLogic>>()
         }
       },
       context: { id: 7 },

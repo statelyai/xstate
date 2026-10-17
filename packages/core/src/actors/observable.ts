@@ -6,7 +6,7 @@ import type { ActorLogicValidator } from '../validation.types.ts';
 import {
   ActorLogic,
   ActorFromLogic,
-  ActorRefFromLogic,
+  ActorRefFrom,
   AnyActor,
   AnyEventObject,
   EventObject,
@@ -87,7 +87,7 @@ export type ObservableActorLogic<
  * @see {@link createEventObservableLogic}
  * @public
  */
-export type ObservableActorRef<TContext> = ActorRefFromLogic<
+export type ObservableActorRef<TContext> = ActorRefFrom<
   ObservableActorLogic<TContext, any>
 >;
 

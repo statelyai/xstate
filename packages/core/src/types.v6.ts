@@ -17,7 +17,7 @@ import {
   AfterEvent,
   ActorLogic,
   ActorRef,
-  ActorRefFromLogic,
+  ActorRefFrom,
   ActorSelf,
   AnyActorLogic,
   AnyActorRef,
@@ -516,7 +516,7 @@ type ChildIdForLogic<
   HasExplicitChildren<TChildren> extends true
     ? Values<{
         [K in keyof TChildren &
-          string]: ActorRefFromLogic<TLogic> extends NonNullable<TChildren[K]>
+          string]: ActorRefFrom<TLogic> extends NonNullable<TChildren[K]>
           ? K
           : never;
       }>

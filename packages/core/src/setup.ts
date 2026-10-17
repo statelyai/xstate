@@ -22,7 +22,7 @@ import {
   AnyActorRef,
   AnyStateMachine,
   AnyActorLogic,
-  ActorRefFromLogic,
+  ActorRefFrom,
   AnyStateNode,
   EventObject,
   AnyEventObject,
@@ -442,7 +442,7 @@ export type SystemConfig<TSystemRegistry extends SystemRegistry> = {
 
 /** @public */
 export type SystemActorMap<TSystemRegistry extends SystemRegistry> = {
-  [K in keyof TSystemRegistry & string]: ActorRefFromLogic<TSystemRegistry[K]>;
+  [K in keyof TSystemRegistry & string]: ActorRefFrom<TSystemRegistry[K]>;
 };
 
 type MachineIdentity<TConfig> = {
@@ -472,7 +472,7 @@ type LogicMatchesRegistryKey<TLogic, TSystemLogic> =
         ? true
         : [TSystemLogic] extends [TLogic]
           ? true
-          : ActorRefFromLogic<TLogic> extends ActorRefFromLogic<TSystemLogic>
+          : ActorRefFrom<TLogic> extends ActorRefFrom<TSystemLogic>
             ? true
             : false
       : false
@@ -3687,7 +3687,7 @@ export interface CreatedInvoke<
     input: TStateInput;
     child: NoInfer<{
       id: TConfig extends { id: infer TId } ? TId : undefined;
-      ref: ActorRefFromLogic<TLogic>;
+      ref: ActorRefFrom<TLogic>;
     }>;
   };
   readonly [createdInvokeConfig]: NoInfer<TConfig>;
@@ -3735,7 +3735,7 @@ type CreatedInvokeId<
     : {
         id: {
           [K in keyof TChildren &
-            string]: ActorRefFromLogic<TLogic> extends NonNullable<TChildren[K]>
+            string]: ActorRefFrom<TLogic> extends NonNullable<TChildren[K]>
             ? K
             : never;
         }[keyof TChildren & string];

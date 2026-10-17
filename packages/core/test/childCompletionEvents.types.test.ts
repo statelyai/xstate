@@ -4,7 +4,7 @@ import {
   createAsyncLogic,
   createMachine,
   setup,
-  type ActorRefFromLogic
+  type ActorRefFrom
 } from '../src/index.ts';
 
 function expectType<T>(_v: T) {}
@@ -15,7 +15,7 @@ const fetchUser = createAsyncLogic({
 });
 
 const children = {
-  fetch: z.custom<ActorRefFromLogic<typeof fetchUser>>()
+  fetch: z.custom<ActorRefFrom<typeof fetchUser>>()
 };
 
 describe('child completion events in resolver event unions', () => {

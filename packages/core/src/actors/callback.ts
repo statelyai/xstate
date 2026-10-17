@@ -1,7 +1,7 @@
 import { AnyActorSystem } from '../system.ts';
 import {
   ActorLogic,
-  ActorRefFromLogic,
+  ActorRefFrom,
   AnyActorRef,
   AnyEventObject,
   EventObject,
@@ -86,7 +86,7 @@ export type CallbackActorLogic<
 export type CallbackActorRef<
   TEvent extends EventObject,
   TInput = NonReducibleUnknown
-> = ActorRefFromLogic<CallbackActorLogic<TEvent, TInput>>;
+> = ActorRefFrom<CallbackActorLogic<TEvent, TInput>>;
 
 type Receiver<TEvent extends EventObject> = (
   listener: {

@@ -3,7 +3,7 @@ import {
   createAsyncLogic,
   setup,
   types,
-  type ActorRefFromLogic
+  type ActorRefFrom
 } from '../../../src/index.ts';
 
 const s = setup({
@@ -72,11 +72,11 @@ export const hoistedChild = childSetup.createInvoke({
   input: { id: 1 }
 });
 export const machineWithChildren = childSetup.createMachine({
-  schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+  schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
   invoke: hoistedChild
 });
 export const inlineMachineWithChildren = childSetup.createMachine({
-  schemas: { children: { job: types<ActorRefFromLogic<typeof job>>() } },
+  schemas: { children: { job: types<ActorRefFrom<typeof job>>() } },
   invoke: childSetup.createInvoke({
     id: 'job',
     src: job,

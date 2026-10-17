@@ -198,7 +198,7 @@ Declare `schemas.children` to type the `children` record for known ids:
 ```ts
 schemas: {
   children: {
-    connection: z.custom<ActorRefFromLogic<typeof connection>>()
+    connection: z.custom<ActorRefFrom<typeof connection>>()
   }
 }
 ```

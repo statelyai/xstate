@@ -8,7 +8,7 @@ import { systemLogicMetadata } from '../systemLogicMetadata.ts';
 import {
   ActorLogic,
   ActorFromLogic,
-  ActorRefFromLogic,
+  ActorRefFrom,
   AnyActor,
   AnyEventObject,
   EventObject,
@@ -49,7 +49,7 @@ export type AsyncActorLogic<
 >;
 
 /** @public */
-export type AsyncActorRef<TOutput> = ActorRefFromLogic<
+export type AsyncActorRef<TOutput> = ActorRefFrom<
   AsyncActorLogic<TOutput, unknown>
 >;
 

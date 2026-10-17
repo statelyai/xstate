@@ -6,7 +6,6 @@ import type {
 } from './State.ts';
 import type { StateMachine } from './StateMachine.ts';
 import type { StateNode } from './StateNode.ts';
-import { AsyncActorLogic } from './actors/promise.ts';
 import type { Actor, ProcessingStatus } from './createActor.ts';
 import { InspectionEvent } from './inspection.ts';
 import { Spawner } from './spawn.ts';
@@ -2432,21 +2431,6 @@ export type ActorSelf<
 > = ActorRuntime<TSnapshot, TEvent, TEmitted, TSendEvent> &
   ActorRef<TSnapshot, TEvent, TEmitted, TSendEvent>;
 
-// TODO: in v6, this should only accept AnyActorLogic, like ActorRefFromLogic
-/** @public */
-export type ActorRefFrom<T> =
-  T extends Promise<infer U>
-    ? ActorRefFrom<AsyncActorLogic<U>>
-    : T extends ActorLogic<
-          infer TSnapshot,
-          infer TEvent,
-          infer _TInput,
-          infer _TSystem,
-          infer TEmitted
-        >
-      ? ActorRef<TSnapshot, TEvent, TEmitted, SendableEventFromLogic<T>>
-      : never;
-
 /** @public */
 export type SendableEventFromLogic<TLogic extends AnyActorLogic> =
   TLogic extends StateMachine<
@@ -2495,8 +2479,18 @@ type OpaqueMachineSnapshot<TSnapshot extends Snapshot<unknown>> =
       >
     : TSnapshot;
 
-/** @public */
-export type ActorRefFromLogic<T extends AnyActorLogic> = ActorRef<
+/**
+ * The actor ref type for the given actor logic.
+ *
+ * @example
+ *
+ * ```ts
+ * type ChildRef = ActorRefFrom<typeof childMachine>;
+ * ```
+ *
+ * @public
+ */
+export type ActorRefFrom<T extends AnyActorLogic> = ActorRef<
   OpaqueMachineSnapshot<SnapshotFrom<T>>,
   EventFromLogic<T>,
   EmittedFrom<T>,
@@ -2936,9 +2930,7 @@ export type RegistryKeyForLogic<
   ? string
   : Values<{
       [K in keyof TSystemRegistry &
-        string]: ActorRefFromLogic<TLogic> extends ActorRefFromLogic<
-        TSystemRegistry[K]
-      >
+        string]: ActorRefFrom<TLogic> extends ActorRefFrom<TSystemRegistry[K]>
         ? K
         : never;
     }>;
