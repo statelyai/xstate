@@ -302,6 +302,8 @@
         "initial": { "$ref": "#/$defs/initial" },
         "states": {
           "type": "object",
+          "description": "State keys escape a literal dot as \\\\. (an unescaped . separates path segments).",
+          "propertyNames": { "pattern": "^(?:[^.\\\\]|\\\\.)*$" },
           "additionalProperties": { "$ref": "#/$defs/stateNode" }
         },
         "on": { "$ref": "#/$defs/transitionMap" },

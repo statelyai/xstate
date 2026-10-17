@@ -16,10 +16,10 @@ const flatParallelMachine = createMachine({
               type: 'parallel',
               states: {
                 s3: {
-                  initial: 's3.1',
+                  initial: 's3\\.1',
                   states: {
-                    's3.1': {},
-                    's3.2': {}
+                    's3\\.1': {},
+                    's3\\.2': {}
                   }
                 },
                 s4: {}
@@ -67,7 +67,10 @@ describe('resolve()', () => {
       unresolvedStateValue
     );
     expect(resolvedStateValue).toEqual({
-      p1: { s1: { p2: { s3: 's3.1', s4: {} } }, s2: { p4: { s7: {}, s8: {} } } }
+      p1: {
+        s1: { p2: { s3: 's3\\.1', s4: {} } },
+        s2: { p4: { s7: {}, s8: {} } }
+      }
     });
   });
 });

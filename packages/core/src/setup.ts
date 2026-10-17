@@ -987,7 +987,7 @@ type ProtectSetupStatePathDots<TValue extends string> =
 
 type RestoreSetupStatePathDots<TValue extends string> =
   TValue extends `${infer THead}__XSTATE_ESCAPED_DOT__${infer TTail}`
-    ? `${THead}.${RestoreSetupStatePathDots<TTail>}`
+    ? `${THead}\\.${RestoreSetupStatePathDots<TTail>}`
     : TValue;
 
 type SplitSetupStatePath<TPath extends string> =
@@ -1071,9 +1071,9 @@ type SetupStateParentAtPath<
 /** Union of every addressable dotted path into a setup states tree */
 type StatePathsInner<TStates extends Record<string, SetupStateSchema>> = {
   [K in SetupStateKeys<TStates>]:
-    | EscapeSetupStatePathDots<K>
+    | K
     | (TStates[K]['states'] extends Record<string, SetupStateSchema>
-        ? `${EscapeSetupStatePathDots<K>}.${StatePathsInner<TStates[K]['states']>}`
+        ? `${K}.${StatePathsInner<TStates[K]['states']>}`
         : never);
 }[SetupStateKeys<TStates>];
 

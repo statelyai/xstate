@@ -1576,7 +1576,11 @@ export class StateMachine<
           : "State id '#' is empty: the root of a machine without an `id` cannot be referenced by id. Give the machine an `id` to reference its root as '#<id>'."
       );
     }
-    const stateNode = this.idMap.get(resolvedStateId);
+    // Implicit ids keep escaped dots (`foo\\.bar`); explicit ids that contain
+    // a `.` are referenced with the dot escaped and stored unescaped.
+    const stateNode =
+      this.idMap.get(resolvedStateId) ??
+      this.idMap.get(resolvedStateId.replaceAll('\\.', '.'));
     if (!stateNode) {
       throw new Error(
         `Child state node '#${resolvedStateId}' does not exist on ${describeMachine(this.id)}`

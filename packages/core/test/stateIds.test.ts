@@ -3,6 +3,7 @@ import {
   createAsyncLogic,
   createMachine,
   createStepLogic,
+  machineFromJSON,
   type AnyActor
 } from '../src/index.ts';
 
@@ -248,5 +249,64 @@ describe('implicit invoke ids', () => {
     ] as AnyActor;
     expect(child.getSnapshot().status).toBe('active');
     expect(restored.getSnapshot().matches('#upload.loading')).toBe(true);
+  });
+});
+
+describe('state keys with dots', () => {
+  it('reject an unescaped `.`', () => {
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        states: { a: {}, 'foo.bar': {} }
+      } as any)
+    ).toThrow(
+      'State key "foo.bar" contains "." — nest the states or escape it as "foo\\\\.bar".'
+    );
+    expect(() =>
+      machineFromJSON({ initial: 'a', states: { a: {}, 'foo.bar': {} } })
+    ).toThrow('State key "foo.bar" contains "."');
+  });
+
+  it('keep an escaped `.` in their path segment', () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            ESCAPED: { target: 'foo\\.bar' },
+            NESTED: { target: 'foo.bar' }
+          }
+        },
+        'foo\\.bar': {},
+        foo: { initial: 'bar', states: { bar: {} } }
+      }
+    });
+
+    expect(idsOf(machine)).toEqual([
+      '',
+      'start',
+      'foo\\.bar',
+      'foo',
+      'foo.bar'
+    ]);
+
+    const actor = createActor(machine).start();
+    actor.send({ type: 'ESCAPED' });
+    const snapshot = actor.getSnapshot();
+    expect(snapshot.value).toBe('foo\\.bar');
+    expect(snapshot.matches('foo\\.bar')).toBe(true);
+    expect(snapshot.matches('#foo\\.bar')).toBe(true);
+    expect(snapshot.matches('#foo.bar' as never)).toBe(false);
+
+    const restored = createActor(machine, {
+      snapshot: JSON.parse(JSON.stringify(actor.getPersistedSnapshot()))
+    }).start();
+    expect(restored.getSnapshot().value).toBe('foo\\.bar');
+    restored.stop();
+
+    const nested = createActor(machine).start();
+    nested.send({ type: 'NESTED' });
+    expect(nested.getSnapshot().value).toEqual({ foo: 'bar' });
+    expect(nested.getSnapshot().matches('#foo.bar')).toBe(true);
   });
 });

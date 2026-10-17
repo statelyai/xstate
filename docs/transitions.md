@@ -15,7 +15,7 @@ idle: { on: { start: { target: 'active' } } }
 
 | Property | Description |
 | --- | --- |
-| `target` | Target state or states. |
+| `target` | Target state or states: a sibling key, a `.`-separated path, a `.child` descendant, or a `#id` (explicit or implicit). Escape a literal dot in a key as `\\.`. |
 | `matches` | Event payload that must match. |
 | `context` | Context patch or mapper. |
 | `input` | Input for the target state. |

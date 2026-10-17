@@ -67,6 +67,18 @@ export function assertUnreservedSourceName(kind: string, name: string): void {
   }
 }
 
+/** Whether a state key contains a `.` that is not escaped as `\\.`. */
+export function hasUnescapedDot(key: string): boolean {
+  for (let i = 0; i < key.length; i++) {
+    if (key[i] === '\\') {
+      i++;
+    } else if (key[i] === '.') {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function toStatePath(stateId: string | string[]): string[] {
   if (isArray(stateId)) {
     return stateId;
@@ -80,8 +92,10 @@ export function toStatePath(stateId: string | string[]): string[] {
     switch (char) {
       // \
       case 92:
-        // consume the next character
-        segment += stateId[i + 1];
+        // An escaped `.` stays escaped: `foo\\.bar` is one path segment, the
+        // literal state key `'foo\\.bar'`. Other escapes consume the next
+        // character.
+        segment += stateId[i + 1] === '.' ? '\\.' : stateId[i + 1];
         // and skip over it
         i++;
         continue;

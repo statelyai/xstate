@@ -36,6 +36,7 @@ import type {
 import type { NonReducibleUnknown } from './typeUtils.ts';
 import {
   createInvokeId,
+  hasUnescapedDot,
   mapValues,
   toArray,
   toTransitionConfigArray
@@ -167,6 +168,12 @@ export class StateNode<
     this.parent = options._parent;
     this.key = options._key;
     this.machine = options._machine;
+    if (this.parent && hasUnescapedDot(this.key)) {
+      throw new Error(
+        // The suggestion is written as a JS string literal.
+        `State key "${this.key}" contains "." — nest the states or escape it as "${this.key.replaceAll(/(?<!\\)\./g, '\\\\.')}".`
+      );
+    }
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     const firstStateKey = this.config.states
       ? Object.keys(this.config.states)[0]
@@ -194,9 +201,9 @@ export class StateNode<
     }
 
     const existing = this.machine.idMap.get(this.id);
-    // Two implicit ids only coincide through keys containing `.`; an explicit
-    // id that equals any other id would make `#id` ambiguous.
-    if (existing && (existing.config.id || this.config.id)) {
+    // Valid keys escape their dots, so two implicit ids cannot coincide; an
+    // explicit id that equals another id would make `#id` ambiguous.
+    if (existing) {
       throw new Error(
         `Duplicate state id '${this.id}': the states at '${existing.path.join(STATE_DELIMITER)}' and '${this.path.join(STATE_DELIMITER)}' both have it. State ids must be unique; rename the explicit \`id\`.`
       );

@@ -124,7 +124,7 @@ describe('State node IDs', () => {
             unescaped: { target: 'foo.bar' }
           }
         },
-        'foo.bar': {},
+        'foo\\.bar': {},
         foo: {
           initial: 'bar',
           states: {
@@ -139,7 +139,7 @@ describe('State node IDs', () => {
       type: 'escaped'
     });
 
-    expect(escapedState.value).toEqual('foo.bar');
+    expect(escapedState.value).toEqual('foo\\.bar');
 
     const [unescapedState] = transition(machine, initialState, {
       type: 'unescaped'

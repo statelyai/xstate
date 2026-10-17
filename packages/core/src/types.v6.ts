@@ -2027,6 +2027,8 @@ type AppendStatePath<TPrefix extends StatePath, TKey extends string> = [
   TKey
 ];
 
+// Explicit ids are stored unescaped and referenced with escaped dots. State
+// keys already escape their dots, and an escaped dot stays in its segment.
 type EscapeStatePathDots<TValue extends string> =
   TValue extends `${infer THead}.${infer TTail}`
     ? `${THead}\\.${EscapeStatePathDots<TTail>}`
@@ -2039,7 +2041,7 @@ type ProtectEscapedStatePathDots<TValue extends string> =
 
 type RestoreEscapedStatePathDots<TValue extends string> =
   TValue extends `${infer THead}__XSTATE_ESCAPED_DOT__${infer TTail}`
-    ? `${THead}.${RestoreEscapedStatePathDots<TTail>}`
+    ? `${THead}\\.${RestoreEscapedStatePathDots<TTail>}`
     : TValue;
 
 type SplitStatePath<TPath extends string> =
@@ -2108,13 +2110,13 @@ type StateTargetStringsFromStates<TStates, TPrefix extends string = ''> =
   TStates extends Record<string, unknown>
     ? {
         [K in keyof TStates & string]:
-          | JoinStateTargetString<TPrefix, EscapeStatePathDots<K>>
+          | JoinStateTargetString<TPrefix, K>
           | (0 extends 1 & TStates[K]
               ? never
               : TStates[K] extends { states: infer TChildren }
                 ? StateTargetStringsFromStates<
                     TChildren,
-                    JoinStateTargetString<TPrefix, EscapeStatePathDots<K>>
+                    JoinStateTargetString<TPrefix, K>
                   >
                 : never);
       }[keyof TStates & string]
