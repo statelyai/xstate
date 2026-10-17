@@ -1732,10 +1732,13 @@ export function macrostep(
       // TODO: we should likely only allow transitions selected by very explicit descriptors
       // `*` shouldn't be matched, likely `xstate.error.*` shouldn't be either
       // similarly `xstate.error.actor.*` and `xstate.error.actor.todo.*` have to be considered too
-      nextSnapshot = cloneMachineSnapshot<typeof snapshot>(snapshot, {
-        status: 'error',
-        error: currentEvent.error
-      });
+      nextSnapshot = cloneMachineSnapshot<typeof snapshot>(
+        stopChildren(nextSnapshot, currentEvent, actorScope),
+        {
+          status: 'error',
+          error: currentEvent.error
+        }
+      );
       addMicrostep([nextSnapshot, []], currentEvent, []);
       return {
         snapshot: nextSnapshot,
