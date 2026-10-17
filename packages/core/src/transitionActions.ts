@@ -14,7 +14,9 @@ import {
   matchesTimerKey,
   readTimerKey
 } from './timerKey.ts';
+import { createInertActorRef } from './remoteActorRef.ts';
 import {
+  encodeAddressSegment,
   getActorIdPrefix,
   parseGeneratedActorId,
   type ActorSystemRuntime,
@@ -682,6 +684,14 @@ export function takeSpawnAllocationCounters(
   return Object.fromEntries(counters);
 }
 
+/**
+ * Scopes whose `self` is not the evaluated snapshot's actor (the shared
+ * `snapshot.can(...)` scope), so spawned inert refs have no address.
+ *
+ * @internal
+ */
+export const detachedScopes = new WeakSet<AnyActorScope>();
+
 export function createTransitionEnqueue(
   actorScope: AnyActorScope,
   actions: any[],
@@ -730,10 +740,22 @@ export function createTransitionEnqueue(
     spawn: (source: string | AnyActorLogic, options?: any) => {
       const { logic, src } = resolveTransitionSpawnSource(actorScope, source);
       if (!createActors) {
-        // TODO: replace this speculative placeholder with a typed inert actor ref.
-        return {
-          id: options?.id ?? options?.registryKey ?? src ?? (logic as any).id
-        } as AnyActor;
+        // Speculative evaluation creates no actor and allocates no id: return
+        // an inert ref with the id this spawn would get.
+        const id =
+          options?.id ??
+          `${getActorIdPrefix(src ?? logic)}:${nextChildIndex(
+            actorScope,
+            localAllocation,
+            getActorIdPrefix(src ?? logic)
+          )}`;
+        return createInertActorRef({
+          id,
+          address: detachedScopes.has(actorScope)
+            ? undefined
+            : `${actorScope.self.address}/${encodeAddressSegment(id)}`,
+          src
+        });
       }
       // Generated ids allocate from the parent snapshot's own counters
       // through the transition's allocation transaction; explicit

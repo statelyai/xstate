@@ -51,6 +51,7 @@ import {
   createDeadLetterEffect,
   createSpawnEffect,
   createStartEffect,
+  detachedScopes,
   resolveActionsWithContext,
   mergeActorIdCounters,
   takeSpawnAllocationCounters
@@ -167,6 +168,7 @@ function getEmptyCanActorScope(): AnyActorScope {
     emit: () => {},
     actionExecutor: () => {}
   };
+  detachedScopes.add(emptyCanActorScope);
   return emptyCanActorScope;
 }
 

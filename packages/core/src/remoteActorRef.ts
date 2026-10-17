@@ -88,6 +88,52 @@ const remoteSnapshot: Snapshot<undefined> = Object.freeze({
 });
 
 /**
+ * Creates the inert ref `enq.spawn(...)` returns while a transition is only
+ * evaluated (for example by `snapshot.can(...)`, or to resolve conflicting
+ * transitions) and no actor is created. It carries the identity the spawn
+ * would get, accepts and drops events, exposes the same lifecycle-only
+ * snapshot as a remote handle, and serializes like any actor ref. Its address
+ * is unknown when the evaluating scope is detached from the parent actor.
+ *
+ * @internal
+ */
+export function createInertActorRef(options: {
+  id: string;
+  address: string | undefined;
+  src: string | undefined;
+}): AnyActor {
+  const { id, address } = options;
+  const handle = {
+    ref: undefined as unknown as AnyActor,
+    id,
+    address,
+    src: options.src,
+    sessionId: undefined,
+    send() {},
+    getSnapshot(): Snapshot<undefined> {
+      return remoteSnapshot;
+    },
+    subscribe(): Subscription {
+      return emptySubscription;
+    },
+    on(): Subscription {
+      return emptySubscription;
+    },
+    toJSON(): SerializedActorRef {
+      if (address === undefined) {
+        throw new Error(
+          `Cannot serialize actor ref '${id}': it was returned by a spawn during speculative transition evaluation, which creates no actor and has no parent address.`
+        );
+      }
+      return { $actor: address };
+    }
+  };
+  const ref = handle as unknown as AnyActor;
+  handle.ref = ref;
+  return ref;
+}
+
+/**
  * Creates a location-transparent handle to an actor whose state lives with
  * another runtime. The handle is constructed from identity alone — no lookup
  * — and every send routes through the system's runtime; its state is not
