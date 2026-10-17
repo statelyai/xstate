@@ -363,16 +363,19 @@ interface MachineSnapshotBase<
     TMeta,
     TStateSchema
   >;
-  // Non-literal values, and unions of snapshots (whose overloads above differ)
+  // Unions of snapshots (whose overloads above differ)
+  matches<TSnapshot extends { value: StateValue }>(
+    this: TSnapshot,
+    stateId: NoInfer<SnapshotStateIdReference<TSnapshot>>
+  ): boolean;
+  // Non-literal values, and unions of snapshots
   matches<
     TSnapshot extends { value: StateValue },
     const TTestStateValue extends StateValue
   >(
     this: TSnapshot,
-    partialStateValue: TTestStateValue extends `#${string}`
-      ? NoInfer<SnapshotStateIdReference<TSnapshot>>
-      : TTestStateValue &
-          NoInfer<TestStateValueCheck<TSnapshot['value'], TTestStateValue>>
+    partialStateValue: TTestStateValue &
+      NoInfer<TestStateValueCheck<TSnapshot['value'], TTestStateValue>>
   ): boolean;
 
   /**
