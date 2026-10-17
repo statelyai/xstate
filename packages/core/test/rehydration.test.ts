@@ -679,6 +679,7 @@ describe('rehydration', () => {
       }
 
       it.each([
+        ['null', null],
         ['a string', 'reviewing'],
         ['a number', 42],
         ['an array', [] as unknown[]]
