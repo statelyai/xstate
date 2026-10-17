@@ -14,7 +14,7 @@ If you're using Vue 2.x, please see [the Vue recipe](https://xstate.js.org/docs/
 1. Install `xstate` and `@xstate/vue`:
 
 ```bash
-npm i xstate @xstate/vue
+npm i xstate@beta @xstate/vue@beta
 ```
 
 **Via CDN**

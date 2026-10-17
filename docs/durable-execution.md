@@ -3,6 +3,8 @@ title: Durable execution
 description: Run pure XState transitions on a durable host.
 ---
 
+> **Experimental:** the `xstate/durable` exports, including `createDurable(...)`, may change in a minor release.
+
 Import the experimental durable execution helper from `xstate/durable` when a
 workflow platform owns persistence, retries, timers, messaging and child
 execution.

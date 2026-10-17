@@ -7,7 +7,7 @@ Combine XState's event-driven workflows with Effect services, scopes, clocks and
 - Provide services once for the actor and its child logic.
 - Keep actor lifetime inside your Effect application.
 
-This package is experimental. It targets XState v6 alpha and Effect 4.
+This package is experimental. It targets XState v6 beta and Effect 4.
 
 In these docs, "transition effects" are the executable effect descriptors (`ExecutableEffect`) that an XState transition returns. "Effect" means an Effect.ts program.
 
@@ -16,7 +16,7 @@ In these docs, "transition effects" are the executable effect descriptors (`Exec
 <!-- package name and peer dependencies from package.json -->
 
 ```bash
-npm install @xstate/effect@alpha xstate@alpha effect@^4
+npm install @xstate/effect@beta xstate@beta effect@^4
 ```
 
 ## XState Effect: Quick start

@@ -5,6 +5,8 @@ description: Observe actor systems and transitions.
 
 Pass an inspector to the root actor with the `inspect` option.
 
+> **Experimental:** the inspection event types (`InspectionEvent`, `ActorInspectionEvent`, `TransitionInspectionEvent`) may change in a minor release.
+
 ```ts
 const actor = createActor(machine, {
   inspect: (inspectionEvent) => {

@@ -4,7 +4,7 @@ description: Every API change from v5 to v6, organized by area, with before-and-
 ---
 
 
-XState v6 is currently in alpha (`npm install xstate@alpha`). It is a major release that simplifies the authoring experience and unifies actions, guards, and transitions under a single **inline function** model. Most v5 concepts still exist - they are expressed differently.
+XState v6 is currently in beta (`npm install xstate@beta`). It is a major release that simplifies the authoring experience and unifies actions, guards, and transitions under a single **inline function** model. Most v5 concepts still exist - they are expressed differently.
 
 This guide is organized by area. Skim the **Quick reference** below, then jump to the sections relevant to your codebase. Upgrade one machine at a time and run its tests after each change. To install v6 next to v5 and to automate part of the migration, see [§27](#27-codemod-and-side-by-side-installs).
 
@@ -558,7 +558,7 @@ const machine = s.createMachine({
   initial: { target: 'loading', input: { userId: 'u1' } },
   states: { loading },
   on: {
-    LOAD: '.loading'
+    LOAD: { target: '.loading', input: { userId: 'u1' } }
   }
 });
 ```
@@ -921,7 +921,7 @@ const machine = createMachine({
         START: (_, enq) => {
           enq.raise({ type: 'tick' });
         },
-        tick: 'done'
+        tick: { target: 'done' }
       }
     },
     done: {}
@@ -1208,7 +1208,7 @@ Child actors, async logic with effects, and listener-resume semantics are all pa
 
 ### Persisted format
 
-`getPersistedSnapshot()` returns a JSON-shaped object, and `createActor(machine, { snapshot })` restores it leniently: the snapshot has no format version field, and XState reads the fields it recognizes. Snapshots persisted by v6 alphas restore without a migration step when the machine's states still resolve. Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below.
+`getPersistedSnapshot()` returns a JSON-shaped object, and `createActor(machine, { snapshot })` restores it leniently: the snapshot has no format version field, and XState reads the fields it recognizes. Snapshots persisted by v6 alphas do not restore unchanged: the beta changed the actor ref marker, the `timers` shape, the timer `startedAt` field (now `scheduledAt`) and several built-in event types. Discard alpha snapshots or convert them before restoring; see [Names changed during the v6 prereleases](#29-names-changed-during-the-v6-prereleases). Changes to your own states, context, and children are versioned with the machine `version` and migrated with `machineVersions()`, described below.
 
 The host serializes the payload. Development builds warn when `context`, `output`, `error`, or state input holds a value that does not survive a JSON round-trip: functions, symbols, `BigInt`, `Map`, `Set`, cycles, `NaN`, and `Infinity`. Persisting a snapshot whose `context` contains a circular reference throws an error that names the actor and the context path. See [Persistence](persistence.md) for the format rules.
 
@@ -1219,7 +1219,7 @@ Actor refs in persisted `context` are stored as `{ "$actor": "<address>" }`. v5 
 A machine may declare an `id` and `version`. When set, they are stamped onto every
 persisted snapshot as `machine: { id, version }` (and survive `JSON.stringify`), so
 a rollout can detect and migrate older snapshots instead of feeding them to an
-incompatible machine. The legacy top-level `version` is also retained:
+incompatible machine. Persisted snapshots have no top-level `version` field:
 
 ```ts
 const machine = createMachine({
@@ -1229,11 +1229,11 @@ const machine = createMachine({
 });
 
 const persisted = actor.getPersistedSnapshot();
-(persisted as any).version; // '1'
 (persisted as any).machine; // { id: '(machine)', version: '1' }
+(persisted as any).version; // undefined
 ```
 
-Machines without a `version` produce snapshots with no `version` key.
+Machines without a `version` produce snapshots with no `machine` key.
 
 Pass `{ id, version, snapshotSchema, eventSchema }` to retain Standard Schema
 contracts for a historical version without retaining its old executable machine.
@@ -1536,8 +1536,8 @@ A failed child reaches its parent as an `xstate.error.actor` event with `actorId
 The `@xstate/codemod` package provides the `xstate-codemod` CLI. Review the changes with `--dry`, then run it again without `--dry` to write them:
 
 ```bash
-npx @xstate/codemod migrate "src/**/*.ts" --dry
-npx @xstate/codemod migrate "src/**/*.ts"
+npx @xstate/codemod@beta migrate "src/**/*.ts" --dry
+npx @xstate/codemod@beta migrate "src/**/*.ts"
 ```
 
 It runs these transforms in order. `--transform name,name` selects a subset.
@@ -1558,17 +1558,17 @@ The codemod does not convert action creators or guard combinators. Rewrite each 
 Install v6 under an npm alias next to v5:
 
 ```bash
-npm install xstate-v6@npm:xstate@alpha
+npm install xstate-v6@npm:xstate@beta
 ```
 
-`package.json` then lists `"xstate-v6": "npm:xstate@^6.0.0-alpha.<n>"` next to `"xstate"`. Import each version by its package name:
+`package.json` then lists `"xstate-v6": "npm:xstate@^6.0.0-beta.<n>"` next to `"xstate"`. Import each version by its package name:
 
 ```ts
 import { createMachine as createV5Machine } from 'xstate';
 import { createMachine } from 'xstate-v6';
 ```
 
-Migrate one file at a time: run the codemod on it, finish the manual changes, then change its `'xstate'` imports to `'xstate-v6'`. When no v5 imports remain, remove the alias and install `xstate@alpha` as `xstate`.
+Migrate one file at a time: run the codemod on it, finish the manual changes, then change its `'xstate'` imports to `'xstate-v6'`. When no v5 imports remain, remove the alias and install `xstate@beta` as `xstate`.
 
 ---
 
@@ -1715,7 +1715,7 @@ const machine = createMachine({
           enq.raise({ type: 'DONE' });
           return { context: { count: 0 } };
         },
-        DONE: 'finished'
+        DONE: { target: 'finished' }
       }
     },
     finished: { type: 'final' }
