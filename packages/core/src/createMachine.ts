@@ -34,6 +34,7 @@ import {
   ValidateEventDescriptors,
   ValidateHistoryDefaults,
   ValidateInvokeInputs,
+  ValidateVersionedMachineId,
   ValidateStateTargets,
   ValidateTopLevelFinalOutputs,
   WidenLiterals,
@@ -144,6 +145,7 @@ export function createMachine<
     ValidateDelayReferences<TSS> &
     ValidateHistoryDefaults<TSS> &
     ValidateInvokeInputs<TSS> &
+    ValidateVersionedMachineId<TSS> &
     ValidateStateTargets<TSS> &
     ValidateEventDescriptors<
       TSS,
@@ -262,6 +264,7 @@ export function createMachine<
     ValidateDelayReferences<TSS> &
     ValidateHistoryDefaults<TSS> &
     ValidateInvokeInputs<TSS> &
+    ValidateVersionedMachineId<TSS> &
     ValidateStateTargets<TSS> &
     ValidateEventDescriptors<
       TSS,

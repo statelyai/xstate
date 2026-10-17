@@ -73,7 +73,7 @@ These envelope fields are stable across 6.x releases: `status`, `value`, `contex
 
 Later 6.x releases may add new optional fields to the envelope, to `children` entries and to `timers` entries. Code that reads or validates persisted snapshots must ignore fields it does not recognize. The JSON Schema allows unknown fields on these objects.
 
-Changes to your own machine are handled with `machine.version`: migrate stored snapshots with `migrate` or `machineVersions().migrateSnapshot()`. See [Migrate machine versions](#migrate-machine-versions).
+Changes to your own machine are handled with `machine.version`: migrate stored snapshots with `migrate` or `machineVersions().migrateSnapshot()`. A machine that declares `version` must also declare `id`; persisted snapshots record both as `machine: { id, version }`. See [Migrate machine versions](#migrate-machine-versions).
 
 ### Payload values
 

@@ -102,6 +102,7 @@ import {
   ValidateEventDescriptors,
   ValidateHistoryDefaults,
   ValidateInvokeInputs,
+  ValidateVersionedMachineId,
   ValidateStateTargets,
   WithDefault
 } from './types.v6.ts';
@@ -5052,7 +5053,11 @@ export interface SetupReturn<
         TSystemRegistry,
         MergeSourceMaps<TSetupActorMap, TActorMap>
       > &
-      ValidateInvokeInputs<TConfig, MergeSourceMaps<TSetupActorMap, TActorMap>>
+      ValidateInvokeInputs<
+        TConfig,
+        MergeSourceMaps<TSetupActorMap, TActorMap>
+      > &
+      ValidateVersionedMachineId<TConfig>
   ): [TConfig] extends [never]
     ? AnyStateMachine
     : StateMachine<

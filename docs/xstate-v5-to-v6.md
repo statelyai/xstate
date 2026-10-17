@@ -1223,21 +1223,21 @@ Actor refs in persisted `context` are stored as `{ "$actor": "<address>" }`. v5 
 
 ### Snapshot versioning
 
-A machine may declare an `id` and `version`. When set, they are stamped onto every
-persisted snapshot as `machine: { id, version }` (and survive `JSON.stringify`), so
+A machine may declare a `version`, which requires an `id`: `createMachine({ version: '1' })` is a type error and throws `Machine with version '1' must declare an id.` A versioned machine stamps every
+persisted snapshot with `machine: { id, version }` (which survives `JSON.stringify`), so
 a rollout can detect and migrate older snapshots instead of feeding them to an
-incompatible machine. The legacy top-level `version` is also retained:
+incompatible machine:
 
 ```ts
 const machine = createMachine({
+  id: 'order',
   version: '1',
   initial: 'a',
   states: { a: {} }
 });
 
 const persisted = actor.getPersistedSnapshot();
-(persisted as any).version; // '1'
-(persisted as any).machine; // { id: '(machine)', version: '1' }
+(persisted as any).machine; // { id: 'order', version: '1' }
 ```
 
 Machines without a `version` produce snapshots with no `version` key.

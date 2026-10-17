@@ -410,6 +410,12 @@ export class StateMachine<
     sources?: Sources,
     public validator?: ActorLogicValidator
   ) {
+    if (config.version !== undefined && !config.id) {
+      // Persisted snapshots record `{ id, version }`; a version needs an id.
+      throw new Error(
+        `Machine with version '${config.version}' must declare an id.`
+      );
+    }
     this.id = (config.id ?? '') as typeof this.id;
     this.sources = {
       actors: config.actors ?? {},

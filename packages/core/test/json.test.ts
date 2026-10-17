@@ -37,6 +37,7 @@ describe('json', () => {
   it('should serialize the machine', () => {
     const machine = machineFromJSON(
       {
+        id: 'machine',
         initial: 'foo',
         version: '1.0.0',
         context: {

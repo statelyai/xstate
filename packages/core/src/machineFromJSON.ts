@@ -159,10 +159,17 @@ export interface StateNodeJSON {
   context?: Record<string, unknown>;
 }
 
-/** @public */
-export interface MachineJSON extends StateNodeJSON {
+/**
+ * A JSON machine definition. A definition with a `version` must also have an
+ * `id`: persisted snapshots record the machine's `{ id, version }`.
+ *
+ * @public
+ */
+export type MachineJSON = MachineJSONDefinition &
+  ({ id: string; version: string } | { version?: undefined });
+
+interface MachineJSONDefinition extends StateNodeJSON {
   '@exprLang'?: string;
-  version?: string;
   actions?: Record<string, ActionJSON | ActionJSON[]>;
   guards?: Record<string, { when: ConditionJSON }>;
   actors?: Record<string, unknown>;

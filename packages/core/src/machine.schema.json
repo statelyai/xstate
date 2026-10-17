@@ -388,6 +388,10 @@
       ],
       "additionalProperties": true
     },
-    "machine": { "$ref": "#/$defs/stateNode" }
+    "machine": {
+      "allOf": [{ "$ref": "#/$defs/stateNode" }],
+      "description": "A machine with a version must declare an id.",
+      "dependencies": { "version": ["id"] }
+    }
   }
 }

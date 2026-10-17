@@ -179,7 +179,11 @@ const typedHistory = createMachine({
     internalEvents: { PRIVATE: types<{ secret: string }>() }
   }
 });
-const typedTarget = createMachine({ ...typedHistory.config, version: '2' });
+const typedTarget = createMachine({
+  ...typedHistory.config,
+  id: 'typed',
+  version: '2'
+});
 void machineVersions([typedHistory, typedTarget]).adaptEvents([], {
   from: { id: 'typed', version: '1' },
   to: '2',

@@ -3,6 +3,7 @@ import { createActor, createMachine } from '../src';
 describe('persisted snapshot versioning', () => {
   it('stamps the machine version on persisted snapshots', () => {
     const machine = createMachine({
+      id: 'machine',
       version: '1',
       initial: 'a',
       states: { a: {} }
@@ -12,7 +13,7 @@ describe('persisted snapshot versioning', () => {
     const persisted = actor.getPersistedSnapshot();
 
     expect((persisted as any).machine).toEqual({
-      id: '',
+      id: 'machine',
       version: '1'
     });
     expect(persisted).not.toHaveProperty('version');
@@ -32,6 +33,7 @@ describe('persisted snapshot versioning', () => {
 
   it('restores a snapshot with a matching version', () => {
     const machine = createMachine({
+      id: 'machine',
       version: '1',
       initial: 'a',
       states: { a: { on: { NEXT: { target: 'b' } } }, b: {} }
@@ -88,11 +90,13 @@ describe('persisted snapshot versioning', () => {
 
   it('errors when restoring a version-mismatched snapshot without a migrate function', () => {
     const machineV1 = createMachine({
+      id: 'machine',
       version: '1',
       initial: 'a',
       states: { a: {} }
     });
     const machineV2 = createMachine({
+      id: 'machine',
       version: '2',
       initial: 'a',
       states: { a: {} }
@@ -113,6 +117,7 @@ describe('persisted snapshot versioning', () => {
 
   it('migrates a version-mismatched snapshot with the `migrate` function', () => {
     const machineV1 = createMachine({
+      id: 'machine',
       version: '1',
       context: { count: 5 },
       initial: 'a',
@@ -129,6 +134,7 @@ describe('persisted snapshot versioning', () => {
     });
 
     const machineV2 = createMachine({
+      id: 'machine',
       version: '2',
       migrate,
       context: { total: 0 },
@@ -178,12 +184,14 @@ describe('persisted snapshot versioning', () => {
 
   it('migrates an unversioned snapshot (fromVersion is undefined)', () => {
     const legacyMachine = createMachine({
+      id: 'machine',
       context: { count: 3 },
       initial: 'a',
       states: { a: {} }
     });
 
     const machineV1 = createMachine({
+      id: 'machine',
       version: '1',
       migrate: (persisted: any, fromVersion) => {
         expect(fromVersion).toBeUndefined();

@@ -2930,11 +2930,13 @@ describe('transition function', () => {
 describe('getNextTransitions', () => {
   it('should return no transitions for an error snapshot', () => {
     const machineV1 = createMachine({
+      id: 'machine',
       version: '1',
       initial: 'a',
       states: { a: {} }
     });
     const machineV2 = createMachine({
+      id: 'machine',
       version: '2',
       initial: 'a',
       states: { a: {} }

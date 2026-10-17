@@ -2004,6 +2004,22 @@ export type ValidateInvokeInputs<
     ? MissingInvokeInputErrors<TConfig, TActorMap>
     : unknown;
 
+/** @public Error shown on a machine config that has a `version` but no `id`. */
+export type MissingVersionedMachineIdError =
+  'A machine with a `version` must declare an `id`.';
+
+/**
+ * @public Requires an `id` on machine configs that declare a `version`:
+ * persisted snapshots record the machine's `{ id, version }`.
+ */
+export type ValidateVersionedMachineId<TConfig> = [0] extends [1 & TConfig]
+  ? unknown
+  : TConfig extends { version: string }
+    ? TConfig extends { id: string }
+      ? unknown
+      : { id: MissingVersionedMachineIdError }
+    : unknown;
+
 type StatePath = readonly string[];
 
 type AppendStatePath<TPrefix extends StatePath, TKey extends string> = [

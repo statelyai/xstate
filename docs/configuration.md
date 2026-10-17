@@ -43,7 +43,7 @@ The root of a machine is a state node. It accepts everything a [state node](#sta
 | `guards` | `Record<string, (...params) => boolean>` | Named guard sources. See [guards](guards.md). |
 | `actors` | `Record<string, ActorLogic>` | Named actor logic sources. See [invoke](invoke.md). |
 | `delays` | `Record<string, number \| (args) => number>` | Named delay sources. See [delays](delays.md). |
-| `version` | `string` | The machine's own version, stamped onto persisted snapshots. See [persistence](persistence.md). |
+| `version` | `string` | The machine's own version, stamped onto persisted snapshots with the machine `id`. Requires `id`. See [persistence](persistence.md). |
 | `migrate` | `(persistedSnapshot, fromVersion) => unknown` | Upgrades a persisted snapshot whose `version` does not match. Restoring a mismatched snapshot without it throws. |
 | `meta` | `object` | Metadata for the root state node. Must match `schemas.meta`. |
 | `tags` | `string[]` | Tags for the root state node. Must match `schemas.tags`. |
