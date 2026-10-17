@@ -19,8 +19,7 @@ import type {
   Observer,
   OutputArg,
   StateLike,
-  StateValue,
-  TransitionConfigTarget
+  StateValue
 } from './types.ts';
 import type { NonReducibleUnknown, SingleOrArray } from './typeUtils.ts';
 
@@ -276,17 +275,26 @@ export function isErrorEvent(event: AnyEventObject): event is ErrorEvent {
   return event.type.startsWith('xstate.error.');
 }
 
+/**
+ * Normalizes authored transitions to config objects. A bare string target is
+ * rejected (the types and `machineFromJSON` reject it too): `name` and
+ * `stateId` locate it in the error.
+ */
 export function toTransitionConfigArray(
-  configLike: SingleOrArray<
-    AnyTransitionConfig | TransitionConfigTarget | AnyTransitionConfigFunction
-  >
+  configLike: SingleOrArray<AnyTransitionConfig | AnyTransitionConfigFunction>,
+  name: string,
+  stateId: string
 ): Array<AnyTransitionConfig> {
   return toArrayStrict(configLike).map((transitionLike) => {
-    if (
-      typeof transitionLike === 'undefined' ||
-      typeof transitionLike === 'string'
-    ) {
-      return { target: transitionLike };
+    // Untyped (JS or JSON-parsed) configs can still contain a string.
+    const value: unknown = transitionLike;
+    if (typeof value === 'string') {
+      throw new Error(
+        `Transition for "${name}" in ${stateId ? `state "${stateId}"` : 'the root state'} is the string "${value}". Use { target: '${value}' }. The @xstate/codemod string-targets transform rewrites these.`
+      );
+    }
+    if (typeof transitionLike === 'undefined') {
+      return { target: undefined };
     }
 
     if (typeof transitionLike === 'function') {

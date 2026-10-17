@@ -532,7 +532,10 @@ it.each(['__proto__', 'constructor', 'toString'])(
       JSON.parse(
         JSON.stringify({
           initial: key,
-          states: { [key]: { on: { GO: 'done' } }, done: { type: 'final' } }
+          states: {
+            [key]: { on: { GO: { target: 'done' } } },
+            done: { type: 'final' }
+          }
         })
       )
     );

@@ -409,6 +409,8 @@ export function getDelayedTransitions(
     delay: any;
     transitions: unknown;
     fromDelaysMap: boolean;
+    /** Where the transitions are authored, for error messages. */
+    name: string;
   }> = [];
 
   if (afterConfig) {
@@ -418,7 +420,8 @@ export function getDelayedTransitions(
         event: createAfterEvent(delay, stateNode.id),
         delay,
         transitions: afterConfig[key],
-        fromDelaysMap: true
+        fromDelaysMap: true,
+        name: `after.${key}`
       });
     }
   }
@@ -428,7 +431,8 @@ export function getDelayedTransitions(
       event: createTimeoutEvent(stateNode.id),
       delay: timeoutConfig,
       transitions: onTimeoutConfig,
-      fromDelaysMap: true
+      fromDelaysMap: true,
+      name: 'onTimeout'
     });
   }
 
@@ -444,7 +448,8 @@ export function getDelayedTransitions(
         matchesActorSession(event, snapshot, invokeDef.id),
       delay: invokeDef.timeout!,
       transitions: invokeDef.onTimeout,
-      fromDelaysMap: false
+      fromDelaysMap: false,
+      name: 'invoke.onTimeout'
     });
   }
 
@@ -468,7 +473,8 @@ export function getDelayedTransitions(
     eventMatcher,
     delay,
     transitions,
-    fromDelaysMap
+    fromDelaysMap,
+    name
   } of sources) {
     scheduleDelayedEvent(stateNode, event, resolveEvent ?? (() => event), (x) =>
       resolveDelay(delay, fromDelaysMap ? x.delays : {}, {
@@ -479,7 +485,11 @@ export function getDelayedTransitions(
       })
     );
     const { type: eventType, ...eventPattern } = event;
-    for (const transition of toTransitionConfigArray(transitions as any)) {
+    for (const transition of toTransitionConfigArray(
+      transitions as any,
+      name,
+      stateNode.id
+    )) {
       delayedTransitions.push({
         ...transition,
         matches: {

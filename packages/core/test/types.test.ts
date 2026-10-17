@@ -1449,18 +1449,20 @@ describe('events', () => {
   });
 
   it('should reject string target shorthand in transition configs', () => {
-    createMachine({
-      initial: 'a',
-      // @ts-expect-error
-      states: {
-        a: {
-          on: {
-            NEXT: 'b'
-          }
-        },
-        b: {}
-      }
-    });
+    expect(() =>
+      createMachine({
+        initial: 'a',
+        // @ts-expect-error
+        states: {
+          a: {
+            on: {
+              NEXT: 'b'
+            }
+          },
+          b: {}
+        }
+      })
+    ).toThrow('is the string "b"');
   });
 
   it('should reject transition arrays in authored machine configs', () => {
