@@ -20,7 +20,6 @@ export type PersistedMachineSnapshot = {
   _nextTimerId?: number;
   stateInputs?: Record<string, Record<string, unknown>>;
   machine?: { id: string; version: string };
-  version?: string;
   [key: string]: unknown;
 };
 

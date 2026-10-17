@@ -232,10 +232,7 @@ function hasEventSchema(
   return 'eventSchema' in entry && entry.eventSchema !== undefined;
 }
 
-function getSnapshotSource(
-  raw: unknown,
-  defaultId: string
-): PersistedSnapshotSource {
+function getSnapshotSource(raw: unknown): PersistedSnapshotSource {
   if (!isObject(raw)) {
     return {};
   }
@@ -248,10 +245,7 @@ function getSnapshotSource(
           : undefined
     };
   }
-  return {
-    id: typeof raw.version === 'string' ? defaultId : undefined,
-    version: typeof raw.version === 'string' ? raw.version : undefined
-  };
+  return {};
 }
 
 async function validate(
@@ -566,10 +560,7 @@ export function machineVersions<
         throw parseError;
       }
 
-      const snapshot = await wildcardMigration(
-        raw,
-        getSnapshotSource(raw, machineId)
-      );
+      const snapshot = await wildcardMigration(raw, getSnapshotSource(raw));
       return finalizeSnapshot(snapshot, target);
     }
   };
