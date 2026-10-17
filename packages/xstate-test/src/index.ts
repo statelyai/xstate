@@ -15,7 +15,6 @@ export {
   ReplayNotReproducedError,
   TestCampaignError,
   assertTestCoverage,
-  checkLinearizable,
   describeTestSuite,
   formatTestCoverage,
   formatTestCoverageHTML,
@@ -25,23 +24,13 @@ export {
   replayTest,
   replayTestSuite,
   replayTestSuiteFixture,
-  runParallelPropertyCommands,
   testSuiteToJSON,
-  serializeTestTrace,
   testCoverageToJSON,
   type AnyTestEventDescriptor,
   type DescribeTestSuiteOptions,
   type FormatTestCoverageHTMLOptions,
   type FormatTestCoverageJUnitOptions,
   type FormatTestCoverageOptions,
-  type LinearizabilityEntry,
-  type LinearizabilityModel,
-  type LinearizabilityOptions,
-  type LinearizabilityResult,
-  type ParallelPropertyCommandsOptions,
-  type ParallelPropertyCommandsResult,
-  type PropertyExecutionConfig,
-  type PropertyTargetObservation,
   type ReplayTestSuiteOptions,
   type TestActorOutcome,
   type TestAdapter,
@@ -89,7 +78,6 @@ export {
   type FastCheckTestPathsOptions
 } from './propertyTest.ts';
 export {
-  extractReplayPath,
   fastCheckAdapter,
   type FastCheckAdapterOptions,
   type FastCheckGeneratorKind,
@@ -102,11 +90,6 @@ export {
   type TestFailureStoreOptions,
   type FailuresOption
 } from './failures.ts';
-export {
-  getCurrentScheduler,
-  withScheduledReference,
-  withScheduledSut
-} from './scheduler.ts';
 export {
   arbitraryFromSchema,
   eventsFromSchemas,
