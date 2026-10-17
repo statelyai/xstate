@@ -288,17 +288,17 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow'
+        TIMER: { target: 'yellow' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
       on: {
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       }
     }
   }
@@ -347,12 +347,12 @@ const pedestrianStates = {
   states: {
     walk: {
       on: {
-        PED_TIMER: 'wait'
+        PED_TIMER: { target: 'wait' }
       }
     },
     wait: {
       on: {
-        PED_TIMER: 'stop'
+        PED_TIMER: { target: 'stop' }
       }
     },
     stop: {}
@@ -365,17 +365,17 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow'
+        TIMER: { target: 'yellow' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
       on: {
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       },
       ...pedestrianStates
     }
@@ -433,10 +433,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_BOLD: 'off' }
+          on: { TOGGLE_BOLD: { target: 'off' } }
         },
         off: {
-          on: { TOGGLE_BOLD: 'on' }
+          on: { TOGGLE_BOLD: { target: 'on' } }
         }
       }
     },
@@ -444,10 +444,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_UNDERLINE: 'off' }
+          on: { TOGGLE_UNDERLINE: { target: 'off' } }
         },
         off: {
-          on: { TOGGLE_UNDERLINE: 'on' }
+          on: { TOGGLE_UNDERLINE: { target: 'on' } }
         }
       }
     },
@@ -455,10 +455,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_ITALICS: 'off' }
+          on: { TOGGLE_ITALICS: { target: 'off' } }
         },
         off: {
-          on: { TOGGLE_ITALICS: 'on' }
+          on: { TOGGLE_ITALICS: { target: 'on' } }
         }
       }
     },
@@ -467,20 +467,20 @@ const wordMachine = createMachine({
       states: {
         none: {
           on: {
-            BULLETS: 'bullets',
-            NUMBERS: 'numbers'
+            BULLETS: { target: 'bullets' },
+            NUMBERS: { target: 'numbers' }
           }
         },
         bullets: {
           on: {
-            NONE: 'none',
-            NUMBERS: 'numbers'
+            NONE: { target: 'none' },
+            NUMBERS: { target: 'numbers' }
           }
         },
         numbers: {
           on: {
-            BULLETS: 'bullets',
-            NONE: 'none'
+            BULLETS: { target: 'bullets' },
+            NONE: { target: 'none' }
           }
         }
       }
@@ -551,20 +551,20 @@ const paymentMachine = createMachine({
       states: {
         cash: {
           on: {
-            SWITCH_CHECK: 'check'
+            SWITCH_CHECK: { target: 'check' }
           }
         },
         check: {
           on: {
-            SWITCH_CASH: 'cash'
+            SWITCH_CASH: { target: 'cash' }
           }
         },
-        hist: { type: 'history' }
+        hist: { type: 'history', target: 'cash' }
       },
-      on: { NEXT: 'review' }
+      on: { NEXT: { target: 'review' } }
     },
     review: {
-      on: { PREVIOUS: 'method.hist' }
+      on: { PREVIOUS: { target: 'method.hist' } }
     }
   }
 });

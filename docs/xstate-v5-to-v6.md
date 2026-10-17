@@ -558,7 +558,7 @@ const machine = s.createMachine({
   initial: { target: 'loading', input: { userId: 'u1' } },
   states: { loading },
   on: {
-    LOAD: '.loading'
+    LOAD: { target: '.loading', input: { userId: 'u1' } }
   }
 });
 ```
@@ -921,7 +921,7 @@ const machine = createMachine({
         START: (_, enq) => {
           enq.raise({ type: 'tick' });
         },
-        tick: 'done'
+        tick: { target: 'done' }
       }
     },
     done: {}
@@ -1715,7 +1715,7 @@ const machine = createMachine({
           enq.raise({ type: 'DONE' });
           return { context: { count: 0 } };
         },
-        DONE: 'finished'
+        DONE: { target: 'finished' }
       }
     },
     finished: { type: 'final' }
